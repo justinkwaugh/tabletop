@@ -29,7 +29,11 @@
 </script>
 
 {#if panel}
-    <g transform="translate({panel.x} {panel.y})" aria-label="{layout.spec.title} rules">
+    <g
+        transform="translate({panel.x} {panel.y})"
+        aria-label="{layout.spec.title} rules"
+        text-rendering="geometricPrecision"
+    >
         <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
         <text x={panel.width / 2} y="22" class="title">{layout.spec.title} Rules</text>
         <text x={panel.width / 2} y="38" class="subtitle"
@@ -55,7 +59,7 @@
     }
 
     .title {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 16px;
         font-weight: 700;
         fill: #18222f;
@@ -63,7 +67,7 @@
     }
 
     .subtitle {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 11px;
         font-style: italic;
         fill: #2f445c;
@@ -77,7 +81,7 @@
 
     .bullet,
     .body {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 12px;
         fill: #18222f;
     }

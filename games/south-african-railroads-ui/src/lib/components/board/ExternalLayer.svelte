@@ -124,7 +124,7 @@
     }
 
     .name {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 14px;
         font-weight: 700;
         font-style: italic;
@@ -132,7 +132,7 @@
     }
 
     .terms {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 11.5px;
         font-style: italic;
         fill: #2b3d53;

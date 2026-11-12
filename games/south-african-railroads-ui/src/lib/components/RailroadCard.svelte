@@ -24,6 +24,7 @@
     const definition = $derived(map.railroad(railroadId))
     const style = $derived(RAILROAD_STYLE[railroadId])
     const railroad = $derived(gameSession.gameState.railroad(railroadId))
+    const open = $derived(gameSession.gameState.isOpen(railroadId))
     const sharesLeft = $derived(gameSession.gameState.unsoldShares(railroadId))
 
     function choose() {
@@ -74,7 +75,7 @@
                 </span>
             {/if}
         </div>
-        {#if railroad.open}
+        {#if open}
             <div class="rows">
                 <div class="entry" title="Income: the settlements along its track">
                     <span>Income</span><span class="money"
@@ -117,7 +118,7 @@
     <div
         class="card choosable"
         class:selected
-        class:closed={!railroad.open}
+        class:closed={!open}
         role="button"
         tabindex="0"
         aria-label={choice === 'offer'
@@ -134,7 +135,7 @@
         {@render body()}
     </div>
 {:else}
-    <div class="card" class:selected class:closed={!railroad.open}>
+    <div class="card" class:selected class:closed={!open}>
         {@render body()}
     </div>
 {/if}
@@ -179,7 +180,7 @@
         align-items: center;
         justify-content: space-between;
         padding-left: 8px;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-weight: 700;
     }
 
@@ -305,7 +306,7 @@
         flex: 1;
         align-items: center;
         padding: 0 8px;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 11px;
         font-style: italic;
         color: #2f445c;

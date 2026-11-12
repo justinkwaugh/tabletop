@@ -8,7 +8,11 @@
     const rounds = $derived(gameSession.gameState.rounds())
 </script>
 
-<g transform="translate({panel.x} {panel.y})" aria-label="Final payoff">
+<g
+    transform="translate({panel.x} {panel.y})"
+    aria-label="Final payoff"
+    text-rendering="geometricPrecision"
+>
     <title>Paid instead of the {rounds}th dividend; the game then ends</title>
     <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
     <text x={panel.width / 2} y="24" class="title">Final Payoff</text>
@@ -42,7 +46,7 @@
     }
 
     .body {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 13.5px;
         font-style: italic;
         fill: #28394d;

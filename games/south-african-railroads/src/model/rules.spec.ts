@@ -92,7 +92,7 @@ describe('the initial offering', () => {
         const state = hydrate(afterInitialOffering())
         expect(state.railroad(RailroadId.CdFM).owners).toEqual(['a'])
         expect(state.railroad(RailroadId.CMRC).owners).toEqual(['a'])
-        expect(state.railroad(RailroadId.ZASM).open).toBe(false)
+        expect(state.isOpen(RailroadId.ZASM)).toBe(false)
         expect(state.activePlayerIds).toEqual(['a'])
     })
 
@@ -232,7 +232,7 @@ describe('choosing an action', () => {
 
     it('ends the turn of an action with nothing to do', () => {
         const state = afterInitialOffering()
-        for (const railroad of state.railroads.filter((candidate) => candidate.open)) {
+        for (const railroad of state.railroads.filter((candidate) => candidate.owners.length > 0)) {
             railroad.owners = ['b', 'b', 'b', 'b', 'b']
         }
         const after = hydrate(
@@ -464,8 +464,7 @@ describe('auctions', () => {
         openShareAuction(state, {
             kind: AuctionKind.OfferStock,
             railroadId: RailroadId.CdFM,
-            openerId: 'c',
-            minimum: 0
+            openerId: 'c'
         })
         expect(state.bidding().remainingPlayerIds).toEqual(['c', 'd', 'a', 'b'])
     })
@@ -543,7 +542,7 @@ describe('the map', () => {
         const state = hydrate(afterInitialOffering())
         expect(state.railroadOpenedBy(['johannesburg~witbank'])).toBe(RailroadId.ZASM)
         expect(state.railroadOpenedBy(['belfast~witbank'])).toBeUndefined()
-        state.railroad(RailroadId.ZASM).open = true
+        state.railroad(RailroadId.ZASM).owners = ['a']
         expect(state.railroadOpenedBy(['johannesburg~witbank'])).toBeUndefined()
     })
 })

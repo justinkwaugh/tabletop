@@ -43,11 +43,6 @@
     </div>
 
     <div class="buttons text-[18px] max-sm:text-[14px]">
-        {#if gameSession.hasManualSelection() || gameSession.undoableAction}
-            <button type="button" onclick={() => gameSession.undo()} class="header-button"
-                >UNDO</button
-            >
-        {/if}
         {#if hasRules}
             <button
                 type="button"
@@ -56,6 +51,11 @@
                 aria-label="Map rules"
                 aria-expanded={gameSession.rulesOpen}
                 onclick={() => gameSession.toggleRules()}>?</button
+            >
+        {/if}
+        {#if gameSession.hasLocalSelection || gameSession.undoableAction}
+            <button type="button" onclick={() => gameSession.undo()} class="header-button"
+                >UNDO</button
             >
         {/if}
     </div>

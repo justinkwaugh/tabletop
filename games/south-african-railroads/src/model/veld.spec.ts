@@ -183,7 +183,6 @@ describe('the Veld Railroads ZASM', () => {
     it('pays double until its track meets another railroad’s', () => {
         const state = hydrate(afterInitialOffering())
         const zasm = state.railroad(RailroadId.ZASM)
-        zasm.open = true
         zasm.owners = ['a']
         zasm.treasury = 50
         state.track.push({ linkId: 'johannesburg~pretoria', railroadId: RailroadId.ZASM })
@@ -197,7 +196,6 @@ describe('the Veld Railroads ZASM', () => {
     it('earns a special dividend when its track first meets another’s, while none reaches Johannesburg', () => {
         let state = cdfmBesideJohannesburg(afterInitialOffering())
         const zasm = railroad(state, RailroadId.ZASM)
-        zasm.open = true
         zasm.owners = ['b']
         state.track.push({ linkId: 'johannesburg~magaliesburg', railroadId: RailroadId.ZASM })
         state = run(state, { type: ActionType.ChooseAction, box: ActionBox.ConstructTrack })
@@ -229,7 +227,7 @@ describe('the Veld Railroads war and recovery', () => {
         )
         state.dividendsPaid = 3
         const zasm = state.railroad(RailroadId.ZASM)
-        zasm.open = true
+        zasm.owners = ['a']
         zasm.treasury = 50
         state.track.push({ linkId: 'bethal~johannesburg', railroadId: RailroadId.ZASM })
         expect(state.singleBuilds(RailroadId.ZASM)).toEqual([])

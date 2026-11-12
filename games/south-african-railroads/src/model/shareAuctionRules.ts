@@ -19,14 +19,12 @@ export function openShareAuction(
         kind,
         railroadId,
         openerId,
-        sellerId,
-        minimum
+        sellerId
     }: {
         kind: AuctionKind
         railroadId: RailroadId
         openerId: string
         sellerId?: string
-        minimum: number
     }
 ): string[] {
     const seatOrder = turnOrderFrom(state.turnManager.turnOrder, openerId).filter(
@@ -36,7 +34,6 @@ export function openShareAuction(
         kind,
         railroadId,
         sellerId,
-        minimum,
         bidding: PassableBidding.openWithoutBid(`${railroadId}-${state.actionCount}`, seatOrder)
     }
     return withdrawUnableBidders(state)
@@ -118,7 +115,6 @@ function transferShare(state: HydratedSarGameState, sale: ShareSale) {
         railroad.treasury += sale.price
     }
     railroad.owners.push(buyerId)
-    railroad.open = true
     if (
         sale.kind === AuctionKind.InitialOffering &&
         sale.railroadId === state.map.definition.startPlayerRailroad

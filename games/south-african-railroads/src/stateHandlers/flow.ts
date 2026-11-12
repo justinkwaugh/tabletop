@@ -25,8 +25,7 @@ export function openRailroad(state: HydratedSarGameState, railroadId: RailroadId
     openShareAuction(state, {
         kind: AuctionKind.RailroadOpening,
         railroadId,
-        openerId: state.turnPlayerId(),
-        minimum: 0
+        openerId: state.turnPlayerId()
     })
     return MachineState.Bidding
 }
@@ -42,8 +41,7 @@ export function openNextInitialOffering(
     openShareAuction(state, {
         kind: AuctionKind.InitialOffering,
         railroadId,
-        openerId,
-        minimum: 0
+        openerId
     })
     return MachineState.Bidding
 }

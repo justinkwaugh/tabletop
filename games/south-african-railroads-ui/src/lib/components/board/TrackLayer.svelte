@@ -189,7 +189,7 @@
     }
 
     .gain {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 14px;
         font-weight: 700;
         fill: #10171f;

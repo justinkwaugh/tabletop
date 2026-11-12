@@ -45,7 +45,7 @@
         gap: 6px;
         padding: 8px 12px;
         color: #18222f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
     }
 
     h1 {

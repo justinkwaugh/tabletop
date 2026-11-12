@@ -26,7 +26,7 @@ import {
     ActionBox,
     boxCapacity
 } from './actionBoxes.js'
-import { ShareAuction } from './auction.js'
+import { ShareAuction, goesFreeToOpener } from './auction.js'
 import {
     developmentIncomeGains,
     developmentLevel,
@@ -72,7 +72,7 @@ export const SarGameState = Type.Object({
     actionTrack: Type.Number(),
     dividendsPaid: Type.Number(),
     developmentsThisTurn: Type.Number(),
-    // The northern and southern railroads that founded the map's special connection.
+    // The two railroads that founded the map's special connection: the founder, then its partner.
     specialConnection: Type.Optional(Type.Array(Type.Enum(RailroadId))),
     auction: Type.Optional(ShareAuction),
     freeBuild: Type.Optional(FreeBuildDue),
@@ -127,12 +127,17 @@ export class HydratedSarGameState
         return railroad
     }
 
+    // A railroad opens when its first share is sold.
+    isOpen(railroadId: RailroadId): boolean {
+        return this.railroad(railroadId).owners.length > 0
+    }
+
     openRailroads(): RailroadState[] {
-        return this.railroads.filter((railroad) => railroad.open)
+        return this.railroads.filter((railroad) => this.isOpen(railroad.id))
     }
 
     nextInitialOffering(): RailroadId | undefined {
-        return this.map.initialOffering.find((railroadId) => !this.railroad(railroadId).open)
+        return this.map.initialOffering.find((railroadId) => !this.isOpen(railroadId))
     }
 
     turnPlayerId(): string {
@@ -332,7 +337,7 @@ export class HydratedSarGameState
     // The metro railroad, closed, once its home's income reaches the opening level.
     railroadOpenedByIncome(): RailroadId | undefined {
         const metro = this.map.definition.metroRailroad
-        if (!metro || this.railroad(metro.railroadId).open) {
+        if (!metro || this.isOpen(metro.railroadId)) {
             return undefined
         }
         return this.settlementIncome(this.map.home(metro.railroadId)) >= metro.opensAtIncome
@@ -346,7 +351,7 @@ export class HydratedSarGameState
         if (
             !special ||
             this.specialConnection ||
-            !this.railroad(railroadId).open ||
+            !this.isOpen(railroadId) ||
             this.railroad(railroadId).treasury < special.cost
         ) {
             return []
@@ -359,7 +364,7 @@ export class HydratedSarGameState
         const network = railroadSettlements(this, railroadId)
         return partners.filter(
             (partnerId) =>
-                this.railroad(partnerId).open &&
+                this.isOpen(partnerId) &&
                 [...railroadSettlements(this, partnerId)].some((place) => network.has(place))
         )
     }
@@ -371,7 +376,7 @@ export class HydratedSarGameState
 
     canBuild(railroadId: RailroadId): boolean {
         return (
-            this.railroad(railroadId).open &&
+            this.isOpen(railroadId) &&
             (this.singleBuilds(railroadId).length > 0 ||
                 this.connectionBuilds(railroadId).length > 0 ||
                 this.specialConnectionPartners(railroadId).length > 0)
@@ -403,7 +408,7 @@ export class HydratedSarGameState
         return this.map.railroads.find(
             (railroad) =>
                 !this.map.opensInInitialOffering(railroad.id) &&
-                !this.railroad(railroad.id).open &&
+                !this.isOpen(railroad.id) &&
                 reached.has(railroad.homeId)
         )?.id
     }
@@ -497,11 +502,19 @@ export class HydratedSarGameState
         return new PassableBidding(auction.bidding)
     }
 
+    // Initial and opening offerings start at nothing; offered stock starts at a fifth of the
+    // railroad's value, which no build can change while the auction runs.
+    auctionMinimum(): number {
+        const auction = this.auction
+        assertExists(auction, 'No auction in progress')
+        return goesFreeToOpener(auction.kind) ? 0 : this.minimumBid(auction.railroadId)
+    }
+
     smallestBid(): number {
         const auction = this.auction
         assertExists(auction, 'No auction in progress')
         const bidding = new PassableBidding(auction.bidding)
-        return bidding.hasBid ? bidding.highBid + 1 : auction.minimum
+        return bidding.hasBid ? bidding.highBid + 1 : this.auctionMinimum()
     }
 
     unsoldOffers(): RailroadId[] {

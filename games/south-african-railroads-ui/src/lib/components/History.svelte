@@ -122,7 +122,7 @@
         flex-direction: column;
         gap: 6px;
         color: #18222f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 13px;
     }
 

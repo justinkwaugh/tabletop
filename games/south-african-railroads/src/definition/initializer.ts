@@ -70,7 +70,6 @@ export class SarGameInitializer
             turnManager,
             railroads: map.railroads.map((railroad) => ({
                 id: railroad.id,
-                open: false,
                 treasury: startingTreasury(map.definition.startingTreasuryRoll, railroad.id, prng),
                 owners: []
             })),
@@ -86,8 +85,7 @@ export class SarGameInitializer
         openShareAuction(hydrated, {
             kind: AuctionKind.InitialOffering,
             railroadId: map.initialOffering[0],
-            openerId,
-            minimum: 0
+            openerId
         })
         hydrated.activePlayerIds = [openerId]
         return hydrated

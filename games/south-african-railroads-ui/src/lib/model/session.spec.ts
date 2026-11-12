@@ -7,6 +7,7 @@ import {
     disposeSessions,
     firstTurnTable,
     initialOfferingTable,
+    leaveTownChoiceTable,
     openSessionOn
 } from '$lib/testing/sessionHarness.js'
 import type { SarGameSession } from './session.svelte.js'
@@ -17,7 +18,7 @@ afterEach(() => {
 })
 
 function spyOnActionUndo() {
-    return vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
+    return vi.spyOn(GameSession.prototype, 'undoCommittedAction').mockResolvedValue()
 }
 
 function buildTable() {
@@ -39,7 +40,7 @@ describe('building with a choice of railroads', () => {
         )
         expect(session.selectedRailroad).toBeUndefined()
         expect(session.linkTargets).toEqual([])
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
     })
 
     it('Undo steps back through the first link, then the railroad, before undoing an action', async () => {
@@ -55,7 +56,7 @@ describe('building with a choice of railroads', () => {
 
         await session.undo()
         expect(session.selectedRailroad).toBeUndefined()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(actionUndo).not.toHaveBeenCalled()
 
         await session.undo()
@@ -86,7 +87,7 @@ describe('building with a choice of railroads', () => {
         )
         expect(session.gameState.income(RailroadId.CSAR)).toBe(before)
 
-        session.cancelFirstLink()
+        await session.undo()
         expect(session.shownState).toBe(session.gameState)
     })
 
@@ -94,7 +95,7 @@ describe('building with a choice of railroads', () => {
         const session = openSessionOn(buildTable())
         session.selectRailroad(RailroadId.NRC)
         expect(session.selectedRailroad).toBeUndefined()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
     })
 })
 
@@ -127,5 +128,54 @@ describe('developing', () => {
             )
         }
         expect(session.developTargets.some((target) => target.gains.length > 0)).toBe(true)
+    })
+})
+
+describe('a settlement that may be developed or left', () => {
+    it('opens a picker beside it rather than acting on the press', async () => {
+        const { table, settlementId } = leaveTownChoiceTable()
+        const session = openSessionOn(table)
+        const apply = vi.spyOn(session, 'applyAction').mockResolvedValue(undefined)
+
+        await session.clickSettlement(settlementId)
+        expect(session.settlementChoice).toBe(settlementId)
+        expect(session.hasLocalSelection).toBe(true)
+        expect(apply).not.toHaveBeenCalled()
+
+        await session.clickSettlement(settlementId)
+        expect(session.settlementChoice).toBeUndefined()
+    })
+
+    it('Undo closes the picker before it undoes an action', async () => {
+        const { table, settlementId } = leaveTownChoiceTable()
+        const session = openSessionOn(table)
+        const actionUndo = spyOnActionUndo()
+
+        await session.clickSettlement(settlementId)
+        await session.undo()
+        expect(session.settlementChoice).toBeUndefined()
+        expect(actionUndo).not.toHaveBeenCalled()
+
+        await session.undo()
+        expect(actionUndo).toHaveBeenCalledTimes(1)
+    })
+
+    it('develops or leaves at once where the settlement offers only one', async () => {
+        const { table, settlementId } = leaveTownChoiceTable()
+        const session = openSessionOn(table)
+        const apply = vi.spyOn(session, 'applyAction').mockResolvedValue(undefined)
+        const developOnly = session.developTargets.find(
+            (target) => !session.leaveTownTargets.includes(target.settlementId)
+        )
+        assertExists(developOnly, 'Some settlement may only be developed')
+
+        await session.clickSettlement(developOnly.settlementId)
+        expect(session.settlementChoice).toBeUndefined()
+        expect(apply).toHaveBeenCalledTimes(1)
+        expect(apply.mock.calls[0][0]).toMatchObject({
+            type: 'Develop',
+            settlementId: developOnly.settlementId
+        })
+        expect(settlementId).not.toBe(developOnly.settlementId)
     })
 })

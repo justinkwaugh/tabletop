@@ -52,7 +52,7 @@
         border-radius: 3px;
         background: var(--rr);
         color: var(--rr-text);
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         text-align: center;
         box-shadow:
             inset 0 0 0 3px var(--rr),

@@ -14,7 +14,6 @@ export const ShareAuction = Type.Object({
     railroadId: Type.Enum(RailroadId),
     // The player offering one of their own shares; absent when the share comes from the railroad.
     sellerId: Type.Optional(Type.String()),
-    minimum: Type.Number(),
     bidding: SimpleAuction
 })
 

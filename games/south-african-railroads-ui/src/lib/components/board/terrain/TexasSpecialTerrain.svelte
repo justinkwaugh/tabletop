@@ -45,25 +45,23 @@
 <defs>
     {#each TINTS as tint (tint.id)}
         <radialGradient id="ts-tint-{tint.id}">
-            <stop offset="0%" stop-color={tint.color}></stop>
-            <stop offset="55%" stop-color={tint.color} stop-opacity="0.85"></stop>
+            <stop offset="0%" stop-color={tint.color} stop-opacity="0.44"></stop>
+            <stop offset="55%" stop-color={tint.color} stop-opacity="0.374"></stop>
             <stop offset="100%" stop-color={tint.color} stop-opacity="0"></stop>
         </radialGradient>
     {/each}
 </defs>
 
 <g class="geography" aria-hidden="true">
-    <g opacity="0.55">
-        {#each TINTS as tint (tint.id)}
-            <ellipse
-                cx={tint.x}
-                cy={tint.y}
-                rx={tint.rx * 1.35}
-                ry={tint.ry * 1.35}
-                fill="url(#ts-tint-{tint.id})"
-            ></ellipse>
-        {/each}
-    </g>
+    {#each TINTS as tint (tint.id)}
+        <ellipse
+            cx={tint.x}
+            cy={tint.y}
+            rx={tint.rx * 1.35}
+            ry={tint.ry * 1.35}
+            fill="url(#ts-tint-{tint.id})"
+        ></ellipse>
+    {/each}
     {#each STATE_LINES as d (d)}
         <path {d} class="state-line"></path>
     {/each}
@@ -246,7 +244,7 @@
         <text
             y="-70"
             text-anchor="middle"
-            font-family="'Libre Baskerville', Georgia, serif"
+            font-family="'SAR Baskerville', Georgia, serif"
             font-size="18"
             fill="#4e5b66">N</text
         >
@@ -255,44 +253,51 @@
 </g>
 
 <style>
-    /* The geography sits a fifth lighter than the first preview, so it never competes with track. */
+    /* The geography sits a fifth lighter than the first preview, so it never competes with track.
+       The faintness is in each shape's own paint, or on each drawing, never an opacity over a whole
+       layer, which a phone would composite board-wide. */
     .geography {
-        opacity: 0.8;
         pointer-events: none;
     }
 
     .state-line {
         fill: none;
         stroke: #8d8a80;
+        stroke-opacity: 0.72;
         stroke-width: 2;
         stroke-dasharray: 1 7;
         stroke-linecap: round;
-        opacity: 0.9;
     }
 
     .river {
         fill: none;
         stroke: #7f9bb0;
+        stroke-opacity: 0.68;
         stroke-linecap: round;
         stroke-linejoin: round;
-        opacity: 0.85;
     }
 
     .state {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 17px;
         letter-spacing: 0.42em;
         fill: #8b97a0;
+        fill-opacity: 0.8;
         text-anchor: middle;
     }
 
     .drawings {
-        opacity: 0.62;
         pointer-events: none;
     }
 
+    .drawings > g,
+    .drawings > path,
+    .drawings > text {
+        opacity: 0.62;
+    }
+
     .gulf {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 17px;
         font-style: italic;
         letter-spacing: 0.2em;

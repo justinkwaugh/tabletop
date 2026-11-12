@@ -20,6 +20,7 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import RailroadsPanel from '$lib/components/RailroadsPanel.svelte'
     import RulesDialog from '$lib/components/RulesDialog.svelte'
+    import SettlementPicker from '$lib/components/board/SettlementPicker.svelte'
     import { railroadPaneOnRight } from '$lib/utils/tableLayout.svelte.js'
     import { SarGameSession } from '$lib/model/session.svelte'
     import { getGameSession, setGameSession } from '$lib/model/sessionContext.svelte'
@@ -67,13 +68,13 @@
 {/snippet}
 
 <CustomFont
-    fontFamily="Libre Baskerville"
+    fontFamily="SAR Baskerville"
     url={LibreBaskervilleFont}
     format="woff2"
     fontWeight="400 700"
 />
 <CustomFont
-    fontFamily="Libre Baskerville"
+    fontFamily="SAR Baskerville"
     url={LibreBaskervilleItalicFont}
     format="woff2"
     fontWeight="400 700"
@@ -155,6 +156,8 @@
                                                 <RulesDialog />
                                             {/if}
                                         {/if}
+                                        <!-- Outside the board's CSS zoom, which would shrink and misplace the picker. -->
+                                        <SettlementPicker />
                                     </div>
                                 {/snippet}
                             </ScalingWrapper>

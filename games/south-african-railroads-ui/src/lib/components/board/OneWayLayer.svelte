@@ -2,6 +2,7 @@
     import { linkOwner, type LinkDefinition } from '@tabletop/south-african-railroads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { LINK_BOX_SIZE } from '$lib/utils/boardLayout.js'
+    import { SHADOW_OFFSET } from '$lib/utils/shapes.js'
 
     const gameSession = getGameSession()
 
@@ -19,6 +20,7 @@
     )
 
     const SETTLEMENT_CLEARANCE = 17
+    const ARROW = 'M-15 -12 L15 0 L-15 12 L-9 0 Z'
 
     // Midway between the link's box and the end it is built towards, pointing at that end.
     function arrowTransform(trackLink: LinkDefinition): string {
@@ -36,7 +38,11 @@
 
 <g class="one-way-layer">
     {#each arrows as arrow (arrow.id)}
-        <path d="M-15 -12 L15 0 L-15 12 L-9 0 Z" class="one-way" transform={arrow.transform}>
+        <!-- An unblurred offset copy for the shadow, cast straight down whatever the heading. -->
+        <g transform="translate({SHADOW_OFFSET.x} {SHADOW_OFFSET.y})">
+            <path d={ARROW} class="one-way-shadow" transform={arrow.transform}></path>
+        </g>
+        <path d={ARROW} class="one-way" transform={arrow.transform}>
             <title>One way: built only in the direction of the arrow</title>
         </path>
     {/each}
@@ -49,6 +55,14 @@
         stroke-width: 2.5;
         stroke-linejoin: round;
         paint-order: stroke;
-        filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.55));
+    }
+
+    .one-way-shadow {
+        fill: #10171f;
+        stroke: #10171f;
+        opacity: 0.35;
+        stroke-width: 2.5;
+        stroke-linejoin: round;
+        pointer-events: none;
     }
 </style>

@@ -119,7 +119,7 @@
         gap: 10px;
         margin: 12px 10px 0;
         color: #18222f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
     }
 
     .timer {

@@ -89,7 +89,7 @@ describe('the Pennsylvania Railroad opening', () => {
             RailroadId.BM,
             RailroadId.PRR
         ])
-        expect(state.railroad(RailroadId.PLE).open).toBe(false)
+        expect(state.isOpen(RailroadId.PLE)).toBe(false)
     })
 
     it('gives the first turn to the PRR buyer', () => {

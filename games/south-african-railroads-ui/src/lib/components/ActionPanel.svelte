@@ -143,7 +143,7 @@
             {#if state.developmentsThisTurn === 0}
                 Develop a settlement served by a railroad{#if freeName}, or {freeName}{/if}.
                 {#if gameSession.leaveTownTargets.length > 0}
-                    Or leave town: take a cube from a settlement your railroad serves.
+                    Or leave town: take a cube from a settlement ringed in red.
                 {/if}
             {:else if state.developmentsThisTurn < state.freeDevelopments()}
                 Develop a {nextDevelopment} settlement free{#if freeName}, or {freeName}{/if}.
@@ -155,18 +155,6 @@
         <p class="effects">
             It moves to its next income, and every railroad link into it earns the difference.
         </p>
-        {#if gameSession.leaveTownTargets.length > 0}
-            <div class="row" role="group" aria-label="Leave town">
-                {#each gameSession.leaveTownTargets as settlementId (settlementId)}
-                    <button
-                        type="button"
-                        class="secondary"
-                        onclick={() => gameSession.leaveTown(settlementId)}
-                        >Leave {map.settlement(settlementId).name}</button
-                    >
-                {/each}
-            </div>
-        {/if}
         {#if gameSession.mayFinishDeveloping}
             <div class="row">
                 <button
@@ -236,7 +224,7 @@
         gap: 6px;
         padding: 8px 12px;
         color: #18222f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
     }
 
     .prompt {

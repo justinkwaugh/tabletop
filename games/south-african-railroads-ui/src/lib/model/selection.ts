@@ -1,10 +1,4 @@
-import {
-    clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
-    setStagedSelectionValue,
-    type StagedSelectionState
-} from '@tabletop/frontend-components'
+import { setStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
 import type { RailroadId } from '@tabletop/south-african-railroads'
 
 // Building track: which railroad builds (or is handed to its controller), then the first link
@@ -44,19 +38,23 @@ export function selectFirstLink(selection: BuildSelection, linkId: string) {
     )
 }
 
-export function clearFirstLink(selection: BuildSelection): BuildSelection {
-    return clearStagedSelectionAtOrAfter<BuildSelectionValues, 'firstLink'>(
+// Developing settlements: a settlement that may be developed or left, whose picker asks which.
+export type SettlementSelectionValues = {
+    settlement: string
+}
+
+export type SettlementSelection = StagedSelectionState<SettlementSelectionValues>
+
+export const SettlementStageOrder = [
+    'settlement'
+] as const satisfies readonly (keyof SettlementSelectionValues)[]
+
+export function selectSettlement(selection: SettlementSelection, settlementId: string) {
+    return setStagedSelectionValue<SettlementSelectionValues, 'settlement'>(
         selection,
-        BuildStageOrder,
-        'firstLink'
+        SettlementStageOrder,
+        'settlement',
+        settlementId,
+        'manual'
     )
-}
-
-export function hasManualBuildSelection(selection: BuildSelection): boolean {
-    return hasManualStagedSelection<BuildSelectionValues>(selection, BuildStageOrder)
-}
-
-export function popBuildSelection(selection: BuildSelection): BuildSelection {
-    return popHighestManualStagedSelection<BuildSelectionValues>(selection, BuildStageOrder)
-        .nextState
 }

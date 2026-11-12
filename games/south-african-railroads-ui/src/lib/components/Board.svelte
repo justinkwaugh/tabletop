@@ -16,6 +16,10 @@
 
     const gameSession = getGameSession()
 
+    // The printed panels and the title set text-rendering="geometricPrecision" on their own groups,
+    // so their unhinted text keeps the width each is sized for at any zoom. The whole board
+    // unhinted made every repaint about 50 ms slower on a phone.
+
     // The paper's corner radius, so the board's shadow follows its rounded edge.
     const BOARD_CORNER = 18
 
@@ -52,7 +56,5 @@
         user-select: none;
         /* The printed sheet lies on the table. */
         box-shadow: 0 3px 8px rgba(25, 40, 55, 0.28);
-        /* Unhinted, so text keeps the width the printed panels are sized for at any zoom. */
-        text-rendering: geometricPrecision;
     }
 </style>

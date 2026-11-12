@@ -53,7 +53,7 @@
     }
 
     .caption {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 12px;
         font-style: italic;
         font-weight: 700;

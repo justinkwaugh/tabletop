@@ -4,9 +4,9 @@ import { RailroadId } from '../maps/types.js'
 export type RailroadState = Type.Static<typeof RailroadState>
 export const RailroadState = Type.Object({
     id: Type.Enum(RailroadId),
-    open: Type.Boolean(),
     treasury: Type.Number(),
-    // One entry per sold share, naming the player who holds it.
+    // One entry per sold share, naming the player who holds it. A railroad is open once it has
+    // sold a share.
     owners: Type.Array(Type.String())
 })
 

@@ -35,7 +35,7 @@
     })
 </script>
 
-<g transform="translate({origin.x} {origin.y})" class="legend">
+<g transform="translate({origin.x} {origin.y})" class="legend" text-rendering="geometricPrecision">
     <text x={BASE_X} y="12" class="heading">Base</text>
     <text x={DEVELOPED_X} y="12" class="heading">Developed</text>
     <line x1="0" y1="20" x2="224" y2="20" class="rule"></line>
@@ -79,7 +79,7 @@
     }
 
     .heading {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 12px;
         font-weight: 700;
         text-anchor: middle;
@@ -92,14 +92,14 @@
     }
 
     .name {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 13px;
         font-weight: 700;
         fill: #18222f;
     }
 
     .amount {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 16px;
         font-weight: 700;
         text-anchor: middle;

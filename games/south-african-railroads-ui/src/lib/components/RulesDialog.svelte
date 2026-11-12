@@ -86,7 +86,7 @@
         box-shadow: 0 4px 14px rgba(16, 22, 30, 0.35);
         outline: none;
         color: #18222f;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 15px;
         line-height: 1.5;
     }

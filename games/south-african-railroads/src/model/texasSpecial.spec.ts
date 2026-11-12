@@ -102,10 +102,10 @@ describe('the Texas Special opening', () => {
             RailroadId.SLSF
         ])
         for (const railroadId of TEXAS.initialOffering) {
-            expect(state.railroad(railroadId).open).toBe(true)
+            expect(state.isOpen(railroadId)).toBe(true)
             expect(state.track.some((built) => built.railroadId === railroadId)).toBe(true)
         }
-        expect(state.railroad(RailroadId.TP).open).toBe(false)
+        expect(state.isOpen(RailroadId.TP)).toBe(false)
     })
 
     it('gives the first turn to the Frisco buyer', () => {

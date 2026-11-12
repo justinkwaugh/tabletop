@@ -83,7 +83,7 @@
 
 <style>
     .region {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 15px;
         letter-spacing: 0.32em;
         fill: #51739d;

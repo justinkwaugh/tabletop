@@ -87,9 +87,7 @@ test('plays the initial offering and a construction turn on the board', async ({
 
     await playInitialOffering(page)
     await expect.poll(() => machineState(page)).toBe('ChoosingAction')
-    const open = await page.evaluate(
-        () => window.sarSession.gameState.railroads.filter((railroad) => railroad.open).length
-    )
+    const open = await page.evaluate(() => window.sarSession.gameState.openRailroads().length)
     expect(open).toBe(5)
     await screenshot(page, '02-first-turn')
 
@@ -220,9 +218,7 @@ test('plays the Texas Special opening, the Frisco buyer first', async ({ page })
         const state = window.sarSession.gameState
         return {
             mapId: state.mapId,
-            open: state.railroads
-                .filter((railroad) => railroad.open)
-                .map((railroad) => railroad.id),
+            open: state.openRailroads().map((railroad) => railroad.id),
             firstTurn: state.turnManager.turnOrder[0],
             friscoOwner: state.railroads.find((railroad) => railroad.id === 'SLSF')?.owners[0]
         }

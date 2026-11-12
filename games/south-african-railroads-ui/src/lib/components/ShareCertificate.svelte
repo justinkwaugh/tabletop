@@ -33,7 +33,7 @@
         border-radius: 2px;
         background: var(--rr);
         color: var(--rr-text);
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 10px;
         letter-spacing: -0.02em;
         font-weight: 700;

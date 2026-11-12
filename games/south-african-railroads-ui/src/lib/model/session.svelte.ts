@@ -1,5 +1,5 @@
 import type { AuctionParticipant } from '@tabletop/common'
-import { GameSession } from '@tabletop/frontend-components'
+import { GameSession, undoableStagedSelection } from '@tabletop/frontend-components'
 import {
     ActionBox,
     AuctionKind,
@@ -24,12 +24,13 @@ import {
     type SarGameState
 } from '@tabletop/south-african-railroads'
 import {
-    clearFirstLink,
-    hasManualBuildSelection,
-    popBuildSelection,
+    BuildStageOrder,
+    SettlementStageOrder,
     selectBuildRailroad,
     selectFirstLink,
-    type BuildSelection
+    selectSettlement,
+    type BuildSelection,
+    type SettlementSelection
 } from './selection.js'
 
 export type DevelopTarget = { settlementId: string; cost: number; gains: IncomeGain[] }
@@ -46,8 +47,31 @@ export type AuctionView = {
     upcomingOfferings: RailroadId[]
 }
 
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<SarGameState, HydratedSarGameState>
+>[0]
+
 export class SarGameSession extends GameSession<SarGameState, HydratedSarGameState> {
     private buildSelection: BuildSelection = $state({})
+    private settlementSelection: SettlementSelection = $state({})
+
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                BuildStageOrder,
+                () => this.buildSelection,
+                (selection) => (this.buildSelection = selection)
+            )
+        )
+        this.localSelections.register(
+            undoableStagedSelection(
+                SettlementStageOrder,
+                () => this.settlementSelection,
+                (selection) => (this.settlementSelection = selection)
+            )
+        )
+    }
 
     rulesOpen = $state(false)
 
@@ -262,10 +286,6 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
         }
     }
 
-    cancelFirstLink() {
-        this.buildSelection = clearFirstLink(this.buildSelection)
-    }
-
     async buildTrack(railroadId: RailroadId, linkIds: string[]) {
         await this.applyAction(this.createPlayerAction(BuildTrack, { railroadId, linkIds }))
     }
@@ -307,6 +327,39 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
         if (this.leaveTownTargets.includes(settlementId)) {
             await this.applyAction(this.createPlayerAction(LeaveTown, { settlementId }))
         }
+    }
+
+    // A settlement that may be both developed and left, picked on the board: its picker asks which.
+    settlementChoice: string | undefined = $derived.by(() => {
+        const settlementId = this.settlementSelection.settlement?.value
+        return settlementId &&
+            this.developTargets.some((target) => target.settlementId === settlementId) &&
+            this.leaveTownTargets.includes(settlementId)
+            ? settlementId
+            : undefined
+    })
+
+    // Develops or leaves a settlement picked on the board, or opens its picker when it offers both.
+    // Picking the open settlement again closes the picker.
+    async clickSettlement(settlementId: string) {
+        const develops = this.developTargets.some((target) => target.settlementId === settlementId)
+        const leaves = this.leaveTownTargets.includes(settlementId)
+        if (develops && leaves) {
+            this.settlementSelection =
+                this.settlementChoice === settlementId
+                    ? {}
+                    : selectSettlement(this.settlementSelection, settlementId)
+            return
+        }
+        if (develops) {
+            await this.develop(settlementId)
+        } else if (leaves) {
+            await this.leaveTown(settlementId)
+        }
+    }
+
+    closeSettlementChoice() {
+        this.settlementSelection = {}
     }
 
     mayFinishDeveloping = $derived(
@@ -351,7 +404,7 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
             kind: auction.kind,
             sellerId: auction.sellerId,
             openerId: auction.bidding.auctioneerId,
-            minimum: auction.minimum,
+            minimum: this.gameState.auctionMinimum(),
             seats: auction.bidding.participants,
             currentBidderId: this.gameState.bidding().currentBidderId,
             smallestBid: this.gameState.smallestBid(),
@@ -360,7 +413,7 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
                     ? this.gameState.map.initialOffering.filter(
                           (railroadId) =>
                               railroadId !== auction.railroadId &&
-                              !this.gameState.railroad(railroadId).open
+                              !this.gameState.isOpen(railroadId)
                       )
                     : []
         }
@@ -376,21 +429,5 @@ export class SarGameSession extends GameSession<SarGameState, HydratedSarGameSta
 
     async passBid() {
         await this.applyAction(this.createPlayerAction(PassBid, {}))
-    }
-
-    hasManualSelection(): boolean {
-        return hasManualBuildSelection(this.buildSelection)
-    }
-
-    override async undo() {
-        if (this.hasManualSelection()) {
-            this.buildSelection = popBuildSelection(this.buildSelection)
-            return
-        }
-        await super.undo()
-    }
-
-    override beforeNewState(): void {
-        this.buildSelection = {}
     }
 }

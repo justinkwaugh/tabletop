@@ -32,7 +32,11 @@
 </script>
 
 {#if note}
-    <g transform="translate({note.x} {note.y})" aria-label="Automatic Metro Development order">
+    <g
+        transform="translate({note.x} {note.y})"
+        aria-label="Automatic Metro Development order"
+        text-rendering="geometricPrecision"
+    >
         <text x={note.width / 2} y="16" class="title"
             >{free ? 'Free Metro Area' : 'Automatic Metro Development'}</text
         >
@@ -54,7 +58,7 @@
 
 <style>
     .title {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 15px;
         font-weight: 700;
         fill: #18222f;
@@ -63,7 +67,7 @@
 
     .number,
     .place {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 13.5px;
         fill: #18222f;
     }
@@ -78,7 +82,7 @@
     }
 
     .body {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 11.5px;
         font-style: italic;
         fill: #2f445c;

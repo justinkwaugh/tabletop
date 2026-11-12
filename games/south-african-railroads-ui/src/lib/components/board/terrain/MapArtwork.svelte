@@ -42,25 +42,18 @@
     <defs>
         {#each artwork.tints as tint, index (index)}
             <radialGradient id="sar-tint-{index}">
-                <stop offset="0%" stop-color={tint.color}></stop>
-                <stop offset="55%" stop-color={tint.color} stop-opacity="0.85"></stop>
+                <stop offset="0%" stop-color={tint.color} stop-opacity="0.4"></stop>
+                <stop offset="55%" stop-color={tint.color} stop-opacity="0.34"></stop>
                 <stop offset="100%" stop-color={tint.color} stop-opacity="0"></stop>
             </radialGradient>
         {/each}
     </defs>
 
     <g class="geography" aria-hidden="true">
-        <g opacity="0.5">
-            {#each artwork.tints as tint, index (index)}
-                <ellipse
-                    cx={tint.x}
-                    cy={tint.y}
-                    rx={tint.rx}
-                    ry={tint.ry}
-                    fill="url(#sar-tint-{index})"
-                ></ellipse>
-            {/each}
-        </g>
+        {#each artwork.tints as tint, index (index)}
+            <ellipse cx={tint.x} cy={tint.y} rx={tint.rx} ry={tint.ry} fill="url(#sar-tint-{index})"
+            ></ellipse>
+        {/each}
         {#each artwork.waters as outline, index (index)}
             <path d={smoothPath(outline, true)} class="water"></path>
         {/each}
@@ -81,44 +74,46 @@
 
     <g class="drawings" aria-hidden="true">
         {#each artwork.drawings as drawing, index (index)}
-            <InkDrawing {drawing} />
+            <InkDrawing {drawing} opacity={0.55} />
         {/each}
     </g>
 {/if}
 
 <style>
-    /* As faint as Texas Special's, so the art never competes with track. */
+    /* As faint as Texas Special's, so the art never competes with track. The faintness is in each
+       shape's own paint, never an opacity over the whole layer, which a phone would composite
+       board-wide. */
     .geography {
-        opacity: 0.8;
         pointer-events: none;
     }
 
     .water {
         fill: #bcd3da;
-        fill-opacity: 0.55;
+        fill-opacity: 0.44;
         stroke: #7f9bb0;
+        stroke-opacity: 0.8;
         stroke-width: 1.4;
     }
 
     .river {
         fill: none;
         stroke: #7f9bb0;
+        stroke-opacity: 0.68;
         stroke-linecap: round;
         stroke-linejoin: round;
-        opacity: 0.85;
     }
 
     .water-name {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 15px;
         font-style: italic;
         letter-spacing: 0.2em;
         fill: #5d7a8e;
+        fill-opacity: 0.8;
         text-anchor: middle;
     }
 
     .drawings {
-        opacity: 0.55;
         pointer-events: none;
     }
 </style>

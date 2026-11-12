@@ -28,7 +28,7 @@
 
 <style>
     .sea-label {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 13px;
         font-style: italic;
         letter-spacing: 0.4em;

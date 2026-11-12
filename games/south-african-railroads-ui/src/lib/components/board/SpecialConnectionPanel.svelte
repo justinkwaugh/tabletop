@@ -17,7 +17,11 @@
 </script>
 
 {#if special && panel}
-    <g transform="translate({panel.x} {panel.y})" aria-label={special.name}>
+    <g
+        transform="translate({panel.x} {panel.y})"
+        aria-label={special.name}
+        text-rendering="geometricPrecision"
+    >
         <title
             >Once a game, in place of a build, a railroad whose track meets one from the other side
             pays ${special.cost} to found the {special.name}</title
@@ -70,7 +74,7 @@
     }
 
     .body {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 12.5px;
         font-style: italic;
         fill: #28394d;

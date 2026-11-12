@@ -62,8 +62,7 @@ export class HydratedOfferShare extends HydratableAction<typeof OfferShare> impl
             kind: AuctionKind.OfferStock,
             railroadId: this.railroadId,
             openerId: this.playerId,
-            sellerId: this.ownShare ? this.playerId : undefined,
-            minimum
+            sellerId: this.ownShare ? this.playerId : undefined
         })
         const sale = settleShareAuction(state)
         this.metadata = { minimum, withdrawnPlayerIds, ...(sale ? { sale } : {}) }

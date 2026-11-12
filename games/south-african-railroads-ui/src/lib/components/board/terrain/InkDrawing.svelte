@@ -3,7 +3,8 @@
 <script lang="ts">
     import type { InkDrawing } from '$lib/utils/boardLayout.js'
 
-    let { drawing }: { drawing: InkDrawing } = $props()
+    // Faded as one drawing, never as a layer of them all, so the effect stays piece-sized.
+    let { drawing, opacity }: { drawing: InkDrawing; opacity: number } = $props()
 
     const COMPASS_POINTS = Array.from({ length: 8 }, (_, index) => {
         const angle = (index * Math.PI) / 4
@@ -21,6 +22,7 @@
 <g
     transform="translate({drawing.x} {drawing.y}) scale({drawing.scale ?? 1})"
     class="ink"
+    {opacity}
     stroke-linecap="round"
     stroke-linejoin="round"
 >
@@ -161,7 +163,7 @@
     .north {
         fill: #4e5b66;
         stroke: none;
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 15px;
         text-anchor: middle;
     }

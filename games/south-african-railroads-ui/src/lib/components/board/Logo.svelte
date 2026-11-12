@@ -27,6 +27,7 @@
     transform="translate({origin.x} {origin.y}) scale({scale})"
     role="img"
     aria-label={layout.spec.title}
+    text-rendering="geometricPrecision"
 >
     <text y="0" class="title">{layout.spec.title}</text>
     {#each ties as x (x)}
@@ -62,7 +63,7 @@
     }
 
     .credit {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 9.5px;
         font-style: italic;
         fill: #384f6c;

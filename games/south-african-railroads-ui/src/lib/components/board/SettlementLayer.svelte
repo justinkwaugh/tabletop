@@ -65,17 +65,10 @@
             : { x: place.x - 22, y: place.y - 22, width: 44, height: 44 }
     }
 
-    function onLeaveKey(event: KeyboardEvent, settlementId: string) {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            void gameSession.leaveTown(settlementId)
-        }
-    }
-
     function onKey(event: KeyboardEvent, settlementId: string) {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
-            void gameSession.develop(settlementId)
+            void gameSession.clickSettlement(settlementId)
         }
     }
 </script>
@@ -212,15 +205,15 @@
     {#each settlements as place (place.id)}
         {#if leaveTargets.has(place.id)}
             {@const bounds = targetBounds(place)}
-            <!-- Where a settlement can also be developed, the develop ring above takes the click and
-                 the action panel's Leave button leaves. -->
+            <!-- Where a settlement can also be developed, either ring opens a picker beside it. -->
             <g
+                id="sar-settlement-{place.id}"
                 class="leave-target"
                 role="button"
                 tabindex="0"
                 aria-label="Leave {place.name}"
-                onclick={() => gameSession.leaveTown(place.id)}
-                onkeydown={(event) => onLeaveKey(event, place.id)}
+                onclick={() => gameSession.clickSettlement(place.id)}
+                onkeydown={(event) => onKey(event, place.id)}
             >
                 <rect
                     x={bounds.x - 10}
@@ -239,12 +232,13 @@
             {@const bounds = targetBounds(place)}
             <g
                 class="develop-target"
+                class:chosen={gameSession.settlementChoice === place.id}
                 role="button"
                 tabindex="0"
                 aria-label="Develop {place.name}{place.target.cost > 0
                     ? ` for $${place.target.cost}`
                     : ''}"
-                onclick={() => gameSession.develop(place.id)}
+                onclick={() => gameSession.clickSettlement(place.id)}
                 onkeydown={(event) => onKey(event, place.id)}
             >
                 <rect
@@ -275,7 +269,7 @@
 
 <style>
     .name {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 13.5px;
         font-style: italic;
         fill: #131b24;
@@ -315,7 +309,7 @@
     }
 
     .gain-chip text {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 12px;
         font-weight: 700;
         text-anchor: middle;
@@ -328,7 +322,7 @@
     }
 
     .income {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 14px;
         font-weight: 700;
         fill: #ffffff;
@@ -351,7 +345,7 @@
     }
 
     .metro-name {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 12.5px;
         font-style: italic;
         font-weight: 700;
@@ -374,7 +368,7 @@
     }
 
     .metro-value {
-        font-family: 'Libre Baskerville', Georgia, serif;
+        font-family: 'SAR Baskerville', Georgia, serif;
         font-size: 15px;
         font-weight: 700;
         fill: #3f597a;
@@ -416,7 +410,8 @@
     }
 
     .develop-target:hover .ring,
-    .develop-target:focus-visible .ring {
+    .develop-target:focus-visible .ring,
+    .develop-target.chosen .ring {
         fill: rgba(255, 230, 140, 0.5);
     }
 </style>

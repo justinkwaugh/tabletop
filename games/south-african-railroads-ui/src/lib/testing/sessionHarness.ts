@@ -31,6 +31,8 @@ import {
     homeLinks,
     type SarGameState
 } from '@tabletop/south-african-railroads'
+// The logic package's own playtest bot, to reach positions its scripted openings never do.
+import { botAction, createGame } from '../../../../south-african-railroads/src/testing/bot.js'
 import { UiDefinition } from '$lib/definitions/definition.js'
 import { SarUiRuntime } from '$lib/definitions/runtime.js'
 import { SarGameSession } from '$lib/model/session.svelte.js'
@@ -80,19 +82,20 @@ const GAME: Game = {
     hotseat: true
 }
 
-export type PlayedTable = { state: SarGameState; actions: GameAction[] }
+export type PlayedTable = { state: SarGameState; actions: GameAction[]; game?: Game }
 
 // Runs each action through the engine, keeping what it processed for the session's history.
 function played(table: PlayedTable, actions: readonly GameAction[]): PlayedTable {
+    const game = table.game ?? GAME
     let state = table.state
     const processed = [...table.actions]
     for (const fields of actions) {
         const action = { ...fields, id: `a-${state.actionCount}`, index: state.actionCount }
-        const result = engine.executeAction({ action, state, game: GAME })
+        const result = engine.executeAction({ action, state, game })
         processed.push(...result.processedActions)
         state = result.updatedState
     }
-    return { state, actions: processed }
+    return { state, actions: processed, game }
 }
 
 function envelope(table: PlayedTable, playerId: string) {
@@ -165,7 +168,8 @@ export function initialOfferingTable(railroadsSold: number): PlayedTable {
     return playInitialOfferingWhile(
         (table) =>
             table.state.machineState !== MachineState.Bidding ||
-            table.state.railroads.filter((railroad) => railroad.open).length < railroadsSold
+            table.state.railroads.filter((railroad) => railroad.owners.length > 0).length <
+                railroadsSold
     )
 }
 
@@ -175,13 +179,38 @@ export function choose(table: PlayedTable, box: ActionBox): PlayedTable {
     ])
 }
 
+// A three-player Texas Special game played by the bot until the seat on the clock may both develop
+// and leave a settlement, the first development of its Develop Settlements turn.
+export function leaveTownChoiceTable(): { table: PlayedTable; settlementId: string } {
+    const game: Game = { ...createGame(3, MapId.TexasSpecial), hotseat: true }
+    const { initialState } = engine.startGame(game, {
+        masterSeed: '0123456789abcdef0123456789abcdef'
+    })
+    let table: PlayedTable = { state: initialState, actions: [], game }
+    for (let step = 0; step < 1000 && table.state.result === undefined; step++) {
+        const state = new HydratedSarGameState(table.state)
+        const playerId = onTheClock(table)
+        if (state.machineState === MachineState.DevelopingSettlements) {
+            const developable = state.affordableDevelopments(playerId)
+            const settlementId = state
+                .leaveTownOptions(playerId)
+                .find((candidate) => developable.includes(candidate))
+            if (settlementId) {
+                return { table, settlementId }
+            }
+        }
+        table = played(table, [botAction(state, playerId, step)])
+    }
+    throw Error('The bot never reached a settlement to develop or leave')
+}
+
 export function openSessionOn(table: PlayedTable): SarGameSession {
     const appContext = createHarnessAppContext(HARNESS_DEFINITION)
     const bridgedContext = new BridgedContext({
         authorizationService: appContext.authorizationService,
         gameService: appContext.gameService,
         chatService: appContext.chatService,
-        gameId: GAME.id
+        gameId: (table.game ?? GAME).id
     })
     const session = new SarGameSession({
         gameService: appContext.gameService,
@@ -190,7 +219,7 @@ export function openSessionOn(table: PlayedTable): SarGameSession {
         chatService: appContext.chatService,
         api: appContext.api,
         runtime: SarUiRuntime,
-        game: GAME,
+        game: table.game ?? GAME,
         state: table.state,
         actions: table.actions
     })
