@@ -43,6 +43,8 @@ export const MapView1849: MapViewDefinition = {
     stations: Stations,
     // Rough, hills and mountains (L. 40, 80 and 160) as one, two and three peaks (§10.3.1).
     terrainIcons: { rough: 'peak', hill: 'mountain', mountain: 'range' },
+    // K9's printed track runs through its centre, so its cost stands beside the track.
+    terrainPositions: { K9: { x: -28, y: 0 } },
     layouts: {
         ...TileLayouts1849,
         ...PortLayouts,
