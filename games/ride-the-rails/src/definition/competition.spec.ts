@@ -31,6 +31,9 @@ import { PhaseName } from './phases.js'
 import { RideTheRailsRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
+// A whole game takes about two seconds alone; the margin covers a loaded machine.
+const WHOLE_GAME_TIMEOUT_MS = 30_000
+
 type UserInput = Omit<GameAction, 'id' | 'gameId' | 'source'> & Record<string, unknown>
 
 function rotations(playerIds: readonly string[]): string[][] {
@@ -188,46 +191,54 @@ describe.each([3, 4, 5])('Ride the Rails tournaments with %i players (R-1.2-H1)'
         }
     })
 
-    it('finishes an assigned game with a result validateGameResult accepts (R-6.1, R-6.2)', () => {
-        const order = playerIds.toReversed()
-        const table = new Table(order)
-        table.playUntil((state) => state.result !== undefined)
-        const finished = table.state
+    it(
+        'finishes an assigned game with a result validateGameResult accepts (R-6.1, R-6.2)',
+        () => {
+            const order = playerIds.toReversed()
+            const table = new Table(order)
+            table.playUntil((state) => state.result !== undefined)
+            const finished = table.state
 
-        expect(finished.machineState).toBe(MachineState.Ended)
-        assert(RideTheRailsGameStateValidator.Check(finished), 'The end must be canonical')
-        expect(() => validateGameResult(finished)).not.toThrow()
+            expect(finished.machineState).toBe(MachineState.Ended)
+            assert(RideTheRailsGameStateValidator.Check(finished), 'The end must be canonical')
+            expect(() => validateGameResult(finished)).not.toThrow()
 
-        const finalScores = RideTheRailsRuntime.scoring.finalScores(finished)
-        expect(finalScores).toEqual(
-            Object.fromEntries(finished.players.map((player) => [player.playerId, player.money]))
-        )
-        expect(Object.keys(finalScores).toSorted()).toEqual(order.toSorted())
-        const best = Math.max(...Object.values(finalScores))
-        expect(finished.winningPlayerIds).toEqual(
-            finished.players
-                .filter((player) => player.money === best)
-                .map((player) => player.playerId)
-        )
-        expect(finished.result).toBe(
-            finished.winningPlayerIds.length === 1 ? GameResult.Win : GameResult.Draw
-        )
+            const finalScores = RideTheRailsRuntime.scoring.finalScores(finished)
+            expect(finalScores).toEqual(
+                Object.fromEntries(
+                    finished.players.map((player) => [player.playerId, player.money])
+                )
+            )
+            expect(Object.keys(finalScores).toSorted()).toEqual(order.toSorted())
+            const best = Math.max(...Object.values(finalScores))
+            expect(finished.winningPlayerIds).toEqual(
+                finished.players
+                    .filter((player) => player.money === best)
+                    .map((player) => player.playerId)
+            )
+            expect(finished.result).toBe(
+                finished.winningPlayerIds.length === 1 ? GameResult.Win : GameResult.Draw
+            )
 
-        // Every processed action, user and system, is one the hydrator rebuilds.
-        for (const action of table.processed) {
-            expect(RideTheRailsRuntime.hydrator.hydrateAction(action).dehydrate()).toEqual(action)
-        }
-        const types = new Set(table.processed.map((action) => action.type))
-        for (const type of [
-            ActionType.TakeShare,
-            ActionType.PlaceLocomotive,
-            ActionType.RideJourney,
-            ActionType.EndRound,
-            ActionType.EndGame
-        ]) {
-            expect(types).toContain(type)
-        }
-    })
+            // Every processed action, user and system, is one the hydrator rebuilds.
+            for (const action of table.processed) {
+                expect(RideTheRailsRuntime.hydrator.hydrateAction(action).dehydrate()).toEqual(
+                    action
+                )
+            }
+            const types = new Set(table.processed.map((action) => action.type))
+            for (const type of [
+                ActionType.TakeShare,
+                ActionType.PlaceLocomotive,
+                ActionType.RideJourney,
+                ActionType.EndRound,
+                ActionType.EndGame
+            ]) {
+                expect(types).toContain(type)
+            }
+        },
+        WHOLE_GAME_TIMEOUT_MS
+    )
 })
 
 describe('terminal results (R-6.2, R-6.2-H1)', () => {
