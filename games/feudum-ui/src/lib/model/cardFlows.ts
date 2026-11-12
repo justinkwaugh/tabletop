@@ -139,7 +139,7 @@ export interface TurnPresser {
 }
 export type TurnPress = (draft: TurnPresser) => void
 
-/** A location disc as a choice: `back` peeks out behind it, the face it shows if reduced. */
+/** A location disc as a choice: `back` peeks out behind it, the face that leaves the supply with it. */
 export interface DiscArt {
     readonly kind: 'disc'
     readonly location: LocationKind
@@ -641,8 +641,9 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
 }
 
 /**
- * R-3.9-H1 The discs that differ in their back, each drawn with its back peeking behind it: the
- * back is what the place shows if it is ever reduced, so the heading says why it matters.
+ * R-3.9-H1, R-3.9-H2 The discs that differ in their back, each drawn with its back peeking behind
+ * it: the back leaves the general supply with the disc, so a later improvement cannot take that
+ * face, and the heading says why it matters. A farm or town is never reduced (R-3.13.1).
  */
 function discPopup(
     anchor: BoardTarget,
@@ -652,7 +653,7 @@ function discPopup(
     const name = titled(to)
     return {
         anchor,
-        heading: `Which ${to} disc? Its back is what this place shows if it is ever reduced.`,
+        heading: `Which ${to} disc? Its back leaves the supply with it, so no later improvement can take that face.`,
         choices: discs.map(({ discId, other }) => {
             const back = other ?? 'plain'
             return {

@@ -636,7 +636,7 @@ describe('R-3.9 Improve', () => {
         await pressTarget(session, target)
         const popup = session.turn.flow?.popup
         expect(popup?.heading).toBe(
-            'Which town disc? Its back is what this place shows if it is ever reduced.'
+            'Which town disc? Its back leaves the supply with it, so no later improvement can take that face.'
         )
         expect(popup?.choices.map(({ label, shown, art }) => ({ label, shown, art }))).toEqual([
             {
