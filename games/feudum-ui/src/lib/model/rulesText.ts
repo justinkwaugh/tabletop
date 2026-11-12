@@ -351,7 +351,7 @@ const GuildNotes: Readonly<Record<GuildNoteId, RulesNote>> = {
             },
             {
                 term: Pull,
-                text: `Take the rosary’s highest and lowest beads; an opponent hides one in each hand, and the one you pick goes on an empty chicken. The goal is chickens totalling 5 or more. ${PullScore}`
+                text: `The game draws one of the rosary’s highest and lowest beads at random, and it goes on an empty chicken. The goal is chickens totalling 5 or more. ${PullScore}`
             },
             {
                 term: Push,
@@ -426,7 +426,7 @@ const GuildNotes: Readonly<Record<GuildNoteId, RulesNote>> = {
         lines: [
             {
                 term: Trade,
-                text: 'Pay 3 shillings for the rosary’s highest and lowest beads; an opponent hides one in each hand, and you keep the one you pick.'
+                text: 'Pay 3 shillings, and the game draws one of the rosary’s highest and lowest beads at random for you to keep.'
             },
             {
                 term: Pull,
@@ -434,7 +434,7 @@ const GuildNotes: Readonly<Record<GuildNoteId, RulesNote>> = {
             },
             {
                 term: Push,
-                text: `As the Farmer pull, a bead onto an empty chicken; score as the chickens reach 3, 6 and 9. ${PushScore} Then share the church coffer with the journeyman.`
+                text: `As the Farmer pull, one of the highest and lowest beads drawn at random onto an empty chicken; score as the chickens reach 3, 6 and 9. ${PushScore} Then share the church coffer with the journeyman.`
             }
         ]
     }

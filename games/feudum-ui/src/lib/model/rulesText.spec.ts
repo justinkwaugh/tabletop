@@ -74,6 +74,19 @@ describe('the rules beside an enlarged piece (contract: Card preview)', () => {
         }
     })
 
+    it("R-4.6-H2 a bead draw reads as the game's random pick, never an opponent's hands", () => {
+        const draws = [
+            ['guild.farmer', 'Pull'],
+            ['guild.monk', 'Trade'],
+            ['guild.monk', 'Push']
+        ] as const
+        for (const [id, term] of draws) {
+            const line = lines(id).find((each) => each.term.startsWith(term))
+            expect(line?.text, `${id} ${term}`).toMatch(/at random/)
+            expect(line?.text, `${id} ${term}`).not.toMatch(/opponent|each hand|you pick/)
+        }
+    })
+
     it('R-6.2-H1 a kingdom charter names each space it counts', () => {
         for (const charter of Charters) {
             if (charter.kind === 'kingdom') {
