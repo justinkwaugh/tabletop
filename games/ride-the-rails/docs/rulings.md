@@ -36,7 +36,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 
 ### Information and undo (R-5)
 
-- **R-5-H1** (Q24): a player may take back any of their own actions until the next player acts: each placement, with any bonus it paid; a share; a journey. Nothing is hidden or random after setup, so no action reveals information. Rejected: no undo. Spec: `undo.spec.ts`.
+- **R-5-H1** (Q24): a player may take back any of their own actions until the next player acts: each placement, with any bonus it paid; a share; a journey. Nothing is hidden or random after setup, so no action reveals information. Rejected: no undo. Spec: `takeShare.spec.ts` (a share), `undo.spec.ts`.
 
 ### Game end (R-6)
 

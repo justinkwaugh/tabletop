@@ -1,4 +1,6 @@
 export enum ActionType {
     RideJourney = 'RideJourney',
-    PassJourney = 'PassJourney'
+    PassJourney = 'PassJourney',
+    TakeShare = 'TakeShare',
+    SkipShare = 'SkipShare'
 }
