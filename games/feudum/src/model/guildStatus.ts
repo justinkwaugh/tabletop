@@ -55,7 +55,7 @@ export function rankOf(track: GuildTrack, playerId: string): GuildRank | undefin
 }
 
 /** R-4.5.3 The ranks a guild's track uses at this player count, best first. */
-function ranksInPlay(numPlayers: number): GuildRank[] {
+export function ranksInPlay(numPlayers: number): GuildRank[] {
     return RanksFromTop.filter((rank) =>
         GuildTrackSpaces.some((space) => space.rank === rank && numPlayers >= space.minPlayers)
     )

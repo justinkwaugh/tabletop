@@ -25,6 +25,7 @@ import {
     feastBenchSource,
     guildBenchSource,
     loneChoices,
+    paymentTotal,
     type BenchOffer,
     type BenchPick,
     type BenchPresser,
@@ -139,10 +140,7 @@ function tradeCost(seat: BenchSeat, guildId: GuildId, source: BenchSource): Chip
     if (!payment) {
         return undefined
     }
-    const { members, charity, generalSupply } = payment
-    const total =
-        members.reduce((sum, { amount }) => sum + amount, 0) + charity.amount + generalSupply
-    return { kind: 'cost', label: `${total}s` }
+    return { kind: 'cost', label: `${paymentTotal(payment)}s` }
 }
 
 function upToVp(bestVp: number): string {

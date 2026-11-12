@@ -140,8 +140,6 @@ export interface BenchOffer {
     readonly title: string
     readonly guild: GuildId
     readonly fn: GuildFunctionName
-    /** R-3.16.3 Performed by a Feast rather than the Guild card's own function. */
-    readonly byFeast: boolean
     /** Trade: its guild. Pull: from-guild, guild. Push: guild, to-guild. */
     readonly areas: readonly GuildId[]
     readonly line?: string
@@ -685,7 +683,8 @@ function beadItems(preview: BenchPreview | undefined): readonly BenchItem[] {
     })
 }
 
-function paymentTotal({ members, charity, generalSupply }: PaymentSplit): number {
+/** R-4.6.2 What a payment split costs the seat in all. */
+export function paymentTotal({ members, charity, generalSupply }: PaymentSplit): number {
     return members.reduce((total, { amount }) => total + amount, 0) + charity.amount + generalSupply
 }
 
@@ -1040,7 +1039,6 @@ export function benchOffer(
         title,
         guild: source.guildId,
         fn: source.fn,
-        byFeast: source.feast !== undefined,
         areas: areasOf(source.guildId, source.fn),
         ...(line ? { line } : {}),
         ...(step.collapsed ? { collapsed: step.collapsed } : {}),

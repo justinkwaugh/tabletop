@@ -8,7 +8,7 @@ import {
     type HydratedFeudumGameState,
     type VesselType
 } from '@tabletop/feudum'
-import type { BenchChoice, BenchItem, BenchOffer } from './benchOffer.js'
+import { paymentTotal, type BenchChoice, type BenchItem, type BenchOffer } from './benchOffer.js'
 import type { GhostPiece } from './benchView.js'
 
 /**
@@ -242,11 +242,7 @@ function basketOf(bench: BenchOffer, most: number): TradeBasket {
         return ghost.item.startsWith('scroll:') ? [{ kind: 'seal' }] : []
     })
     const payment = bench.preview?.payment
-    const total = payment
-        ? payment.members.reduce((sum, { amount }) => sum + amount, 0) +
-          payment.charity.amount +
-          payment.generalSupply
-        : 0
+    const total = payment ? paymentTotal(payment) : 0
     return { picks, total: picks.length > 0 ? total : 0, most }
 }
 

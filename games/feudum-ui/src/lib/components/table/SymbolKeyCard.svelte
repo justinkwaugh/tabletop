@@ -1,11 +1,5 @@
 <script lang="ts">
-    import {
-        Goods,
-        GuildIds,
-        type GuildId,
-        type LocationKind,
-        type VesselType
-    } from '@tabletop/feudum'
+    import { Goods, GuildById, GuildIds, LocationKinds, VesselTypes } from '@tabletop/feudum'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import GuildDie from '$lib/components/pieces/GuildDie.svelte'
     import LocationDisc from '$lib/components/pieces/LocationDisc.svelte'
@@ -26,12 +20,6 @@
     let { paint }: { paint: SeatPaint } = $props()
 
     const Piece = 22
-    const Places: readonly LocationKind[] = ['outpost', 'farm', 'town', 'feudum']
-    const Vessels: readonly VesselType[] = ['ship', 'submersible', 'flying-machine']
-
-    function titled(guild: GuildId): string {
-        return guild.charAt(0).toUpperCase() + guild.slice(1)
-    }
 </script>
 
 {#snippet entry(caption: string, art: import('svelte').Snippet)}
@@ -47,7 +35,7 @@
         <ul>
             {#each GuildIds as guild (guild)}
                 {#snippet die()}<GuildDie {guild} size={Piece} phoneSize={Piece} />{/snippet}
-                {@render entry(titled(guild), die)}
+                {@render entry(GuildById[guild].name, die)}
             {/each}
         </ul>
     </section>
@@ -70,7 +58,7 @@
     <section>
         <h3>Places</h3>
         <ul>
-            {#each Places as place (place)}
+            {#each LocationKinds as place (place)}
                 {#snippet disc()}<LocationDisc kind={place} size={Piece} />{/snippet}
                 {@render entry(place, disc)}
             {/each}
@@ -79,7 +67,7 @@
     <section>
         <h3>Vessels</h3>
         <ul>
-            {#each Vessels as vessel (vessel)}
+            {#each VesselTypes as vessel (vessel)}
                 {#snippet token()}<VesselToken {vessel} size={Piece} />{/snippet}
                 {@render entry(vessel.replace('-', ' '), token)}
             {/each}
