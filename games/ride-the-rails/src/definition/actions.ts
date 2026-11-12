@@ -1,1 +1,4 @@
-export enum ActionType {}
+export enum ActionType {
+    RideJourney = 'RideJourney',
+    PassJourney = 'PassJourney'
+}

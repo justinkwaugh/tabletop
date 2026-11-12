@@ -16,13 +16,18 @@ export const Link = Type.Object({
 export type JourneyRefusal =
     'no-links' | 'not-a-link' | 'links-do-not-meet' | 'no-passenger' | 'hex-visited-twice'
 
-export type LinksPerRailroad = Partial<Record<RailroadId, number>>
+export type LinksPerRailroad = Type.Static<typeof LinksPerRailroad>
+export const LinksPerRailroad = Type.Options(
+    Type.Partial(Type.Record(RailroadId, Type.Integer({ minimum: 1 }))),
+    { additionalProperties: false }
+)
 
-export type JourneyPayment = {
-    playerId: string
-    dividends: number
-    fare: number
-}
+export type JourneyPayment = Type.Static<typeof JourneyPayment>
+export const JourneyPayment = Type.Object({
+    playerId: Type.String(),
+    dividends: Type.Integer({ minimum: 0 }),
+    fare: Type.Integer({ minimum: 0 })
+})
 
 export type JourneyPayments = {
     linksPerRailroad: LinksPerRailroad

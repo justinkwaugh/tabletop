@@ -1,4 +1,6 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
+import { HydratedPassJourney, isPassJourney } from '../actions/passJourney.js'
+import { HydratedRideJourney, isRideJourney } from '../actions/rideJourney.js'
 import { HydratedRideTheRailsGameState, RideTheRailsGameState } from '../model/gameState.js'
 
 export class RideTheRailsHydrator implements GameHydrator<
@@ -7,6 +9,10 @@ export class RideTheRailsHydrator implements GameHydrator<
 > {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
+            case isRideJourney(data):
+                return new HydratedRideJourney(data)
+            case isPassJourney(data):
+                return new HydratedPassJourney(data)
             default: {
                 throw new Error(`Unknown action type ${data.type}`)
             }
