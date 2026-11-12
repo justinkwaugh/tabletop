@@ -1,6 +1,5 @@
 import type { AlgaColor, CoralColor, ReefSquare } from '@tabletop/reef-encounter'
 import {
-    hasManualStagedSelection,
     popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
@@ -75,10 +74,6 @@ export function startEating(selection: ReefSelection) {
 
 export function chooseOpenSeaSpace(selection: ReefSelection, larvaColor: CoralColor) {
     return setReefSelection(selection, 'openSeaSpace', larvaColor)
-}
-
-export function hasManualReefSelection(selection: ReefSelection): boolean {
-    return hasManualStagedSelection<ReefSelectionValues>(selection, ReefStageOrder)
 }
 
 export function popReefSelection(selection: ReefSelection): ReefSelection {

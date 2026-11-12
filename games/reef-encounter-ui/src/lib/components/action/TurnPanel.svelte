@@ -27,14 +27,6 @@
             : [])
     ])
     const chosenSpace = $derived(gameSession.chosenOpenSeaSpace)
-    const chosenPolyps = $derived.by(() => {
-        const space = gameSession.gameState.openSea.find(
-            ({ larvaColor }) => larvaColor === chosenSpace
-        )
-        const counts = new Map<CoralColor, number>()
-        for (const color of space?.polyps ?? []) counts.set(color, (counts.get(color) ?? 0) + 1)
-        return [...counts]
-    })
     const cubesSearchingBag = $derived(gameSession.cubesForPolypsFromBag)
     const supplyLeft = $derived.by(() => {
         if (!placing || !me) return 0
@@ -62,7 +54,10 @@
         <span class="icon-line">
             <span class="sr-only">Taking the {chosenSpace} larva cube and its polyps.</span>
             {@render cube(chosenSpace)}
-            {#each chosenPolyps as [color, count] (color)}<PolypChip {color} {count} />{/each}
+            {#each gameSession.chosenSpacePolyps as [color, count] (color)}<PolypChip
+                    {color}
+                    {count}
+                />{/each}
         </span>
         <ChoiceButton label="Confirm" onclick={() => gameSession.confirmOpenSeaSpace()}>
             <span class="choice-text">Confirm</span>

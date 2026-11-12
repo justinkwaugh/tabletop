@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AlgaColor, CoralColor } from '@tabletop/reef-encounter'
-import { setStagedSelectionValue } from '@tabletop/frontend-components'
+import { hasManualStagedSelection, setStagedSelectionValue } from '@tabletop/frontend-components'
 import {
     chooseCylinderAlga,
     chooseCylinderPayment,
@@ -8,13 +8,16 @@ import {
     chooseOpenSeaSpace,
     choosePlacementSquare,
     chooseShrimp,
-    hasManualReefSelection,
     popReefSelection,
     ReefStageOrder,
+    type ReefSelection,
     type ReefSelectionValues
 } from './stagedSelection.js'
 
 const square = { boardId: 3, coords: { row: 2, col: 2 } } as const
+
+const hasManualReefSelection = (selection: ReefSelection) =>
+    hasManualStagedSelection<ReefSelectionValues>(selection, ReefStageOrder)
 
 describe('Reef Encounter staged selection', () => {
     it('records a chosen first larva cube as a manual stage', () => {
