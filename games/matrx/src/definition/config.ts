@@ -19,17 +19,20 @@ export const MatrxGameConfig = Type.Object({
     whitePlayer: Type.Optional(Type.Enum(WhitePlayer))
 })
 
+const matrxDescription = 'The 40-spot MATRX board.'
+const gipfDescription = 'The 37-spot GIPF board, denser and usually longer.'
+
 export const MatrxGameConfigOptions: GameConfigOptions = [
     {
         id: 'board',
         type: ConfigOptionType.List,
         name: 'Board',
-        description:
-            'MATRX: the 40-spot MATRX board. GIPF: the 37-spot GIPF board, denser and usually longer.',
+        // Older site forms show only this, so it describes every board.
+        description: `MATRX: ${matrxDescription} GIPF: ${gipfDescription}`,
         default: BoardShape.Matrx,
         options: [
-            { name: 'MATRX board', value: BoardShape.Matrx },
-            { name: 'GIPF board', value: BoardShape.Gipf }
+            { name: 'MATRX board', value: BoardShape.Matrx, description: matrxDescription },
+            { name: 'GIPF board', value: BoardShape.Gipf, description: gipfDescription }
         ],
         alwaysShow: true
     },
