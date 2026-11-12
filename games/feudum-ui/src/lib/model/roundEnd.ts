@@ -4,7 +4,6 @@ import {
     isBeginDawn,
     isReplenishGuilds,
     isReplenishMap,
-    isRollProgressDie,
     type BeginDawn,
     type Epoch,
     type ReplenishGuilds,
@@ -12,7 +11,6 @@ import {
 } from '@tabletop/feudum'
 import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
 import { spaceLabel } from './cardFlows.js'
-import { EpochNames, tileName } from './tileName.js'
 
 type DawnMetadata = NonNullable<BeginDawn['metadata']>
 export type DawnSheetRow = DawnMetadata['sheet'][number]
@@ -30,10 +28,9 @@ export interface DawnSheetView {
     readonly notes: readonly string[]
 }
 
+/** R-4.11 The roll itself is the history's to tell; the action area keeps only the dawn's sheet. */
 export interface RoundEndView {
-    /** R-4.11 What the die took, and the epoch it brought on. */
-    readonly lines: readonly string[]
-    readonly dawn?: DawnSheetView
+    readonly dawn: DawnSheetView
 }
 
 export function fillLine({ spaceId, landscape, added }: LandscapeFilled): string {
@@ -60,11 +57,6 @@ function refillLine(refill: GuildRefill): string {
     return `Guilds refill: ${named.length > 0 ? named.join(', ') : 'nothing'}`
 }
 
-function removedLine(tileId: Parameters<typeof tileName>[0]): string {
-    const [region, epoch] = tileName(tileId).split(' ')
-    return `${region}: tile ${epoch} removed`
-}
-
 /**
  * The actions since the last press that opened a decision. A collection belongs to the dawn, and a
  * writ discarded at any time off the turn (R-4.4-H5) moves no decision on, so neither closes the sheet.
@@ -82,9 +74,9 @@ function sinceLastDecision(
 }
 
 /**
- * R-4.11, R-4.12 What the round's end played, read from the Actions on the displayed state, not from
+ * R-4.12 The dawn the round's end played, read from the Actions on the displayed state, not from
  * `flow`: the flow holds no dawn, and a host's batch publishes only its last state, so no state of the
- * machine ever shows one. It stands from the roll until the first press of the next decision, the
+ * machine ever shows one. It stands from the dawn until the first press of the next decision, the
  * same for every seat.
  */
 export function roundEndOf(
@@ -92,18 +84,9 @@ export function roundEndOf(
     turns: readonly Turn[]
 ): RoundEndView | undefined {
     const recent = sinceLastDecision(actions, turns)
-    const roll = recent.find((action) => isRollProgressDie(action))
     const dawn = recent.find((action) => isBeginDawn(action))
-    const lines = [
-        ...(isRollProgressDie(roll) && roll.metadata?.removed
-            ? [removedLine(roll.metadata.removed.tileId)]
-            : []),
-        ...(isRollProgressDie(roll) && roll.metadata?.epochTriggered
-            ? [`Epoch ${EpochNames[roll.metadata.epochTriggered]} dawns`]
-            : [])
-    ]
     const metadata = isBeginDawn(dawn) ? dawn.metadata : undefined
-    if (lines.length === 0 && !metadata) {
+    if (!metadata) {
         return undefined
     }
     const notes = recent.flatMap((action) => {
@@ -113,16 +96,11 @@ export function roundEndOf(
         return isReplenishGuilds(action) && action.metadata ? [refillLine(action.metadata)] : []
     })
     return {
-        lines,
-        ...(metadata
-            ? {
-                  dawn: {
-                      epoch: metadata.epoch,
-                      rows: metadata.sheet,
-                      fills: metadata.fills.map(fillLine),
-                      notes
-                  }
-              }
-            : {})
+        dawn: {
+            epoch: metadata.epoch,
+            rows: metadata.sheet,
+            fills: metadata.fills.map(fillLine),
+            notes
+        }
     }
 }

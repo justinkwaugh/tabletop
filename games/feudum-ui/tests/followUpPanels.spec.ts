@@ -197,7 +197,7 @@ test('S54 the dawn sheet stands in the action area, with the next decision above
     const sheet = panel(page).locator('[data-dawn-sheet]')
     await expect(sheet).toBeVisible()
     await expect(sheet.locator('[data-dawn-row]')).toHaveCount(3)
-    await expect(panel(page).locator('[data-round-line]').last()).toContainText('Epoch II dawns')
+    await expect(panel(page)).not.toContainText('Epoch II dawn')
     await expect(sheet).toContainText('Dawn of epoch II')
     await shot(page, 'S54-dawn-sheet')
 })

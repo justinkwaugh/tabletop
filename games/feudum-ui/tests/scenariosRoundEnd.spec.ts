@@ -204,7 +204,8 @@ scenario('S54 R-4.11.2, R-4.12 Progress roll and dawn', 'dawn-roll', async (tabl
         ])
     )
     // R-4.11 The roll is told in the history; the panel keeps the sheet.
-    await expect(table.panel().locator('[data-round-line]')).toHaveCount(0)
+    await expect(table.panel()).not.toContainText('removed')
+    await expect(table.panel()).not.toContainText('Epoch II dawn')
     await table.press(table.page.getByRole('tab', { name: 'History' }))
     await expect(table.page.locator('[data-history-list]')).toContainText('Desert I removed')
     await expect(table.page.locator('[data-history-list]')).toContainText('Epoch II dawned')
