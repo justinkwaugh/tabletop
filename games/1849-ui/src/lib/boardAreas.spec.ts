@@ -9,7 +9,7 @@ import { MapView1849 } from './mapView.js'
 import { Presentation1849 } from './presentation.js'
 
 describe('1849 board', () => {
-    it('keeps every drawn market cell and the depot clear of every hex and each other', () => {
+    it('keeps every drawn market cell, the depot and the start order clear of every hex and each other', () => {
         const areas = MapView1849.boardAreas
         expect(areas?.market && areas.depot).toBeTruthy()
         // A flat hex of radius 50 reaches 50 across and 43.3 up and down from its centre.
@@ -55,5 +55,8 @@ describe('1849 board', () => {
             ).toBe(true)
         }
         expect(clear(depot.x, depot.y, depot.width, depot.height)).toBe(true)
+        const panel = areas?.panel
+        assertExists(panel, 'The board has the start order panel')
+        expect(clear(panel.x, panel.y, panel.width, panel.height)).toBe(true)
     })
 })

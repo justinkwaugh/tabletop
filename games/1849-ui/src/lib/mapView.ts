@@ -38,7 +38,9 @@ export const MapView1849: MapViewDefinition = {
     boardAreas: {
         // East of the island, the depot in the market's empty lower right.
         market: { x: 1190, y: -60, width: 1004, height: 692 },
-        depot: { x: 1850, y: 470, width: 340, height: 160 }
+        depot: { x: 1850, y: 470, width: 340, height: 160 },
+        // The corporations' start order stands in the sea south of Trapani and Marsala (§2.2).
+        panel: { x: -40, y: 420, width: 340, height: 170 }
     },
     stations: Stations,
     // Rough, hills and mountains (L. 40, 80 and 160) as one, two and three peaks (§10.3.1).

@@ -112,6 +112,8 @@ track layouts and counts only, checked against the rulebook.
 
 - Variants (§14): acquiring station tokens, bonds, Electric Dreams.
 - The physical board view (no board artwork); the boardless map is the only presentation.
+- The start order panel stands on the board only (the family's board panel); the paned layout
+  shows the order through each corporation's state alone.
 
 ## Verification
 

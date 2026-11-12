@@ -1,5 +1,6 @@
 <script lang="ts">
     import { createRouteWorker } from './routeWorker.js'
+    import StartOrder from './StartOrder.svelte'
     import type { GameSession } from '@tabletop/frontend-components'
     import { PrivateRules1849, type HydratedState1849, type State1849 } from '@tabletop/1849'
     import { privateOwningCompany } from '@tabletop/18xx'
@@ -19,7 +20,17 @@
             : undefined
 </script>
 
-<GameTable {session} {privateOperationDescription} {createRouteWorker}>
+{#snippet startOrder(reveal: (locationId: string) => void)}<StartOrder
+        {session}
+        {reveal}
+    />{/snippet}
+
+<GameTable
+    {session}
+    {privateOperationDescription}
+    {createRouteWorker}
+    boardPanel={{ label: 'Start order', content: startOrder }}
+>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
