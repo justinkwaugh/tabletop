@@ -31,7 +31,7 @@ function aRow(label: string, more: Partial<PanelChoice> = {}): ActionRow {
 }
 
 function rowsBlock(name: string, rows: readonly ActionRow[], heading?: string): ActionBlock {
-    return { kind: 'rows', name, rows, heading }
+    return { kind: 'rows', name, rows, ...(heading ? { heading } : {}) }
 }
 
 /** The element's own text: tags and the markers svelte leaves are dropped. */
@@ -211,10 +211,19 @@ describe('R-X.3 the rows of the panel', () => {
         expect(markup).not.toContain('data-badge')
     })
 
-    it('a block carries its heading, and a picked row says so', () => {
-        const markup = markupOf(rowsBlock('pouch', [aRow('Iron', { picked: true })], 'Pouch'))
+    it("R-3.13 a block's heading stands before its rows: the attack's saltpeter count", () => {
+        const markup = markupOf(rowsBlock('saltpeter', [aRow('Add')], 'Saltpeter 2'))
+        const rowsAt = markup.indexOf('data-rows="saltpeter"')
+        const headingAt = markup.indexOf('>Saltpeter 2</span>')
+        expect(rowsAt).toBeGreaterThan(-1)
+        expect(headingAt).toBeGreaterThan(rowsAt)
+        expect(markup.indexOf('Add', rowsAt)).toBeGreaterThan(headingAt)
+    })
+
+    it('the pouch block is the group named Pouch, and a picked row says so', () => {
+        const markup = markupOf(rowsBlock('pouch', [aRow('Iron', { picked: true })]))
         expect(markup).toContain('data-rows="pouch"')
-        expect(markup).toContain('Pouch')
+        expect(markup).toContain('aria-label="Pouch"')
         expect(markup).toContain('data-picked')
         expect(markup).toContain('aria-pressed="true"')
     })
@@ -370,7 +379,6 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
                 kind: 'rows',
                 name: 'pouch',
                 rows: pouch(refusal),
-                heading: 'Pouch',
                 stands: 'draft'
             },
             {

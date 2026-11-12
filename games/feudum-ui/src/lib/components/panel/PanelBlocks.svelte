@@ -171,15 +171,12 @@
         <div
             class="flex flex-wrap items-center {block.rows.every(({ art }) => art?.kind === 'die')
                 ? 'gap-4 max-sm:gap-1'
-                : 'gap-1'} {block.name === 'pouch' ? 'pinned max-sm:[&_.beside-art]:sr-only' : ''}"
+                : 'gap-1'}"
             data-rows={block.name}
         >
             {#if block.heading}
-                <span
-                    class="text-xs uppercase tracking-wide text-feudum-text-muted {block.name ===
-                    'pouch'
-                        ? 'max-sm:sr-only'
-                        : ''}">{block.heading}</span
+                <span class="text-xs uppercase tracking-wide text-feudum-text-muted"
+                    >{block.heading}</span
                 >
             {/if}
             {#each block.rows as row (row.choice.label)}
