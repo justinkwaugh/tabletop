@@ -4,6 +4,8 @@ import { HydratedRideJourney, isRideJourney } from '../actions/rideJourney.js'
 import { HydratedRideTheRailsGameState, RideTheRailsGameState } from '../model/gameState.js'
 import { HydratedTakeShare, isTakeShare } from '../actions/takeShare.js'
 import { HydratedSkipShare, isSkipShare } from '../actions/skipShare.js'
+import { HydratedEndRound, isEndRound } from '../actions/endRound.js'
+import { HydratedEndGame, isEndGame } from '../actions/endGame.js'
 
 export class RideTheRailsHydrator implements GameHydrator<
     RideTheRailsGameState,
@@ -19,6 +21,10 @@ export class RideTheRailsHydrator implements GameHydrator<
                 return new HydratedTakeShare(data)
             case isSkipShare(data):
                 return new HydratedSkipShare(data)
+            case isEndRound(data):
+                return new HydratedEndRound(data)
+            case isEndGame(data):
+                return new HydratedEndGame(data)
             default: {
                 throw new Error(`Unknown action type ${data.type}`)
             }
