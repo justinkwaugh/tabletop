@@ -84,7 +84,7 @@
         inset: -1px;
         border: 2px solid #4a9eff;
         border-radius: calc(var(--card-w) * 0.07 + 1px);
-        box-shadow: 0 0 0 2px rgb(74 158 255 / 0.35);
+        outline: 2px solid rgb(74 158 255 / 0.35);
         pointer-events: none;
     }
 

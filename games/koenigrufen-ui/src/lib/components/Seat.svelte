@@ -90,10 +90,12 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 3px 12px;
+        padding: 3px 12px 2px;
         border-radius: 999px;
         font-weight: 700;
-        box-shadow: 0 1px 0 rgb(0 0 0 / 0.4);
+        /* Its edge is a border over the board, not a shadow (docs/phone-rendering.md). */
+        border-bottom: 1px solid rgb(0 0 0 / 0.4);
+        background-clip: padding-box;
     }
 
     .active .plate {
@@ -144,10 +146,26 @@
         font-weight: 700;
     }
 
+    /* More than one trick: a second card behind, its edge showing up and to the right. Both are
+       flat shapes rather than shadows (docs/phone-rendering.md). */
     .pile.deep {
-        box-shadow:
-            1px -1px 0 #2d3a7c,
-            2px -2px 0 #f1e7cf;
+        position: relative;
+        border-color: transparent;
+        background: transparent;
+    }
+
+    .pile.deep::before,
+    .pile.deep::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border: 1px solid #f1e7cf;
+        border-radius: 2px;
+        background: #2d3a7c;
+    }
+
+    .pile.deep::before {
+        translate: 2px -2px;
     }
 
     .badge {

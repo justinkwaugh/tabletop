@@ -2,6 +2,7 @@ import {
     GameSession,
     undoableStagedSelection,
     type AnimationContext,
+    type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -374,7 +375,18 @@ export class KoenigrufenGameSession extends GameSession<
             await this.playCard(cardId)
             return
         }
+        this.handMayShift = true
         this.playSelection = pickToPlay(cardId)
+    }
+
+    // Whether the hand may slide as a card opens for a look, after the player picks or focuses
+    // one. Every new state stops it, so the hand lays out a dealt, taken or played card at once
+    // and its cards move only with the animators.
+    handMayShift = $state(false)
+
+    override beforeNewState(transition: PresentedTransition) {
+        super.beforeNewState(transition)
+        this.handMayShift = false
     }
 
     async playCard(cardId: string) {

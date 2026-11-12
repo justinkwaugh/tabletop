@@ -42,24 +42,45 @@
     title={label}
     onclick={onclick ? activate : undefined}
 >
-    <img src={art} alt="" draggable="false" />
+    <span class="face"><img src={art} alt="" draggable="false" /></span>
 </svelte:element>
 
 <style>
+    /* Depth is a flat shape behind the face, the selection rings are outlines, and a dimmed card is
+       covered by a flat dark fill: nothing here is drawn offscreen, so cards repaint cheaply on
+       phones (docs/phone-rendering.md). Only the lift is animated. */
     .card {
+        --radius: calc(var(--card-w, 80px) * 0.07);
+        --drop: 1px;
+        --drop-color: rgb(0 0 0 / 0.45);
         position: relative;
         display: block;
         width: calc(var(--card-w, 80px) * var(--width-share, 1));
         height: calc(var(--card-w, 80px) * 1.8);
         padding: 0;
+        border: none;
+        background: none;
+        transition: transform 120ms ease;
+    }
+
+    .card::before {
+        content: '';
+        position: absolute;
+        inset: var(--drop) 0 calc(-1 * var(--drop));
+        border-radius: var(--radius);
+        background: var(--drop-color);
+    }
+
+    .face {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
         overflow: hidden;
-        border-radius: calc(var(--card-w, 80px) * 0.07);
+        border-radius: var(--radius);
         border: 1px solid #b9ae95;
         background: #f7f3ec;
-        /* Shadows are unblurred offset shapes, and only the lift is animated, so cards repaint
-           cheaply on phones. */
-        box-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
-        transition: transform 120ms ease;
     }
 
     .card[aria-disabled='true'] {
@@ -74,10 +95,13 @@
     }
 
     .selectable {
+        --drop: 3px;
+        --drop-color: rgb(0 0 0 / 0.4);
         cursor: pointer;
-        box-shadow:
-            0 0 0 2px #f2c94c,
-            0 3px 0 rgb(0 0 0 / 0.4);
+    }
+
+    .selectable .face {
+        outline: 2px solid #f2c94c;
     }
 
     .selectable:hover {
@@ -85,13 +109,19 @@
     }
 
     .chosen {
+        --drop: 5px;
+        --drop-color: rgb(0 0 0 / 0.4);
         transform: translateY(-14%);
-        box-shadow:
-            0 0 0 3px #6fcf97,
-            0 5px 0 rgb(0 0 0 / 0.4);
     }
 
-    .dimmed {
-        filter: brightness(0.6) saturate(0.7);
+    .chosen .face {
+        outline: 3px solid #6fcf97;
+    }
+
+    .dimmed .face::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgb(0 0 0 / 0.4);
     }
 </style>

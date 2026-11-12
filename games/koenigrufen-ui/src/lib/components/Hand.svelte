@@ -2,7 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { dragToPlay } from '$lib/utils/dragToPlay.js'
     import { cardWidthShare } from '$lib/utils/cardStyle.js'
-    import { handMargins } from '$lib/utils/handSpacing.js'
+    import { exposureShifts, handMargins } from '$lib/utils/handSpacing.js'
     import Card from './Card.svelte'
 
     // One row of cards `cardWidth` wide across `width`; they overlap once they no longer fit side by
@@ -36,10 +36,14 @@
 
     let focused: string | undefined = $state()
     const exposed = $derived(focused ?? gameSession.pickedCard)
-    const margins = $derived(
-        handMargins(
+    const shownWidth = $derived(cardWidth * cardWidthShare(gameSession.cardStyle))
+    // The row is laid out closed, so a new state places its cards at once; opening a card only
+    // shifts the cards, which slide while the player looks (`gameSession.handMayShift`).
+    const margins = $derived(handMargins(gameSession.myHand.length, shownWidth, width))
+    const shifts = $derived(
+        exposureShifts(
             gameSession.myHand.length,
-            cardWidth * cardWidthShare(gameSession.cardStyle),
+            shownWidth,
             width,
             exposed === undefined ? undefined : gameSession.myHand.indexOf(exposed)
         )
@@ -51,6 +55,7 @@
     }
 
     function onFocusIn(event: FocusEvent) {
+        gameSession.handMayShift = true
         focused =
             event.target instanceof Element && event.target.matches(':focus-visible')
                 ? cardAt(event.target)
@@ -72,8 +77,10 @@
             <div
                 class="slot"
                 class:draggable={playable}
+                class:shifting={gameSession.handMayShift}
                 data-card={cardId}
                 style:margin-left="{margins[index]}px"
+                style:translate="{shifts[index] ?? 0}px 0"
                 {@attach dragToPlay({
                     enabled: playable,
                     onDrop: () => gameSession.playCard(cardId)
@@ -108,9 +115,13 @@
 
     .slot {
         position: relative;
+        transition: transform 160ms ease;
+    }
+
+    .slot.shifting {
         transition:
             transform 160ms ease,
-            margin-left 120ms ease;
+            translate 120ms ease;
     }
 
     .draggable {

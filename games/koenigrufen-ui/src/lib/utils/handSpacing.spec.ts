@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ExposedShare, handMargins } from './handSpacing.js'
+import { exposureShifts, ExposedShare, handMargins } from './handSpacing.js'
 
 // Where each card's left edge falls.
 function lefts(margins: number[], cardWidth: number): number[] {
@@ -46,5 +46,23 @@ describe('handMargins', () => {
     it('handles tiny hands', () => {
         expect(handMargins(0, 100, 100)).toEqual([])
         expect(handMargins(1, 100, 50, 0)).toEqual([0])
+    })
+})
+
+describe('opening a card in the hand', () => {
+    it('moves each card from the closed row to where the open row puts it', () => {
+        const closed = handMargins(8, 100, 400)
+        const open = handMargins(8, 100, 400, 2)
+        const shifts = exposureShifts(8, 100, 400, 2)
+        expect(shifts[0]).toBe(0)
+        expect(shifts[7]).toBeCloseTo(0)
+        const openLefts = lefts(open, 100)
+        lefts(closed, 100).forEach((left, index) =>
+            expect(left + shifts[index]!).toBeCloseTo(openLefts[index]!)
+        )
+    })
+
+    it('shifts nothing while no card is open', () => {
+        expect(exposureShifts(8, 100, 400)).toEqual(Array(8).fill(0))
     })
 })

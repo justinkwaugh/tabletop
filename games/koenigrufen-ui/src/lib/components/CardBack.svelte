@@ -10,17 +10,33 @@
 </script>
 
 <div class="back" style:--width-share={widthShare} aria-label="Face-down card">
-    <img src={ClassicCardBack} alt="" draggable="false" />
+    <div class="face"><img src={ClassicCardBack} alt="" draggable="false" /></div>
 </div>
 
 <style>
+    /* Its edge is a flat shape behind the face, as on the faces (Card.svelte). */
     .back {
+        position: relative;
         width: calc(var(--card-w, 80px) * var(--width-share, 1));
         height: calc(var(--card-w, 80px) * 1.8);
+    }
+
+    .back::before {
+        content: '';
+        position: absolute;
+        inset: 1px 0 -1px;
+        border-radius: calc(var(--card-w, 80px) * 0.07);
+        background: rgb(0 0 0 / 0.45);
+    }
+
+    .face {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
         overflow: hidden;
         border-radius: calc(var(--card-w, 80px) * 0.07);
         border: 1px solid #b9ae95;
-        box-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
         background: #f7f3ec;
     }
 

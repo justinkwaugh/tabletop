@@ -30,3 +30,17 @@ export function handMargins(
         return (widened && index === exposed! + 1 ? wanted : others) - cardWidth
     })
 }
+
+// How far each card moves sideways from its place in the closed row while the `exposed` card is
+// open: the row is laid out closed, and opening a card only shifts cards, so it can slide.
+export function exposureShifts(
+    count: number,
+    cardWidth: number,
+    room: number,
+    exposed?: number
+): number[] {
+    const closed = handMargins(count, cardWidth, room)
+    const open = handMargins(count, cardWidth, room, exposed)
+    let shift = 0
+    return open.map((margin, index) => (shift += margin - (closed[index] ?? 0)))
+}
