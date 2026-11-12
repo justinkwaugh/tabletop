@@ -2,13 +2,18 @@ import { assertExists } from '@tabletop/common'
 import { routePathResources } from './routeResources.js'
 import type { TileEndpoint, TileFace, TileNode, TilePath } from '../tiles/tile.js'
 import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
+import { continueStretch, type StretchGauge } from '../tiles/trackGauge.js'
 import type { RailwayMapState } from '../map/mapState.js'
 import type { RevenueCenter, RoutePath } from './route.js'
 export type RouteVisit = RevenueCenter & { node: Exclude<TileNode, { kind: 'junction' }> }
+/** Track a route runs between two stops, or from its last stop on, and the hex sides it crosses. */
+export type TrackStretch = { gauge: StretchGauge; crossings: number }
 export type RouteTrace = {
     visits: RouteVisit[]
     resources: string[]
     crossings: number
+    /** The route's track from stop to stop, the last unfinished where the route ends off a stop. */
+    stretches: TrackStretch[]
     end: { locationId: string; endpoint: TileEndpoint }
 }
 export type RouteTraceEvaluation =
@@ -64,10 +69,12 @@ export class RouteNetwork {
             visits: [{ ...start, node }],
             resources: [],
             crossings: 0,
+            stretches: [],
             end: { locationId: start.locationId, endpoint: { kind: 'node', nodeId: start.nodeId } }
         }
         const used = new Set<string>()
         const junctions = new Set<string>()
+        let stretch: TrackStretch | undefined
         for (const segment of paths) {
             const arrival = this.arrive(trace.end)
             if (!arrival) return { reason: 'The route leaves connected track.' }
@@ -79,6 +86,14 @@ export class RouteNetwork {
                 ?.paths.find((path) => path.id === segment.pathId)
             if (!path || !path.endpoints.some((end) => sameTileEndpoint(end, endpoint)))
                 return { reason: 'The route is disconnected.' }
+            if (!stretch) {
+                stretch = { gauge: 'either', crossings: 0 }
+                trace.stretches.push(stretch)
+            }
+            stretch.crossings += arrival.crossed
+            const gauge = continueStretch(stretch.gauge, path)
+            if (!gauge) return { reason: 'A route may change gauge only at a town or city.' }
+            stretch.gauge = gauge
             const resources = routePathResources(locationId, path)
             if (resources.some((key) => used.has(key)))
                 return { reason: 'A route cannot reuse track or a hex border.' }
@@ -97,13 +112,15 @@ export class RouteNetwork {
             } else if (reached) {
                 trace.visits.push({ locationId, nodeId: reached.id, node: reached })
                 junctions.clear()
+                stretch = undefined
             }
         }
         return { trace }
     }
     /**
      * Walks every way along track from a stop, path by path, as `trace` would follow a route: never
-     * reusing track or a hex side, nor a junction between two stops. `step` sees each walk as it
+     * reusing track or a hex side, nor a junction between two stops, nor changing gauge between
+     * two stops. `step` sees each walk as it
      * reaches a path's far end, and whether that end is a stop; the walk goes on only when it
      * returns true. The walk is reused as it changes, so copy what should be kept.
      */
@@ -125,12 +142,14 @@ export class RouteNetwork {
             visits,
             crossings: 0
         }
-        const extend = (end: TrackEnd) => {
+        const extend = (end: TrackEnd, stretch: StretchGauge) => {
             const arrival = this.arrive(end)
             if (!arrival) return
             const { locationId, endpoint } = arrival
             for (const path of this.face(locationId).paths) {
                 if (!path.endpoints.some((other) => sameTileEndpoint(other, endpoint))) continue
+                const gauge = continueStretch(stretch, path)
+                if (!gauge) continue
                 const routePath = { locationId, pathId: path.id }
                 if (!paths.length && options.first && !options.first(routePath)) continue
                 const resources = routePathResources(locationId, path)
@@ -150,7 +169,8 @@ export class RouteNetwork {
                 for (const key of resources) used.add(key)
                 paths.push(routePath)
                 walk.crossings += arrival.crossed
-                if (step(walk, !!stop)) extend({ locationId, endpoint: far })
+                if (step(walk, !!stop))
+                    extend({ locationId, endpoint: far }, stop ? 'either' : gauge)
                 walk.crossings -= arrival.crossed
                 paths.pop()
                 for (const key of resources) used.delete(key)
@@ -159,7 +179,10 @@ export class RouteNetwork {
                 if (stop) visits.pop()
             }
         }
-        extend({ locationId: start.locationId, endpoint: { kind: 'node', nodeId: start.nodeId } })
+        extend(
+            { locationId: start.locationId, endpoint: { kind: 'node', nodeId: start.nodeId } },
+            'either'
+        )
     }
     extensions(start: RevenueCenter, paths: readonly RoutePath[]): RoutePath[] {
         const result = this.trace(start, paths)

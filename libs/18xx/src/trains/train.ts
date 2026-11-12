@@ -11,7 +11,21 @@ export const TrainDistance = Type.Object(
         ]),
         maximum: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')]),
         /** Towns a revenue-centre train may visit beyond its maximum, such as a 5+1's one. */
-        extraTowns: Type.Optional(Type.Integer({ minimum: 1 }))
+        extraTowns: Type.Optional(Type.Integer({ minimum: 1 })),
+        /**
+         * What a hex-edge train counts for each hex side it crosses on standard or narrow track,
+         * where the two differ; track that is dual from one stop to the next counts the lesser.
+         * Without them every hex side counts one.
+         */
+        gaugeWeights: Type.Optional(
+            Type.Object(
+                {
+                    standard: Type.Integer({ minimum: 1 }),
+                    narrow: Type.Integer({ minimum: 1 })
+                },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )

@@ -21,7 +21,12 @@ import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition, Train } from '../trains/train.js'
 import type { TileNode } from '../tiles/tile.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
-import { RouteNetwork, type RouteTrace, type RouteVisit } from './routeNetwork.js'
+import {
+    RouteNetwork,
+    type RouteTrace,
+    type RouteVisit,
+    type TrackStretch
+} from './routeNetwork.js'
 import type { FleetRoute, FleetRules } from './fleetRules.js'
 import { fleetRouteReason, settleFleetRoutes } from './fleetSettlement.js'
 import { assert, assertExists } from '@tabletop/common'
@@ -100,6 +105,8 @@ export interface RouteRules {
     ): readonly RevenueCenter[] | undefined
     /** A route may visit only one revenue center in each hex. */
     oneStopPerHex?: true
+    /** Cities and towns a complete route must visit; offboards do not count toward them. */
+    minimumCitiesAndTowns?: number
     /** What a route earns for each hex it passes through or stops in, once per route. */
     hexBonus?(state: TrainRunningState, locationId: string): number
     /** What earns a hex's bonus, by the ids the title names. */
@@ -136,20 +143,34 @@ function endsWithin(visits: readonly RevenueCenter[], ends: readonly RevenueCent
         !!stop && ends.some((end) => sameCenter(end, stop))
     return visits.length >= 2 && within(visits[0]) && within(visits[visits.length - 1])
 }
-/** How far a route runs by the train's measure of distance. */
-export function routeDistance(
-    train: TrainDefinition,
-    trace: { visits: readonly RouteVisit[]; crossings: number }
-): number {
-    if (train.distance.measure === 'hex-edges') return trace.crossings
+type MeasuredTrace = {
+    visits: readonly RouteVisit[]
+    crossings: number
+    stretches: readonly TrackStretch[]
+}
+/**
+ * How far a route runs by the train's measure of distance. A stretch of track still unfinished
+ * counts as far as its gauge yet decides.
+ */
+export function routeDistance(train: TrainDefinition, trace: MeasuredTrace): number {
+    const weights = train.distance.gaugeWeights
+    if (train.distance.measure === 'hex-edges')
+        return weights
+            ? trace.stretches.reduce(
+                  (sum, { gauge, crossings }) =>
+                      sum +
+                      crossings *
+                          (gauge === 'either'
+                              ? Math.min(weights.standard, weights.narrow)
+                              : weights[gauge]),
+                  0
+              )
+            : trace.crossings
     return trace.visits.filter(
         (visit) => train.distance.measure === 'revenue-centers' || visit.node.kind !== 'town'
     ).length
 }
-export function exceedsRouteDistance(
-    train: TrainDefinition,
-    trace: { visits: readonly RouteVisit[]; crossings: number }
-): boolean {
+export function exceedsRouteDistance(train: TrainDefinition, trace: MeasuredTrace): boolean {
     const { maximum, extraTowns = 0 } = train.distance
     if (maximum === 'unlimited') return false
     const distance = routeDistance(train, trace)
@@ -279,6 +300,14 @@ export class RouteEvaluation {
                 return { reason: 'End the route at a revenue center.' }
             if (trace.visits.length < 2)
                 return { reason: 'A route needs at least two revenue centers.' }
+            const minimumCitiesAndTowns = this.rules.minimumCitiesAndTowns ?? 0
+            if (
+                trace.visits.filter((visit) => visit.node.kind !== 'offboard').length <
+                minimumCitiesAndTowns
+            )
+                return {
+                    reason: `A route must visit at least ${minimumCitiesAndTowns} cities or towns.`
+                }
             if (
                 this.rules.requiresCity(definition) &&
                 !trace.visits.some((visit) => visit.node.kind === 'city')
