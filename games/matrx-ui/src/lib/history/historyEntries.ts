@@ -1,5 +1,6 @@
 import type { AxialCoordinates, GameAction } from '@tabletop/common'
 import {
+    discsIn,
     isExtraMove,
     isMovePotential,
     isPushPiece,
@@ -49,15 +50,14 @@ export type HistoryEntry = PushEntry | MoveEntry | SkipEntry | TakingEntry
 function takingOf(action: GameAction): Taking | undefined {
     if (!isRemoveRow(action)) return undefined
     const removed = action.metadata?.removed ?? []
-    const size = ({ unit }: (typeof removed)[number]) => (unit.paired ? 2 : 1)
     const own = removed.filter(({ unit }) => unit.playerId === action.playerId)
     const theirs = removed.filter(({ unit }) => unit.playerId !== action.playerId)
     const [from, to] = inReadingOrder(action.from, action.to)
     return {
         from,
         to,
-        returned: own.reduce((sum, piece) => sum + size(piece), 0),
-        captured: theirs.reduce((sum, piece) => sum + size(piece), 0),
+        returned: own.reduce((sum, { unit }) => sum + discsIn(unit), 0),
+        captured: theirs.reduce((sum, { unit }) => sum + discsIn(unit), 0),
         capturedGipf: theirs.filter(({ unit }) => unit.kind === PieceKind.Gipf).length
     }
 }

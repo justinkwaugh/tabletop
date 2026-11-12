@@ -1,13 +1,19 @@
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-import { CENTRE, HydratedMatrxBoard, PieceKind, type Entry, type Unit } from '@tabletop/matrx'
-import { coordsKey } from './geometry.js'
+import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    CENTRE,
+    discsIn,
+    HydratedMatrxBoard,
+    PieceKind,
+    type Entry,
+    type Unit
+} from '@tabletop/matrx'
 
 // One disc of a stack, by owner and kind, and its id where it has one.
 export type BoardDisc = { playerId: string; kind: PieceKind; id?: number }
 
 export function discsOf(stack: readonly Unit[]): BoardDisc[] {
     return stack.flatMap((unit) =>
-        Array.from({ length: unit.paired ? 2 : 1 }, (_, index) => ({
+        Array.from({ length: discsIn(unit) }, (_, index) => ({
             playerId: unit.playerId,
             kind: unit.kind,
             id: unit.discIds[index]
@@ -143,7 +149,7 @@ function layout(board: HydratedMatrxBoard): string {
     return board.stacks
         .map(
             (stack) =>
-                `${coordsKey(stack.coords)}:${stack.units
+                `${coordinatesToNumber(stack.coords)}:${stack.units
                     .map((unit) => `${unit.playerId}/${unit.kind}/${unit.paired}`)
                     .join(',')}`
         )

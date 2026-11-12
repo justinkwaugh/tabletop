@@ -126,7 +126,3 @@ export function viewOf(shape: BoardShape, turned = false): BoardView {
     }
     return view
 }
-
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
-}

@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
 import { startingPositionFile } from '@tabletop/common/testing'
-import { Definition, GEOMETRIES, MatrxInfo, MatrxRuntime, pointAt } from '@tabletop/matrx'
+import { Definition, discsIn, GEOMETRIES, MatrxInfo, MatrxRuntime, pointAt } from '@tabletop/matrx'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
 const engine = new GameEngine(MatrxRuntime)
@@ -49,9 +49,9 @@ function position(stacks, { board = 'Matrx', reserves = {} } = {}) {
             const paired = code.endsWith('2')
             const player = state.players.find((p) => p.playerId === playerId)
             if (kind === 'gipf') player.gipfPieces -= 1
-            else player.potentials[kind] -= paired ? 2 : 1
+            else player.potentials[kind] -= discsIn({ paired })
             // Numbered as they would have come in, so each disc lies its own way round.
-            const discIds = Array.from({ length: paired ? 2 : 1 }, () => state.nextDiscId++)
+            const discIds = Array.from({ length: discsIn({ paired }) }, () => state.nextDiscId++)
             return { playerId, kind, paired, discIds }
         })
         state.board.stacks.push({ coords: { q, r }, units: stack })

@@ -1,7 +1,7 @@
 import { Color, Hydratable, PlayerState } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { PieceKind, type PotentialKind } from './board.js'
+import { discsIn, PieceKind, type PotentialKind } from './board.js'
 
 // Single potentials in reserve, by kind; two of a kind make a stack that can be brought in.
 export type Potentials = Type.Static<typeof Potentials>
@@ -43,6 +43,6 @@ export class HydratedMatrxPlayerState
     }
 
     stacksOf(kind: PotentialKind): number {
-        return Math.floor(this.potentials[kind] / 2)
+        return Math.floor(this.potentials[kind] / discsIn({ paired: true }))
     }
 }

@@ -2,6 +2,7 @@
     import {
         addAxial,
         Color,
+        coordinatesToNumber,
         sameCoordinates,
         scaleAxial,
         type AxialCoordinates
@@ -10,7 +11,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import {
-        coordsKey,
         DOT_RADIUS,
         PIECE_RADIUS,
         RESERVE_DOT_RADIUS,
@@ -49,8 +49,8 @@
     )
 
     const animator = new BoardAnimator(session)
-    let hoveredDot: string | undefined = $state()
-    let hoveredTarget: string | undefined = $state()
+    let hoveredDot: number | undefined = $state()
+    let hoveredTarget: number | undefined = $state()
 
     function toneOf(playerId: string): Disc['tone'] {
         return session.gameState.getPlayerState(playerId).color === Color.White ? 'light' : 'dark'
@@ -92,7 +92,7 @@
     })
 
     type Drawn =
-        | { kind: 'stack'; key: string; coords: AxialCoordinates; stack: DrawnStack }
+        | { kind: 'stack'; key: number; coords: AxialCoordinates; stack: DrawnStack }
         | {
               kind: 'entering' | 'preview'
               key: string
@@ -114,7 +114,7 @@
         if (incoming) {
             drawn.push({
                 kind: animator.entering ? 'entering' : 'preview',
-                key: `incoming-${coordsKey(incoming.dot)}-${incoming.discs.map((disc) => disc.kind).join()}`,
+                key: `incoming-${coordinatesToNumber(incoming.dot)}-${incoming.discs.map((disc) => disc.kind).join()}`,
                 coords: incoming.dot,
                 discs: incoming.discs,
                 drops: preview?.drops ?? false
@@ -380,7 +380,7 @@
         {/each}
     {/if}
 
-    {#each geometry.dots as coords (coordsKey(coords))}
+    {#each geometry.dots as coords (coordinatesToNumber(coords))}
         {@const center = view.center(coords)}
         {@const entry = includesCoords(session.entryDots, coords)}
         <g
@@ -394,10 +394,10 @@
             onclick={() => session.chooseDot(coords)}
             onkeydown={(event) => onKey(event, () => session.chooseDot(coords))}
             onpointerenter={(event) => {
-                if (event.pointerType !== 'touch') hoveredDot = coordsKey(coords)
+                if (event.pointerType !== 'touch') hoveredDot = coordinatesToNumber(coords)
             }}
             onpointerleave={() => (hoveredDot = undefined)}
-            onfocus={() => (hoveredDot = coordsKey(coords))}
+            onfocus={() => (hoveredDot = coordinatesToNumber(coords))}
             onblur={() => (hoveredDot = undefined)}
         >
             {#if entry}
@@ -421,13 +421,13 @@
     <!-- Rings on the board: round the dots you can bring a stack in from, and round the spots
          you can push into or move to, behind whatever stands there. -->
     <g {@attach animator.marks()}>
-        {#each session.entryDots as coords (coordsKey(coords))}
+        {#each session.entryDots as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
             <g
                 class="dot-ring"
                 class:chosen={isChosenDot(coords)}
                 class:faded={chosen && !isChosenDot(coords)}
-                class:hovered={hoveredDot === coordsKey(coords)}
+                class:hovered={hoveredDot === coordinatesToNumber(coords)}
             >
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse
@@ -440,9 +440,12 @@
                 {/each}
             </g>
         {/each}
-        {#each session.targets as entry (coordsKey(entry.line[0]))}
+        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
             {@const center = view.center(entry.line[0])}
-            <g class="target-ring" class:hovered={hoveredTarget === coordsKey(entry.line[0])}>
+            <g
+                class="target-ring"
+                class:hovered={hoveredTarget === coordinatesToNumber(entry.line[0])}
+            >
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse
                         cx={center.x}
@@ -454,10 +457,13 @@
                 {/each}
             </g>
         {/each}
-        {#each session.moveTargets as coords (coordsKey(coords))}
+        {#each session.moveTargets as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
             {#if stackHeight(coords) === 0}
-                <g class="target-ring" class:hovered={hoveredTarget === coordsKey(coords)}>
+                <g
+                    class="target-ring"
+                    class:hovered={hoveredTarget === coordinatesToNumber(coords)}
+                >
                     {#each ['under', 'over'] as layer (layer)}
                         <ellipse
                             cx={center.x}
@@ -598,7 +604,7 @@
          the arrows over that. Tapping the stack is tapping its dot. -->
     {#snippet pushTarget(entry: Entry, part: 'area' | 'arrow')}
         {@const center = view.center(entry.line[0])}
-        {@const key = coordsKey(entry.line[0])}
+        {@const key = coordinatesToNumber(entry.line[0])}
         <g
             class="target"
             role="button"
@@ -630,7 +636,7 @@
         </g>
     {/snippet}
     <g {@attach animator.marks()}>
-        {#each session.targets as entry (coordsKey(entry.line[0]))}
+        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
             {@render pushTarget(entry, 'area')}
         {/each}
         {#if preview && session.chosenDot !== undefined}
@@ -647,12 +653,12 @@
                 onkeydown={(event) => onKey(event, () => session.chooseDot(dot))}
             ></path>
         {/if}
-        {#each session.targets as entry (coordsKey(entry.line[0]))}
+        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
             {@render pushTarget(entry, 'arrow')}
         {/each}
-        {#each session.moveTargets.toSorted((a, b) => view.center(a).y - view.center(b).y) as coords (coordsKey(coords))}
+        {#each session.moveTargets.toSorted((a, b) => view.center(a).y - view.center(b).y) as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
-            {@const key = coordsKey(coords)}
+            {@const key = coordinatesToNumber(coords)}
             <path
                 d={outline(stackHeight(coords))}
                 transform="translate({center.x} {center.y})"

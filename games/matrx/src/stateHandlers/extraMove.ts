@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedExtraMove, isExtraMove } from '../actions/extraMove.js'
@@ -32,7 +37,8 @@ export class ExtraMoveStateHandler implements MachineStateHandler<
     enter(context: MachineContext<HydratedMatrxGameState>) {
         const { gameState } = context
         const playerId = gameState.turnManager.currentTurn()?.playerId
-        gameState.activePlayerIds = playerId === undefined ? [] : [playerId]
+        assertExists(playerId, 'A turn is under way when a player takes it')
+        gameState.activePlayerIds = [playerId]
         gameState.resolvingPlayerIds = []
     }
 

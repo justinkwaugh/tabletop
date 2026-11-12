@@ -4,6 +4,7 @@ import {
     HydratableGameState,
     HydratedTurnManager,
     PrngState,
+    sameCoordinates,
     type AxialCoordinates
 } from '@tabletop/common'
 import * as Type from 'typebox'
@@ -16,6 +17,7 @@ import {
     MatrxBoard,
     PieceKind,
     POTENTIAL_KINDS,
+    discsIn,
     type PlacedUnit,
     type Row,
     type Unit
@@ -133,18 +135,14 @@ export class HydratedMatrxGameState
 
     pushPiece(playerId: string, entry: Entry, kind: PieceKind): string | undefined {
         const player = this.getPlayerState(playerId)
-        if (isPotentialKind(kind)) {
-            player.potentials[kind] -= 2
-        } else {
-            player.gipfPieces -= 1
-        }
         const paired = isPotentialKind(kind)
-        return this.push(entry, {
-            playerId,
-            kind,
-            paired,
-            discIds: this.newDiscIds(paired ? 2 : 1)
-        })
+        const count = discsIn({ paired })
+        if (isPotentialKind(kind)) {
+            player.potentials[kind] -= count
+        } else {
+            player.gipfPieces -= count
+        }
+        return this.push(entry, { playerId, kind, paired, discIds: this.newDiscIds(count) })
     }
 
     private newDiscIds(count: number): number[] {
@@ -181,9 +179,9 @@ export class HydratedMatrxGameState
         const player = this.getPlayerState(playerId)
         const removed: PlacedUnit[] = []
         for (const coords of row.reach) {
-            if (keep.some((k) => k.q === coords.q && k.r === coords.r)) continue
+            if (keep.some((kept) => sameCoordinates(kept, coords))) continue
             const unit = this.board.removeTop(coords)
-            const size = unit.paired ? 2 : 1
+            const size = discsIn(unit)
             if (unit.playerId !== playerId) {
                 player.captured.push(...Array<PieceKind>(size).fill(unit.kind))
             } else if (isPotentialKind(unit.kind)) {

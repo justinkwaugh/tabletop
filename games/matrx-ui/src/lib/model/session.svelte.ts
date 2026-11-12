@@ -3,11 +3,18 @@ import {
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    coordinatesToNumber,
+    sameCoordinates,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import {
     ActionType,
     CENTRE,
+    discsIn,
     ExtraMove,
+    isPotentialKind,
     isExtraMove,
     isMovePotential,
     isPushPiece,
@@ -30,7 +37,7 @@ import {
     setMatrxSelection,
     type MatrxSelection
 } from './stagedSelection.js'
-import { coordsKey, viewOf, type BoardView } from '$lib/board/geometry.js'
+import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
@@ -39,7 +46,7 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
 }
 
 export function rowKey(row: Row): string {
-    return `${coordsKey(row.from)}|${coordsKey(row.to)}`
+    return `${coordinatesToNumber(row.from)}|${coordinatesToNumber(row.to)}`
 }
 
 // The moves Undo walks back through one choice at a time: a push or extra move returns its piece
@@ -113,7 +120,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         if (kind === undefined) return []
         // As the logic numbers them.
         const first = this.gameState.nextDiscId
-        return Array.from({ length: kind === PieceKind.Gipf ? 1 : 2 }, (_, index) => ({
+        return Array.from({ length: discsIn({ paired: isPotentialKind(kind) }) }, (_, index) => ({
             playerId,
             kind,
             id: first + index
@@ -147,7 +154,10 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
 
     // How many of a kind a player has in reserve, less the stack standing on the chosen dot.
     inReserve(playerId: string, kind: PotentialKind): number {
-        const staged = playerId === this.myPlayer?.id && this.stagedKind === kind ? 2 : 0
+        const staged =
+            playerId === this.myPlayer?.id && this.stagedKind === kind
+                ? discsIn({ paired: true })
+                : 0
         return this.gameState.getPlayerState(playerId).potentials[kind] - staged
     }
 
@@ -216,7 +226,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
                 (coords) => this.gameState.board.topAt(coords)?.playerId === playerId
             )
         }
-        return this.rowPairs.filter((coords) => manual.includes(coordsKey(coords)))
+        return this.rowPairs.filter((coords) => manual.includes(coordinatesToNumber(coords)))
     })
 
     removing: AxialCoordinates[] = $derived(
@@ -323,8 +333,8 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
 
     toggleKeep(coords: AxialCoordinates) {
         if (!includesCoords(this.rowPairs, coords)) return
-        const keys = this.keep.map(coordsKey)
-        const key = coordsKey(coords)
+        const keys = this.keep.map((kept) => coordinatesToNumber(kept))
+        const key = coordinatesToNumber(coords)
         const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]
         this.selection = setMatrxSelection(this.selection, 'keep', next)
     }

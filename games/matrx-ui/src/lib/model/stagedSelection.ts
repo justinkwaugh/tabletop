@@ -11,7 +11,7 @@ export type MatrxSelectionValues = {
     from: AxialCoordinates
     dot: AxialCoordinates
     row: string
-    keep: string[]
+    keep: number[]
 }
 
 export type MatrxSelection = StagedSelectionState<MatrxSelectionValues>
