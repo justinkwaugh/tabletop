@@ -15,6 +15,8 @@ Top to bottom:
 
 `DefaultSideContent` renders both from `playersPanel`, `history`, and `chat` snippets. Compose `HistoryControls` and `DefaultTabs` directly when the title restyles them or inserts a strip between them. On small screens `DefaultTableLayout` renders the history controls above the table instead (`mobileControlsContent`), so the sidebar copy stays inside `max-sm:hidden`, as `DefaultSideContent` does.
 
+A title may let the sidebar fold on wide screens by passing `foldedSideContent` (and binding `sideFolded`). `DefaultTableLayout` then draws a pull tab on the sidebar's edge, narrows the sidebar to a 48px rail showing the folded content, and hosts the table's toaster itself, outside the folded sidebar; phones never fold. Keep the history controls in the rail (`HistoryControls` with `orientation="vertical"`) followed by one icon per tab that opens the sidebar at that tab (bind `DefaultTabs`' `selectedTab`). While folded the sidebar stays mounted, so the open tab and the player and history panels survive, but chat is closed: new messages toast and count as unread until the sidebar opens again. The tab takes its colours from `--side-fold-tab-color`, `--side-fold-tab-bg` and `--side-fold-tab-hover-bg`. `games/napoleons-triumph-ui` (`SideRail.svelte`) is the reference.
+
 ### Game column
 
 Top to bottom:

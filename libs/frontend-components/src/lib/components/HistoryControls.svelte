@@ -9,20 +9,46 @@
         disabledColor = 'text-gray-700',
         borderClass = 'rounded-lg border-2 border-gray-700',
         height = 'h-[44px]',
-        bgClass = 'bg-transparent'
+        bgClass = 'bg-transparent',
+        orientation = 'horizontal'
     }: {
         enabledColor?: string
         disabledColor?: string
         borderClass?: string
         height?: string
         bgClass?: string
+        orientation?: 'horizontal' | 'vertical'
     } = $props()
 
     let gameSession = getGameSession()
 
-    // On phones each control takes an equal share of the bar so they are not crowded together.
-    const mobileCell = 'max-sm:flex-1'
-    const mobileIconCell = 'max-sm:flex-1 max-sm:*:mx-auto'
+    const layout = $derived(
+        orientation === 'vertical'
+            ? {
+                  bar: 'px-0 py-2',
+                  controls: 'flex-col gap-3 items-center',
+                  stepControls: 'flex flex-col items-center gap-3',
+                  cell: '',
+                  iconCell: '',
+                  // Stacked, the arrow beside the player icon would push it off the column's centre line.
+                  priorTurnShift: '-translate-x-1',
+                  futureTurnShift: 'translate-x-1',
+                  status: 'text-xs text-center'
+              }
+            : {
+                  bar: `p-2 ${height}`,
+                  controls: 'flex-row justify-between items-center',
+                  stepControls:
+                      'flex flex-row justify-center items-center space-x-2 max-sm:contents max-sm:space-x-0',
+                  // On phones each control takes an equal share of the bar so they are not crowded together.
+                  cell: 'max-sm:flex-1',
+                  iconCell: 'max-sm:flex-1 max-sm:*:mx-auto',
+                  priorTurnShift: '',
+                  futureTurnShift: '',
+                  status: 'text-sm text-center'
+              }
+    )
+    const vertical = $derived(orientation === 'vertical')
 
     let forkRequested = $state(false)
     const explorationDisabled = $derived(!gameSession.isExploring && !gameSession.canExplore)
@@ -73,13 +99,15 @@
 </script>
 
 {#if gameSession.synchronizationFailed}
-    <p role="status" class="text-sm text-center">
-        Game updates could not be loaded. Play is paused.
+    {@const message = 'Game updates could not be loaded. Play is paused.'}
+    <p role="status" class={layout.status} title={vertical ? message : undefined}>
+        <span class:sr-only={vertical}>{message}</span>
         <button class="underline" onclick={() => gameSession.retrySynchronization()}>Retry</button>
     </p>
 {:else if !gameSession.hasCompleteHistory && gameSession.historyLoadFailed}
-    <p role="status" class="text-sm text-center">
-        History could not be loaded. You can keep playing.
+    {@const message = 'History could not be loaded. You can keep playing.'}
+    <p role="status" class={layout.status} title={vertical ? message : undefined}>
+        <span class:sr-only={vertical}>{message}</span>
         <button
             class="underline"
             disabled={gameSession.historyLoading}
@@ -88,14 +116,14 @@
     </p>
 {/if}
 
-<div class="shrink-0 grow-0 w-full p-2 {height} {borderClass} {bgClass}">
+<div class="shrink-0 grow-0 w-full {layout.bar} {borderClass} {bgClass}">
     {#if !gameSession.hasCompleteHistory}
         {#if !gameSession.historyLoadFailed && !gameSession.synchronizationFailed}
             <HistoryLoading color={enabledColor} />
         {/if}
     {:else}
-        <div class="w-full flex flex-row justify-between items-center">
-            <button aria-label="fork game" class={mobileIconCell} onclick={requestFork}>
+        <div class="w-full flex {layout.controls}">
+            <button aria-label="fork game" class={layout.iconCell} onclick={requestFork}>
                 <svg
                     class="w-[22px] h-[22px] {!gameSession.isExploring
                         ? enabledColor
@@ -118,7 +146,7 @@
             </button>
             <button
                 onclick={async () => await goToMyPreviousTurn()}
-                class="{mobileCell} flex flex-row justify-center items-center {hasPriorPlayerAction &&
+                class="{layout.cell} {layout.priorTurnShift} flex flex-row justify-center items-center {hasPriorPlayerAction &&
                 !gameSession.history.isDisabled()
                     ? enabledColor
                     : disabledColor}"
@@ -143,12 +171,10 @@
                 <UserSolid size="lg" />
             </button>
 
-            <div
-                class="flex flex-row justify-center items-center space-x-2 max-sm:contents max-sm:space-x-0"
-            >
+            <div class={layout.stepControls}>
                 <button
                     aria-label="goto my last turn"
-                    class={mobileIconCell}
+                    class={layout.iconCell}
                     onclick={async () => await gameSession.history.goToBeginning()}
                     ><svg
                         class="w-[25px] h-[25px] {gameSession.history.hasPreviousAction &&
@@ -171,7 +197,7 @@
                 </button>
                 <button
                     aria-label="step backwards"
-                    class={mobileIconCell}
+                    class={layout.iconCell}
                     onclick={async () => await gameSession.history.goToPreviousAction()}
                     ><svg
                         class="w-[24px] h-[24px] {gameSession.history.hasPreviousAction &&
@@ -197,7 +223,7 @@
                 <button
                     aria-label="play history"
                     onclick={async () => await gameSession.history.playHistory()}
-                    class="{mobileIconCell} {gameSession.history.playing ? 'hidden' : ''}"
+                    class="{layout.iconCell} {gameSession.history.playing ? 'hidden' : ''}"
                     ><svg
                         class="w-[25px] h-[25px] {!gameSession.history.hasNextAction ||
                         gameSession.history.isDisabled()
@@ -220,7 +246,7 @@
                 <button
                     aria-label="stop history playback"
                     onclick={() => gameSession.history.stopHistoryPlayback()}
-                    class="{mobileIconCell} {!gameSession.history.playing ? 'hidden' : ''}"
+                    class="{layout.iconCell} {!gameSession.history.playing ? 'hidden' : ''}"
                 >
                     <svg
                         class="w-[25px] h-[25px] {enabledColor}"
@@ -240,7 +266,7 @@
                 </button>
                 <button
                     aria-label="step forwards"
-                    class={mobileIconCell}
+                    class={layout.iconCell}
                     onclick={async (event: MouseEvent) =>
                         await gameSession.history.goToNextAction(event.shiftKey)}
                     ><svg
@@ -266,7 +292,7 @@
                 </button>
                 <button
                     aria-label="go to current"
-                    class={mobileIconCell}
+                    class={layout.iconCell}
                     onclick={async () => await gameSession.history.goToEnd()}
                 >
                     <svg
@@ -291,7 +317,7 @@
             </div>
             <button
                 onclick={async () => goToMyNextTurn()}
-                class="{mobileCell} flex flex-row justify-center items-center {hasFuturePlayerAction &&
+                class="{layout.cell} {layout.futureTurnShift} flex flex-row justify-center items-center {hasFuturePlayerAction &&
                 !gameSession.history.isDisabled()
                     ? enabledColor
                     : disabledColor}"
@@ -315,7 +341,7 @@
             </button>
             <button
                 aria-label="start exploring"
-                class={mobileIconCell}
+                class={layout.iconCell}
                 disabled={explorationDisabled}
                 title={explorationDisabled ? 'Exploration is unavailable for this view' : undefined}
                 onclick={async () =>

@@ -8,7 +8,8 @@
         GameChat,
         HistoryControls,
         DefaultTabs,
-        saveToDevice
+        saveToDevice,
+        type DefaultTab
     } from '@tabletop/frontend-components'
     import { assert, type Point } from '@tabletop/common'
     import { onMount, tick, untrack } from 'svelte'
@@ -26,6 +27,8 @@
     import AuctionPanel from '$lib/components/AuctionPanel.svelte'
     import ArmiesPanel from '$lib/components/ArmiesPanel.svelte'
     import History from '$lib/components/History.svelte'
+    import SideRail from '$lib/components/SideRail.svelte'
+    import { HISTORY_CONTROL_INK } from '$lib/components/historyControlInk.js'
     import { NapoleonsTriumphGameSession } from '$lib/model/session.svelte'
     import type { GroupSprite, PieceGroup } from '$lib/utils/pieceLayout.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
@@ -60,6 +63,14 @@
         return gameSession
     })
     setGameSession(session)
+
+    let sideFolded = $state(false)
+    let sideTab: DefaultTab | undefined = $state()
+
+    function openSideAt(tab: DefaultTab) {
+        sideTab = tab
+        sideFolded = false
+    }
 
     let wrapper: ScalingWrapper | undefined = $state()
     let boardHost: HTMLElement | undefined = $state()
@@ -378,24 +389,23 @@
     class:nt-french-ways={session.mySide === Side.French}
     bind:this={table}
 >
-    <DefaultTableLayout topPadding={0} horizontalPadding={0}>
+    <DefaultTableLayout topPadding={0} horizontalPadding={0} bind:sideFolded>
         {#snippet mobileControlsContent()}
-            <HistoryControls
-                enabledColor="text-[#2b2620]"
-                disabledColor="text-[#b9b3a4]"
-                borderClass="border-[#2b2620] border-b-2"
-            />
+            <HistoryControls {...HISTORY_CONTROL_INK} borderClass="border-[#2b2620] border-b-2" />
+        {/snippet}
+        {#snippet foldedSideContent()}
+            <SideRail onopen={openSideAt} />
         {/snippet}
         {#snippet sideContent()}
             <div class="nt-side">
                 <div class="max-sm:hidden">
                     <HistoryControls
-                        enabledColor="text-[#2b2620]"
-                        disabledColor="text-[#b9b3a4]"
+                        {...HISTORY_CONTROL_INK}
                         borderClass="rounded-lg border-2 border-[#2b2620]"
                     />
                 </div>
                 <DefaultTabs
+                    bind:selectedTab={sideTab}
                     playersTitle="Armies"
                     activeTabClass="py-1 px-2 bg-[#2b2620] border-2 border-transparent rounded-lg text-[#f1ecdc]"
                     inactiveTabClass="text-[#2b2620] py-1 px-2 rounded-lg border-2 border-transparent hover:border-[#2b2620]"
@@ -497,6 +507,9 @@
         --nt-closed-line: rgba(43, 38, 32, 0.3);
         --nt-aimed-fill: rgba(43, 38, 32, 0.1);
         --nt-aimed-line: #2b2620;
+        --side-fold-tab-color: var(--nt-ink);
+        --side-fold-tab-bg: color-mix(in srgb, var(--nt-ink) 12%, var(--nt-ground));
+        --side-fold-tab-hover-bg: color-mix(in srgb, var(--nt-ink) 22%, var(--nt-ground));
     }
 
     .nt-table.nt-french-ways {
