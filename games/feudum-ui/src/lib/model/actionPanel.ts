@@ -181,7 +181,7 @@ type PanelBlock =
     | {
           readonly kind: 'rows'
           readonly name: string
-          /** A small heading: the row of pouch goods is one. */
+          /** A small heading before the rows: the attack's saltpeter count, a landscape's place. */
           readonly heading?: string
           readonly rows: readonly ActionRow[]
       }
@@ -462,8 +462,7 @@ function handBlocks(
                 press: () => session.choosePouch(good),
                 art: good ? { kind: 'good', good } : { kind: 'empty-pouch' },
                 caption
-            })),
-            'Pouch'
+            }))
         ),
         ...(drafting.conquerWarning ? [line('warning', drafting.conquerWarning)] : []),
         primaryBlock(drafting.primary, () => session.finaliseHand()),
