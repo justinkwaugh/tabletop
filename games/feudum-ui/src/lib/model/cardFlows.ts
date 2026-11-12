@@ -6,6 +6,7 @@ import {
     discChoices,
     Explore,
     exploreOffer,
+    Goods,
     goodsShort,
     GuildById,
     harvestOffers,
@@ -46,7 +47,6 @@ import {
     type ConquerOffer,
     type DiscId,
     type FeudumProjectedState,
-    type Good,
     type GuildId,
     type HarvestMode,
     type HydratedFeudumGameState,
@@ -298,10 +298,10 @@ function playIf(
 
 /** R-3.6.1 The food a pawn from supply costs, as its goods: the chip draws them, the label names them. */
 function priceNote(): ChipNote {
-    const goods = Object.entries(MigrateFood).map(([good, count]) => ({
-        good: good as Good,
-        count
-    }))
+    const goods = Goods.flatMap((good) => {
+        const count = MigrateFood[good]
+        return count === undefined ? [] : [{ good, count }]
+    })
     return {
         kind: 'cost',
         label: goods.map(({ good, count }) => `${count} ${good}`).join(', '),

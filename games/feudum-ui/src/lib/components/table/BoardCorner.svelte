@@ -37,7 +37,8 @@
 
     /** A press off the supply card closes it; its own button toggles it instead. */
     function closeOnPress(event: PointerEvent) {
-        if (open === 'supply' && !supplyToggle?.contains(event.target as Node)) {
+        const onToggle = event.target instanceof Node && supplyToggle?.contains(event.target)
+        if (open === 'supply' && !onToggle) {
             open = undefined
         }
     }

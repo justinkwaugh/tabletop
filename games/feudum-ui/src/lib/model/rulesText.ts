@@ -332,7 +332,7 @@ const CharterNotes = Object.fromEntries(
                 ]
         }
     })
-) as Readonly<Record<CharterId, RulesNote>>
+)
 
 const Pull = 'Pull (journeyman)'
 const Push = 'Push (master)'
