@@ -84,7 +84,7 @@
 ### Hand summary
 
 - **Trigger:** a hand has ended and the next auction is running, or the game is over.
-- **Display:** a panel in the middle of the table shows the contract, the declaring side's card points against the opponents' (for a negative game, the declarer's tricks, and a note when play stopped early; for Trischaken, every player's card points and tricks, with no made/lost verdict or score-sheet mark), what the contract needed, whether it was made, a line for any Kontra on the game and for every bonus scored (side, announced or silent, made or lost, and its points to that side), and a score sheet with a row per hand and a total row. The latest hand is highlighted and scrolled into view.
+- **Display:** a panel in the middle of the table shows the contract, the declaring side's card points against the opponents' (for a negative game, the declarer's tricks, and a note when play stopped early; for Trischaken, every player's card points and tricks, with no made/lost verdict or score-sheet mark), what the contract needed, whether it was made, a line for any Kontra on the game and for every bonus scored, each a short phrase ("Declarer made Trull", "Defenders announced and lost Pagat (Kontra)") beside its points to that side, and a score sheet with a row per hand and a total row. The latest hand is highlighted and scrolled into view.
 - **Closing:** the × hides the panel until the next hand ends. This is per viewer and lasts only for the page.
 - **Phones:** the panel moves up over the seats and is a little larger, its height following the table's, so the hand stays clear.
 

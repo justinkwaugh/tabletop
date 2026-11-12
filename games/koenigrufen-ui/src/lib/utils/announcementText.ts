@@ -136,7 +136,8 @@ export function announcementsSummary(announcements: Announcements, names: Names)
 }
 
 export function bonusResultLine(result: BonusResult): string {
-    const how = result.announced ? 'announced' : 'silent'
+    const team = result.side === Side.Declarer ? 'Declarer' : 'Defenders'
     const outcome = result.made ? 'made' : 'lost'
-    return `${bonusName(result.bonus)} · ${sideName(result.side)} · ${how}${doublesSuffix(result.doubles)} · ${outcome}`
+    const deed = result.announced ? `announced and ${outcome}` : outcome
+    return `${team} ${deed} ${bonusName(result.bonus)}${doublesSuffix(result.doubles)}`
 }

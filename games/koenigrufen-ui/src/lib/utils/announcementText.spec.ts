@@ -100,16 +100,30 @@ describe('announcement text', () => {
         ])
     })
 
-    it('describes a scored bonus', () => {
+    it('describes a scored bonus as a short phrase', () => {
+        const result = {
+            bonus: Bonus.Kakadu,
+            side: Side.Declarer,
+            announced: true,
+            doubles: 1,
+            made: false,
+            points: -12
+        }
+        expect(bonusResultLine(result)).toBe('Declarer announced and lost Kakadu (Kontra)')
         expect(
             bonusResultLine({
-                bonus: Bonus.Kakadu,
-                side: Side.Declarer,
-                announced: true,
-                doubles: 1,
-                made: false,
-                points: -12
+                ...result,
+                bonus: Bonus.Trull,
+                announced: false,
+                doubles: 0,
+                made: true
             })
-        ).toBe('Kakadu · declarer’s · announced (Kontra) · lost')
+        ).toBe('Declarer made Trull')
+        expect(bonusResultLine({ ...result, side: Side.Defenders, doubles: 0, made: true })).toBe(
+            'Defenders announced and made Kakadu'
+        )
+        expect(bonusResultLine({ ...result, announced: false, doubles: 0 })).toBe(
+            'Declarer lost Kakadu'
+        )
     })
 })
