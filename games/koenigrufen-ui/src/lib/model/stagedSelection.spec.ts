@@ -60,12 +60,32 @@ describe('choosing cards to lay away', () => {
         expect(choice.hasManual()).toBe(false)
     })
 
-    it('refuses a seventh card', () => {
+    it('puts a card taken back out back in on Undo, keeping the rest as they were', () => {
+        let selection = toggleLayAway({}, 'hearts-Q')
+        selection = toggleLayAway(selection, 'clubs-10')
+        selection = toggleLayAway(selection, 'spades-7')
+        selection = toggleLayAway(selection, 'hearts-Q')
+        const choice = undoable<LayAwaySelectionValues>(LayAwayStageOrder, selection)
+        expect(chosenToLayAway(choice.undo())).toEqual(['hearts-Q', 'clubs-10', 'spades-7'])
+        expect(chosenToLayAway(choice.undo())).toEqual(['hearts-Q', 'clubs-10'])
+    })
+
+    it('takes back taking out the only chosen card', () => {
+        const selection = toggleLayAway(toggleLayAway({}, 'hearts-Q'), 'hearts-Q')
+        expect(chosenToLayAway(selection)).toEqual([])
+        const choice = undoable<LayAwaySelectionValues>(LayAwayStageOrder, selection)
+        expect(choice.hasManual()).toBe(true)
+        expect(chosenToLayAway(choice.undo())).toEqual(['hearts-Q'])
+        expect(chosenToLayAway(choice.undo())).toEqual([])
+        expect(choice.hasManual()).toBe(false)
+    })
+
+    it('holds as many cards as Sechserdreier lays away', () => {
         let selection = {}
         for (const cardId of ['a', 'b', 'c', 'd', 'e', 'f']) {
             selection = toggleLayAway(selection, cardId)
         }
-        expect(() => toggleLayAway(selection, 'g')).toThrow()
+        expect(chosenToLayAway(selection)).toEqual(['a', 'b', 'c', 'd', 'e', 'f'])
     })
 })
 
@@ -88,7 +108,7 @@ describe('picking a card to play', () => {
 })
 
 describe('choosing announcements', () => {
-    it('toggles each choice as its own stage and pops the latest on Undo', () => {
+    it('toggles choices in any order and pops the latest press on Undo', () => {
         let selection = toggleAnnouncement({}, 'bonus:trull')
         selection = toggleAnnouncement(selection, 'game:')
         selection = toggleAnnouncement(selection, 'bonus:uhu')
@@ -97,7 +117,11 @@ describe('choosing announcements', () => {
         expect(chosenAnnouncements(selection)).toEqual(['game:', 'bonus:uhu'])
         const choice = undoable<AnnouncementSelectionValues>(AnnouncementStageOrder, selection)
         expect(choice.hasManual()).toBe(true)
-        expect(chosenAnnouncements(choice.undo())).toEqual(['game:'])
+        expect(chosenAnnouncements(choice.undo())).toEqual(['bonus:trull', 'game:', 'bonus:uhu'])
+        expect(chosenAnnouncements(choice.undo())).toEqual(['bonus:trull', 'game:'])
+        expect(chosenAnnouncements(choice.undo())).toEqual(['bonus:trull'])
+        expect(chosenAnnouncements(choice.undo())).toEqual([])
+        expect(choice.hasManual()).toBe(false)
         expect(undoable<AnnouncementSelectionValues>(AnnouncementStageOrder, {}).hasManual()).toBe(
             false
         )

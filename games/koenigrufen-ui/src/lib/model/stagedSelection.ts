@@ -1,65 +1,42 @@
 import {
     getStagedSelectionValue,
+    pushStagedSelectionValue,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
-// Each card chosen to lay away is its own stage, so Undo takes back the latest one. Sechserdreier
-// lays away six.
-export type LayAwaySelectionValues = {
-    first: string
-    second: string
-    third: string
-    fourth: string
-    fifth: string
-    sixth: string
+// A choice of any of several items, in any order: each press pushes the whole list again onto one
+// stacked stage, so Undo takes back the latest press, whether it chose an item or took one out.
+function toggled(chosen: readonly string[], item: string): string[] {
+    return chosen.includes(item) ? chosen.filter((other) => other !== item) : [...chosen, item]
 }
+
+// The cards chosen to lay away.
+export type LayAwaySelectionValues = { cards: string[] }
 
 export type LayAwaySelection = StagedSelectionState<LayAwaySelectionValues>
 
 export const LayAwayStageOrder = [
-    'first',
-    'second',
-    'third',
-    'fourth',
-    'fifth',
-    'sixth'
+    'cards'
 ] as const satisfies readonly (keyof LayAwaySelectionValues)[]
-type MissingStages = Exclude<keyof LayAwaySelectionValues, (typeof LayAwayStageOrder)[number]>
-const stageCoverage: MissingStages extends never ? true : never = true
-void stageCoverage
+type MissingLayAwayStages = Exclude<
+    keyof LayAwaySelectionValues,
+    (typeof LayAwayStageOrder)[number]
+>
+const layAwayCoverage: MissingLayAwayStages extends never ? true : never = true
+void layAwayCoverage
 
 export function chosenToLayAway(selection: LayAwaySelection): string[] {
-    return LayAwayStageOrder.flatMap((stage) => {
-        const cardId = getStagedSelectionValue<LayAwaySelectionValues, typeof stage>(
-            selection,
-            stage
-        )
-        return cardId === undefined ? [] : [cardId]
-    })
-}
-
-function selectionOf(cardIds: readonly string[]): LayAwaySelection {
-    return cardIds.reduce<LayAwaySelection>((selection, cardId, index) => {
-        const stage = LayAwayStageOrder[index]
-        if (stage === undefined) {
-            throw new Error(`Cannot lay away more than ${LayAwayStageOrder.length} cards`)
-        }
-        return setStagedSelectionValue<LayAwaySelectionValues, typeof stage>(
-            selection,
-            LayAwayStageOrder,
-            stage,
-            cardId,
-            'manual'
-        )
-    }, {})
+    return getStagedSelectionValue<LayAwaySelectionValues, 'cards'>(selection, 'cards') ?? []
 }
 
 // Choosing a chosen card again takes it back out.
 export function toggleLayAway(selection: LayAwaySelection, cardId: string): LayAwaySelection {
-    const chosen = chosenToLayAway(selection)
-    return selectionOf(
-        chosen.includes(cardId) ? chosen.filter((other) => other !== cardId) : [...chosen, cardId]
+    return pushStagedSelectionValue<LayAwaySelectionValues, 'cards'>(
+        selection,
+        LayAwayStageOrder,
+        'cards',
+        toggled(chosenToLayAway(selection), cardId)
     )
 }
 
@@ -84,38 +61,35 @@ export function pickToPlay(cardId: string): PlaySelection {
     )
 }
 
-// Each bonus or Kontra chosen in the announcements is its own stage, so Undo takes back the latest.
-export type AnnouncementSelectionValues = Record<string, string>
+// The bonuses and Kontras chosen in the announcements, by key.
+export type AnnouncementSelectionValues = { choices: string[] }
 
 export type AnnouncementSelection = StagedSelectionState<AnnouncementSelectionValues>
 
-export const AnnouncementStageOrder: readonly string[] = Array.from(
-    { length: 32 },
-    (_, index) => `choice${index + 1}`
-)
+export const AnnouncementStageOrder = [
+    'choices'
+] as const satisfies readonly (keyof AnnouncementSelectionValues)[]
+type MissingAnnouncementStages = Exclude<
+    keyof AnnouncementSelectionValues,
+    (typeof AnnouncementStageOrder)[number]
+>
+const announcementCoverage: MissingAnnouncementStages extends never ? true : never = true
+void announcementCoverage
 
 export function chosenAnnouncements(selection: AnnouncementSelection): string[] {
-    return AnnouncementStageOrder.flatMap((stage) => {
-        const key = getStagedSelectionValue<AnnouncementSelectionValues, string>(selection, stage)
-        return key === undefined ? [] : [key]
-    })
+    return (
+        getStagedSelectionValue<AnnouncementSelectionValues, 'choices'>(selection, 'choices') ?? []
+    )
 }
 
 export function toggleAnnouncement(
     selection: AnnouncementSelection,
     key: string
 ): AnnouncementSelection {
-    const chosen = chosenAnnouncements(selection)
-    const next = chosen.includes(key) ? chosen.filter((other) => other !== key) : [...chosen, key]
-    return next.reduce<AnnouncementSelection>(
-        (built, choice, index) =>
-            setStagedSelectionValue<AnnouncementSelectionValues, string>(
-                built,
-                AnnouncementStageOrder,
-                AnnouncementStageOrder[index],
-                choice,
-                'manual'
-            ),
-        {}
+    return pushStagedSelectionValue<AnnouncementSelectionValues, 'choices'>(
+        selection,
+        AnnouncementStageOrder,
+        'choices',
+        toggled(chosenAnnouncements(selection), key)
     )
 }
