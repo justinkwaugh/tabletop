@@ -64,5 +64,6 @@ export class HydratedPlacePrivateMarker
             kind: terms.kind,
             privateCompanyId: this.privateCompanyId
         })
+        this.#powers.afterMarker?.(state, this.privateCompanyId, this.locationId)
     }
 }

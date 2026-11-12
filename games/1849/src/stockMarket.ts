@@ -58,3 +58,18 @@ export function parSpaceIds1849(phaseId: string): string[] {
 export const BlueZoneSpaceIds1849: readonly string[] = spaceIdsIn('u')
 export const EndGameSpaceId1849 = spaceIdsIn('e')[0]
 export const ClosedSpaceId1849 = spaceIdsIn('c')[0]
+
+/**
+ * The market as prices move before phase 16: the blue zone is not there, so its edge is the
+ * market's right edge and a price beneath it cannot rise into it (§5).
+ */
+export const MarketBeforeBlueZone1849 = new StockMarketChart(
+    createRectangularStockMarketSpaces(
+        Cells.map((row, rowIndex) =>
+            row.map((cell, column) =>
+                zoneOf(rowIndex, column) === 'u' ? null : Number.parseInt(cell)
+            )
+        ),
+        (row, column) => Zones[zoneOf(row, column)] ?? 'white'
+    )
+)

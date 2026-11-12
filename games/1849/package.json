@@ -34,6 +34,7 @@
         "@tabletop/rolldown-config": "workspace:*",
         "rolldown": "^1.2.15",
         "typebox": "^1.0.79",
-        "@tabletop/eslint-config": "workspace:*"
+        "@tabletop/eslint-config": "workspace:*",
+        "@tabletop/18xx-autorouter": "workspace:*"
     }
 }

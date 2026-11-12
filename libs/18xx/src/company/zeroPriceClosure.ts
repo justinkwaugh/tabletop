@@ -138,12 +138,22 @@ export class HydratedCloseCorporation extends HydratableAction<typeof CloseCorpo
         if (fundingItsTrain) {
             delete state.trainFunding
             delete state.trainPurchaseStep
-            state.activePlayerIds = []
+            state.activePlayerIds = formerPresidentIds(closure)
         }
-        endOperatingTurn(state, this.companyId)
+        // A turn the company has just finished, as 1849's last issue may, is already over.
+        if (!state.operatingSet?.completedCompanyIds.includes(this.companyId)) {
+            if (state.trainPurchaseStep?.companyId === this.companyId)
+                delete state.trainPurchaseStep
+            endOperatingTurn(state, this.companyId)
+        }
         const ended = operatingRoundEnd(state, this.#valuationRules)
         this.metadata = { ...closure, ...(ended ? { roundEnd: ended } : {}) }
     }
+}
+
+/** The player who presided over a closed company, as the owner of its ended turn. */
+function formerPresidentIds(closure: { president?: CompanyClosure['president'] }): string[] {
+    return closure.president?.kind === 'player' ? [closure.president.playerId] : []
 }
 
 export function zeroPriceClosureActions(
@@ -231,7 +241,8 @@ export class ClosingOperatingCorporationHandler<S extends State> implements Mach
     }
     onAction(action: HydratedAction, { gameState }: MachineContext<S>): string {
         assert(action instanceof HydratedCloseCorporation, 'Closure requires its system action')
-        gameState.activePlayerIds = []
+        // Its president stays the turn's owner, as after any ended turn, should no company follow.
+        gameState.activePlayerIds = formerPresidentIds(action.metadata ?? {})
         return 'OperatingSet'
     }
 }

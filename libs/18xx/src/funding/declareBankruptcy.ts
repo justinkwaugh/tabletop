@@ -164,7 +164,10 @@ export class HydratedDeclareBankruptcy
             const companyId = bankruptcy.companyId
             const changes = insolvency.fail(state, bankruptcy, this.choice)
             delete state.trainFunding
-            state.activePlayerIds = []
+            // The president stays the ended turn's owner, unless they have left the game.
+            state.activePlayerIds = state.turnManager.turnOrder.includes(bankruptcy.playerId)
+                ? [bankruptcy.playerId]
+                : state.turnManager.turnOrder.slice(0, 1)
             abandonOperatingTurn(state, companyId)
             const ended = operatingRoundEnd(state, this.#valuationRules)
             this.metadata = {

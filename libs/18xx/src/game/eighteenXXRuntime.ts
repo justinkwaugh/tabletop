@@ -223,6 +223,9 @@ export function createEighteenXXRuntime<
         corporateFinanceRules && financeTiming === timing
             ? new CorporateFinanceHandler(handler, corporateFinanceRules)
             : handler
+    // Issuing after buying trains can take the operating company's price to zero.
+    const closesOwnTurnAtZeroAfterFinance = (handler: Handler): Handler =>
+        financeTiming === 'after-trains' ? closesOwnTurnAtZero(handler) : handler
     const endsFinanceStep = (handler: Handler): Handler =>
         corporateFinanceRules
             ? {
@@ -511,19 +514,21 @@ export function createEighteenXXRuntime<
                         'BuyingTrains',
                         decides(
                             'BuyingTrains',
-                            allowsCorporateFinance(
-                                trainFundingRules
-                                    ? new BuyingTrainsHandler(
-                                          options.trainRules,
-                                          trainFundingRules,
-                                          rules,
-                                          after('BuyingTrains')
-                                      )
-                                    : new OrdinaryBuyingTrainsHandler(
-                                          options.trainRules,
-                                          after('BuyingTrains')
-                                      ),
-                                'after-trains'
+                            closesOwnTurnAtZeroAfterFinance(
+                                allowsCorporateFinance(
+                                    trainFundingRules
+                                        ? new BuyingTrainsHandler(
+                                              options.trainRules,
+                                              trainFundingRules,
+                                              rules,
+                                              after('BuyingTrains')
+                                          )
+                                        : new OrdinaryBuyingTrainsHandler(
+                                              options.trainRules,
+                                              after('BuyingTrains')
+                                          ),
+                                    'after-trains'
+                                )
                             )
                         )
                     )
