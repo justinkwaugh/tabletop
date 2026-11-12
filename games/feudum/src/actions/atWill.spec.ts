@@ -92,6 +92,15 @@ describe('R-4.4-H1 the at-will windows', () => {
         }
         const other = table.order.find((seat) => seat !== playerId)
         expect(other).toBeDefined()
+        if (name === 'hand selection') {
+            // R-3.1-H1 Every seat yet to finalise is in the window; one that has is not.
+            expect(atWillWindow(table.hydrated(), other ?? '')).toBe('hand-selection')
+            table.send(other ?? '', {
+                type: ActionType.FinaliseHand,
+                revealsInfo: true,
+                cards: ['move', 'tax', 'guild', 'explore']
+            })
+        }
         expect(atWillWindow(table.hydrated(), other ?? '')).toBeUndefined()
         for (const type of EveryWindowAction) {
             expect(table.offered(other ?? '')).not.toContain(type)
@@ -153,12 +162,12 @@ describe('R-4.4-H1 the at-will windows', () => {
         expect(table.seat(playerId).played).toEqual([])
     })
 
-    it('R-3.1-H1 the next finaliser acts at will, then still finalises', () => {
+    it('R-3.1-H1 a seat yet to finalise acts at will, then still finalises', () => {
         const { table, playerId } = tableInWindow('hand selection', equip)
         table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate, ...AnyTime })
-        expect(table.asked).toBe(playerId)
+        expect(table.state.activePlayerIds).toContain(playerId)
         expect(table.offered(playerId)).toContain(ActionType.FinaliseHand)
-        expect(table.hydrated().flow.selection?.playerId).toBe(playerId)
+        expect(table.hydrated().flow.selection?.finalised).not.toContain(playerId)
     })
 
     it('R-4.10 in nourishing, only the first seat pending is asked', () => {

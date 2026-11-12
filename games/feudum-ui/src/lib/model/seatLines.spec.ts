@@ -84,10 +84,24 @@ describe('Seat panel lines (contract: Seat panel)', () => {
 
     it('R-3.3 While hands are chosen, "choosing" stands on the cards line, for others and the seat alike', () => {
         const state = table((row) => {
-            row.flow.selection = { playerId: Owner, finalised: [] }
+            row.flow.selection = { finalised: [] }
         })
         expect(items(linesOf(state, Other).cards)).toEqual(['choosing'])
         expect(items(linesOf(state, Owner).cards)).toEqual(['choosing'])
+        expect(items(linesOf(state, Other).holdings)).not.toContain('pouch')
+    })
+
+    it('R-3.1-H1 A seat final with a pouch good holds it on line three; no other seat sees it', () => {
+        const state = table((row) => {
+            row.flow.selection = { finalised: [Owner] }
+            const player = row.getPlayerState(Owner)
+            player.hand = ['tax', 'conquer', 'move', 'harvest']
+            player.committedPouch = 'sulfur'
+        })
+        expect(linesOf(state, Owner).holdings).toContainEqual({
+            item: 'pouch',
+            pouch: { status: 'committed', good: 'sulfur' }
+        })
         expect(items(linesOf(state, Other).holdings)).not.toContain('pouch')
     })
 

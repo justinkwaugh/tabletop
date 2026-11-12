@@ -22,6 +22,10 @@ Q1–Q25 (setup, turn structure, actions, guilds, combat, information, game end,
 
 Q26–Q29 (region tile stacks, vessel routes, values printed nowhere, mandate 6's reward) were settled on 2026-11-06, by the same route.
 
+Revised to suit an online table:
+
+- Q4: every player finalises when they like and the pouch goods are revealed together once all have finalised, not in turn order with each pouch good public as it is finalised; the rulebook's later player waiting on an earlier pouch good is a known deviation (R-3.1-H1).
+
 Answers since revised to follow the rulebook:
 
 - Q24: a reeve scores on every push and every pull, as the rulebook's Reeves box reads, not only when it reaches a threshold (R-4.7-H1).

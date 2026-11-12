@@ -28,8 +28,8 @@
 
     function pouchWords(item: Extract<SeatHoldingsItem, { item: 'pouch' }>): string {
         const { pouch } = item
-        return pouch.status === 'drafted'
-            ? `pouch: ${pouch.good}, drafted`
+        return pouch.status === 'drafted' || pouch.status === 'committed'
+            ? `pouch: ${pouch.good}, ${pouch.status}`
             : `pouch: ${pouch.good}, ${pouch.note}${pouch.spent ? ', spent' : ''}`
     }
 </script>
@@ -192,7 +192,7 @@
             <span
                 class="flex items-center"
                 class:spent={pouch.status === 'finalised' && pouch.spent}
-                class:drafted={pouch.status === 'drafted'}
+                class:drafted={pouch.status === 'drafted' || pouch.status === 'committed'}
                 title={pouchWords(entry)}
                 data-seat-section="pouch"
                 data-pouch={pouch.status}

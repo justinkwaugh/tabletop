@@ -31,7 +31,7 @@ const OTHER_SEAT = 'p2'
 
 /** `visibility.md`'s Action records: what only the acting seat is told. */
 const ActorKnown: Partial<Record<ActionType, readonly string[]>> = {
-    [ActionType.FinaliseHand]: ['cards'],
+    [ActionType.FinaliseHand]: ['cards', 'pouchGood'],
     [ActionType.Explore]: ['metadata.drawnWritIds'],
     [ActionType.GuildAction]: ['metadata.drawnWritIds'],
     [ActionType.Feast]: ['metadata.drawnWritIds'],

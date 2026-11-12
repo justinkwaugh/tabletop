@@ -61,7 +61,7 @@ export interface SeatCards {
 
 export type SeatPouch =
     | { readonly status: 'empty' | 'choosing' }
-    | { readonly status: 'drafted'; readonly good: PouchGood }
+    | { readonly status: 'drafted' | 'committed'; readonly good: PouchGood }
     | {
           readonly status: 'finalised'
           readonly good: PouchGood
@@ -176,7 +176,8 @@ function cardsOf(
 function pouchOf(
     state: HydratedFeudumGameState,
     player: HydratedFeudumPlayerState,
-    drafted: PouchGood | undefined
+    drafted: PouchGood | undefined,
+    owner: boolean
 ): SeatPouch {
     if (player.pouch === 'saltpeter') {
         return {
@@ -193,6 +194,10 @@ function pouchOf(
             note: 'sequential',
             spent: player.sequentialUsed
         }
+    }
+    if (owner && player.committedPouch) {
+        // R-3.1-H1 Its own committed good, which no other seat sees until every hand is final.
+        return { status: 'committed', good: player.committedPouch }
     }
     if (!state.flow.selection || handChosen(state, player)) {
         return { status: 'empty' }
@@ -267,7 +272,7 @@ export function seatPanelOf({
             handFaceShown(viewerId, playerId) ? 'own' : hostView ? 'faces' : 'backs',
             handOnDesk
         ),
-        pouch: pouchOf(state, player, isOwner ? draftedPouch : undefined),
+        pouch: pouchOf(state, player, isOwner ? draftedPouch : undefined, isOwner),
         supply: supplyOf(state, player),
         writs: writsOf(state, player, hostView || writFaceShown(viewerId, playerId), isOwner),
         barrel: { sulfur: player.barrel, capacity: WineBarrelCapacity },

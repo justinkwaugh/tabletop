@@ -63,13 +63,13 @@ test('S61 S64 R-2.2 The hotseat log: grouped, jumped and replayed, and the seat 
     await playAMove(page)
     await shot(page, 'log')
 
-    // By hand from setup: four seats` goods and pawns are 0 to 7, the round starts at 8, hands 9 to 12.
+    // By hand from setup: four seats` goods and pawns are 0 to 7, the round starts at 8, hands 9 to 12 and their reveal 13.
     const hands = entry(page, 9)
     await expect(hands).toHaveAttribute('data-history-entry', 'hands')
-    await expect(hands).toHaveAttribute('data-last-index', '12')
-    await expect(hands.locator('[data-action-line]')).toHaveCount(4)
+    await expect(hands).toHaveAttribute('data-last-index', '13')
+    await expect(hands.locator('[data-action-line]')).toHaveCount(5)
     await expect(hands.locator('button')).toHaveCount(0)
-    const turn = entry(page, 13)
+    const turn = entry(page, 14)
     await expect(turn).toHaveAttribute('data-history-entry', 'turn')
     await expect(turn.locator('[data-action-line]').first()).toHaveAttribute(
         'data-action-line',
@@ -78,7 +78,7 @@ test('S61 S64 R-2.2 The hotseat log: grouped, jumped and replayed, and the seat 
     // Newest first: this turn, the hands, then the round that opened them.
     await expect(list(page).locator('[data-history-entry]').first()).toHaveAttribute(
         'data-first-index',
-        '13'
+        '14'
     )
     await expect(list(page).locator('[data-history-entry]').nth(1)).toHaveAttribute(
         'data-first-index',
@@ -109,7 +109,7 @@ test('S61 S64 R-2.2 The hotseat log: grouped, jumped and replayed, and the seat 
         }
         requestAnimationFrame(sample)
         const button = list?.querySelector<HTMLButtonElement>(
-            '[data-first-index="13"] [data-history-replay]'
+            '[data-first-index="14"] [data-history-replay]'
         )
         button?.click()
         do {
@@ -129,7 +129,7 @@ test('S61 S64 R-2.2 The hotseat log: grouped, jumped and replayed, and the seat 
     await turn.locator('[data-history-jump]').click()
     await settled(page)
     expect(await viewing(page)).toBe(true)
-    expect(await current(page)).toBe(13)
+    expect(await current(page)).toBe(14)
     await expect(panel(page)).toHaveCount(0)
     await expect(page.locator('[data-history-description] [data-action-line]')).toHaveAttribute(
         'data-action-line',
@@ -247,8 +247,8 @@ test.describe('on a phone', () => {
         expect(wide.across).toBe(0)
         expect(wide.right).toBeLessThanOrEqual(375)
 
-        await entry(page, 13).locator('[data-history-jump]').tap()
+        await entry(page, 14).locator('[data-history-jump]').tap()
         await settled(page)
-        expect(await current(page)).toBe(13)
+        expect(await current(page)).toBe(14)
     })
 })

@@ -40,7 +40,7 @@ import source from './actionAggregator.ts?raw'
 const [P1, P2, P3] = ['p1', 'p2', 'p3']
 type GameWalk = ReturnType<typeof realGames>[number]
 
-const Table: HistoryTable = { rounds: [], epoch: 1, seats: 3 }
+const Table: HistoryTable = { rounds: [], epoch: 1 }
 
 /** An Action as a seat receives it: the fields grouping may read and nothing else. */
 function act(index: number, type: string, playerId?: string, metadata?: unknown): GameAction {
@@ -80,13 +80,14 @@ function onlyGroup(actions: readonly GameAction[], table = Table): HistoryGroup 
     return groups[0]
 }
 
-/** R-3.1 Three finalisers from `start`, so what follows is the first turn. */
+/** R-3.1, R-3.1-H1 Three finalisers from `start` and the reveal, so what follows is the first turn. */
 function selection(start: number): GameAction[] {
     return [
         act(start, ActionType.StartRound),
         act(start + 1, ActionType.FinaliseHand, P1),
         act(start + 2, ActionType.FinaliseHand, P2),
-        act(start + 3, ActionType.FinaliseHand, P3)
+        act(start + 3, ActionType.FinaliseHand, P3),
+        act(start + 4, ActionType.RevealPouches)
     ]
 }
 
@@ -121,12 +122,12 @@ describe('R-1.4 Setup', () => {
 })
 
 describe('R-3.1 One entry per hand selection', () => {
-    it('R-3.1 It holds a line per finaliser and StartRound isn`t one', () => {
+    it('R-3.1, R-3.1-H1 It holds a line per finaliser and the reveal, and StartRound isn`t one', () => {
         const hands = onlyGroup(selection(6))
 
         expect(hands.kind).toBe('hands')
-        expect(hands.actions.map(({ playerId }) => playerId)).toEqual([P1, P2, P3])
-        expect([hands.firstIndex, hands.lastIndex]).toEqual([7, 9])
+        expect(hands.actions.map(({ playerId }) => playerId)).toEqual([P1, P2, P3, undefined])
+        expect([hands.firstIndex, hands.lastIndex]).toEqual([7, 10])
         expect(hands.replays).toBe(false)
         expect(hands.jumpIndex).toBeUndefined()
     })
@@ -158,32 +159,33 @@ describe('R-3.1 One entry per hand selection', () => {
         expect(spans(entries)).toEqual(['hands 7-10'])
     })
 
-    it('R-3.2 The selection ends on the last seat`s finaliser: what follows is the first turn', () => {
+    it('R-3.1-H1, R-3.2 The selection ends on the reveal: what follows is the first turn', () => {
         const entries = aggregateHistory(
-            [...selection(6), act(10, ActionType.DiscardWrit, P1), act(11, ActionType.Move, P1)],
+            [...selection(5), act(10, ActionType.DiscardWrit, P1), act(11, ActionType.Move, P1)],
             Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-11'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-11'])
     })
 
-    it('R-3.1 The seat count is the table`s: two seats end it on the second finaliser', () => {
+    it('R-3.1-H1 However many seats finalise, in any order, the reveal ends it', () => {
         const entries = aggregateHistory(
             [
                 act(6, ActionType.StartRound),
-                act(7, ActionType.FinaliseHand, P1),
-                act(8, ActionType.FinaliseHand, P2),
-                act(9, ActionType.Move, P1)
+                act(7, ActionType.FinaliseHand, P2),
+                act(8, ActionType.FinaliseHand, P1),
+                act(9, ActionType.RevealPouches),
+                act(10, ActionType.Move, P1)
             ],
-            { ...Table, seats: 2 }
+            Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-8', 'turn 9-9'])
+        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-10'])
     })
 })
 
 describe('R-3.2 One entry per turn, growing', () => {
-    const start = selection(6)
+    const start = selection(5)
 
     it.each([
         {
@@ -251,7 +253,7 @@ describe('R-3.2 One entry per turn, growing', () => {
                 Table
             )
 
-            expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-12', 'turn 14-14'])
+            expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-12', 'turn 14-14'])
             expect(typesIn(groupsOf(entries)[1])).toEqual([ActionType.Move, ActionType.DiscardWrit])
         }
     )
@@ -267,7 +269,7 @@ describe('R-3.2 One entry per turn, growing', () => {
             Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-10', 'nourishing 12-12'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-10', 'nourishing 12-12'])
     })
 
     it('R-3.2 AdvanceTurn ends the turn, and neither it nor StartRound is in any entry', () => {
@@ -282,7 +284,7 @@ describe('R-3.2 One entry per turn, growing', () => {
             Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-10', 'turn 12-12'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-10', 'turn 12-12'])
         const held = groupsOf(entries).flatMap(typesIn)
         expect(held).not.toContain(ActionType.AdvanceTurn)
         expect(held).not.toContain(ActionType.StartRound)
@@ -314,7 +316,7 @@ describe('R-3.2 One entry per turn, growing', () => {
             Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-10', 'single 12-12', 'turn 13-13'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-10', 'single 12-12', 'turn 13-13'])
         expect(groupsOf(entries).at(-1)?.playerId).toBe(P2)
     })
 
@@ -324,7 +326,7 @@ describe('R-3.2 One entry per turn, growing', () => {
             Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-9', 'single 10-10', 'turn 11-11'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'single 10-10', 'turn 11-11'])
         expect(groupsOf(entries).at(-1)?.playerId).toBe(P1)
     })
 
@@ -339,7 +341,7 @@ describe('R-3.2 One entry per turn, growing', () => {
             Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-12', 'single 11-11'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-12', 'single 11-11'])
         const turn = groupsOf(entries)[1]
         expect(turn.playerId).toBe(P1)
         expect(typesIn(turn)).toEqual([ActionType.Conquer, ActionType.AnswerAttack])
@@ -361,7 +363,7 @@ describe('R-3.2 One entry per turn, growing', () => {
             Table
         )
 
-        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-10', 'turn 12-14', 'single 13-13'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-10', 'turn 12-14', 'single 13-13'])
         expect(typesIn(groupsOf(entries)[2])).toEqual([ActionType.Conquer, ActionType.AnswerAttack])
     })
 
@@ -377,7 +379,7 @@ describe('R-3.2 One entry per turn, growing', () => {
         )
 
         expect(isCallGameAction(called)).toBe(true)
-        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-12', 'single 11-11'])
+        expect(spans(entries)).toEqual(['hands 6-9', 'turn 10-12', 'single 11-11'])
     })
 })
 
@@ -526,22 +528,22 @@ describe('R-2.1, R-2.2 Interstitials', () => {
     it('R-2.2 A round`s comes from the round manager, at its start, not from the Actions', () => {
         const actions = [
             ...selection(6),
-            act(10, ActionType.Move, P1),
-            act(11, ActionType.EndRound),
-            ...selection(12)
+            act(11, ActionType.Move, P1),
+            act(12, ActionType.EndRound),
+            ...selection(13)
         ]
         const entries = aggregateHistory(actions, {
             ...Table,
-            rounds: [round(1, 6, 12), round(2, 12)]
+            rounds: [round(1, 6, 13), round(2, 13)]
         })
 
         expect(entries.map(({ id }) => id)).toEqual([
             'epoch-1',
             'round-1',
             'hands-7',
-            'turn-10',
+            'turn-11',
             'round-2',
-            'hands-13'
+            'hands-14'
         ])
     })
 
@@ -625,6 +627,7 @@ describe('R-2.2 Jump', () => {
 
     it.each([
         ['hands', ActionType.FinaliseHand],
+        ['hands', ActionType.RevealPouches],
         ['nourishing', ActionType.NourishPawns],
         ['progress', ActionType.RollProgressDie],
         ['single', ActionType.PlaceStartingPawn]
@@ -743,12 +746,12 @@ function deepFrozen<T>(value: T): T {
 
 describe('R-5-H1 Pure: only what the seat received', () => {
     const actions = deepFrozen([
-        ...selection(6),
+        ...selection(5),
         act(10, ActionType.Move, P1),
         act(11, ActionType.AdvanceTurn),
         act(12, ActionType.EndRound)
     ])
-    const table = deepFrozen({ ...Table, rounds: [round(1, 6, 13)] })
+    const table = deepFrozen({ ...Table, rounds: [round(1, 5, 13)] })
 
     it('It changes nothing it is given and answers the same twice', () => {
         const first = aggregateHistory(actions, table)
@@ -759,7 +762,7 @@ describe('R-5-H1 Pure: only what the seat received', () => {
     it('It hands on the Actions it received, not copies', () => {
         const turn = groupsOf(aggregateHistory(actions, table)).find(({ kind }) => kind === 'turn')
 
-        expect(turn?.actions[0]).toBe(actions[4])
+        expect(turn?.actions[0]).toBe(actions[5])
     })
 
     it('Nothing it could read says more than the Actions: the module names no patch and no state', () => {
@@ -811,8 +814,7 @@ function tableOf(walk: GameWalk): HistoryTable {
     const last = walk.steps.at(-1)?.after.at(-1)
     return {
         rounds: last?.roundManager.series ?? [],
-        epoch: 1,
-        seats: walk.game.players.length
+        epoch: 1
     }
 }
 
@@ -961,31 +963,31 @@ describe('R-5-H1 Whole games, from every seat and a spectator', () => {
             'single 3-3',
             'single 4-4',
             'single 5-5',
-            'hands 7-9'
+            'hands 7-10'
         ])
         expect(named).toEqual(
             expect.arrayContaining([
-                'hands 38-40',
-                'nourishing 71-73',
-                'progress 74-75',
-                'nourishing 109-112',
-                'progress 113-113',
-                'dawn 114-116',
-                'dawn 453-453',
-                'single 454-454'
+                'hands 39-42',
+                'nourishing 73-75',
+                'progress 76-77',
+                'nourishing 112-115',
+                'progress 116-116',
+                'dawn 117-119',
+                'dawn 466-466',
+                'single 467-467'
             ])
         )
-        expect(entries.find(({ id }) => id === 'round-2')).toMatchObject({ jumpIndex: 37 })
-        expect(entries.find(({ id }) => id === 'dawn-114')).toMatchObject({
-            jumpIndex: 116,
+        expect(entries.find(({ id }) => id === 'round-2')).toMatchObject({ jumpIndex: 38 })
+        expect(entries.find(({ id }) => id === 'dawn-117')).toMatchObject({
+            jumpIndex: 119,
             replays: true
         })
         // A guild function, its follow-ups and an at-will Action make one seat's turn.
-        const guildTurn = groupsOf(entries).find(({ firstIndex }) => firstIndex === 53)
+        const guildTurn = groupsOf(entries).find(({ firstIndex }) => firstIndex === 55)
         expect(guildTurn).toMatchObject({
             kind: 'turn',
-            lastIndex: 55,
-            jumpIndex: 55,
+            lastIndex: 57,
+            jumpIndex: 57,
             replays: true
         })
         expect(guildTurn ? typesIn(guildTurn) : []).toEqual([

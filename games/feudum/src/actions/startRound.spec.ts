@@ -36,15 +36,15 @@ describe('StartRound', () => {
         expect(action).toMatchObject({ metadata: { round: 2 } })
     })
 
-    it('R-3.1-H1 the selection order starts over from the first seat in turn order', () => {
+    it('R-3.1-H1 the selection starts over with every seat yet to finalise, from the new first seat', () => {
         const table = tableAtPlayingCards()
-        const [, second] = table.order
+        const [first, second, ...rest] = table.order
 
         startNextRound(table)
 
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
-        expect(table.state.flow.selection).toEqual({ playerId: second, finalised: [] })
-        expect(table.asked).toBe(second)
+        expect(table.state.flow.selection).toEqual({ finalised: [] })
+        expect(table.state.activePlayerIds).toEqual([second, ...rest, first])
     })
 
     it('R-4.10.2 fed wine turns drunk, for the round, and is named in metadata', () => {

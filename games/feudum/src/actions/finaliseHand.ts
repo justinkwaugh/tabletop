@@ -34,8 +34,10 @@ export const FinaliseHand = Type.Evaluate(
             cards: Visibility.protect(Type.Array(ActionCardKindSchema), {
                 policy: Visibility.Policy.Actor
             }),
-            /** R-3.1-H1 Public once finalised. */
-            pouchGood: Type.Optional(PouchGood)
+            /** R-3.1-H1 Actor-known: `RevealPouches` tells the table once every seat has finalised. */
+            pouchGood: Visibility.protect(Type.Optional(PouchGood), {
+                policy: Visibility.Policy.Actor
+            })
         })
     ])
 )
@@ -81,15 +83,19 @@ function reasonHandRefused(
     return new Set(cards).size === cards.length ? undefined : 'Choose different cards.'
 }
 
-/** R-3.1-H1, then R-3.1, R-3.3 */
+/** R-3.1-H1, then R-3.1, R-3.3 Any seat yet to finalise may, in any order. */
 export function reasonFinaliseRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     cards: readonly ActionCardKind[],
     pouchGood?: PouchGood
 ): string | undefined {
-    if (state.flow.selection?.playerId !== playerId) {
-        return 'Earlier seats finalise first.'
+    const { selection } = state.flow
+    if (!selection) {
+        return 'No hand is being chosen.'
+    }
+    if (selection.finalised.includes(playerId)) {
+        return 'Your hand is already final.'
     }
     return reasonHandRefused(state.getPlayerState(playerId), cards, pouchGood)
 }
@@ -136,7 +142,11 @@ export class HydratedFinaliseHand
         super(data, FinaliseHandValidator)
     }
 
-    /** R-3.1, R-3.3, R-3.1-H1 The input names every fact its history line needs. */
+    /**
+     * R-3.1, R-3.3, R-3.1-H1 The hand and the pouch good are owner-known until `RevealPouches`: the
+     * good stays in the supply and the hand's size is not told, so the table learns only that the
+     * seat has finalised. The input names every fact its history line needs.
+     */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonFinaliseRefused(state, this.playerId, this.cards, this.pouchGood)
         if (reason) {
@@ -146,10 +156,8 @@ export class HydratedFinaliseHand
         assertExists(selection, 'R-3.1-H1 A hand is being chosen')
         const player = state.getPlayerState(this.playerId)
         player.hand = [...this.cards]
-        player.handCount = this.cards.length
         if (this.pouchGood) {
-            player.goods[this.pouchGood] -= 1
-            player.pouch = this.pouchGood
+            player.committedPouch = this.pouchGood
         }
         selection.finalised.push(this.playerId)
     }

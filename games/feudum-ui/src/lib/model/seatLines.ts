@@ -89,7 +89,9 @@ function holdingsLine({
         ...supply.vessels
             .filter(({ count }) => count > 0)
             .map(({ vessel, count }) => ({ item: 'vessel' as const, vessel, count })),
-        ...(pouch.status === 'finalised' || pouch.status === 'drafted'
+        ...(pouch.status === 'finalised' ||
+        pouch.status === 'drafted' ||
+        pouch.status === 'committed'
             ? [{ item: 'pouch' as const, pouch }]
             : [])
     ]

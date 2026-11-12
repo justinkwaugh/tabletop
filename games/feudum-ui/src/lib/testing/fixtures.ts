@@ -103,11 +103,11 @@ async function placePawns(host: FeudumHost, plans: readonly SeatPlan[]) {
     }
 }
 
-/** R-3.1 Every seat finalises its planned hand, in the finalise order. */
+/** R-3.1 Every seat finalises its planned hand, in turn order as a shared screen asks. */
 async function finalise(host: FeudumHost, plans: readonly SeatPlan[]) {
     while (host.state.machineState === MachineState.SelectingHands) {
-        const playerId = host.state.flow.selection?.playerId
-        assertExists(playerId, 'R-3.1 A seat is next to finalise')
+        const [playerId] = host.state.activePlayerIds
+        assertExists(playerId, 'R-3.1-H1 A seat is yet to finalise')
         const { hand, pouch } = planOf(host, plans, playerId)
         await host.send(playerId, {
             type: ActionType.FinaliseHand,

@@ -117,7 +117,7 @@ describe('Setup states', () => {
             PhaseName.Setup,
             PhaseName.HandSelection
         ])
-        expect(table.state.flow.selection).toEqual({ playerId: table.order[0], finalised: [] })
+        expect(table.state.flow.selection).toEqual({ finalised: [] })
         expect(table.asked).toBe(table.order[0])
     })
 })

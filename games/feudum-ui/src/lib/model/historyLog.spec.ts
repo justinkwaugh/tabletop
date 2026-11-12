@@ -54,7 +54,7 @@ function roundDivider(session: FeudumGameSession, round: number) {
     return divider
 }
 
-/** R-3.13, R-3.14.1 A Conquer let stand and committed: 10, 11 from the other seat, 12. */
+/** R-3.13, R-3.14.1 A Conquer let stand and committed: 11, 12 from the other seat, 13. */
 async function conquered(): Promise<AskTable> {
     const table = hosted(await askedToDefend(['defend', 'tax']))
     const { asked, session, third } = table
@@ -71,12 +71,12 @@ async function conquered(): Promise<AskTable> {
     return table
 }
 
-/** The round played out with no dawn: round 2 starts at 19 on a roll at 17 and its end at 18. */
+/** The round played out with no dawn: round 2 starts at 20 on a roll at 18 and its end at 19. */
 function roundOver(): Promise<RoundEndTable> {
     return playOutRound(undefined).then(hosted)
 }
 
-/** R-4.11.2, R-4.12 The round played out into epoch II: dawn 18, map 19, the round's end 20. */
+/** R-4.11.2, R-4.12 The round played out into epoch II: dawn 19, map 20, the round's end 21. */
 function dawned(): Promise<RoundEndTable> {
     return playOutRound(2).then(hosted)
 }
@@ -168,14 +168,14 @@ describe('R-4.4-H5 A writ discarded at any time in the log', () => {
 describe('R-2.2 Jump', () => {
     it('R-2.2 A round shows the table as it began: on StartRound, no hand finalised', async () => {
         const { host, session } = await roundOver()
-        expect(host.actions[19].type).toBe(ActionType.StartRound)
+        expect(host.actions[20].type).toBe(ActionType.StartRound)
 
         await session.historyLog.jump(roundDivider(session, 2))
         await settled(session)
 
         expect(session.isViewingHistory).toBe(true)
-        expect(session.currentAction?.index).toBe(19)
-        expect(session.actions).toHaveLength(20)
+        expect(session.currentAction?.index).toBe(20)
+        expect(session.actions).toHaveLength(21)
         expect(session.gameState.machineState).toBe(MachineState.SelectingHands)
         expect(session.gameState.roundManager.series.at(-1)?.number).toBe(2)
     })
@@ -194,29 +194,29 @@ describe('R-2.2 Jump', () => {
 
     it('R-3.2 A turn shows the table as it ended: on its last Action, not the AdvanceTurn after', async () => {
         const { host, seat, session } = await conquered()
-        expect(host.actions[12].type).toBe(ActionType.CommitAttack)
-        expect(host.actions[13].type).toBe(ActionType.AdvanceTurn)
-        const turn = groupAt(session, 10)
-        expect(turn.jumpIndex).toBe(12)
+        expect(host.actions[13].type).toBe(ActionType.CommitAttack)
+        expect(host.actions[14].type).toBe(ActionType.AdvanceTurn)
+        const turn = groupAt(session, 11)
+        expect(turn.jumpIndex).toBe(13)
 
         await session.historyLog.jump(turn)
         await settled(session)
 
-        expect(session.currentAction?.index).toBe(12)
+        expect(session.currentAction?.index).toBe(13)
         expect(session.gameState.flow.turn?.playerId).toBe(seat)
     })
 
     it('R-4.12 A dawn shows the table as it ended: its round`s end, not the next round', async () => {
         const { host, session } = await dawned()
-        expect(host.actions[20].type).toBe(ActionType.EndRound)
-        expect(host.actions[21].type).toBe(ActionType.StartRound)
-        const dawn = groupAt(session, 18)
-        expect(dawn.jumpIndex).toBe(20)
+        expect(host.actions[21].type).toBe(ActionType.EndRound)
+        expect(host.actions[22].type).toBe(ActionType.StartRound)
+        const dawn = groupAt(session, 19)
+        expect(dawn.jumpIndex).toBe(21)
 
         await session.historyLog.jump(dawn)
         await settled(session)
 
-        expect(session.currentAction?.index).toBe(20)
+        expect(session.currentAction?.index).toBe(21)
         expect(session.gameState.epoch).toBe(2)
     })
 
@@ -230,7 +230,7 @@ describe('R-2.2 Jump', () => {
         session.history.goToEnd()
         await settled(session)
 
-        expect(groupAt(session, 10).lastIndex).toBe(12)
+        expect(groupAt(session, 11).lastIndex).toBe(13)
     })
 })
 
@@ -239,21 +239,21 @@ describe('R-2.2 Replay', () => {
         const { session } = await conquered()
         const steps = watchSteps(session)
 
-        await session.historyLog.replay(groupAt(session, 10), hold)
+        await session.historyLog.replay(groupAt(session, 11), hold)
         await settled(session)
 
-        expect(steps.map(({ index }) => index)).toEqual([10, 11, 12])
-        expect(steps[0].fromCount).toBe(10)
-        expect(steps[2].toCount).toBe(13)
+        expect(steps.map(({ index }) => index)).toEqual([11, 12, 13])
+        expect(steps[0].fromCount).toBe(11)
+        expect(steps[2].toCount).toBe(14)
     })
 
     it('R-4.11.1 A span ending in a System Action stops there, however the next Actions cascade', async () => {
         const { host, session } = await roundOver()
-        const progress = groupAt(session, 17)
-        expect(host.actions[18].type).toBe(ActionType.EndRound)
+        const progress = groupAt(session, 18)
+        expect(host.actions[19].type).toBe(ActionType.EndRound)
         expect([progress.kind, progress.lastIndex, progress.replays]).toEqual([
             'progress',
-            18,
+            19,
             true
         ])
         const steps = watchSteps(session)
@@ -261,25 +261,25 @@ describe('R-2.2 Replay', () => {
         await session.historyLog.replay(progress, hold)
         await settled(session)
 
-        expect(steps.map(({ index }) => index)).toEqual([17, 18])
+        expect(steps.map(({ index }) => index)).toEqual([18, 19])
     })
 
     it('R-4.12 A dawn replays all of itself and its round`s end, not the next round', async () => {
         const { session } = await dawned()
         const steps = watchSteps(session)
 
-        await session.historyLog.replay(groupAt(session, 18), hold)
+        await session.historyLog.replay(groupAt(session, 19), hold)
         await settled(session)
 
-        expect(steps.map(({ index }) => index)).toEqual([18, 19, 20])
-        expect(steps[0].fromCount).toBe(18)
-        expect(steps[2].toCount).toBe(21)
+        expect(steps.map(({ index }) => index)).toEqual([19, 20, 21])
+        expect(steps[0].fromCount).toBe(19)
+        expect(steps[2].toCount).toBe(22)
     })
 
     it('It returns to the live table', async () => {
         const { host, session } = await conquered()
 
-        await session.historyLog.replay(groupAt(session, 10), hold)
+        await session.historyLog.replay(groupAt(session, 11), hold)
         await settled(session)
 
         expect(session.isViewingHistory).toBe(false)
@@ -289,14 +289,14 @@ describe('R-2.2 Replay', () => {
 
     it('It returns to the step it started on, if History View was open', async () => {
         const { session } = await conquered()
-        await session.historyLog.jump(groupAt(session, 10))
+        await session.historyLog.jump(groupAt(session, 11))
         await settled(session)
 
-        await session.historyLog.replay(groupAt(session, 10), hold)
+        await session.historyLog.replay(groupAt(session, 11), hold)
         await settled(session)
 
         expect(session.isViewingHistory).toBe(true)
-        expect(session.currentAction?.index).toBe(12)
+        expect(session.currentAction?.index).toBe(13)
     })
 
     it('An entry the contract doesn`t list doesn`t replay', async () => {
@@ -318,8 +318,8 @@ describe('R-2.2 Replay', () => {
         const steps = watchSteps(session)
 
         expect(session.historyLog.available).toBe(false)
-        await session.historyLog.replay(groupAt(session, 10), hold)
-        await session.historyLog.jump(groupAt(session, 10))
+        await session.historyLog.replay(groupAt(session, 11), hold)
+        await session.historyLog.jump(groupAt(session, 11))
         await settled(session)
 
         expect(steps).toEqual([])
@@ -331,7 +331,7 @@ describe('R-2.2 Replay', () => {
         const { session } = await conquered()
         const { historyLog: log } = session
         const before = log.entries.map(({ id }) => id)
-        const turn = groupAt(session, 10)
+        const turn = groupAt(session, 11)
         const during: { ids: string[]; available: boolean; entryId?: string }[] = []
         const steps = watchSteps(session, () => {
             during.push({
@@ -346,7 +346,7 @@ describe('R-2.2 Replay', () => {
         await log.replay(turn, hold)
         await settled(session)
 
-        expect(steps.map(({ index }) => index)).toEqual([10, 11, 12])
+        expect(steps.map(({ index }) => index)).toEqual([11, 12, 13])
         expect(during).toHaveLength(3)
         for (const step of during) {
             expect(step).toEqual({ ids: before, available: false, entryId: turn.id })
@@ -358,7 +358,7 @@ describe('R-2.2 Replay', () => {
         const { session } = await conquered()
         vi.spyOn(session.history, 'replayRange').mockRejectedValue(new Error('refused'))
 
-        await expect(session.historyLog.replay(groupAt(session, 10), hold)).rejects.toThrow(
+        await expect(session.historyLog.replay(groupAt(session, 11), hold)).rejects.toThrow(
             'refused'
         )
 
@@ -370,7 +370,7 @@ describe('R-2.2 Replay', () => {
         const next = host.order[(host.order.indexOf(seat) + 1) % host.order.length]
         expect(host.state.activePlayerIds).toEqual([next])
 
-        const replay = session.historyLog.replay(groupAt(session, 10), { holdMs: 40 })
+        const replay = session.historyLog.replay(groupAt(session, 11), { holdMs: 40 })
         await host.send(next, { type: ActionType.ForfeitCard, kind: 'tax' })
         await replay
         await settled(session)
@@ -378,7 +378,7 @@ describe('R-2.2 Replay', () => {
         expect(session.historyLog.replaying).toBe(false)
         expect(session.isViewingHistory).toBe(false)
         expect(session.actions).toHaveLength(host.actions.length)
-        expect(groupAt(session, 14).kind).toBe('turn')
+        expect(groupAt(session, 15).kind).toBe('turn')
     })
 })
 
@@ -386,12 +386,12 @@ describe('R-X.1 Neither changes the game or sends anything', () => {
     it.each([
         {
             name: 'A jump',
-            press: (session: FeudumGameSession) => session.historyLog.jump(groupAt(session, 10))
+            press: (session: FeudumGameSession) => session.historyLog.jump(groupAt(session, 11))
         },
         {
             name: 'A replay',
             press: (session: FeudumGameSession) =>
-                session.historyLog.replay(groupAt(session, 10), hold)
+                session.historyLog.replay(groupAt(session, 11), hold)
         }
     ])('$name, seen from the host and the seat`s own table', async ({ press }) => {
         const { host, seat, session } = await conquered()
@@ -416,8 +416,8 @@ describe('R-X.1 Neither changes the game or sends anything', () => {
 })
 
 /**
- * R-3.10.1, R-4.4.1, R-3.3 One turn that draws and keeps writs and then plays its second card: 10
- * Explore, 11 KeepWrits, 12 AdvanceTurn with the same seat, 13 Migrate, so it replays. Every seat and
+ * R-3.10.1, R-4.4.1, R-3.3 One turn that draws and keeps writs and then plays its second card: 11
+ * Explore, 12 KeepWrits, 13 AdvanceTurn with the same seat, 14 Migrate, so it replays. Every seat and
  * a spectator are watching as it's played.
  */
 async function writTurn() {
@@ -472,9 +472,9 @@ describe('R-5-H1 A replayed span shows no hidden fact to a seat that may not see
 
     it('R-3.3-H1 A real second card grows the one entry, across the AdvanceTurn it took', async () => {
         const { host, session, seat } = await writTurn()
-        const turn = groupAt(session, 10)
+        const turn = groupAt(session, 11)
 
-        expect(host.actions[12]).toMatchObject({
+        expect(host.actions[13]).toMatchObject({
             type: ActionType.AdvanceTurn,
             metadata: { outcome: 'second-card', turnPlayerId: seat }
         })
@@ -484,8 +484,8 @@ describe('R-5-H1 A replayed span shows no hidden fact to a seat that may not see
             ActionType.Migrate
         ])
         expect([turn.lastIndex, turn.jumpIndex, turn.replays, turn.playerId]).toEqual([
-            13,
-            13,
+            14,
+            14,
             true,
             seat
         ])
@@ -495,10 +495,10 @@ describe('R-5-H1 A replayed span shows no hidden fact to a seat that may not see
         const { session, drawn } = await writTurn()
         const steps = watchSteps(session)
 
-        await session.historyLog.replay(groupAt(session, 10), hold)
+        await session.historyLog.replay(groupAt(session, 11), hold)
         await settled(session)
 
-        expect(steps.map(({ index }) => index)).toEqual([10, 11, 12, 13])
+        expect(steps.map(({ index }) => index)).toEqual([11, 12, 13, 14])
         expect(writsNamedIn(steps.map(({ shown }) => shown))).toEqual(
             expect.arrayContaining([...drawn])
         )
@@ -509,10 +509,10 @@ describe('R-5-H1 A replayed span shows no hidden fact to a seat that may not see
         const session = table[watcher]
         const steps = watchSteps(session)
 
-        await session.historyLog.replay(groupAt(session, 10), hold)
+        await session.historyLog.replay(groupAt(session, 11), hold)
         await settled(session)
 
-        expect(steps.map(({ index }) => index)).toEqual([10, 11, 12, 13])
+        expect(steps.map(({ index }) => index)).toEqual([11, 12, 13, 14])
         const named = writsNamedIn(steps.map(({ shown }) => shown))
         for (const writId of table.drawn) {
             expect(named).not.toContain(writId)
@@ -525,10 +525,10 @@ describe('R-5-H1 A replayed span shows no hidden fact to a seat that may not see
             const table = await writTurn()
             const session = table[watcher]
 
-            await session.historyLog.jump(groupAt(session, 10))
+            await session.historyLog.jump(groupAt(session, 11))
             await settled(session)
 
-            expect(session.currentAction?.index).toBe(13)
+            expect(session.currentAction?.index).toBe(14)
             const named = writsNamedIn(session.gameState.dehydrate())
             for (const writId of table.drawn) {
                 expect(named).not.toContain(writId)
@@ -541,7 +541,7 @@ describe('R-5-H1 A replayed span shows no hidden fact to a seat that may not see
         async (watcher) => {
             const table = await writTurn()
             const session = table[watcher]
-            const turn = groupAt(session, 10)
+            const turn = groupAt(session, 11)
             const lines = turn.actions.map((action) =>
                 session.actionLine(action, session.historyLog.viewerId)
             )
@@ -559,10 +559,10 @@ describe('R-5-H1 A replayed span shows no hidden fact to a seat that may not see
             hands.push(to.getPlayerState(other).hand, to.getPlayerState(seat).hand)
         })
 
-        await third.historyLog.replay(groupAt(third, 10), hold)
+        await third.historyLog.replay(groupAt(third, 11), hold)
         await settled(third)
 
-        expect(steps.map(({ index }) => index)).toEqual([10, 11, 12])
+        expect(steps.map(({ index }) => index)).toEqual([11, 12, 13])
         expect(hands).toEqual(Array(6).fill(undefined))
     })
 })

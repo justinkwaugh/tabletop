@@ -3,10 +3,9 @@
     import type { FinaliseEntry } from '$lib/model/actionPanel.js'
 
     /**
-     * R-3.1 The finalise order, seats in turn order: a tick and the pouch good on each that has
-     * finalised, a mark on the next. It is what lets a seat wait to see an earlier pouch good. Its
-     * caption says how: everyone chooses now, and finalises in turn order (R-3.1-H1); while this
-     * seat drafts, the round's line leads it.
+     * R-3.1, R-3.1-H1 Who has finalised, seats in turn order: a tick on each that has, and this
+     * seat's own pouch good once it has committed one. No seat sees another's pouch good until all
+     * have finalised, so the caption says so; while this seat drafts, the round's line leads it.
      */
     let {
         entries,
@@ -22,7 +21,7 @@
     class="flex w-full flex-wrap items-center gap-1.5 max-sm:w-auto max-sm:gap-1"
     data-finalise-row
 >
-    <!-- R-3.1-H1 Everyone chooses at once; the sends go in turn order. -->
+    <!-- R-3.1-H1 Everyone chooses and finalises at once; the pouch goods are shown together. -->
     <span class="text-sm text-feudum-text max-sm:sr-only" data-finalise-caption
         >{#if lead}<span class="font-semibold" data-round-lead>{lead}</span>{' · '}{/if}<span
             class="text-feudum-text-muted">{caption}</span
@@ -30,11 +29,9 @@
     >
     {#each entries as entry (entry.playerId)}
         <span
-            class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-feudum-text max-sm:px-1
-                {entry.next ? 'border-dashed border-feudum-accent' : 'border-feudum-frame'}"
+            class="inline-flex items-center gap-1 rounded-full border border-feudum-frame px-2 py-0.5 text-xs text-feudum-text max-sm:px-1"
             data-finalise-seat={entry.name}
             data-finalised={entry.finalised ? '' : undefined}
-            data-next={entry.next ? '' : undefined}
         >
             <span
                 class="inline-block h-2.5 w-2.5 rounded-full"
@@ -46,9 +43,6 @@
             {/if}
             {#if entry.pouchGood}
                 <GoodToken good={entry.pouchGood} size={TokenSize} />
-            {/if}
-            {#if entry.next}
-                <span class="text-feudum-accent max-sm:sr-only">· next to finalise</span>
             {/if}
         </span>
     {/each}

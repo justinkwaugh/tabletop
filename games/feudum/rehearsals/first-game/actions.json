@@ -320,13 +320,17 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:39.183Z",
+    "createdAt": "2026-11-12T20:33:20.767Z",
     "metadata": {
       "round": 1,
       "drunk": []
     },
     "index": 4,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -376,7 +380,7 @@
     "index": 5,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
@@ -389,11 +393,6 @@
         "op": "replace",
         "path": "/actionChecksum",
         "value": 2035878287
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
       },
       {
         "op": "remove",
@@ -410,11 +409,6 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "remove",
@@ -440,6 +434,11 @@
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 40
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
@@ -452,11 +451,6 @@
         "op": "replace",
         "path": "/actionChecksum",
         "value": 1450219857
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
       },
       {
         "op": "remove",
@@ -473,6 +467,48 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "iSjHCcXb1I1FfKG4Uemoy",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.776Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 7,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 7
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 522791456
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -499,9 +535,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw"
+            "1xR9m1pAy_W5irFjMM2pw",
+            "xVxV1Xn5UQq54-oz_yKWU"
           ]
         }
       }
@@ -515,22 +551,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:43.017Z",
-    "index": 7,
+    "index": 8,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 40
+        "value": 75
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 7
+        "value": 8
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 522791456
+        "value": -1093656136
       },
       {
         "op": "replace",
@@ -549,16 +585,16 @@
     ]
   },
   {
-    "id": "iSjHCcXb1I1FfKG4Uemoy",
+    "id": "MPw8A16BDKp76BLDzk8VB",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:43.017Z",
+    "createdAt": "2026-11-12T20:33:20.779Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 8,
+    "index": 9,
     "undoPatch": [
       {
         "op": "replace",
@@ -568,12 +604,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 8
+        "value": 9
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2010296834
+        "value": -701782265
       },
       {
         "op": "remove",
@@ -611,22 +647,22 @@
       ],
       "rankChanges": []
     },
-    "index": 9,
+    "index": 10,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 75
+        "value": 110
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 9
+        "value": 10
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -701787929
+        "value": 23464005
       },
       {
         "op": "replace",
@@ -654,16 +690,16 @@
     ]
   },
   {
-    "id": "MPw8A16BDKp76BLDzk8VB",
+    "id": "xuWr5RrRLkxYRLUuwtExZ",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:43.588Z",
+    "createdAt": "2026-11-12T20:33:20.781Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 10,
+    "index": 11,
     "undoPatch": [
       {
         "op": "replace",
@@ -673,12 +709,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 10
+        "value": 11
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1597219049
+        "value": -181949937
       },
       {
         "op": "remove",
@@ -719,7 +755,7 @@
       "character": "farmer",
       "asked": true
     },
-    "index": 11,
+    "index": 12,
     "undoPatch": [
       {
         "op": "replace",
@@ -729,12 +765,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 11
+        "value": 12
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2015969469
+        "value": -488311848
       },
       {
         "op": "replace",
@@ -773,7 +809,7 @@
     "metadata": {
       "vp": 0
     },
-    "index": 12,
+    "index": 13,
     "undoPatch": [
       {
         "op": "replace",
@@ -783,12 +819,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 12
+        "value": 13
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -726456187
+        "value": -1316918325
       },
       {
         "op": "replace",
@@ -836,22 +872,22 @@
       "rankChanges": [],
       "weaponStrengths": []
     },
-    "index": 13,
+    "index": 14,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 110
+        "value": 145
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 13
+        "value": 14
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1964099028
+        "value": 270763205
       },
       {
         "op": "replace",
@@ -886,16 +922,16 @@
     ]
   },
   {
-    "id": "xuWr5RrRLkxYRLUuwtExZ",
+    "id": "OQNCgyX7WIhS9nIhdopfM",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:44.638Z",
+    "createdAt": "2026-11-12T20:33:20.788Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 14,
+    "index": 15,
     "undoPatch": [
       {
         "op": "replace",
@@ -905,12 +941,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 14
+        "value": 15
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 378679592
+        "value": 1940360220
       },
       {
         "op": "remove",
@@ -953,22 +989,22 @@
         }
       ]
     },
-    "index": 15,
+    "index": 16,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 145
+        "value": 180
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 15
+        "value": 16
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 22115732
+        "value": 1927354113
       },
       {
         "op": "replace",
@@ -1014,16 +1050,16 @@
     ]
   },
   {
-    "id": "OQNCgyX7WIhS9nIhdopfM",
+    "id": "bkiIUm9LejwxSllymkJ1l",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:46.772Z",
+    "createdAt": "2026-11-12T20:33:20.791Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 16,
+    "index": 17,
     "undoPatch": [
       {
         "op": "replace",
@@ -1033,12 +1069,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 16
+        "value": 17
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2112581188
+        "value": -240848428
       },
       {
         "op": "remove",
@@ -1068,22 +1104,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:48.787Z",
-    "index": 17,
+    "index": 18,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 180
+        "value": 215
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 17
+        "value": 18
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2091775756
+        "value": -145375750
       },
       {
         "op": "replace",
@@ -1102,16 +1138,16 @@
     ]
   },
   {
-    "id": "bkiIUm9LejwxSllymkJ1l",
+    "id": "GiNYxy46KFj0WuG2trwJT",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:48.788Z",
+    "createdAt": "2026-11-12T20:33:20.794Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 18,
+    "index": 19,
     "undoPatch": [
       {
         "op": "replace",
@@ -1121,12 +1157,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 18
+        "value": 19
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 810227235
+        "value": 1145871276
       },
       {
         "op": "remove",
@@ -1156,22 +1192,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:48.805Z",
-    "index": 19,
+    "index": 20,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 215
+        "value": 250
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 19
+        "value": 20
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 918181424
+        "value": -1396415070
       },
       {
         "op": "replace",
@@ -1190,16 +1226,16 @@
     ]
   },
   {
-    "id": "GiNYxy46KFj0WuG2trwJT",
+    "id": "ChdoeF8tj0YBmg0n0dmMy",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:48.805Z",
+    "createdAt": "2026-11-12T20:33:20.796Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 20,
+    "index": 21,
     "undoPatch": [
       {
         "op": "replace",
@@ -1209,12 +1245,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 20
+        "value": 21
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 193927081
+        "value": -1845741977
       },
       {
         "op": "remove",
@@ -1244,22 +1280,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:48.826Z",
-    "index": 21,
+    "index": 22,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 250
+        "value": 285
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 21
+        "value": 22
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -485521932
+        "value": -255021314
       },
       {
         "op": "replace",
@@ -1278,16 +1314,16 @@
     ]
   },
   {
-    "id": "ChdoeF8tj0YBmg0n0dmMy",
+    "id": "vwhkVK8xlbeyDmP9MeJrx",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:48.826Z",
+    "createdAt": "2026-11-12T20:33:20.799Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 22,
+    "index": 23,
     "undoPatch": [
       {
         "op": "replace",
@@ -1297,12 +1333,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 22
+        "value": 23
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1571984909
+        "value": 1316075262
       },
       {
         "op": "remove",
@@ -1332,22 +1368,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:48.847Z",
-    "index": 23,
+    "index": 24,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 285
+        "value": 320
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 23
+        "value": 24
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1015155937
+        "value": 802285476
       },
       {
         "op": "replace",
@@ -1366,20 +1402,20 @@
     ]
   },
   {
-    "id": "vwhkVK8xlbeyDmP9MeJrx",
+    "id": "Ozd1sqLO8rIq32JmeUFK5",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:48.847Z",
+    "createdAt": "2026-11-12T20:33:20.801Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 24,
+    "index": 25,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 320
+        "value": 355
       },
       {
         "op": "add",
@@ -1389,12 +1425,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 24
+        "value": 25
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -124090701
+        "value": -339122145
       },
       {
         "op": "replace",
@@ -1422,11 +1458,11 @@
     ]
   },
   {
-    "id": "Ozd1sqLO8rIq32JmeUFK5",
+    "id": "DXFtuA31SuaBZaSn4BIox",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:48.847Z",
+    "createdAt": "2026-11-12T20:33:20.801Z",
     "metadata": {
       "fed": [
         {
@@ -1439,7 +1475,7 @@
         }
       ]
     },
-    "index": 25,
+    "index": 26,
     "undoPatch": [
       {
         "op": "remove",
@@ -1448,12 +1484,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 25
+        "value": 26
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1724196736
+        "value": -40486510
       },
       {
         "op": "replace",
@@ -1496,12 +1532,12 @@
       "returned": [],
       "rankChanges": []
     },
-    "index": 26,
+    "index": 27,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 355
+        "value": 390
       },
       {
         "op": "add",
@@ -1511,12 +1547,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 26
+        "value": 27
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1889171187
+        "value": -2063825407
       },
       {
         "op": "replace",
@@ -1545,11 +1581,11 @@
     ]
   },
   {
-    "id": "DXFtuA31SuaBZaSn4BIox",
+    "id": "hKEUBjIt6yTmd7pEDwTXZ",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:49.820Z",
+    "createdAt": "2026-11-12T20:33:20.808Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -1561,12 +1597,12 @@
         "landscape": "orchard"
       }
     },
-    "index": 27,
+    "index": 28,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 390
+        "value": 425
       },
       {
         "op": "replace",
@@ -1576,12 +1612,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 27
+        "value": 28
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -924100931
+        "value": -1015915550
       },
       {
         "op": "replace",
@@ -1617,32 +1653,32 @@
     ]
   },
   {
-    "id": "hKEUBjIt6yTmd7pEDwTXZ",
+    "id": "qetQIUqHLqOLbkWprAneT",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:49.820Z",
+    "createdAt": "2026-11-12T20:33:20.812Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 28,
+    "index": 29,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 425
+        "value": 460
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 28
+        "value": 29
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1316885767
+        "value": -351512493
       },
       {
         "op": "add",
@@ -1730,17 +1766,21 @@
     ]
   },
   {
-    "id": "qetQIUqHLqOLbkWprAneT",
+    "id": "kFqZpADMRI3SBkhIPQrlP",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:49.821Z",
+    "createdAt": "2026-11-12T20:33:20.815Z",
     "metadata": {
       "round": 2,
       "drunk": []
     },
-    "index": 29,
+    "index": 30,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -1748,12 +1788,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 29
+        "value": 30
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1711281848
+        "value": 584595432
       },
       {
         "op": "remove",
@@ -1787,27 +1827,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:52.062Z",
-    "index": 30,
+    "index": 31,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 30
+        "value": 31
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1345029875
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": -876935376
       },
       {
         "op": "remove",
@@ -1824,11 +1859,6 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "remove",
@@ -1850,27 +1880,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:39:52.088Z",
-    "index": 31,
+    "index": 32,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 495
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 31
+        "value": 32
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1074269205
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": 610759067
       },
       {
         "op": "remove",
@@ -1887,6 +1917,48 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "0aQCubJ4BanGW2AE1hml8",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.821Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 33,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 33
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -731466897
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -1913,9 +1985,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU"
+            "xVxV1Xn5UQq54-oz_yKWU",
+            "1xR9m1pAy_W5irFjMM2pw"
           ]
         }
       }
@@ -1931,22 +2003,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 32,
+    "index": 34,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 460
+        "value": 530
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 32
+        "value": 34
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1341535270
+        "value": -824361932
       },
       {
         "op": "replace",
@@ -1970,16 +2042,16 @@
     ]
   },
   {
-    "id": "kFqZpADMRI3SBkhIPQrlP",
+    "id": "w1T89neMhYe7B3CwJIj1H",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:52.114Z",
+    "createdAt": "2026-11-12T20:33:20.827Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 33,
+    "index": 35,
     "undoPatch": [
       {
         "op": "replace",
@@ -1989,12 +2061,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 33
+        "value": 35
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1383282722
+        "value": 749194410
       },
       {
         "op": "remove",
@@ -2073,22 +2145,22 @@
       "drawnWritIds": [],
       "rankChanges": []
     },
-    "index": 34,
+    "index": 36,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 495
+        "value": 565
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 34
+        "value": 36
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1156575343
+        "value": 289129731
       },
       {
         "op": "replace",
@@ -2156,16 +2228,16 @@
     ]
   },
   {
-    "id": "0aQCubJ4BanGW2AE1hml8",
+    "id": "oxueJIcZd32uraTT6drdD",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:52.504Z",
+    "createdAt": "2026-11-12T20:33:20.830Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 35,
+    "index": 37,
     "undoPatch": [
       {
         "op": "replace",
@@ -2175,12 +2247,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 35
+        "value": 37
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -402680949
+        "value": -1305757107
       },
       {
         "op": "remove",
@@ -2218,17 +2290,17 @@
         "writ.mandate.3"
       ]
     },
-    "index": 36,
+    "index": 38,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 36
+        "value": 38
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -45869310
+        "value": 122520826
       },
       {
         "op": "replace",
@@ -2308,17 +2380,17 @@
         "writ.charter.eastern-kingdom"
       ]
     },
-    "index": 37,
+    "index": 39,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 37
+        "value": 39
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 16023964
+        "value": -84080726
       },
       {
         "op": "replace",
@@ -2538,22 +2610,22 @@
         }
       ]
     },
-    "index": 38,
+    "index": 40,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 530
+        "value": 600
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 38
+        "value": 40
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 652434660
+        "value": -588594536
       },
       {
         "op": "replace",
@@ -2608,16 +2680,16 @@
     ]
   },
   {
-    "id": "w1T89neMhYe7B3CwJIj1H",
+    "id": "m4uFaDcO3KrHX8Hyki7op",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:56.532Z",
+    "createdAt": "2026-11-12T20:33:20.835Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 39,
+    "index": 41,
     "undoPatch": [
       {
         "op": "replace",
@@ -2627,12 +2699,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 39
+        "value": 41
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -601139027
+        "value": 639748807
       },
       {
         "op": "remove",
@@ -2670,22 +2742,22 @@
       ],
       "rankChanges": []
     },
-    "index": 40,
+    "index": 42,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 565
+        "value": 635
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 40
+        "value": 42
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -508077072
+        "value": 266515490
       },
       {
         "op": "replace",
@@ -2713,16 +2785,16 @@
     ]
   },
   {
-    "id": "oxueJIcZd32uraTT6drdD",
+    "id": "ASlNi2YdxkeXmnwaNMqTu",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:57.097Z",
+    "createdAt": "2026-11-12T20:33:20.837Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 41,
+    "index": 43,
     "undoPatch": [
       {
         "op": "replace",
@@ -2732,12 +2804,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 41
+        "value": 43
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1452123692
+        "value": 1193784224
       },
       {
         "op": "remove",
@@ -2775,17 +2847,17 @@
         "vessel": "flying-machine"
       }
     },
-    "index": 42,
+    "index": 44,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 42
+        "value": 44
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 470919017
+        "value": 176537217
       },
       {
         "op": "replace",
@@ -2844,17 +2916,17 @@
     "metadata": {
       "spaceId": "space.desert.3"
     },
-    "index": 43,
+    "index": 45,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 43
+        "value": 45
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1762996920
+        "value": -2139174838
       },
       {
         "op": "replace",
@@ -2883,22 +2955,22 @@
       ],
       "rankChanges": []
     },
-    "index": 44,
+    "index": 46,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 600
+        "value": 670
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 44
+        "value": 46
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -371572299
+        "value": -11620031
       },
       {
         "op": "replace",
@@ -2927,16 +2999,16 @@
     ]
   },
   {
-    "id": "m4uFaDcO3KrHX8Hyki7op",
+    "id": "AnavRDpAmSlzvj7zumYPI",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:39:59.610Z",
+    "createdAt": "2026-11-12T20:33:20.842Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 45,
+    "index": 47,
     "undoPatch": [
       {
         "op": "replace",
@@ -2946,12 +3018,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 45
+        "value": 47
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2126963462
+        "value": -1750210072
       },
       {
         "op": "remove",
@@ -2981,22 +3053,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:00.084Z",
-    "index": 46,
+    "index": 48,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 635
+        "value": 705
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 46
+        "value": 48
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1459979421
+        "value": -438146818
       },
       {
         "op": "replace",
@@ -3015,16 +3087,16 @@
     ]
   },
   {
-    "id": "ASlNi2YdxkeXmnwaNMqTu",
+    "id": "EcYAKrynFWDazxTwaBHX1",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:00.084Z",
+    "createdAt": "2026-11-12T20:33:20.844Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 47,
+    "index": 49,
     "undoPatch": [
       {
         "op": "replace",
@@ -3034,12 +3106,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 47
+        "value": 49
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2128204487
+        "value": 868337072
       },
       {
         "op": "remove",
@@ -3069,22 +3141,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:00.109Z",
-    "index": 48,
+    "index": 50,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 670
+        "value": 740
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 48
+        "value": 50
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 863753882
+        "value": -1169827882
       },
       {
         "op": "replace",
@@ -3103,16 +3175,16 @@
     ]
   },
   {
-    "id": "AnavRDpAmSlzvj7zumYPI",
+    "id": "Qy83VsEj9cIySEkcr4ix2",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:00.109Z",
+    "createdAt": "2026-11-12T20:33:20.846Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 49,
+    "index": 51,
     "undoPatch": [
       {
         "op": "replace",
@@ -3122,12 +3194,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 49
+        "value": 51
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2101264016
+        "value": -200452868
       },
       {
         "op": "remove",
@@ -3157,22 +3229,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:01.303Z",
-    "index": 50,
+    "index": 52,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 705
+        "value": 775
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 50
+        "value": 52
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 259074180
+        "value": 310285618
       },
       {
         "op": "replace",
@@ -3191,20 +3263,20 @@
     ]
   },
   {
-    "id": "EcYAKrynFWDazxTwaBHX1",
+    "id": "GGXusLcVZVSjnmXPqotbv",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:01.303Z",
+    "createdAt": "2026-11-12T20:33:20.848Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 51,
+    "index": 53,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 740
+        "value": 810
       },
       {
         "op": "add",
@@ -3214,12 +3286,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 51
+        "value": 53
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 902362383
+        "value": 684152159
       },
       {
         "op": "replace",
@@ -3247,11 +3319,11 @@
     ]
   },
   {
-    "id": "Qy83VsEj9cIySEkcr4ix2",
+    "id": "wmLmKm9oemudCsTL328f2",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:01.303Z",
+    "createdAt": "2026-11-12T20:33:20.848Z",
     "metadata": {
       "fed": [
         {
@@ -3264,7 +3336,7 @@
         }
       ]
     },
-    "index": 52,
+    "index": 54,
     "undoPatch": [
       {
         "op": "remove",
@@ -3273,12 +3345,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 52
+        "value": 54
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1135617829
+        "value": 883380060
       },
       {
         "op": "replace",
@@ -3321,12 +3393,12 @@
       "returned": [],
       "rankChanges": []
     },
-    "index": 53,
+    "index": 55,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 775
+        "value": 845
       },
       {
         "op": "add",
@@ -3336,12 +3408,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 53
+        "value": 55
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1513889600
+        "value": 1902462440
       },
       {
         "op": "replace",
@@ -3370,11 +3442,11 @@
     ]
   },
   {
-    "id": "GGXusLcVZVSjnmXPqotbv",
+    "id": "KxWAesWvntiufm47RxJsQ",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:02.266Z",
+    "createdAt": "2026-11-12T20:33:20.850Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -3386,12 +3458,12 @@
         "landscape": "sulfur-mine"
       }
     },
-    "index": 54,
+    "index": 56,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 810
+        "value": 880
       },
       {
         "op": "replace",
@@ -3401,12 +3473,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 54
+        "value": 56
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -777613270
+        "value": -83900904
       },
       {
         "op": "replace",
@@ -3442,32 +3514,32 @@
     ]
   },
   {
-    "id": "wmLmKm9oemudCsTL328f2",
+    "id": "LC1pFROs5toOZR4Lza0Ba",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:02.267Z",
+    "createdAt": "2026-11-12T20:33:20.851Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 55,
+    "index": 57,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 845
+        "value": 915
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 55
+        "value": 57
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -842627572
+        "value": -1677940793
       },
       {
         "op": "add",
@@ -3560,17 +3632,21 @@
     ]
   },
   {
-    "id": "KxWAesWvntiufm47RxJsQ",
+    "id": "yV2HucC5IvVQXhxUl4KKp",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:02.268Z",
+    "createdAt": "2026-11-12T20:33:20.851Z",
     "metadata": {
       "round": 3,
       "drunk": []
     },
-    "index": 56,
+    "index": 58,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -3578,12 +3654,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 56
+        "value": 58
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2012777721
+        "value": -103017452
       },
       {
         "op": "remove",
@@ -3617,27 +3693,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:04.514Z",
-    "index": 57,
+    "index": 59,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 57
+        "value": 59
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -385609000
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": 61675662
       },
       {
         "op": "remove",
@@ -3654,11 +3725,6 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "remove",
@@ -3680,27 +3746,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:04.541Z",
-    "index": 58,
+    "index": 60,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 950
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 58
+        "value": 60
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -35295481
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": 390875731
       },
       {
         "op": "remove",
@@ -3717,6 +3783,48 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "ehwP5sZnt72y3w8hxul9I",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.854Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 61,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 61
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -752780878
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -3743,9 +3851,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw"
+            "1xR9m1pAy_W5irFjMM2pw",
+            "xVxV1Xn5UQq54-oz_yKWU"
           ]
         }
       }
@@ -3765,7 +3873,7 @@
     "metadata": {
       "asked": true
     },
-    "index": 59,
+    "index": 62,
     "undoPatch": [
       {
         "op": "replace",
@@ -3775,12 +3883,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 59
+        "value": 62
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 965691604
+        "value": 361076372
       },
       {
         "op": "replace",
@@ -3828,7 +3936,7 @@
         "rankChanges": []
       }
     },
-    "index": 60,
+    "index": 63,
     "undoPatch": [
       {
         "op": "replace",
@@ -3843,12 +3951,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 60
+        "value": 63
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1747655916
+        "value": -1143253081
       },
       {
         "op": "replace",
@@ -3947,22 +4055,22 @@
       "disc": "military",
       "space": 1
     },
-    "index": 61,
+    "index": 64,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 880
+        "value": 985
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 61
+        "value": 64
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -9072729
+        "value": -746964575
       },
       {
         "op": "replace",
@@ -3985,16 +4093,16 @@
     ]
   },
   {
-    "id": "LC1pFROs5toOZR4Lza0Ba",
+    "id": "495KIoN1TiiPAuBzxPfAP",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:05.573Z",
+    "createdAt": "2026-11-12T20:33:20.859Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 62,
+    "index": 65,
     "undoPatch": [
       {
         "op": "replace",
@@ -4004,12 +4112,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 62
+        "value": 65
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1553708162
+        "value": -1888779013
       },
       {
         "op": "remove",
@@ -4052,22 +4160,22 @@
       },
       "rankChanges": []
     },
-    "index": 63,
+    "index": 66,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 915
+        "value": 1020
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 63
+        "value": 66
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1052253323
+        "value": 1442252970
       },
       {
         "op": "replace",
@@ -4239,16 +4347,16 @@
     ]
   },
   {
-    "id": "yV2HucC5IvVQXhxUl4KKp",
+    "id": "j3mEV4HpOwl9K7G1Ldp9g",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:05.601Z",
+    "createdAt": "2026-11-12T20:33:20.862Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 64,
+    "index": 67,
     "undoPatch": [
       {
         "op": "replace",
@@ -4258,12 +4366,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 64
+        "value": 67
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -746860244
+        "value": 1204498716
       },
       {
         "op": "remove",
@@ -4306,22 +4414,22 @@
         }
       ]
     },
-    "index": 65,
+    "index": 68,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 950
+        "value": 1055
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 65
+        "value": 68
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 687991592
+        "value": 1754796707
       },
       {
         "op": "replace",
@@ -4367,16 +4475,16 @@
     ]
   },
   {
-    "id": "ehwP5sZnt72y3w8hxul9I",
+    "id": "iTJ113Evc8YlD7s3N1oRd",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:07.248Z",
+    "createdAt": "2026-11-12T20:33:20.863Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 66,
+    "index": 69,
     "undoPatch": [
       {
         "op": "replace",
@@ -4386,12 +4494,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 66
+        "value": 69
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1645632951
+        "value": -596621679
       },
       {
         "op": "remove",
@@ -4422,17 +4530,17 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:09.094Z",
-    "index": 67,
+    "index": 70,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 67
+        "value": 70
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1531790062
+        "value": -1729862773
       },
       {
         "op": "replace",
@@ -4496,17 +4604,17 @@
       "drawnWritIds": [],
       "rankChanges": []
     },
-    "index": 68,
+    "index": 71,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 68
+        "value": 71
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 689097728
+        "value": -360255019
       },
       {
         "op": "replace",
@@ -4565,22 +4673,22 @@
       "guildId": "farmer",
       "reevePoints": 1
     },
-    "index": 69,
+    "index": 72,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 985
+        "value": 1090
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 69
+        "value": 72
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1416101105
+        "value": 1745559832
       },
       {
         "op": "replace",
@@ -4609,16 +4717,16 @@
     ]
   },
   {
-    "id": "495KIoN1TiiPAuBzxPfAP",
+    "id": "cv2gPM2n3zSxFh1DNvkLx",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:10.530Z",
+    "createdAt": "2026-11-12T20:33:20.869Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 70,
+    "index": 73,
     "undoPatch": [
       {
         "op": "replace",
@@ -4628,12 +4736,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 70
+        "value": 73
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -45576234
+        "value": 1054367325
       },
       {
         "op": "remove",
@@ -4677,22 +4785,22 @@
         }
       ]
     },
-    "index": 71,
+    "index": 74,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1020
+        "value": 1125
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 71
+        "value": 74
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 668462020
+        "value": -301830730
       },
       {
         "op": "replace",
@@ -4753,16 +4861,16 @@
     ]
   },
   {
-    "id": "j3mEV4HpOwl9K7G1Ldp9g",
+    "id": "hTb3gJD6ZrByvHWBS1x5f",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:10.913Z",
+    "createdAt": "2026-11-12T20:33:20.871Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 72,
+    "index": 75,
     "undoPatch": [
       {
         "op": "replace",
@@ -4772,12 +4880,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 72
+        "value": 75
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -185737693
+        "value": 1027088590
       },
       {
         "op": "remove",
@@ -4807,22 +4915,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:12.805Z",
-    "index": 73,
+    "index": 76,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1055
+        "value": 1160
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 73
+        "value": 76
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -608320546
+        "value": -2087246285
       },
       {
         "op": "replace",
@@ -4841,16 +4949,16 @@
     ]
   },
   {
-    "id": "iTJ113Evc8YlD7s3N1oRd",
+    "id": "6pnDhQc3cskjVvXyqw8zO",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:12.805Z",
+    "createdAt": "2026-11-12T20:33:20.873Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 74,
+    "index": 77,
     "undoPatch": [
       {
         "op": "replace",
@@ -4860,12 +4968,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 74
+        "value": 77
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -505633698
+        "value": -1175040440
       },
       {
         "op": "remove",
@@ -4897,22 +5005,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 75,
+    "index": 78,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1090
+        "value": 1195
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 75
+        "value": 78
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1521646542
+        "value": 968428203
       },
       {
         "op": "replace",
@@ -4936,16 +5044,16 @@
     ]
   },
   {
-    "id": "cv2gPM2n3zSxFh1DNvkLx",
+    "id": "FQkGTH4fYvrqnlyWndK7R",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:12.846Z",
+    "createdAt": "2026-11-12T20:33:20.875Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 76,
+    "index": 79,
     "undoPatch": [
       {
         "op": "replace",
@@ -4955,12 +5063,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 76
+        "value": 79
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1957537529
+        "value": -396810617
       },
       {
         "op": "remove",
@@ -4990,22 +5098,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:13.235Z",
-    "index": 77,
+    "index": 80,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1125
+        "value": 1230
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 77
+        "value": 80
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1535665655
+        "value": -1830950636
       },
       {
         "op": "replace",
@@ -5024,20 +5132,20 @@
     ]
   },
   {
-    "id": "hTb3gJD6ZrByvHWBS1x5f",
+    "id": "glBlCIX4S6PAP5b6Wrb1C",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:13.235Z",
+    "createdAt": "2026-11-12T20:33:20.877Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 78,
+    "index": 81,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1160
+        "value": 1265
       },
       {
         "op": "add",
@@ -5047,12 +5155,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 78
+        "value": 81
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1942227735
+        "value": -1159382415
       },
       {
         "op": "replace",
@@ -5080,11 +5188,11 @@
     ]
   },
   {
-    "id": "6pnDhQc3cskjVvXyqw8zO",
+    "id": "MekBGStEu1vOyKpl8yf2S",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:13.235Z",
+    "createdAt": "2026-11-12T20:33:20.877Z",
     "metadata": {
       "fed": [
         {
@@ -5099,7 +5207,7 @@
         }
       ]
     },
-    "index": 79,
+    "index": 82,
     "undoPatch": [
       {
         "op": "remove",
@@ -5108,12 +5216,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 79
+        "value": 82
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 848620179
+        "value": -2113455961
       },
       {
         "op": "replace",
@@ -5157,12 +5265,12 @@
       "returned": [],
       "rankChanges": []
     },
-    "index": 80,
+    "index": 83,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1195
+        "value": 1300
       },
       {
         "op": "add",
@@ -5172,12 +5280,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 80
+        "value": 83
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1294219586
+        "value": -1909929939
       },
       {
         "op": "replace",
@@ -5215,11 +5323,11 @@
     ]
   },
   {
-    "id": "FQkGTH4fYvrqnlyWndK7R",
+    "id": "DODnjDzXyycvizkHVgZGH",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:15.437Z",
+    "createdAt": "2026-11-12T20:33:20.880Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -5232,12 +5340,12 @@
       },
       "epochTriggered": 2
     },
-    "index": 81,
+    "index": 84,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1230
+        "value": 1335
       },
       {
         "op": "replace",
@@ -5247,12 +5355,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 81
+        "value": 84
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1517007097
+        "value": 1721285523
       },
       {
         "op": "replace",
@@ -5292,11 +5400,11 @@
     ]
   },
   {
-    "id": "glBlCIX4S6PAP5b6Wrb1C",
+    "id": "mSM4GL4xVyVR0wUhTm1X1",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:15.438Z",
+    "createdAt": "2026-11-12T20:33:20.881Z",
     "metadata": {
       "epoch": 2,
       "sheet": [
@@ -5362,22 +5470,22 @@
       ],
       "fills": []
     },
-    "index": 82,
+    "index": 85,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1265
+        "value": 1370
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 82
+        "value": 85
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 538703287
+        "value": -506654371
       },
       {
         "op": "replace",
@@ -5415,12 +5523,12 @@
     ]
   },
   {
-    "id": "MekBGStEu1vOyKpl8yf2S",
+    "id": "cfy9WL3p9I62vqNOhb74j",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "ReplenishMap",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-11T14:40:15.439Z",
+    "createdAt": "2026-11-12T20:33:20.882Z",
     "metadata": {
       "goods": [
         {
@@ -5449,12 +5557,12 @@
         }
       ]
     },
-    "index": 83,
+    "index": 86,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1300
+        "value": 1405
       },
       {
         "op": "replace",
@@ -5464,12 +5572,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 83
+        "value": 86
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 419034804
+        "value": -1252571448
       },
       {
         "op": "replace",
@@ -5529,32 +5637,32 @@
     ]
   },
   {
-    "id": "DODnjDzXyycvizkHVgZGH",
+    "id": "4eRjv9Xz8dYy5d5AcqDCq",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:15.440Z",
+    "createdAt": "2026-11-12T20:33:20.883Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 84,
+    "index": 87,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1335
+        "value": 1440
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 84
+        "value": 87
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 349570953
+        "value": -159393481
       },
       {
         "op": "add",
@@ -5654,11 +5762,11 @@
     ]
   },
   {
-    "id": "mSM4GL4xVyVR0wUhTm1X1",
+    "id": "ww7uqvrXP6uBqxxW2sQIw",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:15.441Z",
+    "createdAt": "2026-11-12T20:33:20.884Z",
     "metadata": {
       "round": 4,
       "drunk": [
@@ -5668,8 +5776,12 @@
         }
       ]
     },
-    "index": 85,
+    "index": 88,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -5677,12 +5789,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 85
+        "value": 88
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1820086969
+        "value": -1767669066
       },
       {
         "op": "replace",
@@ -5721,27 +5833,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:20.049Z",
-    "index": 86,
+    "index": 89,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 86
+        "value": 89
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -954598702
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": 1794810227
       },
       {
         "op": "remove",
@@ -5758,11 +5865,6 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "remove",
@@ -5784,27 +5886,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:20.076Z",
-    "index": 87,
+    "index": 90,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 1475
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 87
+        "value": 90
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1095757009
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": -324227735
       },
       {
         "op": "remove",
@@ -5821,6 +5923,48 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "l2dgvxljarrd0imIimb4G",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.887Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 91,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 91
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 58207217
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -5847,9 +5991,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU"
+            "xVxV1Xn5UQq54-oz_yKWU",
+            "1xR9m1pAy_W5irFjMM2pw"
           ]
         }
       }
@@ -5871,22 +6015,22 @@
       ],
       "rankChanges": []
     },
-    "index": 88,
+    "index": 92,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1370
+        "value": 1510
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 88
+        "value": 92
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1365351403
+        "value": 1113796758
       },
       {
         "op": "replace",
@@ -5915,16 +6059,16 @@
     ]
   },
   {
-    "id": "cfy9WL3p9I62vqNOhb74j",
+    "id": "N4se9CLvTTGKXb2ClJcKf",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:20.103Z",
+    "createdAt": "2026-11-12T20:33:20.889Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 89,
+    "index": 93,
     "undoPatch": [
       {
         "op": "replace",
@@ -5934,12 +6078,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 89
+        "value": 93
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 245890812
+        "value": -497056204
       },
       {
         "op": "remove",
@@ -6028,22 +6172,22 @@
         "spaceId": "space.forest.3"
       }
     },
-    "index": 90,
+    "index": 94,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1405
+        "value": 1545
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 90
+        "value": 94
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1301243838
+        "value": -1168683393
       },
       {
         "op": "replace",
@@ -6087,16 +6231,16 @@
     ]
   },
   {
-    "id": "4eRjv9Xz8dYy5d5AcqDCq",
+    "id": "R7LMljfyDtC2CzobBMzDE",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:20.601Z",
+    "createdAt": "2026-11-12T20:33:20.891Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 91,
+    "index": 95,
     "undoPatch": [
       {
         "op": "replace",
@@ -6106,12 +6250,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 91
+        "value": 95
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1675239900
+        "value": 1811807785
       },
       {
         "op": "remove",
@@ -6161,22 +6305,22 @@
       },
       "rankChanges": []
     },
-    "index": 92,
+    "index": 96,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1440
+        "value": 1580
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 92
+        "value": 96
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -50685009
+        "value": -1828762125
       },
       {
         "op": "replace",
@@ -6353,16 +6497,16 @@
     ]
   },
   {
-    "id": "ww7uqvrXP6uBqxxW2sQIw",
+    "id": "Q8YIhbbRHE3FVFWaAH73b",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:23.357Z",
+    "createdAt": "2026-11-12T20:33:20.894Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 93,
+    "index": 97,
     "undoPatch": [
       {
         "op": "replace",
@@ -6372,12 +6516,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 93
+        "value": 97
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1025152937
+        "value": -1394560825
       },
       {
         "op": "remove",
@@ -6455,17 +6599,17 @@
         }
       ]
     },
-    "index": 94,
+    "index": 98,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 94
+        "value": 98
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1051953078
+        "value": 1570190014
       },
       {
         "op": "replace",
@@ -6519,22 +6663,22 @@
       "disc": "voyage",
       "space": 1
     },
-    "index": 95,
+    "index": 99,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1475
+        "value": 1615
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 95
+        "value": 99
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2030513525
+        "value": 438538889
       },
       {
         "op": "replace",
@@ -6556,16 +6700,16 @@
     ]
   },
   {
-    "id": "l2dgvxljarrd0imIimb4G",
+    "id": "wmYcS87oo6iRSJRW1zPmV",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:27.014Z",
+    "createdAt": "2026-11-12T20:33:20.897Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 96,
+    "index": 100,
     "undoPatch": [
       {
         "op": "replace",
@@ -6575,12 +6719,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 96
+        "value": 100
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1306539866
+        "value": 784637130
       },
       {
         "op": "remove",
@@ -6613,22 +6757,22 @@
       "shillings": 2,
       "rankChanges": []
     },
-    "index": 97,
+    "index": 101,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1510
+        "value": 1650
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 97
+        "value": 101
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 217784408
+        "value": -387800879
       },
       {
         "op": "replace",
@@ -6657,16 +6801,16 @@
     ]
   },
   {
-    "id": "N4se9CLvTTGKXb2ClJcKf",
+    "id": "piJ7r6h79w694Vjt5K8VF",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:27.056Z",
+    "createdAt": "2026-11-12T20:33:20.900Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 98,
+    "index": 102,
     "undoPatch": [
       {
         "op": "replace",
@@ -6676,12 +6820,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 98
+        "value": 102
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1052012504
+        "value": -1263006409
       },
       {
         "op": "remove",
@@ -6723,22 +6867,22 @@
       ],
       "rankChanges": []
     },
-    "index": 99,
+    "index": 103,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1545
+        "value": 1685
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 99
+        "value": 103
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1723651882
+        "value": 526676286
       },
       {
         "op": "replace",
@@ -6770,16 +6914,16 @@
     ]
   },
   {
-    "id": "R7LMljfyDtC2CzobBMzDE",
+    "id": "k68oShXhNwqQuwekGefPI",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:27.589Z",
+    "createdAt": "2026-11-12T20:33:20.902Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 100,
+    "index": 104,
     "undoPatch": [
       {
         "op": "replace",
@@ -6789,12 +6933,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 100
+        "value": 104
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1655851683
+        "value": 308464647
       },
       {
         "op": "remove",
@@ -6826,22 +6970,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 101,
+    "index": 105,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1580
+        "value": 1720
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 101
+        "value": 105
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1709618027
+        "value": 1449758172
       },
       {
         "op": "replace",
@@ -6865,16 +7009,16 @@
     ]
   },
   {
-    "id": "Q8YIhbbRHE3FVFWaAH73b",
+    "id": "locA6GPZ1D3zvtpiRCrN2",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:28.117Z",
+    "createdAt": "2026-11-12T20:33:20.904Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 102,
+    "index": 106,
     "undoPatch": [
       {
         "op": "replace",
@@ -6884,12 +7028,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 102
+        "value": 106
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -530604404
+        "value": -741295753
       },
       {
         "op": "remove",
@@ -6921,22 +7065,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 103,
+    "index": 107,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1615
+        "value": 1755
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 103
+        "value": 107
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -942569998
+        "value": -1706321291
       },
       {
         "op": "replace",
@@ -6960,20 +7104,20 @@
     ]
   },
   {
-    "id": "wmYcS87oo6iRSJRW1zPmV",
+    "id": "KMz6NylnFsjyOmaGyhL8v",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:28.510Z",
+    "createdAt": "2026-11-12T20:33:20.905Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 104,
+    "index": 108,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1650
+        "value": 1790
       },
       {
         "op": "add",
@@ -6983,12 +7127,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 104
+        "value": 108
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -659381505
+        "value": -2060934068
       },
       {
         "op": "replace",
@@ -7016,11 +7160,11 @@
     ]
   },
   {
-    "id": "piJ7r6h79w694Vjt5K8VF",
+    "id": "6lZ2kOYeXQscFPL5cWfc6",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:28.511Z",
+    "createdAt": "2026-11-12T20:33:20.906Z",
     "metadata": {
       "fed": [
         {
@@ -7053,7 +7197,7 @@
         }
       ]
     },
-    "index": 105,
+    "index": 109,
     "undoPatch": [
       {
         "op": "remove",
@@ -7062,12 +7206,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 105
+        "value": 109
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 513049624
+        "value": 610695580
       },
       {
         "op": "add",
@@ -7160,12 +7304,12 @@
         }
       ]
     },
-    "index": 106,
+    "index": 110,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1685
+        "value": 1825
       },
       {
         "op": "add",
@@ -7175,12 +7319,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 106
+        "value": 110
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1253510092
+        "value": 42094443
       },
       {
         "op": "replace",
@@ -7261,11 +7405,11 @@
     ]
   },
   {
-    "id": "k68oShXhNwqQuwekGefPI",
+    "id": "K9RtXoFLmJJD24IT6NQpC",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:29.760Z",
+    "createdAt": "2026-11-12T20:33:20.909Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -7277,12 +7421,12 @@
         "landscape": "silver-mine"
       }
     },
-    "index": 107,
+    "index": 111,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1720
+        "value": 1860
       },
       {
         "op": "replace",
@@ -7292,12 +7436,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 107
+        "value": 111
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1781385862
+        "value": 571855866
       },
       {
         "op": "replace",
@@ -7333,11 +7477,11 @@
     ]
   },
   {
-    "id": "locA6GPZ1D3zvtpiRCrN2",
+    "id": "Kmp9HyZmrU1pZHznDCpKg",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:29.761Z",
+    "createdAt": "2026-11-12T20:33:20.909Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
@@ -7348,22 +7492,22 @@
         }
       ]
     },
-    "index": 108,
+    "index": 112,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1755
+        "value": 1895
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 108
+        "value": 112
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -774278728
+        "value": -1668222587
       },
       {
         "op": "add",
@@ -7472,17 +7616,21 @@
     ]
   },
   {
-    "id": "KMz6NylnFsjyOmaGyhL8v",
+    "id": "adagFwCbFTtCViFEsO4Yf",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:29.762Z",
+    "createdAt": "2026-11-12T20:33:20.910Z",
     "metadata": {
       "round": 5,
       "drunk": []
     },
-    "index": 109,
+    "index": 113,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -7490,12 +7638,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 109
+        "value": 113
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1740490000
+        "value": -1282208669
       },
       {
         "op": "remove",
@@ -7529,27 +7677,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:33.762Z",
-    "index": 110,
+    "index": 114,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 110
+        "value": 114
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 957147283
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": -958126427
       },
       {
         "op": "remove",
@@ -7566,11 +7709,6 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "remove",
@@ -7592,27 +7730,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:33.792Z",
-    "index": 111,
+    "index": 115,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 1930
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 111
+        "value": 115
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1378702274
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": 1379560316
       },
       {
         "op": "remove",
@@ -7629,6 +7767,48 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "jrMdAIdfozkqN6c5YFkxZ",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.914Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 116,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 116
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -302116680
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -7655,9 +7835,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw"
+            "1xR9m1pAy_W5irFjMM2pw",
+            "xVxV1Xn5UQq54-oz_yKWU"
           ]
         }
       }
@@ -7685,12 +7865,12 @@
       "vp": 1,
       "beadsFlipped": 0
     },
-    "index": 112,
+    "index": 117,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1790
+        "value": 1965
       },
       {
         "op": "replace",
@@ -7700,12 +7880,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 112
+        "value": 117
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 303488694
+        "value": 1603942461
       },
       {
         "op": "replace",
@@ -7769,16 +7949,16 @@
     ]
   },
   {
-    "id": "6lZ2kOYeXQscFPL5cWfc6",
+    "id": "pwuucYk4PeJVnXW29WRz0",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:34.358Z",
+    "createdAt": "2026-11-12T20:33:20.916Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 113,
+    "index": 118,
     "undoPatch": [
       {
         "op": "replace",
@@ -7788,12 +7968,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 113
+        "value": 118
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1736498413
+        "value": -705676009
       },
       {
         "op": "remove",
@@ -7865,17 +8045,17 @@
       "drawnWritIds": [],
       "rankChanges": []
     },
-    "index": 114,
+    "index": 119,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 114
+        "value": 119
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1096998589
+        "value": -1022388122
       },
       {
         "op": "replace",
@@ -7964,22 +8144,22 @@
       "guildId": "merchant",
       "reevePoints": 1
     },
-    "index": 115,
+    "index": 120,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1825
+        "value": 2000
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 115
+        "value": 120
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1747093964
+        "value": 363879954
       },
       {
         "op": "replace",
@@ -8008,16 +8188,16 @@
     ]
   },
   {
-    "id": "K9RtXoFLmJJD24IT6NQpC",
+    "id": "VXAKmyaCeCgKwL1Pmqpzq",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:36.257Z",
+    "createdAt": "2026-11-12T20:33:20.921Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 116,
+    "index": 121,
     "undoPatch": [
       {
         "op": "replace",
@@ -8027,12 +8207,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 116
+        "value": 121
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1602810647
+        "value": 571934810
       },
       {
         "op": "remove",
@@ -8114,22 +8294,22 @@
       "drawnWritIds": [],
       "rankChanges": []
     },
-    "index": 117,
+    "index": 122,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1860
+        "value": 2035
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 117
+        "value": 122
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -519186879
+        "value": 1616686660
       },
       {
         "op": "replace",
@@ -8202,16 +8382,16 @@
     ]
   },
   {
-    "id": "Kmp9HyZmrU1pZHznDCpKg",
+    "id": "cG3Ev3KGCW7ZB3tkzvpJ4",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:36.656Z",
+    "createdAt": "2026-11-12T20:33:20.923Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 118,
+    "index": 123,
     "undoPatch": [
       {
         "op": "replace",
@@ -8221,12 +8401,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 118
+        "value": 123
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1602198779
+        "value": 567703528
       },
       {
         "op": "remove",
@@ -8287,22 +8467,22 @@
         "spaceId": "space.desert.1"
       }
     },
-    "index": 119,
+    "index": 124,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1895
+        "value": 2070
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 119
+        "value": 124
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1887150031
+        "value": 1037291570
       },
       {
         "op": "replace",
@@ -8341,16 +8521,16 @@
     ]
   },
   {
-    "id": "adagFwCbFTtCViFEsO4Yf",
+    "id": "3wQ4sLNFuMKZDtn1xmje1",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:37.787Z",
+    "createdAt": "2026-11-12T20:33:20.925Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 120,
+    "index": 125,
     "undoPatch": [
       {
         "op": "replace",
@@ -8360,12 +8540,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 120
+        "value": 125
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1275040913
+        "value": -106243245
       },
       {
         "op": "remove",
@@ -8415,22 +8595,22 @@
       },
       "rankChanges": []
     },
-    "index": 121,
+    "index": 126,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1930
+        "value": 2105
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 121
+        "value": 126
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1049335433
+        "value": -56339820
       },
       {
         "op": "replace",
@@ -8502,16 +8682,16 @@
     ]
   },
   {
-    "id": "jrMdAIdfozkqN6c5YFkxZ",
+    "id": "mkNxS9fZLN5sJahTLMfX8",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:39.156Z",
+    "createdAt": "2026-11-12T20:33:20.927Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 122,
+    "index": 127,
     "undoPatch": [
       {
         "op": "replace",
@@ -8521,12 +8701,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 122
+        "value": 127
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 313709770
+        "value": -795013682
       },
       {
         "op": "remove",
@@ -8559,22 +8739,22 @@
       "shillings": 2,
       "rankChanges": []
     },
-    "index": 123,
+    "index": 128,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 1965
+        "value": 2140
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 123
+        "value": 128
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1596613644
+        "value": -1164560607
       },
       {
         "op": "replace",
@@ -8603,16 +8783,16 @@
     ]
   },
   {
-    "id": "pwuucYk4PeJVnXW29WRz0",
+    "id": "PMjnUF0wnkFNuQIUSz6c8",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:40.797Z",
+    "createdAt": "2026-11-12T20:33:20.929Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 124,
+    "index": 129,
     "undoPatch": [
       {
         "op": "replace",
@@ -8622,12 +8802,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 124
+        "value": 129
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1615902779
+        "value": 2048076911
       },
       {
         "op": "remove",
@@ -8659,22 +8839,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 125,
+    "index": 130,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2000
+        "value": 2175
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 125
+        "value": 130
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1990689029
+        "value": -186297768
       },
       {
         "op": "replace",
@@ -8698,16 +8878,16 @@
     ]
   },
   {
-    "id": "VXAKmyaCeCgKwL1Pmqpzq",
+    "id": "0GKv4iR4kxWhMdhELGB9y",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:41.345Z",
+    "createdAt": "2026-11-12T20:33:20.931Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 126,
+    "index": 131,
     "undoPatch": [
       {
         "op": "replace",
@@ -8717,12 +8897,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 126
+        "value": 131
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1067448517
+        "value": -1110427006
       },
       {
         "op": "remove",
@@ -8752,22 +8932,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:41.719Z",
-    "index": 127,
+    "index": 132,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2035
+        "value": 2210
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 127
+        "value": 132
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2111062782
+        "value": -1703078533
       },
       {
         "op": "replace",
@@ -8786,20 +8966,20 @@
     ]
   },
   {
-    "id": "cG3Ev3KGCW7ZB3tkzvpJ4",
+    "id": "9J6atSHYrIA0h9gzaG5eE",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:41.719Z",
+    "createdAt": "2026-11-12T20:33:20.933Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 128,
+    "index": 133,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2070
+        "value": 2245
       },
       {
         "op": "add",
@@ -8809,12 +8989,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 128
+        "value": 133
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1348726880
+        "value": -1211516505
       },
       {
         "op": "replace",
@@ -8842,15 +9022,15 @@
     ]
   },
   {
-    "id": "3wQ4sLNFuMKZDtn1xmje1",
+    "id": "wTiIKNQNnnvN12omddx5N",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:41.720Z",
+    "createdAt": "2026-11-12T20:33:20.934Z",
     "metadata": {
       "fed": []
     },
-    "index": 129,
+    "index": 134,
     "undoPatch": [
       {
         "op": "remove",
@@ -8859,12 +9039,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 129
+        "value": 134
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1281780075
+        "value": 393032382
       },
       {
         "op": "remove",
@@ -8911,12 +9091,12 @@
         }
       ]
     },
-    "index": 130,
+    "index": 135,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2105
+        "value": 2280
       },
       {
         "op": "add",
@@ -8926,12 +9106,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 130
+        "value": 135
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1231611512
+        "value": -415778
       },
       {
         "op": "replace",
@@ -8973,11 +9153,11 @@
     ]
   },
   {
-    "id": "mkNxS9fZLN5sJahTLMfX8",
+    "id": "hB07jCVTm2LHd9PSuBYdh",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:41.752Z",
+    "createdAt": "2026-11-12T20:33:20.936Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -8991,12 +9171,12 @@
       },
       "epochTriggered": 3
     },
-    "index": 131,
+    "index": 136,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2140
+        "value": 2315
       },
       {
         "op": "replace",
@@ -9006,12 +9186,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 131
+        "value": 136
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1105461137
+        "value": -143477464
       },
       {
         "op": "replace",
@@ -9051,11 +9231,11 @@
     ]
   },
   {
-    "id": "PMjnUF0wnkFNuQIUSz6c8",
+    "id": "ekTMC3KI4QuXCclc657VF",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:41.753Z",
+    "createdAt": "2026-11-12T20:33:20.937Z",
     "metadata": {
       "epoch": 3,
       "sheet": [
@@ -9097,22 +9277,22 @@
       ],
       "fills": []
     },
-    "index": 132,
+    "index": 137,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2175
+        "value": 2350
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 132
+        "value": 137
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 736997741
+        "value": -1789386645
       },
       {
         "op": "replace",
@@ -9150,12 +9330,12 @@
     ]
   },
   {
-    "id": "0GKv4iR4kxWhMdhELGB9y",
+    "id": "QxpqPjVVumvAvdOyhklXC",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "ReplenishMap",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-11T14:40:41.753Z",
+    "createdAt": "2026-11-12T20:33:20.938Z",
     "metadata": {
       "goods": [
         {
@@ -9184,12 +9364,12 @@
         }
       ]
     },
-    "index": 133,
+    "index": 138,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2210
+        "value": 2385
       },
       {
         "op": "replace",
@@ -9199,12 +9379,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 133
+        "value": 138
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1525404333
+        "value": 1263539285
       },
       {
         "op": "replace",
@@ -9259,12 +9439,12 @@
     ]
   },
   {
-    "id": "9J6atSHYrIA0h9gzaG5eE",
+    "id": "OYHaVHmuO4NtAlrVHEZOF",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "ReplenishGuilds",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-11T14:40:41.754Z",
+    "createdAt": "2026-11-12T20:33:20.939Z",
     "metadata": {
       "market": [
         "guild.merchant.space.saltpeter-3",
@@ -9287,12 +9467,12 @@
       ],
       "barn": []
     },
-    "index": 134,
+    "index": 139,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2245
+        "value": 2420
       },
       {
         "op": "replace",
@@ -9302,12 +9482,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 134
+        "value": 139
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2101803260
+        "value": 1661903736
       },
       {
         "op": "replace",
@@ -9377,32 +9557,32 @@
     ]
   },
   {
-    "id": "wTiIKNQNnnvN12omddx5N",
+    "id": "x1JB4inW6SCx3aFcYBgs6",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:41.755Z",
+    "createdAt": "2026-11-12T20:33:20.940Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 135,
+    "index": 140,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2280
+        "value": 2455
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 135
+        "value": 140
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 572360092
+        "value": -1371171905
       },
       {
         "op": "add",
@@ -9505,17 +9685,21 @@
     ]
   },
   {
-    "id": "hB07jCVTm2LHd9PSuBYdh",
+    "id": "yQqZktL9J7EsqjWsvdKer",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:41.755Z",
+    "createdAt": "2026-11-12T20:33:20.941Z",
     "metadata": {
       "round": 6,
       "drunk": []
     },
-    "index": 136,
+    "index": 141,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -9523,12 +9707,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 136
+        "value": 141
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -896986453
+        "value": 1063501930
       },
       {
         "op": "remove",
@@ -9562,27 +9746,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:49.445Z",
-    "index": 137,
+    "index": 142,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 137
+        "value": 142
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1465677848
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": -350800832
       },
       {
         "op": "remove",
@@ -9599,11 +9778,6 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "remove",
@@ -9625,27 +9799,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:49.474Z",
-    "index": 138,
+    "index": 143,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 2490
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 138
+        "value": 143
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -503982474
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": -1568813128
       },
       {
         "op": "remove",
@@ -9662,6 +9836,48 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "Cm94S8g3iNXKsiCFwMsZG",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.944Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 144,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 144
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 2113208876
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -9688,9 +9904,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU"
+            "xVxV1Xn5UQq54-oz_yKWU",
+            "1xR9m1pAy_W5irFjMM2pw"
           ]
         }
       }
@@ -9707,22 +9923,22 @@
       "shillings": 2,
       "rankChanges": []
     },
-    "index": 139,
+    "index": 145,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2315
+        "value": 2525
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 139
+        "value": 145
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1048498160
+        "value": -1482557081
       },
       {
         "op": "replace",
@@ -9751,16 +9967,16 @@
     ]
   },
   {
-    "id": "ekTMC3KI4QuXCclc657VF",
+    "id": "jT5K8rCMShzoKAAlYJN4z",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:49.502Z",
+    "createdAt": "2026-11-12T20:33:20.946Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 140,
+    "index": 146,
     "undoPatch": [
       {
         "op": "replace",
@@ -9770,12 +9986,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 140
+        "value": 146
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1729521069
+        "value": -19034417
       },
       {
         "op": "remove",
@@ -9813,22 +10029,22 @@
       "vp": 2,
       "rankChanges": []
     },
-    "index": 141,
+    "index": 147,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2350
+        "value": 2560
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 141
+        "value": 147
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1159586486
+        "value": -789203319
       },
       {
         "op": "replace",
@@ -9876,16 +10092,16 @@
     ]
   },
   {
-    "id": "QxpqPjVVumvAvdOyhklXC",
+    "id": "jjrfJ4M0X5kODmxnaozjq",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:50.042Z",
+    "createdAt": "2026-11-12T20:33:20.948Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 142,
+    "index": 148,
     "undoPatch": [
       {
         "op": "replace",
@@ -9895,12 +10111,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 142
+        "value": 148
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 781329198
+        "value": 1149632223
       },
       {
         "op": "remove",
@@ -9932,22 +10148,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 143,
+    "index": 149,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2385
+        "value": 2595
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 143
+        "value": 149
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 115365213
+        "value": -1761899919
       },
       {
         "op": "replace",
@@ -9971,16 +10187,16 @@
     ]
   },
   {
-    "id": "OYHaVHmuO4NtAlrVHEZOF",
+    "id": "nvmF1n3oMgBj3oXqoT2W4",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:51.479Z",
+    "createdAt": "2026-11-12T20:33:20.950Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 144,
+    "index": 150,
     "undoPatch": [
       {
         "op": "replace",
@@ -9990,12 +10206,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 144
+        "value": 150
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -3412987
+        "value": 1875917087
       },
       {
         "op": "remove",
@@ -10028,22 +10244,22 @@
       "shillings": 3,
       "rankChanges": []
     },
-    "index": 145,
+    "index": 151,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2420
+        "value": 2630
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 145
+        "value": 151
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 855069813
+        "value": 529559935
       },
       {
         "op": "replace",
@@ -10072,16 +10288,16 @@
     ]
   },
   {
-    "id": "x1JB4inW6SCx3aFcYBgs6",
+    "id": "dZ6DB0cxqovopXws4zJQq",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:52.365Z",
+    "createdAt": "2026-11-12T20:33:20.952Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 146,
+    "index": 152,
     "undoPatch": [
       {
         "op": "replace",
@@ -10091,12 +10307,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 146
+        "value": 152
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1203032123
+        "value": -1792387234
       },
       {
         "op": "remove",
@@ -10126,22 +10342,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:52.962Z",
-    "index": 147,
+    "index": 153,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2455
+        "value": 2665
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 147
+        "value": 153
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 695027270
+        "value": -1378590477
       },
       {
         "op": "replace",
@@ -10160,16 +10376,16 @@
     ]
   },
   {
-    "id": "yQqZktL9J7EsqjWsvdKer",
+    "id": "x0Uo6hDfyMD75nmqfQHS9",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:52.962Z",
+    "createdAt": "2026-11-12T20:33:20.954Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 148,
+    "index": 154,
     "undoPatch": [
       {
         "op": "replace",
@@ -10179,12 +10395,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 148
+        "value": 154
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -383341455
+        "value": 1838981281
       },
       {
         "op": "remove",
@@ -10214,22 +10430,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:52.993Z",
-    "index": 149,
+    "index": 155,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2490
+        "value": 2700
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 149
+        "value": 155
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1028892816
+        "value": -1387905551
       },
       {
         "op": "replace",
@@ -10248,16 +10464,16 @@
     ]
   },
   {
-    "id": "Cm94S8g3iNXKsiCFwMsZG",
+    "id": "w02pp0d2SQMYx1cXEK7ga",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:52.993Z",
+    "createdAt": "2026-11-12T20:33:20.956Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 150,
+    "index": 156,
     "undoPatch": [
       {
         "op": "replace",
@@ -10267,12 +10483,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 150
+        "value": 156
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2141008053
+        "value": -275928771
       },
       {
         "op": "remove",
@@ -10302,22 +10518,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:53.022Z",
-    "index": 151,
+    "index": 157,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2525
+        "value": 2735
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 151
+        "value": 157
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1513126773
+        "value": -1261457368
       },
       {
         "op": "replace",
@@ -10336,16 +10552,16 @@
     ]
   },
   {
-    "id": "jT5K8rCMShzoKAAlYJN4z",
+    "id": "0RPvdhUktESCaAGsgYe4e",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:53.022Z",
+    "createdAt": "2026-11-12T20:33:20.958Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 152,
+    "index": 158,
     "undoPatch": [
       {
         "op": "replace",
@@ -10355,12 +10571,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 152
+        "value": 158
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -831328927
+        "value": -546120348
       },
       {
         "op": "remove",
@@ -10390,22 +10606,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:53.049Z",
-    "index": 153,
+    "index": 159,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2560
+        "value": 2770
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 153
+        "value": 159
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -531067946
+        "value": 1028730461
       },
       {
         "op": "replace",
@@ -10424,20 +10640,20 @@
     ]
   },
   {
-    "id": "jjrfJ4M0X5kODmxnaozjq",
+    "id": "gpCntCc9Laljy53KlksZb",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:53.049Z",
+    "createdAt": "2026-11-12T20:33:20.960Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 154,
+    "index": 160,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2595
+        "value": 2805
       },
       {
         "op": "add",
@@ -10447,12 +10663,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 154
+        "value": 160
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 332089919
+        "value": -826108570
       },
       {
         "op": "replace",
@@ -10480,31 +10696,31 @@
     ]
   },
   {
-    "id": "nvmF1n3oMgBj3oXqoT2W4",
+    "id": "g0F9PncjPOc0FnIC1phQm",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:53.050Z",
+    "createdAt": "2026-11-12T20:33:20.961Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
     },
-    "index": 155,
+    "index": 161,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2630
+        "value": 2840
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 155
+        "value": 161
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1052060836
+        "value": 1648261641
       },
       {
         "op": "replace",
@@ -10522,11 +10738,11 @@
     ]
   },
   {
-    "id": "dZ6DB0cxqovopXws4zJQq",
+    "id": "grmqfgV9bcF9e7U2k5h3w",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:53.050Z",
+    "createdAt": "2026-11-12T20:33:20.962Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -10538,12 +10754,12 @@
         "landscape": "archery-butt"
       }
     },
-    "index": 156,
+    "index": 162,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2665
+        "value": 2875
       },
       {
         "op": "replace",
@@ -10553,12 +10769,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 156
+        "value": 162
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1324706881
+        "value": -930528815
       },
       {
         "op": "replace",
@@ -10594,32 +10810,32 @@
     ]
   },
   {
-    "id": "x0Uo6hDfyMD75nmqfQHS9",
+    "id": "gw4AZ2Gw6LT5WnOgCXwYE",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:53.051Z",
+    "createdAt": "2026-11-12T20:33:20.963Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 157,
+    "index": 163,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2700
+        "value": 2910
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 157
+        "value": 163
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1980440626
+        "value": 1753617972
       },
       {
         "op": "add",
@@ -10707,17 +10923,21 @@
     ]
   },
   {
-    "id": "w02pp0d2SQMYx1cXEK7ga",
+    "id": "WvNAWkP9qLHyGIhKgWYzW",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:53.051Z",
+    "createdAt": "2026-11-12T20:33:20.964Z",
     "metadata": {
       "round": 7,
       "drunk": []
     },
-    "index": 158,
+    "index": 164,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -10725,12 +10945,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 158
+        "value": 164
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1227768875
+        "value": 1980532294
       },
       {
         "op": "remove",
@@ -10764,27 +10984,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:55.902Z",
-    "index": 159,
+    "index": 165,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 159
+        "value": 165
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 309094128
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": 1419708292
       },
       {
         "op": "remove",
@@ -10801,11 +11016,6 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "remove",
@@ -10827,27 +11037,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:55.945Z",
-    "index": 160,
+    "index": 166,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 2945
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 160
+        "value": 166
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 271734525
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": 1455701014
       },
       {
         "op": "remove",
@@ -10864,6 +11074,48 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "bjwXmIWHMW9GBDVJtqx0g",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.967Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 167,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 167
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -138580040
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -10890,9 +11142,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw"
+            "1xR9m1pAy_W5irFjMM2pw",
+            "xVxV1Xn5UQq54-oz_yKWU"
           ]
         }
       }
@@ -10929,22 +11181,22 @@
       "drawnWritIds": [],
       "rankChanges": []
     },
-    "index": 161,
+    "index": 168,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2735
+        "value": 2980
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 161
+        "value": 168
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1320478283
+        "value": -1848321806
       },
       {
         "op": "replace",
@@ -10992,16 +11244,16 @@
     ]
   },
   {
-    "id": "0RPvdhUktESCaAGsgYe4e",
+    "id": "5bjLjS3P1DDvpIOmk0Xt1",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:55.976Z",
+    "createdAt": "2026-11-12T20:33:20.970Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 162,
+    "index": 169,
     "undoPatch": [
       {
         "op": "replace",
@@ -11011,12 +11263,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 162
+        "value": 169
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1562800037
+        "value": -2109324717
       },
       {
         "op": "remove",
@@ -11069,22 +11321,22 @@
       "drawnWritIds": [],
       "rankChanges": []
     },
-    "index": 163,
+    "index": 170,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2770
+        "value": 3015
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 163
+        "value": 170
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1089780648
+        "value": -282362374
       },
       {
         "op": "replace",
@@ -11132,16 +11384,16 @@
     ]
   },
   {
-    "id": "gpCntCc9Laljy53KlksZb",
+    "id": "HmJg5PurKewq0FplQePz1",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:56.562Z",
+    "createdAt": "2026-11-12T20:33:20.972Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 164,
+    "index": 171,
     "undoPatch": [
       {
         "op": "replace",
@@ -11151,12 +11403,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 164
+        "value": 171
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 19311445
+        "value": -1360760681
       },
       {
         "op": "remove",
@@ -11189,22 +11441,22 @@
       "shillings": 3,
       "rankChanges": []
     },
-    "index": 165,
+    "index": 172,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2805
+        "value": 3050
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 165
+        "value": 172
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1378198714
+        "value": -252010721
       },
       {
         "op": "replace",
@@ -11233,16 +11485,16 @@
     ]
   },
   {
-    "id": "g0F9PncjPOc0FnIC1phQm",
+    "id": "oMgrBKHZeUXMnUE5gK2Pt",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:57.676Z",
+    "createdAt": "2026-11-12T20:33:20.974Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 166,
+    "index": 173,
     "undoPatch": [
       {
         "op": "replace",
@@ -11252,12 +11504,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 166
+        "value": 173
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1242240212
+        "value": -388942927
       },
       {
         "op": "remove",
@@ -11290,22 +11542,22 @@
       "shillings": 2,
       "rankChanges": []
     },
-    "index": 167,
+    "index": 174,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2840
+        "value": 3085
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 167
+        "value": 174
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 524539357
+        "value": -389630778
       },
       {
         "op": "replace",
@@ -11334,16 +11586,16 @@
     ]
   },
   {
-    "id": "grmqfgV9bcF9e7U2k5h3w",
+    "id": "RrvVKTVUQNh6E8lCb3ofB",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:58.257Z",
+    "createdAt": "2026-11-12T20:33:20.977Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 168,
+    "index": 175,
     "undoPatch": [
       {
         "op": "replace",
@@ -11353,12 +11605,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 168
+        "value": 175
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1755444965
+        "value": 1625062512
       },
       {
         "op": "remove",
@@ -11390,22 +11642,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 169,
+    "index": 176,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2875
+        "value": 3120
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 169
+        "value": 176
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 928083904
+        "value": -1553941236
       },
       {
         "op": "replace",
@@ -11429,16 +11681,16 @@
     ]
   },
   {
-    "id": "gw4AZ2Gw6LT5WnOgCXwYE",
+    "id": "Fzl4p6i2cY3IyOQzVIdFC",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:58.790Z",
+    "createdAt": "2026-11-12T20:33:20.979Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 170,
+    "index": 177,
     "undoPatch": [
       {
         "op": "replace",
@@ -11448,12 +11700,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 170
+        "value": 177
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2073577633
+        "value": 273905614
       },
       {
         "op": "remove",
@@ -11485,22 +11737,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 171,
+    "index": 178,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2910
+        "value": 3155
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 171
+        "value": 178
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1696582723
+        "value": 389125117
       },
       {
         "op": "replace",
@@ -11524,16 +11776,16 @@
     ]
   },
   {
-    "id": "WvNAWkP9qLHyGIhKgWYzW",
+    "id": "eE2rLVbvDoeWUV3B10cEt",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:59.162Z",
+    "createdAt": "2026-11-12T20:33:20.981Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 172,
+    "index": 179,
     "undoPatch": [
       {
         "op": "replace",
@@ -11543,12 +11795,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 172
+        "value": 179
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1988971829
+        "value": -77799282
       },
       {
         "op": "remove",
@@ -11578,22 +11830,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:59.560Z",
-    "index": 173,
+    "index": 180,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2945
+        "value": 3190
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 173
+        "value": 180
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1411115400
+        "value": -1088252257
       },
       {
         "op": "replace",
@@ -11612,16 +11864,16 @@
     ]
   },
   {
-    "id": "bjwXmIWHMW9GBDVJtqx0g",
+    "id": "HvVAUOJ7b3yFYZAp39bOr",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:59.560Z",
+    "createdAt": "2026-11-12T20:33:20.983Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 174,
+    "index": 181,
     "undoPatch": [
       {
         "op": "replace",
@@ -11631,12 +11883,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 174
+        "value": 181
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1181299390
+        "value": -1387453609
       },
       {
         "op": "remove",
@@ -11666,22 +11918,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:40:59.593Z",
-    "index": 175,
+    "index": 182,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 2980
+        "value": 3225
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 175
+        "value": 182
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 537260388
+        "value": -710876380
       },
       {
         "op": "replace",
@@ -11700,20 +11952,20 @@
     ]
   },
   {
-    "id": "5bjLjS3P1DDvpIOmk0Xt1",
+    "id": "xwbtHJQtKtUqVTzHdQDAI",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:59.593Z",
+    "createdAt": "2026-11-12T20:33:20.985Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 176,
+    "index": 183,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3015
+        "value": 3260
       },
       {
         "op": "add",
@@ -11723,12 +11975,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 176
+        "value": 183
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -447228955
+        "value": 278436885
       },
       {
         "op": "replace",
@@ -11756,31 +12008,31 @@
     ]
   },
   {
-    "id": "HmJg5PurKewq0FplQePz1",
+    "id": "rFfk6mcgscAlHotldEapu",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:59.593Z",
+    "createdAt": "2026-11-12T20:33:20.986Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
     },
-    "index": 177,
+    "index": 184,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3050
+        "value": 3295
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 177
+        "value": 184
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2009203184
+        "value": -1729679923
       },
       {
         "op": "replace",
@@ -11798,11 +12050,11 @@
     ]
   },
   {
-    "id": "oMgrBKHZeUXMnUE5gK2Pt",
+    "id": "Ay9o13ejJZObT6lLgNhBT",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:59.594Z",
+    "createdAt": "2026-11-12T20:33:20.987Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -11814,12 +12066,12 @@
         "landscape": "silver-mine"
       }
     },
-    "index": 178,
+    "index": 185,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3085
+        "value": 3330
       },
       {
         "op": "replace",
@@ -11829,12 +12081,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 178
+        "value": 185
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -702342018
+        "value": 1797241237
       },
       {
         "op": "replace",
@@ -11870,32 +12122,32 @@
     ]
   },
   {
-    "id": "RrvVKTVUQNh6E8lCb3ofB",
+    "id": "Bzj9fCfqhJjkrF5qGPXxo",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:59.595Z",
+    "createdAt": "2026-11-12T20:33:20.988Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 179,
+    "index": 186,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3120
+        "value": 3365
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 179
+        "value": 186
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -701198620
+        "value": -1042741739
       },
       {
         "op": "add",
@@ -11993,17 +12245,21 @@
     ]
   },
   {
-    "id": "Fzl4p6i2cY3IyOQzVIdFC",
+    "id": "RCEmj6QgbelZl99zJ6aqY",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:40:59.595Z",
+    "createdAt": "2026-11-12T20:33:20.989Z",
     "metadata": {
       "round": 8,
       "drunk": []
     },
-    "index": 180,
+    "index": 187,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -12011,12 +12267,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 180
+        "value": 187
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 361252556
+        "value": -870612329
       },
       {
         "op": "remove",
@@ -12050,27 +12306,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:01.903Z",
-    "index": 181,
+    "index": 188,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 181
+        "value": 188
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 317604177
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": -433351781
       },
       {
         "op": "remove",
@@ -12087,11 +12338,6 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "remove",
@@ -12113,27 +12359,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:01.931Z",
-    "index": 182,
+    "index": 189,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 3400
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 182
+        "value": 189
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 950137110
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": -865847305
       },
       {
         "op": "remove",
@@ -12150,6 +12396,48 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "sDjivHIajZLZ0uumIyWWS",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:20.992Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 190,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 190
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 55248215
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -12176,9 +12464,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU"
+            "xVxV1Xn5UQq54-oz_yKWU",
+            "1xR9m1pAy_W5irFjMM2pw"
           ]
         }
       }
@@ -12194,6 +12482,7 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:01.959Z",
+    "revealsInfo": true,
     "metadata": {
       "details": {
         "kind": "monk-trade",
@@ -12216,13 +12505,12 @@
       "drawnWritIds": [],
       "rankChanges": []
     },
-    "revealsInfo": true,
-    "index": 183,
+    "index": 191,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3155
+        "value": 3435
       },
       {
         "op": "replace",
@@ -12232,12 +12520,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 183
+        "value": 191
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -141642521
+        "value": 1253224997
       },
       {
         "op": "replace",
@@ -12284,16 +12572,16 @@
     ]
   },
   {
-    "id": "eE2rLVbvDoeWUV3B10cEt",
+    "id": "Ifb4dPUDUl7P133B6NSzQ",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:01.959Z",
+    "createdAt": "2026-11-12T20:33:20.995Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 184,
+    "index": 192,
     "undoPatch": [
       {
         "op": "replace",
@@ -12303,12 +12591,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 184
+        "value": 192
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1125024940
+        "value": -19930827
       },
       {
         "op": "remove",
@@ -12341,22 +12629,22 @@
       "shillings": 3,
       "rankChanges": []
     },
-    "index": 185,
+    "index": 193,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3190
+        "value": 3470
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 185
+        "value": 193
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 127320911
+        "value": -593265683
       },
       {
         "op": "replace",
@@ -12385,16 +12673,16 @@
     ]
   },
   {
-    "id": "HvVAUOJ7b3yFYZAp39bOr",
+    "id": "9q0H2V3GwPoyxLTyBpmAS",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:03.662Z",
+    "createdAt": "2026-11-12T20:33:20.998Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 186,
+    "index": 194,
     "undoPatch": [
       {
         "op": "replace",
@@ -12404,12 +12692,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 186
+        "value": 194
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1772997385
+        "value": -1298886144
       },
       {
         "op": "remove",
@@ -12442,22 +12730,22 @@
       "shillings": 2,
       "rankChanges": []
     },
-    "index": 187,
+    "index": 195,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3225
+        "value": 3505
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 187
+        "value": 195
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 289409167
+        "value": -521024166
       },
       {
         "op": "replace",
@@ -12486,16 +12774,16 @@
     ]
   },
   {
-    "id": "xwbtHJQtKtUqVTzHdQDAI",
+    "id": "HuUP1H6FTxseGY2qN3DDc",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:04.246Z",
+    "createdAt": "2026-11-12T20:33:21.000Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 188,
+    "index": 196,
     "undoPatch": [
       {
         "op": "replace",
@@ -12505,12 +12793,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 188
+        "value": 196
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -155872993
+        "value": 117606953
       },
       {
         "op": "remove",
@@ -12542,22 +12830,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 189,
+    "index": 197,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3260
+        "value": 3540
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 189
+        "value": 197
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2127188082
+        "value": 701758896
       },
       {
         "op": "replace",
@@ -12581,16 +12869,16 @@
     ]
   },
   {
-    "id": "rFfk6mcgscAlHotldEapu",
+    "id": "vuE5z2VJHcScI1huWveBM",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:04.779Z",
+    "createdAt": "2026-11-12T20:33:21.002Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 190,
+    "index": 198,
     "undoPatch": [
       {
         "op": "replace",
@@ -12600,12 +12888,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 190
+        "value": 198
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -920630386
+        "value": -1640696945
       },
       {
         "op": "remove",
@@ -12637,22 +12925,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 191,
+    "index": 199,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3295
+        "value": 3575
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 191
+        "value": 199
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 987107603
+        "value": 1874061384
       },
       {
         "op": "replace",
@@ -12676,16 +12964,16 @@
     ]
   },
   {
-    "id": "Ay9o13ejJZObT6lLgNhBT",
+    "id": "Io2KNIqnHdxMgEpY1e0MB",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.151Z",
+    "createdAt": "2026-11-12T20:33:21.005Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 192,
+    "index": 200,
     "undoPatch": [
       {
         "op": "replace",
@@ -12695,12 +12983,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 192
+        "value": 200
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1428164076
+        "value": 4581935
       },
       {
         "op": "remove",
@@ -12730,22 +13018,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:05.541Z",
-    "index": 193,
+    "index": 201,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3330
+        "value": 3610
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 193
+        "value": 201
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1862232
+        "value": 1952295903
       },
       {
         "op": "replace",
@@ -12764,16 +13052,16 @@
     ]
   },
   {
-    "id": "Bzj9fCfqhJjkrF5qGPXxo",
+    "id": "d1nOgoBspYU8FHhlORHcG",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.541Z",
+    "createdAt": "2026-11-12T20:33:21.008Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 194,
+    "index": 202,
     "undoPatch": [
       {
         "op": "replace",
@@ -12783,12 +13071,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 194
+        "value": 202
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2035834898
+        "value": 158127023
       },
       {
         "op": "remove",
@@ -12818,22 +13106,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:05.575Z",
-    "index": 195,
+    "index": 203,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3365
+        "value": 3645
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 195
+        "value": 203
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1956509038
+        "value": -1928621308
       },
       {
         "op": "replace",
@@ -12852,16 +13140,16 @@
     ]
   },
   {
-    "id": "RCEmj6QgbelZl99zJ6aqY",
+    "id": "ATkulfUmvaEWKNP3GblEN",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.575Z",
+    "createdAt": "2026-11-12T20:33:21.011Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 196,
+    "index": 204,
     "undoPatch": [
       {
         "op": "replace",
@@ -12871,12 +13159,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 196
+        "value": 204
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1139602772
+        "value": 1088851692
       },
       {
         "op": "remove",
@@ -12906,22 +13194,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:05.605Z",
-    "index": 197,
+    "index": 205,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3400
+        "value": 3680
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 197
+        "value": 205
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1774264294
+        "value": -1976870227
       },
       {
         "op": "replace",
@@ -12940,20 +13228,20 @@
     ]
   },
   {
-    "id": "sDjivHIajZLZ0uumIyWWS",
+    "id": "ZtMrpjouWzr280ri71jhM",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.605Z",
+    "createdAt": "2026-11-12T20:33:21.018Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 198,
+    "index": 206,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3435
+        "value": 3715
       },
       {
         "op": "add",
@@ -12963,12 +13251,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 198
+        "value": 206
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2131653692
+        "value": -2103092630
       },
       {
         "op": "replace",
@@ -12996,31 +13284,31 @@
     ]
   },
   {
-    "id": "Ifb4dPUDUl7P133B6NSzQ",
+    "id": "ZBTmRo5FkWnRnu14gdTlI",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.606Z",
+    "createdAt": "2026-11-12T20:33:21.020Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
     },
-    "index": 199,
+    "index": 207,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3470
+        "value": 3750
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 199
+        "value": 207
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 922213878
+        "value": 1651898516
       },
       {
         "op": "replace",
@@ -13038,11 +13326,11 @@
     ]
   },
   {
-    "id": "9q0H2V3GwPoyxLTyBpmAS",
+    "id": "WYs9iA2CwULQnE5BIK4Ym",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.606Z",
+    "createdAt": "2026-11-12T20:33:21.022Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -13055,12 +13343,12 @@
         "landscape": "orchard"
       }
     },
-    "index": 200,
+    "index": 208,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3505
+        "value": 3785
       },
       {
         "op": "replace",
@@ -13070,12 +13358,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 200
+        "value": 208
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 345726895
+        "value": 766995710
       },
       {
         "op": "replace",
@@ -13111,32 +13399,32 @@
     ]
   },
   {
-    "id": "HuUP1H6FTxseGY2qN3DDc",
+    "id": "lbQw6qbVabhLhnQeiocTf",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.607Z",
+    "createdAt": "2026-11-12T20:33:21.023Z",
     "metadata": {
       "startingPlayerId": "1xR9m1pAy_W5irFjMM2pw",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 201,
+    "index": 209,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3540
+        "value": 3820
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 201
+        "value": 209
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1120504213
+        "value": -46163200
       },
       {
         "op": "add",
@@ -13229,17 +13517,21 @@
     ]
   },
   {
-    "id": "vuE5z2VJHcScI1huWveBM",
+    "id": "4TOLHfo4xiKwxsM0RLLmD",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:05.607Z",
+    "createdAt": "2026-11-12T20:33:21.024Z",
     "metadata": {
       "round": 9,
       "drunk": []
     },
-    "index": 202,
+    "index": 210,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -13247,12 +13539,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 202
+        "value": 210
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2085482634
+        "value": -287324909
       },
       {
         "op": "remove",
@@ -13286,27 +13578,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:08.401Z",
-    "index": 203,
+    "index": 211,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 203
+        "value": 211
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2101450076
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": 1863126942
       },
       {
         "op": "remove",
@@ -13323,11 +13610,6 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "remove",
@@ -13349,27 +13631,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:08.434Z",
-    "index": 204,
+    "index": 212,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 3855
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 204
+        "value": 212
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1259953760
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": -1499169939
       },
       {
         "op": "remove",
@@ -13386,6 +13668,48 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "pAttomwOyGQbLccIO1Inp",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:21.029Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 213,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 213
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 726306404
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -13412,9 +13736,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
           "finalised": [
-            "1xR9m1pAy_W5irFjMM2pw"
+            "1xR9m1pAy_W5irFjMM2pw",
+            "xVxV1Xn5UQq54-oz_yKWU"
           ]
         }
       }
@@ -13431,22 +13755,22 @@
       "shillings": 3,
       "rankChanges": []
     },
-    "index": 205,
+    "index": 214,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3575
+        "value": 3890
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 205
+        "value": 214
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 956958790
+        "value": 980413132
       },
       {
         "op": "replace",
@@ -13475,16 +13799,16 @@
     ]
   },
   {
-    "id": "Io2KNIqnHdxMgEpY1e0MB",
+    "id": "UOssmgbvIpE22y4aMiUzc",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:08.463Z",
+    "createdAt": "2026-11-12T20:33:21.032Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 206,
+    "index": 215,
     "undoPatch": [
       {
         "op": "replace",
@@ -13494,12 +13818,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 206
+        "value": 215
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1336123155
+        "value": -1288267743
       },
       {
         "op": "remove",
@@ -13532,22 +13856,22 @@
       "shillings": 2,
       "rankChanges": []
     },
-    "index": 207,
+    "index": 216,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3610
+        "value": 3925
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 207
+        "value": 216
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1002167621
+        "value": -974843714
       },
       {
         "op": "replace",
@@ -13576,16 +13900,16 @@
     ]
   },
   {
-    "id": "d1nOgoBspYU8FHhlORHcG",
+    "id": "fSSUEkgLJZv3wb9FVMvVQ",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:09.045Z",
+    "createdAt": "2026-11-12T20:33:21.034Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 208,
+    "index": 217,
     "undoPatch": [
       {
         "op": "replace",
@@ -13595,12 +13919,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 208
+        "value": 217
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -819476078
+        "value": -830275059
       },
       {
         "op": "remove",
@@ -13632,22 +13956,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 209,
+    "index": 218,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3645
+        "value": 3960
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 209
+        "value": 218
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1262550251
+        "value": -1688004275
       },
       {
         "op": "replace",
@@ -13671,16 +13995,16 @@
     ]
   },
   {
-    "id": "ATkulfUmvaEWKNP3GblEN",
+    "id": "9yQ4bNSUnCYzgw4sYKJae",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:09.574Z",
+    "createdAt": "2026-11-12T20:33:21.036Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 210,
+    "index": 219,
     "undoPatch": [
       {
         "op": "replace",
@@ -13690,12 +14014,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 210
+        "value": 219
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 155801873
+        "value": -646994810
       },
       {
         "op": "remove",
@@ -13727,22 +14051,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 211,
+    "index": 220,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3680
+        "value": 3995
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 211
+        "value": 220
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1014784490
+        "value": -484881602
       },
       {
         "op": "replace",
@@ -13766,16 +14090,16 @@
     ]
   },
   {
-    "id": "ZtMrpjouWzr280ri71jhM",
+    "id": "df58wgz9Ton0lS6W64fjK",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.491Z",
+    "createdAt": "2026-11-12T20:33:21.039Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 212,
+    "index": 221,
     "undoPatch": [
       {
         "op": "replace",
@@ -13785,12 +14109,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 212
+        "value": 221
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 951082361
+        "value": 405777677
       },
       {
         "op": "remove",
@@ -13820,22 +14144,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:10.889Z",
-    "index": 213,
+    "index": 222,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3715
+        "value": 4030
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 213
+        "value": 222
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -662846178
+        "value": 1641218108
       },
       {
         "op": "replace",
@@ -13854,16 +14178,16 @@
     ]
   },
   {
-    "id": "ZBTmRo5FkWnRnu14gdTlI",
+    "id": "NzguKlUJc5ra8nfHI4wzb",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.889Z",
+    "createdAt": "2026-11-12T20:33:21.041Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 214,
+    "index": 223,
     "undoPatch": [
       {
         "op": "replace",
@@ -13873,12 +14197,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 214
+        "value": 223
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1098059925
+        "value": 121355168
       },
       {
         "op": "remove",
@@ -13908,22 +14232,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:10.924Z",
-    "index": 215,
+    "index": 224,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3750
+        "value": 4065
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 215
+        "value": 224
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -246855250
+        "value": 1947073290
       },
       {
         "op": "replace",
@@ -13942,16 +14266,16 @@
     ]
   },
   {
-    "id": "WYs9iA2CwULQnE5BIK4Ym",
+    "id": "xrirEFGGCPtBIEzWm9aO3",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.924Z",
+    "createdAt": "2026-11-12T20:33:21.045Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 216,
+    "index": 225,
     "undoPatch": [
       {
         "op": "replace",
@@ -13961,12 +14285,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 216
+        "value": 225
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1121787655
+        "value": -946112121
       },
       {
         "op": "remove",
@@ -13996,22 +14320,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:10.956Z",
-    "index": 217,
+    "index": 226,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3785
+        "value": 4100
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 217
+        "value": 226
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1839476678
+        "value": 167462845
       },
       {
         "op": "replace",
@@ -14030,16 +14354,16 @@
     ]
   },
   {
-    "id": "lbQw6qbVabhLhnQeiocTf",
+    "id": "lcMK9pLfKgWweKonXPAo0",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.956Z",
+    "createdAt": "2026-11-12T20:33:21.047Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 218,
+    "index": 227,
     "undoPatch": [
       {
         "op": "replace",
@@ -14049,12 +14373,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 218
+        "value": 227
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -382587852
+        "value": 1922803524
       },
       {
         "op": "remove",
@@ -14084,22 +14408,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:10.986Z",
-    "index": 219,
+    "index": 228,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3820
+        "value": 4135
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 219
+        "value": 228
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -86946867
+        "value": 825949411
       },
       {
         "op": "replace",
@@ -14118,20 +14442,20 @@
     ]
   },
   {
-    "id": "4TOLHfo4xiKwxsM0RLLmD",
+    "id": "Z6ZUM5fAvBaO1Nz36zrkZ",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.986Z",
+    "createdAt": "2026-11-12T20:33:21.050Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 220,
+    "index": 229,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3855
+        "value": 4170
       },
       {
         "op": "add",
@@ -14141,12 +14465,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 220
+        "value": 229
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 932598334
+        "value": -66831160
       },
       {
         "op": "replace",
@@ -14174,31 +14498,31 @@
     ]
   },
   {
-    "id": "pAttomwOyGQbLccIO1Inp",
+    "id": "CzfVBWQrFBerlbzEFBEyr",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.986Z",
+    "createdAt": "2026-11-12T20:33:21.051Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
     },
-    "index": 221,
+    "index": 230,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3890
+        "value": 4205
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 221
+        "value": 230
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1236645096
+        "value": 659212958
       },
       {
         "op": "replace",
@@ -14216,11 +14540,11 @@
     ]
   },
   {
-    "id": "UOssmgbvIpE22y4aMiUzc",
+    "id": "iDQg7SNA7ptdQ4a67bvuL",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.987Z",
+    "createdAt": "2026-11-12T20:33:21.052Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -14233,12 +14557,12 @@
       },
       "epochTriggered": 4
     },
-    "index": 222,
+    "index": 231,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3925
+        "value": 4240
       },
       {
         "op": "replace",
@@ -14248,12 +14572,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 222
+        "value": 231
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1486355000
+        "value": -381610901
       },
       {
         "op": "replace",
@@ -14293,11 +14617,11 @@
     ]
   },
   {
-    "id": "fSSUEkgLJZv3wb9FVMvVQ",
+    "id": "pqfwaxF6n59EtANZ7GeNM",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:10.987Z",
+    "createdAt": "2026-11-12T20:33:21.053Z",
     "metadata": {
       "epoch": 4,
       "sheet": [
@@ -14345,7 +14669,7 @@
         }
       ]
     },
-    "index": 223,
+    "index": 232,
     "undoPatch": [
       {
         "op": "remove",
@@ -14354,12 +14678,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 223
+        "value": 232
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -776440451
+        "value": 2126819119
       },
       {
         "op": "replace",
@@ -14434,12 +14758,12 @@
       ],
       "rankChanges": []
     },
-    "index": 224,
+    "index": 233,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3960
+        "value": 4275
       },
       {
         "op": "add",
@@ -14449,12 +14773,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 224
+        "value": 233
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2074389474
+        "value": 373874487
       },
       {
         "op": "replace",
@@ -14488,12 +14812,12 @@
     ]
   },
   {
-    "id": "9yQ4bNSUnCYzgw4sYKJae",
+    "id": "7u7QsJiStg0DphYvfAzZ5",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "ReplenishMap",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-11T14:41:14.996Z",
+    "createdAt": "2026-11-12T20:33:21.057Z",
     "metadata": {
       "goods": [
         {
@@ -14522,12 +14846,12 @@
         }
       ]
     },
-    "index": 225,
+    "index": 234,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 3995
+        "value": 4310
       },
       {
         "op": "replace",
@@ -14537,12 +14861,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 225
+        "value": 234
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 863690223
+        "value": -1586716159
       },
       {
         "op": "replace",
@@ -14607,32 +14931,32 @@
     ]
   },
   {
-    "id": "df58wgz9Ton0lS6W64fjK",
+    "id": "8efwjVMAMFIqFfIXVvvaY",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "EndRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:14.997Z",
+    "createdAt": "2026-11-12T20:33:21.058Z",
     "metadata": {
       "startingPlayerId": "xVxV1Xn5UQq54-oz_yKWU",
       "pouchesPaid": [],
       "sobered": []
     },
-    "index": 226,
+    "index": 235,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4030
+        "value": 4345
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 226
+        "value": 235
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 151932008
+        "value": 1268087059
       },
       {
         "op": "add",
@@ -14720,17 +15044,21 @@
     ]
   },
   {
-    "id": "NzguKlUJc5ra8nfHI4wzb",
+    "id": "caNz0B1oaREU2bkwPL0v3",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "StartRound",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:14.998Z",
+    "createdAt": "2026-11-12T20:33:21.060Z",
     "metadata": {
       "round": 10,
       "drunk": []
     },
-    "index": 227,
+    "index": 236,
     "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/1"
+      },
       {
         "op": "remove",
         "path": "/activePlayerIds/0"
@@ -14738,12 +15066,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 227
+        "value": 236
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1894966944
+        "value": -1248095387
       },
       {
         "op": "remove",
@@ -14777,27 +15105,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:16.329Z",
-    "index": 228,
+    "index": 237,
     "undoPatch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 228
+        "value": 237
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 63233862
-      },
-      {
-        "op": "replace",
-        "path": "/players/1/handCount",
-        "value": 0
+        "value": 1301416892
       },
       {
         "op": "remove",
@@ -14814,11 +15137,6 @@
       {
         "op": "remove",
         "path": "/players/1/hand/0"
-      },
-      {
-        "op": "replace",
-        "path": "/flow/selection/playerId",
-        "value": "xVxV1Xn5UQq54-oz_yKWU"
       },
       {
         "op": "remove",
@@ -14840,27 +15158,27 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:16.372Z",
-    "index": 229,
+    "index": 238,
     "undoPatch": [
       {
         "op": "replace",
+        "path": "/prng/invocations",
+        "value": 4380
+      },
+      {
+        "op": "add",
         "path": "/activePlayerIds/0",
         "value": "1xR9m1pAy_W5irFjMM2pw"
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 229
+        "value": 238
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -434841578
-      },
-      {
-        "op": "replace",
-        "path": "/players/0/handCount",
-        "value": 0
+        "value": -1472130136
       },
       {
         "op": "remove",
@@ -14877,6 +15195,48 @@
       {
         "op": "remove",
         "path": "/players/0/hand/0"
+      },
+      {
+        "op": "remove",
+        "path": "/flow/selection/finalised/1"
+      }
+    ]
+  },
+  {
+    "id": "fxI332KKxB20YWn7NWeuM",
+    "gameId": "SBUMXi7ON4LGthE9biAAc",
+    "type": "RevealPouches",
+    "source": "system",
+    "revealsInfo": true,
+    "createdAt": "2026-11-12T20:33:21.064Z",
+    "metadata": {
+      "pouches": []
+    },
+    "index": 239,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 239
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1197637133
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/handCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/handCount",
+        "value": 0
       },
       {
         "op": "replace",
@@ -14903,9 +15263,9 @@
         "op": "add",
         "path": "/flow/selection",
         "value": {
-          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "finalised": [
-            "xVxV1Xn5UQq54-oz_yKWU"
+            "xVxV1Xn5UQq54-oz_yKWU",
+            "1xR9m1pAy_W5irFjMM2pw"
           ]
         }
       }
@@ -14922,22 +15282,22 @@
       "shillings": 2,
       "rankChanges": []
     },
-    "index": 230,
+    "index": 240,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4065
+        "value": 4415
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 230
+        "value": 240
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 154448078
+        "value": -1178939779
       },
       {
         "op": "replace",
@@ -14966,16 +15326,16 @@
     ]
   },
   {
-    "id": "xrirEFGGCPtBIEzWm9aO3",
+    "id": "aeDUlFXGZtY3g3CIiA6cy",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:16.419Z",
+    "createdAt": "2026-11-12T20:33:21.067Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 231,
+    "index": 241,
     "undoPatch": [
       {
         "op": "replace",
@@ -14985,12 +15345,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 231
+        "value": 241
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1914840397
+        "value": -1029715152
       },
       {
         "op": "remove",
@@ -15023,22 +15383,22 @@
       "shillings": 3,
       "rankChanges": []
     },
-    "index": 232,
+    "index": 242,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4100
+        "value": 4450
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 232
+        "value": 242
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1136585554
+        "value": 846158640
       },
       {
         "op": "replace",
@@ -15067,16 +15427,16 @@
     ]
   },
   {
-    "id": "lcMK9pLfKgWweKonXPAo0",
+    "id": "bqVR4ZQvpurm4VYTUO3OI",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:16.966Z",
+    "createdAt": "2026-11-12T20:33:21.069Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 233,
+    "index": 243,
     "undoPatch": [
       {
         "op": "replace",
@@ -15086,12 +15446,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 233
+        "value": 243
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1364444469
+        "value": 547299038
       },
       {
         "op": "remove",
@@ -15123,22 +15483,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 234,
+    "index": 244,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4135
+        "value": 4485
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 234
+        "value": 244
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -318215687
+        "value": -869234567
       },
       {
         "op": "replace",
@@ -15162,16 +15522,16 @@
     ]
   },
   {
-    "id": "Z6ZUM5fAvBaO1Nz36zrkZ",
+    "id": "pdJHacmsfgVVEtI88SrYN",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:17.543Z",
+    "createdAt": "2026-11-12T20:33:21.072Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 235,
+    "index": 245,
     "undoPatch": [
       {
         "op": "replace",
@@ -15181,12 +15541,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 235
+        "value": 245
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1152670565
+        "value": 1703114275
       },
       {
         "op": "remove",
@@ -15218,22 +15578,22 @@
     "metadata": {
       "vp": 1
     },
-    "index": 236,
+    "index": 246,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4170
+        "value": 4520
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 236
+        "value": 246
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1612286022
+        "value": -1756100581
       },
       {
         "op": "replace",
@@ -15257,16 +15617,16 @@
     ]
   },
   {
-    "id": "CzfVBWQrFBerlbzEFBEyr",
+    "id": "LJP7iCprNgwFp9yFsLw0M",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:17.914Z",
+    "createdAt": "2026-11-12T20:33:21.075Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 237,
+    "index": 247,
     "undoPatch": [
       {
         "op": "replace",
@@ -15276,12 +15636,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 237
+        "value": 247
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -362023099
+        "value": -488915337
       },
       {
         "op": "remove",
@@ -15311,22 +15671,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:18.289Z",
-    "index": 238,
+    "index": 248,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4205
+        "value": 4555
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 238
+        "value": 248
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 610275377
+        "value": -154398663
       },
       {
         "op": "replace",
@@ -15345,16 +15705,16 @@
     ]
   },
   {
-    "id": "iDQg7SNA7ptdQ4a67bvuL",
+    "id": "CrFKqE3QLAdrcKvUhm285",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:18.289Z",
+    "createdAt": "2026-11-12T20:33:21.078Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 239,
+    "index": 249,
     "undoPatch": [
       {
         "op": "replace",
@@ -15364,12 +15724,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 239
+        "value": 249
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 759821603
+        "value": -768685
       },
       {
         "op": "remove",
@@ -15399,22 +15759,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:18.324Z",
-    "index": 240,
+    "index": 250,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4240
+        "value": 4590
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 240
+        "value": 250
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1161015073
+        "value": 1454934433
       },
       {
         "op": "replace",
@@ -15433,16 +15793,16 @@
     ]
   },
   {
-    "id": "pqfwaxF6n59EtANZ7GeNM",
+    "id": "pe8rEkdxtQAe15cZpj2ik",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:18.324Z",
+    "createdAt": "2026-11-12T20:33:21.080Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "xVxV1Xn5UQq54-oz_yKWU"
     },
-    "index": 241,
+    "index": 251,
     "undoPatch": [
       {
         "op": "replace",
@@ -15452,12 +15812,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 241
+        "value": 251
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 1859457299
+        "value": -2103244716
       },
       {
         "op": "remove",
@@ -15487,22 +15847,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:18.355Z",
-    "index": 242,
+    "index": 252,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4275
+        "value": 4625
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 242
+        "value": 252
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 111331995
+        "value": -1774027836
       },
       {
         "op": "replace",
@@ -15521,16 +15881,16 @@
     ]
   },
   {
-    "id": "7u7QsJiStg0DphYvfAzZ5",
+    "id": "Tz6ODzlcWh3CaaGiqXxxm",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:18.355Z",
+    "createdAt": "2026-11-12T20:33:21.083Z",
     "metadata": {
       "outcome": "next-seat",
       "turnPlayerId": "1xR9m1pAy_W5irFjMM2pw"
     },
-    "index": 243,
+    "index": 253,
     "undoPatch": [
       {
         "op": "replace",
@@ -15540,12 +15900,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 243
+        "value": 253
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -470302053
+        "value": 1930769657
       },
       {
         "op": "remove",
@@ -15575,22 +15935,22 @@
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "source": "user",
     "createdAt": "2026-11-11T14:41:20.009Z",
-    "index": 244,
+    "index": 254,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4310
+        "value": 4660
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 244
+        "value": 254
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 150991056
+        "value": -1830095079
       },
       {
         "op": "replace",
@@ -15609,20 +15969,20 @@
     ]
   },
   {
-    "id": "8efwjVMAMFIqFfIXVvvaY",
+    "id": "CoLoe7fcgIgIm5D7AIN2c",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "AdvanceTurn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:20.009Z",
+    "createdAt": "2026-11-12T20:33:21.086Z",
     "metadata": {
       "outcome": "last-card"
     },
-    "index": 245,
+    "index": 255,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4345
+        "value": 4695
       },
       {
         "op": "add",
@@ -15632,12 +15992,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 245
+        "value": 255
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2075292819
+        "value": 509564805
       },
       {
         "op": "replace",
@@ -15665,31 +16025,31 @@
     ]
   },
   {
-    "id": "caNz0B1oaREU2bkwPL0v3",
+    "id": "Nq2AvD8txqgRmRB6DPJkw",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "NourishPawns",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:20.011Z",
+    "createdAt": "2026-11-12T20:33:21.087Z",
     "metadata": {
       "fed": [],
       "rankChanges": []
     },
-    "index": 246,
+    "index": 256,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4380
+        "value": 4730
       },
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 246
+        "value": 256
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2052761324
+        "value": 1245377807
       },
       {
         "op": "replace",
@@ -15707,11 +16067,11 @@
     ]
   },
   {
-    "id": "fxI332KKxB20YWn7NWeuM",
+    "id": "Bzeel7i5zJGxbNsTn0SJF",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "RollProgressDie",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:20.012Z",
+    "createdAt": "2026-11-12T20:33:21.088Z",
     "revealsInfo": true,
     "metadata": {
       "faces": [
@@ -15724,12 +16084,12 @@
       },
       "epochTriggered": 5
     },
-    "index": 247,
+    "index": 257,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4415
+        "value": 4765
       },
       {
         "op": "replace",
@@ -15739,12 +16099,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 247
+        "value": 257
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -2109434503
+        "value": 1641795117
       },
       {
         "op": "replace",
@@ -15784,11 +16144,11 @@
     ]
   },
   {
-    "id": "aeDUlFXGZtY3g3CIiA6cy",
+    "id": "MSk2jdVch541CsbgqjQ0A",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "BeginDawn",
     "source": "system",
-    "createdAt": "2026-11-11T14:41:20.012Z",
+    "createdAt": "2026-11-12T20:33:21.089Z",
     "metadata": {
       "epoch": 5,
       "sheet": [
@@ -15836,7 +16196,7 @@
         }
       ]
     },
-    "index": 248,
+    "index": 258,
     "undoPatch": [
       {
         "op": "remove",
@@ -15845,12 +16205,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 248
+        "value": 258
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": 2089736885
+        "value": 1425793780
       },
       {
         "op": "replace",
@@ -15925,12 +16285,12 @@
       ],
       "rankChanges": []
     },
-    "index": 249,
+    "index": 259,
     "undoPatch": [
       {
         "op": "replace",
         "path": "/prng/invocations",
-        "value": 4450
+        "value": 4800
       },
       {
         "op": "add",
@@ -15940,12 +16300,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 249
+        "value": 259
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -1937877358
+        "value": 1928576735
       },
       {
         "op": "replace",
@@ -15979,12 +16339,12 @@
     ]
   },
   {
-    "id": "bqVR4ZQvpurm4VYTUO3OI",
+    "id": "H2zgtWKeJ0tnzOlTe3VIk",
     "gameId": "SBUMXi7ON4LGthE9biAAc",
     "type": "ScoreGame",
     "source": "system",
     "revealsInfo": true,
-    "createdAt": "2026-11-11T14:41:24.045Z",
+    "createdAt": "2026-11-12T20:33:21.092Z",
     "metadata": {
       "sheet": [
         {
@@ -16035,7 +16395,7 @@
         "1xR9m1pAy_W5irFjMM2pw"
       ]
     },
-    "index": 250,
+    "index": 260,
     "undoPatch": [
       {
         "op": "remove",
@@ -16044,16 +16404,12 @@
       {
         "op": "replace",
         "path": "/actionCount",
-        "value": 250
+        "value": 260
       },
       {
         "op": "replace",
         "path": "/actionChecksum",
-        "value": -726121163
-      },
-      {
-        "op": "remove",
-        "path": "/result"
+        "value": 708482909
       },
       {
         "op": "replace",
@@ -16077,6 +16433,10 @@
       {
         "op": "remove",
         "path": "/phaseManager/series/45"
+      },
+      {
+        "op": "remove",
+        "path": "/result"
       }
     ]
   }

@@ -32,6 +32,7 @@ import { HydratedBeginDawn, isBeginDawn } from '../actions/beginDawn.js'
 import { HydratedCollectLandscapes, isCollectLandscapes } from '../actions/collectLandscapes.js'
 import { HydratedReplenishGuilds, isReplenishGuilds } from '../actions/replenishGuilds.js'
 import { HydratedReplenishMap, isReplenishMap } from '../actions/replenishMap.js'
+import { HydratedRevealPouches, isRevealPouches } from '../actions/revealPouches.js'
 import { HydratedStartRound, isStartRound } from '../actions/startRound.js'
 import { HydratedAdvanceTurn, isAdvanceTurn } from '../actions/advanceTurn.js'
 import { HydratedEndRound, isEndRound } from '../actions/endRound.js'
@@ -114,6 +115,9 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isStartRound(data): {
                 return new HydratedStartRound(data)
+            }
+            case isRevealPouches(data): {
+                return new HydratedRevealPouches(data)
             }
             case isAdvanceTurn(data): {
                 return new HydratedAdvanceTurn(data)

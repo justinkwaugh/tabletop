@@ -61,9 +61,9 @@ describe('The machine', () => {
         expect(Object.keys(FeudumStateHandlers).sort()).toEqual(Object.values(MachineState).sort())
     })
 
-    it('all 39 Action types are registered and hydrate', () => {
+    it('all 40 Action types are registered and hydrate', () => {
         const types = Object.values(ActionType)
-        expect(types).toHaveLength(39)
+        expect(types).toHaveLength(40)
         expect(Object.keys(FeudumApiActions).sort()).toEqual([...types].sort())
         const hydrator = new FeudumHydrator()
         for (const type of types) {

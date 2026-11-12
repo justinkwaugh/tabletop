@@ -304,8 +304,8 @@ describe('Setup', () => {
 })
 
 describe('Hand selection', () => {
-    it('S4 R-3.1 the finalise row, in turn order; the next finaliser is marked; a later seat waits, then may send', async () => {
-        const table = await atHands()
+    it('S4 R-3.1-H1 the finalise row, in turn order; a later seat may send first; its pouch good is its own until the reveal', async () => {
+        const table = await atHands(2)
         const [first, second] = table.order
         table.edit((state) => {
             giveGood(state, first, 'saltpeter')
@@ -316,7 +316,6 @@ describe('Hand selection', () => {
         expect(row()?.map(({ name }) => name)).toEqual(
             table.order.map((id) => session.getPlayerName(id))
         )
-        expect(row()?.map(({ next }) => next)).toEqual(table.order.map((id) => id === first))
         expect(row()?.every(({ finalised }) => !finalised)).toBe(true)
         expect(cardRows(session.actionPanel)).toHaveLength(11)
         expect(blockOf(session.actionPanel, 'cards')?.tone).toBe('draft')
@@ -325,25 +324,47 @@ describe('Hand selection', () => {
             await pressCard(session.actionPanel, kind)
         }
         await pressRow(rowNamed(session.actionPanel, /^Sulfur/))
-        expect(primaryLabels(session.actionPanel)).toEqual([
+        expect(primaryLabels(session.actionPanel)).toEqual(['Long live the king'])
+        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
+        await sendNamed(session, 'Long live the king')
+
+        expect(row()?.[1]).toMatchObject({ finalised: true, pouchGood: 'sulfur' })
+        expect(linesOf(session.actionPanel, 'waiting')).toEqual([
             `Waiting for ${session.getPlayerName(first)} to finalise`
         ])
-        expect(primaryNamed(session.actionPanel, /^Waiting/).enabled).toBe(false)
-
         const fresh = await table.openSeat(first)
+        const freshRow = () => blockOf(fresh.actionPanel, 'finalise')?.entries
+        expect(freshRow()?.[1].finalised).toBe(true)
+        expect(freshRow()?.[1]).not.toHaveProperty('pouchGood')
+        expect(primaryLabels(fresh.actionPanel)).toEqual(['Long live the king'])
+
         for (const kind of [...FourCards, 'harvest'] as const) {
             await pressCard(fresh.actionPanel, kind)
         }
         await pressRow(rowNamed(fresh.actionPanel, /^Saltpeter/))
         await sendNamed(fresh, 'Long live the king')
         await settled(session)
+        expect(session.gameState.machineState).toBe(MachineState.PlayingCards)
+        expect(session.gameState.getPlayerState(first).pouch).toBe('saltpeter')
+        expect(session.gameState.getPlayerState(second).pouch).toBe('sulfur')
+    })
 
-        const firstEntry = row()?.[0]
-        expect(firstEntry).toMatchObject({ finalised: true, pouchGood: 'saltpeter', next: false })
-        expect(row()?.[1].next).toBe(true)
-        expect(cardRows(session.actionPanel).filter(({ picked }) => picked)).toHaveLength(4)
-        expect(primaryLabels(session.actionPanel)).toEqual(['Long live the king'])
-        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
+    it('R-3.1-H1 the waiting line names every seat yet to finalise', async () => {
+        const table = await atHands(3)
+        const [first, second, third] = table.order
+        const session = await table.openSeat(second)
+        for (const kind of FourCards) {
+            await pressCard(session.actionPanel, kind)
+        }
+        await sendNamed(session, 'Long live the king')
+        const name = (id: string) => session.getPlayerName(id)
+        expect(linesOf(session.actionPanel, 'waiting')).toEqual([
+            `Waiting for ${name(first)} and ${name(third)} to finalise`
+        ])
+        const watching = await table.openSpectator()
+        expect(linesOf(watching.actionPanel, 'waiting')).toEqual([
+            `Waiting for ${name(first)} and ${name(third)} to finalise`
+        ])
     })
 
     it('S5 R-3.3 the count and the primary follow saltpeter; Undo removes the last press', async () => {
@@ -377,13 +398,13 @@ describe('Hand selection', () => {
         expect(count()).toEqual(['5 of 5'])
     })
 
-    it('R-3.1, R-3.1-H1 the finalise row says everyone chooses now and finalises in turn order', async () => {
+    it('R-3.1, R-3.1-H1 the finalise row says everyone chooses now and the pouches are shown together', async () => {
         const table = await atHands()
         const drafting = await table.openSeat(table.order[1])
         const watching = await table.openSpectator()
         for (const session of [drafting, watching]) {
             expect(blockOf(session.actionPanel, 'finalise')?.caption).toBe(
-                'everyone chooses now · finalise in turn order'
+                'everyone chooses now · pouches shown when all are final'
             )
         }
     })
@@ -510,8 +531,9 @@ describe('Hand selection', () => {
         expect(cardRows(session.actionPanel)).toEqual([])
         expect(primaryLabels(session.actionPanel)).toEqual([])
         expect(blockOf(session.actionPanel, 'finalise')?.entries[0].finalised).toBe(true)
+        const [, , third] = table.order
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
-            `Waiting for ${session.getPlayerName(second)} to finalise`
+            `Waiting for ${session.getPlayerName(second)} and ${session.getPlayerName(third)} to finalise`
         ])
     })
 
@@ -1550,7 +1572,13 @@ async function defended() {
 }
 
 /** The Action files whose `revealsInfo` no seat's press sets: the machine plays them. */
-const SystemRevealers = ['replenishGuilds', 'replenishMap', 'rollProgressDie', 'scoreGame']
+const SystemRevealers = [
+    'replenishGuilds',
+    'replenishMap',
+    'revealPouches',
+    'rollProgressDie',
+    'scoreGame'
+]
 
 describe("R-X.2 every send that can't be undone names itself: the list, not a sample", () => {
     it('the list holds every Action in the logic that can set revealsInfo', () => {

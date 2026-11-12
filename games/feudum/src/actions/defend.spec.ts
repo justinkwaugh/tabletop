@@ -508,12 +508,12 @@ describe('R-3.14.2, R-3.14-H2 ReclaimImmunitySeal', () => {
         expect(() => reclaim(combat)).toThrow()
     })
 
-    it('R-3.14-H2 the next finaliser may reclaim during hand selection', () => {
+    it('R-3.14-H2 a seat yet to finalise may reclaim during hand selection', () => {
         const combat = immune()
         const { table, defenderId } = combat
         table.moveTo((state) => {
             state.flow.turn = undefined
-            state.flow.selection = { playerId: defenderId, finalised: [] }
+            state.flow.selection = { finalised: [] }
             state.turnManager.turnOrder = [
                 defenderId,
                 ...state.turnManager.turnOrder.filter((playerId) => playerId !== defenderId)

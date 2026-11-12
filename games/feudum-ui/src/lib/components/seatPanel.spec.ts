@@ -347,7 +347,7 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
             return new HydratedFeudumGameState(structuredClone(host.state))
         }
         const choosing = (state: HydratedFeudumGameState) => {
-            state.flow.selection = { playerId: Owner, finalised: [] }
+            state.flow.selection = { finalised: [] }
         }
 
         it('Before it is finalised: "choosing" for others, the drafted good for the owner', () => {
@@ -377,8 +377,17 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
 
         it('Finalised without a good: empty for all', () => {
             const state = pouchTable((row) => {
-                row.flow.selection = { playerId: Other, finalised: [Owner] }
+                row.flow.selection = { finalised: [Owner] }
             })
+            expect(viewOf(state, Other).pouch).toEqual({ status: 'empty' })
+        })
+
+        it('R-3.1-H1 Finalised with a good before the reveal: committed for the owner, empty for others', () => {
+            const state = pouchTable((row) => {
+                row.flow.selection = { finalised: [Owner] }
+                row.getPlayerState(Owner).committedPouch = 'sulfur'
+            })
+            expect(viewOf(state, Owner).pouch).toEqual({ status: 'committed', good: 'sulfur' })
             expect(viewOf(state, Other).pouch).toEqual({ status: 'empty' })
         })
 

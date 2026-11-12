@@ -144,7 +144,7 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
         'your plan · play in any order'
     )
     await expect(panel(page).locator('[data-finalise-caption]')).toContainText(
-        'everyone chooses now · finalise in turn order'
+        'everyone chooses now · pouches shown when all are final'
     )
 
     await faces.nth(2).locator('button').first().click()

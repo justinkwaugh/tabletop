@@ -20,7 +20,7 @@ const spectator = { kind: 'spectator' } as const
 const CURSOR = { seed: 7, invocations: 3 }
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const DRAWER = 'p2'
-const OWNER_KNOWN = ['hand', 'writs', 'sealedCharters', 'deckKnowledge']
+const OWNER_KNOWN = ['hand', 'committedPouch', 'writs', 'sealedCharters', 'deckKnowledge']
 
 function asPlayer(playerId: string) {
     return { kind: 'player', playerId } as const
@@ -46,6 +46,7 @@ function tableInPlay(numPlayers = 4): FeudumGameState {
         const [unsealed, sealed, known] = writIds.slice(index * 3, index * 3 + 3)
         player.hand = [ActionCardKinds[index]]
         player.handCount = 1
+        player.committedPouch = index % 2 === 0 ? 'saltpeter' : 'sulfur'
         player.writs = [unsealed]
         player.sealedCharters = [sealed]
         player.sealedCharterCount = 1
@@ -114,6 +115,7 @@ describe('the projection of a player and a spectator', () => {
         for (const player of projected.players) {
             if (player.playerId === 'p1') {
                 expect(player.hand).toEqual(owned.hand)
+                expect(player.committedPouch).toEqual(owned.committedPouch)
                 expect(player.writs).toEqual(owned.writs)
                 expect(player.sealedCharters).toEqual(owned.sealedCharters)
                 expect(player.deckKnowledge).toEqual(owned.deckKnowledge)
@@ -128,6 +130,21 @@ describe('the projection of a player and a spectator', () => {
                 expect(player).not.toHaveProperty(field)
             }
         }
+    })
+
+    it('R-3.1-H1 a seat that committed no pouch good looks the same to the table as one that did', () => {
+        const state = tableInPlay()
+        const without = structuredClone(state)
+        seat(without, 'p1').committedPouch = undefined
+        for (const perspective of [spectator, asPlayer('p2'), asPlayer('p3')]) {
+            expect(project(state, perspective)).toStrictEqual(project(without, perspective))
+        }
+        const committed = seat(state, 'p1').committedPouch
+        expect(committed).toBeDefined()
+        const told = project(state, asPlayer('p1')).players.find((row) => row.playerId === 'p1')
+        const none = project(without, asPlayer('p1')).players.find((row) => row.playerId === 'p1')
+        expect(told?.committedPouch).toBe(committed)
+        expect(none).not.toHaveProperty('committedPouch')
     })
 
     it('R-3.10, R-4.4.1 shows a pending draw to its drawer; the table sees the counts', () => {

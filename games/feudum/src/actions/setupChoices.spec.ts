@@ -252,7 +252,7 @@ describe('PlaceStartingPawn', () => {
 
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
         expect(table.state.flow.setupOrder).toBeUndefined()
-        expect(table.state.flow.selection).toEqual({ playerId: table.order[0], finalised: [] })
+        expect(table.state.flow.selection).toEqual({ finalised: [] })
         expect(table.asked).toBe(table.order[0])
     })
 })

@@ -147,7 +147,7 @@ describe('HandDraft (R-3.1, R-3.3): minimum tests', () => {
 })
 
 describe('the real session: what the hand draft survives (R-3.1; contract: Hand draft)', () => {
-    it("S4: another seat's finalise leaves the draft and updates the row", async () => {
+    it("S4 R-3.1-H1: another seat's finalise leaves the draft and ticks the row, its pouch good untold", async () => {
         const table = await atHandSelection()
         const [first, second] = table.order
         const session = await table.openSeat(second)
@@ -156,8 +156,9 @@ describe('the real session: what the hand draft survives (R-3.1; contract: Hand 
         flushSync()
 
         expect(session.handPanel?.drafting?.primary).toEqual({
-            label: `Waiting for ${session.getPlayerName(first)} to finalise`,
-            enabled: false
+            label: 'Long live the king',
+            note: "finalise · can't be undone",
+            enabled: true
         })
 
         await table.send(first, {
@@ -171,10 +172,9 @@ describe('the real session: what the hand draft survives (R-3.1; contract: Hand 
         expect(session.hand.hand).toEqual({ cards: FourCards, pouchGood: 'sulfur' })
         expect(session.handPanel?.finaliseRow.find(({ playerId }) => playerId === first)).toEqual({
             playerId: first,
-            finalised: true,
-            pouchGood: 'saltpeter',
-            next: false
+            finalised: true
         })
+        expect(session.gameState.getPlayerState(first)).not.toHaveProperty('committedPouch')
         expect(session.handPanel?.drafting?.primary).toEqual({
             label: 'Long live the king',
             note: "finalise · can't be undone",
@@ -281,8 +281,9 @@ describe('the real session: what the hand draft survives (R-3.1; contract: Hand 
         expect(session.undoableAction).toBeUndefined()
         expect(session.handPanel?.drafting).toBeUndefined()
 
+        // R-3.1-H1 No hand size is told before every seat has finalised.
         const mine = watcher.gameState.getPlayerState(first)
-        expect(mine.handCount).toBe(4)
+        expect(mine.handCount).toBe(0)
         expect(mine.hand).toBeUndefined()
     })
 })
@@ -426,8 +427,7 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(theirs.gameState.getPlayerState(first).hand).toBeUndefined()
         expect(theirs.handPanel?.finaliseRow.find(({ playerId }) => playerId === first)).toEqual({
             playerId: first,
-            finalised: true,
-            next: false
+            finalised: true
         })
         unpicked()
     })
@@ -465,7 +465,7 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(table.sent.get(first)).toBeUndefined()
     })
 
-    it('a seat whose turn to finalise has not come may draft and may not send', async () => {
+    it('R-3.1-H1 a seat later in turn order may finalise before an earlier one', async () => {
         const table = await atHandSelection()
         const [, second] = table.order
         const session = await table.openSeat(second)
@@ -473,8 +473,10 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
 
         await session.finaliseHand()
 
-        expect(session.hand.hand.cards).toEqual(FourCards)
-        expect(table.sent.get(second)).toBeUndefined()
+        expect(table.sent.get(second)?.[0]).toMatchObject({
+            type: ActionType.FinaliseHand,
+            cards: FourCards
+        })
     })
 
     it('Undo pops a press and never reaches the Action while one is held', async () => {
@@ -521,14 +523,14 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(session.hand.hand.pouchGood).toBeUndefined()
     })
 
-    it('the row lists every seat in turn order and marks who is next', async () => {
+    it('R-3.1-H1 the row lists every seat in turn order and marks none as next', async () => {
         const table = await atHandSelection()
         const session = await table.openSeat(table.order[1])
         flushSync()
         const row = session.handPanel?.finaliseRow
         expect(row?.map(({ playerId }) => playerId)).toEqual(table.order)
-        expect(row?.filter(({ next }) => next).map(({ playerId }) => playerId)).toEqual([
-            table.order[0]
-        ])
+        for (const entry of row ?? []) {
+            expect(entry).not.toHaveProperty('next')
+        }
     })
 })

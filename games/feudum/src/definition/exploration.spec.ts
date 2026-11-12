@@ -7,6 +7,7 @@ import {
     type Visibility
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { HandSize } from '../actions/finaliseHand.js'
 import { Spaces } from '../data/board.js'
 import { ActionCards } from '../data/cards.js'
 import { ScrollSpaces } from '../data/guilds.js'
@@ -150,10 +151,15 @@ function expectDealtWithin(
     expect(tableIn(branch, perspective, tabled)).toEqual(tableIn(source, perspective, tabled))
 
     for (const player of branch.players.filter(({ playerId }) => playerId !== explorer)) {
-        // R-3.1, R-3.2 A hand of different kinds, none of them played this round.
+        // R-3.1, R-3.2 A hand of different kinds, none of them played this round; one finalised
+        // before the reveal is of untold size, so it is dealt with no pouch (R-3.1-H1).
         const played = player.played.map(({ kind }) => kind)
-        expect(player.hand).toHaveLength(player.handCount)
-        expect(new Set(player.hand).size).toBe(player.handCount)
+        const size = branch.flow.selection?.finalised.includes(player.playerId)
+            ? HandSize
+            : player.handCount
+        expect(player.hand).toHaveLength(size)
+        expect(new Set(player.hand).size).toBe(size)
+        expect(player).not.toHaveProperty('committedPouch')
         expect(player.hand.filter((kind) => played.includes(kind))).toEqual([])
         expect(player.hand.every((kind) => ActionCards.some((card) => card.kind === kind))).toBe(
             true
