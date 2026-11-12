@@ -28,7 +28,7 @@
 
 <div class="panel" class:active>
     <div class="name" style:background={fill} style:color={ink}>
-        <span>{gameSession.getPlayerName(playerId)}</span>
+        <span class="player">{gameSession.getPlayerName(playerId)}</span>
         <span class="roles">
             {#if active}<span class="turn">Turn</span>{/if}
             {facts.seatRoles.join(' · ')}
@@ -143,11 +143,17 @@
         opacity: 0.6;
     }
 
-    /* Scores are written in by hand, as on a paper score sheet. */
+    /* Names and scores are written in by hand; the rest is the sheet's printing. */
+    .player,
     .value,
     .recent {
         font-family: 'Koenigrufen Pen', 'Segoe Print', cursive;
         font-weight: 700;
+    }
+
+    .player {
+        font-size: 1.2rem;
+        line-height: 1.2;
     }
 
     .value {

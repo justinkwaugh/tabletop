@@ -77,7 +77,7 @@
 - **Menu:** **Choose ▾** opens a table of the choices in the same menu as the bids (under the button row, stopping above the hand), already open as each announcement turn starts. A tap or click outside, **✕** or Escape closes it; the button, **Change ▾** once something is ticked, opens it again with the ticks kept. Beside it the confirm button reads **Pass** or **Announce**, so the two never share a word.
 - **Table:** a "Bonuses" section for the bonuses the player may announce for their side, with labelled columns: a tick box, the bonus, its announced value (gold; doubled in Solo contracts, Valat as the game times eight), its silent value (blank when it scores only announced), and on wide menus its goal. Then a section per double word on offer, Kontra, Re or Sub, each with a note on what it doubles, listing what it raises ("Game", "Game with Anna", "Trull") with its value now and doubled. A row toggles its tick; ticked rows are tinted gold. A Besserrufer's bird, named with the bid, is already announced when the round opens.
 - **Description:** on wide menus a pane beside the table describes the row pointed at with a mouse or focused from the keyboard ("Trull (2): Take Pagat, Mond and Sküs. Worth 1 unannounced."; "Kontra on the game: Doubles the game: worth 1 now, 2 after Kontra."). On narrow menus the row unfolds the same text in place. Without hover, a tap toggles the row and shows its description.
-- **Confirming:** the menu's foot holds **Pass**, or **Announce Trull · Kontra Game** once something is ticked. Outside the menu, the prompt line lists what is ticked ("Chosen: Trull") and the action panel's own button reads **Pass** or **Announce**.
+- **Confirming:** the action panel's button is the only confirmation: **Pass** while nothing is ticked, **Announce** once something is. The prompt line above it lists what is ticked, in the history's words ("Chosen: Trull · Kontra on the game"); the menu does not repeat it.
 - **Phones:** the narrow menu keeps the tick, the name and both values on one line per row.
 - **Contract line:** during announcements every player sees a "Contract:" line under the action panel naming the declarer's contract with its value and the same one-line summary as the "Highest bid:" line, so bonuses and Kontras are weighed against it.
 - **Everyone:** what each player has said this hand is on their player panel ("Said Pagat · Kontra on the game"), not in the action area.
@@ -86,7 +86,7 @@
 ### Player panels
 
 - **Motif:** a page of a Tarock score pad on card stock, ruled with a faint line under each entry, the player's colour as the header band.
-- **Header:** the name, then Dealer and Forehand; the player to act has a gold "Turn" tag and a thicker gold edge.
+- **Header:** the name, handwritten in the same pen as the scores (on the panels only; the seats keep the table's type), then Dealer and Forehand; the player to act has a gold "Turn" tag and a thicker gold edge.
 - **Tally:** the score handwritten in Kalam Bold (bundled, OFL; chosen over Caveat and Handlee, whose "1" passes for a "7"), as on a paper score sheet, and beside it, in the same hand, the last four hands' changes, oldest first, the latest a little larger, green for a gain and red for a loss.
 - **This hand:** where the player stands (during the auction their held bid "Bids Dreier", "Passed" or "Mein Spiel"; after it "Declarer · Rufer", "Partner", "Defender", or on my own panel "Secret partner"), with "9 in hand · 4 won" on the same line. A side shows only once the table knows it: declarer playing alone, the called King played, or an announcement for a side. Trischaken shows no sides.
 - **Said:** the bonuses and doubles the player announced this hand, in the history's words.
@@ -155,7 +155,7 @@
 
 - **Meaning:** the bonuses and doubles chosen so far for this announcement turn, one staged-selection stage per choice, all `manual`.
 - **Producer:** the session (`toggleAnnouncement`).
-- **Consumers:** the announcement menu's tick boxes and foot button, and the action panel's "Chosen:" line and **Pass** or **Announce** button.
+- **Consumers:** the announcement menu's tick boxes, and the action panel's "Chosen:" line and **Pass** or **Announce** button.
 - **Lifetime:** cleared whenever a new state is presented. Undo pops the latest choice before any action undo.
 - **Validity:** the session keeps only choices still on offer to the viewing player.
 
