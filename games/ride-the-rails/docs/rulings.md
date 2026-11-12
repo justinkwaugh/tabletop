@@ -19,7 +19,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 ### Actions (R-3)
 
 - **R-3.1-H1** (Q7): there is no cap on the shares of one railroad a player may hold. Rejected: the player board's row length as a cap. Spec: `takeShare.spec.ts`.
-- **R-3.3.1-H1** (Q5): a player with no passenger they can carry on a legal journey passes phase 3 and earns nothing. The pass is offered only when no legal journey exists. Rejected: treating the case as impossible. Spec: `rideTheRails.spec.ts`.
+- **R-3.3.1-H1** (Q5): a player with no passenger they can carry on a legal journey passes phase 3 and earns nothing. The pass is offered only when no legal journey exists. Rejected: treating the case as impossible. Spec: `routes.spec.ts` (whether a journey exists), `rideTheRails.spec.ts` (the pass).
 - **R-3.3.2-H1** (Q22): a link runs between two cities with no city between them, so a railroad's track through a city is two links, every city passed through is visited and counted, and a route changes railroad only in a city. This keeps "links + 1 = cities visited" true. Rejected: one railroad's run from start to end as one link however many cities it passes. Spec: `routes.spec.ts` (links and changes of railroad), `rideTheRails.spec.ts` (dividends and fare).
 
 ### Starting a railroad (R-4.2)
