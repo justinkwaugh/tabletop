@@ -183,6 +183,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** The off-board captions a game's variants print, in place of the map view's. */
     revenueStageCaptionsFor?(state: State): Readonly<Record<string, string>> | undefined
     companyColumns?: readonly CompanyColumn<State>[]
+    /**
+     * Lines of the title's own under a company's start, beside its home, such as a fee its
+     * treasury pays as it starts.
+     */
+    startNotes?(state: State, companyId: string): readonly string[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { TokenFees1849 } from '@tabletop/1849'
     import { CompanyToken, type EighteenXXSessionView } from '@tabletop/18xx-ui'
     import { startOrder, type StartStanding } from './startOrder.js'
     let {
@@ -42,7 +43,8 @@
         {#each entries as { companyId, name, homeLocationIds, standing }, index (companyId)}
             {@const homes = homeLocationIds.map((id) => session.placeName(id)).join(', ')}
             {@const words = standingWords(standing)}
-            {@const description = `${index + 1}. ${name}, ${words.description}; home ${homes}`}
+            {@const fee = standing.kind === 'started' ? undefined : TokenFees1849[companyId]}
+            {@const description = `${index + 1}. ${name}, ${words.description}; home ${homes}${fee === undefined ? '' : `; station tokens ${session.presentation.money(fee)}`}`}
             <li class={standing.kind}>
                 <span class="place">{index + 1}</span>
                 <button
@@ -56,6 +58,8 @@
                     /></button
                 >
                 <span class="standing">{words.label}</span>
+                <!-- The fee its treasury pays for its three station tokens as it starts (§9.4). -->
+                <span class="fee">{fee === undefined ? '' : session.presentation.money(fee)}</span>
             </li>
         {/each}
     </ol>
@@ -123,6 +127,13 @@
     .started .token,
     .started .place {
         opacity: 0.4;
+    }
+    .fee {
+        min-height: 14px;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        color: var(--rail-muted, #817261);
     }
     .standing {
         min-height: 14px;

@@ -1,10 +1,13 @@
 import {
     GaribaldiId,
     messinaEarthquakeOf,
+    TokenFees1849,
     type Earthquake1849,
     type State1849
 } from '@tabletop/1849'
+import { isFloatCompany, isStartCompany, type FloatCompany } from '@tabletop/18xx'
 import type { TitleActionDescription, TitleCallout } from '@tabletop/18xx-ui'
+import { Presentation1849 } from './presentation.js'
 import { assertExists } from '@tabletop/common'
 
 const names = new Intl.ListFormat('en', { type: 'conjunction' })
@@ -37,12 +40,38 @@ export function earthquakeCallout(
     return { title: 'Earthquake at Messina', text: effects.join(' ') }
 }
 
-/** 1849's own history: the shared rows, with the Messina earthquake called out. */
+/**
+ * The station tokens a corporation bought as it floated (§9.4). The Garibaldi pays with the home
+ * it chooses as it starts, unless it came with the Reale Società d'Affari, which the bank funds
+ * as it floats (§8.1, §9.4.1).
+ */
+export function floatTokenFee(action: FloatCompany): number | undefined {
+    const fee = TokenFees1849[action.companyId]
+    if (action.companyId !== GaribaldiId) return fee
+    const funded = action.metadata?.payments.some((payment) => payment.from.kind === 'bank')
+    return funded ? fee : undefined
+}
+
+/**
+ * 1849's own history: the shared rows, with the station tokens a corporation buys as it floats,
+ * or the Garibaldi with the home it chooses, and the Messina earthquake called out.
+ */
 export function describe1849Action(stations: () => State1849['stations']): TitleActionDescription {
     return (action, { companyName }, shared) => {
         const earthquake = messinaEarthquakeOf(action)
-        return earthquake
-            ? { ...shared(), callouts: [earthquakeCallout(earthquake, stations(), companyName)] }
-            : undefined
+        if (earthquake)
+            return {
+                ...shared(),
+                callouts: [earthquakeCallout(earthquake, stations(), companyName)]
+            }
+        const fee = isFloatCompany(action)
+            ? floatTokenFee(action)
+            : isStartCompany(action)
+              ? action.metadata?.home?.cost || undefined
+              : undefined
+        if (fee === undefined) return undefined
+        const row = shared()
+        const tokens = `${Presentation1849.money(fee)} for station tokens`
+        return { ...row, detail: row.detail ? `${row.detail} · ${tokens}` : tokens }
     }
 }

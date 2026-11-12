@@ -258,6 +258,11 @@
                                     its treasury
                                 </p>
                             {/if}
+                            {#each session.presentation.startNotes?.(session.gameState, session.stock.selectedStartCompany.companyId) ?? [] as note (note)}<p
+                                    class="start-home"
+                                >
+                                    {note}
+                                </p>{/each}
                             {#if session.stock.startSizes.length > 1}
                                 <div
                                     class="choices start-size-choices"

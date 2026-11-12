@@ -1,10 +1,13 @@
 import {
+    GaribaldiId,
     InsolvencyChoices1849,
     LoanAmount1849,
     LoanDeduction1849,
     MarketPoolId1849,
     PortBonus1849,
+    StationTokenCount1849,
     TitleRules1849,
+    TokenFees1849,
     type State1849
 } from '@tabletop/1849'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
@@ -22,6 +25,15 @@ export const Presentation1849: TitlePresentation<State1849> = {
     marketPoolId: MarketPoolId1849,
     poolName: (poolId) => (poolId === MarketPoolId1849 ? 'Bank pool' : 'Treasury'),
     companyNames: CompanyNames1849,
+    // A corporation buys all its station tokens as it starts and places them free (§9.4, §10.4).
+    hideStationCosts: true,
+    // The Garibaldi's fee comes with the home it chooses, shown beside it (§9.4.1).
+    startNotes: (_state, companyId) => {
+        const fee = TokenFees1849[companyId]
+        return fee === undefined || companyId === GaribaldiId
+            ? []
+            : [`${StationTokenCount1849} station tokens: ${money(fee)} from its treasury`]
+    },
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: {
         SMS: 'Lay or upgrade a tile in a coastal city, then place a station there'

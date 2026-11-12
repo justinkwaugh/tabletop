@@ -4,6 +4,7 @@ import {
     corporateFinanceChoices,
     finalWealth,
     getCompany,
+    isStartCompany,
     placeStockMarker,
     sharesOwned,
     treasuryPoolId
@@ -179,6 +180,22 @@ describe('the Garibaldi without room (§9.4.1)', () => {
         for (const company of state.companies)
             if (company.id !== GaribaldiId) company.started = true
         expect(nextCorporation1849(state)).toBe(GaribaldiId)
+    })
+
+    it('pays its fee with the home it chooses, recorded with the start', () => {
+        for (let seed = 1; seed < 40; seed++) {
+            const game = kit.table(4, seed)
+            if (game.state.corporationOrder[1] !== GaribaldiId) continue
+            kit.buyAllPrivates(game)
+            expect(startNext(game, 68)).toBe(GaribaldiId)
+            const start = game.actions.findLast(isStartCompany)
+            expect(start?.metadata?.home?.cost).toBe(TokenFees1849[GaribaldiId])
+            expect(cashOwnedBy(game.state, { kind: 'company', companyId: GaribaldiId })).toBe(
+                136 - TokenFees1849[GaribaldiId]
+            )
+            return
+        }
+        throw new Error('No seed puts the Garibaldi second')
     })
 
     it('stays behind a corporation that closes while it is set aside (§11)', () => {

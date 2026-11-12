@@ -88,6 +88,12 @@ track layouts and counts only, checked against the rulebook.
   an unchanged set doesn't redraw the board, and on historical maps; a symbol marker may stand
   `at` a point. Title: the lock above Messina's city until after the next stock round (§12).
 
+- **Notes under a start** (`TitlePresentation.startNotes`). The start shows the price, cost
+  and a chosen home's fee; 1849's other corporations pay a fixed token fee as they start, which
+  no rule of the family records. Shared: a title's lines under the start, beside the home. Title:
+  the fee from the treasury; the fee on the start order and on each float's history row
+  (§9.4), and `hideStationCosts`, the tokens being placed free (§10.4).
+
 ## Further family changes found by whole-game play
 
 - `closeShareCompany(…, restart)` removes nothing from the round's operating order; 1849 removes a
