@@ -82,7 +82,7 @@ export const StockRules1849: StockRules = {
     },
     // No one sells a corporation's shares before it has operated; each share sold drops the
     // price a row (§9.2).
-    saleTerms(state, companyId, shares, seller) {
+    saleTerms(state, companyId, shares, _seller) {
         const company = getCompany(state, companyId)
         if (company.kind !== 'major' || !company.started || !company.president)
             return 'This corporation has no saleable stock.'

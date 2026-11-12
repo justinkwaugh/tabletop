@@ -38,6 +38,7 @@ import {
     type PhaseRules,
     type PrivateRules,
     type TrainFundingRules,
+    type TrainPurchaseState,
     type TrainRules,
     type TransferRules,
     type WealthItem,
@@ -195,7 +196,24 @@ export const ZeroPriceClosure1849: ZeroPriceClosureRules<typeof CorporationClosu
     closure: { schema: CorporationClosure1849, close: closeCorporation1849 }
 }
 
-export const RequiresTrain1849 = requiresStationRoute(Map1849, TileSet1849)
+const RequiresStationRoute1849 = requiresStationRoute(Map1849, TileSet1849)
+
+/** Whether the bank has a train to sell, new or in its pool. */
+function bankHasTrain(state: TrainPurchaseState): boolean {
+    return (
+        state.trainInventory.trains.some((train) => train.status === 'market') ||
+        TrainRules1849.availableDefinitions(state).some(
+            (definitionId) => TrainDepot1849.remaining(state.trainInventory, definitionId) !== 0
+        )
+    )
+}
+
+/**
+ * A corporation with a route must own a train (§10.6), so long as the bank has one to sell: once
+ * every train is sold it may only buy from another corporation.
+ */
+export const RequiresTrain1849: TrainRules['requiresTrain'] = (state, companyId) =>
+    RequiresStationRoute1849(state, companyId) && bankHasTrain(state)
 
 // Trains are bought from the bank in order, any number a turn; the R6H goes on sale beside the
 // 16H once the first is bought (§10.6). The Reale Società d'Affari closes when its corporation

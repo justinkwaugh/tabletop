@@ -92,6 +92,11 @@ track layouts and counts only, checked against the rulebook.
 9. **The SMS** lays or upgrades a tile in a coastal city it need not reach, then may place a
    station there; using it only to place a station without a tile is not offered.
 10. **The bank broken**: payouts beyond the bank follow the family's broken-bank handling.
+11. **No train left in the bank.** Once every train is sold and none is in the pool, a train-less
+    corporation need not buy one (it may still buy from another corporation); the rules are
+    silent and otherwise the game could not go on.
+12. **Messina to Calabria** counts three hex edges through the two grey halves A15 and B16 of the
+    double hex (§10.5.1), as the research engine models it.
 
 ## Implemented later or not at all
 

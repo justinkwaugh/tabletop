@@ -307,6 +307,26 @@ describe('terrain (§10.3.1)', () => {
 })
 
 describe('the end (§13)', () => {
+    it('comes once a corporation at L. 377 has finished operating', () => {
+        const game = stockRound()
+        const companyId = startNext(game, 100)
+        const state = game.hydrated
+        placeStockMarker(state.stockMarket, companyId, spaceOf(377))
+        state.machineState = 'OperatingSet'
+        state.operatingSet = {
+            number: 3,
+            roundNumber: 1,
+            roundCount: 2,
+            companyOrder: [companyId],
+            completedCompanyIds: [],
+            privateIncomePaid: true,
+            completed: false
+        }
+        expect(EndingRules1849.trigger(state)).toBeUndefined()
+        state.operatingSet.completedCompanyIds = [companyId]
+        expect(EndingRules1849.trigger(state)).toEqual({ reason: 'L. 377 share price' })
+    })
+
     it('takes L. 750 a loan off a player’s total, to no less than nothing', () => {
         const game = stockRound()
         const state = game.hydrated

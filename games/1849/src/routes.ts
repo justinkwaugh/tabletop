@@ -20,6 +20,8 @@ export const RouteRules1849: RouteRules = {
     depot: TrainDepot1849,
     revenueStage: (state) => revenueStages1849(state.phaseId),
     requiresCity: () => true,
+    // Ports end a run but do not count: a run needs two cities, or a city and a town (§10.5.1).
+    minimumCitiesAndTowns: 2,
     stopBonus: (state, _train, companyId, center) => portBonus(state, companyId, center.locationId),
     stopBonusSourceIds: (state, _train, companyId, center) =>
         portBonus(state, companyId, center.locationId) ? ['port'] : []

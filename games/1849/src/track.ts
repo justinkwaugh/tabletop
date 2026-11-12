@@ -1,11 +1,8 @@
 import {
-    RailwayMapState,
+    layAddedTrack,
     privateOwner,
-    rotateTileFace,
     sameStopCounts,
     type ConstructionState,
-    type TileFace,
-    type TilePath,
     type TrackRequest,
     type TrackRules
 } from '@tabletop/18xx'
@@ -15,37 +12,6 @@ import { requireState1849 } from './state.js'
 import { TileColorOrder1849, TileSet1849 } from './tiles.js'
 import { Phases1849 } from './trains.js'
 
-/** A path's place on its tile: the edges it runs from and its gauge. */
-function pathKey(path: TilePath): string {
-    const edges = path.endpoints
-        .flatMap((endpoint) => (endpoint.kind === 'edge' ? [endpoint.edge] : []))
-        .toSorted()
-    return `${edges.join('-')}:${path.gauge ?? 'standard'}`
-}
-
-/**
- * The gauges of the track a tile adds: its paths that the tile it replaces does not have, a
- * narrow or standard path made dual counting as new dual track (§10.3.1).
- */
-export function newTrackGauges(before: TileFace, after: TileFace): string[] {
-    const kept = new Set(before.paths.map(pathKey))
-    return after.paths
-        .filter((path) => !kept.has(pathKey(path)))
-        .map((path) => path.gauge ?? 'standard')
-}
-
-function laidFaces(state: ConstructionState, request: TrackRequest) {
-    const before = new RailwayMapState(Map1849, TileSet1849, state.tileInventory).tile(
-        request.locationId
-    ).face
-    const after = rotateTileFace(
-        TileSet1849.definitions.find((definition) => definition.id === request.definitionId)
-            ?.face ?? before,
-        request.rotation
-    )
-    return { before, after }
-}
-
 /**
  * What the hex's terrain costs this lay, paid again on every upgrade: a quarter when all the new
  * track is narrow gauge, half for a company owning the SIGI otherwise (§10.3.1).
@@ -53,9 +19,8 @@ function laidFaces(state: ConstructionState, request: TrackRequest) {
 export function terrainCost1849(state: ConstructionState, request: TrackRequest): number {
     const cost = Map1849.location(request.locationId).terrain?.cost ?? 0
     if (!cost) return 0
-    const { before, after } = laidFaces(state, request)
-    const gauges = newTrackGauges(before, after)
-    if (gauges.length && gauges.every((gauge) => gauge === 'narrow')) return cost / 4
+    const added = layAddedTrack(state, TrackRules1849, request)
+    if (added.length && added.every((path) => path.gauge === 'narrow')) return cost / 4
     const engineers = privateOwner(state, IngegneriaPrivateId)
     return engineers?.kind === 'company' && engineers.companyId === request.companyId
         ? cost / 2

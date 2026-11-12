@@ -106,7 +106,9 @@ describe('the tiles', () => {
         expect(upgrades.upgradesTo('1849:653')).toEqual(['1849:654'])
         expect(upgrades.upgradesTo('1849:655')).toEqual(['1849:656'])
         expect(upgrades.upgradesTo('1849:675')).toEqual(['1849:676'])
-        expect(upgrades.upgradesTo('1849:644')).toContain('1849:660')
+        // Gauge-aware: 660 mirrors 644's narrow and standard exits, so 661 upgrades it.
+        expect(upgrades.upgradesTo('1849:644')).toContain('1849:661')
+        expect(upgrades.upgradesTo('1849:644')).not.toContain('1849:660')
         expect(upgrades.upgradesTo('18xx:3')).toContain('1849:680')
     })
 

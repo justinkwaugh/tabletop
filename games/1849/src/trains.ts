@@ -1,6 +1,17 @@
 import { PhaseTable, TrainDepot, revenueStagesByPhase } from '@tabletop/18xx'
 
-const hexEdges = (maximum: number) => ({ measure: 'hex-edges' as const, maximum })
+// A train counts the hex edges it crosses, a narrow gauge edge as two; the R6H reverses that,
+// counting standard gauge edges as two. Track dual from stop to stop counts one (§10.5.1).
+const hexEdges = (maximum: number) => ({
+    measure: 'hex-edges' as const,
+    maximum,
+    gaugeWeights: { standard: 1, narrow: 2 }
+})
+const reverseHexEdges = (maximum: number) => ({
+    measure: 'hex-edges' as const,
+    maximum,
+    gaugeWeights: { standard: 2, narrow: 1 }
+})
 
 export const CorporationCounts1849 = [5, 6] as const
 export type CorporationCount1849 = (typeof CorporationCounts1849)[number]
@@ -22,8 +33,6 @@ export function depotId1849(corporations: CorporationCount1849): string {
 /** Goes on sale once the first 16H is bought (§10.6). */
 export const ReverseTrainId = 'R6H'
 
-// A train counts the hex edges it crosses, a narrow gauge hex as two; the R6H reverses that,
-// counting standard gauge hexes as two (§10.5.1).
 export const TrainDepot1849 = new TrainDepot({
     id: '1849',
     trains: [
@@ -33,7 +42,7 @@ export const TrainDepot1849 = new TrainDepot({
         { id: '10H', name: '10H', price: 550, distance: hexEdges(10) },
         { id: '12H', name: '12H', price: 800, distance: hexEdges(12) },
         { id: '16H', name: '16H', price: 1100, distance: hexEdges(16) },
-        { id: ReverseTrainId, name: 'R6H', price: 350, distance: hexEdges(6) }
+        { id: ReverseTrainId, name: 'R6H', price: 350, distance: reverseHexEdges(6) }
     ],
     supply: Object.entries(TrainCounts1849[6]).map(([definitionId, count]) => ({
         definitionId,

@@ -33,7 +33,6 @@ describe('the opening (§2, §8)', () => {
     it('gives the Reale Società d’Affari’s buyer the first corporation, funded by the bank', () => {
         const game = kit.table(4)
         const first = game.state.corporationOrder[0]
-        let buyer = ''
         for (const company of [
             ['SCE', 20],
             ['SIGI', 45],
@@ -41,7 +40,7 @@ describe('the opening (§2, §8)', () => {
             ['SMS', 110]
         ] as const)
             game.act('BuyAuctionLot', { lotId: company[0], expectedPrice: company[1] })
-        buyer = game.player
+        const buyer = game.player
         game.act('BuyAuctionLot', { lotId: 'RSA', expectedPrice: 150 })
         expect(game.state.pendingPar?.companyId).toBe(first)
         game.act('ParCompany', { companyId: first, marketSpaceId: '3:5' }, buyer)
