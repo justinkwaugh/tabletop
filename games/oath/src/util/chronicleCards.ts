@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import type { HydratedOathGameState, OathProjectedState } from '../model/gameState.js'
 import { Region, Suit } from '../model/oathEnums.js'
 import { topBackType } from '../model/vault.js'
+import { topOf } from '../model/pileOrder.js'
 import { PRINTED_DENIZENS_BY_SUIT, isVision, kindOf } from '../data/cardRegistry.js'
 import { FAVOR_BANK_ORDER } from '../data/favorBanks.js'
 import { bySuit } from '../data/typedData.js'
@@ -280,6 +281,6 @@ function setPiles(state: HydratedOathGameState, cradle: string[]): void {
         [Region.Provinces]: 0,
         [Region.Hinterland]: 0
     }
-    const [top] = cradle
+    const top = topOf(cradle)
     state.discardTopBackType = top === undefined ? {} : { [Region.Cradle]: kindOf(top) }
 }

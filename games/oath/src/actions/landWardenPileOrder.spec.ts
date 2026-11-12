@@ -20,7 +20,7 @@ import { served } from '../testing/projection.js'
 import { card, modifierUse, region, yes } from '../testing/choices.js'
 import { FILLER, INN, TENTS } from '../testing/cards.js'
 import { settleQueue } from '../util/questionAnswers.js'
-import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
+import { OathRevision } from '../util/revision.js'
 import '../powers/index.js'
 
 const LAND_WARDEN = 'denizen.hearth.land-warden'
@@ -275,9 +275,8 @@ function recorded(action: HydratedSearchResolve) {
 }
 
 describe('revision 33', () => {
-    it('is EngineFixes28, and current', () => {
+    it('is EngineFixes28', () => {
         expect(OathRevision.EngineFixes28).toBe(33)
-        expect(CURRENT_OATH_REVISION).toBe(OathRevision.EngineFixes28)
     })
 })
 

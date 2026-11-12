@@ -114,8 +114,9 @@ export const ACTION_CARD_LINES: Readonly<Record<string, string>> = {
 }
 
 /**
- * The line a card's row says, empty for a card the table does not know. Great Spire may be declared
- * with the Dispossessed empty (R-8.5: the Chronicle fills it), so its line then says so.
+ * The line a card's row says, empty for a card the table does not know. In a game before revision 34
+ * Great Spire may be declared with the Dispossessed empty (R-8.5: the Chronicle fills it), so its line
+ * then says so; from revision 34 it is not offered then.
  */
 export function actionCardLine(
     cardId: string,
