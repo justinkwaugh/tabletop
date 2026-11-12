@@ -61,11 +61,20 @@ describe('R-3.1 the finalise row', () => {
             },
             { playerId: 'p2', name: 'Ben', paint, finalised: false, next: true },
             { playerId: 'p3', name: 'Cyd', paint, finalised: false, next: false }
-        ]
+        ],
+        caption: 'everyone chooses now · finalise in turn order',
+        lead: 'Round 2 · choose your hand'
+    })
+
+    it('R-3.1-H1 says everyone chooses now and finalises in turn order, after the round', () => {
+        expect(row).toContain('data-finalise-caption')
+        expect(row.replace(/<!--.*?-->|<[^>]+>/gs, '').replace(/\s+/g, ' ')).toContain(
+            'Round 2 · choose your hand · everyone chooses now · finalise in turn order'
+        )
+        expect(row).not.toContain('Finalise order')
     })
 
     it('S4 S8 names the seats in order, ticks those done with their pouch good, marks the next', () => {
-        expect(row).toContain('Finalise order')
         const seats = [...row.matchAll(/data-finalise-seat="([^"]+)"/g)].map(([, name]) => name)
         expect(seats).toEqual(['Ana', 'Ben', 'Cyd'])
         const [, ana, ben, cyd] = row.split('data-finalise-seat=')
@@ -311,9 +320,122 @@ describe('R-3.1 Departure 6 the cards as faces', () => {
     })
 
     it('the eleven of a draft stand in rows of six; the hand in one line', () => {
-        expect(cards('draft')).toContain('grid-template-columns: repeat(6, minmax(0, 88px))')
+        expect(cards('draft')).toContain('grid-template-columns: repeat(6, minmax(0, 72px))')
         expect(cards('hand')).toContain('data-hand-line')
         expect(cards('hand')).not.toContain('grid-template-columns')
+    })
+})
+
+describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', () => {
+    const tax = {
+        kind: 'tax',
+        label: 'Tax',
+        number: 3,
+        picked: true,
+        slot: 1,
+        press: nothing
+    } as const
+    const move = { kind: 'move', label: 'Move', number: 2, picked: false, press: nothing } as const
+    const pouch = (refusal?: string): ActionRow[] => [
+        {
+            choice: { label: 'No pouch', picked: true, shown: 'No pouch' },
+            art: { kind: 'empty-pouch' },
+            caption: '4 cards',
+            press: nothing
+        },
+        {
+            choice: {
+                label: 'Saltpeter: 5 cards',
+                picked: false,
+                shown: '+1 card',
+                ...(refusal ? { refusal } : {})
+            },
+            art: { kind: 'good', good: 'saltpeter' },
+            caption: 'opens a fifth slot',
+            press: nothing
+        }
+    ]
+    const draft = (refusal?: string) =>
+        markupOf(
+            { kind: 'cards', tone: 'draft', paint, rows: [tax, move] },
+            { kind: 'line', role: 'count', text: '1 of 4', lead: 'Your hand', stands: 'draft' },
+            {
+                kind: 'slots',
+                paint,
+                slots: [{ at: 1, card: tax }, { at: 2 }, { at: 3 }, { at: 4 }],
+                caption: 'your plan · play in any order',
+                stands: 'draft'
+            },
+            {
+                kind: 'rows',
+                name: 'pouch',
+                rows: pouch(refusal),
+                heading: 'Pouch',
+                stands: 'draft'
+            },
+            {
+                kind: 'primary',
+                label: 'Long live the king',
+                note: "finalise · can't be undone",
+                enabled: false,
+                send: nothing,
+                stands: 'draft'
+            }
+        )
+    const all = (markup: string, attribute: string) =>
+        [...markup.matchAll(new RegExp(`${attribute}[^>]*>([^<]*)<`, 'g'))].map(([, t]) => t)
+
+    it('a drafted card stands dimmed among the eleven with its slot number', () => {
+        const markup = draft()
+        expect(markup.match(/data-slot-badge="1"/g)).toHaveLength(1)
+        expect(markup.match(/data-slot-badge=/g)).toHaveLength(1)
+        const tax = markup.slice(
+            markup.indexOf('data-row="Tax"'),
+            markup.indexOf('data-row="Move"')
+        )
+        expect(tax).toContain('opacity-40')
+        expect(tax).toContain('data-slot-badge="1"')
+    })
+
+    it('the slots are numbered, the filled one takes its card back, the caption says play in any order', () => {
+        const markup = draft()
+        const slots = [...markup.matchAll(/data-slot="(\d)"/g)].map(([, at]) => Number(at))
+        expect(slots).toEqual([1, 2, 3, 4])
+        expect(markup).toContain('aria-label="Tax, slot 1: take back"')
+        expect(markup.match(/data-slot-empty/g)).toHaveLength(3)
+        expect(textOf(markup, 'data-plan-caption')).toBe('your plan · play in any order')
+    })
+
+    it('R-3.3 each pouch choice is its art, its short name and what it does; the full words its name', () => {
+        const markup = untitled(draft())
+        expect(markup).toContain('data-empty-pouch')
+        expect(markup).toContain('aria-label="saltpeter"')
+        expect(markup).toContain('aria-label="Saltpeter: 5 cards"')
+        expect(all(markup, 'data-pouch-title')).toEqual(['No pouch', '+1 card'])
+        expect(all(markup, 'data-pouch-caption')).toEqual(['4 cards', 'opens a fifth slot'])
+    })
+
+    it('R-3.3 one that cannot be chosen is dimmed and says why in place of what it does, once', () => {
+        const markup = untitled(draft('You hold no saltpeter.'))
+        expect(all(markup, 'data-pouch-caption')).toEqual(['4 cards', 'You hold no saltpeter.'])
+        expect(markup).toContain('aria-label="Saltpeter: 5 cards: You hold no saltpeter."')
+        expect(markup).toContain('title="You hold no saltpeter."')
+        expect(markup).toContain('aria-disabled="true"')
+        expect(markup).not.toContain('data-refusal')
+    })
+
+    it("R-X.2 the send's second line says it finalises and can't be undone", () => {
+        const markup = draft()
+        expect(textOf(markup, 'data-primary-label')).toBe('Long live the king')
+        expect(markup.replace(/<!--.*?-->|<[^>]+>/gs, '')).toContain("finalise · can't be undone")
+        expect(markup).toContain(`aria-label="Long live the king · finalise · can't be undone"`)
+    })
+
+    it('everything beside the eleven stands in the draft, in its place', () => {
+        const markup = draft()
+        const areas = [...markup.matchAll(/data-draft-area="([a-z]+)"/g)].map(([, area]) => area)
+        expect(areas).toEqual(['count', 'slots', 'send', 'pouch'])
+        expect(markup.indexOf('data-hand-draft')).toBeLessThan(markup.indexOf('data-cards="draft"'))
     })
 })
 

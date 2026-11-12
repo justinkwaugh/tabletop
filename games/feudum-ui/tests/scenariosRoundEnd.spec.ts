@@ -188,10 +188,11 @@ scenario('S54 R-4.11.2, R-4.12 Progress roll and dawn', 'dawn-roll', async (tabl
             'board: score:p2'
         ])
     )
-    await expect(table.panel().locator('[data-round-line]')).toContainText([
-        'Desert: tile I removed',
-        'Epoch II dawns'
-    ])
+    // R-4.11 The roll is told in the history; the panel keeps the sheet.
+    await expect(table.panel().locator('[data-round-line]')).toHaveCount(0)
+    await table.press(table.page.getByRole('tab', { name: 'History' }))
+    await expect(table.page.locator('[data-history-list]')).toContainText('Desert I removed')
+    await expect(table.page.locator('[data-history-list]')).toContainText('Epoch II dawned')
     const sheet = table.panel().locator('[data-dawn-sheet]')
     await expect(sheet.locator('[data-dawn-row]')).toHaveCount(3)
     for (const cell of ['ranks', 'landscapes', 'regions', 'disloyalty', 'total']) {
