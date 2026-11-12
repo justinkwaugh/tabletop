@@ -1292,6 +1292,21 @@ export const Fixtures = {
             return { host, seat }
         }
     },
+    'nourish-fed': {
+        arranged:
+            'R-4.10.1 Three pawns, four food and one barrel sulfur, so every pawn eats and the seat picks food or wine: two Migrates take two rounds, and four food more.',
+        build: async () => {
+            const host = await atCards(seats(plain, plain, plain))
+            const seat = first(host)
+            host.edit((state) => {
+                threePawns(state, seat)
+                holdFood(state, seat, 4)
+                fillBarrel(state, seat, 1)
+            })
+            await forfeitRound(host, seat)
+            return { host, seat }
+        }
+    },
     'dawn-roll': {
         arranged:
             "R-4.11.2, R-4.12 The stacks one roll from epoch II, a serf's landscape and a vassal's feudum: the stacks run down over most of a game.",

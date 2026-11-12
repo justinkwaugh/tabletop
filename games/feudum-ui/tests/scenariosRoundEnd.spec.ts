@@ -72,21 +72,63 @@ scenario('S52 R-4.4.4 Writ limit: a mandate from the row', 'writs-limit', async 
 })
 
 scenario('S53 R-4.10.1 Nourish choice', 'nourish-choice', async (table) => {
-    const feeds = table.panel().locator('[data-row][data-picked]')
-    await expect(feeds).toHaveText([/^\s*Food/, /^\s*Wine/, /^\s*Unfed returns to supply/])
-    await expect(feeds.nth(2).locator('[data-note="threat"]')).toHaveClass(/text-feudum-danger/)
-    await expect(table.primary()).toHaveText('Feed: 1 food, 1 wine')
+    const pawns = table.panel().locator('[data-nourish-pawn]')
+    const feeds = pawns.locator('[data-feed][data-picked]')
+    const fed = () => feeds.evaluateAll((all) => all.map((one) => one.getAttribute('data-feed')))
+    await expect(pawns).toHaveCount(3)
+    expect(await fed()).toEqual(['food', 'wine', 'unfed'])
+    await expect(feeds.nth(1)).toContainText('feeds 2 rounds · 0 strength next round')
+    // R-4.10.1 The pawn left unfed is rose, with what it loses.
+    await expect(pawns.nth(2)).toHaveClass(/border-feudum-danger/)
+    await expect(feeds.nth(2)).toContainText('back to your supply · its vessel stays')
+    // Contract, Phone layout: a phone says the unfed rule in its short words, beside the send.
+    await expect(table.panel().locator('[data-nourish-rule]')).toHaveText(
+        table.phone ? 'Unfed: back to supply' : /^Every pawn must eat if you can feed it\./
+    )
+    await expect(table.primary()).toHaveText(/^Feed 2 · leave the [a-z]+$/)
     await expect(table.panel().locator('[data-order-seat="Bram"] [data-fed-by-game]')).toHaveText(
-        '· fed by the game'
+        '· nothing to decide'
+    )
+    // R-4.10.1 Each fed pawn's chip is its payment; the unfed one's, what it loses.
+    expect(Object.values(await table.litChips()).sort()).toEqual(
+        ['1 food', '1 wine', 'returns to supply'].sort()
     )
 
     const unfed = table.panel().getByRole('button', { name: /^Unfed/ })
     await table.press(unfed.first())
-    await expect(feeds).toHaveText([/^\s*Unfed/, /^\s*Wine/, /^\s*Food/])
+    await expect.poll(fed).toEqual(['unfed', 'wine', 'food'])
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights).toEqual(
         expect.arrayContaining(['goods: food', 'goods: sulfur', "pawns: Ana's monk pawn"])
     )
+})
+
+scenario('S53 R-4.10.1 Nourish, every pawn fed', 'nourish-fed', async (table) => {
+    const pawns = table.panel().locator('[data-nourish-pawn]')
+    await expect(pawns).toHaveCount(3)
+    await expect(table.panel().locator('[data-nourish-pawn][data-unfed]')).toHaveCount(0)
+    await expect(table.primary()).toHaveAccessibleName('Feed 3 pawns · 3 food')
+    expect(Object.values(await table.litChips())).toEqual(['1 food', '1 food', '1 food'])
+    if (table.phone) {
+        // Contract, Phone layout: compact rows within the width, the order row as dots, the send as art.
+        const width = table.page.viewportSize()?.width ?? 0
+        for (const box of await pawns.evaluateAll((all) =>
+            all.map((one) => one.getBoundingClientRect().right)
+        )) {
+            expect(box).toBeLessThanOrEqual(width)
+        }
+        await expect(table.panel().locator('[data-order-seat="Ana"] [data-phone-word]')).toHaveText(
+            'you'
+        )
+        await expect(table.primary().locator('[data-send-phone]')).toHaveText(
+            /^Feed 3\s*·\s*food\s*3\s*$/
+        )
+    } else {
+        await expect(table.panel().locator('[data-nourish-pays]')).toContainText('you keep')
+        await expect(table.primary()).toHaveText('Feed 3 pawns · 3 food')
+    }
+    const flights = await table.flightsOf(() => table.press(table.primary()))
+    expect(flights).toEqual(expect.arrayContaining(['goods: food']))
 })
 
 /** Every face the die shows from now until the table settles, in order. */

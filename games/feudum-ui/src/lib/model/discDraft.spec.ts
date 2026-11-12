@@ -682,7 +682,7 @@ describe('S61 History View', () => {
     })
 })
 
-describe('S53 R-4.10, R-4.10-H4 "fed by the game", on the real session', () => {
+describe('S53 R-4.10, R-4.10-H4 "nothing to decide", on the real session', () => {
     it('S53 the row reads the NourishPawns Action: the seats it fed, not the seat it asks, nor one with no pawn', async () => {
         const table = hold(await atPlayingCards(['tax'], { otherCards: [] }))
         const { host: game, seat, other } = table
@@ -725,7 +725,7 @@ describe('S53 R-4.10, R-4.10-H4 "fed by the game", on the real session', () => {
         await settled(asked)
         expect(asked.gameState.machineState).toBe(MachineState.Nourishing)
         expect(asked.gameState.activePlayerIds).toEqual([seat])
-        expect(asked.nourishPanel?.primary.label).toBe('Feed: 3 food')
+        expect(asked.nourishPanel?.primary.label).toBe('Feed 3 pawns · 3 food')
         expect(asked.atWillPanel?.chips.map(({ list }) => list)).toContain('writs')
         const row = asked.orderRow?.entries
         expect(row?.find((entry) => entry.playerId === seat)).toMatchObject({ next: true })

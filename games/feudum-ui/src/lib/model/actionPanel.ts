@@ -5,6 +5,7 @@ import {
     type ActionCardKind,
     type Character,
     type Good,
+    type PawnNumber,
     type PouchGood,
     type WritId
 } from '@tabletop/feudum'
@@ -15,6 +16,7 @@ import type { DraftArt, DraftChoice } from './deciderDraft.svelte.js'
 import type { GameEndSummaryView } from './gameEnd.js'
 import type { DawnSheetView } from './roundEnd.js'
 import { rankedDie, type DieArt } from './guildDie.js'
+import type { Feed, NourishSend, NourishSummary } from './nourishDraft.svelte.js'
 import { seatPaint, type SeatPaint } from './seatPaint.js'
 import { takesTradePicker } from './tradePicker.js'
 import type { FeudumGameSession } from './session.svelte.js'
@@ -41,6 +43,24 @@ export interface ActionRow {
     readonly quiet?: true
     /** A card's mode: refused, it shows its reason beneath its name before any press. */
     readonly explained?: true
+}
+
+/** R-4.10.1 One feed of one pawn, as the nourish picker draws it: its words, and beneath them its caption. */
+export type NourishOptionRow = ActionRow & {
+    readonly feed: Feed
+    readonly caption: string
+    readonly spent: boolean
+}
+
+/** R-4.10.1 One pawn the picker feeds: its cube, its name and place, and its feeds. */
+export interface NourishPickerPawn {
+    readonly n: PawnNumber
+    readonly character: Character
+    readonly name: string
+    readonly place: string
+    readonly paint: SeatPaint
+    readonly unfed: boolean
+    readonly options: readonly NourishOptionRow[]
 }
 
 export interface CardRow {
@@ -115,7 +135,12 @@ type PanelBlock =
     | { readonly kind: 'writ-offers'; readonly offers: readonly WritOffer[] }
     /** R-4.4.1 How many writs the drawer holds face down: others see backs, and nothing more. */
     | { readonly kind: 'backs'; readonly count: number }
-    | (OrderRow & { readonly kind: 'order-row'; readonly seats: SeatNames })
+    | (OrderRow & {
+          readonly kind: 'order-row'
+          readonly seats: SeatNames
+          /** The viewer: a phone's row says "you" on that seat while it decides. */
+          readonly me?: string
+      })
     | {
           readonly kind: 'dawn-sheet'
           readonly sheet: DawnSheetView
@@ -148,6 +173,18 @@ type PanelBlock =
           readonly bench: BenchOffer
           readonly other?: ActionRow
           readonly send?: PrimaryBlock
+      }
+    /**
+     * Contract, Round end: the nourish picker. A row per pawn, and beside the rows a summary of what
+     * is paid and kept, the unfed rule, and the send; R-4.3.3 a tile's rows when one could feed.
+     */
+    | {
+          readonly kind: 'nourish-picker'
+          readonly pawns: readonly NourishPickerPawn[]
+          readonly summary: NourishSummary
+          readonly rule: string
+          readonly covers?: { readonly line: string; readonly rows: readonly ActionRow[] }
+          readonly send: PrimaryBlock & { readonly tally: NourishSend }
       }
 
 interface PrimaryBlock {
@@ -601,25 +638,45 @@ function writLimitBlocks(
     ]
 }
 
-/** R-4.10.1 Each pawn to feed, with its feeds as rows that brighten it. */
+/** R-4.10.1 The picker: each pawn to feed, its feeds as rows that brighten it, and the summary. */
 function nourishBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['nourishPanel']>
 ): ActionBlock[] {
+    const paint = paintOf(session, session.myPlayerId ?? '')
     return [
         line('flow', 'Feed your pawns'),
-        ...panel.pawns.flatMap(({ n, label, choices }) =>
-            rows(
-                `pawn:${n}`,
-                choices.map((choice) => draftRow(session, choice)),
-                label
-            )
-        ),
-        ...rows(
-            'covers',
-            (panel.covers ?? []).map((choice) => draftRow(session, choice))
-        ),
-        primaryBlock(panel.primary, () => session.sendFollowUp()),
+        {
+            kind: 'nourish-picker',
+            pawns: panel.pawns.map(({ n, character, name, place, unfed, choices }) => ({
+                n,
+                character,
+                name,
+                place,
+                paint,
+                unfed,
+                options: choices.map(({ feed, caption, spent, good, ...choice }) => ({
+                    ...draftRow(session, choice, good && { kind: 'good', good }),
+                    feed,
+                    caption,
+                    spent
+                }))
+            })),
+            summary: panel.summary,
+            rule: panel.rule,
+            ...(panel.covers && panel.coverLine
+                ? {
+                      covers: {
+                          line: panel.coverLine,
+                          rows: panel.covers.map((choice) => draftRow(session, choice))
+                      }
+                  }
+                : {}),
+            send: {
+                ...primaryBlock(panel.primary, () => session.sendFollowUp()),
+                tally: panel.send
+            }
+        },
         ...atWillBlocks(session)
     ]
 }
@@ -818,7 +875,14 @@ function sharedBlocks(session: PanelSession): readonly ActionBlock[] {
             ? [{ kind: 'tally', lines: combatTally.lines } satisfies ActionBlock]
             : []),
         ...(orderRow
-            ? [{ ...orderRow, kind: 'order-row', seats: seatNames(session) } satisfies ActionBlock]
+            ? [
+                  {
+                      ...orderRow,
+                      kind: 'order-row',
+                      seats: seatNames(session),
+                      ...(session.myPlayerId ? { me: session.myPlayerId } : {})
+                  } satisfies ActionBlock
+              ]
             : [])
     ]
 }

@@ -41,10 +41,13 @@ export function blockOf<K extends ActionBlock['kind']>(
 export function primariesOf(
     view: ActionPanelView
 ): readonly Extract<ActionBlock, { kind: 'primary' }>[] {
-    // A trade picker holds its send beneath its choices.
+    // A trade picker holds its send beneath its choices; the nourish picker, in its summary.
     return view.blocks.flatMap((block): Extract<ActionBlock, { kind: 'primary' }>[] => {
         if (block.kind === 'primary') {
             return [block]
+        }
+        if (block.kind === 'nourish-picker') {
+            return [block.send]
         }
         return block.kind === 'trade-picker' && block.send ? [block.send] : []
     })
