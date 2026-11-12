@@ -183,6 +183,29 @@ describe('Contract, The trade picker: picks that add up stand in a basket', () =
         expect(sentBy(turn)).toEqual([])
     })
 
+    it('R-4.6.2 a Merchant basket holding sulfur offers it into the barrel, and the send carries it', async () => {
+        const turn = await opened((state, { seat }) => {
+            setMarket(state, { sulfur: 3 })
+            setShillings(state, seat, 30)
+        }, 'merchant')
+        const sulfur = card(picker(turn), 'Sulfur').press
+        assertExists(sulfur, 'The sulfur bin takes a press')
+        await press(turn.session, sulfur)
+
+        const choices = picker(turn).choices
+        expect(choices.map(({ label, picked }) => [label, picked])).toEqual([
+            ['Keep it', true],
+            ['Into the barrel: 1', false]
+        ])
+        const barrel = choices.find(({ label }) => label === 'Into the barrel: 1')
+        assertExists(barrel, 'The barrel choice')
+        await press(turn.session, barrel)
+        expect(picker(turn).choices.find(({ picked }) => picked)?.label).toBe('Into the barrel: 1')
+        await turn.session.sendTurnCard()
+        await settled(turn.session)
+        expect(JSON.stringify(sentBy(turn))).toContain('"sulfurToBarrel":1')
+    })
+
     it('R-4.6-H1 a Noble basket: a card per seal on the scrolls, each its scroll space', async () => {
         const turn = await opened((state, { seat }) => {
             setScrolls(state, ['guild.noble.scroll.r1c1', 'guild.noble.scroll.r1c3'])

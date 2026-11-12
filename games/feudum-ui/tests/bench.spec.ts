@@ -240,6 +240,21 @@ test('S74 R-4.6.2 a Merchant trade: a bin per good, each priced; the basket adds
     await expect(picker(page)).toHaveCount(0)
 })
 
+test('R-4.6.2 a Merchant basket holding sulfur offers it into the barrel inside the picker', async ({
+    page
+}) => {
+    await openFunction(page, 'merchantTrade', 'merchant', /^\s*Trade/)
+    await pressAll(page, 'good:sulfur')
+    const rows = picker(page).locator('[data-bench-rows] button')
+    await expect(rows).toHaveText(['Keep it', 'Into the barrel: 1'])
+    await rows.nth(1).click()
+    await settled(page)
+    await expect(picker(page).locator('[data-bench-rows] [data-row]').nth(1)).toHaveAttribute(
+        'data-picked',
+        ''
+    )
+})
+
 test('R-4.6.5 a Farmer push’s count is a press on the result line, the higher preselected', async ({
     page
 }) => {
