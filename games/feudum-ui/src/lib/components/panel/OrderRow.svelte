@@ -56,17 +56,18 @@
             <span class="hidden max-sm:inline" aria-hidden="true" data-phone-word
                 >{phoneWord(entry)}</span
             >
-            <span class="contents max-sm:hidden">
-                {#if entry.done}
-                    <span role="img" aria-label="done">✓</span>
-                {/if}
-                {#if entry.fedByGame}
-                    <span class="text-feudum-text-muted" data-fed-by-game>· nothing to decide</span>
-                {/if}
-                {#if entry.next}
-                    <span class="text-feudum-accent">· next</span>
-                {/if}
-            </span>
+            <!-- A phone shows the dots' word instead, and still reads these out. -->
+            {#if entry.done}
+                <span class="max-sm:sr-only" role="img" aria-label="done">✓</span>
+            {/if}
+            {#if entry.fedByGame}
+                <span class="text-feudum-text-muted max-sm:sr-only" data-fed-by-game
+                    >· nothing to decide</span
+                >
+            {/if}
+            {#if entry.next}
+                <span class="text-feudum-accent max-sm:sr-only">· next</span>
+            {/if}
         </span>
     {/each}
 </div>
