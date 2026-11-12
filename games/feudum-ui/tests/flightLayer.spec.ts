@@ -351,7 +351,7 @@ test.describe('at phone width', () => {
         await settled(page)
         // A seat with little fits its sheet: the cap is drawn in, as a seat with much would need.
         await page.addStyleTag({
-            content: `[data-open-seat="${seat}"] { max-height: 120px; overflow-y: auto; }`
+            content: `[data-open-seat="${seat}"] { max-height: 40px; overflow-y: auto; }`
         })
         const scrolled = await page.evaluate((chosen) => {
             const sheet = document.querySelector(`[data-open-seat="${chosen}"]`)

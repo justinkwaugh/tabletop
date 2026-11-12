@@ -44,7 +44,7 @@ scenario('S1 R-1.4.8 ChooseStartingGoods', 'setup-goods', async (table) => {
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights).toEqual(['goods: food', 'goods: saltpeter', 'goods: sulfur'])
     const panel = await table.seatPanel('p1')
-    await expect(panel.locator('[data-barrel]')).toContainText('sulfur')
+    await expect(panel.locator('[data-barrel]')).toHaveAttribute('data-barrel', '1')
     await table.closeSeatPanel()
     await expect(table.waitingLine()).toHaveText('Bram chooses starting goods')
 })

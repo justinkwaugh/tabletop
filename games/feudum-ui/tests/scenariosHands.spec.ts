@@ -77,7 +77,10 @@ scenario('S8 R-3.1 Finalise is a barrier', 'hands-first-sulfur', async (table) =
     await table.showSeat('p2')
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-hand-backs="4"]')).toBeVisible()
-    await expect(panel.locator('[data-pouch]')).toContainText('sulfur')
+    await expect(panel.locator('[data-pouch="finalised"]')).toHaveAttribute(
+        'data-pouch-good',
+        'sulfur'
+    )
     await table.closeSeatPanel()
 })
 

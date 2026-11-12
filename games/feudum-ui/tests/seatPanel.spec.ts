@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { createGame, playToCards, settled, shot } from './helpers.js'
+import { openFixture } from './scenarioTable.js'
 
 /**
  * A real hotseat session, which holds every seat's hidden fields: what another seat's panel keeps
@@ -74,20 +75,20 @@ test('S57, S58 a hotseat holds every hand, and another seat is still backs and a
         )
     }
 
+    // The seat's own hand stands on the desk: its panel says only how many.
     const mine = columnPanel(page, me ?? '')
-    await expect(mine.locator('[data-seat-card]')).toHaveCount(11)
-    await expect(mine.locator('[data-set-aside]')).toHaveCount(11 - handCounts[0])
+    await expect(mine.locator('[data-in-hand]')).toHaveText(/^\d+ in hand$/)
+    await expect(mine.locator('[data-seat-card]')).toHaveCount(0)
+    await expect(mine.locator('[data-set-aside]')).toHaveCount(0)
     await expect(mine.locator('[data-hand-backs]')).toHaveCount(0)
     await shot(page, 'column')
 })
 
-test('S59 a back enlarges as a back; a face enlarges; Escape closes one layer at a time', async ({
-    page
-}) => {
+test('S59 a back enlarges as a back; Escape closes one layer at a time', async ({ page }) => {
     await createGame(page)
     await playToCards(page)
     await settled(page)
-    const { me, others, hiddenHands } = await seats(page)
+    const { others, hiddenHands } = await seats(page)
     const [other] = others
 
     await columnPanel(page, other).locator('[data-enlarge="card back"]').click()
@@ -99,15 +100,6 @@ test('S59 a back enlarges as a back; a face enlarges; Escape closes one layer at
     }
     expect(hiddenHands[0].length).toBeGreaterThan(0)
     await shot(page, 'enlarged-back')
-    await page.keyboard.press('Escape')
-    await expect(enlarged(page)).toHaveCount(0)
-
-    await columnPanel(page, me ?? '')
-        .locator('[data-enlarge="Move card"]')
-        .click()
-    await expect(enlarged(page)).toHaveAttribute('data-enlarged', 'card')
-    expect(await enlarged(page).innerHTML()).toContain('Move')
-    await shot(page, 'enlarged-face')
     await page.keyboard.press('Escape')
     await expect(enlarged(page)).toHaveCount(0)
 })
@@ -179,12 +171,12 @@ test('R-4.4.4, S59 writs: backs for another seat, faces for their owner; each en
     }
     await expect(theirs.locator('[data-writ-back="open"]')).toHaveCount(1)
     await expect(theirs.locator('[data-writ-back="sealed"]')).toHaveCount(1)
-    await expect(theirs.locator('[data-card-mark]')).toHaveText([
-        'special',
-        'forfeited',
-        'flipped as Defend',
-        'Déjà Vu Harvest'
-    ])
+    const marks = await theirs
+        .locator('[data-card-mark]')
+        .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-card-mark')))
+    expect(marks).toEqual(['special', 'forfeited', 'flipped as Defend', 'Déjà Vu Harvest'])
+    await expect(theirs.locator('[data-card-badge]')).toHaveCount(4)
+    await expect(theirs.locator('[title="Guild card, special"]')).toHaveCount(1)
 
     await theirs.locator('[data-enlarge="sealed writ back"]').click()
     await expect(enlarged(page)).toHaveAttribute('data-enlarged', 'writ')
@@ -202,7 +194,10 @@ test('R-4.4.4, S59 writs: backs for another seat, faces for their owner; each en
     await expect(own.locator(`[data-writ-face="${writ}"]`)).toBeVisible()
     await expect(own.locator(`[data-writ-face="${sealed}"][data-writ-sealed]`)).toBeVisible()
     await expect(own.locator('[data-writ-back]')).toHaveCount(0)
-    await expect(own.locator('[data-deck-note]')).toHaveText('you know 1 under the deck')
+    await expect(own.locator('[data-deck-note]')).toHaveAttribute(
+        'title',
+        'you know 1 under the deck'
+    )
     await own.locator(`[data-writ-face="${writ}"]`).click()
     await expect(enlarged(page)).toHaveAttribute('data-enlarged', 'writ')
     expect(await enlarged(page).innerHTML()).not.toContain('Writ back')
@@ -245,7 +240,7 @@ test('the column scrolls to the last seat; an open seat fits a phone and scrolls
     expect(roll?.x ?? -1).toBeGreaterThanOrEqual(0)
     expect((roll?.x ?? 0) + (roll?.width ?? 999)).toBeLessThanOrEqual(375)
     await shot(page, 'phone-open-seat')
-    const end = seatLayer(page).locator('[data-seat-section="service"]')
+    const end = seatLayer(page).locator('[data-seat-line="holdings"]')
     await end.scrollIntoViewIfNeeded()
     await expect(end).toBeInViewport()
     await shot(page, 'phone-open-seat-end')
@@ -261,7 +256,7 @@ test('Contract, Seat panel: the ribbon opens the seat at a readable size; three 
     const ribbon = columnPanel(page, me ?? '').locator('[data-open-seat-of]')
     const columnSize = await ribbon.evaluate((node) => parseFloat(getComputedStyle(node).fontSize))
     const columnCard = await columnPanel(page, me ?? '')
-        .locator('[data-seat-card] svg')
+        .locator('[data-supply-good] svg')
         .first()
         .boundingBox()
 
@@ -269,7 +264,7 @@ test('Contract, Seat panel: the ribbon opens the seat at a readable size; three 
     await expect(seatLayer(page)).toBeVisible()
     await settled(page)
     const opened = seatLayer(page).locator('[data-open-seat]')
-    const openedCard = await opened.locator('[data-seat-card] svg').first().boundingBox()
+    const openedCard = await opened.locator('[data-supply-good] svg').first().boundingBox()
     const openedSize = await opened
         .locator('[data-open-seat-of]')
         .evaluate((node) => parseFloat(getComputedStyle(node).fontSize))
@@ -298,4 +293,44 @@ test('Contract, Seat panel: the ribbon opens the seat at a readable size; three 
     await columnPanel(page, others[0]).locator('[data-open-seat-of]').click()
     await page.mouse.click(4, 450)
     await expect(seatLayer(page)).toHaveCount(0)
+})
+
+test.describe('a desk at 1440 x 900', () => {
+    test.use({ viewport: { width: 1440, height: 900 } })
+
+    test('Contract, Seat panel: each of four mid-game panels is at most 140 px tall, nothing clipped', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await page.evaluate(() => window.feudumFixture.settled())
+        const panels = page.locator('[data-seat-column] [data-seat-panel]')
+        await expect(panels).toHaveCount(4)
+        for (const panel of await panels.all()) {
+            await panel.scrollIntoViewIfNeeded()
+            const box = await panel.boundingBox()
+            expect(box?.height ?? Infinity).toBeLessThanOrEqual(140)
+            await expect(panel.locator('[data-seat-line]')).toHaveCount(3)
+            const outside = await panel.evaluate((roll) => {
+                const edge = roll.getBoundingClientRect()
+                return [...roll.querySelectorAll('[data-seat-line] > *')]
+                    .map((piece) => piece.getBoundingClientRect())
+                    .filter(
+                        (piece) =>
+                            piece.left < edge.left ||
+                            piece.right > edge.right ||
+                            piece.top < edge.top ||
+                            piece.bottom > edge.bottom
+                    ).length
+            })
+            expect(outside).toBe(0)
+            const spill = await panel
+                .locator('[data-seat-line]')
+                .evaluateAll((lines) => lines.filter((line) => line.scrollWidth > line.clientWidth))
+            expect(spill).toHaveLength(0)
+        }
+        const column = page.locator('[data-seat-column]')
+        await expect(column.locator('[data-service-shield="1"]')).toHaveCount(1)
+        await expect(column.locator('[data-supply-vessel="ship"]')).toHaveCount(1)
+        await expect(page.locator('[data-seat-column] [data-guild-crest]')).toHaveCount(0)
+    })
 })

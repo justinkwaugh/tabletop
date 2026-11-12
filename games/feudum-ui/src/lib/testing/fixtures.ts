@@ -5,6 +5,7 @@ import {
     HydratedFeudumGameState,
     keepWritsOffer,
     MachineState,
+    Mandates,
     nourishOffer,
     placeMarker,
     RegionIds,
@@ -1246,6 +1247,27 @@ export const Fixtures = {
                     guildSeat('merchant')
                 )
             )
+    },
+    'seats-four-mid-game': {
+        arranged:
+            'Contract, Seat panel: four seats a card into the round, each with a forfeited card, a tile, a seal, a writ and a sulfur in its barrel; the second has a ship and has served.',
+        build: async () => {
+            const host = await atCards(seats(plain, plain, plain, plain))
+            const seat = first(host)
+            await host.send(seat, { type: ActionType.ForfeitCard, kind: handOf(host, seat)[0] })
+            await othersForfeitUntil(host, seat)
+            host.edit((state) => {
+                state.players.forEach(({ playerId }, index) => {
+                    giveTile(state, playerId)
+                    giveSeal(state, playerId)
+                    fillBarrel(state, playerId, 1)
+                    holdWrit(state, playerId, Mandates[index].id)
+                })
+                giveVessel(state, second(host), 'ship')
+                state.militaryService[second(host)] = 1
+            })
+            return { host, seat }
+        }
     },
     'writs-at-will': {
         arranged:

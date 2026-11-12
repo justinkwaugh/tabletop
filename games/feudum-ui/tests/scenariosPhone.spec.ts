@@ -234,29 +234,29 @@ scenario(
             return
         }
         await expect(table.page.locator('[data-seat-chip]')).toHaveCount(3)
-        for (const [seat, card] of [
-            ['p2', 'card back'],
-            ['p1', 'Move card']
-        ] as const) {
-            await table.press(table.page.locator(`[data-seat-chip="${seat}"]`))
-            const sheet = seatLayer(table).locator('[data-sheet]')
-            await expect(sheet).toBeVisible()
-            await expect(sheet.locator(`[data-seat-panel="${seat}"]`)).toHaveCount(1)
-            const enlarge = sheet.locator(`[data-enlarge="${card}"]`).first()
-            const { across, down } = await rect(enlarge).then(({ width, height }) => ({
-                across: width,
-                down: height
-            }))
-            expect(Math.min(across, down)).toBeGreaterThan(0)
-            await table.press(enlarge)
-            await expect(enlarged(table)).toBeVisible()
-            expect(await onTop(enlarged(table))).toBe(true)
-            await table.page.keyboard.press('Escape')
-            await expect(enlarged(table)).toHaveCount(0)
-            await expect(sheet).toBeVisible()
-            await table.page.keyboard.press('Escape')
-            await expect(seatLayer(table)).toHaveCount(0)
-        }
+        await table.press(table.page.locator('[data-seat-chip="p2"]'))
+        const sheet = seatLayer(table).locator('[data-sheet]')
+        await expect(sheet).toBeVisible()
+        await expect(sheet.locator('[data-seat-panel="p2"]')).toHaveCount(1)
+        const enlarge = sheet.locator('[data-enlarge="card back"]').first()
+        const { width, height } = await rect(enlarge)
+        expect(Math.min(width, height)).toBeGreaterThan(0)
+        await table.press(enlarge)
+        await expect(enlarged(table)).toBeVisible()
+        expect(await onTop(enlarged(table))).toBe(true)
+        await table.page.keyboard.press('Escape')
+        await expect(enlarged(table)).toHaveCount(0)
+        await expect(sheet).toBeVisible()
+        await table.page.keyboard.press('Escape')
+        await expect(seatLayer(table)).toHaveCount(0)
+
+        // The own seat's sheet counts its hand: the hand itself is on the desk.
+        await table.press(table.page.locator('[data-seat-chip="p1"]'))
+        const own = sheet.locator('[data-seat-panel="p1"]')
+        await expect(own.locator('[data-in-hand]')).toHaveText(/^\d+ in hand$/)
+        await expect(own.locator('[data-seat-card]:not([data-card-played])')).toHaveCount(0)
+        await table.page.keyboard.press('Escape')
+        await expect(seatLayer(table)).toHaveCount(0)
     }
 )
 

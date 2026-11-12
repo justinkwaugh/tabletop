@@ -16,13 +16,11 @@ const StartingSpaces = [
     'space:space.badlands.4'
 ]
 
-/** The mark under a played card in a seat's panel. */
+/** A played card in a seat's panel, which carries its mark. */
 function playedMark(panel: Locator, kind: string): Locator {
-    return panel
-        .locator('[data-seat-section="cards"] > *', {
-            has: panel.page().locator(`[data-seat-card="${kind}"][data-card-played]`)
-        })
-        .locator('[data-card-mark]')
+    return panel.locator('[data-card-mark]', {
+        has: panel.page().locator(`[data-seat-card="${kind}"][data-card-played]`)
+    })
 }
 
 scenario('S10 R-3.8.3 Card modes', 'cards-merchant-under-marker', async (table) => {
@@ -47,7 +45,7 @@ scenario('S11 R-3.13-H1 Forfeit only', 'cards-last-conquer', async (table) => {
     )
     await table.press(table.row('Forfeit'))
     const panel = await table.seatPanel('p1')
-    await expect(playedMark(panel, 'conquer')).toHaveText('forfeited')
+    await expect(playedMark(panel, 'conquer')).toHaveAttribute('data-card-mark', 'forfeited')
     await table.closeSeatPanel()
 })
 
@@ -62,7 +60,7 @@ scenario('S12 R-3.3 Two cards', 'cards-sulfur-pouch', async (table) => {
     await expect(table.turnLine()).toHaveText('Your second card')
     await expect(table.panel().locator('[data-cards="hand"] [data-row]')).toHaveCount(2)
     const panel = await table.seatPanel('p1')
-    await expect(panel.locator('[data-pouch]')).toContainText('spent')
+    await expect(panel.locator('[data-pouch][data-pouch-spent]')).toHaveCount(1)
     await table.closeSeatPanel()
 })
 
@@ -233,7 +231,10 @@ scenario('S18 R-4.4.1 Explore and keep', 'cards-explore', async (table) => {
     )
     expect(under.filter((flight) => flight === 'writs: Writ back')).toHaveLength(2)
     const panel = await table.seatPanel('p1')
-    await expect(panel.locator('[data-deck-note]')).toContainText('you know 2 under the deck')
+    await expect(panel.locator('[data-deck-note]')).toHaveAttribute(
+        'data-deck-note',
+        'you know 2 under the deck'
+    )
     await table.closeSeatPanel()
 
     await table.showSeat('p2')
@@ -289,7 +290,7 @@ scenario('S20 R-3.11 Harvest with favours', 'cards-harvest-beads', async (table)
     expect(await table.piecesNamed('good:space.desert.3:')).toHaveLength(6)
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-supply-bead]')).toHaveCount(0)
-    await expect(panel.locator('[data-seals]')).toContainText('×2')
+    await expect(panel.locator('[data-seals]')).toHaveAttribute('data-seals', '2')
     await table.closeSeatPanel()
 })
 
@@ -354,7 +355,7 @@ scenario('S23 R-3.15 Repeat and Deja Vu', 'cards-repeat', async (table) => {
     await expect(table.primary()).toHaveText('Move · 1 step')
     await table.press(table.primary())
     const panel = await table.seatPanel('p1')
-    await expect(playedMark(panel, 'repeat')).toHaveText('replayed Move')
+    await expect(playedMark(panel, 'repeat')).toHaveAttribute('data-card-mark', 'replayed Move')
     await table.closeSeatPanel()
 })
 

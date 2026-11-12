@@ -593,7 +593,7 @@ test.describe('held upright', () => {
         }
     })
 
-    test('S69 R-5.1 another seat shows only what its seat panel shows, and a card of mine enlarges above the sheet', async ({
+    test('S69 R-5.1 another seat shows only what its seat panel shows, and its card back enlarges above the sheet', async ({
         page
     }) => {
         await createGame(page)
@@ -647,11 +647,16 @@ test.describe('held upright', () => {
         await page.locator(`[data-seat-chip="${me}"]`).tap()
         await settled(page)
         const mine = seatLayer(page).locator(`[data-seat-panel="${me}"]`)
-        await expect.poll(() => mine.locator('[data-seat-card]').count()).toBeGreaterThan(0)
-        expect(await mine.innerHTML()).toContain('Move')
+        // The seat's own sheet counts its hand; the hand itself is on the desk.
+        await expect(mine.locator('[data-in-hand]')).toHaveText(/^\d+ in hand$/)
+        await expect(mine.locator('[data-seat-card]')).toHaveCount(0)
         expect(await mine.innerText()).not.toBe(theirText)
+        await page.keyboard.press('Escape')
+        await settled(page)
 
-        const card = mine.locator('[data-enlarge="Move card"]').first()
+        await page.locator(`[data-seat-chip="${other}"]`).tap()
+        await settled(page)
+        const card = theirs.locator('[data-enlarge="card back"]').first()
         await card.tap()
         await settled(page)
         const enlarged = page.locator('[data-enlarged]')

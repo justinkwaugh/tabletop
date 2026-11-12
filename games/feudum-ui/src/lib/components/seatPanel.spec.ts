@@ -89,7 +89,7 @@ describe('Seat panel: others see no hidden thing (S57, S58)', () => {
 
         it('R-3.1, R-5.1 hand backs with a count; no face, and no set-aside, of an unplayed card', () => {
             expect(view.cards.handBacks).toBe(HiddenCards.length)
-            expect(view.cards.unplayed).toEqual([])
+            expect(view.cards.handFaces).toEqual([])
             for (const kind of ActionCards.map((card) => card.kind).filter((k) => k !== Played)) {
                 expect(JSON.stringify(view.cards)).not.toContain(`"${kind}"`)
             }
@@ -141,7 +141,7 @@ describe('Seat panel: others see no hidden thing (S57, S58)', () => {
 
         it('R-3.1, R-5.1 backs with their count; no hidden card, and nothing named set-aside', () => {
             expect(markup).toContain('data-hand-backs="2"')
-            expect(markup).toContain('×2')
+            expect(markup).toContain('2 in hand')
             expect(markup).toContain(`data-seat-card="${Played}"`)
             for (const kind of HiddenCards) {
                 const { printedName } = ActionCards.find((card) => card.kind === kind) ?? {}
@@ -153,7 +153,7 @@ describe('Seat panel: others see no hidden thing (S57, S58)', () => {
             expect(markup).not.toContain('set aside')
         })
 
-        it('R-4.4.4 no writ name, id or art; a back is one crowned writ', () => {
+        it('R-4.4.4 no writ name, id or art; one crowned writ back stands for each kind, with its count', () => {
             expect(markup).not.toContain('data-writ-face')
             for (const { id } of [HeldWrit, SealedWrit]) {
                 expect(markup).not.toContain(id)
@@ -173,20 +173,23 @@ describe('Seat panel: others see no hidden thing (S57, S58)', () => {
 describe('Seat panel: the seat itself and Host View (S57)', () => {
     const state = fullTable()
 
-    it('R-3.1, R-5.1 The owner sees the hand and, dimmed, the set-aside cards; no backs', () => {
+    it("R-3.1, R-5.1 The owner's panel says how many cards are in hand; the desk shows them", () => {
         const { cards } = viewOf(state, Owner)
-        expect(cards.handBacks).toBe(0)
-        expect(cards.unplayed.filter(({ setAside }) => !setAside).map(({ kind }) => kind)).toEqual([
-            'tax',
-            'conquer'
-        ])
-        // The eleven, each once: R-3.5's order for those not played.
-        expect(cards.unplayed).toHaveLength(10)
-        expect(cards.unplayed.map(({ number }) => number)).toEqual(
-            cards.unplayed.map(({ number }) => number).toSorted((a, b) => a - b)
-        )
+        expect(cards).toMatchObject({
+            handBacks: 0,
+            handFaces: [],
+            handCount: 2,
+            handOnDesk: true
+        })
         const markup = markupOf(viewOf(state, Owner))
-        expect(markup.match(/data-set-aside/g)).toHaveLength(8)
+        expect(markup).toContain('data-in-hand="2"')
+        expect(markup).toContain('2 in hand')
+        expect(markup).toContain(`data-seat-card="${Played}"`)
+        for (const kind of HiddenCards) {
+            expect(markup).not.toContain(`data-seat-card="${kind}"`)
+        }
+        expect(markup).not.toContain('data-set-aside')
+        expect(markup).not.toContain('data-hand-backs')
     })
 
     it('R-4.4.3, R-4.4.4 The owner sees writ faces, sealed charters dimmed and marked, and the note', () => {
@@ -202,24 +205,30 @@ describe('Seat panel: the seat itself and Host View (S57)', () => {
         expect(markup).toContain(`data-writ-face="${HeldWrit.id}"`)
         expect(markup).toContain(`data-writ-face="${SealedWrit.id}"`)
         expect(markup).toContain('data-writ-sealed')
-        expect(markup).toContain('you know 2 under the deck')
+        // R-4.4.1 The deck note is the writs' tooltip.
+        expect(markup).toContain('data-deck-note="you know 2 under the deck"')
+        expect(markup).toContain('title="you know 2 under the deck"')
     })
 
     it('S57 In Host View the faces show; the note stays the owner\'s, since it says "you"', () => {
         const view = viewOf(state, Other, Owner, true)
         expect(view.cards.handBacks).toBe(0)
+        expect(view.cards.handFaces.map(({ kind }) => kind)).toEqual(HiddenCards)
+        const markup = markupOf(view)
+        for (const kind of HiddenCards) {
+            expect(markup).toContain(`data-seat-card="${kind}"`)
+        }
+        expect(markup).not.toContain('data-set-aside')
         expect(view.writs.faces).toEqual([HeldWrit.id])
         expect(view.writs.sealedFaces).toEqual([SealedWrit.id])
         expect(view.writs.deckNote).toBeUndefined()
     })
 
-    it('R-3.1 Before a hand is chosen nothing is set aside: the owner holds all eleven, others no backs', () => {
+    it("R-3.1 Before a hand is chosen the owner's panel holds no face, and others no backs", () => {
         const host = new FeudumHost(3)
         const fresh = new HydratedFeudumGameState(structuredClone(host.state))
-        const mine = viewOf(fresh, Owner).cards
-        expect(mine.unplayed).toHaveLength(11)
-        expect(mine.unplayed.some(({ setAside }) => setAside)).toBe(false)
-        expect(viewOf(fresh, Other).cards).toMatchObject({ handBacks: 0, unplayed: [] })
+        expect(viewOf(fresh, Owner).cards).toMatchObject({ handFaces: [], handOnDesk: true })
+        expect(viewOf(fresh, Other).cards).toMatchObject({ handBacks: 0, handFaces: [] })
     })
 })
 
@@ -311,6 +320,23 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
         ]
         expect(viewOf(state, Other).cards.played[0].mark).toBe('Déjà Vu Explore')
         expect(markupOf(viewOf(state, Other))).toContain('Déjà Vu Explore')
+    })
+
+    it('R-3.2 A use other than regular is a corner badge on the card; its tooltip names it', () => {
+        const host = new FeudumHost(3)
+        host.edit((state) => {
+            state.getPlayerState(Owner).played = [
+                { kind: 'move', use: 'regular' },
+                { kind: 'tax', use: 'special' }
+            ]
+        })
+        const markup = markupOf(
+            viewOf(new HydratedFeudumGameState(structuredClone(host.state)), Other)
+        )
+        expect(markup.match(/data-card-badge/g)).toHaveLength(1)
+        expect(markup).toContain('data-card-mark="special"')
+        expect(markup).toContain('title="Tax card, special"')
+        expect(markup).toContain('title="Move card"')
     })
 
     describe('R-3.3 The pouch', () => {
@@ -422,7 +448,7 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
         expect(barrel).toEqual({ sulfur: 2, capacity: 3 })
     })
 
-    it('R-4.5, R-4.7, R-4.5.2 Crests in ring order, with stars, rank, reeve, and "no marker"', () => {
+    it('R-4.5 No guild crest, star, rank badge or flag on the panel: the guild standings hold them', () => {
         const host = new FeudumHost(3)
         host.edit((state) => {
             const space = ruleTown(state, Owner)
@@ -430,62 +456,15 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
             pawn.spaceId = space
             pawn.character = 'farmer'
             state.guilds.tracks.farmer = { master: { playerId: Owner, reeve: true } }
-            state.guilds.tracks.merchant = { apprentice: { playerId: Owner, reeve: false } }
-            const second = state.getPlayerState(Owner).pawns[1]
-            second.spaceId = space
-            second.character = 'monk'
-            // Every marker placed: the monk star has none to stand on the track (R-4.5.2).
-            const player = state.getPlayerState(Owner)
-            state.supply.influence[player.color] += player.influenceSupply
-            player.influenceSupply = 0
         })
-        const state = new HydratedFeudumGameState(structuredClone(host.state))
-        const { guilds } = viewOf(state, Other)
-        expect(guilds.map(({ guild }) => guild)).toEqual([
-            'farmer',
-            'merchant',
-            'alchemist',
-            'knight',
-            'noble',
-            'monk'
-        ])
-        expect(guilds[0]).toMatchObject({ rank: 'M', reeve: true, noMarker: false })
-        expect(guilds[0].stars).toBe(state.statusStars(Owner, 'farmer'))
-        expect(guilds[1]).toMatchObject({ rank: 'A', reeve: false, noMarker: false, stars: 0 })
-        expect(guilds[2]).toMatchObject({ stars: 0, noMarker: false })
-        expect(guilds[2].rank).toBeUndefined()
-        expect(guilds[5]).toMatchObject({ noMarker: true })
-        expect(guilds[5].stars).toBeGreaterThan(0)
-        const markup = markupOf(viewOf(state, Other))
-        expect(markup).toContain('data-rank="M"')
-        expect(markup).toContain('data-reeve')
-        expect(markup).toContain('no marker')
-    })
-
-    it('R-4.5.2, R-4.5.3, R-1.4.9 A seat outranked off a full track still holds markers: "outranked", not "no marker"', () => {
-        const host = new FeudumHost(3)
-        host.edit((state) => {
-            const space = ruleTown(state, Owner)
-            const pawn = state.getPlayerState(Owner).pawns[1]
-            pawn.spaceId = space
-            pawn.character = 'monk'
-            const others = state.players.filter(({ playerId }) => playerId !== Owner)
-            state.guilds.tracks.monk = {
-                master: { playerId: others[0].playerId, reeve: false },
-                journeyman: { playerId: others[1].playerId, reeve: false }
-            }
-        })
-        const state = new HydratedFeudumGameState(structuredClone(host.state))
-        expect(state.getPlayerState(Owner).influenceSupply).toBeGreaterThan(0)
-        const view = viewOf(state, Other)
-        const monk = view.guilds[5]
-        expect(monk.stars).toBeGreaterThan(0)
-        expect(monk.rank).toBeUndefined()
-        expect(monk).toMatchObject({ noMarker: false, outranked: true })
-        expect(view.guilds[0]).toMatchObject({ outranked: false })
-        const markup = markupOf(view)
+        const markup = markupOf(
+            viewOf(new HydratedFeudumGameState(structuredClone(host.state)), Other)
+        )
+        for (const gone of ['data-guild-crest', 'data-stars', 'data-rank', 'data-reeve', '★']) {
+            expect(markup).not.toContain(gone)
+        }
         expect(markup).not.toContain('no marker')
-        expect(markup).toContain('data-outranked')
+        expect(markup).not.toContain('outranked')
     })
 
     it('R-3.7.5, R-4.9.2, R-4.9-H2 Service and voyage: discs covered, vassal, the voyage space', () => {
@@ -502,10 +481,60 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
         })
         expect(viewOf(state, Owner, SeatA).service).toMatchObject({ covered: 0, vassal: false })
         expect(viewOf(state, Owner, SeatA).voyage).toBeUndefined()
+        // A small shield on the ribbon, its tooltip the service, vassal and voyage; no line of its own.
         const markup = markupOf(viewOf(state, Other))
-        expect(markup).toContain('data-service="2"')
-        expect(markup).toContain('data-voyage="4"')
-        expect(markup).toContain('vassal')
+        expect(markup).toContain('data-service-shield="2"')
+        expect(markup).toContain('Service 2/3 · vassal · voyage 4')
+        expect(markup).not.toContain('data-seat-section="service"')
+        expect(markup).not.toContain('Voyage –')
+        expect(markupOf(viewOf(state, Owner, SeatA))).not.toContain('data-service-shield')
+    })
+
+    it('Contract, Seat panel: three lines under the ribbon, each piece named', () => {
+        const host = new FeudumHost(3)
+        host.edit((state) => {
+            giveSeal(state, Owner)
+            fillBarrel(state, Owner, 1)
+        })
+        const state = new HydratedFeudumGameState(structuredClone(host.state))
+        const player = state.getPlayerState(Owner)
+        const markup = markupOf(viewOf(state, Other))
+        const lines = [...markup.matchAll(/data-seat-line="([a-z]+)"/g)].map(([, line]) => line)
+        expect(lines).toEqual(['cards', 'supply', 'holdings'])
+
+        const [, supply] = markup.split('data-seat-line="supply"')
+        const [supplyLine, holdingsLine] = supply.split('data-seat-line="holdings"')
+        for (const piece of [
+            'data-supply-good="food"',
+            'data-supply-shillings',
+            'data-seals="1"'
+        ]) {
+            expect(supplyLine).toContain(piece)
+        }
+        for (const piece of [
+            `data-supply-markers="${player.influenceSupply}"`,
+            'data-supply-discs',
+            'data-barrel="1"',
+            'data-writ-count="0"'
+        ]) {
+            expect(holdingsLine).toContain(piece)
+        }
+        expect(holdingsLine).toContain('aria-label="Bram\'s influence marker"')
+        expect(holdingsLine).toContain('title="wine barrel: 1 of 3 sulfur"')
+        expect(holdingsLine).toContain(
+            `title="${player.influenceSupply} influence markers in supply"`
+        )
+        // Optional pieces the seat has none of are not drawn.
+        expect(markup).not.toContain('data-supply-vessel')
+        expect(markup).not.toContain('data-supply-tile')
+        expect(markup).not.toContain('data-supply-bead')
+        expect(markup).not.toContain('data-pouch')
+    })
+
+    it("R-1.1 Pawns in supply are the panel's tooltip", () => {
+        const view = viewOf(fullTable(), Other)
+        const markup = markupOf({ ...view, pawnsInSupply: 1 })
+        expect(markup).toContain('title="1 pawn in supply"')
     })
 })
 

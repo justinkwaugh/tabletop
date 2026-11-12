@@ -80,9 +80,11 @@ scenario(
 
 const shipsHeld = async (table: ScenarioTable) => {
     const panel = await table.seatPanel('p1')
-    const ships = await panel.locator('[data-supply-vessel="ship"]').innerText()
+    // A vessel the seat holds none of stands nowhere on the panel.
+    const ship = panel.locator('[data-supply-vessel="ship"]')
+    const ships = (await ship.count()) === 0 ? '0' : (await ship.innerText()).trim()
     await table.closeSeatPanel()
-    return ships.trim()
+    return ships
 }
 
 const riding = (table: ScenarioTable) => table.page.locator('[data-world="pawn:p1:1"] [data-rides]')
