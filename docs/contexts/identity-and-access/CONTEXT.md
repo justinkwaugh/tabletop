@@ -60,6 +60,10 @@ The terminal, anonymized tombstone of a removed User Account. It cannot authenti
 Turning a User Account into its Deleted tombstone: by its owner with Recent Authentication, or by an Administrator for another non-Administrator Account. Administrator Accounts cannot be deleted. It releases the Username, Email Address and External Identities for reuse, and every seat the Account held shows "Deleted player N", numbered within each Game. No Username may contain the word "deleted".
 _Avoid_: Soft-deleted, archived
 
+**Abandoned Sign-up**:
+An Incomplete Account never Active, 3 days after it was created. A daily sweep removes its record outright, with no tombstone, and releases its Username, Email Address, External Identities, sessions, challenges, preferences and subscriptions. An Account seated in any Game is kept. No email is sent, since the address was never verified.
+_Avoid_: Stale account, expired sign-up
+
 **Ban**:
 The Administrator operation making an Incomplete or Active Account Inactive, advancing its Session Generation in the same commit so that lifting the Ban revives no earlier session. It keeps the Account's Username, Email Address and External Identities reserved, closes its Realtime Connections, stops its Attention Notices, and releases it from Games: see Banned Player in the Game Lifecycle context. An Administrator cannot Ban their own Account or another Administrator. Lifting a Ban restores Active or Incomplete, by Account Completion.
 _Avoid_: Suspension, deactivation

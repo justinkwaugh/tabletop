@@ -240,6 +240,64 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await storedStatus(account.id)).toBe(UserStatus.Active)
         })
 
+        it('removes an Abandoned Sign-up outright and releases what it reserved', async () => {
+            const signUp = await createAccount(UserStatus.Incomplete, {
+                emailVerified: false,
+                externalIds: [`discord:${run}-abandoned`]
+            })
+            await store.findById(signUp.id)
+
+            await expect(store.deleteAbandonedSignUp(signUp.id, () => true)).resolves.toBe(
+                'deleted'
+            )
+
+            expect((await firestore.collection('users').doc(signUp.id).get()).exists).toBe(false)
+            expect(await store.findById(signUp.id)).toBeUndefined()
+            expect(
+                (
+                    await firestore
+                        .collection('userExternalIds')
+                        .doc(`discord:${run}-abandoned`)
+                        .get()
+                ).exists
+            ).toBe(false)
+            const reused = await store.createUser({
+                ...newAccount(UserStatus.Incomplete),
+                username: signUp.username,
+                email: signUp.email
+            })
+            expect(reused.username).toBe(signUp.username)
+            await expect(store.deleteAbandonedSignUp(signUp.id, () => true)).resolves.toBe(
+                'missing'
+            )
+        })
+
+        it('keeps a sign-up the rule no longer covers inside the transaction', async () => {
+            const finished = await createAccount(UserStatus.Active)
+            const isAbandoned = vi.fn(() => false)
+
+            await expect(store.deleteAbandonedSignUp(finished.id, isAbandoned)).resolves.toBe(
+                'kept'
+            )
+
+            expect(isAbandoned).toHaveBeenCalledWith(
+                expect.objectContaining({ id: finished.id, status: UserStatus.Active })
+            )
+            expect(await storedStatus(finished.id)).toBe(UserStatus.Active)
+        })
+
+        it('finds Incomplete Accounts only', async () => {
+            const signUp = await createAccount(UserStatus.Incomplete, { emailVerified: false })
+            const active = await createAccount(UserStatus.Active)
+
+            const found = await store.findIncompleteUsers()
+            const ids = found.map((user) => user.id)
+
+            expect(found.find((user) => user.id === signUp.id)?.createdAt).toBeInstanceOf(Date)
+            expect(ids).toContain(signUp.id)
+            expect(ids).not.toContain(active.id)
+        })
+
         describe('Age Confirmation', () => {
             const BEFORE_INTRODUCTION = new Date('2026-11-01T00:00:00Z')
             const AFTER_INTRODUCTION = new Date('2026-12-01T00:00:00Z')

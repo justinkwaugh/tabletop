@@ -8,6 +8,8 @@ export type PasswordUpdateOptions = {
     participant?: TransactionParticipant
 }
 
+export type AbandonedSignUpDeletion = 'deleted' | 'kept' | 'missing'
+
 export interface UserStore {
     findByUsername(username: string): Promise<User | undefined>
     findByEmail(email: string): Promise<User | undefined>
@@ -52,4 +54,9 @@ export interface UserStore {
 
     deleteUser(userId: string, validate?: (existing: StoredUser) => void): Promise<[User, User]>
     deletePreferences(userId: string): Promise<void>
+    findIncompleteUsers(): Promise<User[]>
+    deleteAbandonedSignUp(
+        userId: string,
+        isAbandoned: (existing: StoredUser) => boolean
+    ): Promise<AbandonedSignUpDeletion>
 }

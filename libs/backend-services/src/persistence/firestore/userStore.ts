@@ -32,7 +32,11 @@ import {
     UnknownStorageError
 } from '../stores/errors.js'
 
-import { UserStore, type PasswordUpdateOptions } from '../stores/userStore.js'
+import {
+    UserStore,
+    type AbandonedSignUpDeletion,
+    type PasswordUpdateOptions
+} from '../stores/userStore.js'
 import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
@@ -747,13 +751,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 ...deletedAccountRecord(existing, now),
                 createdAt: existing.createdAt
             }
-            if (existing.cleanUsername) {
-                transaction.delete(this.userUsernames.doc(existing.cleanUsername))
-            }
-            if (existing.email) transaction.delete(this.userEmails.doc(existing.email))
-            for (const externalId of existing.externalIds) {
-                transaction.delete(this.userExternalIds.doc(externalId))
-            }
+            this.releaseReservations(transaction, existing)
             transaction.set(this.users.doc(userId), tombstone)
             return [tombstone, existing]
         }
@@ -766,6 +764,55 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return [this.sanitize(tombstone), this.sanitize(existing)]
         } catch (error) {
             this.handleError(error, userId)
+        }
+    }
+
+    async findIncompleteUsers(): Promise<User[]> {
+        try {
+            const snapshot = await this.users.where('status', '==', UserStatus.Incomplete).get()
+            this.recordRead(Math.max(1, snapshot.size))
+            return snapshot.docs.map((document) => this.sanitize(document.data()))
+        } catch (error) {
+            this.handleError(error, UserStatus.Incomplete)
+        }
+    }
+
+    async deleteAbandonedSignUp(
+        userId: string,
+        isAbandoned: (existing: StoredUser) => boolean
+    ): Promise<AbandonedSignUpDeletion> {
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<AbandonedSignUpDeletion> => {
+            const existing = (await transaction.get(this.users.doc(userId))).data()
+            this.recordRead()
+            if (!existing) return 'missing'
+            if (!isAbandoned(existing)) return 'kept'
+            this.releaseReservations(transaction, existing)
+            transaction.delete(this.users.doc(userId))
+            return 'deleted'
+        }
+
+        try {
+            return await this.cacheService.lockWhileWriting(
+                [this.makeUserCacheKey(userId)],
+                async () => this.users.firestore.runTransaction(transactionBody)
+            )
+        } catch (error) {
+            this.handleError(error, userId)
+        }
+    }
+
+    private releaseReservations(
+        transaction: FirebaseFirestore.Transaction,
+        existing: StoredUser
+    ): void {
+        if (existing.cleanUsername) {
+            transaction.delete(this.userUsernames.doc(existing.cleanUsername))
+        }
+        if (existing.email) transaction.delete(this.userEmails.doc(existing.email))
+        for (const externalId of existing.externalIds) {
+            transaction.delete(this.userExternalIds.doc(externalId))
         }
     }
 

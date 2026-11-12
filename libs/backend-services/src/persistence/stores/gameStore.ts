@@ -82,6 +82,7 @@ export interface GameStore {
     recordGameSeries(gameId: string, series: string): Promise<boolean>
     findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]>
     findStartedGames(): Promise<Game[]>
+    hasGamesForUser(userId: string): Promise<boolean>
     readStateFromStorage(gameId: string): Promise<GameState | undefined>
     recordFinalScores({
         gameId,

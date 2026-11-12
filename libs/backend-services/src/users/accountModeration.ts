@@ -22,6 +22,22 @@ export type AccountDeletionDependencies = {
     >
 }
 
+// Everything an Account holds outside its record and its Games. Each step is safe to repeat.
+export async function releaseAccountHoldings(
+    deletion: AccountDeletionDependencies,
+    userId: string
+): Promise<void> {
+    await deletion.sessions.revokeAll(userId)
+    await deletion.tokens.cancelAllChallenges(userId)
+    await deletion.preferences.deletePreferences(userId)
+    const subscriptions = await deletion.subscriptions.findNotificationSubscriptions(
+        userTopic(userId)
+    )
+    for (const subscription of subscriptions) {
+        await deletion.subscriptions.deleteNotificationSubscription(subscription)
+    }
+}
+
 export const AccountGamesTask = Type.Object(
     { userId: Type.String() },
     { additionalProperties: false }
@@ -94,15 +110,7 @@ export class AccountModeration {
     async releaseDeletedAccount({ userId }: AccountGamesTask): Promise<void> {
         const user = await this.users.getUser(userId)
         if (user?.status !== UserStatus.Deleted) return
-        await this.deletion.sessions.revokeAll(userId)
-        await this.deletion.tokens.cancelAllChallenges(userId)
-        await this.deletion.preferences.deletePreferences(userId)
-        const subscriptions = await this.deletion.subscriptions.findNotificationSubscriptions(
-            userTopic(userId)
-        )
-        for (const subscription of subscriptions) {
-            await this.deletion.subscriptions.deleteNotificationSubscription(subscription)
-        }
+        await releaseAccountHoldings(this.deletion, userId)
         // Anonymize first: one Game that cannot be released must not leave the name in every Game.
         const failures: unknown[] = []
         for (const step of [
