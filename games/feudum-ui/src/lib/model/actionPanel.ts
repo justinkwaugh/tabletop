@@ -795,8 +795,11 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     const picker = guild?.bench && takesTradePicker(guild.bench) ? guild.bench : undefined
     // R-3.16.3 The picker holds the Guild card's other mode, Feast, beneath its choices, and the send.
     const other = modeRows.find(({ choice }) => !choice.picked)
+    // R-3.3, R-3.15 The second card and a replay are declared before a Buy that sends.
     const tray: ActionBlock[] = picker
         ? [
+              ...rows('replays', asTurnRows(turn.replays)),
+              ...rows('second', secondRows),
               {
                   kind: 'trade-picker',
                   bench: picker,

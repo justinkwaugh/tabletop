@@ -206,6 +206,19 @@ describe('Contract, The trade picker: picks that add up stand in a basket', () =
         expect(JSON.stringify(sentBy(turn))).toContain('"sulfurToBarrel":1')
     })
 
+    it('R-3.3 a sulfur pouch still offers the second card beside a trade picker, before its Buy sends', async () => {
+        const turn = await opened((state, { seat }) => {
+            setVesselsForSale(state, ['ship'])
+            setShillings(state, seat, 30)
+            state.getPlayerState(seat).pouch = 'sulfur'
+        }, 'alchemist')
+        const tray = turn.session.actionPanel.blocks.filter(({ stands }) => stands === 'tray')
+        const names = tray.map((block) => (block.kind === 'rows' ? block.name : block.kind))
+        expect(names).toContain('trade-picker')
+        expect(names.indexOf('second')).toBeGreaterThanOrEqual(0)
+        expect(names.indexOf('second')).toBeLessThan(names.indexOf('trade-picker'))
+    })
+
     it('R-4.6-H1 a Noble basket: a card per seal on the scrolls, each its scroll space', async () => {
         const turn = await opened((state, { seat }) => {
             setScrolls(state, ['guild.noble.scroll.r1c1', 'guild.noble.scroll.r1c3'])
