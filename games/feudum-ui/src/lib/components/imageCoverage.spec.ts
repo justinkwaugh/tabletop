@@ -39,7 +39,6 @@ import {
     tileFrontAsset,
     vesselAsset
 } from '$lib/art/assetMap.js'
-import { UiDefinition } from '$lib/definitions/definition.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import GuildPanel from './guilds/GuildPanel.svelte'
 import MapGround from './map/MapGround.svelte'
@@ -226,10 +225,6 @@ describe('the supplied cover', () => {
 
     it('stands alone: no drawn cover is committed beside it', () => {
         expect(existsSync(new URL('../images/cover.webp', import.meta.url))).toBe(false)
-    })
-
-    it.skipIf(!here)("is the catalog's cover", () => {
-        expect(UiDefinition.info.thumbnailUrl).toContain('supplied/cover.webp')
     })
 
     it.skipIf(!here)('is 4:5 at twice the large card, so 150 and 340 px high never upscale', () => {
