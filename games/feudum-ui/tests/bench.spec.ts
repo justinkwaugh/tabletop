@@ -240,7 +240,7 @@ test('S74 R-4.6.2 a Merchant trade: a bin per good, each priced; the basket adds
     await expect(picker(page)).toHaveCount(0)
 })
 
-test('R-4.6.2 a Merchant basket holding sulfur offers it into the barrel inside the picker', async ({
+test('R-4.6.3, R-4.10.2 a Merchant basket holding sulfur offers it into the barrel inside the picker', async ({
     page
 }) => {
     await openFunction(page, 'merchantTrade', 'merchant', /^\s*Trade/)
