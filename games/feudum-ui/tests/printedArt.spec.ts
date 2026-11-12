@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { GuildById, GuildIds, MarketSpaces } from '@tabletop/feudum'
 import { createGame, playToHands, settled } from './helpers.js'
@@ -247,4 +248,28 @@ test('R-1.3 the printed map carries no seam: no one-pixel yellow column stands o
         return found
     }, href as string)
     expect(seams).toEqual([])
+})
+
+test('the catalog’s cover is the supplied box front where the folder holds it', async ({
+    page
+}) => {
+    test.skip(
+        !existsSync(new URL('../src/lib/art/supplied/cover.webp', import.meta.url)),
+        'no supplied cover in the folder'
+    )
+    await page.goto('/')
+    await page.addScriptTag({
+        type: 'module',
+        content: `import { UiDefinition } from '/src/lib/definitions/definition.ts'
+            document.body.dataset.thumbnail = UiDefinition.info.thumbnailUrl`
+    })
+    await page.waitForSelector('body[data-thumbnail]')
+    const thumbnail = await page.locator('body').getAttribute('data-thumbnail')
+    expect(thumbnail).toContain('supplied/cover.webp')
+    // It is the file itself, not a picture drawn in its place.
+    const served = await page.evaluate(async (url) => {
+        const response = await fetch(url)
+        return { ok: response.ok, type: response.headers.get('content-type') }
+    }, thumbnail as string)
+    expect(served).toEqual({ ok: true, type: 'image/webp' })
 })
