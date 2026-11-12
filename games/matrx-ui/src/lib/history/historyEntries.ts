@@ -1,4 +1,4 @@
-import type { AxialCoordinates, GameAction } from '@tabletop/common'
+import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     discsIn,
     isExtraMove,
@@ -46,7 +46,8 @@ export type HistoryEntry = PushEntry | MoveEntry | SkipEntry | TakingEntry
 
 function takingOf(action: GameAction): Taking | undefined {
     if (!isRemoveRow(action)) return undefined
-    const removed = action.metadata?.removed ?? []
+    assertExists(action.metadata, 'A row taken records what it removed')
+    const { removed } = action.metadata
     const own = removed.filter(({ unit }) => unit.playerId === action.playerId)
     const theirs = removed.filter(({ unit }) => unit.playerId !== action.playerId)
     const [from, to] = inReadingOrder(action.from, action.to)
@@ -72,6 +73,7 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
     if (action.playerId === undefined) return undefined
     const span = { id: action.id, firstIndex: index, lastIndex: index, playerId: action.playerId }
     if (isPushPiece(action) || isExtraMove(action)) {
+        assertExists(action.metadata, 'A push records what it moved on')
         return {
             ...span,
             kind: 'push',
@@ -79,16 +81,17 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
             extra: isExtraMove(action),
             dot: action.dot,
             to: action.to,
-            shifted: action.metadata?.shifted ?? 0,
-            tamskOwnerId: action.metadata?.tamskOwnerId,
+            shifted: action.metadata.shifted,
+            tamskOwnerId: action.metadata.tamskOwnerId,
             takings: []
         }
     }
     if (isMovePotential(action)) {
+        assertExists(action.metadata, "A potential's move records its kind")
         return {
             ...span,
             kind: 'move',
-            piece: action.metadata?.kind ?? PieceKind.Gipf,
+            piece: action.metadata.kind,
             from: action.from,
             to: action.to,
             takings: []

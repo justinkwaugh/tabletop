@@ -1,12 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    AxialCoordinates,
-    GameAction,
-    HydratableAction,
-    MachineContext,
-    sameCoordinates
-} from '@tabletop/common'
+import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedMatrxGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Unit } from '../model/board.js'
@@ -67,13 +61,6 @@ export class HydratedRemoveRow extends HydratableAction<typeof RemoveRow> implem
         if (row === undefined || state.resolvingPlayerIds[0] !== this.playerId) {
             return false
         }
-        const kept = (coords: AxialCoordinates) =>
-            this.keep.some((keep) => sameCoordinates(keep, coords))
-        const keepsOnlyPairsInReach = this.keep.every(
-            (coords) =>
-                row.reach.some((reach) => sameCoordinates(reach, coords)) &&
-                state.board.topAt(coords)?.paired === true
-        )
-        return keepsOnlyPairsInReach && row.run.some((coords) => !kept(coords))
+        return state.board.isValidRemoval(row, this.keep)
     }
 }

@@ -45,7 +45,6 @@ export class HydratedExtraMove extends HydratableAction<typeof ExtraMove> implem
         const shifted = state.board.shiftedBy(entry)
         const tamskOwnerId = state.pushTamsk(entry)
         this.metadata = {
-            line: structuredClone(entry.line),
             shifted,
             ...(tamskOwnerId === undefined ? {} : { tamskOwnerId })
         }

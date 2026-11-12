@@ -5,6 +5,7 @@ import {
     type TitlePreferences
 } from '@tabletop/frontend-components'
 import {
+    assertExists,
     coordinatesToNumber,
     sameCoordinates,
     type AxialCoordinates,
@@ -56,10 +57,6 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
 
 // Moves Undo restages: a push returns to its dot, a potential's move to its stack.
 type StepBack = PushPiece | ExtraMove | MovePotential
-
-function isStepBack(action: GameAction): action is StepBack {
-    return isPushPiece(action) || isExtraMove(action) || isMovePotential(action)
-}
 
 type SessionOptions = ConstructorParameters<
     typeof GameSession<MatrxGameState, HydratedMatrxGameState>
@@ -140,7 +137,10 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         if (playerId === undefined) return []
         if (this.canExtraMove) {
             const centre = this.gameState.board.topAt(CENTRE)
-            return [(centre && discsOf([centre])[1]) ?? { playerId, kind: PieceKind.Tamsk }]
+            assertExists(centre, 'An extra move takes its piece from the stack on the centre')
+            const [, top] = discsOf([centre])
+            assertExists(top, 'The centre holds a stack of two for an extra move')
+            return [top]
         }
         const kind = this.chosenKind
         if (kind === undefined) return []
@@ -232,11 +232,9 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return this.rows.length === 1 ? this.rows[0] : undefined
     })
 
-    rowPairs: AxialCoordinates[] = $derived.by(() => {
-        const row = this.chosenRow
-        if (row === undefined) return []
-        return row.reach.filter((coords) => this.gameState.board.topAt(coords)?.paired === true)
-    })
+    rowPairs: AxialCoordinates[] = $derived(
+        this.chosenRow ? this.gameState.board.pairsIn(this.chosenRow) : []
+    )
 
     // Your own stacks stay and the opponent's go unless you mark them otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
@@ -256,11 +254,14 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
             : []
     )
 
-    // Rule E1: the row of four must be broken.
     breaksRow: boolean = $derived(
         this.chosenRow !== undefined &&
-            this.chosenRow.run.some((coords) => includesCoords(this.removing, coords))
+            this.gameState.board.isValidRemoval(this.chosenRow, this.keep)
     )
+
+    private isStepBack(action: GameAction): action is StepBack {
+        return isPushPiece(action) || isExtraMove(action) || isMovePotential(action)
+    }
 
     private rowKey(row: Row): string {
         return `${coordinatesToNumber(row.from)}|${coordinatesToNumber(row.to)}`
@@ -271,11 +272,11 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     }
 
     override willUndo(action: GameAction): void {
-        this.undoingMove = isStepBack(action) ? action : undefined
+        this.undoingMove = this.isStepBack(action) ? action : undefined
     }
 
     override onHistoryAction(action?: GameAction): void {
-        this.historyMove = action !== undefined && isStepBack(action) ? action : undefined
+        this.historyMove = action !== undefined && this.isStepBack(action) ? action : undefined
     }
 
     get presentingState(): HydratedMatrxGameState | undefined {
@@ -284,7 +285,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
 
     undoneMove(to: Pick<MatrxGameState, 'actionCount'>): StepBack | undefined {
         const action = this.actions.find((candidate) => candidate.index === to.actionCount)
-        return action !== undefined && isStepBack(action) ? action : undefined
+        return action !== undefined && this.isStepBack(action) ? action : undefined
     }
 
     // None when the view passes to the other player as the Undo lands, as the harness's

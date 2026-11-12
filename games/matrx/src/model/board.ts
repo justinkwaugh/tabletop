@@ -8,15 +8,8 @@ import {
     sameCoordinates,
     scaleAxial
 } from '@tabletop/common'
-import {
-    AXES,
-    BoardShape,
-    CENTRE,
-    DIRECTIONS,
-    GEOMETRIES,
-    type BoardGeometry,
-    type Entry
-} from './geometry.js'
+import { AXES, CENTRE, DIRECTIONS, GEOMETRIES, type BoardGeometry, type Entry } from './geometry.js'
+import { BoardShape } from './boardShape.js'
 
 export enum PieceKind {
     Gipf = 'gipf',
@@ -274,6 +267,21 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         extend(run[0], scaleAxial(axis, -1), (coords) => reach.unshift(coords))
         extend(run[run.length - 1], axis, (coords) => reach.push(coords))
         return { playerId, from: run[0], to: run[run.length - 1], run, reach }
+    }
+
+    // Rule E1: stacks of two in a row's reach may stay; every single piece goes.
+    pairsIn(row: Row): AxialCoordinates[] {
+        return row.reach.filter((coords) => this.topAt(coords)?.paired === true)
+    }
+
+    // Rule E1: what stays is stacks of two in the reach, and the row of four is broken.
+    isValidRemoval(row: Row, keep: readonly AxialCoordinates[]): boolean {
+        const pairs = this.pairsIn(row)
+        const kept = (coords: AxialCoordinates) => keep.some((k) => sameCoordinates(k, coords))
+        return (
+            keep.every((coords) => pairs.some((pair) => sameCoordinates(pair, coords))) &&
+            row.run.some((coords) => !kept(coords))
+        )
     }
 
     rowsOf(playerId: string): Row[] {

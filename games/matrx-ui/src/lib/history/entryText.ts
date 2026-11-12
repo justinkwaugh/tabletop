@@ -10,11 +10,18 @@ export type Segment =
 const text = (value: string): Segment => ({ kind: 'text', text: value })
 const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
 
-const MOVED: Partial<Record<PieceKind, string>> = {
-    [PieceKind.Zertz]: 'jumped',
-    [PieceKind.Yinsh]: 'slid',
-    [PieceKind.Dvonn]: 'covered with',
-    [PieceKind.Punct]: 'covered with'
+function moved(kind: PieceKind): string {
+    switch (kind) {
+        case PieceKind.Zertz:
+            return 'jumped'
+        case PieceKind.Yinsh:
+            return 'slid'
+        case PieceKind.Dvonn:
+        case PieceKind.Punct:
+            return 'covered with'
+        default:
+            throw Error(`A ${kind} piece has no move of its own`)
+    }
 }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
@@ -28,7 +35,7 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
         case 'move': {
             const covers = entry.piece === PieceKind.Dvonn || entry.piece === PieceKind.Punct
             return [
-                text(` ${MOVED[entry.piece] ?? 'moved'} `),
+                text(` ${moved(entry.piece)} `),
                 { kind: 'piece', piece: entry.piece, discs: 1 },
                 text(' from '),
                 point(entry.from),

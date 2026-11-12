@@ -5,7 +5,7 @@ import {
     type GameConfig,
     type GameConfigOptions
 } from '@tabletop/common'
-import { BoardShape } from '../model/geometry.js'
+import { BoardShape } from '../model/boardShape.js'
 
 export enum WhitePlayer {
     Random = 'Random',

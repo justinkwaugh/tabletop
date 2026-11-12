@@ -3,7 +3,7 @@ import { assert, Color, GameResult, validateGameResult } from '@tabletop/common'
 import { WhitePlayer } from './config.js'
 import { MatrxRuntime } from './runtime.js'
 import { MatrxGameStateValidator, type MatrxGameState } from '../model/gameState.js'
-import { BoardShape } from '../model/geometry.js'
+import { BoardShape } from '../model/boardShape.js'
 import { createGame, engine, execute, legalActions, playToEnd } from './tests/playthrough.js'
 
 const masterSeed = '0123456789abcdef0123456789abcdef'
@@ -22,9 +22,16 @@ function swapPlayers(state: MatrxGameState): MatrxGameState {
     return JSON.parse(swapped)
 }
 
-describe.each(Object.values(BoardShape))('MATRX GIPF tournaments on the %s board', (board) => {
+// Every board, and every choice of White, which an assigned order overrides. P1 created the game.
+const setups = Object.values(BoardShape).flatMap((board) =>
+    Object.values(WhitePlayer).map((whitePlayer) => [board, whitePlayer] as const)
+)
+
+describe.each(setups)('MATRX GIPF tournaments on the %s board, White %s', (board, whitePlayer) => {
+    const newGame = () => createGame(board, [P1, P2], { whitePlayer, creator: P1 })
+
     it('starts the player in seat one, playing White, and then seat two', () => {
-        const game = createGame(board, [P1, P2])
+        const game = newGame()
         for (const order of orders) {
             const { initialState } = engine.startGame(game, {
                 masterSeed,
@@ -42,25 +49,8 @@ describe.each(Object.values(BoardShape))('MATRX GIPF tournaments on the %s board
         }
     })
 
-    it.each([WhitePlayer.Creator, WhitePlayer.Opponent])(
-        'seats players as assigned whatever White is set to (%s)',
-        (whitePlayer) => {
-            const game = createGame(board, [P1, P2])
-            game.config = { ...game.config, whitePlayer }
-            game.players = game.players.map((player) => ({ ...player, userId: player.id }))
-            game.ownerId = P1
-            for (const order of orders) {
-                const { initialState } = engine.startGame(game, {
-                    masterSeed,
-                    startingPositions: { playerIds: order }
-                })
-                expect(initialState.turnManager.turnOrder).toEqual(order)
-            }
-        }
-    )
-
     it('leaves the seeded setup unchanged apart from who sits where', () => {
-        const game = createGame(board, [P1, P2])
+        const game = newGame()
         const uninitialized = engine.generateUninitializedState(game, masterSeed)
         const initialize = (playerIds?: string[]) =>
             MatrxRuntime.initializer
@@ -83,7 +73,7 @@ describe.each(Object.values(BoardShape))('MATRX GIPF tournaments on the %s board
     })
 
     it('finishes an assigned game with a valid result and the winner scoring one', () => {
-        const game = createGame(board, [P1, P2])
+        const game = newGame()
         const { initialState } = engine.startGame(game, {
             masterSeed,
             startingPositions: { playerIds: [P2, P1] }

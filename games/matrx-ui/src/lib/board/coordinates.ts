@@ -1,4 +1,9 @@
-import { coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
+import {
+    assertExists,
+    coordinatesToNumber,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
 import type { BoardView } from './geometry.js'
 
 export type BoardNotation = {
@@ -15,15 +20,21 @@ export type CoordinateLabel = {
 export function boardNotation(view: BoardView): BoardNotation {
     const positions = view.geometry.points
     const columns = [...new Set(positions.map((coords) => coords.q))].sort((a, b) => a - b)
-    const bottomOf = new Map<number, number>()
-    const topOf = new Map<number, number>()
-    for (const { q, r } of positions) {
-        bottomOf.set(q, Math.max(bottomOf.get(q) ?? r, r))
-        topOf.set(q, Math.min(topOf.get(q) ?? r, r))
+    // Each column's bottom (largest r) and top point.
+    const ends = new Map(
+        columns.map((q) => {
+            const rows = positions.filter((coords) => coords.q === q).map((coords) => coords.r)
+            return [q, { bottom: Math.max(...rows), top: Math.min(...rows) }]
+        })
+    )
+    const endsOf = (q: number) => {
+        const found = ends.get(q)
+        assertExists(found, 'Every column has points')
+        return found
     }
 
     const letterOf = (q: number) => String.fromCharCode(65 + columns.indexOf(q))
-    const numberOf = ({ q, r }: AxialCoordinates) => (bottomOf.get(q) ?? r) - r + 1
+    const numberOf = ({ q, r }: AxialCoordinates) => endsOf(q).bottom - r + 1
 
     const labelBeside = (key: string, text: string, dot: AxialCoordinates, top: boolean) => {
         const center = view.center(dot)
@@ -32,8 +43,8 @@ export function boardNotation(view: BoardView): BoardNotation {
     }
 
     const labels = columns.flatMap((q) => {
-        const top = { q, r: topOf.get(q) ?? 0 }
-        const bottom = { q, r: bottomOf.get(q) ?? 0 }
+        const top = { q, r: endsOf(q).top }
+        const bottom = { q, r: endsOf(q).bottom }
         const letter = letterOf(q)
         return [
             labelBeside(`top-${letter}`, `${letter}${numberOf(top)}`, top, true),
@@ -48,7 +59,11 @@ export function boardNotation(view: BoardView): BoardNotation {
         ])
     )
     return {
-        name: (coords) => names.get(coordinatesToNumber(coords)) ?? `${coords.q},${coords.r}`,
+        name: (coords) => {
+            const name = names.get(coordinatesToNumber(coords))
+            assertExists(name, 'Only points of the board are named')
+            return name
+        },
         labels
     }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GameResult, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import { MachineState } from './states.js'
+import { WhitePlayer } from './config.js'
 import { ActionType } from './actions.js'
 import {
     actionBase,
@@ -12,7 +13,8 @@ import {
 } from './tests/playthrough.js'
 import { EndReason, HydratedMatrxGameState, type MatrxGameState } from '../model/gameState.js'
 import { discsIn, emptyBoard, PieceKind, POTENTIAL_KINDS, type Unit } from '../model/board.js'
-import { BoardShape, GEOMETRIES, pointAt } from '../model/geometry.js'
+import { BoardShape } from '../model/boardShape.js'
+import { GEOMETRIES, pointAt } from '../model/geometry.js'
 import type { Potentials } from '../model/playerState.js'
 import type { PushPiece } from '../actions/pushPiece.js'
 import type { MovePotential } from '../actions/movePotential.js'
@@ -184,6 +186,40 @@ describe('setup', () => {
             expect(state.getPlayerState(W).color).toBe('white')
         }
     )
+
+    // Without an assigned order, the White option decides; P2 created the game.
+    const firstWith = (whitePlayer: WhitePlayer, creator: string, masterSeed: string) => {
+        const game = createGame(BoardShape.Matrx, ['p1', 'p2'], { whitePlayer, creator })
+        const { initialState } = engine.startGame(game, { masterSeed })
+        const [first] = initialState.turnManager.turnOrder
+        expect(initialState.players.find((player) => player.playerId === first)?.color).toBe(
+            'white'
+        )
+        return first
+    }
+    const seeds = Array.from({ length: 8 }, (_, index) => `${index}`.padStart(32, '0'))
+
+    it('White option Game creator: the creator plays White and goes first', () => {
+        expect(seeds.map((seed) => firstWith(WhitePlayer.Creator, 'p2', seed))).toEqual(
+            seeds.map(() => 'p2')
+        )
+    })
+
+    it('White option Opponent: the creator plays Black', () => {
+        expect(seeds.map((seed) => firstWith(WhitePlayer.Opponent, 'p2', seed))).toEqual(
+            seeds.map(() => 'p1')
+        )
+    })
+
+    it('White goes to the draw when chosen at random, or when the creator does not play', () => {
+        for (const [whitePlayer, creator] of [
+            [WhitePlayer.Random, 'p2'],
+            [WhitePlayer.Creator, 'someone-else']
+        ] as const) {
+            const firsts = new Set(seeds.map((seed) => firstWith(whitePlayer, creator, seed)))
+            expect(firsts).toEqual(new Set(['p1', 'p2']))
+        }
+    })
 })
 
 describe('GIPF pieces', () => {

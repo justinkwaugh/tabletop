@@ -11,24 +11,32 @@ import { MatrxInfo } from '../info.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedMatrxGameState, type MatrxGameState } from '../../model/gameState.js'
-import { BoardShape } from '../../model/geometry.js'
+import { BoardShape } from '../../model/boardShape.js'
+import { WhitePlayer } from '../config.js'
 
 export const engine = new GameEngine(MatrxRuntime)
 
+// Each player's user has the player's id; the creator, if one plays, is `creator`.
 export function createGame(
     board: BoardShape = BoardShape.Matrx,
-    playerIds: string[] = ['white', 'black']
+    playerIds: string[] = ['white', 'black'],
+    { whitePlayer = WhitePlayer.Random, creator = 'owner' } = {}
 ) {
     return MatrxRuntime.initializer.initializeGame(
         {
             id: 'matrx-test',
             typeId: 'matrx',
-            ownerId: 'owner',
+            ownerId: creator,
             seed: 5,
-            config: { ...defaultGameConfig(MatrxInfo.configurator?.options ?? []), board },
+            config: {
+                ...defaultGameConfig(MatrxInfo.configurator?.options ?? []),
+                board,
+                whitePlayer
+            },
             players: playerIds.map((id) => ({
                 id,
                 name: id,
+                userId: id,
                 isHuman: true,
                 status: PlayerStatus.Joined
             }))

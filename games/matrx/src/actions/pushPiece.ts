@@ -7,7 +7,6 @@ import { PieceKind } from '../model/board.js'
 
 export type PushMetadata = Type.Static<typeof PushMetadata>
 export const PushMetadata = Type.Object({
-    line: Type.Array(AxialCoordinates),
     shifted: Type.Integer({ minimum: 0 }),
     tamskOwnerId: Type.Optional(Type.String())
 })
@@ -53,7 +52,6 @@ export class HydratedPushPiece extends HydratableAction<typeof PushPiece> implem
         const shifted = state.board.shiftedBy(entry)
         const tamskOwnerId = state.pushPiece(this.playerId, entry, this.kind)
         this.metadata = {
-            line: structuredClone(entry.line),
             shifted,
             ...(tamskOwnerId === undefined ? {} : { tamskOwnerId })
         }

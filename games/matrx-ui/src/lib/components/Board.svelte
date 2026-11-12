@@ -72,9 +72,7 @@
                 playerId,
                 at: view.reserveDot(seat),
                 line: view.reserveLine(seat),
-                discs: toned(
-                    Array<BoardDisc>(Math.max(0, count)).fill({ playerId, kind: PieceKind.Gipf })
-                )
+                discs: toned(Array<BoardDisc>(count).fill({ playerId, kind: PieceKind.Gipf }))
             }
         })
     )

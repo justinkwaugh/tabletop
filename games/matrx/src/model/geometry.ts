@@ -7,11 +7,7 @@ import {
     hexSpiralPattern,
     type AxialCoordinates
 } from '@tabletop/common'
-
-export enum BoardShape {
-    Matrx = 'Matrx',
-    Gipf = 'Gipf'
-}
+import { BoardShape } from './boardShape.js'
 
 const GIPF_RADIUS = 4
 
