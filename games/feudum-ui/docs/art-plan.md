@@ -199,29 +199,20 @@ The six guild icons are drawn once and reused: on the pawn cube's top face, on t
 
 ## Cover
 
-The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailUrl`. It is shown at 150 px high in the compact card and 340 px high in the large card. It is 544 × 680 (4:5), lossy WebP, at most 120 KB. 680 px is twice the large card's height, so it is never upscaled and carries no excess under the image-assets gate.
+The catalog title image is the supplied cover, `src/lib/art/supplied/cover.webp`, read by `info.thumbnailUrl`. It is shown at 150 px high in the compact card and 340 px high in the large card. It is 544 × 680 (4:5), lossy WebP, at most 120 KB. 680 px is twice the large card's height, so it is never upscaled and carries no excess under the image-assets gate. No cover is drawn.
 
-**Composition.** One image that reads at both heights:
+**Production.** `scripts/make-cover.mjs` places the image on a page from `utils/coverPage.ts`, renders it in Chromium and writes the WebP; it reads colours from `app.css`, so it contains no raw colour. `src/lib/art/cover-README.md` says how the cover is made again.
 
-- A dusk-indigo sky (`surface`) over a green hill, with a keep on it in the centre, a crown on its pennant. This silhouette and the crown carry the title at 150 px.
-- A band of parchment across the lower third with the title "Feudum" in MedievalSharp, in `ink`, its capital height 14 % of the image. That is 21 px at 150 high and 48 px at 340 high, and the title is whole at both.
-- The six guild icons as medallions in an arc over the keep, which are ornament at 150 px and legible at 340 px.
-- Five pawns, one per default seat colour, standing along the hill's foot under the band. At 150 px they are a row of coloured marks.
-- No text but the title; no amber and no rose beyond what the palette uses decoratively.
-
-**Production.** `scripts/make-cover.mjs` composes an SVG from the same shape module the pieces use, with the page and its title band from `utils/coverPage.ts`, renders it in Chromium and writes the WebP. It reads colours from `app.css` and the five default seat colours from the colorizer, so it contains no raw colour. `src/lib/images/README.md` says how the cover was made and that rerunning the script reproduces it.
-
-**The supplied cover.** The id `cover` takes the catalog's place when its file is present, at the same size and budget. It is the publisher's box front, with nothing drawn over it, since the print already says the title. Save the box front as `box-front.png` (or `.jpg`, `.webp`) in the git-ignored `src/lib/art/cover-source/` and run `node scripts/make-cover.mjs --titled`: the script takes `box-front.*` when it is there and the rulebook's cover, `rulebook-cover.*`, otherwise, and writes `src/lib/art/supplied/cover.webp`. The crop rule (`coverPlacement` in `utils/coverPage.ts`) keeps the printed title whole. The box front is landscape, and its title runs across 58 % of its width (`BoxFrontTitle`), more than a full-height 4:5 crop shows, so the title and a 16-unit margin each side fill the cover's width, centred across it, and the image stands centred top to bottom between two bands of `surface`. A source without a known title is scaled to the cover's full width and centred top to bottom; the rulebook's cover loses about 5 % of its height at each end, and its title stays whole. A supplied scene that carries no title of its own takes `--art` alone and stands behind the drawn parchment band. `src/lib/definitions/definition.ts` prefers the supplied file and falls back to `cover.webp`, which stays committed. It finds the file through `src/lib/art/cover.ts`, which looks for the cover alone, so the UI entry the site loads for its library carries neither the asset map nor the logic tables the map is built from.
+**The supplied cover.** The id `cover` is the catalog's image when its file is present. It is the publisher's box front, with nothing drawn over it, since the print already says the title. Save the box front as `box-front.png` (or `.jpg`, `.webp`) in the git-ignored `src/lib/art/cover-source/` and run `node scripts/make-cover.mjs --titled`: the script takes `box-front.*` when it is there and the rulebook's cover, `rulebook-cover.*`, otherwise, and writes `src/lib/art/supplied/cover.webp`. The crop rule (`coverPlacement` in `utils/coverPage.ts`) keeps the printed title whole. The box front is landscape, and its title runs across 58 % of its width (`BoxFrontTitle`), more than a full-height 4:5 crop shows, so the title and a 16-unit margin each side fill the cover's width, centred across it, and the image stands centred top to bottom between two bands of `surface`. A source without a known title is scaled to the cover's full width and centred top to bottom; the rulebook's cover loses about 5 % of its height at each end, and its title stays whole. A supplied scene that carries no title of its own takes `--art` alone and stands behind the drawn parchment band. `src/lib/definitions/definition.ts` reads the supplied file and, where the folder holds none, gives the catalog an empty thumbnail: no drawn cover stands in for the publisher's, and the site's cards show no picture for the title. It finds the file through `src/lib/art/cover.ts`, which looks for the cover alone, so the UI entry the site loads for its library carries neither the asset map nor the logic tables the map is built from.
 
 ## Supplied assets
 
 **Committed now, our own work or under their own licence:**
 
-| File                                      | Source                                | Permission               | Rendered size       | Natural size |
-| ----------------------------------------- | ------------------------------------- | ------------------------ | ------------------- | ------------ |
-| `src/lib/images/cover.webp`               | Rendered from our own SVG (see Cover) | not needed; our own work | 150 and 340 px high | 544 x 680    |
-| `src/lib/fonts/MedievalSharp.ttf`         | OFL 1.1                               | licence text beside it   | n/a                 | n/a          |
-| `src/lib/fonts/IMFellEnglish-Latin.woff2` | OFL 1.1                               | licence text beside it   | n/a                 | n/a          |
+| File                                      | Source  | Permission             | Rendered size | Natural size |
+| ----------------------------------------- | ------- | ---------------------- | ------------- | ------------ |
+| `src/lib/fonts/MedievalSharp.ttf`         | OFL 1.1 | licence text beside it | n/a           | n/a          |
+| `src/lib/fonts/IMFellEnglish-Latin.woff2` | OFL 1.1 | licence text beside it | n/a           | n/a          |
 
 **Supplied once the title's permission entry lands**, each as `src/lib/art/supplied/<id>.webp` (or `.png` only where it needs transparency that lossy WebP can't keep), at about twice its largest render, which the table gives: an enlarged card, writ, tile or bead at 420 px wide, an enlarged guild area upright at 640 px tall, the board at its scale cap of 1, a seat panel at its reading scale. Where the print is smaller than that (a bead or a tile enlarged), the file is the print's own size. `assetMap.ts` is the list; `imageCoverage.spec.ts` holds every id to a component, a fallback and a file slot, whether or not the file is present, and holds each file the folder has to 2.5 times its largest render.
 
@@ -277,7 +268,7 @@ Where this plan adds to `ui-interaction-visual-contract.md`:
 - `palette.spec.ts`: every colour is a declared token and every used token is declared; the declared set equals the contract's table and this one, with this plan's values; the seat colours under both colorizers are mutually distinct and clear of `danger` (yellow against `accent` allow-listed), with ink at 4.5:1.
 - `imageCoverage.spec.ts`: every id in the asset map, present or not, has a component, a labelled fallback and a file slot; the folder holds no file the map doesn't know; the cover's size, format and budget.
 - `definitions/entry.spec.ts`: the UI entry reaches only the title info and the cover.
-- `emptyArt.spec.ts`: with the folder empty, the state of every commit before the art lands, every id falls back and the catalog gets the drawn cover.
+- `emptyArt.spec.ts`: with the folder empty, the state of every commit before the art lands, every id falls back and the catalog gets no cover: its thumbnail is the empty string.
 - `faces.spec.ts`: a back is identical across its faces and names none, with and without files; a seal hides its value from its holder; tiers by width; a rose chip's label and halo; a seal without one.
 - `faces.spec.ts`, printed cards: in a printed colour every kind is its whole printed card and the back is that colour's, the same for all eleven kinds and naming none; a paint in no printed colour, or a printed colour the folder lacks, keeps the band and the drawn back; the name over the print at the two small tiers, the number at all three.
 - `faces.spec.ts`, printed pieces: in a printed colour a marker, disc and reeve are the printed piece of their own kind, with no letter on it; every seat piece, printed or drawn, names its seat in its accessible name and tooltip; a paint in no printed colour, or a file the folder lacks, draws the piece in the seat fill.
@@ -290,6 +281,6 @@ Where this plan adds to `ui-interaction-visual-contract.md`:
 - `map/mapLayers.spec.ts`: the ground, routes and locations; the markers, seals, goods and abandoned vessels on a space, each where the rules put it; pawns on their vessels and monsters, in seat paint.
 - `tracks/trackLayers.spec.ts`: the score ring and what the printed board already holds.
 - `supplyCard.spec.ts`: the Supply card's groups, each count from state, the deck's notes for the viewer alone, and the start player.
-- The cover budget: `cover.webp`, and the supplied cover where the folder holds it, is 544 × 680 and at most 120 KB.
-- `utils/coverPage.spec.ts`: the drawn scene and a scene without a title stand under the title band; a supplied cover that prints its own title is the whole cover, with nothing drawn over it.
+- The cover budget: the supplied cover, where the folder holds it, is 544 × 680 and at most 120 KB, and no drawn cover is committed beside it.
+- `utils/coverPage.spec.ts`: a scene without a title stands under the title band; a supplied cover that prints its own title is the whole cover, with nothing drawn over it.
 - Readiness gates 1 and 2 pass on the first run.

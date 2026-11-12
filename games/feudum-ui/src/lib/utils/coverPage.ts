@@ -68,13 +68,11 @@ export function coverPlacement(source: ImageSize, title?: PrintedTitle): CoverPl
 }
 
 /**
- * What stands on the cover: the drawn scene's markup, or a supplied image. A supplied image that
- * prints its own title (`titled`) is the whole cover, placed by `coverPlacement` around that title
- * when its place is known; one without a
- * title fills the page behind the drawn title band, as the drawn scene does.
+ * What stands on the cover: a supplied image. One that prints its own title (`titled`) is the whole
+ * cover, placed by `coverPlacement` around that title when its place is known; one without a title
+ * fills the page behind the drawn title band.
  */
 export type CoverScene =
-    | { kind: 'drawn'; markup: string }
     | { kind: 'art'; href: string; titled: false }
     | { kind: 'art'; href: string; titled: true; size: ImageSize; title?: PrintedTitle }
 
@@ -89,16 +87,13 @@ function titleBand(token: Token) {
 
 /** The cover as one SVG of `CoverSize`. */
 export function coverSvg(scene: CoverScene, token: Token): string {
-    const band = scene.kind === 'art' && scene.titled ? '' : titleBand(token)
+    const band = scene.titled ? '' : titleBand(token)
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${Width}" height="${Height}" viewBox="0 0 ${Width} ${Height}">
     ${ground(scene, token)}${band}
 </svg>`
 }
 
 function ground(scene: CoverScene, token: Token): string {
-    if (scene.kind === 'drawn') {
-        return scene.markup
-    }
     if (!scene.titled) {
         return `<image href="${scene.href}" width="${Width}" height="${Height}" preserveAspectRatio="xMidYMid slice" />`
     }

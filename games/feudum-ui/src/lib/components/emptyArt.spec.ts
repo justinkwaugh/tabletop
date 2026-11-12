@@ -27,9 +27,9 @@ describe('with the asset folder empty', () => {
         expect(AssetIds.filter((id) => assetUrl(id) !== undefined)).toEqual([])
     })
 
-    it('the catalog gets the drawn cover', () => {
+    it("the catalog gets no cover: no drawn one stands in for the publisher's", () => {
         expect(assetUrl(CoverAsset)).toBeUndefined()
-        expect(UiDefinition.info.thumbnailUrl).toMatch(/cover\.webp/)
+        expect(UiDefinition.info.thumbnailUrl).toBe('')
     })
 
     it('pieces draw themselves, with no image element', () => {

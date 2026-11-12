@@ -56,10 +56,7 @@ describe('the UI entry', () => {
     it('reaches only the title info and the cover', () => {
         expect(staticGraph(Entry)).toEqual({
             modules: [Entry, '/src/lib/art/cover.ts'],
-            external: [
-                '{ FeudumInfo } from @tabletop/feudum',
-                'drawnCover from $lib/images/cover.webp'
-            ]
+            external: ['{ FeudumInfo } from @tabletop/feudum']
         })
     })
 })
