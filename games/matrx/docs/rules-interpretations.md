@@ -14,8 +14,7 @@ Choices made where the MATRX GIPF rules (Rio Grande Games, 2024) are silent, whe
 
 ## Rows
 
-- **Rows are taken after every move, the mover's first.** After a regular move, the mover takes their rows one at a time, then the opponent takes theirs. Rows are found again after each removal, since taking a piece can uncover one beneath it that completes a new row.
-- **A row uncovered for the mover by the opponent's removal** stands through the opponent's next move, and its owner takes it after that move.
+- **Rows are always taken at the end of the turn, the mover's first.** After a regular move, the mover takes their rows one at a time, then the opponent takes theirs. Rows are found again after each removal, since taking a piece can uncover one beneath it that completes a new row. The turn ends only when no row of either colour stands: a row the opponent's removal uncovers for the mover is taken in the same turn, the mover first again.
 - **What a removal takes.** Every single piece in the row's reach goes. Stacks of two may stay, but at least one piece of the row of four must go (rule E1). A row of five stacks broken at one end leaves a row of four, which must be taken again.
 - **Which stacks stay.** The player taking a row decides stack by stack. The table offers the player's own stacks as staying and the opponent's as going, and either can be switched.
 

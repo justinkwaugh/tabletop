@@ -427,7 +427,7 @@ describe('rows', () => {
         expect(state.activePlayerIds).toEqual([B])
     })
 
-    it('removing a covering piece can uncover a new row, which must go too', () => {
+    it("a row the opponent's removal uncovers for the mover is taken before the turn ends", () => {
         const game = createGame()
         let state = withPieces(start(game), [
             ...KEEPERS,
@@ -445,14 +445,12 @@ describe('rows', () => {
         expect(state.activePlayerIds).toEqual([B])
         state = removeRow(game, state, B, 'E4', 'E7')
         expect(stackAt(state, 'E4')).toEqual([pair(W, PieceKind.Dvonn)])
-        expect(state.machineState).toBe(MachineState.TakingTurn)
-        expect(state.activePlayerIds).toEqual([B])
-        state = push(game, state, B, 'J1', 'I2', PieceKind.Yinsh)
         expect(state.machineState).toBe(MachineState.ResolvingRows)
         expect(state.activePlayerIds).toEqual([W])
+        expect(new HydratedMatrxGameState(state).turnManager.currentTurn()?.playerId).toBe(W)
         state = removeRow(game, state, W, 'C4', 'F3', ['C4', 'D4', 'F3'])
-        expect(state.activePlayerIds).toEqual([W])
         expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([B])
     })
 
     it('the mover takes their rows before the opponent takes theirs', () => {

@@ -23,20 +23,29 @@ export function afterMove(
 }
 
 // Rules E6–E7: rows go one at a time, the mover's first; after each, rows are found again, since
-// a removal can uncover a piece that completes a new one.
+// a removal can uncover a piece that completes a new one. The turn ends only when no row of
+// either colour stands, so a row the opponent's removal uncovers for the mover goes in this turn.
 export function continueResolving(state: HydratedMatrxGameState): MachineState {
     const beaten = state.players.find((player) => state.gipfPiecesLeft(player.playerId) === 0)
     if (beaten !== undefined) {
         state.declareWinner(state.opponentOf(beaten.playerId), EndReason.NoGipfPieces)
         return MachineState.EndOfGame
     }
-    while (state.resolvingPlayerIds.length > 0) {
-        if (state.board.rowsOf(state.resolvingPlayerIds[0]).length > 0) {
-            return MachineState.ResolvingRows
+    for (;;) {
+        while (state.resolvingPlayerIds.length > 0) {
+            if (state.board.rowsOf(state.resolvingPlayerIds[0]).length > 0) {
+                return MachineState.ResolvingRows
+            }
+            state.resolvingPlayerIds.shift()
         }
-        state.resolvingPlayerIds.shift()
+        const moverId = state.turnManager.currentTurn()?.playerId
+        assertExists(moverId, 'Rows are taken during a turn')
+        const waiting = [moverId, state.opponentOf(moverId)].filter(
+            (playerId) => state.board.rowsOf(playerId).length > 0
+        )
+        if (waiting.length === 0) return endTurn(state)
+        state.resolvingPlayerIds = waiting
     }
-    return endTurn(state)
 }
 
 // Rows are only taken after the turn's regular move, so taking the last one ends the turn.
