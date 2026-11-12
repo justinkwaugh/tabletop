@@ -5,6 +5,7 @@ import {
     type GameExploration,
     type RandomFunction
 } from '@tabletop/common'
+import { HandSize } from '../actions/finaliseHand.js'
 import { Spaces } from '../data/board.js'
 import { ActionCards, type ActionCardKind } from '../data/cards.js'
 import { ScrollSpaces } from '../data/guilds.js'
@@ -37,15 +38,20 @@ function deal<T>(pile: T[], count: number): T[] {
     return pile.splice(0, count)
 }
 
-/** R-3.1, R-3.2 Different kinds from the player's eleven, none played this round. */
+/**
+ * R-3.1, R-3.2 Different kinds from the player's eleven, none played this round. A seat that has
+ * finalised before the reveal has a hand of untold size (R-3.1-H1): it is dealt one with no pouch.
+ */
 function dealHand(
-    { played, handCount }: ProjectedPlayer,
+    { playerId, played, handCount }: ProjectedPlayer,
+    state: FeudumProjectedState,
     random: RandomFunction
 ): ActionCardKind[] {
     const unplayed = ActionCards.map((card) => card.kind).filter(
         (kind) => !played.some((card) => card.kind === kind)
     )
-    return deal(shuffled(unplayed, random), handCount)
+    const untold = state.flow.selection?.finalised.includes(playerId) ?? false
+    return deal(shuffled(unplayed, random), untold ? HandSize : handCount)
 }
 
 /** R-5.1 The writs the explorer cannot place, in catalogue order. */
@@ -243,7 +249,7 @@ export class FeudumGameExploration implements GameExploration<FeudumProjectedSta
     }: ExplorationPopulation<FeudumProjectedState>): FeudumProjectedState {
         const sample = structuredClone(state)
         for (const player of sample.players) {
-            player.hand ??= dealHand(player, random)
+            player.hand ??= dealHand(player, sample, random)
         }
         const writDeck = dealWrits(sample, random)
         const seals = dealSeals(sample, random)

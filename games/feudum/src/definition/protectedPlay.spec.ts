@@ -49,6 +49,7 @@ interface SpecFiles {
 
 const AlwaysBarriers: readonly string[] = [
     ActionType.FinaliseHand,
+    ActionType.RevealPouches,
     ActionType.Explore,
     ActionType.Harvest,
     ActionType.AnswerAttack,

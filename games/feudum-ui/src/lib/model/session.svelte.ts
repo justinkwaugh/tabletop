@@ -113,8 +113,8 @@ export interface StartingPawnPanel {
 export interface FinaliseRowEntry {
     readonly playerId: string
     readonly finalised: boolean
+    /** R-3.1-H1 This seat's own committed good: no seat sees another's before the reveal. */
     readonly pouchGood?: PouchGood
-    readonly next: boolean
 }
 
 export interface HandDrafting {
@@ -151,6 +151,8 @@ export interface HandPanel {
     readonly finaliseRow: readonly FinaliseRowEntry[]
     /** This seat's draft; absent once it has finalised, and for anyone watching. */
     readonly drafting?: HandDrafting
+    /** R-3.1-H1 "Waiting for Ada and Bo to finalise", once this seat has nothing left to send. */
+    readonly waiting?: string
 }
 
 const PouchRows: readonly {
@@ -173,6 +175,13 @@ const PouchRows: readonly {
         caption: 'once this round'
     }
 ]
+
+/** "Ada", "Ada and Bo", "Ada, Bo and Cy". */
+function namesInWords(names: readonly string[]): string {
+    return names.length > 1
+        ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+        : names.join('')
+}
 
 type SessionOptions = ConstructorParameters<
     typeof GameSession<FeudumProjectedState, HydratedFeudumGameState>
@@ -637,21 +646,32 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         ) {
             return undefined
         }
+        const me = this.myPlayerId
         const finaliseRow = state.turnManager.turnOrder.map((playerId) => {
             const finalised = selection.finalised.includes(playerId)
-            const { pouch } = state.getPlayerState(playerId)
+            const { committedPouch } = state.getPlayerState(playerId)
             return {
                 playerId,
                 finalised,
-                ...(finalised && pouch ? { pouchGood: pouch } : {}),
-                next: selection.playerId === playerId
+                ...(finalised && playerId === me && committedPouch
+                    ? { pouchGood: committedPouch }
+                    : {})
             }
         })
-        const drafting = this.handDrafting(selection.playerId)
-        return { finaliseRow, ...(drafting ? { drafting } : {}) }
+        const drafting = this.handDrafting()
+        const yet = finaliseRow
+            .filter(({ playerId, finalised }) => !finalised && playerId !== me)
+            .map(({ playerId }) => this.getPlayerName(playerId))
+        return {
+            finaliseRow,
+            ...(drafting ? { drafting } : {}),
+            ...(!drafting && yet.length > 0
+                ? { waiting: `Waiting for ${namesInWords(yet)} to finalise` }
+                : {})
+        }
     })
 
-    private handDrafting(nextFinaliser: string): HandDrafting | undefined {
+    private handDrafting(): HandDrafting | undefined {
         const me = this.myPlayerId
         const preview = this.handPreview
         if (!me || !preview) {
@@ -682,17 +702,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             ...(preview.conquerMayEndLast
                 ? { conquerWarning: 'Conquer may end up your last card; it would be forfeited.' }
                 : {}),
-            primary:
-                nextFinaliser === me
-                    ? {
-                          label: 'Long live the king',
-                          note: preview.revealsInfo ? `finalise · ${CantBeUndone}` : 'finalise',
-                          enabled: preview.reason === undefined
-                      }
-                    : {
-                          label: `Waiting for ${this.getPlayerName(nextFinaliser)} to finalise`,
-                          enabled: false
-                      }
+            // R-3.1-H1 Every seat finalises when it likes.
+            primary: {
+                label: 'Long live the king',
+                note: preview.revealsInfo ? `finalise · ${CantBeUndone}` : 'finalise',
+                enabled: preview.reason === undefined
+            }
         }
     }
 

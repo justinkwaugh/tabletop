@@ -45,8 +45,8 @@ export async function atPlayingCards(
     await host.playStartingPawns()
     const { order } = host
     for (const _ of order) {
-        const playerId = host.state.flow.selection?.playerId
-        assertExists(playerId, 'R-3.1 A seat is next to finalise')
+        const [playerId] = host.state.activePlayerIds
+        assertExists(playerId, 'R-3.1-H1 A seat is yet to finalise')
         await host.send(playerId, {
             type: ActionType.FinaliseHand,
             revealsInfo: true,

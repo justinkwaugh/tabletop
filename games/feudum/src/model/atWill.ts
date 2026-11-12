@@ -7,8 +7,8 @@ export type AtWillWindow = 'before-card' | 'hand-selection' | 'nourishing' | 'wr
 
 /**
  * R-4.4-H1 The one test of whether this seat may act at will now, and in which window: the turn
- * player before a card or while it is over the writ limit, the next finaliser, the seat nourishing
- * asks. A seat off its turn over the limit may only discard (R-4.4-H5).
+ * player before a card or while it is over the writ limit, a seat yet to finalise (R-3.1-H1), the
+ * seat nourishing asks. A seat off its turn over the limit may only discard (R-4.4-H5).
  */
 export function atWillWindow(
     state: HydratedFeudumGameState,
@@ -19,7 +19,9 @@ export function atWillWindow(
         case MachineState.PlayingCards:
             return turn?.playerId === playerId ? 'before-card' : undefined
         case MachineState.SelectingHands:
-            return selection?.playerId === playerId ? 'hand-selection' : undefined
+            return selection && !selection.finalised.includes(playerId)
+                ? 'hand-selection'
+                : undefined
         case MachineState.Nourishing:
             return nourish?.pending[0] === playerId ? 'nourishing' : undefined
         case MachineState.DiscardingWrits:

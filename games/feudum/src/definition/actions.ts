@@ -32,6 +32,7 @@ export enum ActionType {
     Nourish = 'Nourish',
     CollectLandscapes = 'CollectLandscapes',
     StartRound = 'StartRound',
+    RevealPouches = 'RevealPouches',
     AdvanceTurn = 'AdvanceTurn',
     NourishPawns = 'NourishPawns',
     RollProgressDie = 'RollProgressDie',

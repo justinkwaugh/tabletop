@@ -373,7 +373,7 @@ describe('R-4.4-H5 a writ discarded at any time', () => {
         host = table
         await table.playStartingGoods()
         await table.playStartingPawns()
-        const [first, second] = table.order
+        const [first, second, third] = table.order
         table.edit((state) => holdWrit(state, first, Mandate5))
         await table.send(first, {
             type: ActionType.FinaliseHand,
@@ -384,7 +384,7 @@ describe('R-4.4-H5 a writ discarded at any time', () => {
         await settled(session)
         expect(session.gameState.machineState).toBe(MachineState.SelectingHands)
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
-            `Waiting for ${session.getPlayerName(second)} to finalise`
+            `Waiting for ${session.getPlayerName(second)} and ${session.getPlayerName(third)} to finalise`
         ])
         expect(rowLabels(session.actionPanel, 'at-will')).toEqual(['Writs 1'])
         expect(chipLabels(session)).toEqual(['Writs 1'])
@@ -607,13 +607,13 @@ describe('R-3.14.2 ReclaimImmunitySeal', () => {
 })
 
 describe('R-4.4-H1 The other windows', () => {
-    it('R-3.1 the next finaliser has the row, and its hand draft outlives its own at-will Action', async () => {
+    it('R-3.1-H1 a seat yet to finalise has the row, and its hand draft outlives its own at-will Action', async () => {
         const turn = await atPlayingCards(['tax', 'move'])
         host = turn.host
         turn.host.edit((state) => {
             state.machineState = MachineState.SelectingHands
             state.flow.turn = undefined
-            state.flow.selection = { playerId: turn.seat, finalised: [] }
+            state.flow.selection = { finalised: [] }
             state.activePlayerIds = [...turn.host.order]
             for (const playerId of turn.host.order) {
                 const player = state.getPlayerState(playerId)

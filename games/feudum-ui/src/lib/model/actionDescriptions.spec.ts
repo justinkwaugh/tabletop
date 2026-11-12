@@ -45,6 +45,7 @@ import {
     type ReclaimImmunitySeal,
     type ReplenishGuilds,
     type ReplenishMap,
+    type RevealPouches,
     type RollProgressDie,
     type ScoreGame,
     type SpendRegionTile,
@@ -149,7 +150,7 @@ const Lines: Readonly<
             pouchGood: 'sulfur'
         }),
         actor: 'You finalised · pouch sulfur · Move, Tax',
-        other: 'Ana finalised · pouch sulfur'
+        other: 'Ana finalised'
     },
     [ActionType.ForfeitCard]: {
         action: sample<ForfeitCard>({
@@ -587,6 +588,16 @@ const Lines: Readonly<
         actor: 'Round 3 began · 1 pawn drunk',
         other: 'Round 3 began · 1 pawn drunk'
     },
+    [ActionType.RevealPouches]: {
+        action: sample<RevealPouches>({
+            ...System,
+            type: ActionType.RevealPouches,
+            revealsInfo: true,
+            metadata: { pouches: [{ playerId: 'p1', good: 'sulfur' }] }
+        }),
+        actor: 'Every hand final · pouches: You sulfur',
+        other: 'Every hand final · pouches: Ana sulfur'
+    },
     [ActionType.AdvanceTurn]: {
         action: sample<AdvanceTurn>({
             ...System,
@@ -734,10 +745,10 @@ function writWords(writId: string): string {
 }
 
 describe('R-X.1 Every action type has its line (contract: Game log and history)', () => {
-    it('The logic package lists 39 types, and each has a line', () => {
+    it('The logic package lists 40 types, and each has a line', () => {
         const types = Object.values(ActionType)
 
-        expect(types).toHaveLength(39)
+        expect(types).toHaveLength(40)
         for (const type of types) {
             expect(Lines[type], type).toBeDefined()
             expect(Lines[type].action.type, type).toBe(type)
@@ -802,10 +813,21 @@ describe("The contract's own wording", () => {
         )
     })
 
-    it('R-3.1-H1 Ana finalised · pouch sulfur', () => {
-        expect(line(Lines[ActionType.FinaliseHand].action, 'p3')).toBe(
-            'Ana finalised · pouch sulfur'
+    it('R-3.1-H1 Ana finalised, her pouch good untold until every hand is final', () => {
+        expect(line(Lines[ActionType.FinaliseHand].action, 'p3')).toBe('Ana finalised')
+        expect(line(Lines[ActionType.RevealPouches].action, 'p3')).toBe(
+            'Every hand final · pouches: Ana sulfur'
         )
+    })
+
+    it('R-3.1-H1 A reveal with no pouch good says so', () => {
+        const none = sample<RevealPouches>({
+            ...System,
+            type: ActionType.RevealPouches,
+            revealsInfo: true,
+            metadata: { pouches: [] }
+        })
+        expect(line(none, 'p3')).toBe('Every hand final · no pouch goods')
     })
 
     it('R-4.4.1 drew 3, kept 1, 2 under the deck', () => {
@@ -902,7 +924,7 @@ const Protected: readonly {
         name: 'R-3.1 FinaliseHand cards',
         action: Lines[ActionType.FinaliseHand].action,
         actorNames: ['Move', 'Tax'],
-        otherLine: 'Ana finalised · pouch sulfur'
+        otherLine: 'Ana finalised'
     },
     {
         name: 'R-3.10.1 Explore draw',
@@ -1031,7 +1053,7 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
         expect(hand(['move', 'tax', 'conquer'])).toBe(hand(['defend']))
     })
 
-    it('R-3.1-H1 A pouch good is public once finalised; no pouch says none', () => {
+    it('R-3.1-H1 A pouch good is its owner`s alone until the reveal, which tells every one', () => {
         const hand = (pouchGood?: FinaliseHand['pouchGood']) =>
             sample<FinaliseHand>({
                 ...Base,
@@ -1045,9 +1067,9 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
             Spectator
         ] satisfies Visibility.Perspective[]) {
             const viewer = perspective.kind === 'player' ? perspective.playerId : undefined
-            expect(line(recordFor(hand('saltpeter'), perspective, table), viewer)).toBe(
-                'Ana finalised · pouch saltpeter'
-            )
+            const record = recordFor(hand('saltpeter'), perspective, table)
+            expect(record).not.toHaveProperty('pouchGood')
+            expect(line(record, viewer)).toBe('Ana finalised')
             expect(line(recordFor(hand(), perspective, table), viewer)).toBe('Ana finalised')
         }
         expect(

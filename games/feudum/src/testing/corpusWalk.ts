@@ -25,6 +25,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import {
     cardMove,
     handFor,
+    walkCount,
     walkGame,
     type GameWalk,
     type Progress,
@@ -188,7 +189,7 @@ export class CorpusSeats implements WalkPlan {
             (kind) => this.wants(cardKey(kind, 'regular')) || this.wants(cardKey(kind, 'special'))
         )
         const rotated = wanted.map(
-            (_kind, index) => wanted[(index + state.actionCount) % wanted.length]
+            (_kind, index) => wanted[(index + walkCount(state)) % wanted.length]
         )
         return [...new Set([...rotated.slice(0, 2), ...handFor(state, playerId, progress)])].slice(
             0,
@@ -330,7 +331,15 @@ export class CorpusSeats implements WalkPlan {
                   type: ActionType.Influence,
                   playerId,
                   moneyIsInfluence: spaceId,
-                  ...(short ? { spaceIds: spaces.slice(0, markers) } : {})
+                  // R-3.8.3 A seat short of markers names the space it takes among those it marks.
+                  ...(short
+                      ? {
+                            spaceIds: [
+                                spaceId,
+                                ...spaces.filter((other) => other !== spaceId)
+                            ].slice(0, markers)
+                        }
+                      : {})
               }
             : undefined
     }

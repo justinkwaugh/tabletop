@@ -491,9 +491,10 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         const table = hold(await playOutRound(2))
         const { session, sessions, host } = table
         expect(session.gameState.machineState).toBe(MachineState.SelectingHands)
-        const nextId = session.handPanel?.finaliseRow.find((entry) => entry.next)?.playerId
+        // R-3.1-H1 Any seat may finalise first: the first in turn order does here.
+        const nextId = session.handPanel?.finaliseRow[0]?.playerId
         const next = sessions.find((seat) => seat.myPlayerId === nextId)
-        assertExists(next, 'A seat finalises next')
+        assertExists(next, 'A seat finalises')
         const kinds = next.handPanel?.drafting?.cards.map(({ kind }) => kind) ?? []
         for (const seat of sessions) {
             dawnOf(seat)

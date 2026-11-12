@@ -11,7 +11,7 @@ import { Value } from 'typebox/value'
 import { placeVesselOffers } from '../actions/placeVessel.js'
 import { reclaimImmunitySealOffers } from '../actions/reclaimImmunitySeal.js'
 import { spendRegionTileOffers } from '../actions/spendRegionTile.js'
-import type { ActionCardKind } from '../data/cards.js'
+import { ActionCards, type ActionCardKind } from '../data/cards.js'
 import { ActionType } from '../definition/actions.js'
 import { FeudumRuntime } from '../definition/runtime.js'
 import {
@@ -59,6 +59,31 @@ const CardOfAction: Partial<Readonly<Record<string, ActionCardKind>>> = {
 }
 
 /**
+ * R-3.3, R-3.1-H1 On even rounds a seat commits sulfur to the pouch with its hand, else saltpeter
+ * and a fifth card, so the scripted games keep a pouch good hidden from every other seat until all
+ * have finalised.
+ */
+function withPouch(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    move: WalkMove | undefined
+): WalkMove | undefined {
+    const round = state.roundManager.currentRound?.number ?? 1
+    if (move?.type !== ActionType.FinaliseHand || round % 2 !== 0) {
+        return move
+    }
+    const { goods } = state.getPlayerState(playerId)
+    if (goods.sulfur > 0) {
+        return { ...move, pouchGood: 'sulfur' }
+    }
+    const cards = move.cards as readonly ActionCardKind[]
+    const fifth = ActionCards.find(({ kind }) => !cards.includes(kind))
+    return goods.saltpeter > 0 && fifth
+        ? { ...move, pouchGood: 'saltpeter', cards: [...cards, fifth.kind] }
+        : move
+}
+
+/**
  * R-X.2 One seeded seat policy for a whole game: it asks the handler what each seat may send, takes
  * an Action type this game hasn't taken yet where one can be built from the real offers, else what a
  * corpus seat still wants, else the walk's own play. The handler's list holds no System Action, so
@@ -93,7 +118,7 @@ export class CompleteGameSeats implements WalkPlan {
                 return move
             }
         }
-        return this.corpus.moveFor(state, playerId, progress)
+        return withPouch(state, playerId, this.corpus.moveFor(state, playerId, progress))
     }
 
     noted(step: WalkStep): void {

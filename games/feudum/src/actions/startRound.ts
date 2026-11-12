@@ -53,12 +53,12 @@ export class HydratedStartRound extends HydratableAction<typeof StartRound> impl
         super(data, StartRoundValidator)
     }
 
-    /** R-2.2, R-3.1-H1, R-4.10.2 The next round begun, the first seat selecting. */
+    /** R-2.2, R-3.1-H1, R-4.10.2 The next round begun, every seat selecting. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const { number } = state.roundManager.startRound(state.actionCount)
         beginPhase(state, PhaseName.HandSelection)
         const drunk = state.players.flatMap(turnWineDrunk)
-        state.flow.selection = { playerId: state.turnManager.turnOrder[0], finalised: [] }
+        state.flow.selection = { finalised: [] }
         this.metadata = { round: number, drunk }
     }
 }

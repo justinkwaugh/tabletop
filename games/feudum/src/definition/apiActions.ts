@@ -15,6 +15,7 @@ import { PlaceVessel } from '../actions/placeVessel.js'
 import { PlayMandate } from '../actions/playMandate.js'
 import { ReclaimImmunitySeal } from '../actions/reclaimImmunitySeal.js'
 import { SpendRegionTile } from '../actions/spendRegionTile.js'
+import { RevealPouches } from '../actions/revealPouches.js'
 import { StartRound } from '../actions/startRound.js'
 import { AdvanceTurn } from '../actions/advanceTurn.js'
 import { EndRound } from '../actions/endRound.js'
@@ -73,6 +74,7 @@ export const FeudumApiActions = {
     [ActionType.Nourish]: Nourish,
     [ActionType.CollectLandscapes]: CollectLandscapes,
     [ActionType.StartRound]: StartRound,
+    [ActionType.RevealPouches]: RevealPouches,
     [ActionType.AdvanceTurn]: AdvanceTurn,
     [ActionType.NourishPawns]: NourishPawns,
     [ActionType.RollProgressDie]: RollProgressDie,

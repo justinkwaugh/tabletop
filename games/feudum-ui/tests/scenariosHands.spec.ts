@@ -8,11 +8,11 @@ const FourCards = ['Move', 'Tax', 'Guild', 'Harvest'] as const
 const AnotherHand = ['tax', 'guild', 'harvest', 'migrate']
 const Finalise = "Long live the king · finalise · can't be undone"
 
-scenario('S4 R-3.1 Draft and finalise in order', 'hands-second-sulfur', async (table) => {
+scenario('S4 R-3.1-H1 Draft and finalise in any order', 'hands-second-sulfur', async (table) => {
     await table.pressCards(...FourCards)
     await table.press(table.rowStarting('Sulfur'))
-    await expect(table.primary()).toHaveText('Waiting for Ana to finalise')
-    await expect(table.primary()).toBeDisabled()
+    await expect(table.primary()).toHaveAccessibleName(Finalise)
+    await expect(table.primary()).toBeEnabled()
 
     await table.another('p1', {
         type: ActionType.FinaliseHand,
@@ -23,7 +23,7 @@ scenario('S4 R-3.1 Draft and finalise in order', 'hands-second-sulfur', async (t
     await expect(table.picked()).toHaveCount(4)
     const ana = table.panel().locator('[data-finalise-seat="Ana"]')
     await expect(ana).toHaveAttribute('data-finalised')
-    await expect(ana).toContainText('saltpeter')
+    await expect(ana).not.toContainText('saltpeter')
     await expect(table.primary()).toHaveAccessibleName(Finalise)
     await expect(table.primary()).toBeEnabled()
 })
@@ -66,23 +66,47 @@ scenario('S7 R-3.13-H1 Conquer warning', 'hands-first-saltpeter', async (table) 
     await expect(table.primary()).toBeEnabled()
 })
 
-scenario('S8 R-3.1 Finalise is a barrier', 'hands-first-sulfur', async (table) => {
-    await table.pressCards(...FourCards)
-    await table.press(table.rowStarting('Sulfur'))
-    await expect(table.primary()).toHaveAccessibleName(Finalise)
-    await table.press(table.primary())
-    await expect(table.undo()).toHaveCount(0)
-    await expect(table.waitingLine()).toHaveText('Waiting for Bram to finalise')
+scenario(
+    'S8 R-3.1, R-3.1-H1 Finalise is a barrier; pouches are told together',
+    'hands-first-sulfur',
+    async (table) => {
+        await table.pressCards(...FourCards)
+        await table.press(table.rowStarting('Sulfur'))
+        await expect(table.primary()).toHaveAccessibleName(Finalise)
+        await table.press(table.primary())
+        await expect(table.undo()).toHaveCount(0)
+        await expect(table.waitingLine()).toHaveText('Waiting for Bram and Cleo to finalise')
+        // No seat is next: the header names the step, not a seat's turn.
+        await expect(table.page.locator('[data-table-header]')).toHaveText('Choosing hands')
+        const own = await table.seatPanel('p1')
+        await expect(own.locator('[data-pouch="committed"]')).toHaveAttribute(
+            'data-pouch-good',
+            'sulfur'
+        )
+        await table.closeSeatPanel()
 
-    await table.showSeat('p2')
-    const panel = await table.seatPanel('p1')
-    await expect(panel.locator('[data-hand-backs="4"]')).toBeVisible()
-    await expect(panel.locator('[data-pouch="finalised"]')).toHaveAttribute(
-        'data-pouch-good',
-        'sulfur'
-    )
-    await table.closeSeatPanel()
-})
+        await table.showSeat('p2')
+        const before = await table.seatPanel('p1')
+        await expect(before.locator('[data-pouch-good]')).toHaveCount(0)
+        await expect(before.locator('[data-hand-backs="4"]')).toHaveCount(0)
+        await table.closeSeatPanel()
+
+        for (const playerId of ['p2', 'p3']) {
+            await table.another(playerId, {
+                type: ActionType.FinaliseHand,
+                revealsInfo: true,
+                cards: AnotherHand
+            })
+        }
+        const after = await table.seatPanel('p1')
+        await expect(after.locator('[data-hand-backs="4"]')).toBeVisible()
+        await expect(after.locator('[data-pouch="finalised"]')).toHaveAttribute(
+            'data-pouch-good',
+            'sulfur'
+        )
+        await table.closeSeatPanel()
+    }
+)
 
 scenario('S9 R-3.1-H1 Draft survives a reconciliation', 'hands-second-sulfur', async (table) => {
     await table.pressCards(...FourCards)

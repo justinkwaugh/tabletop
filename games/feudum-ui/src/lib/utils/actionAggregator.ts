@@ -5,9 +5,9 @@ import {
     isBeginDawn,
     isDiscardWrit,
     isEndRound,
-    isFinaliseHand,
     isNourish,
     isNourishPawns,
+    isRevealPouches,
     isRollProgressDie,
     isStartRound,
     type AdvanceTurn,
@@ -68,11 +68,10 @@ export function linedActions({ kind, actions }: HistoryGroup): readonly GameActi
         : actions
 }
 
-/** The public facts the interstitials come from, and how many seats finalise a hand. */
+/** The public facts the interstitials come from. */
 export interface HistoryTable {
     readonly rounds: readonly Round[]
     readonly epoch: Epoch
-    readonly seats: number
 }
 
 /** R-4.11.2 One epoch at a time, so a dawn names the epoch before it. */
@@ -84,6 +83,7 @@ const GroupOfType: ReadonlyMap<string, HistoryGroupKind> = new Map([
     [ActionType.PlaceStartingPawn, 'single'],
     [ActionType.ScoreGame, 'single'],
     [ActionType.FinaliseHand, 'hands'],
+    [ActionType.RevealPouches, 'hands'],
     [ActionType.NourishPawns, 'nourishing'],
     [ActionType.Nourish, 'nourishing'],
     [ActionType.RollProgressDie, 'progress'],
@@ -179,7 +179,7 @@ function formed({ kind, actions, firstIndex, lastIndex }: Forming): HistoryGroup
  */
 export function aggregateHistory(
     actions: readonly GameAction[],
-    { rounds, epoch, seats }: HistoryTable
+    { rounds, epoch }: HistoryTable
 ): HistoryEntry[] {
     const slots: (HistoryDivider | Forming)[] = []
     const firstDawn = actions.find(isBeginDawn)?.metadata?.epoch
@@ -191,7 +191,6 @@ export function aggregateHistory(
     let open: Forming | undefined
     let last: Forming | undefined
     let selecting = false
-    let finalised = 0
     /** The seat the last AdvanceTurn gave the turn to; none in a round's first turn. */
     let turnSeat: string | undefined
 
@@ -249,7 +248,6 @@ export function aggregateHistory(
         }
         if (isStartRound(action)) {
             selecting = true
-            finalised = 0
             turnSeat = undefined
             open = undefined
             continue
@@ -282,12 +280,10 @@ export function aggregateHistory(
             index,
             GroupOfType.get(action.type) ?? (selecting ? 'hands' : (open?.kind ?? 'turn'))
         )
-        if (isFinaliseHand(action)) {
-            finalised += 1
-            if (finalised >= seats) {
-                selecting = false
-                open = undefined
-            }
+        if (isRevealPouches(action)) {
+            // R-3.1-H1 The reveal closes the hands: the cards begin.
+            selecting = false
+            open = undefined
         }
     }
 

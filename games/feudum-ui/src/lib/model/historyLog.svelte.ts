@@ -26,8 +26,7 @@ export class HistoryLog {
         const { gameState, actions } = this.session
         return aggregateHistory(actions, {
             rounds: gameState.roundManager.series,
-            epoch: gameState.epoch,
-            seats: gameState.turnManager.turnOrder.length
+            epoch: gameState.epoch
         })
     })
 

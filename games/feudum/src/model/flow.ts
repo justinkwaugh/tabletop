@@ -67,13 +67,8 @@ export type FlowState = Type.Static<typeof FlowState>
 export const FlowState = Type.Object({
     /** R-1.4.8, R-1.4.9 The seat choosing. */
     setupOrder: Type.Optional(Type.Object({ playerId: Type.String() })),
-    /** R-3.1-H1 The next finaliser, and those already final. */
-    selection: Type.Optional(
-        Type.Object({
-            playerId: Type.String(),
-            finalised: Type.Array(Type.String())
-        })
-    ),
+    /** R-3.1-H1 The seats already final, in the order they finalised; the rest may finalise now. */
+    selection: Type.Optional(Type.Object({ finalised: Type.Array(Type.String()) })),
     /** R-3.2, R-3.3 The turn player, and what the current card still leaves in order. */
     turn: Type.Optional(
         Type.Object({

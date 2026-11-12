@@ -56,36 +56,36 @@ describe('R-3.1 the finalise row', () => {
                 name: 'Ana',
                 paint,
                 finalised: true,
-                pouchGood: 'saltpeter',
-                next: false
+                pouchGood: 'saltpeter'
             },
-            { playerId: 'p2', name: 'Ben', paint, finalised: false, next: true },
-            { playerId: 'p3', name: 'Cyd', paint, finalised: false, next: false }
+            { playerId: 'p2', name: 'Ben', paint, finalised: true },
+            { playerId: 'p3', name: 'Cyd', paint, finalised: false }
         ],
-        caption: 'everyone chooses now · finalise in turn order',
+        caption: 'everyone chooses now · pouches shown when all are final',
         lead: 'Round 2 · choose your hand'
     })
 
-    it('R-3.1-H1 says everyone chooses now and finalises in turn order, after the round', () => {
+    it('R-3.1-H1 says everyone chooses now and the pouches are shown together, after the round', () => {
         expect(row).toContain('data-finalise-caption')
         expect(row.replace(/<!--.*?-->|<[^>]+>/gs, '').replace(/\s+/g, ' ')).toContain(
-            'Round 2 · choose your hand · everyone chooses now · finalise in turn order'
+            'Round 2 · choose your hand · everyone chooses now · pouches shown when all are final'
         )
         expect(row).not.toContain('Finalise order')
     })
 
-    it('S4 S8 names the seats in order, ticks those done with their pouch good, marks the next', () => {
+    it('S4 S8 R-3.1-H1 names the seats in order, ticks those done, shows only the pouch good given, marks no next', () => {
         const seats = [...row.matchAll(/data-finalise-seat="([^"]+)"/g)].map(([, name]) => name)
         expect(seats).toEqual(['Ana', 'Ben', 'Cyd'])
         const [, ana, ben, cyd] = row.split('data-finalise-seat=')
         expect(ana).toContain('data-finalised')
         expect(ana).toContain('✓')
         expect(ana).toContain('aria-label="saltpeter"')
-        expect(ana).not.toContain('data-next')
-        expect(ben).toContain('data-next')
-        expect(ben).not.toContain('data-finalised')
-        expect(cyd).not.toContain('data-next')
+        expect(ben).toContain('data-finalised')
+        expect(ben).not.toContain('aria-label="saltpeter"')
+        expect(cyd).not.toContain('data-finalised')
         expect(cyd).not.toContain('✓')
+        expect(row).not.toContain('data-next')
+        expect(row).not.toContain('next to finalise')
     })
 })
 
@@ -601,7 +601,7 @@ describe('R-X.2 the primary', () => {
         expect(on).not.toMatch(/<button[^>]*\bdisabled\b/)
         const off = markupOf({
             kind: 'primary',
-            label: 'Waiting for Ana to finalise',
+            label: 'Long live the king',
             enabled: false,
             send: nothing
         })

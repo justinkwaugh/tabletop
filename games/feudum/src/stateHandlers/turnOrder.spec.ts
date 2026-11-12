@@ -53,54 +53,59 @@ function holdWrit(table: Table, playerId: string) {
 }
 
 describe('SelectingHands', () => {
-    it('R-3.1-H1 only the next finaliser is active, in turn order', () => {
+    it('R-3.1-H1 every seat yet to finalise is active, whatever the order of the sends', () => {
         const table = tableAtHandSelection()
-        table.order.forEach((playerId, index) => {
+        const sends = [table.order[2], table.order[0], table.order[3], table.order[1]]
+        sends.forEach((playerId, index) => {
+            const finalised = sends.slice(0, index)
             expect(table.state.machineState).toBe(MachineState.SelectingHands)
-            expect(table.state.activePlayerIds).toEqual([playerId])
-            expect(table.state.flow.selection).toEqual({
-                playerId,
-                finalised: table.order.slice(0, index)
-            })
+            expect(table.state.activePlayerIds).toEqual(
+                table.order.filter((id) => !finalised.includes(id))
+            )
+            expect(table.state.flow.selection).toEqual({ finalised })
             for (const other of table.order) {
                 expect(table.offered(other).includes(ActionType.FinaliseHand)).toBe(
-                    other === playerId
+                    !finalised.includes(other)
                 )
             }
             finalise(table, playerId)
         })
+        expect(table.state.machineState).toBe(MachineState.PlayingCards)
     })
 
-    it('R-3.1-H1 a seat finalising early is refused', () => {
+    it('R-3.1-H1 a seat finalising twice is refused', () => {
         const table = tableAtHandSelection()
         const [, second] = table.order
+        finalise(table, second)
         expect(() => finalise(table, second)).toThrow()
-        expect(table.state.flow.selection?.finalised).toEqual([])
+        expect(table.state.flow.selection?.finalised).toEqual([second])
     })
 
-    it('R-4.4-H1, R-3.1-H1 the at-will window is the next finaliser’s alone; R-4.4-H5 a discard is any seat’s', () => {
+    it('R-4.4-H1, R-3.1-H1 the at-will window is every seat’s yet to finalise; R-4.4-H5 a discard is any seat’s', () => {
         const table = tableAtHandSelection()
         const [first, second] = table.order
         holdWrit(table, first)
         holdWrit(table, second)
 
         expect(atWillWindow(table.hydrated(), first)).toBe('hand-selection')
-        expect(atWillWindow(table.hydrated(), second)).toBeUndefined()
+        expect(atWillWindow(table.hydrated(), second)).toBe('hand-selection')
         expect(table.offered(first)).toContain(ActionType.DiscardWrit)
-        expect(table.offered(second)).toEqual([ActionType.DiscardWrit])
+        expect(table.offered(second)).toContain(ActionType.FinaliseHand)
+        expect(table.offered(second)).toContain(ActionType.DiscardWrit)
     })
 
-    it('R-4.4-H1 the turn passes on with the finaliser, at-will actions with it', () => {
+    it('R-4.4-H1 a seat’s at-will window closes when it finalises, the others’ stay open', () => {
         const table = tableAtHandSelection()
         const [first, second] = table.order
         holdWrit(table, first)
         holdWrit(table, second)
 
-        finalise(table, first)
+        finalise(table, second)
 
-        expect(table.offered(first).filter((type) => AtWillTypes.includes(type))).toEqual([])
-        expect(atWillWindow(table.hydrated(), first)).toBeUndefined()
-        expect(atWillWindow(table.hydrated(), second)).toBe('hand-selection')
+        expect(table.offered(second).filter((type) => AtWillTypes.includes(type))).toEqual([])
+        expect(table.offered(second)).toEqual([ActionType.DiscardWrit])
+        expect(atWillWindow(table.hydrated(), second)).toBeUndefined()
+        expect(atWillWindow(table.hydrated(), first)).toBe('hand-selection')
     })
 
     it('R-4.4-H5 a discard leaves the seat selecting', () => {
@@ -112,8 +117,8 @@ describe('SelectingHands', () => {
         table.send(first, { type: ActionType.DiscardWrit, writId, ...AnyTime })
 
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
-        expect(table.state.flow.selection).toEqual({ playerId: first, finalised: [] })
-        expect(table.asked).toBe(first)
+        expect(table.state.flow.selection).toEqual({ finalised: [] })
+        expect(table.state.activePlayerIds).toEqual(table.order)
     })
 
     it('R-3.2 after the last finaliser, cards begin with the starting player', () => {

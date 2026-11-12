@@ -86,11 +86,16 @@ export function asStored(value: unknown): unknown {
     return JSON.parse(JSON.stringify(value))
 }
 
-const HostCascades: readonly string[] = [ActionType.EndRound, ActionType.ScoreGame]
+const HostCascades: readonly string[] = [
+    ActionType.RevealPouches,
+    ActionType.EndRound,
+    ActionType.ScoreGame
+]
 
 /**
  * R-5.1 Whether this step's cascade can only be run by the host: it changes the vault, draws from
- * the protected stream, returns every seat's hand (R-2.2.5) or scores sealed charters (R-6.2).
+ * the protected stream, reveals every seat's pouch good and hand size (R-3.1-H1), returns every
+ * seat's hand (R-2.2.5) or scores sealed charters (R-6.2).
  */
 export function needsHost(step: WalkStep): boolean {
     const before = canonical(step.before)
@@ -186,7 +191,7 @@ export function writsNamedIn(value: unknown): string[] {
     return JSON.stringify(value).match(WritId) ?? []
 }
 
-const OwnerKnown = ['hand', 'writs', 'sealedCharters', 'deckKnowledge']
+const OwnerKnown = ['hand', 'committedPouch', 'writs', 'sealedCharters', 'deckKnowledge']
 
 /** R-5.1 A view with no seat's owner-known field and no pending draw's writs, as a spectator's has. */
 export function withoutOwnerKnown(view: FeudumProjectedState): FeudumProjectedState {

@@ -39,6 +39,7 @@ import {
     isReclaimImmunitySeal,
     isReplenishGuilds,
     isReplenishMap,
+    isRevealPouches,
     isRollProgressDie,
     isScoreGame,
     isSpendRegionTile,
@@ -250,11 +251,27 @@ function finaliseLine(action: GameAction, words: Words): string | undefined {
         return undefined
     }
     const { playerId } = action
-    const cards = words.seesHand(playerId) ? action.cards : undefined
+    const seen = words.seesHand(playerId)
+    const cards = seen ? action.cards : undefined
+    // R-3.1-H1 A pouch good is its seat's own until every hand is final.
     return sentence(
         `${words.who(playerId)} finalised`,
-        action.pouchGood ? `pouch ${action.pouchGood}` : undefined,
+        seen && action.pouchGood ? `pouch ${action.pouchGood}` : undefined,
         cards && cards.length > 0 ? listed(cards.map(cardName)) : undefined
+    )
+}
+
+/** R-3.1-H1, R-3.3 Once every hand is final, the pouch goods are shown together. */
+function revealLine(action: GameAction, words: Words): string | undefined {
+    if (!isRevealPouches(action)) {
+        return undefined
+    }
+    const pouches = (action.metadata?.pouches ?? []).map(
+        ({ playerId, good }) => `${words.who(playerId)} ${good}`
+    )
+    return sentence(
+        'Every hand final',
+        pouches.length > 0 ? `pouches: ${listed(pouches)}` : 'no pouch goods'
     )
 }
 
@@ -1205,6 +1222,7 @@ function plainLine(action: GameAction, words: Words): string | undefined {
 const Writers: readonly ((action: GameAction, words: Words) => string | undefined)[] = [
     plainLine,
     finaliseLine,
+    revealLine,
     keepLine,
     moveLine,
     migrateLine,

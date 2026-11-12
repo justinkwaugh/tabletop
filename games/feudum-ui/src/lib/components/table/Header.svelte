@@ -1,11 +1,16 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
+    import { MachineState } from '@tabletop/feudum'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    /** Whose turn it is, or History, or the game's end; and the one Undo. */
+    /**
+     * Whose turn it is, or History, or the game's end; and the one Undo. While hands are chosen no
+     * seat is next (R-3.1-H1), so a seat not choosing reads the step.
+     */
     const gameSession = getGameSession()
 
     let activeId = $derived(gameSession.gameState.activePlayerIds[0])
+    let choosingHands = $derived(gameSession.gameState.machineState === MachineState.SelectingHands)
 </script>
 
 <div
@@ -19,6 +24,8 @@
             End of game
         {:else if gameSession.isMyTurn}
             Your turn
+        {:else if choosingHands}
+            Choosing hands
         {:else if activeId}
             <span class="inline-flex gap-x-1">
                 <PlayerName playerId={activeId} possessive={true} />

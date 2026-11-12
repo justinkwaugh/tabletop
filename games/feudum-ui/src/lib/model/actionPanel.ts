@@ -97,7 +97,6 @@ export interface FinaliseEntry {
     readonly paint: SeatPaint
     readonly finalised: boolean
     readonly pouchGood?: PouchGood
-    readonly next: boolean
 }
 
 /** A writ's face with what it offers beneath it: a mandate's alternatives, a charter's seal. */
@@ -128,7 +127,7 @@ type PanelBlock =
     | {
           readonly kind: 'finalise'
           readonly entries: readonly FinaliseEntry[]
-          /** R-3.1-H1 "everyone chooses now · finalise in turn order" */
+          /** R-3.1-H1 "everyone chooses now · pouches shown when all are final" */
           readonly caption: string
           /** "Round 4 · choose your hand", while this seat drafts. */
           readonly lead?: string
@@ -398,8 +397,8 @@ function pawnBlocks(
     ]
 }
 
-/** R-3.1-H1 Choosing is simultaneous; finalising goes in turn order. */
-const FinaliseCaption = 'everyone chooses now · finalise in turn order'
+/** R-3.1-H1 Choosing and finalising are simultaneous; the pouch goods are shown together. */
+const FinaliseCaption = 'everyone chooses now · pouches shown when all are final'
 
 function handBlocks(
     session: PanelSession,
@@ -417,17 +416,9 @@ function handBlocks(
         ...(drafting ? { lead: drafting.line } : {})
     }
     if (!drafting) {
-        const next = panel.finaliseRow.find((entry) => entry.next)
         return [
             finalise,
-            ...(next
-                ? [
-                      line(
-                          'waiting',
-                          `Waiting for ${session.getPlayerName(next.playerId)} to finalise`
-                      )
-                  ]
-                : []),
+            ...(panel.waiting ? [line('waiting', panel.waiting)] : []),
             ...atWillBlocks(session)
         ]
     }

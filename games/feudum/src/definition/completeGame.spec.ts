@@ -7,6 +7,7 @@ import { isFeast } from '../actions/feast.js'
 import { isGuildAction } from '../actions/guildAction.js'
 import { isImprove } from '../actions/improve.js'
 import { isKeepWrits } from '../actions/keepWrits.js'
+import { isRevealPouches } from '../actions/revealPouches.js'
 import { isRollProgressDie } from '../actions/rollProgressDie.js'
 import { isScoreGame } from '../actions/scoreGame.js'
 import { isTendLandscape } from '../actions/tendLandscape.js'
@@ -55,6 +56,7 @@ function walkOf(seed: string, numPlayers: number): GameWalk {
 
 const SystemActions: readonly string[] = [
     ActionType.StartRound,
+    ActionType.RevealPouches,
     ActionType.AdvanceTurn,
     ActionType.NourishPawns,
     ActionType.RollProgressDie,
@@ -210,6 +212,44 @@ describe.each(Games)(
                 expect(state).toEqual(previous)
             }
             expect(state).toEqual(original.initial)
+        })
+
+        it('R-3.1-H1 no view tells a pouch good or a hand size until every seat has finalised', () => {
+            const original = walk()
+            let hidden = 0
+            let revealed = 0
+            for (const { processed, after } of original.steps) {
+                processed.forEach((action, index) => {
+                    const state = after[index]
+                    for (const perspective of perspectivesOf(original)) {
+                        const view = viewOf(state, perspective, original)
+                        for (const row of view.players) {
+                            const own =
+                                perspective.kind === 'player' &&
+                                perspective.playerId === row.playerId
+                            if (state.machineState === MachineState.SelectingHands && !own) {
+                                expect(row).not.toHaveProperty('committedPouch')
+                                expect(row).not.toHaveProperty('hand')
+                                expect(row.pouch).toBeUndefined()
+                                expect(row.handCount).toBe(0)
+                                hidden++
+                            }
+                        }
+                        if (isRevealPouches(action)) {
+                            const told = (action.metadata?.pouches ?? []).map(
+                                ({ playerId }) => playerId
+                            )
+                            for (const row of view.players) {
+                                expect(row.pouch !== undefined).toBe(told.includes(row.playerId))
+                                expect(row.handCount).toBeGreaterThan(0)
+                            }
+                            revealed += told.length
+                        }
+                    }
+                })
+            }
+            expect(hidden).toBeGreaterThan(0)
+            expect(revealed).toBeGreaterThan(0)
         })
 
         it('R-5.1, R-5-H1 replays from each seat and a spectator to one public final state', () => {

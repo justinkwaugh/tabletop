@@ -91,6 +91,16 @@ export class Progress {
 }
 
 /** The regions whose stacks are nearly out: a location there can empty one. */
+/**
+ * The walk's tie-breaker: the Action count, less the `RevealPouches` each round's selection ends
+ * on (R-3.1-H1), so a game walked from a seed keeps the choices its pins were written against.
+ */
+export function walkCount(state: HydratedFeudumGameState): number {
+    const round = state.roundManager.currentRound?.number ?? 0
+    const revealed = state.machineState === MachineState.SelectingHands ? round - 1 : round
+    return state.actionCount - Math.max(0, revealed)
+}
+
 function stackSize(state: HydratedFeudumGameState, spaceId: SpaceId): number {
     const space = Spaces.find(({ id }) => id === spaceId)
     assertExists(space, `${spaceId} is a space`)
@@ -162,7 +172,7 @@ function bestStep(state: HydratedFeudumGameState, playerId: string, steps: reado
     }
     const best = Math.max(...ways.map((way) => spaceWorth(state, playerId, way.to)))
     const top = ways.filter((way) => spaceWorth(state, playerId, way.to) === best)
-    return top[(state.actionCount + steps.length) % top.length]
+    return top[(walkCount(state) + steps.length) % top.length]
 }
 
 /** R-3.7 As many steps as the allowance gives, then a pilfer of what the seat is short of. */
@@ -361,6 +371,16 @@ function usefulCards(
     progress: Progress
 ): ActionCardKind[] {
     const trial = new HydratedFeudumGameState(state.dehydrate())
+    // R-3.1-H1 A seat already final plays its hand and pouch good once every seat is.
+    for (const finalisedId of trial.flow.selection?.finalised ?? []) {
+        const other = trial.getPlayerState(finalisedId)
+        other.handCount = other.requireHand().length
+        if (other.committedPouch) {
+            other.goods[other.committedPouch] -= 1
+            other.pouch = other.committedPouch
+            other.committedPouch = undefined
+        }
+    }
     const seat = trial.getPlayerState(playerId)
     seat.hand = ActionCards.map((card) => card.kind)
     trial.flow.turn = { playerId, secondCard: false, followUps: [] }

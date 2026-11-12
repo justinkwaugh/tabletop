@@ -147,7 +147,7 @@ describe('flow', () => {
     const turn = { playerId: 'p1', secondCard: false, followUps: [] }
     const pending = {
         setupOrder: { playerId: 'p1' },
-        selection: { playerId: 'p1', finalised: [] },
+        selection: { finalised: ['p1'] },
         turn,
         writDraw: {
             playerId: 'p1',
@@ -195,7 +195,6 @@ describe('flow', () => {
 
     it.each([
         ['setupOrder', 'playerId'],
-        ['selection', 'playerId'],
         ['turn', 'playerId'],
         ['writDraw', 'playerId'],
         ['harvest', 'playerId'],

@@ -21,14 +21,14 @@ The haversack is not concealed (R-5.4-H1). Every good outside it is public (R-5.
 
 Owner-known fields sit on the player row (`Visibility.Policy.Owner`) or on an object that carries its own public `playerId`.
 
-- **Hand** (R-3.1, R-5.1): `hand`, the chosen action cards not yet played, is owner-known; `handCount` is public. The set-aside cards are not stored: they are a player's eleven less the hand and the cards played. Cards played this round are public with how each was used.
+- **Hand** (R-3.1, R-5.1): `hand`, the chosen action cards not yet played, is owner-known; `handCount` is public. During hand selection a finalised seat's `hand` and `committedPouch`, the pouch good it committed, are owner-known, the good stays in its `goods`, and `handCount` stays 0, so the table learns only that it has finalised (`flow.selection.finalised`); `RevealPouches`, once every seat has finalised, sets every `handCount` and moves each committed good to the public `pouch` (R-3.1-H1). The set-aside cards are not stored: they are a player's eleven less the hand and the cards played. Cards played this round are public with how each was used.
 - **Royal Writs** (R-4.4.4): `writs` (unsealed) and `sealedCharters` are owner-known; `writCount` and `sealedCharterCount` are public. Charters are sealed at final scoring, which reveals them (R-4.4.3, R-4.4-H6).
 - **A writ draw** (R-3.10, R-4.6.4, R-3.7.5): the writs drawn wait on the pending draw, which names its `playerId`, owner-known; the table sees how many were drawn and how many are to be kept.
 - **Deck knowledge** (R-4.4.1, R-4.4.4): `deckKnowledge` keeps, owner-known, the writs a player put under the deck unseen (a draw's unkept writs and its discards) and the slot each took. A slot is in the deck while it is at or above `top`, so knowledge needs no rewriting on a draw; an entry is dropped when its writ is drawn. `publicDeckWrits` does the same for writs the table saw go under.
 - **Region tile stacks** (R-1.4-H2): the landscape of every tile still in a stack is hidden from everyone until the tile is taken or the progress die removes it (R-4.11-H2); the stacks' counts and each top tile's epoch are public, and the landscapes are in the vault.
 - **Seals held** (R-5-H1): no one, the holder included, knows a held seal's bead value; the holder's seal count is public and its identities are in the vault.
 
-Everything else is public (R-5.3): the map, locations, markers, pawns and their characters, vessels, monsters, landscapes and their resources, goods and shillings in every supply, the haversack counts, beads and their values, guild tracks, reeves, the purse and coffer, Knight rows, region stacks and collected tiles, wine barrels, the pouch good once finalised, the epoch, scores, the voyage and military tracks, and who is to act in every pending decision.
+Everything else is public (R-5.3): the map, locations, markers, pawns and their characters, vessels, monsters, landscapes and their resources, goods and shillings in every supply, the haversack counts, beads and their values, guild tracks, reeves, the purse and coffer, Knight rows, region stacks and collected tiles, wine barrels, the pouch goods and hand sizes once every seat has finalised (R-3.1-H1), the epoch, scores, the voyage and military tracks, and who is to act in every pending decision.
 
 A defender or starved marker's owner is asked whether to answer an attack whenever public state cannot rule out an unplayed Defend: they have an unplayed card and have not played Defend this round (and, for Royal Immunity, hold a food or a wild tile that can bring one, with a seal in the pile: R-3.14-H3, R-3.14-H4). A player without Defend answers "no" with the same control, so being asked reveals nothing about the hand (R-3.14-H1).
 
@@ -40,10 +40,11 @@ Draws, shuffles, the die and random picks are engine output. An Action that read
 
 | Action                                                                                                                           | Actor-known (`Policy.Actor`)                 | Public                                                              |
 | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------- |
-| `FinaliseHand`                                                                                                                   | `cards`                                      | the pouch good and that the seat has finalised                      |
+| `FinaliseHand`                                                                                                                   | `cards`, `pouchGood`                         | that the seat has finalised                                         |
 | `Explore`, a threshold pull (`GuildAction`, `Feast`), `KeepWrits` with Shovels & Swords, `PlaceDisc` onto voyage space 2, 4 or 6 | `metadata.drawnWritIds`                      | the count drawn and the number to keep                              |
 | `KeepWrits`                                                                                                                      | `keep`, `metadata.returned` with their slots | the count kept and the count put under the deck                     |
 | `DiscardWrit`                                                                                                                    | `writId`                                     | the slot it took under the deck: a discard goes face down (R-4.4.4) |
+| `RevealPouches`                                                                                                                  | none                                         | every committed pouch good, by seat (`metadata.pouches`)            |
 | `PlayMandate`, `CommitAttack`                                                                                                    | none                                         | every field: a played writ is shown                                 |
 | Card plays from the hand                                                                                                         | none                                         | every field: a played card is shown                                 |
 | `ScoreGame`                                                                                                                      | none                                         | every sealed charter, revealed with its score                       |
@@ -54,7 +55,7 @@ Haversack draws, the progress die and its rerolls, the hidden-bead draw, spills 
 
 R-X.2 stops Undo at an action that revealed information. An Action sets `revealsInfo` from what it resolved. Input can't clear a barrier; a seat sending `true` on its own Action only stops its own Undo.
 
-Always a barrier: `FinaliseHand` (a finalised hand), `Explore` (a writ draw), `Harvest` (a haversack draw), `Conquer` that asks a defender and `StarveThePeople` that asks the target's owner (a decision passed to another seat), `AnswerAttack` and `AnswerStarve` (the decision passed back), the System Actions `ReplenishMap` and `ReplenishGuilds` (haversack draws, and at the third dawn bead flips), and `ScoreGame` (every sealed charter).
+Always a barrier: `FinaliseHand` (a finalised hand), `RevealPouches` (every pouch good and hand size), `Explore` (a writ draw), `Harvest` (a haversack draw), `Conquer` that asks a defender and `StarveThePeople` that asks the target's owner (a decision passed to another seat), `AnswerAttack` and `AnswerStarve` (the decision passed back), the System Actions `ReplenishMap` and `ReplenishGuilds` (haversack draws, and at the third dawn bead flips), and `ScoreGame` (every sealed charter).
 
 A barrier by outcome:
 
@@ -71,7 +72,7 @@ Not a barrier: setup choices, `StartRound`, `AdvanceTurn`, `NourishPawns`, `Begi
 
 A player or a spectator explores from their own projection. `createFromProjectedState` keeps everything the projection names: the public table, the explorer's hand, writs, sealed charters, pending writ draw and deck knowledge, and the public deck writs. It deals every other hidden value afresh from the branch's randomness, within the public constraints, each writ and seal once:
 
-- each other player's hand: `handCount` kinds from their eleven less the kinds they have played this round;
+- each other player's hand: `handCount` kinds from their eleven less the kinds they have played this round; a player who has finalised before the reveal is dealt 4 kinds and no pouch good (R-3.1-H1);
 - each other player's writs: `writCount − sealedCharterCount` writs, and their sealed charters: `sealedCharterCount` charters, from the writs the explorer cannot place (not in the explorer's hand, sealed charters or pending draw, not in the explorer's deck knowledge or the public deck writs);
 - another player's pending writ draw: its count from the same unplaced writs;
 - the writ deck: by slot from `top` to `nextBottom`, the explorer's deck knowledge and the public deck writs at their slots, the rest of the unplaced writs in fresh order in the remaining slots;
@@ -90,7 +91,8 @@ No migrations: the Logic and UI Artifacts publish together, and a stored Game ke
 
 - Action schema coverage, and every registered action sampled with every optional field, projected for its actor, another seat and a spectator: `actionProjection.spec.ts`.
 - Reproducible protected initialization from a master seed, and the vault and master seed omitted and the protected cursor replaced by the platform's neutral value in every player's and the spectator's projection: `initializer.spec.ts`, `visibility.spec.ts`.
-- Owner-known hands, writs, sealed charters, pending writ draws and deck knowledge, each projected for its owner, another player and a spectator: `visibility.spec.ts`; in Action records: `selectHand.spec.ts`, `explore.spec.ts`, `royalWrits.spec.ts`.
+- Owner-known hands, committed pouch goods, writs, sealed charters, pending writ draws and deck knowledge, each projected for its owner, another player and a spectator: `visibility.spec.ts`; in Action records: `selectHand.spec.ts`, `explore.spec.ts`, `royalWrits.spec.ts`.
+- No seat's view or record telling another's pouch good, whether one was committed, or its hand size before every seat has finalised, then every view reading them all at the reveal: `selectHand.spec.ts`, and from every seat and a spectator over the scripted games, `completeGame.spec.ts`.
 - Seals red side up anonymous in every projection, named on a flip, returned to the vault on favours and on Starve the People, the pile reshuffled on each return: `visibility.spec.ts`, `beads.spec.ts`, `harvest.spec.ts`, `starve.spec.ts`.
 - The defender asked whenever public state cannot rule out Defend, with the same answer available without it: `defend.spec.ts`.
 - Nourishing asking from public counts alone, a charter's holder as a mandate's: `handlers.spec.ts`.

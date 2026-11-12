@@ -95,7 +95,15 @@ export const FeudumPlayerState = Type.Object({
     hand: Visibility.protect(Type.Array(ActionCardKindSchema), OwnerKnown),
     /** R-3.2 In play order. */
     played: Type.Array(PlayedCard),
-    /** R-3.1-H1, R-3.3 Set when the hand is finalised; the good has left `goods`. */
+    /**
+     * R-3.1-H1, R-3.3 Owner-known: the good committed when the hand is finalised, still in `goods`,
+     * until every seat has finalised and `RevealPouches` moves it to `pouch`.
+     */
+    committedPouch: Visibility.protect(
+        Type.Optional(Type.Union([Type.Literal('saltpeter'), Type.Literal('sulfur')])),
+        OwnerKnown
+    ),
+    /** R-3.1-H1, R-3.3 Set when the pouch goods are revealed; the good has left `goods`. */
     pouch: Type.Optional(Type.Union([Type.Literal('saltpeter'), Type.Literal('sulfur')])),
     /** R-3.3 */
     sequentialUsed: Type.Boolean(),
@@ -139,6 +147,7 @@ export class HydratedFeudumPlayerState
     declare handCount: number
     declare hand?: ActionCardKind[]
     declare played: PlayedCard[]
+    declare committedPouch?: 'saltpeter' | 'sulfur'
     declare pouch?: 'saltpeter' | 'sulfur'
     declare sequentialUsed: boolean
     declare repeatUsed: boolean
