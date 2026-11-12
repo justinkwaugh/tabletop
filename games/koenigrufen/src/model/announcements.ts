@@ -71,7 +71,6 @@ export type AnnouncedBonus = Type.Static<typeof AnnouncedBonus>
 export const AnnouncedBonus = Type.Object({
     bonus: BonusSchema,
     side: SideSchema,
-    playerId: Type.String(),
     doubles: Type.Integer({ minimum: 0, maximum: MaxDoubles })
 })
 
@@ -266,7 +265,6 @@ export function applyAnnouncement(
         announcements.bonuses.push({
             bonus,
             side: context.side,
-            playerId: context.playerId,
             doubles: 0
         })
     }

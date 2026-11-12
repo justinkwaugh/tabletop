@@ -13,6 +13,7 @@ import {
     playOutHand,
     setHands,
     startTestGame,
+    talonHalf,
     type TestSession
 } from '../util/testHelper.js'
 import { ActionType } from './actions.js'
@@ -107,7 +108,9 @@ describe('a Rufer hand', () => {
             ['trump-12', 'diamonds-C', 'diamonds-J']
         ])
 
-        session.act(p0, ActionType.ChooseTalonHalf, { half: 0 })
+        session.act(p0, ActionType.ChooseTalonHalf, {
+            cardIds: talonHalf(session, 0)
+        })
         expect(session.hand(p0)).toHaveLength(15)
         const discards = legalLayAway(session.hand(p0), 3)
         session.act(p0, ActionType.LayAway, { cardIds: discards })
@@ -137,6 +140,30 @@ describe('a Rufer hand', () => {
         }
     })
 
+    it('names the talon half taken by its cards, in any order, and keeps the other half', () => {
+        const session = startTestGame()
+        const { p0 } = fixedDeal(session)
+        declareByMeinSpiel(session, Contract.Rufer)
+        session.act(p0, ActionType.CallKing, { king: Suit.Clubs })
+
+        expect(() =>
+            session.act(p0, ActionType.ChooseTalonHalf, {
+                cardIds: ['trump-1', 'trump-10', 'trump-12']
+            })
+        ).toThrow()
+        expect(() =>
+            session.act(p0, ActionType.ChooseTalonHalf, { cardIds: ['trump-1', 'trump-10'] })
+        ).toThrow()
+
+        session.act(p0, ActionType.ChooseTalonHalf, {
+            cardIds: ['diamonds-J', 'trump-12', 'diamonds-C']
+        })
+        expect(session.hand(p0)).toEqual(
+            expect.arrayContaining(['trump-12', 'diamonds-C', 'diamonds-J'])
+        )
+        expect(session.state.rejectedTalonHalf).toEqual(['trump-1', 'trump-10', 'trump-11'])
+    })
+
     it('does not let declarer call their own king', () => {
         const session = startTestGame()
         const { p0 } = fixedDeal(session)
@@ -150,7 +177,9 @@ describe('a Rufer hand', () => {
         const { p0 } = fixedDeal(session)
         declareByMeinSpiel(session, Contract.Rufer)
         session.act(p0, ActionType.CallKing, { king: Suit.Clubs })
-        session.act(p0, ActionType.ChooseTalonHalf, { half: 1 })
+        session.act(p0, ActionType.ChooseTalonHalf, {
+            cardIds: talonHalf(session, 1)
+        })
         session.act(p0, ActionType.LayAway, { cardIds: legalLayAway(session.hand(p0), 3) })
         passAnnouncements(session)
         for (let card = 0; card < 4; card++) {
@@ -248,7 +277,9 @@ describe('the called king in the talon', () => {
         const { p0, p1 } = kingInTalon(session)
         declareByMeinSpiel(session, Contract.Rufer)
         session.act(p0, ActionType.CallKing, { king: Suit.Clubs })
-        session.act(p0, ActionType.ChooseTalonHalf, { half: 0 })
+        session.act(p0, ActionType.ChooseTalonHalf, {
+            cardIds: talonHalf(session, 0)
+        })
         session.act(p0, ActionType.LayAway, { cardIds: legalLayAway(session.hand(p0), 3) })
         expect(session.state.machineState).toBe(MachineState.Announcing)
         session.act(p0, ActionType.Announce, { bonuses: [], doubles: [] })
@@ -393,7 +424,9 @@ describe('a Farbendreier', () => {
         for (let passes = 0; passes < 3; passes++) {
             session.act(session.activePlayerId(), ActionType.Pass)
         }
-        session.act(p0, ActionType.ChooseTalonHalf, { half: 0 })
+        session.act(p0, ActionType.ChooseTalonHalf, {
+            cardIds: talonHalf(session, 0)
+        })
         expect(session.state.machineState).toBe(MachineState.LayingAway)
         const hand = session.hand(p0)
         const suitCards = hand.filter((cardId) => !isTrump(cardId) && !isKing(cardId))
@@ -427,7 +460,9 @@ describe('the colour games', () => {
     it('has Forehand lead a Farbendreier', () => {
         const session = startTestGame()
         const { p0, p1 } = bidBySecondSeat(session, Contract.Farbendreier)
-        session.act(p1, ActionType.ChooseTalonHalf, { half: 0 })
+        session.act(p1, ActionType.ChooseTalonHalf, {
+            cardIds: talonHalf(session, 0)
+        })
         session.act(p1, ActionType.LayAway, {
             cardIds: legalLayAway(session.hand(p1), 3, LayAwayRule.TrumpsFirstSuitCardsShown)
         })

@@ -117,7 +117,8 @@ export const KoenigrufenGameState = Type.Object({
     // Face down until exposed, or until the hand ends when the contract leaves it untouched.
     talon: Visibility.protect(Type.Array(CardIdSchema), { policy: Visibility.Policy.HostOnly }),
     talonHalves: Type.Optional(Type.Array(Type.Array(CardIdSchema))),
-    chosenTalonHalf: Type.Optional(Type.Integer({ minimum: 0, maximum: 1 })),
+    // The exposed half the declarer did not take.
+    rejectedTalonHalf: Type.Optional(Type.Array(CardIdSchema)),
     auction: Auction,
     contract: Type.Optional(DeclaredContract),
     calledKingPlayedBy: Type.Optional(Type.String()),
@@ -153,7 +154,7 @@ export class HydratedKoenigrufenGameState
     declare dealerId: string
     declare talon?: string[]
     declare talonHalves?: string[][]
-    declare chosenTalonHalf?: number
+    declare rejectedTalonHalf?: string[]
     declare auction: Auction
     declare contract?: DeclaredContract
     declare calledKingPlayedBy?: string
@@ -215,7 +216,7 @@ export class HydratedKoenigrufenGameState
             this.player(seats[seat]).takeIntoHand(packet)
         })
         this.talonHalves = undefined
-        this.chosenTalonHalf = undefined
+        this.rejectedTalonHalf = undefined
         this.auction = newAuction()
         this.contract = undefined
         this.calledKingPlayedBy = undefined
@@ -396,20 +397,33 @@ export class HydratedKoenigrufenGameState
         this.declared().givenUp = true
     }
 
-    canChooseTalonHalf(playerId: string, half: number): boolean {
-        return playerId === this.declarerId() && this.talonHalves?.[half] !== undefined
+    // The exposed half made of exactly these cards, in any order.
+    private talonHalfOf(cardIds: readonly string[]): string[] | undefined {
+        return this.talonHalves?.find(
+            (half) =>
+                half.length === cardIds.length &&
+                new Set(cardIds).size === cardIds.length &&
+                cardIds.every((cardId) => half.includes(cardId))
+        )
     }
 
-    chooseTalonHalf(playerId: string, half: number): string[] {
-        assert(
-            this.canChooseTalonHalf(playerId, half),
-            `${playerId} cannot take talon half ${half}`
+    canChooseTalonHalf(playerId: string, cardIds: readonly string[]): boolean {
+        return (
+            playerId === this.declarerId() &&
+            this.rejectedTalonHalf === undefined &&
+            this.talonHalfOf(cardIds) !== undefined
         )
-        const cards = this.talonHalves?.[half]
-        assertExists(cards, `No talon half ${half}`)
-        this.chosenTalonHalf = half
-        this.player(playerId).takeIntoHand(cards)
-        return [...cards]
+    }
+
+    chooseTalonHalf(playerId: string, cardIds: readonly string[]) {
+        assert(
+            this.canChooseTalonHalf(playerId, cardIds),
+            `${playerId} cannot take talon half ${cardIds.join(', ')}`
+        )
+        const taken = this.talonHalfOf(cardIds)
+        assertExists(taken, `No talon half ${cardIds.join(', ')}`)
+        this.rejectedTalonHalf = (this.talonHalves ?? []).filter((half) => half !== taken).flat()
+        this.player(playerId).takeIntoHand(taken)
     }
 
     pickUpTalon() {
@@ -443,13 +457,12 @@ export class HydratedKoenigrufenGameState
 
     // A Besserrufer's bird, named with the bid, is already announced for declarer's side.
     startAnnouncements() {
-        const { bird, declarerId } = this.declared()
+        const { bird } = this.declared()
         this.announcements = newAnnouncements()
         if (bird !== undefined) {
             this.announcements.bonuses.push({
                 bonus: bird,
                 side: Side.Declarer,
-                playerId: declarerId,
                 doubles: 0
             })
         }

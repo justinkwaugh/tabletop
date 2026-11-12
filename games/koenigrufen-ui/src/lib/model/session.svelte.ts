@@ -324,8 +324,8 @@ export class KoenigrufenGameSession extends GameSession<
         await this.applyAction(this.createPlayerAction(CallKing, { king }))
     }
 
-    async chooseTalonHalf(half: number) {
-        await this.applyAction(this.createPlayerAction(ChooseTalonHalf, { half }))
+    async chooseTalonHalf(cardIds: readonly string[]) {
+        await this.applyAction(this.createPlayerAction(ChooseTalonHalf, { cardIds: [...cardIds] }))
     }
 
     async giveUp() {

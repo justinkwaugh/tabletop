@@ -33,7 +33,7 @@
                         class:choosable={gameSession.canChooseTalonHalf}
                         disabled={!gameSession.canChooseTalonHalf}
                         aria-label="Take talon half {index + 1}"
-                        onclick={() => gameSession.chooseTalonHalf(index)}
+                        onclick={() => gameSession.chooseTalonHalf(half)}
                     >
                         {#each half as cardId (cardId)}
                             {@render faceUp(cardId)}

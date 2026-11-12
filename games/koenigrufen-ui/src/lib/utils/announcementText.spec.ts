@@ -65,8 +65,8 @@ describe('announcement text', () => {
             ...newAnnouncements(),
             game: [{ doubles: 1 }],
             bonuses: [
-                { bonus: Bonus.Trull, side: Side.Declarer, playerId: 'a', doubles: 0 },
-                { bonus: Bonus.Pagat, side: Side.Declarer, playerId: 'a', doubles: 2 }
+                { bonus: Bonus.Trull, side: Side.Declarer, doubles: 0 },
+                { bonus: Bonus.Pagat, side: Side.Declarer, doubles: 2 }
             ]
         }
         const trull = { kind: 'bonus', bonus: Bonus.Trull, side: Side.Declarer } as const
@@ -89,8 +89,8 @@ describe('announcement text', () => {
             ...newAnnouncements(),
             game: [{ doubles: 1 }],
             bonuses: [
-                { bonus: Bonus.Pagat, side: Side.Declarer, playerId: 'a', doubles: 2 },
-                { bonus: Bonus.Trull, side: Side.Defenders, playerId: 'c', doubles: 0 }
+                { bonus: Bonus.Pagat, side: Side.Declarer, doubles: 2 },
+                { bonus: Bonus.Trull, side: Side.Defenders, doubles: 0 }
             ]
         }
         expect(announcementsSummary(announcements, names)).toEqual([

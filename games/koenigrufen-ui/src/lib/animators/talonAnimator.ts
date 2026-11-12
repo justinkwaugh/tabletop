@@ -133,9 +133,7 @@ export class TalonAnimator {
         const collectorSeat =
             collectorId === undefined ? undefined : this.places.seatOf(collectorId)
         const defenders = collectorSeat ? { element: collectorSeat } : undefined
-        const taken = new Set(
-            isChooseTalonHalf(action) ? (from.talonHalves?.[action.half] ?? []) : []
-        )
+        const taken = new Set(isChooseTalonHalf(action) ? action.cardIds : [])
         const staying = new Set(faceUpCards(after))
         const pieces: { key: string; cardId?: string; element: Element; toDeclarer: boolean }[] = []
         for (const cardId of faceUpCards(before)) {

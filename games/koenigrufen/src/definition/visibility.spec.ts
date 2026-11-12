@@ -11,6 +11,7 @@ import {
     declareByMeinSpiel,
     legalLayAway,
     startTestGame,
+    talonHalf,
     type TestSession
 } from '../util/testHelper.js'
 import { ActionType } from './actions.js'
@@ -62,7 +63,9 @@ describe('what each Perspective sees', () => {
         const session = startTestGame()
         const declarer = declareByMeinSpiel(session, Contract.Rufer)
         session.act(declarer, ActionType.CallKing, { king: Suit.Hearts })
-        session.act(declarer, ActionType.ChooseTalonHalf, { half: 0 })
+        session.act(declarer, ActionType.ChooseTalonHalf, {
+            cardIds: talonHalf(session, 0)
+        })
         const cardIds = legalLayAway(session.hand(declarer), 3)
         const [action] = session.act(declarer, ActionType.LayAway, { cardIds })
         assert(isLayAway(action), 'The declarer laid away')

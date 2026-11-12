@@ -119,6 +119,13 @@ export function setHands(session: TestSession, hands: Record<string, string[]>, 
 }
 
 // Laid-away cards a declarer may legally choose, the first choosable card each time.
+// The cards of an exposed talon half, which name it in a ChooseTalonHalf.
+export function talonHalf(session: TestSession, index: number): string[] {
+    const half = session.state.talonHalves?.[index]
+    assertExists(half, `No talon half ${index}`)
+    return half
+}
+
 export function legalLayAway(
     hand: readonly string[],
     count: number,
@@ -172,7 +179,9 @@ export function advanceTo(
                 break
             }
             case MachineState.ChoosingTalonHalf:
-                session.act(playerId, ActionType.ChooseTalonHalf, { half: 0 })
+                session.act(playerId, ActionType.ChooseTalonHalf, {
+                    cardIds: talonHalf(session, 0)
+                })
                 break
             case MachineState.LayingAway:
                 session.act(playerId, ActionType.LayAway, {

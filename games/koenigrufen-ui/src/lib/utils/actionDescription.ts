@@ -94,9 +94,7 @@ export function describeAction(
                 ? `The talon was turned up: ${action.metadata.halves.map((half) => cards(half, style)).join(' | ')}`
                 : 'The talon was turned up'
         case isChooseTalonHalf(action):
-            return action.metadata
-                ? `${who} took ${cards(action.metadata.cardIds, style)}`
-                : `${who} took a half of the talon`
+            return `${who} took ${cards(action.cardIds, style)}`
         case isGiveUp(action):
             return `${who} gave up with the called King in the talon`
         case isPickUpTalon(action):

@@ -5,10 +5,7 @@ import { CardIdSchema } from '../components/cards.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedKoenigrufenGameState } from '../model/gameState.js'
 
-export type TakenTalonHalf = Type.Static<typeof TakenTalonHalf>
-export const TakenTalonHalf = Type.Object({ cardIds: Type.Array(CardIdSchema) })
-
-// Declarer takes one exposed half; the other goes to the opponents.
+// Declarer takes one exposed half, named by its cards; the other goes to the opponents.
 export type ChooseTalonHalf = Type.Static<typeof ChooseTalonHalf>
 export const ChooseTalonHalf = Type.Evaluate(
     Type.Intersect([
@@ -16,8 +13,7 @@ export const ChooseTalonHalf = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.ChooseTalonHalf),
             playerId: Type.String(),
-            half: Type.Integer({ minimum: 0, maximum: 1 }),
-            metadata: Type.Optional(TakenTalonHalf)
+            cardIds: Type.Array(CardIdSchema)
         })
     ])
 )
@@ -34,14 +30,13 @@ export class HydratedChooseTalonHalf
 {
     declare type: ActionType.ChooseTalonHalf
     declare playerId: string
-    declare half: number
-    declare metadata?: TakenTalonHalf
+    declare cardIds: string[]
 
     constructor(data: ChooseTalonHalf) {
         super(data, ChooseTalonHalfValidator)
     }
 
     apply(state: HydratedKoenigrufenGameState) {
-        this.metadata = { cardIds: state.chooseTalonHalf(this.playerId, this.half) }
+        state.chooseTalonHalf(this.playerId, this.cardIds)
     }
 }

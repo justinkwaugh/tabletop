@@ -35,7 +35,7 @@ function tricks(
 }
 
 function announced(bonus: Bonus, side: Side, doubles = 0): AnnouncedBonus {
-    return { bonus, side, playerId: side === Side.Declarer ? 'a' : 'c', doubles }
+    return { bonus, side, doubles }
 }
 
 function hand(overrides: Partial<BonusHand> & { announcements?: Announcements } = {}): BonusHand {

@@ -46,12 +46,11 @@ export function talonGoesToDefenders(state: HydratedKoenigrufenGameState): boole
 // declarer, the defenders' to the defenders, and any that go to no team yet wait in the corner.
 export function talonViewOf(state: HydratedKoenigrufenGameState): TalonView {
     const halves = state.talonHalves
-    const chosen = state.chosenTalonHalf
+    const rejected = state.rejectedTalonHalf
     if (halves) {
-        if (chosen === undefined) {
+        if (rejected === undefined) {
             return { kind: 'halves', place: TalonPlace.Middle, halves }
         }
-        const rejected = halves[1 - chosen] ?? []
         return talonGoesToDefenders(state)
             ? { kind: 'gone' }
             : { kind: 'half', place: TalonPlace.Corner, cards: rejected }

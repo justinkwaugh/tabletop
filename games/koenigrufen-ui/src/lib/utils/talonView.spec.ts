@@ -17,20 +17,20 @@ function state({
     contract,
     machineState,
     talonHalves,
-    chosenTalonHalf,
+    rejectedTalonHalf,
     kingInTalon = false
 }: {
     contract?: Contract
     machineState: MachineState
     talonHalves?: string[][]
-    chosenTalonHalf?: number
+    rejectedTalonHalf?: string[]
     kingInTalon?: boolean
 }): HydratedKoenigrufenGameState {
     return {
         contract: contract === undefined ? undefined : { contract, declarerId: 'c' },
         machineState,
         talonHalves,
-        chosenTalonHalf,
+        rejectedTalonHalf,
         contractDefinition: () => contractDefinition(contract ?? Contract.Rufer),
         isCalledKingInTalon: () => kingInTalon,
         turnManager: { turnOrder: ['a', 'b', 'c', 'd'] }
@@ -69,7 +69,7 @@ describe('the talon on the table', () => {
                     contract: Contract.Rufer,
                     machineState: MachineState.LayingAway,
                     talonHalves: halves,
-                    chosenTalonHalf: 0
+                    rejectedTalonHalf: halves[1]
                 })
             )
         ).toEqual({ kind: 'half', place: TalonPlace.Corner, cards: halves[1] })
@@ -86,7 +86,7 @@ describe('the talon on the table', () => {
                         contract,
                         machineState: MachineState.Playing,
                         talonHalves: halves,
-                        chosenTalonHalf: 1,
+                        rejectedTalonHalf: halves[0],
                         kingInTalon
                     })
                 )

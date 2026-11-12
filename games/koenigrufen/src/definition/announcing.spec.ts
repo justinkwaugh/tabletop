@@ -35,7 +35,7 @@ describe('the announcements', () => {
         }
         expect(session.state.machineState).toBe(MachineState.Playing)
         expect(session.state.announcements?.bonuses).toEqual([
-            { bonus: Bonus.Trull, side: Side.Declarer, playerId: declarer, doubles: 0 }
+            { bonus: Bonus.Trull, side: Side.Declarer, doubles: 0 }
         ])
     })
 
@@ -71,7 +71,7 @@ describe('the announcements', () => {
         const declarer = declareByMeinSpiel(session, Contract.Besserrufer, Bonus.Uhu)
         advanceTo(session, [MachineState.Announcing])
         expect(session.hydrated().knownAnnouncements().bonuses).toEqual([
-            { bonus: Bonus.Uhu, side: Side.Declarer, playerId: declarer, doubles: 0 }
+            { bonus: Bonus.Uhu, side: Side.Declarer, doubles: 0 }
         ])
         expect(session.hydrated().announceableBonuses(declarer)).not.toContain(Bonus.Uhu)
         say(session)
