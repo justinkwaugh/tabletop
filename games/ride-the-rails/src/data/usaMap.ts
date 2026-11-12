@@ -1,17 +1,11 @@
 import { assertExists } from '@tabletop/common'
+import type { BonusId } from './bonuses.js'
 import { doubledNeighbours, hexCoordinates, hexIdAt, type HexId } from './hexes.js'
+import type { RailroadId } from './railroads.js'
 
 export type CityId = `city.usa.${string}`
 
-type StartRailroadId =
-    | 'railroad.red'
-    | 'railroad.blue'
-    | 'railroad.orange'
-    | 'railroad.yellow'
-    | 'railroad.purple'
-    | 'railroad.black'
-
-type CityBonusId = 'bonus.usa.chicago' | 'bonus.usa.five-dollar'
+type CityBonusId = Exclude<BonusId, 'bonus.usa.transcontinental'>
 
 export type CityCapacity = 1 | 2 | 'unlimited'
 
@@ -21,7 +15,7 @@ export type City = {
     id: CityId
     name: string
     hexId: HexId
-    startColours: readonly StartRailroadId[]
+    startColours: readonly RailroadId[]
     capacity: CityCapacity
     bonus: CityBonusId | null
     groups: readonly CityGroup[]
