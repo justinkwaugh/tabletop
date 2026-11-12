@@ -15,6 +15,8 @@ export type RevenueCell = Point & {
     captionWidth: number
     /** The caption prints after the value rather than before it. */
     captionAfter?: true
+    /** The caption prints above the value, as along a row of values with no room beside them. */
+    captionAbove?: true
 }
 
 /** A caption's width at its bold 7.5 size: roman numerals are mostly narrow I's. */
@@ -25,6 +27,9 @@ function captionTextWidth(caption: string): number {
         0
     )
 }
+
+/** The room a caption printed above a value takes. */
+const CaptionAboveHeight = 10
 
 export function stagedRevenueLayout(
     revenue: TileRevenue,
@@ -37,6 +42,7 @@ export function stagedRevenueLayout(
         captions = {},
         captionColors = {},
         captionAfter = false,
+        captionAbove = false,
         stack,
         fixed = false
     }: {
@@ -46,6 +52,8 @@ export function stagedRevenueLayout(
         captionColors?: Readonly<Record<string, string>>
         /** Prints the captions after the values, as on a board's east edge. */
         captionAfter?: boolean
+        /** Prints the captions above the values, which then line up in a row. */
+        captionAbove?: boolean
         stack?: 'column' | 'row'
         /** The anchor is a layout's chosen position, so the cells centre on it. */
         fixed?: boolean
@@ -58,8 +66,11 @@ export function stagedRevenueLayout(
     const height = 13
     const captioned =
         revenue.values.length > 1 && revenue.values.some((value) => captions[value.stage])
-    // Which side of the value the caption takes: -1 before it, 1 after it.
-    const side = captionAfter ? 1 : -1
+    // Which side of the value the caption takes: -1 before it, 1 after it, 0 above it.
+    const above = captioned && captionAbove
+    const side = above ? 0 : captionAfter ? 1 : -1
+    // The height a caption above a value adds to the row.
+    const captionRise = above ? CaptionAboveHeight : 0
     const captionWidth = captioned
         ? Math.max(
               ...revenue.values.map((value) => captionTextWidth(captions[value.stage] ?? ''))
@@ -74,7 +85,13 @@ export function stagedRevenueLayout(
     ]
     let best: RevenueCell[] = []
     let bestScore = -Infinity
-    for (const row of captioned ? [false] : stack ? [stack === 'row'] : [true, false]) {
+    for (const row of above
+        ? [true]
+        : captioned
+          ? [false]
+          : stack
+            ? [stack === 'row']
+            : [true, false]) {
         const centeredCandidates = [-30, -22, 22, 30].map((offset) =>
             row ? { x: 0, y: offset } : { x: offset, y: 0 }
         )
@@ -87,20 +104,29 @@ export function stagedRevenueLayout(
                     ? { captionColor: captionColors[value.stage] }
                     : {}),
                 captionWidth,
-                ...(captionAfter ? { captionAfter: true as const } : {}),
+                ...(captionAfter && !above ? { captionAfter: true as const } : {}),
+                ...(above ? { captionAbove: true as const } : {}),
                 width,
                 height,
                 x:
                     center.x +
                     (-side * captionWidth) / 2 +
                     (row ? (index - (revenue.values.length - 1) / 2) * width : 0),
-                y: center.y + (row ? 0 : (index - (revenue.values.length - 1) / 2) * height)
+                y:
+                    center.y +
+                    captionRise / 2 +
+                    (row ? 0 : (index - (revenue.values.length - 1) / 2) * height)
             }))
             const corners = cells.flatMap((cell) =>
                 [
                     cell.x - width / 2 - (side < 0 ? captionWidth : 0),
                     cell.x + width / 2 + (side > 0 ? captionWidth : 0)
-                ].flatMap((x) => [-1, 1].map((y) => ({ x, y: cell.y + (y * height) / 2 })))
+                ].flatMap((x) =>
+                    [cell.y - height / 2 - captionRise, cell.y + height / 2].map((y) => ({
+                        x,
+                        y
+                    }))
+                )
             )
             const inside = corners.every((point) =>
                 vertices.every((a, index) => {
@@ -119,7 +145,11 @@ export function stagedRevenueLayout(
                                 Math.abs(point.x - (cell.x + (side * captionWidth) / 2)) -
                                     (width + captionWidth) / 2
                             ),
-                            Math.max(0, Math.abs(point.y - cell.y) - height / 2)
+                            Math.max(
+                                0,
+                                Math.abs(point.y - (cell.y - captionRise / 2)) -
+                                    (height + captionRise) / 2
+                            )
                         )
                     )
                 )

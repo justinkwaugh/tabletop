@@ -70,6 +70,8 @@ export type TileLayout = {
      */
     printedTokens?: readonly TilePrintedToken[]
     /** Prints staged values' phase captions after them, as on a board's east edge. */
+    /** Prints a staged location's captions above its values, in a row. */
+    revenueCaptionsAbove?: boolean
     revenueCaptionsAfter?: boolean
     /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
     spikeReach?: number
@@ -376,6 +378,7 @@ export function createTileDrawing(
                           captions: style.revenueStageCaptions,
                           captionColors: style.revenueStageCaptionColors,
                           captionAfter: layout.revenueCaptionsAfter,
+                          captionAbove: layout.revenueCaptionsAbove,
                           stack: layout.revenueStack ?? style.revenueStack,
                           fixed: !!hint
                       }

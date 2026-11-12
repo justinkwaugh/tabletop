@@ -510,7 +510,26 @@
                                     font-weight="650"
                                     aria-label={`${cell.stage}: ${cell.amount}`}>{cell.text}</text
                                 >
-                                {#if cell.caption && cell.captionColor}
+                                {#if cell.caption && cell.captionAbove}
+                                    {#if cell.captionColor}<rect
+                                            data-revenue-caption-badge
+                                            x={-cell.captionWidth / 2}
+                                            y={-cell.height / 2 - 11}
+                                            width={cell.captionWidth}
+                                            height={10}
+                                            rx={1.5}
+                                            fill={cell.captionColor}
+                                        ></rect>{/if}
+                                    <text
+                                        dy={centredTextShift(7.5)}
+                                        data-revenue-caption
+                                        y={-cell.height / 2 - 6}
+                                        style:text-anchor="middle"
+                                        fill={contrastingTextColor(cell.captionColor ?? fill)}
+                                        font-size="7.5"
+                                        font-weight="700">{cell.caption}</text
+                                    >
+                                {:else if cell.caption && cell.captionColor}
                                     {@const badgeX = cell.captionAfter
                                         ? cell.width / 2 + 1.5
                                         : -cell.width / 2 - 1.5 - cell.captionWidth}

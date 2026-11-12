@@ -43,13 +43,27 @@ export const MapView1849: MapViewDefinition = {
     stations: Stations,
     // Rough, hills and mountains (L. 40, 80 and 160) as one, two and three peaks (§10.3.1).
     terrainIcons: { rough: 'peak', hill: 'mountain', mountain: 'range' },
-    layouts: { ...TileLayouts1849, ...PortLayouts },
+    layouts: {
+        ...TileLayouts1849,
+        ...PortLayouts,
+        // Each grey city's three values stand in its clear side: west of Trapani and Marsala,
+        // whose track leaves east and along the coast, and below Terranova's two spaces, its only
+        // side without track, in a row with their phases above (§10.5.2).
+        C1: { revenuePositions: { city: { x: -23, y: 6 } } },
+        // Marsala's city stands a little east, so its name curves clear of its values.
+        E1: {
+            nodePositions: { city: { x: 8, y: 0 } },
+            revenuePositions: { city: { x: -26, y: 0 } }
+        },
+        M9: { revenuePositions: { city: { x: 0, y: 30 } }, revenueCaptionsAbove: true }
+    },
     revenueStageColors: {
         low: [TrainColors1849['4H'], TrainColors1849['6H']],
         middle: [TrainColors1849['8H'], TrainColors1849['10H']],
         high: [TrainColors1849['12H'], TrainColors1849['16H']]
     },
-    revenueStageCaptions: { low: '4–6', middle: '8–10', high: '12+' },
+    // Each value is paid from the phase named beside it (§10.5.2).
+    revenueStageCaptions: { low: '4', middle: '8', high: '12' },
     locationMarkerNames: {
         'blocks-SCE': 'No track while a player owns the Società Corriere Etnee',
         [PortMarkerKind]: `+${TitleRules1849.currencySymbol} ${PortBonus1849} port token`
