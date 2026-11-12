@@ -1,21 +1,11 @@
-import {
-    ActionSource,
-    GameEngine,
-    MachineContext,
-    latestPlayerUndoTarget,
-    type HydratedAction,
-    type MachineStateHandler
-} from '@tabletop/common'
+import { ActionSource, latestPlayerUndoTarget } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { ActionType } from '../definition/actions.js'
 import { RideTheRailsHydrator } from '../definition/hydrator.js'
 import { RideTheRailsApiActions } from '../definition/apiActions.js'
 import { PhaseName } from '../definition/phases.js'
-import { RideTheRailsRuntime } from '../definition/runtime.js'
-import { RideTheRailsStateHandlers } from '../definition/stateHandlers.js'
-import { MachineState } from '../definition/states.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
-import { buildState, createGame } from '../testing/fixtures.js'
+import { buildState, createGame, engine } from '../testing/fixtures.js'
 import { mustSkipShare, shareRefusal, shareableRailroads } from '../rules/shares.js'
 import { supplyOf } from '../rules/supply.js'
 import { HydratedSkipShare, SkipShare, isSkipShare } from './skipShare.js'
@@ -206,32 +196,6 @@ describe('SkipShare (R-1.1-H1)', () => {
     })
 })
 
-// The phase 1 handler comes later: this one accepts TakeShare and stays put, so the
-// engine records the share with its undo patch.
-class SharesOnlyHandler implements MachineStateHandler<
-    HydratedAction,
-    HydratedRideTheRailsGameState
-> {
-    isValidAction(action: HydratedAction): boolean {
-        return isTakeShare(action)
-    }
-    validActionsForPlayer(): string[] {
-        return [ActionType.TakeShare]
-    }
-    enter(_context: MachineContext<HydratedRideTheRailsGameState>): void {}
-    onAction(): string {
-        return MachineState.TakingShares
-    }
-}
-
-const sharesEngine = new GameEngine({
-    ...RideTheRailsRuntime,
-    stateHandlers: {
-        ...RideTheRailsStateHandlers,
-        [MachineState.TakingShares]: new SharesOnlyHandler()
-    }
-})
-
 function userShare(
     state: HydratedRideTheRailsGameState,
     playerId: string,
@@ -251,7 +215,7 @@ describe('undo of a share (R-5-H1)', () => {
     it('restores the state exactly', () => {
         const hydrated = buildState({ round: 3, shares: { p3: { 'railroad.red': 1 } } })
         const state = hydrated.dehydrate()
-        const result = sharesEngine.executeCanonicalAction({
+        const result = engine.executeCanonicalAction({
             game: createGame(3),
             state,
             action: userShare(hydrated, 'p3', 'railroad.red')
@@ -262,7 +226,7 @@ describe('undo of a share (R-5-H1)', () => {
         expect(result.updatedState.players.find((p) => p.playerId === 'p3')?.shares).toEqual({
             'railroad.red': 2
         })
-        const undone = sharesEngine.undoProcessedAction({
+        const undone = engine.undoProcessedAction({
             state: result.updatedState,
             action: processed
         })

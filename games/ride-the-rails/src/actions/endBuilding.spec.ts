@@ -4,8 +4,13 @@ import type { HexId } from '../data/hexes.js'
 import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
-import { metadataOf, runBuildingAction, undoAll } from '../testing/buildingEngine.js'
-import { buildState, type StateRecipe } from '../testing/fixtures.js'
+import {
+    buildState,
+    buildingMetadataOf,
+    runAction,
+    undoRun,
+    type StateRecipe
+} from '../testing/fixtures.js'
 import { HydratedFinishBuilding, scheduleFinishBuilding } from './finishBuilding.js'
 
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -22,7 +27,7 @@ function building(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
 }
 
 function endBuilding(state: HydratedRideTheRailsGameState, playerId = 'p1') {
-    return runBuildingAction(state, { type: ActionType.EndBuilding, playerId })
+    return runAction(state, { type: ActionType.EndBuilding, playerId })
 }
 
 function finishBuilding(playerId = 'p1') {
@@ -39,20 +44,22 @@ function contextFor(state: HydratedRideTheRailsGameState) {
     return new MachineContext({ gameConfig: {}, gameState: state })
 }
 
-describe('EndBuilding (R-3.2.1)', () => {
+describe('EndBuilding (R-3.2.1, R-2.2)', () => {
     it('ends a turn with no placement', () => {
         const { after, processed } = endBuilding(building())
-        expect(after.building).toBeUndefined()
+        expect(after.activePlayerIds).toEqual(['p2'])
+        expect(after.building).toEqual({ placed: 0, usedMountain: false })
         expect(processed.map((action) => action.type)).toEqual([ActionType.EndBuilding])
-        expect(metadataOf(processed[0])).toEqual({ placed: 0 })
+        expect(buildingMetadataOf(processed[0])).toEqual({ placed: 0 })
     })
 
     it('ends a turn after some placements, with the limit not reached', () => {
         const { after, processed } = endBuilding(
             building({ building: { placed: 3, usedMountain: true } })
         )
-        expect(after.building).toBeUndefined()
-        expect(metadataOf(processed[0])).toEqual({ placed: 3 })
+        expect(after.activePlayerIds).toEqual(['p2'])
+        expect(after.building).toEqual({ placed: 0, usedMountain: false })
+        expect(buildingMetadataOf(processed[0])).toEqual({ placed: 3 })
     })
 
     it('is refused outside the player’s building turn', () => {
@@ -64,7 +71,7 @@ describe('EndBuilding (R-3.2.1)', () => {
     it('is undone on its own (R-5-H1)', () => {
         const run = endBuilding(building({ building: { placed: 2, usedMountain: false } }))
         expect(latestPlayerUndoTarget(run.processed, 'p1')?.type).toBe(ActionType.EndBuilding)
-        expect(undoAll(run)).toEqual(run.before)
+        expect(undoRun(run)).toEqual(run.before)
     })
 })
 
@@ -104,13 +111,13 @@ describe('FinishBuilding (R-3.2.1, R-3.2.3, R-3.2.4)', () => {
 
     it('runs in the cascade of the placement that made it due', () => {
         const state = building({ building: { placed: 7, usedMountain: false } })
-        const { processed } = runBuildingAction(state, {
+        const { processed } = runAction(state, {
             type: ActionType.PlaceLocomotive,
             playerId: 'p1',
             railroadId: 'railroad.red',
             hexId: WEST_OF_PHILADELPHIA
         })
-        expect(processed.map((action) => [action.type, metadataOf(action)])).toEqual([
+        expect(processed.map((action) => [action.type, buildingMetadataOf(action)])).toEqual([
             [ActionType.PlaceLocomotive, { isStart: false, bonuses: [] }],
             [ActionType.FinishBuilding, { reason: 'limit', placed: 8 }]
         ])

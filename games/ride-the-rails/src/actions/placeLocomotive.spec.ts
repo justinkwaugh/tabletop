@@ -9,8 +9,14 @@ import type { HydratedRideTheRailsGameState, Track, YellowState } from '../model
 import type { Shares } from '../model/playerState.js'
 import { placementTest } from '../rules/placement.js'
 import { westernmostSet } from '../rules/startRailroad.js'
-import { hydrated, metadataOf, runBuildingAction, undoAll } from '../testing/buildingEngine.js'
-import { buildState, type StateRecipe } from '../testing/fixtures.js'
+import {
+    buildState,
+    buildingMetadataOf,
+    hydrated,
+    runAction,
+    undoRun,
+    type StateRecipe
+} from '../testing/fixtures.js'
 import { HydratedPlaceLocomotive } from './placeLocomotive.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
@@ -69,7 +75,7 @@ function place(
     hexId: HexId,
     playerId = 'p1'
 ) {
-    return runBuildingAction(state, {
+    return runAction(state, {
         type: ActionType.PlaceLocomotive,
         playerId,
         railroadId,
@@ -158,7 +164,7 @@ describe('a placement (R-3.2, R-4.1)', () => {
         expect(after.track[WEST_OF_PHILADELPHIA]).toEqual(['railroad.black', 'railroad.red'])
         expect(after.building).toEqual({ placed: 1, usedMountain: false })
         expect(processed.map((action) => action.type)).toEqual([ActionType.PlaceLocomotive])
-        expect(metadataOf(processed[0])).toEqual({ isStart: false, bonuses: [] })
+        expect(buildingMetadataOf(processed[0])).toEqual({ isStart: false, bonuses: [] })
     })
 
     it('marks the turn’s mountain placement (R-3.2.4)', () => {
@@ -169,7 +175,7 @@ describe('a placement (R-3.2, R-4.1)', () => {
     it('records a start', () => {
         const { after, processed } = place(building(), 'railroad.orange', NEW_YORK)
         expect(after.track[NEW_YORK]).toEqual(['railroad.orange'])
-        expect(metadataOf(processed[0])).toEqual({ isStart: true, bonuses: [] })
+        expect(buildingMetadataOf(processed[0])).toEqual({ isStart: true, bonuses: [] })
     })
 })
 
@@ -177,14 +183,17 @@ describe('bonuses at the placement (R-3.2.5, R-4.3)', () => {
     it('pays Chicago’s $2 to the placing player, a start included (R-4.3.1)', () => {
         const { after, processed } = place(building(), 'railroad.orange', CHICAGO)
         expect(hydrated(after).getPlayerState('p1').money).toBe(12)
-        expect(metadataOf(processed[0])).toEqual({ isStart: true, bonuses: [CHICAGO_BONUS] })
+        expect(buildingMetadataOf(processed[0])).toEqual({
+            isStart: true,
+            bonuses: [CHICAGO_BONUS]
+        })
     })
 
     it('pays a $5 city’s first locomotive (R-4.3.2)', () => {
         const state = building({ track: { [plainNextTo(KANSAS_CITY)]: ['railroad.red'] } })
         const { after, processed } = place(state, 'railroad.red', KANSAS_CITY)
         expect(hydrated(after).getPlayerState('p1').money).toBe(15)
-        expect(metadataOf(processed[0])).toEqual({
+        expect(buildingMetadataOf(processed[0])).toEqual({
             isStart: false,
             bonuses: [
                 { bonusId: 'bonus.usa.five-dollar', amount: 5, cityId: 'city.usa.kansas-city' }
@@ -200,7 +209,7 @@ describe('bonuses at the placement (R-3.2.5, R-4.3)', () => {
         const { after, processed } = place(building({ track }), 'railroad.red', KANSAS_CITY)
         expect(hydrated(after).getPlayerState('p1').money).toBe(22)
         expect(after.transcontinental).toEqual({ playerId: 'p1', amount: 12 })
-        expect(metadataOf(processed[0])).toEqual({
+        expect(buildingMetadataOf(processed[0])).toEqual({
             isStart: false,
             bonuses: [{ bonusId: 'bonus.usa.transcontinental', amount: 12 }]
         })
@@ -240,14 +249,18 @@ describe('Yellow’s starts (R-4.2.3, R-4.2.3-H1, R-4.2.3-H2)', () => {
             startedInChicago: false,
             westStartCityId: 'city.usa.reno'
         })
-        expect(metadataOf(processed[0])).toEqual({ isStart: true, bonuses: [], westernmost })
+        expect(buildingMetadataOf(processed[0])).toEqual({
+            isStart: true,
+            bonuses: [],
+            westernmost
+        })
     })
 
     it('computes the set before the locomotive is added, and uses the Chicago start', () => {
         const state = building({ track: { [NEW_YORK]: ['railroad.red'] } })
         const { after, processed } = place(state, 'railroad.yellow', CHICAGO)
         expect(after.yellow).toEqual({ westernmost: ['city.usa.new-york'], startedInChicago: true })
-        expect(metadataOf(processed[0])).toEqual({
+        expect(buildingMetadataOf(processed[0])).toEqual({
             isStart: true,
             bonuses: [CHICAGO_BONUS],
             westernmost: ['city.usa.new-york']
@@ -277,7 +290,7 @@ describe('Yellow’s starts (R-4.2.3, R-4.2.3-H1, R-4.2.3-H2)', () => {
         })
         const { after, processed } = place(state, 'railroad.yellow', plainNextTo(CHICAGO))
         expect(after.yellow).toEqual(yellow)
-        expect(metadataOf(processed[0])).toEqual({ isStart: false, bonuses: [] })
+        expect(buildingMetadataOf(processed[0])).toEqual({ isStart: false, bonuses: [] })
     })
 
     it('makes the western start in a later turn after the Chicago start', () => {
@@ -307,13 +320,14 @@ describe('the turn ends by itself when nothing more is legal (R-3.2.3, R-3.2.4)'
             playerId: 'p1',
             metadata: { reason: 'limit', placed: 5 }
         })
-        expect(after.building).toBeUndefined()
+        expect(after.activePlayerIds).toEqual(['p2'])
+        expect(after.building).toEqual({ placed: 0, usedMountain: false })
     })
 
     it('ends the turn on a mountain placement that lowers the limit to the count', () => {
         const state = building({ playerCount: 4, building: { placed: 3, usedMountain: false } })
         const { processed } = place(state, 'railroad.red', MOUNTAIN_NEXT_TO_PHILADELPHIA)
-        expect(metadataOf(processed[1])).toEqual({ reason: 'limit', placed: 4 })
+        expect(buildingMetadataOf(processed[1])).toEqual({ reason: 'limit', placed: 4 })
     })
 
     it('ends the turn when the last locomotive of the player’s only railroad is placed', () => {
@@ -321,7 +335,7 @@ describe('the turn ends by itself when nothing more is legal (R-3.2.3, R-3.2.4)'
             shares: { p1: { 'railroad.red': 20 }, p2: { 'railroad.red': 5 } }
         })
         const { processed } = place(state, 'railroad.red', WEST_OF_PHILADELPHIA)
-        expect(metadataOf(processed[1])).toEqual({ reason: 'nothing-legal', placed: 1 })
+        expect(buildingMetadataOf(processed[1])).toEqual({ reason: 'nothing-legal', placed: 1 })
     })
 
     it('lets the turn go on while a placement is legal', () => {
@@ -341,7 +355,7 @@ describe('Undo of a placement (R-5-H1)', () => {
         const run = place(building({ track }), 'railroad.red', KANSAS_CITY)
         expect(run.processed).toHaveLength(1)
         expect(latestPlayerUndoTarget(run.processed, 'p1')?.type).toBe(ActionType.PlaceLocomotive)
-        expect(undoAll(run)).toEqual(run.before)
+        expect(undoRun(run)).toEqual(run.before)
     })
 
     it('reverses the FinishBuilding the placement triggered with it', () => {
@@ -352,7 +366,7 @@ describe('Undo of a placement (R-5-H1)', () => {
             ActionType.FinishBuilding
         ])
         expect(latestPlayerUndoTarget(run.processed, 'p1')?.type).toBe(ActionType.PlaceLocomotive)
-        expect(undoAll(run)).toEqual(run.before)
+        expect(undoRun(run)).toEqual(run.before)
     })
 
     it('walks a building turn back one locomotive at a time', () => {
@@ -362,7 +376,7 @@ describe('Undo of a placement (R-5-H1)', () => {
             'railroad.red',
             plainNextTo(WEST_OF_PHILADELPHIA)
         )
-        expect(undoAll(second)).toEqual(first.after)
-        expect(undoAll(first)).toEqual(first.before)
+        expect(undoRun(second)).toEqual(first.after)
+        expect(undoRun(first)).toEqual(first.before)
     })
 })

@@ -1,12 +1,17 @@
 import {
+    ActionSource,
     GameEngine,
     HydratedPhaseManager,
     HydratedRoundManager,
     PlayerStatus,
     assert,
     assertExists,
-    type Game
+    type Game,
+    type GameAction
 } from '@tabletop/common'
+import { isEndBuilding } from '../actions/endBuilding.js'
+import { isFinishBuilding } from '../actions/finishBuilding.js'
+import { isPlaceLocomotive } from '../actions/placeLocomotive.js'
 import type { CityId } from '../data/usaMap.js'
 import { Definition } from '../definition/definition.js'
 import { PhaseName } from '../definition/phases.js'
@@ -16,21 +21,19 @@ import {
     HydratedRideTheRailsGameState,
     inCityIdOrder,
     type BuildingTurn,
+    type RideTheRailsGameState,
     type Track,
     type TranscontinentalClaim,
     type YellowState
 } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
+import { ROUND_COUNT } from '../rules/endOfRound.js'
+import { PHASE_ORDER } from '../rules/phaseOrder.js'
 
 export const engine = new GameEngine(RideTheRailsRuntime)
 export const masterSeed = '0123456789abcdef0123456789abcdef'
 
 export const FIXTURE_PLAYER_IDS = ['p1', 'p2', 'p3', 'p4', 'p5'] as const
-
-const ROUND_COUNT = 6
-
-// R-2.1
-const PHASE_ORDER: readonly PhaseName[] = [PhaseName.TakeShare, PhaseName.Build, PhaseName.Ride]
 
 const PHASE_MACHINE_STATES: Readonly<Record<PhaseName, MachineState>> = {
     [PhaseName.TakeShare]: MachineState.TakingShares,
@@ -148,4 +151,47 @@ function phasesUpTo(phase: PhaseName): HydratedPhaseManager {
     }
     phaseManager.startPhase(phase, 0)
     return phaseManager
+}
+
+export type ActionRun = {
+    before: RideTheRailsGameState
+    after: RideTheRailsGameState
+    processed: GameAction[]
+}
+
+// Runs one user action and its whole cascade through the engine.
+export function runAction(
+    state: HydratedRideTheRailsGameState,
+    fields: Omit<GameAction, 'id' | 'gameId' | 'source'> & Record<string, unknown>
+): ActionRun {
+    const before = state.dehydrate()
+    const action = {
+        id: `a${before.actionCount}`,
+        gameId: before.gameId,
+        source: ActionSource.User,
+        ...fields
+    }
+    const result = engine.executeCanonicalAction({
+        game: createGame(state.players.length),
+        state: before,
+        action
+    })
+    return { before, after: result.updatedState, processed: result.processedActions }
+}
+
+export function undoRun(run: ActionRun): RideTheRailsGameState {
+    return run.processed
+        .toReversed()
+        .reduce((state, action) => engine.undoProcessedAction({ state, action }), run.after)
+}
+
+export function hydrated(state: RideTheRailsGameState): HydratedRideTheRailsGameState {
+    return new HydratedRideTheRailsGameState(structuredClone(state))
+}
+
+export function buildingMetadataOf(action: GameAction | undefined): unknown {
+    if (isPlaceLocomotive(action) || isEndBuilding(action) || isFinishBuilding(action)) {
+        return action.metadata
+    }
+    return undefined
 }
