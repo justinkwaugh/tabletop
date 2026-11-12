@@ -6,6 +6,7 @@ import {
     PackPoints,
     SackPoints,
     Side,
+    type Announce,
     type Announcements,
     type BonusResult,
     type ContractDefinition,
@@ -124,20 +125,20 @@ export function gameDoublesLine(entry: GameDoubles, names: Names): string {
         : `${names.name(entry.defenderId)} ${label}`
 }
 
-// Everything said so far, for the table: Kontras on the game, then each side's bonuses.
-export function announcementsSummary(announcements: Announcements, names: Names): string[] {
-    return [
-        ...announcements.game.map((entry) => gameDoublesLine(entry, names)),
-        ...announcements.bonuses.map(
-            (entry) =>
-                `${bonusName(entry.bonus)}${entry.side === Side.Defenders ? ' (defenders)' : ''}${doublesSuffix(entry.doubles)}`
-        )
-    ]
-}
-
 export function bonusResultLine(result: BonusResult): string {
     const team = result.side === Side.Declarer ? 'Declarer' : 'Defenders'
     const outcome = result.made ? 'made' : 'lost'
     const deed = result.announced ? `announced and ${outcome}` : outcome
     return `${team} ${deed} ${bonusName(result.bonus)}${doublesSuffix(result.doubles)}`
+}
+
+// The bonuses and doubles one announcement said, as "Trull" and "Kontra on the game".
+export function announcedItems(action: Announce, names: Names, myId?: string): string[] {
+    return [
+        ...action.bonuses.map(bonusName),
+        ...action.doubles.map((target, index) => {
+            const level = action.metadata?.doubleLevels[index] ?? 1
+            return `${DoubleNames[level - 1]} on ${doubleTargetName(target, names, myId)}`
+        })
+    ]
 }

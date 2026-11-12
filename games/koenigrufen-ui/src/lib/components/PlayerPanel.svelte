@@ -1,36 +1,66 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // A score sheet line on card stock: the player's running total from hand to hand.
+    // A page of a Tarock score pad: the running total with the last few hands beside it, then
+    // where the player stands in this hand and what they have said.
     let { playerId }: { playerId: string } = $props()
+
+    const RecentHands = 4
 
     const gameSession = getGameSession()
     const state = $derived(gameSession.gameState)
     const player = $derived(state.getPlayerState(playerId))
     const fill = $derived(gameSession.colors.getPlayerBgColorValue(playerId))
     const ink = $derived(gameSession.colors.getPlayerTextColorValue(playerId))
-    const lastChange = $derived(gameSession.lastHandResult?.scoreChanges[playerId])
+    const active = $derived(state.activePlayerIds.includes(playerId))
+    const facts = $derived(gameSession.panelFactsOf(playerId))
     const won = $derived(gameSession.wonCardsOf(playerId))
+    const recent = $derived(
+        gameSession.scoreSheet.rows
+            .slice(-RecentHands)
+            .map((row) => ({ hand: row.hand, change: row.result.scoreChanges[playerId] ?? 0 }))
+    )
+
+    function signed(value: number): string {
+        return value > 0 ? `+${value}` : String(value)
+    }
 </script>
 
-<div class="panel">
+<div class="panel" class:active>
     <div class="name" style:background={fill} style:color={ink}>
-        {gameSession.getPlayerName(playerId)}
-        {#if state.dealerId === playerId}<span class="role">dealer</span>{/if}
+        <span>{gameSession.getPlayerName(playerId)}</span>
+        <span class="roles">
+            {#if active}<span class="turn">Turn</span>{/if}
+            {facts.seatRoles.join(' · ')}
+        </span>
     </div>
     <div class="body">
-        <div class="score">
-            <span class="label">Score</span>
-            <span class="value">{player.score}</span>
-        </div>
-        {#if lastChange !== undefined}
-            <div class="change" class:up={lastChange > 0} class:down={lastChange < 0}>
-                last hand {lastChange > 0 ? '+' : ''}{lastChange}
+        <div class="tally">
+            <div class="score">
+                <span class="label">Score</span>
+                <span class="value">{player.score}</span>
             </div>
-        {/if}
-        <div class="cards">
-            {player.handCount} in hand · {won} won
+            {#if recent.length > 0}
+                <ol class="recent" aria-label="Last hands">
+                    {#each recent as { hand, change } (hand)}
+                        <li
+                            class:up={change > 0}
+                            class:down={change < 0}
+                            title="Hand {hand}: {signed(change)}"
+                        >
+                            {signed(change)}
+                        </li>
+                    {/each}
+                </ol>
+            {/if}
         </div>
+        <div class="hand">
+            <span class="standing">{facts.standing ?? ''}</span>
+            <span class="cards">{player.handCount} in hand · {won} won</span>
+        </div>
+        {#if facts.said.length > 0}
+            <div class="said"><span class="label">Said</span> {facts.said.join(' · ')}</div>
+        {/if}
     </div>
 </div>
 
@@ -44,25 +74,60 @@
         box-shadow: 0 1px 0 rgb(0 0 0 / 0.4);
     }
 
+    /* A thicker gold edge, its extra width taken from the margin so nothing shifts. */
+    .panel.active {
+        margin: -1px;
+        border: 2px solid #f2c94c;
+    }
+
     .name {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+        gap: 8px;
         padding: 4px 10px;
         font-weight: 700;
     }
 
-    .role {
+    .roles {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         font-weight: 400;
         font-size: 0.75rem;
-        opacity: 0.85;
+        opacity: 0.9;
     }
 
+    .turn {
+        padding: 0 6px;
+        border-radius: 4px;
+        background: #f2c94c;
+        color: #2a2116;
+        font-weight: 700;
+    }
+
+    /* Ruled like a score pad: a faint line under each entry. */
     .body {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 2px 8px;
-        padding: 6px 10px 8px;
+        display: flex;
+        flex-direction: column;
+        padding: 4px 10px 6px;
         font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    .body > * {
+        padding: 3px 0;
+        border-bottom: 1px solid #e4dccb;
+    }
+
+    .body > :last-child {
+        border-bottom: none;
+    }
+
+    .tally {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
     }
 
     .score {
@@ -72,7 +137,7 @@
     }
 
     .label {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         opacity: 0.6;
@@ -83,9 +148,23 @@
         font-weight: 700;
     }
 
-    .change {
-        align-self: center;
+    .recent {
+        display: flex;
+        margin: 0;
+        padding: 0;
+        list-style: none;
         font-size: 0.8rem;
+    }
+
+    .recent li {
+        min-width: 2.2em;
+        padding: 0 4px;
+        border-left: 1px solid #e4dccb;
+        text-align: right;
+    }
+
+    .recent li:last-child {
+        font-weight: 700;
     }
 
     .up {
@@ -96,9 +175,25 @@
         color: #9b2c2c;
     }
 
+    .hand {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .standing {
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .said {
+        font-size: 0.85rem;
+    }
+
     .cards {
-        grid-column: 1 / -1;
         font-size: 0.8rem;
         opacity: 0.7;
+        white-space: nowrap;
     }
 </style>

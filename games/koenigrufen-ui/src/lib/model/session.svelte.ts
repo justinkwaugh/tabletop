@@ -43,6 +43,7 @@ import { shownTrickOf, type ShownTrick } from '$lib/utils/trickMotion.js'
 import type { CardStyle } from '$lib/utils/cardStyle.js'
 import { scoreSheet, type ScoreSheet } from '$lib/utils/scoreSheet.js'
 import { wonCardCount } from '$lib/utils/wonCards.js'
+import { panelFacts, type PanelFacts } from '$lib/utils/panelFacts.js'
 import { bonusKey, doubleKey } from '$lib/utils/announcementText.js'
 import {
     AnnouncementStageOrder,
@@ -294,6 +295,12 @@ export class KoenigrufenGameSession extends GameSession<
 
     wonCardsOf(playerId: string): number {
         return wonCardCount(this.gameState, playerId)
+    }
+
+    panelFactsOf(playerId: string): PanelFacts {
+        return panelFacts(this.gameState, this.actions, playerId, this.myPlayer?.id, {
+            name: (id) => this.getPlayerName(id)
+        })
     }
 
     setCardStyle(change: Partial<CardStyle>) {

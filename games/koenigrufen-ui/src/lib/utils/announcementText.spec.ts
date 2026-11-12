@@ -9,7 +9,6 @@ import {
 import { describe, expect, it } from 'vitest'
 import {
     announcedValue,
-    announcementsSummary,
     bonusHeading,
     bonusResultLine,
     bonusSummary,
@@ -82,22 +81,6 @@ describe('announcement text', () => {
         expect(shortTargetName({ kind: 'game' }, names)).toBe('Game')
         expect(shortTargetName({ kind: 'game', defenderId: 'b' }, names, 'a')).toBe('Game with B')
         expect(shortTargetName({ kind: 'game', defenderId: 'b' }, names, 'b')).toBe('Game')
-    })
-
-    it('summarises what has been said', () => {
-        const announcements: Announcements = {
-            ...newAnnouncements(),
-            game: [{ doubles: 1 }],
-            bonuses: [
-                { bonus: Bonus.Pagat, side: Side.Declarer, doubles: 2 },
-                { bonus: Bonus.Trull, side: Side.Defenders, doubles: 0 }
-            ]
-        }
-        expect(announcementsSummary(announcements, names)).toEqual([
-            'Game Kontra',
-            'Pagat (Re)',
-            'Trull (defenders)'
-        ])
     })
 
     it('describes a scored bonus as a short phrase', () => {

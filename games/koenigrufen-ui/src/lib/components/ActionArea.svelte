@@ -2,7 +2,6 @@
     import { MachineState } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeStep, spokenKingName } from '$lib/utils/actionDescription.js'
-    import { announcementsSummary } from '$lib/utils/announcementText.js'
     import AnnouncementChoices from './AnnouncementChoices.svelte'
     import {
         bidHeading,
@@ -58,13 +57,6 @@
         return undefined
     })
 
-    const announced = $derived(
-        state.announcements &&
-            (state.machineState === MachineState.Announcing ||
-                state.machineState === MachineState.Playing)
-            ? announcementsSummary(state.announcements, names)
-            : []
-    )
 </script>
 
 <div class="action-area">
@@ -197,9 +189,6 @@
             {contractSummary(standingContract.choice)}
         </p>
     {/if}
-    {#if announced.length > 0 && !gameSession.isViewingHistory}
-        <p class="announced"><span>Announced:</span> {announced.join(' · ')}</p>
-    {/if}
 </div>
 
 <style>
@@ -256,15 +245,13 @@
         opacity: 0.75;
     }
 
-    .standing,
-    .announced {
+    .standing {
         font-size: 0.85rem;
         line-height: 1.3;
         opacity: 0.85;
     }
 
-    .standing span,
-    .announced span {
+    .standing span {
         color: #f2c94c;
         font-weight: 600;
     }
@@ -287,8 +274,7 @@
         }
 
         .note,
-        .standing,
-        .announced {
+        .standing {
             font-size: 0.75rem;
         }
     }

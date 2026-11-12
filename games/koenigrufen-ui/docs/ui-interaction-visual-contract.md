@@ -78,8 +78,18 @@
 - **Bonus summary:** pointing at a bonus with a mouse, or focusing it from the keyboard, shows what it takes and its unannounced worth in a line below the choices, its height reserved so the choices do not jump. Without hover, a tap toggles the bonus and shows its summary. The line keeps the last bonus shown and is absent when no bonus can be announced.
 - **Phones:** below 640px the rows flow together into one wrapping line of smaller buttons, the labels inline, so the choices usually fit in three lines.
 - **Contract line:** during announcements every player sees a "Contract:" line under the action panel naming the declarer's contract with its value and the same one-line summary as the "Highest bid:" line, so bonuses and Kontras are weighed against it.
-- **Everyone:** during announcements and play, an "Announced:" line under the action panel lists what has been said so far (Kontras on the game, then bonuses, with the defenders' marked and each bonus's Re or Sub).
+- **Everyone:** what each player has said this hand is on their player panel ("Said Pagat · Kontra on the game"), not in the action area.
 - **Play:** a card that an announced bird of the player's side needs (Pagat, Uhu, Kakadu, Quapil) is not offered before its trick, unless nothing else may be played.
+
+### Player panels
+
+- **Motif:** a page of a Tarock score pad on card stock, ruled with a faint line under each entry, the player's colour as the header band.
+- **Header:** the name, then Dealer and Forehand; the player to act has a gold "Turn" tag and a thicker gold edge.
+- **Tally:** the score, and beside it the last four hands' changes, oldest first, the latest bold, green for a gain and red for a loss.
+- **This hand:** where the player stands (during the auction their held bid "Bids Dreier", "Passed" or "Mein Spiel"; after it "Declarer · Rufer", "Partner", "Defender", or on my own panel "Secret partner"), with "9 in hand · 4 won" on the same line. A side shows only once the table knows it: declarer playing alone, the called King played, or an announcement for a side. Trischaken shows no sides.
+- **Said:** the bonuses and doubles the player announced this hand, in the history's words.
+- **No play aids:** nothing a player could work out from play (voids, birds still out).
+- **Source:** `panelFacts.ts`, tested in `panelFacts.spec.ts`; the seat badges on the table stay as they are.
 
 ### Hand summary
 
@@ -193,7 +203,7 @@ Each scenario is checked manually by a Playwright walk through the dev harness, 
 6. **Two-click and drag play:** one click raises a legal card; a second plays it. Undo drops a pick. A drag released anywhere above the player's name, even at the table's edge, plays the card; a drag released within the hand plays nothing and leaves no pick.
 7. **Bid menu:** **Bid ▾** opens the menu above the hand (at 390×844 it ends about 110px above it); an outside tap closes it and a reopened menu has no preview. At 1400×900 the wide table lists every opening bid without scrolling; pointing at a bid fills the pane, and clicking Besserrufer then moving diagonally to Quapil keeps the birds in the pane. At 390×844 the compact table shows; the first tap unfolds a bid and the second bids, and tapping Besserrufer unfolds its birds. After a Besserrufer Uhu the next bidder's Besserrufer row reads "7–9" with Pagat and Uhu disabled. After “Mein Spiel” and three passes the naming menu is already open, Escape closes it and **Name contract ▾** reopens it. Row text is automated in `bidRows.spec.ts`, bid names and summaries in `contractText.spec.ts`.
 8. **Hand summary:** after a hand, the panel shows both sides' card points, the requirement, made or lost, and the score sheet whose totals match the player scores (automated in `scoreSheet.spec.ts`). On a phone it does not cover the hand.
-9. **Announcing:** the declarer chooses Trull and Pagat and announces; the next player sees a Kontra row with Game, Trull and Pagat, and the "Announced:" line. At 390×844 the choices take at most three lines. After three passes play starts, and the hand summary lists the Kontra and both bonuses. Rules are automated in the logic package's `announcements.spec.ts`, `bonusScoring.spec.ts` and `definition/announcing.spec.ts`; text in `announcementText.spec.ts`.
+9. **Announcing:** the declarer chooses Trull and Pagat and announces; the next player sees a Kontra row with Game, Trull and Pagat, and the declarer's panel reads "Said Trull · Pagat". At 390×844 the choices take at most three lines. After three passes play starts, and the hand summary lists the Kontra and both bonuses. Rules are automated in the logic package's `announcements.spec.ts`, `bonusScoring.spec.ts` and `definition/announcing.spec.ts`; text in `announcementText.spec.ts`.
 10. **Card motion:** a played card, a dragged card, the 4th card of a trick and its sweep to the winner, the last trick of a hand and the next deal, the talon turning up, a taken talon half and laying away (Dreier), and the Sechserdreier pickup all move as described, at 1400×900 and 390×844, with no errors. Undo returns a card at once; stepping forward flies it in quickly; Play history replays the motion. The trick diff is automated in `trickMotion.spec.ts`, the deal order in `dealAnimator.spec.ts`.
 11. **History:** stepping back into a laying-away position shows no chosen cards or controls, and the trick matches that step.
 12. **Phone table:** at 390×844 and 375×667 the table fills the width under the action area, the hand is one row with every index visible, the zoom controls are top right, the talon halves fit inside the table, and the header reads like "Hand 1/12 Rufer · Developer · called K♥", the King in its chip. Text is automated in `cardStyle.spec.ts` and `actionDescription.spec.ts`.
