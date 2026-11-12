@@ -86,14 +86,13 @@ test("takes back a defender's announcement choice before any action", async ({ p
     }
     await area.locator('button', { hasText: 'Lay away' }).click()
     // The declarer passes and the next player, a defender, ticks a bonus in the menu.
-    await page.locator('.menu:popover-open button.commit', { hasText: 'Pass' }).click()
+    await area.locator('button.confirm', { hasText: 'Pass' }).click()
     const menu = page.locator('.menu:popover-open')
     const confirm = area.locator('button.confirm')
     await expect(confirm).toHaveText('Pass')
     const bonus = menu.getByRole('group', { name: 'Bonuses' }).locator('button').first()
     await bonus.click()
     await expect(bonus).toHaveAttribute('aria-pressed', 'true')
-    await expect(menu.locator('button.commit')).toHaveText(/^Announce /)
     await expect(confirm).toHaveText('Announce')
     // Undo takes back the choice, leaving the declarer's pass in place.
     await page.locator('.header .undo').click()

@@ -58,7 +58,7 @@ describe('the announcement table', () => {
         expect(chosenItems(sections, ['game:', 'bonus:pagat', 'bonus:trull'])).toEqual([
             'Trull',
             'Pagat',
-            'Kontra Game'
+            'Kontra on the game'
         ])
     })
 })

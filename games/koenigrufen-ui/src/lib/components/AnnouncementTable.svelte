@@ -1,12 +1,12 @@
 <script lang="ts">
     // The announcement menu's table: a section for the bonuses, then one for each double word,
     // every row ticked on or off. Wide, the pointed-at row is described in a pane beside the table;
-    // compact, it unfolds in place. The button at the foot announces what is ticked, or passes.
+    // compact, it unfolds in place. The action panel lists what is ticked and confirms it.
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { AnnouncementRow } from '$lib/utils/announcementRows.js'
     import { ChoicePreview } from '$lib/utils/choicePreview.svelte.js'
 
-    let { wide, onconfirm }: { wide: boolean; onconfirm: () => void } = $props()
+    let { wide }: { wide: boolean } = $props()
 
     const gameSession = getGameSession()
     const sections = $derived(gameSession.announcementSections)
@@ -15,7 +15,6 @@
     const preview = new ChoicePreview<string>()
     const shownKey = $derived(preview.shownAmong(rows.map((row) => row.key)))
     const shown = $derived(rows.find((row) => row.key === shownKey))
-    const chosenItems = $derived(gameSession.chosenAnnouncementItems)
 
     function toggle(row: AnnouncementRow) {
         preview.previewed = row.key
@@ -70,16 +69,6 @@
             {/if}
         </aside>
     {/if}
-</div>
-<div class="foot">
-    <button
-        type="button"
-        class="choice commit"
-        class:quiet={chosenItems.length === 0}
-        disabled={!gameSession.canConfirmAnnouncement}
-        onclick={onconfirm}
-        >{chosenItems.length > 0 ? `Announce ${chosenItems.join(' · ')}` : 'Pass'}</button
-    >
 </div>
 
 <style>
@@ -231,28 +220,5 @@
         color: #f2c94c;
         font-size: 1.05rem;
         font-weight: 700;
-    }
-
-    .foot {
-        position: sticky;
-        bottom: 0;
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 8px;
-        padding: 6px 0 4px;
-        background: rgb(16 30 21 / 0.97);
-    }
-
-    .commit {
-        font-weight: 700;
-    }
-
-    .commit:disabled {
-        opacity: 0.4;
-    }
-
-    .quiet {
-        border-style: dashed;
-        font-weight: 400;
     }
 </style>

@@ -23,11 +23,8 @@
                 title="Announce or double"
                 openAtOnce
             >
-                {#snippet table({ wide, close })}
-                    <AnnouncementTable
-                        {wide}
-                        onconfirm={() => (close(), gameSession.confirmAnnouncement())}
-                    />
+                {#snippet table({ wide })}
+                    <AnnouncementTable {wide} />
                 {/snippet}
             </TableMenu>
         {/key}

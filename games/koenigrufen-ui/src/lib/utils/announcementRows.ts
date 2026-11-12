@@ -127,7 +127,7 @@ function valueText(
         : `${scale(definition.win)}/−${scale(definition.loss)}`
 }
 
-// What is ticked, in table order: "Trull", "Kontra Game".
+// What is ticked, in table order: "Trull", "Kontra on the game".
 export function chosenItems(
     sections: readonly AnnouncementSection[],
     keys: readonly string[]
@@ -135,6 +135,6 @@ export function chosenItems(
     return sections.flatMap((section) =>
         section.rows
             .filter((row) => keys.includes(row.key))
-            .map((row) => (section.kind === 'bonus' ? row.name : `${section.title} ${row.name}`))
+            .map((row) => (section.kind === 'bonus' ? row.name : row.heading))
     )
 }
