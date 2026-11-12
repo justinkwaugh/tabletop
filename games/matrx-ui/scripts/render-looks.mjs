@@ -50,8 +50,10 @@ const files = await page.evaluate(() => {
     })
 })
 
-// Pixels per board unit: a disc about 640 px across, sharp at the board's full zoom on a phone.
-const SCALE = 12
+// Pixels per board unit: the board fits at up to 2.5 pixels per unit (GameTable's maxFitScale), and
+// the readiness review allows images up to 2.5 times the size they are drawn at, so a disc is about
+// 335 px across. Zoomed further in, as far as 4 pixels per unit, the pieces are a little soft.
+const SCALE = 2.5 * 2.5
 // Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
 // seams between the many bands of a groove's walls. Only the drawing grows, not the files.
 const SUPERSAMPLE = 4
