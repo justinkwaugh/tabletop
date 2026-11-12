@@ -57,4 +57,18 @@ describe('POST /update', () => {
         expect(fields && Object.keys(fields)).toEqual(['players'])
         expect(fields).toEqual({ players })
     })
+
+    it('passes a pace change', async () => {
+        const { server, updateGame } = await createServer()
+        servers.add(server)
+
+        const response = await server.inject({
+            method: 'POST',
+            url: '/update',
+            payload: { game: { id: 'game-1', paceMinutes: 60 } }
+        })
+
+        expect(response.statusCode).toBe(200)
+        expect(updateGame.mock.calls[0]?.[0].fields).toEqual({ paceMinutes: 60 })
+    })
 })

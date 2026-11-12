@@ -2,11 +2,21 @@
     import { slide } from 'svelte/transition'
     import { SvelteSet } from 'svelte/reactivity'
     import { ChevronRightOutline } from 'flowbite-svelte-icons'
-    import { lastMoveAt, PlayerStatus, type Game, type GameCatalogEntry } from '@tabletop/common'
+    import {
+        GamePace,
+        gamePaceOf,
+        lastMoveAt,
+        PlayerStatus,
+        type Game,
+        type GameCatalogEntry
+    } from '@tabletop/common'
+    import { GAME_PACE_LABELS } from '@tabletop/frontend-components'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import GameProgressBar from '$lib/components/GameProgressBar.svelte'
     import SeriesGameEntry from './SeriesGameEntry.svelte'
-    import { timeSince } from '$lib/utils/clock.svelte'
+    import TurnWait from '$lib/components/TurnWait.svelte'
+    import { minuteClock, timeSince } from '$lib/utils/clock.svelte'
+    import { turnWaitDisplay } from '$lib/utils/gamePace'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { recordedFinalScores } from '$lib/utils/gameScores'
     import { activePlayerText } from '$lib/utils/player'
@@ -47,6 +57,7 @@
             { area: 'name', label: 'Name' },
             { area: 'seats', label: 'Seats' },
             { area: 'options', label: 'Options' },
+            { area: 'pace', label: 'Pace' },
             { area: 'age', label: 'Created' }
         ],
         inProgress: [
@@ -54,8 +65,9 @@
             { area: 'name', label: 'Name' },
             { area: 'progress', label: 'Progress' },
             { area: 'options', label: 'Options' },
+            { area: 'pace', label: 'Pace' },
             { area: 'onmove', label: 'Turn' },
-            { area: 'age', label: 'Last move' }
+            { area: 'age', label: 'Waiting' }
         ],
         finished: [
             { area: 'title', label: 'Title' },
@@ -75,7 +87,6 @@
 
     function age(game: Game): string {
         if (kind === 'open') return timeSince(game.createdAt)
-        if (kind === 'inProgress') return timeSince(lastMoveAt(game))
         return timeSince(game.finishedAt ?? lastMoveAt(game))
     }
 
@@ -102,6 +113,7 @@
             {@const title = titlesById.get(game.typeId)}
             {@const gameOptions = options(game)}
             {@const summary = gameOptions && optionsSummary(gameOptions)}
+            {@const pace = gamePaceOf(game)}
             {@const onMove = kind === 'inProgress' ? activePlayerText(game, userId) : undefined}
             {@const isOpen = expanded.has(game.id)}
             {@const panelId = `${panelIdPrefix}-${game.id}`}
@@ -133,12 +145,28 @@
                                     >{/if}</span
                             >
                         {/if}
-                        {#if summary}<span
-                                class="options"
-                                class:standard={gameOptions?.length === 0}>{summary}</span
+                        {#if kind !== 'finished'}<span
+                                class="pace"
+                                class:live={pace.pace === GamePace.Live}
+                                >{GAME_PACE_LABELS[pace.pace].name}<span class="phone-only"
+                                    >{' pace'}</span
+                                ></span
                             >{/if}
-                        <span class="age">{age(game)}</span>
                     </span>
+                    {#if summary}<span class="options" class:standard={gameOptions?.length === 0}
+                            >{summary}</span
+                        >{/if}
+                    {#if kind === 'inProgress'}
+                        {@const wait = turnWaitDisplay(game, minuteClock.now)}
+                        <span class="age" class:past={wait?.pastPace}
+                            >{#if wait}<TurnWait {wait} label="Waiting"
+                                    >{#snippet prefix()}<span class="phone-only">{'waiting '}</span
+                                        >{/snippet}</TurnWait
+                                >{/if}</span
+                        >
+                    {:else}
+                        <span class="age">{age(game)}</span>
+                    {/if}
                     {#if kind === 'open'}
                         <span
                             class="seats"
@@ -201,7 +229,7 @@
 <style>
     .game-table {
         --pad-x: 10px;
-        --gap: 16px;
+        --gap: 14px;
         --chevron: 18px;
         --cover: 28px;
         --title: 7rem;
@@ -267,15 +295,15 @@
     }
     .open .row {
         grid-template-columns:
-            var(--chevron) var(--cover) var(--title) minmax(0, 1fr) 8.5rem minmax(0, 9rem)
-            7rem 5.5rem;
-        grid-template-areas: 'chevron cover title name seats options age action';
+            var(--chevron) var(--cover) var(--title) minmax(0, 1fr) 7.5rem minmax(0, 9rem) 4rem
+            6.5rem 5.5rem;
+        grid-template-areas: 'chevron cover title name seats options pace age action';
     }
     .inProgress .row {
         grid-template-columns:
-            var(--chevron) var(--cover) var(--title) minmax(0, 1fr) minmax(10rem, 1.1fr)
-            minmax(0, 8rem) minmax(0, 8rem) 7rem 6rem;
-        grid-template-areas: 'chevron cover title name progress options onmove age action';
+            var(--chevron) var(--cover) var(--title) minmax(0, 1fr) minmax(11.5rem, 1fr)
+            minmax(0, 5.5rem) 4rem minmax(0, 7.5rem) 6.5rem 5.5rem;
+        grid-template-areas: 'chevron cover title name progress options pace onmove age action';
     }
     .finished .row {
         grid-template-columns:
@@ -311,8 +339,18 @@
         grid-area: title;
         color: var(--color-gray-300);
     }
+    .pace {
+        grid-area: pace;
+    }
+    .pace.live {
+        color: var(--color-green-400);
+    }
     .options {
         grid-area: options;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .options.standard {
         color: var(--color-gray-500);
@@ -330,7 +368,14 @@
     }
     .age {
         grid-area: age;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: var(--color-gray-500);
+    }
+    .age.past {
+        color: var(--color-amber-400);
     }
     .seats {
         grid-area: seats;
@@ -424,17 +469,21 @@
         }
         .open .row {
             grid-template-columns: var(--chevron) var(--cover) minmax(0, 1fr) auto;
-            grid-template-areas: 'chevron cover name action' 'chevron cover meta seats';
+            grid-template-areas:
+                'chevron cover name action' 'chevron cover meta seats'
+                'chevron cover options age';
         }
         .inProgress .row {
             grid-template-columns: var(--chevron) var(--cover) minmax(0, 1fr) auto;
             grid-template-areas:
                 'chevron cover name action' 'chevron cover meta meta'
-                'chevron cover progress progress';
+                'chevron cover options age' 'chevron cover progress progress';
         }
         .finished .row {
             grid-template-columns: var(--chevron) var(--cover) minmax(0, 1fr) auto;
-            grid-template-areas: 'chevron cover name action' 'chevron cover meta meta';
+            grid-template-areas:
+                'chevron cover name action' 'chevron cover meta meta'
+                'chevron cover options age';
         }
         .cover {
             align-self: start;
@@ -454,6 +503,13 @@
         .meta > span,
         .phone-only {
             display: inline;
+        }
+        .options,
+        .age {
+            font-size: 12px;
+        }
+        .age {
+            justify-self: end;
         }
         .meta > span + span::before {
             content: ' · ';

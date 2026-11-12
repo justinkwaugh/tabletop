@@ -4,6 +4,7 @@ import { watchTournamentGame } from '../competitions/tournamentStalls.js'
 import { Timed, measure, measureSync, countTiming } from '../diagnostics/requestTimings.js'
 import type { ProjectedHistoryCache } from './projectedHistoryCache.js'
 import {
+    snapPaceMinutes,
     GameCreationOptions,
     deriveGameSeeds,
     generateMasterSeed,
@@ -249,9 +250,12 @@ export class GameService {
             definition,
             (sourceGameId) => this.findContinuationSource(sourceGameId, owner)
         )
-        // Titles bundle their own initializer, which may predate unlisted games.
+        // Titles bundle their own initializer, which may predate unlisted games and pace.
         if (game.unlisted) newGame.unlisted = true
         else delete newGame.unlisted
+        if (game.paceMinutes !== undefined && !newGame.hotseat)
+            newGame.paceMinutes = snapPaceMinutes(game.paceMinutes)
+        else delete newGame.paceMinutes
         this.assertGameNameAllowed(newGame, owner)
 
         // Check the specified players and populate them with user data
@@ -1027,6 +1031,10 @@ export class GameService {
             throw new UnauthorizedAccessError({ user, gameId })
         }
         const owner = user.id === game.ownerId ? user : await this.userService.getUser(game.ownerId)
+
+        if (fields.paceMinutes !== undefined) {
+            fields.paceMinutes = snapPaceMinutes(fields.paceMinutes)
+        }
 
         if (fields.name !== undefined) {
             fields.name = fields.name.trim()

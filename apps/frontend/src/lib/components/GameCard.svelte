@@ -13,6 +13,7 @@
         daysUntilStalledGameEnds,
         gameStallLevel,
         GameStallLevel,
+        gamePaceOf,
         lastMoveAt,
         ownerMayDeleteGame,
         stalledGameEndsAt
@@ -24,11 +25,13 @@
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import {
         activePlayerText,
+        ownerName,
         playerHighlight,
         playersHostFirst,
         playerStatusDisplay
     } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
+    import { turnWaitDisplay } from '$lib/utils/gamePace'
     import { gameShareLink } from '$lib/utils/gameLinks'
     import { startCountdownText } from '$lib/utils/startCountdown'
     import { minuteClock, secondClock, timeSince } from '$lib/utils/clock.svelte'
@@ -37,7 +40,13 @@
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
     import GameProgressBar from './GameProgressBar.svelte'
-    import { copyTextToClipboard, GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import TurnWait from './TurnWait.svelte'
+    import {
+        copyTextToClipboard,
+        GAME_PACE_LABELS,
+        GameEditForm,
+        getAppContext
+    } from '@tabletop/frontend-components'
 
     const HIGHLIGHT_CLASS = { active: 'text-orange-400', winner: 'text-blue-400', none: '' }
     const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
@@ -87,6 +96,9 @@
 
     let myPlayer = $derived(sortedPlayers.find((player) => player.userId === sessionUser?.id))
     let isMine = $derived(myPlayer !== undefined)
+    let isOpen = $derived(
+        game.status === GameStatus.WaitingForPlayers || game.status === GameStatus.WaitingToStart
+    )
 
     let canJoin = $derived.by(() => {
         if (game.tournament) return false
@@ -107,21 +119,13 @@
 
     let canLeave = $derived(
         !game.tournament &&
-            (game.status === GameStatus.WaitingForPlayers ||
-                game.status === GameStatus.WaitingToStart) &&
+            isOpen &&
             !isOwnedByMe &&
             isMine &&
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let canEdit = $derived(
-        !game.tournament &&
-            !loading &&
-            isOwnedByMe &&
-            !game.parentId &&
-            (game.status === GameStatus.WaitingForPlayers ||
-                game.status === GameStatus.WaitingToStart)
-    )
+    let canEdit = $derived(!game.tournament && !loading && isOwnedByMe && !game.parentId && isOpen)
 
     let canStart = $derived(
         !game.tournament && isOwnedByMe && game.status === GameStatus.WaitingToStart
@@ -138,11 +142,7 @@
     let confirmDelete = $state(false)
 
     let waitingToStart = $derived(
-        (game.status === GameStatus.WaitingForPlayers ||
-            game.status === GameStatus.WaitingToStart) &&
-            !isOwnedByMe &&
-            isMine &&
-            myPlayer?.status === PlayerStatus.Joined
+        isOpen && !isOwnedByMe && isMine && myPlayer?.status === PlayerStatus.Joined
     )
 
     let autoStartAt = $derived(
@@ -161,6 +161,13 @@
     let currentTime = $derived(minuteClock.now)
     let stallLevel = $derived(gameStallLevel(game, currentTime))
     let stallColor = $derived(stallColors[stallLevel])
+
+    let paceLabels = $derived(GAME_PACE_LABELS[gamePaceOf(game).pace])
+    let pacedOpen = $derived(isOpen && !game.hotseat)
+    let pacedStarted = $derived(game.status === GameStatus.Started && !game.hotseat)
+    let hostName = $derived(pacedOpen ? ownerName(game) : undefined)
+    let turnWait = $derived(pacedStarted ? turnWaitDisplay(game, currentTime) : undefined)
+    let activePlayer = $derived(activePlayerText(game, sessionUser?.id))
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
@@ -381,13 +388,23 @@
                     <div class="h-[80px] w-[80px]"></div>
                 {/if}
             </div>
-            <div class="pl-4 pr-2 py-0 w-full">
+            <div class="min-w-0 pl-4 pr-2 py-0 w-full">
                 <div class="flex flex-col justify-between h-full">
                     <div class="flex flex-row justify-between items-start pb-2">
-                        <div class="flex flex-col justify-end items-start">
+                        <div class="flex min-w-0 flex-col justify-end items-start">
                             <h1 class="text-lg font-light text-left dark:text-gray-200 leading-5">
                                 {game.name}
                             </h1>
+                            {#if pacedStarted}
+                                <div class="mt-0.5 text-xs text-gray-400">{paceLabels.line}</div>
+                            {:else if hostName}
+                                <div
+                                    class="mt-0.5 max-w-full truncate text-xs text-gray-400"
+                                    title={hostName}
+                                >
+                                    by <span class="text-gray-300">{hostName}</span>
+                                </div>
+                            {/if}
                             {#if game.tournament}<a
                                     class="mt-1 text-xs text-gray-500 underline decoration-gray-400/50 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                     href={`/tournaments/${game.tournament.tournamentId}`}
@@ -469,15 +486,18 @@
                     {/if}
                     <div class="flex flex-row justify-between items-start text-white">
                         {#if game.status === GameStatus.Started}
-                            <div class="flex flex-col justify-start items-start">
+                            <div class="flex min-w-0 flex-col justify-start items-start">
                                 <div
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
                                     Active Player
                                 </div>
-                                <div class="text-xs text-orange-400">
-                                    {activePlayerText(game, sessionUser?.id)}
+                                <div
+                                    class="max-w-full truncate text-xs text-orange-400"
+                                    title={activePlayer}
+                                >
+                                    {activePlayer}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}
@@ -502,6 +522,19 @@
                                 </div>
                                 <div class="text-xs text-gray-400">
                                     {totalSeats} player
+                                </div>
+                            </div>
+                        {/if}
+                        {#if pacedOpen}
+                            <div class="flex flex-col justify-center items-center">
+                                <div
+                                    class="text-gray-600"
+                                    style="font-size:.7rem; line-height:.8rem"
+                                >
+                                    Pace
+                                </div>
+                                <div class="text-xs text-nowrap text-gray-400">
+                                    {paceLabels.summary}
                                 </div>
                             </div>
                         {/if}
@@ -530,16 +563,20 @@
                                     {timeSince(lastMoveAt(game))}
                                 </div>
                             </div>
-                        {:else if game.status === GameStatus.Started && game.lastActionAt}
-                            <div class="flex flex-col justify-center items-end">
+                        {:else if turnWait}
+                            <div class="ms-3 flex shrink-0 flex-col justify-center items-end">
                                 <div
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Last Action
+                                    Waiting
                                 </div>
-                                <div class="text-xs text-gray-400">
-                                    {timeSince(new Date(game.lastActionAt))}
+                                <div
+                                    class="text-xs text-nowrap {turnWait.pastPace
+                                        ? 'text-amber-400'
+                                        : 'text-gray-400'}"
+                                >
+                                    <TurnWait wait={turnWait} />
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}
@@ -556,7 +593,7 @@
                                     </div>
                                 {/if}
                             </div>
-                        {:else}
+                        {:else if isOpen}
                             <div class="flex flex-col justify-center items-end">
                                 <div
                                     class="text-gray-600"

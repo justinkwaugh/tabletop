@@ -25,6 +25,7 @@ import {
 import {
     GameContinuation,
     MasterSeed,
+    turnStartsAfter,
     ActionSource,
     GameAction,
     Game,
@@ -175,6 +176,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             createdAt: date,
             updatedAt: date
         }
+        this.recordTurnStarts(undefined, storedGame, date)
         const state = storedGame.state
         delete storedGame.state
         const tournamentKeys = this.tournamentCacheKeys
@@ -538,6 +540,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                         return { updatedGame: existingGame, updatedFields: [], existingGame }
                 }
             }
+            this.recordTurnStarts(existingGame, fieldsToUpdate, new Date())
 
             const updatedFields = Object.keys(fieldsToUpdate)
             let stateToUpdate: GameState | undefined
@@ -1270,6 +1273,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             const updatedGame = structuredClone(existingGame)
             gameUpdates.updatedAt = updateDate
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            this.recordTurnStarts(existingGame, gameUpdates, updateDate)
 
             if (existingState.result !== state.result) {
                 if (state.result) {
@@ -1415,6 +1419,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                             finishedAt: now,
                             updatedAt: now
                         }
+                        this.recordTurnStarts(game, updates, now)
                         const updated = { ...structuredClone(game), ...updates }
                         await this.releaseTournamentTable(
                             transaction,
@@ -1818,6 +1823,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             const updatedGame = structuredClone(existingGame) as Game
             gameUpdates.updatedAt = new Date()
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            this.recordTurnStarts(existingGame, gameUpdates, gameUpdates.updatedAt)
 
             if (existingState.result !== state.result && !state.result) {
                 Object.assign(gameUpdates, this.reopenedGameFields())
@@ -2420,6 +2426,11 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         }
     }
 
+    private recordTurnStarts(existingGame: Game | undefined, updates: Partial<Game>, at: Date) {
+        if (updates.activePlayerIds === undefined) return
+        updates.turnStartedAt = turnStartsAfter(existingGame, updates.activePlayerIds, at)
+    }
+
     private createGameUpdateDocument(fields: Partial<Game>, updatedGame: Game): DocumentData {
         const document = this.createUpdateDocument(fields)
         if (fields.players !== undefined) {
@@ -2437,6 +2448,11 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         }
         return result
     }
+}
+
+function storedDate(value: unknown): Date {
+    assert(value instanceof Timestamp, 'A stored game time must be a Firestore Timestamp')
+    return value.toDate()
 }
 
 const gameConverter = {
@@ -2471,9 +2487,14 @@ const gameConverter = {
         data.autoStartAt = data.autoStartAt ? (data.autoStartAt as Timestamp).toDate() : undefined
         data.startedAt = data.startedAt ? (data.startedAt as Timestamp).toDate() : undefined
         data.finishedAt = data.finishedAt ? (data.finishedAt as Timestamp).toDate() : undefined
-        data.lastActionAt = data.lastActionAt
-            ? (data.lastActionAt as Timestamp).toDate()
-            : undefined
+        data.lastActionAt = data.lastActionAt ? storedDate(data.lastActionAt) : undefined
+        if (data.turnStartedAt)
+            data.turnStartedAt = Object.fromEntries(
+                Object.entries(data.turnStartedAt).map(([playerId, startedAt]) => [
+                    playerId,
+                    storedDate(startedAt)
+                ])
+            )
 
         // Default this for older records
         data.storage = GameStorage.Remote

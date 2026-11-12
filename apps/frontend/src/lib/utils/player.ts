@@ -49,9 +49,12 @@ export function playerStatusDisplay(player: Player, ownerId: string) {
 }
 
 export function activePlayerText(game: Game, userId: string | undefined) {
-    if (isUsersNonHotseatTurn(game, userId)) return 'You'
     const activePlayerIds = game.activePlayerIds ?? []
-    if (activePlayerIds.length === 1)
-        return game.players.find((player) => player.id === activePlayerIds[0])?.name
-    return 'Multiple players'
+    if (activePlayerIds.length !== 1) return 'Multiple players'
+    if (isUsersNonHotseatTurn(game, userId)) return 'You'
+    return game.players.find((player) => player.id === activePlayerIds[0])?.name
+}
+
+export function ownerName(game: Pick<Game, 'players' | 'ownerId'>): string | undefined {
+    return game.players.find((player) => player.userId === game.ownerId)?.name
 }

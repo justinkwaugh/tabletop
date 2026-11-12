@@ -397,6 +397,84 @@ describe('unlisted games', () => {
     })
 })
 
+describe('game pace', () => {
+    const openSeats = invitees.map(({ id }) => ({
+        id: `player-${id}`,
+        name: '',
+        isHuman: true,
+        status: PlayerStatus.Open
+    }))
+    const publicGame = (): Partial<Game> => ({
+        ...inviteesOnly(),
+        isPublic: true,
+        players: [seat(regular.id), ...openSeats.slice(1)]
+    })
+
+    it('keeps the chosen pace when the title’s bundled initializer predates pace', async () => {
+        const { service } = fixture()
+        const initializer = SyntheticDefinition.runtime.initializer
+        const initialize = initializer.initializeGame.bind(initializer)
+        vi.spyOn(initializer, 'initializeGame').mockImplementation((game, definition) => {
+            const { paceMinutes: _paceMinutes, ...older } = initialize(game, definition)
+            return older
+        })
+        const created = await service.createGame({
+            definition: SyntheticDefinition,
+            game: { ...publicGame(), paceMinutes: 60 },
+            owner: regular
+        })
+        expect(created.paceMinutes).toBe(60)
+    })
+
+    it('stores a pace between presets as the preset it falls within', async () => {
+        const { service, store } = fixture()
+        const created = await service.createGame({
+            definition: SyntheticDefinition,
+            game: { ...publicGame(), paceMinutes: 90 },
+            owner: regular
+        })
+        expect(created.paceMinutes).toBe(480)
+
+        const existing: Game = { ...storedGame(regular, []), isPublic: true }
+        existing.players = [{ ...seat(regular.id), status: PlayerStatus.Joined }, ...openSeats]
+        acceptUpdates(store, existing)
+        const updated = await service.updateGame({
+            gameId: existing.id,
+            fields: { paceMinutes: 20 },
+            user: regular
+        })
+        expect(updated.paceMinutes).toBe(60)
+    })
+
+    it('stores no pace for a hotseat game', async () => {
+        const { service } = fixture()
+        const created = await service.createGame({
+            definition: SyntheticDefinition,
+            game: {
+                ...inviteesOnly(),
+                hotseat: true,
+                paceMinutes: 60,
+                players: [seat(regular.id), seat('b'), seat('c')]
+            },
+            owner: regular
+        })
+        expect(created.paceMinutes).toBeUndefined()
+    })
+
+    it('lets the owner change the pace while the game waits for players', async () => {
+        const { service, store } = fixture()
+        const existing: Game = { ...storedGame(regular, []), isPublic: true }
+        existing.players = [{ ...seat(regular.id), status: PlayerStatus.Joined }, ...openSeats]
+        acceptUpdates(store, existing)
+        const updated = await service.updateGame({
+            gameId: existing.id,
+            fields: { paceMinutes: 15 },
+            user: regular
+        })
+        expect(updated.paceMinutes).toBe(15)
+    })
+})
+
 describe('game user ids', () => {
     const players = [
         { id: 'p1', userId: 'b', name: 'b', isHuman: true, status: PlayerStatus.Joined }
