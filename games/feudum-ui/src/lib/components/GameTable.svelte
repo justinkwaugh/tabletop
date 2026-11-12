@@ -64,6 +64,9 @@
         animate: () => !phone.reducedMotion
     })
 
+    /** Contract, Phone layout: a phone drafts its hand in a bottom sheet over the board. */
+    let handSheet = $derived(phone.phone && feudumSession.handPanel?.drafting !== undefined)
+
     let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
     let pickFrame = $derived(
         feudumSession.benchCovers
@@ -130,7 +133,12 @@
         {#if phone.upright}
             <StatusStrip />
         {/if}
-        <div class="action-cap" data-action-cap inert={feudumSession.updatingVisibleState}>
+        <div
+            class="action-cap"
+            data-action-cap
+            data-hand-sheet={handSheet ? '' : undefined}
+            inert={feudumSession.updatingVisibleState}
+        >
             <ActionArea />
         </div>
     </div>
@@ -214,7 +222,9 @@
     }
 
     /* The column's height is the action area's measure, in the page and in full screen alike. */
+    /* The column is the hand sheet's frame, so it stands from the column's foot. */
     [data-phone] .game-stack {
+        position: relative;
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -233,6 +243,26 @@
     [data-phone] .action-cap {
         overflow-x: hidden;
         overflow-y: auto;
+    }
+
+    /*
+     * The hand draft's bottom sheet: it stands over the board from the column's foot, and gives the
+     * board back once the hand is finalised.
+     */
+    [data-phone] .action-cap[data-hand-sheet] {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 30;
+        max-height: 85cqh;
+        border-top: 1px solid var(--feudum-frame);
+        border-radius: 0.75rem 0.75rem 0 0;
+        background-color: var(--feudum-surface-raised);
+    }
+
+    /* Upright, the seat strip stays in sight under the sheet: its 44 px chips open the seats. */
+    [data-phone='upright'] .action-cap[data-hand-sheet] {
+        bottom: 44px;
     }
 
     /* Contract, Phone layout: 44 px targets, in the panel, the popups and the sheets' footers. */
