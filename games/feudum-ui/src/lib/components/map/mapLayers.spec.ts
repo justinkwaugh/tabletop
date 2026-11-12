@@ -2,6 +2,7 @@
 import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+    Goods,
     HydratedFeudumGameState,
     LandscapeKinds,
     MonsterIds,
@@ -12,7 +13,7 @@ import {
     type MonsterId,
     type SpaceId
 } from '@tabletop/feudum'
-import { RegionOutlines } from '$lib/utils/boardGeometry.js'
+import { RegionOutlines, plateSlot, spaceGeometry } from '$lib/utils/boardGeometry.js'
 import { atPlayingCards, addPawn, type TurnTable } from '$lib/testing/turnTable.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import WritFace from '$lib/components/pieces/WritFace.svelte'
@@ -176,19 +177,39 @@ describe('what lies on a space', () => {
         }
     })
 
-    it('R-1.1 goods show singly up to four, then one token with a count', () => {
+    it('R-1.1 goods group by kind on one plate, a token each, with a count badge past one', () => {
         const { host } = table
         let id: SpaceId = Spaces[0].id
         host.edit((state) => {
             id = bareSpace(state)
             state.spaces[id].goods.iron = 4
-            state.spaces[id].goods.wood = 5
+            state.spaces[id].goods.wood = 1
         })
         const html = markup(host.state)
-        expect(count(html, `data-world="good:${id}:iron:`)).toBe(4)
-        expect(html).not.toContain(`good:${id}:iron:4`)
-        expect(count(html, `data-world="good:${id}:wood:`)).toBe(1)
-        expect(pieceMarkup(html, `good:${id}:wood:0`)).toContain('count 5')
+        expect(count(html, `data-goods-plate="${id}"`)).toBe(1)
+        expect(count(html, `data-world="good:${id}:iron"`)).toBe(1)
+        expect(count(html, `data-world="good:${id}:wood"`)).toBe(1)
+        expect(pieceMarkup(html, `good:${id}:iron`)).toMatch(/data-good-count[\s\S]*?<text[^>]*>4</)
+        expect(pieceMarkup(html, `good:${id}:wood`)).not.toContain('data-good-count')
+        const { plate } = spaceGeometry(id)
+        for (const [index, good] of ['iron', 'wood'].entries()) {
+            const { x, y } = plateSlot(plate, index)
+            expect(html).toContain(
+                `<g transform="translate(${x} ${y})" data-world="good:${id}:${good}"`
+            )
+        }
+    })
+
+    it('R-1.1 a space with no goods draws no plate', () => {
+        const { host } = table
+        let id: SpaceId = Spaces[0].id
+        host.edit((state) => {
+            id = bareSpace(state)
+            for (const good of Goods) {
+                state.spaces[id].goods[good] = 0
+            }
+        })
+        expect(markup(host.state)).not.toContain(`data-goods-plate="${id}"`)
     })
 
     it('R-4.2.2 abandoned vessels lie on the space, with a count past one', () => {

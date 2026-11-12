@@ -76,12 +76,10 @@ export const GoodSize = 22
 export const LandscapeSize = 46
 export const VesselSize = 36
 export const MonsterSize = 54
-/** R-4.1 Goods show one token each up to this many of a kind, then one token with a count. */
+/** R-4.1 Goods in the barn show one token each up to this many of a kind, then one with a count. */
 export const GoodsShownSingly = 4
 /** Up to this many pieces sit round a space; more show as a count chip. */
 export const PieceSlotCount = 4
-/** How far each further token of a kind stands below the one before it. */
-export const GoodStackStep = 5
 
 /** R-1.2.1 Where each space's disc goes on the printed board. */
 export const SpaceCentres: Record<SpaceId, Point> = {
@@ -122,13 +120,7 @@ const ContentOffsets = {
     subject: { x: -46, y: 54 },
     serf: { x: -20, y: 66 },
     landscape: { x: 56, y: 8 },
-    goods: [
-        { x: 8, y: 50 },
-        { x: 31, y: 50 },
-        { x: 54, y: 50 },
-        { x: 77, y: 50 },
-        { x: 100, y: 50 }
-    ],
+    plate: { x: 20, y: 36 },
     vessels: {
         ship: { x: -86, y: -8 },
         submersible: { x: -86, y: 28 },
@@ -160,6 +152,7 @@ const EdgeFit: Partial<
             'flying-machine': { x: 100, y: 62 }
         }
     },
+    'space.mountain.1': { mirror: true },
     'space.mountain.2': {
         mirror: true,
         vessels: {
@@ -168,6 +161,26 @@ const EdgeFit: Partial<
             submersible: { x: -102, y: 28 }
         }
     }
+}
+
+/** Where a space's goods plate starts, at its top corner nearest the disc, and which way it grows. */
+export interface GoodsPlate {
+    readonly at: Point
+    readonly toward: 1 | -1
+}
+
+export const PlateGood = { size: 24, step: 34, pad: 6, height: 34 } as const
+
+/** The centre of the plate slot for the good kind at `index`. */
+export function plateSlot({ at, toward }: GoodsPlate, index: number): Point {
+    const along = PlateGood.pad + PlateGood.step / 2 + index * PlateGood.step
+    return { x: at.x + toward * along, y: at.y + PlateGood.height / 2 }
+}
+
+/** The plate holding `kinds` good kinds. */
+export function plateBox({ at, toward }: GoodsPlate, kinds: number): GuildBoxRect {
+    const width = kinds * PlateGood.step + 2 * PlateGood.pad
+    return { x: toward > 0 ? at.x : at.x - width, y: at.y, width, height: PlateGood.height }
 }
 
 export interface SpaceGeometry {
@@ -179,8 +192,8 @@ export interface SpaceGeometry {
     readonly subject: Point
     readonly serf: Point
     readonly landscape: Point
-    /** One column per good kind present, packed from the first. */
-    readonly goods: readonly Point[]
+    /** R-1.1 The plate the goods stand on, one slot per kind present, packed from the first. */
+    readonly plate: GoodsPlate
     readonly vessels: Readonly<Record<VesselType, Point>>
     readonly letters: Point
 }
@@ -205,7 +218,7 @@ function spaceGeometryOf(spaceId: SpaceId): SpaceGeometry {
         subject: place(ContentOffsets.subject, 0),
         serf: place(ContentOffsets.serf, 0),
         landscape: place(ContentOffsets.landscape),
-        goods: ContentOffsets.goods.map((good) => place(good)),
+        plate: { at: place(ContentOffsets.plate), toward: fit?.mirror ? -1 : 1 },
         vessels: {
             ship: vessel('ship'),
             submersible: vessel('submersible'),

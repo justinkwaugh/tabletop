@@ -23,15 +23,16 @@
     } from '$lib/model/boardChrome.js'
     import { markerTarget, roleOf, spaceTarget, feudumTarget } from '$lib/model/boardOffer.js'
     import { spaceLabel } from '$lib/model/cardFlows.js'
-    import { abandonedVessels, goodStacks } from '$lib/model/mapView.js'
+    import { abandonedVessels, goodKinds } from '$lib/model/mapView.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
-        GoodSize,
-        GoodStackStep,
         ImmunitySealSize,
         LandscapeSize,
         MarkerSize,
+        PlateGood,
         VesselSize,
+        plateBox,
+        plateSlot,
         spaceGeometry,
         type Point
     } from '$lib/utils/boardGeometry.js'
@@ -40,8 +41,10 @@
     import PickChrome from './PickChrome.svelte'
 
     /**
-     * What lies on a space: its landscape, goods, abandoned vessels and influence markers. R-4.1.2 The
-     * ruler's marker on the disc, a subject beside it in the same colour, a serf below in the other;
+     * What lies on a space: its landscape, goods, abandoned vessels and influence markers. R-1.1 The
+     * goods by kind on one plate below the disc, each kind a token with its count past one. R-4.1.2
+     * The ruler's marker at the disc's lower left, a subject under it in the same colour, a serf
+     * beside that in the other;
      * R-3.14.2 an immunity seal under the marker it guards. R-3.7.4 What a piece may pilfer stands in
      * a row above the space, each its own target.
      */
@@ -102,6 +105,7 @@
     {@const geometry = spaceGeometry(id)}
     {@const pilfers = pilfersAt(chrome.offer, id)}
     {@const lit = [spaceTarget(id), feudumTarget(id)]}
+    {@const kinds = goodKinds(space.goods)}
     <g opacity={dimmedUnlessAny(chrome, [...lit, ...pilfers])}>
         {#if space.landscape}
             {@const tileId = space.landscape.tileId}
@@ -134,26 +138,56 @@
                 {/if}
             </BoardPiece>
         {/if}
-        {#each goodStacks(space.goods) as stack, column (stack.good)}
-            {#each { length: stack.tokens }, token (token)}
-                <BoardPiece
-                    at={{
-                        x: geometry.goods[column].x,
-                        y: geometry.goods[column].y + token * GoodStackStep
-                    }}
-                    piece="good:{id}:{stack.good}:{token}"
-                >
-                    <GoodToken
-                        good={stack.good}
-                        size={GoodSize}
-                        x={-GoodSize / 2}
-                        y={-GoodSize / 2}
-                    />
-                    {#if stack.count}
-                        <CountChip count={stack.count} x={GoodSize / 2} y={GoodSize / 2} />
-                    {/if}
-                </BoardPiece>
-            {/each}
+        {#if kinds.length > 0}
+            {@const plate = plateBox(geometry.plate, kinds.length)}
+            <g data-goods-plate={id}>
+                <rect
+                    {...plate}
+                    y={plate.y + 2}
+                    rx="8"
+                    fill="var(--feudum-map-ink)"
+                    fill-opacity="0.55"
+                ></rect>
+                <rect
+                    {...plate}
+                    rx="8"
+                    fill="var(--feudum-parchment)"
+                    stroke="var(--feudum-ink)"
+                    stroke-width="2.5"
+                ></rect>
+            </g>
+        {/if}
+        {#each kinds as { good, count }, slot (good)}
+            <BoardPiece at={plateSlot(geometry.plate, slot)} piece="good:{id}:{good}">
+                <GoodToken
+                    {good}
+                    size={PlateGood.size}
+                    x={-PlateGood.size / 2}
+                    y={-PlateGood.size / 2}
+                />
+                {#if count > 1}
+                    <g
+                        transform="translate(12 -13)"
+                        role="img"
+                        aria-label="{count} {good}"
+                        data-good-count
+                    >
+                        <circle
+                            r="9.5"
+                            fill="var(--feudum-halo)"
+                            stroke="var(--feudum-accent)"
+                            stroke-width="1.6"
+                        ></circle>
+                        <text
+                            y="4.6"
+                            text-anchor="middle"
+                            font-size="13.5"
+                            font-weight="700"
+                            fill="var(--feudum-text)">{count}</text
+                        >
+                    </g>
+                {/if}
+            </BoardPiece>
         {/each}
         {#each abandonedVessels(space.vessels) as { vessel, count } (vessel)}
             <BoardPiece at={geometry.vessels[vessel]} piece="vessel:{id}:{vessel}">

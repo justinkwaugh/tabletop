@@ -88,6 +88,9 @@ import {
     RoutePaths,
     SideBySideSpacing,
     SpaceCentres,
+    GoodSize,
+    plateBox,
+    plateSlot,
     DiscFrame,
     LandscapeSize,
     MarkerSize,
@@ -185,11 +188,46 @@ describe('the piece slots (S72)', () => {
                 geometry.subject,
                 geometry.serf,
                 geometry.landscape,
-                ...geometry.goods,
+                ...Goods.map((_, index) => plateSlot(geometry.plate, index)),
                 ...Object.values(geometry.vessels)
             ]
             for (const anchor of anchors) {
                 expect(inMap(anchor), id).toBe(true)
+            }
+        }
+    })
+
+    it('R-1.1 sets the goods plate below the disc, its slots apart, clear of the markers, landscape and pawns even with every kind on it', () => {
+        for (const { id } of Spaces) {
+            const geometry = spaceGeometry(id)
+            const plate = plateBox(geometry.plate, Goods.length)
+            expect(plate.y, id).toBeGreaterThan(geometry.centre.y)
+            const pieces = [
+                ...geometry.pieceSlots.map((at) => ({ at, size: PawnSize })),
+                ...[geometry.ruler, geometry.subject, geometry.serf].map((at) => ({
+                    at,
+                    size: MarkerSize
+                })),
+                { at: geometry.landscape, size: LandscapeSize }
+            ]
+            for (const { at, size } of pieces) {
+                const clear =
+                    at.x + size / 2 <= plate.x ||
+                    at.x - size / 2 >= plate.x + plate.width ||
+                    at.y + size / 2 <= plate.y ||
+                    at.y - size / 2 >= plate.y + plate.height
+                expect(clear, id).toBe(true)
+            }
+            for (const index of Goods.keys()) {
+                if (index > 0) {
+                    expect(
+                        distance(
+                            plateSlot(geometry.plate, index),
+                            plateSlot(geometry.plate, index - 1)
+                        ),
+                        id
+                    ).toBeGreaterThanOrEqual(GoodSize)
+                }
             }
         }
     })
