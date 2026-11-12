@@ -11,6 +11,7 @@ import {
     placeMarker,
     playMandateOffers,
     StartingSpaceIds,
+    writDeckCount,
     type ActionCardKind,
     type SpaceId
 } from '@tabletop/feudum'
@@ -791,7 +792,7 @@ async function explored(arrange?: (state: HydratedFeudumGameState, seat: string)
     )
     await pressCard(table.session.actionPanel, 'explore')
     expect(primaryLabels(table.session.actionPanel)).toEqual([
-        "Explore: draw 3 writs · can't be undone"
+        `Explore: draw 3 of ${writDeckCount(table.session.gameState)} writs · can't be undone`
     ])
     await sendNamed(table.session, /^Explore/)
     return table

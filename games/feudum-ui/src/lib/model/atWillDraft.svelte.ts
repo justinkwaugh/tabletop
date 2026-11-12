@@ -360,7 +360,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                     .filter((offer) => offer.writId === writId)
                     .map((offer) =>
                         draftChoice(
-                            mandateChoiceLabel(offer),
+                            mandateChoiceLabel(offer, context.state.supply),
                             sameMandate(picked, offer),
                             () => {
                                 this.pressMandate({

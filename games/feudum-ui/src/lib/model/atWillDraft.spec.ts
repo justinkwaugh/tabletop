@@ -250,16 +250,20 @@ describe('R-4.4.2 PlayMandate', () => {
             state.getPlayerState(seat).vessels['flying-machine'] +=
                 state.supply.vessels['flying-machine']
             state.supply.vessels['flying-machine'] = 0
+            state.getPlayerState(seat).vessels.ship += state.supply.vessels.ship - 1
+            state.supply.vessels.ship = 1
         })
         const { session } = table
+        const submersibles = session.gameState.supply.vessels.submersible
         await open(session, 'writs')
         const choices = writChoices(session, 'writ.mandate.6')
+        // Contract, Supply: a vessel reward says how many the general supply has left.
         expect(choices.map(({ label, refusal }) => [label, refusal])).toEqual([
             ['Farmer → 3 goods', 'You need 3 status stars in that guild.'],
             ['Merchant → 3s', 'You need 3 status stars in that guild.'],
-            ['Alchemist → ship', undefined],
-            ['Alchemist → submersible', undefined],
-            ['Alchemist → flying machine', 'The general supply has no flying machine.'],
+            ['Alchemist → ship · 1 left', undefined],
+            [`Alchemist → submersible · ${submersibles} left`, undefined],
+            ['Alchemist → flying machine · none left', 'The general supply has no flying machine.'],
             ['Discard', undefined]
         ])
         await press(session, choices[3])

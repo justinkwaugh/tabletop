@@ -8,6 +8,7 @@ import {
     placeMarker,
     Spaces,
     taxPreview,
+    writDeckCount,
     type ActionCardKind,
     type SpaceId,
     type TileId
@@ -810,7 +811,7 @@ describe('R-3.10 Explore, R-3.12 Tax, R-3.14.1 Defend: one press', () => {
         expect(drawCount).toBe(3)
         pickCard(session, 'explore')
         expect(session.turnPanel?.primary).toEqual({
-            label: "Explore: draw 3 writs · can't be undone",
+            label: `Explore: draw 3 of ${writDeckCount(session.gameState)} writs · can't be undone`,
             enabled: true
         })
         await session.sendTurnCard()

@@ -55,7 +55,8 @@ import {
     type SpaceId,
     type StarveOffer,
     type TileId,
-    type VesselType
+    type VesselType,
+    writDeckCount
 } from '@tabletop/feudum'
 import {
     feudumTarget,
@@ -758,7 +759,10 @@ function exploreFlow({ state, playerId, input }: FlowInput): FlowView {
     )
     return {
         ...Empty,
-        primaryName: offer ? `Explore: draw ${offer.drawCount} writs` : 'Explore',
+        // Contract, Supply: the draw is counted against what the deck holds.
+        primaryName: offer
+            ? `Explore: draw ${offer.drawCount} of ${writDeckCount(state)} writs`
+            : 'Explore',
         confirms: true,
         ...(play ? { play } : {})
     }
