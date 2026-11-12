@@ -145,7 +145,7 @@ export function winnerText(game: Game): string {
 }
 
 export function optionsSummary(options: DisplayedGameOption[]): string {
-    if (options.length === 0) return ''
+    if (options.length === 0) return 'Standard'
     if (options.length > 1) return `${options.length} options`
     const [option] = options
     return option.enabledFlag ? option.name : `${option.name}: ${option.value}`

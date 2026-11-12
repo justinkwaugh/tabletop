@@ -200,8 +200,8 @@ describe('game summary', () => {
 
 describe('row options', () => {
     const flag = (name: string) => ({ name, value: 'Yes', enabledFlag: true })
-    it('counts several options and names a single one', () => {
-        expect(optionsSummary([])).toBe('')
+    it('says Standard, names a single option and counts several', () => {
+        expect(optionsSummary([])).toBe('Standard')
         expect(optionsSummary([flag('Extra 6-train')])).toBe('Extra 6-train')
         expect(optionsSummary([{ name: 'Map', value: 'East', enabledFlag: false }])).toBe(
             'Map: East'

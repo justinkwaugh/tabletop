@@ -66,9 +66,11 @@
         ]
     }
 
+    // Undefined until the title loads, so a game with options never shows as Standard.
     function options(game: Game) {
-        const configurator = libraryService.getTitle(game.typeId)?.info.configurator
-        return gameCardOptions(game.config ?? {}, configurator ?? [])
+        const title = libraryService.getTitle(game.typeId)
+        if (!title) return undefined
+        return gameCardOptions(game.config ?? {}, title.info.configurator ?? [])
     }
 
     function age(game: Game): string {
@@ -99,7 +101,7 @@
         {#each games as game (game.id)}
             {@const title = titlesById.get(game.typeId)}
             {@const gameOptions = options(game)}
-            {@const summary = optionsSummary(gameOptions)}
+            {@const summary = gameOptions && optionsSummary(gameOptions)}
             {@const onMove = kind === 'inProgress' ? activePlayerText(game, userId) : undefined}
             {@const isOpen = expanded.has(game.id)}
             {@const panelId = `${panelIdPrefix}-${game.id}`}
@@ -131,7 +133,10 @@
                                     >{/if}</span
                             >
                         {/if}
-                        {#if summary}<span class="options">{summary}</span>{/if}
+                        {#if summary}<span
+                                class="options"
+                                class:standard={gameOptions?.length === 0}>{summary}</span
+                            >{/if}
                         <span class="age">{age(game)}</span>
                     </span>
                     {#if kind === 'open'}
@@ -156,7 +161,7 @@
                 {#if isOpen}
                     {@const scores = recordedFinalScores(game, title?.metadata)}
                     <div class="panel" id={panelId} transition:slide={{ duration: 150 }}>
-                        {#if gameOptions.length > 0}
+                        {#if gameOptions && gameOptions.length > 0}
                             <section class="block" aria-label="Game options">
                                 <div class="block-heading"><span>GAME OPTIONS</span></div>
                                 <dl>
@@ -308,6 +313,9 @@
     }
     .options {
         grid-area: options;
+    }
+    .options.standard {
+        color: var(--color-gray-500);
     }
     .phone-only {
         display: none;
