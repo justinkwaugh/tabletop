@@ -63,8 +63,9 @@ mechanisms built on other extension points.
   train has `crossing_costs` by connection gauge (replacing `counts_crossings`);
   interconnection extensions search per stretch gauge; routes must reach
   `minimum_cities_and_towns`.
-- Rendering: narrow track draws dashed with its paper band beside the dashes,
-  dual track as ink with a paper centre line, in tile strokes, crossing patches
+- Rendering: narrow track draws as the printed tiles show it, a ladder of ink
+  rails along a paper band with ink ties across it (owner's direction,
+  2026-11-12, from tiles 661 and 694); dual track as ink with a paper centre line, in tile strokes, crossing patches
   and map seam joins (`trackGaugeStrokes.ts`).
 
 ## Limits recorded

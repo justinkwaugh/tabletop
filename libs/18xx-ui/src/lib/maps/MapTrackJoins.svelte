@@ -34,13 +34,7 @@
                             <TrackStrokes
                                 d={path.d}
                                 strokes={border
-                                    ? [
-                                          trackCasing(
-                                              appearance,
-                                              path.gauge,
-                                              appearance.trackBorderWidth
-                                          )
-                                      ]
+                                    ? [trackCasing(appearance, appearance.trackBorderWidth)]
                                     : trackInk(appearance, path.gauge)}
                             />
                         {/each}

@@ -74,9 +74,12 @@ describe('track gauges', () => {
         expect(inkOf('standard')).not.toContain('stroke-dasharray')
     })
 
-    it('draws narrow track as dashes long enough to read when small', () => {
+    it('draws narrow track as a ladder: ink rails, a paper band and ink ties across it', () => {
         expect(body).toContain('data-track-gauge="narrow"')
-        expect(inkOf('narrow')).toContain(`stroke-dasharray="${1.5 * trackWidth} ${trackWidth}"`)
+        const narrow = inkOf('narrow')
+        expect(narrow).toContain(`stroke="${ink}" stroke-width="${trackWidth}"`)
+        expect(narrow).toContain(`stroke="${paper}" stroke-width="${trackWidth * 0.66}"`)
+        expect(narrow).toContain(`stroke-dasharray="${trackWidth * 0.8} ${trackWidth * 0.7}"`)
     })
 
     it('draws dual track as ink with a paper centre line', () => {

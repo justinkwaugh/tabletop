@@ -274,7 +274,7 @@
             {:else}
                 <TrackStrokes
                     d={path.d}
-                    strokes={[trackCasing(appearance, path.gauge, appearance.trackBorderWidth)]}
+                    strokes={[trackCasing(appearance, appearance.trackBorderWidth)]}
                 />
             {/if}
         {/each}
@@ -300,12 +300,7 @@
                     <TrackStrokes
                         d={over.d}
                         strokes={[
-                            trackCasing(
-                                appearance,
-                                over.gauge,
-                                2 * appearance.trackBorderWidth,
-                                true
-                            ),
+                            trackCasing(appearance, 2 * appearance.trackBorderWidth),
                             ...trackInk(appearance, over.gauge)
                         ]}
                     />
