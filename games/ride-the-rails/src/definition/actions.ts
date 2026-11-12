@@ -4,5 +4,8 @@ export enum ActionType {
     TakeShare = 'TakeShare',
     SkipShare = 'SkipShare',
     EndRound = 'EndRound',
-    EndGame = 'EndGame'
+    EndGame = 'EndGame',
+    PlaceLocomotive = 'PlaceLocomotive',
+    EndBuilding = 'EndBuilding',
+    FinishBuilding = 'FinishBuilding'
 }

@@ -25,10 +25,11 @@ export const CURRENT_RIDE_THE_RAILS_REVISION = 1
 export type Track = Type.Static<typeof Track>
 export const Track = Type.Record(HexId, Type.Array(RailroadId, { minItems: 1, uniqueItems: true }))
 
-// R-4.2.3, R-4.2.3-H1, R-4.2.3-H2: Yellow's two starts cannot be read from track.
+// R-4.2.3, R-4.2.3-H1, R-4.2.3-H2: Yellow's two starts cannot be read from track. The
+// westernmost set is empty when no city held a locomotive at Yellow's first placement.
 export type YellowState = Type.Static<typeof YellowState>
 export const YellowState = Type.Object({
-    westernmost: Type.Optional(Type.Array(CityId, { minItems: 1, uniqueItems: true })),
+    westernmost: Type.Optional(Type.Array(CityId, { uniqueItems: true })),
     startedInChicago: Type.Boolean(),
     westStartCityId: Type.Optional(CityId)
 })

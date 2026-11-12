@@ -1,0 +1,179 @@
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import {
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    assert,
+    assertExists
+} from '@tabletop/common'
+import { TRANSCONTINENTAL_BONUS } from '../data/bonuses.js'
+import { HexId } from '../data/hexes.js'
+import { RailroadId } from '../data/railroads.js'
+import { CityId, isUsaHex, usaHex } from '../data/usaMap.js'
+import { ActionType } from '../definition/actions.js'
+import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
+import { placementBonuses, type BonusPayment } from '../rules/bonuses.js'
+import { isBuildingTurnOf } from '../rules/buildingTurn.js'
+import {
+    legalPlacements,
+    placementTest,
+    type LegalPlacement,
+    type PlacementRefusal
+} from '../rules/placement.js'
+import { westernmostSet, yellowStartIn } from '../rules/startRailroad.js'
+import { railroadsIn } from '../rules/track.js'
+
+const YELLOW: RailroadId = 'railroad.yellow'
+
+export type PlaceLocomotiveRefusal = 'not-building-turn' | 'off-map' | PlacementRefusal
+
+export type PlaceLocomotiveVerdict =
+    { legal: true; isStart: boolean } | { legal: false; reason: PlaceLocomotiveRefusal }
+
+// R-3.2.5, R-4.3: one bonus the placement paid to its player.
+export type PaidBonus = Type.Static<typeof PaidBonus>
+export const PaidBonus = Type.Object({
+    bonusId: Type.String(),
+    amount: Type.Integer({ minimum: 1 }),
+    cityId: Type.Optional(CityId)
+})
+
+export type PlaceLocomotiveMetadata = Type.Static<typeof PlaceLocomotiveMetadata>
+export const PlaceLocomotiveMetadata = Type.Object({
+    isStart: Type.Boolean(),
+    bonuses: Type.Array(PaidBonus),
+    westernmost: Type.Optional(Type.Array(CityId))
+})
+
+export type PlaceLocomotive = Type.Static<typeof PlaceLocomotive>
+export const PlaceLocomotive = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.PlaceLocomotive),
+            playerId: Type.String(),
+            metadata: Type.Optional(PlaceLocomotiveMetadata),
+            railroadId: RailroadId,
+            hexId: HexId
+        })
+    ])
+)
+
+export const PlaceLocomotiveValidator = Compile(PlaceLocomotive)
+
+export function isPlaceLocomotive(action?: GameAction): action is PlaceLocomotive {
+    return action?.type === ActionType.PlaceLocomotive
+}
+
+export class HydratedPlaceLocomotive
+    extends HydratableAction<typeof PlaceLocomotive>
+    implements PlaceLocomotive
+{
+    declare type: ActionType.PlaceLocomotive
+    declare playerId: string
+    declare metadata?: PlaceLocomotiveMetadata
+    declare railroadId: RailroadId
+    declare hexId: HexId
+
+    constructor(data: PlaceLocomotive) {
+        super(data, PlaceLocomotiveValidator)
+    }
+
+    // R-3.2.1, R-3.2.2, R-4.1, R-4.2: the placement test, inside the player's building turn.
+    verdict(state: HydratedRideTheRailsGameState): PlaceLocomotiveVerdict {
+        if (!isBuildingTurnOf(state, this.playerId)) {
+            return { legal: false, reason: 'not-building-turn' }
+        }
+        if (!isUsaHex(this.hexId)) {
+            return { legal: false, reason: 'off-map' }
+        }
+        return placementTest(state, this.playerId, this.railroadId, this.hexId)
+    }
+
+    // R-3.2, R-4.1, R-4.2, R-4.3: the locomotive goes on the map and its bonuses are paid now.
+    apply(state: HydratedRideTheRailsGameState, _context?: MachineContext) {
+        const verdict = this.verdict(state)
+        if (!verdict.legal) {
+            throw new Error(
+                `${this.railroadId} cannot be placed in ${this.hexId}: ${verdict.reason}`
+            )
+        }
+        const placement: LegalPlacement = {
+            railroadId: this.railroadId,
+            hexId: this.hexId,
+            isStart: verdict.isStart
+        }
+        const westernmost = this.fixWesternmost(state)
+        this.recordYellowStart(state, placement)
+
+        const trackBefore = structuredClone(state.track)
+        state.track[this.hexId] = [...railroadsIn(trackBefore, this.hexId), this.railroadId]
+        this.countPlacement(state)
+
+        const bonuses = placementBonuses(
+            state.mapId,
+            placement,
+            trackBefore,
+            state.track,
+            state.transcontinental
+        )
+        this.payBonuses(state, bonuses)
+
+        this.metadata = {
+            isStart: placement.isStart,
+            bonuses,
+            ...(westernmost ? { westernmost } : {})
+        }
+    }
+
+    // R-4.2.3, R-4.2.3-H1: fixed at Yellow's first placement, before its locomotive is added.
+    private fixWesternmost(state: HydratedRideTheRailsGameState) {
+        if (this.railroadId !== YELLOW || state.yellow.westernmost !== undefined) {
+            return undefined
+        }
+        const westernmost = [...westernmostSet(state)]
+        state.yellow.westernmost = westernmost
+        return westernmost
+    }
+
+    // R-4.2.3, R-4.2.3-H1: Yellow's Chicago start and its western start are used separately.
+    private recordYellowStart(state: HydratedRideTheRailsGameState, placement: LegalPlacement) {
+        if (placement.railroadId !== YELLOW || !placement.isStart) {
+            return
+        }
+        const hex = usaHex(placement.hexId)
+        assert(hex.terrain === 'city', 'A start is made in a city')
+        const start = yellowStartIn(state, hex.cityId)
+        assertExists(start, `Yellow has no start left in ${hex.cityId}`)
+        if (start === 'chicago') {
+            state.yellow.startedInChicago = true
+        } else {
+            state.yellow.westStartCityId = hex.cityId
+        }
+    }
+
+    // R-3.2.3, R-3.2.4
+    private countPlacement(state: HydratedRideTheRailsGameState) {
+        assertExists(state.building, 'A placement needs a building turn')
+        state.building.placed += 1
+        if (usaHex(this.hexId).terrain === 'mountain') {
+            state.building.usedMountain = true
+        }
+    }
+
+    // R-3.2.5, R-4.3.3-H2: every bonus to the placing player; the Transcontinental is claimed once.
+    private payBonuses(state: HydratedRideTheRailsGameState, bonuses: readonly BonusPayment[]) {
+        const player = state.getPlayerState(this.playerId)
+        for (const bonus of bonuses) {
+            player.money += bonus.amount
+            if (bonus.bonusId === TRANSCONTINENTAL_BONUS.id) {
+                state.transcontinental = { playerId: this.playerId, amount: bonus.amount }
+            }
+        }
+    }
+
+    static canPlace(state: HydratedRideTheRailsGameState, playerId: string): boolean {
+        return isBuildingTurnOf(state, playerId) && legalPlacements(state, playerId).length > 0
+    }
+}
