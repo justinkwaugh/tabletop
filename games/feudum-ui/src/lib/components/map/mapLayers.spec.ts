@@ -146,6 +146,28 @@ describe('the locations', () => {
 })
 
 describe('what lies on a space', () => {
+    it("R-4.1.2 a ruled space has a ring under its disc in its ruler's paint, and an unruled one none", () => {
+        const { host, seat } = table
+        let id: SpaceId = Spaces[0].id
+        host.edit((state) => {
+            id = bareSpace(state)
+            state.spaces[id].ruler = { playerId: seat, subject: false }
+        })
+        const html = markup(host.state)
+        const { x, y } = spaceGeometry(id).centre
+        const ring =
+            html.match(new RegExp(`<g[^>]*data-ruled-ring="${id}"[\\s\\S]*?</g>`))?.[0] ?? ''
+        expect(ring).toContain(`stroke="seat-${seat}"`)
+        expect(ring).toContain('stroke="var(--feudum-map-ink)"')
+        expect(ring).toContain(`cx="${x}"`)
+        expect(ring).toContain(`cy="${y}"`)
+        expect(html.indexOf(`data-ruled-ring="${id}"`)).toBeLessThan(
+            html.indexOf(`data-world="disc:${id}"`)
+        )
+        const rings = html.match(/data-ruled-ring="[^"]+"/g) ?? []
+        const ruled = Spaces.filter(({ id }) => host.state.spaces[id].ruler)
+        expect(rings).toHaveLength(ruled.length)
+    })
     it('R-4.1.2 a ruler, a subject beside them and a serf below, in seat paint', () => {
         const { host, seat, other } = table
         let id: SpaceId = Spaces[0].id

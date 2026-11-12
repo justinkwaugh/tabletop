@@ -111,7 +111,7 @@ The files are `src/lib/fonts/MedievalSharp.ttf` and `src/lib/fonts/IMFellEnglish
 
 1. **Ground:** the table, the frame, terrain fills with hatching per region (waves, hills, trees, dunes, cracked earth, peaks), the epoch sky.
 2. **Routes:** the five media, each with its own line style and glyph so none is told by colour alone.
-3. **Locations:** location discs with their silhouette and guild icon, the letters, the double start ring.
+3. **Locations:** location discs with their silhouette and guild icon, the letters, the double start ring, and under a ruled space's disc a ring in its ruler's paint (6.5 wide on a 12-wide `map-ink` keyline at 75 %, radius 36, so the band shows just outside the disc's art).
 4. **Space contents:** landscape tiles, goods, abandoned vessels, influence markers as ruler, subject and serf, immunity seals. Each space keeps one anchor: pawns in an arc above the disc, markers at its lower left, the landscape at its right, abandoned vessels at its left edge; a space against the map's edge mirrors it or sets its vessels where there is room. Every wooden piece (pawn, marker, player disc, reeve) has a dark outline in `map-ink` and a small shadow in `halo` at 45 % dropped under it, drawn as the piece's own silhouette (no filter, so a phone renders it).
 5. **Pieces:** pawns with their vessels, monsters, the Move trail and ghosts.
 6. **Guild areas:** each guild's grid, track, markers and reeves.
