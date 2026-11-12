@@ -1,5 +1,7 @@
 import {
     BaseGameInitializer,
+    HydratedPhaseManager,
+    HydratedRoundManager,
     HydratedTurnManager,
     Prng,
     shuffle,
@@ -12,12 +14,15 @@ import {
 import {
     CURRENT_RIDE_THE_RAILS_REVISION,
     HydratedRideTheRailsGameState,
+    inCityIdOrder,
     type RideTheRailsGameState
 } from '../model/gameState.js'
 import {
     HydratedRideTheRailsPlayerState,
     type RideTheRailsPlayerState
 } from '../model/playerState.js'
+import { USA_CITIES } from '../data/usaMap.js'
+import { PhaseName } from './phases.js'
 import { RideTheRailsColors } from './colors.js'
 import { MachineState } from './states.js'
 
@@ -39,11 +44,24 @@ export class RideTheRailsGameInitializer
             .map((playerId) => players.find((player) => player.playerId === playerId))
             .filter((player): player is RideTheRailsPlayerState => player !== undefined)
 
+        // R-1.3: round 1 opens with Take a Share (R-2.1).
+        const roundManager = HydratedRoundManager.generate()
+        roundManager.startRound(state.actionCount)
+        const phaseManager = HydratedPhaseManager.generate()
+        phaseManager.startPhase(PhaseName.TakeShare, state.actionCount)
+
         const rideTheRailsGameState: RideTheRailsGameState = Object.assign(state, {
             players: orderedPlayers,
-            machineState: MachineState.StartOfTurn,
+            machineState: MachineState.TakingShares,
             turnManager,
-            rideTheRailsRevision: CURRENT_RIDE_THE_RAILS_REVISION
+            rideTheRailsRevision: CURRENT_RIDE_THE_RAILS_REVISION,
+            mapId: 'map.usa' as const,
+            roundManager,
+            phaseManager,
+            track: {},
+            // R-1.3.2, R-1.3-H1: a passenger on every city, kept in id order.
+            passengers: inCityIdOrder(USA_CITIES.map((city) => city.id)),
+            yellow: { startedInChicago: false }
         })
 
         return new HydratedRideTheRailsGameState(rideTheRailsGameState)
@@ -57,7 +75,10 @@ export class RideTheRailsGameInitializer
             (player: Player, index: number) =>
                 new HydratedRideTheRailsPlayerState({
                     playerId: player.id,
-                    color: colors[index]
+                    color: colors[index],
+                    // R-1.3.6
+                    money: 0,
+                    shares: {}
                 })
         )
     }

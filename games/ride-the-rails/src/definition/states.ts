@@ -1,3 +1,7 @@
 export enum MachineState {
-    StartOfTurn = 'StartOfTurn'
+    TakingShares = 'TakingShares',
+    Building = 'Building',
+    Riding = 'Riding',
+    EndingRound = 'EndingRound',
+    Ended = 'Ended'
 }

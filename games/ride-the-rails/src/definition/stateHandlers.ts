@@ -10,5 +10,9 @@ export const RideTheRailsStateHandlers: Record<
     MachineState,
     MachineStateHandler<HydratedAction, HydratedRideTheRailsGameState>
 > = {
-    [MachineState.StartOfTurn]: new TerminalStateHandler()
+    [MachineState.TakingShares]: new TerminalStateHandler(),
+    [MachineState.Building]: new TerminalStateHandler(),
+    [MachineState.Riding]: new TerminalStateHandler(),
+    [MachineState.EndingRound]: new TerminalStateHandler(),
+    [MachineState.Ended]: new TerminalStateHandler()
 }

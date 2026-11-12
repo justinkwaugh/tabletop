@@ -4,6 +4,7 @@ export * from './definition/actions.js'
 export * from './definition/definition.js'
 export * from './definition/info.js'
 export * from './definition/runtime.js'
+export * from './definition/phases.js'
 export * from './definition/states.js'
 
 export * from './model/gameState.js'

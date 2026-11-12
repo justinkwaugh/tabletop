@@ -1,9 +1,11 @@
+import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import type { BonusId } from './bonuses.js'
 import { doubledNeighbours, hexCoordinates, hexIdAt, type HexId } from './hexes.js'
 import type { RailroadId } from './railroads.js'
 
-export type CityId = `city.usa.${string}`
+export const CityId = Type.TemplateLiteral('city.usa.${string}')
+export type CityId = Type.Static<typeof CityId>
 
 type CityBonusId = Exclude<BonusId, 'bonus.usa.transcontinental'>
 

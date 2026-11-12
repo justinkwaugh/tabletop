@@ -1,3 +1,4 @@
+import * as Type from 'typebox'
 import {
     addAxial,
     assertExists,
@@ -5,7 +6,8 @@ import {
     type AxialCoordinates
 } from '@tabletop/common'
 
-export type HexId = `hex.usa.${number}-${number}`
+export const HexId = Type.TemplateLiteral('hex.usa.${number}-${number}')
+export type HexId = Type.Static<typeof HexId>
 
 export type DoubledCoordinates = {
     row: number
