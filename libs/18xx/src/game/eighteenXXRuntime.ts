@@ -8,6 +8,12 @@ import { SelectionAuctionHandler } from '../auctions/selectionAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
 import { companyActions } from '../company/companyActions.js'
 import { PendingParHandler } from '../company/pendingPar.js'
+import {
+    ChoosePresidencyExchange,
+    HydratedChoosePresidencyExchange,
+    PresidencyExchangeHandler,
+    isChoosePresidencyExchange
+} from '../stock/presidencyExchangeChoice.js'
 import { AutomaticTrackCompletionHandler } from '../construction/automaticTrackCompletionHandler.js'
 import { LayingTrackHandler } from '../construction/layingTrackHandler.js'
 import { trackActions } from '../construction/trackActions.js'
@@ -123,6 +129,7 @@ function validateStateComposition(
         ['openingAuction', !!options.auctionRules],
         ['selectionAuction', !!options.selectionAuctionRules],
         ['pendingPar', !!options.companyRules.parAfterAward],
+        ['presidencyExchanges', !!options.stockRules.presidencyExchangeChoice],
         ['companyAuction', !!options.stockRules.companyAuction],
         ['stockTurnPurchases', !!options.stockRules.multipleBuys],
         ['loanStep', !!options.loanRules],
@@ -571,16 +578,28 @@ export function createEighteenXXRuntime<
     const instructedRunRules = options.runInstructions
         ? { routeRules: options.routeRules, operatingRules }
         : undefined
+    // An outgoing president's choice of certificates holds whatever state the change came in.
+    const awaitsExchange = (handler: Handler): Handler =>
+        rules.presidencyExchangeChoice ? new PresidencyExchangeHandler(handler) : handler
     const stateHandlers: Record<string, Handler> = Object.fromEntries(
         Object.entries({ ...familyStateHandlers, ...options.titleStateHandlers }).map(
             ([machineState, handler]) => [
                 machineState,
-                new InstructedRunsHandler(handler, instructedRunRules)
+                awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
             ]
         )
     )
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
+        ...(rules.presidencyExchangeChoice
+            ? [
+                  defineAction(
+                      ChoosePresidencyExchange,
+                      isChoosePresidencyExchange,
+                      (action) => new HydratedChoosePresidencyExchange(action)
+                  )
+              ]
+            : []),
         ...auctionActions(
             options.offerAuctionRules,
             options.auctionRules,

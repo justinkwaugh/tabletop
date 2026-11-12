@@ -9,6 +9,7 @@ import {
     evaluateShareSale,
     finiteCashOwnedBy,
     insolvencyChoices,
+    presidencyExchangeOptions,
     privateStationPositions,
     trainsOwnedBy,
     type Owner
@@ -61,6 +62,12 @@ export function botMove(game: Table, random: Random): Move {
     const cash = finiteCashOwnedBy(state, me)
     const move = (type: string, fields: object = {}): Move => ({ type, fields, playerId })
 
+    const exchange = state.presidencyExchanges?.[0]
+    if (valid.includes('ChoosePresidencyExchange') && exchange)
+        return move('ChoosePresidencyExchange', {
+            companyId: exchange.companyId,
+            certificateIds: pick(presidencyExchangeOptions(exchange))
+        })
     if (valid.includes('ParCompany') && state.pendingPar)
         return move('ParCompany', {
             companyId: state.pendingPar.companyId,
@@ -96,9 +103,12 @@ export function botMove(game: Table, random: Random): Move {
             const auction = state.openingAuction
             const lotId = auction?.remainingLotIds[0]
             if (valid.includes('BuyAuctionLot') && lotId) {
+                // Only the first lot's price falls while everyone passes (§8).
+                const discounted = lotId === PrivateCatalog1849.privates[0]?.id
                 const price = Math.max(
                     0,
-                    PrivateCatalog1849.faceValue(lotId) - (auction?.discount ?? 0)
+                    PrivateCatalog1849.faceValue(lotId) -
+                        (discounted ? (auction?.discount ?? 0) : 0)
                 )
                 if (price <= cash && random.randInt(5) > 0)
                     return move('BuyAuctionLot', { lotId, expectedPrice: price })

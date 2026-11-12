@@ -32,6 +32,7 @@ import {
     isPrivateExchangeAction,
     isOfferPrivatePurchase,
     isParCompany,
+    isChoosePresidencyExchange,
     isPlacePrivateStation,
     isChooseHomeStation,
     isDeclinePrivateStation,
@@ -671,6 +672,16 @@ function describeShared(
                 details?.home && `Home at ${place(details.home.position.locationId)}`,
                 details?.presidency && presidency(details.presidency)
             ),
+            important: true
+        }
+    }
+    if (isChoosePresidencyExchange(action)) {
+        const shares = action.certificateIds.reduce((sum, id) => {
+            const certificate = state.certificates.find((entry) => entry.id === id)
+            return sum + (certificate?.kind === 'share' ? certificate.shares : 0)
+        }, 0)
+        return {
+            text: `Took ${counted(action.certificateIds.length, 'certificate')} (${counted(shares, 'share')}) for ${companyName(action.companyId)}’s president’s certificate`,
             important: true
         }
     }

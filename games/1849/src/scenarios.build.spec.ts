@@ -93,4 +93,12 @@ describe.skipIf(!process.env.SCENARIOS)('1849 harness scenarios', () => {
             playUntil(5, 8, (game) => laying(game) && game.state.phaseId === '16H')
         )
     })
+
+    // Written on its own, so the scenarios above stay as they were.
+    it('writes the presidency exchange', { timeout: 900_000 }, () => {
+        save(
+            'presidency-exchange',
+            playUntil(4, 1, (game) => !!game.state.presidencyExchanges?.length)
+        )
+    })
 })

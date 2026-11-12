@@ -208,6 +208,79 @@ describe('the Garibaldi without room (§9.4.1)', () => {
     })
 })
 
+describe('a change of president (§9.5)', () => {
+    /** A newcomer about to overtake a 30% president, holding the last certificate and a single. */
+    function overtaking() {
+        const game = stockRound()
+        const outgoing = game.player
+        const companyId = startNext(game, 68, 1)
+        game.act('FinishStockTurn')
+        const newcomer = game.player
+        const offered = () =>
+            game.state.certificates.filter(
+                (certificate) =>
+                    certificate.companyId === companyId &&
+                    certificate.kind === 'share' &&
+                    certificate.shares === 1 &&
+                    certificate.owner.kind === 'company'
+            )
+        for (const id of [lastCertificateId(companyId), offered()[0]?.id]) {
+            const certificate = game.state.certificates.find((entry) => entry.id === id)
+            if (!certificate) throw new Error('No certificate to hand the newcomer')
+            certificate.owner = player(newcomer)
+            delete certificate.poolId
+        }
+        const [single] = offered()
+        if (!single) throw new Error('No single certificate on offer')
+        game.act('BuyShares', {
+            buyer: player(newcomer),
+            certificateId: single.id,
+            expectedPrice: 68
+        })
+        return { game, companyId, outgoing, newcomer }
+    }
+    const held = (game: Table, playerId: string, companyId: string) =>
+        game.state.certificates
+            .filter(
+                (certificate) =>
+                    certificate.companyId === companyId &&
+                    certificate.owner.kind === 'player' &&
+                    certificate.owner.playerId === playerId
+            )
+            .map((certificate) => (certificate.kind === 'share' ? certificate.shares : 0))
+            .toSorted()
+
+    it('waits for the outgoing president to choose, then carries on the newcomer’s turn', () => {
+        const { game, companyId, outgoing, newcomer } = overtaking()
+        expect(game.state.activePlayerIds).toEqual([outgoing])
+        expect(game.valid(outgoing)).toEqual(['ChoosePresidencyExchange'])
+        expect(game.valid(newcomer)).toEqual([])
+        // Until they choose, the last certificate is theirs.
+        expect(held(game, outgoing, companyId)).toEqual([1, 2])
+        const [pending] = game.state.presidencyExchanges ?? []
+        const singles = pending?.alternatives?.[0]
+        if (!singles) throw new Error('Two single certificates are offered')
+        game.act('ChoosePresidencyExchange', { companyId, certificateIds: singles }, outgoing)
+        expect(held(game, outgoing, companyId)).toEqual([1, 1, 1])
+        expect(held(game, newcomer, companyId)).toEqual([2, 2])
+        expect(game.state.presidencyExchanges).toBeUndefined()
+        // The newcomer's turn then carries on: with nothing left to do, it finishes.
+        expect(game.actions.at(-1)).toMatchObject({ type: 'FinishStockTurn', playerId: newcomer })
+    })
+
+    it('lets the outgoing president keep the last certificate', () => {
+        const { game, companyId, outgoing, newcomer } = overtaking()
+        game.act(
+            'ChoosePresidencyExchange',
+            { companyId, certificateIds: [lastCertificateId(companyId)] },
+            outgoing
+        )
+        expect(held(game, outgoing, companyId)).toEqual([1, 2])
+        expect(held(game, newcomer, companyId)).toEqual([1, 1, 2])
+        expect(game.actions.at(-1)).toMatchObject({ type: 'FinishStockTurn', playerId: newcomer })
+    })
+})
+
 describe('the last certificate (§9.3, §9.6)', () => {
     it('is bought only when no other certificate is left in its place, for twice the price', () => {
         const game = stockRound()

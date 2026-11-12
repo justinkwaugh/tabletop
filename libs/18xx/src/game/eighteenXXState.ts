@@ -16,6 +16,7 @@ import { SelectionAuctionFields } from '../auctions/selectionAuction.js'
 import { AuctionFields } from '../auctions/waterfallAuction.js'
 import { CompanyFields, CompanyTranche, OwnershipLimitExemption } from '../company/companyState.js'
 import { PendingParFields } from '../company/pendingPar.js'
+import { PresidencyExchangeFields } from '../stock/presidency.js'
 import { TrackStep, validateTrackStep } from '../construction/trackConstruction.js'
 import { EarningsFields, validateEarningsDistribution } from '../earnings/earningsDistribution.js'
 import { EndingFields, validateFinalResults } from '../ending/finalWealth.js'
@@ -108,6 +109,7 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof CompanyAcquisitionOfferFields &
     typeof StockTurnPurchaseFields &
     typeof PendingParFields &
+    typeof PresidencyExchangeFields &
     typeof AuctionFields &
     typeof SelectionAuctionFields &
     typeof OfferPileFields &

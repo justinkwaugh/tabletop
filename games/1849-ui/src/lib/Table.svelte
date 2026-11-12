@@ -9,6 +9,7 @@
         CompanyPar,
         GameTable,
         OperatingActions,
+        PresidencyExchangeChoice,
         WaterfallAuctionLots,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
@@ -35,7 +36,9 @@
     boardPanel={{ label: 'Start order', content: startOrder }}
 >
     {#snippet actions(_focusLocation, focusRoute)}
-        {#if session.gameState.pendingPar}
+        {#if session.gameState.presidencyExchanges?.length}
+            <PresidencyExchangeChoice {session} />
+        {:else if session.gameState.pendingPar}
             <CompanyPar {session} />
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
             <WaterfallAuctionLots {session} />

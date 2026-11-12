@@ -26,6 +26,7 @@ import {
 import {
     certificateLimitAllows,
     stockCertificateCount,
+    presidencyExchangeTerms,
     purchaseOwnershipCeiling,
     type StockRules
 } from './stockRules.js'
@@ -146,7 +147,7 @@ export function evaluateShareTransfer(
         company.id,
         rules.presidencyCandidates(state, company.id),
         undefined,
-        rules.presidencyExchangeLargestFirst
+        presidencyExchangeTerms(rules)
     )
     if (presidency.reason) return { reason: presidency.reason }
     if (presidency.claim) applyPresidencyClaim(projected, presidency.claim)

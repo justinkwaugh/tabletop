@@ -94,6 +94,14 @@ track layouts and counts only, checked against the rulebook.
   the fee from the treasury; the fee on the start order and on each float's history row
   (§9.4), and `hideStationCosts`, the tokens being placed free (§10.4).
 
+- **The outgoing president's choice of exchange** (`StockRules.presidencyExchangeChoice`,
+  `ChoosePresidencyExchange`). Researched titles exchange a fixed set: the smallest certificates,
+  or 1832's largest first (`presidencyExchangeLargestFirst`). 1849 is the first to let the
+  outgoing president choose among the new president's ways of holding the shares (§9.5).
+  Shared: the presidency evaluation lists each other mix of certificate sizes; a change with
+  alternatives exchanges the largest and leaves the choice pending, holding whatever state it
+  came in until the outgoing president chooses. Title: switching it on.
+
 ## Further family changes found by whole-game play
 
 - `closeShareCompany(…, restart)` removes nothing from the round's operating order; 1849 removes a
@@ -117,9 +125,11 @@ track layouts and counts only, checked against the rulebook.
 ## Rulings to confirm with the owner
 
 1. **Privates and the certificate limit.** Rulebook §7.1/§9.1 say privates count; player aid 1.1
-   says they do not. Implemented as the rulebook.
+   says they do not. Implemented as the rulebook, as the research engine plays it (confirmed by
+   the owner, 2026-11-12).
 2. **L. 144 start value.** Rulebook §6/§9.4: from phase 6; player aid 1.1: from phase 8.
-   Implemented as the rulebook.
+   Implemented as the rulebook, as the research engine plays it (confirmed by the owner,
+   2026-11-12).
 3. **Tile manifest.** One each of #655 and #656 (green and brown M), as the rulebook's manifest
    prints (72/72/24), where the research engine has two each.
 4. **A Garibaldi from the Reale Società d'Affari** chooses its home as it first operates, among
@@ -132,9 +142,11 @@ track layouts and counts only, checked against the rulebook.
    next. A corporation that closes while it is set aside goes ahead of it.
 6. **A Garibaldi that itself buys the first 12H** and loses its only station closes when it next
    acts in its train step (its price goes to the Closed box), not mid-purchase.
-7. **Presidency exchange with the last certificate** (§9.5): the new president always gives the
-   last certificate when they hold it; the outgoing president's option to take two single
-   certificates instead is not offered yet.
+7. **Presidency exchange with the last certificate** (§9.5), as the rulebook and the research
+   engine have it (confirmed by the owner, 2026-11-12): a new president holding the last
+   certificate gives it for the president's certificate, unless the outgoing president, offered
+   the choice before play goes on, takes two of the new president's single certificates instead.
+   With fewer than two singles there is no choice.
 8. **Issuing into the Closed box** closes the corporation at once, ending its turn.
 9. **The SMS** lays or upgrades a tile in a coastal city it need not reach, then may place a
    station there, and that turn places no other station; using it only to place a station

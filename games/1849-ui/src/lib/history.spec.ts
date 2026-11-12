@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
-import { GaribaldiId, TokenFees1849 } from '@tabletop/1849'
+import { GaribaldiId, TokenFees1849, lastCertificateId } from '@tabletop/1849'
 import { isFloatCompany } from '@tabletop/18xx'
-import { assert } from '@tabletop/common'
+import { ActionSource, assert } from '@tabletop/common'
 import { expect, it } from 'vitest'
 import { describe1849Action, earthquakeCallout, floatTokenFee } from './history.js'
 import { Presentation1849 } from './presentation.js'
@@ -91,4 +91,24 @@ it('charges the Garibaldi as it floats only when the bank funds it (§8.1, §9.4
     expect(floatTokenFee(funded)).toBe(TokenFees1849[GaribaldiId])
     const unfunded = { ...funded, metadata: { ...float.metadata, payments: [] } }
     expect(floatTokenFee(unfunded)).toBeUndefined()
+})
+
+it('names what the outgoing president took for the president’s certificate (§9.5)', () => {
+    const choice = (certificateIds: string[]) => ({
+        id: 'choice',
+        gameId: 'game',
+        source: ActionSource.User,
+        type: 'ChoosePresidencyExchange',
+        playerId: 'p1',
+        companyId: 'CTL',
+        certificateIds
+    })
+    const describe = describe1849Action(() => [])
+    const shared = () => ({ text: 'Took 1 certificate (2 shares)' })
+    expect(describe(choice([lastCertificateId('CTL')]), names, shared)?.text).toBe(
+        'Took the last certificate for CTL’s president’s certificate'
+    )
+    expect(describe(choice(['CTL:share:2', 'CTL:share:6']), names, shared)?.text).toBe(
+        'Took two single certificates for CTL’s president’s certificate'
+    )
 })

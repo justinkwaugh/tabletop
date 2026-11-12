@@ -1,12 +1,18 @@
 import {
     GaribaldiId,
+    lastCertificateId,
     messinaEarthquakeOf,
     StationTokenCount1849,
     TokenFees1849,
     type Earthquake1849,
     type State1849
 } from '@tabletop/1849'
-import { isFloatCompany, isStartCompany, type FloatCompany } from '@tabletop/18xx'
+import {
+    isChoosePresidencyExchange,
+    isFloatCompany,
+    isStartCompany,
+    type FloatCompany
+} from '@tabletop/18xx'
 import type { TitleActionDescription, TitleCallout } from '@tabletop/18xx-ui'
 import { Presentation1849 } from './presentation.js'
 import { assertExists } from '@tabletop/common'
@@ -59,6 +65,12 @@ export function floatTokenFee(action: FloatCompany): number | undefined {
  */
 export function describe1849Action(stations: () => State1849['stations']): TitleActionDescription {
     return (action, { companyName }, shared) => {
+        // The outgoing president took the last certificate or two single ones (§9.5).
+        if (isChoosePresidencyExchange(action))
+            return {
+                ...shared(),
+                text: `Took ${action.certificateIds.includes(lastCertificateId(action.companyId)) ? 'the last certificate' : 'two single certificates'} for ${companyName(action.companyId)}’s president’s certificate`
+            }
         const earthquake = messinaEarthquakeOf(action)
         if (earthquake)
             return {

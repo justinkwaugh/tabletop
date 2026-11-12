@@ -5,6 +5,9 @@ import {
     FinishStockTurn,
     OfferPrivatePurchase,
     ParCompany,
+    ChoosePresidencyExchange,
+    pendingPresidencyExchange,
+    presidencyExchangeOptions,
     SellShares,
     StartCompany,
     evaluateCompanyStart,
@@ -78,7 +81,12 @@ type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof exceedsStockLimits>[0] &
     Pick<
         EighteenXXState,
-        'machineState' | 'stockRound' | 'activePlayerIds' | 'purchaseOffer' | 'pendingPar'
+        | 'machineState'
+        | 'stockRound'
+        | 'activePlayerIds'
+        | 'purchaseOffer'
+        | 'pendingPar'
+        | 'presidencyExchanges'
     >
 
 export type StockSession = ModuleSession<
@@ -342,6 +350,45 @@ export class StockModule implements LocalSelection {
               )
             : []
     )
+    /** The presidency change whose outgoing president chooses the certificates they take. */
+    presidencyExchange = $derived.by(() => pendingPresidencyExchange(this.session.state))
+    /** Each set of certificates the outgoing president may take, with each one's size. */
+    presidencyExchangeChoices = $derived.by(() => {
+        const pending = this.presidencyExchange
+        if (!pending) return []
+        const { state, rules } = this.session
+        const shareCount = companyShareCount(state, rules.stockRules.charters, pending.companyId)
+        return presidencyExchangeOptions(pending).map((certificateIds) => ({
+            certificateIds,
+            certificates: certificateIds.map((id) => {
+                const certificate = state.certificates.find((entry) => entry.id === id)
+                assert(
+                    certificate?.kind === 'share' && shareCount,
+                    'Exchanged certificates are shares'
+                )
+                return {
+                    shares: certificate.shares,
+                    percent: Math.round((certificate.shares * 100) / shareCount)
+                }
+            })
+        }))
+    })
+    canChoosePresidencyExchange = $derived.by(
+        () =>
+            this.session.interactive &&
+            this.session.validActionTypes.includes('ChoosePresidencyExchange')
+    )
+    async choosePresidencyExchange(certificateIds: readonly string[]) {
+        const pending = this.presidencyExchange
+        assert(this.canChoosePresidencyExchange && pending, 'No exchange awaits this player')
+        await this.session.applyAction(
+            this.session.createPlayerAction(ChoosePresidencyExchange, {
+                companyId: pending.companyId,
+                certificateIds: [...certificateIds]
+            })
+        )
+    }
+
     async parCompany(marketSpaceId: string) {
         const pending = this.session.state.pendingPar
         assert(this.canPar && pending, 'No par is awaiting this player')

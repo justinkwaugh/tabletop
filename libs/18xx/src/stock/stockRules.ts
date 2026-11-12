@@ -16,6 +16,7 @@ import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from 
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { StockMarketChart } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
+import type { PresidencyExchangeTerms } from './presidency.js'
 import type { ShareSaleDetails, ShareSaleSettlement } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
@@ -26,6 +27,16 @@ export const CertificateLimitChange = Type.Object(
     { additionalProperties: false }
 )
 export type CertificateLimitChange = Type.Static<typeof CertificateLimitChange>
+
+/** How the title's new presidents make up the president's certificate's shares. */
+export function presidencyExchangeTerms(
+    rules: Pick<StockRules, 'presidencyExchangeLargestFirst' | 'presidencyExchangeChoice'>
+): PresidencyExchangeTerms {
+    return {
+        largestFirst: rules.presidencyExchangeLargestFirst === true,
+        choice: rules.presidencyExchangeChoice === true
+    }
+}
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -69,6 +80,12 @@ export interface StockRules {
      * vice-president's certificates must be included.
      */
     presidencyExchangeLargestFirst?: boolean
+    /**
+     * The outgoing president chooses which of the new president's certificates to take for the
+     * president's certificate, where they hold the shares more than one way: 1849's last
+     * certificate or two single ones (§9.5). The largest are exchanged until they choose.
+     */
+    presidencyExchangeChoice?: true
     /**
      * A president may sell below the president's certificate with no one to succeed them: the
      * certificate goes to the pool and the company has no president until someone claims it

@@ -18,11 +18,26 @@ export const PresidencyChange = Type.Object(
         previous: President,
         next: President,
         presidentCertificateId: Type.String(),
-        exchangedCertificateIds: Type.Array(Type.String())
+        exchangedCertificateIds: Type.Array(Type.String()),
+        /**
+         * Other certificates of the new president's making up the same shares, any of which the
+         * outgoing president may take instead of those exchanged (1849 §9.5).
+         */
+        alternatives: Type.Optional(Type.Array(Type.Array(Type.String())))
     },
     { additionalProperties: false }
 )
 export type PresidencyChange = Type.Static<typeof PresidencyChange>
+/** Presidency changes whose outgoing president has still to choose the certificates they take. */
+export const PresidencyExchangeFields = {
+    presidencyExchanges: Type.Optional(Type.Array(PresidencyChange))
+}
+export type PresidencyExchangeState = { presidencyExchanges?: PresidencyChange[] }
+/**
+ * How a new president makes up the president's certificate's shares: larger certificates first,
+ * and whether the outgoing president chooses among the ways the new president's hold them.
+ */
+export type PresidencyExchangeTerms = { largestFirst?: boolean; choice?: boolean }
 export const PresidencyClaim = Type.Object(
     {
         companyId: Type.String(),
@@ -72,12 +87,47 @@ export function certificatesForShares(
     return choose(0, shares)
 }
 
+/**
+ * One set of a company's ordinary certificates for each different mix of sizes making up the
+ * shares, larger certificates first: a two-share certificate, then two of one share.
+ */
+export function certificateMixesForShares(
+    certificates: readonly Portfolio[number][],
+    companyId: string,
+    shares: number
+): string[][] {
+    const bySize = new Map<number, string[]>()
+    for (const certificate of certificates)
+        if (
+            certificate.kind === 'share' &&
+            !certificate.president &&
+            certificate.companyId === companyId
+        )
+            bySize.set(certificate.shares, [
+                ...(bySize.get(certificate.shares) ?? []),
+                certificate.id
+            ])
+    const sizes = [...bySize.keys()].toSorted((a, b) => b - a)
+    function mixes(index: number, remaining: number): string[][] {
+        if (remaining === 0) return [[]]
+        const size = sizes[index]
+        if (size === undefined) return []
+        const ids = bySize.get(size) ?? []
+        const found: string[][] = []
+        for (let count = Math.min(ids.length, Math.floor(remaining / size)); count >= 0; count--)
+            for (const rest of mixes(index + 1, remaining - count * size))
+                found.push([...ids.slice(0, count), ...rest])
+        return found
+    }
+    return mixes(0, shares)
+}
+
 export function evaluatePresidency(
     state: FinancialState,
     companyId: string,
     candidates: readonly President[],
     remaining?: { owner: Owner; shares: number },
-    largestFirst = false
+    { largestFirst = false, choice = false }: PresidencyExchangeTerms = {}
 ): PresidencyResult {
     const company = getCompany(state, companyId)
     const previous = company.president
@@ -97,12 +147,12 @@ export function evaluatePresidency(
     if (previous && owned(previous) >= president.shares && owned(previous) >= largest) return {}
     const next = eligible.find((owner) => owned(owner) === largest)
     if (!next) return previous ? { reason: 'No eligible owner can take the presidency.' } : {}
-    const exchangedCertificateIds = certificatesForShares(
-        certificatesOwnedBy(state, next),
-        companyId,
-        president.shares,
-        largestFirst
-    )
+    const held = certificatesOwnedBy(state, next)
+    const mixes = choice ? certificateMixesForShares(held, companyId, president.shares) : undefined
+    const exchangedCertificateIds = mixes
+        ? mixes[0]
+        : certificatesForShares(held, companyId, president.shares, largestFirst)
+    const alternatives = mixes?.slice(1) ?? []
     if (!exchangedCertificateIds)
         return { reason: 'The new president cannot exchange the required shares.' }
     if (!previous) {
@@ -126,11 +176,16 @@ export function evaluatePresidency(
             previous,
             next,
             presidentCertificateId: president.id,
-            exchangedCertificateIds
+            exchangedCertificateIds,
+            ...(alternatives.length ? { alternatives } : {})
         }
     }
 }
-export function applyPresidencyChange(state: FinancialState, change: PresidencyChange): void {
+/** Applies a presidency change; one with alternatives waits for the outgoing president's choice. */
+export function applyPresidencyChange(
+    state: FinancialState & PresidencyExchangeState,
+    change: PresidencyChange
+): void {
     for (const id of [change.presidentCertificateId, ...change.exchangedCertificateIds]) {
         const certificate = state.certificates.find((certificate) => certificate.id === id)
         assert(certificate, 'Missing presidency exchange certificate')
@@ -138,6 +193,8 @@ export function applyPresidencyChange(state: FinancialState, change: PresidencyC
         delete certificate.poolId
     }
     getCompany(state, change.companyId).president = change.next
+    if (change.alternatives?.length)
+        state.presidencyExchanges = [...(state.presidencyExchanges ?? []), change]
 }
 export function playersAfterPresident(
     state: FinancialState,
