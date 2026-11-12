@@ -12,13 +12,8 @@
     const isActive = $derived(session.gameState.activePlayerIds.includes(playerState.playerId))
     const isWinner = $derived(session.gameState.winningPlayerIds.includes(playerState.playerId))
     const gipfLeft = $derived(session.gameState.gipfPiecesLeft(playerState.playerId))
-    // The actions that led to the shown state, which session.actions can run past.
     const captured = $derived(
-        capturedInOrder(
-            playerState.playerId,
-            playerState.captured,
-            session.actions.slice(0, session.gameState.actionCount)
-        )
+        capturedInOrder(playerState.playerId, playerState.captured, session.actions)
     )
     const opponentColor = $derived(
         session.gameState.getPlayerState(session.gameState.opponentOf(playerState.playerId)).color

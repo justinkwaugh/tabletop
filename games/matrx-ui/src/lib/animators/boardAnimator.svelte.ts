@@ -2,7 +2,6 @@ import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
 import {
-    assertExists,
     coordinatesToNumber,
     distanceAxial,
     sameCoordinates,
@@ -336,10 +335,11 @@ export class BoardAnimator implements MoveInterrupter {
                 ...after.filter((stack) => gaining(stack.coords))
             ]
         }
-        if (centreRegains(change)) {
-            const centre = drawnStacks(to).find((stack) => sameCoordinates(stack.coords, CENTRE))
-            assertExists(centre, 'An extra move taken back leaves its pair on the centre')
-            return [...before.filter((stack) => !sameCoordinates(stack.coords, CENTRE)), centre]
+        const regained = regainedAt(change)
+        if (regained !== undefined) {
+            const discs = discsOf(to.board.stackAt(CENTRE))
+            const pair = { key: coordinatesToNumber(regained), coords: regained, discs }
+            return [...before.filter((stack) => !sameCoordinates(stack.coords, regained)), pair]
         }
         return before
     }
@@ -380,9 +380,10 @@ export class BoardAnimator implements MoveInterrupter {
         const along = alongLine(line, this)
         const back = { x: -along.x, y: -along.y }
         const toDot = this.offset(line[0], dot)
-        if (centreRegains(change)) {
+        const regained = regainedAt(change)
+        if (regained !== undefined) {
             const height = discsOf(to.board.stackAt(CENTRE)).length
-            this.dropOnto(CENTRE, height - 1, 1, timeline, touched, true)
+            this.dropOnto(regained, height - 1, 1, timeline, touched, true)
         }
         if (kind === 'undo' && this.session.restagedMove(to) !== undefined) {
             this.slide(line.slice(1, shifted + 1), back, timeline, QUICK, touched)
@@ -716,12 +717,14 @@ function register(nodes: Map<number, SVGGElement>, index: number): Attachment<SV
     }
 }
 
-// An extra move taken back gives the centre's pair its top piece again, which drops back onto it,
-// unless the push moved the centre's stack along, which then slides back.
-function centreRegains(change: PushChange | MoveChange | DiscsChange): change is PushChange {
-    if (change.kind !== 'push' || change.forward || !change.fromCentre) return false
-    const moved = change.entry.line.slice(0, change.shifted + 1)
-    return !moved.some((coords) => sameCoordinates(coords, CENTRE))
+// An extra move taken back gives the centre's pair its top piece again, which drops back onto it
+// where the pair stands as the step starts: on the centre, or a spot on if the push carried it
+// along, from where it slides back with the line.
+function regainedAt(change: PushChange | MoveChange | DiscsChange): AxialCoordinates | undefined {
+    if (change.kind !== 'push' || change.forward || !change.fromCentre) return undefined
+    const { line } = change.entry
+    const at = line.findIndex((coords) => sameCoordinates(coords, CENTRE))
+    return at >= 0 && at < change.shifted ? line[at + 1] : CENTRE
 }
 
 function alongLine(line: readonly AxialCoordinates[], animator: BoardAnimator) {

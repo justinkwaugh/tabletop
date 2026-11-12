@@ -219,6 +219,18 @@ describe('setup', () => {
         )
     })
 
+    it("in a local game, where the creator's user has every seat, the first seat is the creator's", () => {
+        for (const [whitePlayer, white] of [
+            [WhitePlayer.Creator, 'p1'],
+            [WhitePlayer.Opponent, 'p2']
+        ] as const) {
+            const game = createGame(BoardShape.Matrx, ['p1', 'p2'], { whitePlayer })
+            game.players = game.players.map((player) => ({ ...player, userId: game.ownerId }))
+            const { initialState } = engine.startGame(game, { masterSeed: seeds[0] })
+            expect(initialState.turnManager.turnOrder[0]).toBe(white)
+        }
+    })
+
     it('White goes to the draw when chosen at random, or when the creator does not play', () => {
         for (const [whitePlayer, creator] of [
             [WhitePlayer.Random, 'p2'],
