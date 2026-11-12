@@ -15,4 +15,11 @@ describe('whole games', () => {
         },
         120_000
     )
+
+    it('ends a game in which every corporation closes and no one can start one again', () => {
+        const game = kit.table(3, 39, { fiveCorporations: true })
+        playOut(game, 39)
+        expect(game.state.machineState).toBe('GameOver')
+        expect(game.state.gameEnding?.reason).toBe('No corporation can start')
+    }, 120_000)
 })

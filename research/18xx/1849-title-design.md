@@ -25,7 +25,7 @@ track layouts and counts only, checked against the rulebook.
 | Closed box, closure and restart with home reserved                                            | §5, §11                 | Zero-price closure with new restartable `closeShareCompany(…, restart)`, `keepsAllStations`                |
 | Emergency money raising closes the corporation, president may take a loan or leave            | §10.7                   | New: `TrainFundingRules.insolvency`, `DeclareBankruptcy.choice`                                            |
 | L.750 per loan off final wealth                                                               | §13                     | New: `ValuationRules.playerItems`                                                                          |
-| Ends after a corporation reaching L.377 operates; bank broken ends the set                    | §13                     | Title trigger; `bankExhaustionAtSetEnd`                                                                    |
+| Ends after a corporation reaching L.377 operates; bank broken ends the set; no start possible | §13, ruling 15          | Title trigger; `bankExhaustionAtSetEnd`                                                                    |
 | Messina earthquake at the first 12H                                                           | §6, §12                 | Title `PhaseRules.changes`                                                                                 |
 | Waterfall private sale with bids; SCE price falls                                             | §8                      | `waterfallAuction` as 1830                                                                                 |
 | RSA gives the first corporation's president's certificate, par 68/100, treasury from the bank | §8.1                    | `awardCertificates` + `requirePar`; title funding on par                                                   |
@@ -134,6 +134,10 @@ track layouts and counts only, checked against the rulebook.
     12H closes them.
 14. **A run from a home to a port alone** needs no train: the must-own-a-train check follows the
     route rule of two cities, or a city and a town (§10.5.1, §10.6).
+15. **No corporation can start** (confirmed by the owner, 2026-11-12): once no corporation is
+    open, every private has closed and no player has the cash for a president's certificate at
+    the lowest start price, nothing can change again, so the game ends there and is scored as
+    usual. §13 is silent; without it such a game would pass every round forever.
 
 ## Implemented later or not at all
 

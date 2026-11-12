@@ -21,7 +21,8 @@ import {
     EarningsRules1849,
     EndingRules1849,
     PhaseRules1849,
-    closeCorporation1849
+    closeCorporation1849,
+    stalemate1849
 } from './operating.js'
 import {
     CompanyRules1849,
@@ -420,6 +421,23 @@ describe('the end (§13)', () => {
         expect(EndingRules1849.trigger(state)).toBeUndefined()
         state.operatingSet.completedCompanyIds = [companyId]
         expect(EndingRules1849.trigger(state)).toEqual({ reason: 'L. 377 share price' })
+    })
+
+    it('comes when no corporation is open, no private earns and no one can afford a start', () => {
+        const game = stockRound()
+        const state = game.hydrated
+        expect(stalemate1849(state)).toBe(false)
+        for (const company of state.companies)
+            if (company.kind === 'private') company.closed = true
+            else company.started = false
+        // The lowest start in phase 4 is two shares at L. 68.
+        for (const cash of state.cash) if (cash.owner.kind === 'player') cash.amount = 135
+        expect(stalemate1849(state)).toBe(true)
+        expect(EndingRules1849.trigger(state)).toEqual({ reason: 'No corporation can start' })
+        const rich = state.cash.find((cash) => cash.owner.kind === 'player')
+        if (!rich) throw new Error('No player cash')
+        rich.amount = 136
+        expect(stalemate1849(state)).toBe(false)
     })
 
     it('takes L. 750 a loan off a player’s total, to no less than nothing', () => {

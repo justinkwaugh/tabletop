@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import {
     CompanyClosure,
     EighteenXXTransferTiming,
@@ -60,7 +61,12 @@ import {
     marketInForce1849,
     startOrder1849
 } from './stock.js'
-import { ClosedSpaceId1849, EndGameSpaceId1849, Market1849 } from './stockMarket.js'
+import {
+    ClosedSpaceId1849,
+    EndGameSpaceId1849,
+    Market1849,
+    parSpaceIds1849
+} from './stockMarket.js'
 import { TileSet1849 } from './tiles.js'
 import { EarthquakePhaseId, Phases1849, ReverseTrainId, TrainDepot1849 } from './trains.js'
 
@@ -118,10 +124,35 @@ function finishedAtTopPrice(state: EndingState): boolean {
 // operating rounds in which the bank breaks, or with one player left (§13). Wealth is money and
 // corporation stock, shares at market value and privates at nothing, less L. 750 a loan to no
 // lower than nothing (§13).
+/**
+ * Whether play can no longer change: no corporation is open, every private has closed, and no
+ * player has the cash for a president's certificate at the lowest start price. With nothing to
+ * earn money, no one ever could, so the game ends there (ruling 15; §13 is silent).
+ */
+export function stalemate1849(stateObject: object): boolean {
+    const state = requireState1849(stateObject)
+    if (state.companies.some((company) => company.kind === 'private' && !company.closed))
+        return false
+    if (state.corporationOrder.some((companyId) => getCompany(state, companyId).started))
+        return false
+    const [presidentShares] = state.certificates.flatMap((certificate) =>
+        certificate.kind === 'share' && certificate.president ? [certificate.shares] : []
+    )
+    assertExists(presidentShares, 'A corporation has a president’s certificate')
+    const lowest = Math.min(
+        ...parSpaceIds1849(state.phaseId).map((spaceId) => Market1849.space(spaceId).price)
+    )
+    return state.turnManager.turnOrder.every(
+        (playerId) =>
+            finiteCashOwnedBy(state, { kind: 'player', playerId }) < lowest * presidentShares
+    )
+}
+
 export const EndingRules1849: EndingRules = {
     trigger(state) {
         if (state.turnManager.turnOrder.length <= 1) return { reason: 'One player left' }
         if (finishedAtTopPrice(state)) return { reason: 'L. 377 share price' }
+        if (stalemate1849(state)) return { reason: 'No corporation can start' }
         return bankExhaustionAtSetEnd(state)
     },
     certificateItems(state, certificate) {
