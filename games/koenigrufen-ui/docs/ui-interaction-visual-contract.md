@@ -27,7 +27,7 @@
 ### Short names
 
 - Cards are written as rank then suit (K♠, 10♥, Q♦); trumps as their pack prints them (21, or XXI with Industrie und Glück), the Sküs by name. A called king is K♠, or "4th K" for the fourth king. The header reads "Hand 1/12".
-- **Called King:** wherever the table names the contract for everyone (the header from the call to the end of the hand, and the "Contract:" line during announcements), the called King follows the word "called" as a card-coloured chip: cream with a thin border and shadow, bold and a little larger than the text around it, red for ♥ ♦ and black for ♠ ♣ and "4th K". Its accessible name is "the King of hearts" or "the fourth King".
+- **Called King:** wherever the table names the contract for everyone (the header from the call to the end of the hand, and the "Contract:" line during announcements), the called King follows the word "called" as a card-coloured chip: cream with a thin border and shadow, bold and a little larger than the text around it, red for ♥ ♦ and black for ♠ ♣ and "4th K". Its accessible name is "the King of hearts" or "the fourth King". While the declarer calls, each King on offer is a button drawn as that chip, a little larger, rising on hover and ringed in gold on keyboard focus; its accessible name is "Call the King of hearts".
 - A seat's won tricks are a pile and a number, with no word; the word is in its tooltip and accessible name.
 
 ### Looking at a hand card

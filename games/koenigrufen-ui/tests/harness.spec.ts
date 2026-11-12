@@ -53,7 +53,7 @@ test('names a Rufer after Mein Spiel and shows the called King', async ({ page }
         .locator('.row', { hasText: /^\s*1\s*Rufer/ })
         .locator('button')
         .click()
-    await area.locator('button.choice', { hasText: /^K/ }).first().click()
+    await area.locator('button.king-call').first().click()
     await expect(page.locator('.header .called')).toContainText('called K')
 })
 
@@ -79,7 +79,7 @@ test("takes back a defender's announcement choice before any action", async ({ p
         .locator('.menu:popover-open .row', { hasText: /^\s*1\s*Rufer/ })
         .locator('button')
         .click()
-    await area.locator('button.choice', { hasText: /^K/ }).first().click()
+    await area.locator('button.king-call').first().click()
     await page.getByRole('button', { name: 'Take talon half 1' }).click()
     for (let chosen = 0; chosen < 3; chosen++) {
         await page.locator('.hand .card.selectable:not(.chosen)').first().click()

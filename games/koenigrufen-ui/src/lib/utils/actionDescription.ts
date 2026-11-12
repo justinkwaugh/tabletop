@@ -35,6 +35,10 @@ export function calledKingName(king: CalledKing): string {
     return king === FourthKing ? '4th K' : `K${SuitSymbols[king]}`
 }
 
+export function spokenKingName(king: CalledKing): string {
+    return king === FourthKing ? 'the fourth King' : `the King of ${king}`
+}
+
 function signed(value: number): string {
     return value > 0 ? `+${value}` : String(value)
 }

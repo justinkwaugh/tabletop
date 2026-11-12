@@ -1,7 +1,7 @@
 <script lang="ts">
     import { MachineState } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { calledKingName, describeStep } from '$lib/utils/actionDescription.js'
+    import { describeStep, spokenKingName } from '$lib/utils/actionDescription.js'
     import { announcementsSummary } from '$lib/utils/announcementText.js'
     import AnnouncementChoices from './AnnouncementChoices.svelte'
     import {
@@ -12,6 +12,7 @@
         meinSpielSummary
     } from '$lib/utils/contractText.js'
     import CalledKingBadge from './CalledKingBadge.svelte'
+    import KingChip from './KingChip.svelte'
     import ContractMenu from './ContractMenu.svelte'
 
     const gameSession = getGameSession()
@@ -126,8 +127,12 @@
             <p>Call a king. Its holder becomes your secret partner.</p>
             <div class="choices">
                 {#each gameSession.callableKings as king (king)}
-                    <button type="button" class="choice" onclick={() => gameSession.callKing(king)}
-                        >{calledKingName(king)}</button
+                    <button
+                        type="button"
+                        class="king-call"
+                        aria-label="Call {spokenKingName(king)}"
+                        onclick={() => gameSession.callKing(king)}
+                        ><KingChip {king} /></button
                     >
                 {/each}
             </div>
@@ -220,6 +225,26 @@
 
     .choice:disabled {
         opacity: 0.4;
+    }
+
+    /* Each King is its chip, as the contract line shows it once called. */
+    .king-call {
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: none;
+        font-size: 1.3rem;
+        cursor: pointer;
+        transition: translate 0.12s;
+    }
+
+    .king-call:hover {
+        translate: 0 -2px;
+    }
+
+    .king-call:focus-visible {
+        outline: 2px solid #f2c94c;
+        outline-offset: 2px;
     }
 
     .quiet {
