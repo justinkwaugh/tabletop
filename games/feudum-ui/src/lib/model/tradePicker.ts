@@ -51,8 +51,6 @@ export interface TradePicker {
     readonly purse: number
     readonly cards: readonly TradeCard[]
     readonly basket?: TradeBasket
-    /** R-4.6.2 The bench's own further choices, as the Merchant's sulfur into the barrel. */
-    readonly choices: readonly BenchChoice[]
     /** `each`: each card's Buy is the send. `one`: the picks add up, sent once under them. */
     readonly sends: 'each' | 'one'
     readonly caption: string
@@ -264,8 +262,7 @@ export function tradePickerOf(
     const common = {
         guild: bench.guild,
         title: `${GuildById[bench.guild].name} trade`,
-        purse: state.getPlayerState(playerId).shillings,
-        choices: bench.rows
+        purse: state.getPlayerState(playerId).shillings
     }
     switch (bench.guild) {
         case 'alchemist': {

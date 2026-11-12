@@ -194,9 +194,9 @@
                     >
                 </p>
             {/if}
-            {#if picker.choices.length > 0}
+            {#if bench.rows.length > 0}
                 <span class="flex flex-wrap items-center gap-1" data-bench-rows>
-                    {#each picker.choices as choice (choice.label)}
+                    {#each bench.rows as choice (choice.label)}
                         <PanelRow {choice} {pointer} {onPress} />
                     {/each}
                 </span>
