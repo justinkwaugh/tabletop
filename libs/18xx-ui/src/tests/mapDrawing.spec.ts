@@ -569,3 +569,26 @@ it('draws one marker in each location’s own art', () => {
     )
     expect(tokens).toEqual([['shared.svg'], ['west.svg']])
 })
+
+it('stands a listed location’s terrain cost under its symbols', () => {
+    const map = new RailwayMap({
+        id: 'terrain',
+        name: 'Terrain',
+        orientation: HexOrientation.Flat,
+        locations: [0, 1].map((r) => ({
+            id: `location-${r}`,
+            coordinates: { q: 0, r },
+            buildable: true,
+            preprintedTile: createTrackTileFace('yellow', [[0, 3]]),
+            terrain: { cost: 160, kinds: ['mountain'] }
+        }))
+    })
+    const scene = createMapDrawing(map, undefined, {
+        terrainPositions: { 'location-0': { x: -22, y: -5 } },
+        terrainCostsBelow: ['location-0']
+    })
+    const [listed, other] = scene.locations
+    expect(listed.terrainCostBelow).toBe(true)
+    expect(listed.terrainPosition).toEqual({ x: -22, y: -5 })
+    expect(other.terrainCostBelow).toBeUndefined()
+})

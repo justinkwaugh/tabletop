@@ -118,6 +118,8 @@ export type MapViewDefinition = {
     nameTurns?: Readonly<Record<string, number>>
     /** Centre of a location's terrain cost row, by location id, where it is not placed below the stops. */
     terrainPositions?: Readonly<Record<string, Point>>
+    /** Locations whose terrain cost stands under its symbols, where a row has no room beside track. */
+    terrainCostsBelow?: readonly string[]
     markerArt?: Readonly<Record<string, MapMarkerArt>>
     /** Art for one location's markers, by location id then marker id, over ``markerArt``. */
     locationMarkerArt?: LocationMarkerArt

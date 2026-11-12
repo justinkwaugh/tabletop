@@ -37,6 +37,7 @@
         type MapRoute,
         CaptionFontSize,
         TerrainNoteDrop,
+        TerrainCostDrop,
         TokenTabReach,
         NoticeFontSize,
         NoticeY
@@ -373,7 +374,7 @@
                             {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
                             {@const widths = terrainRowWidths(terrain.kinds.length, cost)}
                             {@const iconWidth = widths.icons}
-                            {@const labelWidth = widths.cost}
+                            {@const labelWidth = entry.terrainCostBelow ? 0 : widths.cost}
                             <g
                                 data-map-terrain
                                 transform={`translate(${entry.terrainPosition.x - (iconWidth + labelWidth) / 2} ${entry.terrainPosition.y})`}
@@ -407,13 +408,22 @@
                                         {/if}
                                     </g>
                                 {/each}
-                                <text
-                                    x={iconWidth ? iconWidth + 2 : 0}
-                                    y="4"
-                                    text-anchor="start"
-                                    font-size="10"
-                                    font-weight="750">{cost}</text
-                                >
+                                {#if entry.terrainCostBelow}
+                                    <text
+                                        x={iconWidth / 2}
+                                        y={4 + TerrainCostDrop}
+                                        font-size="10"
+                                        font-weight="750">{cost}</text
+                                    >
+                                {:else}
+                                    <text
+                                        x={iconWidth ? iconWidth + 2 : 0}
+                                        y="4"
+                                        text-anchor="start"
+                                        font-size="10"
+                                        font-weight="750">{cost}</text
+                                    >
+                                {/if}
                             </g>
                             {#each (entry.location.markers ?? []).filter((marker) => {
                                 const art = entry.markerArt[marker.id]
@@ -422,7 +432,9 @@
                                 <text
                                     data-map-terrain-note={marker.id}
                                     x={entry.terrainPosition.x}
-                                    y={entry.terrainPosition.y + TerrainNoteDrop}
+                                    y={entry.terrainPosition.y +
+                                        TerrainNoteDrop +
+                                        (entry.terrainCostBelow ? TerrainCostDrop : 0)}
                                     font-size="7"
                                     font-weight="750"
                                     fill={terrainIcon(terrain.kinds[0], scene.terrainIcons)?.fill ??

@@ -261,6 +261,8 @@ export type MapDrawnLocation = {
     nameArcs: readonly NameArc[]
     /** Centre of the printed terrain cost row: below the hex's stops, or mid-hex. */
     terrainPosition: Point
+    /** Whether the terrain cost stands under its symbols rather than after them. */
+    terrainCostBelow?: true
     /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
     localLineAboveY?: number
     /** Where an ``onTile`` local line stands once a tile is laid, clear of that tile. */
@@ -432,6 +434,7 @@ export function createMapDrawing(
         nameStyles = {},
         sharedCityLayouts = {},
         terrainPositions = {},
+        terrainCostsBelow = [],
         bonusArrows = []
     }: Pick<
         MapViewDefinition,
@@ -465,6 +468,7 @@ export function createMapDrawing(
         | 'nameStyles'
         | 'sharedCityLayouts'
         | 'terrainPositions'
+        | 'terrainCostsBelow'
         | 'bonusArrows'
     > = {}
 ): MapDrawing {
@@ -681,6 +685,7 @@ export function createMapDrawing(
             !placement && tileLayout.revenueAlign === 'middle'
         )
         const terrainRow = terrainRowOf(drawing)
+        const terrainCostBelow = terrainCostsBelow.includes(location.id) || undefined
         const captions = revenueCaptions(drawing, leads)
         const hexVertices = geometry.vertices.map((point) => ({
             x: point.x - geometry.center.x,
@@ -713,6 +718,7 @@ export function createMapDrawing(
                 !face.nodes.some((node) => node.kind === 'offboard'),
             nameArcs,
             terrainPosition: terrainRow,
+            ...(terrainCostBelow ? { terrainCostBelow } : {}),
             localLineAboveY,
             ...(placement && markers.some((marker) => hasOnTileLine(markerArt[marker.id]))
                 ? { localLineOnTile: clearLocalLinePoint(hexSpace(drawing, hexVertices, [])) }
@@ -756,7 +762,14 @@ export function createMapDrawing(
                               ? [nameBox(nameRows, nameBaseline, nameScale)]
                               : []),
                         ...(!placement && location.terrain
-                            ? [terrainBox(location.terrain, terrainCostPrefix, terrainRow)]
+                            ? [
+                                  terrainBox(
+                                      location.terrain,
+                                      terrainCostPrefix,
+                                      terrainRow,
+                                      terrainCostBelow
+                                  )
+                              ]
                             : []),
                         ...(!placement &&
                         location.terrain &&
@@ -922,6 +935,8 @@ function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFa
 
 export const CaptionFontSize = 5
 export const TerrainNoteDrop = 12
+/** How far a cost standing under its terrain symbols drops below them. */
+export const TerrainCostDrop = 11
 export const NoticeFontSize = 9
 export const NoticeY = 24
 
@@ -1053,10 +1068,17 @@ export function terrainRowWidths(kindCount: number, cost: string) {
 function terrainBox(
     terrain: NonNullable<MapLocation['terrain']>,
     costPrefix: string,
-    row: Point
+    row: Point,
+    costBelow = false
 ): Obstacle {
     const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
-    return box(row, (widths.icons + widths.cost) / 2, 6)
+    return costBelow
+        ? box(
+              { x: row.x, y: row.y + TerrainCostDrop / 2 },
+              Math.max(widths.icons, widths.cost) / 2,
+              6 + TerrainCostDrop / 2
+          )
+        : box(row, (widths.icons + widths.cost) / 2, 6)
 }
 
 // Long names split at the space nearest their middle.
