@@ -88,7 +88,7 @@
         {#snippet mobileControlsContent()}
             <HistoryControls
                 enabledColor="text-[#1f2d3d]"
-                disabledColor="text-[#c4ad84]"
+                disabledColor="text-[#a1aab1]"
                 borderClass="border-[#1f2d3d] border-b-2"
             />
         {/snippet}
@@ -96,7 +96,7 @@
             <div class="max-sm:hidden">
                 <HistoryControls
                     enabledColor="text-[#1f2d3d]"
-                    disabledColor="text-[#c4ad84]"
+                    disabledColor="text-[#a1aab1]"
                     borderClass="rounded-lg border-2 border-[#1f2d3d]"
                 />
             </div>
