@@ -71,7 +71,8 @@ describe('Contract, Supply: the general supply in one grouped card (R-5.1, R-4.4
             "King's seals",
             'Vessels',
             'Targets',
-            'Discs',
+            'Shillings',
+            'Location discs',
             'Influence markers',
             'Start player'
         ]
@@ -122,12 +123,15 @@ describe('Contract, Supply: the general supply in one grouped card (R-5.1, R-4.4
         }
     })
 
-    it('R-1.4.2 counts the seals, vessels, targets and discs', async () => {
+    it('R-1.4.2, R-1.1-H1 counts the seals, vessels, targets, shillings and location discs', async () => {
         const state = await table()
         const html = card(state)
         expect(counted(group(html, "King's seals"), 'seals')).toBe(`${state.supply.sealPileCount}`)
         expect(counted(group(html, 'Targets'), 'targets')).toBe(`${state.supply.targets}`)
-        expect(counted(group(html, 'Discs'), 'discs')).toBe(`${state.supply.discs.length}`)
+        expect(counted(group(html, 'Shillings'), 'shillings')).toBe(`${state.supply.shillings}`)
+        const discs = group(html, 'Location discs')
+        expect(counted(discs, 'discs')).toBe(`${state.supply.discs.length}`)
+        expect(discs).toContain('location discs')
         for (const vessel of VesselTypes) {
             expect(counted(group(html, 'Vessels'), `vessels-${vessel}`)).toBe(
                 `${state.supply.vessels[vessel]}`

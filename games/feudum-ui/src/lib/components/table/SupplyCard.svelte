@@ -4,6 +4,7 @@
     import ArcheryTarget from '$lib/components/pieces/ArcheryTarget.svelte'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
+    import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
     import WritFace from '$lib/components/pieces/WritFace.svelte'
@@ -136,8 +137,16 @@
         </ul>
     </section>
 
-    <section role="group" aria-label="Discs">
-        <h4>Discs</h4>
+    <section role="group" aria-label="Shillings">
+        <h4>Shillings</h4>
+        <ul>
+            {#snippet coin()}<ShillingToken value={1} size={Piece} />{/snippet}
+            {@render counted('shillings', state.supply.shillings, 'shillings', coin)}
+        </ul>
+    </section>
+
+    <section role="group" aria-label="Location discs">
+        <h4>Location discs</h4>
         <ul>
             {#snippet disc()}
                 <svg width={Piece} height={Piece} viewBox="0 0 24 24">
@@ -150,7 +159,7 @@
                     ></circle>
                 </svg>
             {/snippet}
-            {@render counted('discs', state.supply.discs.length, 'discs', disc)}
+            {@render counted('discs', state.supply.discs.length, 'location discs', disc)}
         </ul>
     </section>
 
