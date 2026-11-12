@@ -6,26 +6,17 @@ import { hull } from './hull.js'
 export const SPACING = 60
 export const PIECE_RADIUS = SPACING * 0.428
 export const DOT_RADIUS = SPACING * 0.12
-// How far a piece's shadow softens past its edge.
 export const SHADOW_BLUR = 5
-// The tallest stack a dot holds: a pair of potentials brought in.
 const DOT_DISCS = 2
-// Beyond the silhouette of a piece on an outer dot, to the centre of its coordinate label, and
-// from the outermost dots and labels to the frame's edge: a margin like ZÈRTZ's.
 const LABEL_GAP = SPACING * 0.17
 const FRAME_REACH = SPACING * 0.75
 const FRAME_MARGIN = SPACING * 0.5
-// Each player's GIPF pieces wait in reserve on a dot of their own, off a corner of the board on
-// their side: White's left of E1, Black's right of E9. A line runs from it alongside the board's
-// nearest edge, toward the middle of that edge. Line and dot are sized to the pieces as on the
-// printed board, a little heavier than the grid here.
+// Line and dot are sized to the pieces as on the printed board.
 const RESERVE_DOT = { x: -SPACING * 3.4, y: SPACING * 3.75 }
 const RESERVE_LINE_LENGTH = SPACING * 1.5
 export const RESERVE_DOT_RADIUS = PIECE_RADIUS * 0.37
 export const RESERVE_LINE_WIDTH = PIECE_RADIUS * 2 * 0.043
 
-// The board is seen from the near side of the table: depth shrinks to TILT of its length, and
-// heights show at the matching fraction.
 export const TILT = 0.75
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
@@ -33,11 +24,9 @@ const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
 export type Frame = { viewBox: string; width: number; height: number }
 
 export class BoardView {
-    // How much of a height shows on screen.
     readonly rise: number
     readonly geometry: BoardGeometry
 
-    // A turned view sees the board from the far side, half a turn round.
     constructor(
         readonly tilt: number,
         shape: BoardShape,
@@ -47,20 +36,17 @@ export class BoardView {
         this.geometry = GEOMETRIES[shape]
     }
 
-    // The centre of a point on the board's surface, where a piece standing there rests.
     center(coords: AxialCoordinates): Point {
         const point = flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
         const sign = this.turned ? -1 : 1
         return { x: sign * point.x, y: sign * point.y * this.tilt }
     }
 
-    // The dot where a seat's GIPF pieces wait: 0 is White's, 1 Black's.
     reserveDot(seat: number): Point {
         const side = (seat === 0) !== this.turned ? 1 : -1
         return { x: RESERVE_DOT.x * side, y: RESERVE_DOT.y * side * this.tilt }
     }
 
-    // The line from a seat's reserve dot, parallel to the edge from A1 to E1 (or E9 to J4).
     reserveLine(seat: number): { from: Point; to: Point } {
         const from = this.reserveDot(seat)
         const along = this.center({ q: 1, r: 0 })
@@ -68,17 +54,14 @@ export class BoardView {
         return { from, to: { x: from.x + along.x * scale, y: from.y + along.y * scale } }
     }
 
-    // How far up the screen a height above the board shows.
     height(height: number): number {
         return height * this.rise
     }
 
-    // Where the top face of a stack of discs is centred, above its point.
     topFace(discs: number): number {
         return -this.height(stackTop(discs) * PIECE_RADIUS)
     }
 
-    // How far a stack of discs reaches above and below its point.
     extentAbove(discs: number): number {
         return -this.topFace(discs) + PIECE_RADIUS * this.tilt
     }
@@ -87,12 +70,10 @@ export class BoardView {
         return PIECE_RADIUS * this.tilt
     }
 
-    // A coordinate label beside an outer dot clears a pair brought in on that dot.
     labelOffset(above: boolean): number {
         return above ? -(this.extentAbove(DOT_DISCS) + LABEL_GAP) : this.extentBelow + LABEL_GAP
     }
 
-    // The play area's edge is the grid's outermost lines; the dots sit outside it on the table.
     playAreaOutline(): string {
         return hull(this.geometry.spots.map((coords) => this.center(coords)))
             .map((point) => `${point.x},${point.y}`)

@@ -19,7 +19,6 @@ export const DIRECTIONS: readonly AxialCoordinates[] = ClockwiseFlatHexDirection
     (direction) => FlatNeighborOffsets[direction]
 )
 
-// One direction per line orientation, for scanning rows.
 export const AXES: readonly AxialCoordinates[] = [
     { q: 0, r: 1 },
     { q: 1, r: 0 },
@@ -48,7 +47,6 @@ const POINTS: Record<BoardShape, readonly AxialCoordinates[]> = {
     [BoardShape.Matrx]: [...GIPF_POINTS, ...COLUMN_J]
 }
 
-// The points of a board: dots on its edge, where pieces enter, and spots inside, where they play.
 export class BoardGeometry {
     readonly points: readonly AxialCoordinates[]
     readonly spots: readonly AxialCoordinates[]
@@ -88,7 +86,6 @@ export class BoardGeometry {
         return this.isPoint(coords) && !this.isSpot(coords)
     }
 
-    // The spots from a start in a direction, up to the edge of the play area.
     lineFrom(start: AxialCoordinates, direction: AxialCoordinates): AxialCoordinates[] {
         const line: AxialCoordinates[] = []
         let current = start
@@ -105,7 +102,6 @@ export const GEOMETRIES: Record<BoardShape, BoardGeometry> = {
     [BoardShape.Gipf]: new BoardGeometry(BoardShape.Gipf)
 }
 
-// A point by its name: columns A–J left to right, numbered up from 1 at each column's bottom.
 export function pointAt(name: string): AxialCoordinates {
     const q = name.charCodeAt(0) - 'A'.charCodeAt(0) - GIPF_RADIUS
     const bottom = q <= 0 ? GIPF_RADIUS : GIPF_RADIUS - q

@@ -62,7 +62,6 @@
         stroke-linejoin: round;
     }
 
-    /* On, the lines darken and a thin ring shows round the button, quieter than a solid fill. */
     .toggle[aria-pressed='true'] {
         color: var(--matrx-ink);
         box-shadow:

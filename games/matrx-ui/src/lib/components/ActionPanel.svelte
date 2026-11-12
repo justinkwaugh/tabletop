@@ -23,7 +23,6 @@
             }
             return session.rows.length > 1 ? 'Choose a row to take' : 'Take your row'
         }
-        // Skip ends the sentence, as Take row does above.
         if (session.canExtraMove) {
             return session.chosenDot
                 ? 'Choose the line to push along'

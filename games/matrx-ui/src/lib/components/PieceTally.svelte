@@ -5,8 +5,6 @@
     import { stackTop } from '$lib/board/pieceShape.js'
     import PieceShape from './PieceShape.svelte'
 
-    // Stacks of pieces side by side, each its discs' kinds bottom to top, as they would stand on
-    // the table: a tally beside a count on a player card, at the reserve's size.
     let { color, stacks }: { color: Color; stacks: PieceKind[][] } = $props()
 
     const view = viewOf(BoardShape.Matrx)

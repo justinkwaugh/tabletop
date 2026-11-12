@@ -14,7 +14,6 @@
     const view = viewOf(BoardShape.Matrx)
     const radius = $derived(discs > 1 ? 10 : 10.5)
     const tone = $derived(color === Color.White ? 'light' : 'dark')
-    // Centred on the stack's whole silhouette, from its top face down to the front of its base.
     const scale = $derived(radius / PIECE_RADIUS)
     const middle = $derived(((view.extentBelow - view.extentAbove(discs)) / 2) * scale)
 </script>

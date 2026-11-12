@@ -19,8 +19,6 @@ export type Taking = {
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
 
-// A push from a dot: a GIPF piece or a stack of two from the reserve, or, for an extra move,
-// the TAMSK piece from the centre.
 export type PushEntry = Span & {
     kind: 'push'
     piece: PieceKind
@@ -28,7 +26,6 @@ export type PushEntry = Span & {
     dot: AxialCoordinates
     to: AxialCoordinates
     shifted: number
-    // Whose TAMSK stack the push put on the centre.
     tamskOwnerId?: string
     takings: Taking[]
 }

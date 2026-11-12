@@ -1,8 +1,6 @@
 import { coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
 import type { BoardView } from './geometry.js'
 
-// GIPF notation: columns A–J left to right, each counted up from 1 at its bottom dot.
-// Each column is labelled with the names of its bottom and top points.
 export type BoardNotation = {
     name(coords: AxialCoordinates): string
     labels: CoordinateLabel[]
@@ -27,7 +25,6 @@ export function boardNotation(view: BoardView): BoardNotation {
     const letterOf = (q: number) => String.fromCharCode(65 + columns.indexOf(q))
     const numberOf = ({ q, r }: AxialCoordinates) => (bottomOf.get(q) ?? r) - r + 1
 
-    // Columns run straight up the screen, so a label sits above or below its dot.
     const labelBeside = (key: string, text: string, dot: AxialCoordinates, top: boolean) => {
         const center = view.center(dot)
         const above = top !== view.turned

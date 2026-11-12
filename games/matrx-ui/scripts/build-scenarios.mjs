@@ -73,9 +73,6 @@ function write(slug, name, { game, state }) {
 const WHITE_GIPF = { B2: 'G', D2: 'G', F2: 'G' }
 const BLACK_GIPF = { B5: 'g', D7: 'g', H5: 'g' }
 
-// Each potential with a move to make: ZÈRTZ on C4 jumps D4 and E4 to F3, DVONN on D6 covers
-// Black's DVONN stack on G4, PÜNCT on H2 covers Black's PÜNCT stack on F4, YINSH on E3 slides,
-// and TAMSK on C5 has no move of its own.
 write(
     'potentials',
     'Potentials',
@@ -94,8 +91,6 @@ write(
     })
 )
 
-// A push from E1 moves E2–E4 up a spot and puts White's TAMSK stack on the centre, E5: an extra
-// move with its top piece, before the row E4–E7 is taken.
 write(
     'tamsk-extra-move',
     'TAMSK extra move',
@@ -111,7 +106,6 @@ write(
     })
 )
 
-// The same push puts Black's TAMSK stack on the centre: Black's turn opens with the extra move.
 write(
     'their-tamsk',
     "Black's TAMSK",
@@ -125,8 +119,6 @@ write(
     })
 )
 
-// A push from E1 onto E2 completes White's row E2–E5; its reach runs on over Black's stack on E6
-// and single on E7. Singles go; every stack of two may stay, but the row must be broken.
 write(
     'take-a-row',
     'Take a row',
@@ -141,8 +133,6 @@ write(
     })
 )
 
-// White's row E2–E5 reaches E6, where Black's DVONN piece covers White's DVONN stack. Taking the
-// row captures it, uncovering the stack, which completes a second white row, D6–G4.
 write(
     'uncovered-row',
     'Uncovered row',
@@ -159,8 +149,6 @@ write(
     })
 )
 
-// Black has one GIPF piece left, on E6, in the reach of White's row E2–E5: White wins by taking
-// the row.
 write(
     'last-gipf-piece',
     'Last GIPF piece',
@@ -170,7 +158,6 @@ write(
     )
 )
 
-// Near miss: Black's last GIPF piece stands on E7, past the empty E6, out of the row's reach.
 write(
     'gipf-piece-out-of-reach',
     'GIPF piece out of reach',
@@ -182,8 +169,6 @@ write(
 
 const NOTHING = { tamsk: 0, zertz: 0, dvonn: 0, yinsh: 1, punct: 1 }
 
-// Black has no stack left to bring in and no stack of two on the board: whatever White plays,
-// Black cannot move and loses.
 write(
     'out-of-moves',
     'Out of moves',
@@ -193,7 +178,6 @@ write(
     )
 )
 
-// Near miss: Black's YINSH stack on G3 can still slide, so Black plays on.
 write(
     'one-move-left',
     'One move left',
@@ -203,7 +187,6 @@ write(
     )
 )
 
-// The game on GIPF's own 37-spot board.
 write(
     'gipf-board',
     'On the GIPF board',

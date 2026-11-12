@@ -2,8 +2,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ReserveKinds from './ReserveKinds.svelte'
 
-    // Your potentials in reserve, under the action panel at one height: on your turn, the kind
-    // you bring in next is chosen here.
     const session = getGameSession()
 
     const player = $derived(

@@ -15,8 +15,6 @@ export type MatrxSelectionValues = {
 
 export type MatrxSelection = StagedSelectionState<MatrxSelectionValues>
 
-// A move is either a potential's (its stack, then where it goes) or a push (its dot, then the
-// line); rows are chosen, then the stacks in them to keep.
 export const MatrxStageOrder = [
     'from',
     'dot',

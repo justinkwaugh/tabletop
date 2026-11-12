@@ -10,7 +10,6 @@ export type Segment =
 const text = (value: string): Segment => ({ kind: 'text', text: value })
 const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
 
-// What each potential's move is called.
 const MOVED: Partial<Record<PieceKind, string>> = {
     [PieceKind.Zertz]: 'jumped',
     [PieceKind.Yinsh]: 'slid',
@@ -19,7 +18,6 @@ const MOVED: Partial<Record<PieceKind, string>> = {
 }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
-// The brief form keeps the action banner to one line; the history panel uses the full one.
 export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
     const rows = brief ? briefRows(entry) : fullRows(entry)
     switch (entry.kind) {

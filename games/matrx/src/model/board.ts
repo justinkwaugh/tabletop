@@ -40,9 +40,8 @@ export function isPotentialKind(kind: PieceKind): kind is PotentialKind {
     return kind !== PieceKind.Gipf
 }
 
-// A paired unit is an unused stack of two potentials of one kind and colour; every other unit is
-// a single piece. Each disc has an id, bottom first, given as it enters the board, by which the
-// table turns it.
+// A paired unit is an unused stack of two potentials of one kind and colour. Disc ids, bottom
+// first, fix which way round the table draws each disc.
 export type Unit = Type.Static<typeof Unit>
 export const Unit = Type.Object({
     playerId: Type.String(),
@@ -51,7 +50,7 @@ export const Unit = Type.Object({
     discIds: Type.Array(Type.Integer({ minimum: 0 }), { minItems: 1, maxItems: 2 })
 })
 
-// The units on an occupied spot, bottom to top; only the top one is in play.
+// Bottom to top; only the top unit is in play.
 export type Stack = Type.Static<typeof Stack>
 export const Stack = Type.Object({
     coords: AxialCoordinates,
@@ -64,8 +63,7 @@ export const MatrxBoard = Type.Object({
     stacks: Type.Array(Stack)
 })
 
-// A row is four or more adjacent spots topped by one player's pieces in a line. Its reach runs on
-// in both directions while spots are occupied.
+// A row's reach runs on in both directions while spots are occupied.
 export type Row = {
     playerId: string
     from: AxialCoordinates
@@ -157,12 +155,11 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         return this.geometry.entries.filter((entry) => this.canPush(entry))
     }
 
-    // How many stacks the push moves on: those before the first empty spot.
     shiftedBy(entry: Entry): number {
         return entry.line.findIndex((coords) => this.isEmpty(coords))
     }
 
-    // Pushes the unit onto the line's first spot and returns the stack that lands on the centre.
+    // Returns the centre's stack when the push moves one onto it.
     push(entry: Entry, unit: Unit): Unit[] | undefined {
         const gap = this.shiftedBy(entry)
         if (gap < 0) {
@@ -178,7 +175,6 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         return centre >= 0 && centre <= gap ? this.stackAt(CENTRE) : undefined
     }
 
-    // Where the top piece of a paired potential could move, by its kind.
     potentialTargets(from: AxialCoordinates): AxialCoordinates[] {
         const unit = this.topAt(from)
         if (unit === undefined || !unit.paired) {
@@ -212,7 +208,7 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         }
     }
 
-    // The top piece of a paired potential lands as a single, leaving its partner as one.
+    // Rule G3: both potentials of a split pair are used singles.
     movePotential(from: AxialCoordinates, to: AxialCoordinates): Unit {
         const moved = this.takeTopOfPair(from)
         this.place(to, moved)

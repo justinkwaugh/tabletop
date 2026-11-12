@@ -3,7 +3,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { discsIn, PieceKind, type PotentialKind } from './board.js'
 
-// Single potentials in reserve, by kind; two of a kind make a stack that can be brought in.
+// Single potentials in reserve; any two of a kind make a stack (rule G6).
 export type Potentials = Type.Static<typeof Potentials>
 export const Potentials = Type.Object({
     [PieceKind.Tamsk]: Type.Integer({ minimum: 0 }),

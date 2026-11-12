@@ -1,6 +1,5 @@
 import type { Point } from '@tabletop/common'
 
-// The convex hull of the points, in order round it.
 export function hull(points: readonly Point[]): Point[] {
     const sorted = points.toSorted((a, b) => a.x - b.x || a.y - b.y)
     const cross = (o: Point, a: Point, b: Point) =>

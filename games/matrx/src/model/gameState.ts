@@ -41,10 +41,9 @@ export const MatrxGameState = Type.Evaluate(
             board: MatrxBoard,
             movedThisTurn: Type.Boolean(),
             resolvingPlayerIds: Type.Array(Type.String()),
-            // Players whose TAMSK stack the opponent pushed onto the centre: an extra move to open
-            // their next turn.
+            // Owners of a TAMSK stack the opponent pushed onto E5, owed an extra move to open their
+            // turn (rule H1.3).
             extraMoveOwedIds: Type.Array(Type.String()),
-            // The id the next disc to enter the board takes.
             nextDiscId: Type.Integer({ minimum: 0 }),
             endReason: Type.Optional(Type.Enum(EndReason))
         })
@@ -127,7 +126,6 @@ export class HydratedMatrxGameState
         return this.pushableKinds(playerId).length > 0 || this.potentialMoves(playerId).length > 0
     }
 
-    // The TAMSK stack on the centre, if it belongs to the player.
     ownTamskOnCentre(playerId: string): boolean {
         const top = this.board.topAt(CENTRE)
         return top?.kind === PieceKind.Tamsk && top.paired && top.playerId === playerId

@@ -54,8 +54,7 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
     return list.some((candidate) => sameCoordinates(candidate, coords))
 }
 
-// The moves Undo walks back through one choice at a time: a push or extra move returns its piece
-// to its dot, a potential's move returns it to its stack, still chosen.
+// Moves Undo restages: a push returns to its dot, a potential's move to its stack.
 type StepBack = PushPiece | ExtraMove | MovePotential
 
 function isStepBack(action: GameAction): action is StepBack {
@@ -101,14 +100,12 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
 
-    // E5's mark, a reminder of TAMSK's extra move that the real board does not have.
     centreMark: boolean = $derived(this.preferences.values.centreMark)
 
     toggleCentreMark() {
         this.preferences.set({ centreMark: !this.centreMark })
     }
 
-    // The board seen from the far side, half a turn round, to see behind tall stacks.
     turned: boolean = $derived(this.preferences.values.turned)
 
     // A move's motion is laid out in the view it started in, so turning the board lands it.
@@ -137,8 +134,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
             : this.pushKinds[0]
     )
 
-    // What goes onto the chosen dot: the TAMSK piece of an extra move, or the chosen kind, with
-    // the ids its discs will have, so they lie the same way round once in.
+    // With the ids its discs will have, so they lie the same way round once in.
     stagedDiscs: BoardDisc[] = $derived.by(() => {
         const playerId = this.myPlayer?.id
         if (playerId === undefined) return []
@@ -148,7 +144,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         }
         const kind = this.chosenKind
         if (kind === undefined) return []
-        // As the logic numbers them.
         const first = this.gameState.nextDiscId
         return Array.from({ length: discsIn({ paired: isPotentialKind(kind) }) }, (_, index) => ({
             playerId,
@@ -176,13 +171,11 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return manual !== undefined && includesCoords(this.entryDots, manual) ? manual : undefined
     })
 
-    // The kind of the stack standing on the chosen dot, out of your reserve until it goes in or
-    // comes back off; not the TAMSK piece of an extra move, which comes from the board.
+    // Not an extra move's TAMSK piece, which comes from the board.
     stagedKind: PieceKind | undefined = $derived(
         this.chosenDot !== undefined && !this.canExtraMove ? this.chosenKind : undefined
     )
 
-    // How many of a kind a player has in reserve, less the stack standing on the chosen dot.
     inReserve(playerId: string, kind: PotentialKind): number {
         const staged =
             playerId === this.myPlayer?.id && this.stagedKind === kind
@@ -198,7 +191,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
             : this.entries.filter((entry) => sameCoordinates(entry.dot, dot))
     })
 
-    // Your stacks of two that can move now, each with where it can go.
     potentialMoves: { from: AxialCoordinates; to: AxialCoordinates }[] = $derived.by(() => {
         const playerId = this.myPlayer?.id
         return this.canMovePotential && playerId !== undefined
@@ -240,7 +232,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return this.rows.length === 1 ? this.rows[0] : undefined
     })
 
-    // Stacks of two in the chosen row, which may stay; every single piece goes.
     rowPairs: AxialCoordinates[] = $derived.by(() => {
         const row = this.chosenRow
         if (row === undefined) return []
@@ -291,7 +282,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return this.incomingGameState
     }
 
-    // The move a step back to `to` takes back.
     undoneMove(to: Pick<MatrxGameState, 'actionCount'>): StepBack | undefined {
         const action = this.actions.find((candidate) => candidate.index === to.actionCount)
         return action !== undefined && isStepBack(action) ? action : undefined
@@ -316,7 +306,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         if (kind !== 'undo') this.undoingMove = undefined
     }
 
-    // Your choices for a move taken back, as you made them.
     private restaged(move: StepBack): MatrxSelection {
         if (isMovePotential(move)) return setMatrxSelection({}, 'from', move.from)
         if (isPushPiece(move)) this.preferredKind = move.kind
@@ -352,7 +341,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.select(setMatrxSelection({}, 'from', same ? undefined : from))
     }
 
-    // Tapping where there is nothing to choose lets go of a chosen stack or dot.
     letGo() {
         if (this.chosenFrom === undefined && this.chosenDot === undefined) return
         this.select(setMatrxSelection(this.ownSelection, 'from', undefined))

@@ -31,7 +31,6 @@
     const frame = $derived(view.frame())
     const playArea = $derived(view.playAreaOutline())
 
-    // Lines run dot to dot across the play area; the board's rim has no line between dots.
     const lines = $derived(
         AXES.flatMap((axis) =>
             geometry.points
@@ -64,7 +63,6 @@
         }))
     }
 
-    // Each player's GIPF pieces in reserve wait on their own dot, White's near the bottom left.
     const reserves = $derived(
         session.gameState.turnManager.turnOrder.map((playerId, seat) => {
             const staged =
@@ -81,8 +79,6 @@
         })
     )
 
-    // The stack you are about to bring in drops onto the dot you chose, until it goes in. A stack
-    // Undo took back out stands there already.
     const preview = $derived.by(() => {
         if (animator.entering || animator.pushedIn) return undefined
         if (animator.returned) return { ...animator.returned, drops: false }
@@ -101,8 +97,8 @@
               drops: boolean
           }
 
-    // Far stacks first, so nearer stacks stand in front of them. The stack coming in is drawn at
-    // its dot's depth: the line it pushes moves with it, so the order holds as it slides.
+    // The stack coming in is drawn at its dot's depth: the line it pushes moves with it, so the
+    // order holds as it slides.
     const drawOrder: Drawn[] = $derived.by(() => {
         const drawn: Drawn[] = animator.stacks.map((stack) => ({
             kind: 'stack',
@@ -123,17 +119,13 @@
         return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     })
 
-    // E5 can be marked, though the real board is not, as a reminder that a TAMSK stack pushed there
-    // earns an extra move: a station just wider than a piece, with a ring inside as wide as
-    // TAMSK's inner groove. Each player turns it on or off beside the board.
+    // E5's mark is not on the real board: a reminder that a TAMSK stack pushed there earns an extra
+    // move.
     const centre = $derived(view.center(CENTRE))
     const STATION_RADIUS = PIECE_RADIUS + 4
     const STATION_INNER = PIECE_RADIUS * 0.4
     const SPOT_RADIUS = PIECE_RADIUS * 0.13
 
-    // The real board's fine grid, a fifth of its spacing and lined up with its lines, covers
-    // the board outside the play area, fading out beyond the frame into the table, and the six triangles
-    // round E5. A tile holds one of each line, with the next ones over to fill its corners.
     const FINE = SPACING / 5
     const FINE_TILE = { width: FINE * Math.sqrt(3), height: FINE }
     const fineLines = [-1, 0, 1].flatMap((k) => {
@@ -166,14 +158,11 @@
             .join(' ')
     )
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
-    // A dashed ring's dashes and the gaps between them, as in its stroke-dasharray.
     const DASH = 5
     const DASH_GAP = 4
 
-    // Once a stack or dot is chosen, the other choices fade.
     const chosen = $derived(session.chosenFrom !== undefined || session.chosenDot !== undefined)
 
-    // A tap on nothing you can choose lets go of what is chosen.
     function onBoardClick(event: MouseEvent) {
         const target = event.target
         const choosable = '[role="button"]:not([aria-disabled="true"])'
@@ -227,7 +216,6 @@
         )
     }
 
-    // Everything a stack of the given height standing on a spot would cover, for clicks.
     function outline(discs: number): string {
         const r = PIECE_RADIUS
         const ry = r * view.tilt
@@ -235,9 +223,8 @@
         return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
     }
 
-    // A ring round a stack's top face, broken where it would cover the top disc's mark, as arcs.
-    // Each arc's length is given in dash-and-gap units (DASH, DASH_GAP), so a dashed ring has
-    // whole dashes evenly spaced, and a broken one a dash at each end of every arc.
+    // Arc lengths are in dash-and-gap units, so a dashed ring has whole dashes and a broken one a
+    // dash at each end of every arc.
     function topRing(
         discs: readonly BoardDisc[],
         radius: number,
@@ -280,11 +267,8 @@
         })
     }
 
-    // Arrows lie on the board, laid out flat and then seen at the tilt. Each runs from the far
-    // half of the staged stack's top to well inside the ring around the first spot, so it marks
-    // where the push goes. The tilt shortens an arrow pointing up or down the screen, the way
-    // E1's does, more than one along a slanted line, so each starts as far from its dot on screen
-    // as an upright one does, reaching back as far over the staged stack.
+    // The tilt shortens an arrow pointing up or down the screen more than one along a slanted line,
+    // so each starts as far from its dot on screen as an upright one does.
     const ARROW_START = DOT_RADIUS * 2 + 12
     const ARROW_REACH = 24
     function arrow(from: AxialCoordinates, to: AxialCoordinates): string {
@@ -304,9 +288,7 @@
         return `M ${flat(baseX, baseY)} L ${flat(tipX, tipY)} M ${flat(tipX - ux * wing - uy * wing, tipY - uy * wing + ux * wing)} L ${flat(tipX, tipY)} L ${flat(tipX - ux * wing + uy * wing, tipY - uy * wing - ux * wing)}`
     }
 
-    // The flier passes in front of every stack it is nearer than; nearer stacks are copied over
-    // it, shown only while it is behind them. Only their bodies are copied: a shadow drawn twice
-    // shows darker.
+    // Only bodies are copied: a shadow drawn twice shows darker.
     const occluding = $derived(
         animator.flier
             ? animator.stacks.filter((stack) => !animator.flier?.passes.includes(stack.key))
@@ -418,8 +400,6 @@
         </g>
     {/each}
 
-    <!-- Rings on the board: round the dots you can bring a stack in from, and round the spots
-         you can push into or move to, behind whatever stands there. -->
     <g {@attach animator.marks()}>
         {#each session.entryDots as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
@@ -505,10 +485,6 @@
                         parts={animator.parts(drawn.key)}
                     />
                 </g>
-                <!-- Marks lie on the top face, after the stack and outside the node that moves
-                     it: a ring on a stack you can move or a row you can take, a spot on each
-                     piece that goes, and on stacks of two in the chosen row a ring for keep or
-                     take. The rings break where they would cover the top piece's mark. -->
                 {#if role || target}
                     <g {@attach animator.marks()}>
                         {#if target}
@@ -599,9 +575,7 @@
         {/each}
     {/if}
 
-    <!-- Arrows and the targets' click areas stand above the pieces, nearer ones last: the
-         stack standing on the chosen dot over the click areas of the spots it pushes into, and
-         the arrows over that. Tapping the stack is tapping its dot. -->
+    <!-- Above the pieces, nearer ones last; tapping the staged stack is tapping its dot. -->
     {#snippet pushTarget(entry: Entry, part: 'area' | 'arrow')}
         {@const center = view.center(entry.line[0])}
         {@const key = coordinatesToNumber(entry.line[0])}
@@ -746,8 +720,6 @@
         pointer-events: none;
     }
 
-    /* Choice marks are two-tone, as in DVONN, YINSH and LYNGK: a dark band under a cyan core,
-       so they read on the board, the light pieces and the dark ones alike. */
     .under {
         stroke: rgb(0 0 0 / 0.8);
     }
@@ -828,8 +800,6 @@
         stroke-dasharray: 5 4;
     }
 
-    /* Each dash outlined on its own, as in DVONN, so the piece shows between dashes: the dark
-       dashes are shorter but square-capped, overhanging each cyan one by the band at both ends. */
     .top-ring.role-target.under {
         stroke: #000;
         stroke-width: 4.3;

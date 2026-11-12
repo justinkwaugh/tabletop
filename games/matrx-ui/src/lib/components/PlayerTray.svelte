@@ -84,7 +84,6 @@
         justify-content: center;
     }
 
-    /* Count and caption at the left, the pieces themselves at the right, as in GIPF. */
     .line > :global(svg) {
         margin-left: auto;
     }

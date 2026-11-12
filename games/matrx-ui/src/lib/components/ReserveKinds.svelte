@@ -4,9 +4,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PieceIcon from './PieceIcon.svelte'
 
-    // A player's potentials in reserve: each kind as a single piece with how many pieces of it
-    // are left, less a stack standing on the chosen dot, dimmed when too few remain to make a
-    // stack. With `choose`, each kind that can come in is a button, the chosen one ringed.
     let {
         player,
         color,

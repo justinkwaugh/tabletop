@@ -12,10 +12,6 @@
         type Disc
     } from '$lib/board/pieceShape.js'
 
-    // One disc's look, of one kind and tone, drawn in an SVG under its id: the looks page draws
-    // each for scripts/render-looks.mjs to save as an image. The gradients come from the
-    // LookDefs beside it. DVONN's hole and ZÈRTZ's notches are cut out of the drawn disc;
-    // PÜNCT's side is built from bands between its notches, and only its top is cut.
     let {
         disc,
         radius,
@@ -74,7 +70,6 @@
 
 <g id={lookId}>
     {#if mark?.kind === 'cuts'}
-        <!-- The side and the notches' insides, far to near; the top in front of them. -->
         {#each levels as level (level)}
             <linearGradient
                 id="{lookId}-side-{level}"
@@ -140,7 +135,6 @@
                 {/if}
             {/if}
         </g>
-        <!-- Inside ZÈRTZ's notches, their curve, seen only through the cut. -->
         {#if mark?.kind === 'notches'}
             <clipPath id="{lookId}-outline">
                 <path d={mark.outline}></path>
@@ -166,7 +160,6 @@
 </g>
 
 <style>
-    /* The top's own colour, where the notch's lips meet it. */
     .notch-backing.light {
         fill: #ece6d0;
     }

@@ -116,7 +116,6 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}>A1</OverlayToggle
                             >
-                            <!-- E5 is marked, though the real board is not, as a reminder of TAMSK's extra move. -->
                             <OverlayToggle
                                 label="E5 mark"
                                 pressed={gameSession.centreMark}
@@ -132,7 +131,6 @@
                                     <ellipse rx="2.6" ry="1.95"></ellipse>
                                 </svg>
                             </OverlayToggle>
-                            <!-- Half a turn round, so what tall stacks hide comes in front. -->
                             <OverlayToggle
                                 label="Far side"
                                 pressed={gameSession.turned}

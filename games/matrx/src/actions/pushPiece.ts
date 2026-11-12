@@ -5,7 +5,6 @@ import { HydratedMatrxGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PieceKind } from '../model/board.js'
 
-// The line a push moved, how many stacks it shifted on, and whose TAMSK stack it put on the centre.
 export type PushMetadata = Type.Static<typeof PushMetadata>
 export const PushMetadata = Type.Object({
     line: Type.Array(AxialCoordinates),
@@ -34,7 +33,6 @@ export function isPushPiece(action?: GameAction): action is PushPiece {
     return action?.type === ActionType.PushPiece
 }
 
-// Brings a GIPF-piece or a stack of two potentials from the reserve: onto a dot, then pushed in.
 export class HydratedPushPiece extends HydratableAction<typeof PushPiece> implements PushPiece {
     declare type: ActionType.PushPiece
     declare playerId: string

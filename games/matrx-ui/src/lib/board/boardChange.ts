@@ -8,7 +8,6 @@ import {
     type Unit
 } from '@tabletop/matrx'
 
-// One disc of a stack, by owner and kind, and its id where it has one.
 export type BoardDisc = { playerId: string; kind: PieceKind; id?: number }
 
 export function discsOf(stack: readonly Unit[]): BoardDisc[] {
@@ -21,8 +20,6 @@ export function discsOf(stack: readonly Unit[]): BoardDisc[] {
     )
 }
 
-// A push from a dot: what came in (a TAMSK extra move takes its piece from the centre's pair),
-// how many stacks it moved on, and whether the step goes forward through it or back out of it.
 export type PushChange = {
     kind: 'push'
     entry: Entry
@@ -32,7 +29,6 @@ export type PushChange = {
     forward: boolean
 }
 
-// A potential's top piece moving from one spot to another.
 export type MoveChange = {
     kind: 'move'
     from: AxialCoordinates
@@ -41,15 +37,13 @@ export type MoveChange = {
     forward: boolean
 }
 
-// Anything else, spot by spot: the discs that leave the top of a stack and those that arrive.
 export type DiscChange = { coords: AxialCoordinates; from: number; discs: BoardDisc[] }
 export type DiscsChange = { kind: 'discs'; removed: DiscChange[]; added: DiscChange[] }
 
 export type BoardChange = PushChange | MoveChange | DiscsChange
 
-// What a known move did is read from the boards, so Undo and history steps, which carry no
-// action, play the same motion backwards or forwards. A push that moved nothing on could have come
-// from either dot beside its spot, so the move the step knows of is tried first.
+// Undo and history steps carry no action, so the move is read from the boards. A push that moved
+// nothing on could have come from either dot beside its spot, so the known move is tried first.
 export function boardChange(
     before: HydratedMatrxBoard,
     after: HydratedMatrxBoard,
