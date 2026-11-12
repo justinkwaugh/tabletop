@@ -347,12 +347,6 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
     const move = { kind: 'move', label: 'Move', number: 2, picked: false, press: nothing } as const
     const pouch = (refusal?: string): ActionRow[] => [
         {
-            choice: { label: 'No pouch', picked: true, shown: 'No pouch' },
-            art: { kind: 'empty-pouch' },
-            caption: '4 cards',
-            press: nothing
-        },
-        {
             choice: {
                 label: 'Saltpeter: 5 cards',
                 picked: false,
@@ -361,6 +355,12 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
             },
             art: { kind: 'good', good: 'saltpeter' },
             caption: 'opens a fifth slot',
+            press: nothing
+        },
+        {
+            choice: { label: 'Sulfur: two cards back to back', picked: true, shown: '2 in a row' },
+            art: { kind: 'good', good: 'sulfur' },
+            caption: 'once this round',
             press: nothing
         }
     ]
@@ -416,16 +416,28 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
 
     it('R-3.3 each pouch choice is its art, its short name and what it does; the full words its name', () => {
         const markup = untitled(draft())
-        expect(markup).toContain('data-empty-pouch')
         expect(markup).toContain('aria-label="saltpeter"')
         expect(markup).toContain('aria-label="Saltpeter: 5 cards"')
-        expect(all(markup, 'data-pouch-title')).toEqual(['No pouch', '+1 card'])
-        expect(all(markup, 'data-pouch-caption')).toEqual(['4 cards', 'opens a fifth slot'])
+        expect(all(markup, 'data-pouch-title')).toEqual(['+1 card', '2 in a row'])
+        expect(all(markup, 'data-pouch-caption')).toEqual(['opens a fifth slot', 'once this round'])
+    })
+
+    it('R-3.3 the two goods are the only choices: no empty pouch, and the chosen one is ringed', () => {
+        const markup = draft()
+        expect(markup).not.toContain('data-empty-pouch')
+        const choices = markup.split('data-row=').slice(1)
+        const sulfur = choices.find((choice) => choice.startsWith('"Sulfur'))
+        const saltpeter = choices.find((choice) => choice.startsWith('"Saltpeter'))
+        expect(sulfur).toMatch(/class="[^"]*\bring-2\b/)
+        expect(saltpeter).not.toMatch(/class="[^"]*\bring-2\b/)
     })
 
     it('R-3.3 one that cannot be chosen is dimmed and says why in place of what it does, once', () => {
         const markup = untitled(draft('You hold no saltpeter.'))
-        expect(all(markup, 'data-pouch-caption')).toEqual(['4 cards', 'You hold no saltpeter.'])
+        expect(all(markup, 'data-pouch-caption')).toEqual([
+            'You hold no saltpeter.',
+            'once this round'
+        ])
         expect(markup).toContain('aria-label="Saltpeter: 5 cards: You hold no saltpeter."')
         expect(markup).toContain('title="You hold no saltpeter."')
         expect(markup).toContain('aria-disabled="true"')

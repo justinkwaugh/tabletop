@@ -30,13 +30,17 @@ scenario('S4 R-3.1-H1 Draft and finalise in any order', 'hands-second-sulfur', a
 
 scenario('S5 R-3.3 Saltpeter count', 'hands-first-saltpeter', async (table) => {
     await table.pressCards(...FourCards)
+    await expect(table.page.locator('[data-empty-pouch]')).toHaveCount(0)
     await table.press(table.rowStarting('Saltpeter'))
+    await expect(table.rowStarting('Saltpeter')).toHaveAttribute('aria-pressed', 'true')
     await expect(table.count()).toHaveText('4 of 5')
     await expect(table.primary()).toBeDisabled()
     await table.pressCards('Migrate')
     await expect(table.count()).toHaveText('5 of 5')
     await expect(table.primary()).toBeEnabled()
-    await table.press(table.row('No pouch'))
+    // R-3.3 A second press on the chosen good clears it.
+    await table.press(table.rowStarting('Saltpeter'))
+    await expect(table.rowStarting('Saltpeter')).toHaveAttribute('aria-pressed', 'false')
     await expect(table.count()).toHaveText('5 of 4')
     await expect(table.primary()).toBeDisabled()
     await table.press(table.undo())

@@ -3,9 +3,10 @@
     import type { ActionRow } from '$lib/model/actionPanel.js'
 
     /**
-     * R-3.3 One pouch choice: its goods art, its short name, and what it does beneath; the full words
-     * are its accessible name. One that can't be chosen is dimmed and says why in place of what it
-     * does, once: a press adds nothing. A phone drops the line beneath, so there a press says why.
+     * R-3.3 One pouch choice: its good, its short name, and what it does beneath; the full words are
+     * its accessible name. The chosen one is ringed, and a second press clears it. One that can't be
+     * chosen is dimmed and says why in place of what it does, once: a press adds nothing. A phone
+     * drops the line beneath, so there a press says why.
      */
     let { row }: { row: ActionRow } = $props()
 
@@ -32,7 +33,7 @@
         type="button"
         class="choice inline-flex items-center gap-2 rounded-lg border px-2 py-1 text-left text-feudum-text
             {row.choice.picked
-            ? 'border-feudum-accent bg-feudum-primary'
+            ? 'border-feudum-accent bg-feudum-primary ring-2 ring-feudum-accent'
             : 'border-feudum-frame bg-feudum-control'}
             {refused ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
         aria-label={refused ? `${row.choice.label}: ${row.choice.refusal}` : row.choice.label}
@@ -44,13 +45,6 @@
     >
         {#if row.art?.kind === 'good'}
             <GoodToken good={row.art.good} size={GoodSize} />
-        {:else}
-            <span
-                class="inline-block shrink-0 rounded-full border border-dashed border-feudum-text-muted"
-                style:width="{GoodSize}px"
-                style:height="{GoodSize}px"
-                data-empty-pouch
-            ></span>
         {/if}
         <span class="flex flex-col leading-tight">
             <span class="title text-sm" data-pouch-title
@@ -74,7 +68,7 @@
     }
 
     /*
-     * Contract, Phone layout: the art over its short name, without the line beneath, so the three
+     * Contract, Phone layout: the art over its short name, without the line beneath, so the two
      * share the send's line; a refused press says why.
      */
     @media (width < 40rem), (max-height: 520px) and (orientation: landscape) {

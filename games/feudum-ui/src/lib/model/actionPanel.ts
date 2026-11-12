@@ -32,8 +32,6 @@ export type RowArt =
     | DieArt
     | DiscArt
     | DraftArt
-    /** R-3.3 No pouch: the pouch drawn empty. */
-    | { readonly kind: 'empty-pouch' }
 
 export interface ActionRow {
     readonly choice: PanelChoice
@@ -447,7 +445,7 @@ function handBlocks(
             drafting.pouch.map(({ good, label, title, caption, picked, refusal }) => ({
                 choice: { ...plainChoice(label, picked, refusal), shown: title },
                 press: () => session.choosePouch(good),
-                art: good ? { kind: 'good', good } : { kind: 'empty-pouch' },
+                art: { kind: 'good', good },
                 caption
             }))
         ),

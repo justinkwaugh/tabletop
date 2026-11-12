@@ -106,10 +106,13 @@ describe('HandDraft (R-3.1, R-3.3): minimum tests', () => {
         expect(hand.hasManual).toBe(false)
     })
 
-    it('"No pouch" with none chosen is no press', () => {
+    it('R-3.3 a press on the chosen good clears it, and a press on the other takes its place', () => {
         const hand = draft()
-        hand.choosePouch(undefined)
-        expect(hand.hasManual).toBe(false)
+        hand.choosePouch('saltpeter')
+        hand.choosePouch('sulfur')
+        expect(hand.hand).toEqual({ cards: [], pouchGood: 'sulfur' })
+        hand.choosePouch('sulfur')
+        expect(hand.hand).toEqual({ cards: [] })
     })
 
     it('a draft is read back only under the key it was written with', () => {
@@ -289,7 +292,7 @@ describe('the real session: what the hand draft survives (R-3.1; contract: Hand 
 })
 
 describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
-    it('S5: saltpeter asks a fifth card; five with no pouch are too many; Undo takes a press', async () => {
+    it('S5: saltpeter asks a fifth card; a second press clears it and five are too many; Undo takes a press', async () => {
         const table = await atHandSelection()
         const session = await table.openSeat(table.order[0])
 
@@ -304,7 +307,7 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(session.handPanel?.drafting?.count).toBe('5 of 5')
         expect(session.handPanel?.drafting?.primary.enabled).toBe(true)
 
-        session.choosePouch(undefined)
+        session.choosePouch('saltpeter')
         flushSync()
         expect(session.handPanel?.drafting?.count).toBe('5 of 4')
         expect(session.handPanel?.drafting?.primary.enabled).toBe(false)
@@ -334,12 +337,12 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(row?.refusal).toBe("Barrel sulfur can't go in the pouch.")
     })
 
-    it('labels the pouch rows', async () => {
+    it('R-3.3 the two pouch goods are the only choices, and neither is chosen at first', async () => {
         const table = await atHandSelection()
         const session = await table.openSeat(table.order[0])
         flushSync()
+        expect(session.handPanel?.drafting?.pouch.some(({ picked }) => picked)).toBe(false)
         expect(session.handPanel?.drafting?.pouch.map(({ label }) => label)).toEqual([
-            'No pouch',
             'Saltpeter: 5 cards',
             'Sulfur: two cards back to back'
         ])
@@ -386,7 +389,6 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(
             session.handPanel?.drafting?.pouch.map(({ title, caption }) => [title, caption])
         ).toEqual([
-            ['No pouch', '4 cards'],
             ['+1 card', 'opens a fifth slot'],
             ['2 in a row', 'once this round']
         ])
