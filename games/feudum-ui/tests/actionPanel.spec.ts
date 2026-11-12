@@ -108,7 +108,10 @@ test('S4 to S8 R-3.1 the finalise row, the eleven faces, the pouch and the send'
     await expect(panel(page).locator('[data-hand-count]')).toHaveText('4 of 4')
     await shot(page, 'draft-four-picked')
 
-    await expect(primary(page)).toHaveText("Long live the king · can't be undone")
+    await expect(primary(page)).toHaveAccessibleName(
+        "Long live the king · finalise · can't be undone"
+    )
+    await expect(primary(page).locator('[data-primary-label]')).toHaveText('Long live the king')
     await primary(page).click()
     await settled(page)
     await expect(panel(page).locator('[data-finalise-seat][data-finalised]')).toHaveCount(1)
@@ -116,15 +119,68 @@ test('S4 to S8 R-3.1 the finalise row, the eleven faces, the pouch and the send'
     await shot(page, 'draft-next-seat')
 })
 
-test('S5 R-3.1 a dimmed pouch good gives its reason on the press', async ({ page }) => {
+test('S5 R-3.3 a dimmed pouch choice says why in place of what it does, once', async ({ page }) => {
     await createGame(page)
     await playToHands(page)
     const dimmed = panel(page).locator('[data-rows="pouch"] button[aria-disabled="true"]')
     await expect(dimmed.first()).toBeVisible()
-    // It only looks disabled: it takes the press, to say why.
+    await expect(dimmed.first().locator('[data-pouch-caption]')).toHaveText(/^You hold no /)
+    // It only looks disabled: it takes the press, and says nothing more.
     await dimmed.first().click({ force: true })
-    await expect(panel(page).locator('[data-rows="pouch"] [data-refusal]')).toBeVisible()
+    await expect(panel(page).locator('[data-rows="pouch"] [data-refusal]')).toBeHidden()
     await shot(page, 'pouch-refused')
+})
+
+test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot or the card takes it back', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await createGame(page)
+    await playToHands(page)
+    const faces = panel(page).locator('[data-cards="draft"] [data-row]')
+    const slots = panel(page).locator('[data-plan] [data-slot]')
+    await expect(slots).toHaveCount(4)
+    await expect(panel(page).locator('[data-plan-caption]')).toHaveText(
+        'your plan · play in any order'
+    )
+    await expect(panel(page).locator('[data-finalise-caption]')).toContainText(
+        'everyone chooses now · finalise in turn order'
+    )
+
+    await faces.nth(2).locator('button').first().click()
+    await faces.nth(0).locator('button').first().click()
+    const [third, first] = await Promise.all(
+        [2, 0].map((index) => faces.nth(index).getAttribute('data-row'))
+    )
+    await expect(faces.nth(2).locator('[data-slot-badge]')).toHaveText('1')
+    await expect(faces.nth(0).locator('[data-slot-badge]')).toHaveText('2')
+    await expect(slots.nth(0).locator('[data-slot-card]')).toHaveAttribute(
+        'data-slot-card',
+        third ?? ''
+    )
+    await expect(slots.nth(1).locator('[data-slot-card]')).toHaveAttribute(
+        'data-slot-card',
+        first ?? ''
+    )
+    await expect(panel(page).locator('[data-hand-count]')).toHaveText('2 of 4')
+
+    // Contract, Hand selection: a desk's draft stays under about 300 px, the send beside the slots.
+    const area = await panel(page).boundingBox()
+    expect(area?.height ?? 0).toBeLessThanOrEqual(300)
+    const plan = await panel(page).locator('[data-plan] [role="list"]').boundingBox()
+    const send = await primary(page).boundingBox()
+    expect(send && plan && send.x).toBeGreaterThanOrEqual((plan?.x ?? 0) + (plan?.width ?? 0))
+    expect(send && plan && send.y).toBeLessThan((plan?.y ?? 0) + (plan?.height ?? 0))
+    const pouch = await panel(page).locator('[data-rows="pouch"]').boundingBox()
+    expect(pouch?.y ?? 0).toBeGreaterThanOrEqual((plan?.y ?? 0) + (plan?.height ?? 0))
+    await shot(page, 'draft-two-picked')
+
+    await slots.nth(0).locator('button').click()
+    await expect(faces.nth(0).locator('[data-slot-badge]')).toHaveText('1')
+    await expect(faces.nth(2).locator('[data-slot-badge]')).toHaveCount(0)
+    await faces.nth(0).locator('button').first().click()
+    await expect(panel(page).locator('[data-slot-card]')).toHaveCount(0)
+    await expect(panel(page).locator('[data-hand-count]')).toHaveText('0 of 4')
 })
 
 test('S9 S10 S10a S12 R-3.3 the hand is a row of faces; a Move shows its rows, a Forfeit and the toggle', async ({

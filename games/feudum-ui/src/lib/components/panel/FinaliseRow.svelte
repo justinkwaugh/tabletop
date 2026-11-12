@@ -4,9 +4,15 @@
 
     /**
      * R-3.1 The finalise order, seats in turn order: a tick and the pouch good on each that has
-     * finalised, a mark on the next. It is what lets a seat wait to see an earlier pouch good.
+     * finalised, a mark on the next. It is what lets a seat wait to see an earlier pouch good. Its
+     * caption says how: everyone chooses now, and finalises in turn order (R-3.1-H1); while this
+     * seat drafts, the round's line leads it.
      */
-    let { entries }: { entries: readonly FinaliseEntry[] } = $props()
+    let {
+        entries,
+        caption,
+        lead
+    }: { entries: readonly FinaliseEntry[]; caption: string; lead?: string } = $props()
 
     const TokenSize = 14
 </script>
@@ -16,8 +22,11 @@
     class="flex w-full flex-wrap items-center gap-1.5 max-sm:w-auto max-sm:gap-1"
     data-finalise-row
 >
-    <span class="text-xs uppercase tracking-wide text-feudum-text-muted max-sm:sr-only"
-        >Finalise order</span
+    <!-- R-3.1-H1 Everyone chooses at once; the sends go in turn order. -->
+    <span class="text-sm text-feudum-text max-sm:sr-only" data-finalise-caption
+        >{#if lead}<span class="font-semibold" data-round-lead>{lead}</span>{' · '}{/if}<span
+            class="text-feudum-text-muted">{caption}</span
+        ></span
     >
     {#each entries as entry (entry.playerId)}
         <span
