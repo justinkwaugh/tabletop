@@ -1,5 +1,6 @@
 <script lang="ts">
     import { holdsReceiverPresidentCertificate } from '../finance/companyOwnership.js'
+    import { holdsMultiShareCertificate } from '../finance/multiShareCertificates.js'
     import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
@@ -188,6 +189,33 @@
     const portfolioColumnLabels = $derived(
         new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
+    const multiShareMark = $derived(session.presentation.multiShareCertificate)
+    /** Whether the column's owner holds the company's marked certificate of several shares. */
+    function holdsMarkedCertificate(companyId: string, ownerId: string): boolean {
+        if (!multiShareMark) return false
+        const state = session.gameState
+        if (ownerId.startsWith('player:'))
+            return holdsMultiShareCertificate(state, companyId, {
+                kind: 'player',
+                playerId: ownerId.slice('player:'.length)
+            })
+        if (ownerId.startsWith('company:'))
+            return holdsMultiShareCertificate(state, companyId, {
+                kind: 'company',
+                companyId: ownerId.slice('company:'.length)
+            })
+        if (ownerId === 'treasury')
+            return holdsMultiShareCertificate(state, companyId, { kind: 'company', companyId })
+        const poolId = new Map([
+            ['market', marketPoolId],
+            ['ipo', ipoPoolId],
+            ['exchange', exchangePoolId]
+        ]).get(ownerId)
+        return (
+            poolId !== undefined &&
+            holdsMultiShareCertificate(state, companyId, { kind: 'bank' }, poolId)
+        )
+    }
     // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
         return certificatesInPool(session.gameState, poolId).reduce(
@@ -700,6 +728,7 @@
     numbers: readonly number[] = []
 )}
     {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
+    {@const marked = shares > 0 && holdsMarkedCertificate(companyId, ownerId)}
     {@const saleChoices = shares > 0 ? saleChoicesForCell(companyId, ownerId) : []}
     <td
         class:operating-column={operating}
@@ -718,7 +747,7 @@
                 aria-label={`Buy ${session.companyName(companyId)} from ${owners.find((owner) => owner.id === ownerId)?.name}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
-                >{@render shareValue(String(shares), president)}</button
+                >{@render shareValue(String(shares), president, marked)}</button
             >
         {:else if saleChoices.length}
             <button
@@ -726,14 +755,14 @@
                 aria-label={`Sell ${session.companyName(companyId)} shares`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
-                >{@render shareHolding(String(shares), president, numbers)}</button
+                >{@render shareHolding(String(shares), president, numbers, marked)}</button
             >
         {:else if shares < 0}
             <span class="share-value" title={`Short ${-shares}`}
                 >{shares}<span class="sr-only"> short</span></span
             >
         {:else}
-            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers)}
+            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers, marked)}
         {/if}
     </td>
 {/snippet}
@@ -744,20 +773,34 @@
     >
 {/snippet}
 
-{#snippet shareValue(text: string, president: boolean)}
+{#snippet shareValue(text: string, president: boolean, marked = false)}
+    {@const mark = marked ? multiShareMark : undefined}
     <span class="share-value" class:president
-        >{text}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
+        >{text}{#if president || mark}<span
+                class="badge"
+                aria-label={[president ? 'President' : '', mark?.name ?? '']
+                    .filter(Boolean)
+                    .join(', ')}
+                title={mark ? `${mark.name}: ${mark.description}` : undefined}
+                >{president ? 'P' : ''}{mark?.label ?? ''}</span
+            >{/if}</span
     >
 {/snippet}
 
-{#snippet shareHolding(text: string, president: boolean, numbers: readonly number[])}
+{#snippet shareHolding(
+    text: string,
+    president: boolean,
+    numbers: readonly number[],
+    marked = false
+)}
     {#if numbers.length}
         {@const label = ` (${numbers.join(',')})`}
         <span class="noted-value" class:president data-note={label}
-            >{@render shareValue(text, president)}<span class="value-note">{label}</span></span
+            >{@render shareValue(text, president, marked)}<span class="value-note">{label}</span
+            ></span
         >
     {:else}
-        {@render shareValue(text, president)}
+        {@render shareValue(text, president, marked)}
     {/if}
 {/snippet}
 

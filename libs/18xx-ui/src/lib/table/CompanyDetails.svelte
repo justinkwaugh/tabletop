@@ -36,6 +36,8 @@
     import { companyLastRun } from './companyLastRun.js'
     import type { CompanyMark, PlaceConnection } from '../session/titlePresentation.js'
     import PresidentName from '../finance/PresidentName.svelte'
+    import CertificateBadge from '../finance/CertificateBadge.svelte'
+    import { holdsMultiShareCertificate } from '../finance/multiShareCertificates.js'
     import CompanyTradePopover from '../stock/CompanyTradePopover.svelte'
     import { shareSourceName } from '../stock/purchaseSources.js'
     let {
@@ -192,6 +194,14 @@
         toggleTrades(event.clientY)
     }
 </script>
+
+{#snippet multiShareMark(entry: CompanyOwnership)}
+    {@const mark = session.presentation.multiShareCertificate}
+    {#if mark && holdsMultiShareCertificate(gameState, company.id, entry.owner, entry.poolId)}<CertificateBadge
+            label={mark.label}
+            title={`${mark.name}: ${mark.description}`}
+        />{/if}
+{/snippet}
 
 <!-- The Buy · Sell button is the keyboard path; a click anywhere else on the card is a shortcut. -->
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
@@ -377,7 +387,7 @@
                                                 session
                                             )}
                                             president={!!presidency}
-                                        /></th
+                                        />{@render multiShareMark(entry)}</th
                                     >
                                     {#if numberedShares}<td
                                             class="certificate-numbers"

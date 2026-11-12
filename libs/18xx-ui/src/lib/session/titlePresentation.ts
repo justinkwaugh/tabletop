@@ -159,6 +159,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     operatingSteps?: readonly TitleOperatingStep<State>[]
     corporateFinance?: CorporateFinanceTerms
     /**
+     * A mark beside whoever holds an ordinary certificate of more than one share, as 1849 marks
+     * its two-share last certificate, wherever holdings are listed.
+     */
+    multiShareCertificate?: { label: string; name: string; description: string }
+    /**
      * The words for an insolvent company's end, where train funding closes it rather than
      * bankrupting its president: an explanation and a button label for each choice offered.
      */

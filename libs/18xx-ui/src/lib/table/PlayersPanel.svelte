@@ -20,6 +20,8 @@
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentName from '../finance/PresidentName.svelte'
+    import CertificateBadge from '../finance/CertificateBadge.svelte'
+    import { holdsMultiShareCertificate } from '../finance/multiShareCertificates.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
@@ -167,6 +169,7 @@
         })
     }
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
+    const multiShareMark = $derived(session.presentation.multiShareCertificate)
 </script>
 
 <div class="players" aria-label="Players">
@@ -376,6 +379,12 @@
                                                     class="compact-president"
                                                     aria-label="President">P</span
                                                 >{/if}
+                                            {#if multiShareMark && holdsMultiShareCertificate(session.gameState, entry.company.id, player.owner)}<span
+                                                    class="compact-president"
+                                                    title={`${multiShareMark.name}: ${multiShareMark.description}`}
+                                                    aria-label={multiShareMark.name}
+                                                    >{multiShareMark.label}</span
+                                                >{/if}
                                         </span>
                                         <span class="holding-amount"
                                             >{#if numbered.length}<span class="compact-numbered"
@@ -435,7 +444,10 @@
                                                 ><PresidentName
                                                     name={session.companyName(entry.company.id)}
                                                     president={entry.president}
-                                                /></button
+                                                />{#if multiShareMark && holdsMultiShareCertificate(session.gameState, entry.company.id, player.owner)}<CertificateBadge
+                                                        label={multiShareMark.label}
+                                                        title={`${multiShareMark.name}: ${multiShareMark.description}`}
+                                                    />{/if}</button
                                             ></th
                                         >
                                         <td class="amount">{percent.format(entry.percentage)}%</td>

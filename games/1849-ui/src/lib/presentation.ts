@@ -31,6 +31,12 @@ export const Presentation1849: TitlePresentation<State1849> = {
         issueNote:
             'Sell treasury certificates to the bank pool, the price dropping a row for each share, or buy one back.'
     },
+    // The two-share last certificate, marked wherever it is held (§9.6).
+    multiShareCertificate: {
+        label: 'L',
+        name: 'Last certificate',
+        description: 'two shares, bought, sold or issued only once no single share is left with it'
+    },
     // A corporation that cannot buy its train closes; its president may then be left with
     // nothing (§10.7).
     insolvency: {
