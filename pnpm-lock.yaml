@@ -307,6 +307,9 @@ importers:
 
   apps/frontend:
     dependencies:
+      '@noble/hashes':
+        specifier: 2.4.0
+        version: 2.4.0
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common

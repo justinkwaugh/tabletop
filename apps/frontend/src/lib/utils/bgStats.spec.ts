@@ -11,7 +11,7 @@ import {
     type GameMetadata,
     type User
 } from '@tabletop/common'
-import { bgStatsPlayUrl } from './bgStats.js'
+import { bgStatsPlayId, bgStatsPlayUrl } from './bgStats.js'
 
 const metadata: GameMetadata = {
     name: 'Game & Title',
@@ -78,7 +78,7 @@ describe('BG Stats play links', () => {
     it('encodes the BGG identity and final scores without adding elapsed duration', () => {
         expect(playData(game())).toEqual({
             sourceName: 'BoardTogether',
-            sourcePlayId: 'play-1',
+            sourcePlayId: bgStatsPlayId('play-1'),
             playDate: '2026-10-26 23:02:03',
             location: 'BoardTogether',
             game: {
@@ -110,6 +110,14 @@ describe('BG Stats play links', () => {
     })
 
     // BG Stats for Android rejects a play missing any of these with "No value for <field>".
+    it('identifies a play without sending the game ID, which opens the game', () => {
+        const url = bgStatsPlayUrl(game({ id: 'secret-game-id' }), metadata, user)
+        expect(url).not.toContain('secret-game-id')
+        expect(bgStatsPlayId('secret-game-id')).toMatch(/^[0-9a-f]{32}$/)
+        expect(bgStatsPlayId('secret-game-id')).toBe(bgStatsPlayId('secret-game-id'))
+        expect(bgStatsPlayId('secret-game-id')).not.toBe(bgStatsPlayId('other-game-id'))
+    })
+
     it('always sends the flags BG Stats for Android requires', () => {
         for (const [hasScores, noPoints] of [
             [true, false],
@@ -292,7 +300,7 @@ describe('BG Stats play links', () => {
             winningPlayerIds: ['new-seat-alice']
         })
         expect(playData(nextGame)).toMatchObject({
-            sourcePlayId: 'play-2',
+            sourcePlayId: bgStatsPlayId('play-2'),
             players: [{ sourcePlayerId: 'user:alice' }, { sourcePlayerId: 'user:bob' }]
         })
     })
