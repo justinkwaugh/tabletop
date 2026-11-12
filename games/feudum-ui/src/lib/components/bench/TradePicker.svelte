@@ -17,7 +17,8 @@
 
     /**
      * Contract, The trade picker: the guild's board upright at the left, and beside it the header,
-     * one choice card per offer, the basket where picks add up, the send, the card's other mode
+     * one choice card per offer, the basket where picks add up, the bench's further choices (sulfur
+     * into the barrel), the send, the card's other mode
      * (Feast) and a caption. On a desk it stands in the picked card's tray; on a phone, in the bench's
      * bottom sheet, its cards as compact rows. It reads the bench offer and decides nothing.
      */
@@ -192,6 +193,13 @@
                         >= <ShillingToken value={1} size={16} />{picker.basket.total}</span
                     >
                 </p>
+            {/if}
+            {#if picker.choices.length > 0}
+                <span class="flex flex-wrap items-center gap-1" data-bench-rows>
+                    {#each picker.choices as choice (choice.label)}
+                        <PanelRow {choice} {pointer} {onPress} />
+                    {/each}
+                </span>
             {/if}
             {#if bench.refused && (picker.basket?.picks.length ?? 0) > 0}
                 <p class="text-xs text-feudum-danger" data-bench-refused>{bench.refused}</p>
