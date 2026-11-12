@@ -507,7 +507,7 @@
                             {:else if art && 'tileSymbol' in art && !entry.face.symbols?.includes(art.tileSymbol)}
                                 <g
                                     data-map-marker-symbol={art.tileSymbol}
-                                    transform="translate(0 31)"
+                                    transform={`translate(${art.at?.x ?? 0} ${art.at?.y ?? 31})`}
                                     stroke="none"
                                 >
                                     <title>{marker.label}</title>

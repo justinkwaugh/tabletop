@@ -77,6 +77,16 @@ track layouts and counts only, checked against the rulebook.
   nearest the hex's foot, as a row or with the cost under its symbols, clear of the tile's
   spaces, values, label and track (touching only where nothing is clear). Title: whether costs
   stay, and which printed hexes stack the cost (K9, whose track runs through its centre).
+- **Title events in history** (`HistoryDescription.callouts`). Shared callouts so far are the
+  bank breaking and certificate limits; 1849's Messina earthquake is the first title event of
+  the same weight. Shared: a title's description may carry callouts, drawn as the shared ones
+  in the history and the last action panel. Title: the earthquake under the phase change to
+  12H, read from the phase change's recorded title changes (§12).
+- **Markers the state implies** (`MapViewDefinition.stateMarkers`, the `lock` tile symbol).
+  Location markers so far are printed or placed by private powers; Messina's lock after the
+  earthquake is neither. Shared: a title derives markers from the displayed state, keyed so
+  an unchanged set doesn't redraw the board, and on historical maps; a symbol marker may stand
+  `at` a point. Title: the lock above Messina's city until after the next stock round (§12).
 
 ## Further family changes found by whole-game play
 

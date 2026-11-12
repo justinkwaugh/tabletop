@@ -142,7 +142,8 @@ export type PrintedLine = {
 
 export type MapMarkerArt =
     | { imageUrl: string }
-    | { tileSymbol: TileSymbolName }
+    /** A symbol on a disc, low in the hex or ``at`` a point from its centre, on any tile laid there. */
+    | { tileSymbol: TileSymbolName; at?: Point }
     /** Not drawn, where the location's name or artwork already says it. */
     | { hidden: true }
     /**

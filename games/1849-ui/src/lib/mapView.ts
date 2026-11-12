@@ -1,10 +1,12 @@
 import {
     Map1849,
+    MessinaLocationId,
     PortBonus1849,
     PortLocationIds,
     PortMarkerKind,
     TileSet1849,
-    TitleRules1849
+    TitleRules1849,
+    messinaLocked
 } from '@tabletop/1849'
 import { StandardTileLayouts, type MapViewDefinition, type TileLayout } from '@tabletop/18xx-ui'
 import AFGLogo from './images/logos/AFG.svg'
@@ -17,6 +19,9 @@ import { CompanyColors1849 } from './companyPresentation.js'
 import { TrainColors1849 } from './trainPresentation.js'
 
 export const TileLayouts1849: Readonly<Record<string, TileLayout>> = { ...StandardTileLayouts }
+
+/** The lock on Messina from the earthquake until the next stock round has ended (§12). */
+const MessinaLockKind = 'messina-lock'
 
 const Stations: MapViewDefinition['stations'] = {
     AFG: { label: 'AFG', color: CompanyColors1849.AFG, imageUrl: AFGLogo },
@@ -75,8 +80,16 @@ export const MapView1849: MapViewDefinition = {
     },
     // Each value is paid from the phase named beside it (§10.5.2).
     revenueStageCaptions: { low: '4', middle: '8', high: '12' },
+    // The SCE's block is drawn as every private's is; the lock stands above Messina's city.
+    markerArt: {
+        'blocks-SCE': { localLine: true, above: true },
+        [MessinaLockKind]: { tileSymbol: 'lock', at: { x: 0, y: -31 } }
+    },
+    stateMarkers: (state) =>
+        messinaLocked(state) ? [{ locationId: MessinaLocationId, kind: MessinaLockKind }] : [],
     locationMarkerNames: {
         'blocks-SCE': 'No track while a player owns the Società Corriere Etnee',
+        [MessinaLockKind]: 'No upgrade until after the next stock round (the Messina earthquake)',
         [PortMarkerKind]: `+${TitleRules1849.currencySymbol}${PortBonus1849} port token`
     }
 }

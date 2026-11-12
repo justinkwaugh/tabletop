@@ -134,7 +134,10 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 {
                     tileSet: view.tileSet,
                     inventory: snapshot.tileInventory,
-                    markers: snapshot.locationMarkers,
+                    markers: [
+                        ...(snapshot.locationMarkers ?? []),
+                        ...(view.stateMarkers?.(snapshot) ?? [])
+                    ],
                     liftedPrivateBlocks: this.liftedPrivateBlocks(snapshot),
                     overfullCities: overfullCityKeys(
                         snapshot.stations,

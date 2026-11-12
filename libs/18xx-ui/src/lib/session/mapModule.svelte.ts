@@ -130,7 +130,24 @@ export class MapModule {
 
     // Held apart so a display state that only moves tokens doesn't redraw the board.
     private tileInventory = $derived.by(() => this.displayState().tileInventory)
-    private locationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private placedLocationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    // Keyed, so a display state implying the same markers doesn't redraw the board.
+    private stateMarkerKey = $derived.by(() =>
+        (this.view().stateMarkers?.(this.displayState()) ?? [])
+            .map((marker) => `${marker.locationId} ${marker.kind}`)
+            .join('|')
+    )
+    private locationMarkers = $derived.by(() =>
+        this.stateMarkerKey
+            ? [
+                  ...(this.placedLocationMarkers ?? []),
+                  ...this.stateMarkerKey.split('|').map((key) => {
+                      const [locationId = '', kind = ''] = key.split(' ')
+                      return { locationId, kind }
+                  })
+              ]
+            : this.placedLocationMarkers
+    )
     private overfullCityKey = $derived.by(() =>
         overfullCityKeys(
             this.displayState().stations,

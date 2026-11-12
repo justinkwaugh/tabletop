@@ -130,6 +130,11 @@ export type MapViewDefinition = {
     locationMarkerArt?: LocationMarkerArt
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>
+    /**
+     * Markers the game state implies rather than a power places, such as a city closed to
+     * upgrades for a time; each kind is named in ``locationMarkerNames``.
+     */
+    stateMarkers?: (state: object) => readonly { locationId: string; kind: string }[]
     layouts?: Readonly<Record<string, TileLayout>>
     /**
      * How a one-space city draws while it holds two stations, by tile id then node id: as a

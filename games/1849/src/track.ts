@@ -28,7 +28,7 @@ export function terrainCost1849(state: ConstructionState, request: TrackRequest)
 }
 
 /** Messina cannot be upgraded until the stock round after the earthquake has ended (§12). */
-export function messinaLocked(stateObject: ConstructionState): boolean {
+export function messinaLocked(stateObject: object): boolean {
     const state = requireState1849(stateObject)
     const until = state.messinaLockedUntil
     return (
