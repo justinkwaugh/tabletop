@@ -129,8 +129,9 @@ export interface HandDrafting {
      * still needs. The order is the seat's own; the cards may be played in any order.
      */
     readonly slots: readonly (ActionCardKind | undefined)[]
+    /** R-3.3 The two pouch goods; none is chosen until a press, and a second press clears it. */
     readonly pouch: readonly {
-        readonly good?: PouchGood
+        readonly good: PouchGood
         /** The full words, the choice's accessible name. */
         readonly label: string
         /** The short name beside its art, and what it does beneath. */
@@ -156,12 +157,11 @@ export interface HandPanel {
 }
 
 const PouchRows: readonly {
-    readonly good?: PouchGood
+    readonly good: PouchGood
     readonly label: string
     readonly title: string
     readonly caption: string
 }[] = [
-    { label: 'No pouch', title: 'No pouch', caption: '4 cards' },
     {
         good: 'saltpeter',
         label: 'Saltpeter: 5 cards',
@@ -687,9 +687,9 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             }),
             slots: [...cards, ...Array.from({ length: open }, () => undefined)],
             pouch: PouchRows.map(({ good, label, title, caption }) => {
-                const refusal = good && reasonPouchRefused(player, good)
+                const refusal = reasonPouchRefused(player, good)
                 return {
-                    ...(good ? { good } : {}),
+                    good,
                     label,
                     title,
                     caption,
@@ -718,13 +718,13 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** A dimmed pouch row's press does nothing but give its line (R-3.3). */
-    choosePouch(good: PouchGood | undefined) {
+    /** R-3.3 A press chooses the good, or clears it when chosen; a dimmed one's press does nothing but give its line. */
+    choosePouch(good: PouchGood) {
         const me = this.myPlayerId
         if (!this.handKey || !me) {
             return
         }
-        if (!good || !reasonPouchRefused(this.gameState.getPlayerState(me), good)) {
+        if (!reasonPouchRefused(this.gameState.getPlayerState(me), good)) {
             this.hand.choosePouch(good)
         }
     }

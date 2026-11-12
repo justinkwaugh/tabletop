@@ -82,12 +82,9 @@ export class HandDraft extends StagedDraft<HandDraftValues> {
         this.push('hand', { cards: next, ...(pouchGood ? { pouchGood } : {}) })
     }
 
-    /** "No pouch" is no good; pressing the good already chosen drops it. A press that changes nothing is no press. */
-    choosePouch(good: PouchGood | undefined): void {
+    /** R-3.3 A press chooses the good in place of any other; pressing the good already chosen clears it. */
+    choosePouch(good: PouchGood): void {
         const { cards, pouchGood } = this.hand
-        const next = good === pouchGood ? undefined : good
-        if (next !== pouchGood) {
-            this.push('hand', { cards, ...(next ? { pouchGood: next } : {}) })
-        }
+        this.push('hand', { cards, ...(good === pouchGood ? {} : { pouchGood: good }) })
     }
 }

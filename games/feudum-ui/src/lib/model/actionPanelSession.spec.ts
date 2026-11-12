@@ -390,7 +390,7 @@ describe('Hand selection', () => {
         await pressCard(session.actionPanel, 'harvest')
         expect(count()).toEqual(['5 of 5'])
         expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
-        await pressRow(rowNamed(session.actionPanel, 'No pouch'))
+        await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
         expect(count()).toEqual(['5 of 4'])
         expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(false)
         await session.undo()
@@ -440,7 +440,7 @@ describe('Hand selection', () => {
         expect(filled()?.every((kind) => kind === undefined)).toBe(true)
     })
 
-    it('R-3.3 the pouch is three choices drawn with their goods, each with what it does', async () => {
+    it('R-3.3 the pouch is two choices drawn with their goods, each with what it does', async () => {
         const table = await atHands()
         const session = await table.openSeat(table.order[0])
         expect(
@@ -450,7 +450,6 @@ describe('Hand selection', () => {
                 caption
             ])
         ).toEqual([
-            ['empty-pouch', 'No pouch', '4 cards'],
             ['saltpeter', '+1 card', 'opens a fifth slot'],
             ['sulfur', '2 in a row', 'once this round']
         ])
@@ -483,7 +482,6 @@ describe('Hand selection', () => {
         })
         const session = await table.openSeat(first)
         expect(rowLabels(session.actionPanel, 'pouch')).toEqual([
-            'No pouch',
             'Saltpeter: 5 cards',
             'Sulfur: two cards back to back'
         ])
