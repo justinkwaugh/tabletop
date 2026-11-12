@@ -6,8 +6,10 @@
     /**
      * R-4.5.1 A pawn takes a seat colour, so it is always drawn: the wooden cube in the seat's fill
      * from the session (S71), seen in three-quarter view, with its character printed pale on the
-     * front face with a dark outline, as on the printed cubes. R-4.8.2 A drunk pawn tilts and carries a
-     * sulfur drop. A pawn in supply has no character yet (R-3.6), so its front face is bare.
+     * front face with a dark outline, as on the printed cubes. Like every wooden piece the cube has
+     * a dark outline and a small shadow, drawn as shapes so a phone renders them. R-4.8.2 A drunk
+     * pawn tilts and carries a sulfur drop. A pawn in supply has no character yet (R-3.6), so its
+     * front face is bare.
      */
     let {
         paint,
@@ -27,6 +29,8 @@
 
     /** Room round the cube for its tilt and its drop. */
     const Margin = 2
+    const OutlineWidth = 5
+    const ShadowDrop = 3
     const { box, front, top, side, outline, edges, face } = PawnCube
 
     let label = $derived(
@@ -40,12 +44,28 @@
     width={size}
     height={size}
     viewBox="{-Margin} {-Margin} {box + 2 * Margin} {box + 2 * Margin}"
+    overflow="visible"
     role="img"
     aria-label={label}
     data-pawn-cube
 >
     <title>{label}</title>
     <g transform={drunk ? `rotate(9 ${box / 2} ${front.y + front.height})` : undefined}>
+        <path
+            d={outline}
+            transform="translate(0 {ShadowDrop})"
+            fill="var(--feudum-halo)"
+            fill-opacity="0.45"
+            data-piece-shadow
+        ></path>
+        <path
+            d={outline}
+            fill="var(--feudum-map-ink)"
+            stroke="var(--feudum-map-ink)"
+            stroke-width={OutlineWidth}
+            stroke-linejoin="round"
+            data-piece-outline
+        ></path>
         <path d={top} fill={paint.fill} data-cube-top></path>
         <path d={top} fill="var(--feudum-text)" fill-opacity="0.2"></path>
         <path d={side} fill={paint.fill} data-cube-side></path>

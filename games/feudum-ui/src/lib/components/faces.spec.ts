@@ -340,6 +340,25 @@ describe('printed seat pieces (S71)', () => {
         expect(piece).not.toContain('<text')
     })
 
+    it.each(SeatPieceKinds)(
+        'a %s, printed or drawn, carries a dark outline and a small shadow under it',
+        (kind) => {
+            for (const piece of [token(kind), token(kind, paint)]) {
+                expect(piece).toMatch(
+                    /data-piece-outline[^>]*stroke="var\(--feudum-map-ink\)"|stroke="var\(--feudum-map-ink\)"[^>]*data-piece-outline/
+                )
+                expect(piece).toMatch(
+                    /data-piece-shadow[^>]*transform="translate\(0 [1-9]|transform="translate\(0 [1-9][^>]*data-piece-shadow/
+                )
+                expect(piece.indexOf('data-piece-shadow')).toBeLessThan(
+                    piece.indexOf('data-piece-outline')
+                )
+                expect(piece).not.toContain('filter')
+                expect(piece).toContain('overflow="visible"')
+            }
+        }
+    )
+
     it.each(SeatPieceKinds)('a %s whose printed file is not in the folder is drawn', (kind) => {
         folder.files = Object.fromEntries(
             Object.entries(everyAssetSupplied()).filter(([path]) => !path.includes('piece.'))

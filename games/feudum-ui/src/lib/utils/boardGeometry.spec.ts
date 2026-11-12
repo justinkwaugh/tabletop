@@ -88,6 +88,11 @@ import {
     RoutePaths,
     SideBySideSpacing,
     SpaceCentres,
+    DiscFrame,
+    LandscapeSize,
+    MarkerSize,
+    PawnSize,
+    VesselSize,
     isInside,
     routePointAt,
     spaceGeometry,
@@ -185,6 +190,56 @@ describe('the piece slots (S72)', () => {
             ]
             for (const anchor of anchors) {
                 expect(inMap(anchor), id).toBe(true)
+            }
+        }
+    })
+
+    it('R-4.1 stands the pawns in an arc above the disc, clear of it', () => {
+        for (const { id } of Spaces) {
+            const { centre, pieceSlots } = spaceGeometry(id)
+            for (const slot of pieceSlots) {
+                expect(slot.y, id).toBeLessThan(centre.y)
+                expect(distance(slot, centre), id).toBeGreaterThanOrEqual(
+                    DiscFrame / 2 + PawnSize / 2
+                )
+            }
+        }
+    })
+
+    it('R-4.1.2 sets the markers below the disc on one side, clear of it', () => {
+        for (const { id } of Spaces) {
+            const { centre, ruler, subject, serf } = spaceGeometry(id)
+            const sides = new Set([ruler, subject, serf].map(({ x }) => Math.sign(x - centre.x)))
+            expect(sides.size, id).toBe(1)
+            expect(sides.has(0), id).toBe(false)
+            for (const marker of [ruler, subject, serf]) {
+                expect(marker.y, id).toBeGreaterThan(centre.y)
+                expect(distance(marker, centre), id).toBeGreaterThanOrEqual(
+                    DiscFrame / 2 + MarkerSize / 2
+                )
+            }
+        }
+    })
+
+    it('R-4.1 keeps the pawns, markers, landscape and vessels of a space from covering each other', () => {
+        const box = (at: Point, size: number) => ({ at, half: size / 2 })
+        const overlaps = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
+            Math.abs(a.at.x - b.at.x) < a.half + b.half &&
+            Math.abs(a.at.y - b.at.y) < a.half + b.half
+        for (const { id } of Spaces) {
+            const geometry = spaceGeometry(id)
+            const kinds = [
+                geometry.pieceSlots.map((slot) => box(slot, PawnSize)),
+                [geometry.ruler, geometry.subject, geometry.serf].map((at) => box(at, MarkerSize)),
+                [box(geometry.landscape, LandscapeSize)],
+                Object.values(geometry.vessels).map((at) => box(at, VesselSize))
+            ]
+            for (const [index, kind] of kinds.entries()) {
+                for (const other of kinds.slice(index + 1).flat()) {
+                    for (const piece of kind) {
+                        expect(overlaps(piece, other), id).toBe(false)
+                    }
+                }
             }
         }
     })
