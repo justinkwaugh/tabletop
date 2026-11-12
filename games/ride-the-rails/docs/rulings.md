@@ -8,7 +8,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 
 ### Components and setup (R-1)
 
-- **R-1.1-H1** (Q6), _provisional_: the 27 locomotives of each colour are a hard limit on shares and track together. Once every locomotive of a colour is on player boards and the map, no more shares of that railroad can be taken and no more of its track built; phase 1's "must take" means one of an available railroad that still has locomotives in the supply. Rejected: an unlimited supply. Spec: `supply.spec.ts` (the count), `takeShare.spec.ts` (a share from an empty supply), `placeTrack.spec.ts` (track from an empty supply).
+- **R-1.1-H1** (Q6), _provisional_: the 27 locomotives of each colour are a hard limit on shares and track together. Once every locomotive of a colour is on player boards and the map, no more shares of that railroad can be taken and no more of its track built; phase 1's "must take" means one of an available railroad that still has locomotives in the supply. Rejected: an unlimited supply. Spec: `supply.spec.ts` (the count), `takeShare.spec.ts` (a share from an empty supply), `placement.spec.ts` (track from an empty supply).
 - **R-1.2-H1** (Q2): the game takes 3 to 5 players, as printed. Rejected: an unofficial 2- or 6-player mode, for which the rules give no placement limits. Spec: `initializer.spec.ts`.
 - **R-1.3-H1** (Q3): setup places one passenger on every city. The USA map has 51 cities and the box 52 passengers, so the supply never runs short. Spec: `initializer.spec.ts`.
 
@@ -26,7 +26,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 
 - **R-4.2.3-H1** (Q14), _provisional_: Yellow may start twice, once in Chicago and once in one of the three westernmost occupied cities ("and/or"), so it may have two separate networks. The second start may be made in any later turn; the westernmost set stays the one fixed at Yellow's first placement. Rejected: one start only, in either place. Spec: `startRailroad.spec.ts`.
 - **R-4.2.3-H2** (Q15): the three westernmost occupied cities are the cities holding at least one locomotive whose hexes lie furthest west by horizontal position (the lowest `dcol`, `components.md`), with every city tied with the third included. A city among them that cannot take Yellow (it holds two locomotives, or is a one-locomotive city already filled) still counts among the three. Rejected: breaking ties by another order, such as north first. Spec: `startRailroad.spec.ts`.
-- **R-4.2.5-H1** (Q16): Black may start in any city with room for it under the city's capacity, or in Chicago. On the USA map every city is drawn black or shows Black among its colours, so the question of cities that show no Black does not arise; an East Coast start still counts toward Black's two East Coast cities. Spec: `startRailroad.spec.ts`.
+- **R-4.2.5-H1** (Q16): Black may start in any city with room for it under the city's capacity, or in Chicago. On the USA map every city is drawn black or shows Black among its colours, so the question of cities that show no Black does not arise; an East Coast start still counts toward Black's two East Coast cities. Spec: `startRailroad.spec.ts`, `placement.spec.ts` (an East Coast start counted).
 
 ### Building bonuses (R-4.3)
 

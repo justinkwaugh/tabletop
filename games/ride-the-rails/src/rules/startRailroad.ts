@@ -1,0 +1,99 @@
+import { assertExists } from '@tabletop/common'
+import { hexCoordinates, type HexId } from '../data/hexes.js'
+import { RAILROAD_INTRODUCTIONS, type RailroadId, type StartRule } from '../data/railroads.js'
+import { USA_CITIES, usaCity, usaHex, type City, type CityId } from '../data/usaMap.js'
+import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
+import { hasTrack, railroadsIn } from './track.js'
+
+export const CHICAGO_CITY_ID: CityId = 'city.usa.chicago'
+
+const WESTERNMOST_COUNT = 3
+
+export type YellowStart = 'chicago' | 'west'
+
+export function isEastCoastCity(city: City): boolean {
+    return city.groups.includes('east-coast')
+}
+
+export function isWestCoastCity(city: City): boolean {
+    return city.groups.includes('west-coast')
+}
+
+// R-4.2.3-H2: the occupied cities lowest in dcol, every city tied with the third included,
+// whether or not it could take Yellow.
+export function westernmostOccupiedCities(track: Track): CityId[] {
+    const occupied = USA_CITIES.filter((city) => railroadsIn(track, city.hexId).length > 0)
+        .map((city) => ({ cityId: city.id, ...hexCoordinates(city.hexId) }))
+        .sort((a, b) => a.dcol - b.dcol || a.row - b.row)
+    const third = occupied.at(WESTERNMOST_COUNT - 1)
+    return occupied
+        .filter((city) => third === undefined || city.dcol <= third.dcol)
+        .map((city) => city.cityId)
+}
+
+// R-4.2.3, R-4.2.3-H1: fixed at Yellow's first placement, computed from track until then.
+export function westernmostSet(state: HydratedRideTheRailsGameState): readonly CityId[] {
+    return state.yellow.westernmost ?? westernmostOccupiedCities(state.track)
+}
+
+// R-4.2.3, R-4.2.3-H1: Chicago once, and once a westernmost city holding exactly one locomotive.
+export function yellowStartIn(
+    state: HydratedRideTheRailsGameState,
+    cityId: CityId
+): YellowStart | undefined {
+    if (cityId === CHICAGO_CITY_ID && !state.yellow.startedInChicago) {
+        return 'chicago'
+    }
+    const city = usaCity(cityId)
+    if (
+        state.yellow.westStartCityId === undefined &&
+        westernmostSet(state).includes(cityId) &&
+        railroadsIn(state.track, city.hexId).length === 1
+    ) {
+        return 'west'
+    }
+    return undefined
+}
+
+// R-4.2: whether a placement here may be the railroad's start. The placement test asks only
+// when the hex is not adjacent to the railroad's own track (R-4.1.2), and checks capacity itself.
+export function mayStartIn(
+    state: HydratedRideTheRailsGameState,
+    railroadId: RailroadId,
+    hexId: HexId
+): boolean {
+    const hex = usaHex(hexId)
+    if (hex.terrain !== 'city') {
+        return false
+    }
+    const startRule = startRuleOf(state, railroadId)
+    if (startRule === 'chicago-and-westernmost') {
+        return yellowStartIn(state, hex.cityId) !== undefined
+    }
+    return !hasTrack(state.track, railroadId) && cityFitsStartRule(startRule, usaCity(hex.cityId))
+}
+
+function startRuleOf(state: HydratedRideTheRailsGameState, railroadId: RailroadId): StartRule {
+    const introduction = RAILROAD_INTRODUCTIONS[state.mapId].find(
+        (candidate) => candidate.railroadId === railroadId
+    )
+    assertExists(introduction, `No start rule for ${railroadId} on ${state.mapId}`)
+    return introduction.startRule
+}
+
+function cityFitsStartRule(startRule: Exclude<StartRule, 'chicago-and-westernmost'>, city: City) {
+    switch (startRule) {
+        // R-4.2.1: Red and Blue never share a city, which the East Coast capacity of 1 ensures.
+        case 'east-coast-apart':
+            return isEastCoastCity(city)
+        // R-4.2.2
+        case 'east-coast-or-chicago':
+            return isEastCoastCity(city) || city.id === CHICAGO_CITY_ID
+        // R-4.2.4
+        case 'west-coast':
+            return isWestCoastCity(city)
+        // R-4.2.5, R-4.2.5-H1: any city with room, which the placement test checks.
+        case 'any-city':
+            return true
+    }
+}
