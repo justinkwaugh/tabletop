@@ -66,14 +66,16 @@ export interface RouteRules {
     revenueStage(state: TrainRunningState, train: TrainDefinition): readonly string[]
     requiresCity(train: TrainDefinition): boolean
     /**
-     * A stop's own value for the company, from its printed value at the current stage, where a
-     * title changes it, such as a destination worth nothing on its first run.
+     * A stop's own value for the company and train, from its printed value at the current stage,
+     * where a title changes it, such as a destination worth nothing on its first run or a city
+     * doubled for 1849's E trains.
      */
     stopRevenue?(
         state: TrainRunningState,
         companyId: string,
         center: RevenueCenter,
-        printed: number
+        printed: number,
+        train: TrainDefinition
     ): number
     /**
      * Whether the company may visit or pass through a revenue center, such as a rights hex, with
@@ -136,7 +138,7 @@ export function stopValue(
     train: TrainDefinition
 ): number {
     const printed = routeRevenue(node.revenue, rules.revenueStage(state, train))
-    return rules.stopRevenue?.(state, companyId, center, printed) ?? printed
+    return rules.stopRevenue?.(state, companyId, center, printed, train) ?? printed
 }
 function endsWithin(visits: readonly RevenueCenter[], ends: readonly RevenueCenter[]): boolean {
     const within = (stop: RevenueCenter | undefined) =>

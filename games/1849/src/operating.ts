@@ -19,6 +19,7 @@ import {
     presidentTrainFundingRules,
     privateOwner,
     requiresStationRoute,
+    CashPayment,
     settleCashPayments,
     sharesOwned,
     totalCertificateShares,
@@ -50,6 +51,8 @@ import {
 } from '@tabletop/18xx'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
+import { BondShareDeduction1849, repayBondOnClosure } from './bonds.js'
+import { recordStationPurchase1849, stationPurchaseReason1849 } from './stationPurchase.js'
 import { Charters1849, GaribaldiId, ShareCount1849 } from './companies.js'
 import { Map1849, MessinaLocationId } from './map.js'
 import { Names1849 } from './names.js'
@@ -70,7 +73,18 @@ import {
     parSpaceIds1849
 } from './stockMarket.js'
 import { TileSet1849 } from './tiles.js'
-import { EarthquakePhaseId, Phases1849, ReverseTrainId, TrainDepot1849 } from './trains.js'
+import {
+    EarthquakePhaseId,
+    ElectricTrainId,
+    Phases1849,
+    ReverseTrainId,
+    TrainDepot1849
+} from './trains.js'
+import {
+    ElectricPhaseId1849,
+    electricDreamsInPlay,
+    electricTrainReason1849
+} from './electricDreams.js'
 
 /** Corporations operate in market order: highest price, then rightmost, then top of a stack (§10). */
 export const OperatingRules1849: OperatingRules = {
@@ -159,10 +173,15 @@ export const EndingRules1849: EndingRules = {
     },
     certificateItems(state, certificate) {
         const company = getCompany(state, certificate.companyId)
+        // Each share of a corporation with an outstanding bond counts L. 100 less (§14.2).
         const value =
             company.closed || certificate.kind !== 'share'
                 ? 0
-                : marketShareValue(Market1849, state, certificate)
+                : Math.max(
+                      0,
+                      marketShareValue(Market1849, state, certificate) -
+                          (company.loans ? BondShareDeduction1849 * certificate.shares : 0)
+                  )
         return [certificateWealthItem(Names1849, certificate, value)]
     },
     playerItems(state, playerId, items) {
@@ -182,7 +201,9 @@ export const CorporationClosure1849 = Type.Object(
     {
         ...CompanyClosure.properties,
         restoredReservations: Type.Array(StationReservation),
-        removedPortBonus: Type.Optional(Type.Literal(true))
+        removedPortBonus: Type.Optional(Type.Literal(true)),
+        /** The outstanding bond repaid as the corporation closed (§14.2). */
+        bondRepayment: Type.Optional(Type.Array(CashPayment))
     },
     { additionalProperties: false }
 )
@@ -198,6 +219,8 @@ export function closeCorporation1849(
     companyId: string
 ): CorporationClosure1849 {
     const state = requireState1849(stateObject)
+    // An outstanding bond is repaid first (§14.2).
+    const bondRepayment = repayBondOnClosure(state, companyId)
     const closure = closeShareCompany(state, companyId, 'removed', {
         poolId: treasuryPoolId(companyId),
         shareCount: ShareCount1849,
@@ -235,7 +258,8 @@ export function closeCorporation1849(
     return {
         ...closure,
         restoredReservations,
-        ...(removedPortBonus ? { removedPortBonus: true as const } : {})
+        ...(removedPortBonus ? { removedPortBonus: true as const } : {}),
+        ...(bondRepayment.length ? { bondRepayment } : {})
     }
 }
 
@@ -270,17 +294,33 @@ export const RequiresTrain1849: TrainRules['requiresTrain'] = (state, companyId)
 // Trains are bought from the bank in order, any number a turn; the R6H goes on sale beside the
 // 16H once the first is bought (§10.6). The Reale Società d'Affari closes when its corporation
 // buys its first train (§8.1).
+// The R6H goes on sale with the first 16H, beside whatever comes next (§10.6).
+const ReverseTrains1849 = dieselTrains({
+    depot: TrainDepot1849,
+    phases: Phases1849,
+    dieselId: ReverseTrainId,
+    fromPhaseId: '16H',
+    tradeInIds: [],
+    credit: 0
+})
+
 export const TrainRules1849: TrainRules = {
     depot: TrainDepot1849,
     requiresTrain: RequiresTrain1849,
-    ...dieselTrains({
-        depot: TrainDepot1849,
-        phases: Phases1849,
-        dieselId: ReverseTrainId,
-        fromPhaseId: '16H',
-        tradeInIds: [],
-        credit: 0
-    }),
+    ...ReverseTrains1849,
+    // With Electric Dreams, E trains are on sale too from the first 12H (§14.3).
+    availableDefinitions(state) {
+        const available = ReverseTrains1849.availableDefinitions?.(state) ?? []
+        const electric =
+            electricDreamsInPlay(state) &&
+            Phases1849.isAtLeast(state.phaseId, ElectricPhaseId1849) &&
+            TrainDepot1849.remaining(state.trainInventory, ElectricTrainId) !== 0
+        return electric && !available.includes(ElectricTrainId)
+            ? [...available, ElectricTrainId]
+            : available
+    },
+    limitReason: (state, companyId, definitionId) =>
+        electricTrainReason1849(state, companyId, definitionId),
     phaseAfterPurchase: (state, definitionId) =>
         Phases1849.phaseAfterPurchase(state.phaseId, definitionId),
     trainLimit: (state) => Phases1849.phase(state.phaseId).trainLimit,
@@ -396,8 +436,15 @@ export const PrivateRules1849: PrivateRules = {
 export const TransferRules1849: TransferRules = {
     ...EighteenXXTransferTiming,
     charters: Charters1849,
+    canPurchase(state, companyId, asset) {
+        // The Buy station tokens variant (§14.1).
+        if (asset.kind === 'station')
+            return stationPurchaseReason1849(state, companyId, asset.stationId) === undefined
+        return EighteenXXTransferTiming.canPurchase(state, companyId, asset)
+    },
     priceRange(state, _companyId, asset) {
-        if (asset.kind === 'train') return { minimum: 1 }
+        // A station token goes for at least L. 1, as the two presidents agree (§14.1).
+        if (asset.kind === 'train' || asset.kind === 'station') return { minimum: 1 }
         if (asset.kind !== 'private') return undefined
         if (
             !Phases1849.isAtLeast(state.phaseId, '6H') ||
@@ -407,7 +454,9 @@ export const TransferRules1849: TransferRules = {
             return undefined
         return PrivateCatalog1849.priceRange(asset.privateCompanyId)
     },
-    afterPurchase: () => {}
+    afterPurchase(state, offer) {
+        if (offer.asset.kind === 'station') recordStationPurchase1849(state, offer.buyer.companyId)
+    }
 }
 
 export const InsolvencyChoices1849 = { loan: 'loan', leave: 'leave' } as const

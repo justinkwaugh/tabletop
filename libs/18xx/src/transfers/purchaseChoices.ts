@@ -30,7 +30,10 @@ export function purchaseChoices(
         ),
         ...state.companies
             .filter((company) => company.kind === 'private')
-            .map((company) => ({ kind: 'private', privateCompanyId: company.id }) as const)
+            .map((company) => ({ kind: 'private', privateCompanyId: company.id }) as const),
+        ...state.stations
+            .filter((station) => station.status === 'placed' && station.companyId !== companyId)
+            .map((station) => ({ kind: 'station', stationId: station.id }) as const)
     ]
     return assets.flatMap((asset) => {
         const seller = assetOwner(state, rules.charters, asset)

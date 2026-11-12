@@ -6,7 +6,11 @@ import { StockMarketMove, type StockMarketChart } from '../stock/stockMarket.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const LoanStep = Type.Object(
-    { companyId: Type.String(), borrowedAfterInterest: Type.Optional(Type.Literal(true)) },
+    {
+        companyId: Type.String(),
+        borrowedAfterInterest: Type.Optional(Type.Literal(true)),
+        repaidAfterInterest: Type.Optional(Type.Literal(true))
+    },
     { additionalProperties: false }
 )
 export type LoanStep = Type.Static<typeof LoanStep>
@@ -34,6 +38,10 @@ export type InterestDefault = Type.Static<typeof InterestDefault>
 
 export interface LoanRules {
     market: StockMarketChart
+    /** Whether the title's loans are in this game, as 1849's only with its Bonds variant; always unless given. */
+    inPlay?(state: LoanState): boolean
+    /** The chart loans move prices on, where it changes with play; ``market`` unless given. */
+    marketFor?(state: LoanState): StockMarketChart
     /** What a company receives for a loan and pays to repay one. */
     value: number
     /** Loans in the bank at the start of the game. */
@@ -47,6 +55,13 @@ export interface LoanRules {
     interestDefault(state: LoanState, companyId: string, owed: number): InterestDefault
     /** Interest a company owes each operating round beyond its loans'. */
     extraInterest?(state: LoanState, companyId: string): number
+    /**
+     * Companies borrow only in the turn's loan step, not at any point of the turn, as 1849's
+     * bonds are issued at the end of the operating turn (§14.2).
+     */
+    borrowsInLoanStepOnly?: true
+    /** A company that repays in the loan step may not borrow again that turn (1849 §14.2). */
+    noBorrowingAfterRepaying?: true
 }
 
 export function companyLoans(state: LoanState, companyId: string): number {
@@ -105,7 +120,13 @@ export function takeLoan(state: LoanState, rules: LoanRules, companyId: string):
     settleCashPayments(state, [payment])
     const company = getCompany(state, companyId)
     company.loans = (company.loans ?? 0) + 1
-    return withMarketMove(state, rules.market, companyId, payment, rules.takeMove)
+    return withMarketMove(
+        state,
+        rules.marketFor?.(state) ?? rules.market,
+        companyId,
+        payment,
+        rules.takeMove
+    )
 }
 
 export function repayLoan(state: LoanState, rules: LoanRules, companyId: string): LoanRecord {
@@ -120,7 +141,13 @@ export function repayLoan(state: LoanState, rules: LoanRules, companyId: string)
     const company = getCompany(state, companyId)
     if (company.loans === 1) delete company.loans
     else company.loans = companyLoans(state, companyId) - 1
-    return withMarketMove(state, rules.market, companyId, payment, rules.repayMove)
+    return withMarketMove(
+        state,
+        rules.marketFor?.(state) ?? rules.market,
+        companyId,
+        payment,
+        rules.repayMove
+    )
 }
 
 function withMarketMove(
@@ -137,7 +164,11 @@ function withMarketMove(
 
 export function validateLoanStep(state: { machineState: string; loanStep?: LoanStep }): void {
     assert(
-        !state.loanStep || ['RepayingLoans', 'RaisingCash'].includes(state.machineState),
+        // A loan that takes the company's price to zero closes it before its turn ends.
+        !state.loanStep ||
+            ['RepayingLoans', 'RaisingCash', 'ClosingOperatingCorporation'].includes(
+                state.machineState
+            ),
         'A loan step belongs to its operating step'
     )
 }

@@ -3,11 +3,17 @@ import * as Type from 'typebox'
 const Id = Type.String({ minLength: 1 })
 
 export const TitleFields1849 = {
-    /** The options chosen before the game began (§2.2, §1.1). */
+    /** The options chosen before the game began (§2.2, §1.1, §14). */
     variants: Type.Object(
         {
             fiveCorporations: Type.Optional(Type.Literal(true)),
-            delayIft: Type.Optional(Type.Literal(true))
+            delayIft: Type.Optional(Type.Literal(true)),
+            /** Corporations may issue a single L. 500 bond (§14.2). */
+            bonds: Type.Optional(Type.Literal(true)),
+            /** Corporations may buy station tokens from one another (§14.1). */
+            buyStationTokens: Type.Optional(Type.Literal(true)),
+            /** E tokens and E trains, with both other variants (§14.3). */
+            electricDreams: Type.Optional(Type.Literal(true))
         },
         { additionalProperties: false }
     ),
@@ -21,6 +27,17 @@ export const TitleFields1849 = {
      * not start until one began with room (§9.4.1).
      */
     garibaldiAside: Type.Optional(Type.Literal(true)),
+    /** The station token bought this turn, which allows one a turn (§14.1). */
+    stationPurchase: Type.Optional(
+        Type.Object(
+            {
+                companyId: Id,
+                operatingSet: Type.Integer({ minimum: 1 }),
+                round: Type.Integer({ minimum: 1 })
+            },
+            { additionalProperties: false }
+        )
+    ),
     /** The corporation left out of a five-corporation game (§2.2). */
     removedCorporationId: Type.Optional(Id),
     /** Closed corporations and the stock round from which each may start again (§11). */

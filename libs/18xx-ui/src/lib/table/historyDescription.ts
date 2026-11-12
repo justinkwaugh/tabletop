@@ -903,12 +903,15 @@ function describeShared(
                 important: true
             }
         }
+        const stationLocationId = action.metadata.stationLocationId
         const asset =
             purchaseAsset.kind === 'private'
                 ? companyName(purchaseAsset.privateCompanyId)
                 : purchaseAsset.kind === 'company'
                   ? companyName(purchaseAsset.companyId)
-                  : `${trainDefinitionId} train`
+                  : purchaseAsset.kind === 'station' && stationLocationId
+                    ? `${nameOf(offer.seller)}’s station at ${place(stationLocationId)}`
+                    : `${trainDefinitionId} train`
         return {
             text: accepted
                 ? `Bought ${asset}`

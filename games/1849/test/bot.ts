@@ -10,6 +10,7 @@ import {
     finiteCashOwnedBy,
     insolvencyChoices,
     presidencyExchangeOptions,
+    purchaseChoices,
     privateStationPositions,
     trainsOwnedBy,
     type Owner
@@ -20,8 +21,10 @@ import { Autorouter } from '@tabletop/18xx-autorouter'
 import {
     CorporateFinanceRules1849,
     TrainFundingRules1849,
-    TrainRules1849
+    TrainRules1849,
+    TransferRules1849
 } from '../src/operating.js'
+import { ETokenId, eTokenPrice1849 } from '../src/electricDreams.js'
 import { PrivateCatalog1849 } from '../src/privates.js'
 import { RouteRules1849 } from '../src/routes.js'
 import { StationRules1849, garibaldiHomes } from '../src/stations.js'
@@ -62,6 +65,12 @@ export function botMove(game: Table, random: Random): Move {
     const cash = finiteCashOwnedBy(state, me)
     const move = (type: string, fields: object = {}): Move => ({ type, fields, playerId })
 
+    // The Buy station tokens variant: the seller's president agrees or not (§14.1).
+    if (valid.includes('RespondToPurchaseOffer') && state.purchaseOffer)
+        return move('RespondToPurchaseOffer', {
+            offerId: state.purchaseOffer.id,
+            accept: random.randInt(2) === 0
+        })
     const exchange = state.presidencyExchanges?.[0]
     if (valid.includes('ChoosePresidencyExchange') && exchange)
         return move('ChoosePresidencyExchange', {
@@ -275,6 +284,30 @@ export function botMove(game: Table, random: Random): Move {
                         expectedPrice: purchase.price
                     })
             }
+            // Electric Dreams: sometimes buy the E token before the turn's trains (§14.3).
+            if (valid.includes('BuyAccessRight') && random.randInt(2) === 0) {
+                const price = eTokenPrice1849(state)
+                if (finiteCashOwnedBy(state, { kind: 'company', companyId }) >= price)
+                    return move('BuyAccessRight', {
+                        companyId,
+                        rightId: ETokenId,
+                        expectedPrice: price
+                    })
+            }
+            // Sometimes offer for another corporation's station, if any may be bought (§14.1).
+            const stations = valid.includes('OfferPurchase')
+                ? purchaseChoices(state, playerId, TransferRules1849, TrainRules1849).filter(
+                      (choice) => choice.request.asset.kind === 'station'
+                  )
+                : []
+            const treasury = finiteCashOwnedBy(state, { kind: 'company', companyId })
+            if (stations.length && treasury >= 1 && random.randInt(4) === 0) {
+                const choice = pick(stations)
+                return move('OfferPurchase', {
+                    ...choice.request,
+                    price: 1 + random.randInt(Math.min(treasury, 80))
+                })
+            }
             const purchase = new TrainPurchase(state, TrainRules1849)
             const marketOffers = state.trainInventory.trains.flatMap((train) => {
                 if (train.status !== 'market') return []
@@ -313,6 +346,15 @@ export function botMove(game: Table, random: Random): Move {
             return move(valid.includes('FinishTrains') ? 'FinishTrains' : 'FinishOperatingTurn', {
                 companyId
             })
+        }
+        case 'RepayingLoans': {
+            // The Bonds variant: sometimes issue or repay the bond (§14.2).
+            const companyId = state.loanStep?.companyId ?? ''
+            if (valid.includes('RepayLoan') && random.randInt(2) === 0)
+                return move('RepayLoan', { companyId })
+            if (valid.includes('TakeLoan') && random.randInt(3) === 0)
+                return move('TakeLoan', { companyId })
+            return move('FinishOperatingTurn', { companyId })
         }
         case 'FundingTrain': {
             const funding = new EmergencyTrainFunding(

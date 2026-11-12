@@ -282,7 +282,9 @@ export function createEighteenXXRuntime<
             ? new StationsWithTrackHandler(handler, options.stationRules, after('LayingTrack'))
             : handler
     const allowsLoans = (handler: Handler): Handler =>
-        loanRules ? new LoanTakingHandler(handler, loanRules) : handler
+        loanRules && !loanRules.borrowsInLoanStepOnly
+            ? new LoanTakingHandler(handler, loanRules)
+            : handler
     const { accessRightRules } = options
     const allowsRights = (handler: Handler): Handler =>
         accessRightRules ? new AccessRightsHandler(handler, accessRightRules) : handler
@@ -551,12 +553,15 @@ export function createEighteenXXRuntime<
         ),
         ...(loanRules
             ? {
+                  // A loan's move left can take the company's price to zero; it closes then.
                   RepayingLoans: followsRunInstructions(
                       'RepayingLoans',
                       endsGame(
-                          decides(
-                              'RepayingLoans',
-                              new RepayingLoansHandler(loanRules, options.trainRules)
+                          closesOwnTurnAtZero(
+                              decides(
+                                  'RepayingLoans',
+                                  new RepayingLoansHandler(loanRules, options.trainRules)
+                              )
                           )
                       )
                   )

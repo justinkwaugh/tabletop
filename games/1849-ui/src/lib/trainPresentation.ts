@@ -11,7 +11,9 @@ export const TrainColors1849: Readonly<Record<string, string>> = {
     '10H': Brown,
     '12H': Brown,
     '16H': Gray,
-    R6H: Gray
+    R6H: Gray,
+    // The Electric Dreams variant's E trains (§14.3).
+    E: '#3f7fb8'
 }
 
 export const PhaseColors1849 = TrainColors1849

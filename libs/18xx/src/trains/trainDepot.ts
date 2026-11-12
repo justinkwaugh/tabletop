@@ -5,6 +5,8 @@ import { assert, assertExists, deepFreeze } from '@tabletop/common'
 import { TrainDefinition, releaseTrains, type Train, type TrainInventory } from './train.js'
 import type { Owner } from '../finance/finance.js'
 const SupplyCount = Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
+/** A variant's count; none where the variant leaves a train out, as 1849 its E trains (§14.3). */
+const VariantSupplyCount = Type.Union([Type.Integer({ minimum: 0 }), Type.Literal('unlimited')])
 const SupplyEntry = Type.Object(
     {
         definitionId: Type.String({ minLength: 1 }),
@@ -27,7 +29,7 @@ export const TrainDepotDefinition = Type.Object(
         supplyVariants: Type.Optional(
             Type.Record(
                 Type.String({ minLength: 1 }),
-                Type.Record(Type.String({ minLength: 1 }), SupplyCount)
+                Type.Record(Type.String({ minLength: 1 }), VariantSupplyCount)
             )
         ),
         assignedTrains: Type.Optional(Type.Array(AssignedTrain))

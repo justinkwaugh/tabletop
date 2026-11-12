@@ -1061,7 +1061,7 @@
                 {/each}
             </span>
         {/if}
-        {#if session.loans.rate !== undefined}
+        {#if session.loans.rate !== undefined && !session.presentation.loanTerms?.fixedTerms}
             <span class="game-information-item">
                 <span class="information-label">Interest</span>
                 <span

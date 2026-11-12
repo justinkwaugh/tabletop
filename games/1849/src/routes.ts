@@ -2,7 +2,8 @@ import type { RouteRules } from '@tabletop/18xx'
 import { Map1849 } from './map.js'
 import { requireState1849 } from './state.js'
 import { TileSet1849 } from './tiles.js'
-import { TrainDepot1849, revenueStages1849 } from './trains.js'
+import { ElectricTrainId, TrainDepot1849, revenueStages1849 } from './trains.js'
+import { ElectricDoubledLocationIds1849 } from './electricDreams.js'
 
 export const PortBonus1849 = 20
 
@@ -22,6 +23,11 @@ export const RouteRules1849: RouteRules = {
     requiresCity: () => true,
     // Ports end a run but do not count: a run needs two cities, or a city and a town (§10.5.1).
     minimumCitiesAndTowns: 2,
+    // Catania, Messina, Palermo and Siracusa pay double to an E train (§14.3).
+    stopRevenue: (_state, _companyId, center, printed, train) =>
+        train.id === ElectricTrainId && ElectricDoubledLocationIds1849.includes(center.locationId)
+            ? printed * 2
+            : printed,
     stopBonus: (state, _train, companyId, center) => portBonus(state, companyId, center.locationId),
     stopBonusSourceIds: (state, _train, companyId, center) =>
         portBonus(state, companyId, center.locationId) ? ['port'] : []

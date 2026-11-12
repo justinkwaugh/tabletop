@@ -29,6 +29,10 @@ import {
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
 
+/** A private or a whole company, as a purchase asset; a station's price starts at its minimum. */
+function isCompanyAsset(asset: PurchaseOfferRequest['asset']): boolean {
+    return asset.kind === 'private' || asset.kind === 'company'
+}
 export type PrivateTileOption = {
     privateCompanyId: string
     playerId: string
@@ -103,16 +107,21 @@ export class CompanyDecisionsModule {
             : []
     )
     purchaseOptions = $derived.by(() => (this.canResolve ? this.availablePurchaseOptions : []))
+    /** Privates and whole companies the operating company may buy. */
     companyPurchases = $derived.by(() =>
-        this.purchaseOptions.filter((option) => option.request.asset.kind !== 'train')
+        this.purchaseOptions.filter((option) => isCompanyAsset(option.request.asset))
     )
     companyPurchasesAvailable = $derived.by(() =>
-        this.availablePurchaseOptions.some((option) => option.request.asset.kind !== 'train')
+        this.availablePurchaseOptions.some((option) => isCompanyAsset(option.request.asset))
+    )
+    /** Other companies' stations the operating company may buy (1849 §14.1). */
+    stationPurchases = $derived.by(() =>
+        this.purchaseOptions.filter((option) => option.request.asset.kind === 'station')
     )
     ownCompanyPurchasesAvailable = $derived.by(() =>
         this.availablePurchaseOptions.some(
             ({ request }) =>
-                request.asset.kind !== 'train' &&
+                isCompanyAsset(request.asset) &&
                 request.seller.kind === 'player' &&
                 request.seller.playerId === this.session.playerId
         )
@@ -238,7 +247,7 @@ export class CompanyDecisionsModule {
             'Purchasing is unavailable'
         )
         let price = request.price
-        if (request.asset.kind !== 'train') {
+        if (isCompanyAsset(request.asset)) {
             const range = this.session.rules.transferRules.priceRange(
                 this.session.state,
                 request.companyId,

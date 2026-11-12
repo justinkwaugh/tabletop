@@ -21,6 +21,8 @@ export type AwaitedDecisionNames = {
     companyName(companyId: string): string
     ownerName(owner: Owner): string
     trainName(trainId: string): string
+    /** Where a placed station stands, as its city's name. */
+    stationPlace(stationId: string): string
     money: MoneyFormat
 }
 
@@ -74,6 +76,8 @@ export function purchaseOfferText(
             ? names.companyName(offer.asset.privateCompanyId)
             : offer.asset.kind === 'company'
               ? names.companyName(offer.asset.companyId)
-              : `${names.ownerName(offer.seller)}’s ${names.trainName(offer.asset.trainId)} train`
+              : offer.asset.kind === 'station'
+                ? `${names.ownerName(offer.seller)}’s station at ${names.stationPlace(offer.asset.stationId)}`
+                : `${names.ownerName(offer.seller)}’s ${names.trainName(offer.asset.trainId)} train`
     return `${buyer} offers ${names.money(offer.price)} for ${asset}`
 }

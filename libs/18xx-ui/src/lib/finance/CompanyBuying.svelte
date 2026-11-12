@@ -1,5 +1,6 @@
 <script lang="ts">
     import CompanyPurchaseCard from './CompanyPurchaseCard.svelte'
+    import { currencyAffixes } from '../presentation/money.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session, showEntry = true }: { session: EighteenXXSessionView; showEntry?: boolean } =
         $props()
@@ -18,7 +19,7 @@
     const selection = $derived(session.decisions.selection)
 </script>
 
-{#if (showEntry || source) && (session.decisions.companyPurchases.length || (selection?.kind === 'purchase' && selection.request.asset.kind !== 'train'))}
+{#if (showEntry || source) && (session.decisions.companyPurchases.length || (selection?.kind === 'purchase' && (selection.request.asset.kind === 'private' || selection.request.asset.kind === 'company')))}
     <section aria-label={session.presentation.privatePurchaseLabel ?? 'Buy privates'}>
         {#if !source}
             <button
@@ -27,7 +28,7 @@
                 >{session.presentation.privatePurchaseLabel ?? 'Buy privates'}</button
             >
         {:else}
-            {#if session.presentation.privatePurchaseHeading && !(selection?.kind === 'purchase' && selection.request.asset.kind !== 'train')}
+            {#if session.presentation.privatePurchaseHeading && !(selection?.kind === 'purchase' && (selection.request.asset.kind === 'private' || selection.request.asset.kind === 'company'))}
                 <p class="prompt">{session.presentation.privatePurchaseHeading}</p>
             {/if}
             {#if others.length}
@@ -45,7 +46,7 @@
                     >
                 </div>
             {/if}
-            {#if selection?.kind === 'purchase' && selection.request.asset.kind !== 'train'}
+            {#if selection?.kind === 'purchase' && (selection.request.asset.kind === 'private' || selection.request.asset.kind === 'company')}
                 {@const companyId =
                     selection.request.asset.kind === 'private'
                         ? selection.request.asset.privateCompanyId
@@ -70,7 +71,7 @@
                 </div>
                 <div class="price">
                     <label
-                        >Price $<input
+                        >Price {currencyAffixes(session.presentation.money).before}<input
                             aria-label="Company purchase price"
                             type="number"
                             min={terms?.minimum}
@@ -81,7 +82,7 @@
                                 session.decisions.setPurchasePrice(
                                     event.currentTarget.valueAsNumber
                                 )}
-                        /></label
+                        />{currencyAffixes(session.presentation.money).after}</label
                     >
                     <button
                         class="commit"
@@ -104,7 +105,7 @@
             {:else}
                 <div class="privates">
                     {#each choices as option, i (i)}
-                        {#if option.request.asset.kind !== 'train'}
+                        {#if option.request.asset.kind === 'private' || option.request.asset.kind === 'company'}
                             {@const companyId =
                                 option.request.asset.kind === 'private'
                                     ? option.request.asset.privateCompanyId

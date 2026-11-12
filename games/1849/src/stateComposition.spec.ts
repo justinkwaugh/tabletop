@@ -5,8 +5,6 @@ stateCompositionTests(
     Definition,
     {
         tranches: [],
-        interestRate: 0,
-        loanStep: {},
         cashCrisis: {},
         companyAuction: {},
         offerAuction: {},
@@ -14,5 +12,5 @@ stateCompositionTests(
         privatePowerWindow: {},
         privatePowerRequests: []
     },
-    { loans: 1, role: 'mainline' }
+    { role: 'mainline' }
 )

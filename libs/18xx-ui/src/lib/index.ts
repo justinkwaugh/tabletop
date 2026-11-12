@@ -101,6 +101,7 @@ export type {
     PlaceConnection,
     PrivateTokenPresentation,
     TitleFact,
+    LoanTerms,
     TitleOperatingStep,
     TitlePresentation,
     TitleRound

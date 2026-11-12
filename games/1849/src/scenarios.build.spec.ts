@@ -1,18 +1,34 @@
 import { writeFileSync } from 'node:fs'
 import { describe, it } from 'vitest'
-import { EmergencyTrainFunding, corporateFinanceChoices, insolvencyChoices } from '@tabletop/18xx'
+import {
+    EmergencyTrainFunding,
+    corporateFinanceChoices,
+    insolvencyChoices,
+    purchaseChoices
+} from '@tabletop/18xx'
 import { botMove, Random } from '../test/bot.js'
 import { kit, type Table } from '../test/kit.js'
-import { CorporateFinanceRules1849, TrainFundingRules1849, TrainRules1849 } from './operating.js'
+import {
+    CorporateFinanceRules1849,
+    TrainFundingRules1849,
+    TrainRules1849,
+    TransferRules1849
+} from './operating.js'
 import { StockRules1849, nextCorporation1849 } from './stock.js'
 
 // Writes the harness's scenarios from seeded bot games: run with SCENARIOS=1.
 const folder = new URL('../../1849-ui/src/scenarios/', import.meta.url)
 
-function playUntil(players: number, seed: number, done: (game: Table) => boolean, limit = 4000) {
+function playUntil(
+    players: number,
+    seed: number,
+    done: (game: Table) => boolean,
+    limit = 4000,
+    config: Record<string, boolean> = {}
+) {
     // The first of several seeded games to reach the position.
     for (let tried = seed; tried < seed + 40; tried++) {
-        const game = kit.table(players, tried)
+        const game = kit.table(players, tried, config)
         const random = new Random(tried)
         for (let count = 0; count < limit && !done(game); count++) {
             if (game.state.machineState === 'GameOver') break
@@ -99,6 +115,57 @@ describe.skipIf(!process.env.SCENARIOS)('1849 harness scenarios', () => {
         save(
             'presidency-exchange',
             playUntil(4, 1, (game) => !!game.state.presidencyExchanges?.length)
+        )
+    })
+
+    it('writes the bond step', { timeout: 900_000 }, () => {
+        save(
+            'bond-step',
+            playUntil(
+                4,
+                1,
+                (game) =>
+                    game.state.machineState === 'RepayingLoans' &&
+                    game.valid().includes('TakeLoan'),
+                6000,
+                { bonds: true }
+            )
+        )
+    })
+
+    it('writes the station purchase', { timeout: 900_000 }, () => {
+        save(
+            'station-purchase',
+            playUntil(
+                4,
+                1,
+                (game) =>
+                    game.state.machineState === 'BuyingTrains' &&
+                    !game.state.purchaseOffer &&
+                    purchaseChoices(
+                        game.hydrated,
+                        game.player,
+                        TransferRules1849,
+                        TrainRules1849
+                    ).some((choice) => choice.request.asset.kind === 'station'),
+                6000,
+                { buyStationTokens: true }
+            )
+        )
+    })
+
+    it('writes the E token', { timeout: 900_000 }, () => {
+        save(
+            'e-token',
+            playUntil(
+                4,
+                1,
+                (game) =>
+                    game.state.machineState === 'BuyingTrains' &&
+                    game.valid().includes('BuyAccessRight'),
+                6000,
+                { electricDreams: true }
+            )
         )
     })
 })

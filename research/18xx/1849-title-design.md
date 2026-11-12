@@ -29,6 +29,9 @@ track layouts and counts only, checked against the rulebook.
 | Messina earthquake at the first 12H                                                           | §6, §12                 | Title `PhaseRules.changes`                                                                                 |
 | Waterfall private sale with bids; SCE price falls                                             | §8                      | `waterfallAuction` as 1830                                                                                 |
 | RSA gives the first corporation's president's certificate, par 68/100, treasury from the bank | §8.1                    | `awardCertificates` + `requirePar`; title funding on par                                                   |
+| Bonds variant: one L. 500 bond from phase 8, L. 50 interest, L. 100 a share off at the end    | §14.2                   | Family loans (`LoanRules`) with `inPlay`, `marketFor`, turn-end borrowing only; `loanTerms` words          |
+| Buy station tokens variant: another's token, from phase 6, with its president's agreement     | §14.1                   | Family purchase offers with a `station` asset; title `canPurchase` (reach, home, once a turn)              |
+| Electric Dreams variant: E tokens, E trains off narrow gauge doubling four cities             | §14.3                   | Access rights (E token), a zero-count depot variant, `stopRevenue` by train                                |
 
 ## Family surveys for the new family assets
 
@@ -102,6 +105,23 @@ track layouts and counts only, checked against the rulebook.
   alternatives exchanges the largest and leaves the choice pending, holding whatever state it
   came in until the outgoing president chooses. Title: switching it on.
 
+- **Loans a title calls bonds** (`LoanRules.inPlay`, `marketFor`, `borrowsInLoanStepOnly`,
+  `noBorrowingAfterRepaying`; `TitlePresentation.loanTerms`). 1817 borrows at any point of its
+  turn at a rate that moves; 1849's Bonds variant issues one bond at the turn's end at a fixed
+  rate, and not in a turn it repaid. Shared: the turn-end loan step, interest, market moves and
+  the loan panel, skipped by the interface when a game plays without loans. Title: the variant
+  switch, phase 8, the chart in force, the closure repayment and the end deduction.
+
+- **Buying another company's station** (`PurchaseAsset` kind `station`). Purchase offers so far
+  cover trains, privates and whole companies. Shared: a placed station is an asset its company
+  owns; settling puts one of the buyer's spare stations in its place and sends the seller's back
+  to its charter, the city recorded for history. Title: when and which (§14.1).
+- **A depot variant without a train** (supply variant count 0) and **stop values by train**
+  (`RouteRules.stopRevenue` gets the train). Electric Dreams' six E trains are in the full
+  supply, the other games' depots leave them out; an E train's range is a hex train's 999 with
+  narrow gauge costing 1,000 a hex, so no family distance changes were needed.
+- **A loan that closes the company** is closed in its own turn, as an issue into the Closed box.
+
 ## Further family changes found by whole-game play
 
 - `closeShareCompany(…, restart)` removes nothing from the round's operating order; 1849 removes a
@@ -166,10 +186,23 @@ track layouts and counts only, checked against the rulebook.
     open, every private has closed and no player has the cash for a president's certificate at
     the lowest start price, nothing can change again, so the game ends there and is scored as
     usual. §13 is silent; without it such a game would pass every round forever.
+16. **Bond money a corporation lacks** (§14.2): bond interest the treasury cannot pay, and a
+    bond outstanding as a corporation closes, are paid from the treasury and then the
+    president's own cash, as far as it goes; emergency money raising's share sales are not
+    asked for, and anything beyond is written off. The research engine charges interest the same
+    way but repays nothing on closure.
+17. **A bond issued into the Closed box** closes the corporation at once, ending its turn, as
+    issuing shares there does (ruling 8); the bond it just issued is repaid from the money it
+    brought in. §14.2 is silent; the research engine moves the price and plays on.
+18. **Station tokens bought** (§14.1) are one a turn, after running trains, never a home token
+    nor in a city where the buyer has one, and leave the seller a station, as the research
+    engine has it; the seller's president agrees through the family's purchase offer, which
+    the research engine leaves to the table.
 
 ## Implemented later or not at all
 
-- Variants (§14): acquiring station tokens, bonds, Electric Dreams.
+- Nothing of the rules; the variants of §14 are all in, as game options (Electric Dreams brings
+  the other two with it, as §14.3 and the research engine require).
 - The physical board view (no board artwork); the boardless map is the only presentation.
 
 ## Verification

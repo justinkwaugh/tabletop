@@ -1,4 +1,6 @@
 import { defineGame, type GameDefinition } from '@tabletop/common'
+import { LoanRules1849 } from '../bonds.js'
+import { AccessRightRules1849 } from '../electricDreams.js'
 import { createEighteenXXRuntime, type EighteenXXTitleRules } from '@tabletop/18xx'
 import { Names1849 } from '../names.js'
 import { AuctionRules1849, createOpening1849 } from '../opening.js'
@@ -34,6 +36,10 @@ export const TitleRules1849: EighteenXXTitleRules<typeof State1849, HydratedStat
     // A no-break space keeps the lira sign on the line of its amount, as the rulebook writes it.
     currencySymbol: 'L.\u00a0',
     stockRules: StockRules1849,
+    // The Bonds variant's bonds, as the family's corporate loans (§14.2).
+    loanRules: LoanRules1849,
+    // The Electric Dreams variant's E tokens, as the family's access rights (§14.3).
+    accessRightRules: AccessRightRules1849,
     companyRules: CompanyRules1849,
     operatingRules: OperatingRules1849,
     trackRules: TrackRules1849,

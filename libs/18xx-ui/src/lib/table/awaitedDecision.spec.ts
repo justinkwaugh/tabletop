@@ -3,6 +3,7 @@ import { TestCompanyId, minimalPlayState } from '@tabletop/18xx/testing'
 import type { Owner } from '@tabletop/18xx'
 import {
     awaitedDecision,
+    purchaseOfferText,
     type AwaitedDecisionNames,
     type AwaitedDecisionState
 } from './awaitedDecision.js'
@@ -10,6 +11,7 @@ import { moneyFormat } from '../presentation/money.js'
 
 const names: AwaitedDecisionNames = {
     companyName: (companyId) => `Company ${companyId}`,
+    stationPlace: (stationId) => `Place ${stationId}`,
     ownerName: (owner: Owner) =>
         owner.kind === 'company'
             ? `Company ${owner.companyId}`
@@ -81,4 +83,21 @@ describe('awaitedDecision', () => {
             text: 'Company S offers $300 for Company R’s 3 train'
         })
     })
+})
+
+it('names an offered station by its seller and city', () => {
+    expect(
+        purchaseOfferText(
+            {
+                id: 'offer',
+                buyer: { kind: 'company', companyId: 'buyer' },
+                asset: { kind: 'station', stationId: 'seller:station:1' },
+                seller: { kind: 'company', companyId: 'seller' },
+                price: 40,
+                buyerPlayerId: 'a',
+                sellerPlayerId: 'b'
+            },
+            names
+        )
+    ).toBe('Company buyer offers $40 for Company seller’s station at Place seller:station:1')
 })

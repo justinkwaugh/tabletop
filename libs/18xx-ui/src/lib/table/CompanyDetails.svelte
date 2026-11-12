@@ -486,7 +486,7 @@
             </div>{/if}
         {@render marketValue()}
         {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
-                <span>Loans</span><strong
+                <span>{session.presentation.loanTerms?.name ?? 'Loans'}</span><strong
                     >{session.loans.loans(company.id)}/{session.loans.capacity(company.id)}</strong
                 >
             </div>{/if}

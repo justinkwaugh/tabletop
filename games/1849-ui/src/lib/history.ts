@@ -10,7 +10,10 @@ import {
 import {
     isChoosePresidencyExchange,
     isFloatCompany,
+    isPayInterest,
+    isRepayLoan,
     isStartCompany,
+    isTakeLoan,
     type FloatCompany
 } from '@tabletop/18xx'
 import type { TitleActionDescription, TitleCallout } from '@tabletop/18xx-ui'
@@ -65,6 +68,25 @@ export function floatTokenFee(action: FloatCompany): number | undefined {
  */
 export function describe1849Action(stations: () => State1849['stations']): TitleActionDescription {
     return (action, { companyName }, shared) => {
+        // The Bonds variant's bond is the family's corporate loan (§14.2).
+        if (isTakeLoan(action) || isRepayLoan(action))
+            return {
+                ...shared(),
+                text: `${isTakeLoan(action) ? 'Issued' : 'Repaid'} ${companyName(action.companyId)}’s bond`
+            }
+        if (isPayInterest(action)) {
+            const row = shared()
+            const president = (action.metadata?.default?.payments ?? [])
+                .filter((payment) => payment.from.kind === 'player')
+                .reduce((sum, payment) => sum + payment.amount, 0)
+            return {
+                ...row,
+                text: `${companyName(action.companyId)} paid bond interest`,
+                detail: president
+                    ? `The president paid ${Presentation1849.money(president)}`
+                    : undefined
+            }
+        }
         // The outgoing president took the last certificate or two single ones (§9.5).
         if (isChoosePresidencyExchange(action))
             return {

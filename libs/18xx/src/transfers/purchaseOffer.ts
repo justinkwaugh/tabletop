@@ -24,7 +24,9 @@ export const OrdinaryPurchaseAsset = Type.Union([
     Type.Object(
         { kind: Type.Literal('private'), privateCompanyId: Id },
         { additionalProperties: false }
-    )
+    ),
+    /** Another company's placed station, its place taken by one of the buyer's (1849 §14.1). */
+    Type.Object({ kind: Type.Literal('station'), stationId: Id }, { additionalProperties: false })
 ])
 export const PurchaseAsset = Type.Union([
     ...OrdinaryPurchaseAsset.anyOf,
@@ -151,6 +153,12 @@ export function assetOwner(
             ? owner
             : undefined
     }
+    if (asset.kind === 'station') {
+        const station = state.stations.find((item) => item.id === asset.stationId)
+        if (station?.status !== 'placed') return undefined
+        const company = state.companies.find((item) => item.id === station.companyId)
+        return company && !company.closed ? { kind: 'company', companyId: company.id } : undefined
+    }
     if (asset.kind === 'private') {
         const company = state.companies.find((item) => item.id === asset.privateCompanyId)
         return company?.kind === 'private' && !company.closed
@@ -252,6 +260,27 @@ export function settlePurchaseOffer(
         )
         train.owner = owner
         closePrivatesOnTrainPurchase(state, trains, offer.buyer.companyId)
+    } else if (asset.kind === 'station') {
+        const sold = state.stations.find((item) => item.id === asset.stationId)
+        assert(sold?.status === 'placed', 'A bought station is still placed')
+        const buyerId = offer.buyer.companyId
+        const replacement = state.stations.find(
+            (item) => item.companyId === buyerId && item.status === 'available'
+        )
+        assertExists(replacement, 'The buyer has a station to put in its place')
+        // The seller's station goes back to its charter (1849 §14.1).
+        state.stations = state.stations.map((item) =>
+            item.id === sold.id
+                ? { id: sold.id, companyId: sold.companyId, status: 'available' }
+                : item.id === replacement.id
+                  ? {
+                        id: replacement.id,
+                        companyId: buyerId,
+                        status: 'placed',
+                        position: sold.position
+                    }
+                  : item
+        )
     } else if (asset.kind === 'private') {
         const certificate = state.certificates.find(
             (item) => item.kind === 'private' && item.companyId === asset.privateCompanyId

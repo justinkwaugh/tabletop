@@ -1,5 +1,6 @@
 import {
     GaribaldiId,
+    ETokenId,
     InsolvencyChoices1849,
     LoanAmount1849,
     LoanDeduction1849,
@@ -10,9 +11,10 @@ import {
     TokenFees1849,
     type State1849
 } from '@tabletop/1849'
+import { holdsAccessRight } from '@tabletop/18xx'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { CompanyNames1849 } from './companyPresentation.js'
-import { PhaseChart1849 } from './phaseChart.js'
+import { ElectricPhaseChart1849, PhaseChart1849 } from './phaseChart.js'
 import { PhaseColors1849, TrainColors1849 } from './trainPresentation.js'
 
 const money = moneyFormat(TitleRules1849.currencySymbol)
@@ -20,6 +22,8 @@ const money = moneyFormat(TitleRules1849.currencySymbol)
 export const Presentation1849: TitlePresentation<State1849> = {
     money,
     phaseChart: PhaseChart1849,
+    phaseChartFor: (state) =>
+        state.variants.electricDreams ? ElectricPhaseChart1849 : PhaseChart1849,
     trainColors: TrainColors1849,
     phaseColors: PhaseColors1849,
     marketPoolId: MarketPoolId1849,
@@ -44,6 +48,14 @@ export const Presentation1849: TitlePresentation<State1849> = {
             'Sell treasury certificates to the bank pool, the price dropping a row for each share, or buy one back.'
     },
     // The two-share last certificate, marked wherever it is held (§9.6).
+    // The Bonds variant's bond, the family's corporate loan (§14.2).
+    loanTerms: {
+        name: 'Bond',
+        take: 'Issue the bond',
+        repay: 'Repay the bond',
+        interestDefault: 'The president paid what the treasury could not.',
+        fixedTerms: true
+    },
     multiShareCertificate: {
         label: 'L',
         name: 'Last certificate',
@@ -66,15 +78,20 @@ export const Presentation1849: TitlePresentation<State1849> = {
         }
     },
     // The +L. 20 port token and the company it pays (§7.1).
-    companyMarks: (state, companyId) =>
-        state.portBonus?.companyId === companyId
+    companyMarks: (state, companyId) => [
+        ...(state.portBonus?.companyId === companyId
             ? [
                   {
                       label: `+${money(PortBonus1849)}`,
                       description: `Its routes to the port with the token earn ${money(PortBonus1849)} more.`
                   }
               ]
-            : [],
+            : []),
+        // The Electric Dreams variant's E token (§14.3).
+        ...(holdsAccessRight(state, companyId, ETokenId)
+            ? [{ label: 'E token', description: 'E token: it may buy E trains.' }]
+            : [])
+    ],
     gameFacts: (state) =>
         state.loans.length
             ? [

@@ -40,6 +40,7 @@ export function canTakeLoan(
 ): boolean {
     return (
         controllingOwner(state, companyId)?.playerId === playerId &&
+        !(rules.noBorrowingAfterRepaying && state.loanStep?.repaidAfterInterest) &&
         !takeLoanReason(state, rules, companyId)
     )
 }

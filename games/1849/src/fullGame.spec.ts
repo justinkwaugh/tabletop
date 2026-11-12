@@ -18,6 +18,25 @@ describe('whole games', () => {
         120_000
     )
 
+    // Each variant of §14, over fewer seeds.
+    // eslint-disable-next-line turbo/no-undeclared-env-vars -- a manual run's switch
+    const VariantSeeds = process.env.SWEEP ? Array.from({ length: 10 }, (_, i) => i + 1) : [1]
+    it.each(
+        (['bonds', 'buyStationTokens', 'electricDreams'] as const).flatMap((variant) =>
+            VariantSeeds.flatMap((seed) =>
+                [3, 4, 5].map((players) => [variant, players, seed] as const)
+            )
+        )
+    )(
+        'a %s game of %i players with seed %i reaches its end',
+        (variant, players, seed) => {
+            const game = kit.table(players, seed, { [variant]: true })
+            playOut(game, seed)
+            expect(game.state.machineState).toBe('GameOver')
+        },
+        120_000
+    )
+
     it('records the Messina earthquake on the phase change to the first 12H only (§12)', () => {
         const game = kit.table(4, 1)
         playOut(game, 1)

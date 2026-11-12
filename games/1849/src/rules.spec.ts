@@ -3,13 +3,23 @@ import {
     cashOwnedBy,
     corporateFinanceChoices,
     finalWealth,
+    canTakeLoan,
     getCompany,
+    homeStationId,
     isStartCompany,
+    purchaseChoices,
+    stretchWeight,
     placeStockMarker,
     sharesOwned,
     treasuryPoolId
 } from '@tabletop/18xx'
 import { kit, type Table } from '../test/kit.js'
+import { BondValue1849, LoanRules1849 } from './bonds.js'
+import { stationPurchaseReason1849 } from './stationPurchase.js'
+import { ETokenId, eTokenPrice1849 } from './electricDreams.js'
+import { RouteRules1849 } from './routes.js'
+import { ElectricTrainId, TrainDepot1849 } from './trains.js'
+import { botMove, Random } from '../test/bot.js'
 import {
     GaribaldiHomeLocationIds,
     GaribaldiId,
@@ -22,6 +32,8 @@ import {
     EarningsRules1849,
     EndingRules1849,
     PhaseRules1849,
+    TrainRules1849,
+    TransferRules1849,
     closeCorporation1849,
     stalemate1849
 } from './operating.js'
@@ -489,6 +501,218 @@ describe('terrain (§10.3.1)', () => {
         })
         expect(terrainCost1849(state, request('1849:78'))).toBe(40)
         expect(terrainCost1849(state, request('18xx:8'))).toBe(160)
+    })
+})
+
+describe('the Bonds variant (§14.2)', () => {
+    /** A started corporation in a game with bonds, in phase 8. */
+    function bonded() {
+        const game = stockRound()
+        const companyId = startNext(game, 100)
+        const state = game.hydrated
+        state.variants = { ...state.variants, bonds: true }
+        state.phaseId = '8H'
+        return { game, state, companyId }
+    }
+    const president = (state: Table['hydrated'], companyId: string) => {
+        const owner = getCompany(state, companyId).president
+        if (owner?.kind !== 'player') throw new Error('A player presides')
+        return owner.playerId
+    }
+
+    it('lets a corporation issue one bond from phase 8, only with the variant', () => {
+        const { state, companyId } = bonded()
+        expect(LoanRules1849.capacity(state, companyId)).toBe(1)
+        state.phaseId = '6H'
+        expect(LoanRules1849.capacity(state, companyId)).toBe(0)
+        state.phaseId = '8H'
+        state.variants = { ...state.variants, bonds: undefined }
+        expect(LoanRules1849.capacity(state, companyId)).toBe(0)
+    })
+
+    it('does not issue the bond in the turn it was repaid', () => {
+        const { state, companyId } = bonded()
+        const playerId = president(state, companyId)
+        state.loanStep = { companyId }
+        expect(canTakeLoan(state, LoanRules1849, playerId, companyId)).toBe(true)
+        state.loanStep = { companyId, repaidAfterInterest: true }
+        expect(canTakeLoan(state, LoanRules1849, playerId, companyId)).toBe(false)
+    })
+
+    it('has the president pay interest the treasury cannot (ruling 16)', () => {
+        const { state, companyId } = bonded()
+        const playerId = president(state, companyId)
+        getCompany(state, companyId).loans = 1
+        const treasury = state.cash.find(
+            (cash) => cash.owner.kind === 'company' && cash.owner.companyId === companyId
+        )
+        if (!treasury) throw new Error('No treasury')
+        const bank = state.cash.find((cash) => cash.owner.kind === 'bank')
+        if (!bank) throw new Error('No bank')
+        bank.amount += treasury.amount - 20
+        treasury.amount = 20
+        const before = cashOwnedBy(state, player(playerId))
+        const result = LoanRules1849.interestDefault(state, companyId, 50)
+        expect(result.unpaid).toBe(0)
+        expect(cashOwnedBy(state, { kind: 'company', companyId })).toBe(0)
+        expect(cashOwnedBy(state, player(playerId))).toBe(before - 30)
+    })
+
+    it('repays an outstanding bond from the treasury as the corporation closes', () => {
+        const { state, companyId } = bonded()
+        getCompany(state, companyId).loans = 1
+        const treasury = state.cash.find(
+            (cash) => cash.owner.kind === 'company' && cash.owner.companyId === companyId
+        )
+        const bank = state.cash.find((cash) => cash.owner.kind === 'bank')
+        if (!treasury || !bank) throw new Error('No treasury or bank')
+        bank.amount -= 600 - treasury.amount
+        treasury.amount = 600
+        const closure = closeCorporation1849(state, companyId)
+        expect(getCompany(state, companyId).loans).toBeUndefined()
+        expect(closure.bondRepayment).toEqual([
+            { from: { kind: 'company', companyId }, to: { kind: 'bank' }, amount: BondValue1849 }
+        ])
+    })
+
+    it('counts each share L. 100 less at the end while the bond is outstanding', () => {
+        const { state, companyId } = bonded()
+        const certificate = state.certificates.find(
+            (entry) => entry.companyId === companyId && entry.kind === 'share' && entry.president
+        )
+        if (!certificate) throw new Error('No president’s certificate')
+        const [plain] = EndingRules1849.certificateItems(state, certificate)
+        getCompany(state, companyId).loans = 1
+        const [bonded_] = EndingRules1849.certificateItems(state, certificate)
+        expect((plain?.value ?? 0) - (bonded_?.value ?? 0)).toBe(200)
+    })
+})
+
+describe('the Buy station tokens variant (§14.1)', () => {
+    /** A four-player game played on until a corporation may buy another's station. */
+    function stationOnOffer() {
+        const game = kit.table(4, 1, { buyStationTokens: true })
+        const random = new Random(1)
+        const offers = () =>
+            purchaseChoices(game.hydrated, game.player, TransferRules1849, TrainRules1849).filter(
+                (choice) => choice.request.asset.kind === 'station'
+            )
+        for (let count = 0; count < 6000; count++) {
+            if (
+                game.state.machineState === 'BuyingTrains' &&
+                !game.state.purchaseOffer &&
+                offers().length
+            )
+                break
+            const next = botMove(game, random)
+            game.act(next.type, next.fields, next.playerId)
+        }
+        const [offer] = offers()
+        if (!offer || offer.request.asset.kind !== 'station') throw new Error('No station offered')
+        return { game, request: offer.request, stationId: offer.request.asset.stationId }
+    }
+
+    it('offers only other corporations’ stations it reaches, never a home token', () => {
+        const { game, request } = stationOnOffer()
+        const state = game.hydrated
+        const buyer = request.companyId
+        for (const station of state.stations) {
+            const reason = stationPurchaseReason1849(state, buyer, station.id)
+            if (station.id === homeStationId(station.companyId) && station.companyId !== buyer)
+                expect(reason).toBeDefined()
+            if (station.companyId === buyer) expect(reason).toBeDefined()
+        }
+        state.variants = { ...state.variants, buyStationTokens: undefined }
+        expect(
+            stationPurchaseReason1849(
+                state,
+                buyer,
+                request.asset.kind === 'station' ? request.asset.stationId : ''
+            )
+        ).toBe('Station tokens are not bought in this game.')
+    })
+
+    it('swaps the tokens once the seller’s president agrees, once a turn', () => {
+        const { game, request, stationId } = stationOnOffer()
+        const sold = game.state.stations.find((entry) => entry.id === stationId)
+        if (sold?.status !== 'placed') throw new Error('The station is placed')
+        const buyerPlayer = game.player
+        game.act('OfferPurchase', { ...request, price: 1 }, buyerPlayer)
+        if (game.state.purchaseOffer)
+            game.act(
+                'RespondToPurchaseOffer',
+                { offerId: game.state.purchaseOffer.id, accept: true },
+                game.player
+            )
+        const after = game.state.stations
+        expect(after.find((entry) => entry.id === stationId)?.status).toBe('available')
+        expect(
+            after.some(
+                (entry) =>
+                    entry.companyId === request.companyId &&
+                    entry.status === 'placed' &&
+                    entry.position.locationId === sold.position.locationId
+            )
+        ).toBe(true)
+        for (const station of after)
+            expect(
+                stationPurchaseReason1849(game.hydrated, request.companyId, station.id)
+            ).toBeDefined()
+    })
+})
+
+describe('the Electric Dreams variant (§14.3)', () => {
+    const eTrain = TrainDepot1849.trainDefinition(ElectricTrainId)
+    const sixteen = TrainDepot1849.trainDefinition('16H')
+
+    it('stocks E trains only in its games, on sale from the first 12H', () => {
+        const count = (game: Table) =>
+            game.state.trainInventory.trains.filter(
+                (train) => train.definitionId === ElectricTrainId
+            ).length
+        expect(count(kit.table(4, 1))).toBe(0)
+        expect(count(kit.table(4, 1, { fiveCorporations: true }))).toBe(0)
+        const electric = kit.table(4, 1, { electricDreams: true })
+        expect(count(electric)).toBe(6)
+        expect(count(kit.table(4, 1, { electricDreams: true, fiveCorporations: true }))).toBe(6)
+        // Electric Dreams brings the other variants with it.
+        expect(electric.state.variants).toMatchObject({ bonds: true, buyStationTokens: true })
+        const state = electric.hydrated
+        expect(TrainRules1849.availableDefinitions?.(state)).not.toContain(ElectricTrainId)
+        state.phaseId = '12H'
+        expect(TrainRules1849.availableDefinitions?.(state)).toContain(ElectricTrainId)
+    })
+
+    it('sells an E train only to a corporation with an E token', () => {
+        const state = kit.table(4, 1, { electricDreams: true }).hydrated
+        expect(TrainRules1849.limitReason?.(state, 'RCS', ElectricTrainId)).toBe(
+            'An E train needs an E token.'
+        )
+        state.accessRights = [{ rightId: ETokenId, companyId: 'RCS' }]
+        expect(TrainRules1849.limitReason?.(state, 'RCS', ElectricTrainId)).toBeUndefined()
+        expect(TrainRules1849.limitReason?.(state, 'IFT', '16H')).toBeUndefined()
+    })
+
+    it('prices E tokens by phase, the first dearer', () => {
+        const state = { phaseId: '12H', accessRights: [] }
+        expect(eTokenPrice1849(state)).toBe(1100)
+        expect(eTokenPrice1849({ ...state, phaseId: '16H' })).toBe(800)
+        const sold = { accessRights: [{ rightId: ETokenId, companyId: 'RCS' }] }
+        expect(eTokenPrice1849({ ...sold, phaseId: '12H' })).toBe(800)
+        expect(eTokenPrice1849({ ...sold, phaseId: '16H' })).toBe(550)
+    })
+
+    it('doubles the four great cities for E trains and keeps them off narrow gauge', () => {
+        const state = kit.table(4, 1, { electricDreams: true }).hydrated
+        const palermo = { locationId: 'C5', nodeId: 'city' }
+        const trapani = { locationId: 'C1', nodeId: 'city' }
+        expect(RouteRules1849.stopRevenue?.(state, 'RCS', palermo, 50, eTrain)).toBe(100)
+        expect(RouteRules1849.stopRevenue?.(state, 'RCS', palermo, 50, sixteen)).toBe(50)
+        expect(RouteRules1849.stopRevenue?.(state, 'RCS', trapani, 30, eTrain)).toBe(30)
+        expect(stretchWeight(eTrain.distance, 'narrow')).toBeGreaterThan(
+            eTrain.distance.maximum === 'unlimited' ? 0 : eTrain.distance.maximum
+        )
+        expect(stretchWeight(eTrain.distance, 'either')).toBe(1)
     })
 })
 

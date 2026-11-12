@@ -1,8 +1,12 @@
 import {
+    AccessRightFields,
     AuctionFields,
     ClosingOperatingCorporationState,
     CorporateFinanceFields,
     LocationMarkerFields,
+    BorrowingCompany,
+    LoanFields,
+    LoanMachineStates,
     PendingParFields,
     PresidencyExchangeFields,
     PrivatePowerFields,
@@ -19,7 +23,7 @@ import {
     type HydratedEighteenXXState
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
-import type * as Type from 'typebox'
+import * as Type from 'typebox'
 import { TitleFields1849 } from './titleState.js'
 
 export const State1849 = composeEighteenXXState(
@@ -27,14 +31,23 @@ export const State1849 = composeEighteenXXState(
         ...RailwayFields,
         ...PrivatePowerFields,
         ...PrivateStationFields,
+        ...LoanFields,
+        // A corporation counts its issued bond as a loan (§14.2).
+        companies: Type.Array(BorrowingCompany),
         ...PendingParFields,
         ...PresidencyExchangeFields,
         ...AuctionFields,
         ...CorporateFinanceFields,
         ...LocationMarkerFields,
+        ...AccessRightFields,
         ...TitleFields1849
     },
-    [...RailwayMachineStates, ...WaterfallAuctionMachineStates, ClosingOperatingCorporationState]
+    [
+        ...RailwayMachineStates,
+        ...WaterfallAuctionMachineStates,
+        ...LoanMachineStates,
+        ClosingOperatingCorporationState
+    ]
 )
 export type State1849 = Type.Static<typeof State1849>
 export type HydratedState1849 = HydratedEighteenXXState<typeof State1849>

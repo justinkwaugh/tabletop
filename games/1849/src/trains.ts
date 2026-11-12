@@ -13,6 +13,15 @@ const reverseHexEdges = (maximum: number) => ({
     gaugeWeights: { standard: 2, narrow: 1 }
 })
 
+// The Electric Dreams variant's E train runs any distance but never on narrow gauge (§14.3): 999
+// standard hexes is past any route on the board, and a narrow hex costing more keeps it off
+// narrow track, while track dual from stop to stop counts one.
+const electricRange = {
+    measure: 'hex-edges' as const,
+    maximum: 999,
+    gaugeWeights: { standard: 1, narrow: 1000 }
+}
+
 export const CorporationCounts1849 = [5, 6] as const
 export type CorporationCount1849 = (typeof CorporationCounts1849)[number]
 
@@ -24,10 +33,22 @@ export const TrainCounts1849: Readonly<
     6: { '4H': 4, '6H': 4, '8H': 3, '10H': 2, '12H': 1, '16H': 5, R6H: 2 }
 }
 
-export const FiveCorporationDepotId = '1849:five-corporations'
+/** The six E trains of the Electric Dreams variant (§14.3). */
+export const ElectricTrainId = 'E'
+export const ElectricTrainCount = 6
 
-export function depotId1849(corporations: CorporationCount1849): string {
-    return corporations === 5 ? FiveCorporationDepotId : TrainDepot1849.definition.id
+export const FiveCorporationDepotId = '1849:five-corporations'
+const StandardDepotId = '1849:standard'
+const FiveCorporationElectricDepotId = '1849:five-corporations:electric'
+
+/**
+ * The depot a game uses: the full supply, E trains included, is the six-corporation Electric
+ * Dreams game; the others leave out the E trains or the trains five corporations do without (§2).
+ */
+export function depotId1849(corporations: CorporationCount1849, electric = false): string {
+    if (corporations === 5)
+        return electric ? FiveCorporationElectricDepotId : FiveCorporationDepotId
+    return electric ? TrainDepot1849.definition.id : StandardDepotId
 }
 
 /** Goes on sale once the first 16H is bought (§10.6). */
@@ -42,14 +63,25 @@ export const TrainDepot1849 = new TrainDepot({
         { id: '10H', name: '10H', price: 550, distance: hexEdges(10) },
         { id: '12H', name: '12H', price: 800, distance: hexEdges(12) },
         { id: '16H', name: '16H', price: 1100, distance: hexEdges(16) },
-        { id: ReverseTrainId, name: 'R6H', price: 350, distance: reverseHexEdges(6) }
+        { id: ReverseTrainId, name: 'R6H', price: 350, distance: reverseHexEdges(6) },
+        { id: ElectricTrainId, name: 'E', price: 550, distance: electricRange }
     ],
-    supply: Object.entries(TrainCounts1849[6]).map(([definitionId, count]) => ({
-        definitionId,
-        count
-    })),
+    supply: [
+        ...Object.entries(TrainCounts1849[6]).map(([definitionId, count]) => ({
+            definitionId,
+            count
+        })),
+        { definitionId: ElectricTrainId, count: ElectricTrainCount }
+    ],
     supplyVariants: {
+        [StandardDepotId]: { [ElectricTrainId]: 0 },
         [FiveCorporationDepotId]: {
+            '6H': TrainCounts1849[5]['6H'],
+            '8H': TrainCounts1849[5]['8H'],
+            '16H': TrainCounts1849[5]['16H'],
+            [ElectricTrainId]: 0
+        },
+        [FiveCorporationElectricDepotId]: {
             '6H': TrainCounts1849[5]['6H'],
             '8H': TrainCounts1849[5]['8H'],
             '16H': TrainCounts1849[5]['16H']

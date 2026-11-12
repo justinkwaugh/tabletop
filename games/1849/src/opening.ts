@@ -147,9 +147,12 @@ export function createOpening1849({
             (reservation) => reservation.companyId !== removed
         ),
         tileInventory: TileSet1849.createInventory(),
-        trainInventory: TrainDepot1849.createInventory(
-            corporations === 5 ? depotId1849(5) : undefined
-        ),
+        trainInventory: (() => {
+            const depotId = depotId1849(corporations, variants.electricDreams === true)
+            return TrainDepot1849.createInventory(
+                depotId === TrainDepot1849.definition.id ? undefined : depotId
+            )
+        })(),
         phaseId: '4H'
     }
     return {

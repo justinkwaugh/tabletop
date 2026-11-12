@@ -702,6 +702,11 @@ export class EighteenXXSession<
             companyName: (companyId) => this.companyName(companyId),
             ownerName: (owner) => this.ownerName(owner),
             trainName: (trainId) => this.trainName(state, trainId),
+            stationPlace: (stationId) => {
+                const station = state.stations.find((entry) => entry.id === stationId)
+                assert(station?.status === 'placed', `Station ${stationId} is placed`)
+                return this.placeName(station.position.locationId)
+            },
             money: this.presentation.money
         }
     }

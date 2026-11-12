@@ -7,14 +7,20 @@
     const companyId = $derived(session.gameState.loanStep?.companyId)
     const rules = $derived(session.loans.rules)
     const paid = $derived(session.loans.interestPaid)
+    const terms = $derived(session.presentation.loanTerms)
 </script>
 
 {#if companyId && rules && session.gameState.machineState === 'RepayingLoans'}
     {@const name = session.companyName(companyId)}
-    <section aria-label="Loans">
-        <h2>{name} · Loans {session.loans.loans(companyId)}/{session.loans.capacity(companyId)}</h2>
+    <section aria-label={terms?.name ?? 'Loans'}>
+        <h2>
+            {name} · {terms?.name ?? 'Loans'}
+            {session.loans.loans(companyId)}/{session.loans.capacity(companyId)}
+        </h2>
         <p>
-            {#if paid?.default}
+            {#if paid?.default && terms?.interestDefault}
+                Paid {money(paid.interest)} interest. {terms.interestDefault}
+            {:else if paid?.default}
                 Could not pay {money(paid.interest)} interest and was liquidated.
             {:else if paid}
                 Paid {money(paid.interest)} interest at {session.loans.rate}%{#if paid.loansTaken},
@@ -30,10 +36,10 @@
         </p>
         <div class="choices">
             {#if session.loans.canRepay}<button onclick={() => session.loans.repay(companyId)}
-                    >Repay a loan ({money(rules.value)})</button
+                    >{terms?.repay ?? 'Repay a loan'} ({money(rules.value)})</button
                 >{/if}
             {#if session.loans.canTake}<button onclick={() => session.loans.take(companyId)}
-                    >Take a loan ({money(rules.value)})</button
+                    >{terms?.take ?? 'Take a loan'} ({money(rules.value)})</button
                 >{/if}
             <button
                 disabled={!session.operating.canFinish}
