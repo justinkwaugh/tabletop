@@ -14,7 +14,7 @@
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import TileSymbol from '../tiles/TileSymbol.svelte'
     import { PortSymbol } from '../tiles/tileSymbols.js'
-    import { MountainIcon } from './terrainIcons.js'
+    import { MountainIcon, terrainIcon } from './terrainIcons.js'
     import {
         ClassicTileAppearance,
         DefaultLabelFont,
@@ -379,10 +379,10 @@
                                 transform={`translate(${entry.terrainPosition.x - (iconWidth + labelWidth) / 2} ${entry.terrainPosition.y})`}
                             >
                                 {#each terrain.kinds as kind, index (kind)}
+                                    {@const icon = terrainIcon(kind)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
-                                        {#if kind === 'mountain'}
-                                            <path d={MountainIcon.path} fill={MountainIcon.fill}
-                                            ></path>
+                                        {#if icon}
+                                            <path d={icon.path} fill={icon.fill}></path>
                                         {:else if kind === 'water'}
                                             <path
                                                 transform="translate(4 0) scale(0.75 1)"
