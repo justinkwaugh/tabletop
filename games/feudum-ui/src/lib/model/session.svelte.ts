@@ -42,7 +42,7 @@ import { AtWillDraft, type AtWillContext, type AtWillPanel } from './atWillDraft
 import type { BoardChrome } from './boardChrome.js'
 import { deriveBoardOffer, spaceTarget, type BoardOffer, type BoardTarget } from './boardOffer.js'
 import { CommitAttackDraft, type CommitPanel } from './commitAttackDraft.svelte.js'
-import { primaryLabel, sendsOnPress } from './confirmingSend.js'
+import { CantBeUndone, primaryLabel, sendsOnPress } from './confirmingSend.js'
 import { DiscDraft, type DiscPanel } from './discDraft.svelte.js'
 import { rankedDie } from './guildDie.js'
 import { FavoursDraft, type FavoursPanel } from './favoursDraft.svelte.js'
@@ -74,6 +74,8 @@ import {
 export interface PrimaryButton {
     readonly label: string
     readonly enabled: boolean
+    /** A second line under the label: what the press does beyond its name. */
+    readonly note?: string
 }
 
 export interface StartingGoodsPanel {
@@ -115,10 +117,24 @@ export interface FinaliseRowEntry {
 }
 
 export interface HandDrafting {
-    readonly cards: readonly { readonly kind: ActionCardKind; readonly picked: boolean }[]
+    /** The eleven; a picked one carries the number of the slot it fills. */
+    readonly cards: readonly {
+        readonly kind: ActionCardKind
+        readonly picked: boolean
+        readonly slot?: number
+    }[]
+    /**
+     * R-3.1 The plan: the picked cards in the order pressed, then an empty slot for each the hand
+     * still needs. The order is the seat's own; the cards may be played in any order.
+     */
+    readonly slots: readonly (ActionCardKind | undefined)[]
     readonly pouch: readonly {
         readonly good?: PouchGood
+        /** The full words, the choice's accessible name. */
         readonly label: string
+        /** The short name beside its art, and what it does beneath. */
+        readonly title: string
+        readonly caption: string
         readonly picked: boolean
         readonly refusal?: string
     }[]
@@ -136,10 +152,25 @@ export interface HandPanel {
     readonly drafting?: HandDrafting
 }
 
-const PouchRows: readonly { readonly good?: PouchGood; readonly label: string }[] = [
-    { label: 'No pouch' },
-    { good: 'saltpeter', label: 'Saltpeter: 5 cards' },
-    { good: 'sulfur', label: 'Sulfur: two cards back to back' }
+const PouchRows: readonly {
+    readonly good?: PouchGood
+    readonly label: string
+    readonly title: string
+    readonly caption: string
+}[] = [
+    { label: 'No pouch', title: 'No pouch', caption: '4 cards' },
+    {
+        good: 'saltpeter',
+        label: 'Saltpeter: 5 cards',
+        title: '+1 card',
+        caption: 'opens a fifth slot'
+    },
+    {
+        good: 'sulfur',
+        label: 'Sulfur: two cards back to back',
+        title: '2 in a row',
+        caption: 'once this round'
+    }
 ]
 
 type SessionOptions = ConstructorParameters<
@@ -621,13 +652,20 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
         const { cards, pouchGood } = this.drafted
         const player = this.gameState.getPlayerState(me)
+        const open = Math.max(preview.required - cards.length, 0)
         return {
-            cards: ActionCards.map(({ kind }) => ({ kind, picked: cards.includes(kind) })),
-            pouch: PouchRows.map(({ good, label }) => {
+            cards: ActionCards.map(({ kind }) => {
+                const at = cards.indexOf(kind)
+                return { kind, picked: at >= 0, ...(at >= 0 ? { slot: at + 1 } : {}) }
+            }),
+            slots: [...cards, ...Array.from({ length: open }, () => undefined)],
+            pouch: PouchRows.map(({ good, label, title, caption }) => {
                 const refusal = good && reasonPouchRefused(player, good)
                 return {
                     ...(good ? { good } : {}),
                     label,
+                    title,
+                    caption,
                     picked: good === pouchGood,
                     ...(refusal ? { refusal } : {})
                 }
@@ -640,7 +678,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             primary:
                 nextFinaliser === me
                     ? {
-                          label: primaryLabel('Long live the king', preview),
+                          label: 'Long live the king',
+                          note: preview.revealsInfo ? `finalise · ${CantBeUndone}` : 'finalise',
                           enabled: preview.reason === undefined
                       }
                     : {
