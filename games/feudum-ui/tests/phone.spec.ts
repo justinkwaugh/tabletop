@@ -6,8 +6,10 @@ import {
     createGame as createHarnessGame,
     playToCards,
     playToHands,
+    scoreSpacesCovered,
     settled,
-    shot
+    shot,
+    zoomToLowerLeft
 } from './helpers.js'
 import { openFixture, ScenarioTable } from './scenarioTable.js'
 
@@ -226,6 +228,21 @@ const boardGuild = (page: Page, guild: string) => surface(page).locator(`[data-g
 test.describe('held upright', () => {
     test.use({ viewport: Upright, hasTouch: true, isMobile: true })
 
+    test('R-1.2.5 the zoom row, Key and Supply in it, covers no score-track space, at rest or zoomed to the corner', async ({
+        page
+    }) => {
+        await createGame(page)
+        await playToCards(page)
+        await settled(page)
+        await boardAtRest(page)
+        expect(await scoreSpacesCovered(page)).toEqual([])
+        await zoomToLowerLeft(page, 0)
+        expect(await scoreSpacesCovered(page), 'at the corner').toEqual([])
+        await zoomToLowerLeft(page, 2)
+        expect(await scoreSpacesCovered(page), 'zoomed in 2').toEqual([])
+        await shot(page, 'phone-zoom-row')
+    })
+
     test('R-1.3 an enlarged guild area stands upright, as wide as the screen allows', async ({
         page
     }) => {
@@ -265,10 +282,13 @@ test.describe('held upright', () => {
         expect(strip.y).toBeGreaterThanOrEqual(board.y + board.height - 1)
         expect(strip.y + strip.height).toBeLessThanOrEqual(Upright.height + 1)
 
-        // The board fills the view's height and overruns its width: a cover fit, and on the Map.
+        // The board, with the zoom row's band under it, fills the view's height and overruns its
+        // width: a cover fit, and on the Map.
         const drawn = await rect(surface(page))
+        const band = await rect(page.locator('[data-zoom-row-band]'))
         expect(drawn.width).toBeGreaterThan(board.width * 2)
-        expect(drawn.height).toBeGreaterThanOrEqual(board.height - 40)
+        expect(band.y).toBeCloseTo(drawn.y + drawn.height, 0)
+        expect(drawn.height + band.height).toBeGreaterThanOrEqual(board.height - 40)
         await expect(chip(page, 'map')).toHaveAttribute('aria-pressed', 'true')
         expect(drawn.x + drawn.width / 2).toBeCloseTo(board.x + board.width / 2, -1)
         await shot(page, 'phone-budget')

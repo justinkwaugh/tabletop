@@ -119,3 +119,62 @@ export async function settled(page: Page) {
 export async function shot(page: Page, name: string) {
     await page.screenshot({ path: test.info().outputPath(`${name}.png`) })
 }
+
+/**
+ * The score track's spaces the zoom row stands over: Key, Supply and the zoom buttons against every
+ * space shown in the board's view, each as "space N under ‹what›". Contract, Symbol key and Supply.
+ */
+export async function scoreSpacesCovered(page: Page): Promise<string[]> {
+    return page.evaluate(() => {
+        const view = document.querySelector('[data-board-view]')?.getBoundingClientRect()
+        const row: [string, Element | null | undefined][] = [
+            ['Key', document.querySelector('[data-symbol-key-toggle]')],
+            ['Supply', document.querySelector('[data-supply-toggle]')],
+            ['zoom', document.querySelector('button[aria-label="Zoom in"]')?.parentElement]
+        ]
+        const covered: string[] = []
+        for (const space of document.querySelectorAll('[data-score-space]')) {
+            const box = space.getBoundingClientRect()
+            const shown =
+                view !== undefined &&
+                box.right > view.left &&
+                box.left < view.right &&
+                box.bottom > view.top &&
+                box.top < view.bottom
+            for (const [name, element] of row) {
+                const over = element?.getBoundingClientRect()
+                if (
+                    shown &&
+                    over &&
+                    over.right > box.left + 1 &&
+                    over.left < box.right - 1 &&
+                    over.bottom > box.top + 1 &&
+                    over.top < box.bottom - 1
+                ) {
+                    covered.push(`space ${space.getAttribute('data-score-space')} under ${name}`)
+                }
+            }
+        }
+        return covered
+    })
+}
+
+/** Zooms in `zooms` presses, then drags the board as far as it goes toward its lower-left corner. */
+export async function zoomToLowerLeft(page: Page, zooms: number) {
+    for (let press = 0; press < zooms; press += 1) {
+        await page.getByRole('button', { name: 'Zoom in' }).click()
+        await page.waitForTimeout(250)
+    }
+    const view = await page.locator('[data-board-view]').boundingBox()
+    if (!view) {
+        throw new Error('no board view')
+    }
+    const from = { x: view.x + view.width * 0.3, y: view.y + view.height * 0.6 }
+    for (let drag = 0; drag < 4; drag += 1) {
+        await page.mouse.move(from.x, from.y)
+        await page.mouse.down()
+        await page.mouse.move(from.x + view.width * 0.6, from.y - view.height * 0.5, { steps: 8 })
+        await page.mouse.up()
+    }
+    await page.waitForTimeout(400)
+}

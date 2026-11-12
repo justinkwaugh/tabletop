@@ -44,6 +44,15 @@ export interface PickFrame {
 export const CoverBelowScale = 0.2
 /** The chips' height over the board's top edge, kept clear when the board rests or frames. */
 export const ChooserInset = 36
+/**
+ * Contract, Symbol key and Supply: an empty band in board units under the board's frame, scaled
+ * with it, so the zoom row (the zoom buttons, Key and Supply) stands under the frame and never over
+ * the score track, at rest or zoomed to the lower edge. At the smallest scale the board rests at
+ * when its height binds, a phone's cover fit, it still holds the 40 px row.
+ */
+export const ZoomRowBand = 128
+/** What the scaling wrapper fits: the board and the band under it. */
+export const ScaledHeight = BoardHeight + ZoomRowBand
 /** Contract, Pick framing: how far past its rest a pick may bring the board. */
 export const PickFrameZoom = 2.5
 /** Room in screen pixels round what is framed. */
@@ -84,7 +93,7 @@ export function rectOfArea(area: FramedArea): BoardRect {
 /** The scale the board rests at in a view this size, as the scaling wrapper reckons it. */
 export function restScaleOf(viewWidth: number, viewHeight: number): number {
     const across = viewWidth / BoardWidth
-    const down = Math.max(1, viewHeight - ChooserInset) / BoardHeight
+    const down = Math.max(1, viewHeight - ChooserInset) / ScaledHeight
     const contain = Math.min(across, down, 1)
     return contain >= CoverBelowScale ? contain : Math.min(Math.max(across, down), 1)
 }
