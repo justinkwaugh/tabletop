@@ -1,0 +1,103 @@
+import type { HexId } from '../data/hexes.js'
+import type { RailroadId } from '../data/railroads.js'
+import { adjacentHexIds, USA_CITIES, usaHex } from '../data/usaMap.js'
+import type { Track } from '../model/gameState.js'
+import { isEastCoastHex } from './placement.js'
+import { isWestCoastCity } from './startRailroad.js'
+import { hasTrackIn, railroadsIn } from './track.js'
+
+// R-4.3.3-H2: a line is priced by whether it changes railroad only in city hexes.
+export type TranscontinentalLine = {
+    changesRailroadOnlyInCities: boolean
+}
+
+// R-4.3.3-H1: the railroad the line travels on, and which railroads have carried it a step.
+type LineState = {
+    hexId: HexId
+    railroadId: RailroadId
+    firstCarrier: RailroadId | undefined
+    twoCarriers: boolean
+    changedRailroadOutsideCity: boolean
+}
+
+// R-4.3.3, R-4.3.3-H1, R-4.3.3-H2: the best Transcontinental line on the track, if any. A line
+// starts in a West Coast city and ends in an East Coast city; it steps along one railroad's
+// track to an adjacent hex, or changes railroad in a hex holding both, and needs at least two
+// railroads each carrying it at least one step. A line is a walk and may pass a hex twice.
+export function transcontinentalLine(track: Track): TranscontinentalLine | undefined {
+    const queue = westCoastStates(track)
+    const seen = new Set(queue.map(stateKey))
+    let found: TranscontinentalLine | undefined
+    for (let index = 0; index < queue.length; index++) {
+        const state = queue[index]
+        if (state.twoCarriers && isEastCoastHex(state.hexId)) {
+            if (!state.changedRailroadOutsideCity) {
+                return { changesRailroadOnlyInCities: true }
+            }
+            found = { changesRailroadOnlyInCities: false }
+        }
+        for (const next of nextStates(track, state)) {
+            const key = stateKey(next)
+            if (!seen.has(key)) {
+                seen.add(key)
+                queue.push(next)
+            }
+        }
+    }
+    return found
+}
+
+function westCoastStates(track: Track): LineState[] {
+    return USA_CITIES.filter(isWestCoastCity).flatMap((city) =>
+        railroadsIn(track, city.hexId).map((railroadId) => ({
+            hexId: city.hexId,
+            railroadId,
+            firstCarrier: undefined,
+            twoCarriers: false,
+            changedRailroadOutsideCity: false
+        }))
+    )
+}
+
+function nextStates(track: Track, state: LineState): LineState[] {
+    return [...steps(track, state), ...railroadChanges(track, state)]
+}
+
+function steps(track: Track, state: LineState): LineState[] {
+    const carried = carriedBy(state, state.railroadId)
+    return adjacentHexIds(state.hexId)
+        .filter((hexId) => hasTrackIn(track, hexId, state.railroadId))
+        .map((hexId) => ({ ...state, ...carried, hexId }))
+}
+
+// R-4.3.3-H1: railroads join only where both have a locomotive in the same hex.
+function railroadChanges(track: Track, state: LineState): LineState[] {
+    const changedRailroadOutsideCity =
+        state.changedRailroadOutsideCity || usaHex(state.hexId).terrain !== 'city'
+    return railroadsIn(track, state.hexId)
+        .filter((railroadId) => railroadId !== state.railroadId)
+        .map((railroadId) => ({ ...state, railroadId, changedRailroadOutsideCity }))
+}
+
+function carriedBy(
+    state: LineState,
+    railroadId: RailroadId
+): Pick<LineState, 'firstCarrier' | 'twoCarriers'> {
+    if (state.twoCarriers) {
+        return { firstCarrier: undefined, twoCarriers: true }
+    }
+    if (state.firstCarrier === undefined || state.firstCarrier === railroadId) {
+        return { firstCarrier: railroadId, twoCarriers: false }
+    }
+    return { firstCarrier: undefined, twoCarriers: true }
+}
+
+function stateKey(state: LineState): string {
+    return [
+        state.hexId,
+        state.railroadId,
+        state.firstCarrier ?? '',
+        state.twoCarriers,
+        state.changedRailroadOutsideCity
+    ].join('|')
+}

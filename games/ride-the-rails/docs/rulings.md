@@ -31,8 +31,8 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 ### Building bonuses (R-4.3)
 
 - **R-4.3.2-H1** (Q8): a $5 city's bonus goes with the first locomotive placed in the city. A railroad that starts there uses the bonus up without earning it, and no railroad that later builds in earns it ("No bonus is given … if a Railroad starts in the city"). Rejected: a start not counting as "building into" the city, so that the first railroad to build in from a neighbouring hex still earns $5. Spec: `bonuses.spec.ts`.
-- **R-4.3.3-H1** (Q19): the Transcontinental needs a line of at least two different railroads; two railroads connect where both have a locomotive in the same hex, and locomotives of different railroads in adjacent hexes do not connect. Rejected: one railroad alone crossing coast to coast. Spec: `bonuses.spec.ts`.
-- **R-4.3.3-H2** (Q20): the Transcontinental pays $12 if some line it completes changes railroad only in city hexes, and $8 otherwise. It goes, once, to the player whose placement first completes any qualifying line. Rejected: pricing by the junction the completing placement made. Spec: `bonuses.spec.ts`.
+- **R-4.3.3-H1** (Q19): the Transcontinental needs a line of at least two different railroads; two railroads connect where both have a locomotive in the same hex, and locomotives of different railroads in adjacent hexes do not connect. Rejected: one railroad alone crossing coast to coast. Spec: `transcontinental.spec.ts` (the line search), `bonuses.spec.ts` (the placement that pays).
+- **R-4.3.3-H2** (Q20): the Transcontinental pays $12 if some line it completes changes railroad only in city hexes, and $8 otherwise. It goes, once, to the player whose placement first completes any qualifying line. Rejected: pricing by the junction the completing placement made. Spec: `transcontinental.spec.ts` (a line's price), `bonuses.spec.ts` (the placement that pays, once).
 
 ### Information and undo (R-5)
 
