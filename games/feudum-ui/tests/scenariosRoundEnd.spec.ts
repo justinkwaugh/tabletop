@@ -86,6 +86,9 @@ scenario('S53 R-4.10.1 Nourish choice', 'nourish-choice', async (table) => {
         table.phone ? 'Unfed: back to supply' : /^Every pawn must eat if you can feed it\./
     )
     await expect(table.primary()).toHaveText(/^Feed 2 · leave the [a-z]+$/)
+    if (table.phone) {
+        await expect(table.primary()).toBeInViewport({ ratio: 1 })
+    }
     await expect(table.panel().locator('[data-order-seat="Bram"] [data-fed-by-game]')).toHaveText(
         '· nothing to decide'
     )
@@ -123,6 +126,15 @@ scenario('S53 R-4.10.1 Nourish, every pawn fed', 'nourish-fed', async (table) =>
         await expect(table.primary().locator('[data-send-phone]')).toHaveText(
             /^Feed 3\s*·\s*food\s*3\s*$/
         )
+        // No preview path beside each feed, and the send stays in sight in the action area's cap.
+        await expect(table.panel().locator('[data-nourish-rows] [data-preview]')).toHaveCount(6)
+        for (const preview of await table
+            .panel()
+            .locator('[data-nourish-rows] [data-preview]')
+            .all()) {
+            await expect(preview).toBeHidden()
+        }
+        await expect(table.primary()).toBeInViewport({ ratio: 1 })
     } else {
         await expect(table.panel().locator('[data-nourish-pays]')).toContainText('you keep')
         await expect(table.primary()).toHaveText('Feed 3 pawns · 3 food')
