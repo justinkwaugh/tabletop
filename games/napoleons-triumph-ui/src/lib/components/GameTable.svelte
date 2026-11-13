@@ -9,6 +9,7 @@
         HistoryControls,
         DefaultTabs,
         saveToDevice,
+        visualClientRect,
         type DefaultTab
     } from '@tabletop/frontend-components'
     import { assert, type Point } from '@tabletop/common'
@@ -160,7 +161,7 @@
     // The orders sheet hangs over the top of the board, so pieces picked up beneath it are brought out from under it at the zoom the board already has.
     function uncover(sprite: GroupSprite, sheet: Element, animate: boolean) {
         const pieces = boardHost?.querySelector(`[data-group="${CSS.escape(sprite.group.key)}"]`)
-        if (pieces && pieces.getBoundingClientRect().top < sheet.getBoundingClientRect().bottom) {
+        if (pieces && visualClientRect(pieces).top < sheet.getBoundingClientRect().bottom) {
             panAtThisZoom(sprite.blocks.flatMap(blockCorners), animate)
         }
     }
@@ -226,7 +227,7 @@
 
     function panIfOutOfView(shape: Element | null | undefined, locale: number, animate: boolean) {
         if (!shape || !boardHost) return
-        const at = shape.getBoundingClientRect()
+        const at = visualClientRect(shape)
         const host = boardHost.getBoundingClientRect()
         const band = seenBand(host)
         const inView =
