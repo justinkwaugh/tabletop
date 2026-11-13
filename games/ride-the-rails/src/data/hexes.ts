@@ -6,7 +6,8 @@ import {
     type AxialCoordinates
 } from '@tabletop/common'
 
-export const HexId = Type.TemplateLiteral('hex.usa.${number}-${number}')
+// The default lets `Value.Create` build an action schema that holds a hex; every action sets its own.
+export const HexId = Type.TemplateLiteral('hex.usa.${number}-${number}', { default: 'hex.usa.0-0' })
 export type HexId = Type.Static<typeof HexId>
 
 export type DoubledCoordinates = {
