@@ -39,7 +39,7 @@
             <span class="caption">reserve</span>
             <PieceTally
                 color={playerState.color}
-                stacks={tallyStacks(Array<DiscKind>(Math.max(0, reserve)).fill(PieceKind.Basic), 3)}
+                stacks={tallyStacks(Array<DiscKind>(reserve).fill(PieceKind.Basic), 3)}
             />
         </div>
         <div class="line">
