@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/napoleons-triumph-ui",
-    "version": "6.18.0",
+    "version": "7.0.0",
     "private": true,
     "type": "module",
     "prettier": "@tabletop/prettier-config",
