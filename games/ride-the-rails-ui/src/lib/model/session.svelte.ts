@@ -9,8 +9,11 @@ import {
     MachineState,
     PassJourney,
     PlaceLocomotive,
+    RideJourney,
     TakeShare,
     isBuildingTurnOf,
+    isRidingPlayer,
+    usaCity,
     shareableRailroads,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -32,6 +35,27 @@ import {
     type BuildStage
 } from './buildStage.js'
 import { hexChangedBetween } from './hexDetail.js'
+import {
+    EMPTY_JOURNEY_OFFER,
+    bestRoute,
+    heldJourneyStage,
+    journeyBoardOffer,
+    journeyOffer,
+    type JourneyCity,
+    type JourneyDraft,
+    type JourneyOffer,
+    type JourneyPopup,
+    type JourneyPreview
+} from './journeyOffer.js'
+import {
+    JourneyStageOrder,
+    closeRailroadChoice,
+    openRailroadChoice,
+    pickJourneyStart,
+    pushDraftLink,
+    replaceDraftLinks,
+    type JourneyStage
+} from './journeyStage.js'
 
 type SessionOptions = ConstructorParameters<
     typeof GameSession<RideTheRailsGameState, HydratedRideTheRailsGameState>
@@ -47,6 +71,7 @@ export class RideTheRailsGameSession extends GameSession<
     HydratedRideTheRailsGameState
 > {
     private buildStage: BuildStage = $state({})
+    private journeyStage: JourneyStage = $state({})
     private shownHexId: HexId | undefined = $state()
     private spotlight: RailroadSpotlight | undefined = $state()
 
@@ -59,6 +84,13 @@ export class RideTheRailsGameSession extends GameSession<
                 (stage) => (this.buildStage = stage)
             )
         )
+        this.localSelections.register(
+            undoableStagedSelection(
+                JourneyStageOrder,
+                () => this.heldJourney,
+                (stage) => (this.journeyStage = stage)
+            )
+        )
     }
 
     myPlayerId = $derived(this.myPlayer?.id)
@@ -68,6 +100,28 @@ export class RideTheRailsGameSession extends GameSession<
             !this.isViewingHistory &&
             !this.updatingVisibleState &&
             !this.gameState.result
+    )
+
+    // R-3.3.1: the deciding seat's journey; the draft is kept while the visible state updates.
+    private journeyRiderId: string | undefined = $derived.by(() => {
+        const playerId = this.myPlayerId
+        return this.isMyTurn &&
+            !this.isViewingHistory &&
+            !this.gameState.result &&
+            playerId !== undefined &&
+            isRidingPlayer(this.gameState, playerId)
+            ? playerId
+            : undefined
+    })
+
+    private heldJourney: JourneyStage = $derived(
+        this.journeyRiderId ? heldJourneyStage(this.gameState, this.journeyStage) : {}
+    )
+
+    private offeredJourney: JourneyOffer = $derived(
+        this.journeyRiderId && !this.updatingVisibleState
+            ? journeyOffer(this.gameState, this.heldJourney, this.journeyRiderId)
+            : EMPTY_JOURNEY_OFFER
     )
 
     takingShare = $derived(this.canAct && this.gameState.machineState === MachineState.TakingShares)
@@ -104,11 +158,17 @@ export class RideTheRailsGameSession extends GameSession<
     )
 
     boardOffer: BoardOffer = $derived(
-        boardOffer(this.gameState, this.offeredHexes, this.buildHexId)
+        this.journeyRiderId
+            ? journeyBoardOffer(this.offeredJourney)
+            : boardOffer(this.gameState, this.offeredHexes, this.buildHexId)
     )
 
     // U-1, U-2, U-5: a lit hex places or asks which railroad; any other hex is shown.
     async pressHex(hexId: HexId) {
+        if (this.journeyRiderId) {
+            this.pressJourneyHex(hexId)
+            return
+        }
         const offered = this.offeredHexes.find((hex) => hex.hexId === hexId)
         if (!offered) {
             this.shownHexId = this.shownHexId === hexId ? undefined : hexId
@@ -164,6 +224,88 @@ export class RideTheRailsGameSession extends GameSession<
         this.closeHexDetail()
         if (this.canPassJourney) {
             await this.applyAction(this.createPlayerAction(PassJourney, {}))
+        }
+    }
+
+    journeyDraft: JourneyDraft | undefined = $derived(this.offeredJourney.draft)
+
+    // R-3.3.1, R-3.3.2, R-3.3.3: the passenger cities to start from, then the cities to extend to.
+    journeyLit: JourneyCity[] = $derived(this.offeredJourney.lit)
+
+    // R-3.3.2: the railroads that can make the link to a city, with what each pays the seat.
+    journeyPopup: JourneyPopup | undefined = $derived(this.offeredJourney.popup)
+
+    // R-3.3.4, R-3.3.5: what RideJourney would pay now.
+    journeyPreview: JourneyPreview | undefined = $derived(this.offeredJourney.preview)
+
+    canRideJourney = $derived(this.journeyPreview !== undefined)
+
+    canChooseBestRoute = $derived(this.journeyDraft !== undefined)
+
+    private pressJourneyHex(hexId: HexId) {
+        const offer = this.offeredJourney
+        if (offer.draft && this.isJourneyStart(offer.draft, hexId)) {
+            this.closeHexDetail()
+            this.journeyStage = {}
+            return
+        }
+        const city = offer.lit.find((lit) => lit.hexId === hexId)
+        if (!city) {
+            this.shownHexId = this.shownHexId === hexId ? undefined : hexId
+            return
+        }
+        this.closeHexDetail()
+        this.journeyStage = this.journeyStageAfterPress(offer, city)
+    }
+
+    private isJourneyStart(draft: JourneyDraft, hexId: HexId): boolean {
+        return usaCity(draft.startCityId).hexId === hexId
+    }
+
+    private journeyStageAfterPress(offer: JourneyOffer, city: JourneyCity): JourneyStage {
+        const held = this.heldJourney
+        if (!offer.draft) {
+            return pickJourneyStart(held, city.cityId)
+        }
+        if (city.railroadIds.length === 1) {
+            return pushDraftLink(held, { cityId: city.cityId, railroadId: city.railroadIds[0] })
+        }
+        return offer.popup?.cityId === city.cityId
+            ? closeRailroadChoice(held)
+            : openRailroadChoice(held, city.cityId)
+    }
+
+    chooseLinkRailroad(railroadId: RailroadId) {
+        const popup = this.journeyPopup
+        if (popup?.chips.some((chip) => chip.railroadId === railroadId)) {
+            this.closeHexDetail()
+            this.journeyStage = pushDraftLink(this.heldJourney, {
+                cityId: popup.cityId,
+                railroadId
+            })
+        }
+    }
+
+    // R-3.3, R-X.1: Best route fills the draft; the seat may Undo links from it and extend again.
+    chooseBestRoute() {
+        const draft = this.journeyDraft
+        const riderId = this.journeyRiderId
+        if (!draft || !riderId) {
+            return
+        }
+        const links = bestRoute(this.gameState, draft.startCityId, riderId)
+        if (links) {
+            this.closeHexDetail()
+            this.journeyStage = replaceDraftLinks(this.heldJourney, links)
+        }
+    }
+
+    // R-3.3.1, R-3.3.2, R-X.1: the seat sends the hexes of the route it named.
+    async rideJourney() {
+        this.closeHexDetail()
+        const draft = this.journeyDraft
+        if (draft && this.canRideJourney) {
+            await this.applyAction(this.createPlayerAction(RideJourney, { links: draft.links }))
         }
     }
 
