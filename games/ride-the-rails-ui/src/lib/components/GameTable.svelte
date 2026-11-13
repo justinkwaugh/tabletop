@@ -14,6 +14,9 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import BoardPopups from '$lib/components/board/BoardPopups.svelte'
+    import HexDetailCard from '$lib/components/board/HexDetailCard.svelte'
+    import { FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import { DisplayFontFamily } from '$lib/definitions/fonts.js'
@@ -32,7 +35,15 @@
         throw new Error('GameTable expected a RideTheRailsGameSession')
     }
 
-    setGameSession(untrack(() => ensureRideTheRailsGameSession(gameSession)))
+    const session = untrack(() => ensureRideTheRailsGameSession(gameSession))
+    setGameSession(session)
+
+    let wrapper = $state<ScalingWrapper>()
+
+    // Contract, Coexistence and precedence: during a map pick the hex detail opens in the side panel.
+    const sidePanelHexId = $derived(
+        session.hexDetailInSidePanel ? session.hexDetailHexId : undefined
+    )
 </script>
 
 <CustomFont
@@ -42,9 +53,14 @@
     fontWeight="700"
 />
 
-<div>
+<div class="bg-rtr-table">
     <DefaultTableLayout>
         {#snippet sideContent()}
+            {#if sidePanelHexId}
+                {#key sidePanelHexId}
+                    <HexDetailCard hexId={sidePanelHexId} />
+                {/key}
+            {/if}
             <DefaultSideContent>
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -55,10 +71,24 @@
             </DefaultSideContent>
         {/snippet}
         {#snippet gameContent()}
+            <!-- The turn header and the action area take this slot. -->
             <div class="shrink-0"></div>
             <div class="grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper justify="center" controls="bottom-left">
-                    <Board />
+                <ScalingWrapper
+                    bind:this={wrapper}
+                    justify="center"
+                    controls="bottom-left"
+                    maxScale={2}
+                    coverBelowScale={0.3}
+                    renderAtViewScale
+                    expandable
+                >
+                    <Board viewScale={wrapper?.viewScale() ?? FITTED_DESKTOP_SCALE} />
+                    {#snippet toolbar()}
+                        <!-- Outside the content's CSS zoom, which would shrink and misplace the popups,
+                             and inside full screen's dialog. -->
+                        <BoardPopups />
+                    {/snippet}
                 </ScalingWrapper>
             </div>
         {/snippet}

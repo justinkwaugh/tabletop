@@ -15,17 +15,26 @@ function slot(x: number, y: number, width: number): TrackSlot {
     return { x, y, width, height: width / LOCOMOTIVE_ASPECT }
 }
 
-const OPEN_HEX_WIDTH = 26
-const CITY_WIDTH = 24
+// About half a hex wide, as the art plan draws them, as large as each hex leaves room for.
+const OPEN_HEX_WIDTH = 32
+const OPEN_HEX_COLUMN_X = 16.5
+const CITY_WIDTH = 28
+const CITY_COLUMN_X = 14.25
 const CITY_TRACK_Y = 14
-const CHICAGO_WIDTH = 16
+const CHICAGO_WIDTH = 18
 const CHICAGO_ROW_Y = 17
-const CHICAGO_COLUMN_X = 18
+const CHICAGO_COLUMN_X = 19
 
 // R-4.1.4: two locomotives side by side, one in an East Coast city, Chicago two rows around its station.
 const SLOT_OFFSETS: Readonly<Record<TrackSlotLayout, readonly TrackSlot[]>> = {
-    'open-hex': [slot(-14.5, 0, OPEN_HEX_WIDTH), slot(14.5, 0, OPEN_HEX_WIDTH)],
-    city: [slot(-13.5, CITY_TRACK_Y, CITY_WIDTH), slot(13.5, CITY_TRACK_Y, CITY_WIDTH)],
+    'open-hex': [
+        slot(-OPEN_HEX_COLUMN_X, 0, OPEN_HEX_WIDTH),
+        slot(OPEN_HEX_COLUMN_X, 0, OPEN_HEX_WIDTH)
+    ],
+    city: [
+        slot(-CITY_COLUMN_X, CITY_TRACK_Y, CITY_WIDTH),
+        slot(CITY_COLUMN_X, CITY_TRACK_Y, CITY_WIDTH)
+    ],
     'east-coast-city': [slot(0, CITY_TRACK_Y, CITY_WIDTH)],
     chicago: [-CHICAGO_ROW_Y, CHICAGO_ROW_Y].flatMap((y) =>
         [-CHICAGO_COLUMN_X, 0, CHICAGO_COLUMN_X].map((x) => slot(x, y, CHICAGO_WIDTH))
