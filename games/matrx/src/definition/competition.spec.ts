@@ -14,7 +14,6 @@ const orders = [
     [P2, P1]
 ]
 
-// The same position with the two players' seats exchanged.
 function swapPlayers(state: MatrxGameState): MatrxGameState {
     const swapped = JSON.stringify(state).replace(/"p1"|"p2"/g, (id) =>
         id === `"${P1}"` ? `"${P2}"` : `"${P1}"`

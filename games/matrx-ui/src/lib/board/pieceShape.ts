@@ -3,8 +3,7 @@ import type { BoardView } from './geometry.js'
 import type { Point } from '@tabletop/common'
 import { hull } from './hull.js'
 
-// MATRX GIPF's disc, drawn as a lathe of shaded slices under a banded top. The game shows it
-// pre-rendered: rerun scripts/render-looks.mjs after changing anything here.
+// The game shows these pre-rendered: rerun scripts/render-looks.mjs after changing anything here.
 
 export type Tone = 'light' | 'dark'
 
@@ -26,7 +25,6 @@ const TURNS: Record<PieceKind, number> = {
 export function turnOf(kind: PieceKind, id: number | undefined, farSide = false): number {
     const half = farSide ? 180 / TURN_STEP : 0
     if (id === undefined) return half % TURNS[kind]
-    // Ids count up one by one; mixed, neighbours lie unrelated ways round.
     let hash = Math.imul(id ^ (id >>> 16), 0x85ebca6b)
     hash = Math.imul(hash ^ (hash >>> 13), 0xc2b2ae35)
     hash ^= hash >>> 16
@@ -57,7 +55,6 @@ export function lookBox(
     return { x: -radius - margin, y: -top, width: 2 * (radius + margin), height: top + bottom }
 }
 
-// All as fractions of the piece's radius.
 export const THICKNESS = 0.2826
 const BASE_ROUND = THICKNESS * 0.25
 const RIM_ROUND = THICKNESS * 0.3
@@ -83,8 +80,7 @@ const ZERTZ_ALONG = 24
 const ZERTZ_MOUTH_ROWS = 4
 const CARVE_MIN = 0.006
 const CARVE_FADE = 0.012
-// The board is seen from this steep an angle: a surface sloping away from you more steeply
-// faces away.
+// Seen this steeply, a surface sloping away from you more steeply than this faces away.
 const FACING_AWAY_SLOPE = -1.1
 const DVONN = { lip: 0.385, hole: 0.36, drop: THICKNESS * 0.1 }
 const YINSH_HALF_WIDTH = (TROUGH.outer - TROUGH.inner) / 2
@@ -94,8 +90,7 @@ const YINSH_ROUND = 0.05
 const YINSH_ROUND_IN = 0.01
 const YINSH_ALONG = 240
 const YINSH_ACROSS = 104
-// Where the channel slants, the top it cut away had hidden the groove's inner wall beside it, which
-// shows now.
+// Where the channel slants, the groove's inner wall it uncovers shows.
 const YINSH_MOUTH_SPILL = 0.1
 const YINSH_TURNS = 48
 const PUNCT_NOTCHES = 6
@@ -191,7 +186,6 @@ export function pieceDrawing(view: BoardView, discs: number, radius: number): Pi
     }
 }
 
-// PÜNCT's crease keeps its notches open, so they run on down through the stack.
 export function creaseOf(view: BoardView, disc: Disc, radius: number): string {
     const flat = onFlat(view, radius)
     const notches = disc.kind === PieceKind.Punct ? punctCentres(disc.turn ?? 0) : []
@@ -225,8 +219,7 @@ function onFlat(view: BoardView, radius: number) {
     })
 }
 
-// At each height the strips end where the side's circle crosses the notch's, as the side's bands
-// do, so their edges meet with no gap.
+// Strips end where the side's circle crosses the notch's, as the side's bands do, so no gap shows.
 function notchWalls(
     flat: (u: number, v: number, height?: number) => Point,
     centre: number,
@@ -267,8 +260,7 @@ function notchWalls(
             v: along.v * Math.sin(middle) - across.v * Math.cos(middle)
         }
         if (normal.v >= 0) return []
-        // Each strip reaches a little into the next, so no seam shows; not past the lips, where the
-        // side goes on.
+        // Each strip overlaps the next, but not past the lips, so no seam shows.
         const overlap = step * 0.3
         const left = Math.max(0, from - overlap)
         const right = Math.min(1, from + step + overlap)
@@ -315,8 +307,7 @@ function carvedCells(
         behind?: string
         colorAt?: (u: number, v: number, carve: number) => string | undefined
         uncut?: (u: number, v: number) => boolean
-        // Drawn whole, fading by colorAt instead: what lies beneath may not be the surface cut
-        // from, and overlapping cells would show where they overlap.
+        // Drawn whole, fading by colorAt: the surface beneath may differ, and overlaps would show.
         opaque?: boolean
     } = {}
 ): Strip[] {
@@ -340,8 +331,7 @@ function carvedCells(
                     )
                 ),
                 fill: color,
-                // Barely cut, a cell fades into the surface it was cut from, so the carving's
-                // edge is soft rather than stepped.
+                // Barely cut, a cell fades into its surface, so the carving's edge is soft.
                 opacity: opaque ? 1 : Math.min(1, carve / CARVE_FADE),
                 depth: v
             })
@@ -363,7 +353,6 @@ function rimNotch(
     const along = { u: Math.cos(a), v: Math.sin(a) }
     const across = { u: -Math.sin(a), v: Math.cos(a) }
     const r = ZERTZ_RADIUS
-    // Turned further away, the board shows through it above its profile.
     const facesYou = along.v < 0.4
     const reach = facesYou ? 1 : TOP_RADIUS
     const at = (out: number, side: number, height: number) =>
@@ -437,8 +426,7 @@ function rimNotch(
         at(1.3, -width, THICKNESS)
     ])
     return {
-        // Facing you, nothing is cut: the backing and the notch's surface cover all it takes
-        // away, and a cut's soft edge under them showed as a seam.
+        // Facing you nothing is cut: a cut's soft edge showed as a seam under the backing.
         through: facesYou ? [] : [beyond],
         clip: [footprint, inGroove],
         backing: [footprint],
@@ -518,8 +506,7 @@ export function topBands(view: BoardView, kind: PieceKind, radius: number, tone:
         const steep = Math.min(1, slope / 0.6)
         const depth = (THICKNESS - (outerHeight + innerHeight) / 2) / TROUGH_DEPTH
         const base = mix(flat, floor, Math.min(1, depth))
-        // Each near half reaches out under the band outside it, which is drawn after it, so no
-        // seam shows between them.
+        // Each near half reaches under the band outside it, drawn after it, so no seam shows.
         const reach = edges[Math.max(0, index - 1)]
         return {
             outer: ellipse(outerHeight, outer),
@@ -574,8 +561,7 @@ export function markOf(view: BoardView, disc: Disc, radius: number): Mark | unde
     }
 }
 
-// Angles run anticlockwise as you look, 0 to the right; a mark is a cut along an angle, `off` to
-// its left of the centre, `from` to `to` along.
+// Angles run anticlockwise as you look, 0 to the right; `off` is a cut's offset left of centre.
 export function markGaps(disc: Disc, at: number): [number, number][] {
     const turn = (TURN_STEP * (disc.turn ?? 0) * Math.PI) / 180
     const cuts: { angle: number; off: number; from: number; to: number; half: number }[] = []
@@ -621,8 +607,7 @@ export function markGaps(disc: Disc, at: number): [number, number][] {
 }
 const GAP_MARGIN = 0.05
 
-// PÜNCT's side is built from bands between the notches rather than drawn whole and cut, so each
-// notch's edges are exact at every height.
+// PÜNCT's side is built from bands between the notches, not cut, so notch edges are exact.
 function punctNotches(view: BoardView, radius: number, tone: Tone, turn: number): Mark {
     const flat = onFlat(view, radius)
     const r = PUNCT_RADIUS
@@ -668,7 +653,6 @@ function punctNotches(view: BoardView, radius: number, tone: Tone, turn: number)
                             ]),
                             level: level(profile(middle).facing)
                         },
-                        // The same at every height, so a stretch's bands stay bottom up.
                         away: Math.sin(
                             (Math.max(centre, within[0]) + Math.min(next, within[1])) / 2
                         )
@@ -707,8 +691,7 @@ function punctNotches(view: BoardView, radius: number, tone: Tone, turn: number)
     return { kind: 'cuts', parts, topCuts, outline: discOutline(view, radius) }
 }
 
-// YINSH's channel is drawn with the groove's floor in its mouth, so that turned to the far side the
-// groove shows through there rather than the top.
+// The groove's floor in the channel's mouth shows through when the board is turned.
 function yinshChannel(view: BoardView, radius: number, tone: Tone, turn: number): Mark {
     const flat = onFlat(view, radius)
     const angle = (TURN_STEP * turn * Math.PI) / 180
@@ -744,8 +727,7 @@ function yinshChannel(view: BoardView, radius: number, tone: Tone, turn: number)
               )
             : THICKNESS - Math.max(ringDepth, channelDepth)
     }
-    // In its mouth on the far side the top's bands drew the ring groove's inner lip over its wall
-    // and floor: cut from the top, they are drawn whole rather than fading into it.
+    // Cut from the top in its mouth, the bands are drawn whole, not faded, or they covered the lip.
     const onFloor = (u: number, v: number) => {
         const distance = Math.hypot(u, v)
         return (
@@ -855,7 +837,7 @@ function yinshChannel(view: BoardView, radius: number, tone: Tone, turn: number)
     }
 }
 
-// Lit from the left, as the pieces' sides are; undefined where it faces away, out of sight.
+// Undefined where it faces away, out of sight.
 function shadeAt(
     tone: Tone,
     height: (u: number, v: number) => number,

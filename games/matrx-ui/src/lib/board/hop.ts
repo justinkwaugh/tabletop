@@ -19,9 +19,8 @@ export const GROUND_EASE = 'sine.inOut'
 const FOOTPRINT = (2 * PIECE_RADIUS) / SPACING
 const SAMPLES = 100
 
-// The flier sets off as soon as its footprint would not reach a stack it passes over before it is
-// higher than that stack, and tops out over the stack that sets its height, so it never climbs
-// again once past it.
+// The flier sets off once its footprint clears every stack it passes before it is higher, and tops
+// out over the stack that sets its height, so it never climbs again once past it.
 export type HopPlan = {
     duration: number
     startLift: number

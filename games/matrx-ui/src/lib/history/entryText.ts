@@ -45,7 +45,6 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
             ]
         }
         case 'push': {
-            // An extra move pushes in a single TAMSK piece.
             const discs = entry.extra ? 1 : discsBroughtIn(entry.piece)
             const tamsk = entry.tamskOwnerId !== undefined
             return [

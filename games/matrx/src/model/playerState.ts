@@ -13,7 +13,6 @@ export const Potentials = Type.Object({
     [PieceKind.Punct]: Type.Integer({ minimum: 0 })
 })
 
-// The opponent's pieces a player has taken, as discs of each kind.
 export type Captured = Type.Static<typeof Captured>
 export const Captured = Type.Object({
     [PieceKind.Gipf]: Type.Integer({ minimum: 0 }),

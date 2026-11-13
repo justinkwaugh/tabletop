@@ -33,8 +33,7 @@ export function isPotentialKind(kind: PieceKind): kind is PotentialKind {
     return kind !== PieceKind.Gipf
 }
 
-// A unit is a single piece, or an unused stack of two potentials of one kind and colour: one disc
-// id or two, bottom first. Each disc keeps its id from entering the board until it leaves.
+// A single piece, or an unused stack of two potentials: one disc id or two, bottom first.
 export type Unit = Type.Static<typeof Unit>
 export const Unit = Type.Object({
     playerId: Type.String(),
@@ -159,7 +158,6 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         return entry.line.findIndex((coords) => this.isEmpty(coords))
     }
 
-    // Returns the centre's stack when the push moves one onto it.
     push(entry: Entry, unit: Unit): Unit[] | undefined {
         const gap = this.shiftedBy(entry)
         if (gap < 0) {
@@ -275,7 +273,7 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         return { playerId, from: run[0], to: run[run.length - 1], run, reach }
     }
 
-    // Rule E1: stacks of two in a row's reach may stay; every single piece goes.
+    // Rule E1: stacks of two in a row's reach may stay, but the row of four must be broken.
     pairsIn(row: Row): AxialCoordinates[] {
         return row.reach.filter((coords) => {
             const top = this.topAt(coords)
@@ -283,7 +281,6 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         })
     }
 
-    // Rule E1: what stays is stacks of two in the reach, and the row of four is broken.
     isValidRemoval(row: Row, keep: readonly AxialCoordinates[]): boolean {
         const pairs = this.pairsIn(row)
         const kept = (coords: AxialCoordinates) => keep.some((k) => sameCoordinates(k, coords))

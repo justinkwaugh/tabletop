@@ -33,8 +33,6 @@ export function isRemoveRow(action?: GameAction): action is RemoveRow {
     return action?.type === ActionType.RemoveRow
 }
 
-// Rule E1: every single piece in the row's reach goes; stacks of two may stay, but the row of
-// four must be broken.
 export class HydratedRemoveRow extends HydratableAction<typeof RemoveRow> implements RemoveRow {
     declare type: ActionType.RemoveRow
     declare playerId: string

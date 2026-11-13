@@ -116,7 +116,6 @@ export function legalActions(game: MatrxGame, state: MatrxGameState): GameAction
     }
 }
 
-// Plays legal actions chosen by a seeded generator until the game ends.
 export function playToEnd(game: MatrxGame, state: MatrxGameState, seed: number): MatrxGameState {
     let value = seed + 1
     const choose = <T>(options: T[]): T => {

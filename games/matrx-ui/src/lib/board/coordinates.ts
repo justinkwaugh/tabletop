@@ -20,7 +20,6 @@ export type CoordinateLabel = {
 export function boardNotation(view: BoardView): BoardNotation {
     const positions = view.geometry.points
     const columns = [...new Set(positions.map((coords) => coords.q))].sort((a, b) => a - b)
-    // Each column's bottom (largest r) and top point.
     const ends = new Map(
         columns.map((q) => {
             const rows = positions.filter((coords) => coords.q === q).map((coords) => coords.r)

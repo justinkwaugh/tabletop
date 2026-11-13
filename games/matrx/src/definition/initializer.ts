@@ -75,9 +75,8 @@ export class MatrxGameInitializer
         return new HydratedMatrxGameState(matrxGameState)
     }
 
-    // The game creator is the player whose user created the game; in a local game every seat
-    // belongs to that user, so the first listed seat counts as the creator's. A creator who does
-    // not play leaves White to the draw.
+    // In a local game every seat is the creator's user's, so the first seat counts as theirs. A
+    // creator who does not play leaves White to the draw.
     private chosenWhite(game: Game): StartingPositionAssignment | undefined {
         const choice = whitePlayerFromConfig(game.config)
         const creator = game.players.find((player) => player.userId === game.ownerId)

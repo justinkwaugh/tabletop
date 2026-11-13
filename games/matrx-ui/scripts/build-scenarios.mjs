@@ -21,12 +21,9 @@ const BLACK = 'player-2'
 const KINDS = { g: 'gipf', t: 'tamsk', z: 'zertz', d: 'dvonn', y: 'yinsh', p: 'punct' }
 const POTENTIALS = ['tamsk', 'zertz', 'dvonn', 'yinsh', 'punct']
 
-/**
- * White to move. Stacks are point names to units read bottom to top, separated by spaces: a
- * letter for the kind (G GIPF, T TAMSK, Z ZÈRTZ, D DVONN, Y YINSH, P PÜNCT), a capital for
- * White's and lower case for Black's, and a 2 after a potential for an unused stack of two.
- * Each player's reserve holds what is not on the board, unless `reserves` says otherwise.
- */
+// White to move. Each stack lists its units bottom up: G T Z D Y P for the kind, a capital for
+// White's, a trailing 2 for a stack of two. Reserves hold what is off the board unless `reserves`
+// says otherwise.
 function position(stacks, { board = 'Matrx', reserves = {} } = {}) {
     const game = MatrxRuntime.initializer.initializeGame(
         {

@@ -98,8 +98,7 @@
               drops: boolean
           }
 
-    // The stack coming in is drawn at its dot's depth: the line it pushes moves with it, so the
-    // order holds as it slides.
+    // Drawn at its dot's depth: the line it pushes moves with it, so the order holds as it slides.
     const drawOrder: Drawn[] = $derived.by(() => {
         const drawn: Drawn[] = animator.stacks.map((stack) => ({
             kind: 'stack',
@@ -120,8 +119,7 @@
         return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     })
 
-    // E5's mark is not on the real board: a reminder that a TAMSK stack pushed there earns an extra
-    // move.
+    // Not on the real board: a reminder of TAMSK's extra move.
     const centre = $derived(view.center(CENTRE))
     const STATION_RADIUS = PIECE_RADIUS + 4
     const STATION_INNER = PIECE_RADIUS * 0.4
@@ -224,8 +222,7 @@
         return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
     }
 
-    // Arc lengths are in dash-and-gap units, so a dashed ring has whole dashes and a broken one a
-    // dash at each end of every arc.
+    // In dash-and-gap units: whole dashes round a ring, and a dash at each end of a broken arc.
     function topRing(
         discs: readonly BoardDisc[],
         radius: number,
@@ -289,7 +286,7 @@
         return `M ${flat(baseX, baseY)} L ${flat(tipX, tipY)} M ${flat(tipX - ux * wing - uy * wing, tipY - uy * wing + ux * wing)} L ${flat(tipX, tipY)} L ${flat(tipX - ux * wing + uy * wing, tipY - uy * wing - ux * wing)}`
     }
 
-    // Only bodies are copied: a shadow drawn twice shows darker.
+    // Bodies only: a shadow drawn twice shows darker.
     const occluding = $derived(
         animator.flier
             ? animator.stacks.filter((stack) => !animator.flier?.passes.includes(stack.key))
@@ -684,7 +681,6 @@
         stroke-width: 1.6;
     }
 
-    /* The lines run through the outer ring to the inner one, filled to stop them there. */
     .station ellipse {
         fill: none;
         stroke: var(--matrx-line);

@@ -17,7 +17,6 @@ export const LIFT_OFF = { duration: 0.18, rise: -30, fade: 'power2.in', scale: 1
 
 type Timeline = gsap.core.Timeline
 
-// How long each disc falls, and how far apart they start.
 export type DropTiming = { fall: number; stagger: number; wobble: readonly number[] }
 
 // Undo and history steps have no action, so a drop of `discs` ends by 0.18 s, without the wobble.

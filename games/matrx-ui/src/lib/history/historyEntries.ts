@@ -59,7 +59,6 @@ function takingOf(action: GameAction): Taking | undefined {
     }
 }
 
-// Rows read from the lower point to the higher: by column, then up the column.
 function inReadingOrder(
     a: AxialCoordinates,
     b: AxialCoordinates
@@ -102,8 +101,7 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
     return undefined
 }
 
-// Each move gets an entry, and the rows its player takes right after it join it; rows taken by
-// the other player, or before a move, get their own.
+// A move's own rows join its entry; any other rows get their own.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {

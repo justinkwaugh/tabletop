@@ -1,6 +1,5 @@
-// Pre-renders every disc's look to src/lib/images/looks and writes board/lookUrls.ts. Drawn live,
-// the looks' thousands of paths made the game slow on phones, and as SVG images iPhone browsers
-// redrew each one every frame it moved. Rerun after changing how a disc is drawn, with the harness
+// Pre-renders every disc's look to src/lib/images/looks and writes board/lookUrls.ts: drawn live,
+// the looks were slow on phones. Rerun after changing how a disc is drawn, with the harness
 // running: node scripts/render-looks.mjs (PORT defaults to 5173)
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -46,9 +45,8 @@ const files = await page.evaluate(() => {
     })
 })
 
-// Pixels per board unit: the board fits at up to 2.5 pixels per unit (GameTable's maxFitScale), and
-// the readiness review allows images up to 2.5 times the size they are drawn at, so a disc is about
-// 335 px across. Zoomed further in, as far as 4 pixels per unit, the pieces are a little soft.
+// Pixels per board unit: 2.5 times the board's largest fitted scale (GameTable's maxFitScale),
+// about 2x HiDPI with headroom. Zoomed in further, to 4, the pieces are a little soft.
 const SCALE = 2.5 * 2.5
 // Drawn larger and halved down, the seams between a groove's many bands blend away.
 const SUPERSAMPLE = 4

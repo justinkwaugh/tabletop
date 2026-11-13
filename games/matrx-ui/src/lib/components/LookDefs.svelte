@@ -3,7 +3,6 @@
 <script lang="ts">
     import { SHADE_LEVELS, sideStops, TONES, wallColors } from '$lib/board/pieceShape.js'
 
-    // For the looks page alone: the game shows the looks as images, so none of this reaches it.
     let { prefix }: { prefix: string } = $props()
 
     const levels = Array.from({ length: SHADE_LEVELS }, (_, level) => level)

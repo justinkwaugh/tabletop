@@ -7,7 +7,6 @@
     import type { PieceParts } from '$lib/animators/drop.js'
     import PieceShape from './PieceShape.svelte'
 
-    // `bodyId` names the body, to copy it without the shadow.
     let {
         discs,
         view,

@@ -103,7 +103,6 @@ function removeRow(
     return execute(game, state, action)
 }
 
-// A unit as the tests place it; withPieces numbers its discs.
 type Piece = Omit<Unit, 'discIds'> & { paired: boolean }
 
 const pair = (playerId: string, kind: PieceKind): Piece => ({ playerId, kind, paired: true })
@@ -155,7 +154,6 @@ function withPieces(
 }
 
 const boardOf = (state: MatrxGameState) => new HydratedMatrxGameState(state).board
-// A stack's units, without their disc ids.
 const stackAt = (state: MatrxGameState, name: string) =>
     boardOf(state)
         .stackAt(at(name))

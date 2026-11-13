@@ -43,7 +43,6 @@ import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
-// Lets the session stop the move the board animator is playing.
 export type MoveInterrupter = {
     // Lands the move at once; the rest of its replay still plays.
     interrupt(): void
@@ -64,15 +63,13 @@ type SessionOptions = ConstructorParameters<
 
 export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxGameState> {
     selection: MatrxSelection = $state({})
-    // Anyone but the selection's owner, as the harness's Non-active view can be after an Undo,
-    // sees none of it, and Undo passes it by.
+    // Anyone but its owner, as the Non-active view after an Undo, sees none of it; Undo passes by.
     private selectionOwner: string | undefined = $state()
     private ownSelection: MatrxSelection = $derived(
         this.selectionOwner !== undefined && this.selectionOwner === this.myPlayer?.id
             ? this.selection
             : {}
     )
-    // The kind you last chose to bring in, kept from turn to turn.
     preferredKind: PieceKind | undefined = $state()
     undoingMove: StepBack | undefined
     historyMove: StepBack | undefined
@@ -233,7 +230,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.chosenRow ? this.gameState.board.pairsIn(this.chosenRow) : []
     )
 
-    // Your own stacks stay and the opponent's go unless you mark them otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
         const manual = this.ownSelection.keep?.value
         if (manual === undefined) {
@@ -285,8 +281,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return action !== undefined && this.isStepBack(action) ? action : undefined
     }
 
-    // None when the view passes to the other player as the Undo lands, as the harness's
-    // Non-active view does.
+    // None when the view passes to the other player as the Undo lands (the Non-active view).
     restagedMove(to: Pick<MatrxGameState, 'actionCount'>): StepBack | undefined {
         const move = this.undoingMove
         if (move === undefined || move.index !== to.actionCount) return undefined
@@ -310,8 +305,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return setMatrxSelection({}, 'dot', move.dot)
     }
 
-    // Once a move is played, its motion runs on the state it started from, whose choices still
-    // show as they fade; taps on them do nothing until the new state lands.
+    // A move's motion runs on the state it started from, whose choices still show as they fade.
     private get moving(): boolean {
         return this.updatingVisibleState
     }
@@ -322,8 +316,6 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.preferredKind = kind
     }
 
-    // Choosing the chosen dot again brings in the next potential you hold instead; with only one
-    // to choose from, or a GIPF piece or extra move standing there, it lets go.
     chooseDot(dot: AxialCoordinates) {
         if (this.moving) return
         if (!includesCoords(this.entryDots, dot)) return

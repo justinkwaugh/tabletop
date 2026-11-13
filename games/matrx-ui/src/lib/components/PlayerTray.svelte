@@ -52,7 +52,6 @@
 </div>
 
 <style>
-    /* Light enough for black pieces to stand out as well as white ones. */
     .tray {
         border-radius: 12px;
         background: var(--matrx-card);

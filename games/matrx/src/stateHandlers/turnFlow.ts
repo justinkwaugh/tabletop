@@ -22,9 +22,8 @@ export function afterMove(
     return continueResolving(state)
 }
 
-// Rules E6–E7: rows go one at a time, the mover's first; after each, rows are found again, since
-// a removal can uncover a piece that completes a new one. The turn ends only when no row of
-// either colour stands, so a row the opponent's removal uncovers for the mover goes in this turn.
+// Rules E6–E7: rows go one at a time, the mover's first, and are found again after each removal;
+// the turn ends only when no row of either colour stands.
 export function continueResolving(state: HydratedMatrxGameState): MachineState {
     const beaten = state.players.find((player) => state.gipfPiecesLeft(player.playerId) === 0)
     if (beaten !== undefined) {
@@ -48,7 +47,6 @@ export function continueResolving(state: HydratedMatrxGameState): MachineState {
     }
 }
 
-// Rows are only taken after the turn's regular move, so taking the last one ends the turn.
 function endTurn(state: HydratedMatrxGameState): MachineState {
     const { turnManager } = state
     const playerId = turnManager.currentTurn()?.playerId
@@ -59,8 +57,7 @@ function endTurn(state: HydratedMatrxGameState): MachineState {
     return beginTurn(state, state.opponentOf(playerId))
 }
 
-// Rule H1: a turn opens with an extra move the opponent gave. Both players' rows were taken
-// after the last move, so none stand when a turn begins.
+// Rule H1: a turn opens with an extra move the opponent gave.
 function beginTurn(state: HydratedMatrxGameState, playerId: string): MachineState {
     const owed = state.extraMoveOwedIds.includes(playerId)
     state.extraMoveOwedIds = state.extraMoveOwedIds.filter((owedId) => owedId !== playerId)

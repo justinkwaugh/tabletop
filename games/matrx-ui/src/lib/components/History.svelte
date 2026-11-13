@@ -51,7 +51,6 @@
 </div>
 
 <style>
-    /* Light like the player panels, so black pieces show as well as white. */
     .history {
         background: var(--matrx-card);
         color: var(--matrx-card-ink);

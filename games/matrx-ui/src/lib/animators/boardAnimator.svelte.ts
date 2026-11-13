@@ -54,11 +54,9 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 const SLIDE = 0.35
 const TAKE: Lift = { duration: 0.55, rise: -34, fade: 'power1.out' }
 const MARK_FADE = 0.2
-// GIPF pieces taken back from a row drop onto their reserve dot as the row lifts away.
 const RESERVE_DROP_AT = 0.15
 const QUICK = 0.18
-// A push taken back that no one restages slides back to its dot and lifts off there; slide and
-// lift overlap so the change stays within an actionless step's 0.2s.
+// Slide and lift overlap so the change stays within an actionless step's 0.2 s.
 const UNPUSH_SLIDE = 0.14
 const UNPUSH_LIFT_AT = 0.06
 const UNPUSH_LIFT: Lift = { duration: 0.12, rise: LIFT_OFF.rise, fade: LIFT_OFF.fade }
@@ -114,11 +112,8 @@ export class BoardAnimator implements MoveInterrupter {
     stacks: DrawnStack[] = $derived.by(() => drawnStacks(this.session.gameState))
     entering: Entering | undefined = $state()
     flier: Flier | undefined = $state()
-    // Until the state lands: your pushed stack stays off its dot, and an undone one stands on it.
     pushedIn: boolean = $derived.by(() => this.untilLanded(false))
     returned: Entering | undefined = $derived.by(() => this.untilLanded(undefined))
-    // GIPF pieces a step returns to a player's reserve are drawn on its dot from the step's start,
-    // so they can drop on.
     reserveCounts: Map<string, number> | undefined = $derived.by(() => this.untilLanded(undefined))
 
     private readonly stackNodes = new Map<number, StackNodes>()
@@ -152,7 +147,6 @@ export class BoardAnimator implements MoveInterrupter {
         this.abandoned = this.session.presentingState
     }
 
-    // Ends the shared context's timeline at once, so the move lands without waiting out its length.
     private finishMove() {
         const timeline = this.playing
         if (timeline === undefined) return
@@ -240,8 +234,7 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Hidden by `display`: a copy hidden by `visibility` still paints any part that sets its own
-    // visibility.
+    // By `display`: a copy hidden by `visibility` still paints any part setting its own.
     occluder(stack: DrawnStack): Attachment<SVGUseElement> {
         return (node) => {
             node.style.display = 'none'
@@ -282,8 +275,7 @@ export class BoardAnimator implements MoveInterrupter {
         this.playing = animationContext.actionTimeline
         const shown = this.session.gameState
         const quick = action === undefined
-        // onHistoryAction names the action before the one a step back undoes, so a step back
-        // reads the move by its index.
+        // onHistoryAction names the action before the one a step back undoes, so read it by index.
         const known =
             action ??
             (to.actionCount < from.actionCount
@@ -293,8 +285,7 @@ export class BoardAnimator implements MoveInterrupter {
                   : undefined)
         const placement = isPushPiece(known) || isExtraMove(known) ? known : undefined
         const change = boardChange(from.board, to.board, placement)
-        // Spot nodes are reused by whatever stack next stands there, so each one a move touches is
-        // reset.
+        // Spot nodes are reused by whatever stack stands there next, so each one touched is reset.
         const touched: SVGGElement[] = []
         let returned: Entering | undefined
 
@@ -317,8 +308,7 @@ export class BoardAnimator implements MoveInterrupter {
         }
         const drawing = performance.now()
         await tick()
-        // The context's timelines run from the moment it is made, just before this listener, so
-        // the motion starts after the time taken to draw rather than skipping it.
+        // The context's timelines run from its creation, so the motion starts after the draw time.
         const timeline = gsap.timeline()
         // An actionless step has 0.2 s in all, so it waits at most 0.02 s for the draw.
         const drawn = (performance.now() - drawing) / 1000
@@ -406,7 +396,6 @@ export class BoardAnimator implements MoveInterrupter {
         const discs = discsOf([unit])
         const duration = quick ? QUICK : SLIDE
         if (change.forward) {
-            // Your own stack already stands on its dot; anyone else's drops onto it first.
             const own = kind === 'own-action'
             const at = own || quick ? 0 : landing(discs.length)
             if (own) this.pushedIn = true
@@ -425,7 +414,6 @@ export class BoardAnimator implements MoveInterrupter {
             if (at > 0) this.dropEntering(timeline)
             return undefined
         }
-        // Your own Undo leaves the stack staged on its dot; any other step back lifts it off.
         const along = alongLine(line, this)
         const back = { x: -along.x, y: -along.y }
         const toDot = this.offset(line[0], dot)
@@ -537,7 +525,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Discs from `from` up drop onto a stack, and its shadow with the first if it was empty.
     private dropOnto(
         coords: AxialCoordinates,
         from: number,
@@ -702,8 +689,7 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Only stacks the flier is level with across the screen are copied over it, so the copies'
-    // soft edges, drawn twice, don't come and go on stacks it never passes.
+    // Only stacks level with the flier are copied over it, so their soft edges don't flicker.
     private occlude(groundX: number, groundY: number, lift: number) {
         for (const [use, { x, y, top }] of this.occluders) {
             const beside = Math.abs(x - groundX) < PIECE_RADIUS * 2
@@ -784,9 +770,8 @@ function register(nodes: Map<number, SVGGElement>, index: number): Attachment<SV
     }
 }
 
-// An extra move taken back gives the centre's pair its top piece again, which drops back onto it
-// where the pair stands as the step starts: on the centre, or a spot on if the push carried it
-// along, from where it slides back with the line.
+// The pair regains its piece where it stands as the step starts: on the centre, or a spot on if
+// the push carried it, from where it slides back with the line.
 function regainedAt(change: PushChange | MoveChange | DiscsChange): AxialCoordinates | undefined {
     if (change.kind !== 'push' || change.forward || !change.fromCentre) return undefined
     const { line } = change.entry
@@ -808,8 +793,7 @@ function spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordi
     }))
 }
 
-// Set only on the nodes a move scales, as it starts: GSAP measures each node to place the origin,
-// and doing it for every disc as it was drawn took ten seconds to open a game on a phone.
+// Set only as a move scales them: GSAP measures each node; for every disc, a phone took 10 s.
 function scaledFromCentre(...nodes: SVGGElement[]): SVGGElement[] {
     gsap.set(nodes, { svgOrigin: '0 0' })
     return nodes

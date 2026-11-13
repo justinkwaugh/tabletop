@@ -165,7 +165,6 @@ export class HydratedMatrxGameState
         return covered
     }
 
-    // Returns the owner of a TAMSK stack the push lands on the centre.
     private push(entry: Entry, unit: Unit): string | undefined {
         const centre = this.board.push(entry, unit)
         const top = centre?.[centre.length - 1]

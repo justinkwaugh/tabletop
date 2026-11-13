@@ -3,16 +3,14 @@ import { isRemoveRow, PieceKind, type Captured } from '@tabletop/matrx'
 
 export const TALLY_HEIGHT = 5
 
-// The first taken stand at the right; each stack fills before the next starts on its left.
 export function tallyStacks<T>(taken: readonly T[], height = TALLY_HEIGHT): T[][] {
     return Array.from({ length: Math.ceil(taken.length / height) }, (_, index) =>
         taken.slice(index * height, (index + 1) * height)
     ).reverse()
 }
 
-// The opponent's discs a player took, oldest first, read from the rows they took among `actions`;
-// grouped by kind when those actions do not account for every capture, as when the history held
-// is incomplete.
+// Oldest first, from the player's rows taken in `actions`; grouped by kind when those do not
+// account for every capture.
 export function capturedInOrder(
     playerId: string,
     captured: Captured,
