@@ -43,9 +43,9 @@ export const Presentation1849: TitlePresentation<State1849> = {
         SMS: 'Lay or upgrade a tile in a coastal city, then place a station there'
     },
     corporateFinance: {
-        issue: 'Sell',
+        issue: 'Issue',
         issueNote:
-            'Sell treasury certificates to the bank pool, the price dropping a row for each share, or buy one back.'
+            'Issue treasury certificates to the bank pool, the price dropping a row for each share, or redeem one.'
     },
     // The two-share last certificate, marked wherever it is held (§9.6).
     // The Bonds variant's bond, the family's corporate loan (§14.2).
