@@ -1,8 +1,7 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
+    pushStagedSelectionValue,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -54,18 +53,15 @@ export function setGipfPotentialsSelection<TStage extends keyof GipfPotentialsSe
           )
 }
 
-export function hasManualGipfPotentialsSelection(selection: GipfPotentialsSelection): boolean {
-    return hasManualStagedSelection<GipfPotentialsSelectionValues>(
-        selection,
-        GipfPotentialsStageOrder
-    )
-}
-
-export function popGipfPotentialsSelection(
-    selection: GipfPotentialsSelection
+// A stacked stage, so Undo takes back one tap at a time.
+export function pushGipfPotentialsKeep(
+    selection: GipfPotentialsSelection,
+    keep: number[]
 ): GipfPotentialsSelection {
-    return popHighestManualStagedSelection<GipfPotentialsSelectionValues>(
+    return pushStagedSelectionValue<GipfPotentialsSelectionValues, 'keep'>(
         selection,
-        GipfPotentialsStageOrder
-    ).nextState
+        GipfPotentialsStageOrder,
+        'keep',
+        keep
+    )
 }
