@@ -68,7 +68,11 @@ export const RideTheRailsGameState = Type.Refine(
             Type.Object({
                 players: Type.Array(RideTheRailsPlayerState),
                 machineState: Type.Enum(MachineState),
-                rideTheRailsRevision: Type.Integer({ minimum: 1 }),
+                // R-X.3: a state from a later revision than this code knows is refused.
+                rideTheRailsRevision: Type.Integer({
+                    minimum: 1,
+                    maximum: CURRENT_RIDE_THE_RAILS_REVISION
+                }),
                 mapId: MapId,
                 roundManager: RoundManager,
                 phaseManager: PhaseManager,

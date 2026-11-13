@@ -4,6 +4,7 @@ import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { buildState, freshState, type StateRecipe } from '../testing/fixtures.js'
 import {
+    CURRENT_RIDE_THE_RAILS_REVISION,
     HydratedRideTheRailsGameState,
     RideTheRailsGameStateValidator,
     type RideTheRailsGameState
@@ -230,5 +231,15 @@ describe('the canonical validator', () => {
                     track: { ...state.track, 'hex.usa.99-99': ['railroad.red'] }
                 })
         ).toThrow()
+    })
+
+    it('R-X.3: refuses to hydrate a revision this code does not know', () => {
+        const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
+        const later = { ...state, rideTheRailsRevision: CURRENT_RIDE_THE_RAILS_REVISION + 1 }
+        expect(RideTheRailsGameStateValidator.Check(later)).toBe(false)
+        expect(() => new HydratedRideTheRailsGameState(later)).toThrow()
+        expect(RideTheRailsGameStateValidator.Check({ ...state, rideTheRailsRevision: 0 })).toBe(
+            false
+        )
     })
 })
