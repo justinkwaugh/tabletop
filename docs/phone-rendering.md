@@ -67,12 +67,12 @@ Done means the open and heaviest-interaction memory and the repaint time are rec
 
 ## Phone reports
 
-| Symptom                                                 | Cause                           | Next step                                                                                                           |
-| ------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Page reloads, with no Action posted and no error logged | Tab killed for memory           | Measure RSS around the reported step and remove suspects one at a time                                              |
-| Long frames with no slow script                         | Restyle or paint                | Ask the user for a Safari Web Inspector timeline export; read what precedes each long `recalculate-styles` or paint |
-| Board or pieces vanish for a moment                     | Offscreen bitmaps exhausted     | Find fades and filters whose area is a sheet or the board                                                           |
-| Text sits high or low; pieces spread when zoomed        | Baseline or `matrix` under zoom | Apply [Correct drawing across browsers](#correct-drawing-across-browsers)                                           |
-| Overlay on the board misplaced or missing, older Safari | Rect measured under zoom        | Apply [Correct drawing across browsers](#correct-drawing-across-browsers)                                           |
+| Symptom                                                 | Cause                              | Next step                                                                                                           |
+| ------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Page reloads, with no Action posted and no error logged | Tab killed for memory              | Measure RSS around the reported step and remove suspects one at a time                                              |
+| Long frames with no slow script                         | Restyle or paint                   | Ask the user for a Safari Web Inspector timeline export; read what precedes each long `recalculate-styles` or paint |
+| Board or pieces vanish for a moment                     | Offscreen bitmaps exhausted        | Find fades and filters whose area is a sheet or the board                                                           |
+| Text sits high or low; pieces spread when zoomed        | Baseline or `matrix` under zoom    | Apply [Correct drawing across browsers](#correct-drawing-across-browsers)                                           |
+| Overlay on the board misplaced or missing, older Safari | `getBoundingClientRect` under zoom | Apply [Correct drawing across browsers](#correct-drawing-across-browsers)                                           |
 
 Playwright WebKit reproduces the memory and repaint costs; the user's iPhone confirms the fix.

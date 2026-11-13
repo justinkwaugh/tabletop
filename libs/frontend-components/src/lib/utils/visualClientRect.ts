@@ -1,11 +1,11 @@
-let rectsLeaveOutZoom: boolean | undefined
+let omitsZoom: boolean | undefined
 
 /**
  * Whether this browser reports the rect of an element inside CSS `zoom` divided by that zoom,
  * as Safari 26.0 and older do; Chromium, Firefox and later WebKit report it as drawn.
  */
-function leavesOutZoom(): boolean {
-    if (rectsLeaveOutZoom !== undefined) return rectsLeaveOutZoom
+function rectsOmitZoom(): boolean {
+    if (omitsZoom !== undefined) return omitsZoom
     const zoomed = document.createElement('div')
     zoomed.style.cssText =
         'position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; zoom: 0.5'
@@ -13,9 +13,9 @@ function leavesOutZoom(): boolean {
     probe.style.cssText = 'width: 100px; height: 1px'
     zoomed.append(probe)
     document.body.append(zoomed)
-    rectsLeaveOutZoom = Math.round(probe.getBoundingClientRect().width) === 100
+    omitsZoom = Math.round(probe.getBoundingClientRect().width) === 100
     zoomed.remove()
-    return rectsLeaveOutZoom
+    return omitsZoom
 }
 
 /**
@@ -25,7 +25,7 @@ function leavesOutZoom(): boolean {
  */
 export function visualClientRect(element: Element): DOMRect {
     const rect = element.getBoundingClientRect()
-    if (!leavesOutZoom()) return rect
+    if (!rectsOmitZoom()) return rect
     let zoom = 1
     for (let node: Element | null = element; node; node = node.parentElement)
         zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1

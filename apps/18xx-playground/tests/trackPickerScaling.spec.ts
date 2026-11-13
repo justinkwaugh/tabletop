@@ -6,7 +6,6 @@ test('the track picker opens on its hex where getBoundingClientRect leaves out C
     // Safari 26.0 and older report a rect inside a CSS-zoomed element divided by its zoom.
     await page.addInitScript(() => {
         const measure = Element.prototype.getBoundingClientRect
-        Object.assign(window, { trueRect: (element: Element) => measure.call(element) })
         Element.prototype.getBoundingClientRect = function (this: Element) {
             let zoom = Number.parseFloat(getComputedStyle(this).zoom) || 1
             for (let node = this.parentElement; node; node = node.parentElement)
@@ -21,11 +20,16 @@ test('the track picker opens on its hex where getBoundingClientRect leaves out C
     await page.locator('[data-map-location="K17"]').click()
     await page.locator('[data-map-tile-choice="18xx:8"]').click()
     await expect(page.locator('.picker')).toHaveAttribute('data-track-motion', 'false')
+    const boardZoom = await page.locator('.map-scene').evaluate((svg) => {
+        const zoomed = svg.closest<HTMLElement>('[style*="zoom"]')
+        return zoomed ? Number.parseFloat(getComputedStyle(zoomed).zoom) : 1
+    })
+    expect(boardZoom).toBeLessThan(0.9)
     await expect
         .poll(() =>
             page.locator('.map-scene').evaluate((svg) => {
-                const trueRect = (window as unknown as { trueRect(element: Element): DOMRect })
-                    .trueRect
+                // The fake above patches only getBoundingClientRect, so this is the rect as drawn.
+                const trueRect = (element: Element) => element.getClientRects()[0]
                 if (!(svg instanceof SVGSVGElement)) throw new Error('Missing map SVG')
                 const hex = document.querySelector('[data-map-location="K17"]')
                 const tile = document.querySelector('.tile-choice.chosen')
