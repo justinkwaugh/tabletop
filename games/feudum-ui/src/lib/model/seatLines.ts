@@ -91,7 +91,8 @@ function holdingsLine({
             .map(({ vessel, count }) => ({ item: 'vessel' as const, vessel, count })),
         ...(pouch.status === 'finalised' ||
         pouch.status === 'drafted' ||
-        pouch.status === 'committed'
+        pouch.status === 'committed' ||
+        pouch.status === 'sealed'
             ? [{ item: 'pouch' as const, pouch }]
             : [])
     ]

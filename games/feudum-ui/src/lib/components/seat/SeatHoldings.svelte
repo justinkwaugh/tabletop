@@ -1,5 +1,8 @@
 <script lang="ts">
+    import { prefersReducedMotion } from 'svelte/motion'
+    import { turnOver } from '$lib/animators/turnOver.js'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
+    import LockMark from '$lib/components/pieces/LockMark.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import TileFace from '$lib/components/pieces/TileFace.svelte'
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
@@ -13,6 +16,8 @@
      * Contract, Seat panel, the holdings line: influence markers in supply, free discs, the wine
      * barrel, the writs, then tiles, vessels and the pouch good when held. Another seat's writs are
      * a back with the count (R-4.4.4); the owner's are faces, and the deck note is their tooltip.
+     * Until every hand is final a seat's pouch is sealed: its own good under a lock, another's a lock
+     * alone (R-3.1-H1). At the reveal every pouch turns over at once.
      */
     let {
         items,
@@ -28,9 +33,12 @@
 
     function pouchWords(item: Extract<SeatHoldingsItem, { item: 'pouch' }>): string {
         const { pouch } = item
+        if (pouch.status === 'sealed') {
+            return 'pouch: hidden until all finalise'
+        }
         return pouch.status === 'finalised'
             ? `pouch: ${pouch.good}, ${pouch.note}${pouch.spent ? ', spent' : ''}`
-            : `pouch: ${pouch.good}, ${pouch.status}`
+            : `pouch: ${pouch.good}, ${pouch.status === 'committed' ? 'sealed' : pouch.status}`
     }
 </script>
 
@@ -189,18 +197,47 @@
             </span>
         {:else}
             {@const pouch = entry.pouch}
-            <span
-                class="flex items-center"
-                class:spent={pouch.status === 'finalised' && pouch.spent}
-                class:drafted={pouch.status === 'drafted' || pouch.status === 'committed'}
-                title={pouchWords(entry)}
-                data-seat-section="pouch"
-                data-pouch={pouch.status}
-                data-pouch-good={pouch.good}
-                data-pouch-spent={pouch.status === 'finalised' && pouch.spent ? '' : undefined}
-            >
-                <GoodToken good={pouch.good} size={piece} />
-            </span>
+            <!-- R-3.1-H1 At the reveal every pouch turns over at once. -->
+            {#key pouch.status === 'finalised'}
+                <span class="flex" in:turnOver={{ reduced: prefersReducedMotion.current }}>
+                    {#if pouch.status === 'sealed'}
+                        <span
+                            class="sealed flex items-center gap-[0.25em]"
+                            title={pouchWords(entry)}
+                            data-seat-section="pouch"
+                            data-pouch="sealed"
+                        >
+                            <LockMark size={piece * 0.8} />
+                            <span class="note">hidden until all finalise</span>
+                        </span>
+                    {:else}
+                        <span
+                            class="flex items-center gap-[0.25em]"
+                            class:spent={pouch.status === 'finalised' && pouch.spent}
+                            title={pouchWords(entry)}
+                            data-seat-section="pouch"
+                            data-pouch={pouch.status}
+                            data-pouch-good={pouch.good}
+                            data-pouch-spent={pouch.status === 'finalised' && pouch.spent
+                                ? ''
+                                : undefined}
+                        >
+                            <span
+                                class="flex"
+                                class:drafted={pouch.status === 'drafted' ||
+                                    pouch.status === 'committed'}
+                                ><GoodToken good={pouch.good} size={piece} /></span
+                            >
+                            {#if pouch.status === 'committed'}
+                                <span class="sealed flex items-center gap-[0.15em]"
+                                    ><LockMark size={piece * 0.8} /><span class="note">sealed</span
+                                    ></span
+                                >
+                            {/if}
+                        </span>
+                    {/if}
+                </span>
+            {/key}
         {/if}
     {/each}
 </div>
@@ -217,5 +254,16 @@
     .drafted {
         outline: 1px dashed var(--feudum-wood-dark);
         border-radius: 0.2em;
+    }
+
+    /* R-3.1-H1 A sealed pouch says so beside its lock. */
+    .sealed {
+        color: var(--feudum-text-muted);
+    }
+
+    .note {
+        font-size: 0.85em;
+        font-style: italic;
+        white-space: nowrap;
     }
 </style>

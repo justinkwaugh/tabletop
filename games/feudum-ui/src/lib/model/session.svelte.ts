@@ -113,8 +113,15 @@ export interface StartingPawnPanel {
 export interface FinaliseRowEntry {
     readonly playerId: string
     readonly finalised: boolean
-    /** R-3.1-H1 This seat's own committed good: no seat sees another's before the reveal. */
-    readonly pouchGood?: PouchGood
+}
+
+/** R-3.1-H1 This seat's hand once finalised, and its pouch good, which no other seat sees yet. */
+export interface HandSet {
+    /** The hand in the order it was chosen. */
+    readonly cards: readonly ActionCardKind[]
+    readonly pouch?: { readonly good: PouchGood; readonly title: string }
+    /** "Round 4 · your hand is set" */
+    readonly line: string
 }
 
 export interface HandDrafting {
@@ -152,6 +159,8 @@ export interface HandPanel {
     readonly finaliseRow: readonly FinaliseRowEntry[]
     /** This seat's draft; absent once it has finalised, and for anyone watching. */
     readonly drafting?: HandDrafting
+    /** This seat's hand once it has finalised, until the reveal. */
+    readonly set?: HandSet
     /** R-3.1-H1 "Waiting for Ada and Bo to finalise", once this seat has nothing left to send. */
     readonly waiting?: string
 }
@@ -653,29 +662,39 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             return undefined
         }
         const me = this.myPlayerId
-        const finaliseRow = state.turnManager.turnOrder.map((playerId) => {
-            const finalised = selection.finalised.includes(playerId)
-            const { committedPouch } = state.getPlayerState(playerId)
-            return {
-                playerId,
-                finalised,
-                ...(finalised && playerId === me && committedPouch
-                    ? { pouchGood: committedPouch }
-                    : {})
-            }
-        })
+        const finaliseRow = state.turnManager.turnOrder.map((playerId) => ({
+            playerId,
+            finalised: selection.finalised.includes(playerId)
+        }))
         const drafting = this.handDrafting()
+        const set = me && selection.finalised.includes(me) ? this.handSet(me) : undefined
         const yet = finaliseRow
             .filter(({ playerId, finalised }) => !finalised && playerId !== me)
             .map(({ playerId }) => this.getPlayerName(playerId))
         return {
             finaliseRow,
             ...(drafting ? { drafting } : {}),
+            ...(set ? { set } : {}),
             ...(!drafting && yet.length > 0
                 ? { waiting: `Waiting for ${namesInWords(yet)} to finalise` }
                 : {})
         }
     })
+
+    /** R-3.1-H1 The seat's own hand and good, owner-known, as it finalised them. */
+    private handSet(me: string): HandSet {
+        const { hand, committedPouch } = this.gameState.getPlayerState(me)
+        const pouch = PouchRows.find(({ good }) => good === committedPouch)
+        return {
+            cards: hand ?? [],
+            ...(pouch ? { pouch: { good: pouch.good, title: pouch.title } } : {}),
+            line: `${this.roundLine()} · your hand is set`
+        }
+    }
+
+    private roundLine(): string {
+        return `Round ${this.gameState.roundManager.currentRound?.number ?? 1}`
+    }
 
     private handDrafting(): HandDrafting | undefined {
         const me = this.myPlayerId
@@ -703,7 +722,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                     ...(refusal ? { refusal } : {})
                 }
             }),
-            line: `Round ${this.gameState.roundManager.currentRound?.number ?? 1} · choose your hand`,
+            line: `${this.roundLine()} · choose your hand`,
             count: `${preview.chosen} of ${preview.required}`,
             ...(preview.conquerMayEndLast
                 ? { conquerWarning: 'Conquer may end up your last card; it would be forfeited.' }
@@ -977,7 +996,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return describeAction(action, {
             viewerId,
             hostView: this.isViewingHost,
-            nameOf: (id) => this.getPlayerName(id)
+            nameOf: (id) => this.getPlayerName(id),
+            seats: this.gameState.players.map(({ playerId }) => playerId)
         })
     }
 

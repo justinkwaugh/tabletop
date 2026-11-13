@@ -51,16 +51,9 @@ describe('R-3.1 the finalise row', () => {
     const row = markupOf({
         kind: 'finalise',
         entries: [
-            {
-                playerId: 'p1',
-                name: 'Ana',
-                paint,
-                finalised: true,
-                you: true,
-                pouchGood: 'saltpeter'
-            },
-            { playerId: 'p2', name: 'Ben', paint, finalised: true, you: false },
-            { playerId: 'p3', name: 'Cyd', paint, finalised: false, you: false }
+            { playerId: 'p1', name: 'Ana', paint, finalised: true, you: true, awaited: false },
+            { playerId: 'p2', name: 'Ben', paint, finalised: true, you: false, awaited: false },
+            { playerId: 'p3', name: 'Cyd', paint, finalised: false, you: false, awaited: true }
         ],
         caption: 'everyone at once · pouch goods shown when all have finalised',
         lead: 'Round 2 · choose your hand'
@@ -88,19 +81,82 @@ describe('R-3.1 the finalise row', () => {
         expect(chips).toEqual(['Ana (you) · finalised ✓', 'Ben · finalised ✓', 'Cyd · choosing'])
     })
 
-    it('S4 S8 R-3.1-H1 names the seats in order, ticks those done, shows only the pouch good given, marks no next', () => {
+    it('S4 S8 R-3.1-H1 names the seats in order, ticks those done, shows no pouch good, marks no next', () => {
         const seats = [...row.matchAll(/data-finalise-seat="([^"]+)"/g)].map(([, name]) => name)
         expect(seats).toEqual(['Ana', 'Ben', 'Cyd'])
         const [, ana, ben, cyd] = row.split('data-finalise-seat=')
         expect(ana).toContain('data-finalised')
         expect(ana).toContain('✓')
-        expect(ana).toContain('aria-label="saltpeter"')
+        expect(row).not.toContain('aria-label="saltpeter"')
+        expect(row).not.toContain('<svg')
         expect(ben).toContain('data-finalised')
-        expect(ben).not.toContain('aria-label="saltpeter"')
         expect(cyd).not.toContain('data-finalised')
         expect(cyd).not.toContain('✓')
         expect(row).not.toContain('data-next')
         expect(row).not.toContain('next to finalise')
+    })
+
+    it('S8 a seat still choosing, while the viewer waits on it, is marked waited on', () => {
+        const [, ana, ben, cyd] = row.split('data-finalise-seat=')
+        expect(cyd).toContain('data-awaited')
+        expect(ana).not.toContain('data-awaited')
+        expect(ben).not.toContain('data-awaited')
+    })
+})
+
+describe('R-3.1-H1 the hand once set: tray A shows it and the sealed pouch', () => {
+    const cards = [
+        { kind: 'move', number: 2, label: 'Move' },
+        { kind: 'tax', number: 7, label: 'Tax' },
+        { kind: 'guild', number: 9, label: 'Guild' },
+        { kind: 'explore', number: 1, label: 'Explore' }
+    ] as const
+    const waiting: ActionBlock = {
+        kind: 'line',
+        role: 'waiting',
+        text: 'Waiting for Ben and Cyd to finalise'
+    }
+    const sealed = markupOf(
+        { kind: 'hand-set', paint, cards, pouch: { good: 'sulfur', title: '2 in a row' } },
+        waiting
+    )
+    const plain = (markup: string) =>
+        markup
+            .replace(/<title>.*?<\/title>|<!--.*?-->|<[^>]+>/gs, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+
+    it('S8 the hand as its four faces, in the order chosen, under "Hand · set"', () => {
+        expect(sealed).toContain('data-hand-set')
+        const faces = [...sealed.matchAll(/data-set-card="([^"]+)"/g)].map(([, name]) => name)
+        expect(faces).toEqual(['Move', 'Tax', 'Guild', 'Explore'])
+        expect(plain(textOf(sealed, 'data-tray-label="hand"') ?? '')).toBe('Hand set')
+        // Nothing to press: the hand is final.
+        expect(sealed.slice(sealed.indexOf('data-hand-set'))).not.toContain('<button')
+    })
+
+    it('S8 R-3.1-H1 the pouch sealed: its good, its short name, a lock, hidden from the others', () => {
+        expect(plain(textOf(sealed, 'data-tray-label="pouch"') ?? '')).toBe('Pouch sealed')
+        const pouch = sealed.slice(sealed.indexOf('data-set-pouch'))
+        expect(sealed).toContain('data-set-pouch="sulfur"')
+        expect(pouch).toContain('aria-label="sulfur"')
+        expect(pouch).toContain('data-lock')
+        expect(plain(untitled(pouch))).toContain(
+            '2 in a row hidden from the others until the reveal'
+        )
+    })
+
+    it('S8 without a good the pouch reads none', () => {
+        const none = markupOf({ kind: 'hand-set', paint, cards })
+        expect(none).toContain('data-set-pouch="none"')
+        expect(plain(textOf(none, 'data-tray-label="pouch"') ?? '')).toBe('Pouch none')
+        expect(none).not.toContain('data-lock')
+    })
+
+    it('S8 R-3.1-H1 the waiting line stands right after the tray, in the accent', () => {
+        expect(sealed.indexOf('data-waiting')).toBeGreaterThan(sealed.indexOf('data-set-pouch'))
+        expect(textOf(sealed, 'data-waiting')).toBe('Waiting for Ben and Cyd to finalise')
+        expect(sealed).toMatch(/class="[^"]*text-feudum-accent[^"]*"[^>]*data-waiting/)
     })
 })
 
@@ -384,7 +440,16 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
             { kind: 'cards', tone: 'draft', paint, rows: [tax, move] },
             {
                 kind: 'finalise',
-                entries: [{ playerId: 'p1', name: 'Ana', paint, finalised: false, you: true }],
+                entries: [
+                    {
+                        playerId: 'p1',
+                        name: 'Ana',
+                        paint,
+                        finalised: false,
+                        you: true,
+                        awaited: false
+                    }
+                ],
                 caption: 'everyone at once · pouch goods shown when all have finalised',
                 lead: 'Round 2 · choose your hand',
                 stands: 'draft'

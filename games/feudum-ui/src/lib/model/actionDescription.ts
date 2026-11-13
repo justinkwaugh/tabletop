@@ -5,6 +5,7 @@ import {
     ChickenSpaces,
     type ChickenSpaceId,
     type ImproveMetadata,
+    type PouchGood,
     type SpaceId,
     GuildById,
     isAdvanceTurn,
@@ -86,6 +87,8 @@ export interface ActionLineView {
     /** S57 Host View is its own explicit look at the faces. */
     readonly hostView?: boolean
     readonly nameOf: (playerId: string) => string
+    /** The game's seats, for a line that names those it says nothing of (the reveal's "none"). */
+    readonly seats?: readonly string[]
 }
 
 /** A clause of a line, in the order it reads; nothing when it says nothing. */
@@ -126,6 +129,10 @@ function article(word: string): string {
 
 class Words {
     constructor(private readonly view: ActionLineView) {}
+
+    get seats(): readonly string[] | undefined {
+        return this.view.seats
+    }
 
     /** A seat as the subject of a sentence: "You moved", "Ana moved". */
     who(playerId: string): string {
@@ -261,17 +268,33 @@ function finaliseLine(action: GameAction, words: Words): string | undefined {
     )
 }
 
-/** R-3.1-H1, R-3.3 Once every hand is final, the pouch goods are shown together. */
+/** R-3.3 A pouch good by the short name its choice had. */
+const PouchTitles: Readonly<Record<PouchGood, string>> = {
+    saltpeter: '+1 card',
+    sulfur: '2 in a row'
+}
+
+/**
+ * R-3.1-H1, R-3.3 Once every hand is final, the pouch goods are shown together in one line: each
+ * good with its seat, then the seats without one.
+ */
 function revealLine(action: GameAction, words: Words): string | undefined {
     if (!isRevealPouches(action)) {
         return undefined
     }
-    const pouches = (action.metadata?.pouches ?? []).map(
-        ({ playerId, good }) => `${words.who(playerId)} ${good}`
+    const held = action.metadata?.pouches ?? []
+    if (held.length === 0) {
+        return sentence('All finalised', 'no pouch goods')
+    }
+    const pouches = held.map(
+        ({ playerId, good }) => `${words.who(playerId)} ${good} ${PouchTitles[good]}`
     )
+    const without = (words.seats ?? [])
+        .filter((playerId) => !held.some((pouch) => pouch.playerId === playerId))
+        .map((playerId) => words.who(playerId))
     return sentence(
-        'Every hand final',
-        pouches.length > 0 ? `pouches: ${listed(pouches)}` : 'no pouch goods'
+        `All finalised · pouch goods revealed: ${listed(pouches)}`,
+        without.length > 0 ? `${listed(without)}: none` : undefined
     )
 }
 

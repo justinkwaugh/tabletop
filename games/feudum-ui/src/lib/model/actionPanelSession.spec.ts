@@ -328,7 +328,13 @@ describe('Hand selection', () => {
         expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
         await sendNamed(session, 'Long live the king')
 
-        expect(row()?.[1]).toMatchObject({ finalised: true, pouchGood: 'sulfur' })
+        // R-3.1-H1 Its own good stands sealed in its tray, not on its chip.
+        expect(row()?.[1]).toMatchObject({ finalised: true })
+        expect(row()?.[1]).not.toHaveProperty('pouchGood')
+        expect(blockOf(session.actionPanel, 'hand-set')).toMatchObject({
+            cards: FourCards.map((kind) => ({ kind })),
+            pouch: { good: 'sulfur', title: '2 in a row' }
+        })
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
             `Waiting for ${session.getPlayerName(first)} to finalise`
         ])
@@ -336,6 +342,7 @@ describe('Hand selection', () => {
         const freshRow = () => blockOf(fresh.actionPanel, 'finalise')?.entries
         expect(freshRow()?.[1].finalised).toBe(true)
         expect(freshRow()?.[1]).not.toHaveProperty('pouchGood')
+        expect(blockOf(fresh.actionPanel, 'hand-set')).toBeUndefined()
         expect(primaryLabels(fresh.actionPanel)).toEqual(['Long live the king'])
 
         for (const kind of [...FourCards, 'harvest'] as const) {
@@ -556,6 +563,43 @@ describe('Hand selection', () => {
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
             `Waiting for ${session.getPlayerName(second)} and ${session.getPlayerName(third)} to finalise`
         ])
+    })
+
+    it('S8 R-3.1-H1 once sent: the hand set, the pouch sealed, and the seats still choosing waited on', async () => {
+        const table = await atHands()
+        const [first, second, third] = table.order
+        const session = await table.openSeat(first)
+        for (const kind of FourCards) {
+            await pressCard(session.actionPanel, kind)
+        }
+        await sendNamed(session, 'Long live the king')
+        const finalise = blockOf(session.actionPanel, 'finalise')
+        expect(finalise?.lead).toMatch(/^Round \d+ · your hand is set$/)
+        expect(finalise?.entries.map(({ playerId, awaited }) => [playerId, awaited])).toEqual([
+            [first, false],
+            [second, true],
+            [third, true]
+        ])
+        const set = blockOf(session.actionPanel, 'hand-set')
+        expect(set?.cards.map(({ kind }) => kind)).toEqual(FourCards)
+        expect(set?.cards.map(({ label }) => label)).toEqual(['Move', 'Tax', 'Guild', 'Explore'])
+        expect(set).not.toHaveProperty('pouch')
+        // The line stands right after the tray.
+        const kinds = session.actionPanel.blocks.map(({ kind }) => kind)
+        expect(kinds.indexOf('line')).toBe(kinds.indexOf('hand-set') + 1)
+
+        // Watching: the row and the line, no tray and no seat waited on.
+        const watching = await table.openSpectator()
+        expect(blockOf(watching.actionPanel, 'hand-set')).toBeUndefined()
+        expect(blockOf(watching.actionPanel, 'finalise')?.lead).toBeUndefined()
+        expect(
+            blockOf(watching.actionPanel, 'finalise')?.entries.some(({ awaited }) => awaited)
+        ).toBe(false)
+        // A seat still drafting waits on no one.
+        const drafting = await table.openSeat(second)
+        expect(
+            blockOf(drafting.actionPanel, 'finalise')?.entries.some(({ awaited }) => awaited)
+        ).toBe(false)
     })
 
     it('S9 R-3.1-H1 a reconciliation leaves the panel as drafted', async () => {

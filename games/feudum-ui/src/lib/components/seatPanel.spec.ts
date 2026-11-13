@@ -375,19 +375,55 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
             ).toEqual({ status: 'choosing' })
         })
 
-        it('Finalised without a good: empty for all', () => {
+        it('R-3.1-H1 Finalised without a good before the reveal: empty for the owner, sealed for others', () => {
             const state = pouchTable((row) => {
                 row.flow.selection = { finalised: [Owner] }
             })
-            expect(viewOf(state, Other).pouch).toEqual({ status: 'empty' })
+            expect(viewOf(state, Owner).pouch).toEqual({ status: 'empty' })
+            expect(viewOf(state, Other).pouch).toEqual({ status: 'sealed' })
         })
 
-        it('R-3.1-H1 Finalised with a good before the reveal: committed for the owner, empty for others', () => {
+        it('R-3.1-H1 Finalised with a good before the reveal: committed for the owner, sealed for others', () => {
             const state = pouchTable((row) => {
                 row.flow.selection = { finalised: [Owner] }
                 row.getPlayerState(Owner).committedPouch = 'sulfur'
             })
             expect(viewOf(state, Owner).pouch).toEqual({ status: 'committed', good: 'sulfur' })
+            // The others learn only that the hand is final, never whether a good went in.
+            expect(viewOf(state, Other).pouch).toEqual({ status: 'sealed' })
+        })
+
+        it('R-3.1-H1 Drawn sealed: the owner its good under a lock, the others a lock and no good', () => {
+            const state = pouchTable((row) => {
+                row.flow.selection = { finalised: [Owner] }
+                row.getPlayerState(Owner).committedPouch = 'sulfur'
+            })
+            const words = (markup: string) =>
+                markup
+                    .replace(/<title>.*?<\/title>|<!--.*?-->|<[^>]+>/gs, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+            const own = markupOf(viewOf(state, Owner))
+            const within = (markup: string, from: string) => {
+                const rest = markup.slice(markup.indexOf(from))
+                return rest.slice(0, rest.indexOf('</div>'))
+            }
+            const ownPouch = within(own, 'data-pouch="committed"')
+            expect(own).toContain('data-pouch-good="sulfur"')
+            expect(ownPouch).toContain('data-lock')
+            expect(words(ownPouch)).toContain('sealed')
+            const other = markupOf(viewOf(state, Other))
+            expect(other).toContain('data-pouch="sealed"')
+            expect(other).not.toContain('data-pouch-good')
+            const otherPouch = within(other, 'data-pouch="sealed"')
+            expect(otherPouch).toContain('data-lock')
+            expect(words(otherPouch)).toContain('hidden until all finalise')
+        })
+
+        it('R-3.1-H1 After the reveal a seat without a good is empty for all', () => {
+            const state = pouchTable((row) => {
+                row.flow.selection = undefined
+            })
             expect(viewOf(state, Other).pouch).toEqual({ status: 'empty' })
         })
 

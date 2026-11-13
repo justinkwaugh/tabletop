@@ -96,7 +96,8 @@ export interface FinaliseEntry {
     readonly finalised: boolean
     /** The seat looking: its chip reads "(you)". */
     readonly you: boolean
-    readonly pouchGood?: PouchGood
+    /** S8 A seat still choosing while the one looking, its hand set, waits on it. */
+    readonly awaited: boolean
 }
 
 /** A writ's face with what it offers beneath it: a mandate's alternatives, a charter's seal. */
@@ -131,6 +132,17 @@ type PanelBlock =
           readonly caption: string
           /** "Round 4 · choose your hand", while this seat drafts. */
           readonly lead?: string
+      }
+    /** R-3.1-H1 Tray A once this seat has finalised: the hand as set, and the pouch sealed. */
+    | {
+          readonly kind: 'hand-set'
+          readonly paint: SeatPaint
+          readonly cards: readonly {
+              readonly kind: ActionCardKind
+              readonly number: number
+              readonly label: string
+          }[]
+          readonly pouch?: { readonly good: PouchGood; readonly title: string }
       }
     /** R-3.1 The plan: a slot per card the hand needs, filled in the order pressed. */
     | {
@@ -406,26 +418,38 @@ function handBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['handPanel']>
 ): ActionBlock[] {
-    const { drafting } = panel
+    const { drafting, set } = panel
+    const lead = drafting?.line ?? set?.line
     const finalise: ActionBlock = {
         kind: 'finalise',
         entries: panel.finaliseRow.map((entry) => ({
             ...entry,
             name: session.getPlayerName(entry.playerId),
             paint: session.paintOf(entry.playerId),
-            you: entry.playerId === session.myPlayerId
+            you: entry.playerId === session.myPlayerId,
+            awaited: set !== undefined && !entry.finalised
         })),
         caption: FinaliseCaption,
-        ...(drafting ? { lead: drafting.line } : {})
+        ...(lead ? { lead } : {})
     }
+    const paint = session.paintOf(session.myPlayerId ?? '')
     if (!drafting) {
         return [
             finalise,
+            ...(set
+                ? [
+                      {
+                          kind: 'hand-set' as const,
+                          paint,
+                          cards: set.cards.map((kind) => ({ kind, ...cardFace(kind) })),
+                          ...(set.pouch ? { pouch: set.pouch } : {})
+                      }
+                  ]
+                : []),
             ...(panel.waiting ? [line('waiting', panel.waiting)] : []),
             ...atWillBlocks(session)
         ]
     }
-    const paint = session.paintOf(session.myPlayerId ?? '')
     const cards = drafting.cards.map(({ kind, picked, slot }): CardRow => ({
         kind,
         ...cardFace(kind),
