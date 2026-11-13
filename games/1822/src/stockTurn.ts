@@ -1,17 +1,12 @@
-import {
-    allPlayersPassed,
-    finiteCashOwnedBy,
-    stepAction,
-    titleAction,
-    type StepAction
-} from '@tabletop/18xx'
+import { allPlayersPassed, stepAction, titleAction, type StepAction } from '@tabletop/18xx'
 import { ActionSource, assert, type HydratedAction, type MachineContext } from '@tabletop/common'
 import * as Type from 'typebox'
-import { playerLoan1822, repayPlayerLoan1822 } from './loans.js'
+import { playerLoan1822, repayPlayerLoan1822, repayableLoan1822 } from './loans.js'
 import type { HydratedState1822, StateHandler1822 } from './state.js'
 import { doubleCashPlayerId1822, playerOrderWithDeclaration1822 } from './stock.js'
 
 const RepayPlayerLoanAction = titleAction('RepayPlayerLoan', {
+    amount: Type.Integer({ minimum: 1 }),
     metadata: Type.Optional(
         Type.Object(
             { paid: Type.Integer({ minimum: 1 }), remaining: Type.Integer({ minimum: 0 }) },
@@ -30,22 +25,26 @@ export function canRepayLoan1822(state: HydratedState1822, playerId: string): bo
         !state.stockRound.completed &&
         !allPlayersPassed(state) &&
         state.activePlayerIds.includes(playerId) &&
-        playerLoan1822(state, playerId) > 0 &&
-        finiteCashOwnedBy(state, { kind: 'player', playerId }) > 0
+        repayableLoan1822(state, playerId) > 0
     )
 }
 
-/** In their stock turn a player pays what cash they have towards their loan (§4.1.3). */
+/** In their stock turn a player pays as much of their cash as they choose towards their loan (§4.1.3). */
 export class HydratedRepayPlayerLoan extends RepayPlayerLoanAction.Base {
     declare playerId: string
+    declare amount: RepayPlayerLoan['amount']
     declare metadata?: RepayPlayerLoan['metadata']
     isValid(state: HydratedState1822): boolean {
-        return this.source === ActionSource.User && canRepayLoan1822(state, this.playerId)
+        return (
+            this.source === ActionSource.User &&
+            canRepayLoan1822(state, this.playerId) &&
+            this.amount <= repayableLoan1822(state, this.playerId)
+        )
     }
     apply(state: HydratedState1822): void {
-        assert(this.isValid(state), 'There is no loan to repay')
-        const paid = repayPlayerLoan1822(state, this.playerId)
-        this.metadata = { paid, remaining: playerLoan1822(state, this.playerId) }
+        assert(this.isValid(state), 'This much of the loan cannot be repaid')
+        repayPlayerLoan1822(state, this.playerId, this.amount)
+        this.metadata = { paid: this.amount, remaining: playerLoan1822(state, this.playerId) }
     }
 }
 

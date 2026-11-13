@@ -8,6 +8,7 @@ import {
 } from '@tabletop/18xx'
 import {
     LnwrId,
+    LondonLocationId,
     MetropolitanId,
     SecrId,
     StationCost1822,
@@ -67,5 +68,8 @@ export const StationRules1822: StationRules = {
     // A major company places one station token a turn; a minor only ever has its home (§5.12.5,
     // §5.12.9).
     placementLimit: (state, companyId) => (getCompany(state, companyId).kind === 'major' ? 1 : 0),
-    pendingHomes
+    pendingHomes,
+    // A company may hold a station in more than one of London's six, never two in one (§5.4.2,
+    // §5.12.6).
+    citiesApart: (locationId) => locationId === LondonLocationId
 }

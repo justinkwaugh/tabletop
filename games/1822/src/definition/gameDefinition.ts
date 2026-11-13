@@ -35,10 +35,13 @@ import {
     TrainFundingRules1822,
     TrainRules1822,
     TransferRules1822,
-    phaseCreditPayments1822,
-    sweepLoans1822
+    phaseCreditPayments1822
 } from '../operating.js'
-import { AcquirePrivateDefinition, AcquirePrivateStep } from '../privateAcquisition.js'
+import {
+    AcquirePrivateStep,
+    PrivateAcquisitionActions,
+    awaitsPrivateAnswer
+} from '../privateAcquisition.js'
 import {
     PrivatePowerActions,
     PrivatePowerRules1822,
@@ -75,7 +78,6 @@ const tracksRounds = (handler: StateHandler1822): StateHandler1822 => ({
         if (isStartOperatingRound(action)) {
             state.debutCompanyIds = []
             settleCashPayments(state, phaseCreditPayments1822(state))
-            sweepLoans1822(state)
         }
         if (isStartOperatingTurn(action) && !getCompany(state, action.companyId).operated)
             state.debutCompanyIds = [...state.debutCompanyIds, action.companyId]
@@ -154,12 +156,14 @@ export const TitleRules1822: EighteenXXTitleRules<typeof State1822, HydratedStat
         OperatingSet: tracksRounds,
         LayingTrack: (family) =>
             clearsOnLeaving(
-                placesMetropolitanHome(
-                    new StepActionsHandler(family, [
-                        ...HousekeepingSteps,
-                        AcquirePrivateStep,
-                        ...PrivatePowerSteps
-                    ])
+                awaitsPrivateAnswer(
+                    placesMetropolitanHome(
+                        new StepActionsHandler(family, [
+                            ...HousekeepingSteps,
+                            AcquirePrivateStep,
+                            ...PrivatePowerSteps
+                        ])
+                    )
                 ),
                 'LayingTrack',
                 closeSpentExtraLay1822
@@ -173,7 +177,7 @@ export const TitleRules1822: EighteenXXTitleRules<typeof State1822, HydratedStat
     titleActions: [
         ReachDestinationDefinition,
         ...HousekeepingActions,
-        AcquirePrivateDefinition,
+        ...PrivateAcquisitionActions,
         ...PrivatePowerActions,
         ...AcquisitionActions,
         ...StockTurnActions

@@ -1,9 +1,13 @@
 import {
     RailwayMapState,
+    TrackConstruction,
     actsFor,
+    applyTrackLay,
     closePrivate,
     finiteCashOwnedBy,
     getCompany,
+    hasTurnMark,
+    markTurn,
     nextOperatingCompany,
     privateOwner,
     releaseTrains,
@@ -12,7 +16,8 @@ import {
     titleAction,
     trainsCountingForLimit,
     trainsOwnedBy,
-    type StepAction
+    type StepAction,
+    type TrackLayDetails
 } from '@tabletop/18xx'
 import { ActionSource, assert, assertExists, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
@@ -30,8 +35,9 @@ import {
     private1822,
     type Private1822
 } from './privates.js'
-import type { HydratedState1822 } from './state.js'
-import { TileSet1822 } from './tiles.js'
+import type { HydratedState1822, StateHandler1822 } from './state.js'
+import { EnglishChannelTileIds1822, TileSet1822 } from './tiles.js'
+import { TrackRules1822 } from './track.js'
 import {
     exchangeTokens1822,
     nextStationSlot,
@@ -50,8 +56,19 @@ import {
 const EstuaryTokenCount = 2
 
 /** How a private company with a choice is taken up as it is acquired (Table 3: P5, P8). */
-export const AcquisitionChoices1822 = ['token', 'discount', 'channel', 'available'] as const
+export const AcquisitionChoices1822 = [
+    'token',
+    'discount',
+    'channel',
+    'upgrade',
+    'available'
+] as const
 export type AcquisitionChoice1822 = (typeof AcquisitionChoices1822)[number]
+
+/** The turn's mark that the private company's holder declined to let the company have it. */
+function declinedMark(privateCompanyId: string): string {
+    return `declined:${privateCompanyId}`
+}
 
 /** The company in its turn before any track is laid, when it acquires private companies (§5.3.1, §5.7). */
 function acquiringCompany(state: HydratedState1822, playerId: string): string | undefined {
@@ -62,6 +79,7 @@ function acquiringCompany(state: HydratedState1822, playerId: string): string | 
         actsFor(state, playerId, companyId) &&
         !state.trackStep?.lays.length &&
         !state.trackStep?.extraLays?.length &&
+        !state.privateOffer &&
         !metropolitanHomeDue1822(state)
         ? companyId
         : undefined
@@ -79,6 +97,32 @@ function channelSlot(state: HydratedState1822): number | undefined {
     return city?.kind === 'city' && slot < city.stationSlots ? slot : undefined
 }
 
+/**
+ * The upgrade of the English Channel that would give it a free station space, as the company's
+ * track for the turn, on no route of its own (§3.1.17, §5.12.10).
+ */
+function channelUpgrade(state: HydratedState1822, companyId: string): TrackLayDetails | undefined {
+    const construction = new TrackConstruction(state, { ...TrackRules1822, useful: () => true })
+    for (const definitionId of EnglishChannelTileIds1822) {
+        const details = construction.evaluate({
+            companyId,
+            locationId: EnglishChannelLocationId,
+            definitionId,
+            rotation: 0,
+            nodeMapping: { [CityNodeId]: CityNodeId }
+        }).details
+        const city = TileSet1822.definitions
+            .find((tile) => tile.id === definitionId)
+            ?.face.nodes.find((node) => node.id === CityNodeId)
+        const taken = nextStationSlot(state, {
+            locationId: EnglishChannelLocationId,
+            nodeId: CityNodeId
+        })
+        if (details && city?.kind === 'city' && city.stationSlots > taken) return details
+    }
+    return undefined
+}
+
 /** The ways the company may take up the private, or none where it has no choice to make. */
 export function acquisitionChoices1822(
     state: HydratedState1822,
@@ -94,10 +138,9 @@ export function acquisitionChoices1822(
             station.companyId === companyId &&
             station.position.locationId === EnglishChannelLocationId
     )
-    return [
-        ...(channelSlot(state) !== undefined && !ownStation ? ['channel' as const] : []),
-        'available'
-    ]
+    if (ownStation) return ['available']
+    if (channelSlot(state) !== undefined) return ['channel', 'available']
+    return [...(channelUpgrade(state, companyId) ? ['upgrade' as const] : []), 'available']
 }
 
 function ownsTrain(state: HydratedState1822, companyId: string, definitionIds: readonly string[]) {
@@ -107,8 +150,8 @@ function ownsTrain(state: HydratedState1822, companyId: string, definitionIds: r
 }
 
 /**
- * Why the company may not acquire the private from its director now, if it may not (§3.1.2–§3.1.5,
- * §5.5.13, §5.5.14).
+ * Why the company may not acquire the private from the player holding it now, if it may not
+ * (§3.1.2–§3.1.5, §5.5.13, §5.5.14).
  */
 export function privateAcquisitionReason1822(
     state: HydratedState1822,
@@ -116,12 +159,11 @@ export function privateAcquisitionReason1822(
     entry: Private1822
 ): string | undefined {
     const company = getCompany(state, companyId)
-    const director = company.president
     const owner = privateOwner(state, entry.id)
     if (getCompany(state, entry.id).closed || owner?.kind !== 'player')
         return 'A player does not hold this private company.'
-    if (director?.kind !== 'player' || director.playerId !== owner.playerId)
-        return 'A company acquires its own director’s private companies.'
+    if (hasTurnMark(state, declinedMark(entry.id)))
+        return 'Its holder declined to part with this private company this turn.'
     if (!entry.acquiredFromPhaseId || entry.color === 'blue')
         return 'No company acquires this private company.'
     if (!Phases1822.isAtLeast(state.phaseId, entry.acquiredFromPhaseId))
@@ -138,6 +180,23 @@ export function privateAcquisitionReason1822(
     )
         return 'A company owns one permanent train.'
     return undefined
+}
+
+/**
+ * The player whose agreement the acquisition needs: the private's holder, where that is not the
+ * company's own director (§3.1.2).
+ */
+export function privateAgreementPlayerId1822(
+    state: HydratedState1822,
+    companyId: string,
+    privateCompanyId: string
+): string | undefined {
+    const director = getCompany(state, companyId).president
+    const owner = privateOwner(state, privateCompanyId)
+    return owner?.kind === 'player' &&
+        !(director?.kind === 'player' && director.playerId === owner.playerId)
+        ? owner.playerId
+        : undefined
 }
 
 /** The private companies the player may have the operating company acquire now. */
@@ -158,6 +217,7 @@ const AcquirePrivateAction = titleAction('AcquirePrivate', {
             Type.Literal('token'),
             Type.Literal('discount'),
             Type.Literal('channel'),
+            Type.Literal('upgrade'),
             Type.Literal('available')
         ])
     ),
@@ -168,10 +228,14 @@ const AcquirePrivateAction = titleAction('AcquirePrivate', {
             {
                 playerId: Type.String(),
                 closed: Type.Boolean(),
+                /** The acquisition waits for the private company's holder to answer (§3.1.2). */
+                awaiting: Type.Optional(Type.Literal(true)),
                 trainId: Type.Optional(Type.String()),
                 discardedDefinitionId: Type.Optional(Type.String()),
                 received: Type.Optional(Type.Integer({ minimum: 0 })),
-                stationId: Type.Optional(Type.String())
+                stationId: Type.Optional(Type.String()),
+                /** What upgrading the English Channel for the token cost the company (§3.1.17). */
+                upgradeCost: Type.Optional(Type.Integer({ minimum: 0 }))
             },
             { additionalProperties: false }
         )
@@ -180,10 +244,79 @@ const AcquirePrivateAction = titleAction('AcquirePrivate', {
 export const AcquirePrivate = AcquirePrivateAction.schema
 export type AcquirePrivate = Type.Static<typeof AcquirePrivate>
 export const isAcquirePrivate = AcquirePrivateAction.is
+export type PrivateAcquisitionDetails1822 = NonNullable<AcquirePrivate['metadata']>
+
+type Terms = Pick<AcquirePrivate, 'companyId' | 'privateCompanyId' | 'choice' | 'discardTrainId'>
+
+/** The company takes the private company from the player holding it, with what it brings (§3.1.7). */
+function takeUpPrivate(state: HydratedState1822, terms: Terms): PrivateAcquisitionDetails1822 {
+    const { companyId, privateCompanyId, choice, discardTrainId } = terms
+    const company = { kind: 'company' as const, companyId }
+    const certificate = state.certificates.find(
+        (entry) => entry.id === charterCertificateId(privateCompanyId)
+    )
+    const previous = privateOwner(state, privateCompanyId)
+    assertExists(certificate, 'A private company has its certificate')
+    assert(previous?.kind === 'player', 'A player holds the private company')
+    certificate.owner = company
+    const result: PrivateAcquisitionDetails1822 = { playerId: previous.playerId, closed: false }
+    const train = PrivateTrains1822[privateCompanyId]
+    if (train) {
+        if (discardTrainId) {
+            const discarded = state.trainInventory.trains.find(
+                (entry) => entry.id === discardTrainId
+            )
+            result.discardedDefinitionId = discarded?.definitionId
+            releaseTrains(state.trainInventory, [discardTrainId], 'market')
+        }
+        state.trainInventory.trains.push({ ...train, status: 'owned', owner: company })
+        result.trainId = train.id
+        // P1 is then an ordinary 5-train and nothing more (§5.5.5).
+        if (TrainRules1822.countsForLimit?.(state, { ...train, status: 'market' }) !== false)
+            result.closed = true
+    }
+    if (PhaseCreditPrivateIds.includes(privateCompanyId)) {
+        const charter = { kind: 'company' as const, companyId: privateCompanyId }
+        const received = finiteCashOwnedBy(state, charter)
+        if (received) settleCashPayments(state, [{ from: charter, to: company, amount: received }])
+        result.received = received
+        result.closed = true
+    }
+    if (privateCompanyId === HillDiscountPrivateId) {
+        if (choice === 'discount') state.hillDiscountCompanyId = companyId
+        else {
+            addDiscountTokens(state, companyId, 'terrain', 1)
+            result.closed = true
+        }
+    }
+    if (privateCompanyId === RiverDiscountPrivateId)
+        addDiscountTokens(state, companyId, 'estuary', EstuaryTokenCount)
+    if (privateCompanyId === EnglishChannelPrivateId) {
+        if (choice === 'upgrade') {
+            const upgrade = channelUpgrade(state, companyId)
+            assertExists(upgrade, 'The English Channel can be upgraded for a station space')
+            applyTrackLay(state, TrackRules1822, upgrade, company, true)
+            result.upgradeCost = upgrade.cost
+        }
+        if (choice === 'channel' || choice === 'upgrade') {
+            const slot = channelSlot(state)
+            assertExists(slot, 'The English Channel has a free station space')
+            result.stationId = placeExchangeToken1822(state, companyId, {
+                locationId: EnglishChannelLocationId,
+                nodeId: CityNodeId,
+                slot
+            })
+        } else if (choice === 'available') releaseExchangeToken1822(state, companyId)
+        result.closed = true
+    }
+    if (result.closed) closePrivate(state, privateCompanyId)
+    return result
+}
 
 /**
- * As its turn begins a company takes a private company from its director, for nothing, and with
- * it the private's train, tokens, money or power (§3.1.2, §3.1.7, §5.7).
+ * As its turn begins a company takes a private company from a player, for nothing, and with it
+ * the private's train, tokens, money or power; a player who is not its director is asked first
+ * (§3.1.2, §3.1.7, §5.7).
  */
 export class HydratedAcquirePrivate extends AcquirePrivateAction.Base {
     declare playerId: string
@@ -221,64 +354,90 @@ export class HydratedAcquirePrivate extends AcquirePrivateAction.Base {
     }
     apply(state: HydratedState1822): void {
         assert(this.isValid(state), 'This private company cannot be acquired now')
-        const company = { kind: 'company' as const, companyId: this.companyId }
-        const certificate = state.certificates.find(
-            (entry) => entry.id === charterCertificateId(this.privateCompanyId)
+        const { companyId, privateCompanyId, choice, discardTrainId } = this
+        const agreementPlayerId = privateAgreementPlayerId1822(state, companyId, privateCompanyId)
+        if (!agreementPlayerId) {
+            this.metadata = takeUpPrivate(state, this)
+            return
+        }
+        state.privateOffer = {
+            companyId,
+            privateCompanyId,
+            playerId: agreementPlayerId,
+            ...(choice ? { choice } : {}),
+            ...(discardTrainId ? { discardTrainId } : {})
+        }
+        state.activePlayerIds = [agreementPlayerId]
+        this.metadata = { playerId: agreementPlayerId, closed: false, awaiting: true }
+    }
+}
+
+const AnswerPrivateOfferAction = titleAction('AnswerPrivateOffer', {
+    accept: Type.Boolean(),
+    metadata: Type.Optional(
+        Type.Object(
+            {
+                companyId: Type.String(),
+                privateCompanyId: Type.String(),
+                choice: Type.Optional(AcquirePrivate.properties.choice),
+                /** What the company took, where the holder agreed. */
+                acquired: Type.Optional(AcquirePrivate.properties.metadata)
+            },
+            { additionalProperties: false }
         )
-        const previous = privateOwner(state, this.privateCompanyId)
-        assertExists(certificate, 'A private company has its certificate')
-        assert(previous?.kind === 'player', 'A player holds the private company')
-        certificate.owner = company
-        const result: NonNullable<AcquirePrivate['metadata']> = {
-            playerId: previous.playerId,
-            closed: false
+    )
+})
+export const AnswerPrivateOffer = AnswerPrivateOfferAction.schema
+export type AnswerPrivateOffer = Type.Static<typeof AnswerPrivateOffer>
+export const isAnswerPrivateOffer = AnswerPrivateOfferAction.is
+
+/** The holder of a private company lets another director's company have it, or declines (§3.1.2). */
+export class HydratedAnswerPrivateOffer extends AnswerPrivateOfferAction.Base {
+    declare playerId: string
+    declare accept: AnswerPrivateOffer['accept']
+    declare metadata?: AnswerPrivateOffer['metadata']
+    isValid(state: HydratedState1822): boolean {
+        return this.source === ActionSource.User && state.privateOffer?.playerId === this.playerId
+    }
+    apply(state: HydratedState1822): void {
+        assert(this.isValid(state), 'No offer awaits this player')
+        const offer = state.privateOffer
+        assertExists(offer, 'An answer needs an offer')
+        const { companyId, privateCompanyId, choice } = offer
+        const director = getCompany(state, companyId).president
+        assert(director?.kind === 'player', 'An operating company has a director')
+        const terms = { companyId, privateCompanyId, ...(choice ? { choice } : {}) }
+        if (this.accept) this.metadata = { ...terms, acquired: takeUpPrivate(state, offer) }
+        else {
+            this.metadata = terms
+            markTurn(state, declinedMark(privateCompanyId))
         }
-        const train = PrivateTrains1822[this.privateCompanyId]
-        if (train) {
-            if (this.discardTrainId) {
-                const discarded = state.trainInventory.trains.find(
-                    (entry) => entry.id === this.discardTrainId
-                )
-                result.discardedDefinitionId = discarded?.definitionId
-                releaseTrains(state.trainInventory, [this.discardTrainId], 'market')
-            }
-            state.trainInventory.trains.push({ ...train, status: 'owned', owner: company })
-            result.trainId = train.id
-            // P1 is then an ordinary 5-train and nothing more (§5.5.5).
-            if (TrainRules1822.countsForLimit?.(state, { ...train, status: 'market' }) !== false)
-                result.closed = true
-        }
-        if (PhaseCreditPrivateIds.includes(this.privateCompanyId)) {
-            const charter = { kind: 'company' as const, companyId: this.privateCompanyId }
-            const received = finiteCashOwnedBy(state, charter)
-            if (received)
-                settleCashPayments(state, [{ from: charter, to: company, amount: received }])
-            result.received = received
-            result.closed = true
-        }
-        if (this.privateCompanyId === HillDiscountPrivateId) {
-            if (this.choice === 'discount') state.hillDiscountCompanyId = this.companyId
-            else {
-                addDiscountTokens(state, this.companyId, 'terrain', 1)
-                result.closed = true
-            }
-        }
-        if (this.privateCompanyId === RiverDiscountPrivateId)
-            addDiscountTokens(state, this.companyId, 'estuary', EstuaryTokenCount)
-        if (this.privateCompanyId === EnglishChannelPrivateId) {
-            if (this.choice === 'channel') {
-                const slot = channelSlot(state)
-                assertExists(slot, 'The English Channel has a free station space')
-                result.stationId = placeExchangeToken1822(state, this.companyId, {
-                    locationId: EnglishChannelLocationId,
-                    nodeId: CityNodeId,
-                    slot
-                })
-            } else if (this.choice === 'available') releaseExchangeToken1822(state, this.companyId)
-            result.closed = true
-        }
-        if (result.closed) closePrivate(state, this.privateCompanyId)
-        this.metadata = result
+        delete state.privateOffer
+        state.activePlayerIds = [director.playerId]
+    }
+}
+
+/** While a company's request for a private company awaits its holder, only their answer is taken (§3.1.2). */
+export function awaitsPrivateAnswer(handler: StateHandler1822): StateHandler1822 {
+    return {
+        isValidAction: (action, context) =>
+            action instanceof HydratedAnswerPrivateOffer
+                ? action.isValid(context.gameState)
+                : !context.gameState.privateOffer && handler.isValidAction(action, context),
+        validActionsForPlayer(playerId, context) {
+            const offer = context.gameState.privateOffer
+            if (!offer) return handler.validActionsForPlayer(playerId, context)
+            return offer.playerId === playerId ? [AnswerPrivateOfferAction.type] : []
+        },
+        enter(context) {
+            const offer = context.gameState.privateOffer
+            if (offer) context.gameState.activePlayerIds = [offer.playerId]
+            else handler.enter(context)
+        },
+        onAction: (action, context) =>
+            action instanceof HydratedAnswerPrivateOffer
+                ? context.gameState.machineState
+                : handler.onAction(action, context)
     }
 }
 
@@ -307,6 +466,7 @@ export const AcquirePrivateStep: StepAction<HydratedState1822> = stepAction(
     (state, playerId) => acquirablePrivates1822(state, playerId).length > 0
 )
 
-export const AcquirePrivateDefinition = AcquirePrivateAction.define(
-    (action) => new HydratedAcquirePrivate(action)
-)
+export const PrivateAcquisitionActions = [
+    AcquirePrivateAction.define((action) => new HydratedAcquirePrivate(action)),
+    AnswerPrivateOfferAction.define((action) => new HydratedAnswerPrivateOffer(action))
+]

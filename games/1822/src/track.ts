@@ -7,10 +7,11 @@ import {
     type TrackRules
 } from '@tabletop/18xx'
 import { major1822, minor1822 } from './companies.js'
-import { layRestriction1822 } from './layRestriction.js'
+import { layRestriction1822, londonConsentPlayerId1822 } from './layRestriction.js'
 import { Map1822, OystermouthNodeId, SwanseaLocationId } from './map.js'
 import {
     AdvancedLayMark,
+    advancedColor1822,
     discountTokensSpent1822,
     spendDiscountTokens1822,
     terrainCost1822
@@ -54,7 +55,9 @@ export const TrackRules1822: TrackRules = {
         if (upgrades) return { reason: 'An upgrade is the turn’s only tile.' }
         if (color !== Yellow) {
             if (yellow) return { reason: 'A turn lays yellow tiles or one upgrade, not both.' }
-            return upgradeColors(state, minor).includes(color)
+            // The colour P11 lays early is the turn's track like any upgrade (§3.1.13).
+            return upgradeColors(state, minor).includes(color) ||
+                color === advancedColor1822(requireState1822(state), companyId)
                 ? { cost: 0 }
                 : { reason: 'This company may not lay that colour.' }
         }
@@ -94,5 +97,6 @@ export const TrackRules1822: TrackRules = {
         const home = minor1822(companyId)?.home
         return home ? [home.locationId] : []
     },
-    restriction: layRestriction1822
+    restriction: layRestriction1822,
+    consentPlayerId: londonConsentPlayerId1822
 }

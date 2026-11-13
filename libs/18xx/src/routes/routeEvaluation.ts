@@ -393,8 +393,9 @@ export class RouteEvaluation {
                 return { reason: `The ${definition.name} train starts and ends where it stops.` }
             const minimumCitiesAndTowns = this.rules.minimumCitiesAndTowns ?? 0
             if (
+                !atStation &&
                 trace.visits.filter((visit) => visit.node.kind !== 'offboard').length <
-                minimumCitiesAndTowns
+                    minimumCitiesAndTowns
             )
                 return {
                     reason: `A route must visit at least ${minimumCitiesAndTowns} cities or towns.`

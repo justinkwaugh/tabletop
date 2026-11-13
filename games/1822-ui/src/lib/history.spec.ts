@@ -1,4 +1,3 @@
-import { ActionSource } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { minorAcquisitionDetails, privateAcquisitionDetails, settlementDetails } from './history.js'
 
@@ -79,21 +78,10 @@ describe('1822 history', () => {
     })
 
     it('tells what a company took with a private company (Table 3)', () => {
-        expect(
-            privateAcquisitionDetails(
-                {
-                    id: 'action',
-                    gameId: 'game',
-                    type: 'AcquirePrivate',
-                    source: ActionSource.User,
-                    playerId: 'a',
-                    companyId: 'LNWR',
-                    privateCompanyId: 'P8',
-                    choice: 'token',
-                    metadata: { playerId: 'a', closed: true }
-                },
-                names
-            )
-        ).toEqual(['From Player a', 'Took its terrain token', 'The private company closed'])
+        expect(privateAcquisitionDetails('token', { playerId: 'a', closed: true }, names)).toEqual([
+            'From Player a',
+            'Took its terrain token',
+            'The private company closed'
+        ])
     })
 })

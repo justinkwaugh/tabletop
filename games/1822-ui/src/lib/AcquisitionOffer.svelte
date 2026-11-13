@@ -1,11 +1,45 @@
 <script lang="ts">
+    import { private1822 } from '@tabletop/1822'
     import { CompanyToken } from '@tabletop/18xx-ui'
     import type { Session1822 } from './session.svelte.js'
 
     let { session }: { session: Session1822 } = $props()
     const money = $derived(session.presentation.money)
     const offer = $derived(session.acquisitionOffer)
+    const request = $derived(session.privateOffer)
 </script>
+
+{#if request}
+    {@const company = session.companyName(request.companyId)}
+    {@const held = private1822(request.privateCompanyId)}
+    <section class="offer title-panel centered-panel" aria-label="Request for a private company">
+        <h3>
+            <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
+            {company} asks for {request.privateCompanyId}
+            {held?.name}
+        </h3>
+        {#if session.canAnswerPrivateOffer}
+            <ul>
+                <li>{company} takes {request.privateCompanyId}: {held?.power}.</li>
+                <li>
+                    You receive nothing for it, and it no longer counts as one of your certificates.
+                </li>
+            </ul>
+            <div class="choices">
+                <button class="action-button" onclick={() => session.answerPrivateOffer(true)}
+                    >Let {session.companyInitials(request.companyId)} have it</button
+                >
+                <button class="choice" onclick={() => session.answerPrivateOffer(false)}
+                    >Keep it</button
+                >
+            </div>
+        {:else}
+            <p>
+                {session.getPlayerName(request.playerId)} holds {request.privateCompanyId} and is answering.
+            </p>
+        {/if}
+    </section>
+{/if}
 
 {#if offer}
     {@const major = session.companyName(offer.companyId)}

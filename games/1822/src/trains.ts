@@ -18,6 +18,8 @@ export const ElectricTrainId = 'E'
 export const PermanentTwoTrainId = '2P'
 /** The 1822+ permanent L train of private company P19 (§5.5.13). */
 export const PermanentLocalTrainId = 'LP'
+/** The trains that come with a private company for good, whose revenue may be decided apart (§5.14.2). */
+export const PermanentTrainIds: readonly string[] = [PermanentTwoTrainId, PermanentLocalTrainId]
 /** The Pullman carriage of private companies P13 and P14 (§5.5.6, §5.5.14). */
 export const PullmanTrainId = 'P+'
 

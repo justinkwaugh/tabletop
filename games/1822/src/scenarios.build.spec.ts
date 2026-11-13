@@ -3,6 +3,7 @@ import { describe, it } from 'vitest'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import {
+    EarningsDistribution,
     finiteCashOwnedBy,
     getCompany,
     trainRoutesOf,
@@ -15,7 +16,12 @@ import { assertExists } from '@tabletop/common'
 import { botMove, Random } from '../test/bot.js'
 import { kit, type Table } from '../test/kit.js'
 import { minorAcquisitions1822 } from './acquisition.js'
-import { TrainRules1822 } from './operating.js'
+import { EarningsRules1822, TrainRules1822 } from './operating.js'
+import {
+    acquirablePrivates1822,
+    acquisitionChoices1822,
+    privateAgreementPlayerId1822
+} from './privateAcquisition.js'
 import { RouteRules1822 } from './routes.js'
 import {
     ElectricTrainId,
@@ -270,6 +276,63 @@ describe.skipIf(!process.env.SCENARIOS)('1822 harness scenarios', () => {
             discardTrainIds: excess.map((train) => train.id)
         })
         save('offer-for-a-minor', game)
+    })
+
+    it('writes a loan to repay', { timeout: 900_000 }, () => {
+        save(
+            'loan-to-repay',
+            playUntil(4, 1, (game) => game.valid().includes('RepayPlayerLoan'), LateGame)
+        )
+    })
+
+    it('writes a permanent train’s dividend', { timeout: 900_000 }, () => {
+        save(
+            'permanent-train-dividend',
+            playUntil(
+                4,
+                1,
+                (game) => {
+                    const companyId = game.state.routeStep?.companyId
+                    return (
+                        game.state.machineState === 'DistributingEarnings' &&
+                        !!companyId &&
+                        new EarningsDistribution(game.hydrated, EarningsRules1822).separateRevenue(
+                            companyId
+                        ) > 0
+                    )
+                },
+                LateGame
+            )
+        )
+    })
+
+    it('writes a request for another player’s private company', { timeout: 900_000 }, () => {
+        const asked = (game: Table) => {
+            const [playerId] = game.state.activePlayerIds
+            const companyId = game.state.trackStep?.companyId
+            if (!playerId || !companyId || !game.valid().includes('AcquirePrivate'))
+                return undefined
+            return acquirablePrivates1822(game.hydrated, playerId).find(
+                (entry) =>
+                    privateAgreementPlayerId1822(game.hydrated, companyId, entry.id) &&
+                    !acquisitionChoices1822(game.hydrated, companyId, entry.id).length &&
+                    entry.id !== 'P1'
+            )
+        }
+        const game = playUntil(4, 1, (game) => !!asked(game), LateGame)
+        const entry = asked(game)
+        const companyId = game.state.trackStep?.companyId
+        assertExists(entry, 'The position has a private company to ask for')
+        assertExists(companyId, 'A company is laying track')
+        game.act('AcquirePrivate', { companyId, privateCompanyId: entry.id })
+        save('request-for-a-private', game)
+    })
+
+    it('writes a request to lay track beside London', { timeout: 900_000 }, () => {
+        save(
+            'track-beside-london',
+            playUntil(4, 1, (game) => !!game.state.trackConsent, LateGame)
+        )
     })
 
     it('writes an E train running', { timeout: 900_000 }, () => {

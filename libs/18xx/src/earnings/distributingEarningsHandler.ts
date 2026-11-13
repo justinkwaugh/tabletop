@@ -48,7 +48,7 @@ export class DistributingEarningsHandler implements MachineStateHandler<
         const distribution = new EarningsDistribution(state, this.rules, this.receivership)
         return (
             distribution.canAct(action.playerId, action.companyId) &&
-            !!distribution.evaluate(action.companyId, action.choice).details
+            !!distribution.evaluate(action.companyId, action.choice, action.separateChoice).details
         )
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {

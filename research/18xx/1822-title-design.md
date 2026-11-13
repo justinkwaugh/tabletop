@@ -106,41 +106,65 @@ remain the executable baseline and every existing title's suites still pass.
   destination tokens. Shared: a station at a slot past the city's own takes none of its spaces
   when counting free spaces and blocking; when an upgrade adds a space the station is within it.
 
-## Rulings and interpretations to confirm with the owner
+## Rulings and interpretations
 
-1. **London's six neighbouring hexes** (§5.10.7): a yellow tile there must join the London
-   station's track. The rulebook instead asks for the adjoining company's director or concession
-   holder to agree; no consent step is built.
-2. **A company acquires only its own director's private companies** (§3.1.2 allows any
-   consenting player's). A major acquiring a minor that another player directs makes an offer on
-   its chosen terms, which that director accepts or declines; a declined minor takes no second
-   offer that turn (§5.18.1 asks only that the directors agree).
-3. **2P revenue is pooled** with the other trains' for the dividend decision; §5.14.2 lets it be
-   paid, split or kept separately.
-4. **Cash committed to highest bids cannot be spent on shares** or a director's certificate
-   (§4.9.3 states the commitment only for bidding).
-5. **A run from an English Channel station to France alone** is accepted as a route of two stops,
-   though the Channel station counts as none (§5.4.6, §5.13.1).
-6. **An unpaid loan is deducted from final wealth** (§1.3.2 is silent).
-7. **Loans are repaid automatically from income during operating rounds** (§4.2.2 example) and by
-   a player's choice in a stock turn (§4.1.3).
-8. **A minor company reaching the game end value ends the game** as a major does (§1.3.1 says "a
+Checked against the research engine's 1822 (`g_1822`, the checkout dated 2026-09-08) on
+2026-11-13. Where the two differed and the rulebook sided with the engine, this title was changed
+to match; the owner confirmed those changes.
+
+Readings this title keeps, each as the research engine has it unless noted:
+
+1. **Cash committed to highest bids cannot be spent on shares** or a director's certificate, and
+   those bids count toward the certificate limit (§4.9.3 states the commitment only for bidding).
+2. **An unpaid loan is deducted from final wealth** (§1.3.2 is silent).
+3. **A minor company reaching the game end value ends the game** as a major does (§1.3.1 says "a
    company's").
-9. **The train removed with an unsold box-1 minor** counts as an L while L/2 cards remain, so it
+4. **The train removed with an unsold box-1 minor** counts as an L while L/2 cards remain, so it
    starts no phase; once they are gone it is the next train and may start one (§4.10.3).
-10. **A destination token is placed on the company's own turn** after its track step, also when
-    another company's track made the connection earlier (§5.11.1, §5.11.2).
-11. **P9's declaration is asked for only when doubling would change the order.**
-12. **P8's and P10's tokens are declared before the lay** they pay for (`UseDiscountToken`);
-    P10's estuary tokens pay for as many crossings of that lay as the company holds tokens for.
-13. **P5's upgrade-and-token** use when the Channel has no free space (§3.1.17) and **P2 with
-    P11 in one lay** (§3.1.13) are not built.
-14. **A second station of one company in London** by ordinary placement is not possible (the
-    family allows one station of a company in a hex); exchange tokens taking over London minors
-    are placed.
-15. **No route-maximisation check** (§5.13.6), as in the other titles.
-16. **Merthyr Tydfil–Pontypool** is one track through E32 that ends the route at the city it
-    reaches; the research engine's second, direct track is left out.
+5. **A destination token is placed on the company's own turn** after its track step, also when
+   another company's track made the connection earlier (§5.11.1, §5.11.2).
+6. **P9's declaration is asked for only when doubling would change the order.**
+7. **P8's and P10's tokens are declared before the lay** they pay for (`UseDiscountToken`);
+   P10's estuary tokens pay for as many crossings of that lay as the company holds tokens for
+   (the engine spends one a lay).
+8. **No route-maximisation check** (§5.13.6), as in the other titles.
+9. **Merthyr Tydfil–Pontypool** is one track through E32 that ends the route at the city it
+   reaches; the research engine draws a second, direct track and lets a company's trains use one
+   of the two in a turn. The same runs are legal.
+10. **Agreement between two players is asked for in the game**: a major's offer for a minor
+    another player directs (§5.18.1) and a company's request for a private another player holds
+    (§3.1.2) wait for that player to accept or decline, and a refusal ends the matter for the
+    turn. The engine takes the agreement on trust.
+11. **A Pullman may be attached to an L-train**; the rulebook bars only the E-train (§5.5.6). The
+    engine attaches it to no L-train.
+
+Changed to follow the rulebook as the engine reads it:
+
+- **The hexes beside London** (§5.10.7): the director of the adjoining company, or the holder of
+  its concession, lays there freely; another company's yellow tile needs that player's agreement
+  (the family's track consent); with no such player the tile must join the London station's
+  track. Upgrades are free of all this. The Metropolitan Railway's director shares the rights of
+  the station its home stands beside.
+- **Privates from any consenting player** (§3.1.2), not only the company's own director.
+- **A permanent train's revenue may be decided apart** from the other trains': paid, split or
+  kept; two halves are halved as one sum, and the price moves on the whole dividend (§5.14.2,
+  §5.14.3).
+- **The English Channel and France alone are no route**: the two count as one stop (§5.4.6).
+- **Loans are repaid by choice, in any amount, in a stock turn** (§4.1.3). The example after
+  §4.2.4, where income pays a loan as it is earned, is not a rule and is not applied.
+- **P5 upgrades the English Channel** for the standard cost, as the turn's track, where the
+  Channel has no free station space and an upgrade would make one (§3.1.17, §5.12.10).
+- **P2 with P11 in one lay** (§3.1.13): P2's plain track may be of the colour P11 brings early,
+  which closes both.
+- **Several London stations** may each hold a station of one company, never two in one (§5.4.2,
+  §5.12.6).
+
+The engine also lets P2, P8, P10, P11 and P12 share one lay in further pairs. Here those results
+are reached in sequence rather than as one combined lay: P8's and P10's discount tokens apply to
+any lay, one made with a private included, and P2 and P11 take the company's normal track, after
+which P12 adds its extra lays. This equivalence was reasoned from the allowances and is not
+covered by a spec; the engine's rule that P12's extra lays all come before or all after the normal
+ones was not compared.
 
 ## Data notes
 

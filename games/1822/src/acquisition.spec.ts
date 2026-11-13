@@ -5,6 +5,7 @@ import {
     cashOf,
     company,
     giveCharter,
+    layTiles,
     player,
     runMinor,
     setCash,
@@ -12,10 +13,13 @@ import {
     stepTo
 } from '../test/positions.js'
 import { minorAcquisitions1822 } from './acquisition.js'
-import { acquirablePrivates1822 } from './privateAcquisition.js'
-import { terrainCost1822 } from './privatePowers.js'
+import { acquirablePrivates1822, acquisitionChoices1822 } from './privateAcquisition.js'
+import { EnglishChannelLocationId } from './privates.js'
+import { PrivatePowerRules1822, terrainCost1822 } from './privatePowers.js'
 import type { State1822 } from './state.js'
 import { exchangeTokens1822 } from './tokens.js'
+import { EnglishChannelTileIds1822 } from './tiles.js'
+import { TrackRules1822 } from './track.js'
 
 function prepared(prepare: (state: State1822, players: string[]) => void): Table {
     const game = kit.table(4, 3)
@@ -147,6 +151,39 @@ describe('acquiring private companies (§3.1, §5.7)', () => {
         expect(getCompany(game.state, 'P8').closed).toBe(true)
     })
 
+    it('asks another player for their private, which they give for nothing or keep (§3.1.2)', () => {
+        const game = prepared((state, [first, second]) => {
+            state.phaseId = '3'
+            kit.operated(state, 'CR', first, { price: 100, shares: 6, cash: 400 })
+            kit.giveTrain(state, 'CR', '2')
+            giveCharter(state, 'P8', player(second))
+            giveCharter(state, 'P2', player(second))
+        })
+        const [first, second] = game.state.turnManager.turnOrder
+        stepTo(game, 'LayingTrack', 'CR')
+        expect(acquirablePrivates1822(game.hydrated, first).map((entry) => entry.id)).toEqual([
+            'P2',
+            'P8'
+        ])
+        game.act('AcquirePrivate', { companyId: 'CR', privateCompanyId: 'P8', choice: 'token' })
+        expect(game.state.privateOffer).toMatchObject({ playerId: second, privateCompanyId: 'P8' })
+        expect(game.state.machineState).toBe('LayingTrack')
+        expect(game.valid(first)).toEqual([])
+        expect(game.valid(second)).toEqual(['AnswerPrivateOffer'])
+        game.act('AnswerPrivateOffer', { accept: true }, second)
+        expect(game.state.discountTokens).toEqual([{ companyId: 'CR', kind: 'terrain', count: 1 }])
+        expect(game.state.activePlayerIds).toEqual([first])
+        game.act('AcquirePrivate', { companyId: 'CR', privateCompanyId: 'P2' })
+        game.act('AnswerPrivateOffer', { accept: false }, second)
+        expect(game.actions.at(-1)).toMatchObject({
+            type: 'AnswerPrivateOffer',
+            metadata: { companyId: 'CR', privateCompanyId: 'P2' }
+        })
+        expect(getCompany(game.state, 'P2').closed).toBeFalsy()
+        expect(acquirablePrivates1822(game.hydrated, first)).toEqual([])
+        expect(game.state.activePlayerIds).toEqual([first])
+    })
+
     it('hands a company P15’s credits and closes it', () => {
         const game = caledonian((state, first) => {
             giveCharter(state, 'P15', player(first))
@@ -175,6 +212,105 @@ describe('acquiring private companies (§3.1, §5.7)', () => {
         // H7 is hill terrain at £60; C42 is a £20 river, which the discount leaves alone.
         expect(terrainCost1822(state, lay('H7'), 60)).toBe(40)
         expect(terrainCost1822(state, lay('C42'), 20)).toBe(20)
+    })
+})
+
+describe('P5 with the English Channel full (§3.1.17, §5.12.10)', () => {
+    it('upgrades the Channel for £100 as the turn’s track and places an exchange token there', () => {
+        const [green] = EnglishChannelTileIds1822
+        const game = prepared((state, [first, second]) => {
+            state.phaseId = '5'
+            kit.operated(state, 'CR', first, { price: 100, shares: 6, cash: 400 })
+            kit.operated(state, 'SECR', second, { price: 100, shares: 6 })
+            kit.giveTrain(state, 'CR', '5')
+            giveCharter(state, 'P5', player(first))
+            layTiles(state, [
+                { locationId: EnglishChannelLocationId, definitionId: green, rotation: 0 }
+            ])
+            const spare = state.stations.find(
+                (station) => station.companyId === 'SECR' && station.status !== 'placed'
+            )
+            if (!spare) throw new Error('SECR has no spare station')
+            state.stations = state.stations.map((station) =>
+                station === spare
+                    ? {
+                          id: spare.id,
+                          companyId: 'SECR',
+                          status: 'placed',
+                          position: {
+                              locationId: EnglishChannelLocationId,
+                              nodeId: 'city',
+                              slot: 0
+                          }
+                      }
+                    : station
+            )
+        })
+        stepTo(game, 'LayingTrack', 'CR')
+        expect(acquisitionChoices1822(game.hydrated, 'CR', 'P5')).toEqual(['upgrade', 'available'])
+        const treasury = cashOf(game.state, company('CR'))
+        const tokens = exchangeTokens1822(game.state, 'CR')
+        game.act('AcquirePrivate', { companyId: 'CR', privateCompanyId: 'P5', choice: 'upgrade' })
+        const state = game.state
+        expect(cashOf(state, company('CR'))).toBe(treasury - 100)
+        expect(state.tileInventory.placements[EnglishChannelLocationId].definitionId).toBe(
+            EnglishChannelTileIds1822[1]
+        )
+        expect(exchangeTokens1822(state, 'CR')).toBe(tokens - 1)
+        expect(
+            state.stations.filter(
+                (station) =>
+                    station.status === 'placed' &&
+                    station.position.locationId === EnglishChannelLocationId
+            )
+        ).toHaveLength(2)
+        expect(state.trackStep?.lays).toEqual([
+            { locationId: EnglishChannelLocationId, definitionId: EnglishChannelTileIds1822[1] }
+        ])
+        expect(getCompany(state, 'P5').closed).toBe(true)
+    })
+})
+
+describe('P2 with P11 in one lay (§3.1.13)', () => {
+    function laying(privates: readonly string[]): Table {
+        const game = prepared((state, [first]) => {
+            state.phaseId = '2'
+            kit.operated(state, 'CR', first, { price: 100, shares: 6, cash: 400 })
+            kit.giveTrain(state, 'CR', '2')
+            for (const id of privates) giveCharter(state, id, company('CR'))
+        })
+        stepTo(game, 'LayingTrack', 'CR')
+        return game
+    }
+    const plainGreen = {
+        companyId: 'CR',
+        locationId: 'test',
+        definitionId: '18xx:80',
+        rotation: 0 as const,
+        nodeMapping: {},
+        cost: 0,
+        terrainCost: 0,
+        allowanceCost: 0,
+        movedStations: []
+    }
+
+    it('lets P2 lay plain track in the colour P11 brings early, closing both', () => {
+        const game = laying(['P2', 'P11'])
+        const state = game.hydrated
+        const terms = PrivatePowerRules1822.trackTerms(state, 'P2', game.player)
+        expect(terms?.colors).toEqual(['yellow', 'green'])
+        expect(TrackRules1822.allowance(state, 'green')).toEqual({ cost: 0 })
+        expect(PrivatePowerRules1822.afterTrackLay?.(state, 'P2', plainGreen)).toEqual({
+            payments: [],
+            closedPrivateIds: ['P2', 'P11']
+        })
+    })
+
+    it('keeps P2 to the colours available without P11', () => {
+        const game = laying(['P2'])
+        const state = game.hydrated
+        expect(PrivatePowerRules1822.trackTerms(state, 'P2', game.player)?.colors).toBeUndefined()
+        expect(TrackRules1822.allowance(state, 'green')).toHaveProperty('reason')
     })
 })
 

@@ -5,6 +5,7 @@ import {
     isAcquireMinor,
     isAcquirePrivate,
     isAnswerAcquisition,
+    isAnswerPrivateOffer,
     isBuyLocalTrain,
     isDeclareCash,
     isMoveStackCard,
@@ -15,6 +16,7 @@ import {
     isUseDiscountToken,
     type AcquirePrivate,
     type AcquisitionDetails1822,
+    type PrivateAcquisitionDetails1822,
     type TokenChoice1822
 } from '@tabletop/1822'
 import { isAdvancePhase, isSettleBidBoxes } from '@tabletop/18xx'
@@ -122,16 +124,20 @@ const PrivateChoices: Readonly<Record<NonNullable<AcquirePrivate['choice']>, str
     token: 'Took its terrain token',
     discount: 'Took its standing hill and mountain discount',
     channel: 'Placed an exchange token in the English Channel',
+    upgrade: 'Upgraded the English Channel and placed an exchange token there',
     available: 'Made an exchange token available'
 }
 
 /** What a company took with a private company (§3.1.7, Table 3). */
-export function privateAcquisitionDetails(action: AcquirePrivate, names: Names): string[] {
-    const details = action.metadata
-    if (!details) return []
+export function privateAcquisitionDetails(
+    choice: AcquirePrivate['choice'],
+    details: PrivateAcquisitionDetails1822,
+    names: Names
+): string[] {
     return [
         `From ${names.playerName(details.playerId)}`,
-        ...(action.choice ? [PrivateChoices[action.choice]] : []),
+        ...(choice ? [PrivateChoices[choice]] : []),
+        ...(details.upgradeCost ? [`Paid ${money(details.upgradeCost)} for the upgrade`] : []),
         ...(details.received ? [`Received ${money(details.received)}`] : []),
         ...(details.discardedDefinitionId
             ? [`Discarded ${trains([details.discardedDefinitionId])}`]
@@ -205,12 +211,39 @@ export function describe1822Action(session: {
                 text: `Placed its home beside London’s ${LondonStationNames[action.nodeId]} station`,
                 ...(action.metadata ? { value: money(action.metadata.cost) } : {})
             }
-        if (isAcquirePrivate(action))
+        if (isAcquirePrivate(action)) {
+            const details = action.metadata
+            if (details?.awaiting)
+                return {
+                    text: `Asked for ${companyName(action.privateCompanyId)}`,
+                    detail: `${names.playerName(details.playerId)} holds it and answers`
+                }
             return {
                 text: `Acquired ${companyName(action.privateCompanyId)}`,
-                detail: joinDetails(...privateAcquisitionDetails(action, names)),
+                ...(details
+                    ? {
+                          detail: joinDetails(
+                              ...privateAcquisitionDetails(action.choice, details, names)
+                          )
+                      }
+                    : {}),
                 important: true
             }
+        }
+        if (isAnswerPrivateOffer(action) && action.metadata) {
+            const terms = action.metadata
+            const company = companyName(terms.companyId)
+            const held = companyName(terms.privateCompanyId)
+            return terms.acquired
+                ? {
+                      text: `Let ${company} have ${held}`,
+                      detail: joinDetails(
+                          ...privateAcquisitionDetails(terms.choice, terms.acquired, names)
+                      ),
+                      important: true
+                  }
+                : { text: `Kept ${held} from ${company}` }
+        }
         if (isUseDiscountToken(action))
             return {
                 text:

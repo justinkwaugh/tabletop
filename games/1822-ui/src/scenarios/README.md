@@ -17,6 +17,10 @@ cd games/1822 && SCENARIOS=1 pnpm exec vitest run src/scenarios.build.spec.ts
 - **Private to acquire**: a company as its turn begins, able to take a private company from its director.
 - **Minor to acquire**: a major company that has bought its trains, able to acquire a minor company.
 - **Offer for a minor**: a major company's offer for a minor company another player directs, waiting on that director's answer.
+- **Loan to repay**: a stock turn of a player with a loan and cash to pay towards it.
+- **Permanent train dividend**: a company whose run includes a permanent train's revenue, to be paid, split or kept apart from the rest.
+- **Request for a private**: a company's request for a private company another player holds, waiting on that player's answer.
+- **Track beside London**: a request to lay a yellow tile in a hex beside London, waiting on the holder of the adjoining company.
 - **Pullman to attach**: a company running with a Pullman on one of its trains.
 - **Loan for a train**: a director who must borrow to buy their company a train.
 - **Directors certificate for sale**: a stock turn from phase 5, a director's certificate bought outright.

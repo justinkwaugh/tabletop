@@ -2,6 +2,7 @@ import {
     AcquireMinor,
     AcquirePrivate,
     AnswerAcquisition,
+    AnswerPrivateOffer,
     BuyLocalTrain,
     DeclareCash,
     LondonNodeIds,
@@ -23,6 +24,8 @@ import {
     movableStackCards1822,
     offeredPayment1822,
     playerLoan1822,
+    privateAgreementPlayerId1822,
+    repayableLoan1822,
     stationSwaps1822,
     usableDiscountTokens1822,
     PrivateTrains1822,
@@ -78,6 +81,8 @@ export type PrivateOffer = {
     choices: readonly AcquisitionChoice1822[]
     /** P1's 5-train takes the company over its train limit, so it names a train to discard. */
     needsDiscard: boolean
+    /** The player holding the private where that is not the company's director, who must agree. */
+    agreementPlayerId?: string
 }
 
 function stagedChoice(isMade: () => boolean, clear: () => void): LocalSelection {
@@ -146,12 +151,13 @@ export class Session1822 extends BaseSession {
     readonly loanRepayment = $derived.by(() => {
         const playerId = this.me
         if (!playerId || !this.can('RepayPlayerLoan')) return undefined
-        const owed = playerLoan1822(this.gameState, playerId)
-        const cash = finiteCashOwnedBy(this.gameState, { kind: 'player', playerId })
-        return { owed, pays: Math.min(owed, cash) }
+        return {
+            owed: playerLoan1822(this.gameState, playerId),
+            most: repayableLoan1822(this.gameState, playerId)
+        }
     })
-    async repayLoan(): Promise<void> {
-        await this.applyAction(this.createPlayerAction(RepayPlayerLoan, {}))
+    async repayLoan(amount: number): Promise<void> {
+        await this.applyAction(this.createPlayerAction(RepayPlayerLoan, { amount }))
     }
     async declareCash(doubled: boolean): Promise<void> {
         await this.applyAction(this.createPlayerAction(DeclareCash, { doubled }))
@@ -200,10 +206,12 @@ export class Session1822 extends BaseSession {
             const counts =
                 !!train &&
                 TrainRules1822.countsForLimit?.(state, { ...train, status: 'market' }) !== false
+            const agreementPlayerId = privateAgreementPlayerId1822(state, companyId, id)
             return {
                 privateCompanyId: id,
                 choices: acquisitionChoices1822(state, companyId, id),
-                needsDiscard: counts && full
+                needsDiscard: counts && full,
+                ...(agreementPlayerId ? { agreementPlayerId } : {})
             }
         })
     })
@@ -322,6 +330,12 @@ export class Session1822 extends BaseSession {
         return offer ? { ...offer, payment: offeredPayment1822(this.gameState) } : undefined
     })
     readonly canAnswerAcquisition = $derived(this.can('AnswerAcquisition'))
+    /** A company's request for a private company another player holds, awaiting their answer (§3.1.2). */
+    readonly privateOffer = $derived(this.gameState.privateOffer)
+    readonly canAnswerPrivateOffer = $derived(this.can('AnswerPrivateOffer'))
+    async answerPrivateOffer(accept: boolean): Promise<void> {
+        await this.applyAction(this.createPlayerAction(AnswerPrivateOffer, { accept }))
+    }
     async answerAcquisition(accept: boolean): Promise<void> {
         await this.applyAction(this.createPlayerAction(AnswerAcquisition, { accept }))
     }
@@ -360,6 +374,12 @@ export class Session1822 extends BaseSession {
                 title: 'Offer for a minor company',
                 companyId: state.acquisitionOffer.minorId,
                 text: `${this.getPlayerName(state.acquisitionOffer.playerId)} answers ${this.companyName(state.acquisitionOffer.companyId)}’s offer for ${this.companyName(state.acquisitionOffer.minorId)}`
+            }
+        if (state.privateOffer)
+            return {
+                title: 'Request for a private company',
+                companyId: state.privateOffer.companyId,
+                text: `${this.getPlayerName(state.privateOffer.playerId)} answers ${this.companyName(state.privateOffer.companyId)}’s request for ${state.privateOffer.privateCompanyId}`
             }
         if (state.machineState === 'LayingTrack' && metropolitanHomeDue1822(state))
             return {

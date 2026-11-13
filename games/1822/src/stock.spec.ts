@@ -239,8 +239,21 @@ describe('trading shares (§4.6, §4.7)', () => {
         )
         if (share?.kind !== 'share') throw new Error('No treasury share')
         expect(StockRules1822.purchaseTerms(state, share, player(first))).toMatch(/loan/)
+    })
+
+    it('lets a player repay as much of a loan as they choose in their stock turn (§4.1.3)', () => {
+        const game = prepared((state, [first]) => {
+            state.phaseId = '3'
+            state.playerLoans = [{ playerId: first, amount: 90 }]
+            setCash(state, player(first), 300)
+        })
+        const first = game.player
         expect(game.valid(first)).toContain('RepayPlayerLoan')
-        game.act('RepayPlayerLoan', {}, first)
+        expect(() => game.act('RepayPlayerLoan', { amount: 91 }, first)).toThrow()
+        game.act('RepayPlayerLoan', { amount: 50 }, first)
+        expect(game.state.playerLoans).toEqual([{ playerId: first, amount: 40 }])
+        expect(cashOf(game.state, player(first))).toBe(250)
+        game.act('RepayPlayerLoan', { amount: 40 }, first)
         expect(game.state.playerLoans).toEqual([])
         expect(cashOf(game.state, player(first))).toBe(210)
     })

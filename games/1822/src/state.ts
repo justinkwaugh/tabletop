@@ -4,6 +4,7 @@ import {
     OwnershipExemptionFields,
     PrivatePowerFields,
     RailwayFields,
+    TrackConsentFields,
     RailwayMachineStates,
     TurnMarkFields,
     composeEighteenXXState,
@@ -24,6 +25,7 @@ export const State1822 = composeEighteenXXState(
         ...OwnershipExemptionFields,
         ...TurnMarkFields,
         ...BidBoxFields,
+        ...TrackConsentFields,
         ...TitleFields1822
     },
     [...RailwayMachineStates]

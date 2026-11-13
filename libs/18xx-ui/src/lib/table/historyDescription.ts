@@ -3,6 +3,7 @@ import type {
     CertificateLimitChange,
     CompanyCharters,
     CompanyClosure,
+    EarningsChoice,
     RouteBonus
 } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
@@ -252,6 +253,13 @@ export type TitleHistoryNames = {
 }
 
 /** A title's own history row for an action, given the shared row it may add to. */
+const SeparateChoices: Readonly<Record<EarningsChoice, string>> = {
+    pay: 'paid',
+    'half-pay': 'half paid',
+    withhold: 'withheld',
+    'top-up': 'topped up and paid'
+}
+
 export type TitleActionDescription = (
     action: GameAction,
     names: TitleHistoryNames,
@@ -522,6 +530,12 @@ function describeShared(
                 [
                     details.retained && action.choice !== 'withhold'
                         ? `${money(details.retained)} retained`
+                        : '',
+                    action.choice === 'withhold' && details.dividendPerShare
+                        ? `${money(details.dividendPerShare)}/share paid`
+                        : '',
+                    details.separate
+                        ? `${money(details.separate.revenue)} decided apart: ${SeparateChoices[details.separate.choice]}`
                         : '',
                     details.bonusPerShare ? `${money(details.bonusPerShare)}/share bonus` : '',
                     details.topUp ? `${money(details.topUp)} from the treasury` : '',

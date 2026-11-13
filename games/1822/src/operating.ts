@@ -19,6 +19,7 @@ import {
     type Certificate,
     type CorporateFinanceRules,
     type EarningsRules,
+    type SeparateEarnings,
     type EndingRules,
     type EndingState,
     type FinanceChoice,
@@ -44,7 +45,7 @@ import {
     MajorShareCount1822,
     MinorShareCount1822
 } from './companies.js'
-import { playerLoan1822, repayPlayerLoan1822, takePlayerLoan1822 } from './loans.js'
+import { playerLoan1822, takePlayerLoan1822 } from './loans.js'
 import { removeConcessions1822 } from './lots.js'
 import { MarketPoolId1822, Names1822 } from './names.js'
 import { operatingOrder1822 } from './order.js'
@@ -67,6 +68,7 @@ import {
     LocalTrainId,
     LocalUpgradePrice1822,
     MinorTrainLimits1822,
+    PermanentTrainIds,
     Phases1822,
     TrainDepot1822
 } from './trains.js'
@@ -109,16 +111,19 @@ export const OperatingRules1822: OperatingRules = {
         privateIncome1822({ ...state, phaseId: requireState1822(state).phaseId }, privateId)
 }
 
-/** A player with a loan pays their cash against it as it comes in during operating rounds (§4.2.2). */
-export function sweepLoans1822(stateObject: object): void {
-    const state = requireState1822(stateObject)
-    for (const { playerId } of [...state.playerLoans]) repayPlayerLoan1822(state, playerId)
-}
-
 /** What a major company pays out of a run: all, none, or half rounded up to £10 (§5.14.1). */
 function paidOut(choice: string, revenue: number): number {
     if (choice === 'withhold') return 0
     return choice === 'half-pay' ? Math.ceil(revenue / 20) * 10 : revenue
+}
+
+/**
+ * What is paid where a permanent train's revenue is decided apart from the other trains': the
+ * two parts' dividends together, halved as one sum where both pay half (§5.14.2, §5.14.3).
+ */
+function paidWithSeparate(choice: string, revenue: number, separate?: SeparateEarnings): number {
+    if (!separate || separate.choice === choice) return paidOut(choice, revenue)
+    return paidOut(choice, revenue - separate.revenue) + paidOut(separate.choice, separate.revenue)
 }
 
 function step(space: StockMarketSpace, paying: boolean): StockMarketSpace {
@@ -153,7 +158,16 @@ export const EarningsRules1822: EarningsRules = {
         dividendEntitlements(state, companyId, (certificate) =>
             certificate.poolId === MarketPoolId1822 ? undefined : certificate.owner
         ),
-    retainedRevenue: (_state, _companyId, choice, revenue) => revenue - paidOut(choice, revenue),
+    retainedRevenue: (_state, _companyId, choice, revenue, separate) =>
+        revenue - paidWithSeparate(choice, revenue, separate),
+    // The revenue of a permanent 2-train or L-train may be paid, split or kept apart from the
+    // other trains' (§5.14.2).
+    separateRevenue: (state, companyId) =>
+        state.routeStep?.result?.companyId === companyId
+            ? state.routeStep.result.routes.find((route) =>
+                  PermanentTrainIds.includes(route.definitionId)
+              )?.revenue
+            : undefined,
     roundDividend: (_state, _companyId, amount) => Math.floor(amount),
     // A minor's two halves split its earnings exactly, whatever a share of four would round to.
     holderDividend: (state, companyId, { shares, choice, revenue }) =>
@@ -172,8 +186,7 @@ export const EarningsRules1822: EarningsRules = {
                 ? undefined
                 : { companyId, fromMarketSpaceId: from.id, toMarketSpaceId: to.id }
         return { ...(move ? { move } : {}), bonusPerShare: 0 }
-    },
-    afterDistribution: (state) => sweepLoans1822(state)
+    }
 }
 
 /** Whether the train is one of those that come with a private company and stand apart (§5.5.13, §5.5.14). */

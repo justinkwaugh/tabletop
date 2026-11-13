@@ -46,6 +46,8 @@
         token: 'Token: one rough, hill or mountain lay free',
         discount: 'Standing £20 off hills and mountains',
         channel: 'Exchange token into the English Channel',
+        upgrade:
+            'Upgrade the English Channel for £100, as this turn’s track, and place an exchange token there',
         available: 'Exchange token to the available tokens'
     }
     const TokenLabels: Readonly<Record<TokenChoice1822, string>> = {
@@ -128,6 +130,12 @@
         {#if privateDraft && draftedPrivate}
             {@const entry = private1822(privateDraft.privateCompanyId)}
             <h3>{company} acquires {privateDraft.privateCompanyId} {entry?.name}</h3>
+            {#if draftedPrivate.agreementPlayerId}
+                <p>
+                    {session.getPlayerName(draftedPrivate.agreementPlayerId)} holds it and answers; they
+                    receive nothing for it.
+                </p>
+            {/if}
             {#if draftedPrivate.choices.length}
                 <div class="choices" role="group" aria-label="How it is taken up">
                     {#each draftedPrivate.choices as choice (choice)}
@@ -160,7 +168,8 @@
                 class="action-button"
                 disabled={busy}
                 onclick={() => session.acquirePrivate(privateDraft)}
-                >Acquire {privateDraft.privateCompanyId}</button
+                >{draftedPrivate.agreementPlayerId ? 'Ask for' : 'Acquire'}
+                {privateDraft.privateCompanyId}</button
             >
         {:else if session.stackCard}
             <h3>Move {lotName(session.stackCard)}</h3>
@@ -180,7 +189,7 @@
             </div>
         {:else}
             {#if session.privateOffers.length}
-                <h3>{company} may take its director’s private companies</h3>
+                <h3>{company} may take private companies from the players holding them</h3>
                 <ul class="offers">
                     {#each session.privateOffers as offer (offer.privateCompanyId)}
                         {@const entry = private1822(offer.privateCompanyId)}
@@ -188,13 +197,16 @@
                             <span class="number">{offer.privateCompanyId}</span>
                             <span class="offer-text"
                                 ><strong>{entry?.power}</strong><span class="muted"
-                                    >{entry?.name}</span
+                                    >{entry?.name}{offer.agreementPlayerId
+                                        ? ` · held by ${session.getPlayerName(offer.agreementPlayerId)}, who must agree`
+                                        : ''}</span
                                 ></span
                             >
                             <button
                                 class="choice"
                                 disabled={busy}
-                                onclick={() => session.choosePrivate(offer)}>Acquire</button
+                                onclick={() => session.choosePrivate(offer)}
+                                >{offer.agreementPlayerId ? 'Ask' : 'Acquire'}</button
                             >
                         </li>
                     {/each}

@@ -19,6 +19,7 @@ import { createRequire } from 'node:module'
 import { Autorouter } from '@tabletop/18xx-autorouter'
 import { minorAcquisitions1822 } from '../src/acquisition.js'
 import { firstTrainOffer1822 } from '../src/housekeeping.js'
+import { repayableLoan1822 } from '../src/loans.js'
 import {
     CorporateFinanceRules1822,
     TrainFundingRules1822,
@@ -81,12 +82,21 @@ export function botMove(game: Table, random: Random): Move {
         return move('DeclareCash', { doubled: random.randInt(2) === 0 })
     if (valid.includes('AnswerAcquisition'))
         return move('AnswerAcquisition', { accept: random.randInt(3) > 0 })
+    if (valid.includes('AnswerPrivateOffer'))
+        return move('AnswerPrivateOffer', { accept: random.randInt(3) > 0 })
+    if (valid.includes('RespondToTrackConsent') && state.trackConsent)
+        return move('RespondToTrackConsent', {
+            requestId: state.trackConsent.id,
+            accept: random.randInt(3) > 0
+        })
 
     switch (state.machineState) {
         case 'StockRound': {
             const mustSell = !valid.includes('FinishStockTurn')
             if (valid.includes('RepayPlayerLoan') && random.randInt(2) === 0)
-                return move('RepayPlayerLoan')
+                return move('RepayPlayerLoan', {
+                    amount: 1 + random.randInt(repayableLoan1822(state, playerId))
+                })
             if (valid.includes('SellShares') && (mustSell || random.randInt(15) === 0)) {
                 for (const company of state.companies) {
                     const sales = [{ companyId: company.id, shares: 1 }]
@@ -241,7 +251,8 @@ export function botMove(game: Table, random: Random): Move {
                     const choices = construction.choices(location.id)
                     if (!choices.length) continue
                     const choice = pick(choices)
-                    return move('LayTile', {
+                    const asks = choice.consentPlayerId && choice.consentPlayerId !== playerId
+                    return move(asks ? 'RequestTrackConsent' : 'LayTile', {
                         companyId,
                         locationId: location.id,
                         definitionId: choice.definitionId,

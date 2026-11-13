@@ -100,6 +100,25 @@ function loneTownId(face: TileFace): string | undefined {
     return stops.length === 1 && stops[0].kind === 'town' ? stops[0].id : undefined
 }
 
+/**
+ * The colour the company could lay early now with P11: it holds the private unused and has laid
+ * nothing this turn (Table 3).
+ */
+export function advancedColor1822(
+    state: CompanyDecisionState,
+    companyId: string
+): string | undefined {
+    if (
+        privateOwningCompany(state, AdvancedTileLayPrivateId) !== companyId ||
+        privatePowerUsed(state, AdvancedTileLayPrivateId) ||
+        state.trackStep?.companyId !== companyId ||
+        state.trackStep.lays.length
+    )
+        return undefined
+    const next = nextColor(requireState1822(state), getCompany(state, companyId).kind === 'minor')
+    return next === Yellow ? undefined : next
+}
+
 function trackTerms(
     stateObject: CompanyDecisionState,
     privateCompanyId: string,
@@ -119,10 +138,15 @@ function trackTerms(
     const everywhere = Map1822.definition.locations
         .filter((location) => location.buildable)
         .map((location) => location.id)
-    // P2 lays plain track where a single small station stands, as the turn's track lay (§3.1.14).
+    // P2 lays plain track where a single small station stands, as the turn's track lay, and with
+    // P11 in the colour that comes next (§3.1.13, §3.1.14).
     if (privateCompanyId === RemoveSmallStationPrivateId) {
         const mapState = new RailwayMapState(Map1822, TileSet1822, state.tileInventory)
+        const advanced = advancedColor1822(state, companyId)
         return {
+            ...(advanced
+                ? { colors: [...Phases1822.phase(state.phaseId).tileColors, advanced] }
+                : {}),
             companyId,
             locationIds: everywhere.filter((id) => loneTownId(mapState.tile(id).face)),
             definitionIds: Tiles1822.filter((tile) => !hasStops(tile.face)).map((tile) => tile.id),
@@ -139,8 +163,8 @@ function trackTerms(
     // P11 lays one plain or small-station upgrade of the next colour, in place of the turn's
     // track (Table 3).
     if (privateCompanyId === AdvancedTileLayPrivateId) {
-        const next = nextColor(state, minor)
-        if (!next || next === Yellow || state.trackStep.lays.length) return undefined
+        const next = advancedColor1822(state, companyId)
+        if (!next) return undefined
         return {
             companyId,
             locationIds: everywhere,
@@ -185,8 +209,17 @@ function afterTrackLay(
         markTurn(state, AdvancedLayMark)
         return closes
     }
-    if (privateCompanyId !== ExtraTileLayPrivateId) return closes
     const face = Tiles1822.find((tile) => tile.id === details.definitionId)?.face
+    // P2's plain track in a colour not yet available was laid with P11 too (§3.1.13).
+    if (
+        privateCompanyId === RemoveSmallStationPrivateId &&
+        face &&
+        !Phases1822.phase(state.phaseId).tileColors.includes(face.color)
+    ) {
+        markTurn(state, AdvancedLayMark)
+        return { payments: [], closedPrivateIds: [privateCompanyId, AdvancedTileLayPrivateId] }
+    }
+    if (privateCompanyId !== ExtraTileLayPrivateId) return closes
     const major = getCompany(state, details.companyId).kind === 'major'
     if (face?.color === Yellow && major && !hasTurnMark(state, ExtraLayMark)) {
         markTurn(state, ExtraLayMark)

@@ -102,6 +102,9 @@ export const RouteRules1822: RouteRules = {
     depot: TrainDepot1822,
     revenueStage: (state) => revenueStages1822(state.phaseId),
     requiresCity: () => false,
+    // The English Channel and France together are one stop, so a run of those two alone is no
+    // route; France is the map's one off-board area (§5.4.6, §5.13.1).
+    minimumCitiesAndTowns: 2,
     // An E train stops only at its company's stations, and at France through a station of its
     // own in the English Channel; it passes every other stop (§5.5.8, §5.9.2).
     stopsAt(state, companyId, center, train) {

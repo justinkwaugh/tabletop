@@ -58,6 +58,7 @@ export const Presentation1822: TitlePresentation<State1822> = {
     trainColors: TrainColors1822,
     phaseColors: PhaseColors1822,
     marketPoolId: MarketPoolId1822,
+    separateEarningsName: 'Permanent train',
     poolName: (poolId) => (poolId === MarketPoolId1822 ? 'Bank pool' : 'Treasury'),
     companyNames: CompanyNames1822,
     corporateFinance: {

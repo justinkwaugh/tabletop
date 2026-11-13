@@ -1,14 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import {
+    EarningsDistribution,
     EmergencyTrainFunding,
     RouteEvaluation,
+    StationPlacement,
     corporateFinanceChoices,
+    homeStationId,
+    type TileRotation,
     finalWealth,
     placeStockMarker
 } from '@tabletop/18xx'
 import { kit, type Table } from '../test/kit.js'
 import { company, giveCharter, layTiles, player, runMinor, setCash } from '../test/positions.js'
-import { concessionId } from './companies.js'
+import { MetropolitanId, concessionId, major1822, minor1822 } from './companies.js'
+import {
+    layRestriction1822,
+    londonConsentPlayerId1822,
+    londonTrackHolders1822
+} from './layRestriction.js'
 import { playerLoan1822 } from './loans.js'
 import {
     CorporateFinanceRules1822,
@@ -19,10 +28,14 @@ import {
     privateIncome1822
 } from './operating.js'
 import { operatingOrder1822 } from './order.js'
+import { FranceLocationId } from './map.js'
+import { EnglishChannelLocationId } from './privates.js'
 import { RouteRules1822 } from './routes.js'
 import type { State1822 } from './state.js'
+import { StationRules1822 } from './stations.js'
 import { StockRules1822 } from './stock.js'
 import { EndGameSpaceId1822, Market1822 } from './stockMarket.js'
+import { EnglishChannelTileIds1822 } from './tiles.js'
 import { TrackRules1822 } from './track.js'
 
 function prepared(prepare: (state: State1822, players: string[]) => void, count = 4): Table {
@@ -87,6 +100,79 @@ describe('track (§5.8.13)', () => {
     })
 })
 
+describe('the hexes beside London (§5.10.7)', () => {
+    // L39 lies beside the Great Western's London station, its track leaving London to the south-west.
+    const beside = 'L39'
+    const lay = (companyId: string, rotation: TileRotation) => ({
+        companyId,
+        locationId: beside,
+        definitionId: '18xx:9',
+        rotation,
+        nodeMapping: {}
+    })
+    const joining = ([0, 1, 2, 3, 4, 5] as const).filter(
+        (rotation) => !layRestriction1822(bare().hydrated, lay('M4', rotation))
+    )
+    function bare(): Table {
+        return prepared((state, [first]) => runMinor(state, 'M4', first))
+    }
+
+    it('takes only a tile that joins the London station while no one holds the hex', () => {
+        const state = bare().hydrated
+        expect(londonTrackHolders1822(state, beside)).toEqual([])
+        expect(joining).toHaveLength(2)
+        expect(londonConsentPlayerId1822(state, lay('M4', 0))).toBeUndefined()
+    })
+
+    it('is its concession holder’s to lay on freely, and another’s only with their agreement', () => {
+        const game = prepared((state, [first, second]) => {
+            giveCharter(state, concessionId('GWR'), player(first))
+            runMinor(state, 'M4', first)
+            runMinor(state, 'M5', second)
+        })
+        const state = game.hydrated
+        const [first] = game.state.turnManager.turnOrder
+        expect(londonTrackHolders1822(state, beside)).toEqual([first])
+        for (const rotation of [0, 1, 2, 3, 4, 5] as const)
+            expect(layRestriction1822(state, lay('M4', rotation))).toBeUndefined()
+        expect(londonConsentPlayerId1822(state, lay('M4', 0))).toBeUndefined()
+        expect(londonConsentPlayerId1822(state, lay('M5', 0))).toBe(first)
+        expect(
+            londonConsentPlayerId1822(state, { ...lay('M5', 0), definitionId: '18xx:80' })
+        ).toBeUndefined()
+    })
+
+    it('passes to the company’s director, and is shared by the Metropolitan Railway beside it', () => {
+        const game = prepared((state, [first, second]) => {
+            kit.operated(state, 'GWR', first, { price: 100, shares: 6 })
+            runMinor(state, MetropolitanId, second)
+            const home = major1822('GWR')?.home
+            if (!home) throw new Error('The Great Western starts in London')
+            state.stations = state.stations.map((station) =>
+                station.id === homeStationId(MetropolitanId)
+                    ? {
+                          id: station.id,
+                          companyId: MetropolitanId,
+                          status: 'placed',
+                          position: { ...home, slot: 1 }
+                      }
+                    : station
+            )
+        })
+        const [first, second] = game.state.turnManager.turnOrder
+        expect(londonTrackHolders1822(game.hydrated, beside)).toEqual([first, second])
+        expect(londonConsentPlayerId1822(game.hydrated, lay(MetropolitanId, 0))).toBeUndefined()
+    })
+})
+
+const ranRoute = {
+    start: { locationId: 'E6', nodeId: 'city' },
+    paths: [],
+    visits: [],
+    payments: [],
+    distance: 0
+}
+
 describe('dividends (§5.14)', () => {
     const effect = (
         state: State1822,
@@ -115,6 +201,48 @@ describe('dividends (§5.14)', () => {
         // Half is rounded up to the next £10: £150 pays £80 and keeps £70 (§5.14.1).
         expect(effect(state, 'CR', 'half-pay', 150)).toEqual({ retained: 70, to: undefined })
         expect(effect(state, 'CR', 'half-pay', 200).to).toBe(110)
+    })
+
+    it('decides a permanent 2-train’s revenue apart from the other trains’ (§5.14.2, §5.14.3)', () => {
+        const game = prepared((state, [first]) => kit.operated(state, 'CR', first, { price: 100 }))
+        const state = game.state
+        const kept = (
+            choice: 'pay' | 'half-pay' | 'withhold',
+            separate: 'pay' | 'half-pay' | 'withhold'
+        ) =>
+            EarningsRules1822.retainedRevenue(state, 'CR', choice, 200, {
+                choice: separate,
+                revenue: 50
+            })
+        // The other trains' £150 kept and the 2P's £50 paid: £50 is the dividend.
+        expect(kept('withhold', 'pay')).toBe(150)
+        expect(kept('pay', 'withhold')).toBe(50)
+        // Half of £150 is £80, with the 2P's £50 in full.
+        expect(kept('half-pay', 'pay')).toBe(200 - 130)
+        // Both paying half are halved as one sum of £200.
+        expect(kept('half-pay', 'half-pay')).toBe(100)
+        const running = game.hydrated
+        running.routeStep = {
+            companyId: 'CR',
+            result: {
+                companyId: 'CR',
+                revenue: 200,
+                routes: [
+                    { ...ranRoute, trainId: 'a', definitionId: '3', revenue: 150 },
+                    { ...ranRoute, trainId: 'b', definitionId: '2P', revenue: 50 }
+                ]
+            }
+        }
+        const distribution = new EarningsDistribution(running, EarningsRules1822)
+        expect(distribution.separateRevenue('CR')).toBe(50)
+        const details = distribution.evaluate('CR', 'withhold', 'pay').details
+        expect(details).toMatchObject({
+            retained: 150,
+            dividendPerShare: 5,
+            separate: { choice: 'pay', revenue: 50 }
+        })
+        // £50 paid is under the share value of £100, so the price stays (§5.14.6).
+        expect(details?.marketMove).toBeUndefined()
     })
 
     it('has a minor always split its earnings and move right when it pays', () => {
@@ -285,6 +413,26 @@ describe('the end of the game (§1.3)', () => {
     })
 })
 
+describe('stations (§5.12)', () => {
+    it('lets a company with a London station take another of London’s, left free by a minor (§5.12.6)', () => {
+        const game = prepared((state, [first]) => {
+            kit.operated(state, 'GWR', first, { price: 100, shares: 6 })
+            state.stationReservations = state.stationReservations.filter(
+                (reservation) => reservation.companyId !== 'M15'
+            )
+        })
+        const state = game.hydrated
+        state.stationStep = { companyId: 'GWR', placedStationIds: [], completed: false }
+        const placement = new StationPlacement(state, StationRules1822)
+        const home = major1822('GWR')?.home
+        const freed = minor1822('M15')?.home
+        if (!home || !freed) throw new Error('GWR and M15 start in London')
+        expect(home.locationId).toBe(freed.locationId)
+        expect(placement.openSlots('GWR', home.locationId, home.nodeId)).toEqual([])
+        expect(placement.openSlots('GWR', freed.locationId, freed.nodeId)).toEqual([0])
+    })
+})
+
 describe('routes (§5.4, §5.5)', () => {
     function running(game: Table, companyId: string) {
         const state = game.hydrated
@@ -322,6 +470,57 @@ describe('routes (§5.4, §5.5)', () => {
                 { trainId: local.id, start: { locationId: 'D35', nodeId: 'city' }, paths: [] }
             ]).result?.revenue
         ).toBe(20)
+    })
+
+    it('takes no run of the English Channel and France alone, the two being one stop (§5.4.6)', () => {
+        const [channelTileId] = EnglishChannelTileIds1822
+        const game = prepared((state, [first]) => {
+            state.phaseId = '5'
+            kit.operated(state, 'SECR', first, { price: 100, shares: 6 })
+            kit.giveTrain(state, 'SECR', '5')
+            layTiles(state, [
+                { locationId: EnglishChannelLocationId, definitionId: channelTileId, rotation: 0 }
+            ])
+            const spare = state.stations.find(
+                (station) => station.companyId === 'SECR' && station.status !== 'placed'
+            )
+            if (!spare) throw new Error('SECR has no spare station')
+            state.stations = state.stations.map((station) =>
+                station === spare
+                    ? {
+                          id: spare.id,
+                          companyId: 'SECR',
+                          status: 'placed',
+                          position: {
+                              locationId: EnglishChannelLocationId,
+                              nodeId: 'city',
+                              slot: 0
+                          }
+                      }
+                    : station
+            )
+        })
+        const { state, evaluation } = running(game, 'SECR')
+        const [train] = state.trainInventory.trains.filter((entry) => entry.status === 'owned')
+        const toFrance = evaluation.network.mapState
+            .tile(EnglishChannelLocationId)
+            .face.paths.find((path) =>
+                path.endpoints.some((end) => end.kind === 'edge' && end.edge === 5)
+            )
+        const [inFrance] = RouteRules1822.map.location(FranceLocationId).preprintedTile.paths
+        if (!toFrance) throw new Error('The Channel has no track to France')
+        expect(
+            evaluation.evaluate('SECR', [
+                {
+                    trainId: train.id,
+                    start: { locationId: EnglishChannelLocationId, nodeId: 'city' },
+                    paths: [
+                        { locationId: EnglishChannelLocationId, pathId: toFrance.id },
+                        { locationId: FranceLocationId, pathId: inFrance.id }
+                    ]
+                }
+            ]).reason
+        ).toBe('A route must visit at least 2 cities or towns.')
     })
 
     it('ends a route that crosses between Merthyr Tydfil and Pontypool (§5.4.7)', () => {

@@ -45,17 +45,19 @@
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.cashDeclarer}
             <StockTurn {session} />
-        {:else if session.acquisitionOffer}
+        {:else if session.acquisitionOffer || session.privateOffer}
             <AcquisitionOffer {session} />
-        {:else if session.stockPanels.open === 'bids'}
-            <StockTurn {session} />
-            <BidBoxes {session} {groups} {lot} {lotName} />
         {:else}
-            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session}>
-                {#snippet titleMode(id)}
-                    <TitleMode {session} {id} />
-                {/snippet}
-            </OperatingActions>
+            {#if session.loanRepayment}<StockTurn {session} />{/if}
+            {#if session.stockPanels.open === 'bids'}
+                <BidBoxes {session} {groups} {lot} {lotName} />
+            {:else}
+                <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session}>
+                    {#snippet titleMode(id)}
+                        <TitleMode {session} {id} />
+                    {/snippet}
+                </OperatingActions>
+            {/if}
         {/if}
     {/snippet}
 </GameTable>

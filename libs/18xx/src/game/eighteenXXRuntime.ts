@@ -122,6 +122,7 @@ function validateStateComposition(
         | 'accessRightRules'
         | 'corporateFinanceRules'
         | 'runInstructions'
+        | 'trackRules'
     >,
     handlers: Readonly<Record<string, unknown>>
 ): void {
@@ -144,6 +145,7 @@ function validateStateComposition(
         ['privateStation', !!options.privatePowerRules.stationPrivateIds?.length],
         ['locationMarkers', !!options.privatePowerRules.markerTerms],
         ['accessRights', !!options.accessRightRules],
+        ['trackConsent', !!options.trackRules.consentPlayerId],
         ['financeStep', !!options.corporateFinanceRules]
     ]
     for (const [field, supported] of features)

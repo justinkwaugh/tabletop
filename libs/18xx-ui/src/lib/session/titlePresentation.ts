@@ -159,6 +159,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     includedPortfolioCompanyIds?: readonly string[]
     poolName?: (poolId: string) => string
     instructionStopText?: (reason: TitleStopReason) => string
+    /** What the revenue a company may decide apart from the rest is called, as 1822's permanent train's. */
+    separateEarningsName?: string
     privatePurchaseLabel?: string
     privatePurchaseHeading?: string
     /** Shown under the player's own privates when they have none the company can buy. */

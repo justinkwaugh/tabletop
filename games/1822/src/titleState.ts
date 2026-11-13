@@ -73,6 +73,31 @@ export const TitleFields1822 = {
             { additionalProperties: false }
         )
     ),
+    /**
+     * A company's request for a private company another player holds, until that player answers
+     * it (§3.1.2).
+     */
+    privateOffer: Type.Optional(
+        Type.Object(
+            {
+                companyId: Id,
+                privateCompanyId: Id,
+                /** The private company's holder, who answers. */
+                playerId: Id,
+                choice: Type.Optional(
+                    Type.Union([
+                        Type.Literal('token'),
+                        Type.Literal('discount'),
+                        Type.Literal('channel'),
+                        Type.Literal('upgrade'),
+                        Type.Literal('available')
+                    ])
+                ),
+                discardTrainId: Type.Optional(Id)
+            },
+            { additionalProperties: false }
+        )
+    ),
     /** The first stock round ended with nothing sold, which ends the game (§1.3.1). */
     nothingSold: Type.Optional(Type.Literal(true)),
     /**

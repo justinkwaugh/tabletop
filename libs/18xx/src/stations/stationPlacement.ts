@@ -74,6 +74,11 @@ export interface StationRules {
     /** Titles whose presidents choose a home city return the next operating company's choice. */
     homeChoice?(state: OperatingStationState): HomeStationChoice | undefined
     reservationOccupant?(reservation: StationReservation): string | undefined
+    /**
+     * Whether the hex's cities are places of their own, each open to a station of the same
+     * company, as London's six stations are (1822 §5.4.2, §5.12.6).
+     */
+    citiesApart?(locationId: string): boolean
 }
 export type StationEvaluation =
     { details: StationPlacementDetails; reason?: never } | { details?: never; reason: string }
@@ -158,12 +163,14 @@ export class StationPlacement {
             return []
         const node = this.mapState.tile(locationId).face.nodes.find((node) => node.id === nodeId)
         if (node?.kind !== 'city') return []
+        const apart = this.rules.citiesApart?.(locationId) ?? false
         if (
             this.state.stations.some(
                 (station) =>
                     station.status === 'placed' &&
                     station.companyId === companyId &&
-                    station.position.locationId === locationId
+                    station.position.locationId === locationId &&
+                    (!apart || station.position.nodeId === nodeId)
             ) ||
             (this.state.stationAccess ?? []).some(
                 (access) => access.companyId === companyId && access.locationId === locationId

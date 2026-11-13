@@ -18,7 +18,7 @@
     "DeclareBankruptcy": "8bc60891d269ce1426b8317a7e720dd737f6d0c805d35854192d59a8e9f34ae8",
     "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "557145c7b75d38088952eb519168db36b7338752d3a31d740a727090539bb006",
+    "DistributeEarnings": "fe967d0006b5bfbd54116f89896c3f287c7c99b14e619fbc33b699e1197f5ed5",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "a2f10d6984e1e0360b86f977ddc78c38e820d30cc75fdcaed5adeec196fd22ef",
     "FinishOperatingTurn": "5a35934087f165b9b2aff49a45a78fc5ce5f3c1b84ff5950cd154349e99ce749",
@@ -50,7 +50,7 @@
     "SetRunInstructionStops": "5b3208940e191c8df4445273e0026429e3d4a503cb7bb5d6734d3535f096d72d",
     "SetStockInstruction": "83b7cfb9ce2c22f836925a999f485aa2822b409854cc66ca1648bb25cb0c083e",
     "SetStockInstructionStops": "651b850b0d8e06bd7bc16b152c4889c9fddf724544844a9f55876f43aca7165f",
-    "SettleIndependent": "df2c17b50f536d1b895f776400efbb89ffcfe25f55321380a28aa5c81fec8482",
+    "SettleIndependent": "90acb7f0748f5349672ecf4f4134bcc61218b22dd294eb5e07e4dec22a296078",
     "StartCompany": "d1fa1890cd370cf85cd44f750767006da1abb3faa8e814a3d738b46c0c02d9a3",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
@@ -1069,6 +1069,40 @@
           "revenue": {
             "minimum": 0,
             "type": "integer"
+          },
+          "separate": {
+            "additionalProperties": false,
+            "properties": {
+              "choice": {
+                "anyOf": [
+                  {
+                    "const": "pay",
+                    "type": "string"
+                  },
+                  {
+                    "const": "withhold",
+                    "type": "string"
+                  },
+                  {
+                    "const": "half-pay",
+                    "type": "string"
+                  },
+                  {
+                    "const": "top-up",
+                    "type": "string"
+                  }
+                ]
+              },
+              "revenue": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "choice",
+              "revenue"
+            ],
+            "type": "object"
           },
           "topUp": {
             "minimum": 1,
