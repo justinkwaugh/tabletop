@@ -23,7 +23,7 @@ import {
     type GipfPotentialsGameState
 } from '../model/gameState.js'
 import { emptyBoard } from '../model/board.js'
-import { pointAt } from '../model/geometry.js'
+import { GEOMETRY, pointAt, pointName } from '../model/geometry.js'
 import {
     countsOfEachKind,
     PieceKind,
@@ -234,6 +234,15 @@ const stackAt = (state: GipfPotentialsGameState, name: string): Piece[] =>
         .map(({ discIds: _discIds, ...piece }) => piece)
 const canMove = (state: GipfPotentialsGameState, playerId: string, from: string, to: string) =>
     hydrated(state).isPotentialMove(playerId, at(from), at(to))
+
+describe('the board', () => {
+    it('names every point as pointAt reads it', () => {
+        for (const coords of GEOMETRY.points) {
+            expect(pointAt(pointName(coords))).toEqual(coords)
+        }
+        expect(pointName(pointAt('I5'))).toBe('I5')
+    })
+})
 
 describe('setting up', () => {
     it('Standard: three GIPF-pieces each on the board, 12 in reserve, 6 YINSH by default', () => {

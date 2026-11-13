@@ -1,4 +1,9 @@
-import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@tabletop/common'
+import {
+    flatHexCoordsToCenterPoint,
+    sameCoordinates,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
 import { GEOMETRY } from '@tabletop/gipf-potentials'
 import { stackTop } from './pieceShape.js'
 import { hull } from './hull.js'
@@ -95,4 +100,8 @@ export const TURNED_VIEW = new BoardView(TILT, true)
 
 export function coordsKey(coords: AxialCoordinates): string {
     return `${coords.q},${coords.r}`
+}
+
+export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
+    return list.some((candidate) => sameCoordinates(candidate, coords))
 }

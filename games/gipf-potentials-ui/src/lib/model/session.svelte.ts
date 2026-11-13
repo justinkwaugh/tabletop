@@ -36,13 +36,15 @@ import {
     setGipfPotentialsSelection,
     type GipfPotentialsSelection
 } from './stagedSelection.js'
-import { coordsKey, TURNED_VIEW, VIEW, type BoardView } from '$lib/board/geometry.js'
+import {
+    coordsKey,
+    includesCoords,
+    TURNED_VIEW,
+    VIEW,
+    type BoardView
+} from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
-
-export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
-    return list.some((candidate) => sameCoordinates(candidate, coords))
-}
 
 export function rowKey(row: Row): string {
     return `${coordsKey(row.from)}|${coordsKey(row.to)}`
