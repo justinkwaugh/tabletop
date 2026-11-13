@@ -31,7 +31,7 @@ Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-a
 | `--rtr-accent-start`     | The fainter ring on a city lit for a start only                                       | `#D18E0F80` | `#F2B33D80` |
 | `--rtr-cost`             | Costs or threatens: the mountain "−1" mark                                            | `#C8506A`   | `#E36F88`   |
 | `--rtr-halo`             | The dark halo under every ring, pip, mark and route line, the last journey's included | `#1B1B1B`   | `#0D0D0D`   |
-| `--rtr-scrim`            | The dimming scrim over the map                                                        | `#1B1B1B73` | `#00000099` |
+| `--rtr-scrim`            | The dimming scrim over the map                                                        | `#1B1B1B73` | `#00000073` |
 | `--rtr-coin`             | Money: coins, the Chicago "$2"                                                        | `#D7B44A`   | `#E2C25E`   |
 | `--rtr-five`             | The $5 cities' banner and mark                                                        | `#3F8F4F`   | `#5DB26C`   |
 | `--rtr-gold`             | The Transcontinental: its ends, mark, claim and claimed line                          | `#B9851F`   | `#D9A43A`   |
@@ -46,6 +46,8 @@ Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-a
 | `--rtr-railroad-yellow`  | Yellow railroad                                                                       | `#EBCB3C`   | `#F0D555`   |
 | `--rtr-railroad-purple`  | Purple railroad                                                                       | `#7E4FA3`   | `#9668BC`   |
 | `--rtr-railroad-black`   | Black railroad                                                                        | `#24262B`   | `#24262B`   |
+
+The dark scrim dims by the same 45% as the light one (`#00000073`; it was 60%, `#00000099`). On the dark ground a 60% scrim left the track under it too faint to read: a Red locomotive's contrast against a dimmed plain fell to 1.35 and Black's light edge to 2.6; at 45% they are 1.64 and 3.9, and the lit hexes, undimmed and ringed in `--rtr-accent`, still stand clear of the rest.
 
 The railroad colours are rule colours: they name the railroads in the rules (R-1.1) and appear only on railroad things (locomotives, pips, route links, strip entries, share rows). Each has its monogram ink as a token too, `--rtr-railroad-<name>-ink`, set in each theme to `--rtr-ink-light` or `--rtr-halo`, whichever meets the contrast (Seat colours and colour blindness).
 
@@ -148,5 +150,5 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 - `images.spec.ts`: the title ships no image or font but the cover and the display font; the cover's size, encoding and weight; no base64 image; no SVG with a script, event attribute, `foreignObject` or external reference.
 - `boardGeometry.spec.ts`: every hex and city in the logic's map data has a position and a label anchor, no position names a hex the data lacks, the extents are the data's bounding box plus the fixed margin, and every margin box lies inside the board and covers no hex.
 - `trackLayout.spec.ts`: every capacity has slots for its locomotives.
-- `ink.spec.ts`: monogram and initials contrast.
+- `ink.spec.ts`: monogram and initials contrast, and every railroad's locomotive told from the plain under the scrim (by its fill or its edge, at least 1.5:1).
 - Readiness gates 1 and 2 pass on the first run.

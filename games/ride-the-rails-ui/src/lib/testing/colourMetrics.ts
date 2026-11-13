@@ -15,6 +15,16 @@ function relativeLuminance(hex: string): number {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
+/** A `#rrggbbaa` colour laid over an opaque `#rrggbb` one, as the screen shows them. */
+export function laidOver(base: string, overlay: string): string {
+    const alpha = overlay.length === 9 ? Number.parseInt(overlay.slice(7, 9), 16) / 255 : 1
+    const top = rgb(overlay)
+    const mixed = rgb(base).map((channel, index) =>
+        Math.round(channel * (1 - alpha) + top[index] * alpha)
+    )
+    return `#${mixed.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
+}
+
 /** WCAG 2 contrast ratio of two opaque `#rrggbb` colours. */
 export function contrastRatio(a: string, b: string): number {
     const [light, dark] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x)
