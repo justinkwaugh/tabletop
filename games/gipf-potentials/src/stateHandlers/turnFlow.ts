@@ -22,19 +22,12 @@ export function afterMove(
     return continueResolving(state)
 }
 
-// Rows are found again after each removal, which can uncover a piece completing a new one. Only
-// the mover may take rows of GIPF-pieces alone; one taken before the move leaves any row it frees
-// for after the move.
+// Rows are found again after each removal, which can uncover a piece completing a new one. A row
+// of GIPF-pieces alone taken before the move leaves any row it frees for after the move.
 export function continueResolving(state: HydratedGipfPotentialsGameState): MachineState {
     const turnPlayerId = currentPlayerId(state)
     while (state.resolvingPlayerIds.length > 0) {
-        const resolverId = state.resolvingPlayerIds[0]
-        const rows = state.board.rowsOf(resolverId)
-        const mayTakeAny = resolverId === turnPlayerId
-        const needsResolver = mayTakeAny
-            ? rows.length > 0
-            : rows.some((row) => state.board.isMandatory(row))
-        if (needsResolver) {
+        if (state.rowsToTake(state.resolvingPlayerIds[0]).length > 0) {
             return MachineState.ResolvingRows
         }
         state.resolvingPlayerIds.shift()

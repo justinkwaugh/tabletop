@@ -63,7 +63,8 @@ export class HydratedRemoveRow extends HydratableAction<typeof RemoveRow> implem
         }
         const mayRemoveNow =
             state.machineState === MachineState.ResolvingRows
-                ? state.resolvingPlayerIds[0] === this.playerId
+                ? state.resolvingPlayerIds[0] === this.playerId &&
+                  state.mayTakeRow(this.playerId, row)
                 : !board.isMandatory(row)
         return mayRemoveNow && board.isValidRemoval(row, this.keep)
     }

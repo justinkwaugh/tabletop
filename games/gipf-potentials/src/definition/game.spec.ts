@@ -724,7 +724,95 @@ describe('taking rows', () => {
     })
 })
 
+describe('rows of the player not moving', () => {
+    const blackKeepers = KEEPERS.filter(([, [piece]]) => piece.playerId === B)
+
+    it('a row of GIPF-pieces alone waits for its owner, even beside a row that must go', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...whiteKeepers,
+            ['D2', [gipf(B)]],
+            ['D3', [gipf(B)]],
+            ['D4', [gipf(B)]],
+            ['D5', [gipf(B)]],
+            ['F2', [basic(B)]],
+            ['F3', [basic(B)]],
+            ['F4', [basic(B)]],
+            ['F5', [basic(B)]]
+        ])
+        state = passWhite(game, state)
+        expect(state.machineState).toBe(MachineState.ResolvingRows)
+        expect(state.activePlayerIds).toEqual([B])
+        expect(() => removeRow(game, state, B, 'D2', 'D5')).toThrow()
+        state = removeRow(game, state, B, 'F2', 'F5')
+        expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([B])
+        state = removeRow(game, state, B, 'D2', 'D5')
+        expect(stackAt(state, 'D2')).toEqual([])
+    })
+
+    it('a row the mover’s removal uncovers for the opponent is the opponent’s to take at once', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...KEEPERS,
+            ['E2', [basic(W)]],
+            ['E3', [basic(W)]],
+            ['E4', [basic(W)]],
+            ['E6', [basic(B), used(W, PieceKind.Dvonn)]],
+            ['F5', [basic(B)]],
+            ['G4', [basic(B)]],
+            ['H3', [basic(B)]]
+        ])
+        state = push(game, state, W, 'E1', 'E2', PieceKind.Yinsh)
+        state = removeRow(game, state, W, 'E2', 'E6', ['E2'])
+        expect(stackAt(state, 'E6')).toEqual([basic(B)])
+        expect(state.machineState).toBe(MachineState.ResolvingRows)
+        expect(state.activePlayerIds).toEqual([B])
+    })
+
+    it('a row the opponent’s removal uncovers for the mover waits until after the opponent’s move', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...whiteKeepers,
+            ...blackKeepers,
+            ['E2', [basic(B)]],
+            ['E3', [basic(B)]],
+            ['E4', [basic(B)]],
+            ['E5', [basic(B)]],
+            ['E6', [basic(W), used(B, PieceKind.Dvonn)]],
+            ['F5', [basic(W)]],
+            ['G4', [basic(W)]],
+            ['H3', [basic(W)]]
+        ])
+        state = passWhite(game, state)
+        expect(state.activePlayerIds).toEqual([B])
+        state = removeRow(game, state, B, 'E2', 'E6')
+        expect(stackAt(state, 'E6')).toEqual([basic(W)])
+        expect(hydrated(state).board.rowsOf(W)).toHaveLength(1)
+        expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([B])
+        state = push(game, state, B, 'E9', 'E8', PieceKind.Yinsh)
+        expect(state.machineState).toBe(MachineState.ResolvingRows)
+        expect(state.activePlayerIds).toEqual([W])
+    })
+})
+
 describe('end of game', () => {
+    it('a turn that leaves neither player a GIPF-piece is won by the mover', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ['E2', [basic(W)]],
+            ['E3', [gipf(W)]],
+            ['E4', [basic(W)]],
+            ['E6', [gipf(B)]]
+        ])
+        state = push(game, state, W, 'E1', 'E2', PieceKind.Yinsh)
+        state = removeRow(game, state, W, 'E2', 'E5')
+        expect(state.machineState).toBe(MachineState.EndOfGame)
+        expect(state.winningPlayerIds).toEqual([W])
+        expect(state.endReason).toBe(EndReason.NoGipfPieces)
+    })
+
     it('taking the last GIPF-piece wins', () => {
         const game = createGame()
         let state = withPieces(start(game), [

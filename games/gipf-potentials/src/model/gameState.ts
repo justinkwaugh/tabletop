@@ -158,6 +158,16 @@ export class HydratedGipfPotentialsGameState
         )
     }
 
+    // Rows of GIPF-pieces alone are never forced and wait for their owner's turn, so only the
+    // mover may take them; anyone else takes only rows that must go.
+    mayTakeRow(playerId: string, row: Row): boolean {
+        return this.turnManager.currentTurn()?.playerId === playerId || this.board.isMandatory(row)
+    }
+
+    rowsToTake(playerId: string): Row[] {
+        return this.board.rowsOf(playerId).filter((row) => this.mayTakeRow(playerId, row))
+    }
+
     canMove(playerId: string): boolean {
         return this.pushableKinds(playerId).length > 0 || this.potentialMoves(playerId).length > 0
     }

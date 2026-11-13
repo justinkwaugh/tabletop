@@ -251,8 +251,9 @@ export class GipfPotentialsGameSession extends GameSession<
         const playerId = this.myPlayer?.id
         if (!this.canRemove || playerId === undefined) return []
         const { board } = this.gameState
-        const rows = board.rowsOf(playerId)
-        return this.resolving ? rows : rows.filter((row) => !board.isMandatory(row))
+        return this.resolving
+            ? this.gameState.rowsToTake(playerId)
+            : board.rowsOf(playerId).filter((row) => !board.isMandatory(row))
     })
 
     chosenRow: Row | undefined = $derived.by(() => {
