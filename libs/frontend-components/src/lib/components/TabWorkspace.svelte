@@ -9,6 +9,7 @@
     } from './workspacePersistence.js'
     import { tick, untrack, type Snippet } from 'svelte'
     import { chainSidewaysScroll } from '../utils/scrollChain.js'
+    import { moveToIndex } from '../utils/moveToIndex.js'
     import {
         type WorkspaceInitialSplit,
         activateTab,
@@ -19,7 +20,6 @@
         maxSplitRatio,
         minSplitRatio,
         moveTab,
-        moveTabToIndex,
         orderPaneTabs,
         tabDragIndex,
         tabDragShift,
@@ -259,7 +259,7 @@
         if (!drag) return
         const index = tabDragIndex(drag)
         if (index !== drag.tabs.indexOf(drag.tab))
-            orderTabs(drag.pane, moveTabToIndex(drag.tabs, drag.tab, index))
+            orderTabs(drag.pane, moveToIndex(drag.tabs, drag.tab, index))
         drag = undefined
     }
     function reorderKeys(event: KeyboardEvent, pane: WorkspacePane, tab: string) {
@@ -268,7 +268,7 @@
         if (!step || index < 0 || index >= pane.tabs.length) return
         event.preventDefault()
         const grip = event.currentTarget
-        orderTabs(pane.id, moveTabToIndex(pane.tabs, tab, index))
+        orderTabs(pane.id, moveToIndex(pane.tabs, tab, index))
         if (grip instanceof HTMLElement) void tick().then(() => grip.focus())
     }
     function removeTab(tab: string) {

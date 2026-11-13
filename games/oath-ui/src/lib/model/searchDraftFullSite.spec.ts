@@ -251,6 +251,15 @@ function offers(session: OathGameSession, kept: string) {
     }
 }
 
+/** The plays the draft offers now, each with its room. */
+function plays(session: OathGameSession) {
+    return session.search.placements.map(({ label, room }) => [
+        label,
+        room.needed,
+        room.discardable
+    ])
+}
+
 const AT_LIMIT = [1, ADVISERS] as const
 const SITE_PLAYS = [
     ['To your site', 0, []],
@@ -272,22 +281,25 @@ describe('the choices offered at a full site stay as they were', () => {
         for (const view of VIEWS) {
             const on = `at revision ${name}, on ${viewName(view)}`
 
-            it(`${on}: at the Great Slum, a card that can go to a site offers it with a Slum card to discard first`, async () => {
-                const { session } = await drafting(view, { revision })
+            it(`${on}: at the Great Slum, a card that can go to a site offers it once a Slum card is picked to discard first`, async () => {
+                const { session, draft } = await drafting(view, { revision })
                 const siteKeep = {
-                    placements: SITE_PLAYS,
+                    placements: ADVISER_PLAYS,
                     otherSites: [],
                     discardFirstOptions: SLUM_DENIZENS,
                     siteGain: GAIN,
                     secondCandidates: []
                 }
                 expect(offers(session, WRESTLERS)).toEqual(siteKeep)
+                draft.tapDiscardFirst(SLUM_DENIZENS[0])
+                expect(plays(session)).toEqual(SITE_PLAYS)
                 expect(offers(session, TWIN_BROTHER)).toEqual({
                     ...siteKeep,
-                    placements: ADVISER_PLAYS,
                     discardFirstOptions: []
                 })
                 expect(offers(session, RELIC_BREAKER)).toEqual(siteKeep)
+                draft.tapDiscardFirst(SLUM_DENIZENS[0])
+                expect(plays(session)).toEqual(SITE_PLAYS)
             })
 
             it(`${on}: at a full site that is not the Great Slum, no card can go to a site`, async () => {
@@ -305,7 +317,7 @@ describe('the choices offered at a full site stay as they were', () => {
             it(`${on}: with the People's Favor, the other Hinterland sites are offered, and the Slum's cards at each`, async () => {
                 const { session, draft } = await drafting(view, { revision, peoplesFavor: true })
                 expect(offers(session, WRESTLERS)).toEqual({
-                    placements: SITE_PLAYS,
+                    placements: ADVISER_PLAYS,
                     otherSites: [COAST, PASS],
                     discardFirstOptions: SLUM_DENIZENS,
                     siteGain: GAIN,
@@ -330,6 +342,8 @@ describe('the draft never shows a choice from before a change', () => {
     it('keeping another card offers that card’s plays', async () => {
         const { draft } = await drafting('own')
         draft.keep(WRESTLERS)
+        expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
+        draft.tapDiscardFirst(SLUM_DENIZENS[0])
         expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
         draft.keep(TWIN_BROTHER)
         expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
@@ -351,7 +365,7 @@ describe('the draft never shows a choice from before a change', () => {
         expect(draft.placement).toBeUndefined()
         expect(draft.room.needed).toBe(0)
         expect(draft.placements.map((option) => option.label)).toEqual(
-            SITE_PLAYS.map(([label]) => label)
+            ADVISER_PLAYS.map(([label]) => label)
         )
         await session.undo()
         expect(draft.kept).toBeUndefined()
@@ -364,7 +378,7 @@ describe('the draft never shows a choice from before a change', () => {
         draft.keep(WRESTLERS)
         expect(draft.siteGain).toEqual(GAIN)
         const before = draft.placements
-        expect(before.map((option) => option.label)).toContain('To your site')
+        expect(before.map((option) => option.label)).not.toContain('To your site')
 
         const roomy = fullSiteSearch()
         roomy.state.denizensBySite['slot.hinterland.1'] = SLUM_DENIZENS.slice(0, 2)

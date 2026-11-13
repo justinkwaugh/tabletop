@@ -18,7 +18,7 @@ import {
 } from './presidency.js'
 import { placeStockMarker, stockMarkerStackIndex } from './stockMarket.js'
 import { copyStockState, type StockState } from './stockState.js'
-import { type StockRules, exceedsStockLimits } from './stockRules.js'
+import { type StockRules, exceedsStockLimits, presidencyExchangeTerms } from './stockRules.js'
 import type { SaleBlockTerms } from './stockTurn.js'
 
 export const ShareSale = Type.Object(
@@ -236,7 +236,7 @@ export function evaluateShareDisposal(
         | 'charters'
         | 'saleTerms'
         | 'presidencyCandidates'
-        | 'presidencyExchangeLargestFirst'
+        | 'presidencyExchange'
         | 'holdsMarketMove'
         | 'presidencyLapses'
     >
@@ -279,7 +279,7 @@ export function evaluateShareDisposal(
             company.id,
             rules.presidencyCandidates(projected, company.id),
             { owner: seller, shares: owned - sale.shares },
-            rules.presidencyExchangeLargestFirst
+            presidencyExchangeTerms(rules)
         )
         const lapsed =
             presidency.reason && rules.presidencyLapses

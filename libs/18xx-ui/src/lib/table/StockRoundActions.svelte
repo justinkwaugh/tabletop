@@ -8,7 +8,11 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
-    import { marketSourcesFirst } from '../stock/purchaseSources.js'
+    import {
+        distinctOwners,
+        marketSourcesFirst,
+        shareSourceName
+    } from '../stock/purchaseSources.js'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
@@ -22,30 +26,8 @@
             !session.myPlayer ||
             !session.gameState.activePlayerIds.includes(session.myPlayer.id)
     )
-    const purchases = $derived.by(() => {
-        const seen = new Set<string>()
-        return session.stock.purchaseChoices.filter((choice) => {
-            if (!choice.result.details || choice.certificate.kind !== 'share') return false
-            const key = JSON.stringify([
-                choice.request.buyer,
-                choice.certificate.companyId,
-                choice.certificate.poolId,
-                choice.certificate.number,
-                choice.certificate.shares,
-                choice.certificate.president,
-                choice.result.details.price
-            ])
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-        })
-    })
-    function distinctBuyers(owners: readonly Owner[]): Owner[] {
-        return owners.filter(
-            (owner, index) => owners.findIndex((candidate) => sameOwner(candidate, owner)) === index
-        )
-    }
-    const buyers = $derived(distinctBuyers(purchases.map((choice) => choice.request.buyer)))
+    const purchases = $derived(session.stock.availablePurchases)
+    const buyers = $derived(distinctOwners(purchases.map((choice) => choice.request.buyer)))
     const buyerPurchases = $derived(
         purchases.filter((choice) =>
             session.stock.menuBuyer
@@ -64,7 +46,7 @@
             choice.prices.some((price) => price.result.details)
         )
     )
-    const startBuyers = $derived(distinctBuyers(starts.map((choice) => choice.request.buyer)))
+    const startBuyers = $derived(distinctOwners(starts.map((choice) => choice.request.buyer)))
     const buyerStarts = $derived(
         starts.filter((choice) =>
             session.stock.menuBuyer
@@ -160,7 +142,7 @@
                             session.presentation.marketPoolId
                         )}
                         {@const prices = [
-                            ...new Set(options.map((choice) => choice.result.details?.price))
+                            ...new Set(options.map((choice) => choice.details.price))
                         ]}
                         {@const toFloat = company.floated
                             ? undefined
@@ -169,15 +151,11 @@
                             session.stock.menuBuyer?.kind === 'company'
                                 ? [
                                       ...new Set(
-                                          options.flatMap((choice) =>
-                                              choice.result.details
-                                                  ? [
-                                                        playerPurchaseContribution(
-                                                            choice.result.details,
-                                                            session.myPlayer?.id
-                                                        )
-                                                    ]
-                                                  : []
+                                          options.map((choice) =>
+                                              playerPurchaseContribution(
+                                                  choice.details,
+                                                  session.myPlayer?.id
+                                              )
                                           )
                                       )
                                   ]
@@ -200,57 +178,40 @@
                                 {/if}
                                 <div class="share-sources">
                                     {#each options as choice (choice.certificate.id)}
-                                        {#if choice.certificate.kind === 'share'}
-                                            {@const pool = session.gameState.certificatePools.find(
-                                                (pool) => pool.id === choice.certificate.poolId
-                                            )}
-                                            {@const source = pool
-                                                ? session
-                                                      .poolName(pool.id)
-                                                      .replace('Treasury shares', 'Treasury')
-                                                : sameOwner(choice.certificate.owner, {
-                                                        kind: 'company',
-                                                        companyId: company.id
-                                                    })
-                                                  ? 'Treasury'
-                                                  : session.ownerName(choice.certificate.owner)}
-                                            {@const count = ownership.find(
-                                                (entry) =>
-                                                    entry.poolId === choice.certificate.poolId &&
-                                                    sameOwner(entry.owner, choice.certificate.owner)
-                                            )?.shares}
-                                            <button
-                                                class="share-source"
-                                                {disabled}
-                                                aria-label={`Buy ${session.companyName(company.id)} from ${source} for ${optionalMoney(money, choice.result.details?.price)}`}
-                                                data-purchase-certificate={choice.certificate.id}
-                                                onclick={() => {
-                                                    session.stock.selectPurchase(choice.request)
-                                                    void session.stock.confirmPurchase()
-                                                }}
-                                            >
-                                                <span class="source-label"
-                                                    >{source}
-                                                    {#if choice.certificate.number !== undefined}<small
-                                                            >Share #{choice.certificate
-                                                                .number}</small
-                                                        >{/if}
-                                                    {#if choice.certificate.president || choice.certificate.shares !== 1}<small
-                                                            >{choice.certificate.shares} shares{choice
-                                                                .certificate.president
-                                                                ? ' · President'
-                                                                : ''}</small
-                                                        >{/if}
-                                                </span>
-                                                <span class="share-count">{count}</span>
-                                                {#if prices.length > 1}<small
-                                                        >{optionalMoney(
-                                                            money,
-                                                            choice.result.details?.price
-                                                        )}</small
+                                        {@const source = shareSourceName(
+                                            choice.certificate,
+                                            session
+                                        )}
+                                        {@const count = ownership.find(
+                                            (entry) =>
+                                                entry.poolId === choice.certificate.poolId &&
+                                                sameOwner(entry.owner, choice.certificate.owner)
+                                        )?.shares}
+                                        <button
+                                            class="share-source"
+                                            {disabled}
+                                            aria-label={`Buy ${session.companyName(company.id)} from ${source} for ${money(choice.details.price)}`}
+                                            data-purchase-certificate={choice.certificate.id}
+                                            onclick={() =>
+                                                void session.stock.buyAndReopenMenu(choice.request)}
+                                        >
+                                            <span class="source-label"
+                                                >{source}
+                                                {#if choice.certificate.number !== undefined}<small
+                                                        >Share #{choice.certificate.number}</small
                                                     >{/if}
-                                            </button>
-                                        {/if}
+                                                {#if choice.certificate.president || choice.certificate.shares !== 1}<small
+                                                        >{choice.certificate.shares} shares{choice
+                                                            .certificate.president
+                                                            ? ' · President'
+                                                            : ''}</small
+                                                    >{/if}
+                                            </span>
+                                            <span class="share-count">{count}</span>
+                                            {#if prices.length > 1}<small
+                                                    >{money(choice.details.price)}</small
+                                                >{/if}
+                                        </button>
                                     {/each}
                                 </div>
                             </div>
@@ -297,6 +258,32 @@
                                     its treasury
                                 </p>
                             {/if}
+                            {#each session.presentation.startNotes?.(session.gameState, session.stock.selectedStartCompany.companyId) ?? [] as note (note)}<p
+                                    class="start-home"
+                                >
+                                    {note}
+                                </p>{/each}
+                            {#if session.stock.startSizes.length > 1}
+                                <div
+                                    class="choices start-size-choices"
+                                    role="group"
+                                    aria-label="Shares to buy"
+                                >
+                                    {#each session.stock.startSizes as size (size.extra)}
+                                        <button
+                                            class="start-size"
+                                            {disabled}
+                                            aria-pressed={session.stock
+                                                .selectedExtraStartCertificates === size.extra}
+                                            data-start-extra={size.extra}
+                                            onclick={() =>
+                                                session.stock.chooseExtraStartCertificates(
+                                                    size.extra
+                                                )}>{size.percent}%</button
+                                        >
+                                    {/each}
+                                </div>
+                            {/if}
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
@@ -321,7 +308,11 @@
                                             <span class="par-value"
                                                 >{price.result.details.parPrice}</span
                                             >
-                                            <small>Cost {money(price.result.details.price)}</small>
+                                            <small
+                                                >Cost {money(
+                                                    session.stock.startCost(price.result.details)
+                                                )}</small
+                                            >
                                             {#if sharesToFloat !== undefined}
                                                 <small class="float-cost"
                                                     >{money(
@@ -367,8 +358,7 @@
                                                 choice,
                                                 'A single owned share requires an available sale'
                                             )
-                                            session.stock.selectSale(choice.request)
-                                            void session.stock.confirmSale()
+                                            void session.stock.sellAndReopenMenu(choice.request)
                                         }
                                     }}
                                 >
@@ -413,10 +403,8 @@
                                                     sale.companyId === choice.sale.companyId &&
                                                     sale.shares === choice.sale.shares
                                             )}
-                                        onclick={() => {
-                                            session.stock.selectSale(choice.request)
-                                            void session.stock.confirmSale()
-                                        }}
+                                        onclick={() =>
+                                            void session.stock.sellAndReopenMenu(choice.request)}
                                     >
                                         <span class="share-count">{choice.sale.shares}</span>
                                         <small
@@ -754,6 +742,13 @@
         button.start-company-choice[aria-pressed='false']:hover:not(:disabled) {
         opacity: 0.8;
         filter: none;
+    }
+    button.start-size {
+        min-width: 56px;
+        font-variant-numeric: tabular-nums;
+    }
+    button.start-size[aria-pressed='true'] {
+        box-shadow: 0 0 0 2px var(--rail-focus, #8c7050);
     }
     button.par-choice {
         color: #39352f;

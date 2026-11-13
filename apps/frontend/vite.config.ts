@@ -1,5 +1,6 @@
 import devtoolsJson from 'vite-plugin-devtools-json'
 import { sveltekit } from '@sveltejs/kit/vite'
+import { legalDocuments } from './legalDocumentsPlugin.js'
 import { defineProject, mergeConfig } from 'vitest/config'
 import { VitestConfig } from '@tabletop/vitest-config'
 import type { ClientRequest, IncomingMessage } from 'node:http'
@@ -42,7 +43,7 @@ export default defineProject(
                 }
             }
         },
-        plugins: [sveltekit(), devtoolsJson()],
+        plugins: [legalDocuments(), sveltekit(), devtoolsJson()],
         test: { exclude: ['**/*.client.spec.ts'] },
         assetsInclude: ['**/*.gltf'],
         build: {

@@ -20,14 +20,15 @@ export default async function (fastify: FastifyInstance) {
                 game?.status === GameStatus.Started &&
                 seat &&
                 definition &&
-                removed?.status === UserStatus.Inactive
+                (removed?.status === UserStatus.Inactive || removed?.status === UserStatus.Deleted)
             ) {
                 await fastify.emailService.sendPlayerRemovedEmail({
                     playerName: removedPlayerDisplayName(seat.name),
                     game,
                     definition,
                     url: `${FRONTEND_HOST}/game/${gameId}`,
-                    toEmail
+                    toEmail,
+                    deletedAccount: removed.status === UserStatus.Deleted
                 })
             }
             await reply.code(200).send()

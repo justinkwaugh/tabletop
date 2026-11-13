@@ -1,4 +1,4 @@
-import { trainsOwnedBy } from '../trains/train.js'
+import { stretchWeight, trainsOwnedBy } from '../trains/train.js'
 import { actsFor } from '../finance/receivership.js'
 import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
@@ -21,7 +21,12 @@ import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition, Train } from '../trains/train.js'
 import type { TileNode } from '../tiles/tile.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
-import { RouteNetwork, type RouteTrace, type RouteVisit } from './routeNetwork.js'
+import {
+    RouteNetwork,
+    type RouteTrace,
+    type RouteVisit,
+    type TrackStretch
+} from './routeNetwork.js'
 import type { FleetRoute, FleetRules } from './fleetRules.js'
 import { fleetRouteReason, settleFleetRoutes } from './fleetSettlement.js'
 import { assert, assertExists } from '@tabletop/common'
@@ -61,14 +66,16 @@ export interface RouteRules {
     revenueStage(state: TrainRunningState, train: TrainDefinition): readonly string[]
     requiresCity(train: TrainDefinition): boolean
     /**
-     * A stop's own value for the company, from its printed value at the current stage, where a
-     * title changes it, such as a destination worth nothing on its first run.
+     * A stop's own value for the company and train, from its printed value at the current stage,
+     * where a title changes it, such as a destination worth nothing on its first run or a city
+     * doubled for 1849's E trains.
      */
     stopRevenue?(
         state: TrainRunningState,
         companyId: string,
         center: RevenueCenter,
-        printed: number
+        printed: number,
+        train: TrainDefinition
     ): number
     /**
      * Whether the company may visit or pass through a revenue center, such as a rights hex, with
@@ -100,6 +107,8 @@ export interface RouteRules {
     ): readonly RevenueCenter[] | undefined
     /** A route may visit only one revenue center in each hex. */
     oneStopPerHex?: true
+    /** Cities and towns a complete route must visit; offboards do not count toward them. */
+    minimumCitiesAndTowns?: number
     /** What a route earns for each hex it passes through or stops in, once per route. */
     hexBonus?(state: TrainRunningState, locationId: string): number
     /** What earns a hex's bonus, by the ids the title names. */
@@ -129,27 +138,36 @@ export function stopValue(
     train: TrainDefinition
 ): number {
     const printed = routeRevenue(node.revenue, rules.revenueStage(state, train))
-    return rules.stopRevenue?.(state, companyId, center, printed) ?? printed
+    return rules.stopRevenue?.(state, companyId, center, printed, train) ?? printed
 }
 function endsWithin(visits: readonly RevenueCenter[], ends: readonly RevenueCenter[]): boolean {
     const within = (stop: RevenueCenter | undefined) =>
         !!stop && ends.some((end) => sameCenter(end, stop))
     return visits.length >= 2 && within(visits[0]) && within(visits[visits.length - 1])
 }
-/** How far a route runs by the train's measure of distance. */
-export function routeDistance(
-    train: TrainDefinition,
-    trace: { visits: readonly RouteVisit[]; crossings: number }
-): number {
-    if (train.distance.measure === 'hex-edges') return trace.crossings
+type MeasuredTrace = {
+    visits: readonly RouteVisit[]
+    crossings: number
+    stretches: readonly TrackStretch[]
+}
+/**
+ * How far a route runs by the train's measure of distance. A stretch of track still unfinished
+ * counts as far as its gauge yet decides.
+ */
+export function routeDistance(train: TrainDefinition, trace: MeasuredTrace): number {
+    if (train.distance.measure === 'hex-edges')
+        return train.distance.gaugeWeights
+            ? trace.stretches.reduce(
+                  (sum, { gauge, crossings }) =>
+                      sum + crossings * stretchWeight(train.distance, gauge),
+                  0
+              )
+            : trace.crossings
     return trace.visits.filter(
         (visit) => train.distance.measure === 'revenue-centers' || visit.node.kind !== 'town'
     ).length
 }
-export function exceedsRouteDistance(
-    train: TrainDefinition,
-    trace: { visits: readonly RouteVisit[]; crossings: number }
-): boolean {
+export function exceedsRouteDistance(train: TrainDefinition, trace: MeasuredTrace): boolean {
     const { maximum, extraTowns = 0 } = train.distance
     if (maximum === 'unlimited') return false
     const distance = routeDistance(train, trace)
@@ -181,7 +199,13 @@ export class RouteEvaluation {
     cannotRun(companyId: string): boolean {
         return (
             !this.runnableTrains(companyId).length ||
-            !hasStationRoute(this.network.mapState, this.state, companyId)
+            !hasStationRoute(
+                this.network.mapState,
+                this.state,
+                companyId,
+                undefined,
+                (this.rules.minimumCitiesAndTowns ?? 0) >= 2
+            )
         )
     }
     canAct(playerId: string | undefined, companyId: string): boolean {
@@ -265,6 +289,11 @@ export class RouteEvaluation {
         const distance = routeDistance(definition, trace)
         if (exceedsRouteDistance(definition, trace))
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }
+        if (
+            definition.distance.standardGaugeOnly &&
+            trace.stretches.some((stretch) => stretch.gauge === 'narrow')
+        )
+            return { reason: `The ${definition.name} train cannot run on narrow gauge.` }
         if (complete) {
             if (
                 !route.paths.length ||
@@ -279,6 +308,14 @@ export class RouteEvaluation {
                 return { reason: 'End the route at a revenue center.' }
             if (trace.visits.length < 2)
                 return { reason: 'A route needs at least two revenue centers.' }
+            const minimumCitiesAndTowns = this.rules.minimumCitiesAndTowns ?? 0
+            if (
+                trace.visits.filter((visit) => visit.node.kind !== 'offboard').length <
+                minimumCitiesAndTowns
+            )
+                return {
+                    reason: `A route must visit at least ${minimumCitiesAndTowns} cities or towns.`
+                }
             if (
                 this.rules.requiresCity(definition) &&
                 !trace.visits.some((visit) => visit.node.kind === 'city')

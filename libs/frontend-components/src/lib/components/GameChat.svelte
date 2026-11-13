@@ -46,6 +46,24 @@
     let lastCursorPosition: number = -1
 
     let canCompose: boolean = $derived(gameSession.chatAuthor !== undefined)
+    let selectedMessageId: string | undefined = $state(undefined)
+
+    function canReport(message: GameChatMessage): boolean {
+        return (
+            chatService.reportGameChatMessage !== undefined &&
+            !message.redacted &&
+            !message.admin &&
+            !(
+                gameSession.chatAuthor?.kind === 'player' &&
+                message.playerId === gameSession.chatAuthor.player.id
+            )
+        )
+    }
+
+    function reportMessage(message: GameChatMessage) {
+        selectedMessageId = undefined
+        chatService.reportGameChatMessage?.(message)
+    }
 
     let messages: GameChatMessage[] = $derived.by(() => {
         return (gameSession.currentGameChat?.messages ?? []).toSorted(
@@ -197,7 +215,14 @@
 {/snippet}
 
 {#snippet chatMessage(message: GameChatMessage)}
-    <div class="flex flex-row justify-start items-start gap-x-2 py-2 {messageHoverColor}">
+    <!-- A touch screen has no hover, so a tap reveals the Report button; keyboards reach it directly. -->
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div
+        class="group relative flex flex-row justify-start items-start gap-x-2 py-2 {messageHoverColor}"
+        onclick={canReport(message)
+            ? () => (selectedMessageId = selectedMessageId === message.id ? undefined : message.id)
+            : undefined}
+    >
         {#if message.admin}
             <div
                 class="shrink-0 grow-0 flex justify-center items-center w-[36px] h-[36px]"
@@ -218,7 +243,11 @@
         <div class="flex flex-col justify-center items-start">
             <p class="text-xs {timeColor}">{timeAgo.format(message.timestamp)}</p>
             {#each textSplit(message.text) as text, i (i)}
-                <p class="{messageTextColor} {message.admin ? 'font-bold' : ''}">
+                <p
+                    class="{message.redacted
+                        ? `${timeColor} italic`
+                        : messageTextColor} {message.admin ? 'font-bold' : ''}"
+                >
                     {#each getSpansForText(text) as span, j (j)}
                         {#if span[1]}
                             <span class="text-2xl leading-none align-middle">{span[0]}</span>
@@ -229,6 +258,34 @@
                 </p>
             {/each}
         </div>
+        {#if canReport(message)}
+            <button
+                type="button"
+                class="absolute right-1 top-2 flex h-7 w-7 items-center justify-center rounded-md bg-gray-700 text-gray-300 hover:text-white focus:opacity-100 {selectedMessageId ===
+                message.id
+                    ? 'opacity-100'
+                    : 'opacity-0 group-hover:opacity-100'}"
+                title="Report message"
+                aria-label="Report message"
+                onclick={(event) => {
+                    event.stopPropagation()
+                    reportMessage(message)
+                }}
+            >
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    ><path d="M5 21V4"></path><path d="M5 4h11l-2 4 2 4H5"></path></svg
+                >
+            </button>
+        {/if}
     </div>
 {/snippet}
 

@@ -13,6 +13,9 @@ import {
     assertExists,
     Bookmark,
     type BugReportRequest,
+    type ContentReportRequest,
+    type UserCreateRequest,
+    type UserUpdateRequest,
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
@@ -25,6 +28,8 @@ import {
     GameValidator,
     GameHistoryPage,
     TitleActivity,
+    SeriesActivity,
+    ACTIVITY_UNAVAILABLE,
     UserGameStats,
     SiteStatsNow,
     CharityTally,
@@ -91,7 +96,7 @@ import { checkVersion, resolveVersionChange, VersionChange } from './versionChec
 import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
-const TITLE_ACTIVITY_TIMEOUT_MS = 10_000
+const ACTIVITY_TIMEOUT_MS = 10_000
 
 export type GameLoadResult = {
     game?: Game
@@ -330,6 +335,15 @@ export class TabletopApi {
         await this.wretch.post(undefined, '/auth/logoutAll').unauthorized(this.on401).json()
     }
 
+    async deleteOwnAccount(): Promise<void> {
+        await this.wretch
+            .post(undefined, '/user/delete')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json()
+    }
+
     async searchUsernames(query: string): Promise<string[]> {
         const response = await this.wretch
             .post({ query: query.trim() }, `/user/usernameSearch`)
@@ -340,18 +354,18 @@ export class TabletopApi {
         return response.payload.usernames
     }
 
-    async createUser(user: Partial<User>): Promise<User> {
+    async createUser(request: UserCreateRequest): Promise<User> {
         const response = await this.wretch
-            .post(user, '/user/create')
+            .post(request, '/user/create')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
         return response.payload.user
     }
 
-    async updateUser(user: Partial<User>): Promise<User> {
+    async updateUser(request: UserUpdateRequest): Promise<User> {
         const response = await this.wretch
-            .post(user, '/user/update')
+            .post(request, '/user/update')
             .unauthorized(this.on401)
             .forbidden(this.handleError)
             .badRequest(this.handleError)
@@ -531,13 +545,33 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
-    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+    getTitleActivity(titleId: string): Promise<TitleActivity> {
+        return this.requestActivity(
+            `/games/activity/${encodeURIComponent(titleId)}`,
+            TitleActivity,
+            'Games of this title are temporarily unavailable'
+        )
+    }
+
+    getSeriesActivity(seriesId: string): Promise<SeriesActivity> {
+        return this.requestActivity(
+            `/games/series-activity/${encodeURIComponent(seriesId)}`,
+            SeriesActivity,
+            'Games of this series are temporarily unavailable'
+        )
+    }
+
+    private async requestActivity<T extends TSchema>(
+        path: string,
+        schema: T,
+        unavailableMessage: string
+    ): Promise<Static<T>> {
         const request = new AbortController()
-        const timeout = setTimeout(() => request.abort(), TITLE_ACTIVITY_TIMEOUT_MS)
+        const timeout = setTimeout(() => request.abort(), ACTIVITY_TIMEOUT_MS)
         try {
             const response = await this.wretch
                 .options({ signal: request.signal })
-                .get(`/games/activity/${encodeURIComponent(titleId)}`)
+                .get(path)
                 .unauthorized(this.on401)
                 .badRequest(this.handleError)
                 .error(503, this.handleError)
@@ -546,17 +580,14 @@ export class TabletopApi {
                 Type.Object({ payload: Type.Object({ activity: Type.Unknown() }) }),
                 response
             )
-            const activity = Value.Default(
-                TitleActivity,
-                Value.Convert(TitleActivity, response.payload.activity)
-            )
-            Value.Assert(TitleActivity, activity)
+            const activity = Value.Default(schema, Value.Convert(schema, response.payload.activity))
+            Value.Assert(schema, activity)
             return activity
         } catch (error) {
             if (request.signal.aborted)
                 throw new APIError({
-                    name: 'TitleActivityUnavailable',
-                    message: 'Games of this title are temporarily unavailable'
+                    name: ACTIVITY_UNAVAILABLE,
+                    message: unavailableMessage
                 })
             throw error
         } finally {
@@ -782,6 +813,26 @@ export class TabletopApi {
                 throw new APIError({
                     name: 'RateLimited',
                     message: 'Too many bug reports were sent recently'
+                })
+            })
+            .json<void>()
+    }
+
+    async reportContent(report: ContentReportRequest): Promise<void> {
+        await this.wretch
+            .post(report, '/game/report')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .error(429, () => {
+                throw new APIError({
+                    name: 'RateLimited',
+                    message: 'Too many reports were sent recently. Try again in a few minutes.'
+                })
+            })
+            .error(503, () => {
+                throw new APIError({
+                    name: 'ReportingUnavailable',
+                    message: 'Reporting is not available on this site.'
                 })
             })
             .json<void>()
@@ -1154,6 +1205,31 @@ export class TabletopApi {
 
     async unbanUser(userId: string): Promise<User> {
         return this.moderateUser(userId, 'unban', {})
+    }
+
+    async deleteUser(userId: string): Promise<User> {
+        return this.moderateUser(userId, 'delete', {})
+    }
+
+    async redactGameChatMessage(gameId: string, messageId: string): Promise<void> {
+        await this.wretch
+            .post(
+                {},
+                `/admin/games/${encodeURIComponent(gameId)}/chat/${encodeURIComponent(messageId)}/redact`
+            )
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
+    async renameGameAsAdministrator(gameId: string, name: string): Promise<Game> {
+        const response = await this.wretch
+            .post({ name }, `/admin/games/${encodeURIComponent(gameId)}/rename`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
     }
 
     private async moderateUser(userId: string, operation: string, body: object): Promise<User> {

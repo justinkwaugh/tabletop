@@ -14,7 +14,9 @@ export default async function (title: TitleResolver, fastify: FastifyInstance) {
         '/fork',
         {
             schema: { body: GameForkRequest },
-            onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
+                relation: 'and'
+            })
         },
         async function (request, _reply) {
             const definition = title(request)

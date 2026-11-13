@@ -15,6 +15,7 @@
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
     import EmailChange from '$lib/components/EmailChange.svelte'
+    import DeleteAccountCard from '$lib/components/DeleteAccountCard.svelte'
     import { minLengthMessage, requiredMessage } from '$lib/utils/accountFormValidation'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
     import { broadcastLogout } from '$lib/utils/logoutChannel'
@@ -266,4 +267,5 @@
             </Alert>
         {/if}
     </Card>
+    <DeleteAccountCard />
 </div>

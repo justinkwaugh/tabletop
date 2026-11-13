@@ -1,15 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, GameResult, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    ActionSource,
+    GameAction,
+    GameResult,
+    HydratableAction,
+    MachineContext,
+    assert
+} from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { connectionGoalImpossible, everyRailroadConnected } from '../model/endCheck.js'
-import type { HydratedOstbahnGameState } from '../model/gameState.js'
+import { GameEndReason } from '../model/endCheck.js'
+import { RoundEndKind, type HydratedOstbahnGameState, type RoundEnd } from '../model/gameState.js'
 import { CupEntry, drawTurnOrder } from '../model/turnOrder.js'
-
-export enum GameEndReason {
-    Connected = 'Connected',
-    Impossible = 'Impossible'
-}
 
 export type DeterminePlayerOrderMetadata = Type.Static<typeof DeterminePlayerOrderMetadata>
 export const DeterminePlayerOrderMetadata = Type.Object({
@@ -47,15 +49,16 @@ export class HydratedDeterminePlayerOrder
     }
 
     apply(state: HydratedOstbahnGameState, _context?: MachineContext) {
+        const roundEnd = state.roundEnd()
+        this.assertTakenFor(roundEnd)
         if (state.rounds.currentRound) {
             state.rounds.endRound(state.actionCount)
         }
-        const endReason = this.endReason(state)
-        if (endReason) {
+        if (roundEnd.kind === RoundEndKind.GameOver) {
             const winners = state.richestPlayerIds()
             state.winningPlayerIds = winners
             state.result = winners.length > 1 ? GameResult.Draw : GameResult.Win
-            this.metadata = { endReason, cup: [], drawn: [] }
+            this.metadata = { endReason: roundEnd.endReason, cup: [], drawn: [] }
             return
         }
         const cup = state.incomeCup()
@@ -65,13 +68,15 @@ export class HydratedDeterminePlayerOrder
         this.metadata = { cup, drawn }
     }
 
-    private endReason(state: HydratedOstbahnGameState): GameEndReason | undefined {
-        if (everyRailroadConnected(state.railroads)) {
-            return GameEndReason.Connected
+    private assertTakenFor(roundEnd: RoundEnd) {
+        if (roundEnd.kind === RoundEndKind.GameOver) {
+            assert(this.source === ActionSource.System, 'The game ends by itself')
+            return
         }
-        if (connectionGoalImpossible(state.railroads)) {
-            return GameEndReason.Impossible
-        }
-        return undefined
+        assert(
+            this.source === ActionSource.User && this.playerId === roundEnd.drawerId,
+            'Only the player ending the round draws the turn order'
+        )
+        assert(this.revealsInfo === true, 'Drawing the turn order reveals the draw')
     }
 }

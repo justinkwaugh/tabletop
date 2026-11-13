@@ -12,7 +12,8 @@ import {
     EmergencyTrainFunding,
     type FundingChoice,
     type FundingState,
-    type TrainFundingRules
+    type TrainFundingRules,
+    insolvencyChoices
 } from './trainFunding.js'
 import { HydratedIssueTreasuryShares, IssueTreasuryShares } from './issueTreasuryShares.js'
 import { HydratedSellFundingShares } from './sellFundingShares.js'
@@ -91,7 +92,11 @@ export class FundingTrainHandler<
                 ...settling.data,
                 playerId: state.trainFunding.playerId
             })
-        else if (next.kind === 'bankrupt' && !this.exchangeMayAvertBankruptcy(state))
+        else if (
+            next.kind === 'bankrupt' &&
+            !this.exchangeMayAvertBankruptcy(state) &&
+            !insolvencyChoices(state, this.rules, next).length
+        )
             context.addSystemAction(DeclareBankruptcy, {})
     }
     private exchangeMayAvertBankruptcy(state: State): boolean {

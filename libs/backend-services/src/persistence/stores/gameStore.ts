@@ -8,7 +8,8 @@ import {
     GameHistoryPage,
     GameHistoryCursor,
     UserGameStats,
-    TitleActivity
+    TitleActivity,
+    SeriesActivity
 } from '@tabletop/common'
 import { UpdateValidationResult, UpdateValidator } from './validator.js'
 import type { TournamentSeatHandover, TournamentTableRelease } from '../../games/tournamentGames.js'
@@ -70,13 +71,18 @@ export interface GameStore {
     hasCachedActiveGames(user: User): Promise<boolean>
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
     renamePlayer(rename: { gameId: string; userId: string; name: string }): Promise<Game>
+    anonymizePlayer(seat: { gameId: string; userId: string }): Promise<Game>
     findGameHistory(user: User, before?: GameHistoryCursor): Promise<GameHistoryPage>
     findGameStats(user: User): Promise<UserGameStats>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>
     findActiveGamesForTitle(titleId: string): Promise<Game[]>
     findTitleActivity(titleId: string): Promise<TitleActivity>
+    findSeriesActivity(seriesId: string): Promise<SeriesActivity>
+    findTitleGames(titleId: string, afterGameId: string | undefined, limit: number): Promise<Game[]>
+    recordGameSeries(gameId: string, series: string): Promise<boolean>
     findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]>
     findStartedGames(): Promise<Game[]>
+    hasGamesForUser(userId: string): Promise<boolean>
     readStateFromStorage(gameId: string): Promise<GameState | undefined>
     recordFinalScores({
         gameId,

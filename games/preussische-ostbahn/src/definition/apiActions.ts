@@ -1,5 +1,6 @@
 import { ActionType } from './actions.js'
 import { Capitalize } from '../actions/capitalize.js'
+import { DeterminePlayerOrder } from '../actions/determinePlayerOrder.js'
 import { BuildTrack } from '../actions/buildTrack.js'
 import { EndExpansion } from '../actions/endExpansion.js'
 import { PassBid } from '../actions/passBid.js'
@@ -12,5 +13,6 @@ export const OstbahnApiActions = {
     [ActionType.Capitalize]: Capitalize,
     [ActionType.BuildTrack]: BuildTrack,
     [ActionType.EndExpansion]: EndExpansion,
-    [ActionType.PassTurn]: PassTurn
+    [ActionType.PassTurn]: PassTurn,
+    [ActionType.DeterminePlayerOrder]: DeterminePlayerOrder
 }

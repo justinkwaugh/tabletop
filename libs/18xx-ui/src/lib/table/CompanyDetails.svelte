@@ -7,7 +7,7 @@
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import type { GameAction } from '@tabletop/common'
+    import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import {
         cashOwnedBy,
         certificatesOwnedBy,
@@ -36,6 +36,10 @@
     import { companyLastRun } from './companyLastRun.js'
     import type { CompanyMark, PlaceConnection } from '../session/titlePresentation.js'
     import PresidentName from '../finance/PresidentName.svelte'
+    import CertificateBadge from '../finance/CertificateBadge.svelte'
+    import { multiShareMark } from '../finance/multiShareCertificates.js'
+    import CompanyTradePopover from '../stock/CompanyTradePopover.svelte'
+    import { shareSourceName } from '../stock/purchaseSources.js'
     let {
         session,
         onPreviewMap,
@@ -46,8 +50,10 @@
         unavailable = false,
         purchaseSources,
         canPurchase,
-        trainColors
+        trainColors,
+        offersTrades = true
     }: {
+        offersTrades?: boolean
         pricePresentation?: CompanyPricePresentation
         unavailable?: boolean
         /** `wide-fill` is the wide card stretched to its container's width. */
@@ -146,19 +152,74 @@
                 : []
         })
     )
-    function ownershipName(entry: (typeof ownership)[number]): string {
-        if (entry.poolId) return session.poolName(entry.poolId)
-        return sameOwner(entry.owner, owner) ? 'Treasury' : session.ownerName(entry.owner)
+    const trades = $derived(offersTrades ? session.stock.companyTrades(company.id) : undefined)
+    const tradeLabel = $derived(
+        [trades?.offers.length ? 'Buy' : '', trades?.sales.length ? 'Sell' : '']
+            .filter(Boolean)
+            .join(' · ')
+    )
+    type TradeOpening = { number: number; anchor: BoundingBox; pointerY: number }
+    let openings = 0
+    let tradeOpening = $derived.by((): TradeOpening | undefined => {
+        session.updatingVisibleState
+        return undefined
+    })
+    const shownTradeOpening = $derived(tradeLabel ? tradeOpening : undefined)
+    let card = $state<HTMLElement>()
+    // The popover closes itself on the press, before the click, so the press records whether it
+    // was open for the click to close it rather than open it again.
+    let pressedWhileOpen = false
+    function notePress() {
+        pressedWhileOpen = !!shownTradeOpening
+    }
+    function toggleTrades(pointerY: number) {
+        const closing = pressedWhileOpen
+        pressedWhileOpen = false
+        if (closing) {
+            tradeOpening = undefined
+            return
+        }
+        assertExists(card, 'A company card opens its trades')
+        openings += 1
+        tradeOpening = { number: openings, anchor: card.getBoundingClientRect(), pointerY }
+    }
+    function toggleTradesFromCard(event: MouseEvent) {
+        if (
+            !tradeLabel ||
+            (event.target instanceof Element && event.target.closest('button, a, input, select'))
+        ) {
+            pressedWhileOpen = false
+            return
+        }
+        toggleTrades(event.clientY)
     }
 </script>
 
+{#snippet multiShareBadge(entry: CompanyOwnership)}
+    {@const mark = multiShareMark(
+        session.presentation,
+        gameState,
+        company.id,
+        entry.owner,
+        entry.poolId
+    )}
+    {#if mark}<CertificateBadge label={mark.label} title={mark.title} />{/if}
+{/snippet}
+
+<!-- The Buy · Sell button is the keyboard path; a click anywhere else on the card is a shortcut. -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <article
+    bind:this={card}
     class="company-detail"
     class:vertical
     class:trains-under-stations={vertical && !stationCosts}
     class:wide-fill={layout === 'wide-fill'}
     class:unavailable
+    class:tradable={!!tradeLabel}
+    class:trading={!!shownTradeOpening}
     aria-label={`${session.companyName(company.id)} details`}
+    onpointerdown={notePress}
+    onclick={toggleTradesFromCard}
 >
     <header>
         <div class="identity">
@@ -273,11 +334,22 @@
         <section aria-label="Company ownership">
             <div class="ownership-heading">
                 <h3>Owners</h3>
-                {#if shareStatus}<span
-                        class="share-status"
-                        class:unfloated={shareStatus === 'unfloated'}
-                        >{shareStatusLabels[shareStatus]}</span
-                    >{/if}
+                <span class="heading-end">
+                    {#if shareStatus}<span
+                            class="share-status"
+                            class:unfloated={shareStatus === 'unfloated'}
+                            >{shareStatusLabels[shareStatus]}</span
+                        >{/if}
+                    {#if tradeLabel}<button
+                            type="button"
+                            class="trade-opener"
+                            aria-label={`Trade ${session.companyName(company.id)} shares`}
+                            onclick={(event) => {
+                                const bounds = event.currentTarget.getBoundingClientRect()
+                                toggleTrades(bounds.y + bounds.height / 2)
+                            }}>{tradeLabel}</button
+                        >{/if}
+                </span>
             </div>
             {#if ownership.length}
                 <table aria-label={`${session.companyName(company.id)} share ownership`}>
@@ -313,9 +385,12 @@
                                 {:else}
                                     <th scope="row" title={presidency}
                                         ><PresidentName
-                                            name={ownershipName(entry)}
+                                            name={shareSourceName(
+                                                { ...entry, companyId: company.id },
+                                                session
+                                            )}
                                             president={!!presidency}
-                                        /></th
+                                        />{@render multiShareBadge(entry)}</th
                                     >
                                     {#if numberedShares}<td
                                             class="certificate-numbers"
@@ -366,6 +441,19 @@
         {/if}
     </div>
 </article>
+{#if trades && shownTradeOpening}
+    <!-- One popover per opening: one hidden by Escape stays hidden until its close is reported. -->
+    {#key shownTradeOpening.number}
+        <CompanyTradePopover
+            {session}
+            companyId={company.id}
+            {trades}
+            anchor={shownTradeOpening.anchor}
+            pointerY={shownTradeOpening.pointerY}
+            onclose={() => (tradeOpening = undefined)}
+        />
+    {/key}
+{/if}
 
 {#snippet token()}
     <CompanyToken appearance={session.mapView.stations[company.id]} size={vertical ? 32 : 36} />
@@ -398,7 +486,7 @@
             </div>{/if}
         {@render marketValue()}
         {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
-                <span>Loans</span><strong
+                <span>{session.presentation.loanTerms?.name ?? 'Loans'}</span><strong
                     >{session.loans.loans(company.id)}/{session.loans.capacity(company.id)}</strong
                 >
             </div>{/if}
@@ -923,6 +1011,32 @@
     }
     .share-status.unfloated {
         color: #e2a84f;
+    }
+    .heading-end {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .company-detail.tradable {
+        cursor: pointer;
+    }
+    .company-detail.tradable:hover,
+    .company-detail.trading {
+        border-color: var(--rail-focus, #a87948);
+    }
+    .trade-opener {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: var(--rail-focus, #a87948);
+        font: inherit;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .trade-opener:focus-visible {
+        outline: 2px solid var(--rail-focus, #a87948);
+        outline-offset: 2px;
     }
     .ownership-heading h3 {
         margin-bottom: 0;

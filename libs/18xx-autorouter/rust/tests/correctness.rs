@@ -11,14 +11,14 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 7, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
+        "version": 8, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
             "city": true, "town": false, "hex": 0, "groups": [],
         })).collect::<Vec<_>>(),
         "trains": trains.iter().enumerate().map(|(id, distance)| json!({
-            "id": id.to_string(), "distance": distance, "counts_crossings": false, "requires_city": false, "visit_costs": vec![1; nodes],
+            "id": id.to_string(), "distance": distance, "crossing_costs": [0, 0, 0], "requires_city": false, "visit_costs": vec![1; nodes],
             "revenues": (0..nodes).map(|n| 10 * (n + 1)).collect::<Vec<_>>(),
             "first_bonus": vec![0; nodes],
         })).collect::<Vec<_>>(),
@@ -491,7 +491,7 @@ fn zero_cost_towns_do_not_consume_city_capacity() {
 #[test]
 fn crossing_capacity_is_independent_of_visits() {
     let mut p = graph(4, &[(0, 1), (1, 2), (2, 3)], &[2]);
-    p["trains"][0]["counts_crossings"] = json!(true);
+    p["trains"][0]["crossing_costs"] = json!([1, 1, 1]);
     p["trains"][0]["visit_costs"] = json!([0, 0, 0, 0]);
     for arc in p["arcs"].as_array_mut().unwrap() {
         arc["crossings"] = json!(1);
@@ -894,14 +894,11 @@ fn oracle_fleet(p: &Value, edges: &[(usize, usize)]) -> i64 {
                 .iter()
                 .map(|&stop| train["visit_costs"][stop].as_u64().unwrap())
                 .sum();
-            let crossings: u64 = if train["counts_crossings"] == true {
-                route_edges
-                    .iter()
-                    .map(|&edge| p["arcs"][edge * 2]["crossings"].as_u64().unwrap())
-                    .sum()
-            } else {
-                0
-            };
+            let crossing_cost = train["crossing_costs"][0].as_u64().unwrap();
+            let crossings: u64 = route_edges
+                .iter()
+                .map(|&edge| p["arcs"][edge * 2]["crossings"].as_u64().unwrap() * crossing_cost)
+                .sum();
             if costs + crossings > train["distance"].as_u64().unwrap() {
                 continue;
             }
@@ -1586,4 +1583,63 @@ fn fleet_memory_cuts_and_timeouts_never_claim_an_exhaustive_search() {
         serde_json::from_slice(&solve_json(&serde_json::to_vec(&p).unwrap())).unwrap();
     assert_eq!(timed["exhaustive"], false);
     assert_eq!(timed["memory_limited"], false);
+}
+
+// A line from stop 0 to stop 1 over three paths of the given gauges, the middle one between two
+// hex sides, for a hex train weighing standard 1 and narrow 2.
+fn gauged_line(gauges: [&str; 3], distance: u32) -> Value {
+    let mut p = graph(2, &[(0, 1), (0, 1), (0, 1)], &[distance]);
+    p["trains"][0]["crossing_costs"] = json!([1, 2, 1]);
+    p["trains"][0]["visit_costs"] = json!([0, 0]);
+    let arc = |from: Value, to: Value, next: Value, path: usize, crossings: u32| {
+        json!({"from": from, "to": to, "next": next, "junctions": [], "resources": [path],
+            "path": path, "hex": path, "crossings": crossings, "terminal": false,
+            "gauge": gauges[path]})
+    };
+    p["arcs"] = json!([
+        arc(json!(0), Value::Null, json!([2]), 0, 1),
+        arc(Value::Null, json!(0), json!([]), 0, 0),
+        arc(Value::Null, Value::Null, json!([4]), 1, 1),
+        arc(Value::Null, Value::Null, json!([1]), 1, 1),
+        arc(Value::Null, json!(1), json!([]), 2, 0),
+        arc(json!(1), Value::Null, json!([3]), 2, 1),
+    ]);
+    p
+}
+
+#[test]
+fn routes_change_gauge_only_at_stops_and_weigh_each_stretch() {
+    assert_eq!(
+        solve(&gauged_line(["narrow", "dual", "standard"], 10))["revenue"],
+        0
+    );
+    assert_eq!(
+        solve(&gauged_line(["narrow", "dual", "narrow"], 4))["revenue"],
+        30
+    );
+    assert_eq!(
+        solve(&gauged_line(["narrow", "dual", "narrow"], 3))["revenue"],
+        0
+    );
+    assert_eq!(
+        solve(&gauged_line(["standard", "dual", "standard"], 2))["revenue"],
+        30
+    );
+    assert_eq!(
+        solve(&gauged_line(["dual", "dual", "dual"], 2))["revenue"],
+        30
+    );
+    let mut reverse = gauged_line(["dual", "dual", "dual"], 2);
+    reverse["trains"][0]["crossing_costs"] = json!([2, 1, 1]);
+    assert_eq!(solve(&reverse)["revenue"], 30);
+}
+
+#[test]
+fn routes_visit_the_cities_and_towns_a_problem_asks() {
+    let mut p = graph(3, &[(0, 1), (1, 2)], &[3]);
+    p["stops"][2]["city"] = json!(false);
+    p["minimum_cities_and_towns"] = json!(3);
+    assert_eq!(solve(&p)["revenue"], 0);
+    p["stops"][2]["town"] = json!(true);
+    assert_eq!(solve(&p)["revenue"], 60);
 }

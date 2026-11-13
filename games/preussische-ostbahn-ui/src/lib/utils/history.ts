@@ -10,7 +10,7 @@ import {
     isPassTurn,
     isPayDividends,
     isPlaceBid,
-    RAILROAD_IDS,
+    OPENING_AUCTION_ORDER,
     type RailroadId
 } from '@tabletop/preussische-ostbahn'
 import { actionSale } from './describeAction.js'
@@ -85,7 +85,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
         }
         if (round === 0 && (isPlaceBid(action) || isPassBid(action) || isAwardShare(action))) {
             if (!auction) {
-                const railroadId = RAILROAD_IDS[openingSales]
+                const railroadId = OPENING_AUCTION_ORDER[openingSales]
                 auction = { kind: 'auction', key: action.id, railroadId, actions: [] }
                 entries.push(auction)
             }

@@ -104,6 +104,7 @@ registerEffect(DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), {
 // the cost places cannot be given (R-7.1.2). Before it, one player and two counts (R-X.4).
 // From revision 32 each exchange uses what the user holds at that moment, so the entries are
 // steps in order and a player may come again after another (`reasonCannotBargainInOrder`).
+// From revision 33 each takes as many as the other player holds, down to 0 (Law 9.3, R-9.3-H1).
 const ONE_PLAYER_ONLY = { beforeRevision: OathRevision.EngineFixes3 }
 registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action), {
     choices: [
@@ -148,11 +149,11 @@ registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action),
         const entries = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes3)
             ? chosen(ctx, PowerChoiceKind.Bargain)
             : [oneEntryOf(ctx)]
-        for (const entry of entries) bargainWith(ctx, entry)
+        const taken = entries.map((entry) => bargainWith(ctx, entry))
         return {
             summary: `Witch's Bargain: ${
                 isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes27)
-                    ? stepsMade(entries)
+                    ? stepsMade(entries, taken)
                     : entries
                           .map(
                               (e) =>
@@ -235,30 +236,53 @@ function reasonCannotBargain(ctx: EffectContext): string | undefined {
     return undefined
 }
 
-/** From revision 32, the exchanges made, in order: only those that were. */
-function stepsMade(steps: readonly BargainEntry[]): string {
+/**
+ * From revision 32, the exchanges made, in order: only those that were, each with what it took
+ * (from revision 33 as many as the other player held, R-9.3-H1; before it all that was named).
+ */
+function stepsMade(steps: readonly BargainEntry[], taken: readonly BargainTaken[]): string {
     return steps
-        .flatMap((e) => [
+        .flatMap((e, i) => [
             ...(e.secretsGiven > 0
-                ? [`gave ${e.playerId} ${e.secretsGiven} secrets for ${2 * e.secretsGiven} favor`]
+                ? [`gave ${e.playerId} ${e.secretsGiven} secrets for ${taken[i].favor} favor`]
                 : []),
             ...(e.pairsGiven > 0
-                ? [`gave ${e.playerId} ${2 * e.pairsGiven} favor for ${e.pairsGiven} secrets`]
+                ? [`gave ${e.playerId} ${2 * e.pairsGiven} favor for ${taken[i].secrets} secrets`]
                 : [])
         ])
         .join(', then ')
 }
 
-/** In the order named: the secrets given and their favor taken, then the favor given and their secrets taken. */
-function bargainWith(ctx: EffectContext, entry: BargainEntry): void {
+/** What one exchange took from the other player: favor for its secrets, secrets for its pairs. */
+interface BargainTaken {
+    favor: number
+    secrets: number
+}
+
+/**
+ * In the order named: the secrets given and their favor taken, then the favor given and their
+ * secrets taken. The favor comes off their board, as much as is there (`takeFavorFromPlayer`);
+ * from revision 33 so do their secrets (Law 9.3, R-9.3-H1). Before it the check refused an
+ * exchange that would take more than they held.
+ */
+function bargainWith(ctx: EffectContext, entry: BargainEntry): BargainTaken {
     const me = ctx.state.getPlayerState(ctx.playerId)
     const other = ctx.state.getPlayerState(entry.playerId)
     me.secrets -= entry.secretsGiven
     other.secrets += entry.secretsGiven
-    takeFavorFromPlayer(ctx.state, ctx.playerId, entry.playerId, 2 * entry.secretsGiven)
+    const favor = takeFavorFromPlayer(
+        ctx.state,
+        ctx.playerId,
+        entry.playerId,
+        2 * entry.secretsGiven
+    )
     giveFavor(ctx.state, ctx.playerId, entry.playerId, 2 * entry.pairsGiven)
-    other.secrets -= entry.pairsGiven
-    me.secrets += entry.pairsGiven
+    const secrets = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes28)
+        ? Math.min(entry.pairsGiven, other.secrets)
+        : entry.pairsGiven
+    other.secrets -= secrets
+    me.secrets += secrets
+    return { favor, secrets }
 }
 
 // "While your pawn is at this site, you may trade with a card at any site in your region." Site card.

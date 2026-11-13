@@ -234,7 +234,9 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
             expect(open).not.toContain(id)
             expect(a.metadata?.whenPlayed?.split('; drew')[1]).not.toContain(id)
         }
-        expect(a.metadata?.whenPlayed).toMatch(/drew 1 from it, peeked/)
+        expect(a.metadata?.whenPlayed).toMatch(
+            /drew 1 from it, peeked, and put it on the Cradle discard pile$/
+        )
     })
 
     it("on YOUR region's discard pile: the pawn's own (R-10.30), not R-10.5's next region", () => {
@@ -307,7 +309,7 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         expect(s.discardPileCounts[Region.Cradle]).toBe(0)
         expect(a.metadata?.pileDeposits).toBeUndefined()
         expect(a.metadata?.whenPlayed).toMatch(
-            /drew 2 from it, peeked, and will stack them on the cradle discard pile/
+            /drew 2 from it, peeked, and will stack them on the Cradle discard pile$/
         )
     })
 
@@ -320,7 +322,7 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         expect(s.requireVault().discardPiles[Region.Cradle]).toEqual([drawn[0], drawn[1], ELDERS])
         expect(s.discardPileCounts[Region.Cradle]).toBe(3)
         expect(s.pendingQuestions?.queue).toEqual([])
-        expect(answer.metadata?.summary).toBe('stacked 2 cards on the cradle discard pile')
+        expect(answer.metadata?.summary).toBe('stacked 2 cards on the Cradle discard pile')
         const other = board()
         const again = peekedBy(play(other))
         stack(other, [0, 1])

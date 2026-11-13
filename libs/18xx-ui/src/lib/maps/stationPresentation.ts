@@ -1,3 +1,4 @@
+import type { TerrainIconName } from './terrainIcons.js'
 import type { MapBonusArrow } from './bonusArrows.js'
 import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
 import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
@@ -82,6 +83,11 @@ export type MapViewDefinition = {
     revenueStack?: 'column' | 'row'
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix?: string
+    /**
+     * The icon each terrain kind draws, as 1849 draws its three mountain sizes with one, two and
+     * three peaks; a mountain draws two peaks unless given.
+     */
+    terrainIcons?: Readonly<Record<string, TerrainIconName>>
     /** Baseline of a location's name, by location id; names otherwise print across the top. */
     namePositions?: Readonly<Record<string, Point>>
     /**
@@ -112,11 +118,23 @@ export type MapViewDefinition = {
     nameTurns?: Readonly<Record<string, number>>
     /** Centre of a location's terrain cost row, by location id, where it is not placed below the stops. */
     terrainPositions?: Readonly<Record<string, Point>>
+    /** Locations whose terrain cost stands under its symbols, where a row has no room beside track. */
+    terrainCostsBelow?: readonly string[]
+    /**
+     * Whether a hex's terrain cost stays printed on the tiles laid over it, as where the cost is
+     * paid again on every upgrade; each tile shows it in its own clear space.
+     */
+    terrainKeptOnTiles?: boolean
     markerArt?: Readonly<Record<string, MapMarkerArt>>
     /** Art for one location's markers, by location id then marker id, over ``markerArt``. */
     locationMarkerArt?: LocationMarkerArt
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>
+    /**
+     * Markers the game state implies rather than a power places, such as a city closed to
+     * upgrades for a time; each kind is named in ``locationMarkerNames``.
+     */
+    stateMarkers?: (state: object) => readonly StateMarker[]
     layouts?: Readonly<Record<string, TileLayout>>
     /**
      * How a one-space city draws while it holds two stations, by tile id then node id: as a
@@ -197,4 +215,15 @@ export function stationMapTokens(
         assertExists(appearance, `Missing station appearance: ${station.companyId}`)
         return [{ id: station.id, ...station.position, ...appearance }]
     })
+}
+
+/** A marker the game state implies at a location, of a kind the map view names. */
+export type StateMarker = { locationId: string; kind: string }
+
+/** The markers a map draws: those placed in play, then those the state implies. */
+export function withStateMarkers<Marker>(
+    placed: readonly Marker[] | undefined,
+    implied: readonly StateMarker[]
+): readonly (Marker | StateMarker)[] | undefined {
+    return implied.length ? [...(placed ?? []), ...implied] : placed
 }

@@ -5,6 +5,7 @@
     let { marks }: { marks: TargetMark[] } = $props()
 
     const MEANINGS: Record<TargetMark, string> = {
+        [TargetMark.Stay]: 'stay in reserve',
         [TargetMark.Move]: 'move',
         [TargetMark.RoadMarch]: 'march by road',
         [TargetMark.Way]: 'choose which way',
@@ -30,6 +31,11 @@
                     <path
                         d="M5 13.5 L16 2.5 M11 13.5 L22 2.5 M3 9.5 L10 2.5 M17 13.5 L23 7.5"
                         class="nt-legend-closed-line"
+                    ></path>
+                {:else if mark === TargetMark.Stay}
+                    <path
+                        d="M7 8 a6 6 0 1 0 12 0 a6 6 0 1 0 -12 0 M10 8 a3 3 0 1 1 6 0 a3 3 0 1 1 -6 0Z"
+                        class="nt-legend-approach nt-legend-stay"
                     ></path>
                 {:else if mark === TargetMark.Approach}
                     <rect x="3" y="5" width="20" height="6" rx="1" class="nt-legend-approach"
@@ -111,6 +117,10 @@
         fill: none;
         stroke: var(--nt-closed-line);
         stroke-width: 0.9;
+    }
+
+    .nt-legend-stay {
+        fill-rule: evenodd;
     }
 
     .nt-legend-approach {

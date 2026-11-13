@@ -161,7 +161,7 @@ export const EighteenThirtyTwoStockRules: StockRules = {
     holdsMarketMove: holdsProtectableMove,
     afterSharePurchase: lockReissueProceeds,
     // A System's new president exchanges any vice-president's certificate (§5.5).
-    presidencyExchangeLargestFirst: true,
+    presidencyExchange: { largestFirst: true },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),
     turnOrder: 'sell-buy-or-buy-sell',

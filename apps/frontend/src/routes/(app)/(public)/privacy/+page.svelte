@@ -1,1 +1,5 @@
-<h1>Privacy Policy</h1>
+<script lang="ts">
+    import LegalDocumentPage from '$lib/components/LegalDocumentPage.svelte'
+</script>
+
+<LegalDocumentPage kind="privacy" />

@@ -16,6 +16,21 @@ import type { RailroadState } from './railroadState.js'
 
 export const CONNECTIONS_TO_END = 2
 
+export enum GameEndReason {
+    Connected = 'Connected',
+    Impossible = 'Impossible'
+}
+
+export function gameEndReason(railroads: readonly RailroadState[]): GameEndReason | undefined {
+    if (everyRailroadConnected(railroads)) {
+        return GameEndReason.Connected
+    }
+    if (connectionGoalImpossible(railroads)) {
+        return GameEndReason.Impossible
+    }
+    return undefined
+}
+
 export function everyRailroadConnected(railroads: readonly RailroadState[]): boolean {
     return railroads.every(
         (railroad) => directConnections(railroads, railroad.id).length >= CONNECTIONS_TO_END

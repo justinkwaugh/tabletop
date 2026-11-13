@@ -14,7 +14,7 @@ import {
 import { exchangeCertificate } from '../finance/certificateExchange.js'
 import { grantOwnershipLimitExemption } from '../company/companyState.js'
 import { PresidencyChange, evaluatePresidency, applyPresidencyChange } from '../stock/presidency.js'
-import type { StockRules } from '../stock/stockRules.js'
+import { presidencyExchangeTerms, type StockRules } from '../stock/stockRules.js'
 import type { StockState } from '../stock/stockState.js'
 import { closePrivate } from './privateCompany.js'
 import type { PrivateRules, PrivateState } from './privateRules.js'
@@ -165,7 +165,7 @@ export function applyPrivateShareExchange(
         received.companyId,
         rules.presidencyCandidates(state, received.companyId),
         undefined,
-        rules.presidencyExchangeLargestFirst
+        presidencyExchangeTerms(rules)
     )
     assert(!presidency.reason, presidency.reason ?? 'Invalid exchange presidency')
     if (presidency.change) applyPresidencyChange(state, presidency.change)

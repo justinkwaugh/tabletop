@@ -45,6 +45,17 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
+/** How a title names its loans and their actions, and what follows interest a treasury lacks. */
+export type LoanTerms = {
+    /** The label for a company's loans: "Bond". */
+    name: string
+    take: string
+    repay: string
+    /** What happened when the treasury could not pay the interest; liquidation unless given. */
+    interestDefault?: string
+    /** The rate never changes and every company may borrow, so the game information omits both. */
+    fixedTerms?: true
+}
 /** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
 /**
  * A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. A
@@ -158,6 +169,23 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     minorsAsPrivates?: true
     operatingSteps?: readonly TitleOperatingStep<State>[]
     corporateFinance?: CorporateFinanceTerms
+    /** Words for a title's loans where it calls them something else, as 1849's bonds. */
+    loanTerms?: LoanTerms
+    /**
+     * A mark beside whoever holds an ordinary certificate of more than one share, as 1849 marks
+     * its two-share last certificate, wherever holdings are listed.
+     */
+    multiShareCertificate?: { label: string; name: string; description: string }
+    /**
+     * The words for an insolvent company's end, where train funding closes it rather than
+     * bankrupting its president: an explanation and a button label for each choice offered.
+     */
+    insolvency?: {
+        explanation: string
+        /** Where a company's debt its president cannot raise fails it, rather than a train. */
+        debtExplanation?: string
+        choices: Readonly<Record<string, { label: string; description: string }>>
+    }
     openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
@@ -170,6 +198,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** The off-board captions a game's variants print, in place of the map view's. */
     revenueStageCaptionsFor?(state: State): Readonly<Record<string, string>> | undefined
     companyColumns?: readonly CompanyColumn<State>[]
+    /**
+     * Lines of the title's own under a company's start, beside its home, such as a fee its
+     * treasury pays as it starts.
+     */
+    startNotes?(state: State, companyId: string): readonly string[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]

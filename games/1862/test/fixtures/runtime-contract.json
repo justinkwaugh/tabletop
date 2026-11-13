@@ -5,7 +5,7 @@
     "BankruptCompany": "ffb47ea408f1c3b0b021953ce927c1ca4c20a6632d52944dacd314fddc87a061",
     "BuildToLondon": "e561d8bce395b3cd917fd2bbdcf0fdb0ab384c5fd8dad82ec976f3cb681721d0",
     "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
-    "BuyShares": "ea32f0c8f1d4ef09bcfceae831c752c10cc989a03646740d5987a8b841342e0e",
+    "BuyShares": "7fa30ec23e3bcafec0c936e80b8aed0ed7a20da9cccf3278b0f455ee454f9247",
     "BuyStations": "73ea189b2ace57e2a293d6ca35cefba339c33663246bb30dc19602c10efa7729",
     "BuyTrain": "67db41a89629078c0a016eb92e68f08d9e2cbb905cf469d9824897e55d7b7fed",
     "BuyWarranties": "7f0994e905fc7173de817b3296e6f7217114e4769d8895594487275c54868719",
@@ -20,7 +20,7 @@
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndParliamentRound": "1450235be16c19bafc4da7dbacbc98f0cd7c0a8ce21a92c0304d12d423a35025",
     "EnforceObligations": "fe7d5670eef504798eacf08f077841207606d2f3bc954a0e8f9b5776db80f21e",
-    "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
+    "ExchangePrivate": "6aec6cd4b4f44c612649a9caa57492a104915a4a12ce08af215190292aef79f9",
     "ExpireWarranties": "7a0223fe68e8e4410d2f4fd20e10f7ef4a32fa9ababb0fabd1e274baf2726a7d",
     "FinishOperatingTurn": "b653940dd0621cbe3c462eac1732da050c2e6425ff1bdbfbc4dc01b07fe1a4de",
     "FinishStations": "258ec9a61f997c96475a6d9fd4ee5de918640128aa4949ce721a388fea7a41be",
@@ -33,7 +33,7 @@
     "LayPrivateTile": "2c1c2e82a092785252309a959bcd99df6a4e43e3b03266802cf62f577400193a",
     "LayTile": "868b093634c99f842201af6a9ac020db319a6de25618de0d6cc7f94fff136e60",
     "ObtainCharter": "2c1969091e88514b97a9e5de7541c3ebc1b21b2e95d4c4d68a0677e400ad6c75",
-    "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
+    "OfferPurchase": "1f32fcc7fb46c3b76cc507e13ab905faf3d27b17c8630bce9943d838e6f462fa",
     "OpenCharterAuction": "8af62716c669f43409cee00de317032a8d538cf1418308203622ce1def0773e3",
     "PassCharterBid": "877517056697ae4d059081c7182586a10b075a576236f86b1be4562ebe7cafea",
     "PlaceHome": "dee9f80736e29f47bae972e6fbf75afd7ef953e78562e924a3a4fea2b5784914",
@@ -45,19 +45,19 @@
     "RedeemShare": "a9bb4eaf20e5a8b1adc7eb25c82d6a1ec4992c513c9632402bdb38235999b5cf",
     "Refinance": "b0de2e4c6319f6430255fd93be8d70f203974df26eab870e01b0f2da6453f9e9",
     "RequestTrackConsent": "d707e81670fcfd54f376f8cc7d602a7a9b1b3c964f0fc61238601ab1446d0118",
-    "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
+    "RespondToPurchaseOffer": "fb2101950a88528eb07640a74bfaef2587f4bb268830dda676b5fa183842e50d",
     "RespondToTrackConsent": "aad7dd92e162c66f272958e6d20de3b4b51150b9709018be7ddbb78b166aaf4f",
     "RunTrains": "ba69db079932ff9830df4e05552ae24defcae82417a21fc3ddfde12591e2060d",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
-    "SellForFine": "f8950677aa121d7e11de10c722d5338c3912339eaca3b8303580657bae67e3c5",
-    "SellShares": "d12d2caac4f4112b11aaa4b3a30398d39272daa267f9a864978658e84c2b305c",
+    "SellForFine": "c9c31736d981de01bf5a24234b2f1d59c7c4ba5bcc475de5c0d1419797df2eb4",
+    "SellShares": "dd02bc6cee2000d751bd2b90323b75fd8f6ac7e6c3344d0ac038cfcce2ad8bed",
     "SellTreasuryShares": "ef757eb02f58adf613abc37f9072d751da316cac7c1026c4a997e955d9657e2a",
     "SetRunInstruction": "fd1f8f2b6b809029041c58ad6c42d126cfcdb578826a4c82c6c7aaf1b69b524a",
     "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
     "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
     "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
-    "StartCompany": "97c4b2c6e4509d9dfa29dcd82e59d9149304e28826d158413ae03726955c2b48",
+    "StartCompany": "81f8003f2ec1241d2c28e3aed16b90295eb4c908f1fd8b871e383a14c7b3eea2",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
@@ -1954,6 +1954,24 @@
                     "required": [
                       "kind",
                       "privateCompanyId"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "station",
+                        "type": "string"
+                      },
+                      "stationId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "stationId"
                     ],
                     "type": "object"
                   }

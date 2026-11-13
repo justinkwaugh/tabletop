@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { assertExists } from '@tabletop/common'
 import {
     TestCompanyId,
     TestHomeLocationId,
@@ -9,7 +8,8 @@ import {
     minimalTileSet
 } from '@tabletop/18xx/testing'
 import { RoutesModule, type RouteOverlay } from './routesModule.svelte.js'
-import { testSession } from './moduleTestSession.js'
+import { routeColor } from '../routes/routePresentation.js'
+import { companyTrain, testSession } from './moduleTestSession.js'
 
 const networkRoutes: RouteOverlay[] = [{ id: 'track-access', color: '#168da8', segments: [] }]
 
@@ -76,6 +76,55 @@ describe('RoutesModule', () => {
         expect(module.undo()).toBe(false)
     })
 
+    describe('the recorded run', () => {
+        function afterRun(ranTrainIds: (owned: string[]) => string[]) {
+            const trainInventory = minimalRouteRules.depot.createInventory()
+            const owned = ['2', '2'].map((definitionId) =>
+                companyTrain(minimalRouteRules.depot, trainInventory, definitionId)
+            )
+            const state = {
+                ...minimalPlayState(),
+                machineState: 'BuyingTrains' as const,
+                tileInventory: minimalTileSet.createInventory(),
+                trainInventory,
+                routeStep: {
+                    companyId: TestCompanyId,
+                    result: {
+                        companyId: TestCompanyId,
+                        revenue: 0,
+                        routes: ranTrainIds(owned).map((trainId) => ({
+                            trainId,
+                            start: { locationId: TestHomeLocationId, nodeId: 'city' },
+                            paths: [],
+                            definitionId: '2',
+                            visits: [],
+                            payments: [],
+                            distance: 0,
+                            revenue: 0
+                        }))
+                    }
+                }
+            }
+            const harness = testSession(state, { routeRules: minimalRouteRules }, ['BuyTrain'])
+            return { module: new RoutesModule(harness.session, () => networkRoutes), owned }
+        }
+
+        it("colours each route by its train's place among the company's trains", () => {
+            const { module, owned } = afterRun((owned) => [owned[1]])
+            expect(module.overlays).toMatchObject([{ id: owned[1], color: routeColor(1) }])
+        })
+
+        // Buying a train after the run can rust the trains that ran (TOP bug report
+        // 1570074225463795774); the table broke on every load until the turn ended.
+        it('still draws a run whose train has left the company since', () => {
+            const { module } = afterRun(() => ['rusted-3H', 'rusted-3H-b'])
+            expect(module.overlays).toMatchObject([
+                { id: 'rusted-3H', color: routeColor(0) },
+                { id: 'rusted-3H-b', color: routeColor(1) }
+            ])
+        })
+    })
+
     describe('drawn routes', () => {
         function drawing(manual: boolean) {
             const state = {
@@ -91,12 +140,7 @@ describe('RoutesModule', () => {
                 status: 'placed',
                 position: { locationId: TestHomeLocationId, nodeId: 'city', slot: 0 }
             })
-            const train = minimalRouteRules.depot.nextTrain(state.trainInventory, '2')
-            assertExists(train)
-            minimalRouteRules.depot.purchase(state.trainInventory, train.id, '2', {
-                kind: 'company',
-                companyId: TestCompanyId
-            })
+            const trainId = companyTrain(minimalRouteRules.depot, state.trainInventory, '2')
             const harness = testSession(state, { routeRules: minimalRouteRules }, ['RunTrains'])
             const module = new RoutesModule(
                 harness.session,
@@ -104,7 +148,7 @@ describe('RoutesModule', () => {
                 () => manual
             )
             module.setSolved(state, { companyId: TestCompanyId, routes: [], revenue: 0 }, true)
-            return { ...harness, module, trainId: train.id }
+            return { ...harness, module, trainId }
         }
 
         it('lets a director draw only where the title allows it', () => {

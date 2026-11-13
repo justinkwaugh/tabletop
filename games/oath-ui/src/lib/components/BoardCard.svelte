@@ -2,7 +2,7 @@
     import type { CardKind } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import UseBadge from '$lib/components/UseBadge.svelte'
-    import type { CardPreview } from '$lib/model/cardPreview.svelte.js'
+    import type { CardPreview, PreviewGroup } from '$lib/model/cardPreview.svelte.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { boardZoom } from '$lib/model/boardZoom.js'
 
@@ -26,7 +26,8 @@
         previewSlotId,
         onpick,
         pickLabel,
-        useBadge = false
+        useBadge = false,
+        group
     }: {
         cardId?: string
         back?: CardKind
@@ -47,6 +48,8 @@
         pickLabel?: string
         /** R-6.2 — Use a power lists the card's power: the "Use" badge opens it. */
         useBadge?: boolean
+        /** Rule 4 — the cards the enlarged card pages through. */
+        group?: PreviewGroup
     } = $props()
 
     let preview = $derived<CardPreview>({
@@ -70,7 +73,8 @@
     {style}
     use:inspectImage={{
         preview,
-        enabled: onpick === undefined && (cardId !== undefined || back !== undefined)
+        enabled: onpick === undefined && (cardId !== undefined || back !== undefined),
+        group
     }}
 >
     <CardImage {cardId} {back} {label} {width} />

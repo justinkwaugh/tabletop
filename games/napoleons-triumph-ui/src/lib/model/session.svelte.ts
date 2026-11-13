@@ -22,6 +22,7 @@ import {
     DeployArmy,
     isDeployArmy,
     AcknowledgeReveal,
+    StayInReserve,
     EndTurn,
     MachineState,
     Move,
@@ -265,12 +266,14 @@ import {
     moveTargets,
     placeReachedSeveralWays,
     retreatTargets,
+    stayTarget,
     threatenedApproaches,
     threatsOn,
     wayTargets,
     type AttackTarget,
     type MarchTarget,
     type MoveTarget,
+    type StayTarget,
     type WaySign,
     type WayTarget
 } from './targets.js'
@@ -382,6 +385,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
     )
 
     isCommanding = $derived(this.canAct && this.gameState.machineState === MachineState.Commanding)
+
+    /** Rule 10: the cavalry at the end of its ride ends its move in reserve or blocking an approach its road crosses, chosen before any other command. */
+    isEndingRide = $derived(this.canAct && this.gameState.machineState === MachineState.EndingRide)
+
+    showsOrders = $derived(this.isCommanding || this.isEndingRide)
 
     /** The turn opens on the enemy cavalry still riding when the last one ended, face-up until this player has seen it. */
     isSeeingRide = $derived(
@@ -914,7 +922,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     // Rule 11: cavalry that has taken a locale by road may ride on.
-    private openRoadMarch = $derived(this.isCommanding ? this.gameState.roadMarch : undefined)
+    private openRoadMarch = $derived(this.showsOrders ? this.gameState.roadMarch : undefined)
 
     private turnedToOrders = $derived(
         this.concludedBattleSetAside ||
@@ -923,7 +931,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     )
 
     showsConcludedBattle = $derived(
-        this.concludedBattle !== undefined && !(this.isCommanding && this.turnedToOrders)
+        this.concludedBattle !== undefined && !(this.showsOrders && this.turnedToOrders)
     )
 
     private riderIds: string[] = $derived(this.openRoadMarch?.unitIds ?? [])
@@ -934,26 +942,19 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )?.key
     )
 
-    private stoppedRoadMarch = $derived(
-        this.openRoadMarch?.stopped ? this.openRoadMarch : undefined
-    )
+    private rideEndTarget: StayTarget | undefined = $derived.by(() => {
+        const locale = this.isEndingRide ? this.openRoadMarch?.path.at(-1) : undefined
+        return locale === undefined ? undefined : stayTarget(locale)
+    })
 
-    // Rule 10: cavalry at the end of its ride has ended its move in reserve unless it is sent to block an approach.
-    rideIsOver: boolean = $derived(this.stoppedRoadMarch !== undefined)
-
-    rideEndedIn: number | undefined = $derived(this.stoppedRoadMarch?.path.at(-1))
-
-    rideEndedWithCommandLeft: boolean = $derived(
-        this.rideIsOver &&
-            this.riderIds.every((id) => canStillMove(this.gameState, this.gameState.unit(id)))
-    )
-
-    selectedGroupKey = $derived(
-        this.isCommanding
-            ? (pickedUpOf(this.selection)?.groupKey ??
-                  (this.rideIsOver ? undefined : this.marchGroupKey))
+    selectedGroupKey = $derived.by(() => {
+        if (this.isEndingRide) {
+            return this.marchGroupKey
+        }
+        return this.isCommanding
+            ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey)
             : undefined
-    )
+    })
 
     reinforcements: Reinforcement[] = $derived(
         this.mySide && this.isCommanding ? reinforcementsOf(this.gameState, this.mySide) : []
@@ -966,7 +967,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     ringedSprites: GroupSprite[] = $derived.by(() => {
         const step = this.setupStep
         if (!step) {
-            return this.selectedSprite ? [this.selectedSprite] : []
+            return this.selectedSprite && !this.rideEndSprite ? [this.selectedSprite] : []
         }
         const ofOpenSeat = unitsOfOpenSeat(step)
         return this.sprites.filter(({ group }) =>
@@ -1011,7 +1012,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
     })
 
     private ridersMayTakeNewCommand = $derived(
-        this.ridersInHand && this.commandsForUnitsInHand.length > 0
+        this.isCommanding && this.ridersInHand && this.commandsForUnitsInHand.length > 0
     )
 
     ridingOn = $derived(
@@ -1127,8 +1128,15 @@ export class NapoleonsTriumphGameSession extends GameSession<
         if (this.wayChoice) {
             return wayTargets(this.stepsOfTheWay)
         }
+        if (this.rideEndTarget) {
+            return [this.rideEndTarget, ...this.orderTargets]
+        }
         return this.aimedLocale !== undefined ? this.aimedThreats : this.orderTargets
     })
+
+    rideEndSprite: GroupSprite | undefined = $derived(
+        this.rideEndTarget ? this.selectedSprite : undefined
+    )
 
     threatBeingDeclared: AttackTarget | undefined = $derived.by(() => {
         const approach = threatOf(this.selection)
@@ -1252,7 +1260,11 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     canSelect(group: PieceGroup): boolean {
         const own = !this.busy && group.playerId === this.myPlayerId
-        return own && (this.isDeploying || this.isCommanding)
+        return own && (this.isDeploying || this.isCommanding || this.endsTheRide(group))
+    }
+
+    endsTheRide(group: PieceGroup): boolean {
+        return this.rideEndTarget !== undefined && group.key === this.marchGroupKey
     }
 
     maySpread(sprite: GroupSprite): boolean {
@@ -1277,6 +1289,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
             this.openOnMap(group, first.id)
             return
         }
+        if (this.endsTheRide(group)) {
+            void this.stayInReserve()
+            return
+        }
         this.stageCommand(
             pickedUpOf(this.selection)?.groupKey === group.key
                 ? noCommandSelection()
@@ -1291,6 +1307,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
         }
         if (this.isDeploying) {
             this.openOnMap(group, unitId)
+            return
+        }
+        if (this.endsTheRide(group)) {
+            void this.stayInReserve()
             return
         }
         if (this.selectedGroupKey === group.key) {
@@ -1308,9 +1328,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     mayChooseUnit(unit: ProjectedUnit): boolean {
-        return this.ridesAlone(unit)
-            ? !this.ridingOn || this.rideIsOver
-            : this.mayStillCommand(unit)
+        if (this.isEndingRide) {
+            return false
+        }
+        return this.ridesAlone(unit) ? !this.ridingOn : this.mayStillCommand(unit)
     }
 
     // Rule 9: Attach moves nothing, so a unit that has already moved may still be attached.
@@ -1457,6 +1478,10 @@ export class NapoleonsTriumphGameSession extends GameSession<
             await this.chooseThreat(target)
             return
         }
+        if (target.kind === TargetKind.Stay) {
+            await this.stayInReserve()
+            return
+        }
         const order = this.order
         assertExists(order, 'Move targets are offered for an order')
         const [way, ...otherWays] = target.ways ?? []
@@ -1480,6 +1505,13 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return
         }
         await this.applyAction(this.createPlayerAction(AcknowledgeReveal, {}))
+    }
+
+    async stayInReserve() {
+        if (!this.validActionTypes.includes(ActionType.StayInReserve)) {
+            return
+        }
+        await this.applyAction(this.createPlayerAction(StayInReserve, {}))
     }
 
     async endTurn() {

@@ -42,7 +42,7 @@
     import { shareSign } from './shareCards.js'
     import PlaceText from '../places/PlaceText.svelte'
     import HistoryCallout from './HistoryCallout.svelte'
-    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
+    import { bankBreakCallout, descriptionCallouts } from './historyCallouts.js'
     import { historyBankBreaks, historyStates } from './historyStates.js'
 
     let {
@@ -141,7 +141,7 @@
             ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
             : undefined
     }
-    /** The table-wide events the step caused: limit changes, then the bank breaking. */
+    /** The table-wide events the step caused: limit changes and the title's own, then the bank breaking. */
     function stepCallouts(
         action: GameAction,
         description: HistoryDescription,
@@ -156,9 +156,7 @@
         )
         const bankBreak = [...historyBankBreaks(states)].find(([id]) => states.get(id)?.before)?.[1]
         return [
-            ...[description, ...consequences.map(describe)].flatMap((entry) =>
-                entry.certificateLimit ? [certificateLimitCallout(entry.certificateLimit)] : []
-            ),
+            ...[description, ...consequences.map(describe)].flatMap(descriptionCallouts),
             ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
         ]
     }

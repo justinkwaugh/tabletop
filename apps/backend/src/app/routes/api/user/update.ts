@@ -1,20 +1,7 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from 'typebox'
-import { assertExists, User } from '@tabletop/common'
+import { assertExists, UserUpdateRequest } from '@tabletop/common'
 import { authSession } from '../../../lib/session.js'
 
-type UserUpdateRequest = Static<typeof UserUpdateRequest>
-const UserUpdateRequest = Type.Evaluate(
-    Type.Intersect(
-        [
-            Type.Pick(User, ['username', 'email']),
-            Type.Object({
-                password: Type.Optional(Type.String())
-            })
-        ],
-        { additionalProperties: false }
-    )
-)
 export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: UserUpdateRequest }>(
         '/update',
@@ -35,7 +22,9 @@ export default async function (fastify: FastifyInstance) {
                 email
             }
 
-            const updatedUser = await fastify.userService.updateUser(session, updates, password)
+            const updatedUser = await fastify.userService.updateUser(session, updates, password, {
+                confirmAge: request.body.ageConfirmed === true
+            })
             if (password) {
                 await authSession({
                     session: request.session,

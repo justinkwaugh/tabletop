@@ -66,8 +66,19 @@ export const TileNode = Type.Union([
 ])
 export type TileNode = ImmutableTileData<Type.Static<typeof TileNode>>
 
+/**
+ * The gauge of a track path where a title has more than one: narrow track, or dual track that
+ * carries either gauge. A path without a gauge is standard track.
+ */
+export const TrackGauge = Type.Union([Type.Literal('narrow'), Type.Literal('dual')])
+export type TrackGauge = Type.Static<typeof TrackGauge>
+
 export const TilePath = Type.Object(
-    { id: Identifier, endpoints: Type.Tuple([TileEndpoint, TileEndpoint]) },
+    {
+        id: Identifier,
+        endpoints: Type.Tuple([TileEndpoint, TileEndpoint]),
+        gauge: Type.Optional(TrackGauge)
+    },
     { additionalProperties: false }
 )
 export type TilePath = ImmutableTileData<Type.Static<typeof TilePath>>

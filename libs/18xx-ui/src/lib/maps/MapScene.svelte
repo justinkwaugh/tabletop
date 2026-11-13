@@ -14,7 +14,7 @@
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import TileSymbol from '../tiles/TileSymbol.svelte'
     import { PortSymbol } from '../tiles/tileSymbols.js'
-    import { MountainIcon } from './terrainIcons.js'
+    import { terrainIcon } from './terrainIcons.js'
     import {
         ClassicTileAppearance,
         DefaultLabelFont,
@@ -37,6 +37,7 @@
         type MapRoute,
         CaptionFontSize,
         TerrainNoteDrop,
+        TerrainCostDrop,
         TokenTabReach,
         NoticeFontSize,
         NoticeY
@@ -368,21 +369,21 @@
                         stroke={appearance.colors[entry.face.color]}
                         stroke-width="1.7"
                     >
-                        {#if !entry.placed && entry.location.terrain}
+                        {#if entry.terrainShown && entry.location.terrain}
                             {@const terrain = entry.location.terrain}
                             {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
                             {@const widths = terrainRowWidths(terrain.kinds.length, cost)}
                             {@const iconWidth = widths.icons}
-                            {@const labelWidth = widths.cost}
+                            {@const labelWidth = entry.terrainCostBelow ? 0 : widths.cost}
                             <g
                                 data-map-terrain
                                 transform={`translate(${entry.terrainPosition.x - (iconWidth + labelWidth) / 2} ${entry.terrainPosition.y})`}
                             >
                                 {#each terrain.kinds as kind, index (kind)}
+                                    {@const icon = terrainIcon(kind, scene.terrainIcons)}
                                     <g transform={`translate(${index * 19} 0)`} stroke="none">
-                                        {#if kind === 'mountain'}
-                                            <path d={MountainIcon.path} fill={MountainIcon.fill}
-                                            ></path>
+                                        {#if icon}
+                                            <path d={icon.path} fill={icon.fill}></path>
                                         {:else if kind === 'water'}
                                             <path
                                                 transform="translate(4 0) scale(0.75 1)"
@@ -407,27 +408,37 @@
                                         {/if}
                                     </g>
                                 {/each}
-                                <text
-                                    x={iconWidth ? iconWidth + 2 : 0}
-                                    y="4"
-                                    text-anchor="start"
-                                    font-size="10"
-                                    font-weight="750">{cost}</text
-                                >
+                                {#if entry.terrainCostBelow}
+                                    <text
+                                        x={iconWidth / 2}
+                                        y={4 + TerrainCostDrop}
+                                        font-size="10"
+                                        font-weight="750">{cost}</text
+                                    >
+                                {:else}
+                                    <text
+                                        x={iconWidth ? iconWidth + 2 : 0}
+                                        y="4"
+                                        text-anchor="start"
+                                        font-size="10"
+                                        font-weight="750">{cost}</text
+                                    >
+                                {/if}
                             </g>
                             {#each (entry.location.markers ?? []).filter((marker) => {
                                 const art = entry.markerArt[marker.id]
-                                return !!art && 'terrainNote' in art
+                                return !entry.placed && !!art && 'terrainNote' in art
                             }) as marker (marker.id)}
                                 <text
                                     data-map-terrain-note={marker.id}
                                     x={entry.terrainPosition.x}
-                                    y={entry.terrainPosition.y + TerrainNoteDrop}
+                                    y={entry.terrainPosition.y +
+                                        TerrainNoteDrop +
+                                        (entry.terrainCostBelow ? TerrainCostDrop : 0)}
                                     font-size="7"
                                     font-weight="750"
-                                    fill={terrain.kinds[0] === 'mountain'
-                                        ? MountainIcon.fill
-                                        : '#287fab'}
+                                    fill={terrainIcon(terrain.kinds[0], scene.terrainIcons)?.fill ??
+                                        '#287fab'}
                                     ><title>{marker.description}</title>{marker.label}</text
                                 >
                             {/each}
@@ -496,7 +507,7 @@
                             {:else if art && 'tileSymbol' in art && !entry.face.symbols?.includes(art.tileSymbol)}
                                 <g
                                     data-map-marker-symbol={art.tileSymbol}
-                                    transform="translate(0 31)"
+                                    transform={`translate(${art.at?.x ?? 0} ${art.at?.y ?? 31})`}
                                     stroke="none"
                                 >
                                     <title>{marker.label}</title>

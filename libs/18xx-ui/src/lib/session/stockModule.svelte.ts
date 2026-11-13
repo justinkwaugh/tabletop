@@ -5,6 +5,9 @@ import {
     FinishStockTurn,
     OfferPrivatePurchase,
     ParCompany,
+    ChoosePresidencyExchange,
+    pendingPresidencyExchange,
+    presidencyExchangeOptions,
     SellShares,
     StartCompany,
     evaluateCompanyStart,
@@ -25,6 +28,7 @@ import {
     sameCenter,
     sameOwner,
     sharesOwned,
+    type CompanyStartDetails,
     type CompanyStartRequest,
     type EighteenXXState,
     type HomePosition,
@@ -35,6 +39,9 @@ import {
     type SaleRequest,
     type StationReservation,
     type ShareSale,
+    type ShareSaleDetails,
+    type ShareCertificate,
+    type SharePurchaseDetails,
     type ValuationRules,
     companyShareCount,
     stationReservation
@@ -44,6 +51,7 @@ import {
     type StockAction,
     type StockActionStages
 } from '../stock/stockActionSelection.js'
+import { distinctOwners, sameCertificateOffer } from '../stock/purchaseSources.js'
 import { CompanyStartStageOrder, type CompanyStartStages } from './companyStartSelection.js'
 import type { LocalSelection } from '@tabletop/frontend-components'
 import type { ModuleSession } from './moduleSession.js'
@@ -52,6 +60,20 @@ import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
 export type StockTrade =
     { kind: 'purchase'; request: PurchaseRequest } | { kind: 'sale'; request: SaleRequest }
 
+export type AvailablePurchase = {
+    certificate: ShareCertificate
+    request: PurchaseRequest
+    details: SharePurchaseDetails
+}
+export type CompanyShareOffer = { certificate: ShareCertificate; purchases: AvailablePurchase[] }
+export type CompanyShareSale = { request: SaleRequest; shares: number; proceeds: number }
+export type CompanyShareSales = { seller: Owner; sales: CompanyShareSale[] }
+export type CompanyTrades = {
+    buyers: Owner[]
+    offers: CompanyShareOffer[]
+    sales: CompanyShareSales[]
+}
+
 type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof evaluateSharePurchase>[0] &
     Parameters<typeof evaluateShareSale>[0] &
@@ -59,7 +81,12 @@ type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof exceedsStockLimits>[0] &
     Pick<
         EighteenXXState,
-        'machineState' | 'stockRound' | 'activePlayerIds' | 'purchaseOffer' | 'pendingPar'
+        | 'machineState'
+        | 'stockRound'
+        | 'activePlayerIds'
+        | 'purchaseOffer'
+        | 'pendingPar'
+        | 'presidencyExchanges'
     >
 
 export type StockSession = ModuleSession<
@@ -203,24 +230,102 @@ export class StockModule implements LocalSelection {
         const home = this.selectedStartHome
         return home ? this.offeredStartHomes.find((entry) => sameCenter(entry, home)) : undefined
     })
-    private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
+    /** The most ordinary certificates the chosen company's start may add to the president's. */
+    maxExtraStartCertificates = $derived.by(() => {
         const company = this.selectedStartCompany
-        const marketSpaceId = this.start.value('marketSpaceId')
+        if (!company) return 0
+        const { state, rules } = this.session
+        return Math.min(
+            rules.companyRules.additionalStartCertificates?.(state, company.companyId) ?? 0,
+            this.startCertificateIds(company.companyId).length
+        )
+    })
+    /** Each holding the chosen company's start may buy, as a percentage of the company. */
+    startSizes = $derived.by((): { extra: number; percent: number }[] => {
+        const company = this.selectedStartCompany
+        if (!company) return []
+        const { state, rules } = this.session
+        const president = state.certificates.find(
+            (certificate) =>
+                certificate.kind === 'share' &&
+                certificate.president &&
+                certificate.companyId === company.companyId
+        )
+        const shareCount = companyShareCount(state, rules.stockRules.charters, company.companyId)
+        if (!president || president.kind !== 'share' || !shareCount) return []
+        return Array.from({ length: this.maxExtraStartCertificates + 1 }, (_, extra) => ({
+            extra,
+            percent: Math.round(((president.shares + extra) * 100) / shareCount)
+        }))
+    })
+    /** What a start costs its president in all: the president's certificate and any further ones. */
+    startCost(details: CompanyStartDetails): number {
+        return (details.additionalPurchases ?? []).reduce(
+            (total, purchase) => total + purchase.price,
+            details.price
+        )
+    }
+    /** The ordinary certificates chosen to buy with the president's. */
+    selectedExtraStartCertificates = $derived.by(() => this.start.value('extraCertificates') ?? 0)
+    /** The company's single-share certificates still with the bank or its treasury. */
+    private startCertificateIds(companyId: string): string[] {
+        return this.session.state.certificates
+            .filter(
+                (certificate) =>
+                    certificate.kind === 'share' &&
+                    !certificate.president &&
+                    certificate.shares === 1 &&
+                    certificate.companyId === companyId &&
+                    certificate.owner.kind !== 'player'
+            )
+            .map((certificate) => certificate.id)
+    }
+    private extraStartCertificateIds(companyId: string): string[] {
+        return this.startCertificateIds(companyId).slice(0, this.selectedExtraStartCertificates)
+    }
+    /** The chosen company's start at a price, with its home and further certificates as chosen. */
+    private startRequest(marketSpaceId: string): CompanyStartRequest | undefined {
+        const company = this.selectedStartCompany
+        if (!company) return undefined
         const home = this.selectedStartHome
-        return company && marketSpaceId
-            ? { ...company, marketSpaceId, ...(home ? { home } : {}) }
-            : undefined
+        const additionalCertificateIds = this.extraStartCertificateIds(company.companyId)
+        return {
+            ...company,
+            marketSpaceId,
+            ...(home ? { home } : {}),
+            ...(additionalCertificateIds.length ? { additionalCertificateIds } : {})
+        }
+    }
+    private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
+        const marketSpaceId = this.start.value('marketSpaceId')
+        return marketSpaceId ? this.startRequest(marketSpaceId) : undefined
     })
     selectedStartPrices = $derived.by(() => {
         const company = this.selectedStartCompany
-        return (
+        const prices =
             this.startChoices.find(
                 (choice) =>
                     company &&
                     choice.request.companyId === company.companyId &&
                     sameOwner(choice.request.buyer, company.buyer)
             )?.prices ?? []
-        )
+        if (!company || !this.extraStartCertificateIds(company.companyId).length) return prices
+        return prices.flatMap(({ marketSpaceId }) => {
+            const request = this.startRequest(marketSpaceId)
+            return request
+                ? [
+                      {
+                          marketSpaceId,
+                          result: evaluateCompanyStart(
+                              this.session.state,
+                              request,
+                              this.session.rules.stockRules,
+                              this.session.rules.companyRules
+                          )
+                      }
+                  ]
+                : []
+        })
     })
     selectedStartResult = $derived.by(() =>
         this.selectedStartRequest
@@ -245,6 +350,45 @@ export class StockModule implements LocalSelection {
               )
             : []
     )
+    /** The presidency change whose outgoing president chooses the certificates they take. */
+    presidencyExchange = $derived.by(() => pendingPresidencyExchange(this.session.state))
+    /** Each set of certificates the outgoing president may take, with each one's size. */
+    presidencyExchangeChoices = $derived.by(() => {
+        const pending = this.presidencyExchange
+        if (!pending) return []
+        const { state, rules } = this.session
+        const shareCount = companyShareCount(state, rules.stockRules.charters, pending.companyId)
+        return presidencyExchangeOptions(pending).map((certificateIds) => ({
+            certificateIds,
+            certificates: certificateIds.map((id) => {
+                const certificate = state.certificates.find((entry) => entry.id === id)
+                assert(
+                    certificate?.kind === 'share' && shareCount,
+                    'Exchanged certificates are shares'
+                )
+                return {
+                    shares: certificate.shares,
+                    percent: Math.round((certificate.shares * 100) / shareCount)
+                }
+            })
+        }))
+    })
+    canChoosePresidencyExchange = $derived.by(
+        () =>
+            this.session.interactive &&
+            this.session.validActionTypes.includes('ChoosePresidencyExchange')
+    )
+    async choosePresidencyExchange(certificateIds: readonly string[]) {
+        const pending = this.presidencyExchange
+        assert(this.canChoosePresidencyExchange && pending, 'No exchange awaits this player')
+        await this.session.applyAction(
+            this.session.createPlayerAction(ChoosePresidencyExchange, {
+                companyId: pending.companyId,
+                certificateIds: [...certificateIds]
+            })
+        )
+    }
+
     async parCompany(marketSpaceId: string) {
         const pending = this.session.state.pendingPar
         assert(this.canPar && pending, 'No par is awaiting this player')
@@ -400,6 +544,15 @@ export class StockModule implements LocalSelection {
         )
         this.start.choose('home', { locationId: home.locationId, nodeId: home.nodeId })
     }
+    chooseExtraStartCertificates(count: number) {
+        this.assertAvailable(this.session.playerId)
+        assert(this.start.value('company'), 'Choose a company before its certificates')
+        assert(
+            count >= 0 && count <= this.maxExtraStartCertificates,
+            'The start cannot include this many certificates'
+        )
+        this.start.choose('extraCertificates', count)
+    }
     selectStartPrice(marketSpaceId: string) {
         this.assertAvailable(this.session.playerId)
         assert(this.start.value('company'), 'Choose a company before its starting price')
@@ -455,28 +608,122 @@ export class StockModule implements LocalSelection {
                               nodeId: details.home.position.nodeId
                           }
                       }
+                    : {}),
+                ...(details.additionalPurchases?.length
+                    ? {
+                          additionalCertificateIds: details.additionalPurchases.map(
+                              (purchase) => purchase.certificateId
+                          )
+                      }
                     : {})
             })
         )
+    }
+    /** One purchase per buyer of each distinct certificate offer and price. */
+    availablePurchases = $derived.by(() => {
+        const purchases: AvailablePurchase[] = []
+        for (const { certificate, request, result } of this.purchaseChoices) {
+            if (certificate.kind !== 'share' || !result.details) continue
+            const details = result.details
+            if (
+                !purchases.some(
+                    (purchase) =>
+                        sameOwner(purchase.request.buyer, request.buyer) &&
+                        sameCertificateOffer(purchase.certificate, certificate) &&
+                        purchase.details.price === details.price
+                )
+            )
+                purchases.push({ certificate, request, details })
+        }
+        return purchases
+    })
+    companyTrades(companyId: string): CompanyTrades {
+        if (!this.session.interactive) return { buyers: [], offers: [], sales: [] }
+        const offers = this.companyShareOffers(companyId)
+        return {
+            buyers: distinctOwners(
+                offers.flatMap((offer) => offer.purchases.map((purchase) => purchase.request.buyer))
+            ),
+            offers,
+            sales: this.companyShareSales(companyId)
+        }
+    }
+    private companyShareOffers(companyId: string): CompanyShareOffer[] {
+        const offers: CompanyShareOffer[] = []
+        for (const purchase of this.availablePurchases) {
+            if (purchase.certificate.companyId !== companyId) continue
+            const offer = offers.find((candidate) =>
+                sameCertificateOffer(candidate.certificate, purchase.certificate)
+            )
+            if (!offer) offers.push({ certificate: purchase.certificate, purchases: [purchase] })
+            else if (
+                !offer.purchases.some((offered) =>
+                    sameOwner(offered.request.buyer, purchase.request.buyer)
+                )
+            )
+                offer.purchases.push(purchase)
+        }
+        return offers
+    }
+    private companyShareSales(companyId: string): CompanyShareSales[] {
+        const groups: CompanyShareSales[] = []
+        for (const { sale, request, result } of this.saleChoices) {
+            if (sale.companyId !== companyId || !result.details) continue
+            const entry = { request, shares: sale.shares, proceeds: result.details.proceeds }
+            const group = groups.find((candidate) => sameOwner(candidate.seller, request.seller))
+            if (group) group.sales.push(entry)
+            else groups.push({ seller: request.seller, sales: [entry] })
+        }
+        return groups
+    }
+    /** Buys at once, leaving the stock menu as it is. */
+    async buy(request: PurchaseRequest) {
+        this.assertAvailable(request.playerId)
+        const details = evaluateSharePurchase(
+            this.session.state,
+            request,
+            this.session.rules.stockRules
+        ).details
+        assertExists(details, 'Purchase is unavailable')
+        await this.session.applyAction(this.purchaseAction(details))
+    }
+    /** Sells at once, leaving the stock menu as it is. */
+    async sell(request: SaleRequest) {
+        this.assertAvailable(request.playerId)
+        const details = evaluateShareSale(
+            this.session.state,
+            request,
+            this.session.rules.stockRules
+        ).details
+        assertExists(details, 'Sale is unavailable')
+        await this.session.applyAction(this.saleAction(details))
+    }
+    async buyAndReopenMenu(request: PurchaseRequest) {
+        this.selectPurchase(request)
+        await this.confirmPurchase()
+    }
+    async sellAndReopenMenu(request: SaleRequest) {
+        this.selectSale(request)
+        await this.confirmSale()
     }
     async confirmPurchase() {
         this.assertAvailable(this.session.playerId)
         const details = this.selectedPurchaseDetails
         assertExists(details, 'Select an available purchase')
-        await this.applyAndContinue(
-            this.session.createPlayerAction(BuyShares, {
-                buyer: details.buyer,
-                certificateId: details.certificateId,
-                expectedPrice: details.price
-            }),
-            () =>
-                this.purchaseChoices.some(
-                    (choice) =>
-                        choice.result.details && sameOwner(choice.request.buyer, details.buyer)
-                )
-                    ? { menu: 'buy', buyer: details.buyer }
-                    : undefined
+        await this.applyAndContinue(this.purchaseAction(details), () =>
+            this.purchaseChoices.some(
+                (choice) => choice.result.details && sameOwner(choice.request.buyer, details.buyer)
+            )
+                ? { menu: 'buy', buyer: details.buyer }
+                : undefined
         )
+    }
+    private purchaseAction(details: SharePurchaseDetails) {
+        return this.session.createPlayerAction(BuyShares, {
+            buyer: details.buyer,
+            certificateId: details.certificateId,
+            expectedPrice: details.price
+        })
     }
     furtherPurchaseCompanyId = $derived.by(() => {
         const { state, playerId } = this.session
@@ -491,21 +738,20 @@ export class StockModule implements LocalSelection {
         this.assertAvailable(this.session.playerId)
         const details = this.selectedSaleResult?.details
         assertExists(details, 'Select an available sale')
+        await this.applyAndContinue(this.saleAction(details), () =>
+            this.saleChoices.some((choice) => choice.result.details) ? { menu: 'sell' } : undefined
+        )
+    }
+    private saleAction(details: ShareSaleDetails) {
         const sales: ShareSale[] = details.sales.map(({ companyId, shares }) => ({
             companyId,
             shares
         }))
-        await this.applyAndContinue(
-            this.session.createPlayerAction(SellShares, {
-                seller: details.seller,
-                sales,
-                expectedProceeds: details.proceeds
-            }),
-            () =>
-                this.saleChoices.some((choice) => choice.result.details)
-                    ? { menu: 'sell' }
-                    : undefined
-        )
+        return this.session.createPlayerAction(SellShares, {
+            seller: details.seller,
+            sales,
+            expectedProceeds: details.proceeds
+        })
     }
     private async applyAndContinue(
         action: GameAction,

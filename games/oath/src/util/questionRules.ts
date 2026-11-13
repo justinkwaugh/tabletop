@@ -3,6 +3,7 @@ import { burnFavor } from './burn.js'
 import { gainFavorFromBank, giveFavor, spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
 import { SearchPlay } from '../model/oathEnums.js'
+import { regionName } from '../data/mapSlots.js'
 import {
     PowerQuestionKind,
     RerolledRollKind,
@@ -994,7 +995,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 bottom: false
             })
             return {
-                summary: `stacked ${stacked.length} cards on the ${region} discard pile`,
+                summary: `stacked ${stacked.length} cards on the ${regionName(region)} discard pile`,
                 pileDeposits
             }
         }

@@ -26,6 +26,11 @@
         voteErrorMessage,
         voteTally
     } from '$lib/utils/playerVoteText'
+    import {
+        offersUndoRequest,
+        shownProposal,
+        voteStripPosition
+    } from '$lib/utils/voteStripPosition'
 
     type Proposal =
         | { actionIndex: number; kind: 'confirm'; preview: UndoVotePreview }
@@ -39,6 +44,7 @@
     const { gameService, authorizationService } = getAppContext()
     const { isViewingHistory, colors, gameState, showHistoryBeforeAction, showLiveGame } =
         gameSession.bridge
+    const reportsPosition = gameSession.bridge.viewedHistoryPosition !== undefined
     const viewedPosition = gameSession.bridge.viewedHistoryPosition ?? readable(undefined)
 
     const game = $derived(gameService.cachedGame(gameSession.game.id) ?? gameSession.game)
@@ -53,24 +59,20 @@
     const canVote = $derived(voter !== undefined && playerVoteIneligibility(game) === undefined)
     const voters = $derived(votingPlayers(game.players))
 
-    // Older UI Artifacts expose no Undo reach, so every position is offered and the host decides.
-    // They also lack showLiveGame, so the live action count below is never relied on.
+    // UI Artifacts without a reported position also lack showLiveGame, so their stand-in live
+    // action count is never relied on.
     const position: ViewedHistoryPosition | undefined = $derived(
-        $viewedPosition ??
-            ($isViewingHistory && $gameState
-                ? {
-                      actionIndex: $gameState.actionCount,
-                      liveActionCount: $gameState.actionCount,
-                      beyondUndoReach: true,
-                      startsWithUserAction: true
-                  }
-                : undefined)
+        voteStripPosition({
+            reportsPosition,
+            seated: voter !== undefined,
+            viewedPosition: $viewedPosition,
+            isViewingHistory: $isViewingHistory,
+            actionCount: $gameState?.actionCount
+        })
     )
 
     let proposal: Proposal | undefined = $state()
-    const shownProposal = $derived(
-        proposal?.actionIndex === position?.actionIndex ? proposal : undefined
-    )
+    const shown = $derived(shownProposal(proposal, position))
 
     let voteSummary: UndoVotePreview | undefined = $state()
     const summaryTarget = $derived(
@@ -230,7 +232,7 @@
     </div>
 {:else if position}
     <div class="vote-strip">
-        {#if shownProposal?.kind === 'ownUndo'}
+        {#if shown?.kind === 'ownUndo'}
             <span class="line text-white">You can undo this yourself with Undo.</span>
             <Button
                 size="xs"
@@ -238,8 +240,8 @@
                 class={buttonClass}
                 onclick={() => (proposal = undefined)}>OK</Button
             >
-        {:else if shownProposal?.kind === 'confirm'}
-            {@const preview = shownProposal.preview}
+        {:else if shown?.kind === 'confirm'}
+            {@const preview = shown.preview}
             <span class="line">
                 <span class="font-medium text-white">Ask everyone to undo to here?</span>
                 <span class="text-gray-400">{undoneSummary(preview)}</span>
@@ -263,7 +265,7 @@
         {:else}
             {@const target = position}
             <span class="line"><ViewingHistoryLine /></span>
-            {#if canVote && target.beyondUndoReach && target.startsWithUserAction}
+            {#if canVote && offersUndoRequest(target)}
                 <Button
                     size="xs"
                     color="blue"

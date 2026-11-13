@@ -16,6 +16,7 @@ import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from 
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { StockMarketChart } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
+import type { PresidencyExchangeTerms } from './presidency.js'
 import type { ShareSaleDetails, ShareSaleSettlement } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
@@ -26,6 +27,13 @@ export const CertificateLimitChange = Type.Object(
     { additionalProperties: false }
 )
 export type CertificateLimitChange = Type.Static<typeof CertificateLimitChange>
+
+/** How the title's new presidents make up the president's certificate's shares. */
+export function presidencyExchangeTerms(
+    rules: Pick<StockRules, 'presidencyExchange'>
+): PresidencyExchangeTerms {
+    return rules.presidencyExchange ?? {}
+}
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -65,10 +73,12 @@ export interface StockRules {
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
     /**
-     * Whether a new president exchanges their largest ordinary certificates first, as 1832's
-     * vice-president's certificates must be included.
+     * How a new president's certificates make up the president's certificate's shares: their
+     * largest ordinary certificates first, as 1832's vice-president's certificates must be
+     * included; or the outgoing president's choice where they hold the shares more than one way,
+     * 1849's last certificate or two single ones (§9.5), the largest exchanged until they choose.
      */
-    presidencyExchangeLargestFirst?: boolean
+    presidencyExchange?: PresidencyExchangeTerms
     /**
      * A president may sell below the president's certificate with no one to succeed them: the
      * certificate goes to the pool and the company has no president until someone claims it

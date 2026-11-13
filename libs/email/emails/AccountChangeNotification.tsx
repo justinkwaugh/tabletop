@@ -33,6 +33,21 @@ export const AccountChangeNotification = ({
     username,
 }: AccountChangeNotificationProps) => {
     const when = formatTimestamp(timestamp)
+    if (changeType === AccountChangeType.AccountDeleted) {
+        return (
+            <DarkCardEmail
+                preview="Your Board Together account was deleted"
+                heading="Your account was deleted"
+                subline="Your account and the details tied to it have been removed. Finished games show you as a deleted player. This is the last email we will send to this address."
+                footer="If you did not ask for this, please contact us."
+            >
+                <Section style={styles.panel}>
+                    <Text style={styles.panelValue}>Account deleted</Text>
+                    <Text style={styles.panelDetail}>{when}</Text>
+                </Section>
+            </DarkCardEmail>
+        )
+    }
     if (changeType === AccountChangeType.Username) {
         return (
             <DarkCardEmail

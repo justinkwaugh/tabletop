@@ -11,6 +11,7 @@ import {
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { Banner, CardKind, Region } from '../model/oathEnums.js'
+import { regionName } from '../data/mapSlots.js'
 import {
     DARKEST_SECRET_WORLD_DECK_SUPPLY_COST,
     DISCARD_SEARCH_SUPPLY_COST,
@@ -20,6 +21,7 @@ import {
 import { sitePowerCategory } from '../data/sites.js'
 import { kindOf } from '../data/cardRegistry.js'
 import { topBackType } from '../model/vault.js'
+import { topOf } from '../model/pileOrder.js'
 import { drawDiscardPile, drawWorldDeck } from '../util/knowledge.js'
 import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { modifierPayment, reasonCannotPayInAll, tollPayment } from '../util/actionPayment.js'
@@ -210,7 +212,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             HydratedSearch.drawsFromBottom(state, this.playerId, this.modifiers),
             this.playerId
         )
-        const newTop = vault.discardPiles[region][0]
+        const newTop = topOf(vault.discardPiles[region])
         return {
             drawnCardIds,
             stoppedOnVision: false,
@@ -363,7 +365,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         } else {
             const pile = HydratedSearch.drawRegion(state, playerId, modifiers)
             if (state.discardPileCounts[pile] === 0) {
-                return { cost, active, reason: `the ${pile} discard pile is empty` }
+                return { cost, active, reason: `the ${regionName(pile)} discard pile is empty` }
             }
         }
         // R-11.11-H1 — Mushrooms alone at the Marshes draws no card, which leaves the Search

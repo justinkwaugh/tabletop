@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import {
     buildFrontendCommand,
@@ -66,12 +67,25 @@ const assertFrontendPublishable = async (context: PublishContext): Promise<Publi
     return { version, artifacts, pending }
 }
 
+const reportLegalDocuments = (context: PublishContext) => {
+    const folder = path.join(context.repoRoot, 'apps', 'frontend', 'legal')
+    const documents = fs.existsSync(folder)
+        ? fs.readdirSync(folder).filter((name) => name.endsWith('.md'))
+        : []
+    context.log(
+        documents.length > 0
+            ? `frontend legal documents: ${documents.join(', ')}`
+            : 'frontend legal documents: none, so the legal pages say nothing is published'
+    )
+}
+
 const buildAndUpload = async (
     context: PublishContext,
     version: string,
     pending: PublishedArtifact[]
 ) => {
     if (pending.length > 0) {
+        reportLegalDocuments(context)
         await runSpec(context, buildFrontendCommand(context.repoRoot))
         await runDeploysWithDirectoryPlaceholders(context, [
             deployFrontendCommand(context.repoRoot, version, context.deployConfig)

@@ -117,3 +117,49 @@ test.describe('with reduced motion', () => {
         await expect(stallPlacard(page)).toBeVisible()
     })
 })
+
+test('the placard lands on the stall where getBoundingClientRect leaves out CSS zoom', async ({
+    page
+}) => {
+    // Safari 26.0 and older report a rect inside a CSS-zoomed element divided by its zoom.
+    await page.addInitScript(() => {
+        const measure = Element.prototype.getBoundingClientRect
+        Element.prototype.getBoundingClientRect = function (this: Element) {
+            let zoom = Number.parseFloat(getComputedStyle(this).zoom) || 1
+            for (let node = this.parentElement; node; node = node.parentElement)
+                zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1
+            const rect = measure.call(this)
+            return new DOMRect(rect.x / zoom, rect.y / zoom, rect.width / zoom, rect.height / zoom)
+        }
+    })
+    await createGame(page)
+    const boardZoom = await board(page).evaluate((svg) => {
+        const zoomed = svg.closest<HTMLElement>('[style*="zoom"]')
+        return zoomed ? Number.parseFloat(getComputedStyle(zoomed).zoom) : 1
+    })
+    expect(boardZoom).toBeLessThan(0.9)
+    await auctionFirstShop(page)
+    await expect(page.locator('div.placard')).toHaveCount(1)
+    // The fake patches only getBoundingClientRect, so getClientRects gives the rect as drawn.
+    const landing = await page.evaluate(
+        () =>
+            new Promise<number>((resolve) => {
+                let gap = Number.POSITIVE_INFINITY
+                function frame() {
+                    const flying = document.querySelector('div.placard')
+                    const stall = document.querySelector('g.placard')?.getClientRects()[0]
+                    if (!flying || !stall) return resolve(gap)
+                    const placard = flying.getClientRects()[0]
+                    if (placard && Number(getComputedStyle(flying).opacity) > 0)
+                        gap = Math.max(
+                            Math.abs(placard.x + placard.width / 2 - stall.x - stall.width / 2),
+                            Math.abs(placard.y + placard.height / 2 - stall.y - stall.height / 2),
+                            Math.abs(placard.width - stall.width)
+                        )
+                    requestAnimationFrame(frame)
+                }
+                requestAnimationFrame(frame)
+            })
+    )
+    expect(landing).toBeLessThan(2)
+})

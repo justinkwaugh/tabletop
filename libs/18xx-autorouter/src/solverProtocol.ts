@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import type { RunningGauge, TrackGauge } from '@tabletop/18xx'
 
 export type SolverStop = {
     token: boolean
@@ -20,11 +21,14 @@ export type SolverArc = {
     hex: number
     terminal: boolean
     crossings: number
+    /** The path's gauge on the wire: a running gauge, or dual. */
+    gauge: RunningGauge | TrackGauge
 }
 export type SolverTrain = {
     id: string
     distance: number
-    counts_crossings: boolean
+    /** What a hex side costs on a connection whose track is standard, narrow, or dual throughout. */
+    crossing_costs: [number, number, number]
     requires_city: boolean
     visit_costs: number[]
     revenues: number[]
@@ -65,6 +69,7 @@ export type SolverProblem = {
     group_count: number
     hex_bonuses: number[]
     longest_route_bonus_per_stop: number
+    minimum_cities_and_towns: number
     budget_ms: number
     memory_budget_bytes: number
     fleet?: SolverFleet

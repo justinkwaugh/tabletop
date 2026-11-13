@@ -11,6 +11,7 @@
     import { discardPositionLabel } from '$lib/model/discardOrder.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
     import { cardName } from '$lib/model/names.js'
+    import { drawnPreviewGroup } from '$lib/model/previewGroups.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
@@ -26,6 +27,8 @@
     let tapped = $derived(gameSession.setup.tapped)
     let ordering = $derived(gameSession.setup.ordering)
     let splitWhole = $derived(gameSession.setup.splitWhole)
+    // Rule 4 — an enlarged card of the dealt hand pages through it, in the order it was dealt.
+    const othersGroup = () => drawnPreviewGroup(others)
 </script>
 
 <div>
@@ -52,11 +55,6 @@
                     />
                 {/each}
             </div>
-            {#if !splitWhole}
-                <p class="text-xs text-oath-danger">
-                    {gameSession.setup.siteFavorPlaced} of {gameState.favorSupply} placed.
-                </p>
-            {/if}
         </div>
     {/if}
     {#if choosing}
@@ -86,6 +84,7 @@
                         <Magnifier
                             preview={{ cardId, label: cardName(cardId) }}
                             label={cardName(cardId)}
+                            group={othersGroup}
                         />
                     </div>
                 {/each}
@@ -102,6 +101,7 @@
                     onpick={(cardId) => gameSession.setup.chooseAdviser(cardId)}
                     {busy}
                     height={100}
+                    paged
                 />
             </div>
         {/if}

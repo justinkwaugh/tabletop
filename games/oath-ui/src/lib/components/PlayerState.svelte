@@ -27,7 +27,8 @@
     import { bannerName, bannerTokenKind, cardName } from '$lib/model/names.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { goalCardPreview } from '$lib/model/seatPreviews.js'
-    import { seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { adviserLabel, seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { seatPreviewGroup } from '$lib/model/previewGroups.js'
     import { handBacks } from '$lib/model/cardBacks.js'
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatGoals, type SeatGoal } from '$lib/model/seatGoals.js'
@@ -67,8 +68,10 @@
 
     let hasHoldings = $derived(playerState.relicIds.length > 0 || facts.banners.length > 0)
 
-    // R-6.2 — in this seat's own Act Phase, a card whose power Use a power lists wears "Use".
-    let badged = $derived(isMe ? gameSession.powerBadgeCards : [])
+    // R-6.2, R-7.4 — in this seat's own Act Phase, a card it can use now wears "Use".
+    let badged = $derived(isMe ? gameSession.useCards : [])
+    // Rule 4 — an enlarged adviser or relic pages through this seat's cards.
+    const seatGroup = () => seatPreviewGroup(playerState, gameSession.myPlayer?.id)
 
     // R-6.5 — Move warbands offers its site -> board move in the panel; the counter wears the ring.
     let toBoard = $derived(
@@ -81,6 +84,7 @@
 
 <article
     class="seat text-left text-white"
+    data-seat={player.id}
     class:seat--turn={isTurn}
     style="--ground:{ground}; --seat:{seatColor};"
 >
@@ -215,18 +219,20 @@
                     <span class="thumb__card">
                         {#if playable && cardId}
                             <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
-                            <CardImage {cardId} width={50} label={cardName(cardId)} inspect />
+                            <CardImage
+                                {cardId}
+                                width={50}
+                                label={cardName(cardId)}
+                                inspect
+                                group={seatGroup}
+                            />
                         {:else if cardId}
                             <CardImage
                                 {cardId}
                                 width={50}
-                                label={cardName(cardId) +
-                                    (adviser.faceUp
-                                        ? ''
-                                        : adviser.shownToMe
-                                          ? ' — facedown; shown to you'
-                                          : ' — facedown; only you see it')}
+                                label={adviserLabel(adviser, cardName(cardId))}
                                 inspect
+                                group={seatGroup}
                             />
                         {:else}
                             <CardImage back={adviser.back} width={50} label="A facedown adviser" />
@@ -278,7 +284,13 @@
         <div class="row row--held">
             {#each playerState.relicIds as relicId (relicId)}
                 <figure class="thumb thumb--relic">
-                    <CardImage cardId={relicId} width={52} label={cardName(relicId)} inspect />
+                    <CardImage
+                        cardId={relicId}
+                        width={52}
+                        label={cardName(relicId)}
+                        inspect
+                        group={seatGroup}
+                    />
                     <span class="on-card"><CardWarbands cardId={relicId} size={12} /></span>
                     {#if badged.includes(relicId)}
                         <UseBadge cardId={relicId} />
@@ -608,7 +620,10 @@
         text-align: center;
         color: #fde68a;
     }
+    /* Starts below the 44 px tap area of a Use badge on an adviser above, so that tap stays the
+       badge's. */
     .let-peek {
+        margin-top: 7px;
         padding: 0 8px 6px;
     }
 

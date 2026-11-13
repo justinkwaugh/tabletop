@@ -25,6 +25,7 @@ import {
 import {
     GameContinuation,
     MasterSeed,
+    turnStartsAfter,
     ActionSource,
     GameAction,
     Game,
@@ -54,8 +55,11 @@ import {
     type UserGameStats,
     type TimeWindow,
     type TitleActivity,
+    type SeriesActivity,
     summarizeUserGames,
-    sameGameProgress
+    sameGameProgress,
+    playersWithDeletedAccount,
+    playersWithRenamedSeat
 } from '@tabletop/common'
 import {
     AlreadyExistsError,
@@ -114,9 +118,11 @@ import type {
 } from '../stores/siteStatsStore.js'
 import { gameAutoStartChange } from '../../games/gameAutoStart.js'
 import {
-    TitleActivityUnavailableError,
-    type TitleActivityCache
-} from '../../games/titleActivityCache.js'
+    ActivityUnavailableError,
+    type ActivityCache,
+    type ActivityScope,
+    type ActivitySource
+} from '../../games/activityCache.js'
 import {
     StoredTournamentSchedule,
     loadTournamentSchedule
@@ -135,8 +141,9 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     private readonly tournamentCacheKeys: TournamentCacheKeys
     private readonly stateConverter: FirestoreDataConverter<GameState>
     private readonly actionChunkConverter: FirestoreDataConverter<ActionChunk>
-    // Without one, as in most specs, no Game Title's activity is listed or maintained.
-    private readonly titleActivity: TitleActivityCache | undefined
+    // Without them, as in most specs, no Game Title's or Series' activity is listed or maintained.
+    private readonly titleActivity: ActivityCache | undefined
+    private readonly seriesActivity: ActivityCache | undefined
 
     constructor(
         private readonly cacheService: RedisCacheService,
@@ -144,15 +151,18 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         {
             tournamentCachePrefix = 'tournaments:v1',
             encoding = GAME_STORAGE_ENCODING,
-            titleActivity
+            titleActivity,
+            seriesActivity
         }: {
             tournamentCachePrefix?: string
             encoding?: StoredJsonEncoding
-            titleActivity?: TitleActivityCache
+            titleActivity?: ActivityCache
+            seriesActivity?: ActivityCache
         } = {}
     ) {
         this.games = firestore.collection('games').withConverter(gameConverter)
         this.titleActivity = titleActivity
+        this.seriesActivity = seriesActivity
         this.tournamentCacheKeys = new TournamentCacheKeys(tournamentCachePrefix)
         this.stateConverter = stateConverter(encoding)
         this.actionChunkConverter = actionChunkConverter(encoding)
@@ -166,6 +176,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             createdAt: date,
             updatedAt: date
         }
+        this.recordTurnStarts(undefined, storedGame, date)
         const state = storedGame.state
         delete storedGame.state
         const tournamentKeys = this.tournamentCacheKeys
@@ -240,7 +251,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     return state ? { ...storedGame, state } : storedGame
                 })
             )
-            this.recordTitleActivity(undefined, created)
+            this.recordActivity(undefined, created)
             return created
         } catch (error) {
             this.handleError(error, game.id)
@@ -427,7 +438,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     return existing
                 }
             )
-            this.recordTitleActivity(deleted, undefined)
+            this.recordActivity(deleted, undefined)
         } catch (error) {
             this.handleError(error, gameId)
         }
@@ -463,7 +474,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         this.addActionsToChunks(storedActions, chunks, storedGame.actionChunkSize)
 
         try {
-            return await this.writeGame(
+            const written = await this.writeGame(
                 gameId,
                 [
                     ...GameCacheKeys.gameWrite(gameId),
@@ -487,6 +498,8 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                         return { storedGame, storedGameState: stateToUpdate, storedActions }
                     })
             )
+            this.recordActivity(undefined, written.storedGame)
+            return written
         } catch (error) {
             this.handleError(error, game.id)
         }
@@ -527,6 +540,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                         return { updatedGame: existingGame, updatedFields: [], existingGame }
                 }
             }
+            this.recordTurnStarts(existingGame, fieldsToUpdate, new Date())
 
             const updatedFields = Object.keys(fieldsToUpdate)
             let stateToUpdate: GameState | undefined
@@ -596,7 +610,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 async (locks) =>
                     this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
-            if (updatedFields.length) this.recordTitleActivity(existingGame, updatedGame)
+            if (updatedFields.length) this.recordActivity(existingGame, updatedGame)
 
             return [updatedGame, updatedFields, existingGame]
         } catch (error) {
@@ -902,28 +916,73 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     }
 
     async findTitleActivity(titleId: string): Promise<TitleActivity> {
-        if (!this.titleActivity) throw new TitleActivityUnavailableError(titleId)
-        return this.titleActivity.read(titleId, {
-            findInProgressCandidates: (id) =>
-                this.readGames(this.publicTitleGames(id, GameStatus.Started), 'titleInProgress'),
-            findFinishedCandidates: (id, after, limit) => {
-                let query = this.publicTitleGames(id, GameStatus.Finished)
+        if (!this.titleActivity) throw new ActivityUnavailableError(titleId)
+        const { inProgress, recentlyFinished } = await this.titleActivity.read(
+            titleId,
+            this.activitySource(this.titleActivity.scope)
+        )
+        return { inProgress, recentlyFinished }
+    }
+
+    async findSeriesActivity(seriesId: string): Promise<SeriesActivity> {
+        if (!this.seriesActivity) throw new ActivityUnavailableError(seriesId)
+        return this.seriesActivity.read(seriesId, this.activitySource(this.seriesActivity.scope))
+    }
+
+    private activitySource({ name: label, gameField }: ActivityScope): ActivitySource {
+        const publicGames = (value: string, status: GameStatus) =>
+            this.games
+                .where(gameField, '==', value)
+                .where('isPublic', '==', true)
+                .where('status', '==', status)
+        return {
+            findOpenCandidates: (value) =>
+                this.readGames(publicGames(value, GameStatus.WaitingForPlayers), `${label}Open`),
+            findInProgressCandidates: (value) =>
+                this.readGames(publicGames(value, GameStatus.Started), `${label}InProgress`),
+            findFinishedCandidates: (value, after, limit) => {
+                let query = publicGames(value, GameStatus.Finished)
                     .orderBy('finishedAt', 'desc')
                     .orderBy(FieldPath.documentId(), 'desc')
                 if (after) {
                     assertExists(after.finishedAt, 'Finished games require a completion timestamp')
                     query = query.startAfter(after.finishedAt, after.id)
                 }
-                return this.readGames(query.limit(limit), 'titleFinished')
+                return this.readGames(query.limit(limit), `${label}Finished`)
             }
-        })
+        }
     }
 
-    private publicTitleGames(titleId: string, status: GameStatus): Query<Game> {
-        return this.games
-            .where('typeId', '==', titleId)
-            .where('isPublic', '==', true)
-            .where('status', '==', status)
+    async findTitleGames(
+        titleId: string,
+        afterGameId: string | undefined,
+        limit: number
+    ): Promise<Game[]> {
+        return this.readPageById(
+            this.games.where('typeId', '==', titleId),
+            afterGameId,
+            limit,
+            'titleGames'
+        )
+    }
+
+    private readPageById(
+        query: Query<Game>,
+        afterGameId: string | undefined,
+        limit: number,
+        label: string
+    ): Promise<Game[]> {
+        let page = query.orderBy(FieldPath.documentId())
+        if (afterGameId) page = page.startAfter(afterGameId)
+        return this.readGames(page.limit(limit), label)
+    }
+
+    async hasGamesForUser(userId: string): Promise<boolean> {
+        const snapshot = await this.readQuery(
+            this.games.where('userIds', 'array-contains', userId).limit(1)
+        )
+        this.recordRead('game')
+        return !snapshot.empty
     }
 
     // Every Game in play: a Game nobody has moved in has no lastActionAt to query a range on.
@@ -932,17 +991,12 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     }
 
     async findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]> {
-        let query = this.games
-            .where('status', '==', GameStatus.Finished)
-            .orderBy(FieldPath.documentId())
-        if (afterGameId) query = query.startAfter(afterGameId)
-        try {
-            const snapshot = await this.readQuery(query.limit(limit))
-            this.recordRead('game', Math.max(1, snapshot.size))
-            return snapshot.docs.map((document) => this.normalizeGame(document.data()))
-        } catch (error) {
-            this.handleError(error, afterGameId ?? 'finished')
-        }
+        return this.readPageById(
+            this.games.where('status', '==', GameStatus.Finished),
+            afterGameId,
+            limit,
+            afterGameId ?? 'finished'
+        )
     }
 
     async findGamesWithTimestampIn(field: GameTimestampField, window: TimeWindow): Promise<Game[]> {
@@ -1089,8 +1143,27 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         finishedAt: Date
         finalScores: Record<string, number>
     }): Promise<boolean> {
+        return this.updateGameFieldsIf(gameId, (existing) =>
+            existing.status === GameStatus.Finished &&
+            existing.finalScores === undefined &&
+            existing.finishedAt?.getTime() === finishedAt.getTime()
+                ? { finalScores }
+                : undefined
+        )
+    }
+
+    async recordGameSeries(gameId: string, series: string): Promise<boolean> {
+        return this.updateGameFieldsIf(gameId, (existing) =>
+            existing.series === series ? undefined : { series }
+        )
+    }
+
+    private async updateGameFieldsIf(
+        gameId: string,
+        fieldsFor: (existing: Game) => Pick<Partial<Game>, 'finalScores' | 'series'> | undefined
+    ): Promise<boolean> {
         try {
-            const scored = await this.cacheService.lockWhileWriting(
+            const updated = await this.cacheService.lockWhileWriting(
                 [GameCacheKeys.game(gameId), GameCacheKeys.revision(gameId)],
                 async (locks) =>
                     this.runTransaction(async (transaction) => {
@@ -1098,20 +1171,16 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                             await this.readDocument(this.games.doc(gameId), transaction)
                         ).data()
                         this.recordRead('game')
-                        if (
-                            existingGame?.status !== GameStatus.Finished ||
-                            existingGame.finalScores !== undefined ||
-                            existingGame.finishedAt?.getTime() !== finishedAt.getTime()
-                        )
-                            return undefined
-                        const updatedGame = { ...existingGame, finalScores }
+                        const fields = existingGame && fieldsFor(existingGame)
+                        if (!existingGame || !fields) return undefined
+                        const updatedGame = { ...existingGame, ...fields }
                         await this.protectChangedLists(locks, existingGame, updatedGame)
-                        transaction.update(this.games.doc(gameId), { finalScores })
+                        transaction.update(this.games.doc(gameId), fields)
                         return { existingGame, updatedGame }
                     })
             )
-            if (!scored) return false
-            this.recordTitleActivity(scored.existingGame, scored.updatedGame)
+            if (!updated) return false
+            this.recordActivity(updated.existingGame, updated.updatedGame)
             return true
         } catch (error) {
             this.handleError(error, gameId)
@@ -1204,6 +1273,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             const updatedGame = structuredClone(existingGame)
             gameUpdates.updatedAt = updateDate
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            this.recordTurnStarts(existingGame, gameUpdates, updateDate)
 
             if (existingState.result !== state.result) {
                 if (state.result) {
@@ -1284,8 +1354,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 async (locks) =>
                     this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
-            if (added.storedActions.length)
-                this.recordTitleActivity(existingGame, added.updatedGame)
+            if (added.storedActions.length) this.recordActivity(existingGame, added.updatedGame)
             return added
         } catch (error) {
             this.handleError(error, gameId)
@@ -1350,6 +1419,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                             finishedAt: now,
                             updatedAt: now
                         }
+                        this.recordTurnStarts(game, updates, now)
                         const updated = { ...structuredClone(game), ...updates }
                         await this.releaseTournamentTable(
                             transaction,
@@ -1373,7 +1443,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     })
             )
             if (!voided.updated) return voided.game
-            this.recordTitleActivity(voided.game, voided.updated)
+            this.recordActivity(voided.game, voided.updated)
             return voided.updated
         } catch (error) {
             this.handleError(error, gameId)
@@ -1390,8 +1460,12 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         name: string
     }): Promise<Game> {
         return this.rewriteSeats(gameId, (game) =>
-            game.players.map((player) => (player.userId === userId ? { ...player, name } : player))
+            playersWithRenamedSeat(game.players, userId, name)
         )
+    }
+
+    async anonymizePlayer({ gameId, userId }: { gameId: string; userId: string }): Promise<Game> {
+        return this.rewriteSeats(gameId, (game) => playersWithDeletedAccount(game.players, userId))
     }
 
     /** Seats a Substitute's account in place of any earlier account of their place. */
@@ -1453,7 +1527,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                     })
             )
             if (!rewritten.updated) return rewritten.game
-            this.recordTitleActivity(rewritten.game, rewritten.updated)
+            this.recordActivity(rewritten.game, rewritten.updated)
             return rewritten.updated
         } catch (error) {
             this.handleError(error, gameId)
@@ -1749,6 +1823,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             const updatedGame = structuredClone(existingGame) as Game
             gameUpdates.updatedAt = new Date()
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            this.recordTurnStarts(existingGame, gameUpdates, gameUpdates.updatedAt)
 
             if (existingState.result !== state.result && !state.result) {
                 Object.assign(gameUpdates, this.reopenedGameFields())
@@ -1797,8 +1872,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 async (locks) =>
                     this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
-            if (undone.undoneActions.length)
-                this.recordTitleActivity(existingGame, undone.updatedGame)
+            if (undone.undoneActions.length) this.recordActivity(existingGame, undone.updatedGame)
             return undone
         } catch (error) {
             this.handleError(error, gameId)
@@ -2334,8 +2408,9 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     }
 
     // Discovery lists may lag a committed write; updating them never delays or fails the write.
-    private recordTitleActivity(before: Game | undefined, after: Game | undefined): void {
+    private recordActivity(before: Game | undefined, after: Game | undefined): void {
         void this.titleActivity?.applyChange(before, after)
+        void this.seriesActivity?.applyChange(before, after)
     }
 
     private reopenedGameFields(): Partial<Game> {
@@ -2349,6 +2424,11 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             call: undefined,
             everFinished: true
         }
+    }
+
+    private recordTurnStarts(existingGame: Game | undefined, updates: Partial<Game>, at: Date) {
+        if (updates.activePlayerIds === undefined) return
+        updates.turnStartedAt = turnStartsAfter(existingGame, updates.activePlayerIds, at)
     }
 
     private createGameUpdateDocument(fields: Partial<Game>, updatedGame: Game): DocumentData {
@@ -2368,6 +2448,11 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         }
         return result
     }
+}
+
+function storedDate(value: unknown): Date {
+    assert(value instanceof Timestamp, 'A stored game time must be a Firestore Timestamp')
+    return value.toDate()
 }
 
 const gameConverter = {
@@ -2402,9 +2487,14 @@ const gameConverter = {
         data.autoStartAt = data.autoStartAt ? (data.autoStartAt as Timestamp).toDate() : undefined
         data.startedAt = data.startedAt ? (data.startedAt as Timestamp).toDate() : undefined
         data.finishedAt = data.finishedAt ? (data.finishedAt as Timestamp).toDate() : undefined
-        data.lastActionAt = data.lastActionAt
-            ? (data.lastActionAt as Timestamp).toDate()
-            : undefined
+        data.lastActionAt = data.lastActionAt ? storedDate(data.lastActionAt) : undefined
+        if (data.turnStartedAt)
+            data.turnStartedAt = Object.fromEntries(
+                Object.entries(data.turnStartedAt).map(([playerId, startedAt]) => [
+                    playerId,
+                    storedDate(startedAt)
+                ])
+            )
 
         // Default this for older records
         data.storage = GameStorage.Remote

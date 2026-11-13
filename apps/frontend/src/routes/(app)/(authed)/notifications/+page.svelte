@@ -6,6 +6,7 @@
     } from '$lib/components/DiscordSignIn.svelte'
     import { getAppContext } from '@tabletop/frontend-components'
     import ReminderHoursEditor from '$lib/components/ReminderHoursEditor.svelte'
+    import EmailNotificationsSetting from '$lib/components/EmailNotificationsSetting.svelte'
 
     let { authorizationService } = getAppContext()
 
@@ -20,6 +21,12 @@
 
 <div class="flex min-h-[calc(100dvh-70px)] flex-col items-center justify-center gap-6 px-2 py-6">
     <Card size="md" class="bg-gray-300 p-4 sm:p-6">
+        <div class="flex flex-col gap-3">
+            <h3 class="text-xl font-medium text-gray-900 dark:text-white">Email Notifications</h3>
+            <EmailNotificationsSetting />
+        </div>
+
+        <Hr class="my-6" />
         <div class="flex flex-col gap-3">
             <h3 class="text-xl font-medium text-gray-900 dark:text-white">Web Notifications</h3>
             <p class="text-sm text-gray-700 dark:text-gray-300">

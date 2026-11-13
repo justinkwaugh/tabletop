@@ -6,8 +6,6 @@
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ReasonPart } from '$lib/model/names.js'
-    import { cardsMakingPossible } from '$lib/model/actionCards.js'
-    import { listedActionPowers } from '$lib/model/phaseDrafts.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
@@ -16,6 +14,7 @@
         type MajorEntry
     } from '$lib/model/actionCatalogue.js'
     import {
+        facedownTollLine,
         freeActionDueLine,
         gridRefusal,
         refusalWords,
@@ -40,17 +39,10 @@
         return seat
     })
 
-    // R-7.4 — the cards that change an action are found with the powers.
-    let cards = $derived(gameSession.actionCards)
-    // R-6.2 — Use a power is offered while its list holds a power: one with nothing it can pick is
-    // left out of it.
-    let powers = $derived(listedActionPowers(gameState, seat.playerId))
-
+    // R-6.2, R-7.4 — a power or a card is used from its card's "Use", so Use a power has no chip.
     // R-6.3 — a relic already seen shows its face, so Peek is offered only for one not seen.
     function available(entry: ActionEntry): boolean {
-        if (entry.type === ActionType.UseActionPower) {
-            return cards.length > 0 || (valid.has(entry.type) && powers.length > 0)
-        }
+        if (entry.type === ActionType.UseActionPower) return false
         if (!valid.has(entry.type)) return false
         if (entry.type === ActionType.Peek) {
             return unseenPeekSlots(gameState, seat.playerId).length > 0
@@ -102,8 +94,8 @@
     })
     let chipWidth = $derived(chips?.width ?? labelWidth.widest)
 
-    // R-7.4 — where a card would make the action possible, Use a power is ringed while the reason
-    // shows; the card is named only behind it.
+    // R-7.4 — where a card would make the action possible, its "Use" is ringed while the reason
+    // shows (the session's `ringedUses`); the card is named only behind it.
     function refusalOf(entry: MajorEntry) {
         const refusal = gridRefusal(gameState, seat.playerId, entry.type)
         if (!refusal) return undefined
@@ -114,7 +106,7 @@
                       text: `${gameSession.humanizeReason(refusal.reason)}`
                   }
                 : shortWhy(refusalWords(refusal))
-        return { ...why, cardHelps: cardsMakingPossible(cards, entry.type).length > 0 }
+        return why
     }
 
     function shortWhy(words: string): { parts: ReasonPart[]; text: string } {
@@ -123,27 +115,22 @@
 
     // A dimmed major answers "why not" under the pointer, and on a tap, where there is no hover; a
     // tapped reason holds for the state and seat it was tapped in, and a hover on another tile
-    // replaces it, except on the Use a power chip it rings, which answers it.
-    let tap = $state.raw<{ entry: MajorEntry; seatId: string; actionCount: number } | undefined>(
-        undefined
+    // replaces it. The pointer is the session's, as the cards' ringed "Use" reads it too.
+    const GRID_ENTRIES: readonly ActionEntry[] = [...MAJOR_ACTIONS, ...MINOR_ACTIONS]
+    let hoveredEntry = $derived(
+        GRID_ENTRIES.find((entry) => entry.type === gameSession.hoveredGridAction)
     )
-    let tapped = $derived(
-        tap && tap.seatId === seat.playerId && tap.actionCount === gameState.actionCount
-            ? tap.entry
-            : undefined
-    )
-    let hoveredEntry = $state.raw<ActionEntry | undefined>(undefined)
-    let pointedMajor = $derived(tapped ?? MAJOR_ACTIONS.find((entry) => entry === hoveredEntry))
-    let shownRefusal = $derived(
-        pointedMajor && !available(pointedMajor) ? refusalOf(pointedMajor) : undefined
-    )
-    // The ring is read with the reason it answers.
+    let shownRefusal = $derived.by(() => {
+        const refused = MAJOR_ACTIONS.find((entry) => entry.type === gameSession.refusedGridMajor)
+        return refused ? refusalOf(refused) : undefined
+    })
+    // The ring on the cards' "Use" is read with the reason it answers.
     const reasonId = $props.id()
-    function ringed(entry: ActionEntry): boolean {
-        return entry.type === ActionType.UseActionPower && shownRefusal?.cardHelps === true
-    }
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
+    // R-6.1, R-7.1.4 — where the Adviser chip would stand: plain words, not a chip, so no chip
+    // count or width reads it.
+    let tollLine = $derived(facedownTollLine(gameState, seat.playerId))
 
     function send(type: ActionType) {
         if (type === ActionType.EndActPhase) void gameSession.endActPhase()
@@ -151,21 +138,18 @@
 
     // A pressed tile gives way to its panel without a pointer leave, so the line clears here.
     function take(entry: ActionEntry) {
-        tap = undefined
-        hoveredEntry = undefined
+        gameSession.leaveGrid()
         if (UNTARGETED_ACTIONS.has(entry.type)) send(entry.type)
         else gameSession.chooseAction(entry.type)
     }
 
     function pressMajor(entry: MajorEntry, ok: boolean) {
         if (ok) take(entry)
-        else tap = { entry, seatId: seat.playerId, actionCount: gameState.actionCount }
+        else gameSession.tapGridMajor(entry.type, reasonId)
     }
 
     function hover(entry: ActionEntry, on: boolean) {
-        if (on && tapped !== entry && !ringed(entry)) tap = undefined
-        if (on) hoveredEntry = entry
-        else if (hoveredEntry === entry) hoveredEntry = undefined
+        gameSession.hoverGridTile(entry.type, on, reasonId)
     }
 
     function pointing(entry: ActionEntry) {
@@ -236,42 +220,43 @@
         {/each}
     </div>
 
-    {#if minors.length > 0}
-        <div
-            class="minors flex flex-wrap"
-            style:--chip-gap="{CHIP_GAP}px"
-            style:--columns={chips?.columns}
-        >
-            {#each minors as entry (entry.type)}
-                {@const ring = ringed(entry)}
-                <!-- The ring is drawn inside the chip's edge, so no parent can clip it. -->
-                <button
-                    class="chip {CHIP} transition-colors hover:border-oath-accent cursor-pointer
-                           {ring
-                        ? 'border-oath-accent text-oath-accent ring-1 ring-inset ring-oath-accent'
-                        : 'border-oath-frame'}"
-                    {...pointing(entry)}
-                    aria-describedby={ring ? reasonId : undefined}
-                    style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
-                    onclick={() => take(entry)}
-                >
-                    {entry.label}
-                </button>
-            {/each}
+    {#if minors.length > 0 || tollLine}
+        <div class="minor-col" style:--chip-gap="{CHIP_GAP}px">
+            {#if tollLine}
+                <p data-toll-line class="toll-line text-[11px] leading-snug text-oath-text-muted">
+                    {tollLine}
+                </p>
+            {/if}
+            {#if minors.length > 0}
+                <div class="minors flex flex-wrap" style:--columns={chips?.columns}>
+                    {#each minors as entry (entry.type)}
+                        <button
+                            class="chip {CHIP} border-oath-frame transition-colors hover:border-oath-accent cursor-pointer"
+                            {...pointing(entry)}
+                            style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
+                            onclick={() => take(entry)}
+                        >
+                            {entry.label}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
         </div>
-        <!-- Each label measured on one line and at its longest word, in a chip's padding and border. -->
-        <div class="ruler" aria-hidden="true">
-            {#each minors as entry (entry.type)}
-                <span class="chip {CHIP}"
-                    ><span class="block w-max" {@attach labelWidth.measure}>{entry.label}</span
-                    ></span
-                >
-                <span class="chip {CHIP}"
-                    ><span class="block w-min" {@attach wordWidth.measure}>{entry.label}</span
-                    ></span
-                >
-            {/each}
-        </div>
+        {#if minors.length > 0}
+            <!-- Each label measured on one line and at its longest word, in a chip's padding and border. -->
+            <div class="ruler" aria-hidden="true">
+                {#each minors as entry (entry.type)}
+                    <span class="chip {CHIP}"
+                        ><span class="block w-max" {@attach labelWidth.measure}>{entry.label}</span
+                        ></span
+                    >
+                    <span class="chip {CHIP}"
+                        ><span class="block w-min" {@attach wordWidth.measure}>{entry.label}</span
+                        ></span
+                    >
+                {/each}
+            </div>
+        {/if}
     {/if}
 </div>
 
@@ -297,8 +282,15 @@
         width: calc(100cqw - 26px);
         height: 0;
     }
-    .minors {
+    /* The toll line stands first in the minors' row, before the chips. */
+    .minor-col {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--chip-gap);
         margin-top: var(--chip-gap);
+    }
+    .minors {
         gap: var(--chip-gap);
     }
     .ruler {
@@ -319,6 +311,9 @@
             grid-template-columns: repeat(var(--columns, 1), max-content);
             justify-content: start;
         }
+        .toll-line {
+            font-size: 12px;
+        }
         .chip {
             min-height: 44px;
             padding: 0 10px;
@@ -338,7 +333,14 @@
             column-gap: var(--beside-gap);
             align-items: start;
         }
-        .actions--beside .minors {
+        /* Upright, the line wraps in the minors' column, above the chips. */
+        .minor-col {
+            display: block;
+        }
+        .toll-line {
+            margin-bottom: var(--chip-gap);
+        }
+        .actions--beside .minor-col {
             margin-top: 0;
         }
         .majors {

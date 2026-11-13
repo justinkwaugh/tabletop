@@ -34,6 +34,7 @@ type Construction = {
 const LayTrack: ModeLabel = { label: 'Lay track', shortLabel: 'Track' }
 const PlaceStation: ModeLabel = { label: 'Place station', shortLabel: 'Station' }
 const RunTrains: ModeLabel = { label: 'Run trains', shortLabel: 'Run' }
+const BuyTrains: ModeLabel = { label: 'Buy trains', shortLabel: 'Trains' }
 
 function titleModeId(mode: OperatingMode): string | undefined {
     return typeof mode === 'object' ? mode.titleModeId : undefined
@@ -129,7 +130,11 @@ export class OperatingModeModule {
                   ]
                 : [
                       option(
-                          machineState === 'PlacingStation' ? PlaceStation : RunTrains,
+                          machineState === 'PlacingStation'
+                              ? PlaceStation
+                              : machineState === 'BuyingTrains'
+                                ? BuyTrains
+                                : RunTrains,
                           undefined,
                           this.mode !== 'finance' && !this.selectedTitleId
                       )
@@ -148,7 +153,9 @@ export class OperatingModeModule {
             this.enabled &&
             (machineState === 'LayingTrack' ||
                 machineState === 'PlacingStation' ||
-                machineState === 'RunningTrains') &&
+                machineState === 'RunningTrains' ||
+                (machineState === 'BuyingTrains' &&
+                    this.session.rules.corporateFinanceRules?.timing === 'after-trains')) &&
             (this.options.length > 1 || this.mode === 'finance' || !!this.titleModeShown) &&
             !purchaseOffer &&
             !this.decisions.selection &&

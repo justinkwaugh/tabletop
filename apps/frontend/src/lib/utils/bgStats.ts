@@ -8,7 +8,15 @@ import {
     type GameMetadata,
     type User
 } from '@tabletop/common'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
 import { recordedFinalScores } from './gameScores.js'
+
+// A Game's ID opens the Game and its chat, so BG Stats gets a stable stand-in it can match
+// a re-exported play by, not the ID itself.
+export function bgStatsPlayId(gameId: string): string {
+    return bytesToHex(sha256(utf8ToBytes(`bgstats:${gameId}`))).slice(0, 32)
+}
 
 function finishingRank(
     playerId: string,
@@ -50,7 +58,7 @@ export function bgStatsPlayUrl(
     // BG Stats for Android rejects a play missing noPoints, highestWins, winner or startPlayer.
     const play = {
         sourceName: 'BoardTogether',
-        sourcePlayId: game.id,
+        sourcePlayId: bgStatsPlayId(game.id),
         playDate: new Date(game.finishedAt).toISOString().slice(0, 19).replace('T', ' '),
         location: 'BoardTogether',
         game: {

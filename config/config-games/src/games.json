@@ -64,6 +64,10 @@
         "packageId": "napoleons-triumph"
     },
     {
+        "gameId": "south-african-railroads",
+        "packageId": "south-african-railroads"
+    },
+    {
         "gameId": "reef-encounter",
         "packageId": "reef-encounter"
     },
@@ -112,6 +116,10 @@
         "packageId": "1862"
     },
     {
+        "gameId": "1849",
+        "packageId": "1849"
+    },
+    {
         "gameId": "dicke-kartoffeln",
         "packageId": "dicke-kartoffeln"
     },
@@ -122,5 +130,9 @@
     {
         "gameId": "preussische-ostbahn",
         "packageId": "preussische-ostbahn"
+    },
+    {
+        "gameId": "koenigrufen",
+        "packageId": "koenigrufen"
     }
 ]

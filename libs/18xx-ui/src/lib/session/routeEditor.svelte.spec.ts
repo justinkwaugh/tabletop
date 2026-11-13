@@ -18,6 +18,7 @@ import {
 } from '@tabletop/18xx/testing'
 import type { MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
+import { companyTrain } from './moduleTestSession.js'
 
 const map = new RailwayMap({
     id: 'line',
@@ -55,15 +56,9 @@ function drawing() {
         status: 'placed',
         position: { locationId: 'a1', nodeId: 'city', slot: 0 }
     })
-    const [two, four] = ['2', '4'].map((definitionId) => {
-        const train = depot.nextTrain(state.trainInventory, definitionId)
-        assertExists(train)
-        depot.purchase(state.trainInventory, train.id, definitionId, {
-            kind: 'company',
-            companyId: TestCompanyId
-        })
-        return train.id
-    })
+    const [two, four] = ['2', '4'].map((definitionId) =>
+        companyTrain(depot, state.trainInventory, definitionId)
+    )
     return { editor: new RouteEditor(state, { ...minimalRouteRules, map, depot }), two, four }
 }
 
@@ -199,15 +194,10 @@ describe('RouteEditor', () => {
             status: 'placed',
             position: { locationId: 'from', nodeId: 'city', slot: 0 }
         })
-        const train = depot.nextTrain(state.trainInventory, '2')
-        assertExists(train)
-        depot.purchase(state.trainInventory, train.id, '2', {
-            kind: 'company',
-            companyId: TestCompanyId
-        })
+        const trainId = companyTrain(depot, state.trainInventory, '2')
         const fresh = () => {
             const editor = new RouteEditor(state, { ...minimalRouteRules, map: lines, depot })
-            editor.selectTrain(train.id, [])
+            editor.selectTrain(trainId, [])
             editor.tap({ kind: 'hex', locationId: 'from' })
             return editor
         }

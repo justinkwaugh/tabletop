@@ -1,5 +1,51 @@
 import { expect, test } from '@playwright/test'
 
+test('the track picker opens on its hex where getBoundingClientRect leaves out CSS zoom', async ({
+    page
+}) => {
+    // Safari 26.0 and older report a rect inside a CSS-zoomed element divided by its zoom.
+    await page.addInitScript(() => {
+        const measure = Element.prototype.getBoundingClientRect
+        Element.prototype.getBoundingClientRect = function (this: Element) {
+            let zoom = Number.parseFloat(getComputedStyle(this).zoom) || 1
+            for (let node = this.parentElement; node; node = node.parentElement)
+                zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1
+            const rect = measure.call(this)
+            return new DOMRect(rect.x / zoom, rect.y / zoom, rect.width / zoom, rect.height / zoom)
+        }
+    })
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('TOP')
+    await expect(page.locator('[data-map-location]')).toHaveCount(110, { timeout: 15000 })
+    await page.locator('[data-map-location="K17"]').click()
+    await page.locator('[data-map-tile-choice="18xx:8"]').click()
+    await expect(page.locator('.picker')).toHaveAttribute('data-track-motion', 'false')
+    const boardZoom = await page.locator('.map-scene').evaluate((svg) => {
+        const zoomed = svg.closest<HTMLElement>('[style*="zoom"]')
+        return zoomed ? Number.parseFloat(getComputedStyle(zoomed).zoom) : 1
+    })
+    expect(boardZoom).toBeLessThan(0.9)
+    await expect
+        .poll(() =>
+            page.locator('.map-scene').evaluate((svg) => {
+                // The fake above patches only getBoundingClientRect, so this is the rect as drawn.
+                const trueRect = (element: Element) => element.getClientRects()[0]
+                if (!(svg instanceof SVGSVGElement)) throw new Error('Missing map SVG')
+                const hex = document.querySelector('[data-map-location="K17"]')
+                const tile = document.querySelector('.tile-choice.chosen')
+                if (!hex || !tile) throw new Error('Missing hex or chosen tile')
+                const expected = (106 * trueRect(svg).width) / svg.viewBox.baseVal.width
+                const [hexRect, tileRect] = [trueRect(hex), trueRect(tile)]
+                return Math.max(
+                    Math.abs(tileRect.width - expected),
+                    Math.abs(tileRect.x + tileRect.width / 2 - hexRect.x - hexRect.width / 2),
+                    Math.abs(tileRect.y + tileRect.height / 2 - hexRect.y - hexRect.height / 2)
+                )
+            })
+        )
+        .toBeLessThan(0.5)
+})
+
 for (const title of ['TOP', '1889']) {
     test(`${title} track preview and controls match the rendered map scale`, async ({ page }) => {
         await page.goto('/table')

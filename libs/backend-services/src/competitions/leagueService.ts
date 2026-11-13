@@ -30,7 +30,8 @@ import {
     type LeagueState,
     type TournamentDraft,
     type TournamentScore,
-    type User
+    type User,
+    receivesGameAndCompetitionEmail
 } from '@tabletop/common'
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import { derivedId } from './derivedId.js'
@@ -960,7 +961,7 @@ export class LeagueService {
     ): Promise<void> {
         const accounts = await this.users.getUsers(userIds)
         for (const account of accounts)
-            if (account?.status === UserStatus.Active && account.email)
+            if (account?.status === UserStatus.Active && receivesGameAndCompetitionEmail(account))
                 await enqueueLeagueEmail(this.tasks, { ...email, userId: account.id })
     }
 

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { Banner, CampaignTargetKind, Region, type HydratedOathGameState } from '@tabletop/oath'
+import {
+    ActionType,
+    Banner,
+    CampaignTargetKind,
+    OathRevision,
+    Region,
+    type HydratedOathGameState
+} from '@tabletop/oath'
 import {
     DANA,
     GREAT_SPIRE,
@@ -11,7 +18,7 @@ import {
     openTurn,
     testBanners
 } from '@tabletop/oath/testing'
-import { actionCardLine } from './actionCards.js'
+import { actionCardLine, actionCards } from './actionCards.js'
 import { canToggleTarget } from './campaignDraft.js'
 import { listedActionPowers } from './phaseDrafts.js'
 import { recoverRows } from './recoverRows.js'
@@ -80,6 +87,29 @@ describe('Great Spire’s line in the Cards rows', () => {
             'the Dispossessed is empty'
         )
         expect(actionCardLine(GREAT_SPIRE)).toBe('swap with the Dispossessed')
+    })
+})
+
+describe('Great Spire among the Search cards', () => {
+    /** Dana on turn at the Plains, where Great Spire stands intact, in a game at `revision`. */
+    function spireCards(revision: OathRevision, dispossessed: string[]): string[] {
+        const state = edificeTable({}, { oathRevision: revision }, { plains: GREAT_SPIRE })
+        fillDispossessed(state, dispossessed)
+        openTurn(state, DANA)
+        return actionCards(state, DANA)
+            .filter((card) => card.action === ActionType.Search)
+            .map((card) => card.cardId)
+    }
+
+    it('from revision 34, is not offered while the Dispossessed is empty', () => {
+        expect(spireCards(OathRevision.EngineFixes29, [])).not.toContain(GREAT_SPIRE)
+        expect(spireCards(OathRevision.EngineFixes29, ['denizen.discord.naysayers'])).toContain(
+            GREAT_SPIRE
+        )
+    })
+
+    it('before revision 34, is offered with the Dispossessed empty, as the game accepted it', () => {
+        expect(spireCards(OathRevision.EngineFixes28, [])).toContain(GREAT_SPIRE)
     })
 })
 

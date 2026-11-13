@@ -1,7 +1,7 @@
 <svelte:options namespace="svg" />
 
 <script lang="ts">
-    import { HornsSymbol, PortSymbol, type TileSymbolName } from './tileSymbols.js'
+    import { HornsSymbol, LockSymbol, PortSymbol, type TileSymbolName } from './tileSymbols.js'
     let {
         symbol,
         ink,
@@ -23,4 +23,9 @@
 {:else if symbol === 'horns'}
     <circle r={HornsSymbol.radius} fill={paper} stroke="none"></circle>
     {#each HornsSymbol.paths as path (path)}<path fill={ink} stroke="none" d={path}></path>{/each}
+{:else if symbol === 'lock'}
+    <circle r={LockSymbol.radius} fill={paper} stroke="none"></circle>
+    <path fill="none" stroke={ink} stroke-width={LockSymbol.strokeWidth} d={LockSymbol.shackle}
+    ></path>
+    <path fill={ink} fill-rule="evenodd" stroke="none" d={LockSymbol.body}></path>
 {/if}

@@ -12,6 +12,8 @@
     import type { Snippet } from 'svelte'
     import { labelFontSize, TileRadius, type TileDrawing } from './tileDrawing.js'
     import { spikePoints } from './tileTrackGeometry.js'
+    import TrackStrokes from './TrackStrokes.svelte'
+    import { trackCasing, trackInk } from './trackGaugeStrokes.js'
     import {
         ClassicTileAppearance,
         DefaultLabelFont,
@@ -270,17 +272,15 @@
                     data-offboard-spike
                 ></polygon>
             {:else}
-                <path
+                <TrackStrokes
                     d={path.d}
-                    stroke={appearance.paper}
-                    stroke-width={appearance.trackWidth + appearance.trackBorderWidth}
-                ></path>
+                    strokes={[trackCasing(appearance, appearance.trackBorderWidth)]}
+                />
             {/if}
         {/each}
         {#each drawing.paths.filter((path) => !path.spike && !path.pier) as path (path.id)}
-            <g data-path-id={path.id}>
-                <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
-                ></path>
+            <g data-path-id={path.id} data-track-gauge={path.gauge}>
+                <TrackStrokes d={path.d} strokes={trackInk(appearance, path.gauge)} />
             </g>
         {/each}
         {#each drawing.crossings as crossing, index (index)}
@@ -297,13 +297,13 @@
                     ></circle>
                 </clipPath>
                 <g clip-path={`url(#${clipId})`} data-track-crossing={over.id}>
-                    <path
+                    <TrackStrokes
                         d={over.d}
-                        stroke={appearance.paper}
-                        stroke-width={appearance.trackWidth + 2 * appearance.trackBorderWidth}
-                    ></path>
-                    <path d={over.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
-                    ></path>
+                        strokes={[
+                            trackCasing(appearance, 2 * appearance.trackBorderWidth),
+                            ...trackInk(appearance, over.gauge)
+                        ]}
+                    />
                 </g>
             {/if}
         {/each}
@@ -510,7 +510,26 @@
                                     font-weight="650"
                                     aria-label={`${cell.stage}: ${cell.amount}`}>{cell.text}</text
                                 >
-                                {#if cell.caption && cell.captionColor}
+                                {#if cell.caption && cell.captionAbove}
+                                    {#if cell.captionColor}<rect
+                                            data-revenue-caption-badge
+                                            x={-cell.captionWidth / 2}
+                                            y={-cell.height / 2 - 11}
+                                            width={cell.captionWidth}
+                                            height={10}
+                                            rx={1.5}
+                                            fill={cell.captionColor}
+                                        ></rect>{/if}
+                                    <text
+                                        dy={centredTextShift(7.5)}
+                                        data-revenue-caption
+                                        y={-cell.height / 2 - 6}
+                                        style:text-anchor="middle"
+                                        fill={contrastingTextColor(cell.captionColor ?? fill)}
+                                        font-size="7.5"
+                                        font-weight="700">{cell.caption}</text
+                                    >
+                                {:else if cell.caption && cell.captionColor}
                                     {@const badgeX = cell.captionAfter
                                         ? cell.width / 2 + 1.5
                                         : -cell.width / 2 - 1.5 - cell.captionWidth}

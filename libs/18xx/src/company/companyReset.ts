@@ -6,12 +6,18 @@ import { removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
 /** How a title's reset charter is left for its restart. */
 export interface CompanyResetTerms {
     /**
-     * The pool every certificate returns to in the bank; when omitted only the president's
+     * The pool every certificate returns to, held by its owner, such as the bank or the
+     * company's own treasury; when omitted only the president's
      * certificate returns, outside any pool, while the other shares and shorts leave play.
      */
     poolId?: string
     /** Whether the home station stays, unplaced, for the restart; it does unless false. */
     keepsHome?: boolean
+    /**
+     * Every station returns unplaced, even ones lost from the map, as a closed 1849 corporation
+     * regains a station the Messina earthquake destroyed (§11).
+     */
+    keepsAllStations?: true
 }
 
 /**
@@ -55,15 +61,17 @@ export function resetCompany(
         (certificate) => certificate.companyId === companyId
     )
     assert(returning.length > 0, 'A reset company keeps its president’s certificate')
+    // A pool held by the company itself, as a treasury is, takes them back into its hands.
+    const poolOwner = state.certificatePools.find((pool) => pool.id === terms.poolId)?.owner
     for (const certificate of returning) {
-        certificate.owner = { kind: 'bank' }
+        certificate.owner = poolOwner ? structuredClone(poolOwner) : { kind: 'bank' }
         if (terms.poolId === undefined) delete certificate.poolId
         else certificate.poolId = terms.poolId
     }
     const keepsHome = terms.keepsHome ?? true
     state.stations = state.stations.map((station): Station => {
         if (station.companyId !== companyId) return station
-        return keepsHome && station.id === homeStationId(companyId)
+        return terms.keepsAllStations || (keepsHome && station.id === homeStationId(companyId))
             ? { id: station.id, companyId, status: 'available' }
             : { id: station.id, companyId, status: 'removed' }
     })

@@ -17,6 +17,8 @@
         getTitleVisibility,
         defaultGameConfig,
         normalizeGameConfig,
+        GAME_PACE_PRESETS,
+        gamePaceOf,
         type GameCreationOptions,
         assert,
         assertExists,
@@ -50,6 +52,7 @@
     import SegmentedControl from '$lib/components/SegmentedControl.svelte'
     import { getAppContext } from '$lib/model/appContext.js'
     import { continuationGame, type EditableGame } from '$lib/utils/gameContinuation.svelte.js'
+    import { GAME_PACE_LABELS } from '$lib/utils/gamePaceLabels.js'
 
     const EditMode = {
         Create: 'create',
@@ -128,6 +131,11 @@
     )
     let players: Player[] = $state(editedGame.players)
     let access: GameAccess = $state(initialAccess())
+    let paceMinutes = $state(String(gamePaceOf(editedGame).minutes))
+    const paceOptions = GAME_PACE_PRESETS.map((preset) => ({
+        value: String(preset.minutes),
+        name: GAME_PACE_LABELS[preset.pace].option
+    }))
     let includeOwner: boolean = $state(true)
     let isHotseat = $derived(access === GameAccess.Hotseat)
     let publicGame = $derived(access === GameAccess.Public || access === GameAccess.Unlisted)
@@ -300,6 +308,7 @@
             players: playersToUpload,
             isPublic: publicGame,
             ...(access === GameAccess.Unlisted ? { unlisted: true } : {}),
+            ...(isHotseat ? {} : { paceMinutes: Number(paceMinutes) }),
             hotseat: isHotseat,
             storage: isHotseat ? GameStorage.Local : GameStorage.Remote,
             ownerId: editedGame.ownerId,
@@ -585,6 +594,18 @@
                 bind:value={access}
             />
             <Helper class="dark:text-gray-400">{accessDescription}</Helper>
+        </div>
+    {/if}
+    {#if !isHotseat}
+        <div class="flex flex-col gap-2">
+            <Label for="pace">Pace</Label>
+            <Select
+                id="pace"
+                size="sm"
+                items={paceOptions}
+                bind:value={paceMinutes}
+                class="w-fit"
+            />
         </div>
     {/if}
     {#if showIncludeOwnerToggle}

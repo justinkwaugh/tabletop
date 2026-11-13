@@ -16,7 +16,12 @@ import {
     overfullCityKeys,
     type MapSelection
 } from '../maps/mapDrawing.js'
-import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
+import { untrack } from 'svelte'
+import {
+    stationMapTokens,
+    withStateMarkers,
+    type MapViewDefinition
+} from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
 import {
     ClassicTileAppearance,
@@ -130,7 +135,18 @@ export class MapModule {
 
     // Held apart so a display state that only moves tokens doesn't redraw the board.
     private tileInventory = $derived.by(() => this.displayState().tileInventory)
-    private locationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private placedLocationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private stateMarkers = $derived.by(() => this.view().stateMarkers?.(this.displayState()) ?? [])
+    // Keyed, so a display state implying the same markers doesn't redraw the board.
+    private stateMarkerKey = $derived.by(() => JSON.stringify(this.stateMarkers))
+    private locationMarkers = $derived.by(() => {
+        // Read for its key alone, so the same markers again keep the board as it is.
+        void this.stateMarkerKey
+        return withStateMarkers(
+            this.placedLocationMarkers,
+            untrack(() => this.stateMarkers)
+        )
+    })
     private overfullCityKey = $derived.by(() =>
         overfullCityKeys(
             this.displayState().stations,
