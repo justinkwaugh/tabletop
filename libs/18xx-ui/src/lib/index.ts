@@ -80,6 +80,7 @@ export type {
     TitleActionDescription,
     TitleHistoryNames
 } from './table/historyDescription.js'
+export type { TitleCallout } from './table/historyCallouts.js'
 export {
     companyClosedRow,
     companyClosureDetails,
@@ -100,6 +101,7 @@ export type {
     PlaceConnection,
     PrivateTokenPresentation,
     TitleFact,
+    LoanTerms,
     TitleOperatingStep,
     TitlePresentation,
     TitleRound
@@ -158,6 +160,8 @@ export { default as SelectionAuctionBidding } from './auctions/SelectionAuctionB
 export { default as CompanyAuctionBidding } from './stock/CompanyAuctionBidding.svelte'
 export { default as CompanyFormation } from './stock/CompanyFormation.svelte'
 export { default as CompanyPar } from './stock/CompanyPar.svelte'
+export { default as PresidencyExchangeChoice } from './stock/PresidencyExchangeChoice.svelte'
+export { exchangeChoiceWords, type ExchangeCertificate } from './stock/presidencyExchangeWords.js'
 export { default as CompanyActionCard, type CardAction } from './stock/CompanyActionCard.svelte'
 export { default as CompanyShareActions } from './stock/CompanyShareActions.svelte'
 export { default as PendingShareDecision } from './stock/PendingShareDecision.svelte'

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { holdsReceiverPresidentCertificate } from '../finance/companyOwnership.js'
+    import { multiShareMark, type MultiShareMark } from '../finance/multiShareCertificates.js'
     import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
@@ -188,6 +189,21 @@
     const portfolioColumnLabels = $derived(
         new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
+    /** Where a column's certificates are held: its owner, and for the bank, the pool. */
+    type CertificateHolder = { owner: Owner; poolId?: string }
+    /** The title's mark where the column's owner holds a certificate of several shares. */
+    function markedCertificate(companyId: string, ownerId: string): MultiShareMark | undefined {
+        const holder = owners.find((owner) => owner.id === ownerId)?.holder(companyId)
+        return holder
+            ? multiShareMark(
+                  session.presentation,
+                  session.gameState,
+                  companyId,
+                  holder.owner,
+                  holder.poolId
+              )
+            : undefined
+    }
     // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
         return certificatesInPool(session.gameState, poolId).reduce(
@@ -260,7 +276,8 @@
                 sharesOwned(session.gameState, companyId, {
                     kind: 'company',
                     companyId: ownerId
-                })
+                }),
+            holder: (): CertificateHolder => ({ owner: { kind: 'company', companyId: ownerId } })
         }))
     )
     const seatOrder = $derived(
@@ -356,7 +373,8 @@
                 {
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
-                    count: (companyId: string) => session.playerShares(companyId, playerId)
+                    count: (companyId: string) => session.playerShares(companyId, playerId),
+                    holder: (): CertificateHolder => ({ owner: { kind: 'player', playerId } })
                 },
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)
             ]),
@@ -367,7 +385,11 @@
                           id: 'ipo',
                           name: 'IPO',
                           count: (companyId: string) => poolShares(ipoPoolId, companyId),
-                          sells: inPool(ipoPoolId)
+                          sells: inPool(ipoPoolId),
+                          holder: (): CertificateHolder => ({
+                              owner: { kind: 'bank' },
+                              poolId: ipoPoolId
+                          })
                       }
                   ]
                 : []),
@@ -375,7 +397,11 @@
                 id: 'market',
                 name: 'Market',
                 count: (companyId: string) => poolShares(marketPoolId, companyId),
-                sells: inPool(marketPoolId)
+                sells: inPool(marketPoolId),
+                holder: (): CertificateHolder => ({
+                    owner: { kind: 'bank' },
+                    poolId: marketPoolId
+                })
             },
             {
                 id: 'treasury',
@@ -384,14 +410,21 @@
                     sharesOwned(session.gameState, companyId, { kind: 'company', companyId }),
                 sells: (certificate: PurchaseCertificate) =>
                     certificate.owner.kind === 'company' &&
-                    certificate.owner.companyId === certificate.companyId
+                    certificate.owner.companyId === certificate.companyId,
+                holder: (companyId: string): CertificateHolder => ({
+                    owner: { kind: 'company', companyId }
+                })
             },
             ...(exchangePoolId
                 ? [
                       {
                           id: 'exchange',
                           name: 'Exchange',
-                          count: (companyId: string) => poolShares(exchangePoolId, companyId)
+                          count: (companyId: string) => poolShares(exchangePoolId, companyId),
+                          holder: (): CertificateHolder => ({
+                              owner: { kind: 'bank' },
+                              poolId: exchangePoolId
+                          })
                       }
                   ]
                 : [])
@@ -700,6 +733,7 @@
     numbers: readonly number[] = []
 )}
     {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
+    {@const marked = shares > 0 ? markedCertificate(companyId, ownerId) : undefined}
     {@const saleChoices = shares > 0 ? saleChoicesForCell(companyId, ownerId) : []}
     <td
         class:operating-column={operating}
@@ -718,7 +752,7 @@
                 aria-label={`Buy ${session.companyName(companyId)} from ${owners.find((owner) => owner.id === ownerId)?.name}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
-                >{@render shareValue(String(shares), president)}</button
+                >{@render shareValue(String(shares), president, marked)}</button
             >
         {:else if saleChoices.length}
             <button
@@ -726,14 +760,14 @@
                 aria-label={`Sell ${session.companyName(companyId)} shares`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
-                >{@render shareHolding(String(shares), president, numbers)}</button
+                >{@render shareHolding(String(shares), president, numbers, marked)}</button
             >
         {:else if shares < 0}
             <span class="share-value" title={`Short ${-shares}`}
                 >{shares}<span class="sr-only"> short</span></span
             >
         {:else}
-            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers)}
+            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers, marked)}
         {/if}
     </td>
 {/snippet}
@@ -744,20 +778,32 @@
     >
 {/snippet}
 
-{#snippet shareValue(text: string, president: boolean)}
+{#snippet shareValue(text: string, president: boolean, mark?: MultiShareMark)}
     <span class="share-value" class:president
-        >{text}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
+        >{text}{#if president || mark}<span
+                class="badge"
+                aria-label={[president ? 'President' : '', mark?.name ?? '']
+                    .filter(Boolean)
+                    .join(', ')}
+                title={mark?.title}>{president ? 'P' : ''}{mark?.label ?? ''}</span
+            >{/if}</span
     >
 {/snippet}
 
-{#snippet shareHolding(text: string, president: boolean, numbers: readonly number[])}
+{#snippet shareHolding(
+    text: string,
+    president: boolean,
+    numbers: readonly number[],
+    marked?: MultiShareMark
+)}
     {#if numbers.length}
         {@const label = ` (${numbers.join(',')})`}
         <span class="noted-value" class:president data-note={label}
-            >{@render shareValue(text, president)}<span class="value-note">{label}</span></span
+            >{@render shareValue(text, president, marked)}<span class="value-note">{label}</span
+            ></span
         >
     {:else}
-        {@render shareValue(text, president)}
+        {@render shareValue(text, president, marked)}
     {/if}
 {/snippet}
 

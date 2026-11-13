@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GameSession } from '@tabletop/frontend-components'
-import { MachineState, RAILROAD_IDS, isBuildTrack } from '@tabletop/preussische-ostbahn'
+import {
+    MachineState,
+    OPENING_AUCTION_ORDER,
+    RAILROAD_IDS,
+    isBuildTrack,
+    isDeterminePlayerOrder
+} from '@tabletop/preussische-ostbahn'
 import {
     disposeSessions,
     firstTurnTable,
+    openingDrawTable,
     openSessionOn,
     withSharesForTurnPlayer
 } from '$lib/testing/sessionHarness.js'
@@ -27,6 +34,18 @@ function sessionWithRailroad() {
     session.chooseExpansionRailroad(railroadId)
     return { session, railroadId }
 }
+
+describe('drawing the turn order', () => {
+    it('sends the round ender’s draw as an Action that reveals it', async () => {
+        const session = openSessionOn(openingDrawTable())
+        expect(session.canDrawTurnOrder).toBe(true)
+        const apply = vi.spyOn(GameSession.prototype, 'applyAction').mockResolvedValue()
+        await session.drawTurnOrder()
+        expect(apply).toHaveBeenCalledOnce()
+        const [action] = apply.mock.calls[0]
+        expect(isDeterminePlayerOrder(action) && action.revealsInfo).toBe(true)
+    })
+})
 
 describe('choosing an action', () => {
     it('offers Expansion for held railroads and every first-sold railroad for Capitalization', () => {
@@ -94,7 +113,7 @@ describe('history', () => {
         const entries = historyEntries(firstTurnTable().actions)
         const auctions = entries.filter((entry) => entry.kind === 'auction')
         expect(auctions.map((entry) => entry.kind === 'auction' && entry.railroadId)).toEqual(
-            RAILROAD_IDS
+            OPENING_AUCTION_ORDER
         )
         expect(entries.at(-1)?.kind).toBe('round')
     })

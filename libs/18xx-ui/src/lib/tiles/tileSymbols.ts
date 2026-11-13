@@ -2,7 +2,7 @@ import type { StationAppearance } from '../maps/stationPresentation.js'
 import type { TileAppearance } from './tileAppearance.js'
 import { svgDataUrl } from '../presentation/svgDataUrl.js'
 
-export type TileSymbolName = 'port' | 'horns'
+export type TileSymbolName = 'port' | 'horns' | 'lock'
 
 export const PortSymbol = {
     radius: 8,
@@ -21,7 +21,19 @@ export const HornsSymbol = {
     ]
 }
 
+// A padlock: its shackle stroked in ink over a solid body, the keyhole cut out, for a closed place.
+export const LockSymbol = {
+    radius: 8,
+    strokeWidth: 1.5,
+    shackle: 'M -2.6 -0.5 V -2.6 A 2.6 2.6 0 0 1 2.6 -2.6 V -0.5',
+    body: 'M -3.2 -0.8 H 3.2 A 1 1 0 0 1 4.2 0.2 V 4.6 A 1 1 0 0 1 3.2 5.6 H -3.2 A 1 1 0 0 1 -4.2 4.6 V 0.2 A 1 1 0 0 1 -3.2 -0.8 Z M 0 1.2 A 1 1 0 1 0 0 3.2 A 1 1 0 1 0 0 1.2 Z'
+}
+
 export function tileSymbolMarkup(symbol: TileSymbolName, ink: string): string {
+    if (symbol === 'lock') {
+        const { strokeWidth, shackle, body } = LockSymbol
+        return `<path fill="none" stroke="${ink}" stroke-width="${strokeWidth}" d="${shackle}"/><path fill="${ink}" fill-rule="evenodd" stroke="none" d="${body}"/>`
+    }
     if (symbol === 'horns')
         return HornsSymbol.paths
             .map((path) => `<path fill="${ink}" stroke="none" d="${path}"/>`)

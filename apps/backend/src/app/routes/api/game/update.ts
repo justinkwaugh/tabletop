@@ -7,9 +7,12 @@ const GameUpdateRequest = Type.Object({
     game: Type.Evaluate(
         Type.Intersect([
             Type.Pick(Game, ['id']),
-            Type.Partial(Type.Pick(Game, ['name', 'players', 'isPublic', 'config']), {
-                additionalProperties: false
-            })
+            Type.Partial(
+                Type.Pick(Game, ['name', 'players', 'isPublic', 'paceMinutes', 'config']),
+                {
+                    additionalProperties: false
+                }
+            )
         ])
     )
 })
@@ -27,11 +30,12 @@ export default async function (fastify: FastifyInstance) {
             }
 
             const {
-                game: { id, name, isPublic, players, config }
+                game: { id, name, isPublic, paceMinutes, players, config }
             } = request.body
             const updates: Partial<Game> = {
                 ...(name === undefined ? {} : { name }),
                 ...(isPublic === undefined ? {} : { isPublic }),
+                ...(paceMinutes === undefined ? {} : { paceMinutes }),
                 ...(players === undefined ? {} : { players }),
                 ...(config === undefined ? {} : { config })
             }

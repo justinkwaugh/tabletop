@@ -15,6 +15,7 @@ The owner's decisions where the printed rules are silent or leave a gap, as impl
 ## Turn order
 
 - **The cup draw may give a player several turns, or none, in a round.** The round's drawn slots are kept as the turn manager's order and walked by slot; seat order, which bidding follows, is the order of `players`. Tests: "draws as many cubes as players, so a player may take several turns".
+- **The player ending the round draws the turn order, as their own Action that nobody can undo across.** That is the last turn slot's player, or after the opening auctions the last opening share's buyer. The draw is marked as revealing information, so the server makes it and Undo stops there. When the game is over at that point, it ends by itself with no draw. Tests: `rules.spec.ts` "waits after the opening auctions for the last share’s buyer to draw", "waits at the end of a round for the last slot’s player to draw", "must be declared as revealing the draw", "cannot be undone by anyone", "is skipped when the game ends at the end of the round".
 
 ## Ending the game
 

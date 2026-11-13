@@ -1,9 +1,10 @@
 <script lang="ts">
-    import type { Middleware, Placement } from '@floating-ui/dom'
+    import type { Middleware, Placement, VirtualElement } from '@floating-ui/dom'
     import * as dom from '@floating-ui/dom'
     import type { Snippet } from 'svelte'
     import { sineIn } from 'svelte/easing'
     import { fade } from 'svelte/transition'
+    import { visualClientRect } from '../utils/visualClientRect.js'
 
     const DEFAULT_OFFSET = 8
     type PopoverPosition = {
@@ -45,11 +46,16 @@
     } = $props()
 
     let popover: HTMLElement | null = $state(null)
-    let referenceElement: HTMLElement | null = null
+    // Measured as drawn, so a reference inside a zoomed board places the popover in every browser.
+    let referenceElement: VirtualElement | null = null
 
     $effect(() => {
         if (reference && popover) {
-            referenceElement = popover.ownerDocument.querySelector<HTMLElement>(reference)
+            const element = popover.ownerDocument.querySelector<HTMLElement>(reference)
+            referenceElement = element && {
+                getBoundingClientRect: () => visualClientRect(element),
+                contextElement: element
+            }
             popover.showPopover()
         }
     })

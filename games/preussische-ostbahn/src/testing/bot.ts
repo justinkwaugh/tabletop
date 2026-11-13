@@ -89,6 +89,11 @@ export function botAction(state: HydratedOstbahnGameState, playerId: string, ste
                   })
                 : act(state, playerId, { type: ActionType.EndExpansion })
         }
+        case MachineState.DeterminingOrder:
+            return act(state, playerId, {
+                type: ActionType.DeterminePlayerOrder,
+                revealsInfo: true
+            })
         default:
             throw Error(`The bot cannot act in ${state.machineState}`)
     }

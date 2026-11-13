@@ -15,6 +15,7 @@ import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
 import { CashPayment, settleCashPayments } from './cashPayments.js'
 import {
+    certificateShares,
     certificatesInPool,
     controllingOwner,
     finiteCashOwnedBy,
@@ -25,6 +26,9 @@ import {
 } from './finance.js'
 import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
 import type { StockMarket, StockMarketChart } from '../stock/stockMarket.js'
+import { HydratedBuyTrain } from '../trains/buyTrain.js'
+import { HydratedFundTrain } from '../funding/fundTrain.js'
+import { HydratedOfferPurchase } from '../transfers/offerPurchase.js'
 
 const FinanceOperation = Type.Union([Type.Literal('issue'), Type.Literal('redeem')])
 export const FinanceChoice = Type.Object(
@@ -69,11 +73,20 @@ export interface CorporateFinanceRules {
     /** Issued shares stay with the bank and redeemed ones go to the company, in this pool if any. */
     destinationPool(companyId: string, operation: FinanceOperation): string | undefined
     afterSettling?(state: CorporateFinanceState, choice: FinanceChoice): void
+    /**
+     * When in the turn shares change hands: until routes are run, or after the turn's train
+     * purchases, as in 1849 §10.8, where a company that has issued or redeemed buys no more trains.
+     */
+    timing?: CorporateFinanceTiming
 }
+export type CorporateFinanceTiming = 'before-running' | 'after-trains'
 
 // Issuing comes first in the operating order, but nothing before the run changes the price,
 // limits or payout, so a president may issue or redeem at any point until routes are run.
-const CorporateFinanceStates: readonly string[] = ['LayingTrack', 'PlacingStation', 'RunningTrains']
+const CorporateFinanceStates: Readonly<Record<CorporateFinanceTiming, readonly string[]>> = {
+    'before-running': ['LayingTrack', 'PlacingStation', 'RunningTrains'],
+    'after-trains': ['BuyingTrains']
+}
 
 function corporateFinanceCertificates(
     state: FinancialState,
@@ -138,7 +151,8 @@ export function corporateFinanceChoices(
     state: CorporateFinanceState,
     rules: CorporateFinanceRules
 ): FinanceChoice[] {
-    if (!CorporateFinanceStates.includes(state.machineState)) return []
+    if (!CorporateFinanceStates[rules.timing ?? 'before-running'].includes(state.machineState))
+        return []
     const companyId = nextOperatingCompany(state)
     assertExists(companyId, 'Corporate finance requires an operating company')
     const company = getCompany(state, companyId)
@@ -255,9 +269,10 @@ export class HydratedCorporateFinance extends HydratableAction<typeof CorporateF
         const company = { kind: 'company' as const, companyId: this.companyId }
         const bank = { kind: 'bank' as const }
         const issuing = this.operation === 'issue'
-        const certificates = this.#rules
-            .certificates(state, this.companyId, this.operation)
-            .slice(0, this.shares)
+        const certificates = certificatesMakingShares(
+            this.#rules.certificates(state, this.companyId, this.operation),
+            this.shares
+        )
         const payments: CashPayment[] = this.amount
             ? [
                   {
@@ -292,6 +307,30 @@ export class HydratedCorporateFinance extends HydratableAction<typeof CorporateF
     }
 }
 
+/** The first certificates, in the order they move, that hold exactly the shares. */
+function certificatesMakingShares(certificates: Certificate[], shares: number): Certificate[] {
+    const chosen: Certificate[] = []
+    let remaining = shares
+    for (const certificate of certificates) {
+        if (remaining === 0) break
+        const held = certificateShares(certificate)
+        if (held === 0 || held > remaining) continue
+        chosen.push(certificate)
+        remaining -= held
+    }
+    assert(remaining === 0, 'The certificates do not make up the shares')
+    return chosen
+}
+
+/** Whether the action acquires a train, which a company that has issued or redeemed may not. */
+function acquiresTrain(action: HydratedAction): boolean {
+    return (
+        action instanceof HydratedBuyTrain ||
+        action instanceof HydratedFundTrain ||
+        (action instanceof HydratedOfferPurchase && action.asset.kind === 'train')
+    )
+}
+
 export function corporateFinanceActions(rules: CorporateFinanceRules): ActionDefinition[] {
     return [
         defineAction(
@@ -301,6 +340,10 @@ export function corporateFinanceActions(rules: CorporateFinanceRules): ActionDef
         )
     ]
 }
+
+// The Actions that only acquire trains; an offer to buy, which may be for a private, is refused
+// by `acquiresTrain` when it names a train.
+const TrainAcquisitionTypes: readonly string[] = ['BuyTrain', 'FundTrain']
 
 /** Adds issuing and redeeming to an operating step that stays where it is afterwards. */
 export class CorporateFinanceHandler<
@@ -315,17 +358,29 @@ export class CorporateFinanceHandler<
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
+        const familyActions = this.handler.validActionsForPlayer(playerId, context)
         return [
-            ...this.handler.validActionsForPlayer(playerId, context),
+            ...(this.closesTrainPurchases(state)
+                ? familyActions.filter((type) => !TrainAcquisitionTypes.includes(type))
+                : familyActions),
             ...(state.isActivePlayer(playerId) && corporateFinanceChoices(state, this.rules).length
                 ? ['CorporateFinance']
                 : [])
         ]
     }
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        return action instanceof HydratedCorporateFinance
-            ? action.isValid(context.gameState)
-            : this.handler.isValidAction(action, context)
+        if (action instanceof HydratedCorporateFinance) return action.isValid(context.gameState)
+        if (this.closesTrainPurchases(context.gameState) && acquiresTrain(action)) return false
+        return this.handler.isValidAction(action, context)
+    }
+    /** After-train finance ends the turn's train purchases once the company has used it. */
+    private closesTrainPurchases(state: State): boolean {
+        return (
+            this.rules.timing === 'after-trains' &&
+            state.machineState === 'BuyingTrains' &&
+            state.financeStep !== undefined &&
+            state.financeStep.companyId === nextOperatingCompany(state)
+        )
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
         return action instanceof HydratedCorporateFinance

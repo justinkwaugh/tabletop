@@ -12,6 +12,8 @@ import {
     type RoutePath,
     type RouteRules,
     type TrainRoute,
+    stretchWeight,
+    type TrainDistance,
     type TrainRunningState,
     type TileEndpoint
 } from '@tabletop/18xx'
@@ -120,7 +122,8 @@ export class EncodedRoutes {
                     path: id,
                     hex,
                     terminal: false,
-                    crossings: arrival.kind === 'edge' ? 1 : 0
+                    crossings: arrival.kind === 'edge' ? 1 : 0,
+                    gauge: path.gauge ?? 'standard'
                 })
             }
         }
@@ -169,6 +172,14 @@ export class EncodedRoutes {
         const trains = runnable.map((train) => {
             const definition = rules.depot.trainDefinition(train.definitionId)
             const countsCrossings = definition.distance.measure === 'hex-edges'
+            const { measure, maximum, extraTowns = 0 } = definition.distance
+            const unlimitedDistance = (costs: readonly number[]) =>
+                nodes.length +
+                arcs.reduce((sum, arc) => sum + arc.crossings, 0) * Math.max(1, ...costs)
+            // A train kept off narrow gauge finds each narrow hex side past its whole reach.
+            const crossingCosts = this.crossingCosts(definition.distance, (costs) =>
+                maximum === 'unlimited' ? unlimitedDistance(costs) + 1 : maximum + extraTowns + 1
+            )
             const visitCosts = nodes.map((node) =>
                 countsCrossings ||
                 (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
@@ -177,7 +188,6 @@ export class EncodedRoutes {
             )
             const policy = rules.revenuePolicy?.(definition, state, companyId)
             const fleet = rules.fleet?.trains?.[definition.id] ?? {}
-            const { measure, maximum, extraTowns = 0 } = definition.distance
             assert(
                 !extraTowns || measure === 'revenue-centers',
                 'Only revenue-center trains may visit extra towns'
@@ -225,10 +235,16 @@ export class EncodedRoutes {
                 distance:
                     maximum === 'unlimited'
                         ? visitCosts.reduce<number>((sum, cost) => sum + cost, 0) +
-                          arcs.reduce((sum, arc) => sum + arc.crossings, 0)
+                          arcs.reduce((sum, arc) => sum + arc.crossings, 0) *
+                              Math.max(
+                                  1,
+                                  ...(definition.distance.standardGaugeOnly
+                                      ? [crossingCosts[0], crossingCosts[2]]
+                                      : crossingCosts)
+                              )
                         : maximum + extraTowns,
                 major_limit: extraTowns && maximum !== 'unlimited' ? maximum : null,
-                counts_crossings: countsCrossings,
+                crossing_costs: crossingCosts,
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
                 paying_stop_limit: policy?.payingStopLimit ?? null,
@@ -262,7 +278,7 @@ export class EncodedRoutes {
         this.junctionKeys = [...junctions.keys()]
         this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 7,
+            version: 8,
             stops,
             arcs,
             trains,
@@ -271,6 +287,7 @@ export class EncodedRoutes {
             group_count: groupIds.size,
             hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
+            minimum_cities_and_towns: rules.minimumCitiesAndTowns ?? 0,
             budget_ms: budget.timeLimitMs,
             memory_budget_bytes: budget.memoryBudgetBytes
         }
@@ -419,7 +436,7 @@ export class EncodedRoutes {
                 return {
                     id: train.id,
                     distance: this.unlimitedTrainIds.has(train.id) ? 'unlimited' : train.distance,
-                    counts_crossings: train.counts_crossings,
+                    crossing_costs: train.crossing_costs,
                     requires_city: train.requires_city,
                     allowed_stops: perStop(train.allowed_stops.map(Number)),
                     ...(train.fleet ? { fleet: train.fleet } : {}),
@@ -445,8 +462,26 @@ export class EncodedRoutes {
             hex_bonuses: [...hexes]
                 .sort((a, b) => a - b)
                 .map((hex) => [this.locationIds[hex], this.problem.hex_bonuses[hex]]),
-            longest_route_bonus_per_stop: this.problem.longest_route_bonus_per_stop
+            longest_route_bonus_per_stop: this.problem.longest_route_bonus_per_stop,
+            minimum_cities_and_towns: this.problem.minimum_cities_and_towns
         })
+    }
+
+    /** What each hex side of standard, narrow and dual track costs; `beyondReach` given the others. */
+    private crossingCosts(
+        distance: TrainDistance,
+        beyondReach: (costs: readonly number[]) => number
+    ): [number, number, number] {
+        if (distance.measure !== 'hex-edges') return [0, 0, 0]
+        const standard = stretchWeight(distance, 'standard')
+        const either = stretchWeight(distance, 'either')
+        return [
+            standard,
+            distance.standardGaugeOnly
+                ? beyondReach([standard, either])
+                : stretchWeight(distance, 'narrow'),
+            either
+        ]
     }
 
     private hexOf(locationId: string): number {

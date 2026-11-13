@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
+    totalCertificateShares,
     Owner,
     cashOwnedBy,
     finiteCashOwnedBy,
@@ -23,7 +24,9 @@ export const OrdinaryPurchaseAsset = Type.Union([
     Type.Object(
         { kind: Type.Literal('private'), privateCompanyId: Id },
         { additionalProperties: false }
-    )
+    ),
+    /** Another company's placed station, its place taken by one of the buyer's (1849 §14.1). */
+    Type.Object({ kind: Type.Literal('station'), stationId: Id }, { additionalProperties: false })
 ])
 export const PurchaseAsset = Type.Union([
     ...OrdinaryPurchaseAsset.anyOf,
@@ -110,6 +113,8 @@ export interface TransferRules {
     charters: CompanyCharters
     /** Whether a company may be bought whole, as 1846's independents are. */
     companyAcquisitions?: boolean
+    /** Whether a company may buy another's station token, as 1849's variant allows (§14.1). */
+    stationPurchases?: true
     operatingCompany(state: CompanyDecisionState): string | undefined
     canPurchase(state: CompanyDecisionState, companyId: string, asset: PurchaseAsset): boolean
     priceRange(
@@ -146,13 +151,15 @@ export function assetOwner(
         const owner = first.owner
         return shares.every(
             (certificate) => certificate.kind === 'share' && sameOwner(certificate.owner, owner)
-        ) &&
-            shares.reduce(
-                (sum, certificate) => sum + (certificate.kind === 'share' ? certificate.shares : 0),
-                0
-            ) === shareCount
+        ) && totalCertificateShares(shares) === shareCount
             ? owner
             : undefined
+    }
+    if (asset.kind === 'station') {
+        const station = state.stations.find((item) => item.id === asset.stationId)
+        if (station?.status !== 'placed') return undefined
+        const company = state.companies.find((item) => item.id === station.companyId)
+        return company && !company.closed ? { kind: 'company', companyId: company.id } : undefined
     }
     if (asset.kind === 'private') {
         const company = state.companies.find((item) => item.id === asset.privateCompanyId)
@@ -173,6 +180,8 @@ export function evaluatePurchaseOffer(
     | { reason: string; buyerPlayerId?: never; sellerPlayerId?: never } {
     if (rules.operatingCompany(state) !== request.companyId)
         return { reason: 'Only the operating company may make a purchase offer.' }
+    if (request.asset.kind === 'station' && !rules.stationPurchases)
+        return { reason: 'Station tokens are not bought in this game.' }
     if (!rules.canPurchase(state, request.companyId, request.asset))
         return { reason: 'This asset cannot be purchased at this point in the turn.' }
     const buyer = state.companies.find((item) => item.id === request.companyId)
@@ -255,6 +264,27 @@ export function settlePurchaseOffer(
         )
         train.owner = owner
         closePrivatesOnTrainPurchase(state, trains, offer.buyer.companyId)
+    } else if (asset.kind === 'station') {
+        const sold = state.stations.find((item) => item.id === asset.stationId)
+        assert(sold?.status === 'placed', 'A bought station is still placed')
+        const buyerId = offer.buyer.companyId
+        const replacement = state.stations.find(
+            (item) => item.companyId === buyerId && item.status === 'available'
+        )
+        assertExists(replacement, 'The buyer has a station to put in its place')
+        // The seller's station goes back to its charter (1849 §14.1).
+        state.stations = state.stations.map((item) =>
+            item.id === sold.id
+                ? { id: sold.id, companyId: sold.companyId, status: 'available' }
+                : item.id === replacement.id
+                  ? {
+                        id: replacement.id,
+                        companyId: buyerId,
+                        status: 'placed',
+                        position: sold.position
+                    }
+                  : item
+        )
     } else if (asset.kind === 'private') {
         const certificate = state.certificates.find(
             (item) => item.kind === 'private' && item.companyId === asset.privateCompanyId

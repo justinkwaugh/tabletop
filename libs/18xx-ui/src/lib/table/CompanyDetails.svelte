@@ -36,6 +36,8 @@
     import { companyLastRun } from './companyLastRun.js'
     import type { CompanyMark, PlaceConnection } from '../session/titlePresentation.js'
     import PresidentName from '../finance/PresidentName.svelte'
+    import CertificateBadge from '../finance/CertificateBadge.svelte'
+    import { multiShareMark } from '../finance/multiShareCertificates.js'
     import CompanyTradePopover from '../stock/CompanyTradePopover.svelte'
     import { shareSourceName } from '../stock/purchaseSources.js'
     let {
@@ -192,6 +194,17 @@
         toggleTrades(event.clientY)
     }
 </script>
+
+{#snippet multiShareBadge(entry: CompanyOwnership)}
+    {@const mark = multiShareMark(
+        session.presentation,
+        gameState,
+        company.id,
+        entry.owner,
+        entry.poolId
+    )}
+    {#if mark}<CertificateBadge label={mark.label} title={mark.title} />{/if}
+{/snippet}
 
 <!-- The Buy · Sell button is the keyboard path; a click anywhere else on the card is a shortcut. -->
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
@@ -377,7 +390,7 @@
                                                 session
                                             )}
                                             president={!!presidency}
-                                        /></th
+                                        />{@render multiShareBadge(entry)}</th
                                     >
                                     {#if numberedShares}<td
                                             class="certificate-numbers"
@@ -473,7 +486,7 @@
             </div>{/if}
         {@render marketValue()}
         {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
-                <span>Loans</span><strong
+                <span>{session.presentation.loanTerms?.name ?? 'Loans'}</span><strong
                     >{session.loans.loans(company.id)}/{session.loans.capacity(company.id)}</strong
                 >
             </div>{/if}

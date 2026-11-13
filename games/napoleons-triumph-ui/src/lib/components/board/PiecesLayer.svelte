@@ -55,6 +55,9 @@
     }
 
     function taskOf(sprite: GroupSprite): string | undefined {
+        if (gameSession.endsTheRide(sprite.group)) {
+            return 'Stay in reserve'
+        }
         if (gameSession.canSelect(sprite.group)) {
             return 'Select these pieces'
         }

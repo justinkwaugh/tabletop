@@ -4,6 +4,7 @@
     import TrainPurchaseButton from './TrainPurchaseButton.svelte'
     import TrainBadge from './TrainBadge.svelte'
     import CompanyTrainBuying from './CompanyTrainBuying.svelte'
+    import StationPurchases from '../finance/StationPurchases.svelte'
     import TrainFunding from './TrainFunding.svelte'
     import PhaseChanges from '../phases/PhaseChanges.svelte'
     import SlidingToggle from '../table/SlidingToggle.svelte'
@@ -229,6 +230,7 @@
                     {/each}
                 </div>
             {/if}
+            <StationPurchases {session} />
         {/if}
     </section>
 {/if}

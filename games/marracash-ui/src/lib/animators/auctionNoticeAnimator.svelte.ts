@@ -1,6 +1,6 @@
 import { getContext, setContext, tick } from 'svelte'
 import { prefersReducedMotion } from 'svelte/motion'
-import type { GameStateChangeListener } from '@tabletop/frontend-components'
+import { visualClientRect, type GameStateChangeListener } from '@tabletop/frontend-components'
 import {
     getShop,
     isStartAuction,
@@ -154,7 +154,8 @@ export class AuctionNoticeAnimator {
         let y = 0
         let scale = look.placardScale
         const rest = placard.parentElement?.getBoundingClientRect()
-        const target = this.boardPlacard?.getBoundingClientRect()
+        // The stall's placard is inside the board's CSS zoom.
+        const target = this.boardPlacard ? visualClientRect(this.boardPlacard) : undefined
         if (look.flight > 0 && rest && target && target.width > 0) {
             x = (target.left + target.width / 2 - (rest.left + rest.width / 2)) * look.flight
             y = (target.top + target.height / 2 - (rest.top + rest.height / 2)) * look.flight

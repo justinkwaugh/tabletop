@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as Value from 'typebox/value'
 import {
     GameCatalogEntry,
+    GamePace,
     GameStatus,
     PlayerStatus,
     type Game,
@@ -10,8 +11,9 @@ import {
 import {
     filterSeriesGames,
     gameMatchesFilter,
-    hostName,
     lobbyEntry,
+    optionsSummary,
+    panelPlayers,
     parseSeriesFilter,
     pickerTitles,
     seatChoices,
@@ -63,22 +65,33 @@ function entry(id: string, name: string): GameCatalogEntry {
 describe('series filter in the address', () => {
     it('reads the view, the known titles and the player count', () => {
         const filter = parseSeriesFilter(
-            new URLSearchParams('view=lobby&titles=1846,fresh-fish,1830&players=4'),
+            new URLSearchParams('view=lobby&titles=1846,fresh-fish,1830&players=4&pace=fast'),
             SERIES_TITLES
         )
-        expect(filter).toEqual({ view: 'lobby', titleIds: ['1846', '1830'], seats: 4 })
+        expect(filter).toEqual({
+            view: 'lobby',
+            titleIds: ['1846', '1830'],
+            seats: 4,
+            pace: GamePace.Fast
+        })
     })
 
     it('falls back to the title shelf and every title', () => {
         expect(
-            parseSeriesFilter(new URLSearchParams('view=other&players=x'), SERIES_TITLES)
-        ).toEqual({ view: 'titles', titleIds: [], seats: undefined })
+            parseSeriesFilter(
+                new URLSearchParams('view=other&players=x&pace=relaxed'),
+                SERIES_TITLES
+            )
+        ).toEqual({ view: 'titles', titleIds: [], seats: undefined, pace: undefined })
     })
 
     it('writes only what differs from the shelf', () => {
         expect(seriesFilterSearch({ view: 'titles', titleIds: [] })).toBe('?')
         expect(seriesFilterSearch({ view: 'finished', titleIds: ['1830', '1889'], seats: 3 })).toBe(
             '?view=finished&titles=1830%2C1889&players=3'
+        )
+        expect(seriesFilterSearch({ view: 'lobby', titleIds: [], pace: GamePace.SameDay })).toBe(
+            '?view=lobby&pace=sameDay'
         )
     })
 })
@@ -141,12 +154,32 @@ describe('series games', () => {
         ])
     })
 
+    it('keeps games at the chosen pace or faster, reading no pace as Daily', () => {
+        const paced = [
+            game('live', '1830', { paceMinutes: 15 }),
+            game('fast', '1830', { paceMinutes: 60 }),
+            game('daily', '1830'),
+            game('relaxed', '1830', { paceMinutes: 3 * 24 * 60 })
+        ]
+        const ids = (pace: GamePace, view: 'lobby' | 'finished' = 'lobby') =>
+            filterSeriesGames(paced, { view, titleIds: [], pace }).map(({ id }) => id)
+        expect(ids(GamePace.Daily)).toEqual(['live', 'fast', 'daily'])
+        expect(ids(GamePace.Fast)).toEqual(['live', 'fast'])
+        expect(ids(GamePace.Live)).toEqual(['live'])
+        expect(ids(GamePace.Live, 'finished')).toHaveLength(4)
+    })
+
     it('widens a filter that would hide a new game', () => {
         const created = game('n', '1846', { players: [seat(0), seat(1), seat(2), seat(3)] })
-        const hiding = { view: 'lobby' as const, titleIds: ['1830'], seats: 3 }
+        const hiding = { view: 'lobby' as const, titleIds: ['1830'], seats: 3, pace: GamePace.Live }
         expect(gameMatchesFilter(created, hiding)).toBe(false)
         const widened = widenFilterToShow(hiding, created)
-        expect(widened).toEqual({ view: 'lobby', titleIds: ['1830', '1846'], seats: undefined })
+        expect(widened).toEqual({
+            view: 'lobby',
+            titleIds: ['1830', '1846'],
+            seats: undefined,
+            pace: undefined
+        })
         expect(gameMatchesFilter(created, widened)).toBe(true)
         expect(gameMatchesFilter(created, { view: 'lobby', titleIds: [], seats: 4 })).toBe(true)
     })
@@ -195,8 +228,63 @@ describe('game summary', () => {
         )
         expect(winnerText(game('f', '1830'))).toBe('No winner')
     })
+})
 
-    it('names the host', () => {
-        expect(hostName(game('o', '1830'))).toBe('Player 0')
+describe('row options', () => {
+    const flag = (name: string) => ({ name, value: 'Yes', enabledFlag: true })
+    it('says Standard, names a single option and counts several', () => {
+        expect(optionsSummary([])).toBe('Standard')
+        expect(optionsSummary([flag('Extra 6-train')])).toBe('Extra 6-train')
+        expect(optionsSummary([{ name: 'Map', value: 'East', enabledFlag: false }])).toBe(
+            'Map: East'
+        )
+        expect(optionsSummary([{ name: 'Mode', value: 'Yes', enabledFlag: false }])).toBe(
+            'Mode: Yes'
+        )
+        expect(optionsSummary([flag('Extra 6-train'), flag('No mergers')])).toBe('2 options')
+    })
+})
+
+describe('panel players', () => {
+    const waiting = game('w', '1830', {
+        status: GameStatus.WaitingForPlayers,
+        activePlayerIds: [],
+        players: [
+            seat(1),
+            seat(2, { status: PlayerStatus.Open, name: undefined, userId: undefined }),
+            seat(3, { status: PlayerStatus.Reserved }),
+            seat(0)
+        ]
+    })
+
+    it('lists the host first and gives each seat its status before the start', () => {
+        expect(panelPlayers(waiting, undefined).map(({ name, note }) => [name, note])).toEqual([
+            ['Player 0', 'host'],
+            ['Player 1', 'joined'],
+            ['Player 3', 'invited'],
+            ['', 'open']
+        ])
+    })
+
+    it('marks only the host, and the player to move, during play', () => {
+        expect(panelPlayers(game('s', '1830'), undefined)).toEqual([
+            { id: 'p0', name: 'Player 0', note: 'host', highlight: undefined },
+            { id: 'p1', name: 'Player 1', note: '', highlight: 'active' },
+            { id: 'p2', name: 'Player 2', note: '', highlight: undefined }
+        ])
+    })
+
+    it('shows recorded scores and the winner once finished', () => {
+        const finished = game('f', '1830', {
+            status: GameStatus.Finished,
+            activePlayerIds: [],
+            winningPlayerIds: ['p2']
+        })
+        expect(panelPlayers(finished, { p0: 40, p2: 70 })).toEqual([
+            { id: 'p0', name: 'Player 0', note: '40', highlight: undefined },
+            { id: 'p1', name: 'Player 1', note: '—', highlight: undefined },
+            { id: 'p2', name: 'Player 2', note: '70', highlight: 'winner' }
+        ])
+        expect(panelPlayers(finished, undefined).map(({ note }) => note)).toEqual(['', '', ''])
     })
 })

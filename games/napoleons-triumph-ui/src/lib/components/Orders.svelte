@@ -26,7 +26,7 @@
     const reinforcements = $derived(gameSession.reinforcements)
 
     const ridingOn = $derived(gameSession.ridingOn)
-    const rideIsOver = $derived(gameSession.rideIsOver)
+    const endingRide = $derived(gameSession.isEndingRide)
     const rideChoice = $derived(gameSession.rideChoice)
     const stepsOfTheWay = $derived(gameSession.stepsOfTheWay)
     const together = $derived(gameSession.wholeCorpsChosen)
@@ -43,17 +43,6 @@
         return `Threaten an attack from ${map.label(locale)} into ${map.label(map.approach(approach).neighbour)}.`
     })
 
-    const rideEndedSentence = $derived.by(() => {
-        const locale = gameSession.rideEndedIn
-        if (locale === undefined) {
-            return undefined
-        }
-        const purpose = gameSession.rideEndedWithCommandLeft
-            ? 'to block an approach its road crosses, or to give it its second command'
-            : 'to block an approach its road crosses'
-        return `The cavalry that rode into ${gameSession.gameState.map.label(locale)} stays in reserve unless you tap it ${purpose}.`
-    })
-
     const title = $derived.by(() => {
         if (aimedLocale !== undefined) {
             return `Attack on ${gameSession.gameState.map.label(aimedLocale)}`
@@ -65,7 +54,7 @@
         if (!ridingOn) {
             return name
         }
-        return rideIsOver ? `${name}, at the end of its ride` : `${name}, riding on`
+        return endingRide ? `${name}, at the end of its ride` : `${name}, riding on`
     })
 
     const stillToCommand = $derived(
@@ -296,10 +285,10 @@
         <span>{wayToChoose}</span>
     {:else if problem}
         <span>{problem}</span>
-    {:else if ridingOn && rideIsOver}
+    {:else if ridingOn && endingRide}
         <span
-            >The cavalry can ride no farther. It stays in reserve unless it ends its move blocking
-            an approach its road crosses.</span
+            >The cavalry can ride no farther. Choose where it ends its move: tap the yellow ring to
+            leave it in reserve, or a yellow approach its road crosses to block it.</span
         >
     {:else if ridingOn}
         <span
@@ -338,9 +327,6 @@
         )}
     {:else}
         <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
-            {#if rideEndedSentence}
-                <span><PlaceText text={rideEndedSentence} /></span>
-            {/if}
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}

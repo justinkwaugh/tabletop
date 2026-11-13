@@ -62,7 +62,8 @@ export function operatingStepStatuses(
             : undefined,
         trains: purchased ? `${purchased} bought` : undefined,
         loans: interest?.metadata
-            ? interest.metadata.default
+            ? // A president raising it for the company, as 1849's, pays the interest in full.
+              interest.metadata.default && !interest.metadata.default.companyDebt
                 ? 'Defaulted'
                 : `Paid ${money(interest.metadata.interest)}`
             : undefined

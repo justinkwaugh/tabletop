@@ -258,6 +258,32 @@
                                     its treasury
                                 </p>
                             {/if}
+                            {#each session.presentation.startNotes?.(session.gameState, session.stock.selectedStartCompany.companyId) ?? [] as note (note)}<p
+                                    class="start-home"
+                                >
+                                    {note}
+                                </p>{/each}
+                            {#if session.stock.startSizes.length > 1}
+                                <div
+                                    class="choices start-size-choices"
+                                    role="group"
+                                    aria-label="Shares to buy"
+                                >
+                                    {#each session.stock.startSizes as size (size.extra)}
+                                        <button
+                                            class="start-size"
+                                            {disabled}
+                                            aria-pressed={session.stock
+                                                .selectedExtraStartCertificates === size.extra}
+                                            data-start-extra={size.extra}
+                                            onclick={() =>
+                                                session.stock.chooseExtraStartCertificates(
+                                                    size.extra
+                                                )}>{size.percent}%</button
+                                        >
+                                    {/each}
+                                </div>
+                            {/if}
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
@@ -282,7 +308,11 @@
                                             <span class="par-value"
                                                 >{price.result.details.parPrice}</span
                                             >
-                                            <small>Cost {money(price.result.details.price)}</small>
+                                            <small
+                                                >Cost {money(
+                                                    session.stock.startCost(price.result.details)
+                                                )}</small
+                                            >
                                             {#if sharesToFloat !== undefined}
                                                 <small class="float-cost"
                                                     >{money(
@@ -712,6 +742,13 @@
         button.start-company-choice[aria-pressed='false']:hover:not(:disabled) {
         opacity: 0.8;
         filter: none;
+    }
+    button.start-size {
+        min-width: 56px;
+        font-variant-numeric: tabular-nums;
+    }
+    button.start-size[aria-pressed='true'] {
+        box-shadow: 0 0 0 2px var(--rail-focus, #8c7050);
     }
     button.par-choice {
         color: #39352f;

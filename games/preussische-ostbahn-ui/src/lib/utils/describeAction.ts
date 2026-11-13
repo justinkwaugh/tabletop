@@ -133,7 +133,12 @@ export function describeAction(action: GameAction): Description {
     }
     if (isDeterminePlayerOrder(action)) {
         const reason = action.metadata?.endReason
-        return reason ? [`Game over: ${END_REASONS[reason]}`] : ['New turn order drawn']
+        if (reason) {
+            return [`Game over: ${END_REASONS[reason]}`]
+        }
+        return action.playerId
+            ? [{ playerId: action.playerId }, ' drew the turn order']
+            : ['New turn order drawn']
     }
     return [action.type]
 }

@@ -56,9 +56,11 @@ export function fundingActions(
             (action) => new HydratedContributeTrainFunds(action, funding, stock, trains)
         ),
         defineAction(
-            funding.elimination
-                ? declareBankruptcySchema(funding.elimination.schema)
-                : DeclareBankruptcy,
+            funding.insolvency
+                ? declareBankruptcySchema(funding.insolvency.schema)
+                : funding.elimination
+                  ? declareBankruptcySchema(funding.elimination.schema)
+                  : DeclareBankruptcy,
             isDeclareBankruptcy,
             (action) =>
                 new HydratedDeclareBankruptcy(

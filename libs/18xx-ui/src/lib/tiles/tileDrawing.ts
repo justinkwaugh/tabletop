@@ -69,6 +69,8 @@ export type TileLayout = {
      * its track: in a station space by node and slot, or at a point before the tile's rotation.
      */
     printedTokens?: readonly TilePrintedToken[]
+    /** Prints a staged location's captions above its values, in a row. */
+    revenueCaptionsAbove?: boolean
     /** Prints staged values' phase captions after them, as on a board's east edge. */
     revenueCaptionsAfter?: boolean
     /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
@@ -298,7 +300,7 @@ export function createTileDrawing(
             ? { ...drawn, pier: { base, tip } }
             : { ...drawn, spike: { base, tip } }
     }
-    const paths = face.paths.map((path): TileDrawnPath => {
+    const drawnPath = (path: TilePath): TileDrawnPath => {
         const townPath = townPaths.get(path.id)
         if (townPath) return townPath
         const start = endpointPosition(path.endpoints[0])
@@ -308,6 +310,10 @@ export function createTileDrawing(
             !layout.pathControls?.[path.id]
             ? drawn
             : withOffboardSpike(path, drawn)
+    }
+    const paths = face.paths.map((path): TileDrawnPath => {
+        const drawn = drawnPath(path)
+        return path.gauge ? { ...drawn, gauge: path.gauge } : drawn
     })
 
     const stationSlots = face.nodes.flatMap((node) => {
@@ -372,6 +378,7 @@ export function createTileDrawing(
                           captions: style.revenueStageCaptions,
                           captionColors: style.revenueStageCaptionColors,
                           captionAfter: layout.revenueCaptionsAfter,
+                          captionAbove: layout.revenueCaptionsAbove,
                           stack: layout.revenueStack ?? style.revenueStack,
                           fixed: !!hint
                       }

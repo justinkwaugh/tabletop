@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import { visualClientRect } from '@tabletop/frontend-components'
 
 /** Where a map hex sits within the overlay drawn over the map. */
 export interface HexPlacement {
@@ -30,7 +31,7 @@ export function followHex(
             )
             if (!hex) return
             const bounds = view.getBoundingClientRect()
-            const rect = hex.getBoundingClientRect()
+            const rect = visualClientRect(hex)
             const svg = view.querySelector('svg.map-scene')
             measured({
                 center: {
@@ -43,7 +44,7 @@ export function followHex(
                 // WebKit's getScreenCTM omits the CSS scale on the map wrapper.
                 mapScale:
                     svg instanceof SVGSVGElement
-                        ? svg.getBoundingClientRect().width / svg.viewBox.baseVal.width
+                        ? visualClientRect(svg).width / svg.viewBox.baseVal.width
                         : undefined
             })
         }

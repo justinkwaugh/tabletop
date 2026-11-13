@@ -21,6 +21,7 @@ import {
 import { sitePowerCategory } from '../data/sites.js'
 import { kindOf } from '../data/cardRegistry.js'
 import { topBackType } from '../model/vault.js'
+import { topOf } from '../model/pileOrder.js'
 import { drawDiscardPile, drawWorldDeck } from '../util/knowledge.js'
 import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { modifierPayment, reasonCannotPayInAll, tollPayment } from '../util/actionPayment.js'
@@ -211,7 +212,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             HydratedSearch.drawsFromBottom(state, this.playerId, this.modifiers),
             this.playerId
         )
-        const newTop = vault.discardPiles[region][0]
+        const newTop = topOf(vault.discardPiles[region])
         return {
             drawnCardIds,
             stoppedOnVision: false,

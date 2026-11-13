@@ -1,3 +1,4 @@
+import { DefaultTerrainIcons, type TerrainIconName } from './terrainIcons.js'
 import { bonusArrowBounds, drawBonusArrow, type DrawnBonusArrow } from './bonusArrows.js'
 import type {
     MapViewDefinition,
@@ -141,7 +142,8 @@ export type PrintedLine = {
 
 export type MapMarkerArt =
     | { imageUrl: string }
-    | { tileSymbol: TileSymbolName }
+    /** A symbol on a disc, low in the hex or ``at`` a point from its centre, on any tile laid there. */
+    | { tileSymbol: TileSymbolName; at?: Point }
     /** Not drawn, where the location's name or artwork already says it. */
     | { hidden: true }
     /**
@@ -260,6 +262,10 @@ export type MapDrawnLocation = {
     nameArcs: readonly NameArc[]
     /** Centre of the printed terrain cost row: below the hex's stops, or mid-hex. */
     terrainPosition: Point
+    /** Whether the terrain cost stands under its symbols rather than after them. */
+    terrainCostBelow?: true
+    /** Whether the location's terrain cost is drawn: on the printed hex, or kept on a laid tile. */
+    terrainShown: boolean
     /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
     localLineAboveY?: number
     /** Where an ``onTile`` local line stands once a tile is laid, clear of that tile. */
@@ -336,6 +342,8 @@ export type MapDrawing = {
     bounds: BoundingBox
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix: string
+    /** The icon each terrain kind draws. */
+    terrainIcons: Readonly<Record<string, TerrainIconName>>
     /** Hexside border widths by kind, where the view sets one. */
     borderWidths: Readonly<Record<string, number>>
     printedReservations: NonNullable<MapViewDefinition['printedReservations']>
@@ -415,6 +423,7 @@ export function createMapDrawing(
         revenueStageCaptionColors,
         revenueStack,
         terrainCostPrefix = '',
+        terrainIcons = DefaultTerrainIcons,
         borderWidths = {},
         printedReservations = [],
         sharedStations = {},
@@ -428,6 +437,8 @@ export function createMapDrawing(
         nameStyles = {},
         sharedCityLayouts = {},
         terrainPositions = {},
+        terrainCostsBelow = [],
+        terrainKeptOnTiles = false,
         bonusArrows = []
     }: Pick<
         MapViewDefinition,
@@ -447,6 +458,7 @@ export function createMapDrawing(
         | 'revenueStageCaptionColors'
         | 'revenueStack'
         | 'terrainCostPrefix'
+        | 'terrainIcons'
         | 'borderWidths'
         | 'printedReservations'
         | 'sharedStations'
@@ -460,6 +472,8 @@ export function createMapDrawing(
         | 'nameStyles'
         | 'sharedCityLayouts'
         | 'terrainPositions'
+        | 'terrainCostsBelow'
+        | 'terrainKeptOnTiles'
         | 'bonusArrows'
     > = {}
 ): MapDrawing {
@@ -675,12 +689,45 @@ export function createMapDrawing(
             revenueBadges(lifted, markers, markerArt),
             !placement && tileLayout.revenueAlign === 'middle'
         )
-        const terrainRow = terrainRowOf(drawing)
         const captions = revenueCaptions(drawing, leads)
         const hexVertices = geometry.vertices.map((point) => ({
             x: point.x - geometry.center.x,
             y: point.y - geometry.center.y
         }))
+        const terrainShown = !!location.terrain && (!placement || terrainKeptOnTiles)
+        // A laid tile keeps the cost in its own clear space, clear of its stops, values and label.
+        const laidTerrain =
+            placement && terrainShown && location.terrain
+                ? clearTerrainSpot(
+                      hexSpace(drawing, hexVertices, [
+                          // Marks keep clear of a smaller disc, but the cost must clear the
+                          // tokens that fill each space as drawn.
+                          ...drawing.nodes.flatMap(({ node, center, slots, slotRadius }) =>
+                              node.kind !== 'city'
+                                  ? []
+                                  : slots.length
+                                    ? slots.map((slot) => disc(slot, slotRadius))
+                                    : [disc(center, slotRadius)]
+                          ),
+                          ...captions.map((caption) =>
+                              box(
+                                  caption,
+                                  (caption.caption.length * CaptionCharacterWidth) / 2,
+                                  CaptionFontSize / 2
+                              )
+                          ),
+                          ...(face.labels.length
+                              ? [box(drawing.labelPosition, face.labels.join(' ').length * 4.5, 7)]
+                              : [])
+                      ]),
+                      location.terrain,
+                      terrainCostPrefix
+                  )
+                : undefined
+        const terrainRow = laidTerrain?.row ?? terrainRowOf(drawing)
+        const terrainCostBelow =
+            (laidTerrain ? laidTerrain.costBelow : terrainCostsBelow.includes(location.id)) ||
+            undefined
         const divides = (edge: TileEdge) =>
             isOffboard(location) && isOffboard(map.neighbor(location.id, edge))
         return {
@@ -708,6 +755,8 @@ export function createMapDrawing(
                 !face.nodes.some((node) => node.kind === 'offboard'),
             nameArcs,
             terrainPosition: terrainRow,
+            ...(terrainCostBelow ? { terrainCostBelow } : {}),
+            terrainShown,
             localLineAboveY,
             ...(placement && markers.some((marker) => hasOnTileLine(markerArt[marker.id]))
                 ? { localLineOnTile: clearLocalLinePoint(hexSpace(drawing, hexVertices, [])) }
@@ -750,8 +799,15 @@ export function createMapDrawing(
                             : nameShown && location.name
                               ? [nameBox(nameRows, nameBaseline, nameScale)]
                               : []),
-                        ...(!placement && location.terrain
-                            ? [terrainBox(location.terrain, terrainCostPrefix, terrainRow)]
+                        ...(terrainShown && location.terrain
+                            ? [
+                                  terrainBox(
+                                      location.terrain,
+                                      terrainCostPrefix,
+                                      terrainRow,
+                                      terrainCostBelow
+                                  )
+                              ]
                             : []),
                         ...(!placement &&
                         location.terrain &&
@@ -798,6 +854,7 @@ export function createMapDrawing(
         locations,
         bonusArrows: drawnArrows,
         terrainCostPrefix,
+        terrainIcons,
         borderWidths,
         printedReservations,
         sharedStations,
@@ -916,6 +973,8 @@ function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFa
 
 export const CaptionFontSize = 5
 export const TerrainNoteDrop = 12
+/** How far a cost standing under its terrain symbols drops below them. */
+export const TerrainCostDrop = 11
 export const NoticeFontSize = 9
 export const NoticeY = 24
 
@@ -1029,11 +1088,12 @@ const disc = (point: Point, radius: number): Obstacle => ({
     halfHeight: 0,
     radius
 })
-function clearance(point: Point, obstacle: Obstacle): number {
+/** How far a point, or a box of these half sizes about it, stands clear of the obstacle. */
+function clearance(point: Point, obstacle: Obstacle, halfWidth = 0, halfHeight = 0): number {
     return (
         Math.hypot(
-            Math.max(Math.abs(point.x - obstacle.x) - obstacle.halfWidth, 0),
-            Math.max(Math.abs(point.y - obstacle.y) - obstacle.halfHeight, 0)
+            Math.max(Math.abs(point.x - obstacle.x) - obstacle.halfWidth - halfWidth, 0),
+            Math.max(Math.abs(point.y - obstacle.y) - obstacle.halfHeight - halfHeight, 0)
         ) - obstacle.radius
     )
 }
@@ -1047,10 +1107,17 @@ export function terrainRowWidths(kindCount: number, cost: string) {
 function terrainBox(
     terrain: NonNullable<MapLocation['terrain']>,
     costPrefix: string,
-    row: Point
+    row: Point,
+    costBelow = false
 ): Obstacle {
     const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
-    return box(row, (widths.icons + widths.cost) / 2, 6)
+    return costBelow
+        ? box(
+              { x: row.x, y: row.y + TerrainCostDrop / 2 },
+              Math.max(widths.icons, widths.cost) / 2,
+              6 + TerrainCostDrop / 2
+          )
+        : box(row, (widths.icons + widths.cost) / 2, 6)
 }
 
 // Long names split at the space nearest their middle.
@@ -1421,6 +1488,69 @@ function clearLocalLinePoint(space: HexSpace): Point {
                 best = point
         }
     return best ?? OnTileTagHome
+}
+
+// A laid tile's terrain cost stands nearest the foot of the hex, in a row where one fits, else
+// with its cost under its symbols. Symbols reach 9 above the row's line and 5 below it; the cost
+// prints to 4 below it, or a drop lower when under them.
+const LaidTerrainHome = { x: 0, y: 30 }
+// Clear by these gaps where the tile has room, else only not overlapping.
+const LaidTerrainGaps = [2, 0]
+const TerrainTop = 9
+const TerrainFoot = 5
+function clearTerrainSpot(
+    space: HexSpace,
+    terrain: NonNullable<MapLocation['terrain']>,
+    costPrefix: string
+): { row: Point; costBelow: boolean } {
+    const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
+    // The row's line is where the symbols stand; each layout's box reaches unevenly about it.
+    const shape = (halfWidth: number, foot: number, costBelow: boolean) => ({
+        halfWidth,
+        halfHeight: (TerrainTop + foot) / 2,
+        drop: (foot - TerrainTop) / 2,
+        costBelow
+    })
+    const shapes = [
+        shape((widths.icons + widths.cost) / 2, TerrainFoot, false),
+        shape(Math.max(widths.icons, widths.cost) / 2, 4 + TerrainCostDrop, true)
+    ]
+    const obstacles = [...space.obstacles, ...space.track]
+    const fits = (
+        line: Point,
+        { halfWidth, halfHeight, drop }: (typeof shapes)[number],
+        gap: number
+    ) => {
+        const centre = { x: line.x, y: line.y + drop }
+        return (
+            [-1, 1].every((sideX) =>
+                [-1, 1].every((sideY) => {
+                    const corner = {
+                        x: centre.x + sideX * halfWidth,
+                        y: centre.y + sideY * halfHeight
+                    }
+                    return insideHex(corner, space.vertices) && space.inset(corner) >= 1.5
+                })
+            ) &&
+            obstacles.every((obstacle) => clearance(centre, obstacle, halfWidth, halfHeight) >= gap)
+        )
+    }
+    // A crowded tile may have no clear spot at all, so a touching one beats covering a mark.
+    for (const gap of LaidTerrainGaps)
+        for (const line of laidTerrainLines())
+            for (const candidate of shapes)
+                if (fits(line, candidate, gap)) return { row: line, costBelow: candidate.costBelow }
+    return { row: LaidTerrainHome, costBelow: false }
+}
+
+// The row's line every two units across the hex, nearest the foot first; made on first use.
+let terrainLinesByNearness: readonly Point[] | undefined
+function laidTerrainLines(): readonly Point[] {
+    terrainLinesByNearness ??= Array.from({ length: 49 * 45 }, (_, index) => ({
+        x: (index % 49) * 2 - 48,
+        y: Math.floor(index / 49) * 2 - 44
+    })).sort((a, b) => distanceBetween(a, LaidTerrainHome) - distanceBetween(b, LaidTerrainHome))
+    return terrainLinesByNearness
 }
 
 function isClearPoint(space: HexSpace, point: Point, radius: number): boolean {

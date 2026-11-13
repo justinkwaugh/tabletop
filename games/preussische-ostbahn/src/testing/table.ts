@@ -77,6 +77,15 @@ export class Table {
         this.state = hydrated.dehydrate()
     }
 
+    drawTurnOrder(): GameAction[] {
+        return this.act(this.active, { type: ActionType.DeterminePlayerOrder, revealsInfo: true })
+    }
+
+    playOpening(prices: Partial<Record<RailroadId, [string, number]>> = {}) {
+        this.playInitialAuctions(prices)
+        this.drawTurnOrder()
+    }
+
     playInitialAuctions(prices: Partial<Record<RailroadId, [string, number]>> = {}) {
         while (this.state.machineState === MachineState.ShareBidding) {
             const auction = this.state.shareAuction

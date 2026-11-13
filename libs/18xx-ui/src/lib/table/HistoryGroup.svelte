@@ -28,7 +28,7 @@
     import { historyPhaseChange, type PhaseChangePalette } from './historyPhaseChange.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import HistoryCallout from './HistoryCallout.svelte'
-    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
+    import { bankBreakCallout, descriptionCallouts } from './historyCallouts.js'
     let {
         money,
         group,
@@ -117,9 +117,7 @@
                         : undefined,
                 stockPlayerId,
                 callouts: [
-                    ...(description.certificateLimit
-                        ? [certificateLimitCallout(description.certificateLimit)]
-                        : []),
+                    ...descriptionCallouts(description),
                     ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
                 ],
                 routine: delta || bankBreak ? false : description.routine,
@@ -220,7 +218,9 @@
                         />{/if}
                 </div>
             </div>
-            {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
+            {#each row.callouts as callout (`${callout.kind}:${callout.title}`)}<HistoryCallout
+                    {callout}
+                />{/each}
         {/each}
     {:else}
         {#if group.kind !== 'event'}<header
@@ -322,7 +322,9 @@
                             {companyName}
                         />{/if}
                 </div>
-                {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
+                {#each row.callouts as callout (`${callout.kind}:${callout.title}`)}<HistoryCallout
+                        {callout}
+                    />{/each}
             {/each}
             {#if !visible.length}<div class="history-entry routine">No further actions</div>{/if}
         </div>

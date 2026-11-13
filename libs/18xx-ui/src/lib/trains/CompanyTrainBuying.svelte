@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { purchaseAssetKey } from '../finance/purchaseAssets.js'
     import { currencyAffixes } from '../presentation/money.js'
     import { assert, assertExists } from '@tabletop/common'
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
@@ -119,7 +120,7 @@
                         <strong>{session.companyName(companyId)}</strong>
                     </div>
                     <div class="company-roster">
-                        {#each trains as choice (choice.request.asset.kind === 'train' ? choice.request.asset.trainId : choice.request.asset.kind === 'private' ? choice.request.asset.privateCompanyId : choice.request.asset.companyId)}
+                        {#each trains as choice (purchaseAssetKey(choice.request.asset))}
                             <button
                                 class="train"
                                 disabled={!session.decisions.canResolve}

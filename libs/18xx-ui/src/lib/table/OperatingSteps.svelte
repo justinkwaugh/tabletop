@@ -39,7 +39,7 @@
             'Run',
             'Payout',
             'Trains',
-            ...(session.loans.rules ? ['Loans'] : [])
+            ...(session.loans.rules ? [session.presentation.loanTerms?.name ?? 'Loans'] : [])
         ]
     )
     const statuses = $derived.by(() => {

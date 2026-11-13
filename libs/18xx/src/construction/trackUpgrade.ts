@@ -1,5 +1,6 @@
 import { sameTileEndpoint } from '../tiles/topology.js'
 import type { TileEndpoint, TileFace, TileNode, TilePath } from '../tiles/tile.js'
+import { keepsTrackGauge } from '../tiles/trackGauge.js'
 
 export type TileNodeMapping = Readonly<Record<string, string>>
 
@@ -55,6 +56,10 @@ export function tileUpgradeMappings(
     return mappings
 }
 
+/**
+ * Whether the replacing face still runs the path between its mapped ends, through junctions, on
+ * track that keeps the path's gauge.
+ */
 export function preservesPath(path: TilePath, after: TileFace, mapping: TileNodeMapping): boolean {
     const endpoints = path.endpoints.map((end): TileEndpoint =>
         end.kind === 'node' ? { kind: 'node', nodeId: mapping[end.nodeId] } : end
@@ -73,11 +78,26 @@ export function preservesPath(path: TilePath, after: TileFace, mapping: TileNode
         )
             continue
         for (const next of after.paths) {
+            if (!keepsTrackGauge(path.gauge, next.gauge)) continue
             if (sameTileEndpoint(next.endpoints[0], current)) queue.push(next.endpoints[1])
             if (sameTileEndpoint(next.endpoints[1], current)) queue.push(next.endpoints[0])
         }
     }
     return false
+}
+
+/**
+ * The track a replacing face adds: its paths that do not run where track of the replaced face
+ * kept by their gauge did, as standard or narrow track becoming dual. ``mapping`` maps the
+ * replaced face's nodes onto the replacing face's, as a lay's node mapping does.
+ */
+export function addedTrack(
+    before: TileFace,
+    after: TileFace,
+    mapping: TileNodeMapping
+): readonly TilePath[] {
+    const reverse = Object.fromEntries(Object.entries(mapping).map(([id, target]) => [target, id]))
+    return after.paths.filter((path) => !preservesPath(path, before, reverse))
 }
 
 export function fixedNodeRevenue(node: TileNode): number {

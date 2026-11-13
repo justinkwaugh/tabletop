@@ -70,6 +70,7 @@ export const TransferRules1846: TransferRules = {
     },
     priceRange(_state, _companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
+        if (asset.kind === 'station') return undefined
         const id = asset.kind === 'private' ? asset.privateCompanyId : asset.companyId
         if (asset.kind === 'company' && !['MS', 'BIG4'].includes(id)) return undefined
         return { minimum: 1, maximum: draftCompany(id).price }

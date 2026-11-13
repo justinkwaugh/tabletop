@@ -16,7 +16,11 @@ export type LoanSession = ModuleSession<EighteenXXState, Pick<EighteenXXTitleRul
 export class LoanModule {
     constructor(private readonly session: LoanSession) {}
 
-    rules = $derived.by(() => this.session.rules.loanRules)
+    /** The title's loans, where they are in this game. */
+    rules = $derived.by(() => {
+        const rules = this.session.rules.loanRules
+        return rules && (rules.inPlay?.(this.session.state) ?? true) ? rules : undefined
+    })
     /** The rate fixed for the operating round, or the rate the next round would fix. */
     rate = $derived.by(() => {
         const rules = this.rules

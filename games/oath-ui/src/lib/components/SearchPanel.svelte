@@ -273,20 +273,21 @@
             <!-- No one here can be taken from: why, in the take's place; "Play" takes nothing. -->
             <ConspiracyNoTake lines={search.conspiracyNoTake} />
         {/if}
-        <!-- "Play" once the take is picked whole; a red line only for a complete pick refused. -->
+        <!-- "Play" once the take is picked whole; a complete pick refused shows its red line instead. -->
         {#if search.conspiracyComplete}
             {#if reason}
                 <p class="text-[11px] text-oath-danger">
                     <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
                 </p>
+            {:else}
+                <button
+                    class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs max-sm:min-h-11 max-sm:px-3 max-sm:text-sm"
+                    disabled={busy}
+                    onclick={() => search.confirmConspiracy()}
+                >
+                    Play
+                </button>
             {/if}
-            <button
-                class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs max-sm:min-h-11 max-sm:px-3 max-sm:text-sm"
-                disabled={busy || !!reason}
-                onclick={() => search.confirmConspiracy()}
-            >
-                Play
-            </button>
         {/if}
     {:else if search.needsWhenPlayed}
         {@const reason = search.whenPlayedReason}
@@ -301,14 +302,15 @@
                 <p class="text-[11px] text-oath-danger">
                     <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
                 </p>
+            {:else}
+                <button
+                    class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs max-sm:min-h-11 max-sm:px-3 max-sm:text-sm"
+                    disabled={busy}
+                    onclick={() => search.confirmWhenPlayed()}
+                >
+                    Play
+                </button>
             {/if}
-            <button
-                class="mt-1 rounded border-[1.5px] border-oath-primary-border bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 px-2 py-0.5 text-xs max-sm:min-h-11 max-sm:px-3 max-sm:text-sm"
-                disabled={busy || !!reason}
-                onclick={() => search.confirmWhenPlayed()}
-            >
-                Play
-            </button>
         {/if}
     {:else if search.needsSecondDisplaced}
         {@render adviserPicker(search.secondDisplaceable, search.secondDisplaced, (cardId) =>

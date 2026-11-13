@@ -32,29 +32,29 @@ describe('configured game options', () => {
     ]
     it('displays default false and named choices alongside overrides', () => {
         expect(configuredGameOptions(defaultGameConfig(options), options)).toEqual([
-            { name: 'Expert rules', value: 'No' },
-            { name: 'Map', value: 'Original map' }
+            { name: 'Expert rules', value: 'No', enabledFlag: false },
+            { name: 'Map', value: 'Original map', enabledFlag: false }
         ])
         expect(configuredGameOptions({ expert: true, map: 'island' }, options)).toEqual([
-            { name: 'Expert rules', value: 'Yes' },
-            { name: 'Map', value: 'Island map' }
+            { name: 'Expert rules', value: 'Yes', enabledFlag: true },
+            { name: 'Map', value: 'Island map', enabledFlag: false }
         ])
     })
     it('retains persisted values while the game library is unavailable', () => {
         expect(configuredGameOptions({ expert: false, rounds: 0, label: null }, [])).toEqual([
-            { name: 'expert', value: 'No' },
-            { name: 'rounds', value: '0' },
-            { name: 'label', value: 'None' }
+            { name: 'expert', value: 'No', enabledFlag: false },
+            { name: 'rounds', value: '0', enabledFlag: false },
+            { name: 'label', value: 'None', enabledFlag: false }
         ])
     })
     it('hides card defaults and formats non-default choices', () => {
         expect(gameCardOptions(defaultGameConfig(options), options)).toEqual([])
         expect(gameCardOptions({ expert: true, map: 'island' }, options)).toEqual([
-            { name: 'Expert rules', value: 'Yes' },
-            { name: 'Map', value: 'Island map' }
+            { name: 'Expert rules', value: 'Yes', enabledFlag: true },
+            { name: 'Map', value: 'Island map', enabledFlag: false }
         ])
         expect(gameCardOptions({ expert: false, map: 'island', unknown: true }, options)).toEqual([
-            { name: 'Map', value: 'Island map' }
+            { name: 'Map', value: 'Island map', enabledFlag: false }
         ])
     })
     it('honors always-show options and optional input defaults', () => {
@@ -70,8 +70,8 @@ describe('configured game options', () => {
             }
         ]
         expect(gameCardOptions({ expert: false, label: null, rounds: 0 }, definitions)).toEqual([
-            { name: 'Expert rules', value: 'No' },
-            { name: 'Rounds', value: '0' }
+            { name: 'Expert rules', value: 'No', enabledFlag: false },
+            { name: 'Rounds', value: '0', enabledFlag: false }
         ])
         expect(gameCardOptions({ expert: true }, [])).toEqual([])
     })
@@ -98,11 +98,11 @@ it('normalizes legacy options before filtering game cards and displaying tournam
         }
     }
     expect(gameCardOptions({ publicMoney: false }, configurator)).toEqual([
-        { name: 'Private money', value: 'Yes' }
+        { name: 'Private money', value: 'Yes', enabledFlag: true }
     ])
     expect(gameCardOptions({ publicMoney: true }, configurator)).toEqual([])
     expect(configuredGameOptions({ publicMoney: false }, configurator)).toEqual([
-        { name: 'Private money', value: 'Yes' }
+        { name: 'Private money', value: 'Yes', enabledFlag: true }
     ])
 })
 
@@ -131,8 +131,12 @@ it('uses runtime null semantics for summaries and preserves older configurator b
     }
     const stored = { legacyMode: null }
     expect(normalizeGameConfig(stored, configurator)).toEqual({ enabled: false })
-    expect(configuredGameOptions(stored, configurator)).toEqual([{ name: 'Enabled', value: 'No' }])
-    expect(gameCardOptions(stored, configurator)).toEqual([{ name: 'Enabled', value: 'No' }])
+    expect(configuredGameOptions(stored, configurator)).toEqual([
+        { name: 'Enabled', value: 'No', enabledFlag: false }
+    ])
+    expect(gameCardOptions(stored, configurator)).toEqual([
+        { name: 'Enabled', value: 'No', enabledFlag: false }
+    ])
     expect(configuredGameOptions({ enabled: null }, legacyConfigurator)).toEqual(
         configuredGameOptions({ enabled: null }, options)
     )

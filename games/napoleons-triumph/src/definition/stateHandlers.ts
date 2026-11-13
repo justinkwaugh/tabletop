@@ -12,6 +12,7 @@ import {
 } from '../stateHandlers/attack.js'
 import { CommandingStateHandler } from '../stateHandlers/commanding.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { EndingRideStateHandler } from '../stateHandlers/endingRide.js'
 import { RideRevealedStateHandler } from '../stateHandlers/rideRevealed.js'
 import {
     AlliedSetupStateHandler,
@@ -31,6 +32,7 @@ export const NapoleonsTriumphStateHandlers: Record<
     [MachineState.FrenchSetup]: new FrenchSetupStateHandler(),
     [MachineState.Commanding]: new CommandingStateHandler(),
     [MachineState.RideRevealed]: new RideRevealedStateHandler(),
+    [MachineState.EndingRide]: new EndingRideStateHandler(),
     [MachineState.DefenseResponse]: new DefenseResponseStateHandler(),
     [MachineState.FeintDecision]: new FeintDecisionStateHandler(),
     [MachineState.DefenseDeclaration]: new DefenseDeclarationStateHandler(),

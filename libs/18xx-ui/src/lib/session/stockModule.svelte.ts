@@ -5,6 +5,9 @@ import {
     FinishStockTurn,
     OfferPrivatePurchase,
     ParCompany,
+    ChoosePresidencyExchange,
+    pendingPresidencyExchange,
+    presidencyExchangeOptions,
     SellShares,
     StartCompany,
     evaluateCompanyStart,
@@ -25,6 +28,7 @@ import {
     sameCenter,
     sameOwner,
     sharesOwned,
+    type CompanyStartDetails,
     type CompanyStartRequest,
     type EighteenXXState,
     type HomePosition,
@@ -77,7 +81,12 @@ type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof exceedsStockLimits>[0] &
     Pick<
         EighteenXXState,
-        'machineState' | 'stockRound' | 'activePlayerIds' | 'purchaseOffer' | 'pendingPar'
+        | 'machineState'
+        | 'stockRound'
+        | 'activePlayerIds'
+        | 'purchaseOffer'
+        | 'pendingPar'
+        | 'presidencyExchanges'
     >
 
 export type StockSession = ModuleSession<
@@ -221,24 +230,102 @@ export class StockModule implements LocalSelection {
         const home = this.selectedStartHome
         return home ? this.offeredStartHomes.find((entry) => sameCenter(entry, home)) : undefined
     })
-    private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
+    /** The most ordinary certificates the chosen company's start may add to the president's. */
+    maxExtraStartCertificates = $derived.by(() => {
         const company = this.selectedStartCompany
-        const marketSpaceId = this.start.value('marketSpaceId')
+        if (!company) return 0
+        const { state, rules } = this.session
+        return Math.min(
+            rules.companyRules.additionalStartCertificates?.(state, company.companyId) ?? 0,
+            this.startCertificateIds(company.companyId).length
+        )
+    })
+    /** Each holding the chosen company's start may buy, as a percentage of the company. */
+    startSizes = $derived.by((): { extra: number; percent: number }[] => {
+        const company = this.selectedStartCompany
+        if (!company) return []
+        const { state, rules } = this.session
+        const president = state.certificates.find(
+            (certificate) =>
+                certificate.kind === 'share' &&
+                certificate.president &&
+                certificate.companyId === company.companyId
+        )
+        const shareCount = companyShareCount(state, rules.stockRules.charters, company.companyId)
+        if (!president || president.kind !== 'share' || !shareCount) return []
+        return Array.from({ length: this.maxExtraStartCertificates + 1 }, (_, extra) => ({
+            extra,
+            percent: Math.round(((president.shares + extra) * 100) / shareCount)
+        }))
+    })
+    /** What a start costs its president in all: the president's certificate and any further ones. */
+    startCost(details: CompanyStartDetails): number {
+        return (details.additionalPurchases ?? []).reduce(
+            (total, purchase) => total + purchase.price,
+            details.price
+        )
+    }
+    /** The ordinary certificates chosen to buy with the president's. */
+    selectedExtraStartCertificates = $derived.by(() => this.start.value('extraCertificates') ?? 0)
+    /** The company's single-share certificates still with the bank or its treasury. */
+    private startCertificateIds(companyId: string): string[] {
+        return this.session.state.certificates
+            .filter(
+                (certificate) =>
+                    certificate.kind === 'share' &&
+                    !certificate.president &&
+                    certificate.shares === 1 &&
+                    certificate.companyId === companyId &&
+                    certificate.owner.kind !== 'player'
+            )
+            .map((certificate) => certificate.id)
+    }
+    private extraStartCertificateIds(companyId: string): string[] {
+        return this.startCertificateIds(companyId).slice(0, this.selectedExtraStartCertificates)
+    }
+    /** The chosen company's start at a price, with its home and further certificates as chosen. */
+    private startRequest(marketSpaceId: string): CompanyStartRequest | undefined {
+        const company = this.selectedStartCompany
+        if (!company) return undefined
         const home = this.selectedStartHome
-        return company && marketSpaceId
-            ? { ...company, marketSpaceId, ...(home ? { home } : {}) }
-            : undefined
+        const additionalCertificateIds = this.extraStartCertificateIds(company.companyId)
+        return {
+            ...company,
+            marketSpaceId,
+            ...(home ? { home } : {}),
+            ...(additionalCertificateIds.length ? { additionalCertificateIds } : {})
+        }
+    }
+    private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
+        const marketSpaceId = this.start.value('marketSpaceId')
+        return marketSpaceId ? this.startRequest(marketSpaceId) : undefined
     })
     selectedStartPrices = $derived.by(() => {
         const company = this.selectedStartCompany
-        return (
+        const prices =
             this.startChoices.find(
                 (choice) =>
                     company &&
                     choice.request.companyId === company.companyId &&
                     sameOwner(choice.request.buyer, company.buyer)
             )?.prices ?? []
-        )
+        if (!company || !this.extraStartCertificateIds(company.companyId).length) return prices
+        return prices.flatMap(({ marketSpaceId }) => {
+            const request = this.startRequest(marketSpaceId)
+            return request
+                ? [
+                      {
+                          marketSpaceId,
+                          result: evaluateCompanyStart(
+                              this.session.state,
+                              request,
+                              this.session.rules.stockRules,
+                              this.session.rules.companyRules
+                          )
+                      }
+                  ]
+                : []
+        })
     })
     selectedStartResult = $derived.by(() =>
         this.selectedStartRequest
@@ -263,6 +350,45 @@ export class StockModule implements LocalSelection {
               )
             : []
     )
+    /** The presidency change whose outgoing president chooses the certificates they take. */
+    presidencyExchange = $derived.by(() => pendingPresidencyExchange(this.session.state))
+    /** Each set of certificates the outgoing president may take, with each one's size. */
+    presidencyExchangeChoices = $derived.by(() => {
+        const pending = this.presidencyExchange
+        if (!pending) return []
+        const { state, rules } = this.session
+        const shareCount = companyShareCount(state, rules.stockRules.charters, pending.companyId)
+        return presidencyExchangeOptions(pending).map((certificateIds) => ({
+            certificateIds,
+            certificates: certificateIds.map((id) => {
+                const certificate = state.certificates.find((entry) => entry.id === id)
+                assert(
+                    certificate?.kind === 'share' && shareCount,
+                    'Exchanged certificates are shares'
+                )
+                return {
+                    shares: certificate.shares,
+                    percent: Math.round((certificate.shares * 100) / shareCount)
+                }
+            })
+        }))
+    })
+    canChoosePresidencyExchange = $derived.by(
+        () =>
+            this.session.interactive &&
+            this.session.validActionTypes.includes('ChoosePresidencyExchange')
+    )
+    async choosePresidencyExchange(certificateIds: readonly string[]) {
+        const pending = this.presidencyExchange
+        assert(this.canChoosePresidencyExchange && pending, 'No exchange awaits this player')
+        await this.session.applyAction(
+            this.session.createPlayerAction(ChoosePresidencyExchange, {
+                companyId: pending.companyId,
+                certificateIds: [...certificateIds]
+            })
+        )
+    }
+
     async parCompany(marketSpaceId: string) {
         const pending = this.session.state.pendingPar
         assert(this.canPar && pending, 'No par is awaiting this player')
@@ -418,6 +544,15 @@ export class StockModule implements LocalSelection {
         )
         this.start.choose('home', { locationId: home.locationId, nodeId: home.nodeId })
     }
+    chooseExtraStartCertificates(count: number) {
+        this.assertAvailable(this.session.playerId)
+        assert(this.start.value('company'), 'Choose a company before its certificates')
+        assert(
+            count >= 0 && count <= this.maxExtraStartCertificates,
+            'The start cannot include this many certificates'
+        )
+        this.start.choose('extraCertificates', count)
+    }
     selectStartPrice(marketSpaceId: string) {
         this.assertAvailable(this.session.playerId)
         assert(this.start.value('company'), 'Choose a company before its starting price')
@@ -472,6 +607,13 @@ export class StockModule implements LocalSelection {
                               locationId: details.home.position.locationId,
                               nodeId: details.home.position.nodeId
                           }
+                      }
+                    : {}),
+                ...(details.additionalPurchases?.length
+                    ? {
+                          additionalCertificateIds: details.additionalPurchases.map(
+                              (purchase) => purchase.certificateId
+                          )
                       }
                     : {})
             })

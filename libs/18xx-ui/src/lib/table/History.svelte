@@ -92,7 +92,8 @@
             (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
             (id) => session.names.routeBonus(id),
             session.placeName,
-            (id) => session.poolName(id)
+            (id) => session.poolName(id),
+            { charters: session.charters, multiShare: session.presentation.multiShareCertificate }
         )
     }
     function describe(action: GameAction) {
