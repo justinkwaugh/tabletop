@@ -6,6 +6,7 @@ import {
     ActionType,
     chooseFavoursOffer,
     FarmerBarn,
+    handSelectionGroup,
     HydratedFeudumGameState,
     MachineState,
     placeMarker,
@@ -563,6 +564,21 @@ describe('Hand selection', () => {
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
             `Waiting for ${session.getPlayerName(second)} and ${session.getPlayerName(third)} to finalise`
         ])
+    })
+
+    it("S8 R-3.1-H1 the send goes in the round's simultaneous group, so seats pressing together are all taken", async () => {
+        const table = await atHands()
+        const [first] = table.order
+        const session = await table.openSeat(first)
+        const group = handSelectionGroup(session.gameState)
+        for (const kind of FourCards) {
+            await pressCard(session.actionPanel, kind)
+        }
+        await sendNamed(session, 'Long live the king')
+        expect(lastByUser({ host: table })).toMatchObject({
+            type: ActionType.FinaliseHand,
+            simultaneousGroupId: group
+        })
     })
 
     it('S8 R-3.1-H1 once sent: the hand set, the pouch sealed, and the seats still choosing waited on', async () => {
