@@ -232,7 +232,7 @@ export function sharedWinNote(winnerCount: number): string {
     return `tied for most money: ${all} win`
 }
 
-const PHASE_LABELS: Readonly<Record<PhaseName, string>> = {
+export const PHASE_LABELS: Readonly<Record<PhaseName, string>> = {
     [PhaseName.TakeShare]: 'Shares',
     [PhaseName.Build]: 'Build',
     [PhaseName.Ride]: 'Ride'

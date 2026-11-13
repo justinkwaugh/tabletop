@@ -1,9 +1,9 @@
 <script lang="ts">
     import { MachineState } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import ActionDescription from '../ActionDescription.svelte'
     import BuildPanel from './BuildPanel.svelte'
     import GameEndSummary from './GameEndSummary.svelte'
+    import HistoryDescription from './HistoryDescription.svelte'
     import JourneyPanel from './JourneyPanel.svelte'
     import PassPanel from './PassPanel.svelte'
     import TakeSharePanel from './TakeSharePanel.svelte'
@@ -19,11 +19,7 @@
     class="mx-2 rounded-xl border border-rtr-line bg-rtr-panel px-3 py-2 text-rtr-ink shadow-sm max-sm:mx-1 max-sm:px-2 max-sm:py-1.5"
 >
     {#if gameSession.isViewingHistory}
-        {#if gameSession.currentAction}
-            <ActionDescription action={gameSession.currentAction} />
-        {:else}
-            <span>The game is set up.</span>
-        {/if}
+        <HistoryDescription />
     {:else if gameSession.gameState.result}
         <GameEndSummary />
     {:else if !gameSession.isMyTurn}
