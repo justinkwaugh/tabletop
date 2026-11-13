@@ -51,7 +51,7 @@ import {
     selectionCost
 } from './economy.js'
 import { regionsReached } from './network.js'
-import type { PayoutRates } from './payouts.js'
+import type { CompanyRevenueChange, PayoutRates, PlayerIncome } from './payouts.js'
 import { HydratedRailheadsPlayerState, RailheadsPlayerState } from './playerState.js'
 import {
     IndustryBoost,
@@ -508,17 +508,18 @@ export class HydratedRailheadsGameState
         })
     }
 
-    // England & Wales: a company gets one more placement when all of them stay in its region.
+    // England & Wales: a company gets one more placement when all its discs stay in its region;
+    // crossing cubes count towards the limit but may lie anywhere.
     placementLimit(
         space: LayTrackSpace,
         companyId: CompanyId,
-        placements: readonly AxialCoordinates[]
+        discs: readonly AxialCoordinates[]
     ): number {
         const rules = this.layTrackRules(space)
         const regionId = this.companyDefinition(companyId).regionId
         const inRegion =
             regionId !== undefined &&
-            placements.every((coords) => this.edition.map.hex(coords).regionId === regionId)
+            discs.every((coords) => this.edition.map.hex(coords).regionId === regionId)
         return rules.placementsPerCompany + (inRegion ? (rules.regionPlacements ?? 0) : 0)
     }
 
@@ -708,6 +709,37 @@ export class HydratedRailheadsGameState
                 : {}),
             ...(this.edition.definition.wealthTax ? { perBond: this.bondValue() } : {})
         }
+    }
+
+    // Denmark: each player pays the Wealth Taxation on their cash into the State Treasury.
+    collectWealthTax(): PlayerIncome[] | undefined {
+        const tax = this.edition.definition.wealthTax
+        if (!tax) return undefined
+        return this.players.map((player) => {
+            const amount = tax(player.cash)
+            player.cash -= amount
+            this.stateTreasury = (this.stateTreasury ?? 0) + amount
+            return { playerId: player.playerId, amount }
+        })
+    }
+
+    // Switzerland: interest takes a revenue step per loan, after the final payout too, before
+    // the Loan Limit is checked.
+    chargeInterest(): CompanyRevenueChange[] | undefined {
+        if (!this.edition.definition.loans) return undefined
+        return this.companies.map((company) => {
+            const from = company.revenue
+            company.revenue = Math.max(0, from - this.loans(company.id))
+            return { companyId: company.id, from, to: company.revenue }
+        })
+    }
+
+    // The game-end rates if the final round ended now: after the last wealth tax and interest.
+    finalPayoutsIfEndedNow(): PayoutRates {
+        const ending = new HydratedRailheadsGameState(structuredClone(this.dehydrate()))
+        ending.collectWealthTax()
+        ending.chargeInterest()
+        return ending.finalPayouts()
     }
 
     playerIncome(playerId: string, payouts: PayoutRates): number {

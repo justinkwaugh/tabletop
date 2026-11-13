@@ -44,27 +44,6 @@ function passStartPlayerToken(state: HydratedRailheadsGameState): string {
     return startPlayerId
 }
 
-function collectWealthTax(state: HydratedRailheadsGameState): PlayerIncome[] | undefined {
-    const tax = state.edition.definition.wealthTax
-    if (!tax) return undefined
-    return state.players.map((player) => {
-        const amount = tax(player.cash)
-        player.cash -= amount
-        state.stateTreasury = (state.stateTreasury ?? 0) + amount
-        return { playerId: player.playerId, amount }
-    })
-}
-
-// Interest applies after the final payout too, before the Loan Limit is checked.
-function chargeInterest(state: HydratedRailheadsGameState): CompanyRevenueChange[] | undefined {
-    if (!state.edition.definition.loans) return undefined
-    return state.companies.map((company) => {
-        const from = company.revenue
-        company.revenue = Math.max(0, from - state.loans(company.id))
-        return { companyId: company.id, from, to: company.revenue }
-    })
-}
-
 export class HydratedEndRound extends HydratableAction<typeof EndRound> implements EndRound {
     declare type: ActionType.EndRound
     declare metadata?: EndRoundMetadata
@@ -75,10 +54,10 @@ export class HydratedEndRound extends HydratableAction<typeof EndRound> implemen
 
     apply(state: HydratedRailheadsGameState, _context?: MachineContext) {
         const round = state.round()
-        const taxes = collectWealthTax(state)
+        const taxes = state.collectWealthTax()
         const rates = state.roundPayouts()
         const income = payPlayers(state, rates)
-        const interest = chargeInterest(state)
+        const interest = state.chargeInterest()
         const extras = {
             ...(taxes ? { taxes } : {}),
             ...(interest ? { interest } : {})

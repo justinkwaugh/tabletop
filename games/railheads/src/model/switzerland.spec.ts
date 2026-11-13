@@ -350,6 +350,24 @@ describe('Swiss game end', () => {
     })
 })
 
+describe('the final-round preview', () => {
+    it('applies the last interest before checking the Loan Limit', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.company(CompanyId.SNB).revenue = 11
+            state.company(CompanyId.SNB).loans = 2
+            state.track.push({ coords: hex(3, 11), discs: [CompanyId.SNB] })
+            state.track.push({ coords: hex(14, 24), discs: [CompanyId.SNB] })
+        })
+        const state = table.hydrated
+        const perShare = (rates: ReturnType<typeof state.finalPayouts>) =>
+            rates.companies.find((rate) => rate.companyId === CompanyId.SNB)?.perShare
+        expect(perShare(state.finalPayouts())).toBe(6)
+        expect(perShare(state.finalPayoutsIfEndedNow())).toBe(0)
+        expect(state.company(CompanyId.SNB).revenue).toBe(11)
+    })
+})
+
 describe('toll chits', () => {
     it('cash in for $1 a star, fewest stars first, when a payment needs them', () => {
         const table = openedTable()

@@ -12,9 +12,7 @@
 
     const view = $derived(gameSession.shareAuctionView)
     const cash = $derived(
-        gameSession.myPlayerId
-            ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash
-            : 0
+        gameSession.myPlayerId ? gameSession.gameState.spendingPower(gameSession.myPlayerId) : 0
     )
     const myBid = $derived(gameSession.bidding && view?.currentBidderId === gameSession.myPlayerId)
 </script>

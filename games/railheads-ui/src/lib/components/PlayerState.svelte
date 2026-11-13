@@ -34,7 +34,7 @@
         if (!state.isFinalRound()) {
             return []
         }
-        const { companies, industries, ...extras } = state.finalPayouts()
+        const { companies, industries, ...extras } = state.finalPayoutsIfEndedNow()
         const style = editionStyle(state.editionId)
         const holdings =
             extras.perTollStar !== undefined ||

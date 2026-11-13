@@ -163,6 +163,27 @@ describe('the designated region', () => {
         expect(layFive(MIDLANDS_CHAIN)).not.toThrow()
     })
 
+    it('lets a crossing cube outside it count among the five', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.company(CompanyId.LMS).owners.push('p1')
+            state.company(CompanyId.LMS).treasury = 40
+            state.track.push({ coords: EAST_OF_LANCASTER, discs: [CompanyId.LNER] })
+        })
+        choose(table, ActionSpaceId.LayTrackIII)
+        const pieces = [
+            ...MIDLANDS_CHAIN.slice(0, 4).map((coords) => ({
+                companyId: CompanyId.LMS,
+                coords,
+                kind: PlacementKind.Disc
+            })),
+            { companyId: CompanyId.LMS, coords: EAST_OF_LANCASTER, kind: PlacementKind.Cube }
+        ]
+        expect(() =>
+            table.act('p1', { type: ActionType.LayTrack, placements: pieces })
+        ).not.toThrow()
+    })
+
     it('allows only four when one disc leaves it', () => {
         expect(layFive([...MIDLANDS_CHAIN.slice(0, 4), EAST_OF_LANCASTER])).toThrow()
     })

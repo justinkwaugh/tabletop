@@ -97,7 +97,9 @@ export class HydratedLayTrack extends HydratableAction<typeof LayTrack> implemen
                     state.placementLimit(
                         space,
                         companyId,
-                        mine.map((placement) => placement.coords)
+                        mine
+                            .filter((placement) => placement.kind === PlacementKind.Disc)
+                            .map((placement) => placement.coords)
                     ),
                 `Too many pieces for ${companyId}`
             )

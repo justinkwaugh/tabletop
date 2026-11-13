@@ -378,9 +378,16 @@ export class RailheadsGameSession extends GameSession<
             : { take: 0, repay: 0 }
     )
 
+    // Staged track was priced against the old loan money, so a loan change starts it over.
     setLoanChange(change: number) {
         const { take, repay } = this.loanRange
-        this.loanChange = Math.max(-repay, Math.min(take, change))
+        const next = Math.max(-repay, Math.min(take, change))
+        if (next === this.loanChange) return
+        const companyId = this.firstCompany
+        if (this.placements.length > 0 || this.boostHex) {
+            this.trackSelection = companyId ? selectCompany({}, 'first', companyId) : {}
+        }
+        this.loanChange = next
     }
 
     secondCompanyOptions: CompanyId[] = $derived.by(() => {
@@ -402,7 +409,7 @@ export class RailheadsGameSession extends GameSession<
         const limit = this.gameState.placementLimit(
             space,
             companyId,
-            pieces.map((piece) => piece.coords)
+            pieces.filter((piece) => piece.kind === PlacementKind.Disc).map((piece) => piece.coords)
         )
         return pieces.length >= limit
     }
@@ -435,13 +442,18 @@ export class RailheadsGameSession extends GameSession<
         }
         const tollsLaid = this.trackPreview.effects.filter((effect) => effect.tollId).length
         const staged = this.placements.filter((placement) => placement.companyId === companyId)
-        // The bonus piece must stay inside the region, like every piece before it.
+        // The bonus piece, if a disc, must stay inside the region like every disc before it.
         const regionOnly =
             staged.length >= (this.layRules?.placementsPerCompany ?? 0) &&
             (this.layRules?.regionPlacements ?? 0) > 0
         return this.shownState
             .placementTargets(playerId, space, companyId, tollsLaid)
-            .filter((target) => !regionOnly || this.gameState.inRegion(companyId, target.coords))
+            .filter(
+                (target) =>
+                    !regionOnly ||
+                    target.kind === PlacementKind.Cube ||
+                    this.gameState.inRegion(companyId, target.coords)
+            )
             .map((target) => ({ ...target, companyId }))
     })
 

@@ -21,9 +21,8 @@
 
     const state = $derived(gameSession.gameState)
     const machineState = $derived(state.machineState)
-    const cash = $derived(
-        gameSession.myPlayerId ? state.getPlayerState(gameSession.myPlayerId).cash : 0
-    )
+    // Toll chits cash in when a bid needs them, so they count towards what a player can bid.
+    const cash = $derived(gameSession.myPlayerId ? state.spendingPower(gameSession.myPlayerId) : 0)
     const cubes = $derived(
         gameSession.placements.filter((placement) => placement.kind === PlacementKind.Cube).length
     )
