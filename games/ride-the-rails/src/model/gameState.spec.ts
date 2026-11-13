@@ -100,6 +100,15 @@ describe('the fixture builder', () => {
         expect(state.activePlayerIds).toEqual(['p4'])
     })
 
+    it("sets a later round's turn order, and starts its phase with that order (R-2.5.1, R-2.2)", () => {
+        const turnOrder = ['p3', 'p1', 'p2']
+        const riding = buildState({ round: 3, phase: PhaseName.Ride, turnOrder })
+        expect(riding.turnManager.turnOrder).toEqual(turnOrder)
+        expect(riding.activePlayerIds).toEqual(['p3'])
+        expect(buildState({ round: 3, turnOrder }).activePlayerIds).toEqual(['p2'])
+        expect(() => buildState({ turnOrder: ['p1', 'p1', 'p2'] })).toThrow()
+    })
+
     it('starts Ride the Rails with the first player in turn order (R-2.2)', () => {
         expect(buildState({ round: 2, phase: PhaseName.Ride }).activePlayerIds).toEqual(['p1'])
     })

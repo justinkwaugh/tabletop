@@ -10,6 +10,7 @@ import {
     PhaseName,
     USA_CITIES,
     adjacentHexIds,
+    turnOrderByMoney,
     usaHex,
     type CityId,
     type HexId,
@@ -44,10 +45,15 @@ export type Run = readonly [RailroadId, readonly HexId[]]
 /** One building turn: its seat's placements in the order made. */
 export type BuildingTurn = { playerId: string; runs: readonly Run[] }
 
-/** A round as played: the share each seat took (R-3.1), then the building turns (R-3.2). */
+/**
+ * A round as played: the share each seat took (R-3.1), the building turns in turn order (R-3.2),
+ * and what each seat earned from its journeys, fares and dividends (R-3.3.4, R-3.3.5). In the
+ * current round the journeys are those ridden so far.
+ */
 export type PlayedRound = {
     shares: Readonly<Record<string, RailroadId>>
     builds: readonly BuildingTurn[]
+    journeys?: Readonly<Record<string, number>>
 }
 
 export type TableRecipe = {
@@ -56,8 +62,6 @@ export type TableRecipe = {
     rounds: readonly PlayedRound[]
     phase: PhaseName
     currentPlayerId?: string
-    /** What each seat earned from journeys in the rounds played (R-3.3.4, R-3.3.5). */
-    journeyMoney?: Readonly<Record<string, number>>
     /** The cities whose passenger a journey carried away (R-3.3.6). */
     carried?: readonly CityId[]
 }
@@ -156,6 +160,7 @@ function playBuildingTurn(
     position: Position,
     playerCount: number,
     round: number,
+    turnOrder: readonly string[],
     turn: BuildingTurn
 ): void {
     let state = buildState({
@@ -163,6 +168,7 @@ function playBuildingTurn(
         round,
         phase: PhaseName.Build,
         currentPlayerId: turn.playerId,
+        turnOrder,
         ...position
     })
     const placements = turn.runs.flatMap(([railroadId, hexIds]) =>
@@ -191,28 +197,59 @@ function playBuildingTurn(
     }
 }
 
-/** The recipe's position: every round played through the engine, then the current turn opened. */
-export function tableState(recipe: TableRecipe): HydratedRideTheRailsGameState {
-    const { playerCount, rounds, phase } = recipe
+/** A round's turn order, and each seat's money at its end (now, for the current round). */
+export type RoundRecord = { turnOrder: string[]; money: Record<string, number> }
+
+// Every round played through the engine. Round 1 keeps the assigned starting order (R-1.3.7);
+// each end of round sets the next round's order by money (R-2.5.1).
+function playRounds(recipe: TableRecipe): { position: Position; records: RoundRecord[] } {
+    const { playerCount, rounds } = recipe
     const playerIds = fixturePlayerIds(playerCount)
     const position = emptyPosition(playerIds)
+    const records: RoundRecord[] = []
+    let turnOrder = [...playerIds]
     for (const [index, round] of rounds.entries()) {
+        if (index > 0) {
+            turnOrder = turnOrderByMoney(
+                buildState({
+                    playerCount,
+                    round: index,
+                    phase: PhaseName.Ride,
+                    turnOrder,
+                    ...position
+                })
+            )
+        }
         for (const [playerId, railroadId] of Object.entries(round.shares)) {
             withShare(position, playerId, railroadId)
         }
         for (const turn of round.builds) {
-            playBuildingTurn(position, playerCount, index + 1, turn)
+            playBuildingTurn(position, playerCount, index + 1, turnOrder, turn)
         }
+        for (const [playerId, money] of Object.entries(round.journeys ?? {})) {
+            position.money[playerId] = (position.money[playerId] ?? 0) + money
+        }
+        records.push({ turnOrder, money: { ...position.money } })
     }
-    for (const [playerId, money] of Object.entries(recipe.journeyMoney ?? {})) {
-        position.money[playerId] = (position.money[playerId] ?? 0) + money
-    }
+    return { position, records }
+}
+
+/** Each round's turn order and the money at its end, as the recipe plays them. */
+export function roundRecords(recipe: TableRecipe): RoundRecord[] {
+    return playRounds(recipe).records
+}
+
+/** The recipe's position: every round played through the engine, then the current turn opened. */
+export function tableState(recipe: TableRecipe): HydratedRideTheRailsGameState {
+    const { playerCount, rounds, phase } = recipe
+    const { position, records } = playRounds(recipe)
     const carried = new Set(recipe.carried ?? [])
     return buildState({
         playerCount,
         round: rounds.length,
         phase,
         ...(recipe.currentPlayerId ? { currentPlayerId: recipe.currentPlayerId } : {}),
+        turnOrder: records.at(-1)?.turnOrder ?? fixturePlayerIds(playerCount),
         ...position,
         passengers: USA_CITIES.map((city) => city.id).filter((cityId) => !carried.has(cityId))
     })
@@ -334,7 +371,8 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p2', runs: [[RED, RED_WEST.slice(5, 10)]] },
                         { playerId: 'p3', runs: [[RED, RED_WEST.slice(10, 13)]] },
                         { playerId: 'p4', runs: [[BLUE, BLUE_SOUTH]] }
-                    ]
+                    ],
+                    journeys: { p1: 3, p2: 4, p3: 5, p4: 7 }
                 },
                 {
                     shares: { p1: RED, p2: RED, p3: ORANGE, p4: BLUE },
@@ -342,14 +380,14 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p1', runs: [[RED, RED_WEST.slice(13, 17)]] },
                         { playerId: 'p2', runs: [[RED, RED_WEST.slice(17, 20)]] },
                         { playerId: 'p3', runs: [[ORANGE, ORANGE_WEST.slice(0, 3)]] }
-                    ]
+                    ],
+                    journeys: { p1: 3, p2: 5, p3: 6, p4: 7 }
                 },
                 // Phase 1 runs in reverse turn order: Dell and Cora have taken theirs.
                 { shares: { p4: RED, p3: RED }, builds: [] }
             ],
             phase: PhaseName.TakeShare,
             currentPlayerId: 'p2',
-            journeyMoney: { p1: 6, p2: 9, p3: 11, p4: 14 },
             carried: [cityIdOf('New York'), cityIdOf('Pittsburgh'), cityIdOf('Baltimore')]
         }
     },
@@ -415,12 +453,12 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                                 [BLUE, [cityHexId('Washington'), 'hex.usa.11-53', 'hex.usa.11-51']]
                             ]
                         }
-                    ]
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4, p4: 5 }
                 },
                 { shares: { p4: ORANGE, p3: RED, p2: BLUE, p1: BLUE }, builds: [] }
             ],
-            phase: PhaseName.Build,
-            journeyMoney: { p1: 2, p2: 3, p3: 4, p4: 5 }
+            phase: PhaseName.Build
         }
     },
     // Scenarios 7 and 9: round 5, Ada holds Red, Orange and Black, and Black is unstarted.
@@ -436,7 +474,8 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p1', runs: [[RED, RED_WEST.slice(0, 5)]] },
                         { playerId: 'p2', runs: [[RED, RED_WEST.slice(5, 10)]] },
                         { playerId: 'p3', runs: [[BLUE, BLUE_SOUTH]] }
-                    ]
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4, p4: 5 }
                 },
                 {
                     shares: { p1: ORANGE, p2: RED, p3: ORANGE, p4: BLUE },
@@ -444,17 +483,22 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p1', runs: [[ORANGE, ORANGE_WEST.slice(0, 5)]] },
                         { playerId: 'p2', runs: [[RED, RED_WEST.slice(10, 13)]] },
                         { playerId: 'p3', runs: [[ORANGE, ORANGE_WEST.slice(5, 10)]] }
-                    ]
+                    ],
+                    journeys: { p1: 2, p2: 4, p3: 5, p4: 6 }
                 },
                 {
                     shares: { p1: ORANGE, p2: YELLOW, p3: RED, p4: ORANGE },
-                    builds: [{ playerId: 'p4', runs: [[ORANGE, ORANGE_WEST.slice(10, 12)]] }]
+                    builds: [{ playerId: 'p4', runs: [[ORANGE, ORANGE_WEST.slice(10, 12)]] }],
+                    journeys: { p1: 2, p2: 4, p3: 5, p4: 6 }
                 },
-                { shares: { p1: RED, p2: PURPLE, p3: YELLOW, p4: PURPLE }, builds: [] },
+                {
+                    shares: { p1: RED, p2: PURPLE, p3: YELLOW, p4: PURPLE },
+                    builds: [],
+                    journeys: { p1: 8, p2: 6, p3: 7, p4: 7 }
+                },
                 { shares: { p4: ORANGE, p3: BLACK, p2: RED, p1: BLACK }, builds: [] }
             ],
             phase: PhaseName.Build,
-            journeyMoney: { p1: 14, p2: 17, p3: 21, p4: 24 },
             carried: [cityIdOf('New York'), cityIdOf('Pittsburgh'), cityIdOf('Omaha')]
         }
     },
@@ -473,7 +517,8 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p2', runs: [[RED, RED_TO_CHICAGO.slice(5, 10)]] },
                         { playerId: 'p3', runs: [[BLUE, BLUE_SOUTH]] },
                         { playerId: 'p4', runs: [[RED, RED_TO_CHICAGO.slice(10, 15)]] }
-                    ]
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4, p4: 5 }
                 },
                 {
                     shares: { p1: ORANGE, p2: ORANGE, p3: RED, p4: ORANGE },
@@ -482,21 +527,26 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p2', runs: [[ORANGE, ORANGE_WEST.slice(5, 10)]] },
                         { playerId: 'p3', runs: [[RED, RED_TO_CHICAGO.slice(15)]] },
                         { playerId: 'p4', runs: [[ORANGE, ORANGE_WEST.slice(10)]] }
-                    ]
+                    ],
+                    journeys: { p1: 2, p2: 5, p3: 4, p4: 2 }
                 },
-                { shares: { p1: RED, p2: ORANGE, p3: YELLOW, p4: BLUE }, builds: [] },
+                {
+                    shares: { p1: RED, p2: ORANGE, p3: YELLOW, p4: BLUE },
+                    builds: [],
+                    journeys: { p1: 3, p2: 4, p3: 4, p4: 4 }
+                },
                 {
                     shares: { p1: PURPLE, p2: PURPLE, p3: PURPLE, p4: RED },
                     builds: [
                         { playerId: 'p1', runs: [[PURPLE, PURPLE_EAST.slice(0, 4)]] },
                         { playerId: 'p2', runs: [[PURPLE, PURPLE_EAST.slice(4, 8)]] },
                         { playerId: 'p3', runs: [[PURPLE, PURPLE_EAST.slice(8)]] }
-                    ]
+                    ],
+                    journeys: { p1: 8, p2: 6, p3: 8, p4: 11 }
                 },
                 { shares: { p4: ORANGE, p3: RED, p2: BLACK, p1: PURPLE }, builds: [] }
             ],
             phase: PhaseName.Build,
-            journeyMoney: { p1: 15, p2: 18, p3: 20, p4: 22 },
             carried: [cityIdOf('New York'), cityIdOf('Chicago'), cityIdOf('Omaha')]
         }
     },
@@ -514,7 +564,8 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p1', runs: [[RED, RED_WEST.slice(0, 8)]] },
                         { playerId: 'p2', runs: [[BLUE, BLUE_SOUTH]] },
                         { playerId: 'p3', runs: [[RED, RED_WEST.slice(8, 16)]] }
-                    ]
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4 }
                 },
                 {
                     shares: { p1: ORANGE, p2: ORANGE, p3: BLUE },
@@ -528,12 +579,12 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         },
                         { playerId: 'p2', runs: [[ORANGE, ORANGE_WEST.slice(4, 7)]] },
                         { playerId: 'p3', runs: [[RED, RED_WEST.slice(20)]] }
-                    ]
+                    ],
+                    journeys: { p1: 4, p2: 6, p3: 8 }
                 },
                 { shares: { p3: RED, p2: ORANGE, p1: YELLOW }, builds: [] }
             ],
             phase: PhaseName.Build,
-            journeyMoney: { p1: 7, p2: 9, p3: 12 },
             carried: [cityIdOf('New York'), cityIdOf('Pittsburgh'), cityIdOf('Chicago')]
         }
     },
@@ -551,7 +602,8 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p2', runs: [[RED, RED_WEST.slice(5, 10)]] },
                         { playerId: 'p3', runs: [[RED, RED_WEST.slice(10, 13)]] },
                         { playerId: 'p4', runs: [[BLUE, BLUE_SOUTH]] }
-                    ]
+                    ],
+                    journeys: { p1: 3, p2: 4, p3: 5, p4: 7 }
                 },
                 {
                     shares: { p1: RED, p2: RED, p3: ORANGE, p4: BLUE },
@@ -559,12 +611,12 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p1', runs: [[RED, RED_WEST.slice(13, 17)]] },
                         { playerId: 'p2', runs: [[RED, RED_WEST.slice(17, 19)]] },
                         { playerId: 'p3', runs: [[ORANGE, ORANGE_WEST.slice(0, 3)]] }
-                    ]
+                    ],
+                    journeys: { p1: 3, p2: 5, p3: 6, p4: 7 }
                 },
                 { shares: { p4: BLUE, p3: ORANGE, p2: RED, p1: BLUE }, builds: [] }
             ],
             phase: PhaseName.Build,
-            journeyMoney: { p1: 6, p2: 9, p3: 11, p4: 14 },
             carried: [cityIdOf('New York'), cityIdOf('Pittsburgh'), cityIdOf('Baltimore')]
         }
     },
@@ -576,13 +628,14 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
         recipe: {
             playerCount: 4,
             rounds: [
-                EAST_COAST_ROUND,
+                { ...EAST_COAST_ROUND, journeys: { p1: 2, p2: 3, p3: 4, p4: 5 } },
                 {
                     shares: { p4: ORANGE, p3: ORANGE, p2: RED, p1: ORANGE },
                     builds: [
                         { playerId: 'p1', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
                         { playerId: 'p3', runs: [[ORANGE, ORANGE_DES_MOINES]] }
-                    ]
+                    ],
+                    journeys: { p1: 3, p2: 5, p3: 5, p4: 5 }
                 },
                 {
                     shares: { p4: YELLOW, p3: BLUE, p2: YELLOW, p1: BLUE },
@@ -593,7 +646,6 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                 }
             ],
             phase: PhaseName.Ride,
-            journeyMoney: { p1: 9, p2: 7, p3: 10, p4: 6 },
             carried: [
                 cityIdOf('Albany'),
                 cityIdOf('Washington'),
@@ -615,7 +667,8 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                     builds: [
                         { playerId: 'p1', runs: [[RED, RED_NEW_YORK]] },
                         { playerId: 'p2', runs: [[BLUE, BLUE_SOUTH]] }
-                    ]
+                    ],
+                    journeys: { p1: 3, p2: 4, p3: 5, p4: 6 }
                 },
                 {
                     shares: { p4: ORANGE, p3: RED, p2: BLUE, p1: ORANGE },
@@ -625,7 +678,6 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                 }
             ],
             phase: PhaseName.Ride,
-            journeyMoney: { p1: 4, p2: 4, p3: 4, p4: 4 },
             carried: [
                 cityIdOf('New York'),
                 cityIdOf('Philadelphia'),
@@ -641,10 +693,9 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
         name: 'Round one ends',
         recipe: {
             playerCount: 4,
-            rounds: [EAST_COAST_ROUND],
+            rounds: [{ ...EAST_COAST_ROUND, journeys: { p1: 6, p2: 3, p3: 5, p4: 1 } }],
             phase: PhaseName.Ride,
             currentPlayerId: 'p4',
-            journeyMoney: { p1: 6, p2: 3, p3: 5, p4: 1 },
             carried: [cityIdOf('Albany'), cityIdOf('Baltimore'), cityIdOf('Philadelphia')]
         }
     },
@@ -662,29 +713,43 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                         { playerId: 'p1', runs: [[RED, RED_NEW_YORK]] },
                         { playerId: 'p2', runs: [[BLUE, BLUE_SOUTH]] },
                         { playerId: 'p3', runs: [[RED, RED_ALBANY]] }
-                    ]
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4 }
                 },
                 {
                     shares: { p3: ORANGE, p2: ORANGE, p1: RED },
                     builds: [
                         { playerId: 'p2', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
                         { playerId: 'p3', runs: [[ORANGE, ORANGE_DES_MOINES]] }
-                    ]
+                    ],
+                    journeys: { p1: 4, p2: 4, p3: 6 }
                 },
                 {
                     shares: { p3: YELLOW, p2: BLUE, p1: YELLOW },
                     builds: [
                         { playerId: 'p1', runs: [[YELLOW, YELLOW_MILWAUKEE]] },
                         { playerId: 'p3', runs: [[YELLOW, YELLOW_SAINT_LOUIS.slice(0, 4)]] }
-                    ]
+                    ],
+                    journeys: { p1: 5, p2: 5, p3: 6 }
                 },
-                { shares: { p3: PURPLE, p2: RED, p1: ORANGE }, builds: [] },
-                { shares: { p3: BLACK, p2: BLACK, p1: BLUE }, builds: [] },
-                { shares: { p3: RED, p2: YELLOW, p1: ORANGE }, builds: [] }
+                {
+                    shares: { p3: PURPLE, p2: RED, p1: ORANGE },
+                    builds: [],
+                    journeys: { p1: 7, p2: 8, p3: 9 }
+                },
+                {
+                    shares: { p3: BLACK, p2: BLACK, p1: BLUE },
+                    builds: [],
+                    journeys: { p1: 8, p2: 8, p3: 9 }
+                },
+                {
+                    shares: { p3: RED, p2: YELLOW, p1: ORANGE },
+                    builds: [],
+                    journeys: { p1: 14, p2: 10, p3: 5 }
+                }
             ],
             phase: PhaseName.Ride,
             currentPlayerId: 'p3',
-            journeyMoney: { p1: 40, p2: 38, p3: 39 },
             carried: [
                 cityIdOf('Albany'),
                 cityIdOf('Philadelphia'),

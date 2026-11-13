@@ -46,6 +46,8 @@ export type StateRecipe = {
     round?: number
     phase?: PhaseName
     currentPlayerId?: string
+    /** The round's turn order; p1, p2, ... when absent. Rounds after the first set it by money (R-2.5.1). */
+    turnOrder?: readonly string[]
     money?: Record<string, number>
     shares?: Record<string, Shares>
     track?: Track
@@ -87,7 +89,7 @@ export function freshState(playerCount = 3): HydratedRideTheRailsGameState {
     return new HydratedRideTheRailsGameState(initialState)
 }
 
-// The turn order is p1, p2, ... The phase's first player acts unless
+// The turn order is the recipe's, else p1, p2, ... The phase's first player acts unless
 // currentPlayerId says otherwise: the last in turn order for Take a Share (R-2.2), else the first.
 export function buildState(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
     const { playerCount = 3, round = 1, phase = PhaseName.TakeShare } = recipe
@@ -98,6 +100,13 @@ export function buildState(recipe: StateRecipe = {}): HydratedRideTheRailsGameSt
     state.phaseManager = phasesUpTo(phase)
     state.machineState = PHASE_MACHINE_STATES[phase]
 
+    if (recipe.turnOrder) {
+        assert(
+            [...recipe.turnOrder].sort().join() === [...state.turnManager.turnOrder].sort().join(),
+            `The turn order ${recipe.turnOrder.join()} is not every seat once`
+        )
+        state.turnManager.turnOrder = [...recipe.turnOrder]
+    }
     const turnOrder = state.turnManager.turnOrder
     const firstPlayerId = phase === PhaseName.TakeShare ? turnOrder.at(-1) : turnOrder[0]
     const currentPlayerId = recipe.currentPlayerId ?? firstPlayerId

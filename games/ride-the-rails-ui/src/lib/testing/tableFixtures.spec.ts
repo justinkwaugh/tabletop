@@ -12,6 +12,7 @@ import {
     TABLE_FIXTURES,
     fixtureFile,
     fixturePosition,
+    roundRecords,
     tableState
 } from './tableFixtures.js'
 
@@ -85,6 +86,49 @@ describe('the named table fixtures', () => {
         )
         for (const cityId of recipe.carried ?? []) {
             expect(hydrated.passengers).not.toContain(cityId)
+        }
+    })
+
+    it.each(TABLE_FIXTURES)("$name's turn order is the one its rounds' money sets", (fixture) => {
+        const { recipe } = fixture
+        const records = roundRecords(recipe)
+        expect(records).toHaveLength(recipe.rounds.length)
+        // R-1.3.7: the first round keeps the assigned starting order.
+        expect(records[0]?.turnOrder).toEqual(
+            fixturePosition(fixture).game.players.map((p) => p.id)
+        )
+        for (const [index, record] of records.entries()) {
+            const played = recipe.rounds[index]
+            // R-2.2: building turns run in turn order; a part-taken Take a Share, in reverse.
+            const builders = played?.builds.map((turn) => turn.playerId) ?? []
+            expect(builders).toEqual(
+                record.turnOrder.filter((playerId) => builders.includes(playerId))
+            )
+            const sharers = Object.keys(played?.shares ?? {})
+            if (sharers.length < recipe.playerCount) {
+                expect(sharers).toEqual(record.turnOrder.toReversed().slice(0, sharers.length))
+            }
+            const previous = records[index - 1]
+            if (!previous) continue
+            // R-2.5.1, R-2.5-H1: lowest money first at the round's end; tied seats swap.
+            const money = (playerId: string) => previous.money[playerId] ?? 0
+            for (const [position, playerId] of record.turnOrder.entries()) {
+                const next = record.turnOrder[position + 1]
+                if (next === undefined) continue
+                expect(money(playerId)).toBeLessThanOrEqual(money(next))
+                if (money(playerId) === money(next)) {
+                    expect(previous.turnOrder.indexOf(playerId)).toBeGreaterThan(
+                        previous.turnOrder.indexOf(next)
+                    )
+                }
+            }
+        }
+        const state = tableState(recipe)
+        expect(state.turnManager.turnOrder).toEqual(records.at(-1)?.turnOrder)
+        if (recipe.phase === PhaseName.TakeShare) {
+            // R-2.2: the deciding seat is the next in reverse turn order.
+            const taken = Object.keys(recipe.rounds.at(-1)?.shares ?? {}).length
+            expect(state.activePlayerIds).toEqual([state.turnManager.turnOrder.toReversed()[taken]])
         }
     })
 })

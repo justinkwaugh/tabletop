@@ -72,7 +72,7 @@
    {
     "playerId": "p1",
     "color": "pink",
-    "money": 6,
+    "money": 5,
     "shares": {
      "railroad.red": 1,
      "railroad.orange": 1
@@ -89,7 +89,7 @@
    {
     "playerId": "p3",
     "color": "green",
-    "money": 4,
+    "money": 5,
     "shares": {
      "railroad.red": 2
     }
@@ -97,7 +97,7 @@
    {
     "playerId": "p4",
     "color": "white",
-    "money": 4,
+    "money": 6,
     "shares": {
      "railroad.blue": 1,
      "railroad.orange": 1
