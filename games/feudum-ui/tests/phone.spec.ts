@@ -534,6 +534,20 @@ test.describe('held upright', () => {
         for (const button of await panel(page).locator('[data-rows="pouch"] button').all()) {
             await expectTarget(button)
         }
+        // R-3.3 The two choices side by side without the line beneath; a dimmed one's reason in
+        // one line under the pair, before any press.
+        const choices = panel(page).locator('[data-rows="pouch"] [data-pouch-choice]')
+        const [left, right] = [await rect(choices.nth(0)), await rect(choices.nth(1))]
+        expect(Math.abs(left.y - right.y)).toBeLessThan(1)
+        expect(right.x).toBeGreaterThanOrEqual(left.x + left.width)
+        await expect(choices.locator('[data-pouch-caption]').first()).toBeHidden()
+        const refused = panel(page).locator('[data-rows="pouch"] [aria-disabled="true"]')
+        await expect(refused.first()).toBeVisible()
+        const reason = panel(page).locator('[data-pouch-reason]')
+        await expect(reason).toBeVisible()
+        await expect(reason).toHaveText(/ · You hold no /)
+        expect((await rect(reason)).y).toBeGreaterThanOrEqual(left.y + left.height)
+        expect(send.y).toBeGreaterThanOrEqual((await rect(reason)).y)
 
         expect(send.y + send.height).toBeLessThanOrEqual(sheet.y + sheet.height + 1)
         expect(await panel(page).locator('[data-primary-note]').innerText()).toBe("can't be undone")

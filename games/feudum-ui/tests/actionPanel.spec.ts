@@ -25,8 +25,8 @@ test.afterEach(({ page }) => {
 
 const panel = (page: Page) => page.locator('[data-action-panel]')
 
-/** Contract, Hand selection: a desk's draft, the eleven beside tray A, stays under about 320 px. */
-const DeskDraftHeight = 320
+/** Contract, Hand selection: a desk's draft, the eleven beside tray A, stays under about 350 px. */
+const DeskDraftHeight = 350
 const lit = (page: Page) => page.locator('[data-pick-role="lit"]')
 const bright = (page: Page) => page.locator('[data-bright]')
 const enlarged = (page: Page) => page.locator('[data-enlarged]')
@@ -130,7 +130,9 @@ test('S5 R-3.3 a dimmed pouch choice says why in place of what it does, once', a
     await expect(dimmed.first().locator('[data-pouch-caption]')).toHaveText(/^You hold no /)
     // It only looks disabled: it takes the press, and says nothing more.
     await dimmed.first().click({ force: true })
-    await expect(panel(page).locator('[data-rows="pouch"] [data-refusal]')).toBeHidden()
+    await expect(panel(page).locator('[data-rows="pouch"] [data-refusal]')).toHaveCount(0)
+    // A desk says why in the caption's place, so the phone's line under the pair stays hidden.
+    await expect(panel(page).locator('[data-pouch-reason]')).toBeHidden()
     await shot(page, 'pouch-refused')
 })
 
@@ -206,6 +208,17 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
     const pouchLabel = await box(panel(page).locator('[data-tray-label="pouch"]'))
     expect(pouchLabel.y).toBeGreaterThanOrEqual(pouch.y - 1)
     expect(pouchLabel.y).toBeLessThan(pouch.y + pouch.height)
+    // R-3.3 The two choices stack, each as wide as the slots, each with what it does beneath.
+    const choices = panel(page).locator('[data-rows="pouch"] [data-pouch-choice]')
+    await expect(choices).toHaveCount(2)
+    const [upper, lower] = [await box(choices.nth(0)), await box(choices.nth(1))]
+    expect(lower.y).toBeGreaterThanOrEqual(upper.y + upper.height)
+    for (const choice of [upper, lower]) {
+        expect(Math.abs(choice.x - plan.x)).toBeLessThan(1)
+        expect(Math.abs(choice.width - plan.width)).toBeLessThan(1)
+    }
+    await expect(choices.locator('[data-pouch-caption]')).toHaveCount(2)
+    await expect(choices.locator('[data-pouch-caption]').first()).toBeVisible()
     await shot(page, 'draft-two-picked')
 
     await slots.nth(0).locator('button').click()

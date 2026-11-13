@@ -51,12 +51,17 @@ scenario('S5 R-3.3 Saltpeter count', 'hands-first-saltpeter', async (table) => {
 scenario('S6 R-3.3 Pouch from barrel refused', 'hands-barrel-sulfur', async (table) => {
     const sulfur = table.rowStarting('Sulfur')
     await expect(sulfur).toHaveAttribute('aria-disabled', 'true')
-    // Contract, Hand selection: it says why in place of what it does; a phone, without that line, on the press.
+    // Contract, Hand selection: it says why in place of what it does; a phone, without that line,
+    // in one line under the pair, before any press.
     const why = "Barrel sulfur can't go in the pouch."
-    if (!table.phone) await expect(sulfur.locator('[data-pouch-caption]')).toHaveText(why)
+    const reason = table.panel().locator('[data-pouch-reason]')
+    if (table.phone) await expect(reason).toContainText(`2 in a row · ${why}`)
+    else {
+        await expect(sulfur.locator('[data-pouch-caption]')).toHaveText(why)
+        await expect(reason).toBeHidden()
+    }
     await table.pressDimmed(sulfur)
-    if (table.phone) await expect(table.panel().locator('[data-refusal]')).toHaveText(why)
-    else await expect(table.panel().locator('[data-refusal]')).toBeHidden()
+    await expect(table.panel().locator('[data-refusal]')).toHaveCount(0)
     await expect(table.panel().locator('[data-row^="Sulfur"][data-picked]')).toHaveCount(0)
 })
 
