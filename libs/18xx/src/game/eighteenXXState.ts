@@ -180,7 +180,11 @@ export function composeEighteenXXState<
 class StateHydrator<Schema extends TitleStateSchema> extends HydratableGameState<
     Schema,
     PlayerState
-> {}
+> {
+    carries(stored: Type.Static<Schema>): this is this & Type.Static<Schema> {
+        return Object.keys(stored).every((field) => Object.hasOwn(this, field))
+    }
+}
 
 export type EighteenXXStateDefinition<
     Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
@@ -205,8 +209,8 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
         hydrate(data, components) {
             const stored = read(data)
             if (!validator.Check(stored)) throw new Error(JSON.stringify(validator.Errors(stored)))
-            const core = new StateHydrator(stored, validator)
-            const state = Object.assign(core, core.dehydrate(), { turnManager: core.turnManager })
+            const state = new StateHydrator(stored, validator)
+            assert(state.carries(stored), 'The hydrated state carries every stored field')
             assert(
                 new Set(state.players.map((player) => player.playerId)).size ===
                     state.players.length,
