@@ -1,7 +1,12 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    coordinatesToNumber,
+    distanceAxial,
+    sameCoordinates,
+    type AxialCoordinates
+} from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
@@ -14,7 +19,7 @@ import {
     PieceKind,
     type HydratedGipfPotentialsGameState
 } from '@tabletop/gipf-potentials'
-import type { GipfPotentialsGameSession } from '$lib/model/session.svelte.js'
+import type { GipfPotentialsGameSession, MoveInterrupter } from '$lib/model/session.svelte.js'
 import {
     boardChange,
     discsOf,
@@ -25,7 +30,15 @@ import {
 } from '$lib/board/boardChange.js'
 import { PIECE_RADIUS, SPACING } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE, skidAt, skidDuration } from '$lib/board/hop.js'
-import { dropCrease, dropDisc, dropShadow, landing, LIFT_OFF, type PieceParts } from './drop.js'
+import {
+    dropCrease,
+    dropDisc,
+    dropShadow,
+    landing,
+    LIFT_OFF,
+    type Lift,
+    type PieceParts
+} from './drop.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -38,10 +51,15 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 
 const SLIDE = 0.35
 // Seen from the side, a taken piece floats straight up as it fades, and its shadow shrinks.
-const TAKE = { duration: 0.55, rise: -34, fade: 'power1.out' }
+const TAKE: Lift = { duration: 0.55, rise: -34, fade: 'power1.out' }
 const MARK_FADE = 0.2
 // Undo and history play quickly, without the bounces.
 const QUICK = 0.18
+// A push taken back that no one restages slides back to its dot and lifts off there; slide and
+// lift overlap so the change stays within an actionless step's 0.2s.
+const UNPUSH_SLIDE = 0.14
+const UNPUSH_LIFT_AT = 0.08
+const UNPUSH_LIFT: Lift = { duration: 0.12, rise: LIFT_OFF.rise, fade: LIFT_OFF.fade }
 // Landing on a stack bounces mostly up and down, with a little of the hop's momentum carrying
 // it along; landing on the board, it rebounds along the hop.
 const BOUNCE = {
@@ -102,7 +120,7 @@ function drawnStacks(state: HydratedGipfPotentialsGameState): DrawnStack[] {
     }))
 }
 
-export class BoardAnimator {
+export class BoardAnimator implements MoveInterrupter {
     // What the board draws. A replay plays several actions before the visible state catches
     // up, so each animated action leaves the board as it ended until that state lands.
     stacks: DrawnStack[] = $derived.by(() => drawnStacks(this.session.gameState))
@@ -120,12 +138,37 @@ export class BoardAnimator {
     private readonly markNodes = new Set<SVGGElement>()
     private readonly occluders = new Map<SVGUseElement, Occluder>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
+    private playing: Timeline | undefined
+    private abandoned: HydratedGipfPotentialsGameState | undefined
 
     constructor(private readonly session: GipfPotentialsGameSession) {}
 
     readonly attach: Attachment = () => {
         this.session.addGameStateChangeListener(this.listener)
-        return () => this.session.removeGameStateChangeListener(this.listener)
+        this.session.moveInterrupter = this
+        return () => {
+            this.session.removeGameStateChangeListener(this.listener)
+            if (this.session.moveInterrupter === this) this.session.moveInterrupter = undefined
+        }
+    }
+
+    interrupt() {
+        this.finishMove()
+    }
+
+    abandon() {
+        this.finishMove()
+        this.abandoned = this.session.presentingState
+    }
+
+    // Ends the shared context's timeline at once, so the move lands without waiting out its length.
+    private finishMove() {
+        const timeline = this.playing
+        if (timeline === undefined) return
+        // Until the context plays it, a timeline sits under GSAP's global one, which must not jump.
+        const parent = timeline.parent
+        const master = parent && parent !== gsap.globalTimeline ? parent : timeline
+        master.progress(1)
     }
 
     private nodesOf(key: number): StackNodes {
@@ -223,10 +266,24 @@ export class BoardAnimator {
         if (from === undefined || !ANIMATED_KINDS.has(kind)) {
             return
         }
+        const presenting = this.session.presentingState
+        if (presenting !== undefined && presenting === this.abandoned) {
+            return
+        }
+        this.abandoned = undefined
+        this.playing = animationContext.actionTimeline
+        const shown = this.session.gameState
         // Undo and state-only history steps carry no action and play quickly; a replay plays the move.
         const quick = action === undefined
+        // onHistoryAction names the action before the one a step back undoes, so a step back
+        // reads the move by its index.
         const known =
-            action ?? (kind === 'undo' ? this.session.undoingMove : this.session.historyMove)
+            action ??
+            (to.actionCount < from.actionCount
+                ? this.session.undoneMove(to)
+                : kind === 'history'
+                  ? this.session.historyMove
+                  : undefined)
         const placement = isPushPiece(known) || isExtraMove(known) ? known : undefined
         const change = boardChange(from.board, to.board, placement)
         // Each spot's drawing is reused for whatever stack next stands there, so every node a
@@ -250,7 +307,7 @@ export class BoardAnimator {
         animationContext.actionTimeline.add(timeline, (performance.now() - drawing) / 1000)
 
         if (change.kind === 'push') {
-            returned = await this.push(change, kind, quick, timeline, touched)
+            returned = await this.push(change, kind, to, quick, timeline, touched)
         } else if (change.kind === 'move') {
             this.hop(from, change, timeline, touched, quick)
         } else {
@@ -261,12 +318,15 @@ export class BoardAnimator {
         }
 
         animationContext.afterAnimations(() => {
-            this.stacks = drawnStacks(to)
+            if (this.playing === animationContext.actionTimeline) this.playing = undefined
             this.entering = undefined
             this.flier = undefined
-            this.returned = returned
             for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             if (this.markNodes.size > 0) gsap.set([...this.markNodes], { opacity: 1 })
+            // A switch of view has already shown another state, which this board must not cover.
+            if (this.session.gameState !== shown) return
+            this.stacks = drawnStacks(to)
+            this.returned = returned
         })
     }
 
@@ -305,6 +365,7 @@ export class BoardAnimator {
     private async push(
         change: PushChange,
         kind: TransitionKind,
+        to: HydratedGipfPotentialsGameState,
         quick: boolean,
         timeline: Timeline,
         touched: SVGGElement[]
@@ -319,8 +380,9 @@ export class BoardAnimator {
             const own = kind === 'own-action'
             const at = own || quick ? 0 : landing(discs.length)
             if (own) this.pushedIn = true
-            if (change.fromCentre)
-                this.liftDiscs(coordinatesToNumber(CENTRE), 1, timeline, touched, quick)
+            if (change.fromCentre) {
+                this.liftDiscs(CENTRE, 1, timeline, touched, quick ? LIFT_OFF : TAKE)
+            }
             this.slide(
                 line.slice(0, shifted),
                 alongLine(line, this),
@@ -333,22 +395,21 @@ export class BoardAnimator {
             if (at > 0) this.dropEntering(timeline)
             return undefined
         }
-        // Back out: the stacks it moved go back a spot, and the stack it brought lifts off its
-        // first spot, or, undone, slides back onto its dot, staged as you chose it.
+        // Back out: the stacks it moved go back a spot and the stack it brought slides back onto
+        // its dot. Your own Undo leaves it standing there, staged as you chose it; any other step
+        // back lifts it off.
         const along = alongLine(line, this)
-        this.slide(
-            line.slice(1, shifted + 1),
-            { x: -along.x, y: -along.y },
-            timeline,
-            QUICK,
-            touched
-        )
-        if (kind !== 'undo') {
-            this.liftDiscs(coordinatesToNumber(line[0]), discs.length, timeline, touched, true)
-            return undefined
+        const back = { x: -along.x, y: -along.y }
+        const toDot = this.offset(line[0], dot)
+        if (kind === 'undo' && this.session.restagedMove(to) !== undefined) {
+            this.slide(line.slice(1, shifted + 1), back, timeline, QUICK, touched)
+            this.slide([line[0]], toDot, timeline, QUICK, touched)
+            return { discs, dot }
         }
-        this.slide([line[0]], this.offset(line[0], dot), timeline, QUICK, touched)
-        return { discs, dot }
+        this.slide(line.slice(1, shifted + 1), back, timeline, UNPUSH_SLIDE, touched)
+        this.slide([line[0]], toDot, timeline, UNPUSH_SLIDE, touched)
+        this.liftDiscs(line[0], discs.length, timeline, touched, UNPUSH_LIFT, UNPUSH_LIFT_AT)
+        return undefined
     }
 
     private slide(
@@ -394,37 +455,36 @@ export class BoardAnimator {
     // The top `count` discs of a stack float up as they fade; a whole stack takes its shadow
     // with it.
     private liftDiscs(
-        key: number,
+        coords: AxialCoordinates,
         count: number,
         timeline: Timeline,
         touched: SVGGElement[],
-        quick: boolean
+        { duration, rise, fade }: Lift,
+        at = 0
     ) {
-        const nodes = this.stackNodes.get(key)
+        const nodes = this.stackNodes.get(coordinatesToNumber(coords))
         if (nodes === undefined) return
         const total = nodes.discs.size
-        const { duration, rise } = quick ? LIFT_OFF : TAKE
         const ease = 'power1.out'
-        const fade = quick ? LIFT_OFF.fade : TAKE.fade
         if (count >= total && nodes.body && nodes.shadow) {
             const { body, shadow } = nodes
             touched.push(...scaledFromCentre(body, shadow))
-            timeline.to(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }, 0)
-            timeline.to(body, { opacity: 0, duration, ease: fade }, 0)
-            timeline.to(shadow, { opacity: 0, scale: LIFT_OFF.shadow, duration, ease }, 0)
+            timeline.to(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }, at)
+            timeline.to(body, { opacity: 0, duration, ease: fade }, at)
+            timeline.to(shadow, { opacity: 0, scale: LIFT_OFF.shadow, duration, ease }, at)
             return
         }
         for (let index = total - count; index < total; index++) {
             const disc = nodes.discs.get(index)
             if (disc === undefined) continue
             touched.push(disc)
-            timeline.to(disc, { y: rise, duration, ease }, 0)
-            timeline.to(disc, { opacity: 0, duration, ease: fade }, 0)
+            timeline.to(disc, { y: rise, duration, ease }, at)
+            timeline.to(disc, { opacity: 0, duration, ease: fade }, at)
         }
         const crease = nodes.creases.get(total - count - 1)
         if (crease) {
             touched.push(crease)
-            timeline.to(crease, { opacity: 0, duration, ease }, 0)
+            timeline.to(crease, { opacity: 0, duration, ease }, at)
         }
     }
 
@@ -437,11 +497,11 @@ export class BoardAnimator {
             )
             if (gaining) continue
             this.liftDiscs(
-                coordinatesToNumber(removed.coords),
+                removed.coords,
                 removed.discs.length,
                 timeline,
                 touched,
-                quick
+                quick ? LIFT_OFF : TAKE
             )
         }
         for (const added of change.added) {
@@ -722,7 +782,7 @@ function alongLine(line: readonly AxialCoordinates[], animator: BoardAnimator) {
 function spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordinates[] {
     const dq = to.q - from.q
     const dr = to.r - from.r
-    const steps = Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr))
+    const steps = distanceAxial(from, to)
     return Array.from({ length: Math.max(0, steps - 1) }, (_, index) => ({
         q: from.q + (dq / steps) * (index + 1),
         r: from.r + (dr / steps) * (index + 1)
