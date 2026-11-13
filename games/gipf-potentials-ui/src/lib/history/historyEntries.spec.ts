@@ -76,8 +76,7 @@ describe('history entries', () => {
         from: pointAt('D6'),
         to: pointAt('D7'),
         metadata: {
-            kind: PieceKind.Dvonn,
-            landed: { playerId: 'b', kind: PieceKind.Dvonn, discIds: [5] }
+            kind: PieceKind.Dvonn
         }
     }
     const skip: SkipExtraMove = { ...base('b'), type: ActionType.SkipExtraMove }

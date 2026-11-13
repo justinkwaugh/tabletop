@@ -3,13 +3,11 @@ import { Compile } from 'typebox/compile'
 import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { PieceKind, PotentialKind, Unit } from '../model/pieces.js'
+import { PieceKind, PotentialKind } from '../model/pieces.js'
 
 export type MovePotentialMetadata = Type.Static<typeof MovePotentialMetadata>
 export const MovePotentialMetadata = Type.Object({
-    kind: PotentialKind,
-    covered: Type.Optional(Unit),
-    landed: Unit
+    kind: PotentialKind
 })
 
 export type MovePotential = Type.Static<typeof MovePotential>
@@ -53,8 +51,8 @@ export class HydratedMovePotential
         if (kind === undefined || !this.isValid(state)) {
             throw Error('Invalid MovePotential action')
         }
-        const result = state.movePotential(this.playerId, this.from, this.to, this.cover ?? 0)
-        this.metadata = { kind, ...structuredClone(result) }
+        state.movePotential(this.playerId, this.from, this.to, this.cover)
+        this.metadata = { kind }
     }
 
     isValid(state: HydratedGipfPotentialsGameState): boolean {

@@ -1,4 +1,5 @@
 import {
+    assertExists,
     GameResult,
     GameState,
     HydratableGameState,
@@ -204,18 +205,15 @@ export class HydratedGipfPotentialsGameState
     }
 
     // A PÜNCT-potential landing on a GIPF-piece leaves the game; reserve pieces cover it instead.
-    movePotential(
-        playerId: string,
-        from: AxialCoordinates,
-        to: AxialCoordinates,
-        cover: number
-    ): { covered?: Unit; landed: Unit } {
-        const covered = this.board.topAt(to)
+    movePotential(playerId: string, from: AxialCoordinates, to: AxialCoordinates, cover?: number) {
+        const coversGipf = this.board.topAt(to)?.kind === PieceKind.Gipf
         const potential = this.board.unload(from)
-        const landed: Unit =
-            covered?.kind === PieceKind.Gipf ? this.coverPieces(playerId, cover) : potential
-        this.board.place(to, landed)
-        return { ...(covered === undefined ? {} : { covered: structuredClone(covered) }), landed }
+        if (coversGipf) {
+            assertExists(cover, 'A PÜNCT-potential covering a GIPF-piece says how many pieces')
+            this.board.place(to, this.coverPieces(playerId, cover))
+        } else {
+            this.board.place(to, potential)
+        }
     }
 
     private coverPieces(playerId: string, count: number): Unit {

@@ -46,8 +46,8 @@ const files = await page.evaluate(() => {
     })
 })
 
-// The board fits at up to 2.5 pixels per unit (GameTable's maxFitScale), and the readiness review
-// allows images 2.5 times their drawn size. Zoomed in further, to 4, the pieces are a little soft.
+// The board fits at up to 2.5 pixels per unit (GameTable's maxFitScale); 2.5 times that is HiDPI
+// with headroom, and keeps the files small. Zoomed in further, to 4, the pieces are a little soft.
 const SCALE = 2.5 * 2.5
 // Drawn larger and halved down, the seams between a groove's many bands blend away.
 const SUPERSAMPLE = 4

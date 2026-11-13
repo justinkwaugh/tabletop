@@ -70,7 +70,7 @@ function endTurn(state: HydratedGipfPotentialsGameState, moverId: string): Machi
     return beginTurn(state, opponentId)
 }
 
-// No row that must go stands as a turn begins: both players' are taken after every regular move.
+// A turn opens with an extra move the opponent gave; rows wait for the regular move.
 function beginTurn(state: HydratedGipfPotentialsGameState, playerId: string): MachineState {
     const owed = state.extraMoveOwedIds.includes(playerId)
     state.extraMoveOwedIds = state.extraMoveOwedIds.filter((owedId) => owedId !== playerId)

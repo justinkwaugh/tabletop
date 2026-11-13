@@ -244,7 +244,10 @@ export class GipfPotentialsGameSession extends GameSession<
 
     canCoverWithGipf: boolean = $derived.by(() => {
         const playerId = this.myPlayer?.id
-        return playerId !== undefined && this.gameState.getPlayerState(playerId).reserve >= 2
+        return (
+            playerId !== undefined &&
+            this.gameState.getPlayerState(playerId).reserve >= GIPF_PIECE_SIZE
+        )
     })
 
     rows: Row[] = $derived.by(() => {
