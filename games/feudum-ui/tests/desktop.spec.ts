@@ -175,6 +175,26 @@ test.describe('a 1440 px desk', () => {
         await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     })
 
+    test('Contract, Supply: the zoom row stands right under the guild standings’ strip, not at the column’s foot', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await settled(page)
+        const strip = await rect(page.locator('[data-guild-strip]'))
+        const view = await rect(page.locator('[data-board-view]'))
+        const zoom = await rect(page.getByRole('button', { name: 'Zoom in' }))
+        const key = await rect(page.locator('[data-symbol-key-toggle]'))
+        const stripFoot = strip.y + strip.height
+        // The row stands in the band under the strip: below it, and no further down than the band.
+        expect(zoom.y).toBeGreaterThanOrEqual(stripFoot)
+        expect(key.y + key.height - stripFoot).toBeLessThan(64)
+        // The board's view ends with the band, so the row is the last thing in it.
+        expect(Math.abs(view.y + view.height - (key.y + key.height))).toBeLessThan(8)
+        // The board still takes the column's width.
+        const surface = await rect(page.locator('[data-board-surface]'))
+        expect(Math.abs(surface.width - view.width)).toBeLessThan(2)
+    })
+
     test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
         page
     }) => {

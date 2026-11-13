@@ -26,6 +26,7 @@
         BoardFocus,
         ChooserInset,
         CoverBelowScale,
+        deskScaledHeight,
         litAreasOf,
         pickFrameOf,
         restScaleOf,
@@ -34,6 +35,7 @@
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { FeudumGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
+    import { BoardWidth } from '$lib/utils/boardGeometry.js'
 
     let {
         gameSession
@@ -73,6 +75,15 @@
         phone.phone &&
             (feudumSession.handPanel?.drafting !== undefined ||
                 feudumSession.handPanel?.set !== undefined)
+    )
+
+    /**
+     * Contract, Supply: on a desk the board's view is as tall as the board, the standings' strip
+     * and the zoom row's band at the column's width, so the row stands under the strip. A phone's
+     * view takes the column's height.
+     */
+    let deskView = $derived(
+        `aspect-ratio:${BoardWidth} / ${deskScaledHeight(feudumSession.gameState.players.length)}`
     )
 
     let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
@@ -177,7 +188,11 @@
                         {@render turnControls()}
                     {/if}
                 </div>
-                <div class="relative grow-0 overflow-hidden" style="flex:1;" data-board-view>
+                <div
+                    class="board-view relative grow-0 overflow-hidden"
+                    style={phone.phone ? 'flex:1;' : deskView}
+                    data-board-view
+                >
                     <ScalingWrapper
                         bind:this={wrapper}
                         justify="center"
@@ -235,6 +250,12 @@
 <style>
     .game-stack {
         display: contents;
+    }
+
+    /* A desk's board view: its own shape at the column's width, no taller. */
+    .feudum-table:not([data-phone]) .board-view {
+        flex: none;
+        width: 100%;
     }
 
     /* The column's height is the action area's measure, in the page and in full screen alike. */
