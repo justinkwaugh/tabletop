@@ -577,12 +577,8 @@ export class BoardAnimator implements MoveInterrupter {
         const settled = bounces ? BOUNCES.steps.reduce((sum, step) => sum + step.duration, 0) : 0
         timeline.to({}, { duration: plan.duration + settled, onUpdate: occlude }, 0)
 
-        if (move.cover && quick) {
-            gsap.set(body, { opacity: 0 })
-            return
-        }
         if (move.cover) {
-            this.coverOver(move, height(move.to), timeline, touched, plan.duration)
+            this.coverOver(move, height(move.to), timeline, touched, plan.duration, quick)
             return
         }
         if (quick) return
@@ -596,22 +592,32 @@ export class BoardAnimator implements MoveInterrupter {
         below: number,
         timeline: Timeline,
         touched: SVGGElement[],
-        at: number
+        landed: number,
+        quick: boolean
     ) {
+        const cover = move.cover ?? []
+        // An actionless step has only the hop's 0.18 s, so the cover drops as the potential hops.
+        const fade = quick
+            ? { at: landed / 2, duration: landed / 2 }
+            : { at: landed, duration: COVER_FADE }
+        const drop = quick
+            ? { at: 0, timing: quickDrop(cover.length) }
+            : { at: landed, timing: DROP }
         const { body } = this.flierNodes
-        if (body) timeline.to(body, { opacity: 0, duration: COVER_FADE, ease: 'power1.in' }, at)
+        if (body)
+            timeline.to(body, { opacity: 0, duration: fade.duration, ease: 'power1.in' }, fade.at)
         const nodes = this.stackNodes.get(coordinatesToNumber(move.to))
         if (nodes === undefined) return
-        move.cover?.forEach((_, index) => {
+        cover.forEach((_, index) => {
             const disc = nodes.discs.get(below + index)
             if (disc) {
                 touched.push(disc)
-                dropDisc(timeline, disc, index, at)
+                dropDisc(timeline, disc, index, drop.at, drop.timing)
             }
             const crease = nodes.creases.get(below + index - 1)
             if (crease) {
                 touched.push(crease)
-                dropCrease(timeline, crease, index - 1, at)
+                dropCrease(timeline, crease, index - 1, drop.at, drop.timing)
             }
         })
     }
