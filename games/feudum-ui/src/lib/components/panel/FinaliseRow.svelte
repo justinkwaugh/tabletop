@@ -53,7 +53,8 @@
                         : 'choosing'}</span
                 >
                 {#if entry.finalised}
-                    <span role="img" aria-label="finalised">✓</span>
+                    <!-- The words beside it say "finalised", on a phone to a screen reader alone. -->
+                    <span aria-hidden="true">✓</span>
                 {/if}
             </span>
         {/each}

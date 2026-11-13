@@ -96,6 +96,12 @@ describe('R-3.1 the finalise row', () => {
         expect(row).not.toContain('next to finalise')
     })
 
+    it('S8 a finalised seat is said once: its tick is hidden from a screen reader, which reads the words', () => {
+        const [, ana] = row.split('data-finalise-seat=')
+        expect(ana).toMatch(/<span aria-hidden="true"[^>]*>✓<\/span>/)
+        expect(ana).not.toContain('aria-label="finalised"')
+    })
+
     it('S8 a seat still choosing, while the viewer waits on it, is marked waited on', () => {
         const [, ana, ben, cyd] = row.split('data-finalise-seat=')
         expect(cyd).toContain('data-awaited')
