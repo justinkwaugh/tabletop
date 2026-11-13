@@ -17,6 +17,15 @@ export const DROP = {
 
 // How a piece lifted off the board rises, whole, as it fades: a taken piece slowly, an undone
 // one quickly, staying in sight until it is well up. It grows a little nearer as it rises, and its
+// How long each disc falls, and how far apart they start.
+export type DropTiming = { fall: number; stagger: number; wobble: readonly number[] }
+
+// Undo and history steps have no action, so a drop of `discs` ends by 0.18 s, without the wobble.
+export function quickDrop(discs: number): DropTiming {
+    const fall = 0.12
+    return { fall, stagger: discs > 1 ? (0.18 - fall) / (discs - 1) : 0, wobble: [] }
+}
+
 // shadow shrinks under it.
 export type Lift = { duration: number; rise: number; fade: string }
 export const LIFT_OFF = { duration: 0.18, rise: -30, fade: 'power2.in', scale: 1.04, shadow: 0.55 }
@@ -42,10 +51,10 @@ export function dropDisc(
     node: SVGGElement,
     index: number,
     at = 0,
-    wobble = DROP.wobble
+    { fall, stagger, wobble }: DropTiming = DROP
 ) {
-    const { fall, settle } = DROP
-    const start = at + index * DROP.stagger
+    const { settle } = DROP
+    const start = at + index * stagger
     gsap.set(node, { svgOrigin: '0 0' })
     timeline.fromTo(
         node,
@@ -61,23 +70,34 @@ export function dropDisc(
     })
 }
 
-export function dropShadow(timeline: Timeline, node: SVGGElement, at = 0) {
+export function dropShadow(
+    timeline: Timeline,
+    node: SVGGElement,
+    at = 0,
+    { fall }: Pick<DropTiming, 'fall'> = DROP
+) {
     gsap.set(node, { svgOrigin: '0 0' })
     timeline.fromTo(
         node,
         { opacity: 0, scale: DROP.shadow },
-        { opacity: 1, scale: 1, duration: DROP.fall, ease: 'power1.in', immediateRender: true },
+        { opacity: 1, scale: 1, duration: fall, ease: 'power1.in', immediateRender: true },
         at
     )
 }
 
 // The shadow on the disc below `index + 1` darkens as that disc lands.
-export function dropCrease(timeline: Timeline, node: SVGGElement, index: number, at = 0) {
+export function dropCrease(
+    timeline: Timeline,
+    node: SVGGElement,
+    index: number,
+    at = 0,
+    { fall, stagger }: DropTiming = DROP
+) {
     timeline.fromTo(
         node,
         { opacity: 0 },
-        { opacity: 1, duration: DROP.fall, ease: 'power2.in', immediateRender: true },
-        at + (index + 1) * DROP.stagger
+        { opacity: 1, duration: fall, ease: 'power2.in', immediateRender: true },
+        at + (index + 1) * stagger
     )
 }
 

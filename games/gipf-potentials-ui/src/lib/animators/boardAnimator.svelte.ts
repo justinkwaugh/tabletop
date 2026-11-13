@@ -34,7 +34,9 @@ import {
     dropCrease,
     dropDisc,
     dropShadow,
+    DROP,
     landing,
+    quickDrop,
     LIFT_OFF,
     type Lift,
     type PieceParts
@@ -58,7 +60,7 @@ const QUICK = 0.18
 // A push taken back that no one restages slides back to its dot and lifts off there; slide and
 // lift overlap so the change stays within an actionless step's 0.2s.
 const UNPUSH_SLIDE = 0.14
-const UNPUSH_LIFT_AT = 0.08
+const UNPUSH_LIFT_AT = 0.06
 const UNPUSH_LIFT: Lift = { duration: 0.12, rise: LIFT_OFF.rise, fade: LIFT_OFF.fade }
 // Landing on a stack bounces mostly up and down, with a little of the hop's momentum carrying
 // it along; landing on the board, it rebounds along the hop.
@@ -304,7 +306,9 @@ export class BoardAnimator implements MoveInterrupter {
         // The context's timelines run from the moment it is made, just before this listener, so
         // the motion starts after the time taken to draw rather than skipping it.
         const timeline = gsap.timeline()
-        animationContext.actionTimeline.add(timeline, (performance.now() - drawing) / 1000)
+        // An actionless step has 0.2 s in all, so it waits at most 0.02 s for the draw.
+        const drawn = (performance.now() - drawing) / 1000
+        animationContext.actionTimeline.add(timeline, quick ? Math.min(drawn, 0.02) : drawn)
 
         if (change.kind === 'push') {
             returned = await this.push(change, kind, to, quick, timeline, touched)
@@ -359,6 +363,12 @@ export class BoardAnimator implements MoveInterrupter {
                 ...after.filter((stack) => gaining(stack.coords))
             ]
         }
+        const regained = regainedAt(change)
+        if (regained !== undefined) {
+            const discs = discsOf(to.board.stackAt(CENTRE))
+            const piece = { key: coordinatesToNumber(regained), coords: regained, discs }
+            return [...before.filter((stack) => !sameCoordinates(stack.coords, regained)), piece]
+        }
         return before
     }
 
@@ -401,6 +411,11 @@ export class BoardAnimator implements MoveInterrupter {
         const along = alongLine(line, this)
         const back = { x: -along.x, y: -along.y }
         const toDot = this.offset(line[0], dot)
+        const regained = regainedAt(change)
+        if (regained !== undefined) {
+            const height = discsOf(to.board.stackAt(CENTRE)).length
+            this.dropOnto(regained, height - 1, 1, timeline, touched, true)
+        }
         if (kind === 'undo' && this.session.restagedMove(to) !== undefined) {
             this.slide(line.slice(1, shifted + 1), back, timeline, QUICK, touched)
             this.slide([line[0]], toDot, timeline, QUICK, touched)
@@ -505,22 +520,35 @@ export class BoardAnimator implements MoveInterrupter {
             )
         }
         for (const added of change.added) {
-            const nodes = this.stackNodes.get(coordinatesToNumber(added.coords))
-            if (nodes === undefined) continue
-            if (added.from === 0 && nodes.shadow) {
-                touched.push(...scaledFromCentre(nodes.shadow))
-                dropShadow(timeline, nodes.shadow)
-            }
-            for (let index = added.from; index < added.from + added.discs.length; index++) {
-                const disc = nodes.discs.get(index)
-                if (disc === undefined) continue
-                touched.push(...scaledFromCentre(disc))
-                dropDisc(timeline, disc, index - added.from, 0, quick ? [] : undefined)
-                const crease = nodes.creases.get(index - 1)
-                if (crease) {
-                    touched.push(crease)
-                    dropCrease(timeline, crease, index - 1 - added.from)
-                }
+            this.dropOnto(added.coords, added.from, added.discs.length, timeline, touched, quick)
+        }
+    }
+
+    // Discs from `from` up drop onto a stack, and its shadow with the first if it was empty.
+    private dropOnto(
+        coords: AxialCoordinates,
+        from: number,
+        count: number,
+        timeline: Timeline,
+        touched: SVGGElement[],
+        quick: boolean
+    ) {
+        const nodes = this.stackNodes.get(coordinatesToNumber(coords))
+        if (nodes === undefined) return
+        const timing = quick ? quickDrop(count) : DROP
+        if (from === 0 && nodes.shadow) {
+            touched.push(...scaledFromCentre(nodes.shadow))
+            dropShadow(timeline, nodes.shadow, 0, timing)
+        }
+        for (let index = from; index < from + count; index++) {
+            const disc = nodes.discs.get(index)
+            if (disc === undefined) continue
+            touched.push(...scaledFromCentre(disc))
+            dropDisc(timeline, disc, index - from, 0, timing)
+            const crease = nodes.creases.get(index - 1)
+            if (crease) {
+                touched.push(crease)
+                dropCrease(timeline, crease, index - 1 - from, 0, timing)
             }
         }
     }
@@ -771,6 +799,16 @@ function register(nodes: Map<number, SVGGElement>, index: number): Attachment<SV
             if (nodes.get(index) === node) nodes.delete(index)
         }
     }
+}
+
+// An extra move taken back gives the centre's piece its TAMSK-potential again, which drops back
+// onto it where the piece stands as the step starts: on the centre, or a spot on if the push
+// carried it along, from where it slides back with the line.
+function regainedAt(change: PushChange | MoveChange | DiscsChange): AxialCoordinates | undefined {
+    if (change.kind !== 'push' || change.forward || !change.fromCentre) return undefined
+    const { line } = change.entry
+    const at = line.findIndex((coords) => sameCoordinates(coords, CENTRE))
+    return at >= 0 && at < change.shifted ? line[at + 1] : CENTRE
 }
 
 // One spot along a line, from its first spot towards its second.
