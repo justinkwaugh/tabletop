@@ -8,7 +8,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 
 ### Components and setup (R-1)
 
-- **R-1.1-H1** (Q6), _provisional_: the 27 locomotives of each colour are a hard limit on shares and track together. Once every locomotive of a colour is on player boards and the map, no more shares of that railroad can be taken and no more of its track built; phase 1's "must take" means one of an available railroad that still has locomotives in the supply. Rejected: an unlimited supply. Spec: `supply.spec.ts` (the count), `takeShare.spec.ts` (a share from an empty supply), `placement.spec.ts` (track from an empty supply).
+- **R-1.1-H1** (Q6), _provisional_: the 27 locomotives of each colour are a hard limit on shares and track together. Once every locomotive of a colour is on player boards and the map, no more shares of that railroad can be taken and no more of its track built; phase 1's "must take" means one of an available railroad that still has locomotives in the supply. Rejected: an unlimited supply. Spec: `supply.spec.ts` (the count), `takeShare.spec.ts` (a share from an empty supply), `placement.spec.ts` (track from an empty supply), `completeGame.spec.ts` (supplies emptied in whole games, and a building turn that opens with nothing legal).
 - **R-1.2-H1** (Q2): the game takes 3 to 5 players, as printed. Rejected: an unofficial 2- or 6-player mode, for which the rules give no placement limits. Spec: `initializer.spec.ts`, `competition.spec.ts`.
 - **R-1.3-H1** (Q3): setup places one passenger on every city. The USA map has 51 cities and the box 52 passengers, so the supply never runs short. Spec: `initializer.spec.ts`.
 
@@ -36,7 +36,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 
 ### Information and undo (R-5)
 
-- **R-5-H1** (Q24): a player may take back any of their own actions until the next player acts: each placement, with any bonus it paid; a share; a journey. Nothing is hidden or random after setup, so no action reveals information. Rejected: no undo. Spec: `takeShare.spec.ts` (a share), `placeLocomotive.spec.ts` (a placement with its bonuses, and one that ended the building turn), `endBuilding.spec.ts`, `undo.spec.ts` (each kind of action, and the cascades undone with their cause), `walk.spec.ts` (a whole game undone action by action).
+- **R-5-H1** (Q24): a player may take back any of their own actions until the next player acts: each placement, with any bonus it paid; a share; a journey. Nothing is hidden or random after setup, so no action reveals information. Rejected: no undo. Spec: `takeShare.spec.ts` (a share), `placeLocomotive.spec.ts` (a placement with its bonuses, and one that ended the building turn), `endBuilding.spec.ts`, `undo.spec.ts` (each kind of action, and the cascades undone with their cause), `walk.spec.ts` and `completeGame.spec.ts` (whole games undone action by action).
 
 ### Game end (R-6)
 
