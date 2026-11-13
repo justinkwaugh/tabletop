@@ -1,17 +1,11 @@
 <script lang="ts">
-    import { onMount } from 'svelte'
-    import { Harness, mountDynamicComponent } from '@tabletop/frontend-components'
+    import type { GameUiDefinition } from '@tabletop/frontend-components'
+    import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { Harness } from '@tabletop/frontend-components'
     import { UiDefinition } from '../lib/index.js'
     import '../app.css'
-    let target: HTMLDivElement
-    onMount(
-        () =>
-            mountDynamicComponent(target, {
-                component: Harness,
-                props: { definition: UiDefinition }
-            }).destroy
-    )
+    const definition = UiDefinition as unknown as GameUiDefinition<GameState, HydratedGameState>
 </script>
 
 <svelte:head><title>Ride the Rails</title></svelte:head>
-<div bind:this={target}></div>
+<Harness {definition} />
