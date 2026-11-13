@@ -61,6 +61,8 @@ export interface SeatCards {
 
 export type SeatPouch =
     | { readonly status: 'empty' | 'choosing' }
+    /** R-3.1-H1 Another seat's hand is final, its pouch unseen until every hand is. */
+    | { readonly status: 'sealed' }
     | { readonly status: 'drafted' | 'committed'; readonly good: PouchGood }
     | {
           readonly status: 'finalised'
@@ -199,8 +201,12 @@ function pouchOf(
         // R-3.1-H1 Its own committed good, which no other seat sees until every hand is final.
         return { status: 'committed', good: player.committedPouch }
     }
-    if (!state.flow.selection || handChosen(state, player)) {
+    if (!state.flow.selection) {
         return { status: 'empty' }
+    }
+    if (handChosen(state, player)) {
+        // R-3.1-H1 Whether a good went in is the seat's own until the reveal.
+        return owner ? { status: 'empty' } : { status: 'sealed' }
     }
     return drafted ? { status: 'drafted', good: drafted } : { status: 'choosing' }
 }

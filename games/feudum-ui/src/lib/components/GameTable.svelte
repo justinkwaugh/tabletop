@@ -65,8 +65,15 @@
         animate: () => !phone.reducedMotion
     })
 
-    /** Contract, Phone layout: a phone drafts its hand in a bottom sheet over the board. */
-    let handSheet = $derived(phone.phone && feudumSession.handPanel?.drafting !== undefined)
+    /**
+     * Contract, Phone layout: a phone drafts its hand in a bottom sheet over the board, and keeps it
+     * there, short, once the hand is set.
+     */
+    let handSheet = $derived(
+        phone.phone &&
+            (feudumSession.handPanel?.drafting !== undefined ||
+                feudumSession.handPanel?.set !== undefined)
+    )
 
     let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
     let pickFrame = $derived(
@@ -255,8 +262,9 @@
     }
 
     /*
-     * The hand draft's bottom sheet: it stands over the board from the column's foot, and gives the
-     * board back once the hand is finalised.
+     * The hand draft's bottom sheet: it stands over the board from the column's foot. Once the hand
+     * is set it holds only the hand, the sealed pouch and the waiting line, so it is short; it gives
+     * the board back at the reveal.
      */
     [data-phone] .action-cap[data-hand-sheet] {
         position: absolute;

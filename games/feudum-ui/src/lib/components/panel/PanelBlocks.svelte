@@ -8,6 +8,7 @@
     import FinaliseRow from './FinaliseRow.svelte'
     import GameEndSummary from './GameEndSummary.svelte'
     import GoodCounts from './GoodCounts.svelte'
+    import HandSet from './HandSet.svelte'
     import HandSlots from './HandSlots.svelte'
     import NourishPicker from './NourishPicker.svelte'
     import OrderRow from './OrderRow.svelte'
@@ -115,6 +116,17 @@
         return sends
     }
 
+    /**
+     * R-3.1-H1 The waiting line once the seat's hand is set: beside tray A on a desk and under it on
+     * a phone, in the accent.
+     */
+    const SetWaitingClasses =
+        'w-full sm:w-auto sm:min-w-0 sm:flex-1 text-lg font-bold text-feudum-accent max-sm:text-sm'
+
+    function waitsBesideSet(block: ActionBlock, before: ActionBlock | undefined): boolean {
+        return block.kind === 'line' && block.role === 'waiting' && before?.kind === 'hand-set'
+    }
+
     /** The draft's eleven stand in rows of six. */
     const DraftColumns = 'repeat(6, minmax(0, 72px))'
 
@@ -128,8 +140,12 @@
 {#snippet blockView(block: ActionBlock, index: number, list: readonly ActionBlock[])}
     {#if block.kind === 'finalise'}
         <FinaliseRow entries={block.entries} caption={block.caption} lead={block.lead} />
+    {:else if block.kind === 'hand-set'}
+        <HandSet {block} />
     {:else if block.kind === 'slots'}
         <HandSlots {block} />
+    {:else if block.kind === 'line' && waitsBesideSet(block, list[index - 1])}
+        <p class={SetWaitingClasses} {...dataOf(block.role)}>{block.text}</p>
     {:else if block.kind === 'line'}
         <p
             class="w-full {LineClasses[block.role]} {block.role === 'count'

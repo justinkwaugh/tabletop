@@ -91,7 +91,7 @@ describe('Seat panel lines (contract: Seat panel)', () => {
         expect(items(linesOf(state, Other).holdings)).not.toContain('pouch')
     })
 
-    it('R-3.1-H1 A seat final with a pouch good holds it on line three; no other seat sees it', () => {
+    it('R-3.1-H1 A seat final with a pouch good holds it on line three; the others see it sealed', () => {
         const state = table((row) => {
             row.flow.selection = { finalised: [Owner] }
             const player = row.getPlayerState(Owner)
@@ -102,7 +102,10 @@ describe('Seat panel lines (contract: Seat panel)', () => {
             item: 'pouch',
             pouch: { status: 'committed', good: 'sulfur' }
         })
-        expect(items(linesOf(state, Other).holdings)).not.toContain('pouch')
+        expect(linesOf(state, Other).holdings).toContainEqual({
+            item: 'pouch',
+            pouch: { status: 'sealed' }
+        })
     })
 
     it('R-5.3, R-5-H1 Line two: the five goods always, then shillings; seals and beads only when held', () => {

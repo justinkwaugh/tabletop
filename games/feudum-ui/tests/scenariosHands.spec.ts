@@ -85,18 +85,42 @@ scenario(
         await table.press(table.primary())
         await expect(table.undo()).toHaveCount(0)
         await expect(table.waitingLine()).toHaveText('Waiting for Bram and Cleo to finalise')
-        // No seat is next: the header names the step, not a seat's turn.
-        await expect(table.page.locator('[data-table-header]')).toHaveText('Choosing hands')
+        // Contract, Hand selection: tray A holds the hand as set and the pouch sealed; the seats
+        // still choosing are the ones waited on. No seat is next: the header names the step.
+        const set = table.panel().locator('[data-hand-set]')
+        await expect(set.locator('[data-set-card]')).toHaveCount(4)
+        await expect(set.locator('[data-set-pouch="sulfur"]')).toBeVisible()
+        await expect(table.panel().locator('[data-awaited]')).toHaveCount(2)
+        await expect(table.panel().locator('[data-round-lead]')).toHaveText(
+            /^Round \d+ · your hand is set$/
+        )
+        await expect(table.page.locator('[data-table-header]')).toHaveText('Your hand is set')
+        if (table.phone) {
+            await expect(table.page.locator('[data-hand-sheet]')).toHaveCount(1)
+        } else {
+            // The line stands beside the tray.
+            const tray = await set.boundingBox()
+            const line = await table.waitingLine().boundingBox()
+            expect(line && tray && line.x).toBeGreaterThan((tray?.x ?? 0) + (tray?.width ?? 0))
+        }
         const own = await table.seatPanel('p1')
         await expect(own.locator('[data-pouch="committed"]')).toHaveAttribute(
             'data-pouch-good',
             'sulfur'
         )
+        await expect(own.locator('[data-pouch="committed"]')).toContainText('sealed')
         await table.closeSeatPanel()
 
         await table.showSeat('p2')
+        // Another seat, still choosing, sees no seat waited on and no tray set.
+        await expect(table.panel().locator('[data-awaited]')).toHaveCount(0)
+        await expect(table.panel().locator('[data-hand-set]')).toHaveCount(0)
+        await expect(table.page.locator('[data-table-header]')).toHaveText('Your turn')
         const before = await table.seatPanel('p1')
         await expect(before.locator('[data-pouch-good]')).toHaveCount(0)
+        await expect(before.locator('[data-pouch="sealed"]')).toHaveText(
+            'hidden until all finalise'
+        )
         await expect(before.locator('[data-hand-backs="4"]')).toHaveCount(0)
         await table.closeSeatPanel()
 
@@ -114,6 +138,11 @@ scenario(
             'sulfur'
         )
         await table.closeSeatPanel()
+        // R-3.1-H1 One line tells every pouch good, and the seats without one.
+        await table.press(table.page.getByRole('tab', { name: 'History' }))
+        await expect(table.page.locator('[data-history-list]')).toContainText(
+            'All finalised · pouch goods revealed: Ana sulfur 2 in a row · You, Cleo: none'
+        )
     }
 )
 

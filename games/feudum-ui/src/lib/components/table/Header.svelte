@@ -5,12 +5,13 @@
 
     /**
      * Whose turn it is, or History, or the game's end; and the one Undo. While hands are chosen no
-     * seat is next (R-3.1-H1), so a seat not choosing reads the step.
+     * seat is next (R-3.1-H1): a seat whose hand is set reads so, and a seat watching reads the step.
      */
     const gameSession = getGameSession()
 
     let activeId = $derived(gameSession.gameState.activePlayerIds[0])
     let choosingHands = $derived(gameSession.gameState.machineState === MachineState.SelectingHands)
+    let handSet = $derived(gameSession.handPanel?.set !== undefined)
 </script>
 
 <div
@@ -24,6 +25,8 @@
             End of game
         {:else if gameSession.isMyTurn}
             Your turn
+        {:else if handSet}
+            Your hand is set
         {:else if choosingHands}
             Choosing hands
         {:else if activeId}

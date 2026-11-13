@@ -595,8 +595,8 @@ const Lines: Readonly<
             revealsInfo: true,
             metadata: { pouches: [{ playerId: 'p1', good: 'sulfur' }] }
         }),
-        actor: 'Every hand final · pouches: You sulfur',
-        other: 'Every hand final · pouches: Ana sulfur'
+        actor: 'All finalised · pouch goods revealed: You sulfur 2 in a row',
+        other: 'All finalised · pouch goods revealed: Ana sulfur 2 in a row'
     },
     [ActionType.AdvanceTurn]: {
         action: sample<AdvanceTurn>({
@@ -816,7 +816,41 @@ describe("The contract's own wording", () => {
     it('R-3.1-H1 Ana finalised, her pouch good untold until every hand is final', () => {
         expect(line(Lines[ActionType.FinaliseHand].action, 'p3')).toBe('Ana finalised')
         expect(line(Lines[ActionType.RevealPouches].action, 'p3')).toBe(
-            'Every hand final · pouches: Ana sulfur'
+            'All finalised · pouch goods revealed: Ana sulfur 2 in a row'
+        )
+    })
+
+    it('R-3.1-H1 one reveal line names every pouch good, then the seats without one', () => {
+        const reveal = sample<RevealPouches>({
+            ...System,
+            type: ActionType.RevealPouches,
+            revealsInfo: true,
+            metadata: {
+                pouches: [
+                    { playerId: 'p1', good: 'sulfur' },
+                    { playerId: 'p3', good: 'saltpeter' }
+                ]
+            }
+        })
+        const seats = ['p1', 'p2', 'p3']
+        const view = (viewerId: string | undefined) => ({ ...viewOf(viewerId), seats })
+        expect(describeAction(reveal, view(undefined))).toBe(
+            'All finalised · pouch goods revealed: Ana sulfur 2 in a row, Cy saltpeter +1 card · Ben: none'
+        )
+        expect(describeAction(reveal, view('p2'))).toBe(
+            'All finalised · pouch goods revealed: Ana sulfur 2 in a row, Cy saltpeter +1 card · You: none'
+        )
+        const all = sample<RevealPouches>({
+            ...System,
+            type: ActionType.RevealPouches,
+            revealsInfo: true,
+            metadata: { pouches: [{ playerId: 'p2', good: 'saltpeter' }] }
+        })
+        expect(describeAction(all, { ...viewOf('p1'), seats: ['p1', 'p2'] })).toBe(
+            'All finalised · pouch goods revealed: Ben saltpeter +1 card · You: none'
+        )
+        expect(describeAction(all, { ...viewOf('p1'), seats: ['p2'] })).toBe(
+            'All finalised · pouch goods revealed: Ben saltpeter +1 card'
         )
     })
 
@@ -827,7 +861,10 @@ describe("The contract's own wording", () => {
             revealsInfo: true,
             metadata: { pouches: [] }
         })
-        expect(line(none, 'p3')).toBe('Every hand final · no pouch goods')
+        expect(line(none, 'p3')).toBe('All finalised · no pouch goods')
+        expect(describeAction(none, { ...viewOf('p3'), seats: ['p1', 'p2', 'p3'] })).toBe(
+            'All finalised · no pouch goods'
+        )
     })
 
     it('R-4.4.1 drew 3, kept 1, 2 under the deck', () => {
@@ -1196,7 +1233,8 @@ describe('R-X.2 The description cannot fall back on the state', () => {
         for (const type of Object.values(ActionType)) {
             describeAction(Lines[type].action, view)
         }
-        expect([...asked].toSorted()).toEqual(['hostView', 'nameOf', 'viewerId'])
+        // The seats, fixed when the game is made, belong to the look as the names do.
+        expect([...asked].toSorted()).toEqual(['hostView', 'nameOf', 'seats', 'viewerId'])
     })
 
     it('Its source imports no session or state, and names none', () => {
