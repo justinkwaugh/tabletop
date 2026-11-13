@@ -13,6 +13,7 @@ import {
     TakeShare,
     isBuildingTurnOf,
     isRidingPlayer,
+    journeyExists,
     usaCity,
     shareableRailroads,
     type HexId,
@@ -350,4 +351,11 @@ export class RideTheRailsGameSession extends GameSession<
             this.closeHexDetail()
         }
     }
+
+    // R-3.3.1, R-3.3.1-H1: the deciding seat chooses a journey; with none possible it may only pass.
+    journeyPossible = $derived(
+        this.gameState.machineState === MachineState.Riding && journeyExists(this.gameState)
+    )
+
+    choosingJourney = $derived(this.journeyRiderId !== undefined && this.journeyPossible)
 }

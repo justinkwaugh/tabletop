@@ -17,6 +17,8 @@
     import Board from '$lib/components/Board.svelte'
     import BoardPopups from '$lib/components/board/BoardPopups.svelte'
     import HexDetailCard from '$lib/components/board/HexDetailCard.svelte'
+    import TableControls from '$lib/components/panel/TableControls.svelte'
+    import FullScreenControls from '$lib/components/panel/FullScreenControls.svelte'
     import { FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
@@ -72,8 +74,7 @@
             </DefaultSideContent>
         {/snippet}
         {#snippet gameContent()}
-            <!-- The turn header and the action area take this slot. -->
-            <div class="shrink-0"></div>
+            <div class="shrink-0"><TableControls /></div>
             <PhoneRailroadStrip />
             <div class="grow-0 overflow-hidden" style="flex:1;">
                 <ScalingWrapper
@@ -90,6 +91,7 @@
                         <!-- Outside the content's CSS zoom, which would shrink and misplace the popups,
                              and inside full screen's dialog. -->
                         <BoardPopups />
+                        <FullScreenControls />
                     {/snippet}
                 </ScalingWrapper>
             </div>

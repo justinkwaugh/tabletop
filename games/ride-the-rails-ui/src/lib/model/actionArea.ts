@@ -1,0 +1,262 @@
+import type { GameAction } from '@tabletop/common'
+import {
+    PhaseName,
+    RAILROAD_IDS,
+    RAILROAD_INTRODUCTIONS,
+    isPassJourney,
+    isRideJourney,
+    isSkipShare,
+    isTakeShare,
+    legalPlacements,
+    moneyOf,
+    phaseTurnOrder,
+    placementLimit,
+    richestPlayerIds,
+    supplyOf,
+    type CityId,
+    type HydratedRideTheRailsGameState,
+    type JourneyPayment,
+    type LinksPerRailroad,
+    type PlayerMoney,
+    type RailroadId
+} from '@tabletop/ride-the-rails'
+import { cityName, type Description } from '$lib/utils/describeAction.js'
+
+export type ShareAvailability =
+    { kind: 'open' } | { kind: 'later'; fromRound: number } | { kind: 'empty' }
+
+export type ShareButton = {
+    railroadId: RailroadId
+    supply: number
+    held: number
+    availability: ShareAvailability
+}
+
+// R-1.4, R-1.1-H1, R-3.1: every railroad in railroad order, with why a share of it cannot be taken.
+export function shareButtons(
+    state: HydratedRideTheRailsGameState,
+    playerId: string
+): ShareButton[] {
+    const round = state.roundManager.currentRound?.number ?? 1
+    const held = state.getPlayerState(playerId)
+    return RAILROAD_INTRODUCTIONS[state.mapId].map(({ railroadId, availableFromRound }) => {
+        const supply = supplyOf(state, railroadId)
+        const availability: ShareAvailability =
+            availableFromRound > round
+                ? { kind: 'later', fromRound: availableFromRound }
+                : supply > 0
+                  ? { kind: 'open' }
+                  : { kind: 'empty' }
+        return { railroadId, supply, held: held.sharesOf(railroadId), availability }
+    })
+}
+
+export function shareButtonDetail(button: ShareButton): string {
+    if (button.availability.kind === 'later') {
+        return `from round ${button.availability.fromRound}`
+    }
+    const supply = button.availability.kind === 'empty' ? 'none left' : `${button.supply} left`
+    return button.held > 0 ? `${supply} · you ${button.held}` : supply
+}
+
+// R-2.2: phase 1 runs in reverse turn order.
+export function shareOrder(state: HydratedRideTheRailsGameState): string[] {
+    return phaseTurnOrder(state.turnManager.turnOrder, PhaseName.TakeShare)
+}
+
+// R-2.2: the seats after the deciding one in phase 1.
+export function stillToTakeShare(state: HydratedRideTheRailsGameState, playerId: string): string[] {
+    const order = shareOrder(state)
+    return order.slice(order.indexOf(playerId) + 1)
+}
+
+export type BuildProgress = {
+    placed: number
+    limit: number
+    usedMountain: boolean
+}
+
+// R-3.2.3, R-3.2.4: placements so far against the limit, which a mountain lowers.
+export function buildProgress(state: HydratedRideTheRailsGameState): BuildProgress | undefined {
+    const building = state.building
+    if (!building) {
+        return undefined
+    }
+    return {
+        placed: building.placed,
+        limit: placementLimit(state.mapId, state.players.length, building.usedMountain),
+        usedMountain: building.usedMountain
+    }
+}
+
+export function placedText(progress: BuildProgress): string {
+    return `${progress.placed} of ${progress.limit} placed`
+}
+
+// R-3.2.4
+export function mountainNote(progress: BuildProgress): string | undefined {
+    return progress.usedMountain ? `Mountain used: limit ${progress.limit}` : undefined
+}
+
+// R-3.2.1: the turn may end before its first placement.
+export function endBuildingLabel(progress: BuildProgress): string {
+    return progress.placed === 0 ? 'Build nothing' : 'Done building'
+}
+
+// R-3.2, R-4.1, R-4.2: the railroads the builder may place now, in railroad order.
+export function buildableRailroads(
+    state: HydratedRideTheRailsGameState,
+    playerId: string
+): RailroadId[] {
+    const placeable = new Set(legalPlacements(state, playerId).map(({ railroadId }) => railroadId))
+    return RAILROAD_IDS.filter((railroadId) => placeable.has(railroadId))
+}
+
+export function routeText(cityIds: readonly CityId[]): string {
+    return cityIds.map(cityName).join(' → ')
+}
+
+export function totalLinks(linksPerRailroad: LinksPerRailroad): number {
+    return Object.values(linksPerRailroad).reduce((sum, links) => sum + (links ?? 0), 0)
+}
+
+export function linksText(links: number): string {
+    return links === 1 ? '1 link' : `${links} links`
+}
+
+// R-3.3.3
+export function linksAndFareText(links: number, fare: number): string {
+    return `${linksText(links)} · fare $${fare}`
+}
+
+export type SeatGain = { playerId: string; amount: number }
+
+// R-3.3.4, R-3.3.5: one chip per seat a payment reaches, in turn order; the rider's holds the fare.
+export function seatGains(
+    payments: readonly JourneyPayment[],
+    turnOrder: readonly string[]
+): SeatGain[] {
+    return turnOrder.flatMap((playerId): SeatGain[] => {
+        const payment = payments.find((candidate) => candidate.playerId === playerId)
+        const amount = payment ? payment.dividends + payment.fare : 0
+        return amount > 0 ? [{ playerId, amount }] : []
+    })
+}
+
+// R-3.3.1-H1
+export const NO_JOURNEY_PROMPT = "No passenger can travel: no link leaves any passenger's city"
+
+// R-2.5.1: money decides the next round's order, so every waiting view shows it.
+export function seatMoney(state: HydratedRideTheRailsGameState): PlayerMoney[] {
+    return moneyOf(state, state.turnManager.turnOrder)
+}
+
+// A phase's actions run together, so the latest action is this phase's only when it is of its kind.
+function latestInPhase(
+    actions: readonly GameAction[],
+    belongs: (action: GameAction) => boolean
+): GameAction | undefined {
+    const latest = actions.at(-1)
+    return latest && belongs(latest) ? latest : undefined
+}
+
+// R-3.1, R-1.1-H1
+export function latestShare(actions: readonly GameAction[]): GameAction | undefined {
+    return latestInPhase(actions, (action) => isTakeShare(action) || isSkipShare(action))
+}
+
+// R-3.3
+export function latestJourney(actions: readonly GameAction[]): GameAction | undefined {
+    return latestInPhase(actions, (action) => isRideJourney(action) || isPassJourney(action))
+}
+
+// Contract, Watching: "Ben: Seattle → Chicago, 6 links, fare $7; you +$3".
+export function journeyLine(
+    action: GameAction,
+    viewerId: string | undefined
+): Description | undefined {
+    if (!isRideJourney(action) || !action.metadata) {
+        return undefined
+    }
+    const { cityIds, linksPerRailroad, payments } = action.metadata
+    const rider = payments.find(({ playerId }) => playerId === action.playerId)
+    const viewer = payments.find(({ playerId }) => playerId === viewerId)
+    const viewerGain = viewer ? viewer.dividends + viewer.fare : 0
+    return [
+        { playerId: action.playerId },
+        `: ${routeText(cityIds)}, ${linksText(totalLinks(linksPerRailroad))}`,
+        ...(rider ? [`, fare $${rider.fare}`] : []),
+        ...(viewerGain > 0 ? [`; you +$${viewerGain}`] : [])
+    ]
+}
+
+export type HeldShares = { railroadId: RailroadId; count: number }
+
+export type FinalStanding = {
+    playerId: string
+    money: number
+    winner: boolean
+    shares: HeldShares[]
+}
+
+// R-6.2, R-6.2-H1: most money first, ties in turn order; every seat tied for the most wins.
+export function finalStandings(state: HydratedRideTheRailsGameState): FinalStanding[] {
+    const winners = new Set(richestPlayerIds(state))
+    return seatMoney(state)
+        .toSorted((a, b) => b.money - a.money)
+        .map(({ playerId, money }) => {
+            const player = state.getPlayerState(playerId)
+            return {
+                playerId,
+                money,
+                winner: winners.has(playerId),
+                shares: RAILROAD_IDS.flatMap((railroadId): HeldShares[] => {
+                    const count = player.sharesOf(railroadId)
+                    return count > 0 ? [{ railroadId, count }] : []
+                })
+            }
+        })
+}
+
+// R-6.2, R-6.2-H1: "Silas wins with $146", or "Silas and Ezra share the win with $146".
+export function winnersHeadline(names: readonly string[], money: number): string {
+    if (names.length === 1) {
+        return `${names[0]} wins with $${money}`
+    }
+    return `${names.slice(0, -1).join(', ')} and ${names.at(-1)} share the win with $${money}`
+}
+
+// R-6.2-H1: "both win" for two tied seats, "all three win" for three.
+export function sharedWinNote(winnerCount: number): string {
+    const all = ['', '', 'both', 'all three', 'all four', 'all five'][winnerCount] ?? 'all'
+    return `tied for most money: ${all} win`
+}
+
+const PHASE_LABELS: Readonly<Record<PhaseName, string>> = {
+    [PhaseName.TakeShare]: 'Shares',
+    [PhaseName.Build]: 'Build',
+    [PhaseName.Ride]: 'Ride'
+}
+
+export type RoundLabels = { full: string; compact: string }
+
+// R-2.1: "Round 3 · Build" in the turn header, "R3 · Build" on a phone.
+export function roundLabels(state: HydratedRideTheRailsGameState): RoundLabels | undefined {
+    // The game's end closes round 6, so the round shown is the latest one.
+    const round = state.roundManager.series.at(-1)?.number
+    if (round === undefined) {
+        return undefined
+    }
+    const phase = state.result ? 'End' : phaseLabel(state.phaseManager.currentPhase?.name)
+    const suffix = phase ? ` · ${phase}` : ''
+    return { full: `Round ${round}${suffix}`, compact: `R${round}${suffix}` }
+}
+
+function phaseLabel(name: string | undefined): string | undefined {
+    return Object.entries(PHASE_LABELS).find(([phase]) => phase === name)?.[1]
+}
+
+// R-2.2: the seat whose decision the table waits on.
+export function decidingPlayerId(state: HydratedRideTheRailsGameState): string | undefined {
+    return state.activePlayerIds[0] ?? state.turnManager.currentTurn()?.playerId
+}
