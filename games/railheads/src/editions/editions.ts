@@ -7,6 +7,7 @@ import {
     type HexGridNode
 } from '@tabletop/common'
 import { DENMARK } from './denmark/edition.js'
+import { ENGLAND_WALES } from './england/edition.js'
 import { GERMANY } from './germany/edition.js'
 import { MIDWEST } from './midwest/edition.js'
 import { SWITZERLAND } from './switzerland/edition.js'
@@ -192,7 +193,8 @@ const EDITIONS: Record<EditionId, Edition> = {
     [EditionId.Germany]: new Edition(GERMANY),
     [EditionId.Midwest]: new Edition(MIDWEST),
     [EditionId.Switzerland]: new Edition(SWITZERLAND),
-    [EditionId.Denmark]: new Edition(DENMARK)
+    [EditionId.Denmark]: new Edition(DENMARK),
+    [EditionId.EnglandWales]: new Edition(ENGLAND_WALES)
 }
 
 export function edition(id: EditionId): Edition {

@@ -391,10 +391,20 @@ export class RailheadsGameSession extends GameSession<
         return this.companiesWithTargets(this.shownState, first)
     })
 
+    // England & Wales allows one more piece while every staged disc stays in the company's region.
     private slotFull(slot: CompanySlot): boolean {
-        return (
-            piecesOf(this.trackSelection, slot).length >= (this.layRules?.placementsPerCompany ?? 0)
+        const space = this.laySpace
+        const companyId = slot === 'second' ? this.secondCompany : this.firstCompany
+        const pieces = piecesOf(this.trackSelection, slot)
+        if (!space || !companyId) {
+            return pieces.length >= (this.layRules?.placementsPerCompany ?? 0)
+        }
+        const limit = this.gameState.placementLimit(
+            space,
+            companyId,
+            pieces.map((piece) => piece.coords)
         )
+        return pieces.length >= limit
     }
 
     buildingSlot: CompanySlot | undefined = $derived.by(() => {
@@ -424,8 +434,14 @@ export class RailheadsGameSession extends GameSession<
             return []
         }
         const tollsLaid = this.trackPreview.effects.filter((effect) => effect.tollId).length
+        const staged = this.placements.filter((placement) => placement.companyId === companyId)
+        // The bonus piece must stay inside the region, like every piece before it.
+        const regionOnly =
+            staged.length >= (this.layRules?.placementsPerCompany ?? 0) &&
+            (this.layRules?.regionPlacements ?? 0) > 0
         return this.shownState
             .placementTargets(playerId, space, companyId, tollsLaid)
+            .filter((target) => !regionOnly || this.gameState.inRegion(companyId, target.coords))
             .map((target) => ({ ...target, companyId }))
     })
 

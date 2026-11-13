@@ -1,12 +1,19 @@
 import type { AxialCoordinates } from '@tabletop/common'
-import { CompanyId, EditionId, HexKind, printedPointyHex } from '@tabletop/railheads'
-import { DANISH_HEX_FILL, HEX_FILL, MIDWEST_HEX_FILL, SWISS_HEX_FILL } from './companyStyle.js'
+import { CompanyId, EditionId, HexKind, printedHex, printedPointyHex } from '@tabletop/railheads'
+import {
+    DANISH_HEX_FILL,
+    ENGLISH_HEX_FILL,
+    HEX_FILL,
+    MIDWEST_HEX_FILL,
+    SWISS_HEX_FILL
+} from './companyStyle.js'
 
 export enum Flag {
     Germany = 'Germany',
     UnitedStates = 'UnitedStates',
     Switzerland = 'Switzerland',
-    Denmark = 'Denmark'
+    Denmark = 'Denmark',
+    UnitedKingdom = 'UnitedKingdom'
 }
 
 export type LakeLabel = { name: string; at: AxialCoordinates; angle: number }
@@ -161,6 +168,37 @@ const EDITION_STYLES: Record<EditionId, EditionStyle> = {
         regionLabels: {},
         regionBorders: false,
         background: '#cfe3ec'
+    },
+    [EditionId.EnglandWales]: {
+        title: 'England & Wales',
+        flag: Flag.UnitedKingdom,
+        titleStroke: '#1f4f9e',
+        hexFill: ENGLISH_HEX_FILL,
+        // Each designated region tinted after its railway's colour.
+        regionFill: {
+            Midlands: '#d9b8b4',
+            East: '#b3cde6',
+            West: '#e3dcae',
+            South: '#b9d6ae'
+        },
+        hexEdgeWidth: 2,
+        endBonusName: 'Running Rights Bonus',
+        endBonusShort: 'Running Rights',
+        endBonusRule:
+            'a share earns $1 for each town, city and site this railroad reaches outside its designated region, London excepted',
+        industryBonusName: 'Establishment Bonus',
+        industryBonusShort: 'Establishment',
+        shareIconCompanies: [CompanyId.LMS, CompanyId.LNER, CompanyId.UERL],
+        trackIconCompanies: [CompanyId.GWR, CompanyId.SR],
+        lakeLabels: [],
+        // Column first, then the doubled row.
+        regionLabels: {
+            Midlands: printedHex(13, 17),
+            East: printedHex(15, 6),
+            West: printedHex(8, 15),
+            South: printedHex(16, 27)
+        },
+        regionBorders: true
     }
 }
 

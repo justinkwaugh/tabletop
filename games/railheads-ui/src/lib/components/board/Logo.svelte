@@ -38,6 +38,14 @@
         <rect x="-16" y="8" width="32" height="24" fill="#d0262f"></rect>
         <rect x="-2.5" y="12" width="5" height="16" fill="#ffffff"></rect>
         <rect x="-8" y="17.5" width="16" height="5" fill="#ffffff"></rect>
+    {:else if style.flag === Flag.UnitedKingdom}
+        <rect x="-16" y="8" width="32" height="24" fill="#1f3f8a"></rect>
+        <path d="M -16 8 L 16 32 M 16 8 L -16 32" stroke="#ffffff" stroke-width="4"></path>
+        <path d="M -16 8 L 16 32 M 16 8 L -16 32" stroke="#c8202a" stroke-width="1.5"></path>
+        <rect x="-16" y="17" width="32" height="6" fill="#ffffff"></rect>
+        <rect x="-3" y="8" width="6" height="24" fill="#ffffff"></rect>
+        <rect x="-16" y="18.5" width="32" height="3" fill="#c8202a"></rect>
+        <rect x="-1.5" y="8" width="3" height="24" fill="#c8202a"></rect>
     {:else if style.flag === Flag.Denmark}
         <rect x="-16" y="8" width="32" height="24" fill="#c8202a"></rect>
         <rect x="-7" y="8" width="4" height="24" fill="#ffffff"></rect>

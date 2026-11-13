@@ -17,6 +17,7 @@ export {
 } from './editions/switzerland/rules.js'
 export { Country } from './editions/switzerland/map.js'
 export { wealthTax } from './editions/denmark/rules.js'
+export { Region } from './editions/england/map.js'
 export * from './model/components.js'
 export * from './model/economy.js'
 export * from './model/gameState.js'

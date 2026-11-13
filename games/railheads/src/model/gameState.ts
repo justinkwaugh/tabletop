@@ -64,7 +64,8 @@ import {
     type Placement,
     type PlacementContext,
     type PlacementEffect,
-    type PlacementTarget
+    type PlacementTarget,
+    type TubeBonus
 } from './track.js'
 
 export type RailheadsGameState = Type.Static<typeof RailheadsGameState>
@@ -90,7 +91,9 @@ export const RailheadsGameState = Type.Evaluate(
             // Credit Suisse shares or Government Bonds left to auction.
             partnerSupply: Type.Optional(Type.Number()),
             // Denmark: the Danish Government's State Treasury.
-            stateTreasury: Type.Optional(Type.Number())
+            stateTreasury: Type.Optional(Type.Number()),
+            // England & Wales: the Big Four companies already coupled to the Underground.
+            tubeConnections: Type.Optional(Type.Array(Type.Enum(CompanyId)))
         })
     ])
 )
@@ -132,6 +135,7 @@ export class HydratedRailheadsGameState
     declare investmentClaim?: InvestmentClaim
     declare partnerSupply?: number
     declare stateTreasury?: number
+    declare tubeConnections?: CompanyId[]
 
     constructor(data: RailheadsProjectedState) {
         super(data, RailheadsProjectedStateValidator)
@@ -457,11 +461,15 @@ export class HydratedRailheadsGameState
     ): number {
         const { kind: hexKind } = this.edition.map.hex(coords)
         const span = this.edition.map.span(coords)
+        const rules = this.layTrackRules(space)
         if (kind === PlacementKind.Cube) {
-            return this.edition.definition.crossingCubeCost(hexKind, span)
+            return rules.cubePrice ?? this.edition.definition.crossingCubeCost(hexKind, span)
         }
         const discsBelow = trackAt(this.track, coords)?.discs.length ?? 0
-        const cost = this.edition.definition.trackCost(hexKind, discsBelow, span)
+        const cost =
+            rules.discPrice !== undefined
+                ? rules.discPrice * (discsBelow + 1)
+                : this.edition.definition.trackCost(hexKind, discsBelow, span)
         return this.layTrackRules(space).halfPriceWithoutShare &&
             !this.holdsShare(companyId, playerId)
             ? halfPrice(cost)
@@ -494,6 +502,59 @@ export class HydratedRailheadsGameState
                   ]
                 : []
         })
+    }
+
+    // England & Wales: a company gets one more placement when all of them stay in its region.
+    placementLimit(
+        space: LayTrackSpace,
+        companyId: CompanyId,
+        placements: readonly AxialCoordinates[]
+    ): number {
+        const rules = this.layTrackRules(space)
+        const regionId = this.companyDefinition(companyId).regionId
+        const inRegion =
+            regionId !== undefined &&
+            placements.every((coords) => this.edition.map.hex(coords).regionId === regionId)
+        return rules.placementsPerCompany + (inRegion ? (rules.regionPlacements ?? 0) : 0)
+    }
+
+    inRegion(companyId: CompanyId, coords: AxialCoordinates): boolean {
+        const regionId = this.companyDefinition(companyId).regionId
+        return regionId !== undefined && this.edition.map.hex(coords).regionId === regionId
+    }
+
+    // England & Wales: a Big Four disc meeting an Underground disc on a site, either way round,
+    // pays that company's shareholders a dividend once; the Underground's too if it built.
+    private coupleUnderground(companyId: CompanyId, coords: AxialCoordinates): TubeBonus[] {
+        const underground = this.edition.definition.underground
+        const discs = trackAt(this.track, coords)?.discs ?? []
+        if (!underground || this.edition.map.hex(coords).kind === HexKind.Countryside) {
+            return []
+        }
+        const connected = this.tubeConnections ?? []
+        const partners =
+            companyId === underground
+                ? discs.filter((disc) => disc !== underground && !connected.includes(disc))
+                : discs.includes(underground) && !connected.includes(companyId)
+                  ? [companyId]
+                  : []
+        const bonuses: TubeBonus[] = []
+        for (const partner of partners) {
+            bonuses.push(this.payBonusDividend(partner))
+            if (companyId === underground) {
+                bonuses.push(this.payBonusDividend(underground))
+            }
+            this.tubeConnections = [...(this.tubeConnections ?? []), partner]
+        }
+        return bonuses
+    }
+
+    private payBonusDividend(companyId: CompanyId): TubeBonus {
+        const perShare = this.dividendPerShare(companyId)
+        for (const owner of this.company(companyId).owners) {
+            this.getPlayerState(owner).cash += perShare
+        }
+        return { companyId, perShare }
     }
 
     needsBoostChoice(coords: AxialCoordinates): boolean {
@@ -533,18 +594,27 @@ export class HydratedRailheadsGameState
             industry.level = this.raisedLevel(place.industry, development ? 2 : 1)
             const revenueGain = development ? 0 : industry.level
             company.revenue += revenueGain
+            const bonuses = this.coupleUnderground(companyId, coords)
             return {
                 companyId,
                 kind,
                 cost: target.cost,
                 revenueGain,
                 industry: place.industry,
-                level: industry.level
+                level: industry.level,
+                ...(bonuses.length > 0 ? { bonuses } : {})
             }
         }
         const revenueGain = place.siteId ? this.edition.siteRevenue(place.siteId) : 0
         company.revenue += revenueGain
-        return { companyId, kind, cost: target.cost, revenueGain }
+        const bonuses = this.coupleUnderground(companyId, coords)
+        return {
+            companyId,
+            kind,
+            cost: target.cost,
+            revenueGain,
+            ...(bonuses.length > 0 ? { bonuses } : {})
+        }
     }
 
     private addTrackHex(coords: AxialCoordinates): TrackHex {

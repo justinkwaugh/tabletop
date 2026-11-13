@@ -91,9 +91,14 @@ export class HydratedLayTrack extends HydratableAction<typeof LayTrack> implemen
         assert(tolls.length <= rules.tolls, 'Too many bridges or tunnels for this action')
         for (const companyId of companies) {
             assert(buildable.includes(companyId), `You cannot build for ${companyId}`)
+            const mine = placements.filter((placement) => placement.companyId === companyId)
             assert(
-                placements.filter((placement) => placement.companyId === companyId).length <=
-                    rules.placementsPerCompany,
+                mine.length <=
+                    state.placementLimit(
+                        space,
+                        companyId,
+                        mine.map((placement) => placement.coords)
+                    ),
                 `Too many pieces for ${companyId}`
             )
         }

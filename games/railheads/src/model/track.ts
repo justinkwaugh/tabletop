@@ -29,6 +29,12 @@ export const Placement = Type.Object({
     boost: Type.Optional(Type.Enum(IndustryBoost))
 })
 
+export type TubeBonus = Type.Static<typeof TubeBonus>
+export const TubeBonus = Type.Object({
+    companyId: Type.Enum(CompanyId),
+    perShare: Type.Number()
+})
+
 export type PlacementEffect = Type.Static<typeof PlacementEffect>
 export const PlacementEffect = Type.Object({
     companyId: Type.Enum(CompanyId),
@@ -38,7 +44,9 @@ export const PlacementEffect = Type.Object({
     revenueGain: Type.Number(),
     industry: Type.Optional(Type.Enum(Industry)),
     level: Type.Optional(Type.Number()),
-    tollId: Type.Optional(Type.String())
+    tollId: Type.Optional(Type.String()),
+    // England & Wales: bonus dividends paid when the Underground couples with a company.
+    bonuses: Type.Optional(Type.Array(TubeBonus))
 })
 
 export type PlacementTarget = {

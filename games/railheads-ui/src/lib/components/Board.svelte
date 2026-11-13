@@ -10,6 +10,7 @@
     import RevenueTrack from './board/RevenueTrack.svelte'
     import TargetLayer from './board/TargetLayer.svelte'
     import TrackLayer from './board/TrackLayer.svelte'
+    import TubePanel from './board/TubePanel.svelte'
 
     const gameSession = getGameSession()
 
@@ -38,6 +39,7 @@
     <Legend />
     <EndgamePanel />
     <Logo />
+    <TubePanel />
     <MapLayer />
     <TrackLayer />
     <TargetLayer />

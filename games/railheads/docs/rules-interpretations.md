@@ -107,3 +107,25 @@ Rulebook v0.61 and Gameboard Version 0.62.
 - **Wealth Taxation is paid at every round end, the last included,** before the payout. Above $60 the tax is a third of a player's cash, rounded down.
 - **Industry Investment works as in Switzerland, with a Government Bond for at least $1.** A bond's buyer sends its price to any company's treasury or to the State Treasury.
 - **At the end each bond pays the State Treasury divided by the bonds held, rounded up.** The Establishment Bonus is $8 per site, as in the Midwest.
+
+# England & Wales
+
+Rulebook v0.60 and Gameboard Version 0.60.
+
+## England & Wales setup
+
+- **Homes follow the board:** the LMS at Lancaster, the LNER at York, the Southern at Southampton, the GWR at Cardiff and the Underground at London. Companies start with an empty treasury, as no setup step funds them.
+- **Opening auctions run LMS, LNER, SR, GWR, Underground**, the charters left to right. The First Player token goes with the Underground share (Black); the other four carry a random industry token.
+- **Every company has five shares; the Underground has 15 discs**, its home disc included. The four discs in the Tube Connection box only mark couplings.
+- **Starting cash and the Round Timer follow the board:** $40, $30, $24 and $18, $15, $15. The rulebook's end-of-round step says $16 for four players.
+
+## England & Wales track
+
+- **Each Lay Track space sets the price for one company:** I $2, II $3, III $4 a disc, times one more than the discs already on the hex. Lay Track I needs no share and halves the price without one; II and III need a share and sell cubes for $2 and $1.
+- **The extra disc for staying in the designated region applies only when every disc of the action lies in it.** The Underground has no region, so it never takes the extra disc. Regions follow the dashed lines and edge colours: red is the LMS's Midlands, blue the LNER's East, yellow the GWR's West and green the Southern's South. London lies in none.
+- **Sites hold two discs and London three.** France is a city of the South.
+
+## England & Wales payouts
+
+- **The coupling bonus pays once per Big Four company,** when its disc and an Underground disc first share a town, city or site, after the revenue rises. It pays that company's dividend per share to its shareholders, and the Underground's dividend to the Underground's shareholders when the Underground built. An Underground disc joining several Big Four discs couples with each.
+- **Running Rights count every town, city and site holding the company's disc outside its region**, London excepted; the Underground earns none. The Establishment Bonus is $6 per site, four sites a type.

@@ -110,10 +110,16 @@ export function trackLines(effects: readonly PlacementEffect[]): Description[] {
             .filter((part) => part !== '')
             .join(' and ')
         const tolls = mine.filter((effect) => effect.tollId).length
+        const coupled = mine.flatMap((effect) => effect.bonuses ?? [])
         return [
             `laid ${pieces} for the `,
             { companyId },
-            ` · $${cost}${gain > 0 ? `, revenue +${gain}` : ''}${tolls > 0 ? ', took the toll chit' : ''}`
+            ` · $${cost}${gain > 0 ? `, revenue +${gain}` : ''}${tolls > 0 ? ', took the toll chit' : ''}`,
+            ...coupled.flatMap((bonus) => [
+                '; Underground coupling paid ',
+                { companyId: bonus.companyId },
+                ` shareholders $${bonus.perShare} a share`
+            ])
         ]
     })
 }
@@ -287,6 +293,21 @@ export function spaceText(
     if (rules?.allowsLoans && definition.loans) {
         terms.push('Loans')
         text += '; may take out or repay loans first'
+    }
+    if (rules?.discPrice !== undefined) {
+        terms.push(`$${rules.discPrice}/disc`)
+        text += `; $${rules.discPrice} a disc`
+        if (rules.allowsCrossingCubes && rules.cubePrice !== undefined) {
+            text += `, $${rules.cubePrice} a cube`
+        }
+    }
+    if (rules?.regionPlacements) {
+        terms[0] = terms[0].replace(/^(\d+)/, `$1+${rules.regionPlacements}`)
+        text += `; ${rules.regionPlacements} more if every disc stays in the company's region`
+    }
+    if (rules && rules.maxCompanies === 1 && rules.halfPriceWithoutShare) {
+        terms.push('½ unowned')
+        text += ', half price for a company you hold no share in'
     }
     const partner = definition.investmentPartner
     if (space === ActionSpaceId.IndustryInvestment && partner) {

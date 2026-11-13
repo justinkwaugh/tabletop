@@ -60,6 +60,13 @@ const OPENING_BUYERS: Record<EditionId, Partial<Record<CompanyId, string>>> = {
         [CompanyId.AHB]: 'p2',
         [CompanyId.JFJ]: 'p3',
         [CompanyId.DSJ]: 'p1'
+    },
+    [EditionId.EnglandWales]: {
+        [CompanyId.LMS]: 'p0',
+        [CompanyId.LNER]: 'p1',
+        [CompanyId.SR]: 'p2',
+        [CompanyId.GWR]: 'p3',
+        [CompanyId.UERL]: 'p1'
     }
 }
 

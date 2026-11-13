@@ -100,7 +100,8 @@ export class RailheadsGameInitializer
                           (definition.bondWithStartPlayer ? 1 : 0)
                   }
                 : {}),
-            ...(definition.wealthTax ? { stateTreasury: 0 } : {})
+            ...(definition.wealthTax ? { stateTreasury: 0 } : {}),
+            ...(definition.underground ? { tubeConnections: [] } : {})
         })
         const hydrated = new HydratedRailheadsGameState(railheadsState)
         const [openerId] = turnManager.turnOrder

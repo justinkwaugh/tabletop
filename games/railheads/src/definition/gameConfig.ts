@@ -19,7 +19,8 @@ export const RailheadsGameConfigOptions: GameConfigOptions = [
             { name: 'Germany', value: EditionId.Germany },
             { name: 'The Midwest', value: EditionId.Midwest },
             { name: 'Switzerland', value: EditionId.Switzerland },
-            { name: 'Denmark', value: EditionId.Denmark }
+            { name: 'Denmark', value: EditionId.Denmark },
+            { name: 'England & Wales', value: EditionId.EnglandWales }
         ],
         alwaysShow: true
     },

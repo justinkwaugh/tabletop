@@ -6,7 +6,8 @@ export enum EditionId {
     Germany = 'Germany',
     Midwest = 'Midwest',
     Switzerland = 'Switzerland',
-    Denmark = 'Denmark'
+    Denmark = 'Denmark',
+    EnglandWales = 'EnglandWales'
 }
 
 export enum CompanyId {
@@ -29,7 +30,12 @@ export enum CompanyId {
     AAAJ = 'AAAJ',
     AHB = 'AHB',
     JFJ = 'JFJ',
-    DSJ = 'DSJ'
+    DSJ = 'DSJ',
+    LMS = 'LMS',
+    LNER = 'LNER',
+    SR = 'SR',
+    GWR = 'GWR',
+    UERL = 'UERL'
 }
 
 export enum Industry {
@@ -97,6 +103,12 @@ export type LayTrackRules = {
     allowsCrossingCubes: boolean
     tolls: number
     allowsLoans: boolean
+    // England & Wales prices track by action space: this much a disc, times one more than the
+    // discs beneath, and a flat price for a cube.
+    discPrice?: number
+    cubePrice?: number
+    // Extra placements when every disc stays inside the company's designated region.
+    regionPlacements?: number
 }
 
 export type CompanyDefinition = {
@@ -108,6 +120,8 @@ export type CompanyDefinition = {
     discs: number
     crossingCubes: number
     startingTreasury: number
+    // England & Wales: the Big Four's designated region.
+    regionId?: string
 }
 
 export type SiteDefinition = {
@@ -232,6 +246,8 @@ export type EditionDefinition = {
     loanLimit?: (revenue: number) => number
     wealthTax?: (cash: number) => number
     tollValuePerStar: number
+    // England & Wales: the Underground, whose coupling with a Big Four company pays a bonus.
+    underground?: CompanyId
 }
 
 export type LayTrackSpace =

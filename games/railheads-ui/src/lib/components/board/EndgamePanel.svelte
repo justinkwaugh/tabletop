@@ -69,6 +69,11 @@
         <text x="176" y="74" class="body">company</text>
         <text x="176" y="92" class="subtitle">Tunnel tolls</text>
         <text x="176" y="104" class="body">$2 per ★</text>
+    {:else if editionId === EditionId.EnglandWales}
+        <text x="10" y="40" class="subtitle">{style.endBonusShort} · per share</text>
+        <text x="14" y="56" class="body">$1 per town, city and site</text>
+        <text x="14" y="69" class="body">outside the designated region;</text>
+        <text x="14" y="82" class="body">not London, not the Underground</text>
     {:else if editionId === EditionId.Denmark}
         <text x="10" y="40" class="subtitle">{style.endBonusName} · per bond</text>
         <text x="14" y="56" class="body">State Treasury ÷ bonds held</text>

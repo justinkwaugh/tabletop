@@ -79,7 +79,9 @@ async function layOneDisc(page: Page, prefix: string) {
         .first()
         .click()
     await expect(page.getByRole('button', { name: /^Lay 1 piece/ })).toBeVisible()
-    await expect(page.locator('.panel .prompt')).toContainText(/lay a disc for/i)
+    await expect(page.locator('.panel .prompt')).toContainText(
+        /lay a disc (or crossing cube )?for/i
+    )
     await screenshot(page, `${prefix}-staged`)
     const tracks = await page.evaluate(() => window.railheadsSession.gameState.track.length)
     await page.getByRole('button', { name: /^Lay 1 piece/ }).click()
@@ -175,7 +177,16 @@ for (const [edition, partner] of [
     })
 }
 
-for (const edition of ['Germany', 'Midwest', 'Switzerland', 'Denmark']) {
+test('plays the England & Wales opening auctions and lays track', async ({ page }) => {
+    await createGame(page, 'EnglandWales')
+    await expect(page.getByRole('img', { name: /railheads england & wales/i })).toBeAttached()
+    await playInitialAuctions(page)
+    await expect.poll(() => machineState(page)).toBe('ChoosingAction')
+    await screenshot(page, '15-england-first-turn')
+    await layOneDisc(page, '16-england')
+})
+
+for (const edition of ['Germany', 'Midwest', 'Switzerland', 'Denmark', 'EnglandWales']) {
     test(`fits a phone screen without sideways scrolling in the action area (${edition})`, async ({
         page
     }) => {
