@@ -42,8 +42,6 @@
         }))
     }
 
-    // The stack you are about to bring in drops onto the dot you chose, until it goes in. A stack
-    // Undo took back out stands there already.
     const preview = $derived.by(() => {
         if (animator.entering || animator.pushedIn) return undefined
         if (animator.returned) return { ...animator.returned, drops: false }
@@ -62,8 +60,7 @@
               drops: boolean
           }
 
-    // Far stacks first, so nearer stacks stand in front of them. The stack coming in is drawn at
-    // its dot's depth: the line it pushes moves with it, so the order holds as it slides.
+    // Drawn at its dot's depth: the line it pushes moves with it, so the order holds as it slides.
     const drawOrder: Drawn[] = $derived.by(() => {
         const drawn: Drawn[] = animator.stacks.map((stack) => ({
             kind: 'stack',
@@ -84,9 +81,7 @@
         return drawn.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     })
 
-    // E5 can be marked, though the real board is not, as a reminder that a TAMSK-loaded piece pushed there
-    // earns an extra move: a station just wider than a piece, with a ring inside as wide as
-    // TAMSK's inner groove. Each player turns it on or off beside the board.
+    // Not on the real board: a reminder of TAMSK's extra move.
     const centre = $derived(view.center(CENTRE))
     const STATION_RADIUS = PIECE_RADIUS + 4
     const STATION_INNER = PIECE_RADIUS * 0.4
@@ -94,10 +89,8 @@
 
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
 
-    // Once a stack or dot is chosen, the other choices fade.
     const chosen = $derived(session.chosenFrom !== undefined || session.chosenDot !== undefined)
 
-    // A tap on nothing you can choose lets go of what is chosen.
     function onBoardClick(event: MouseEvent) {
         const target = event.target
         const choosable = '[role="button"]:not([aria-disabled="true"])'
@@ -155,15 +148,12 @@
         )
     }
 
-    // A ring round a stack's top face, toned by its top disc: arcs from board/marks.
     function ring(discs: readonly BoardDisc[], radius: number, cy: number): RingArc[] {
         const [top] = toned(discs.slice(-1))
         return topRing(view, top, radius, cy)
     }
 
-    // The flier passes in front of every stack it is nearer than; nearer stacks are copied over
-    // it, shown only while it is behind them. Only their bodies are copied: a shadow drawn twice
-    // shows darker.
+    // Bodies only: a shadow drawn twice shows darker.
     const occluding = $derived(
         animator.flier
             ? animator.stacks.filter((stack) => !animator.flier?.passes.includes(stack.key))
@@ -236,8 +226,6 @@
         </g>
     {/each}
 
-    <!-- Rings on the board: round the dots you can bring a stack in from, and round the spots
-         you can push into or move to, behind whatever stands there. -->
     <g {@attach animator.marks()}>
         {#each session.entryDots as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
@@ -323,10 +311,6 @@
                         parts={animator.parts(drawn.key)}
                     />
                 </g>
-                <!-- Marks lie on the top face, after the stack and outside the node that moves
-                     it: a ring on a stack you can move or a row you can take, a spot on each
-                     piece that goes, and on GIPF-pieces and loaded pieces in the chosen row a ring for keep or
-                     take. The rings break where they would cover the top piece's mark. -->
                 {#if role || target}
                     <g {@attach animator.marks()}>
                         {#if target}
@@ -344,7 +328,6 @@
                                 {/each}
                             {/each}
                             {#if isChosenTo(stack.coords)}
-                                <!-- The GIPF-piece waiting for one piece or two to cover it. -->
                                 <ellipse
                                     cy={faceY}
                                     rx={SPOT_RADIUS}
@@ -429,9 +412,7 @@
         {/each}
     {/if}
 
-    <!-- Arrows and the targets' click areas stand above the pieces, nearer ones last: the
-         stack standing on the chosen dot over the click areas of the spots it pushes into, and
-         the arrows over that. Tapping the stack is tapping its dot. -->
+    <!-- Above the pieces, nearer ones last; tapping the staged stack is tapping its dot. -->
     {#snippet pushTarget(entry: Entry, part: 'area' | 'arrow')}
         {@const center = view.center(entry.line[0])}
         {@const key = coordinatesToNumber(entry.line[0])}
@@ -525,7 +506,6 @@
         stroke-width: 1.6;
     }
 
-    /* The lines run through the outer ring to the inner one, filled to stop them there. */
     .station ellipse {
         fill: none;
         stroke: var(--gp-line);
@@ -563,8 +543,6 @@
         fill: transparent;
     }
 
-    /* Choice marks are two-tone, as in DVONN, YINSH and LYNGK: a dark band under a cyan core,
-       so they read on the board, the light pieces and the dark ones alike. */
     .under {
         stroke: rgb(0 0 0 / 0.8);
     }
@@ -645,8 +623,6 @@
         stroke-dasharray: 5 4;
     }
 
-    /* Each dash outlined on its own, as in DVONN, so the piece shows between dashes: the dark
-       dashes are shorter but square-capped, overhanging each cyan one by the band at both ends. */
     .top-ring.role-target.under {
         stroke: #000;
         stroke-width: 4.3;

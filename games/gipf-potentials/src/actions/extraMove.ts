@@ -25,7 +25,6 @@ export function isExtraMove(action?: GameAction): action is ExtraMove {
     return action?.type === ActionType.ExtraMove
 }
 
-// TAMSK, rule 2: the potential of the piece on the centre goes onto a dot and is pushed in.
 export class HydratedExtraMove extends HydratableAction<typeof ExtraMove> implements ExtraMove {
     declare type: ActionType.ExtraMove
     declare playerId: string

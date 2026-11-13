@@ -42,7 +42,6 @@ import {
     type PieceParts
 } from './drop.js'
 
-// A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
     'other-action',
@@ -52,18 +51,13 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 ])
 
 const SLIDE = 0.35
-// Seen from the side, a taken piece floats straight up as it fades, and its shadow shrinks.
 const TAKE: Lift = { duration: 0.55, rise: -34, fade: 'power1.out' }
 const MARK_FADE = 0.2
-// Undo and history play quickly, without the bounces.
 const QUICK = 0.18
-// A push taken back that no one restages slides back to its dot and lifts off there; slide and
-// lift overlap so the change stays within an actionless step's 0.2s.
+// Slide and lift overlap so the change stays within an actionless step's 0.2 s.
 const UNPUSH_SLIDE = 0.14
 const UNPUSH_LIFT_AT = 0.06
 const UNPUSH_LIFT: Lift = { duration: 0.12, rise: LIFT_OFF.rise, fade: LIFT_OFF.fade }
-// Landing on a stack bounces mostly up and down, with a little of the hop's momentum carrying
-// it along; landing on the board, it rebounds along the hop.
 const BOUNCE = {
     lift: [
         { y: -2.5, duration: 0.07, ease: 'power1.out' },
@@ -75,13 +69,8 @@ const BOUNCE = {
     step: 0.08
 }
 const REBOUND = { along: [2.4, -1.2, 0.45, 0], step: 0.07 }
-// A PÜNCT-potential that covers a GIPF-piece fades as it lands.
 const COVER_FADE = 0.15
-// How far off the stack it left, in spaces, a sliding YINSH piece's shadow takes to show.
 const SKID_SHADOW_CLEAR = 0.6
-// A ZÈRTZ piece lands this far short of its spot, on the board's plane, and bounces the rest of
-// the way, each bounce lower and shorter: how high in screen units, how long, and how much of the
-// way it has come by its end.
 const BOUNCES = {
     short: 10,
     steps: [
@@ -93,16 +82,12 @@ const BOUNCES = {
 
 export type DrawnStack = { key: number; coords: AxialCoordinates; discs: BoardDisc[] }
 
-// The stack being pushed in, drawn above the board from its dot until the move lands.
 export type Entering = { discs: BoardDisc[]; dot: AxialCoordinates }
 
-// A potential's piece in flight, drawn above the board from the spot it leaves.
 export type Flier = { coords: AxialCoordinates; disc: BoardDisc; passes: number[] }
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedGipfPotentialsGameState, AnimationContext>
-// A stack's drawing: the whole of it, which slides; its body, which lifts; its shadow; and
-// each disc and the shadow each casts on the one below.
 type StackNodes = {
     whole?: SVGGElement
     body?: SVGGElement
@@ -111,7 +96,6 @@ type StackNodes = {
     creases: Map<number, SVGGElement>
 }
 type FlierNodes = { whole?: SVGGElement; body?: SVGGElement; shadow?: SVGGElement }
-// A copy of a stack drawn over the flier: where it stands on screen, and how high its top is.
 type Occluder = { x: number; y: number; top: number }
 
 function drawnStacks(state: HydratedGipfPotentialsGameState): DrawnStack[] {
@@ -123,13 +107,10 @@ function drawnStacks(state: HydratedGipfPotentialsGameState): DrawnStack[] {
 }
 
 export class BoardAnimator implements MoveInterrupter {
-    // What the board draws. A replay plays several actions before the visible state catches
-    // up, so each animated action leaves the board as it ended until that state lands.
+    // A replay leaves each action's board drawn until the state catches up.
     stacks: DrawnStack[] = $derived.by(() => drawnStacks(this.session.gameState))
     entering: Entering | undefined = $state()
     flier: Flier | undefined = $state()
-    // Until the state a move made lands, your choices still name the dot you pushed from: the
-    // stack you pushed in stays off it, and a stack Undo took back out stands on it.
     pushedIn: boolean = $derived.by(() => this.untilLanded(false))
     returned: Entering | undefined = $derived.by(() => this.untilLanded(undefined))
 
@@ -163,7 +144,6 @@ export class BoardAnimator implements MoveInterrupter {
         this.abandoned = this.session.presentingState
     }
 
-    // Ends the shared context's timeline at once, so the move lands without waiting out its length.
     private finishMove() {
         const timeline = this.playing
         if (timeline === undefined) return
@@ -209,7 +189,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // The discs of the stack being pushed in, which another player's move drops onto its dot.
     readonly enteringParts: PieceParts = {
         disc: (index) => register(this.enteringNodes.discs, index),
         crease: (index) => register(this.enteringNodes.creases, index)
@@ -233,8 +212,7 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // A copy of `stack` drawn over the flier while the flier is behind it. Hidden by `display`:
-    // a copy hidden by `visibility` still paints any part that sets its own visibility.
+    // By `display`: a copy hidden by `visibility` still paints any part setting its own.
     occluder(stack: DrawnStack): Attachment<SVGUseElement> {
         return (node) => {
             node.style.display = 'none'
@@ -249,7 +227,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Everything that marks the choices of a move fades with it.
     marks(): Attachment<SVGGElement> {
         return (node) => {
             this.markNodes.add(node)
@@ -275,10 +252,8 @@ export class BoardAnimator implements MoveInterrupter {
         this.abandoned = undefined
         this.playing = animationContext.actionTimeline
         const shown = this.session.gameState
-        // Undo and state-only history steps carry no action and play quickly; a replay plays the move.
         const quick = action === undefined
-        // onHistoryAction names the action before the one a step back undoes, so a step back
-        // reads the move by its index.
+        // onHistoryAction names the action before the one a step back undoes, so read it by index.
         const known =
             action ??
             (to.actionCount < from.actionCount
@@ -288,8 +263,7 @@ export class BoardAnimator implements MoveInterrupter {
                   : undefined)
         const placement = isPushPiece(known) || isExtraMove(known) ? known : undefined
         const change = boardChange(from.board, to.board, placement)
-        // Each spot's drawing is reused for whatever stack next stands there, so every node a
-        // move touches is put back once the move lands.
+        // Spot nodes are reused by whatever stack stands there next, so each one touched is reset.
         const touched: SVGGElement[] = []
         let returned: Entering | undefined
 
@@ -303,8 +277,7 @@ export class BoardAnimator implements MoveInterrupter {
         }
         const drawing = performance.now()
         await tick()
-        // The context's timelines run from the moment it is made, just before this listener, so
-        // the motion starts after the time taken to draw rather than skipping it.
+        // The context's timelines run from its creation, so the motion starts after the draw time.
         const timeline = gsap.timeline()
         // An actionless step has 0.2 s in all, so it waits at most 0.02 s for the draw.
         const drawn = (performance.now() - drawing) / 1000
@@ -334,8 +307,6 @@ export class BoardAnimator implements MoveInterrupter {
         })
     }
 
-    // The board partway: a moving potential's piece lifted off its stack, the stack it lands on
-    // as it was, and stacks that gain discs drawn with them, so the discs can drop in.
     private inBetween(
         from: HydratedGipfPotentialsGameState,
         to: HydratedGipfPotentialsGameState,
@@ -343,7 +314,6 @@ export class BoardAnimator implements MoveInterrupter {
     ): DrawnStack[] {
         const before = drawnStacks(from)
         if (change.kind === 'move') {
-            // A covered GIPF-piece is drawn with the pieces that will cover it, to drop them on.
             const covered = change.cover
                 ? drawnStacks(to).find((stack) => sameCoordinates(stack.coords, change.to))
                 : undefined
@@ -385,8 +355,6 @@ export class BoardAnimator implements MoveInterrupter {
         const discs = discsOf([unit])
         const duration = quick ? QUICK : SLIDE
         if (change.forward) {
-            // A stack you brought in already stands on its dot; another player's, or one
-            // replayed from history, drops onto it first.
             const own = kind === 'own-action'
             const at = own || quick ? 0 : landing(discs.length)
             if (own) this.pushedIn = true
@@ -405,9 +373,6 @@ export class BoardAnimator implements MoveInterrupter {
             if (at > 0) this.dropEntering(timeline)
             return undefined
         }
-        // Back out: the stacks it moved go back a spot and the stack it brought slides back onto
-        // its dot. Your own Undo leaves it standing there, staged as you chose it; any other step
-        // back lifts it off.
         const along = alongLine(line, this)
         const back = { x: -along.x, y: -along.y }
         const toDot = this.offset(line[0], dot)
@@ -443,7 +408,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // The new stack slides from its dot onto the first spot as the line moves along.
     private async slideIn(
         discs: BoardDisc[],
         dot: AxialCoordinates,
@@ -467,8 +431,6 @@ export class BoardAnimator implements MoveInterrupter {
         if (shadow) dropShadow(timeline, shadow)
     }
 
-    // The top `count` discs of a stack float up as they fade; a whole stack takes its shadow
-    // with it.
     private liftDiscs(
         coords: AxialCoordinates,
         count: number,
@@ -503,8 +465,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Rows taken, an extra move given up, and anything Undo or history cannot read as one move:
-    // discs leaving a stack's top float up, discs arriving drop on.
     private discs(change: DiscsChange, timeline: Timeline, touched: SVGGElement[], quick: boolean) {
         for (const removed of change.removed) {
             const gaining = change.added.some((added) =>
@@ -524,7 +484,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Discs from `from` up drop onto a stack, and its shadow with the first if it was empty.
     private dropOnto(
         coords: AxialCoordinates,
         from: number,
@@ -553,9 +512,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // A potential's piece hops in one arc onto where it lands: over the pieces between for a
-    // ZÈRTZ jump, onto the stack it covers for DVONN and PÜNCT. Its node follows the board; its
-    // body rises and comes down; its shadow shows only while it stands on the board itself.
     private hop(
         before: HydratedGipfPotentialsGameState,
         move: MoveChange,
@@ -582,7 +538,6 @@ export class BoardAnimator implements MoveInterrupter {
         const offset = this.offset(move.from, move.to)
         const start = view.center(move.from)
         const half = plan.duration / 2
-        // A ZÈRTZ piece comes down a little short and bounces the rest of the way.
         const bounces = move.disc.kind === PieceKind.Zertz && !quick
         const short = bounces ? Math.min(BOUNCES.short / SPACING, 0.5) / (between.length + 1) : 0
         const landing = { x: offset.x * (1 - short), y: offset.y * (1 - short) }
@@ -613,8 +568,6 @@ export class BoardAnimator implements MoveInterrupter {
             timeline.to(shadow, { opacity: 1, duration: half, ease: 'power1.in' }, half)
         }
 
-        // The stacks nearer the viewer than the flier's place on the board stand in front of
-        // it, unless it is above them.
         const occlude = () => {
             const x = Number(gsap.getProperty(node, 'x'))
             const y = Number(gsap.getProperty(node, 'y'))
@@ -638,8 +591,6 @@ export class BoardAnimator implements MoveInterrupter {
         else this.bounce(node, body, offset, plan.endLift, timeline, plan.duration)
     }
 
-    // A PÜNCT-potential landed on a GIPF-piece fades out of the game as the pieces covering the
-    // GIPF-piece drop onto it.
     private coverOver(
         move: MoveChange,
         below: number,
@@ -665,9 +616,6 @@ export class BoardAnimator implements MoveInterrupter {
         })
     }
 
-    // A YINSH piece slides as YINSH's rings do: off its stack, over, touching down short of its
-    // place, a skip and a slide in. Its shadow shows once it is off the stack it left, paler the
-    // higher it is.
     private skid(move: MoveChange, spaces: number, startLift: number, timeline: Timeline) {
         const { whole: node, body, shadow } = this.flierNodes
         if (node === undefined || body === undefined || shadow === undefined) return
@@ -696,7 +644,6 @@ export class BoardAnimator implements MoveInterrupter {
         )
     }
 
-    // Bounces into place from where it came down, each lower and shorter than the last.
     private bounceIn(
         node: SVGGElement,
         body: SVGGElement,
@@ -724,8 +671,7 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Only stacks the flier is level with across the screen are copied over it, so the copies'
-    // soft edges, drawn twice, don't come and go on stacks it never passes.
+    // Only stacks level with the flier are copied over it, so their soft edges don't flicker.
     private occlude(groundX: number, groundY: number, lift: number) {
         for (const [use, { x, y, top }] of this.occluders) {
             const beside = Math.abs(x - groundX) < PIECE_RADIUS * 2
@@ -733,7 +679,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Up and down on the stack landed on, carried a little along the hop and back.
     private bounce(
         node: SVGGElement,
         body: SVGGElement,
@@ -750,7 +695,6 @@ export class BoardAnimator implements MoveInterrupter {
         this.carry(node, offset, BOUNCE.along, BOUNCE.step, timeline, at)
     }
 
-    // Past the spot along the hop, back, and settled: the hop's momentum on landing.
     private rebound(
         node: SVGGElement,
         offset: { x: number; y: number },
@@ -801,9 +745,8 @@ function register(nodes: Map<number, SVGGElement>, index: number): Attachment<SV
     }
 }
 
-// An extra move taken back gives the centre's piece its TAMSK-potential again, which drops back
-// onto it where the piece stands as the step starts: on the centre, or a spot on if the push
-// carried it along, from where it slides back with the line.
+// The piece regains its TAMSK-potential where it stands as the step starts: on the centre, or a
+// spot on if the push carried it, from where it slides back with the line.
 function regainedAt(change: PushChange | MoveChange | DiscsChange): AxialCoordinates | undefined {
     if (change.kind !== 'push' || change.forward || !change.fromCentre) return undefined
     const { line } = change.entry
@@ -811,12 +754,10 @@ function regainedAt(change: PushChange | MoveChange | DiscsChange): AxialCoordin
     return at >= 0 && at < change.shifted ? line[at + 1] : CENTRE
 }
 
-// One spot along a line, from its first spot towards its second.
 function alongLine(line: readonly AxialCoordinates[], animator: BoardAnimator) {
     return line.length < 2 ? { x: 0, y: 0 } : animator.offset(line[0], line[1])
 }
 
-// The spots strictly between two on one line.
 function spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordinates[] {
     const dq = to.q - from.q
     const dr = to.r - from.r
@@ -827,9 +768,7 @@ function spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordi
     }))
 }
 
-// Nodes about to grow or shrink, around their spot's centre. Set only on the nodes a move
-// scales, as it starts: GSAP measures each node's drawing to place the origin, and done for every
-// disc as it was drawn, that took ten seconds to open a game on a phone.
+// Set only as a move scales them: GSAP measures each node; for every disc, a phone took 10 s.
 function scaledFromCentre(...nodes: SVGGElement[]): SVGGElement[] {
     gsap.set(nodes, { svgOrigin: '0 0' })
     return nodes

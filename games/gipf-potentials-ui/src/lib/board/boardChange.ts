@@ -10,11 +10,8 @@ import {
 } from '@tabletop/gipf-potentials'
 import type { DiscKind } from './pieceShape.js'
 
-// One disc of a stack, by owner and mark, and its id.
 export type BoardDisc = { playerId: string; kind: DiscKind; id?: number }
 
-// A basic piece is one plain disc, a GIPF-piece two, a loaded piece a plain disc under its
-// potential's, a used potential its own disc.
 export function discsOf(stack: readonly Unit[]): BoardDisc[] {
     return stack.flatMap((unit) => {
         const marks: DiscKind[] = isPotentialKind(unit.kind)
@@ -30,8 +27,6 @@ export function discsOf(stack: readonly Unit[]): BoardDisc[] {
     })
 }
 
-// A push from a dot: what came in (a TAMSK extra move takes its potential from the centre),
-// how many stacks it moved on, and whether the step goes forward through it or back out of it.
 export type PushChange = {
     kind: 'push'
     entry: Entry
@@ -41,8 +36,6 @@ export type PushChange = {
     forward: boolean
 }
 
-// A potential leaving its piece for another spot. A PÜNCT-potential covering a GIPF-piece leaves
-// the game there, and the pieces that cover it come down instead.
 export type MoveChange = {
     kind: 'move'
     from: AxialCoordinates
@@ -52,15 +45,13 @@ export type MoveChange = {
     cover?: BoardDisc[]
 }
 
-// Anything else, spot by spot: the discs that leave the top of a stack and those that arrive.
 export type DiscChange = { coords: AxialCoordinates; from: number; discs: BoardDisc[] }
 export type DiscsChange = { kind: 'discs'; removed: DiscChange[]; added: DiscChange[] }
 
 export type BoardChange = PushChange | MoveChange | DiscsChange
 
-// What a known move did is read from the boards, so Undo and history steps, which carry no
-// action, play the same motion backwards or forwards. A push that moved nothing on could have come
-// from either dot beside its spot, so the move the step knows of is tried first.
+// Undo and history steps carry no action, so the move is read from the boards. A push that moved
+// nothing on could have come from either dot beside its spot, so the known move is tried first.
 export function boardChange(
     before: HydratedGipfPotentialsBoard,
     after: HydratedGipfPotentialsBoard,

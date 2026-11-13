@@ -2,8 +2,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ReserveKinds from './ReserveKinds.svelte'
 
-    // Your potentials in reserve, under the action panel at one height: on your turn, the kind
-    // you bring in next is chosen here.
     const session = getGameSession()
 
     const player = $derived(
@@ -34,8 +32,6 @@
         color: var(--gp-ink);
     }
 
-    /* Ultimate's seven choices fit inside the game column on a phone, the chosen one's ring clear
-       of the column's edge by the player cards, down to 320px. */
     @media (max-width: 639px) {
         .strip {
             padding: 2px 4px 4px;

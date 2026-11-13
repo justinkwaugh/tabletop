@@ -24,7 +24,6 @@
             return session.rows.length > 1 ? 'Choose a row to take' : 'Take your row'
         }
         if (session.chosenRow) return 'Tap GIPF-pieces to take, then'
-        // Skip ends the sentence, as Take row does above.
         if (session.canExtraMove) {
             return session.chosenDot
                 ? 'Choose the line to push along'
@@ -49,7 +48,6 @@
     })
 </script>
 
-<!-- One row, as Bus and Magna Grecia do: the last move while you wait, the prompt and its buttons on your turn. -->
 <div class="panel">
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}
@@ -150,7 +148,6 @@
         opacity: 0.4;
     }
 
-    /* A prompt and its buttons stay on one row on a 390px phone. */
     @media (max-width: 639px) {
         .panel {
             gap: 4px 6px;
@@ -163,8 +160,7 @@
         }
     }
 
-    /* Narrower, a prompt with buttons can wrap: every message gets two rows, one-row messages
-       centred in them, so the board never moves. */
+    /* A prompt with buttons can wrap here, so every message gets two rows: the board never moves. */
     @media (max-width: 375px) {
         .panel {
             min-height: 70px;

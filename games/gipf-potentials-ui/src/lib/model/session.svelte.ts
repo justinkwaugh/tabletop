@@ -47,7 +47,6 @@ import { includesCoords, TURNED_VIEW, VIEW, type BoardView } from '$lib/board/ge
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
-// Lets the session stop the move the board animator is playing.
 export type MoveInterrupter = {
     // Lands the move at once; the rest of its replay still plays.
     interrupt(): void
@@ -55,8 +54,7 @@ export type MoveInterrupter = {
     abandon(): void
 }
 
-// The moves Undo walks back through one choice at a time: a push or extra move returns its piece
-// to its dot, a potential's move returns it to its piece, still chosen.
+// Moves Undo restages: a push or extra move returns to its dot, a potential's move to its piece.
 type StepBack = PushPiece | ExtraMove | MovePotential
 
 type SessionOptions = ConstructorParameters<
@@ -68,15 +66,13 @@ export class GipfPotentialsGameSession extends GameSession<
     HydratedGipfPotentialsGameState
 > {
     selection: GipfPotentialsSelection = $state({})
-    // Anyone but the selection's owner, as the harness's Non-active view can be after an Undo,
-    // sees none of it, and Undo passes it by.
+    // Anyone but its owner, as the Non-active view after an Undo, sees none of it; Undo passes by.
     private selectionOwner: string | undefined = $state()
     private ownSelection: GipfPotentialsSelection = $derived(
         this.selectionOwner !== undefined && this.selectionOwner === this.myPlayer?.id
             ? this.selection
             : {}
     )
-    // The kind you last chose to bring in, kept from turn to turn.
     preferredKind: PieceKind | undefined = $state()
     undoingMove: StepBack | undefined
     historyMove: StepBack | undefined
@@ -101,20 +97,17 @@ export class GipfPotentialsGameSession extends GameSession<
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
 
-    // E5's mark, a reminder of TAMSK's extra move that the real board does not have.
     centreMark: boolean = $derived(this.preferences.values.centreMark)
 
     toggleCentreMark() {
         this.preferences.set({ centreMark: !this.centreMark })
     }
 
-    // The kinds of potential this game was set up with.
     kindsInPlay: PotentialKind[] = $derived.by(() => {
         const counts = potentialsFromConfig(this.game.config)
         return POTENTIAL_KINDS.filter((kind) => counts[kind] > 0)
     })
 
-    // The board seen from the far side, half a turn round, to see behind tall stacks.
     turned: boolean = $derived(this.preferences.values.turned)
 
     // A move's motion is laid out in the view it started in, so turning the board lands it.
@@ -145,7 +138,6 @@ export class GipfPotentialsGameSession extends GameSession<
             : this.pushKinds[0]
     )
 
-    // Whether pushing the chosen kind, a plain piece, gives up the potentials still in hand.
     forfeits: boolean = $derived.by(() => {
         const playerId = this.myPlayer?.id
         return (
@@ -155,8 +147,7 @@ export class GipfPotentialsGameSession extends GameSession<
         )
     })
 
-    // What goes onto the chosen dot: the TAMSK-potential of an extra move, or the chosen kind,
-    // with the ids its discs will have, so they lie the same way round once in.
+    // With the ids its discs will have, so they lie the same way round once in.
     stagedDiscs: BoardDisc[] = $derived.by(() => {
         const playerId = this.myPlayer?.id
         if (playerId === undefined) return []
@@ -189,8 +180,7 @@ export class GipfPotentialsGameSession extends GameSession<
         return manual !== undefined && includesCoords(this.entryDots, manual) ? manual : undefined
     })
 
-    // The kind of the stack standing on the chosen dot, out of your reserve until it goes in or
-    // comes back off; not the TAMSK piece of an extra move, which comes from the board.
+    // Not an extra move's TAMSK piece, which comes from the board.
     stagedKind: PieceKind | undefined = $derived(
         this.chosenDot !== undefined && !this.canExtraMove ? this.chosenKind : undefined
     )
@@ -199,15 +189,11 @@ export class GipfPotentialsGameSession extends GameSession<
         return playerId === this.myPlayer?.id ? this.stagedKind : undefined
     }
 
-    // How many potentials of a kind a player holds, less one loaded onto the piece on the
-    // chosen dot.
     inHand(playerId: string, kind: PotentialKind): number {
         const staged = this.staging(playerId) === kind ? 1 : 0
         return this.gameState.getPlayerState(playerId).potentials[kind] - staged
     }
 
-    // A player's basic pieces in reserve, less what stands on the chosen dot or is about to cover
-    // a GIPF-piece.
     reserveLeft(playerId: string): number {
         const staged = this.staging(playerId)
         const onDot = staged === undefined ? 0 : staged === PieceKind.Gipf ? GIPF_PIECE_SIZE : 1
@@ -222,7 +208,6 @@ export class GipfPotentialsGameSession extends GameSession<
             : this.entries.filter((entry) => sameCoordinates(entry.dot, dot))
     })
 
-    // Your loaded pieces whose potential can move now, each with where it can go.
     potentialMoves: { from: AxialCoordinates; to: AxialCoordinates }[] = $derived.by(() => {
         const playerId = this.myPlayer?.id
         return this.canMovePotential && playerId !== undefined
@@ -252,7 +237,6 @@ export class GipfPotentialsGameSession extends GameSession<
                   .map((move) => move.to)
     })
 
-    // The GIPF-piece a PÜNCT-potential is about to cover, waiting for how many pieces cover it.
     chosenTo: AxialCoordinates | undefined = $derived.by(() => {
         const manual = this.ownSelection.to?.value
         return manual !== undefined && includesCoords(this.moveTargets, manual) ? manual : undefined
@@ -263,7 +247,6 @@ export class GipfPotentialsGameSession extends GameSession<
         return playerId !== undefined && this.gameState.getPlayerState(playerId).reserve >= 2
     })
 
-    // Rows you must take, or, on your turn, rows of GIPF-pieces alone you may take.
     rows: Row[] = $derived.by(() => {
         const playerId = this.myPlayer?.id
         if (!this.canRemove || playerId === undefined) return []
@@ -272,7 +255,6 @@ export class GipfPotentialsGameSession extends GameSession<
         return this.resolving ? rows : rows.filter((row) => !board.isMandatory(row))
     })
 
-    // While rows are being taken, the only row is chosen for you.
     chosenRow: Row | undefined = $derived.by(() => {
         const manual = this.ownSelection.row?.value
         const found = this.rows.find((row) => this.rowKey(row) === manual)
@@ -280,12 +262,10 @@ export class GipfPotentialsGameSession extends GameSession<
         return this.resolving && this.rows.length === 1 ? this.rows[0] : undefined
     })
 
-    // GIPF-pieces and loaded pieces in the chosen row, which may stay; everything else goes.
     rowKeepable: AxialCoordinates[] = $derived(
         this.chosenRow ? this.gameState.board.keepableIn(this.chosenRow) : []
     )
 
-    // Your own pieces stay and the opponent's go unless you mark them otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
         const manual = this.ownSelection.keep?.value
         if (manual === undefined) {
@@ -336,14 +316,12 @@ export class GipfPotentialsGameSession extends GameSession<
         return this.incomingGameState
     }
 
-    // The move a step back to `to` takes back.
     undoneMove(to: Pick<GipfPotentialsGameState, 'actionCount'>): StepBack | undefined {
         const action = this.actions.find((candidate) => candidate.index === to.actionCount)
         return action !== undefined && this.isStepBack(action) ? action : undefined
     }
 
-    // None when the view passes to the other player as the Undo lands, as the harness's
-    // Non-active view does.
+    // None when the view passes to the other player as the Undo lands (the Non-active view).
     restagedMove(to: Pick<GipfPotentialsGameState, 'actionCount'>): StepBack | undefined {
         const move = this.undoingMove
         if (move === undefined || move.index !== to.actionCount) return undefined
@@ -361,7 +339,6 @@ export class GipfPotentialsGameSession extends GameSession<
         if (kind !== 'undo') this.undoingMove = undefined
     }
 
-    // Your choices for a move taken back, as you made them.
     private restaged(move: StepBack): GipfPotentialsSelection {
         if (isMovePotential(move)) {
             const from = setGipfPotentialsSelection({}, 'from', move.from)
@@ -371,8 +348,7 @@ export class GipfPotentialsGameSession extends GameSession<
         return setGipfPotentialsSelection({}, 'dot', move.dot)
     }
 
-    // Once a move is played, its motion runs on the state it started from, whose choices still
-    // show as they fade; taps on them do nothing until the new state lands.
+    // A move's motion runs on the state it started from, whose choices still show as they fade.
     private get moving(): boolean {
         return this.updatingVisibleState
     }
@@ -383,8 +359,6 @@ export class GipfPotentialsGameSession extends GameSession<
         this.preferredKind = kind
     }
 
-    // Choosing the chosen dot again brings in the next kind you could push instead; with only one
-    // to choose from, or an extra move standing there, it lets go.
     chooseDot(dot: AxialCoordinates) {
         if (this.moving) return
         if (!includesCoords(this.entryDots, dot)) return
@@ -408,8 +382,6 @@ export class GipfPotentialsGameSession extends GameSession<
         this.select(setGipfPotentialsSelection({}, 'from', same ? undefined : from))
     }
 
-    // Tapping where there is nothing to choose lets go of a chosen piece or dot, or of a row of
-    // GIPF-pieces you might have taken; rows you must take stay chosen.
     letGo() {
         if (this.moving) return
         const optionalRow = !this.resolving && this.ownSelection.row !== undefined
@@ -466,8 +438,6 @@ export class GipfPotentialsGameSession extends GameSession<
         await this.applyAction(this.createPlayerAction(SkipExtraMove, {}))
     }
 
-    // A PÜNCT-potential landing on a GIPF-piece waits for how many pieces cover it, when there
-    // are two to choose from.
     async movePotential(to: AxialCoordinates) {
         if (this.moving) return
         const from = this.chosenFrom

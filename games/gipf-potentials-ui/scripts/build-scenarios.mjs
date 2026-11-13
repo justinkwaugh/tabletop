@@ -25,14 +25,9 @@ const WHITE = 'player-1'
 const BLACK = 'player-2'
 const POTENTIALS = { t: 'tamsk', z: 'zertz', d: 'dvonn', y: 'yinsh', p: 'punct' }
 
-/**
- * White to move. Stacks are spot names to units read bottom to top, separated by spaces: B a
- * basic piece, G a GIPF-piece, T, Z, D, Y or P a basic piece loaded with that potential, and *
- * before a potential's letter the potential used, on its own. Capitals are White's, lower case
- * Black's. Each player's reserve and potentials in hand are what the version and config leave
- * after the pieces on the board, unless `players` says otherwise. `moved` marks both players as
- * past their first turn, for Tournament positions.
- */
+// White to move. Each stack lists its units bottom up: B basic, G GIPF-piece, T Z D Y P loaded,
+// a * before one a used potential on its own; capitals are White's. Reserves and potentials in
+// hand are what the config leaves unless `players` says otherwise. `moved`: past the first turn.
 function position(stacks, { config = {}, players = {}, moved = false } = {}) {
     const game = GipfPotentialsRuntime.initializer.initializeGame(
         {
@@ -110,9 +105,6 @@ const ONLY = (kind, count = '6') => ({ yinsh: '0', [kind]: count })
 const WHITE_GIPF = { E2: 'G', B5: 'G', H5: 'G' }
 const BLACK_GIPF = { E8: 'g', B2: 'g', H2: 'g' }
 
-// Every potential with a move to make: ZÈRTZ on C4 jumps D4 and E4 to F3, DVONN on D6 covers
-// Black's piece on E6, PÜNCT on G3 covers Black's GIPF-piece on H2, YINSH on E3 slides, and
-// TAMSK on C5 has no move of its own.
 write(
     'potentials',
     'Potentials',
@@ -133,8 +125,6 @@ write(
     )
 )
 
-// What DVONN on D6 may cover: Black's plain pieces on E6 and E7 and Black's DVONN on White's
-// piece on D5, not Black's GIPF-piece on C6 or TAMSK-loaded piece on D7.
 write(
     'dvonn-targets',
     'DVONN targets',
@@ -153,27 +143,18 @@ write(
     )
 )
 
-// PÜNCT on G3 covers Black's GIPF-piece on H2 with one piece from the reserve or two, or Black's
-// PÜNCT-loaded piece on G4.
 write(
     'punct-cover',
     'PÜNCT cover',
     position({ ...WHITE_GIPF, ...BLACK_GIPF, G3: 'P', G4: 'p' }, { config: ONLY('punct') })
 )
 
-// Black's last GIPF-piece stands on H2, beside White's PÜNCT on G3: covering it wins at the end
-// of the turn. Covered with one piece, that piece completes White's row E5–H2 and must go with
-// it, so Black's GIPF-piece is free again and play goes on; covered with two, the new
-// GIPF-piece may stay, and White wins.
 write(
     'cover-the-last-gipf',
     'Cover the last GIPF',
     position({ ...WHITE_GIPF, H2: 'g', G3: 'P', F4: 'B', E5: 'B' }, { config: ONLY('punct') })
 )
 
-// A push from E1 moves E2–E4 up a spot, putting White's TAMSK-loaded piece on the centre, E5,
-// and lining up E2–E5. White's extra move comes first (or Skip, which loses the potential); the
-// row is taken after it.
 write(
     'tamsk-extra-move',
     'TAMSK extra move',
@@ -183,8 +164,6 @@ write(
     )
 )
 
-// The same push puts Black's TAMSK-loaded piece on the centre: Black's turn opens with the extra
-// move.
 write(
     'their-tamsk',
     "Black's TAMSK",
@@ -194,9 +173,6 @@ write(
     )
 )
 
-// A push from E1 onto E2 completes White's row E2–E5, reaching over Black's DVONN-loaded piece on
-// E6 and plain piece on E7. Plain pieces go; GIPF-pieces and loaded pieces may stay, White's
-// starting left and Black's marked for removal, each tapped to switch.
 write(
     'take-a-row',
     'Take a row',
@@ -206,16 +182,12 @@ write(
     )
 )
 
-// A push from E1 with a loaded piece makes E2–E5 a four of GIPF-pieces and loaded pieces: it
-// must be broken, so Take row waits until one of them is marked for removal.
 write(
     'break-the-four',
     'Break the four',
     position({ B5: 'G', H5: 'G', G2: 'G', ...BLACK_GIPF, E2: 'G', E3: 'Y', E4: 'G' })
 )
 
-// Tournament: White still brings in GIPF-pieces. Pushing one in from E1 makes E2–E5 a row of
-// GIPF-pieces alone, which White may take or leave standing.
 write(
     'gipf-row',
     'Row of GIPF-pieces',
@@ -229,8 +201,6 @@ write(
     )
 )
 
-// Taking White's row E2–E5 after a push from E1 captures Black's DVONN on E6, freeing White's
-// piece under it, which completes a second row, E6–H3: White takes that one too.
 write(
     'uncovered-row',
     'Uncovered row',
@@ -252,8 +222,6 @@ write(
     )
 )
 
-// Black's last GIPF-piece stands on E6, in the reach of the row a push from E1 completes: White
-// wins by taking it.
 write(
     'last-gipf-piece',
     'Last GIPF piece',
@@ -263,7 +231,6 @@ write(
     )
 )
 
-// Near miss: Black's last GIPF-piece stands on E7, past the empty E6, out of the row's reach.
 write(
     'gipf-piece-out-of-reach',
     'GIPF piece out of reach',
@@ -273,8 +240,6 @@ write(
     )
 )
 
-// Black has no piece in reserve and no potential on the board: whatever White plays, Black
-// cannot move and loses.
 write(
     'out-of-moves',
     'Out of moves',
@@ -284,8 +249,6 @@ write(
     )
 )
 
-// Near miss: Black's ZÈRTZ-loaded piece on G3 can still jump White's piece on G4, so Black plays
-// on.
 write(
     'one-move-left',
     'One move left',

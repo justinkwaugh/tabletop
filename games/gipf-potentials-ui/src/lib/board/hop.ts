@@ -1,35 +1,26 @@
 import { gsap } from 'gsap'
 import { PIECE_RADIUS, SPACING } from './geometry.js'
 
-// Seen from the side, a moving stack hops in one arc over every space between, a little longer
-// and higher the farther it goes. Undo and history hop quickly.
 export const HOP = {
     single: 0.32,
     perSpace: 0.04,
     longest: 0.52,
     arc: 22,
     arcPerSpace: 3,
-    // Over a stack taller than both ends, the hop tops out this far above it.
     overTall: 10,
     quick: 0.18
 }
-// How far the moving stack's underside clears the top of a stack it passes over.
 const CLEARANCE = 3
 
 export const RISE_EASE = 'power2.out'
 export const FALL_EASE = 'power2.in'
 export const GROUND_EASE = 'sine.inOut'
 
-// How far apart, as a share of the spacing, two pieces stand when their footprints just touch.
 const FOOTPRINT = (2 * PIECE_RADIUS) / SPACING
 const SAMPLES = 100
 
-// One hop, in seconds from its start and in screen units above the flier's space (negative is
-// up). The flier rises to `peak` at `peakTime` and comes down to `endLift`; along the board it
-// moves between `groundStart` and `groundEnd`, setting off as soon as it can without its footprint
-// reaching a stack it passes over before it is higher than that stack, and arriving no later
-// than it must to come down past them. It tops out over the middle of the hop, or over the stack
-// that sets its height, so it never climbs again once past it.
+// The flier sets off once its footprint clears every stack it passes before it is higher, and tops
+// out over the stack that sets its height, so it never climbs again once past it.
 export type HopPlan = {
     duration: number
     startLift: number
@@ -44,7 +35,6 @@ export type HopSpec = {
     spaces: number
     startLift: number
     endLift: number
-    // The resting lift on top of each space the hop passes over, in order (0 for an empty one).
     over: readonly number[]
     quick: boolean
 }
@@ -67,10 +57,7 @@ export function hopPlan({ spaces, startLift, endLift, over, quick }: HopSpec): H
         groundEnd: duration
     }
     if (clear === Infinity) return plan
-    // How far along the stack that sets the height stands, when it does.
     const tallest = peak < arcPeak ? (over.indexOf(Math.min(...over)) + 1) / spaces : undefined
-    // While its footprint overlaps a stack it passes over, it must be higher than that stack:
-    // it sets off once it can, and arrives as late as it may.
     const step = duration / SAMPLES
     for (let tries = 0; tries < SAMPLES && plan.groundStart < plan.groundEnd; tries++) {
         if (tallest !== undefined) {
@@ -101,7 +88,6 @@ export function hopPlan({ spaces, startLift, endLift, over, quick }: HopSpec): H
     return plan
 }
 
-// Where the flier is `time` seconds into its hop: how far along the board (0 to 1) and how high.
 export function hopAt(plan: HopPlan, time: number): { along: number; lift: number } {
     const { duration, startLift, endLift, peak, peakTime, groundStart, groundEnd } = plan
     const fall = duration - peakTime
@@ -115,13 +101,9 @@ export function hopAt(plan: HopPlan, time: number): { along: number; lift: numbe
     return { along: gsap.parseEase(GROUND_EASE)(progress), lift }
 }
 
-// A YINSH piece slides along its line as YINSH's rings move: it lifts off the piece under it,
-// arcs over, touches down a little short of its place, skips once and slides in. Distances along
-// are on the board's plane, lifts in screen units above the flier's space (negative is up).
 export const SKID = {
     base: 0.5,
     perSpace: 0.03,
-    // Fractions of the flight: lift, fly, skip, then the slide to the end.
     liftEnd: 0.16,
     flyEnd: 0.68,
     skipEnd: 0.84,
@@ -140,8 +122,6 @@ export function skidDuration(spaces: number): number {
 const easeOut = (t: number) => 1 - (1 - t) ** 2
 const easeInOut = (t: number) => (1 - Math.cos(Math.PI * t)) / 2
 
-// Where the YINSH piece is at progress `u` (0 to 1) of a slide `spaces` long, starting
-// `startLift` above the board: how far along (0 to 1) and how high.
 export function skidAt(
     u: number,
     spaces: number,

@@ -3,8 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { EndReason, HydratedGipfPotentialsGameState } from '../model/gameState.js'
 
 // TAMSK, rules 3–4: a TAMSK-loaded piece pushed onto the centre earns its owner an extra move, at
-// once for the mover (nothing is taken between the two moves, which are one turn), and to open
-// the next turn for the opponent.
+// once for the mover (the two moves are one turn), and to open the next turn for the opponent.
 export function afterMove(
     state: HydratedGipfPotentialsGameState,
     playerId: string,
@@ -23,10 +22,9 @@ export function afterMove(
     return continueResolving(state)
 }
 
-// After the regular move, rows go one at a time, the mover's first, and are found again after
-// each, since a removal can uncover a piece that completes a new one. The mover may also take rows
-// of GIPF-pieces alone; the opponent takes only rows that must go. A row of GIPF-pieces alone
-// taken before the move leaves any row it frees for after the move.
+// Rows are found again after each removal, which can uncover a piece completing a new one. Only
+// the mover may take rows of GIPF-pieces alone; one taken before the move leaves any row it frees
+// for after the move.
 export function continueResolving(state: HydratedGipfPotentialsGameState): MachineState {
     const turnPlayerId = currentPlayerId(state)
     while (state.resolvingPlayerIds.length > 0) {
@@ -79,8 +77,7 @@ function endTurn(state: HydratedGipfPotentialsGameState, moverId: string): Machi
     return beginTurn(state, opponentId)
 }
 
-// Both players' rows that must go are taken after every regular move, so none stand when a turn
-// begins; it opens with an extra move the opponent gave.
+// No row that must go stands as a turn begins: both players' are taken after every regular move.
 function beginTurn(state: HydratedGipfPotentialsGameState, playerId: string): MachineState {
     const owed = state.extraMoveOwedIds.includes(playerId)
     state.extraMoveOwedIds = state.extraMoveOwedIds.filter((owedId) => owedId !== playerId)

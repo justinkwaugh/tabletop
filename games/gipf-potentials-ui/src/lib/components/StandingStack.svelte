@@ -7,9 +7,6 @@
     import type { PieceParts } from '$lib/animators/drop.js'
     import PieceShape from './PieceShape.svelte'
 
-    // A stack on the board with its shadow under it. The body is the whole stack, which rises off
-    // the board; its discs can move on their own. `bodyId` names the body, to copy it without the
-    // shadow.
     let {
         discs,
         view,

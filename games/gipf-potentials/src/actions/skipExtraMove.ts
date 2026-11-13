@@ -21,7 +21,6 @@ export function isSkipExtraMove(action?: GameAction): action is SkipExtraMove {
     return action?.type === ActionType.SkipExtraMove
 }
 
-// The extra move is given up; its TAMSK-potential leaves the game.
 export class HydratedSkipExtraMove
     extends HydratableAction<typeof SkipExtraMove>
     implements SkipExtraMove

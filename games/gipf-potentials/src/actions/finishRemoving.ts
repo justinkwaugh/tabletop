@@ -4,7 +4,6 @@ import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '
 import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 
-// The rows of GIPF-pieces alone left standing, each by its ends.
 export type FinishRemovingMetadata = Type.Static<typeof FinishRemovingMetadata>
 export const FinishRemovingMetadata = Type.Object({
     left: Type.Array(Type.Object({ from: AxialCoordinates, to: AxialCoordinates }))
@@ -28,7 +27,6 @@ export function isFinishRemoving(action?: GameAction): action is FinishRemoving 
     return action?.type === ActionType.FinishRemoving
 }
 
-// Leaves rows of GIPF-pieces alone standing; rows that must be taken cannot be left.
 export class HydratedFinishRemoving
     extends HydratableAction<typeof FinishRemoving>
     implements FinishRemoving

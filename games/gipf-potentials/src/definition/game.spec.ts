@@ -135,7 +135,6 @@ function removeRow(
     return execute(game, state, action)
 }
 
-// Pieces without disc ids, as tests write and compare them.
 type Piece = Omit<Unit, 'discIds'>
 const basic = (playerId: string): Piece => ({ playerId, kind: PieceKind.Basic })
 const loaded = (playerId: string, load: PotentialKind): Piece => ({

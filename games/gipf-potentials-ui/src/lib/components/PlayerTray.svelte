@@ -62,7 +62,6 @@
 </div>
 
 <style>
-    /* Light enough for black pieces to stand out as well as white ones. */
     .tray {
         border-radius: 12px;
         background: var(--gp-card);
@@ -97,7 +96,6 @@
         justify-content: center;
     }
 
-    /* Count and caption at the left, the pieces themselves at the right, as in GIPF. */
     .line > :global(svg) {
         margin-left: auto;
     }

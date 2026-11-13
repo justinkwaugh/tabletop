@@ -7,8 +7,6 @@
     import { liftOffBody, liftOffShadow, StagedDrop } from '$lib/animators/drop.js'
     import PieceShape from './PieceShape.svelte'
 
-    // The stack you are about to bring in, dropping onto the dot you chose unless Undo took it
-    // back out there. Taken back, it lifts off again, unless it is going in (lifts says which).
     let {
         discs,
         view,

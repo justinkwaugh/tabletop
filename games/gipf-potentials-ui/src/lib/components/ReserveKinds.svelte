@@ -9,10 +9,6 @@
     import type { DiscKind } from '$lib/board/pieceShape.js'
     import PieceIcon from './PieceIcon.svelte'
 
-    // A player's potentials in hand, each kind as its potential with how many are left, dimmed
-    // once none are. With `choose`, the pieces you could push next: a GIPF-piece while you may
-    // bring one in, each kind loaded on a piece, and a plain piece, the chosen one ringed and
-    // those you cannot push now dimmed.
     let {
         player,
         color,

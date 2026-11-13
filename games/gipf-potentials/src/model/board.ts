@@ -23,8 +23,7 @@ export const GipfPotentialsBoard = Type.Object({
     stacks: Type.Array(Stack)
 })
 
-// A row is four or more adjacent spots topped by one player's pieces in a line. Its reach runs on
-// in both directions while spots are occupied.
+// A row's reach runs on in both directions while spots are occupied.
 export type Row = {
     playerId: string
     from: AxialCoordinates
@@ -111,13 +110,10 @@ export class HydratedGipfPotentialsBoard
         return GEOMETRY.entries.filter((entry) => this.canPush(entry))
     }
 
-    // How many stacks the push moves on: those before the first empty spot.
     shiftedBy(entry: Entry): number {
         return entry.line.findIndex((coords) => this.isEmpty(coords))
     }
 
-    // Pushes the unit onto the line's first spot and returns the top of a stack it moves onto the
-    // centre.
     push(entry: Entry, unit: Unit): Unit | undefined {
         const gap = this.shiftedBy(entry)
         if (gap < 0) {
@@ -133,8 +129,7 @@ export class HydratedGipfPotentialsBoard
         return centre >= 0 && centre <= gap ? this.topAt(CENTRE) : undefined
     }
 
-    // Where the potential of a loaded piece could go, by its kind. A PÜNCT-potential covers an
-    // opponent's GIPF-piece only with a piece from the reserve to put on it.
+    // A PÜNCT-potential covers an opponent's GIPF-piece only with a reserve piece to put on it.
     potentialTargets(from: AxialCoordinates, reserve: number): AxialCoordinates[] {
         const unit = this.topAt(from)
         if (unit?.load === undefined) {
@@ -189,7 +184,6 @@ export class HydratedGipfPotentialsBoard
         )
     }
 
-    // The potential leaves its basic piece as a used potential of its own.
     unload(coords: AxialCoordinates): Unit {
         const unit = this.topAt(coords)
         if (unit?.load === undefined) {
@@ -263,8 +257,7 @@ export class HydratedGipfPotentialsBoard
         )
     }
 
-    // General use, rule 8: only a row of GIPF-pieces alone may stay; a loaded piece in the four
-    // means it must be broken, and a piece that may not stay means it must be taken.
+    // General use, rule 8: only a row of GIPF-pieces alone may stay.
     isMandatory(row: Row): boolean {
         return row.reach.some((coords) => !this.mayStay(coords)) || this.mustBreak(row)
     }
@@ -274,7 +267,6 @@ export class HydratedGipfPotentialsBoard
         return top !== undefined && mayStayInRow(top)
     }
 
-    // The pieces in a row's reach that may stay when it is taken.
     keepableIn(row: Row): AxialCoordinates[] {
         return row.reach.filter((coords) => this.mayStay(coords))
     }
@@ -284,8 +276,6 @@ export class HydratedGipfPotentialsBoard
         return row.run.some((coords) => isLoaded(this.topAt(coords)))
     }
 
-    // Taking a row keeps only pieces that may stay, takes something, and breaks a four that must
-    // be broken.
     isValidRemoval(row: Row, keep: readonly AxialCoordinates[]): boolean {
         const keepable = this.keepableIn(row)
         const kept = (coords: AxialCoordinates) =>

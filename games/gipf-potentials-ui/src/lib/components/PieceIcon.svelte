@@ -5,7 +5,6 @@
     import type { DiscKind } from '$lib/board/pieceShape.js'
     import PieceShape from './PieceShape.svelte'
 
-    // A piece drawn small, its discs' marks bottom to top.
     let {
         color,
         discs = [PieceKind.Basic],
@@ -14,7 +13,6 @@
 
     const radius = $derived(discs.length > 1 ? 10 : 10.5)
     const tone = $derived(color === Color.White ? 'light' : 'dark')
-    // Centred on the stack's whole silhouette, from its top face down to the front of its base.
     const scale = $derived(radius / PIECE_RADIUS)
     const middle = $derived(((VIEW.extentBelow - VIEW.extentAbove(discs.length)) / 2) * scale)
 </script>

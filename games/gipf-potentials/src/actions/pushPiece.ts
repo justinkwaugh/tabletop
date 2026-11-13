@@ -5,8 +5,6 @@ import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PieceKind, PotentialCounts } from '../model/pieces.js'
 
-// How many stacks a push shifted on, whose TAMSK-loaded piece it put on the centre, and the
-// potentials a plain piece left unplayed.
 export type PushMetadata = Type.Static<typeof PushMetadata>
 export const PushMetadata = Type.Object({
     shifted: Type.Integer({ minimum: 0 }),
@@ -35,8 +33,6 @@ export function isPushPiece(action?: GameAction): action is PushPiece {
     return action?.type === ActionType.PushPiece
 }
 
-// Brings a piece from the reserve, loaded, plain or doubled as a GIPF-piece: onto a dot, then
-// pushed in.
 export class HydratedPushPiece extends HydratableAction<typeof PushPiece> implements PushPiece {
     declare type: ActionType.PushPiece
     declare playerId: string

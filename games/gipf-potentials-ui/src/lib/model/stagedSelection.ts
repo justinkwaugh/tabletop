@@ -16,9 +16,6 @@ export type GipfPotentialsSelectionValues = {
 
 export type GipfPotentialsSelection = StagedSelectionState<GipfPotentialsSelectionValues>
 
-// A move is either a potential's (its loaded piece, then where it goes: a GIPF-piece a PÜNCT
-// covers waits for how many pieces cover it) or a push (its dot, then the line); rows are chosen,
-// then the pieces in them to keep.
 export const GipfPotentialsStageOrder = [
     'from',
     'to',

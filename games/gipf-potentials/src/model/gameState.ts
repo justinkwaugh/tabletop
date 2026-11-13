@@ -47,10 +47,9 @@ export const GipfPotentialsGameState = Type.Evaluate(
             board: GipfPotentialsBoard,
             movedThisTurn: Type.Boolean(),
             resolvingPlayerIds: Type.Array(Type.String()),
-            // Players whose TAMSK-loaded piece the opponent pushed onto the centre: an extra move
-            // to open their next turn.
+            // Owners of a TAMSK-loaded piece the opponent pushed onto the centre, owed an extra
+            // move to open their next turn.
             extraMoveOwedIds: Type.Array(Type.String()),
-            // The id the next disc to enter the board takes.
             nextDiscId: Type.Integer({ minimum: 0 }),
             endReason: Type.Optional(Type.Enum(EndReason))
         })
@@ -112,8 +111,7 @@ export class HydratedGipfPotentialsGameState
         return (this.turnManager.turnCounts[playerId] ?? 0) > 0
     }
 
-    // Tournament: a player's first piece is a GIPF-piece, and GIPF-pieces come only until their
-    // first other piece.
+    // Tournament: a first piece is a GIPF-piece, and GIPF-pieces come only until the first other.
     mustPlayGipf(playerId: string): boolean {
         return this.usesTournamentStart && !this.hasMoved(playerId)
     }
@@ -195,8 +193,7 @@ export class HydratedGipfPotentialsGameState
         this.board.unload(CENTRE)
     }
 
-    // A PÜNCT-potential landing on a GIPF-piece leaves the game, and one or two pieces from the
-    // reserve cover the GIPF-piece instead. Returns the unit the potential covered and what landed.
+    // A PÜNCT-potential landing on a GIPF-piece leaves the game; reserve pieces cover it instead.
     movePotential(
         playerId: string,
         from: AxialCoordinates,

@@ -1,10 +1,7 @@
-// Pre-renders every disc's look to its own bitmap in ../src/lib/images/looks, which the board and
-// the icons show as images. Drawn live, the looks' thousands of paths made opening a game and each
-// move slow on phones; shown as SVG images, iPhone browsers redrew each one every frame it moved.
-// It also writes board/lookUrls.ts, importing each file by name. Rerun after changing how a disc is
-// drawn (board/pieceShape.ts, components/DiscLook.svelte or LookDefs.svelte), with the harness
-// running:
-//   node scripts/render-looks.mjs   (PORT defaults to 5173)
+// Pre-renders every disc's look to src/lib/images/looks and writes board/lookUrls.ts: drawn live,
+// the looks were slow on phones, and as SVG images iPhone browsers redrew them every frame. Rerun
+// after changing how a disc is drawn, with the harness running: node scripts/render-looks.mjs
+// (PORT defaults to 5173)
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,8 +14,7 @@ const page = await browser.newPage()
 await page.goto(`http://localhost:${process.env.PORT ?? 5173}/looks`, { waitUntil: 'networkidle' })
 await page.locator('svg[data-look]').first().waitFor()
 
-// Each look as a standalone file: styles from the component's CSS become attributes, and only the
-// gradients it uses are kept.
+// A look saved on its own loses the page's CSS, so computed styles become attributes.
 const files = await page.evaluate(() => {
     const STYLED = ['fill', 'stroke', 'stroke-width', 'stroke-linejoin', 'fill-opacity']
     return [...document.querySelectorAll('svg[data-look]')].map((svg) => {
@@ -50,12 +46,10 @@ const files = await page.evaluate(() => {
     })
 })
 
-// Pixels per board unit: the board fits at up to 2.5 pixels per unit (GameTable's maxFitScale), and
-// the readiness review allows images up to 2.5 times the size they are drawn at, so a disc is about
-// 335 px across. Zoomed further in, as far as 4 pixels per unit, the pieces are a little soft.
+// The board fits at up to 2.5 pixels per unit (GameTable's maxFitScale), and the readiness review
+// allows images 2.5 times their drawn size. Zoomed in further, to 4, the pieces are a little soft.
 const SCALE = 2.5 * 2.5
-// Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
-// seams between the many bands of a groove's walls. Only the drawing grows, not the files.
+// Drawn larger and halved down, the seams between a groove's many bands blend away.
 const SUPERSAMPLE = 4
 // One at a time: all at once, the browser ran out of memory.
 const bitmaps = []

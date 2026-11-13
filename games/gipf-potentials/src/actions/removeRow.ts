@@ -34,9 +34,6 @@ export function isRemoveRow(action?: GameAction): action is RemoveRow {
     return action?.type === ActionType.RemoveRow
 }
 
-// The top unit of every spot in the row's reach goes, but GIPF-pieces and loaded pieces may stay;
-// a four holding a loaded piece must be broken (General use, rules 7–8). Outside resolving, only
-// a row of GIPF-pieces alone may be taken, at the owner's choice.
 export class HydratedRemoveRow extends HydratableAction<typeof RemoveRow> implements RemoveRow {
     declare type: ActionType.RemoveRow
     declare playerId: string

@@ -2,9 +2,6 @@ import type { Attachment } from 'svelte/attachments'
 import type { TransitionConfig } from 'svelte/transition'
 import { gsap } from 'gsap'
 
-// A piece brought in falls onto its dot, gathering speed, and settles with a small wobble; its
-// shadow waits on the dot and darkens as the piece comes down. A stack's discs fall one after the
-// other: the bottom one lands, then the top one lands on it and its shadow spreads over it.
 export const DROP = {
     fall: 0.26,
     rise: -50,
@@ -15,9 +12,6 @@ export const DROP = {
     stagger: 0.1
 }
 
-// How a piece lifted off the board rises, whole, as it fades: a taken piece slowly, an undone
-// one quickly, staying in sight until it is well up. It grows a little nearer as it rises, and its
-// How long each disc falls, and how far apart they start.
 export type DropTiming = { fall: number; stagger: number; wobble: readonly number[] }
 
 // Undo and history steps have no action, so a drop of `discs` ends by 0.18 s, without the wobble.
@@ -26,20 +20,16 @@ export function quickDrop(discs: number): DropTiming {
     return { fall, stagger: discs > 1 ? (0.18 - fall) / (discs - 1) : 0, wobble: [] }
 }
 
-// shadow shrinks under it.
 export type Lift = { duration: number; rise: number; fade: string }
 export const LIFT_OFF = { duration: 0.18, rise: -30, fade: 'power2.in', scale: 1.04, shadow: 0.55 }
 
 type Timeline = gsap.core.Timeline
 
-// When a stack's last disc lands, from the start of its drop.
 export function landing(discs: number): number {
     return DROP.fall + Math.max(0, discs - 1) * DROP.stagger
 }
 
-// The parts of a stack that move on their own as it drops: each disc, and the shadow each disc
-// casts on the one below (named by the lower disc). A disc taken off a stack that stays lifts off
-// when lifts says so.
+// A crease is named by the disc below it.
 export type PieceParts = {
     disc(index: number): Attachment<SVGGElement>
     crease(index: number): Attachment<SVGGElement>
@@ -85,7 +75,6 @@ export function dropShadow(
     )
 }
 
-// The shadow on the disc below `index + 1` darkens as that disc lands.
 export function dropCrease(
     timeline: Timeline,
     node: SVGGElement,
@@ -101,8 +90,7 @@ export function dropCrease(
     )
 }
 
-// The stack you stage drops onto its dot by itself, as its parts are drawn: it shows a choice,
-// not a change to the game, so no game state change owns its motion.
+// It shows a choice, not a change to the game, so no game state change owns its motion.
 export class StagedDrop {
     private readonly timeline = gsap.timeline()
 
@@ -129,7 +117,6 @@ export class StagedDrop {
     }
 }
 
-// Taking back the piece you staged lifts it off its dot again, unless it is going in.
 type LiftOff = { lifts: () => boolean }
 
 export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfig {
@@ -144,7 +131,6 @@ export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfi
     }
 }
 
-// A disc taken off the piece below lifts off it, and its shadow on that piece goes with it.
 type DiscLiftOff = { parts?: PieceParts }
 
 // The lift takes over from a drop still under way: the disc rises from where it is.

@@ -12,15 +12,12 @@ const text = (value: string): Segment => ({ kind: 'text', text: value })
 const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
 const piece = (...discs: DiscKind[]): Segment => ({ kind: 'piece', discs })
 
-// A pushed piece as it went in: a GIPF-piece two plain discs, a loaded piece its potential on a
-// plain disc, an extra move's TAMSK-potential alone.
 function pushed(kind: PieceKind, extra: boolean): Segment {
     if (kind === PieceKind.Gipf) return piece(PieceKind.Basic, PieceKind.Basic)
     if (!isPotentialKind(kind)) return piece(PieceKind.Basic)
     return extra ? piece(kind) : piece(PieceKind.Basic, kind)
 }
 
-// What each potential's move is called.
 function moved(kind: PotentialKind): string {
     switch (kind) {
         case PieceKind.Zertz:
@@ -36,7 +33,6 @@ function moved(kind: PotentialKind): string {
 }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
-// The brief form keeps the action banner to one line; the history panel uses the full one.
 export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
     const rows = brief ? briefRows(entry) : fullRows(entry)
     switch (entry.kind) {
@@ -90,7 +86,6 @@ function fullRows(entry: HistoryEntry): Segment[] {
     ])
 }
 
-// Rows taken, then rows of GIPF-pieces left standing.
 function briefRows(entry: HistoryEntry): Segment[] {
     const taken = entry.takings.filter((taking) => !taking.left)
     const left = entry.takings.filter((taking) => taking.left)

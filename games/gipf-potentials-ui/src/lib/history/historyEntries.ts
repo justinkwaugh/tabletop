@@ -12,7 +12,6 @@ import {
     type PotentialKind
 } from '@tabletop/gipf-potentials'
 
-// A row taken, or a row of GIPF-pieces alone left standing.
 export type Taking = {
     from: AxialCoordinates
     to: AxialCoordinates
@@ -24,18 +23,14 @@ export type Taking = {
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
 
-// A push from a dot: a piece from the reserve, plain, loaded or a GIPF-piece, or, for an extra
-// move, the TAMSK-potential from the centre.
 export type PushEntry = Span & {
     kind: 'push'
     piece: PieceKind
     extra: boolean
-    // The potentials a plain piece left unplayed.
     forfeited?: PotentialCounts
     dot: AxialCoordinates
     to: AxialCoordinates
     shifted: number
-    // Whose TAMSK-loaded piece the push put on the centre.
     tamskOwnerId?: string
     takings: Taking[]
 }
@@ -45,7 +40,6 @@ export type MoveEntry = Span & {
     piece: PotentialKind
     from: AxialCoordinates
     to: AxialCoordinates
-    // How many pieces a PÜNCT-potential put on the GIPF-piece it covered.
     cover?: number
     takings: Taking[]
 }
@@ -83,7 +77,6 @@ function takingsOf(action: GameAction): Taking[] {
     ]
 }
 
-// Rows read from the lower point to the higher: by column, then up the column.
 function inReadingOrder(
     a: AxialCoordinates,
     b: AxialCoordinates
@@ -128,8 +121,7 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
     return undefined
 }
 
-// Each move gets an entry, and the rows its player takes or leaves standing right after it join
-// it; rows taken by the other player, or before a move, get their own.
+// A move's own rows, taken or left standing, join its entry; any other rows get their own.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {

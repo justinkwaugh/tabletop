@@ -4,7 +4,6 @@
     import DiscLook from '$lib/components/DiscLook.svelte'
     import LookDefs from '$lib/components/LookDefs.svelte'
 
-    // Every disc's look, each in an SVG of its own, for scripts/render-looks.mjs to save as files.
     const box = lookBox(view, PIECE_RADIUS)
 </script>
 

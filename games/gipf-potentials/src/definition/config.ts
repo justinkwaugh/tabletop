@@ -28,7 +28,6 @@ export enum WhitePlayer {
 export type VersionRules = {
     pieces: number
     startsWithGipfPieces: boolean
-    // Potentials of every kind, fixed by the version rather than chosen.
     potentialsOfEveryKind?: number
 }
 
@@ -136,7 +135,6 @@ export const GipfPotentialsGameConfigOptions: GameConfigOptions = [
     }
 ]
 
-// The game form greys out the counts under Ultimate, which fixes them at 3.
 export class GipfPotentialsConfigurator extends BaseConfigurator {
     schema = GipfPotentialsGameConfig
     options = GipfPotentialsGameConfigOptions
@@ -162,7 +160,6 @@ export class GipfPotentialsConfigurator extends BaseConfigurator {
     }
 }
 
-// The counts as chosen, a missing or unknown one read as its default.
 function chosenCounts(config: GameConfig): PotentialCounts {
     return countsOfEachKind((kind) => {
         const chosen = Number(config[kind] ?? DEFAULT_POTENTIALS[kind])
@@ -184,7 +181,6 @@ export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
     )
 }
 
-// The potentials each player starts with: the version's fixed set, or the chosen counts.
 export function potentialsFromConfig(config: GameConfig): PotentialCounts {
     const fixed = VERSION_RULES[versionFromConfig(config)].potentialsOfEveryKind
     if (fixed !== undefined) {

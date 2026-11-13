@@ -5,8 +5,6 @@ import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PieceKind, PotentialKind, Unit } from '../model/pieces.js'
 
-// The potential's kind, the top unit it landed on, and what landed: the potential itself, or the
-// pieces from the reserve a PÜNCT-potential put on a GIPF-piece.
 export type MovePotentialMetadata = Type.Static<typeof MovePotentialMetadata>
 export const MovePotentialMetadata = Type.Object({
     kind: PotentialKind,
@@ -23,7 +21,6 @@ export const MovePotential = Type.Evaluate(
             playerId: Type.String(),
             from: AxialCoordinates,
             to: AxialCoordinates,
-            // PÜNCT onto a GIPF-piece: how many pieces from the reserve go on it.
             cover: Type.Optional(Type.Integer({ minimum: 1, maximum: 2 })),
             metadata: Type.Optional(MovePotentialMetadata)
         })
@@ -36,7 +33,6 @@ export function isMovePotential(action?: GameAction): action is MovePotential {
     return action?.type === ActionType.MovePotential
 }
 
-// The potential of a loaded piece leaves it and moves by its kind's ability.
 export class HydratedMovePotential
     extends HydratableAction<typeof MovePotential>
     implements MovePotential

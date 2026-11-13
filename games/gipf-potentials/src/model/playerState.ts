@@ -8,13 +8,9 @@ export const GipfPotentialsPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,
         Type.Object({
-            // Basic pieces in reserve.
             reserve: Type.Integer({ minimum: 0 }),
-            // Potentials still to be loaded onto pieces from the reserve.
             potentials: PotentialCounts,
-            // The opponent's basic pieces taken, a GIPF-piece as two; potentials just leave the game.
             captured: Type.Integer({ minimum: 0 }),
-            // Tournament: GIPF-pieces only until the first other piece.
             playedOther: Type.Boolean()
         })
     ])

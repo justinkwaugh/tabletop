@@ -2,11 +2,9 @@ import type { AxialCoordinates } from '@tabletop/common'
 import { DOT_RADIUS, PIECE_RADIUS, type BoardView } from './geometry.js'
 import { markGaps, type Disc } from './pieceShape.js'
 
-// A dashed ring's dashes and the gaps between them, as in its stroke-dasharray.
 export const DASH = 5
 export const DASH_GAP = 4
 
-// Everything a stack of the given height standing on a spot would cover, for clicks.
 export function stackOutline(view: BoardView, discs: number): string {
     const r = PIECE_RADIUS
     const ry = r * view.tilt
@@ -16,9 +14,7 @@ export function stackOutline(view: BoardView, discs: number): string {
 
 export type RingArc = { d: string; length: number }
 
-// A ring round a stack's top face, broken where it would cover the top disc's mark, as arcs.
-// Each arc's length is given in dash-and-gap units (DASH, DASH_GAP), so a dashed ring has
-// whole dashes evenly spaced, and a broken one a dash at each end of every arc.
+// In dash-and-gap units: whole dashes round a ring, and a dash at each end of a broken arc.
 export function topRing(view: BoardView, top: Disc, radius: number, cy: number): RingArc[] {
     const rx = radius
     const ry = radius * view.tilt
@@ -56,11 +52,8 @@ export function topRing(view: BoardView, top: Disc, radius: number, cy: number):
     })
 }
 
-// Arrows lie on the board, laid out flat and then seen at the tilt. Each runs from the far
-// half of the staged stack's top to well inside the ring around the first spot, so it marks
-// where the push goes. The tilt shortens an arrow pointing up or down the screen, the way
-// E1's does, more than one along a slanted line, so each starts as far from its dot on screen
-// as an upright one does, reaching back as far over the staged stack.
+// The tilt shortens an arrow pointing up or down the screen more than one along a slanted line,
+// so each starts as far from its dot on screen as an upright one does.
 export const ARROW_START = DOT_RADIUS * 2 + 12
 export const ARROW_REACH = 24
 

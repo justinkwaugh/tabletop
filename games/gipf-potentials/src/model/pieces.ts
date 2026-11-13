@@ -50,10 +50,8 @@ export function countsOfEachKind(count: (kind: PotentialKind) => number): Potent
     }
 }
 
-// What sits on a spot is a stack of units, bottom to top; only the top unit is in play and gives
-// the spot its colour. A basic piece may carry a potential (a loaded piece); a GIPF-piece is two
-// basic pieces; a potential unit on its own is one already used. Each disc has an id, bottom
-// first, given as it enters the board, by which the table turns it.
+// A potential unit on its own is one already used. Each disc takes an id, bottom first, as it
+// enters the board, so the table turns it the same way wherever it goes.
 export type Unit = Type.Static<typeof Unit>
 export const Unit = Type.Object({
     playerId: Type.String(),
@@ -72,23 +70,18 @@ export function mayStayInRow(unit: Unit): boolean {
     return unit.kind === PieceKind.Gipf || isLoaded(unit)
 }
 
-// A GIPF-piece is two basic pieces.
 export const GIPF_PIECE_SIZE = 2
 
 type UnitShape = Pick<Unit, 'kind' | 'load'>
 
-// The basic pieces in a unit, as the reserve counts them; a used potential holds none.
 export function basicsIn(unit: UnitShape): number {
     return unit.kind === PieceKind.Gipf ? GIPF_PIECE_SIZE : unit.kind === PieceKind.Basic ? 1 : 0
 }
 
-// The discs a unit stacks: its basic pieces, and a potential's own disc.
 export function discsIn(unit: UnitShape): number {
     return basicsIn(unit) + (isPotentialKind(unit.kind) || unit.load !== undefined ? 1 : 0)
 }
 
-// What a pushed kind becomes on the board: a potential rides on a basic piece. Its discs take ids
-// from the first given.
 export function pushedUnit(playerId: string, kind: PieceKind, firstDiscId: number): Unit {
     const shape: UnitShape = isPotentialKind(kind)
         ? { kind: PieceKind.Basic, load: kind }
