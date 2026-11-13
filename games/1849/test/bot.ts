@@ -394,7 +394,12 @@ export function botMove(game: Table, random: Random): Move {
 }
 
 /** Plays the table to its end, or to the action limit, returning the moves made. */
-export function playOut(game: Table, seed: number, limit = 6000): number {
+export function playOut(
+    game: Table,
+    seed: number,
+    limit = 6000,
+    afterMove: () => void = () => {}
+): number {
     const random = new Random(seed)
     let count = 0
     while (game.state.machineState !== 'GameOver' && count < limit) {
@@ -414,6 +419,7 @@ export function playOut(game: Table, seed: number, limit = 6000): number {
             )
         }
         count++
+        afterMove()
     }
     return count
 }

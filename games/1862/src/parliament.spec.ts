@@ -1,5 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { turnRecord } from '../../../libs/18xx/test/turnRecord.js'
 import { declineAll, table, type Table } from '../test/kit.js'
 import { charterableCompanies, parliamentDecision } from './parliament.js'
 import { CharteredParPrices } from './stockMarket.js'
@@ -8,10 +9,6 @@ const lowestPar = Math.min(...CharteredParPrices)
 
 function seats(game: Table): string[] {
     return [...game.state.turnManager.turnOrder]
-}
-
-function turns(game: Table) {
-    return game.state.turnManager.series.map((turn) => turn.playerId)
 }
 
 function firstCharterable(game: Table): string {
@@ -25,19 +22,21 @@ describe('1862 Parliament turns', () => {
         const game = table(4)
         const [p0, p1, p2, p3] = seats(game)
         const companyId = firstCharterable(game)
-        game.act('OpenCharterAuction', { companyId, bid: 0 }, p0)
-        game.act('RaiseCharterBid', { bid: 5 }, p1)
-        game.act('PassCharterBid', {}, p2)
-        game.act('PassCharterBid', {}, p3)
-        game.act('PassCharterBid', {}, p0)
+        const turns = turnRecord(game)
+        turns.act('OpenCharterAuction', { companyId, bid: 0 }, p0)
+        turns.act('RaiseCharterBid', { bid: 5 }, p1)
+        turns.act('PassCharterBid', {}, p2)
+        turns.act('PassCharterBid', {}, p3)
+        turns.act('PassCharterBid', {}, p0)
         expect(parliamentDecision(game.state)).toEqual({
             kind: 'charter',
             playerId: p1,
             companyId,
             bid: 5
         })
-        game.act('ObtainCharter', { companyId, parPrice: lowestPar, extraShares: 0 }, p1)
-        expect(turns(game)).toEqual([p0, p1, p2, p3, p0, p1, p2])
+        turns.act('ObtainCharter', { companyId, parPrice: lowestPar, extraShares: 0 }, p1)
+        expect(turns.players).toEqual([p0, p1, p2, p3, p0, p1, p2])
+        expect(turns.finished).toBe(6)
         const series = game.state.turnManager.series
         expect(series.filter((turn) => turn.end === undefined)).toEqual([series.at(-1)])
         expect(game.player).toBe(p2)
@@ -46,12 +45,14 @@ describe('1862 Parliament turns', () => {
     it('passes the opening to the next player in seat order after a decline', () => {
         const game = table(4)
         const [p0, p1, p2] = seats(game)
+        const turns = turnRecord(game)
         expect(game.player).toBe(p0)
-        game.act('DeclineCharter', {}, p0)
+        turns.act('DeclineCharter', {}, p0)
         expect(game.player).toBe(p1)
-        game.act('DeclineCharter', {}, p1)
+        turns.act('DeclineCharter', {}, p1)
         expect(game.player).toBe(p2)
-        expect(turns(game)).toEqual([p0, p1, p2])
+        expect(turns.players).toEqual([p0, p1, p2])
+        expect(turns.finished).toBe(2)
     })
 
     it('passes the opening to the player after the latest winner, who may not open again', () => {

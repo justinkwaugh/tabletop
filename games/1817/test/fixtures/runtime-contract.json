@@ -4822,6 +4822,10 @@
             },
             "type": "array"
           },
+          "seriesKeeps": {
+            "const": "latest",
+            "type": "string"
+          },
           "turnCounts": {
             "patternProperties": {
               "^.*$": {

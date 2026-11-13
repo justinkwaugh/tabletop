@@ -22,6 +22,8 @@ import {
     takeoverShortfall,
     type EighteenThirtyTwoState
 } from './index.js'
+import { expectReplayableRecord } from '../../../libs/18xx/test/replayableRecord.js'
+import { turnRecord } from '../../../libs/18xx/test/turnRecord.js'
 import { addUnstartedRailroads, EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
 type Play = ExamplePlay<EighteenThirtyTwoState>
@@ -71,13 +73,15 @@ describe('merger phase', () => {
 
     it('gives each proposer a turn in priority order, answers falling within it', () => {
         const play = mergerPhase()
-        const start = play.state.turnManager.series.length - 1
+        const first = play.state
+        const processedBefore = play.processed.length
+        const turns = turnRecord(play)
         const passed: string[] = []
         while (proposer(play) !== 'alex') {
             passed.push(proposer(play))
-            play.act('PassMerger', {}, proposer(play))
+            turns.act('PassMerger', {}, proposer(play))
         }
-        play.act(
+        turns.act(
             'ProposeMerger',
             { companyId: 'ACL', partnerId: 'CG', kind: 'system', yielded: false },
             'alex'
@@ -85,15 +89,19 @@ describe('merger phase', () => {
         const open = play.state.turnManager.series.at(-1)
         expect(open?.playerId).toBe('alex')
         expect(open?.end).toBeUndefined()
-        play.act('AnswerMerger', { accept: true }, 'blair')
-        const turns = play.state.turnManager.series.slice(start, start + passed.length + 1)
-        expect(turns.map((turn) => turn.playerId)).toEqual([...passed, 'alex'])
+        turns.act('AnswerMerger', { accept: true }, 'blair')
+        const proposers = [...passed, 'alex']
+        expect(turns.players.slice(0, proposers.length)).toEqual(proposers)
         const order = play.state.turnManager.turnOrder
-        expect(turns.map((turn) => order.indexOf(turn.playerId))).toEqual(
-            turns.map((turn) => order.indexOf(turn.playerId)).sort((a, b) => a - b)
+        expect(proposers.map((playerId) => order.indexOf(playerId))).toEqual(
+            proposers.map((playerId) => order.indexOf(playerId)).sort((a, b) => a - b)
         )
         // The answer ended alex's turn, as nothing was left for them to propose.
-        expect(turns.every((turn) => turn.end !== undefined)).toBe(true)
+        expect(turns.finished).toBe(proposers.length)
+        expectReplayableRecord(
+            { ...play, state: play.state, actions: play.processed.slice(processedBefore) },
+            first
+        )
     })
 
     it('does not open before the first 4-train', () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { validateGameResult } from '@tabletop/common'
+import { expectReplayableRecord } from '../../../libs/18xx/test/replayableRecord.js'
 import { playOut } from '../test/bot.js'
 import { table } from '../test/kit.js'
 
@@ -21,4 +22,11 @@ describe('1862 whole games', () => {
             expect(game.state.winningPlayerIds?.length).toBeGreaterThan(0)
             expect(() => validateGameResult(game.state)).not.toThrow()
         })
+
+    it('leaves a new game’s record open to History Navigation', { timeout: 120_000 }, () => {
+        const game = table(4, 12)
+        expect(game.state.turnManager.seriesKeeps).toBe('latest')
+        playOut(game, 12, 250)
+        expectReplayableRecord(game, game.initialState)
+    })
 })

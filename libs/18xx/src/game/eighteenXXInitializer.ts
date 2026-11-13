@@ -137,7 +137,8 @@ export class EighteenXXInitializer<
                         turnOrder: seatOrder,
                         turnCounts: Object.fromEntries(
                             players.map((player) => [player.playerId, 0])
-                        )
+                        ),
+                        seriesKeeps: 'latest'
                     }),
                     ...parts.position,
                     ...parts.titleState
