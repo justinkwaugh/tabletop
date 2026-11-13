@@ -1,19 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
-    ActionSource,
     assert,
     defaultGameConfig,
-    GameEngine,
     GameResult,
     isListConfigOption,
     listOptionDescription,
-    PlayerStatus,
-    type GameAction,
     type GameConfig
 } from '@tabletop/common'
-import { Definition } from './definition.js'
-import { GipfPotentialsRuntime } from './runtime.js'
-import { GipfPotentialsInfo } from './info.js'
+import {
+    actionBase,
+    createGame,
+    engine,
+    execute,
+    playToEnd,
+    type GipfPotentialsGame
+} from './tests/playthrough.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { GipfPotentialsConfigurator, GipfVersion, potentialsFromConfig } from './config.js'
@@ -37,46 +38,11 @@ import type { MovePotential } from '../actions/movePotential.js'
 import type { ExtraMove } from '../actions/extraMove.js'
 import type { RemoveRow } from '../actions/removeRow.js'
 
-const engine = new GameEngine(GipfPotentialsRuntime)
 const W = 'white'
 const B = 'black'
 
-function createGame(config: GameConfig = {}) {
-    return GipfPotentialsRuntime.initializer.initializeGame(
-        {
-            id: 'gipf-potentials-test',
-            typeId: 'gipf-potentials',
-            ownerId: 'owner',
-            seed: 5,
-            config: {
-                ...defaultGameConfig(GipfPotentialsInfo.configurator?.options ?? []),
-                ...config
-            },
-            players: [W, B].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
-type GipfPotentialsGame = ReturnType<typeof createGame>
-
 function start(game: GipfPotentialsGame): GipfPotentialsGameState {
     return engine.startGame(game, { startingPositions: { playerIds: [W, B] } }).initialState
-}
-
-let counter = 0
-function base(game: GipfPotentialsGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: GipfPotentialsGame, state: GipfPotentialsGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
 }
 
 const at = pointAt
@@ -90,7 +56,7 @@ function push(
     kind: PieceKind
 ) {
     const action: PushPiece = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.PushPiece,
         dot: at(dot),
         to: at(to),
@@ -108,7 +74,7 @@ function move(
     cover?: number
 ) {
     const action: MovePotential = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.MovePotential,
         from: at(from),
         to: at(to),
@@ -125,7 +91,7 @@ function extraMove(
     to: string
 ) {
     const action: ExtraMove = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.ExtraMove,
         dot: at(dot),
         to: at(to)
@@ -134,7 +100,7 @@ function extraMove(
 }
 
 function skipExtraMove(game: GipfPotentialsGame, state: GipfPotentialsGameState, playerId: string) {
-    return execute(game, state, { ...base(game, playerId), type: ActionType.SkipExtraMove })
+    return execute(game, state, { ...actionBase(game, playerId), type: ActionType.SkipExtraMove })
 }
 
 function finishRemoving(
@@ -142,7 +108,7 @@ function finishRemoving(
     state: GipfPotentialsGameState,
     playerId: string
 ) {
-    return execute(game, state, { ...base(game, playerId), type: ActionType.FinishRemoving })
+    return execute(game, state, { ...actionBase(game, playerId), type: ActionType.FinishRemoving })
 }
 
 function removeRow(
@@ -154,7 +120,7 @@ function removeRow(
     keep: string[] = []
 ) {
     const action: RemoveRow = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.RemoveRow,
         from: at(from),
         to: at(to),
@@ -346,7 +312,7 @@ describe('loading pieces', () => {
         let state = start(game)
         expect(hydrated(state).pushableKinds(W)).toEqual([PieceKind.Yinsh, PieceKind.Basic])
         const action: PushPiece = {
-            ...base(game, W),
+            ...actionBase(game, W),
             type: ActionType.PushPiece,
             dot: at('A1'),
             to: at('B2'),
@@ -703,92 +669,6 @@ describe('end of game', () => {
     })
 })
 
-// Every way to take each row: what must go goes, any choice of the rest stays.
-function removals(
-    game: GipfPotentialsGame,
-    state: GipfPotentialsGameState,
-    playerId: string
-): GameAction[] {
-    const { board } = hydrated(state)
-    const actions: GameAction[] = board.rowsOf(playerId).flatMap((row) => {
-        const keepable = row.reach.filter((coords) => board.mayStay(coords))
-        return Array.from({ length: 2 ** keepable.length }, (_, mask) => ({
-            ...base(game, playerId),
-            type: ActionType.RemoveRow,
-            from: row.from,
-            to: row.to,
-            keep: keepable.filter((_, index) => (mask >> index) & 1)
-        }))
-    })
-    actions.push({ ...base(game, playerId), type: ActionType.FinishRemoving })
-    return actions.filter((action) => {
-        try {
-            execute(game, state, action)
-            return true
-        } catch {
-            return false
-        }
-    })
-}
-
-function potentialActions(
-    game: GipfPotentialsGame,
-    state: GipfPotentialsGameState,
-    playerId: string
-): GameAction[] {
-    const current = hydrated(state)
-    return current.potentialMoves(playerId).flatMap((potentialMove) => {
-        const action = { ...base(game, playerId), type: ActionType.MovePotential, ...potentialMove }
-        if (current.board.topAt(potentialMove.to)?.kind !== PieceKind.Gipf) {
-            return [action]
-        }
-        const reserve = current.getPlayerState(playerId).reserve
-        return [1, 2].filter((cover) => cover <= reserve).map((cover) => ({ ...action, cover }))
-    })
-}
-
-function legalActions(game: GipfPotentialsGame, state: GipfPotentialsGameState): GameAction[] {
-    const current = hydrated(state)
-    const playerId = state.activePlayerIds[0]
-    const entries = current.board.legalEntries()
-    switch (state.machineState) {
-        case MachineState.ResolvingRows:
-            return removals(game, state, playerId)
-        case MachineState.ExtraMove:
-            return [
-                { ...base(game, playerId), type: ActionType.SkipExtraMove },
-                ...entries.map((entry) => ({
-                    ...base(game, playerId),
-                    type: ActionType.ExtraMove,
-                    dot: entry.dot,
-                    to: entry.line[0]
-                }))
-            ]
-        default: {
-            const kinds = current.pushableKinds(playerId)
-            // Plain pieces only now and then while potentials remain, so games use them.
-            const pushKinds =
-                kinds.length > 1 && current.getPlayerState(playerId).potentialsInHand() > 0
-                    ? kinds.filter((kind) => kind !== PieceKind.Basic)
-                    : kinds
-            return [
-                ...entries.flatMap((entry) =>
-                    pushKinds.map((kind) => ({
-                        ...base(game, playerId),
-                        type: ActionType.PushPiece,
-                        dot: entry.dot,
-                        to: entry.line[0],
-                        kind
-                    }))
-                ),
-                ...potentialActions(game, state, playerId),
-                ...potentialActions(game, state, playerId),
-                ...potentialActions(game, state, playerId)
-            ]
-        }
-    }
-}
-
 const PLAYOUTS: [string, GameConfig][] = [
     ['Standard, 6 YINSH', {}],
     ['Standard, 6 of every kind', Object.fromEntries(POTENTIAL_KINDS.map((kind) => [kind, '6']))],
@@ -820,20 +700,7 @@ describe('random playouts', () => {
         )
     )('%s, seed %i, plays to a single winner', (_name, seed, config) => {
         const game = createGame(config)
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions))
-            steps += 1
-            expect(steps).toBeLessThan(5000)
-        }
+        const state = playToEnd(game, start(game), seed)
         expect(state.winningPlayerIds).toHaveLength(1)
         expect(state.endReason).toBeDefined()
     })
