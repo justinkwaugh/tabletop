@@ -18,14 +18,14 @@ const title = />Feudum</
 
 describe('the cover page', () => {
     it('a supplied scene without a title stands behind the title band', () => {
-        const svg = coverSvg({ kind: 'art', href, titled: false }, token)
+        const svg = coverSvg({ href, titled: false }, token)
         expect(svg).toContain(`href="${href}"`)
         expect(svg).toMatch(band)
         expect(svg).toMatch(title)
     })
 
     it('a supplied cover that prints its own title is the whole cover, with nothing drawn over it', () => {
-        const svg = coverSvg({ kind: 'art', href, titled: true, size: RulebookCover }, token)
+        const svg = coverSvg({ href, titled: true, size: RulebookCover }, token)
         const { y, height } = coverPlacement(RulebookCover)
         expect(svg).toContain(
             `<image href="${href}" x="0" y="${y}" width="${CoverSize.width}" height="${height}"`
@@ -63,7 +63,7 @@ describe('the crop without a known title', () => {
             width: CoverSize.width,
             height: CoverSize.width
         })
-        const svg = coverSvg({ kind: 'art', href, titled: true, size: square }, token)
+        const svg = coverSvg({ href, titled: true, size: square }, token)
         expect(svg).toContain(`fill="${token('surface')}"`)
         expect(svg).not.toMatch(title)
     })
@@ -104,10 +104,7 @@ describe('the box front’s crop, around its printed title', () => {
     })
 
     it('draws the cover with the image where the crop puts it', () => {
-        const svg = coverSvg(
-            { kind: 'art', href, titled: true, size: BoxFront, title: BoxFrontTitle },
-            token
-        )
+        const svg = coverSvg({ href, titled: true, size: BoxFront, title: BoxFrontTitle }, token)
         expect(svg).toContain(`<image href="${href}" x="${placed.x}" y="${placed.y}"`)
         expect(svg).toContain(`fill="${token('surface')}"`)
     })
