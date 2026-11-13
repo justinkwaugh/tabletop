@@ -2,6 +2,7 @@
     import { Floater } from '@tabletop/frontend-components'
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import type { RailroadChoice } from '$lib/utils/pickMarks.js'
+    import { popupSide } from '$lib/utils/phoneLayout.svelte.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
     import LocomotiveIcon from './LocomotiveIcon.svelte'
     import MarkPill from './MarkPill.svelte'
@@ -18,7 +19,7 @@
 </script>
 
 <!-- Contract, Build and Ride: the popup beside the picked hex, one chip per railroad. -->
-<Floater {reference} placement="right" offset={8} trigger="manual">
+<Floater {reference} placement={popupSide('right')} offset={8} trigger="manual">
     <div
         class="max-w-72 rounded-lg border border-rtr-line bg-rtr-panel-raised p-2 text-rtr-ink shadow-lg"
         role="group"

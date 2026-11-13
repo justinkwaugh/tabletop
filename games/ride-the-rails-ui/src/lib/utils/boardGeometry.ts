@@ -166,6 +166,13 @@ export function cityLabelFontSize(viewScale: number): number {
 
 export const LARGEST_CITY_LABEL_FONT_SIZE = cityLabelFontSize(FITTED_DESKTOP_SCALE)
 
+/** Contract, Phone layout: a phone's whole map would draw names about 4 px high, so it leaves them off; a press shows the city. */
+export const MIN_CITY_LABEL_SCREEN_SIZE = 6
+
+export function drawsCityLabels(viewScale: number): boolean {
+    return cityLabelFontSize(viewScale) * viewScale >= MIN_CITY_LABEL_SCREEN_SIZE
+}
+
 export type LabelSide = 'above' | 'below' | 'left' | 'right'
 
 const CITY_LABEL_SIDES: ReadonlyMap<CityId, LabelSide> = new Map<CityId, LabelSide>([

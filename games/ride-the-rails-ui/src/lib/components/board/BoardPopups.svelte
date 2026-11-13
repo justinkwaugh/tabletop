@@ -3,6 +3,7 @@
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { buildChoice, linkChoice } from '$lib/utils/pickMarks.js'
+    import { popupSide } from '$lib/utils/phoneLayout.svelte.js'
     import HexDetailCard from './HexDetailCard.svelte'
     import { CHOICE_ANCHOR_ID, DETAIL_ANCHOR_ID } from './PopupAnchor.svelte'
     import RailroadChoicePopup from './RailroadChoicePopup.svelte'
@@ -42,7 +43,12 @@
 
 {#if detailBeside}
     {#key detailBeside}
-        <Floater reference="#{DETAIL_ANCHOR_ID}" placement="left" offset={8} trigger="manual">
+        <Floater
+            reference="#{DETAIL_ANCHOR_ID}"
+            placement={popupSide('left')}
+            offset={8}
+            trigger="manual"
+        >
             <HexDetailCard hexId={detailBeside} />
         </Floater>
     {/key}

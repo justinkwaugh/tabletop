@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { HexId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { cityLabel, cityLabelFontSize } from '$lib/utils/boardGeometry.js'
+    import { cityLabel, cityLabelFontSize, drawsCityLabels } from '$lib/utils/boardGeometry.js'
     import { cityPieces } from '$lib/utils/boardPieces.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
 
@@ -11,6 +11,7 @@
 
     const cities = $derived(cityPieces(gameSession.gameState))
     const fontSize = $derived(cityLabelFontSize(viewScale))
+    const labelled = $derived(drawsCityLabels(viewScale))
 
     // The station's drawn shapes are laid out for a disc of this radius and scaled to each city's.
     const DRAWN_RADIUS = 10.6
@@ -120,7 +121,7 @@
                 {/each}
             {/if}
         </g>
-        {#if !lit}
+        {#if !lit && labelled}
             {@const label = cityLabel(city.cityId, fontSize)}
             <text
                 x={label.x}

@@ -19,6 +19,10 @@
     import HexDetailCard from '$lib/components/board/HexDetailCard.svelte'
     import TableControls from '$lib/components/panel/TableControls.svelte'
     import FullScreenControls from '$lib/components/panel/FullScreenControls.svelte'
+    import BoardFocusChooser from '$lib/components/BoardFocusChooser.svelte'
+    import { BoardFocusSelection } from '$lib/model/boardFocus.svelte'
+    import { BOARD_COVER_BELOW_SCALE, BOARD_MAX_SCALE } from '$lib/utils/boardFocus.js'
+    import { boardInsetTop } from '$lib/utils/phoneLayout.svelte.js'
     import { FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
@@ -42,6 +46,7 @@
     setGameSession(session)
 
     let wrapper = $state<ScalingWrapper>()
+    const focus = new BoardFocusSelection()
 
     // Contract, Coexistence and precedence: during a map pick the hex detail opens in the side panel.
     const sidePanelHexId = $derived(
@@ -81,12 +86,17 @@
                     bind:this={wrapper}
                     justify="center"
                     controls="bottom-left"
-                    maxScale={2}
-                    coverBelowScale={0.3}
+                    maxScale={BOARD_MAX_SCALE}
+                    coverBelowScale={BOARD_COVER_BELOW_SCALE}
+                    insetTop={boardInsetTop()}
                     renderAtViewScale
                     expandable
+                    onManualViewChange={() => focus.release()}
                 >
                     <Board viewScale={wrapper?.viewScale() ?? FITTED_DESKTOP_SCALE} />
+                    {#snippet overlay(viewport)}
+                        <BoardFocusChooser {wrapper} {viewport} selection={focus} />
+                    {/snippet}
                     {#snippet toolbar()}
                         <!-- Outside the content's CSS zoom, which would shrink and misplace the popups,
                              and inside full screen's dialog. -->

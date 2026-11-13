@@ -32,7 +32,7 @@
                 <h2 class="text-base font-bold">{route}</h2>
                 {#if facts && preview}
                     <span class="text-sm text-rtr-ink-muted">
-                        {facts}<span class="sm:hidden"> · you +${preview.riderGain}</span>
+                        {facts}<span class="sm:hidden">{` · you +$${preview.riderGain}`}</span>
                     </span>
                     <button
                         type="button"
