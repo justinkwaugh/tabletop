@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { HexKind, hexKey } from '@tabletop/railheads'
+    import { Country, HexKind, hexKey } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boardLayout } from '$lib/utils/boardLayout.js'
-    import { DEMAND_FILL, INDUSTRY_STYLE, WATER_FILL } from '$lib/utils/companyStyle.js'
+    import { DEMAND_FILL, INDUSTRY_STYLE, PEAK_FILL, WATER_FILL } from '$lib/utils/companyStyle.js'
     import { editionStyle } from '$lib/utils/editionStyle.js'
     import { regionBorders, regionLabels, waterSeams } from '$lib/utils/mapFeatures.js'
     import DemandArea from './DemandArea.svelte'
@@ -27,7 +27,6 @@
     // Edge stroke plus the inset gap on both sides, so the map's outer border matches the seam between hexes.
     const outlineWidth = $derived(edgeWidth + 2 * INSET_GAP)
     const layout = $derived(boardLayout(gameSession.gameState.editionId))
-    const revenue = $derived(edition.definition.siteRevenue)
     const scale = $derived(layout.hexRadius / GERMANY_RADIUS)
     const arcRadius = $derived(ARC_RADIUS * scale)
 
@@ -42,12 +41,50 @@
                         ? style.regionFill[place.regionId]
                         : undefined) ?? style.hexFill[place.kind],
                 industry: place.industry,
+                country:
+                    place.industry && Object.values<string>(Country).includes(place.regionId ?? '')
+                        ? (place.regionId as Country)
+                        : undefined,
                 center: layout.hexCenter(place.coords),
                 name: site?.name,
-                value: site ? `+${revenue[site.kind]}` : undefined
+                value: site ? `+${edition.siteRevenue(site.id)}` : undefined
             }
         })
     )
+    // Each bridge or tunnel is named once, on its first hex, with its toll stars.
+    const tolls = $derived(
+        edition.map.tolls.map((toll) => {
+            const centers = toll.hexes.map((coords) => layout.hexCenter(coords))
+            const middle = {
+                x: centers.reduce((sum, point) => sum + point.x, 0) / centers.length,
+                y: centers.reduce((sum, point) => sum + point.y, 0) / centers.length
+            }
+            return {
+                id: toll.id,
+                key: hexKey(toll.hexes[0]),
+                name: toll.name.replace(/ Bridge$/, ''),
+                stars: toll.stars,
+                anchor: centers[0],
+                middle,
+                seams: waterSeams(toll.hexes, layout)
+            }
+        })
+    )
+    const peaks = $derived(
+        edition.map.peaks.map((peak) => ({
+            key: hexKey(peak.hex),
+            name: peak.name,
+            center: layout.hexCenter(peak.hex)
+        }))
+    )
+    const FLAG_STRIPES: Record<Country, { colors: string[]; vertical: boolean }> = {
+        [Country.France]: { colors: ['#2c4f9e', '#f4f0e8', '#d0262f'], vertical: true },
+        [Country.Germany]: { colors: ['#111111', '#d0262f', '#f2c230'], vertical: false },
+        [Country.Austria]: { colors: ['#d0262f', '#f4f0e8', '#d0262f'], vertical: false },
+        [Country.Italy]: { colors: ['#2f8a3e', '#f4f0e8', '#d0262f'], vertical: true }
+    }
+    const FLAG_WIDTH = 15
+    const FLAG_HEIGHT = 10
     const water = $derived(
         edition.map.water.map((coords) => ({
             key: hexKey(coords),
@@ -55,7 +92,7 @@
         }))
     )
     const seams = $derived(waterSeams(edition.map.water, layout))
-    const borders = $derived(regionBorders(edition.map, layout))
+    const borders = $derived(style.regionBorders ? regionBorders(edition.map, layout) : [])
     const states = $derived(regionLabels(edition.map, layout, style.regionLabels))
     const lakes = $derived(
         style.lakeLabels.map((lake) => ({
@@ -84,7 +121,7 @@
         fill={DEMAND_FILL}
     ></circle>
 {/each}
-{#each [...hexes, ...water] as hex (hex.key)}
+{#each [...hexes, ...water, ...peaks] as hex (hex.key)}
     <polygon
         points={layout.hexPoints(hex.center, layout.hexRadius - HEX_INSET)}
         fill="#1d1d1b"
@@ -137,6 +174,61 @@
         </g>
     {/if}
 {/each}
+{#each tolls as toll (toll.id)}
+    {#each toll.seams as seam, index (index)}
+        <line
+            x1={seam.from.x}
+            y1={seam.from.y}
+            x2={seam.to.x}
+            y2={seam.to.y}
+            stroke={style.hexFill[HexKind.Tunnel]}
+            stroke-width={2 * INSET_GAP + edgeWidth}
+        ></line>
+    {/each}
+{/each}
+{#each peaks as peak (peak.key)}
+    <polygon
+        points={layout.hexPoints(peak.center, layout.hexRadius - HEX_INSET)}
+        fill={PEAK_FILL}
+        stroke="#1d1d1b"
+        stroke-width={edgeWidth}
+        stroke-linejoin="round"
+    ></polygon>
+    <path
+        d="M {peak.center.x - 6 * scale} {peak.center.y - 2 * scale} l {6 * scale} {-10 *
+            scale} l {6 * scale} {10 * scale} z"
+        class="peak-mark"
+    ></path>
+    <text x={peak.center.x} y={peak.center.y + 11 * scale} font-size={7.5 * scale} class="peak"
+        >{peak.name}</text
+    >
+{/each}
+{#each hexes as hex (hex.key)}
+    {#if hex.country}
+        {@const flag = FLAG_STRIPES[hex.country]}
+        <g
+            transform="translate({hex.center.x - (FLAG_WIDTH * scale) / 2} {hex.center.y +
+                layout.hexRadius * 0.5})"
+        >
+            {#each flag.colors as color, index (index)}
+                <rect
+                    x={flag.vertical ? (index * FLAG_WIDTH * scale) / 3 : 0}
+                    y={flag.vertical ? 0 : (index * FLAG_HEIGHT * scale) / 3}
+                    width={flag.vertical ? (FLAG_WIDTH * scale) / 3 : FLAG_WIDTH * scale}
+                    height={flag.vertical ? FLAG_HEIGHT * scale : (FLAG_HEIGHT * scale) / 3}
+                    fill={color}
+                ></rect>
+            {/each}
+            <rect
+                width={FLAG_WIDTH * scale}
+                height={FLAG_HEIGHT * scale}
+                fill="none"
+                stroke="#1d1d1b"
+                stroke-width="0.8"
+            ></rect>
+        </g>
+    {/if}
+{/each}
 {#each borders as border, index (index)}
     <line
         x1={border.from.x}
@@ -167,6 +259,23 @@
             class:city={hex.kind === HexKind.City}>{hex.value}</text
         >
     {/if}
+{/each}
+{#each tolls as toll (toll.id)}
+    <path id="toll-arc-{toll.key}" d={arcPath(toll.anchor.x, toll.anchor.y)} fill="none"></path>
+    <text class="name toll" font-size={nameSize(toll.name)}>
+        <textPath href="#toll-arc-{toll.key}" startOffset="50%">{toll.name}</textPath>
+    </text>
+    {#each Array.from({ length: toll.stars }, (_, index) => index) as star (star)}
+        {@const across = Math.min(toll.stars, 3)}
+        {@const column = star % across}
+        {@const row = Math.floor(star / across)}
+        <text
+            x={toll.middle.x + (column - (across - 1) / 2) * 9 * scale}
+            y={toll.middle.y + (16 + row * 9) * scale}
+            font-size={10 * scale}
+            class="star">★</text
+        >
+    {/each}
 {/each}
 {#each states as state (state.id)}
     <text x={state.at.x} y={state.at.y + 6} class="state">{state.name.toUpperCase()}</text>
@@ -214,6 +323,30 @@
     .demand-disc {
         stroke: #3b2508;
         stroke-width: 2.5;
+    }
+
+    .name.toll {
+        fill: #ffffff;
+    }
+
+    .star {
+        fill: #f2a33a;
+        stroke: #5a3a08;
+        stroke-width: 0.6px;
+        paint-order: stroke;
+        text-anchor: middle;
+    }
+
+    .peak {
+        fill: #2b1d06;
+        font-family: 'Railheads Baskerville', Georgia, serif;
+        text-anchor: middle;
+    }
+
+    .peak-mark {
+        fill: none;
+        stroke: #2b1d06;
+        stroke-width: 1.2;
     }
 
     .lake {

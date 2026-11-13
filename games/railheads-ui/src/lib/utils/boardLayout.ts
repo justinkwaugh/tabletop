@@ -119,6 +119,24 @@ const BOARD_LAYOUTS: Record<EditionId, BoardLayout> = {
         legend: { x: 52, y: 652, width: 240, height: 184 },
         endgame: { x: 52, y: 412, width: 168, height: 204 },
         logo: { x: 1135, y: 50 }
+    }),
+    [EditionId.Switzerland]: new BoardLayout({
+        orientation: HexOrientation.Pointy,
+        stepsAcross: 30,
+        hexRadius: 30,
+        firstHexCenter: { x: 27, y: 57 },
+        legend: { x: 52, y: 52, width: 240, height: 236 },
+        endgame: { x: 48, y: 728, width: 292, height: 110 },
+        logo: { x: 1150, y: 50 }
+    }),
+    [EditionId.Denmark]: new BoardLayout({
+        orientation: HexOrientation.Flat,
+        stepsAcross: 21,
+        hexRadius: 30,
+        firstHexCenter: { x: -11, y: 46 },
+        legend: { x: 600, y: 52, width: 240, height: 236 },
+        endgame: { x: 600, y: 300, width: 240, height: 190 },
+        logo: { x: 760, y: 1010 }
     })
 }
 

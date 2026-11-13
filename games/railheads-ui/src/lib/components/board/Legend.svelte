@@ -24,24 +24,44 @@
         round < edition.rounds && edition.siteCapacity(round + 1, undefined) > siteMax
     )
     const perDiscBeneath = $derived(
-        edition.trackCost(HexKind.City, 1) - edition.trackCost(HexKind.City, 0)
+        edition.trackCost(HexKind.City, 1, 1) - edition.trackCost(HexKind.City, 0, 1)
     )
-    const footnotes = $derived([
-        limitRises
-            ? 'Site limit rises by 1 each round'
-            : `* +$${perDiscBeneath} per disc already there`,
-        'Each company: max 1 disc per hex'
+    // The board's terrain: sites, then the one-disc hexes this title has.
+    const tollKind = $derived(edition.map.tolls?.[0]?.kind)
+    const terrain = $derived([
+        { name: 'Industry', kind: HexKind.Industry },
+        { name: 'Town', kind: HexKind.Town },
+        { name: 'City', kind: HexKind.City },
+        { name: 'Country', kind: HexKind.Countryside },
+        ...((edition.map.hillside ?? []).length > 0
+            ? [{ name: 'Hillside', kind: HexKind.Hillside }]
+            : []),
+        ...(tollKind === HexKind.Tunnel ? [{ name: 'Tunnel', kind: HexKind.Tunnel }] : []),
+        ...(tollKind === HexKind.Bridge ? [{ name: 'Bridge', kind: HexKind.Bridge }] : [])
     ])
-    const rows = $derived(
+    const footnotes = $derived(
         [
-            { name: 'Industry', kind: HexKind.Industry },
-            { name: 'Town', kind: HexKind.Town },
-            { name: 'City', kind: HexKind.City },
-            { name: 'Country', kind: HexKind.Countryside }
-        ].map((row) => ({
+            limitRises
+                ? 'Site limit rises by 1 each round'
+                : perDiscBeneath > 0
+                  ? `* +$${perDiscBeneath} per disc already there`
+                  : (edition.map.peaks ?? []).length > 0
+                    ? 'No track on the Alps or lakes'
+                    : '',
+            'Each company: max 1 disc per hex'
+        ].filter((line) => line !== '')
+    )
+    const isSite = (kind: HexKind) =>
+        kind === HexKind.Industry || kind === HexKind.Town || kind === HexKind.City
+    // A tunnel's price is per hex it spans.
+    const perHex = (kind: HexKind) => (kind === HexKind.Tunnel ? '×' : '')
+    const rows = $derived(
+        terrain.map((row) => ({
             ...row,
-            disc: `$${edition.trackCost(row.kind, 0)}${row.kind !== HexKind.Countryside && perDiscBeneath > 0 ? '*' : ''}`,
-            cube: row.kind === HexKind.Countryside ? edition.crossingCubeCost : undefined
+            disc: `$${edition.trackCost(row.kind, 0, 1)}${perHex(row.kind)}${isSite(row.kind) && perDiscBeneath > 0 ? '*' : ''}`,
+            cube: isSite(row.kind)
+                ? undefined
+                : `$${edition.crossingCubeCost(row.kind, 1)}${perHex(row.kind)}`
         }))
     )
 </script>
@@ -63,9 +83,7 @@
             ></polygon>
             <text x="42" y="17" class="label">{row.name}</text>
             <text x={discX} y="17" class="cost">{row.disc}</text>
-            <text x={cubeX} y="17" class="cost"
-                >{row.cube === undefined ? '–' : `$${row.cube}`}</text
-            >
+            <text x={cubeX} y="17" class="cost">{row.cube ?? '–'}</text>
         </g>
     {/each}
     <g aria-label="Site hexes hold up to {siteMax} discs{limitRises ? ' this round' : ''}">
@@ -81,7 +99,9 @@
             >{siteMax}</text
         >
     </g>
-    <text x={maxX} y={FIRST_ROW_Y + SITE_ROWS * ROW + 17} class="cost">1</text>
+    {#each rows.slice(SITE_ROWS) as row, index (row.kind)}
+        <text x={maxX} y={FIRST_ROW_Y + (SITE_ROWS + index) * ROW + 17} class="cost">1</text>
+    {/each}
     <line
         x1="10"
         x2={panel.width - 10}

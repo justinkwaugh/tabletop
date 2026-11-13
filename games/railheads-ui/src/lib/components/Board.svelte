@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { boardLayout } from '$lib/utils/boardLayout.js'
+    import { TRACK_CELL, boardLayout } from '$lib/utils/boardLayout.js'
+    import { editionStyle } from '$lib/utils/editionStyle.js'
     import BoostPicker from './board/BoostPicker.svelte'
     import EndgamePanel from './board/EndgamePanel.svelte'
     import Legend from './board/Legend.svelte'
@@ -13,6 +14,7 @@
     const gameSession = getGameSession()
 
     const layout = $derived(boardLayout(gameSession.gameState.editionId))
+    const background = $derived(editionStyle(gameSession.gameState.editionId).background)
 </script>
 
 <svg
@@ -24,6 +26,15 @@
     aria-label="Map of the railroads"
 >
     <RevenueTrack />
+    {#if background}
+        <rect
+            x={TRACK_CELL}
+            y={TRACK_CELL}
+            width={layout.width - 2 * TRACK_CELL}
+            height={layout.height - 2 * TRACK_CELL}
+            fill={background}
+        ></rect>
+    {/if}
     <Legend />
     <EndgamePanel />
     <Logo />

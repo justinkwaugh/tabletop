@@ -135,7 +135,47 @@ test('runs a sealed-bid industry auction', async ({ page }) => {
         .screenshot({ path: test.info().outputPath('07c-history-panel.png') })
 })
 
-for (const edition of ['Germany', 'Midwest']) {
+for (const [edition, partner] of [
+    ['Switzerland', 'Credit Suisse share'],
+    ['Denmark', 'Government Bond']
+]) {
+    test(`claims the paired Industry Investment items (${edition})`, async ({ page }) => {
+        await createGame(page, edition)
+        await playInitialAuctions(page)
+        await screenshot(page, `11-${edition}-first-turn`)
+        await page.getByRole('button', { name: /^Choose Industry Investment/ }).click()
+        await page
+            .getByRole('button', { name: /level 2/ })
+            .first()
+            .click()
+        await expect.poll(() => machineState(page)).toBe('SealedBidding')
+        await expect(page.getByText(partner).first()).toBeVisible()
+        for (let seat = 0; seat < 4; seat++) {
+            if ((await machineState(page)) !== 'SealedBidding') break
+            await page.getByRole('button', { name: /^Seal bid/ }).click()
+            await page.waitForTimeout(150)
+        }
+        await expect.poll(() => machineState(page)).toBe('ClaimingInvestment')
+        await screenshot(page, `12-${edition}-claim`)
+        await page
+            .getByRole('button', { name: /^Take the / })
+            .first()
+            .click()
+        for (
+            let step = 0;
+            step < 4 && (await machineState(page)) === 'ClaimingInvestment';
+            step++
+        ) {
+            await page.getByRole('button', { name: 'Pass', exact: true }).click()
+            await page.waitForTimeout(150)
+        }
+        await expect.poll(() => machineState(page)).toBe('ChoosingAction')
+        await screenshot(page, `13-${edition}-after-claim`)
+        await layOneDisc(page, `14-${edition}`)
+    })
+}
+
+for (const edition of ['Germany', 'Midwest', 'Switzerland', 'Denmark']) {
     test(`fits a phone screen without sideways scrolling in the action area (${edition})`, async ({
         page
     }) => {

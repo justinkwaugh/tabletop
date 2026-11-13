@@ -118,7 +118,17 @@ const INITIAL_BUYERS: Record<CompanyId, string> = {
     [CompanyId.ERIE]: 'p2',
     [CompanyId.IC]: 'p3',
     [CompanyId.BO]: 'p1',
-    [CompanyId.PRR]: 'p1'
+    [CompanyId.PRR]: 'p1',
+    [CompanyId.SNB]: 'p1',
+    [CompanyId.AB]: 'p2',
+    [CompanyId.PB]: 'p3',
+    [CompanyId.RHB]: 'p1',
+    [CompanyId.MOB]: 'p1',
+    [CompanyId.SFJ]: 'p1',
+    [CompanyId.AAAJ]: 'p2',
+    [CompanyId.AHB]: 'p3',
+    [CompanyId.JFJ]: 'p1',
+    [CompanyId.DSJ]: 'p1'
 }
 
 function initialStep(table: PlayedTable): GameAction {

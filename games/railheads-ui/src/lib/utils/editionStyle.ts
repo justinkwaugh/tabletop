@@ -1,10 +1,12 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import { CompanyId, EditionId, HexKind, printedPointyHex } from '@tabletop/railheads'
-import { HEX_FILL, MIDWEST_HEX_FILL } from './companyStyle.js'
+import { DANISH_HEX_FILL, HEX_FILL, MIDWEST_HEX_FILL, SWISS_HEX_FILL } from './companyStyle.js'
 
 export enum Flag {
     Germany = 'Germany',
-    UnitedStates = 'UnitedStates'
+    UnitedStates = 'UnitedStates',
+    Switzerland = 'Switzerland',
+    Denmark = 'Denmark'
 }
 
 export type LakeLabel = { name: string; at: AxialCoordinates; angle: number }
@@ -26,6 +28,10 @@ export type EditionStyle = {
     trackIconCompanies: readonly [CompanyId, CompanyId]
     lakeLabels: readonly LakeLabel[]
     regionLabels: Readonly<Record<string, AxialCoordinates>>
+    // Regions that only tag Industry Sites (Switzerland's neighbours) are named, not bordered.
+    regionBorders: boolean
+    // The map's surroundings: Denmark sits in the sea.
+    background?: string
 }
 
 // Four beige shades; no two neighbouring Midwest states share one.
@@ -53,7 +59,8 @@ const EDITION_STYLES: Record<EditionId, EditionStyle> = {
         shareIconCompanies: [CompanyId.KPEV, CompanyId.KSSE, CompanyId.GBSE],
         trackIconCompanies: [CompanyId.GBSE, CompanyId.KBSB],
         lakeLabels: [],
-        regionLabels: {}
+        regionLabels: {},
+        regionBorders: true
     },
     [EditionId.Midwest]: {
         title: 'The Midwest',
@@ -103,7 +110,57 @@ const EDITION_STYLES: Record<EditionId, EditionStyle> = {
             MI: printedPointyHex(6.5, 34),
             IN: printedPointyHex(11, 30),
             OH: printedPointyHex(10, 36)
-        }
+        },
+        regionBorders: true
+    },
+    [EditionId.Switzerland]: {
+        title: 'Switzerland',
+        flag: Flag.Switzerland,
+        titleStroke: '#b8232a',
+        hexFill: SWISS_HEX_FILL,
+        regionFill: {},
+        hexEdgeWidth: 2,
+        endBonusName: 'Total Subsidies',
+        endBonusShort: 'Subsidies',
+        endBonusRule:
+            'a share earns the French, German and Austrian subsidies for the flagged sites this railroad reaches, times the Italian factor; nothing above its Loan Limit',
+        industryBonusName: 'Establishment Bonus',
+        industryBonusShort: 'Establishment',
+        shareIconCompanies: [CompanyId.SNB, CompanyId.PB, CompanyId.MOB],
+        trackIconCompanies: [CompanyId.MOB, CompanyId.AB],
+        lakeLabels: [
+            { name: 'Lake Zurich', at: printedPointyHex(5, 28), angle: 0 },
+            { name: 'Lake Lucerne', at: printedPointyHex(7, 27), angle: 0 },
+            { name: 'Obersee', at: printedPointyHex(2.5, 36.5), angle: 60 },
+            { name: 'Lake Neuchâtel', at: printedPointyHex(8.5, 9.5), angle: -60 },
+            { name: 'Lake Geneva', at: printedPointyHex(12, 7), angle: 0 }
+        ],
+        regionLabels: {
+            France: printedPointyHex(6, 4),
+            Germany: printedPointyHex(1, 21),
+            Austria: printedPointyHex(5, 43),
+            Italy: printedPointyHex(16, 24)
+        },
+        regionBorders: false
+    },
+    [EditionId.Denmark]: {
+        title: 'Denmark',
+        flag: Flag.Denmark,
+        titleStroke: '#b8232a',
+        hexFill: DANISH_HEX_FILL,
+        regionFill: {},
+        hexEdgeWidth: 2,
+        endBonusName: 'Bond Redemption',
+        endBonusShort: 'Bonds',
+        endBonusRule: 'each Government Bond pays the State Treasury divided by the bonds held',
+        industryBonusName: 'Establishment Bonus',
+        industryBonusShort: 'Establishment',
+        shareIconCompanies: [CompanyId.DSJ, CompanyId.AHB, CompanyId.SFJ],
+        trackIconCompanies: [CompanyId.SFJ, CompanyId.AAAJ],
+        lakeLabels: [],
+        regionLabels: {},
+        regionBorders: false,
+        background: '#cfe3ec'
     }
 }
 

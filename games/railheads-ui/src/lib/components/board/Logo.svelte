@@ -34,6 +34,14 @@
         {#each GERMAN_STRIPES as color, index (color)}
             <rect x="-16" y={8 + index * 8} width="32" height="8" fill={color}></rect>
         {/each}
+    {:else if style.flag === Flag.Switzerland}
+        <rect x="-16" y="8" width="32" height="24" fill="#d0262f"></rect>
+        <rect x="-2.5" y="12" width="5" height="16" fill="#ffffff"></rect>
+        <rect x="-8" y="17.5" width="16" height="5" fill="#ffffff"></rect>
+    {:else if style.flag === Flag.Denmark}
+        <rect x="-16" y="8" width="32" height="24" fill="#c8202a"></rect>
+        <rect x="-7" y="8" width="4" height="24" fill="#ffffff"></rect>
+        <rect x="-16" y="18" width="32" height="4" fill="#ffffff"></rect>
     {:else}
         {#each US_STRIPES as stripe (stripe)}
             <rect

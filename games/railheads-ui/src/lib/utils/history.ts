@@ -150,7 +150,21 @@ function actionLines(action: GameAction): HistoryLine[] {
 
 function actionDescriptions(action: GameAction): Description[] {
     const effects = isLayTrack(action) ? (action.metadata?.effects ?? []) : []
-    return effects.length > 0 ? trackLines(effects) : [describeAction(action)]
+    if (effects.length === 0) {
+        return [describeAction(action)]
+    }
+    const loan = isLayTrack(action) ? action.loan : undefined
+    const loanLine: Description[] = loan
+        ? [
+              [
+                  loan.change > 0
+                      ? `took ${loan.change === 1 ? 'a loan' : `${loan.change} loans`} for the `
+                      : `repaid ${loan.change === -1 ? 'a loan' : `${-loan.change} loans`} for the `,
+                  { companyId: loan.companyId }
+              ]
+          ]
+        : []
+    return [...loanLine, ...trackLines(effects)]
 }
 
 function lineFrom(

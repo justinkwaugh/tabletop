@@ -1,10 +1,14 @@
 import type { GameAction } from '@tabletop/common'
 import {
     ActionSpaceId,
+    HexKind,
+    InvestmentItem,
     PlacementKind,
     ShareAuctionKind,
     isChooseAction,
+    isClaimInvestment,
     isConsolidate,
+    isDeclineInvestment,
     isEndRound,
     isInvestInIndustry,
     isIssueShare,
@@ -60,6 +64,7 @@ export function saleDescription(sale: ShareSale): Description {
     const company = { companyId: sale.companyId }
     const extras = [
         sale.industry ? ` with a ${industryName(sale.industry)} token` : '',
+        sale.bond ? ', a Government Bond' : '',
         sale.startPlayer ? ' and the Start Player token' : ''
     ].join('')
     if (sale.price === 0 && sale.kind === ShareAuctionKind.Initial) {
@@ -71,6 +76,12 @@ export function saleDescription(sale: ShareSale): Description {
         company,
         ` share for $${sale.price}${extras}`
     ]
+}
+
+export const ITEM_NAMES: Record<InvestmentItem, string> = {
+    [InvestmentItem.Industry]: 'industry token',
+    [InvestmentItem.CreditSuisse]: 'Credit Suisse share',
+    [InvestmentItem.Bond]: 'Government Bond'
 }
 
 export function winVerb(winnerIds: readonly string[], myPlayerId: string | undefined): string {
@@ -98,10 +109,11 @@ export function trackLines(effects: readonly PlacementEffect[]): Description[] {
         ]
             .filter((part) => part !== '')
             .join(' and ')
+        const tolls = mine.filter((effect) => effect.tollId).length
         return [
             `laid ${pieces} for the `,
             { companyId },
-            ` · $${cost}${gain > 0 ? `, revenue +${gain}` : ''}`
+            ` · $${cost}${gain > 0 ? `, revenue +${gain}` : ''}${tolls > 0 ? ', took the toll chit' : ''}`
         ]
     })
 }
@@ -139,6 +151,9 @@ export function describeAction(action: GameAction): Description {
         if (!metadata) {
             return ['The industry token was sold']
         }
+        if (!metadata.sale) {
+            return ['The bids for the ', { industry: metadata.industry }, ' token were revealed']
+        }
         return [
             { playerId: metadata.sale.buyerId },
             ' bought the ',
@@ -146,15 +161,45 @@ export function describeAction(action: GameAction): Description {
             ` token for $${metadata.sale.price}`
         ]
     }
+    if (isClaimInvestment(action)) {
+        const purchase = action.metadata?.purchase
+        const price = purchase ? ` for $${purchase.price}` : ''
+        const funded = purchase?.fundedCompanyId
+            ? [', paying the ', { companyId: purchase.fundedCompanyId }]
+            : action.item === InvestmentItem.Bond
+              ? [', paying the State Treasury']
+              : []
+        return [`took the ${ITEM_NAMES[action.item]}${price}`, ...funded]
+    }
+    if (isDeclineInvestment(action)) {
+        return ['passed on the leftover']
+    }
     if (isLayTrack(action)) {
         const effects = action.metadata?.effects ?? []
-        return effects.length === 0
-            ? ['laid no track']
-            : trackLines(effects).flatMap((line, index) => (index === 0 ? line : ['; ', ...line]))
+        const loan = action.loan
+        const loanLine: Description = loan
+            ? [
+                  loan.change > 0
+                      ? `took ${plural(loan.change, 'loan')} for the `
+                      : `repaid ${plural(-loan.change, 'loan')} for the `,
+                  { companyId: loan.companyId }
+              ]
+            : []
+        const track: Description =
+            effects.length === 0
+                ? ['laid no track']
+                : trackLines(effects).flatMap((line, index) =>
+                      index === 0 ? line : ['; ', ...line]
+                  )
+        return loan ? [...loanLine, '; ', ...track] : track
     }
     if (isEndRound(action)) {
+        const taxed = (action.metadata?.taxes ?? []).reduce((sum, tax) => sum + tax.amount, 0)
         return [
-            action.metadata?.final ? 'Final payout' : `Round ${action.metadata?.round ?? ''} payout`
+            action.metadata?.final
+                ? 'Final payout'
+                : `Round ${action.metadata?.round ?? ''} payout`,
+            taxed > 0 ? ` after $${taxed} wealth tax` : ''
         ]
     }
     if (isScoreGame(action)) {
@@ -178,7 +223,8 @@ export function bidReveals(action: GameAction): BidReveal[] {
     if (!isResolveIndustryAuction(action) || !action.metadata) {
         return []
     }
-    return action.metadata.sale.bids.map((bid) => {
+    const bids = action.metadata.sale?.bids ?? action.metadata.bids ?? []
+    return bids.map((bid) => {
         const note = bid.submitted ? '' : bid.amount > 0 ? ' (minimum)' : ' (no bid)'
         return { playerId: bid.playerId, amount: bid.amount, note }
     })
@@ -230,5 +276,21 @@ export function spaceText(
     space: ActionSpaceId
 ): { terms: string[]; rules: string } {
     const rules = isLayTrackSpace(space) ? state.layTrackRules(space) : undefined
-    return { terms: spaceTerms(space, rules), rules: spaceRules(space, rules) }
+    const definition = state.edition.definition
+    const toll = state.edition.map.tolls[0]?.kind === HexKind.Tunnel ? 'tunnel' : 'bridge'
+    const terms = spaceTerms(space, rules)
+    let text = spaceRules(space, rules)
+    if (rules && rules.tolls > 0) {
+        terms.push(`1 ${toll}`)
+        text += `; may build one ${toll}`
+    }
+    if (rules?.allowsLoans && definition.loans) {
+        terms.push('Loans')
+        text += '; may take out or repay loans first'
+    }
+    const partner = definition.investmentPartner
+    if (space === ActionSpaceId.IndustryInvestment && partner) {
+        text = `Sealed bids for an industry token and a ${ITEM_NAMES[partner.item]}; bidders pay their own bid`
+    }
+    return { terms, rules: text }
 }
