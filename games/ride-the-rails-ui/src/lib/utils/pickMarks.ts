@@ -1,7 +1,10 @@
+import { assertExists } from '@tabletop/common'
 import {
     FIVE_DOLLAR_BONUS,
     USA_CITIES,
     USA_HEXES,
+    doubledToAxial,
+    hexCoordinates,
     railroadsIn,
     usaCity,
     usaHex,
@@ -68,32 +71,45 @@ export function markView(mark: OfferMark): MarkView {
     }
 }
 
-/** A hex's name on the map: its city, or its terrain and place in the grid. */
-// The eight compass points, counter-clockwise from east, as the board draws north up.
+// The sixteen compass points, counter-clockwise from east, as the board draws north up. Every
+// other one is a point of the eight-point compass.
 const COMPASS_POINTS = [
     'east',
+    'east-north-east',
     'north-east',
+    'north-north-east',
     'north',
+    'north-north-west',
     'north-west',
+    'west-north-west',
     'west',
+    'west-south-west',
     'south-west',
+    'south-south-west',
     'south',
-    'south-east'
+    'south-south-east',
+    'south-east',
+    'east-south-east'
 ] as const
 
 // Two hex-centre distances closer than this are a tie.
 const DISTANCE_TIE = 1e-6
 
-/**
- * A city by its name; a plain or mountain by the nearest city and the compass point it lies in from
- * it ("Mountain west of Denver"). A tie in distance goes to the city first in the map's table.
- */
-export function placeName(hexId: HexId): string {
-    const hex = usaHex(hexId)
-    if (hex.terrain === 'city') {
-        return usaCity(hex.cityId).name
-    }
-    const terrain = hex.terrain === 'mountain' ? 'Mountain' : 'Plain'
+const STEP_WORDS = ['one hex', 'two hexes', 'three hexes', 'four hexes', 'five hexes'] as const
+
+type Bearing = { terrain: string; cityName: string; angle: number; steps: number }
+
+function hexSteps(from: HexId, to: HexId): number {
+    const a = doubledToAxial(hexCoordinates(from))
+    const b = doubledToAxial(hexCoordinates(to))
+    const dq = a.q - b.q
+    const dr = a.r - b.r
+    return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2
+}
+
+// A plain or mountain from its nearest city; a tie in distance goes to the city first in the
+// map's table.
+function bearingOf(hexId: HexId, terrain: string): Bearing {
     const center = hexCenter(hexId)
     let nearest = USA_CITIES[0]
     let nearestDistance = Infinity
@@ -106,10 +122,71 @@ export function placeName(hexId: HexId): string {
         }
     }
     const cityCenter = hexCenter(nearest.hexId)
-    const angle = Math.atan2(cityCenter.y - center.y, center.x - cityCenter.x)
-    const sector =
-        (Math.round(angle / (Math.PI / 4)) + COMPASS_POINTS.length) % COMPASS_POINTS.length
-    return `${terrain} ${COMPASS_POINTS[sector]} of ${nearest.name}`
+    return {
+        terrain,
+        cityName: nearest.name,
+        angle: Math.atan2(cityCenter.y - center.y, center.x - cityCenter.x),
+        steps: hexSteps(hexId, nearest.hexId)
+    }
+}
+
+// Coarsest first: the eight-point compass, then the sixteen-point one, then that and the distance
+// in hexes.
+function bearingName({ terrain, cityName, angle, steps }: Bearing, fineness: number): string {
+    const points = fineness === 0 ? 8 : 16
+    const sector = (Math.round(angle / ((2 * Math.PI) / points)) + points) % points
+    const point = COMPASS_POINTS[sector * (16 / points)]
+    const distance = fineness >= 2 ? `${STEP_WORDS[steps - 1] ?? 'far'} ` : ''
+    return `${terrain} ${distance}${point} of ${cityName}`
+}
+
+const FINEST = 2
+
+// Each hex starts with its coarsest name; hexes that share a name all take the next finer one,
+// until no two share.
+function namePlaces(): ReadonlyMap<HexId, string> {
+    const names = new Map<HexId, string>()
+    const bearings = new Map<HexId, Bearing>()
+    const fineness = new Map<HexId, number>()
+    for (const hex of USA_HEXES) {
+        if (hex.terrain === 'city') {
+            names.set(hex.id, usaCity(hex.cityId).name)
+            continue
+        }
+        const bearing = bearingOf(hex.id, hex.terrain === 'mountain' ? 'Mountain' : 'Plain')
+        bearings.set(hex.id, bearing)
+        fineness.set(hex.id, 0)
+        names.set(hex.id, bearingName(bearing, 0))
+    }
+    for (let round = 0; round < FINEST; round++) {
+        const holders = new Map<string, HexId[]>()
+        for (const [hexId, name] of names) holders.set(name, [...(holders.get(name) ?? []), hexId])
+        for (const hexIds of holders.values()) {
+            if (hexIds.length < 2) continue
+            for (const hexId of hexIds) {
+                const bearing = bearings.get(hexId)
+                const level = fineness.get(hexId)
+                if (bearing === undefined || level === undefined || level >= FINEST) continue
+                fineness.set(hexId, level + 1)
+                names.set(hexId, bearingName(bearing, level + 1))
+            }
+        }
+    }
+    return names
+}
+
+const PLACE_NAMES = namePlaces()
+
+/**
+ * A hex's name on the map: a city by its name; a plain or mountain by the nearest city and the
+ * compass point it lies in from it ("Mountain west of Denver"). Where two hexes would share a name,
+ * both take a finer compass point, and then their distance in hexes as well ("Plain two hexes west
+ * of Rapid City"), so no two hexes share one.
+ */
+export function placeName(hexId: HexId): string {
+    const name = PLACE_NAMES.get(hexId)
+    assertExists(name, `Unknown USA hex ${hexId}`)
+    return name
 }
 
 /**
@@ -297,11 +374,12 @@ export function buildChoice(track: Track, popup: BuildPopup): RailroadChoice {
         title: `${placeName(popup.hexId)}: which railroad?`,
         chips: popup.chips.map((chip) => {
             const note = chipNote(track, popup.hexId, chip)
-            const detail = `${chip.isStart ? 'start · ' : ''}${chip.supplyLeft} left`
+            const supply = `${chip.supplyLeft} left`
             return {
                 railroadId: chip.railroadId,
-                label: `${chipLabel(chip)}, ${detail}${noteText(note)}`,
-                detail,
+                // The label opens with "Start" already; the visible name does not.
+                label: `${chipLabel(chip)}, ${supply}${noteText(note)}`,
+                detail: chip.isStart ? `start · ${supply}` : supply,
                 note
             }
         })

@@ -90,10 +90,25 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
         expect(placeName('hex.usa.8-34')).toBe('Plain east of Kansas City')
         for (const hex of USA_HEXES.filter((hex) => hex.terrain !== 'city')) {
             expect(placeName(hex.id)).toMatch(
-                /^(Plain|Mountain) (north|south|east|west|north-east|north-west|south-east|south-west) of [A-Z]/
+                /^(Plain|Mountain) ((one hex|two hexes|three hexes) )?(north|south|east|west|north-east|north-west|south-east|south-west|(north|south)-(north|south)-(east|west)|(east|west)-(north|south)-(east|west)) of [A-Z]/
             )
             expect(placeName(hex.id)).not.toMatch(/row|column|\d/)
         }
+    })
+
+    it('gives every hex a name no other hex has', () => {
+        const names = USA_HEXES.map((hex) => placeName(hex.id))
+        const shared = names.filter((name, index) => names.indexOf(name) !== index)
+        expect(shared).toEqual([])
+    })
+
+    it('tells two plains that share a compass point apart, finer and then by distance', () => {
+        // Both lie west of Rapid City: one beside it, one two hexes out.
+        expect(placeName('hex.usa.3-23')).toBe('Plain one hex west of Rapid City')
+        expect(placeName('hex.usa.3-21')).toBe('Plain two hexes west of Rapid City')
+        // Saint Louis has two plains to its north-east; the finer compass parts them.
+        expect(placeName('hex.usa.7-39')).not.toBe(placeName('hex.usa.7-41'))
+        expect(placeName('hex.usa.7-39')).toMatch(/^Plain \S+ of Saint Louis$/)
     })
 
     it('gives a hex the same distance from two cities to the one first in the map table', () => {
@@ -234,9 +249,11 @@ describe('the railroad popup (R-4.3.2-H1, R-3.3.2)', () => {
             { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart] }
         )
         expect(choice.title).toBe(`${fiveDollarCity.name}: which railroad?`)
+        // The visible chip shows only the railroad's name, so its detail says it is a start.
+        expect(choice.chips.map((chip) => chip.detail)).toEqual(['3 left', 'start · 6 left'])
         expect(choice.chips.map((chip) => chip.label)).toEqual([
             'Place Red, 3 left, pays $5',
-            'Start Black, start · 6 left, pays nothing: a start uses up the $5'
+            'Start Black, 6 left, pays nothing: a start uses up the $5'
         ])
     })
 
