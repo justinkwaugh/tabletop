@@ -10,6 +10,7 @@ import { FESTIVAL_DISTRICT_ALLOWS } from '../util/exchange.js'
 import { regionOfPawn } from '../util/pawn.js'
 import { enemyOfOwners, ownersRuleSite } from '../util/persistent.js'
 import { one, PowerChoiceKind, type PowerChoice } from '../util/powerChoice.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import { negotiator } from './questionPowers.js'
 import {
     chosen,
@@ -88,8 +89,19 @@ const SPIRE = 'edifice.arcane.great-spire'
 
 // Great Spire: "You may swap any number of denizens you draw with random cards from the Dispossessed."
 // Search modifier; cost: place 1 secret. Carried to the Search's own swap step (`SearchSwap`), used once
-// after the draw and before the discard.
-registerModifier(SPIRE, INTACT, { hooks: { swapsWithDispossessed: true } })
+// after the draw and before the discard. From revision 34 it is not offered, and a Search declaring it is
+// refused before anything is paid, while the Dispossessed is empty: no drawn denizen could swap. The
+// Dispossessed's size is public, so every seat's view judges it alike. Older games keep what they accepted.
+registerModifier(SPIRE, INTACT, {
+    hooks: {
+        swapsWithDispossessed: true,
+        reasonUnusable: (ctx) =>
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes29) &&
+            ctx.state.dispossessedCount === 0
+                ? 'the Dispossessed is empty, so no drawn denizen can swap'
+                : undefined
+    }
+})
 
 /** Fallen Spire's "up to five". */
 const FALLEN_SPIRE_MOST = 5

@@ -18,6 +18,7 @@ import {
     cardPower,
     countOf,
     currentQuestion,
+    discardRegionFor,
     heldRelicsToBottom,
     IMPERIAL_WARBANDS,
     OBSIDIAN_CAGE_ID,
@@ -383,6 +384,23 @@ export class QuestionDraft implements PanelDraft {
         if (question?.kind === PowerQuestionKind.OrderDrawnCards) return question.cardIds ?? []
         if (question?.kind === PowerQuestionKind.OrderDiscards) return question.cardIds
         return []
+    }
+
+    /**
+     * Land Warden, R-7.3.3 — from revision 33 the kept card's question discards under what the second card already
+     * put on that pile, so its last card is not on top.
+     */
+    get stackUnderTop(): boolean {
+        const question = this.question
+        const mark = this.session.gameState.pendingQuestions?.underSecondPlay
+        if (!mark || mark.questions === 0) return false
+        const pile =
+            question?.kind === PowerQuestionKind.OrderDiscards
+                ? discardRegionFor(question.fromRegion)
+                : question?.kind === PowerQuestionKind.OrderDrawnCards
+                  ? question.region
+                  : undefined
+        return pile !== undefined && (mark.onTop[pile] ?? 0) > 0
     }
 
     private get stackKind(): PowerQuestionKind.OrderDrawnCards | PowerQuestionKind.OrderDiscards {

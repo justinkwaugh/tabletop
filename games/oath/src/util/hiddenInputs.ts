@@ -7,6 +7,7 @@ import {
     topBackType,
     type OathVault
 } from '../model/vault.js'
+import { topCards } from '../model/pileOrder.js'
 import {
     drawRelicDeck,
     drawWorldDeckVision,
@@ -498,7 +499,7 @@ function fulfil(
             }
         }
         case 'worldDeckPeek':
-            return { kind: 'peek', cardIds: vault.worldDeck.slice(0, request.count) }
+            return { kind: 'peek', cardIds: topCards(vault.worldDeck, request.count) }
         case 'siteAtSlot':
             return { kind: 'site', siteCardId: vault.siteFacedown[request.slotId] }
         case 'siteFlip':

@@ -51,13 +51,21 @@ Invitations go to existing users only. Each one creates a token `{gameId, userId
 
 ## Bug reports
 
-Posted to the Discord bug-report forum; nothing is stored in Firestore. A post holds:
+Sent to Discord; nothing is stored in Firestore. Each report is split in two.
 
-- the reporter's username or ID, and a Discord mention if their Discord account is linked;
-- the description and up to 3 screenshots;
-- user agent, viewport size and pixel ratio, whether the site runs as an installed app, and versions;
-- the names of the players whose turn it is;
+**The public forum post** (readable by anyone in the Discord server) holds:
+
+- the reporter's username, and their Discord handle (a mention) if they linked Discord;
+- the description and up to 3 screenshots, which can show the reporter's own view of the game;
+- the title, the game's status, whether the reporter was live, in history or exploring, and the site, logic and UI versions.
+
+**The staff-only data channel** holds, under the same report ID:
+
+- the game's name and link, the reporter's user ID, the action count and the names of the players whose turn it is;
+- user agent, viewport size and pixel ratio, and whether the site runs as an installed app;
 - a JSON copy of the **whole game, unfiltered**: every player's name and user ID, all timestamps and votes, and the full action history including hidden information. For local games the browser sends its copy.
+
+The report form tells the reporter which parts are public. Posts filed before the split are moved by `tools/bug-reports migrate`.
 
 Developers read the forum through `tools/bug-reports`, which can look up a reporter's email address to reply. It saves attachments to the developer's machine, and AI coding agents may read the posts (the repo includes a skill for that).
 
@@ -77,7 +85,7 @@ An admin's redaction of a chat message logs the admin, the author and the origin
 | Redis Cloud (Redis Ltd)                                                                                         | Caches of account records, sessions, games and per-viewer histories; rate-limit counters; messages in transit. **Connected without TLS**                                                    | **Check**                                                           |
 | Ably                                                                                                            | User IDs, game updates, chat, browser IPs                                                                                                                                                   | **Check**; also **Check** whether it is still enabled in production |
 | Resend                                                                                                          | Email addresses and email contents; content reports to the moderation address                                                                                                               | **Check**                                                           |
-| Discord                                                                                                         | Discord IDs for OAuth and DMs; bug-report posts; tournament stall DMs to admins naming players                                                                                              | Discord                                                             |
+| Discord                                                                                                         | Discord IDs for OAuth and DMs; bug-report forum posts and the staff-only bug-report data channel; tournament stall DMs to admins naming players                                             | Discord                                                             |
 | Google Identity Services                                                                                        | Its script loads on the sign-in, profile and re-authentication pages                                                                                                                        | Google                                                              |
 | Web push services                                                                                               | Endpoints and encrypted payloads                                                                                                                                                            | The vendor's                                                        |
 | BG Stats (`app.bgstatsapp.com`)                                                                                 | Opt-in; only when the user clicks. The URL carries the title, finish date, a hash of the game ID (never the ID, which opens the game), and every player's name, `user:<id>`, score and rank | BG Stats                                                            |
@@ -127,7 +135,7 @@ The site sets no other cookies. Google may set its own on pages that load its si
 | Redis                                       | `user-<id>` and game keys have no expiry (evicted under memory pressure); histories 24 h; states and stats 7 days                                                                                                                                                                                                                                                                                                                                                 |
 | Logs                                        | Cloud Logging and journald defaults: **Check**                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Firestore backups or point-in-time recovery | **Check**                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Discord bug-report posts                    | Until deleted in Discord                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Discord bug-report posts and data messages  | Until deleted in Discord                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Security measures
 

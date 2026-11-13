@@ -84,6 +84,13 @@
                 >Pass</button
             >
         </div>
+    {:else if gameSession.canDrawTurnOrder}
+        <div class="line">Draw the next round’s turn order.</div>
+        <div class="buttons">
+            <button type="button" class="primary" onclick={() => gameSession.drawTurnOrder()}
+                >Draw turn order</button
+            >
+        </div>
     {:else}
         <WaitingView />
     {/if}

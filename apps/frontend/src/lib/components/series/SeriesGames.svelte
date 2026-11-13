@@ -12,6 +12,8 @@
     import {
         filterSeriesGames,
         gameMatchesFilter,
+        PACE_FILTERS,
+        paceFilterOf,
         seatChoices,
         titleGameCounts,
         widenFilterToShow,
@@ -49,7 +51,9 @@
             .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     )
     const counts = $derived(titleGameCounts(open, inProgress))
-    const listKey = $derived(`${filter.view}|${filter.titleIds.join(',')}|${filter.seats ?? ''}`)
+    const listKey = $derived(
+        `${filter.view}|${filter.titleIds.join(',')}|${filter.seats ?? ''}|${filter.pace ?? ''}`
+    )
     let shown = $derived.by(() => {
         void listKey
         return PAGE_SIZE
@@ -91,6 +95,10 @@
 
     function changeFilter(next: Partial<SeriesFilter>) {
         onfilter({ ...filter, ...next })
+    }
+
+    function changePace(value: string) {
+        changeFilter({ pace: paceFilterOf(value) })
     }
 
     function startGame() {
@@ -135,6 +143,20 @@
                     {/each}
                 </div>
             </div>
+        {/if}
+        {#if filter.view === 'lobby'}
+            <label class="pace">
+                <span class="players-label">Pace</span>
+                <select
+                    value={filter.pace ?? ''}
+                    onchange={(event) => changePace(event.currentTarget.value)}
+                >
+                    <option value="">Any</option>
+                    {#each PACE_FILTERS as option (option.pace)}
+                        <option value={option.pace}>{option.label}</option>
+                    {/each}
+                </select>
+            </label>
         {/if}
         {#if filter.view === 'lobby'}
             <button class="start" onclick={startGame}
@@ -247,10 +269,24 @@
         gap: 8px 10px;
         margin-left: auto;
     }
-    .players {
+    .players,
+    .pace {
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+    .pace select {
+        min-height: 32px;
+        padding: 0 32px 0 10px;
+        border: 1px solid var(--color-gray-700);
+        border-radius: 8px;
+        background-color: transparent;
+        color: var(--color-gray-300);
+        font-size: 12px;
+    }
+    .pace select:focus-visible {
+        outline: 2px solid var(--color-blue-300);
+        outline-offset: -2px;
     }
     .start {
         display: inline-flex;

@@ -2,6 +2,7 @@ import { GameSession, undoableStagedSelection } from '@tabletop/frontend-compone
 import {
     BuildTrack,
     Capitalize,
+    DeterminePlayerOrder,
     EndExpansion,
     HydratedOstbahnGameState,
     MachineState,
@@ -158,6 +159,16 @@ export class OstbahnGameSession extends GameSession<OstbahnGameState, HydratedOs
     async passTurn() {
         if (this.choosingAction) {
             await this.applyAction(this.createPlayerAction(PassTurn, {}))
+        }
+    }
+
+    canDrawTurnOrder = $derived(this.actingIn(MachineState.DeterminingOrder))
+
+    async drawTurnOrder() {
+        if (this.canDrawTurnOrder) {
+            await this.applyAction(
+                this.createPlayerAction(DeterminePlayerOrder, { revealsInfo: true })
+            )
         }
     }
 

@@ -1,12 +1,23 @@
 import {
+    GamePace,
+    gamePaceMinutes,
+    gamePacePreset,
     GameStatus,
     PlayerStatus,
     type Game,
     type GameCatalogEntry,
-    type GameMetadata
+    type GameMetadata,
+    type Player
 } from '@tabletop/common'
 import { hasPendingGameInvitation } from './gameInvitation'
 import { isUsersNonHotseatTurn } from './dashboardGames'
+import type { DisplayedGameOption } from './gameOptions'
+import {
+    playerHighlight,
+    playersHostFirst,
+    playerStatusDisplay,
+    type PlayerHighlight
+} from './player'
 
 export const SERIES_VIEWS = ['titles', 'lobby', 'finished'] as const
 export type SeriesView = (typeof SERIES_VIEWS)[number]
@@ -15,7 +26,15 @@ export type SeriesFilter = {
     view: SeriesView
     titleIds: string[]
     seats?: number
+    pace?: GamePace
 }
+
+export const PACE_FILTERS: readonly { pace: GamePace; label: string }[] = [
+    { pace: GamePace.Daily, label: 'Daily or faster' },
+    { pace: GamePace.SameDay, label: 'Same day or faster' },
+    { pace: GamePace.Fast, label: 'Fast or faster' },
+    { pace: GamePace.Live, label: 'Live' }
+]
 
 export type TitleGameCounts = { open: number; inProgress: number }
 
@@ -25,13 +44,23 @@ export type LobbyEntry = 'join' | 'joined' | 'full' | 'yourTurn' | 'enter' | 'wa
 
 const NO_GAMES: TitleGameCounts = { open: 0, inProgress: 0 }
 
+export function paceFilterOf(value: string | null): GamePace | undefined {
+    return PACE_FILTERS.find((filter) => filter.pace === value)?.pace
+}
+
 export function parseSeriesFilter(params: URLSearchParams, seriesTitleIds: string[]): SeriesFilter {
     const view = SERIES_VIEWS.find((candidate) => candidate === params.get('view')) ?? 'titles'
     const titleIds = (params.get('titles') ?? '')
         .split(',')
         .filter((titleId) => seriesTitleIds.includes(titleId))
     const seats = Number(params.get('players'))
-    return { view, titleIds, seats: Number.isInteger(seats) && seats > 0 ? seats : undefined }
+    const pace = paceFilterOf(params.get('pace'))
+    return {
+        view,
+        titleIds,
+        seats: Number.isInteger(seats) && seats > 0 ? seats : undefined,
+        pace
+    }
 }
 
 export function seriesFilterSearch(filter: SeriesFilter): string {
@@ -39,6 +68,7 @@ export function seriesFilterSearch(filter: SeriesFilter): string {
     if (filter.view !== 'titles') params.set('view', filter.view)
     if (filter.titleIds.length > 0) params.set('titles', filter.titleIds.join(','))
     if (filter.seats !== undefined) params.set('players', String(filter.seats))
+    if (filter.pace !== undefined) params.set('pace', filter.pace)
     const search = params.toString()
     return search ? `?${search}` : '?'
 }
@@ -86,14 +116,15 @@ export function titleMatchesSearch(metadata: GameMetadata, search: string): bool
 }
 
 export function gameMatchesFilter(game: Game, filter: SeriesFilter): boolean {
-    return matchesTitles(game, filter) && matchesSeats(game, filter)
+    return matchesTitles(game, filter) && matchesSeats(game, filter) && matchesPace(game, filter)
 }
 
 export function widenFilterToShow(filter: SeriesFilter, game: Game): SeriesFilter {
     return {
         ...filter,
         titleIds: matchesTitles(game, filter) ? filter.titleIds : [...filter.titleIds, game.typeId],
-        seats: matchesSeats(game, filter) ? filter.seats : undefined
+        seats: matchesSeats(game, filter) ? filter.seats : undefined,
+        pace: matchesPace(game, filter) ? filter.pace : undefined
     }
 }
 
@@ -107,6 +138,11 @@ function matchesTitles(game: Game, filter: SeriesFilter): boolean {
 
 function matchesSeats(game: Game, filter: SeriesFilter): boolean {
     return filter.seats === undefined || game.players.length === filter.seats
+}
+
+function matchesPace(game: Game, filter: SeriesFilter): boolean {
+    const lobbyPace = filter.view === 'lobby' ? filter.pace : undefined
+    return lobbyPace === undefined || gamePaceMinutes(game) <= gamePacePreset(lobbyPace).minutes
 }
 
 export function seatChoices(games: Game[]): number[] {
@@ -136,6 +172,39 @@ export function winnerText(game: Game): string {
     return winners.length > 0 ? winners.map((player) => player.name).join(', ') : 'No winner'
 }
 
-export function hostName(game: Game): string | undefined {
-    return game.players.find((player) => player.userId === game.ownerId)?.name
+export function optionsSummary(options: DisplayedGameOption[]): string {
+    if (options.length === 0) return 'Standard'
+    if (options.length > 1) return `${options.length} options`
+    const [option] = options
+    return option.enabledFlag ? option.name : `${option.name}: ${option.value}`
+}
+
+export type PanelPlayer = {
+    id: string
+    name: string
+    note: string
+    highlight?: PlayerHighlight
+}
+
+export function panelPlayers(
+    game: Game,
+    finalScores: Game['finalScores'] | undefined
+): PanelPlayer[] {
+    return playersHostFirst(game.players, game.ownerId).map((player) => ({
+        id: player.id,
+        name: player.name ?? '',
+        note: panelNote(game, player, finalScores),
+        highlight: playerHighlight(game, player.id)
+    }))
+}
+
+function panelNote(game: Game, player: Player, finalScores: Game['finalScores'] | undefined) {
+    if (game.status === GameStatus.Finished) {
+        if (!finalScores) return ''
+        return String(finalScores[player.id] ?? '—')
+    }
+    if (game.status === GameStatus.Started) {
+        return player.userId === game.ownerId ? 'host' : ''
+    }
+    return playerStatusDisplay(player, game.ownerId)
 }

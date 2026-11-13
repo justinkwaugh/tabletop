@@ -4,14 +4,19 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { randomBytes } from 'node:crypto'
 import {
     STATUS_LIST,
     STATUS_TAGS,
     appliedTagIds,
+    dataReportId,
     findTag,
     isStatusTag,
     keyedTags,
     matchesStatus,
+    mergeReport,
+    PRIVATE_FIELDS,
+    publicViewing,
     messageContentIntent,
     newestFirst,
     parseLimit,
@@ -38,7 +43,9 @@ import {
 
 const API = 'https://discord.com/api/v10'
 const FORUM_NAME = 'bug-reports'
+const DATA_CHANNEL_NAME = 'bug-report-data'
 const GUILD_FORUM = 15
+const GUILD_TEXT = 0
 const TOKEN_FILE = '.secrets/discord-bot-token'
 const RESEND_KEY_FILE = '.secrets/resend-api-key'
 const EMAIL_FROM = 'BoardTogether <noreply@boardtogether.games>'
@@ -54,7 +61,8 @@ Read:
                                      Posts by status tag, newest first, closed or not; unresolved
                                      (open, investigating, reproduced or no status) by default
   show <post>                        The report, its details and every reply
-  download <post> [--out <dir>]      Every file in the post (the scenario, screenshots); prints paths
+  download <post> [--out <dir>]      Every file in the post and its staff-only data (the scenario,
+                                     screenshots); prints paths
 
 Write (seen in the Discord forum; milestones also reach the reporter):
   reply <post> (--message <text> | --message-file <path|->)
@@ -70,6 +78,9 @@ Write (seen in the Discord forum; milestones also reach the reporter):
   tag <post> [--add <tag,...>] [--remove <tag,...>]
                                      Add or remove other tags (UI, logic); a closed post stays closed
   reopen <post>                      Reopen a closed post and set it back to open
+  migrate                            Move the game link, IDs and scenario of every report from
+                                     before the split into #${DATA_CHANNEL_NAME}, then strip them
+                                     from the public post
 Every write accepts --dry-run: it prints what would happen, writes the email preview, and
 changes nothing.
 
@@ -89,6 +100,9 @@ Every read command accepts --json.
 Token: DISCORD_BOT_TOKEN, else ${TOKEN_FILE} in this checkout or the main worktree.
 Email: RESEND_API_KEY, else ${RESEND_KEY_FILE}; the address comes from tools/investigate find-user.
 Forum: DISCORD_BUG_REPORT_CHANNEL_ID, else the forum named "${FORUM_NAME}" in the bot's servers.
+Data: DISCORD_BUG_REPORT_DATA_CHANNEL_ID, else the text channel named "${DATA_CHANNEL_NAME}". It is
+staff-only: it holds each report's game link, IDs and scenario, which reveal other players' hidden
+information.
 Downloads and email previews go to tmp/bug-reports/<post> under the main worktree.`
 
 function fail(message) {
@@ -148,10 +162,33 @@ function discordClient(token) {
             return text ? JSON.parse(text) : undefined
         }
     }
+    // Discord takes files as multipart parts named files[n], with the JSON body in payload_json.
+    async function postFiles(apiPath, body, files) {
+        const form = new FormData()
+        form.append('payload_json', JSON.stringify(body))
+        files.forEach((file, index) => {
+            form.append(
+                `files[${index}]`,
+                new Blob([file.content], { type: file.contentType }),
+                file.filename
+            )
+        })
+        const response = await fetch(`${API}${apiPath}`, {
+            method: 'POST',
+            headers: { Authorization: `Bot ${token}` },
+            body: form
+        })
+        const text = await response.text()
+        if (!response.ok) {
+            throw new Error(`Discord POST ${apiPath} failed with ${response.status}: ${text}`)
+        }
+        return JSON.parse(text)
+    }
     return {
         get: (apiPath) => request('GET', apiPath),
         post: (apiPath, body) => request('POST', apiPath, body),
-        patch: (apiPath, body) => request('PATCH', apiPath, body)
+        patch: (apiPath, body) => request('PATCH', apiPath, body),
+        postFiles
     }
 }
 
@@ -173,6 +210,66 @@ async function findForumChannel(discord) {
         if (forum) return forum
     }
     fail(`No forum named "${FORUM_NAME}" in the bot's servers; set DISCORD_BUG_REPORT_CHANNEL_ID`)
+}
+
+async function findDataChannel(discord) {
+    const configuredId = process.env.DISCORD_BUG_REPORT_DATA_CHANNEL_ID
+    if (configuredId) return discord.get(`/channels/${configuredId}`)
+    const guilds = await discord.get('/users/@me/guilds')
+    for (const guild of guilds) {
+        const channels = await discord.get(`/guilds/${guild.id}/channels`)
+        const channel = channels.find(
+            (candidate) => candidate.type === GUILD_TEXT && candidate.name === DATA_CHANNEL_NAME
+        )
+        if (channel) return channel
+    }
+    return undefined
+}
+
+async function requireDataChannel(discord) {
+    const channel = await findDataChannel(discord)
+    if (!channel) {
+        fail(
+            `No text channel named "${DATA_CHANNEL_NAME}" in the bot's servers; set DISCORD_BUG_REPORT_DATA_CHANNEL_ID`
+        )
+    }
+    return channel
+}
+
+// Newest first, so a report filed recently is found within the first page.
+async function findDataMessage(discord, channelId, matches) {
+    let before
+    for (;;) {
+        const query = new URLSearchParams({ limit: '100', ...(before ? { before } : {}) })
+        const page = await discord.get(`/channels/${channelId}/messages?${query}`)
+        const found = page.find(matches)
+        if (found) return found
+        if (page.length < 100) return undefined
+        before = page.at(-1).id
+    }
+}
+
+// A report from before the split has no report ID and keeps everything in the public post.
+async function readData(discord, report) {
+    if (!report?.reportId) return undefined
+    const channel = await findDataChannel(discord)
+    if (!channel) {
+        console.warn(
+            `No #${DATA_CHANNEL_NAME} channel: showing the public post without its game link, IDs or scenario`
+        )
+        return undefined
+    }
+    const data = await findDataMessage(
+        discord,
+        channel.id,
+        (message) => message.author?.bot && dataReportId(message) === report.reportId
+    )
+    if (!data) {
+        console.warn(
+            `No data message for report ${report.reportId} in #${channel.name}: no game link, IDs or scenario`
+        )
+    }
+    return data
 }
 
 async function findForum(discord) {
@@ -239,17 +336,25 @@ async function readMessages(discord, threadId) {
 
 async function readReport(discord, thread) {
     const [first] = await readMessages(discord, thread.id)
-    return first?.author?.bot ? reportFromMessage(first) : undefined
+    if (!first?.author?.bot) return undefined
+    const report = reportFromMessage(first)
+    const data = await readData(discord, report)
+    return report && mergeReport(report, data && reportFromMessage(data))
 }
 
 async function showPost(discord, forum, argument) {
     const thread = await getPost(discord, forum, argument)
     const messages = await readMessages(discord, thread.id)
     const botReport = messages[0]?.author?.bot ? messages[0] : undefined
+    const report = botReport ? reportFromMessage(botReport) : undefined
+    const data = await readData(discord, report)
     return {
         ...summarizePost(thread, forum.tags),
-        report: botReport ? reportFromMessage(botReport) : undefined,
-        files: botReport ? summarizeMessage(botReport).files : [],
+        report: report && mergeReport(report, data && reportFromMessage(data)),
+        files: [
+            ...(botReport ? summarizeMessage(botReport).files : []),
+            ...(data ? summarizeMessage(data).files : [])
+        ],
         replies: (botReport ? messages.slice(1) : messages).map(summarizeMessage)
     }
 }
@@ -285,7 +390,10 @@ async function downloadFiles(discord, forum, argument, options) {
     mkdirSync(out, { recursive: true })
     const used = new Set()
     const saved = []
-    for (const message of await readMessages(discord, thread.id)) {
+    const messages = await readMessages(discord, thread.id)
+    const report = messages[0]?.author?.bot ? reportFromMessage(messages[0]) : undefined
+    const data = await readData(discord, report)
+    for (const message of data ? [...messages, data] : messages) {
         for (const file of summarizeMessage(message).files) {
             const response = await fetch(file.url)
             if (!response.ok) fail(`Downloading ${file.filename} failed with ${response.status}`)
@@ -295,6 +403,137 @@ async function downloadFiles(discord, forum, argument, options) {
         }
     }
     return saved
+}
+
+// One-off for posts filed before the split; delete once it has run. The copy goes first so a
+// failed strip loses nothing, and a rerun reuses the copy it finds by the thread link.
+async function migrate(discord, forum, dryRun) {
+    const dataChannel = dryRun ? undefined : await requireDataChannel(discord)
+    const results = { moved: 0, skipped: 0, unreadable: [] }
+    for (const thread of (await allPosts(discord, forum)).sort(newestFirst)) {
+        const [first] = await readMessages(discord, thread.id)
+        const report = first?.author?.bot ? reportFromMessage(first) : undefined
+        if (first?.author?.bot && !report && (first.attachments ?? []).some(isScenario)) {
+            results.unreadable.push(thread.id)
+            continue
+        }
+        if (!report || report.reportId) {
+            results.skipped++
+            continue
+        }
+        const threadLink = `https://discord.com/channels/${forum.guildId}/${thread.id}`
+        if (dryRun) {
+            console.log(`Would move ${thread.id} · ${thread.name}`)
+            results.moved++
+            continue
+        }
+        const existing = await findDataMessage(
+            discord,
+            dataChannel.id,
+            (message) => message.author?.bot && message.content?.includes(threadLink)
+        )
+        if (existing && !dataReportId(existing)) {
+            fail(
+                `The data message ${existing.id} for ${thread.id} has no report ID; fix it by hand`
+            )
+        }
+        const reportId = existing ? dataReportId(existing) : randomBytes(8).toString('base64url')
+        if (!existing) await postLegacyData(discord, dataChannel.id, first, reportId, threadLink)
+        await stripLegacyPost(discord, thread, first, reportId)
+        console.log(`Moved ${thread.id} · ${thread.name}`)
+        results.moved++
+    }
+    console.log(
+        `${dryRun ? 'Would move' : 'Moved'} ${results.moved}; ${results.skipped} already split or not bot reports`
+    )
+    for (const id of results.unreadable) {
+        console.log(`Left ${id}: a bot post with a scenario but no report embed; strip it by hand`)
+    }
+}
+
+function isScenario(attachment) {
+    return attachment.filename.endsWith('.json')
+}
+
+async function postLegacyData(discord, channelId, message, reportId, threadLink) {
+    const embed = message.embeds[0]
+    const fields = embed.fields ?? []
+    const files = []
+    for (const attachment of (message.attachments ?? []).filter(isScenario)) {
+        const response = await fetch(attachment.url)
+        if (!response.ok) fail(`Downloading ${attachment.filename} failed with ${response.status}`)
+        files.push({
+            filename: attachment.filename,
+            contentType: 'application/json',
+            content: Buffer.from(await response.arrayBuffer())
+        })
+    }
+    const body = {
+        content: `Data for bug report ${reportId} · ${threadLink}`,
+        embeds: [
+            {
+                title: embed.title,
+                url: embed.url,
+                color: embed.color,
+                fields: fields.filter(
+                    (field) => PRIVATE_FIELDS.includes(field.name) || field.name === 'Viewing'
+                ),
+                timestamp: embed.timestamp
+            }
+        ],
+        ...(embed.url
+            ? {
+                  components: [
+                      {
+                          type: 1,
+                          components: [{ type: 2, style: 5, label: 'Open game', url: embed.url }]
+                      }
+                  ]
+              }
+            : {}),
+        attachments: files.map((file, id) => ({ id, filename: file.filename })),
+        allowed_mentions: { parse: [] }
+    }
+    return files.length > 0
+        ? discord.postFiles(`/channels/${channelId}/messages`, body, files)
+        : discord.post(`/channels/${channelId}/messages`, body)
+}
+
+// Discord refuses edits in a closed post, so it is reopened for the edit and closed again.
+async function stripLegacyPost(discord, thread, message, reportId) {
+    const embed = message.embeds[0]
+    const fields = embed.fields ?? []
+    const { archived = false, locked = false } = thread.thread_metadata ?? {}
+    // Discord edits a thread's other settings only while it is open, so both change in one request.
+    if (archived || locked) {
+        await discord.patch(`/channels/${thread.id}`, { archived: false, locked: false })
+    }
+    try {
+        await discord.patch(`/channels/${thread.id}/messages/${message.id}`, {
+            embeds: [
+                {
+                    title: fields.find((field) => field.name === 'Game')?.value ?? embed.title,
+                    description: embed.description,
+                    color: embed.color,
+                    fields: fields
+                        .filter((field) => !PRIVATE_FIELDS.includes(field.name))
+                        .map((field) =>
+                            field.name === 'Viewing'
+                                ? { ...field, value: publicViewing(field.value) }
+                                : field
+                        ),
+                    footer: { text: `BoardTogether · report ${reportId}` },
+                    timestamp: embed.timestamp
+                }
+            ],
+            components: [],
+            attachments: (message.attachments ?? [])
+                .filter((attachment) => !isScenario(attachment))
+                .map((attachment) => ({ id: attachment.id }))
+        })
+    } finally {
+        if (archived || locked) await discord.patch(`/channels/${thread.id}`, { archived, locked })
+    }
 }
 
 function messageText(options) {
@@ -534,6 +773,12 @@ async function check(discord) {
     )
     const forum = await findForum(discord)
     console.log(`forum    ok   #${forum.name} (${forum.id})`)
+    const dataChannel = await findDataChannel(discord)
+    console.log(
+        dataChannel
+            ? `data     ok   #${dataChannel.name} (${dataChannel.id}); keep it staff-only`
+            : `data     WARN no #${DATA_CHANNEL_NAME} channel: reports cannot be filed, and their game links and scenarios cannot be read`
+    )
     const missing = STATUS_TAGS.filter((status) => !forum.tags.some((tag) => tag.key === status))
     console.log(
         missing.length === 0
@@ -680,6 +925,8 @@ async function main() {
             }
             return updatePost(discord, forum, thread, change)
         }
+        case 'migrate':
+            return migrate(discord, forum, dryRun)
         default:
             fail(`Unknown command "${command}"\n\n${USAGE}`)
     }

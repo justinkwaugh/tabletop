@@ -246,14 +246,31 @@ for (const viewport of [
             })
         })
 
-        test('Great Spire with the Dispossessed empty is still offered, and says so', async ({
+        test('Great Spire with the Dispossessed empty is not offered: nothing could swap', async ({
             page
         }) => {
             await openTable(page, 'greatSpireMenuEmpty')
             await tile(page, 'Search').click()
+            await expect(
+                grid(page).getByRole('button', { name: /^Search the world deck/ })
+            ).toBeVisible()
+            await expect(panel(page).locator(`[data-card-row="${SPIRE}"]`)).toHaveCount(0)
+            await page.screenshot({
+                path: test.info().outputPath(`edifice-spire-menu-empty-${size}.png`)
+            })
+        })
+
+        test('Great Spire with the Dispossessed empty, in a game before revision 34: still offered, and says so', async ({
+            page
+        }) => {
+            await openTable(page, 'greatSpireMenuEmptyOlderGame')
+            await tile(page, 'Search').click()
             const row = panel(page).locator(`[data-card-row="${SPIRE}"]`)
             await expect(row).toContainText('the Dispossessed is empty')
             await expect(row.locator('.text-oath-accent')).toContainText('1')
+            await page.screenshot({
+                path: test.info().outputPath(`edifice-spire-menu-empty-older-game-${size}.png`)
+            })
         })
 
         test('Great Spire’s swap step: pick, Swap and No swap at one width, then Keep one; Undo stops at the swap', async ({

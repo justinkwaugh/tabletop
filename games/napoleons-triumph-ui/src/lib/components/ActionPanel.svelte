@@ -49,7 +49,7 @@
             >
         </p>
     </div>
-{:else if gameSession.isCommanding}
+{:else if gameSession.showsOrders}
     <Orders bind:drawerHeight={ordersDrawerHeight} />
 {:else}
     <p class="nt-action">

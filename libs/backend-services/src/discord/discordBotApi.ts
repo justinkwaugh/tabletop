@@ -21,6 +21,18 @@ export class DiscordBotApi {
         })
     }
 
+    async patch(path: string, body: unknown): Promise<Response> {
+        return await fetch(`${API_ENDPOINT}${path}`, {
+            method: 'PATCH',
+            headers: { ...this.headers(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+    }
+
+    async delete(path: string): Promise<Response> {
+        return await fetch(`${API_ENDPOINT}${path}`, { method: 'DELETE', headers: this.headers() })
+    }
+
     // Discord takes files as multipart parts named files[n], with the JSON body in payload_json.
     async postWithFiles(path: string, body: unknown, files: DiscordFile[]): Promise<Response> {
         const form = new FormData()

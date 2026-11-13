@@ -22,7 +22,17 @@ mkdir -p .secrets && (umask 077 && read -rsp 'Bot token: ' TOKEN && echo "$TOKEN
 ```
 
 The forum is `DISCORD_BUG_REPORT_CHANNEL_ID`, else the forum named `bug-reports` in the bot's
-servers.
+servers. The data channel is `DISCORD_BUG_REPORT_DATA_CHANNEL_ID`, else the text channel named
+`bug-report-data`.
+
+## Public post and private data
+
+The forum is public, so a report is split in two. The forum post holds the description,
+screenshots, title, game status, versions and the reporter's username, with
+`report <id>` in its footer. The staff-only data channel gets a message starting
+`Data for bug report <id>` with the game's name and link, the reporter's account ID, the action
+count, the active players, the browser details, the investigate command and the scenario. `show`, `download` and the
+reporter notices join the two by that ID. `migrate` splits posts filed before this, once.
 
 ## Telling the reporter
 
@@ -49,7 +59,7 @@ The wording of each milestone lives in `src/milestones.mjs`.
 
 Downloads and email previews go to `tmp/bug-reports/<post id>/` under the main worktree, which
 is gitignored. A report's `bug-report-<gameId>.json` is a dev harness scenario of the whole
-game, hidden information included.
+game, hidden information included; it lives only in the data channel.
 
 ## Discord setup
 
@@ -58,6 +68,10 @@ game, hidden information included.
 - **Forum permissions** (on the forum, Edit Channel, Permissions; forums call threads _posts_):
   View Channel, Read Message History, Send Messages in Posts and Manage Posts. Without Manage
   Posts the bot may retag and close only the reports it opened, and lock none.
+- **Data channel**: a private text channel named `bug-report-data` that only staff and the bot
+  can see. The bot needs View Channel, Send Messages, Embed Links, Attach Files and Read Message
+  History there. The backend reads its ID from `DISCORD_BUG_REPORT_DATA_CHANNEL_ID`, and refuses
+  bug reports without it.
 - **Tags**: `open`, `investigating`, `reproduced`, `fixed`, `wont fix`, `not a bug` and
   `suggestion` are status tags, one per post. Discord closes a post after a week without activity, so the status
   tag, not the closed state, says whether a report is resolved.

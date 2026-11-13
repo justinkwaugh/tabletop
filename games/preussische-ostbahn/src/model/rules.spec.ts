@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { assertExists } from '@tabletop/common'
+import { ActionSource, assertExists, latestPlayerUndoTarget } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { isPayDividends } from '../actions/payDividends.js'
 import { isCompleteExpansion } from '../actions/endExpansion.js'
 import { isAwardShare } from '../actions/awardShare.js'
+import { isDeterminePlayerOrder } from '../actions/determinePlayerOrder.js'
 import { BERLIN, SpaceKind, mapSpace, neighboringSpaces } from '../components/map.js'
-import { RAILROADS, RailroadId } from '../components/railroads.js'
+import { OPENING_AUCTION_ORDER, RAILROADS, RailroadId } from '../components/railroads.js'
 import { Table } from '../testing/table.js'
 import { connectionGoalImpossible, everyRailroadConnected } from './endCheck.js'
 import { buildChoices, canEnter, trackCharge } from './expansion.js'
@@ -186,6 +187,80 @@ describe('turn order', () => {
     })
 })
 
+describe('drawing the turn order', () => {
+    function passRound(table: Table) {
+        for (const playerId of table.hydrated.turnSlots) {
+            table.act(playerId, { type: ActionType.PassTurn })
+        }
+    }
+
+    it('waits after the opening auctions for the last share’s buyer to draw', () => {
+        const table = new Table(3)
+        table.playInitialAuctions()
+        const lastRailroadId = OPENING_AUCTION_ORDER.at(-1)
+        assertExists(lastRailroadId, 'The opening sells railroads')
+        const [lastBuyer] = table.hydrated.railroad(lastRailroadId).owners
+        expect(table.state.machineState).toBe(MachineState.DeterminingOrder)
+        expect(table.state.activePlayerIds).toEqual([lastBuyer])
+        expect(table.processed.some(isDeterminePlayerOrder)).toBe(false)
+        const others = table.state.players.filter((player) => player.playerId !== lastBuyer)
+        for (const { playerId } of others) {
+            expect(() =>
+                table.act(playerId, { type: ActionType.DeterminePlayerOrder, revealsInfo: true })
+            ).toThrow()
+        }
+        const [draw] = table.drawTurnOrder()
+        expect(draw).toMatchObject({ playerId: lastBuyer, revealsInfo: true })
+        expect(table.state.machineState).toBe(MachineState.ChoosingAction)
+    })
+
+    it('waits at the end of a round for the last slot’s player to draw', () => {
+        const table = new Table(3)
+        table.playOpening()
+        const lastSlotPlayerId = table.hydrated.turnSlots.at(-1)
+        passRound(table)
+        expect(table.state.machineState).toBe(MachineState.DeterminingOrder)
+        expect(table.state.activePlayerIds).toEqual([lastSlotPlayerId])
+        expect(table.state.rounds.series).toHaveLength(1)
+        table.drawTurnOrder()
+        expect(table.state.rounds.series).toHaveLength(2)
+        expect(table.state.machineState).toBe(MachineState.ChoosingAction)
+    })
+
+    it('must be declared as revealing the draw', () => {
+        const table = new Table(3)
+        table.playInitialAuctions()
+        expect(() => table.act(table.active, { type: ActionType.DeterminePlayerOrder })).toThrow()
+    })
+
+    it('cannot be undone by anyone', () => {
+        const table = new Table(3)
+        table.playOpening()
+        passRound(table)
+        table.drawTurnOrder()
+        for (const { playerId } of table.state.players) {
+            expect(latestPlayerUndoTarget(table.processed, playerId)).toBeUndefined()
+        }
+    })
+
+    it('is skipped when the game ends at the end of the round', () => {
+        const table = new Table(3)
+        table.playOpening()
+        table.edit((state) => {
+            for (const railroad of state.railroads) {
+                railroad.track.push('berlin', 'hamburg')
+            }
+        })
+        passRound(table)
+        const end = table.processed.at(-1)
+        expect(end).toMatchObject({
+            type: ActionType.DeterminePlayerOrder,
+            source: ActionSource.System
+        })
+        expect(table.state.machineState).toBe(MachineState.EndOfGame)
+    })
+})
+
 describe('play', () => {
     it('sets up a 4-player game', () => {
         const table = new Table(4)
@@ -206,7 +281,7 @@ describe('play', () => {
         })
         expect(table.state.shareAuction?.railroadId).toBe(RailroadId.Niederschlesische)
         expect(table.active).toBe(first)
-        table.playInitialAuctions()
+        table.playOpening()
         expect(table.state.machineState).toBe(MachineState.ChoosingAction)
         expect(table.hydrated.turnSlots).toHaveLength(3)
         expect(table.state.rounds.series).toHaveLength(1)
@@ -227,7 +302,7 @@ describe('play', () => {
 
     it('holds back third shares until every railroad has sold its second', () => {
         const table = new Table(3)
-        table.playInitialAuctions()
+        table.playOpening()
         expect(table.hydrated.capitalizableRailroads()).toHaveLength(8)
         table.edit((state) => state.railroad(RailroadId.Ostbahn).owners.push('p0'))
         expect(table.hydrated.capitalizableRailroads()).not.toContain(RailroadId.Ostbahn)
@@ -235,7 +310,7 @@ describe('play', () => {
 
     function connectingTable() {
         const table = new Table(3)
-        table.playInitialAuctions()
+        table.playOpening()
         const playerId = table.active
         table.edit((state) => {
             state.railroad(RailroadId.Saechsische).owners = [playerId, playerId]
@@ -359,7 +434,7 @@ function buildThenStop(table: Table, playerId: string, railroadId: RailroadId, s
 describe('building track one space at a time', () => {
     function expandingTable() {
         const table = new Table(3)
-        table.playInitialAuctions()
+        table.playOpening()
         const playerId = table.active
         table.edit((state) => {
             state.railroad(RailroadId.Saechsische).owners = [playerId]

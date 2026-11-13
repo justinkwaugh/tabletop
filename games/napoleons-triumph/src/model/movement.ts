@@ -7,7 +7,7 @@ import {
     type RoadOrigin
 } from '../components/battleMap.js'
 import { FRENCH_REINFORCEMENT_MORALE, Side, UnitType } from '../components/pieces.js'
-import { CommandKind, type MoveOrder, type RoadMarch } from './attack.js'
+import { CommandKind, type MoveOrder, type RideEndedInReserve, type RoadMarch } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import {
     assertArrived,
@@ -215,6 +215,17 @@ export function endRoadMarch(state: HydratedNapoleonsTriumphGameState) {
     }
     state.revealAll(march.unitIds.flatMap((id) => state.findUnit(id) ?? []))
     state.roadMarch = undefined
+}
+
+/** Rule 10: cavalry at the end of its ride may end its move in the reserve it rode into. */
+export function endRideInReserve(state: HydratedNapoleonsTriumphGameState): RideEndedInReserve {
+    const march = state.roadMarch
+    legal(march?.stopped, 'No cavalry is at the end of its ride')
+    const locale = march.path.at(-1)
+    assertExists(locale, 'A road move has entered a locale')
+    const { unitIds } = march
+    endRoadMarch(state)
+    return { locale, revealed: unitIds.map((id) => faceOf(state.unit(id))) }
 }
 
 export function settleRoadMarch(
@@ -450,6 +461,10 @@ export function executeMove(
     to: Position
 ): MoveOutcome {
     if (!order.continues) {
+        legal(
+            !state.roadMarch?.stopped,
+            'The cavalry at the end of its ride ends its move before any other command'
+        )
         endRoadMarch(state)
     }
     const resolved = validateMove(state, playerId, order, to)

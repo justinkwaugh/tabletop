@@ -106,6 +106,8 @@ export const RAILROADS: readonly RailroadDefinition[] = [
 
 export const RAILROAD_IDS: readonly RailroadId[] = RAILROADS.map((railroad) => railroad.id)
 
+export const OPENING_AUCTION_ORDER: readonly RailroadId[] = RAILROAD_IDS
+
 export function railroadDefinition(id: RailroadId): RailroadDefinition {
     const definition = RAILROADS.find((railroad) => railroad.id === id)
     assertExists(definition, `Unknown railroad ${id}`)
