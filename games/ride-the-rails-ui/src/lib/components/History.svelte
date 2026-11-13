@@ -65,10 +65,12 @@
                 <li>
                     <button
                         type="button"
-                        class="interstitial jumpable"
-                        title="Jump to the start of this phase"
+                        class="interstitial jumpable hover:enabled:text-rtr-ink"
                         disabled={!!frozen}
-                        onclick={() => jump(entry)}>{phaseHeading(entry)}</button
+                        onclick={() => jump(entry)}
+                        >{phaseHeading(entry)}<span class="sr-only"
+                            >: jump to the start of this phase</span
+                        ></button
                     >
                 </li>
             {:else if entry.kind === 'milestone'}
@@ -80,11 +82,12 @@
                     {:else if isEndRound(entry.action)}
                         <button
                             type="button"
-                            class="interstitial jumpable"
-                            title="Jump to the new turn order"
+                            class="interstitial jumpable hover:enabled:text-rtr-ink"
                             disabled={!!frozen}
                             onclick={() => jump(entry)}
-                            ><Description description={describeAction(entry.action)} /></button
+                            ><Description description={describeAction(entry.action)} /><span
+                                class="sr-only">: jump to the new turn order</span
+                            ></button
                         >
                     {:else}
                         <div class="interstitial">
@@ -105,7 +108,7 @@
                     <span class="flex shrink-0 items-center gap-1 text-[11px] text-rtr-ink-muted">
                         <button
                             type="button"
-                            class="link"
+                            class="link hover:text-rtr-ink hover:underline"
                             disabled={!!frozen}
                             onclick={() => jump(entry)}>jump</button
                         >
@@ -113,7 +116,7 @@
                             <span aria-hidden="true">·</span>
                             <button
                                 type="button"
-                                class="link"
+                                class="link hover:text-rtr-ink hover:underline"
                                 disabled={!!frozen}
                                 onclick={() => replay(entry)}>replay</button
                             >
@@ -143,7 +146,6 @@
         cursor: pointer;
     }
 
-    .jumpable:not(:disabled):hover,
     .jumpable:focus-visible {
         color: var(--rtr-ink);
     }
@@ -157,7 +159,6 @@
         cursor: pointer;
     }
 
-    .link:hover,
     .link:focus-visible {
         color: var(--rtr-ink);
         text-decoration: underline;
