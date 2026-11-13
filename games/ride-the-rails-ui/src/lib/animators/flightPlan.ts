@@ -6,14 +6,12 @@ import {
     transcontinentalLine,
     usaCity,
     type HexId,
-    type HydratedRideTheRailsGameState,
     type PaidBonus,
     type RailroadId
 } from '@tabletop/ride-the-rails'
 import { hexCenter } from '$lib/utils/boardGeometry.js'
 import { locomotivePieces, type LocomotivePiece } from '$lib/utils/boardPieces.js'
-
-type State = HydratedRideTheRailsGameState
+import type { State } from './motion.js'
 
 /** A locomotive on one state's map and not the other's; `isStart` when it began its railroad. */
 export type PlacementChange = LocomotivePiece & { isStart: boolean }

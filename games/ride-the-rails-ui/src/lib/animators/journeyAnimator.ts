@@ -14,6 +14,8 @@ import { coinFan, hexStep, journeyCoins, passengerChanges } from './journeyPlan.
 import {
     JOURNEY,
     PoseTween,
+    coinFlyer,
+    coinLands,
     flyCoin,
     motionMode,
     popFlyers,
@@ -107,13 +109,7 @@ async function ride(
     const shown = await showFlyers(flights, [
         ...pulses.map(({ key, radius, pose }): Flyer => ({ key, kind: 'pulse', radius, pose })),
         { key: passenger, kind: 'passenger', pose: passengerPose },
-        ...coins.map((coin): Flyer => ({
-            key: coin.key,
-            kind: 'coin',
-            amount: coin.amount,
-            gold: false,
-            pose: pose(end.x, end.y, 1, 0)
-        }))
+        ...coins.map((coin) => coinFlyer(coin.key, coin.amount, false, end))
     ])
     if (!shown) return
 
@@ -132,7 +128,7 @@ async function ride(
 
     const rises = travelEnds(moves)
     const turnOrder = from.turnManager.turnOrder
-    const lands = rises + JOURNEY.coinRise + JOURNEY.coinFly
+    const lands = coinLands(rises, JOURNEY)
     coins.forEach((coin, index) => {
         flyCoin(
             flights,

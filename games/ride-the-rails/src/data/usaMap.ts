@@ -627,6 +627,12 @@ export function cityIn(hexId: HexId): City | undefined {
     return hex.terrain === 'city' ? usaCity(hex.cityId) : undefined
 }
 
+export function cityAt(hexId: HexId): City {
+    const city = cityIn(hexId)
+    assertExists(city, `Hex ${hexId} is not a city`)
+    return city
+}
+
 const HEX_ORDER: ReadonlyMap<HexId, number> = new Map(
     USA_HEXES.map((hex, index) => [hex.id, index])
 )

@@ -1,16 +1,10 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    GameAction,
-    HydratableAction,
-    MachineContext,
-    assert,
-    assertExists
-} from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, assertExists } from '@tabletop/common'
 import { TRANSCONTINENTAL_BONUS } from '../data/bonuses.js'
 import { HexId } from '../data/hexes.js'
 import { RailroadId } from '../data/railroads.js'
-import { CityId, isUsaHex, usaHex } from '../data/usaMap.js'
+import { cityAt, CityId, isUsaHex, usaHex } from '../data/usaMap.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { placementBonuses, type BonusPayment } from '../rules/bonuses.js'
@@ -139,14 +133,13 @@ export class HydratedPlaceLocomotive
         if (placement.railroadId !== YELLOW || !placement.isStart) {
             return
         }
-        const hex = usaHex(placement.hexId)
-        assert(hex.terrain === 'city', 'A start is made in a city')
-        const start = yellowStartIn(state, hex.cityId)
-        assertExists(start, `Yellow has no start left in ${hex.cityId}`)
+        const cityId = cityAt(placement.hexId).id
+        const start = yellowStartIn(state, cityId)
+        assertExists(start, `Yellow has no start left in ${cityId}`)
         if (start === 'chicago') {
             state.yellow.startedInChicago = true
         } else {
-            state.yellow.westStartCityId = hex.cityId
+            state.yellow.westStartCityId = cityId
         }
     }
 

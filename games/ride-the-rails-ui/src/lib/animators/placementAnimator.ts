@@ -6,6 +6,7 @@ import { bonusCoins, moneyAfterEach, placementChanges, type PlacementChange } fr
 import { moneyKey, supplyKey, type Flights, type Flyer } from './flights.svelte.js'
 import {
     FLIGHT,
+    coinFlyer,
     flyCoin,
     liftAndFly,
     motionMode,
@@ -78,13 +79,7 @@ async function flyPlacement(
             width: piece.slot.width,
             pose: startPose
         },
-        ...coins.map((coin): Flyer => ({
-            key: coin.key,
-            kind: 'coin',
-            amount: coin.amount,
-            gold: false,
-            pose: pose(coin.from.x, coin.from.y, 1, 0)
-        }))
+        ...coins.map((coin) => coinFlyer(coin.key, coin.amount, false, coin.from))
     ])
     if (!shown) return
 

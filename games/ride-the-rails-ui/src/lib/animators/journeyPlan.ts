@@ -2,14 +2,11 @@ import type { Point } from '@tabletop/common'
 import {
     RAILROAD_INTRODUCTIONS,
     type CityId,
-    type HydratedRideTheRailsGameState,
     type JourneyPayment,
     type RailroadId
 } from '@tabletop/ride-the-rails'
 import { turnOrderMarkerPoint } from '$lib/utils/marginLayout.js'
-import { JOURNEY } from './motion.js'
-
-type State = HydratedRideTheRailsGameState
+import { JOURNEY, type State } from './motion.js'
 
 /** Contract, Animation plan: about 120 ms a hex, the whole travel capped at 2.4 s. */
 export function hexStep(moves: number): number {

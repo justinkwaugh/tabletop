@@ -1,13 +1,13 @@
 import {
     railroadsIn,
-    usaHex,
+    cityIn,
     type HexId,
     type HydratedRideTheRailsGameState
 } from '@tabletop/ride-the-rails'
 
 function hasPassengerIn(state: HydratedRideTheRailsGameState, hexId: HexId): boolean {
-    const hex = usaHex(hexId)
-    return hex.terrain === 'city' && state.passengers.includes(hex.cityId)
+    const city = cityIn(hexId)
+    return city !== undefined && state.passengers.includes(city.id)
 }
 
 // What the hex detail shows that a Game State can change: its locomotives and its passenger.

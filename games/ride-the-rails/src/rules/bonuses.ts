@@ -22,7 +22,6 @@ export type BonusPayment = {
 export type BonusEvaluation = (
     placement: LegalPlacement,
     trackBefore: Track,
-    trackAfter: Track,
     transcontinental: TranscontinentalClaim | undefined
 ) => BonusPayment | undefined
 
@@ -69,11 +68,11 @@ const FIVE_DOLLAR_RULE: BonusRule = {
 // R-4.3.3, R-4.3.3-H2: once, to the placement that first completes any line.
 const TRANSCONTINENTAL_RULE: BonusRule = {
     bonus: TRANSCONTINENTAL_BONUS,
-    evaluate: (_placement, trackBefore, trackAfter, transcontinental) => {
+    evaluate: (placement, trackBefore, transcontinental) => {
         if (transcontinental) {
             return undefined
         }
-        const line = transcontinentalLine(trackAfter)
+        const line = transcontinentalLine(trackWith(trackBefore, placement))
         if (!line || transcontinentalLine(trackBefore)) {
             return undefined
         }
@@ -93,9 +92,8 @@ export function placementBonuses(
     trackBefore: Track,
     transcontinental: TranscontinentalClaim | undefined
 ): BonusPayment[] {
-    const trackAfter = trackWith(trackBefore, placement)
     return BONUS_RULES[mapId].flatMap((rule) => {
-        const payment = rule.evaluate(placement, trackBefore, trackAfter, transcontinental)
+        const payment = rule.evaluate(placement, trackBefore, transcontinental)
         return payment ? [payment] : []
     })
 }

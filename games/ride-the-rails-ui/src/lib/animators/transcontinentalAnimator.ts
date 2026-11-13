@@ -7,6 +7,7 @@ import { moneyKey, type Flights, type Flyer } from './flights.svelte.js'
 import {
     FLIGHT,
     PoseTween,
+    coinFlyer,
     flyCoin,
     motionMode,
     pose,
@@ -48,13 +49,7 @@ export function transcontinentalAnimator(flights: Flights): GameStateChangeListe
         const shown = await showFlyers(flights, [
             ...outlines,
             { key: TRANSCONTINENTAL_LINE_KEY, kind: 'line', hexIds: line, pose: pose(0, 0, 1, 0) },
-            {
-                key: TRANSCONTINENTAL_COIN_KEY,
-                kind: 'coin',
-                amount: claim.amount,
-                gold: true,
-                pose: pose(coinFrom.x, coinFrom.y, 1, 0)
-            }
+            coinFlyer(TRANSCONTINENTAL_COIN_KEY, claim.amount, true, coinFrom)
         ])
         if (!shown) return
 

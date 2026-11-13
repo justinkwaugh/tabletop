@@ -29,11 +29,8 @@ import {
 
 export const ROUND_MARKER_KEY = 'round-marker'
 
-/** Where each part of the end of round starts and how long it takes, in seconds. */
-export type EndOfRoundTiming = typeof END_OF_ROUND
-
 /** Without an action every part starts at once and lands within the platform's 200 ms. */
-const QUICK_END_OF_ROUND: EndOfRoundTiming = {
+const QUICK_END_OF_ROUND: typeof END_OF_ROUND = {
     slide: QUICK.pop,
     slideArc: 0,
     stepsAt: 0,

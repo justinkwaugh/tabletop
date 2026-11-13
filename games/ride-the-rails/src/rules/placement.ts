@@ -4,9 +4,9 @@ import { placementLimit } from '../data/placementLimits.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import {
     adjacentHexIds,
+    cityIn,
     USA_CITIES,
     USA_HEXES,
-    usaCity,
     usaHex,
     type CityCapacity
 } from '../data/usaMap.js'
@@ -54,8 +54,7 @@ export function placementsLeft(state: HydratedRideTheRailsGameState): number {
 
 // R-4.1.4: 2 locomotives, 1 in an East Coast city, no limit in Chicago.
 export function hexCapacity(hexId: HexId): CityCapacity {
-    const hex = usaHex(hexId)
-    return hex.terrain === 'city' ? usaCity(hex.cityId).capacity : NON_CITY_CAPACITY
+    return cityIn(hexId)?.capacity ?? NON_CITY_CAPACITY
 }
 
 export function hasRoomIn(track: Track, hexId: HexId): boolean {
@@ -141,8 +140,8 @@ function firstRefusal(
 }
 
 export function isEastCoastHex(hexId: HexId): boolean {
-    const hex = usaHex(hexId)
-    return hex.terrain === 'city' && isEastCoastCity(usaCity(hex.cityId))
+    const city = cityIn(hexId)
+    return city !== undefined && isEastCoastCity(city)
 }
 
 function currentBuildingTurn(state: HydratedRideTheRailsGameState): BuildingTurn {

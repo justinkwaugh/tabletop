@@ -8,7 +8,7 @@ import {
     hexOrder,
     railroadsIn,
     usaCity,
-    usaHex,
+    cityIn,
     type HexId,
     type RailroadId,
     type Track
@@ -325,11 +325,9 @@ export function chipNote(track: Track, hexId: HexId, chip: RailroadChip): ChipNo
             )
         }
     }
-    const hex = usaHex(hexId)
     if (
         chip.isStart &&
-        hex.terrain === 'city' &&
-        usaCity(hex.cityId).bonus === FIVE_DOLLAR_BONUS.id &&
+        cityIn(hexId)?.bonus === FIVE_DOLLAR_BONUS.id &&
         railroadsIn(track, hexId).length === 0
     ) {
         return { kind: 'start-uses-bonus', amount: FIVE_DOLLAR_BONUS.amount }

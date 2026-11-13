@@ -3,11 +3,11 @@ import type { HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import {
     adjacentHexIds,
+    cityAt,
     hexOrder,
     isCityHex,
     USA_HEXES,
     usaCity,
-    usaHex,
     type CityId
 } from '../data/usaMap.js'
 import type { RideTheRailsGameState, Track } from '../model/gameState.js'
@@ -59,12 +59,6 @@ function neighboursInHexOrder(hexId: HexId): readonly HexId[] {
     const neighbours = NEIGHBOURS_IN_HEX_ORDER.get(hexId)
     assertExists(neighbours, `Unknown USA hex ${hexId}`)
     return neighbours
-}
-
-function cityAt(hexId: HexId): CityId {
-    const hex = usaHex(hexId)
-    assert(hex.terrain === 'city', `Hex ${hexId} is not a city`)
-    return hex.cityId
 }
 
 // R-3.3.2, R-3.3.2-H1, R-3.3.3: a depth-first search in one railroad's track through non-city
@@ -152,7 +146,7 @@ export function nextCities(
     return endHexIds
         .sort((a, b) => hexOrder(a) - hexOrder(b))
         .map((endHexId) => ({
-            cityId: cityAt(endHexId),
+            cityId: cityAt(endHexId).id,
             railroadIds: RAILROAD_IDS.filter((railroadId) =>
                 reachable.some(
                     (link) =>
@@ -202,11 +196,7 @@ export function realise(
 }
 
 // R-3.3.4, R-3.3.5: the rider's fare plus the dividends on the rider's own shares.
-export function riderGain(
-    state: RideTheRailsGameState,
-    playerId: string,
-    links: readonly Link[]
-): number {
+function riderGain(state: RideTheRailsGameState, playerId: string, links: readonly Link[]): number {
     const payment = journeyPayments(state.players, playerId, links).payments.find(
         (candidate) => candidate.playerId === playerId
     )

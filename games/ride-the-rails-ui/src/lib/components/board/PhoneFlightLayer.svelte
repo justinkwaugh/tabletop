@@ -28,6 +28,7 @@
 
     const onMap = $derived(flights.flyers.filter((flyer) => ON_THE_MAP.has(flyer.kind)))
     const travelling = $derived(flights.flyers.filter((flyer) => !ON_THE_MAP.has(flyer.kind)))
+    const flying = $derived(flights.flyers.length > 0)
 
     /** What clips the board on screen: the nearest of its boxes that hides its overflow. */
     function boardClipper(board: Element): Element | undefined {
@@ -40,13 +41,17 @@
         return undefined
     }
 
+    function write(element: Element, name: string, value: string) {
+        if (element.getAttribute(name) !== value) element.setAttribute(name, value)
+    }
+
     /**
      * While anything flies, keeps the flyers' board units on the board as it is drawn on screen
      * now, and the map's own flyers inside the board's view. Each frame reads the boxes before it
-     * writes, so the browser lays out once.
+     * writes, and writes only what moved, so the browser lays out at most once.
      */
     function followBoard(svg: SVGSVGElement) {
-        if (flights.flyers.length === 0) return
+        if (!flying) return
         const boardSvg = svg.ownerDocument.querySelector(`svg[${BOARD_ATTRIBUTE}]`)
         const clipper = boardSvg ? boardClipper(boardSvg) : undefined
         const boardUnits = svg.querySelectorAll('[data-board-units]')
@@ -57,18 +62,20 @@
             const view = clipper?.getBoundingClientRect()
             const board = box && frameOf(box)
             if (board) {
+                const transform = frameTransform(board)
                 for (const group of boardUnits) {
-                    group.setAttribute('transform', frameTransform(board))
+                    write(group, 'transform', transform)
                 }
+                const boost = `scale(${readableBoost(board)})`
                 for (const group of svg.querySelectorAll('[data-readable]')) {
-                    group.setAttribute('transform', `scale(${readableBoost(board)})`)
+                    write(group, 'transform', boost)
                 }
             }
             if (view && clip) {
-                clip.setAttribute('x', String(view.left))
-                clip.setAttribute('y', String(view.top))
-                clip.setAttribute('width', String(view.width))
-                clip.setAttribute('height', String(view.height))
+                write(clip, 'x', String(view.left))
+                write(clip, 'y', String(view.top))
+                write(clip, 'width', String(view.width))
+                write(clip, 'height', String(view.height))
             }
             frame = requestAnimationFrame(place)
         }

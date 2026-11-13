@@ -1,9 +1,9 @@
-import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import { HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, RailroadId } from '../data/railroads.js'
 import {
     adjacentHexIds,
+    cityAt,
     cityIn,
     isCityHex,
     isUsaHex,
@@ -112,11 +112,7 @@ export function isLegalJourney(state: RideTheRailsGameState, links: readonly Lin
 // R-3.3.5: the cities visited, start and end included; one more than the links.
 export function journeyCities(links: readonly Link[]): CityId[] {
     return [links[0].hexIds[0], ...links.map((link) => link.hexIds[link.hexIds.length - 1])].map(
-        (hexId) => {
-            const city = cityIn(hexId)
-            assertExists(city, `Journey hex ${hexId} is not a city`)
-            return city.id
-        }
+        (hexId) => cityAt(hexId).id
     )
 }
 

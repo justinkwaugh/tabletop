@@ -8,7 +8,7 @@ import {
     type RandomFunction
 } from '@tabletop/common'
 import type { RailroadId } from '../data/railroads.js'
-import { usaHex } from '../data/usaMap.js'
+import { isCityHex } from '../data/usaMap.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState, RideTheRailsGameState } from '../model/gameState.js'
 import { legalPlacements, type LegalPlacement } from '../rules/placement.js'
@@ -139,7 +139,7 @@ export class ScriptedPlayer {
                 ? this.scarcest(state, railroadIds)
                 : this.pick(fresh.length > 0 ? fresh : railroadIds)
         const ofRailroad = placements.filter((placement) => placement.railroadId === railroadId)
-        const intoCities = ofRailroad.filter(({ hexId }) => usaHex(hexId).terrain === 'city')
+        const intoCities = ofRailroad.filter(({ hexId }) => isCityHex(hexId))
         return this.pick(intoCities.length > 0 && this.random() < 0.6 ? intoCities : ofRailroad)
     }
 

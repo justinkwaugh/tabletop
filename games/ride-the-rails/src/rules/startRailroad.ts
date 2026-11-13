@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import { hexCoordinates, type HexId } from '../data/hexes.js'
 import { RAILROAD_INTRODUCTIONS, type RailroadId, type StartRule } from '../data/railroads.js'
-import { USA_CITIES, usaCity, usaHex, type City, type CityId } from '../data/usaMap.js'
+import { cityIn, USA_CITIES, usaCity, type City, type CityId } from '../data/usaMap.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import { hasTrack, railroadsIn } from './track.js'
 
@@ -62,15 +62,15 @@ export function mayStartIn(
     railroadId: RailroadId,
     hexId: HexId
 ): boolean {
-    const hex = usaHex(hexId)
-    if (hex.terrain !== 'city') {
+    const city = cityIn(hexId)
+    if (!city) {
         return false
     }
     const startRule = startRuleOf(state, railroadId)
     if (startRule === 'chicago-and-westernmost') {
-        return yellowStartIn(state, hex.cityId) !== undefined
+        return yellowStartIn(state, city.id) !== undefined
     }
-    return !hasTrack(state.track, railroadId) && cityFitsStartRule(startRule, usaCity(hex.cityId))
+    return !hasTrack(state.track, railroadId) && cityFitsStartRule(startRule, city)
 }
 
 function startRuleOf(state: HydratedRideTheRailsGameState, railroadId: RailroadId): StartRule {

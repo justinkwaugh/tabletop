@@ -102,6 +102,20 @@ export function liftAndFly(
 
 export type CoinTiming = { coinRise: number; coinFly: number; fade: number }
 
+// A coin is unseen where it is paid until it rises.
+function unseenAt(start: Point): Pose {
+    return pose(start.x, start.y, 1, 0)
+}
+
+export function coinFlyer(key: string, amount: number, gold: boolean, start: Point): Flyer {
+    return { key, kind: 'coin', amount, gold, pose: unseenAt(start) }
+}
+
+/** When a coin that rises at `rises` lands on the seat's money. */
+export function coinLands(rises: number, timing: CoinTiming): number {
+    return rises + timing.coinRise + timing.coinFly
+}
+
 export type CoinFlight = {
     key: string
     /** Where the coin is paid, unseen until it rises. */
@@ -118,8 +132,8 @@ export function flyCoin(
     { key, start, rise, marker, rises }: CoinFlight,
     timing: CoinTiming
 ): number {
-    const lands = rises + timing.coinRise + timing.coinFly
-    new PoseTween(flights, animationContext, key, pose(start.x, start.y, 1, 0))
+    const lands = coinLands(rises, timing)
+    new PoseTween(flights, animationContext, key, unseenAt(start))
         .to({ opacity: 1, ...rise }, timing.coinRise, rises, 'power1.out')
         .to(
             { x: marker.x, y: marker.y, scale: 0.7 },

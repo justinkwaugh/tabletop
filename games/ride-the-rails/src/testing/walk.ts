@@ -1,5 +1,5 @@
 import { ActionSource, assert, assertExists, type Game, type GameAction } from '@tabletop/common'
-import { usaHex } from '../data/usaMap.js'
+import { isCityHex } from '../data/usaMap.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState, RideTheRailsGameState } from '../model/gameState.js'
 import { legalPlacements, type LegalPlacement } from '../rules/placement.js'
@@ -72,7 +72,7 @@ export function walkInput(state: RideTheRailsGameState, game: Game, step: number
 
 // A placement into a city completes a link, so the walk prefers one.
 function choosePlacement(placements: LegalPlacement[], step: number): LegalPlacement {
-    const intoCities = placements.filter(({ hexId }) => usaHex(hexId).terrain === 'city')
+    const intoCities = placements.filter(({ hexId }) => isCityHex(hexId))
     return pick(intoCities.length > 0 ? intoCities : placements, step)
 }
 

@@ -13,17 +13,13 @@
 
     const NO_INITIALS: ReadonlyMap<string, string> = new Map()
 
-    // Seat initials are drawn only once the view is large enough to read them.
-    const initials = $derived(
-        drawsSeatInitials(viewScale)
-            ? seatInitials(
-                  gameSession.game.players.map((player) => ({
-                      playerId: player.id,
-                      name: player.name
-                  }))
-              )
-            : NO_INITIALS
+    const allInitials = $derived(
+        seatInitials(
+            gameSession.game.players.map((player) => ({ playerId: player.id, name: player.name }))
+        )
     )
+    // Seat initials are drawn only once the view is large enough to read them.
+    const initials = $derived(drawsSeatInitials(viewScale) ? allInitials : NO_INITIALS)
 </script>
 
 <!-- Contract, The table: on desktop the margin panels sit in the board's fixed margin; on phones
