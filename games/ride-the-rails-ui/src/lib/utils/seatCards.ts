@@ -1,5 +1,6 @@
 import {
     RAILROAD_IDS,
+    paymentTotal,
     type HydratedRideTheRailsGameState,
     type JourneyPayment,
     type RailroadId
@@ -45,7 +46,7 @@ export function seatCards(state: HydratedRideTheRailsGameState): SeatCard[] {
 export function pendingGains(payments: readonly JourneyPayment[]): ReadonlyMap<string, number> {
     return new Map(
         payments
-            .map((payment) => [payment.playerId, payment.dividends + payment.fare] as const)
+            .map((payment) => [payment.playerId, paymentTotal(payment)] as const)
             .filter(([, gain]) => gain > 0)
     )
 }

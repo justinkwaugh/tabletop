@@ -107,17 +107,14 @@ export class HydratedPlaceLocomotive
         const westernmost = this.fixWesternmost(state)
         this.recordYellowStart(state, placement)
 
-        const trackBefore = structuredClone(state.track)
-        state.track[this.hexId] = [...railroadsIn(trackBefore, this.hexId), this.railroadId]
-        this.countPlacement(state)
-
         const bonuses = placementBonuses(
             state.mapId,
             placement,
-            trackBefore,
             state.track,
             state.transcontinental
         )
+        state.track[this.hexId] = [...railroadsIn(state.track, this.hexId), this.railroadId]
+        this.countPlacement(state)
         this.payBonuses(state, bonuses)
 
         this.metadata = {

@@ -2,6 +2,7 @@ import { tick } from 'svelte'
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import {
     isRideJourney,
+    journeyHexIds,
     usaCity,
     type CityId,
     type HydratedRideTheRailsGameState,
@@ -11,7 +12,7 @@ import { hexCenter, stationOf } from '$lib/utils/boardGeometry.js'
 import { passengerSpot } from '$lib/utils/passengerLayout.js'
 import { seatMoneyPoint } from './flightPlaces.js'
 import { moneyKey, passengerKey, type Flights, type Flyer } from './flights.svelte.js'
-import { coinFan, hexStep, journeyCoins, journeyHexes, passengerChanges } from './journeyPlan.js'
+import { coinFan, hexStep, journeyCoins, passengerChanges } from './journeyPlan.js'
 import { JOURNEY, PoseTween, QUICK, motionMode, pose, tickAt } from './motion.js'
 
 type State = HydratedRideTheRailsGameState
@@ -68,7 +69,7 @@ async function ride(
     const metadata = action.metadata
     if (!metadata) return
     const { startCityId, endCityId, cityIds, payments } = metadata
-    const hexes = journeyHexes(action.links)
+    const hexes = journeyHexIds(action.links)
     // The journey draft, and with it the lifted start, is put away while the step plays.
     const spot = passengerSpot(startCityId, false)
     const points = [spot, ...hexes.map(hexCenter)]

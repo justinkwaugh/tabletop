@@ -2,7 +2,15 @@ import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import { HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, isUsaHex, usaCity, usaHex, type CityId } from '../data/usaMap.js'
+import {
+    adjacentHexIds,
+    cityIn,
+    isCityHex,
+    isUsaHex,
+    usaCity,
+    type CityId
+} from '../data/usaMap.js'
+import { hasTrackIn } from './track.js'
 import type { RideTheRailsGameState, Track } from '../model/gameState.js'
 import type { RideTheRailsPlayerState } from '../model/playerState.js'
 
@@ -34,19 +42,6 @@ export type JourneyPayments = {
     payments: JourneyPayment[]
 }
 
-function holdsTrack(track: Track, hexId: HexId, railroadId: RailroadId): boolean {
-    return Object.hasOwn(track, hexId) && track[hexId].includes(railroadId)
-}
-
-function isCityHex(hexId: HexId): boolean {
-    return usaHex(hexId).terrain === 'city'
-}
-
-function cityAt(hexId: HexId): CityId | undefined {
-    const hex = usaHex(hexId)
-    return hex.terrain === 'city' ? hex.cityId : undefined
-}
-
 // R-3.3.2, R-3.3.2-H1: a link ends at the first city it reaches, so track through a city is two links.
 export function isLink(track: Track, { railroadId, hexIds }: Link): boolean {
     if (hexIds.length < 2 || !hexIds.every(isUsaHex) || new Set(hexIds).size !== hexIds.length) {
@@ -57,7 +52,7 @@ export function isLink(track: Track, { railroadId, hexIds }: Link): boolean {
         isCityHex(hexIds[0]) &&
         isCityHex(hexIds[hexIds.length - 1]) &&
         interior.every((hexId) => !isCityHex(hexId)) &&
-        hexIds.every((hexId) => holdsTrack(track, hexId, railroadId)) &&
+        hexIds.every((hexId) => hasTrackIn(track, hexId, railroadId)) &&
         hexIds.every(
             (hexId, index) => index === 0 || adjacentHexIds(hexIds[index - 1]).includes(hexId)
         )
@@ -71,17 +66,20 @@ function linksMeet(links: readonly Link[]): boolean {
     )
 }
 
+// R-3.3.2, R-3.3.3: the hexes a journey passes, start city to end city; its links meet in cities.
+export function journeyHexIds(links: readonly Link[]): HexId[] {
+    return links.flatMap((link, index) => (index === 0 ? link.hexIds : link.hexIds.slice(1)))
+}
+
 // R-3.3.3: the meeting city of two links is one visit.
 function visitsNoHexTwice(links: readonly Link[]): boolean {
-    const visited = links.flatMap((link, index) =>
-        index === 0 ? link.hexIds : link.hexIds.slice(1)
-    )
+    const visited = journeyHexIds(links)
     return new Set(visited).size === visited.length
 }
 
 function startsAtPassenger(state: RideTheRailsGameState, links: readonly Link[]): boolean {
-    const start = cityAt(links[0].hexIds[0])
-    return start !== undefined && state.passengers.includes(start)
+    const start = cityIn(links[0].hexIds[0])
+    return start !== undefined && state.passengers.includes(start.id)
 }
 
 // R-3.3.1, R-3.3.2, R-3.3.2-H1, R-3.3.3: the player need not hold shares in a railroad to use it.
@@ -115,9 +113,9 @@ export function isLegalJourney(state: RideTheRailsGameState, links: readonly Lin
 export function journeyCities(links: readonly Link[]): CityId[] {
     return [links[0].hexIds[0], ...links.map((link) => link.hexIds[link.hexIds.length - 1])].map(
         (hexId) => {
-            const cityId = cityAt(hexId)
-            assertExists(cityId, `Journey hex ${hexId} is not a city`)
-            return cityId
+            const city = cityIn(hexId)
+            assertExists(city, `Journey hex ${hexId} is not a city`)
+            return city.id
         }
     )
 }
@@ -148,16 +146,21 @@ export function journeyPayments(
     return { linksPerRailroad: counts, payments }
 }
 
+// R-3.3.4, R-3.3.5: what a journey pays one player, dividends and fare together.
+export function paymentTotal({ dividends, fare }: JourneyPayment): number {
+    return dividends + fare
+}
+
 // R-3.3.1-H1: a search in one railroad's track from a city through non-city hexes to another city.
 export function hasLinkFrom(track: Track, cityHexId: HexId, railroadId: RailroadId): boolean {
-    if (!holdsTrack(track, cityHexId, railroadId)) {
+    if (!hasTrackIn(track, cityHexId, railroadId)) {
         return false
     }
     const reached = new Set<HexId>([cityHexId])
     const frontier: HexId[] = [cityHexId]
     for (let hexId = frontier.pop(); hexId !== undefined; hexId = frontier.pop()) {
         for (const next of adjacentHexIds(hexId)) {
-            if (reached.has(next) || !holdsTrack(track, next, railroadId)) {
+            if (reached.has(next) || !hasTrackIn(track, next, railroadId)) {
                 continue
             }
             if (isCityHex(next)) {

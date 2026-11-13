@@ -9,6 +9,7 @@ import {
     isTakeShare,
     legalPlacements,
     moneyOf,
+    paymentTotal,
     phaseTurnOrder,
     placementLimit,
     richestPlayerIds,
@@ -138,7 +139,7 @@ export function seatGains(
 ): SeatGain[] {
     return turnOrder.flatMap((playerId): SeatGain[] => {
         const payment = payments.find((candidate) => candidate.playerId === playerId)
-        const amount = payment ? payment.dividends + payment.fare : 0
+        const amount = payment ? paymentTotal(payment) : 0
         return amount > 0 ? [{ playerId, amount }] : []
     })
 }
@@ -181,7 +182,7 @@ export function journeyLine(
     const { cityIds, linksPerRailroad, payments } = action.metadata
     const rider = payments.find(({ playerId }) => playerId === action.playerId)
     const viewer = payments.find(({ playerId }) => playerId === viewerId)
-    const viewerGain = viewer ? viewer.dividends + viewer.fare : 0
+    const viewerGain = viewer ? paymentTotal(viewer) : 0
     return [
         { playerId: action.playerId },
         `: ${routeText(cityIds)}, ${linksText(totalLinks(linksPerRailroad))}`,

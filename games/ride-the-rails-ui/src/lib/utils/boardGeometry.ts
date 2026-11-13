@@ -91,14 +91,18 @@ export function hexCorners(hexId: HexId): readonly Point[] {
     return hexGeometry(hexId).vertices
 }
 
-export function hexPoints(hexId: HexId): string {
-    return hexCorners(hexId)
-        .map((corner) => `${corner.x.toFixed(1)},${corner.y.toFixed(1)}`)
-        .join(' ')
+/** A point as SVG writes it, to a tenth of a board unit. */
+export function pointText({ x, y }: Point): string {
+    return `${x.toFixed(1)},${y.toFixed(1)}`
 }
 
-function cornerKey(point: Point): string {
-    return `${point.x.toFixed(1)},${point.y.toFixed(1)}`
+/** A closed SVG path through the points. */
+export function closedPath(points: readonly Point[]): string {
+    return `M${points.map(pointText).join('L')}Z`
+}
+
+export function hexPoints(hexId: HexId): string {
+    return hexCorners(hexId).map(pointText).join(' ')
 }
 
 type Side = { from: Point; to: Point }
@@ -111,11 +115,11 @@ function hexSides(hexId: HexId): Side[] {
 // R-4.1.2: the board is the hex set, so its coast is every hex side no other hex shares.
 function coastLoops(): Point[][] {
     const sides = USA_HEXES.flatMap((hex) => hexSides(hex.id))
-    const sideKeys = new Set(sides.map((side) => `${cornerKey(side.from)}>${cornerKey(side.to)}`))
+    const sideKeys = new Set(sides.map((side) => `${pointText(side.from)}>${pointText(side.to)}`))
     const coastSides = new Map(
         sides
-            .filter((side) => !sideKeys.has(`${cornerKey(side.to)}>${cornerKey(side.from)}`))
-            .map((side) => [cornerKey(side.from), side])
+            .filter((side) => !sideKeys.has(`${pointText(side.to)}>${pointText(side.from)}`))
+            .map((side) => [pointText(side.from), side])
     )
     const loops: Point[][] = []
     while (coastSides.size > 0) {
@@ -125,7 +129,7 @@ function coastLoops(): Point[][] {
         for (let side = coastSides.get(key); side; side = coastSides.get(key)) {
             coastSides.delete(key)
             loop.push(side.from)
-            key = cornerKey(side.to)
+            key = pointText(side.to)
         }
         loops.push(loop)
     }
@@ -134,9 +138,7 @@ function coastLoops(): Point[][] {
 
 export const COAST_LOOPS: readonly (readonly Point[])[] = coastLoops()
 
-export const COAST_PATH = COAST_LOOPS.map(
-    (loop) => `M${loop.map((corner) => `${corner.x.toFixed(1)},${corner.y.toFixed(1)}`).join('L')}Z`
-).join('')
+export const COAST_PATH = COAST_LOOPS.map(closedPath).join('')
 
 export type Station = Point & { radius: number }
 

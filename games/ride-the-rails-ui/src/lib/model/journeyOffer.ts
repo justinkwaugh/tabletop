@@ -6,6 +6,7 @@ import {
     hasLinkFrom,
     journeyCities,
     journeyPayments,
+    paymentTotal,
     nextCities,
     realise,
     usaCity,
@@ -189,7 +190,7 @@ export function journeyPreview(
         linksPerRailroad,
         fare: rider.fare,
         payments,
-        riderGain: rider.fare + rider.dividends
+        riderGain: paymentTotal(rider)
     }
 }
 

@@ -12,7 +12,7 @@ import {
     type RailroadId,
     type Track
 } from '@tabletop/ride-the-rails'
-import { routeSegments, routeStationHexes, transcontinentalRoute } from './routePath.js'
+import { routeSegments, routeStationHexes } from './routePath.js'
 
 const RED: RailroadId = 'railroad.red'
 const PURPLE: RailroadId = 'railroad.purple'
@@ -63,14 +63,12 @@ function expectALine(track: Track, route: HexId[] | undefined) {
 
 describe('the claimed Transcontinental line (R-4.3.3, R-4.3.3-H1, R-4.3.3-H2)', () => {
     it('finds no line on an empty map, as the rules do', () => {
-        expect(transcontinentalRoute({})).toBeUndefined()
         expect(transcontinentalLine({})).toBeUndefined()
     })
 
     it('finds no line one railroad carries alone, as the rules do', () => {
         const track = laid([[RED, COAST_TO_COAST]])
         expect(transcontinentalLine(track)).toBeUndefined()
-        expect(transcontinentalRoute(track)).toBeUndefined()
     })
 
     it('walks the line two railroads carry from coast to coast, as the rules find it', () => {
@@ -79,8 +77,7 @@ describe('the claimed Transcontinental line (R-4.3.3, R-4.3.3-H1, R-4.3.3-H2)', 
             [PURPLE, COAST_TO_COAST.slice(0, split + 1)],
             [RED, COAST_TO_COAST.slice(split)]
         ])
-        expect(transcontinentalLine(track)).toBeDefined()
-        const route = transcontinentalRoute(track)
+        const route = transcontinentalLine(track)?.hexIds
         expectALine(track, route)
         expect(route).toEqual(COAST_TO_COAST)
     })

@@ -54,18 +54,10 @@ function place(setup: Setup, railroadId: RailroadId, hexId: HexId): Placed {
     if (!verdict.legal) {
         throw new Error(`${railroadId} may not be placed in ${hexId}: ${verdict.reason}`)
     }
-    const trackBefore = state.track
-    const trackAfter = { ...trackBefore, [hexId]: [...(trackBefore[hexId] ?? []), railroadId] }
     const placement = { railroadId, hexId, isStart: verdict.isStart }
     return {
         isStart: verdict.isStart,
-        bonuses: placementBonuses(
-            state.mapId,
-            placement,
-            trackBefore,
-            trackAfter,
-            state.transcontinental
-        )
+        bonuses: placementBonuses(state.mapId, placement, state.track, state.transcontinental)
     }
 }
 

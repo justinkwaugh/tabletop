@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { Link } from '@tabletop/ride-the-rails'
+    import { transcontinentalLine, type Link } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { polylinePoints, routeSegments, transcontinentalRoute } from '$lib/utils/routePath.js'
+    import { polylinePoints, routeSegments } from '$lib/utils/routePath.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
 
     let { lastJourney }: { lastJourney: readonly Link[] } = $props()
@@ -11,7 +11,7 @@
     // R-4.3.3: the claimed line stays drawn from the claim to the game's end.
     const claimedLine = $derived(
         gameSession.gameState.transcontinental
-            ? transcontinentalRoute(gameSession.gameState.track)
+            ? transcontinentalLine(gameSession.gameState.track)?.hexIds
             : undefined
     )
     const segments = $derived(routeSegments(lastJourney))

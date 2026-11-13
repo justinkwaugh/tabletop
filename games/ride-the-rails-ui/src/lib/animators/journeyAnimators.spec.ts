@@ -7,6 +7,7 @@ import {
     RAILROAD_INTRODUCTIONS,
     isEndRound,
     isRideJourney,
+    journeyHexIds,
     type CityId,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -34,7 +35,6 @@ import { passengerFlyerKey, journeyAnimator, travelEnds } from './journeyAnimato
 import {
     hexStep,
     journeyCoins,
-    journeyHexes,
     markerSlides,
     railroadsMadeAvailable,
     roundStep
@@ -165,7 +165,7 @@ function stepsOf(from: State) {
 
 describe('the journey plan (R-3.3)', () => {
     it('passes each hex once, the links meeting in their cities', () => {
-        expect(journeyHexes(LINKS)).toEqual([
+        expect(journeyHexIds(LINKS)).toEqual([
             ...KANSAS_CITY_TO_SAINT_LOUIS,
             ...SAINT_LOUIS_TO_CINCINNATI.slice(1)
         ])
@@ -208,7 +208,7 @@ describe('the Journey animator (R-3.3)', () => {
             ride.action
         )
 
-        const hexes = journeyHexes(LINKS)
+        const hexes = journeyHexIds(LINKS)
         const moves = hexes.length
         const perHex = hexStep(moves)
         expect(perHex).toBeCloseTo(JOURNEY.perHex)

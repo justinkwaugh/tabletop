@@ -8,8 +8,8 @@ import { transcontinentalLine } from './transcontinental.js'
 const KANSAS_CITY: HexId = 'hex.usa.8-32'
 const RENO_ROW = 7
 
-const JOINED_IN_A_CITY = { changesRailroadOnlyInCities: true }
-const JOINED_ELSEWHERE = { changesRailroadOnlyInCities: false }
+const JOINED_IN_A_CITY = expect.objectContaining({ changesRailroadOnlyInCities: true })
+const JOINED_ELSEWHERE = expect.objectContaining({ changesRailroadOnlyInCities: false })
 
 // Row 9 runs from San Francisco (dcol 5) to Baltimore (dcol 55) with no city between.
 function row(rowNumber: number, fromDcol: number, toDcol: number): HexId[] {

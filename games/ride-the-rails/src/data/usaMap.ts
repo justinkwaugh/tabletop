@@ -598,7 +598,7 @@ export const USA_HEXES: readonly Hex[] = [...terrainHexes(), ...cityHexes()].sor
     (a, b) => a.row - b.row || a.dcol - b.dcol
 )
 
-const HEXES_BY_ID: ReadonlyMap<HexId, Hex> = new Map(USA_HEXES.map((hex) => [hex.id, hex]))
+const HEXES_BY_ID: ReadonlyMap<string, Hex> = new Map(USA_HEXES.map((hex) => [hex.id, hex]))
 
 const CITIES_BY_ID: ReadonlyMap<CityId, City> = new Map(USA_CITIES.map((city) => [city.id, city]))
 
@@ -614,8 +614,28 @@ export function usaCity(cityId: CityId): City {
     return city
 }
 
-export function isUsaHex(hexId: HexId): boolean {
+export function isUsaHex(hexId: string): hexId is HexId {
     return HEXES_BY_ID.has(hexId)
+}
+
+export function isCityHex(hexId: HexId): boolean {
+    return usaHex(hexId).terrain === 'city'
+}
+
+export function cityIn(hexId: HexId): City | undefined {
+    const hex = usaHex(hexId)
+    return hex.terrain === 'city' ? usaCity(hex.cityId) : undefined
+}
+
+const HEX_ORDER: ReadonlyMap<HexId, number> = new Map(
+    USA_HEXES.map((hex, index) => [hex.id, index])
+)
+
+// The map's hexes in id order, rows north to south and columns west to east.
+export function hexOrder(hexId: HexId): number {
+    const order = HEX_ORDER.get(hexId)
+    assertExists(order, `Unknown USA hex ${hexId}`)
+    return order
 }
 
 const ADJACENT_HEX_IDS: ReadonlyMap<HexId, readonly HexId[]> = new Map(

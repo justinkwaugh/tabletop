@@ -8,6 +8,7 @@ import {
     isPlaceLocomotive,
     type PlaceLocomotive,
     supplyOf,
+    transcontinentalLine,
     usaCity,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -16,7 +17,6 @@ import {
 } from '@tabletop/ride-the-rails'
 import { buildState, hydrated, runAction } from '@tabletop/ride-the-rails/testing'
 import { STRIP_LOCOMOTIVE, stripLocomotivePoint } from '$lib/utils/marginLayout.js'
-import { transcontinentalRoute } from '$lib/utils/routePath.js'
 import { Flights, moneyKey, sharesKey, supplyKey } from './flights.svelte.js'
 import { OUTLINE_TOTAL } from './flightPlan.js'
 import { FLIGHT, QUICK } from './motion.js'
@@ -250,7 +250,7 @@ describe('the Transcontinental animator (R-4.3.3)', () => {
     it('outlines the line within 900 ms after the placement lands, then flies a gold coin', async () => {
         const flights = new Flights()
         const { from, to, action } = nearlyAcross()
-        const line = transcontinentalRoute(to.track)
+        const line = transcontinentalLine(to.track)?.hexIds
         assertExists(line)
 
         const animationContext = await step(transcontinentalAnimator(flights), from, to, action)

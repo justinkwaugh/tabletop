@@ -5,7 +5,6 @@ import {
     USA_HEXES,
     legalPlacements,
     placementBonuses,
-    railroadsIn,
     supplyOf,
     usaHex,
     type BonusId,
@@ -14,8 +13,7 @@ import {
     type HydratedRideTheRailsGameState,
     type LegalPlacement,
     type MapId,
-    type RailroadId,
-    type Track
+    type RailroadId
 } from '@tabletop/ride-the-rails'
 
 export type OfferedPlacement = {
@@ -119,21 +117,8 @@ function offeredPlacement(
     state: HydratedRideTheRailsGameState,
     placement: LegalPlacement
 ): OfferedPlacement {
-    const bonuses = placementBonuses(
-        state.mapId,
-        placement,
-        state.track,
-        withPlacement(state.track, placement),
-        state.transcontinental
-    )
+    const bonuses = placementBonuses(state.mapId, placement, state.track, state.transcontinental)
     return { railroadId: placement.railroadId, isStart: placement.isStart, bonuses }
-}
-
-function withPlacement(track: Track, placement: LegalPlacement): Track {
-    return {
-        ...track,
-        [placement.hexId]: [...railroadsIn(track, placement.hexId), placement.railroadId]
-    }
 }
 
 function marksOf(

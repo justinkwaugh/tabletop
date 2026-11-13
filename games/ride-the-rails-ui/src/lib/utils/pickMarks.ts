@@ -1,10 +1,11 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, distanceAxial } from '@tabletop/common'
 import {
     FIVE_DOLLAR_BONUS,
     USA_CITIES,
     USA_HEXES,
     doubledToAxial,
     hexCoordinates,
+    hexOrder,
     railroadsIn,
     usaCity,
     usaHex,
@@ -20,7 +21,14 @@ import type {
     RailroadChip
 } from '$lib/model/boardOffer.js'
 import type { JourneyPopup } from '$lib/model/journeyOffer.js'
-import { BOARD_EXTENTS, FITTED_DESKTOP_SCALE, hexCenter, hexCorners } from './boardGeometry.js'
+import {
+    BOARD_EXTENTS,
+    FITTED_DESKTOP_SCALE,
+    closedPath,
+    hexCenter,
+    hexCorners,
+    pointText
+} from './boardGeometry.js'
 import { railroadNames, railroadStyle } from './railroadStyle.js'
 
 /** The most rings, pips and marks grow on the board when the view is zoomed out. */
@@ -100,11 +108,7 @@ const STEP_WORDS = ['one hex', 'two hexes', 'three hexes', 'four hexes', 'five h
 type Bearing = { terrain: string; cityName: string; angle: number; steps: number }
 
 function hexSteps(from: HexId, to: HexId): number {
-    const a = doubledToAxial(hexCoordinates(from))
-    const b = doubledToAxial(hexCoordinates(to))
-    const dq = a.q - b.q
-    const dr = a.r - b.r
-    return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2
+    return distanceAxial(doubledToAxial(hexCoordinates(from)), doubledToAxial(hexCoordinates(to)))
 }
 
 // A plain or mountain from its nearest city; a tie in distance goes to the city first in the
@@ -224,10 +228,6 @@ export function litHexLabel(hex: OfferedHex, context: PickContext = BUILD_PICK):
     return `${place}: ${effects}${marks}`
 }
 
-const MAP_ORDER: ReadonlyMap<HexId, number> = new Map(
-    USA_HEXES.map((hex, index) => [hex.id, index])
-)
-
 function pickedHexId(offer: BoardOffer, context: PickContext): HexId | undefined {
     return context.kind === 'journey-extend' ? context.choosingHexId : offer.popup?.hexId
 }
@@ -259,7 +259,7 @@ export function litHexViews(offer: BoardOffer, context: PickContext = BUILD_PICK
         label: `${placeName(context.startHexId)}: the journey's start, clear the journey`
     }
     return [...lit.filter((view) => view.hexId !== start.hexId), start].sort(
-        (a, b) => (MAP_ORDER.get(a.hexId) ?? 0) - (MAP_ORDER.get(b.hexId) ?? 0)
+        (a, b) => hexOrder(a.hexId) - hexOrder(b.hexId)
     )
 }
 
@@ -271,15 +271,13 @@ export function insetHexPoints(hexId: HexId, inset: number): string {
             const dx = corner.x - center.x
             const dy = corner.y - center.y
             const factor = 1 - inset / Math.hypot(dx, dy)
-            return `${(center.x + dx * factor).toFixed(1)},${(center.y + dy * factor).toFixed(1)}`
+            return pointText({ x: center.x + dx * factor, y: center.y + dy * factor })
         })
         .join(' ')
 }
 
 function hexPath(hexId: HexId): string {
-    return `M${hexCorners(hexId)
-        .map((corner) => `${corner.x.toFixed(1)},${corner.y.toFixed(1)}`)
-        .join('L')}Z`
+    return closedPath(hexCorners(hexId))
 }
 
 /** The whole board, water and margin included, so everything under the scrim dims alike. */

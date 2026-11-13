@@ -6,10 +6,10 @@ import {
     type BonusId
 } from '../data/bonuses.js'
 import type { MapId } from '../data/maps.js'
-import { usaCity, usaHex, type City, type CityId } from '../data/usaMap.js'
+import { cityIn, type CityId } from '../data/usaMap.js'
 import type { Track, TranscontinentalClaim } from '../model/gameState.js'
 import type { LegalPlacement } from './placement.js'
-import { railroadsIn } from './track.js'
+import { railroadsIn, trackWith } from './track.js'
 import { transcontinentalLine, type TranscontinentalLine } from './transcontinental.js'
 
 // R-3.2.5: paid to the placing player.
@@ -38,16 +38,11 @@ export function transcontinentalAmount(line: TranscontinentalLine): number {
         : TRANSCONTINENTAL_BONUS.otherHexAmount
 }
 
-function cityAt(placement: LegalPlacement): City | undefined {
-    const hex = usaHex(placement.hexId)
-    return hex.terrain === 'city' ? usaCity(hex.cityId) : undefined
-}
-
 // R-4.3.1: every placement in Chicago, a start included.
 const CHICAGO_RULE: BonusRule = {
     bonus: CHICAGO_BONUS,
     evaluate: (placement) => {
-        const city = cityAt(placement)
+        const city = cityIn(placement.hexId)
         if (city?.bonus !== CHICAGO_BONUS.id) {
             return undefined
         }
@@ -59,7 +54,7 @@ const CHICAGO_RULE: BonusRule = {
 const FIVE_DOLLAR_RULE: BonusRule = {
     bonus: FIVE_DOLLAR_BONUS,
     evaluate: (placement, trackBefore) => {
-        const city = cityAt(placement)
+        const city = cityIn(placement.hexId)
         if (
             city?.bonus !== FIVE_DOLLAR_BONUS.id ||
             railroadsIn(trackBefore, placement.hexId).length > 0 ||
@@ -75,11 +70,11 @@ const FIVE_DOLLAR_RULE: BonusRule = {
 const TRANSCONTINENTAL_RULE: BonusRule = {
     bonus: TRANSCONTINENTAL_BONUS,
     evaluate: (_placement, trackBefore, trackAfter, transcontinental) => {
-        if (transcontinental || transcontinentalLine(trackBefore)) {
+        if (transcontinental) {
             return undefined
         }
         const line = transcontinentalLine(trackAfter)
-        if (!line) {
+        if (!line || transcontinentalLine(trackBefore)) {
             return undefined
         }
         return { bonusId: TRANSCONTINENTAL_BONUS.id, amount: transcontinentalAmount(line) }
@@ -96,9 +91,9 @@ export function placementBonuses(
     mapId: MapId,
     placement: LegalPlacement,
     trackBefore: Track,
-    trackAfter: Track,
     transcontinental: TranscontinentalClaim | undefined
 ): BonusPayment[] {
+    const trackAfter = trackWith(trackBefore, placement)
     return BONUS_RULES[mapId].flatMap((rule) => {
         const payment = rule.evaluate(placement, trackBefore, trackAfter, transcontinental)
         return payment ? [payment] : []

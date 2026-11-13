@@ -1,9 +1,17 @@
 import { assert, assertExists } from '@tabletop/common'
 import type { HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, USA_HEXES, usaCity, usaHex, type CityId } from '../data/usaMap.js'
+import {
+    adjacentHexIds,
+    hexOrder,
+    isCityHex,
+    USA_HEXES,
+    usaCity,
+    usaHex,
+    type CityId
+} from '../data/usaMap.js'
 import type { RideTheRailsGameState, Track } from '../model/gameState.js'
-import { journeyPayments, type Link } from './routes.js'
+import { journeyHexIds, journeyPayments, paymentTotal, type Link } from './routes.js'
 import { hasTrackIn } from './track.js'
 
 export type NextCity = {
@@ -40,16 +48,6 @@ class ExpansionBudget {
     }
 }
 
-const HEX_ORDER: ReadonlyMap<HexId, number> = new Map(
-    USA_HEXES.map((hex, index) => [hex.id, index])
-)
-
-function hexOrder(hexId: HexId): number {
-    const order = HEX_ORDER.get(hexId)
-    assertExists(order, `Unknown USA hex ${hexId}`)
-    return order
-}
-
 const NEIGHBOURS_IN_HEX_ORDER: ReadonlyMap<HexId, readonly HexId[]> = new Map(
     USA_HEXES.map((hex) => [
         hex.id,
@@ -61,10 +59,6 @@ function neighboursInHexOrder(hexId: HexId): readonly HexId[] {
     const neighbours = NEIGHBOURS_IN_HEX_ORDER.get(hexId)
     assertExists(neighbours, `Unknown USA hex ${hexId}`)
     return neighbours
-}
-
-function isCityHex(hexId: HexId): boolean {
-    return usaHex(hexId).terrain === 'city'
 }
 
 function cityAt(hexId: HexId): CityId {
@@ -208,16 +202,20 @@ export function realise(
 }
 
 // R-3.3.4, R-3.3.5: the rider's fare plus the dividends on the rider's own shares.
-function riderGain(state: RideTheRailsGameState, playerId: string, links: readonly Link[]): number {
+export function riderGain(
+    state: RideTheRailsGameState,
+    playerId: string,
+    links: readonly Link[]
+): number {
     const payment = journeyPayments(state.players, playerId, links).payments.find(
         (candidate) => candidate.playerId === playerId
     )
     assertExists(payment, `No player ${playerId}`)
-    return payment.fare + payment.dividends
+    return paymentTotal(payment)
 }
 
 function hexCount(links: readonly Link[]): number {
-    return links.reduce((sum, link) => sum + link.hexIds.length, 0) - (links.length - 1)
+    return journeyHexIds(links).length
 }
 
 function compareLinks(a: Link, b: Link): number {

@@ -1,5 +1,5 @@
 import { assertExists, type Point, type RectangleDimensions } from '@tabletop/common'
-import { hexCapacity, RAILROAD_IDS, usaHex, type HexId } from '@tabletop/ride-the-rails'
+import { hexCapacity, isCityHex, RAILROAD_IDS, type HexId } from '@tabletop/ride-the-rails'
 import { hexCenter } from './boardGeometry.js'
 
 export type TrackSlot = Point & RectangleDimensions
@@ -45,7 +45,7 @@ export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
     const capacity = hexCapacity(hexId)
     if (capacity === 'unlimited') return 'chicago'
     if (capacity === 1) return 'east-coast-city'
-    return usaHex(hexId).terrain === 'city' ? 'city' : 'open-hex'
+    return isCityHex(hexId) ? 'city' : 'open-hex'
 }
 
 export function trackSlotOffsets(layout: TrackSlotLayout): readonly TrackSlot[] {

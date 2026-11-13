@@ -3,6 +3,7 @@ import {
     RAILROAD_IDS,
     TRANSCONTINENTAL_BONUS,
     hasTrack,
+    transcontinentalLine,
     usaCity,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -11,7 +12,6 @@ import {
 } from '@tabletop/ride-the-rails'
 import { hexCenter } from '$lib/utils/boardGeometry.js'
 import { locomotivePieces, type LocomotivePiece } from '$lib/utils/boardPieces.js'
-import { transcontinentalRoute } from '$lib/utils/routePath.js'
 
 type State = HydratedRideTheRailsGameState
 
@@ -73,7 +73,7 @@ export function moneyAfterEach(start: number, coins: readonly { amount: number }
 // R-4.3.3: the line a transition claims, when it is the one that claims the Transcontinental.
 export function claimedLine(from: State, to: State): HexId[] | undefined {
     if (from.transcontinental || !to.transcontinental) return undefined
-    return transcontinentalRoute(to.track)
+    return transcontinentalLine(to.track)?.hexIds
 }
 
 /** Contract, Animation plan: the line's hexes outline one after another within 900 ms. */

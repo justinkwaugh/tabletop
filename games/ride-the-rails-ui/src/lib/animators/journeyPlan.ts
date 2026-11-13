@@ -2,21 +2,14 @@ import type { Point } from '@tabletop/common'
 import {
     RAILROAD_INTRODUCTIONS,
     type CityId,
-    type HexId,
     type HydratedRideTheRailsGameState,
     type JourneyPayment,
-    type Link,
     type RailroadId
 } from '@tabletop/ride-the-rails'
 import { turnOrderMarkerPoint } from '$lib/utils/marginLayout.js'
 import { JOURNEY } from './motion.js'
 
 type State = HydratedRideTheRailsGameState
-
-// R-3.3.2, R-3.3.3: the hexes a journey passes, start city to end city; its links meet in cities.
-export function journeyHexes(links: readonly Link[]): HexId[] {
-    return links.flatMap((link, index) => (index === 0 ? link.hexIds : link.hexIds.slice(1)))
-}
 
 /** Contract, Animation plan: about 120 ms a hex, the whole travel capped at 2.4 s. */
 export function hexStep(moves: number): number {

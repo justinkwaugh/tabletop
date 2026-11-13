@@ -18,7 +18,8 @@ import {
     journeyCities,
     journeyExists,
     journeyPayments,
-    journeyRefusal
+    journeyRefusal,
+    paymentTotal
 } from '../rules/routes.js'
 
 export type RideJourneyMetadata = Type.Static<typeof RideJourneyMetadata>
@@ -78,8 +79,8 @@ export class HydratedRideJourney
             this.playerId,
             this.links
         )
-        for (const { playerId, dividends, fare } of payments) {
-            state.getPlayerState(playerId).money += dividends + fare
+        for (const payment of payments) {
+            state.getPlayerState(payment.playerId).money += paymentTotal(payment)
         }
         state.passengers = state.passengers.filter((cityId) => cityId !== startCityId)
 

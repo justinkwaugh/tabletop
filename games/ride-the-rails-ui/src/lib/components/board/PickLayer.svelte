@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { usaHex } from '@tabletop/ride-the-rails'
+    import { isCityHex } from '@tabletop/ride-the-rails'
     import { hexCenter } from '$lib/utils/boardGeometry.js'
     import {
         insetHexPoints,
@@ -27,7 +27,7 @@
     }
 
     function pipRise(view: LitHexView): number {
-        return usaHex(view.hexId).terrain === 'city' ? 29.2 : 19
+        return isCityHex(view.hexId) ? 29.2 : 19
     }
 </script>
 

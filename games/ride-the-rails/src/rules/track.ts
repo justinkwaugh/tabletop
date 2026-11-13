@@ -21,3 +21,11 @@ export function hasTrack(track: Track, railroadId: RailroadId): boolean {
 export function hasTrackIn(track: Track, hexId: HexId, railroadId: RailroadId): boolean {
     return railroadsIn(track, hexId).includes(railroadId)
 }
+
+// R-3.2, R-4.1.3: the track once a locomotive of the railroad stands in the hex.
+export function trackWith(
+    track: Track,
+    { hexId, railroadId }: { hexId: HexId; railroadId: RailroadId }
+): Track {
+    return { ...track, [hexId]: [...railroadsIn(track, hexId), railroadId] }
+}
