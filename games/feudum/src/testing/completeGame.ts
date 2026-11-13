@@ -76,11 +76,19 @@ function withPouch(
     if (goods.sulfur > 0) {
         return { ...move, pouchGood: 'sulfur' }
     }
-    const cards = move.cards as readonly ActionCardKind[]
+    const cards = cardKindsOf(move.cards)
     const fifth = ActionCards.find(({ kind }) => !cards.includes(kind))
     return goods.saltpeter > 0 && fifth
         ? { ...move, pouchGood: 'saltpeter', cards: [...cards, fifth.kind] }
         : move
+}
+
+/** A walk move's cards, read against the printed cards, in the order the move holds them. */
+function cardKindsOf(value: unknown): ActionCardKind[] {
+    const listed: unknown[] = Array.isArray(value) ? value : []
+    return listed.flatMap((card) =>
+        ActionCards.filter(({ kind }) => kind === card).map(({ kind }) => kind)
+    )
 }
 
 /**

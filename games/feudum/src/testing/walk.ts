@@ -23,6 +23,7 @@ import { migrateOffers } from '../actions/migrate.js'
 import { moveOffers, type MoveStep, type Pilfer, type PilferOffer } from '../actions/move.js'
 import { nourishOffer } from '../actions/nourish.js'
 import { isPlaceDisc, reasonPlaceDiscRefused } from '../actions/placeDisc.js'
+import { revealPouchOf } from '../actions/revealPouches.js'
 import { starveOffers } from '../actions/starveThePeople.js'
 import { reasonTaxRefused, reinforcementsOffered } from '../actions/tax.js'
 import { tendLandscapeOffers } from '../actions/tendLandscape.js'
@@ -90,7 +91,6 @@ export class Progress {
     }
 }
 
-/** The regions whose stacks are nearly out: a location there can empty one. */
 /**
  * The walk's tie-breaker: the Action count, less the `RevealPouches` each round's selection ends
  * on (R-3.1-H1), so a game walked from a seed keeps the choices its pins were written against.
@@ -101,6 +101,7 @@ export function walkCount(state: HydratedFeudumGameState): number {
     return state.actionCount - Math.max(0, revealed)
 }
 
+/** The regions whose stacks are nearly out: a location there can empty one. */
 function stackSize(state: HydratedFeudumGameState, spaceId: SpaceId): number {
     const space = Spaces.find(({ id }) => id === spaceId)
     assertExists(space, `${spaceId} is a space`)
@@ -373,13 +374,7 @@ function usefulCards(
     const trial = new HydratedFeudumGameState(state.dehydrate())
     // R-3.1-H1 A seat already final plays its hand and pouch good once every seat is.
     for (const finalisedId of trial.flow.selection?.finalised ?? []) {
-        const other = trial.getPlayerState(finalisedId)
-        other.handCount = other.requireHand().length
-        if (other.committedPouch) {
-            other.goods[other.committedPouch] -= 1
-            other.pouch = other.committedPouch
-            other.committedPouch = undefined
-        }
+        revealPouchOf(trial.getPlayerState(finalisedId))
     }
     const seat = trial.getPlayerState(playerId)
     seat.hand = ActionCards.map((card) => card.kind)
