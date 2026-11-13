@@ -40,7 +40,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 
 ### Game end (R-6)
 
-- **R-6.2-H1** (Q25): players tied for the most money share the win. Rejected: a tie-break by turn order or shares held. Spec: `scoring.spec.ts`, `competition.spec.ts`.
+- **R-6.2-H1** (Q25): players tied for the most money share the win. Rejected: a tie-break by turn order or shares held. Spec: `scoring.spec.ts`, `competition.spec.ts`; the history line naming every winner, `describeAction.spec.ts`.
 
 ### Maps (R-8)
 

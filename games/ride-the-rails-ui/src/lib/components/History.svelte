@@ -3,7 +3,7 @@
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'
-    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import { createTimeAgo } from '@tabletop/frontend-components'
     import ActionDescription from './ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -62,9 +62,6 @@
                         date={action.createdAt ? timeAgo.format(action.createdAt) : 'sometime'}
                     >
                         <p class="mt-1 text-left text-sm text-base font-normal text-rtr-ink">
-                            {#if action.playerId}
-                                <PlayerName playerId={action.playerId} />
-                            {/if}
                             <ActionDescription {action} justify="start" />
                         </p>
                     </TimelineItem>
