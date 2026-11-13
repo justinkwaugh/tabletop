@@ -1,4 +1,4 @@
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import {
     CENTRE,
     GEOMETRY,
@@ -8,7 +8,6 @@ import {
     type Entry,
     type Unit
 } from '@tabletop/gipf-potentials'
-import { coordsKey } from './geometry.js'
 import type { DiscKind } from './pieceShape.js'
 
 // One disc of a stack, by owner and mark, and its id.
@@ -174,7 +173,7 @@ function layout(board: HydratedGipfPotentialsBoard): string {
     return board.stacks
         .map(
             (stack) =>
-                `${coordsKey(stack.coords)}:${stack.units
+                `${coordinatesToNumber(stack.coords)}:${stack.units
                     .map((unit) => `${unit.playerId}/${unit.kind}/${unit.load}`)
                     .join(',')}`
         )

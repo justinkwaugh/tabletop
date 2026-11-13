@@ -3,16 +3,22 @@ import {
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    coordinatesToNumber,
+    sameCoordinates,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import {
     ActionType,
     CENTRE,
     ExtraMove,
     FinishRemoving,
+    GIPF_PIECE_SIZE,
     isExtraMove,
     isLoaded,
     isMovePotential,
-    isPotentialKind,
     MachineState,
     isPushPiece,
     POTENTIAL_KINDS,
@@ -21,6 +27,7 @@ import {
     MovePotential,
     PieceKind,
     PushPiece,
+    pushedUnit,
     RemoveRow,
     SkipExtraMove,
     type Entry,
@@ -36,18 +43,12 @@ import {
     setGipfPotentialsSelection,
     type GipfPotentialsSelection
 } from './stagedSelection.js'
-import {
-    coordsKey,
-    includesCoords,
-    TURNED_VIEW,
-    VIEW,
-    type BoardView
-} from '$lib/board/geometry.js'
+import { includesCoords, TURNED_VIEW, VIEW, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
 export function rowKey(row: Row): string {
-    return `${coordsKey(row.from)}|${coordsKey(row.to)}`
+    return `${coordinatesToNumber(row.from)}|${coordinatesToNumber(row.to)}`
 }
 
 // The moves Undo walks back through one choice at a time: a push or extra move returns its piece
@@ -136,19 +137,12 @@ export class GipfPotentialsGameSession extends GameSession<
         if (playerId === undefined) return []
         if (this.canExtraMove) {
             const centre = this.gameState.board.topAt(CENTRE)
-            return [(centre && discsOf([centre])[1]) ?? { playerId, kind: PieceKind.Tamsk }]
+            assertExists(centre, 'An extra move has its TAMSK-loaded piece on the centre')
+            return discsOf([centre]).slice(1)
         }
         const kind = this.chosenKind
         if (kind === undefined) return []
-        const first = this.gameState.nextDiscId
-        return discsOf([
-            {
-                playerId,
-                kind: isPotentialKind(kind) ? PieceKind.Basic : kind,
-                ...(isPotentialKind(kind) ? { load: kind } : {}),
-                discIds: [first, first + 1]
-            }
-        ])
+        return discsOf([pushedUnit(playerId, kind, this.gameState.nextDiscId)])
     })
 
     entries: Entry[] = $derived(
@@ -191,7 +185,7 @@ export class GipfPotentialsGameSession extends GameSession<
     // a GIPF-piece.
     reserveLeft(playerId: string): number {
         const staged = this.staging(playerId)
-        const onDot = staged === undefined ? 0 : staged === PieceKind.Gipf ? 2 : 1
+        const onDot = staged === undefined ? 0 : staged === PieceKind.Gipf ? GIPF_PIECE_SIZE : 1
         const covering = playerId === this.myPlayer?.id && this.chosenTo !== undefined ? 1 : 0
         return this.gameState.getPlayerState(playerId).reserve - onDot - covering
     }
@@ -277,7 +271,7 @@ export class GipfPotentialsGameSession extends GameSession<
                 (coords) => this.gameState.board.topAt(coords)?.playerId === playerId
             )
         }
-        return this.rowKeepable.filter((coords) => manual.includes(coordsKey(coords)))
+        return this.rowKeepable.filter((coords) => manual.includes(coordinatesToNumber(coords)))
     })
 
     removing: AxialCoordinates[] = $derived(
@@ -395,8 +389,8 @@ export class GipfPotentialsGameSession extends GameSession<
 
     toggleKeep(coords: AxialCoordinates) {
         if (!includesCoords(this.rowKeepable, coords)) return
-        const keys = this.keep.map(coordsKey)
-        const key = coordsKey(coords)
+        const keys = this.keep.map(coordinatesToNumber)
+        const key = coordinatesToNumber(coords)
         const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]
         this.selection = setGipfPotentialsSelection(this.selection, 'keep', next)
     }

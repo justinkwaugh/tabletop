@@ -30,10 +30,6 @@ export type Entry = {
     line: AxialCoordinates[]
 }
 
-export function pointKey(coords: AxialCoordinates): number {
-    return coordinatesToNumber(coords)
-}
-
 // The 61-point GIPF board: dots on its edge, where pieces enter, and spots inside, where they play.
 // Columns run along r, from the bottom (largest r) up; column E is q = 0.
 export class BoardGeometry {
@@ -41,18 +37,18 @@ export class BoardGeometry {
     readonly spots: readonly AxialCoordinates[]
     readonly dots: readonly AxialCoordinates[]
     readonly entries: readonly Entry[]
-    private readonly pointKeys: Set<number>
+    private readonly coordinatesToNumbers: Set<number>
     private readonly spotKeys: Set<number>
 
     constructor() {
         this.points = Array.from(
             hexSpiralPattern({ radius: BOARD_RADIUS, orientation: HexOrientation.Flat })()
         )
-        this.pointKeys = new Set(this.points.map(pointKey))
+        this.coordinatesToNumbers = new Set(this.points.map(coordinatesToNumber))
         this.spots = this.points.filter((coords) =>
             DIRECTIONS.every((direction) => this.isPoint(addAxial(coords, direction)))
         )
-        this.spotKeys = new Set(this.spots.map(pointKey))
+        this.spotKeys = new Set(this.spots.map(coordinatesToNumber))
         this.dots = this.points.filter((coords) => !this.isSpot(coords))
         this.entries = this.dots.flatMap((dot) =>
             DIRECTIONS.filter((direction) => this.isSpot(addAxial(dot, direction))).map(
@@ -66,11 +62,11 @@ export class BoardGeometry {
     }
 
     isPoint(coords: AxialCoordinates): boolean {
-        return this.pointKeys.has(pointKey(coords))
+        return this.coordinatesToNumbers.has(coordinatesToNumber(coords))
     }
 
     isSpot(coords: AxialCoordinates): boolean {
-        return this.spotKeys.has(pointKey(coords))
+        return this.spotKeys.has(coordinatesToNumber(coords))
     }
 
     isDot(coords: AxialCoordinates): boolean {

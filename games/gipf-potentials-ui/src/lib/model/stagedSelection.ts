@@ -12,7 +12,7 @@ export type GipfPotentialsSelectionValues = {
     to: AxialCoordinates
     dot: AxialCoordinates
     row: string
-    keep: string[]
+    keep: number[]
 }
 
 export type GipfPotentialsSelection = StagedSelectionState<GipfPotentialsSelectionValues>

@@ -19,10 +19,13 @@ import {
     type Row
 } from './board.js'
 import {
+    basicsIn,
     countsOfEachKind,
+    GIPF_PIECE_SIZE,
     isPotentialKind,
     PieceKind,
     POTENTIAL_KINDS,
+    pushedUnit,
     type PotentialCounts,
     type Unit
 } from './pieces.js'
@@ -59,8 +62,6 @@ export const GipfPotentialsGameStateValidator = Compile(GipfPotentialsGameState)
 export type PotentialMove = { from: AxialCoordinates; to: AxialCoordinates }
 
 export type PushResult = { tamskOwnerId?: string; forfeited?: PotentialCounts }
-
-const GIPF_PIECE_SIZE = 2
 
 export class HydratedGipfPotentialsGameState
     extends HydratableGameState<typeof GipfPotentialsGameState, HydratedGipfPotentialsPlayerState>
@@ -170,24 +171,17 @@ export class HydratedGipfPotentialsGameState
 
     pushPiece(playerId: string, entry: Entry, kind: PieceKind): PushResult {
         const player = this.getPlayerState(playerId)
-        if (kind === PieceKind.Gipf) {
-            player.reserve -= GIPF_PIECE_SIZE
-            return this.push(entry, { playerId, kind, discIds: this.newDiscIds(2) })
-        }
-        player.reserve -= 1
-        player.playedOther = true
-        if (isPotentialKind(kind)) {
-            player.potentials[kind] -= 1
-            return this.push(entry, {
-                playerId,
-                kind: PieceKind.Basic,
-                load: kind,
-                discIds: this.newDiscIds(2)
-            })
+        const unit = pushedUnit(playerId, kind, this.nextDiscId)
+        this.nextDiscId += unit.discIds.length
+        player.reserve -= basicsIn(unit)
+        if (kind !== PieceKind.Gipf) player.playedOther = true
+        if (isPotentialKind(kind)) player.potentials[kind] -= 1
+        if (kind !== PieceKind.Basic) {
+            return this.push(entry, unit)
         }
         const forfeited = player.potentialsInHand() > 0 ? { ...player.potentials } : undefined
         player.potentials = countsOfEachKind(() => 0)
-        const result = this.push(entry, { playerId, kind, discIds: this.newDiscIds(1) })
+        const result = this.push(entry, unit)
         return forfeited === undefined ? result : { ...result, forfeited }
     }
 
@@ -218,18 +212,11 @@ export class HydratedGipfPotentialsGameState
     }
 
     private coverPieces(playerId: string, count: number): Unit {
-        this.getPlayerState(playerId).reserve -= count
-        return {
-            playerId,
-            kind: count === GIPF_PIECE_SIZE ? PieceKind.Gipf : PieceKind.Basic,
-            discIds: this.newDiscIds(count)
-        }
-    }
-
-    private newDiscIds(count: number): number[] {
-        const first = this.nextDiscId
-        this.nextDiscId = first + count
-        return Array.from({ length: count }, (_, index) => first + index)
+        const kind = count === GIPF_PIECE_SIZE ? PieceKind.Gipf : PieceKind.Basic
+        const unit = pushedUnit(playerId, kind, this.nextDiscId)
+        this.nextDiscId += unit.discIds.length
+        this.getPlayerState(playerId).reserve -= basicsIn(unit)
+        return unit
     }
 
     private push(entry: Entry, unit: Unit): PushResult {
@@ -245,7 +232,7 @@ export class HydratedGipfPotentialsGameState
         for (const coords of row.reach) {
             if (keep.some((kept) => sameCoordinates(kept, coords))) continue
             const unit = this.board.removeTop(coords)
-            const basics = unit.kind === PieceKind.Gipf ? 2 : unit.kind === PieceKind.Basic ? 1 : 0
+            const basics = basicsIn(unit)
             if (unit.playerId === playerId) {
                 player.reserve += basics
             } else {

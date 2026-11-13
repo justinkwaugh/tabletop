@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url'
 import { defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
 import { startingPositionFile } from '@tabletop/common/testing'
 import {
+    basicsIn,
     Definition,
+    discsIn,
     emptyBoard,
     GEOMETRY,
     GipfPotentialsInfo,
@@ -78,10 +80,9 @@ function position(stacks, { config = {}, players = {}, moved = false } = {}) {
                 : kind === 'g'
                   ? { playerId, kind: 'gipf' }
                   : { playerId, kind: 'basic', ...(potential ? { load: potential } : {}) }
-            if (!used) player.reserve -= kind === 'g' ? 2 : 1
-            const discs = used ? 1 : kind === 'b' ? 1 : 2
+            player.reserve -= basicsIn(unit)
             // Numbered as they would have come in, so each disc lies its own way round.
-            const discIds = Array.from({ length: discs }, () => state.nextDiscId++)
+            const discIds = Array.from({ length: discsIn(unit) }, () => state.nextDiscId++)
             return { ...unit, discIds }
         })
         state.board.stacks.push({ coords: { q, r }, units: stack })

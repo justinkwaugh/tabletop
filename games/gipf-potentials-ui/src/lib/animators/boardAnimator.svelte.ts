@@ -1,7 +1,7 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
@@ -23,7 +23,7 @@ import {
     type MoveChange,
     type PushChange
 } from '$lib/board/boardChange.js'
-import { coordsKey, PIECE_RADIUS, SPACING } from '$lib/board/geometry.js'
+import { PIECE_RADIUS, SPACING } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE, skidAt, skidDuration } from '$lib/board/hop.js'
 import { dropCrease, dropDisc, dropShadow, landing, LIFT_OFF, type PieceParts } from './drop.js'
 
@@ -71,13 +71,13 @@ const BOUNCES = {
     ]
 }
 
-export type DrawnStack = { key: string; coords: AxialCoordinates; discs: BoardDisc[] }
+export type DrawnStack = { key: number; coords: AxialCoordinates; discs: BoardDisc[] }
 
 // The stack being pushed in, drawn above the board from its dot until the move lands.
 export type Entering = { discs: BoardDisc[]; dot: AxialCoordinates }
 
 // A potential's piece in flight, drawn above the board from the spot it leaves.
-export type Flier = { coords: AxialCoordinates; disc: BoardDisc; passes: string[] }
+export type Flier = { coords: AxialCoordinates; disc: BoardDisc; passes: number[] }
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedGipfPotentialsGameState, AnimationContext>
@@ -96,7 +96,7 @@ type Occluder = { x: number; y: number; top: number }
 
 function drawnStacks(state: HydratedGipfPotentialsGameState): DrawnStack[] {
     return state.board.stacks.map((stack) => ({
-        key: coordsKey(stack.coords),
+        key: coordinatesToNumber(stack.coords),
         coords: stack.coords,
         discs: discsOf(stack.units)
     }))
@@ -113,7 +113,7 @@ export class BoardAnimator {
     pushedIn: boolean = $derived.by(() => this.untilLanded(false))
     returned: Entering | undefined = $derived.by(() => this.untilLanded(undefined))
 
-    private readonly stackNodes = new Map<string, StackNodes>()
+    private readonly stackNodes = new Map<number, StackNodes>()
     private readonly enteringNodes: StackNodes = { discs: new Map(), creases: new Map() }
     private enteringNode: SVGGElement | undefined
     private flierNodes: FlierNodes = {}
@@ -128,7 +128,7 @@ export class BoardAnimator {
         return () => this.session.removeGameStateChangeListener(this.listener)
     }
 
-    private nodesOf(key: string): StackNodes {
+    private nodesOf(key: number): StackNodes {
         let nodes = this.stackNodes.get(key)
         if (nodes === undefined) {
             nodes = { discs: new Map(), creases: new Map() }
@@ -137,7 +137,7 @@ export class BoardAnimator {
         return nodes
     }
 
-    stack(key: string, part: 'whole' | 'body' | 'shadow'): Attachment<SVGGElement> {
+    stack(key: number, part: 'whole' | 'body' | 'shadow'): Attachment<SVGGElement> {
         return (node) => {
             const nodes = this.nodesOf(key)
             nodes[part] = node
@@ -147,7 +147,7 @@ export class BoardAnimator {
         }
     }
 
-    parts(key: string): PieceParts {
+    parts(key: number): PieceParts {
         const nodes = this.nodesOf(key)
         return {
             disc: (index) => register(nodes.discs, index),
@@ -239,7 +239,7 @@ export class BoardAnimator {
             this.flier = {
                 coords: change.from,
                 disc: change.disc,
-                passes: [coordsKey(change.from), coordsKey(change.to)]
+                passes: [coordinatesToNumber(change.from), coordinatesToNumber(change.to)]
             }
         }
         const drawing = performance.now()
@@ -319,7 +319,8 @@ export class BoardAnimator {
             const own = kind === 'own-action'
             const at = own || quick ? 0 : landing(discs.length)
             if (own) this.pushedIn = true
-            if (change.fromCentre) this.liftDiscs(coordsKey(CENTRE), 1, timeline, touched, quick)
+            if (change.fromCentre)
+                this.liftDiscs(coordinatesToNumber(CENTRE), 1, timeline, touched, quick)
             this.slide(
                 line.slice(0, shifted),
                 alongLine(line, this),
@@ -343,7 +344,7 @@ export class BoardAnimator {
             touched
         )
         if (kind !== 'undo') {
-            this.liftDiscs(coordsKey(line[0]), discs.length, timeline, touched, true)
+            this.liftDiscs(coordinatesToNumber(line[0]), discs.length, timeline, touched, true)
             return undefined
         }
         this.slide([line[0]], this.offset(line[0], dot), timeline, QUICK, touched)
@@ -359,7 +360,7 @@ export class BoardAnimator {
         at = 0
     ) {
         for (const coords of spots) {
-            const node = this.stackNodes.get(coordsKey(coords))?.whole
+            const node = this.stackNodes.get(coordinatesToNumber(coords))?.whole
             if (node === undefined) continue
             timeline.to(node, { x: step.x, y: step.y, duration, ease: 'power2.inOut' }, at)
             touched.push(node)
@@ -393,7 +394,7 @@ export class BoardAnimator {
     // The top `count` discs of a stack float up as they fade; a whole stack takes its shadow
     // with it.
     private liftDiscs(
-        key: string,
+        key: number,
         count: number,
         timeline: Timeline,
         touched: SVGGElement[],
@@ -436,7 +437,7 @@ export class BoardAnimator {
             )
             if (gaining) continue
             this.liftDiscs(
-                coordsKey(removed.coords),
+                coordinatesToNumber(removed.coords),
                 removed.discs.length,
                 timeline,
                 touched,
@@ -444,7 +445,7 @@ export class BoardAnimator {
             )
         }
         for (const added of change.added) {
-            const nodes = this.stackNodes.get(coordsKey(added.coords))
+            const nodes = this.stackNodes.get(coordinatesToNumber(added.coords))
             if (nodes === undefined) continue
             if (added.from === 0 && nodes.shadow) {
                 touched.push(...scaledFromCentre(nodes.shadow))
@@ -560,7 +561,7 @@ export class BoardAnimator {
     ) {
         const { body } = this.flierNodes
         if (body) timeline.to(body, { opacity: 0, duration: COVER_FADE, ease: 'power1.in' }, at)
-        const nodes = this.stackNodes.get(coordsKey(move.to))
+        const nodes = this.stackNodes.get(coordinatesToNumber(move.to))
         if (nodes === undefined) return
         move.cover?.forEach((_, index) => {
             const disc = nodes.discs.get(below + index)

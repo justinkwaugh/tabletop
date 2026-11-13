@@ -98,10 +98,6 @@ export class BoardView {
 export const VIEW = new BoardView(TILT)
 export const TURNED_VIEW = new BoardView(TILT, true)
 
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
-}
-
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
 }

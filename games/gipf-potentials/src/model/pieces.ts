@@ -72,6 +72,30 @@ export function mayStayInRow(unit: Unit): boolean {
     return unit.kind === PieceKind.Gipf || isLoaded(unit)
 }
 
-export function discsOf(unit: Unit): number {
-    return unit.kind === PieceKind.Gipf || isLoaded(unit) ? 2 : 1
+// A GIPF-piece is two basic pieces.
+export const GIPF_PIECE_SIZE = 2
+
+type UnitShape = Pick<Unit, 'kind' | 'load'>
+
+// The basic pieces in a unit, as the reserve counts them; a used potential holds none.
+export function basicsIn(unit: UnitShape): number {
+    return unit.kind === PieceKind.Gipf ? GIPF_PIECE_SIZE : unit.kind === PieceKind.Basic ? 1 : 0
+}
+
+// The discs a unit stacks: its basic pieces, and a potential's own disc.
+export function discsIn(unit: UnitShape): number {
+    return basicsIn(unit) + (isPotentialKind(unit.kind) || unit.load !== undefined ? 1 : 0)
+}
+
+// What a pushed kind becomes on the board: a potential rides on a basic piece. Its discs take ids
+// from the first given.
+export function pushedUnit(playerId: string, kind: PieceKind, firstDiscId: number): Unit {
+    const shape: UnitShape = isPotentialKind(kind)
+        ? { kind: PieceKind.Basic, load: kind }
+        : { kind }
+    return {
+        playerId,
+        ...shape,
+        discIds: Array.from({ length: discsIn(shape) }, (_, index) => firstDiscId + index)
+    }
 }
