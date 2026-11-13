@@ -1,4 +1,4 @@
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { SarConfigurator } from './configurator.js'
 import { GAME_VERSION } from './version.js'
 
@@ -14,8 +14,7 @@ export const SarInfo: GameInfo = {
         maxPlayers: 6,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     },
     configurator: new SarConfigurator()
 }
