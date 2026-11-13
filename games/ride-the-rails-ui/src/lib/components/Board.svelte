@@ -9,6 +9,7 @@
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
     import LineLayer from './board/LineLayer.svelte'
+    import MarginLayer from './board/MarginLayer.svelte'
     import PassengerLayer from './board/PassengerLayer.svelte'
     import PickLayer from './board/PickLayer.svelte'
     import PopupAnchor, { CHOICE_ANCHOR_ID, DETAIL_ANCHOR_ID } from './board/PopupAnchor.svelte'
@@ -63,6 +64,7 @@
     <TrackLayer />
     <LineLayer {lastJourney} />
     <ScrimLayer {offer} spotlight={gameSession.spotlightRailroadId} />
+    <MarginLayer {viewScale} />
     <StagedRouteLayer route={stagedRoute} />
     <PickLayer {views} {viewScale} />
     <!-- The flight layer for travelling pieces goes here, with the animations. -->

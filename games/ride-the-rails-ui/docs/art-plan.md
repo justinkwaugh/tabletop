@@ -10,37 +10,42 @@ Colours are CSS custom properties in `src/app.css` of the UI package, scoped to 
 
 Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-accent`) and **rose says "costs or threatens"** (`--rtr-cost`). Neither is ever a seat colour or a railroad colour.
 
-| Token                   | Meaning                                                                               | Light       | Dark        |
-| ----------------------- | ------------------------------------------------------------------------------------- | ----------- | ----------- |
-| `--rtr-table`           | The table behind the board                                                            | `#DCD3BE`   | `#1E2328`   |
-| `--rtr-sea`             | The board's ground around the land                                                    | `#B9CDD6`   | `#22343D`   |
-| `--rtr-plain`           | A plain hex                                                                           | `#EFE6CF`   | `#3A3A33`   |
-| `--rtr-mountain`        | A mountain hex's fill                                                                 | `#C9B593`   | `#57503F`   |
-| `--rtr-mountain-ink`    | The mountain glyph's peaks                                                            | `#7A6648`   | `#9C8B6C`   |
-| `--rtr-hex-edge`        | Hex edges and the coast outline                                                       | `#CDBF9F`   | `#4A4638`   |
-| `--rtr-station`         | A city's station disc                                                                 | `#FFFFFF`   | `#E8E2D2`   |
-| `--rtr-station-ink`     | The station glyph, capacity marks, city names on the station                          | `#2B2B2B`   | `#1B1B1B`   |
-| `--rtr-panel`           | Panels, popups, the margin's boxes                                                    | `#F6F1E4`   | `#2A2F35`   |
-| `--rtr-panel-raised`    | A raised chip or button on a panel                                                    | `#FFFDF7`   | `#343A41`   |
-| `--rtr-line`            | Rules and panel borders                                                               | `#BDB29A`   | `#4B525A`   |
-| `--rtr-ink`             | Text on the table, panels and map                                                     | `#2A2A2A`   | `#ECE7DC`   |
-| `--rtr-ink-muted`       | Secondary text, disabled buttons                                                      | `#6B6458`   | `#A8A193`   |
-| `--rtr-ink-light`       | Monograms and initials on a dark fill                                                 | `#FFFFFF`   | `#FFFFFF`   |
-| `--rtr-accent`          | Yours to act on: lit and picked rings, the acting seat's outline                      | `#D18E0F`   | `#F2B33D`   |
-| `--rtr-accent-fill`     | The soft fill inside a lit hex                                                        | `#E8A31733` | `#F2B33D33` |
-| `--rtr-accent-start`    | The fainter ring on a city lit for a start only                                       | `#D18E0F80` | `#F2B33D80` |
-| `--rtr-cost`            | Costs or threatens: the mountain "−1" mark                                            | `#C8506A`   | `#E36F88`   |
-| `--rtr-halo`            | The dark halo under every ring, pip, mark and route line, the last journey's included | `#1B1B1B`   | `#0D0D0D`   |
-| `--rtr-scrim`           | The dimming scrim over the map                                                        | `#1B1B1B73` | `#00000099` |
-| `--rtr-coin`            | Money: coins, the Chicago "$2"                                                        | `#D7B44A`   | `#E2C25E`   |
-| `--rtr-five`            | The $5 cities' banner and mark                                                        | `#3F8F4F`   | `#5DB26C`   |
-| `--rtr-gold`            | The Transcontinental: its ends, mark, claim and claimed line                          | `#B9851F`   | `#D9A43A`   |
-| `--rtr-railroad-red`    | Red railroad                                                                          | `#C8372D`   | `#D9473C`   |
-| `--rtr-railroad-blue`   | Blue railroad                                                                         | `#2F6DB5`   | `#4A86CF`   |
-| `--rtr-railroad-orange` | Orange railroad                                                                       | `#E5892A`   | `#EE9A3E`   |
-| `--rtr-railroad-yellow` | Yellow railroad                                                                       | `#EBCB3C`   | `#F0D555`   |
-| `--rtr-railroad-purple` | Purple railroad                                                                       | `#7E4FA3`   | `#9668BC`   |
-| `--rtr-railroad-black`  | Black railroad                                                                        | `#24262B`   | `#24262B`   |
+| Token                    | Meaning                                                                               | Light       | Dark        |
+| ------------------------ | ------------------------------------------------------------------------------------- | ----------- | ----------- |
+| `--rtr-table`            | The table behind the board                                                            | `#DCD3BE`   | `#1E2328`   |
+| `--rtr-sea`              | The board's ground around the land                                                    | `#B9CDD6`   | `#22343D`   |
+| `--rtr-plain`            | A plain hex                                                                           | `#EFE6CF`   | `#3A3A33`   |
+| `--rtr-mountain`         | A mountain hex's fill                                                                 | `#C9B593`   | `#57503F`   |
+| `--rtr-mountain-ink`     | The mountain glyph's peaks                                                            | `#7A6648`   | `#9C8B6C`   |
+| `--rtr-hex-edge`         | Hex edges and the coast outline                                                       | `#CDBF9F`   | `#4A4638`   |
+| `--rtr-station`          | A city's station disc                                                                 | `#FFFFFF`   | `#E8E2D2`   |
+| `--rtr-station-ink`      | The station glyph, capacity marks, city names on the station                          | `#2B2B2B`   | `#1B1B1B`   |
+| `--rtr-panel`            | Panels, popups, the margin's boxes                                                    | `#F6F1E4`   | `#2A2F35`   |
+| `--rtr-panel-raised`     | A raised chip or button on a panel                                                    | `#FFFDF7`   | `#343A41`   |
+| `--rtr-line`             | Rules and panel borders                                                               | `#BDB29A`   | `#4B525A`   |
+| `--rtr-ink`              | Text on the table, panels and map                                                     | `#2A2A2A`   | `#ECE7DC`   |
+| `--rtr-ink-muted`        | Secondary text, disabled buttons                                                      | `#6B6458`   | `#A8A193`   |
+| `--rtr-ink-light`        | Monograms and initials on a dark fill                                                 | `#FFFFFF`   | `#FFFFFF`   |
+| `--rtr-accent`           | Yours to act on: lit and picked rings, the acting seat's outline                      | `#D18E0F`   | `#F2B33D`   |
+| `--rtr-accent-fill`      | The soft fill inside a lit hex                                                        | `#E8A31733` | `#F2B33D33` |
+| `--rtr-accent-start`     | The fainter ring on a city lit for a start only                                       | `#D18E0F80` | `#F2B33D80` |
+| `--rtr-cost`             | Costs or threatens: the mountain "−1" mark                                            | `#C8506A`   | `#E36F88`   |
+| `--rtr-halo`             | The dark halo under every ring, pip, mark and route line, the last journey's included | `#1B1B1B`   | `#0D0D0D`   |
+| `--rtr-scrim`            | The dimming scrim over the map                                                        | `#1B1B1B73` | `#00000099` |
+| `--rtr-coin`             | Money: coins, the Chicago "$2"                                                        | `#D7B44A`   | `#E2C25E`   |
+| `--rtr-five`             | The $5 cities' banner and mark                                                        | `#3F8F4F`   | `#5DB26C`   |
+| `--rtr-gold`             | The Transcontinental: its ends, mark, claim and claimed line                          | `#B9851F`   | `#D9A43A`   |
+| `--rtr-departure`        | The seat card's departure board                                                       | `#23272C`   | `#15181B`   |
+| `--rtr-departure-ink`    | Names and share counts on the departure board                                         | `#F3EBD6`   | `#F3EBD6`   |
+| `--rtr-departure-muted`  | Captions on the departure board                                                       | `#A59D8B`   | `#A59D8B`   |
+| `--rtr-departure-row`    | A share row's plate on the departure board                                            | `#FFFFFF0D` | `#FFFFFF0D` |
+| `--rtr-departure-figure` | The money figure on the departure board                                               | `#F7D774`   | `#F7D774`   |
+| `--rtr-railroad-red`     | Red railroad                                                                          | `#C8372D`   | `#D9473C`   |
+| `--rtr-railroad-blue`    | Blue railroad                                                                         | `#2F6DB5`   | `#4A86CF`   |
+| `--rtr-railroad-orange`  | Orange railroad                                                                       | `#E5892A`   | `#EE9A3E`   |
+| `--rtr-railroad-yellow`  | Yellow railroad                                                                       | `#EBCB3C`   | `#F0D555`   |
+| `--rtr-railroad-purple`  | Purple railroad                                                                       | `#7E4FA3`   | `#9668BC`   |
+| `--rtr-railroad-black`   | Black railroad                                                                        | `#24262B`   | `#24262B`   |
 
 The railroad colours are rule colours: they name the railroads in the rules (R-1.1) and appear only on railroad things (locomotives, pips, route links, strip entries, share rows). Each has its monogram ink as a token too, `--rtr-railroad-<name>-ink`, set in each theme to `--rtr-ink-light` or `--rtr-halo`, whichever meets the contrast (Seat colours and colour blindness).
 

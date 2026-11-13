@@ -31,7 +31,7 @@ There are no images. The map, locomotives, passengers, markers, seat cards and c
 
 ### Seat card
 
-The players tab shows one card per seat, in turn order. Its motif is a **station departure board**: a header in the seat's colour with the name and turn position, then a board with one row per railroad the seat holds, in railroad order (Red, Blue, Orange, Yellow, Purple, Black), each row showing the shares as small locomotives with the count beside them, and the money as the board's large figure. A railroad not yet held has no row. The acting seat's card has an outline. Pressing a share row spotlights that railroad (Railroad spotlight).
+The players tab shows one card per seat, in turn order. Its motif is a **station departure board**: a header in the seat's colour with the name and turn position, then a board with one row per railroad the seat holds, in railroad order (Red, Blue, Orange, Yellow, Purple, Black), each row showing the shares as small locomotives with the count beside them, and the money as the board's large figure. A railroad not yet held has no row. The acting seat's card has an outline. Pressing a share row spotlights that railroad (Railroad spotlight). While the deciding seat drafts a journey, each seat it would pay shows a pending "+$N" chip under its money (dividends plus fare, from the Journey preview). The board's colours are the `--rtr-departure*` tokens (`art-plan.md`, Palette), the same in both themes but for a darker board in dark.
 
 ## Visual intents
 
@@ -136,10 +136,11 @@ The board is **one SVG** (`docs/phone-rendering.md`, One board surface). Back to
 4. Track: locomotives, this turn's bars.
 5. The claimed Transcontinental line (thin gold, from the claim to the game's end), then the last journey line over its halo.
 6. **Scrim**: one path, the map's outline with holes at the lit hexes (even-odd fill). It is a plain translucent fill, not an opacity or filter effect. With a spotlight and no pick it covers track only, and the spotlit railroad's locomotives are drawn again above it.
-7. Staged route line and station dots.
-8. Rings, pips and marks (the board offer).
-9. Flight layer: travelling locomotives, passengers and coins.
-10. Hit targets: transparent hex shapes carrying hex ids, the only map elements that take presses.
+7. **Margin** (desktop only): the round track, the turn order track, the Transcontinental claim and the railroad strip, each a panel in its `MARGIN_BOXES` box, drawn above the scrim so a pick never dims them. A railroad not yet available is drawn under a translucent veil in the panel's colour, not with opacity. Strip entries are the one margin element that takes presses (Railroad spotlight).
+8. Staged route line and station dots.
+9. Rings, pips and marks (the board offer).
+10. Flight layer: travelling locomotives, passengers and coins.
+11. Hit targets: transparent hex shapes carrying hex ids, the only map elements that take presses.
 
 Popups (the railroad chips, and hex detail outside a map pick) are HTML in the `Floater` against a reference point at the hex, outside the SVG, so their text stays crisp at any zoom (`docs/phone-rendering.md`, HTML text under zoom). The focus chooser sits in the `ScalingWrapper`'s `overlay` snippet. During a map pick the hex detail renders in the side panel instead, so it never covers the railroad popup. Rings, pips, marks and city names are sized by `viewScale()` so they stay readable at any zoom. Seat initials on markers (the turn order track, the Transcontinental medallion) are drawn only from a view scale of 0.3 up (`SEAT_INITIALS_MIN_SCALE` in `utils/boardGeometry.ts`, a hex about 21 px wide), which the fitted desktop board (about 0.42) and the phone's cover fit reach and the whole map on a phone (about 0.17) does not; below it, the seat's colour alone identifies the seat. No SVG or CSS filters, masks or endless animations on the board.
 

@@ -13,6 +13,7 @@
     } from '@tabletop/ride-the-rails'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
+    import PhoneRailroadStrip from '$lib/components/PhoneRailroadStrip.svelte'
     import Board from '$lib/components/Board.svelte'
     import BoardPopups from '$lib/components/board/BoardPopups.svelte'
     import HexDetailCard from '$lib/components/board/HexDetailCard.svelte'
@@ -73,6 +74,7 @@
         {#snippet gameContent()}
             <!-- The turn header and the action area take this slot. -->
             <div class="shrink-0"></div>
+            <PhoneRailroadStrip />
             <div class="grow-0 overflow-hidden" style="flex:1;">
                 <ScalingWrapper
                     bind:this={wrapper}

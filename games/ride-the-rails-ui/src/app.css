@@ -55,6 +55,11 @@
     --rtr-coin: #d7b44a;
     --rtr-five: #3f8f4f;
     --rtr-gold: #b9851f;
+    --rtr-departure: #23272c;
+    --rtr-departure-ink: #f3ebd6;
+    --rtr-departure-muted: #a59d8b;
+    --rtr-departure-row: #ffffff0d;
+    --rtr-departure-figure: #f7d774;
     --rtr-railroad-red: #c8372d;
     --rtr-railroad-blue: #2f6db5;
     --rtr-railroad-orange: #e5892a;
@@ -94,6 +99,11 @@
         --rtr-coin: #e2c25e;
         --rtr-five: #5db26c;
         --rtr-gold: #d9a43a;
+        --rtr-departure: #15181b;
+        --rtr-departure-ink: #f3ebd6;
+        --rtr-departure-muted: #a59d8b;
+        --rtr-departure-row: #ffffff0d;
+        --rtr-departure-figure: #f7d774;
         --rtr-railroad-red: #d9473c;
         --rtr-railroad-blue: #4a86cf;
         --rtr-railroad-orange: #ee9a3e;
@@ -133,6 +143,11 @@
     --color-rtr-coin: var(--rtr-coin);
     --color-rtr-five: var(--rtr-five);
     --color-rtr-gold: var(--rtr-gold);
+    --color-rtr-departure: var(--rtr-departure);
+    --color-rtr-departure-ink: var(--rtr-departure-ink);
+    --color-rtr-departure-muted: var(--rtr-departure-muted);
+    --color-rtr-departure-row: var(--rtr-departure-row);
+    --color-rtr-departure-figure: var(--rtr-departure-figure);
     --color-rtr-railroad-red: var(--rtr-railroad-red);
     --color-rtr-railroad-blue: var(--rtr-railroad-blue);
     --color-rtr-railroad-orange: var(--rtr-railroad-orange);
