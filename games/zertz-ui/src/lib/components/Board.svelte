@@ -1,7 +1,7 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import type { Attachment } from 'svelte/attachments'
-    import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+    import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import type { MarbleColor, Ring } from '@tabletop/zertz'
     import MarbleLook from './MarbleLook.svelte'
     import RingLook from './RingLook.svelte'
@@ -10,7 +10,7 @@
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import { placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
-    import { coordsKey, RING_MID_RADIUS, RING_OUTER_RADIUS, TILT } from '$lib/board/geometry.js'
+    import { RING_MID_RADIUS, RING_OUTER_RADIUS, TILT } from '$lib/board/geometry.js'
     import {
         MARBLE_SHADOW_RADIUS,
         MARBLE_SHADOW_STOPS,
@@ -31,9 +31,11 @@
     )
     // Where rings were taken off, and where rings are sliding out or back in, under them.
     const removedPositions = $derived.by(() => {
-        const present = new Set(rings.map((ring) => coordsKey(ring.coords)))
+        const present = new Set(rings.map((ring) => coordinatesToNumber(ring.coords)))
         return frame.positions.filter(
-            (coords) => !present.has(coordsKey(coords)) || animator.sliding.has(coordsKey(coords))
+            (coords) =>
+                !present.has(coordinatesToNumber(coords)) ||
+                animator.sliding.has(coordinatesToNumber(coords))
         )
     })
 
@@ -41,8 +43,8 @@
     const MARBLE_SHADOW_OPACITY = 0.55
     const RING_SHADOW_OPACITY = 0.6
 
-    let hoveredKey: string | undefined = $state()
-    let focusedKey: string | undefined = $state()
+    let hoveredKey: number | undefined = $state()
+    let focusedKey: number | undefined = $state()
 
     // Marks lie round a ring's base, just inside its outer edge, so they never reach the touching
     // neighbours. Dashed marks take a whole number of dashes round the ring.
@@ -116,11 +118,11 @@
 
     function hover(event: PointerEvent, coords: AxialCoordinates) {
         // A tap enters and leaves at once, so touch would only flash the preview.
-        if (event.pointerType !== 'touch') hoveredKey = coordsKey(coords)
+        if (event.pointerType !== 'touch') hoveredKey = coordinatesToNumber(coords)
     }
 
     function isHovered(coords: AxialCoordinates): boolean {
-        return hoveredKey === coordsKey(coords)
+        return hoveredKey === coordinatesToNumber(coords)
     }
 
     // A tap on nothing you can choose lets go of what is chosen. Marbles pass taps to their
@@ -203,15 +205,15 @@
 
     <!-- A removed ring takes its shadow with it as it is pulled out. -->
     <g>
-        {#each rings as ring (coordsKey(ring.coords))}
-            <g {@attach animator.ringShadow(coordsKey(ring.coords))}>
+        {#each rings as ring (coordinatesToNumber(ring.coords))}
+            <g {@attach animator.ringShadow(coordinatesToNumber(ring.coords))}>
                 {@render ringShadow(ring.coords)}
             </g>
         {/each}
     </g>
 
     <!-- Where a ring stood on the table: round its base, which lies below its hole's rim. -->
-    {#each removedPositions as coords (coordsKey(coords))}
+    {#each removedPositions as coords (coordinatesToNumber(coords))}
         {@const center = view.center(coords)}
         <ellipse
             cx={center.x}
@@ -222,7 +224,7 @@
         ></ellipse>
     {/each}
 
-    {#each drawOrder as ring (coordsKey(ring.coords))}
+    {#each drawOrder as ring (coordinatesToNumber(ring.coords))}
         {@const center = view.center(ring.coords)}
         {@const role = roleOf(ring)}
         {@const interactive = role !== undefined}
@@ -231,7 +233,7 @@
                 class="ring role-{role ?? 'none'}"
                 class:interactive
                 class:hovered={interactive && isHovered(ring.coords)}
-                {@attach animator.ring(coordsKey(ring.coords))}
+                {@attach animator.ring(coordinatesToNumber(ring.coords))}
                 role="button"
                 tabindex={interactive ? 0 : -1}
                 aria-disabled={!interactive}
@@ -242,7 +244,7 @@
                 onpointerleave={() => (hoveredKey = undefined)}
                 onfocus={(event) => {
                     if (event.currentTarget.matches(':focus-visible'))
-                        focusedKey = coordsKey(ring.coords)
+                        focusedKey = coordinatesToNumber(ring.coords)
                 }}
                 onblur={() => (focusedKey = undefined)}
             >
@@ -258,12 +260,12 @@
          animator fades the whole layer with each move, and every new position gets a fresh one. -->
     {#key session.gameState}
         <g {@attach animator.outlines()}>
-            {#each rings as ring (coordsKey(ring.coords))}
+            {#each rings as ring (coordinatesToNumber(ring.coords))}
                 {@const role = roleOf(ring)}
                 {#if marked(role)}
                     {@const center = view.center(ring.coords)}
                     {@const emphasized =
-                        isHovered(ring.coords) || focusedKey === coordsKey(ring.coords)}
+                        isHovered(ring.coords) || focusedKey === coordinatesToNumber(ring.coords)}
                     <!-- Round the ring's base, which spreads past its top. Once a jumper is
                          chosen, the others fade. -->
                     <g
@@ -288,7 +290,7 @@
 
     <!-- Marbles stand above every ring and outline. A marble reaches beyond its own ring, so it
          passes pointing on to its ring. -->
-    {#each drawOrder as ring (coordsKey(ring.coords))}
+    {#each drawOrder as ring (coordinatesToNumber(ring.coords))}
         {@const center = view.center(ring.coords)}
         {@const role = roleOf(ring)}
         {#if ring.marble}
@@ -304,8 +306,8 @@
                 {@render marble(
                     ring.marble,
                     seedAt(animator.seeds, ring.coords),
-                    animator.marble(coordsKey(ring.coords)),
-                    animator.marbleShadow(coordsKey(ring.coords))
+                    animator.marble(coordinatesToNumber(ring.coords)),
+                    animator.marbleShadow(coordinatesToNumber(ring.coords))
                 )}
             </g>
         {:else if staged && sameCoordinates(staged.coords, ring.coords)}

@@ -1,11 +1,13 @@
 import {
     addAxial,
     ClockwiseFlatHexDirections,
+    coordinatesToNumber,
     FlatNeighborOffsets,
+    sameCoordinates,
     type AxialCoordinates,
     type Point
 } from '@tabletop/common'
-import { coordsKey, RING_SPACING, type BoardView } from './geometry.js'
+import { RING_SPACING, type BoardView } from './geometry.js'
 
 const NEIGHBOR_OFFSETS = ClockwiseFlatHexDirections.map(
     (direction) => FlatNeighborOffsets[direction]
@@ -22,15 +24,15 @@ export function pullOuts(
     removed: readonly AxialCoordinates[],
     staying: readonly AxialCoordinates[],
     layout: readonly AxialCoordinates[]
-): Map<string, Point> {
+): Map<number, Point> {
     // On the table, seen from above, where the screen squashes depth by the tilt.
     const plane = (coords: AxialCoordinates): Point => {
         const { x, y } = view.center(coords)
         return { x, y: y / view.tilt }
     }
     const middle = mean(layout.map(plane))
-    const taken = new Set([...staying, ...removed].map(coordsKey))
-    const pulls = new Map<string, Point>()
+    const taken = new Set([...staying, ...removed].map(coordinatesToNumber))
+    const pulls = new Map<number, Point>()
     for (const group of touchingGroups(removed)) {
         const start = plane(group[0])
         const steps = NEIGHBOR_OFFSETS.map((offset) => {
@@ -38,7 +40,7 @@ export function pullOuts(
             return { offset, x: to.x - start.x, y: to.y - start.y }
         })
         const open = steps.filter(({ offset }) =>
-            group.some((coords) => !taken.has(coordsKey(addAxial(coords, offset))))
+            group.some((coords) => !taken.has(coordinatesToNumber(addAxial(coords, offset))))
         )
         const centre = mean(group.map(plane))
         const away = { x: centre.x - middle.x, y: centre.y - middle.y }
@@ -50,22 +52,22 @@ export function pullOuts(
         if (!inMiddleColumn && diagonals.length > 0) ways = diagonals
         const along = ways.reduce((best, step) => (facing(step) > facing(best) ? step : best))
         const pull = { x: along.x, y: along.y * view.tilt }
-        for (const coords of group) pulls.set(coordsKey(coords), pull)
+        for (const coords of group) pulls.set(coordinatesToNumber(coords), pull)
     }
     return pulls
 }
 
 function touchingGroups(rings: readonly AxialCoordinates[]): AxialCoordinates[][] {
-    const left = new Map(rings.map((coords) => [coordsKey(coords), coords]))
+    const left = new Map(rings.map((coords) => [coordinatesToNumber(coords), coords]))
     const groups: AxialCoordinates[][] = []
     for (const start of rings) {
-        if (!left.delete(coordsKey(start))) continue
+        if (!left.delete(coordinatesToNumber(start))) continue
         const group = [start]
         for (let index = 0; index < group.length; index++) {
             for (const offset of NEIGHBOR_OFFSETS) {
-                const next = left.get(coordsKey(addAxial(group[index], offset)))
+                const next = left.get(coordinatesToNumber(addAxial(group[index], offset)))
                 if (next !== undefined) {
-                    left.delete(coordsKey(next))
+                    left.delete(coordinatesToNumber(next))
                     group.push(next)
                 }
             }
@@ -95,26 +97,26 @@ export function ringExits(
     removed: readonly AxialCoordinates[],
     staying: readonly AxialCoordinates[],
     move?: { remove: AxialCoordinates; cutOff: readonly AxialCoordinates[] }
-): Map<string, RingExit> {
+): Map<number, RingExit> {
     const pulls = pullOuts(view, removed, staying, layout)
-    const exits = new Map<string, RingExit>()
+    const exits = new Map<number, RingExit>()
     for (const [key, out] of pulls) exits.set(key, { out, waits: false })
     if (move === undefined || move.cutOff.length === 0) return exits
 
-    const removeKey = coordsKey(move.remove)
+    const removeKey = coordinatesToNumber(move.remove)
     const first = pullOuts(view, [move.remove], [...staying, ...move.cutOff], layout).get(removeKey)
     const groups = pullOuts(view, move.cutOff, staying, layout)
     for (const coords of move.cutOff) {
-        const out = groups.get(coordsKey(coords))
-        if (out !== undefined) exits.set(coordsKey(coords), { out, waits: true })
+        const out = groups.get(coordinatesToNumber(coords))
+        if (out !== undefined) exits.set(coordinatesToNumber(coords), { out, waits: true })
     }
     const beside =
         move.cutOff.find((coords) =>
-            NEIGHBOR_OFFSETS.some(
-                (offset) => coordsKey(addAxial(move.remove, offset)) === coordsKey(coords)
+            NEIGHBOR_OFFSETS.some((offset) =>
+                sameCoordinates(addAxial(move.remove, offset), coords)
             )
         ) ?? move.cutOff[0]
-    const along = groups.get(coordsKey(beside))
+    const along = groups.get(coordinatesToNumber(beside))
     if (first !== undefined && along !== undefined) {
         exits.set(removeKey, {
             first,

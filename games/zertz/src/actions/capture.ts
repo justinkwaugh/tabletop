@@ -1,12 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    AxialCoordinates,
-    GameAction,
-    HydratableAction,
-    MachineContext,
-    sameCoordinates
-} from '@tabletop/common'
+import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedZertzGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MarbleColor } from '../model/marbles.js'
@@ -51,8 +45,8 @@ export class HydratedCapture extends HydratableAction<typeof Capture> implements
     }
 
     apply(state: HydratedZertzGameState, _context?: MachineContext) {
-        const jump = state.board.findJump(this.from, this.to)
-        if (jump === undefined || !this.isValid(state)) {
+        const jump = state.findOpenJump(this.from, this.to)
+        if (jump === undefined) {
             throw Error('Invalid Capture action')
         }
         const { jumper, captured } = state.board.jump(jump)
@@ -69,10 +63,6 @@ export class HydratedCapture extends HydratableAction<typeof Capture> implements
     }
 
     isValid(state: HydratedZertzGameState): boolean {
-        const chainFrom = state.captureChainFrom
-        if (chainFrom !== undefined && !sameCoordinates(chainFrom, this.from)) {
-            return false
-        }
-        return state.board.findJump(this.from, this.to) !== undefined
+        return state.findOpenJump(this.from, this.to) !== undefined
     }
 }

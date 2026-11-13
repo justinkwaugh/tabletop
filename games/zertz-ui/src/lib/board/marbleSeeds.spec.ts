@@ -48,8 +48,8 @@ describe('marbleSeedsAfter', () => {
         const actions = [place(0, 0), place(1, 0), jump([0, 0], [1, 0], [2, 0])]
         const seeds = marbleSeedsAfter(actions)
         expect(seedAt(seeds, { q: 2, r: 0 })).toBe(placementSeed({ q: 0, r: 0 }, 0))
-        expect(seeds.has('0,0')).toBe(false)
-        expect(seeds.has('1,0')).toBe(false)
+        expect(seeds.has(coordinatesToNumber({ q: 0, r: 0 }))).toBe(false)
+        expect(seeds.has(coordinatesToNumber({ q: 1, r: 0 }))).toBe(false)
     })
 
     it('gives two marbles placed on one ring at different times different seeds', () => {

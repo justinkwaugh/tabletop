@@ -67,12 +67,8 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         if (!this.canCapture) {
             return []
         }
-        const chainFrom = this.gameState.captureChainFrom
-        if (chainFrom !== undefined) {
-            return [chainFrom]
-        }
         const froms: AxialCoordinates[] = []
-        for (const jump of this.gameState.board.allJumps()) {
+        for (const jump of this.gameState.openJumps()) {
             if (!includesCoords(froms, jump.from)) {
                 froms.push(jump.from)
             }

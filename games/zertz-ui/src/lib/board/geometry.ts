@@ -94,7 +94,3 @@ const TURNED_VIEW = new BoardView(true)
 export function viewOf(turned: boolean): BoardView {
     return turned ? TURNED_VIEW : VIEW
 }
-
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
-}

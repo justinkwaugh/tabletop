@@ -38,7 +38,7 @@ export type HistoryEntry = PlacementEntry | CaptureEntry
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
-    const seeds = new Map<string, number>()
+    const seeds = new Map<number, number>()
     let chain: CaptureEntry | undefined
 
     actions.forEach((action, index) => {

@@ -102,10 +102,6 @@ export class HydratedZertzBoard extends Hydratable<typeof ZertzBoard> implements
         return this.rings.some((ring) => this.jumpsFrom(ring.coords).length > 0)
     }
 
-    findJump(from: AxialCoordinates, to: AxialCoordinates): Jump | undefined {
-        return this.jumpsFrom(from).find((jump) => sameCoordinates(jump.to, to))
-    }
-
     placeMarble(coords: AxialCoordinates, color: MarbleColor) {
         const ring = this.ringAt(coords)
         if (ring === undefined || ring.marble !== undefined) {
@@ -155,8 +151,7 @@ export class HydratedZertzBoard extends Hydratable<typeof ZertzBoard> implements
             visited.add(startKey)
             const group: Ring[] = []
             const frontier = [start]
-            while (frontier.length > 0) {
-                const ring = frontier.pop()!
+            for (let ring = frontier.pop(); ring !== undefined; ring = frontier.pop()) {
                 group.push(ring)
                 for (const offset of CLOCKWISE_OFFSETS) {
                     const key = coordinatesToNumber(addAxial(ring.coords, offset))

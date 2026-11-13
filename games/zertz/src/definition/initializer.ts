@@ -2,6 +2,7 @@ import {
     type GameInitializer,
     type StartingPositionAssignment,
     type UninitializedGameState,
+    assertExists,
     BaseGameInitializer,
     Game,
     HydratedTurnManager,
@@ -35,9 +36,7 @@ export class ZertzGameInitializer
 
         const orderedPlayers = turnManager.turnOrder.map((playerId) => {
             const player = players.find((candidate) => candidate.playerId === playerId)
-            if (player === undefined) {
-                throw Error(`Missing player ${playerId}`)
-            }
+            assertExists(player, `Missing player ${playerId}`)
             return player
         })
 

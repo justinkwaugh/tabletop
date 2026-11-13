@@ -1,6 +1,5 @@
 import { coordinatesToNumber, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import { isCapture, isPlaceMarble } from '@tabletop/zertz'
-import { coordsKey } from './geometry.js'
 
 // Each marble's speck seed, so its specks go with it when it jumps. A marble takes its seed as it
 // is placed, from its ring and the place of its move in the game, so two marbles placed on one
@@ -13,28 +12,28 @@ export function placementSeed(coords: AxialCoordinates, index: number): number {
     return coordinatesToNumber(coords) + 7919 * (index + 1)
 }
 
-export type MarbleSeeds = ReadonlyMap<string, number>
+export type MarbleSeeds = ReadonlyMap<number, number>
 
 export function marbleSeedsAfter(actions: readonly GameAction[]): MarbleSeeds {
-    const seeds = new Map<string, number>()
+    const seeds = new Map<number, number>()
     actions.forEach((action, index) => applyToSeeds(seeds, action, index))
     return seeds
 }
 
 // Moves the seeds on past the game's action number `index`.
-export function applyToSeeds(seeds: Map<string, number>, action: GameAction, index: number) {
+export function applyToSeeds(seeds: Map<number, number>, action: GameAction, index: number) {
     if (isPlaceMarble(action)) {
-        seeds.set(coordsKey(action.coords), placementSeed(action.coords, index))
+        seeds.set(coordinatesToNumber(action.coords), placementSeed(action.coords, index))
     } else if (isCapture(action)) {
         const seed = seedAt(seeds, action.from)
-        seeds.delete(coordsKey(action.from))
-        if (action.metadata !== undefined) seeds.delete(coordsKey(action.metadata.over))
-        seeds.set(coordsKey(action.to), seed)
+        seeds.delete(coordinatesToNumber(action.from))
+        if (action.metadata !== undefined) seeds.delete(coordinatesToNumber(action.metadata.over))
+        seeds.set(coordinatesToNumber(action.to), seed)
     }
 }
 
 export function seedAt(seeds: MarbleSeeds, coords: AxialCoordinates): number {
-    return seeds.get(coordsKey(coords)) ?? coordinatesToNumber(coords)
+    return seeds.get(coordinatesToNumber(coords)) ?? coordinatesToNumber(coords)
 }
 
 // A seed for a marble drawn off the board (an icon), from where it is drawn, so each icon has its

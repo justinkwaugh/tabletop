@@ -1,17 +1,19 @@
 import {
+    assertExists,
     AxialCoordinates,
     GameResult,
     GameState,
     HydratableGameState,
     HydratedTurnManager,
-    PrngState
+    PrngState,
+    sameCoordinates
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { ZertzPlayerState, HydratedZertzPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { SETUP_RULES, ZertzSetup } from '../definition/config.js'
-import { HydratedZertzBoard, ZertzBoard, type Ring } from './board.js'
+import { HydratedZertzBoard, ZertzBoard, type Jump, type Ring } from './board.js'
 import { MARBLE_COLORS, MarbleColor, MarbleCounts, hasAnyMarble } from './marbles.js'
 
 export enum EndReason {
@@ -85,6 +87,18 @@ export class HydratedZertzGameState
                 ? this.pool
                 : this.getPlayerState(playerId).captured
         return MARBLE_COLORS.filter((color) => supply[color] > 0)
+    }
+
+    // Rulebook section C: capturing is compulsory, and a chain goes on with the marble that jumped.
+    openJumps(): Jump[] {
+        const chainFrom = this.captureChainFrom
+        return chainFrom === undefined ? this.board.allJumps() : this.board.jumpsFrom(chainFrom)
+    }
+
+    findOpenJump(from: AxialCoordinates, to: AxialCoordinates): Jump | undefined {
+        return this.openJumps().find(
+            (jump) => sameCoordinates(jump.from, from) && sameCoordinates(jump.to, to)
+        )
     }
 
     canPlaceMarble(playerId: string): boolean {
@@ -168,9 +182,7 @@ export class HydratedZertzGameState
 
     opponentOf(playerId: string): string {
         const opponent = this.players.find((player) => player.playerId !== playerId)
-        if (opponent === undefined) {
-            throw Error(`No opponent for ${playerId}`)
-        }
+        assertExists(opponent, `No opponent for ${playerId}`)
         return opponent.playerId
     }
 }

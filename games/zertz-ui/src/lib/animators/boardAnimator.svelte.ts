@@ -1,7 +1,7 @@
 import { tick, untrack } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
@@ -16,7 +16,6 @@ import {
     type Ring
 } from '@tabletop/zertz'
 import type { ZertzGameSession } from '$lib/model/session.svelte.js'
-import { coordsKey } from '$lib/board/geometry.js'
 import { inferJump } from '$lib/board/inferJump.js'
 import { ringExits, type RingExit } from '$lib/board/pullOut.js'
 import { marbleSeedsAfter, seedAt, type MarbleSeeds } from '$lib/board/marbleSeeds.js'
@@ -77,12 +76,12 @@ export class BoardAnimator {
     returned: Staged | undefined = $derived.by(() => this.untilLanded(undefined))
     // The rings sliding out or back in, by key, until the state lands: the dashes where each
     // stood lie under it, so it uncovers them as it goes.
-    sliding: ReadonlySet<string> = $derived.by(() => this.untilLanded(new Set<string>()))
+    sliding: ReadonlySet<number> = $derived.by(() => this.untilLanded(new Set<number>()))
 
-    private readonly ringNodes = new Map<string, SVGGElement>()
-    private readonly marbleNodes = new Map<string, SVGGElement>()
-    private readonly marbleShadowNodes = new Map<string, SVGGElement>()
-    private readonly ringShadowNodes = new Map<string, SVGGElement>()
+    private readonly ringNodes = new Map<number, SVGGElement>()
+    private readonly marbleNodes = new Map<number, SVGGElement>()
+    private readonly marbleShadowNodes = new Map<number, SVGGElement>()
+    private readonly ringShadowNodes = new Map<number, SVGGElement>()
     private flierNode: SVGGElement | undefined
     private flierBodyNode: SVGGElement | undefined
     private flierShadowNode: SVGGElement | undefined
@@ -96,19 +95,19 @@ export class BoardAnimator {
         return () => this.session.removeGameStateChangeListener(this.listener)
     }
 
-    ring(key: string): Attachment<SVGGElement> {
+    ring(key: number): Attachment<SVGGElement> {
         return (node) => this.track(this.ringNodes, key, node)
     }
 
-    marble(key: string): Attachment<SVGGElement> {
+    marble(key: number): Attachment<SVGGElement> {
         return (node) => this.track(this.marbleNodes, key, node)
     }
 
-    marbleShadow(key: string): Attachment<SVGGElement> {
+    marbleShadow(key: number): Attachment<SVGGElement> {
         return (node) => this.track(this.marbleShadowNodes, key, node)
     }
 
-    ringShadow(key: string): Attachment<SVGGElement> {
+    ringShadow(key: number): Attachment<SVGGElement> {
         return (node) => this.track(this.ringShadowNodes, key, node)
     }
 
@@ -148,7 +147,7 @@ export class BoardAnimator {
         }
     }
 
-    private track(nodes: Map<string, SVGGElement>, key: string, node: SVGGElement) {
+    private track(nodes: Map<number, SVGGElement>, key: number, node: SVGGElement) {
         nodes.set(key, node)
         return () => {
             if (nodes.get(key) === node) nodes.delete(key)
@@ -186,7 +185,7 @@ export class BoardAnimator {
             isPlaceMarble(action) ? cutOffBy(action) : undefined
         )
 
-        this.sliding = new Set(removedRings.map((ring) => coordsKey(ring.coords)))
+        this.sliding = new Set(removedRings.map((ring) => coordinatesToNumber(ring.coords)))
 
         let returned: Staged | undefined
         if (action === undefined) {
@@ -202,7 +201,7 @@ export class BoardAnimator {
             if (returning.length > 0) {
                 this.sliding = new Set([
                     ...this.sliding,
-                    ...returning.map((ring) => coordsKey(ring.coords))
+                    ...returning.map((ring) => coordinatesToNumber(ring.coords))
                 ])
                 this.rings = [...from.board.rings, ...returning]
                 await tick()
@@ -278,13 +277,13 @@ export class BoardAnimator {
     // `startsAt`, and the groups it cut off wait for it.
     private pullOut(
         coords: AxialCoordinates,
-        exits: ReadonlyMap<string, RingExit>,
+        exits: ReadonlyMap<number, RingExit>,
         timeline: Timeline,
         at: number,
         duration: number,
         startsAt = at
     ) {
-        const key = coordsKey(coords)
+        const key = coordinatesToNumber(coords)
         const exit = exits.get(key)
         if (exit === undefined) return
         const { first, out } = exit
@@ -310,8 +309,8 @@ export class BoardAnimator {
 
     // Undone, rings slide back in the way they went: the group a ring cut off with it, then that
     // ring back into its place. Their marbles settle back in once they are home.
-    private pushIn(ring: Ring, entries: ReadonlyMap<string, RingExit>, timeline: Timeline) {
-        const key = coordsKey(ring.coords)
+    private pushIn(ring: Ring, entries: ReadonlyMap<number, RingExit>, timeline: Timeline) {
+        const key = coordinatesToNumber(ring.coords)
         const entry = entries.get(key)
         if (entry === undefined) return
         const { duration, fade, settle } = PUSH
@@ -362,7 +361,7 @@ export class BoardAnimator {
     }
 
     private lift(coords: AxialCoordinates, timeline: Timeline, at: number, duration: number) {
-        const key = coordsKey(coords)
+        const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
         if (body === undefined) return
         scaledFromCentre(body)
@@ -374,7 +373,7 @@ export class BoardAnimator {
         this.fadeShadow(key, timeline, at, duration)
     }
 
-    private fadeShadow(key: string, timeline: Timeline, at: number, duration: number) {
+    private fadeShadow(key: number, timeline: Timeline, at: number, duration: number) {
         const shadow = this.marbleShadowNodes.get(key)
         if (shadow === undefined) return
         scaledFromCentre(shadow)
@@ -383,7 +382,7 @@ export class BoardAnimator {
 
     // Says when the marble has settled.
     private drop(coords: AxialCoordinates, timeline: Timeline): number {
-        const key = coordsKey(coords)
+        const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
         const shadow = this.marbleShadowNodes.get(key)
         if (body === undefined || shadow === undefined) return 0
@@ -399,7 +398,7 @@ export class BoardAnimator {
 
     // An undone placement lifts back out of its ring as it fades.
     private fade(coords: AxialCoordinates, timeline: Timeline) {
-        const key = coordsKey(coords)
+        const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
         if (body === undefined) return
         timeline.to(
@@ -425,7 +424,7 @@ export class BoardAnimator {
         if (flier === undefined) return
 
         for (const nodes of [this.marbleNodes, this.marbleShadowNodes]) {
-            const source = nodes.get(coordsKey(from))
+            const source = nodes.get(coordinatesToNumber(from))
             if (source !== undefined) {
                 timeline.set(source, { opacity: 0 }, 0)
             }

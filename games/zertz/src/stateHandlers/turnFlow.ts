@@ -1,9 +1,11 @@
+import { assertExists } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { EndReason, HydratedZertzGameState } from '../model/gameState.js'
 
 export function setActivePlayer(gameState: HydratedZertzGameState) {
     const playerId = gameState.turnManager.currentTurn()?.playerId
-    gameState.activePlayerIds = playerId === undefined ? [] : [playerId]
+    assertExists(playerId, 'A turn is under way when a player takes it')
+    gameState.activePlayerIds = [playerId]
 }
 
 export function stateAfterCapture(gameState: HydratedZertzGameState): MachineState {
