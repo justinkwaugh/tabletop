@@ -51,22 +51,30 @@ export function pendingGains(payments: readonly JourneyPayment[]): ReadonlyMap<s
     )
 }
 
-// Art plan, Seat marker: one initial, or two letters for seats that share one.
+const MAX_INITIALS = 3
+
+// Art plan, Seat marker: the shortest start of the name, up to three letters, that no other seat's
+// name shares; else the first letter and the seat number. A blank name shows the seat number.
 export function seatInitials(names: readonly SeatName[]): ReadonlyMap<string, string> {
-    const firstLetter = (name: string) => name.trim().charAt(0).toUpperCase()
-    return new Map(
-        names.map(({ playerId, name }) => {
-            const shared = names.some(
+    const trimmed = names.map(({ name }) => name.trim())
+    const initials = trimmed.map((name, index) => {
+        const seat = String(index + 1)
+        if (!name) return seat
+        const others = trimmed.filter((other, otherIndex) => otherIndex !== index && other)
+        const shared = (length: number) =>
+            others.some(
                 (other) =>
-                    other.playerId !== playerId && firstLetter(other.name) === firstLetter(name)
+                    other.slice(0, length).toLowerCase() === name.slice(0, length).toLowerCase()
             )
-            const trimmed = name.trim()
-            return [
-                playerId,
-                shared
-                    ? `${firstLetter(trimmed)}${trimmed.charAt(1).toLowerCase()}`
-                    : firstLetter(trimmed)
-            ]
-        })
+        const length = [1, 2, 3]
+            .filter((candidate) => candidate <= Math.min(MAX_INITIALS, name.length))
+            .find((candidate) => !shared(candidate))
+        const first = name.charAt(0).toUpperCase()
+        return length ? `${first}${name.slice(1, length).toLowerCase()}` : `${first}${seat}`
+    })
+    // A name that happens to spell another seat's mark gives way to its seat number.
+    const unique = initials.map((mark, index) =>
+        initials.indexOf(mark) === initials.lastIndexOf(mark) ? mark : String(index + 1)
     )
+    return new Map(names.map(({ playerId }, index) => [playerId, unique[index]]))
 }

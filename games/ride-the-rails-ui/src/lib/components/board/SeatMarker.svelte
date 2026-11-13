@@ -28,7 +28,7 @@
             {x}
             y={y + radius * 0.36}
             text-anchor="middle"
-            font-size={initials.length > 1 ? radius * 0.9 : radius}
+            font-size={radius * Math.min(1, 1.8 / initials.length)}
             font-weight="800"
             fill={gameSession.colors.getPlayerTextColorValue(playerId)}>{initials}</text
         >

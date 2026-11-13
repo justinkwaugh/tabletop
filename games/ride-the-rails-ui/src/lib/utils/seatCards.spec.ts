@@ -65,13 +65,34 @@ describe('pending gains', () => {
 })
 
 describe('seat initials', () => {
-    it('takes one letter, or two where seats share one', () => {
+    it('takes one letter, or as many as tell seats that share one apart', () => {
         const initials = seatInitials([
             { playerId: 'a', name: 'Hattie' },
             { playerId: 'b', name: 'ezra' },
             { playerId: 'c', name: 'Mabel' },
-            { playerId: 'd', name: 'Max' }
+            { playerId: 'd', name: 'Max' },
+            { playerId: 'e', name: 'Hank' }
         ])
-        expect([...initials.values()]).toEqual(['H', 'E', 'Ma', 'Ma'])
+        expect([...initials.values()]).toEqual(['Hat', 'E', 'Mab', 'Max', 'Han'])
+    })
+
+    it('gives every seat its own mark', () => {
+        const initials = seatInitials([
+            { playerId: 'a', name: 'Anna' },
+            { playerId: 'b', name: 'Andy' },
+            { playerId: 'c', name: 'Sam' },
+            { playerId: 'd', name: ' sam ' },
+            { playerId: 'e', name: 'Ann' }
+        ])
+        expect([...initials.values()]).toEqual(['A1', 'And', 'S3', 'S4', 'A5'])
+    })
+
+    it('shows the seat number for a blank name', () => {
+        const initials = seatInitials([
+            { playerId: 'a', name: 'Ruth' },
+            { playerId: 'b', name: '   ' },
+            { playerId: 'c', name: '' }
+        ])
+        expect([...initials.values()]).toEqual(['R', '2', '3'])
     })
 })
