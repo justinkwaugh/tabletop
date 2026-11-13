@@ -28,7 +28,12 @@ export const TrainDistance = Type.Object(
             )
         ),
         /** It never runs on narrow-gauge track, though on dual track, as 1849's E train (§14.3). */
-        standardGaugeOnly: Type.Optional(Type.Literal(true))
+        standardGaugeOnly: Type.Optional(Type.Literal(true)),
+        /**
+         * It runs from a station of its company and may run there alone, on no track at all; no
+         * two such trains of a company run from the same station, as 1822's L trains (§5.5.3).
+         */
+        stationRun: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )
@@ -50,7 +55,14 @@ export const TrainDefinition = Type.Object(
         name: Id,
         price: Type.Integer({ minimum: 0 }),
         distance: TrainDistance,
-        rustsOn: Type.Optional(Id)
+        rustsOn: Type.Optional(Id),
+        /** Its route may use track that other trains' routes use, as 1822's E trains (§5.5.11). */
+        sharesTrack: Type.Optional(Type.Literal(true)),
+        /**
+         * Rolling stock that never runs by itself: a run attaches it to one of its company's
+         * trains, which then runs as the title says, as 1822's Pullman carriages (§5.5.6).
+         */
+        attachment: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )

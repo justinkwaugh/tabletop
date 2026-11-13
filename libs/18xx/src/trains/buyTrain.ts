@@ -109,12 +109,9 @@ export function applyTrainPurchase(
             amount: details.price
         }
     ])
-    if (details.exchangeTrainId)
-        releaseTrains(
-            state.trainInventory,
-            [details.exchangeTrainId],
-            rules.exchangedTrainDestination ?? 'market'
-        )
+    const exchangeDestination = rules.exchangedTrainDestination ?? 'market'
+    if (details.exchangeTrainId && exchangeDestination !== 'depot')
+        releaseTrains(state.trainInventory, [details.exchangeTrainId], exchangeDestination)
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
     const payments = settleTrainDepartures(state, rules, [
         { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }
@@ -123,6 +120,9 @@ export function applyTrainPurchase(
         kind: 'company',
         companyId: details.companyId
     })
+    // A certificate turned over goes back once the new train has left the depot.
+    if (details.exchangeTrainId && exchangeDestination === 'depot')
+        rules.depot.restock(state.trainInventory, details.exchangeTrainId)
     if (state.trainPurchaseStep?.companyId === details.companyId) {
         state.trainPurchaseStep.purchasedTrainIds.push(details.trainId)
         if (details.exchangeTrainId)

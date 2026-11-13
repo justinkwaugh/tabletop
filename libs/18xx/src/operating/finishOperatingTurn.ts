@@ -15,8 +15,7 @@ import {
 import type { DistributionState } from '../earnings/earningsDistribution.js'
 import type { ConstructionState } from '../construction/trackConstruction.js'
 import type { StationPlacementState } from '../stations/stationPlacement.js'
-import type { TrainRules } from '../trains/trainPurchase.js'
-import { trainsOwnedBy } from '../trains/train.js'
+import { ownsRequiredTrain, type TrainRules } from '../trains/trainPurchase.js'
 import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
 import type { LoanState } from '../loans/loans.js'
 
@@ -58,7 +57,7 @@ export function finishOperatingTurnReason(
     )
         return 'This company is not finishing its operating turn.'
     if (
-        !trainsOwnedBy(state, { kind: 'company', companyId }).length &&
+        !ownsRequiredTrain(state, rules, companyId) &&
         rules.requiresTrain(state, companyId) &&
         !inReceivership(state, companyId)
     )

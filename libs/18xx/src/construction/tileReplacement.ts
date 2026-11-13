@@ -1,12 +1,22 @@
 import type { MapLocation } from '../map/map.js'
 import type { TileEdge, TileFace } from '../tiles/tile.js'
 import type { TrackRules } from './trackConstruction.js'
-import { tileUpgradeMappings, type TileNodeMapping } from './trackUpgrade.js'
+import { tileUpgradeMappings, withoutStops, type TileNodeMapping } from './trackUpgrade.js'
 
 export type TileReplacementRules = Pick<
     TrackRules,
-    'colorOrder' | 'preservesStops' | 'upgradesWithinColor' | 'reconfigures'
+    'colorOrder' | 'preservesStops' | 'upgradesWithinColor' | 'reconfigures' | 'removedStops'
 >
+
+/** The replaced face as its replacement must keep it: without the stops the title removes. */
+export function keptFace(
+    rules: Pick<TrackRules, 'removedStops'>,
+    locationId: string,
+    before: TileFace,
+    after: TileFace
+): TileFace {
+    return withoutStops(before, rules.removedStops?.(locationId, before, after) ?? [])
+}
 
 export function replacesColorAndStops(
     rules: TileReplacementRules,
@@ -18,7 +28,8 @@ export function replacesColorAndStops(
     if (colorStep === 0) return !!rules.upgradesWithinColor?.(locationId, before, after)
     return (
         colorStep === 1 &&
-        (rules.preservesStops(before, after) || !!rules.reconfigures?.(locationId, before, after))
+        (rules.preservesStops(keptFace(rules, locationId, before, after), after) ||
+            !!rules.reconfigures?.(locationId, before, after))
     )
 }
 

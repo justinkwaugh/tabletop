@@ -19,9 +19,22 @@ export function recordedRunRoutes(run: RunTrains): readonly (TrainRoute | RouteR
     return run.metadata?.routes ?? run.routes
 }
 
+/** The hexes the trains' runs stand on: each start and its track, a run at one station having no track. */
+export function runLocationIds(routes: readonly Pick<TrainRoute, 'start' | 'paths'>[]): string[] {
+    return [
+        ...new Set(
+            routes.flatMap((route) => [
+                route.start.locationId,
+                ...route.paths.map((path) => path.locationId)
+            ])
+        )
+    ]
+}
+
 /** Each train's track and any extension; colours follow ``trainIds``, as the train table's do. */
 export function trainRouteOverlays(
     routes: readonly (Pick<TrainRoute, 'trainId' | 'paths' | 'extension'> &
+        Partial<Pick<TrainRoute, 'start'>> &
         Pick<RouteResult, 'bonuses'>)[],
     trainIds?: readonly string[]
 ): MapRoute[] {
@@ -32,6 +45,8 @@ export function trainRouteOverlays(
             id: route.trainId,
             color: routeColor(place),
             segments: route.paths,
+            // A run at one station, on no track, is marked at the station (1822's L-trains).
+            ...(route.paths.length || !route.start ? {} : { start: route.start }),
             ...(route.extension ? { extension: route.extension } : {}),
             ...routeBonusArrows(route.bonuses)
         }

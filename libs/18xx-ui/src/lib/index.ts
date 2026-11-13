@@ -153,6 +153,8 @@ export { default as TrainTokenPips } from './trains/TrainTokenPips.svelte'
 export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 
 export { default as AuctionBidControl } from './auctions/AuctionBidControl.svelte'
+export { default as BidBoxes, type BidBoxGroup } from './auctions/BidBoxes.svelte'
+export { BidBoxModule, type BidBoxLot, type BidBoxSession } from './session/bidBoxModule.svelte.js'
 export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.svelte'
 export { default as WaterfallAuctionLots } from './auctions/WaterfallAuctionLots.svelte'
 export { default as SelectionAuctionLots } from './auctions/SelectionAuctionLots.svelte'

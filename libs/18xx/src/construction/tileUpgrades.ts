@@ -5,6 +5,7 @@ import { carriedTrackStops, withTrackStops } from '../tiles/trackStops.js'
 import type { TrackRules } from './trackConstruction.js'
 import {
     keepsExits,
+    keptFace,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -95,7 +96,10 @@ export class TileUpgrades {
                     ? withTrackStops(turned, carriedTrackStops(before.face, turned))
                     : turned
                 return (
-                    replacementMappings(before.face, rotated).length > 0 ||
+                    replacementMappings(
+                        keptFace(this.rules, locationId, before.face, rotated),
+                        rotated
+                    ).length > 0 ||
                     (reconfigures && keepsExits(before.face, rotated))
                 )
             })

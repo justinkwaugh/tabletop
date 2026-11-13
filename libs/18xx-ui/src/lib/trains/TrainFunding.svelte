@@ -39,7 +39,12 @@
             Treasury shares will raise {money(plan.treasuryProceeds)}.
         </p>{/if}
     {#each plan.contributions as contribution, index (index)}
-        <p>{session.ownerName(contribution.owner)} contributes {money(contribution.amount)}.</p>
+        <p>
+            {session.ownerName(contribution.owner)} contributes {money(
+                contribution.amount
+            )}{#if contribution.borrowed}, borrowing <strong>{money(contribution.borrowed)}</strong>
+                of it{/if}.
+        </p>
     {/each}
     {#if plan.choice.kind === 'sell'}
         <p>

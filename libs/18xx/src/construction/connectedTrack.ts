@@ -53,5 +53,7 @@ function add(sets: Map<string, Set<string>>, locationId: string, value: string):
 }
 
 function endpointKey(endpoint: TileEndpoint): string {
-    return endpoint.kind === 'edge' ? `edge ${endpoint.edge}` : `node ${endpoint.nodeId}`
+    return endpoint.kind === 'edge'
+        ? `edge ${endpoint.edge}/${endpoint.lane ?? 0}`
+        : `node ${endpoint.nodeId}`
 }

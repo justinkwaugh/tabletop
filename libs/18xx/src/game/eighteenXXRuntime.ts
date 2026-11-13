@@ -3,6 +3,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { ActionRegistry } from '../actions/actionDefinition.js'
 import { auctionActions } from '../auctions/auctionActions.js'
+import { BidBoxStockRoundHandler, bidBoxActions } from '../auctions/bidBoxes.js'
 import { OfferAuctionHandler } from '../auctions/offerAuctionHandler.js'
 import { SelectionAuctionHandler } from '../auctions/selectionAuctionHandler.js'
 import { WaterfallAuctionHandler } from '../auctions/waterfallAuctionHandler.js'
@@ -111,6 +112,7 @@ function validateStateComposition(
         | 'offerAuctionRules'
         | 'auctionRules'
         | 'selectionAuctionRules'
+        | 'bidBoxRules'
         | 'loanRules'
         | 'cashCrisisRules'
         | 'companyRules'
@@ -129,6 +131,7 @@ function validateStateComposition(
         ['offerAuction', !!options.offerAuctionRules],
         ['openingAuction', !!options.auctionRules],
         ['selectionAuction', !!options.selectionAuctionRules],
+        ['bidBoxes', !!options.bidBoxRules],
         ['pendingPar', !!options.companyRules.parAfterAward],
         ['presidencyExchanges', !!options.stockRules.presidencyExchange?.choice],
         ['companyAuction', !!options.stockRules.companyAuction],
@@ -209,6 +212,8 @@ export function createEighteenXXRuntime<
         options.stationRules.homeChoice
             ? new HomeStationChoiceHandler(handler, options.stationRules)
             : handler
+    const hostsBidBoxes = (handler: Handler): Handler =>
+        options.bidBoxRules ? new BidBoxStockRoundHandler(handler, options.bidBoxRules) : handler
     const awaitsPar = (handler: Handler): Handler =>
         companyRules.parAfterAward ? new PendingParHandler(handler) : handler
     const { loanRules, trainFundingRules, receivershipRules, corporateFinanceRules } = options
@@ -403,17 +408,20 @@ export function createEighteenXXRuntime<
                                 allowsPresidencyClaims(
                                     decides(
                                         'StockRound',
-                                        closesAtZero(
-                                            new StockRoundHandler(
-                                                rules,
-                                                'StartingOperatingSet',
-                                                companyRules
-                                            ),
-                                            (state) => {
-                                                if (!state.stockRound.completed) return 'StockRound'
-                                                state.activePlayerIds = []
-                                                return 'StartingOperatingSet'
-                                            }
+                                        hostsBidBoxes(
+                                            closesAtZero(
+                                                new StockRoundHandler(
+                                                    rules,
+                                                    'StartingOperatingSet',
+                                                    companyRules
+                                                ),
+                                                (state) => {
+                                                    if (!state.stockRound.completed)
+                                                        return 'StockRound'
+                                                    state.activePlayerIds = []
+                                                    return 'StartingOperatingSet'
+                                                }
+                                            )
                                         )
                                     )
                                 )
@@ -688,6 +696,7 @@ export function createEighteenXXRuntime<
             receivershipRules
         ),
         ...trainActions(options.trainRules, options.phaseRules, !loanRules),
+        ...bidBoxActions(options.bidBoxRules),
         ...(options.titleActions ?? [])
     ])
     validateStateComposition(stateDefinition.schema, options, stateHandlers)

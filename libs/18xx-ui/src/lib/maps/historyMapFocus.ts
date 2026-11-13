@@ -11,7 +11,7 @@ import {
     type TrainRoute
 } from '@tabletop/18xx'
 import { assertExists, type GameAction } from '@tabletop/common'
-import { recordedRunRoutes } from '../routes/routePresentation.js'
+import { recordedRunRoutes, runLocationIds } from '../routes/routePresentation.js'
 import { companyFocusLocations } from './companyFocusLocations.js'
 
 function historyRunRoutes(
@@ -29,14 +29,7 @@ export function historyMapFocus(state: EighteenXXState, action?: GameAction) {
     const routes = historyRunRoutes(state, action)
     if (routes.length) {
         return {
-            locations: [
-                ...new Set(
-                    routes.flatMap((route) => [
-                        route.start.locationId,
-                        ...route.paths.map((path) => path.locationId)
-                    ])
-                )
-            ],
+            locations: runLocationIds(routes),
             routes
         }
     }

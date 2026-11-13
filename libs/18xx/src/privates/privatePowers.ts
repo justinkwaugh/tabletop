@@ -36,6 +36,13 @@ export interface PrivateTrackTerms {
     free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
+    /**
+     * The tile colours the power lays, where they are not the phase's, as 1822's P11 lays the
+     * next colour before the phase allows it.
+     */
+    colors?: readonly string[]
+    /** Stops the power's tile removes, as 1822's P2 turns a small station into plain track. */
+    removedStops?: TrackRules['removedStops']
 }
 export interface PrivatePowerRules {
     trackTerms(
@@ -112,6 +119,8 @@ export function privateTrackConstruction(
                     ? terms.restriction?.(request)
                     : 'This private cannot place that tile here.',
             useful: terms.connected ? rules.useful : () => true,
+            ...(terms.colors ? { availableColors: () => terms.colors ?? [] } : {}),
+            ...(terms.removedStops ? { removedStops: terms.removedStops } : {}),
             relabels: (locationId, definitionId) =>
                 !!terms.relabels &&
                 terms.locationIds.includes(locationId) &&

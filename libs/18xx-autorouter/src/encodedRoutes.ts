@@ -13,11 +13,30 @@ import {
     type RouteRules,
     type TrainRoute,
     stretchWeight,
+    type Train,
+    type TrainDefinition,
     type TrainDistance,
     type TrainRunningState,
-    type TileEndpoint
+    type TileEndpoint,
+    oppositeTileEndpoint,
+    terminusNodeId
 } from '@tabletop/18xx'
 import type { SolverArc, SolverProblem, SolverSolution } from './solverProtocol.js'
+
+/** A train as one search routes it: the definition it runs as, with whatever is attached. */
+export type EncodedTrain = {
+    train: Train
+    definition: TrainDefinition
+    attachmentIds?: readonly string[]
+    /** Another train of the run earns the once-a-run bonuses, so this one is routed without. */
+    withoutOncePerRun?: true
+}
+export type EncodingBudget = {
+    timeLimitMs: number
+    memoryBudgetBytes: number
+    /** The trains to route; the company's runnable trains as they stand unless given. */
+    fleet?: readonly EncodedTrain[]
+}
 
 export class EncodedRoutes {
     readonly problem: SolverProblem
@@ -30,13 +49,14 @@ export class EncodedRoutes {
     private readonly groupKeys: string[]
     private readonly unlimitedTrainIds: Set<string>
     private readonly requiredEnds: readonly RevenueCenter[] | undefined
+    private readonly attachmentIds = new Map<string, readonly string[]>()
 
     constructor(
         state: TrainRunningState,
         rules: RouteRules,
         companyId: string,
         network: RouteNetwork,
-        budget: { timeLimitMs: number; memoryBudgetBytes: number }
+        budget: EncodingBudget
     ) {
         this.requiredEnds = rules.requiredRouteEnds?.(state, companyId)
         this.centers = network.centers()
@@ -77,10 +97,10 @@ export class EncodedRoutes {
                     if (connection)
                         next =
                             outgoing.get(
-                                this.endpointKey(connection.neighborLocationId, {
-                                    kind: 'edge',
-                                    edge: connection.neighborEdge
-                                })
+                                this.endpointKey(
+                                    connection.neighborLocationId,
+                                    oppositeTileEndpoint(arrival, connection.neighborEdge)
+                                )
                             ) ?? []
                 } else if (
                     network
@@ -121,7 +141,8 @@ export class EncodedRoutes {
                     ),
                     path: id,
                     hex,
-                    terminal: false,
+                    // A route that reaches a stop along terminus track ends there.
+                    terminal: arrival.kind === 'node' && terminusNodeId(path) === arrival.nodeId,
                     crossings: arrival.kind === 'edge' ? 1 : 0,
                     gauge: path.gauge ?? 'standard'
                 })
@@ -133,6 +154,26 @@ export class EncodedRoutes {
             assert(node.kind !== 'junction', 'A route stop is a revenue center')
             return node
         })
+        const fleet: readonly EncodedTrain[] =
+            budget.fleet ??
+            new RouteEvaluation(state, rules).runnableTrains(companyId).map((train) => ({
+                train,
+                definition: rules.depot.trainDefinition(train.definitionId)
+            }))
+        for (const { train, attachmentIds } of fleet)
+            if (attachmentIds?.length) this.attachmentIds.set(train.id, attachmentIds)
+        // Where each train stops; a train that passes stops is routed in a search of its own, as
+        // the stops it may end at are the search's.
+        const stopsAt = fleet.map(({ definition }) =>
+            this.centers.map(
+                (center) => rules.stopsAt?.(state, companyId, center, definition) ?? true
+            )
+        )
+        const passesStops = stopsAt.some((flags) => flags.includes(false))
+        assert(
+            !passesStops || fleet.length === 1,
+            'A train that passes stops is routed apart from the others'
+        )
         const groupIds = new Map<string, number>()
         const stops = this.centers.map((center, index) => {
             const node = nodes[index]
@@ -151,7 +192,9 @@ export class EncodedRoutes {
                 blocked:
                     node.kind === 'offboard' ||
                     cityIsBlocked(state, companyId, center.locationId, node),
-                endpoint: rules.fleet?.routeShape?.endKinds.includes(node.kind) ?? true,
+                endpoint:
+                    (rules.fleet?.routeShape?.endKinds.includes(node.kind) ?? true) &&
+                    (stopsAt[0]?.[index] ?? true),
                 allowed: rules.stopAllowed?.(state, companyId, center) ?? true,
                 groups: [
                     ...(group === undefined ? [] : [this.indexFor(groupIds, group)]),
@@ -159,18 +202,14 @@ export class EncodedRoutes {
                 ]
             }
         })
-        const runnable = new RouteEvaluation(state, rules).runnableTrains(companyId)
         this.unlimitedTrainIds = new Set(
-            runnable
-                .filter(
-                    (train) =>
-                        rules.depot.trainDefinition(train.definitionId).distance.maximum ===
-                        'unlimited'
-                )
-                .map((train) => train.id)
+            fleet
+                .filter(({ definition }) => definition.distance.maximum === 'unlimited')
+                .map(({ train }) => train.id)
         )
-        const trains = runnable.map((train) => {
-            const definition = rules.depot.trainDefinition(train.definitionId)
+        const trains = fleet.map(({ train, definition, withoutOncePerRun }, trainIndex) => {
+            const stopping = stopsAt[trainIndex]
+            assertExists(stopping, 'Each train has its stops')
             const countsCrossings = definition.distance.measure === 'hex-edges'
             const { measure, maximum, extraTowns = 0 } = definition.distance
             const unlimitedDistance = (costs: readonly number[]) =>
@@ -180,14 +219,25 @@ export class EncodedRoutes {
             const crossingCosts = this.crossingCosts(definition.distance, (costs) =>
                 maximum === 'unlimited' ? unlimitedDistance(costs) + 1 : maximum + extraTowns + 1
             )
-            const visitCosts = nodes.map((node) =>
+            const visitCosts = nodes.map((node, index) =>
                 countsCrossings ||
+                node.uncounted ||
+                !stopping[index] ||
                 (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
                     ? 0
                     : 1
             )
-            const policy = rules.revenuePolicy?.(definition, state, companyId)
-            const fleet = rules.fleet?.trains?.[definition.id] ?? {}
+            const declared = rules.revenuePolicy?.(definition, state, companyId)
+            const policy =
+                declared && withoutOncePerRun
+                    ? {
+                          ...declared,
+                          connectionBonuses: declared.connectionBonuses?.filter(
+                              (bonus) => !bonus.oncePerRun
+                          )
+                      }
+                    : declared
+            const fleetPolicy = rules.fleet?.trains?.[definition.id] ?? {}
             assert(
                 !extraTowns || measure === 'revenue-centers',
                 'Only revenue-center trains may visit extra towns'
@@ -195,7 +245,9 @@ export class EncodedRoutes {
             const values = nodes.map((node, index) => {
                 const center = this.centers[index]
                 assertExists(center, 'Revenue center requires a location')
-                return stopValue(state, rules, companyId, center, node, definition)
+                return stopping[index]
+                    ? stopValue(state, rules, companyId, center, node, definition)
+                    : 0
             })
             const bestStopBonuses = (
                 rules.bestStopBonuses?.(state, companyId, definition) ?? []
@@ -220,15 +272,16 @@ export class EncodedRoutes {
                     ? {
                           fleet: {
                               paying: nodes.map(
-                                  (node) => fleet.payingKinds?.includes(node.kind) ?? true
+                                  (node) => fleetPolicy.payingKinds?.includes(node.kind) ?? true
                               ),
                               limited: nodes.map(
                                   (node) =>
-                                      fleet.payingStopLimit?.kinds.includes(node.kind) ?? false
+                                      fleetPolicy.payingStopLimit?.kinds.includes(node.kind) ??
+                                      false
                               ),
-                              paying_limit: fleet.payingStopLimit?.count ?? null,
-                              hex_subsidy: fleet.hexSubsidy ?? 0,
-                              freight: fleet.freight ?? null
+                              paying_limit: fleetPolicy.payingStopLimit?.count ?? null,
+                              hex_subsidy: fleetPolicy.hexSubsidy ?? 0,
+                              freight: fleetPolicy.freight ?? null
                           }
                       }
                     : {}),
@@ -251,11 +304,22 @@ export class EncodedRoutes {
                 require_paying_token: policy?.requirePayingStation ?? false,
                 bonuses_along_route: policy?.bonusesAlongRoute ?? false,
                 connection_bonuses: [
-                    ...(policy?.connectionBonuses ?? []).map(({ from, to, destinationAtEnd }) => ({
-                        from: this.centers.map((center) => from[center.locationId] ?? null),
-                        to: this.centers.map((center) => to[center.locationId] ?? null),
-                        ends_only: destinationAtEnd ?? false
-                    })),
+                    ...(policy?.connectionBonuses ?? []).map(
+                        ({ from, to, nodeIds, destinationAtEnd }) => {
+                            const amounts = (values: Readonly<Record<string, number>>) =>
+                                this.centers.map((center) => {
+                                    const nodeId = nodeIds?.[center.locationId]
+                                    return nodeId !== undefined && nodeId !== center.nodeId
+                                        ? null
+                                        : (values[center.locationId] ?? null)
+                                })
+                            return {
+                                from: amounts(from),
+                                to: amounts(to),
+                                ends_only: destinationAtEnd ?? false
+                            }
+                        }
+                    ),
                     ...bestStopBonuses
                 ],
                 interconnections: (policy?.interconnections ?? []).map(({ from, to, amount }) => ({
@@ -268,7 +332,9 @@ export class EncodedRoutes {
                     assertExists(center, 'Revenue center requires a location')
                     return (
                         (values[index] ?? 0) +
-                        (rules.stopBonus?.(state, definition, companyId, center) ?? 0)
+                        (stopping[index]
+                            ? (rules.stopBonus?.(state, definition, companyId, center) ?? 0)
+                            : 0)
                     )
                 }),
                 first_bonus: nodes.map(() => 0)
@@ -278,7 +344,7 @@ export class EncodedRoutes {
         this.junctionKeys = [...junctions.keys()]
         this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 8,
+            version: 9,
             stops,
             arcs,
             trains,
@@ -339,20 +405,34 @@ export class EncodedRoutes {
             assertExists(connection, 'Solver returned an empty route')
             const start = this.centers[connection.from]
             assertExists(start, 'Solver returned an unknown start')
+            const attachmentIds = this.attachmentIds.get(train.id)
             return {
                 trainId: train.id,
                 start: { ...start },
                 paths: route.connections.flatMap((connection) =>
                     this.decodePaths(connection.paths)
                 ),
-                ...(route.extension.length ? { extension: this.decodePaths(route.extension) } : {})
+                ...(route.extension.length ? { extension: this.decodePaths(route.extension) } : {}),
+                ...(attachmentIds ? { attachmentIds: [...attachmentIds] } : {})
             }
         })
     }
 
+    /** The same search with one train left out and the track its route uses closed. */
     beside(
         trainId: string,
         usedResources: readonly string[]
+    ): { problem: SolverProblem; decode(solution: SolverSolution): TrainRoute[] } {
+        return this.without(
+            usedResources,
+            this.problem.trains.filter((train) => train.id !== trainId)
+        )
+    }
+
+    /** The same search with track closed, as routes found apart from it use that track. */
+    without(
+        usedResources: readonly string[],
+        trains: SolverProblem['trains'] = this.problem.trains
     ): { problem: SolverProblem; decode(solution: SolverSolution): TrainRoute[] } {
         const used = new Set(usedResources)
         const banned = new Set(
@@ -360,7 +440,6 @@ export class EncodedRoutes {
                 arc.resources.some((resource) => used.has(this.resourceKeys[resource])) ? [id] : []
             )
         )
-        const trains = this.problem.trains.filter((train) => train.id !== trainId)
         return {
             problem: {
                 ...this.problem,
@@ -510,7 +589,8 @@ export class EncodedRoutes {
         return JSON.stringify([
             locationId,
             endpoint.kind,
-            endpoint.kind === 'edge' ? endpoint.edge : endpoint.nodeId
+            endpoint.kind === 'edge' ? endpoint.edge : endpoint.nodeId,
+            ...(endpoint.kind === 'edge' && endpoint.lane ? [endpoint.lane] : [])
         ])
     }
 }

@@ -27,6 +27,7 @@ import { ConstructionReachability } from './constructionReachability.js'
 import { addedTrack, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
 import {
     keepsExits,
+    keptFace,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -166,6 +167,13 @@ export interface TrackRules {
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
+    /**
+     * Stops of the replaced tile that this replacement removes, by their node ids: the rest of
+     * the tile is then what must be kept, track through a removed stop running on between its
+     * other ends. Swansea's printed small station goes under 1822's first yellow tile (§5.8.4),
+     * and its private P2 removes a small station (§3.1.14).
+     */
+    removedStops?(locationId: string, before: TileFace, after: TileFace): readonly string[]
     /**
      * A town standing alone on a line of track carries onto the replacing tile's same line as a
      * track stop where that line is plain track there, as 1862's small stations do.
@@ -533,7 +541,7 @@ export class TrackConstruction {
     }
     /** The node mappings that keep the hex's track, or a reconfiguration's empty mapping. */
     private layMappings(locationId: string, before: TileFace, after: TileFace): TileNodeMapping[] {
-        const mappings = replacementMappings(before, after)
+        const mappings = replacementMappings(keptFace(this.rules, locationId, before, after), after)
         if (mappings.length || !this.reconfiguring(locationId, before, after)) return mappings
         return [{}]
     }

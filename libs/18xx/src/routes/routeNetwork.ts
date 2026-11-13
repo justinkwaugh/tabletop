@@ -1,11 +1,20 @@
 import { assertExists } from '@tabletop/common'
 import { routePathResources } from './routeResources.js'
 import type { TileEndpoint, TileFace, TileNode, TilePath } from '../tiles/tile.js'
-import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
+import {
+    oppositeTileEndpoint,
+    rotateTileFace,
+    sameTileEndpoint,
+    terminusNodeId
+} from '../tiles/topology.js'
 import { continueStretch, type StretchGauge } from '../tiles/trackGauge.js'
 import type { RailwayMapState } from '../map/mapState.js'
 import type { RevenueCenter, RoutePath } from './route.js'
-export type RouteVisit = RevenueCenter & { node: Exclude<TileNode, { kind: 'junction' }> }
+export type RouteVisit = RevenueCenter & {
+    node: Exclude<TileNode, { kind: 'junction' }>
+    /** The route reached the stop along terminus track, so it ends there. */
+    terminus?: true
+}
 /** Track a route runs between two stops, or from its last stop on, and the hex sides it crosses. */
 export type TrackStretch = { gauge: StretchGauge; crossings: number }
 export type RouteTrace = {
@@ -76,6 +85,8 @@ export class RouteNetwork {
         const junctions = new Set<string>()
         let stretch: TrackStretch | undefined
         for (const segment of paths) {
+            if (trace.visits[trace.visits.length - 1]?.terminus)
+                return { reason: 'A route ends where it reaches a terminus.' }
             const arrival = this.arrive(trace.end)
             if (!arrival) return { reason: 'The route leaves connected track.' }
             const { locationId, endpoint } = arrival
@@ -110,7 +121,12 @@ export class RouteNetwork {
                     return { reason: 'A route cannot revisit a junction between two stops.' }
                 junctions.add(key)
             } else if (reached) {
-                trace.visits.push({ locationId, nodeId: reached.id, node: reached })
+                trace.visits.push({
+                    locationId,
+                    nodeId: reached.id,
+                    node: reached,
+                    ...(terminusNodeId(path) === reached.id ? { terminus: true as const } : {})
+                })
                 junctions.clear()
                 stretch = undefined
             }
@@ -162,14 +178,20 @@ export class RouteNetwork {
                 const stop = reached && reached.kind !== 'junction' ? reached : undefined
                 const outer = junctions
                 if (junction) junctions.add(junction)
+                const terminus = !!stop && terminusNodeId(path) === stop.id
                 if (stop) {
-                    visits.push({ locationId, nodeId: stop.id, node: stop })
+                    visits.push({
+                        locationId,
+                        nodeId: stop.id,
+                        node: stop,
+                        ...(terminus ? { terminus: true as const } : {})
+                    })
                     junctions = new Set()
                 }
                 for (const key of resources) used.add(key)
                 paths.push(routePath)
                 walk.crossings += arrival.crossed
-                if (step(walk, !!stop))
+                if (step(walk, !!stop) && !terminus)
                     extend({ locationId, endpoint: far }, stop ? 'either' : gauge)
                 walk.crossings -= arrival.crossed
                 paths.pop()
@@ -198,9 +220,9 @@ export class RouteNetwork {
     /** Where track continues from an end: across the hex side it reaches, if track meets it there. */
     private arrive(end: TrackEnd): (TrackEnd & { crossed: 0 | 1 }) | undefined {
         if (end.endpoint.kind !== 'edge') return { ...end, crossed: 0 }
-        const key = `${end.locationId} ${end.endpoint.edge}`
+        const key = `${end.locationId} ${end.endpoint.edge}/${end.endpoint.lane ?? 0}`
         if (!this.crossings.has(key)) {
-            const edge = end.endpoint.edge
+            const { edge } = end.endpoint
             const connection = this.mapState
                 .connections(end.locationId)
                 .find((connection) => connection.edge === edge)
@@ -208,7 +230,7 @@ export class RouteNetwork {
                 key,
                 connection && {
                     locationId: connection.neighborLocationId,
-                    endpoint: { kind: 'edge', edge: connection.neighborEdge }
+                    endpoint: oppositeTileEndpoint(end.endpoint, connection.neighborEdge)
                 }
             )
         }

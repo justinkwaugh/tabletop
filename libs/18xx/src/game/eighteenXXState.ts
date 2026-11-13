@@ -11,6 +11,7 @@ import {
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
+import type { BidBoxes } from '../auctions/bidBoxes.js'
 import { OfferPileFields } from '../auctions/offerPileAuction.js'
 import { SelectionAuctionFields } from '../auctions/selectionAuction.js'
 import { AuctionFields } from '../auctions/waterfallAuction.js'
@@ -121,6 +122,7 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof CorporateFinanceFields &
     typeof CashCrisisFields &
     typeof TurnMarkFields & {
+        bidBoxes: Type.TOptional<typeof BidBoxes>
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
     }

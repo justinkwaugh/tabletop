@@ -236,6 +236,7 @@ export * from './auctions/selectionAuction.js'
 export * from './auctions/selectionAuctionHandler.js'
 
 export * from './auctions/auctionProcedure.js'
+export * from './auctions/bidBoxes.js'
 
 export * from './ending/endGame.js'
 export * from './ending/finalScores.js'
@@ -260,6 +261,7 @@ export * from './game/transferTiming.js'
 export * from './operating/operatingRoundSnapshot.js'
 
 export * from './actions/actionDefinition.js'
+export * from './actions/titleAction.js'
 export * from './stock/stockActions.js'
 export * from './company/companyActions.js'
 export * from './stock/ordinaryStockRoundHandler.js'

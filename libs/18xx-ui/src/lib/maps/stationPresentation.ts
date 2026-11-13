@@ -137,8 +137,8 @@ export type MapViewDefinition = {
     stateMarkers?: (state: object) => readonly StateMarker[]
     layouts?: Readonly<Record<string, TileLayout>>
     /**
-     * How a one-space city draws while it holds two stations, by tile id then node id: as a
-     * two-space city, in this layout over the tile's own.
+     * How a one-space city draws while it holds two stations, by tile id, or hex id for a
+     * printed hex, then node id: as a two-space city, in this layout over the tile's own.
      */
     sharedCityLayouts?: Readonly<Record<string, Readonly<Record<string, TileLayout>>>>
     /**

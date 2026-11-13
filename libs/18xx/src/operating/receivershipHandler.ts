@@ -9,8 +9,8 @@ import type * as Type from 'typebox'
 import { FinishTrack } from '../construction/finishTrack.js'
 import { FinishStations } from '../stations/finishStations.js'
 import { BuyTrain } from '../trains/buyTrain.js'
-import { TrainPurchase, type TrainRules } from '../trains/trainPurchase.js'
-import { trainsOwnedBy, type TrainPurchaseState } from '../trains/train.js'
+import { TrainPurchase, ownsRequiredTrain, type TrainRules } from '../trains/trainPurchase.js'
+import type { TrainPurchaseState } from '../trains/train.js'
 import type { MapStateData } from '../map/mapState.js'
 import {
     inReceivership,
@@ -44,8 +44,7 @@ export function cheapestAffordableTrain(
     companyId: string,
     rules: TrainRules
 ): ReceiverPurchase | undefined {
-    const owner = { kind: 'company' as const, companyId }
-    if (trainsOwnedBy(state, owner).length || !rules.requiresTrain(state, companyId))
+    if (ownsRequiredTrain(state, rules, companyId) || !rules.requiresTrain(state, companyId))
         return undefined
     const purchase = new TrainPurchase(state, rules)
     const offers = [

@@ -18,7 +18,19 @@ export const TileRotation = TileEdge
 export type TileRotation = Type.Static<typeof TileRotation>
 
 export const TileEndpoint = Type.Union([
-    Type.Object({ kind: Type.Literal('edge'), edge: TileEdge }, { additionalProperties: false }),
+    Type.Object(
+        {
+            kind: Type.Literal('edge'),
+            edge: TileEdge,
+            /**
+             * Which of several parallel tracks crossing the hex side this is, beyond the first:
+             * each lane meets the same lane across the side and is track of its own, so two
+             * trains may cross the side on different lanes.
+             */
+            lane: Type.Optional(Type.Integer({ minimum: 1 }))
+        },
+        { additionalProperties: false }
+    ),
     Type.Object({ kind: Type.Literal('node'), nodeId: Identifier }, { additionalProperties: false })
 ])
 export type TileEndpoint = ImmutableTileData<Type.Static<typeof TileEndpoint>>
@@ -44,13 +56,20 @@ export const TileRevenue = Type.Union([
 ])
 export type TileRevenue = ImmutableTileData<Type.Static<typeof TileRevenue>>
 
+/**
+ * The stop uses none of a train's distance, as a station that counts with the place beyond it:
+ * 1822's English Channel station, which counts as one stop with France (§5.4.6).
+ */
+const Uncounted = Type.Optional(Type.Literal(true))
+
 export const TileNode = Type.Union([
     Type.Object(
         {
             id: Identifier,
             kind: Type.Literal('city'),
             revenue: TileRevenue,
-            stationSlots: Type.Integer({ minimum: 0 })
+            stationSlots: Type.Integer({ minimum: 0 }),
+            uncounted: Uncounted
         },
         { additionalProperties: false }
     ),
@@ -58,7 +77,8 @@ export const TileNode = Type.Union([
         {
             id: Identifier,
             kind: Type.Union([Type.Literal('town'), Type.Literal('offboard')]),
-            revenue: TileRevenue
+            revenue: TileRevenue,
+            uncounted: Uncounted
         },
         { additionalProperties: false }
     ),
@@ -77,7 +97,13 @@ export const TilePath = Type.Object(
     {
         id: Identifier,
         endpoints: Type.Tuple([TileEndpoint, TileEndpoint]),
-        gauge: Type.Optional(TrackGauge)
+        gauge: Type.Optional(TrackGauge),
+        /**
+         * A route that reaches the path's stop along it ends there: it may start from the stop
+         * and leave along the path, but not arrive and run on, as at 1822's grey terminus
+         * cities (§5.4.4). The path joins one stop to a hex side or junction.
+         */
+        terminus: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )

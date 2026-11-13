@@ -43,12 +43,7 @@
             <Decisions {session} />
         {:else}
             {#if state.machineState === 'BuyingTrains'}<BuyingPrompts {session} />{/if}
-            <OperatingActions
-                {privateOperationDescription}
-                onFocusRoute={focusRoute}
-                {session}
-                {createRouteWorker}
-            >
+            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session}>
                 {#snippet titleMode()}<TitleModes {session} />{/snippet}
                 {#snippet purchasedTrain(trainId)}<TrainWarranties {session} {trainId} />{/snippet}
             </OperatingActions>

@@ -14,7 +14,9 @@
         onChooseTrain,
         onClearTrain,
         chosenTrainId,
-        label = 'Train income'
+        label = 'Train income',
+        attachments = [],
+        bonusName
     }: {
         money: MoneyFormat
         result: OperatingResult
@@ -27,7 +29,24 @@
         onClearTrain?: (trainId: string) => void
         chosenTrainId?: string
         label?: string
+        /** Rolling stock the company may attach to a train for the run, such as a Pullman. */
+        attachments?: readonly Train[]
+        /** Names what earned a route's bonus, so that each train's bonuses are listed under it. */
+        bonusName?: (sourceId: string) => string
     } = $props()
+    const attached = (trainIds: readonly string[] = []) =>
+        trainIds.flatMap((id) => attachments.find((train) => train.id === id) ?? [])
+    /** A route's bonuses by what earned them, those without a named source left to the total. */
+    function bonuses(route: OperatingResult['routes'][number] | undefined) {
+        if (!bonusName) return []
+        const totals = new Map<string, number>()
+        for (const bonus of route?.bonuses ?? []) {
+            if (!bonus.sourceIds) continue
+            const label = bonus.sourceIds.map(bonusName).join(' + ')
+            totals.set(label, (totals.get(label) ?? 0) + bonus.amount)
+        }
+        return [...totals].map(([label, amount]) => ({ label, amount }))
+    }
 </script>
 
 <table aria-label={label}>
@@ -56,7 +75,14 @@
                                 name={trainName(train.definitionId)}
                                 color={trainColors[train.definitionId]}
                                 obsolete={isObsoleteTrain(train)}
-                            />
+                            />{#each attached(route?.attachmentIds) as stock (stock.id)}<span
+                                    class="attached"
+                                    title={`${trainName(stock.definitionId)} attached`}
+                                    >+<TrainBadge
+                                        name={trainName(stock.definitionId)}
+                                        color={trainColors[stock.definitionId]}
+                                    /></span
+                                >{/each}
                         </span><span class="income">{money(route?.revenue ?? 0)}</span></button
                     >{#if onClearTrain && chosenTrainId === train.id}<button
                             class="clear"
@@ -69,6 +95,11 @@
                         >{/if}</td
                 >
             </tr>
+            {#each bonuses(route) as bonus (bonus.label)}
+                <tr class="bonus">
+                    <td>{bonus.label}</td><td class="income">incl. {money(bonus.amount)}</td>
+                </tr>
+            {/each}
         {:else}<tr><td colspan="2">No trains</td></tr>{/each}
     </tbody>
     <tfoot
@@ -109,6 +140,20 @@
         border-top: 1px solid var(--rail-border, #d6cbbc);
         padding-top: 3px;
         font-weight: 650;
+    }
+    .attached {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        margin-left: 3px;
+        color: var(--rail-muted, #817565);
+        font-weight: 600;
+    }
+    .bonus td {
+        padding: 0 0 2px 14px;
+        color: var(--rail-muted, #817565);
+        font-size: 11px;
+        line-height: 14px;
     }
     .route-focus {
         display: flex;

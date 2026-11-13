@@ -28,6 +28,15 @@ it('reaches every hex printed in the same area as a hex the route passes through
     ).toEqual([TestHomeLocationId, TestOpenLocationId])
 })
 
+it('reaches the station of a route that runs on no track', () => {
+    expect(
+        routeLocationIds(
+            [{ ...route, segments: [], start: { locationId: TestHomeLocationId, nodeId: 'city' } }],
+            { map: minimalRailwayMap }
+        )
+    ).toEqual([TestHomeLocationId])
+})
+
 it('reaches only the side of a split hex that the route or its joined area reaches', () => {
     const below = TileEdges.find(
         (edge) => minimalRailwayMap.neighbor(TestHomeLocationId, edge)?.id === TestOpenLocationId

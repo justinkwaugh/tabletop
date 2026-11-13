@@ -1,0 +1,25 @@
+# 1822 scenarios
+
+The dev harness lists the JSON files in this folder under **Scenarios** (see [harness scenarios](../../../../docs/harness-scenarios.md)). Each is a seeded bot game played to a position, written by `games/1822/src/scenarios.build.spec.ts`. Regenerate them all, after a change to the State or an Action, with:
+
+```bash
+cd games/1822 && SCENARIOS=1 pnpm exec vitest run src/scenarios.build.spec.ts
+```
+
+- **First stock round**: the bidding boxes filled, before any bid.
+- **Bids under way**: a stock turn with bids on several lots, some of them outbid.
+- **Concession to convert**: a player holding a concession, able to start its major company.
+- **Minors with L trains**: a minor company in phase 1 running its L-train from its station to a small station.
+- **L train at one station**: a minor company whose L-train runs at its station alone, on no track.
+- **Minors first turn**: a minor company as its first turn begins, able to buy an L-train.
+- **Metropolitan home**: the Metropolitan Railway as its first turn begins, choosing the London station its home stands beside.
+- **Major laying track**: a major company about to lay track in phase 3 or later.
+- **Private to acquire**: a company as its turn begins, able to take a private company from its director.
+- **Minor to acquire**: a major company that has bought its trains, able to acquire a minor company.
+- **Offer for a minor**: a major company's offer for a minor company another player directs, waiting on that director's answer.
+- **Pullman to attach**: a company running with a Pullman on one of its trains.
+- **Loan for a train**: a director who must borrow to buy their company a train.
+- **Directors certificate for sale**: a stock turn from phase 5, a director's certificate bought outright.
+- **E train running**: a company running an E-train.
+
+A position the builder does not reach can still be added by hand: play to it in the harness, use **Save as scenario**, move the downloaded file here, and describe it above.

@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 8, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
+        "version": 9, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,

@@ -168,11 +168,14 @@ export function cityIsBlocked(
     node: TileNode
 ): boolean {
     if (node.kind !== 'city' || node.stationSlots === 0) return false
+    // A station beside a full city, such as 1822's Metropolitan Railway in London, fills none
+    // of its spaces.
     const stations = state.stations.filter(
         (station) =>
             station.status === 'placed' &&
             station.position.locationId === locationId &&
-            station.position.nodeId === node.id
+            station.position.nodeId === node.id &&
+            station.position.slot < node.stationSlots
     )
     return (
         stations.length >= node.stationSlots &&

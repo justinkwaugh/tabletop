@@ -10,6 +10,13 @@ export interface RouteRevenueStop extends RoutePayment {
 export type PaidConnectionBonus = {
     from: Readonly<Record<string, number>>
     to: Readonly<Record<string, number>>
+    /** Where a location has several stops, the one of them that earns its amount. */
+    nodeIds?: Readonly<Record<string, string>>
+    /**
+     * One route of a run earns the bonus, the one it is worth most to, as one train a turn doubles
+     * an 1822 destination (§5.11.5). The bonus names its source.
+     */
+    oncePerRun?: true
     sourceId?: string
     arrowIds?: readonly string[]
     /** The destination counts only as a paid end of the route, such as a port it ends in. */
@@ -104,10 +111,12 @@ export function routeConnectionBonuses(
     shape?: RouteShape
 ): RouteBonus[] {
     return (policy.connectionBonuses ?? []).flatMap(
-        ({ from, to, sourceId, arrowIds, destinationAtEnd }) => {
+        ({ from, to, nodeIds, sourceId, arrowIds, destinationAtEnd }) => {
             const best = (values: Readonly<Record<string, number>>, atEnd?: true) =>
                 stops.reduce<RouteBonus | undefined>((selected, stop) => {
                     if (atEnd && !isEnd(stop, shape)) return selected
+                    const nodeId = nodeIds?.[stop.locationId]
+                    if (nodeId !== undefined && nodeId !== stop.nodeId) return selected
                     const amount = values[stop.locationId]
                     return amount !== undefined && (!selected || amount > selected.amount)
                         ? {

@@ -1,10 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
-import { HexOrientation, assert } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
-    RailwayMap,
-    TileSet,
-    TrainDepot,
     createCityTileFace as city,
     createTownTileFace as town,
     createTrackTileFace as track,
@@ -13,11 +10,10 @@ import {
     type TileEdge,
     type TileFace,
     type TrackGauge,
-    type TrainDistance,
-    type TrainRunningState,
-    type RouteRules
+    type TrainDistance
 } from '@tabletop/18xx'
 import { Autorouter, routeProblemKey } from './autorouter.js'
+import { linePosition as position } from './testing/linePosition.js'
 import { exhaustiveRevenue } from './testing/exhaustiveRevenue.js'
 
 let router: Autorouter
@@ -25,73 +21,6 @@ beforeAll(async () => {
     const bytes = await readFile(new URL('../esm/solver.wasm', import.meta.url))
     router = await Autorouter.create(new Uint8Array(bytes).buffer)
 })
-function position(
-    faces: TileFace[],
-    distances: TrainDistance[],
-    stopGroups: Readonly<Record<number, string>> = {},
-    routeRules: Partial<RouteRules> = {}
-) {
-    const tileSet = new TileSet({ id: 'empty', entries: [] }, [])
-    const depot = new TrainDepot({
-        id: 'test',
-        trains: distances.map((distance, id) => ({
-            id: String(id),
-            name: String(id),
-            price: 0,
-            distance
-        })),
-        supply: []
-    })
-    const rules: RouteRules = {
-        map: new RailwayMap({
-            id: 'test',
-            name: 'Test',
-            orientation: HexOrientation.Flat,
-            locations: faces.map((preprintedTile, r) => ({
-                id: String(r),
-                coordinates: { q: 0, r },
-                preprintedTile,
-                buildable: true,
-                ...(stopGroups[r] ? { stopGroup: stopGroups[r] } : {})
-            }))
-        }),
-        tileSet,
-        depot,
-        requiresCity: (train) => train.distance.measure === 'cities-and-offboards',
-        revenueStage: (state) => [state.phaseId],
-        ...routeRules
-    }
-    const state: TrainRunningState = {
-        bank: { name: 'Bank' },
-        companies: [{ id: 'A', name: 'A', kind: 'major', shareCount: 10 }],
-        cash: [],
-        certificates: [],
-        certificatePools: [],
-        stations: [
-            {
-                id: 'home',
-                companyId: 'A',
-                status: 'placed',
-                position: { locationId: '0', nodeId: 'city', slot: 0 }
-            }
-        ],
-        stationReservations: [],
-        tileInventory: tileSet.createInventory(),
-        trainInventory: {
-            depotId: 'test',
-            nextTrainNumber: 1,
-            trains: distances.map((_, id) => ({
-                id: String(id),
-                definitionId: String(id),
-                status: 'owned',
-                owner: { kind: 'company', companyId: 'A' }
-            }))
-        },
-        phaseId: 'yellow',
-        routeStep: { companyId: 'A' }
-    }
-    return { state, rules }
-}
 it('counts H crossings through corridors rather than revenue centers', () => {
     const { state, rules } = position(
         [

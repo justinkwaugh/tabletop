@@ -89,8 +89,9 @@ export function routeLocationIds(
             edges.some((reached) => side.includes(reached) === side.includes(edge))
         )
     }
-    const pending = routes.flatMap((route) =>
-        mapRouteTrack(route).map(({ locationId, pathId }) => {
+    const pending = routes.flatMap((route) => [
+        ...(route.start ? [{ locationId: route.start.locationId, edges: TileEdges }] : []),
+        ...mapRouteTrack(route).map(({ locationId, pathId }) => {
             if (!splitHexes[locationId]) return { locationId, edges: TileEdges }
             const path = map
                 .location(locationId)
@@ -101,7 +102,7 @@ export function routeLocationIds(
             )
             return { locationId, edges: sideOf(locationId, edges) }
         })
-    )
+    ])
     const reached = new Map<string, Set<TileEdge>>()
     for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
         const { locationId, edges } = next
@@ -518,8 +519,8 @@ export function createMapDrawing(
         const rotation = tile?.rotation ?? 0
         const layout = withSharedCityLayouts(
             placement ? placedTileLayout(layouts, placement.definitionId) : layouts[location.id],
-            sharedCityIds.map((id) =>
-                placement ? sharedCityLayouts[placement.definitionId]?.[id] : undefined
+            sharedCityIds.map(
+                (id) => sharedCityLayouts[placement ? placement.definitionId : location.id]?.[id]
             )
         )
         const separatedTowns =

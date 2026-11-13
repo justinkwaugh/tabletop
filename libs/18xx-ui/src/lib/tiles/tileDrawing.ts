@@ -9,6 +9,7 @@ import {
 import {
     rotateTileEdge,
     tileEdgeDirection,
+    type TileEdge,
     type TileEndpoint,
     type TileFace,
     type TileNode,
@@ -34,6 +35,8 @@ export const TileRadius = 50
 
 const OffboardSpikeReach = 0.6
 const PierReach = 0.6
+/** How far apart the parallel tracks crossing one hex side are drawn, centre to centre. */
+export const TrackLaneGap = 13
 
 export type TileLayout = {
     annotationExclusions?: readonly Point[]
@@ -44,6 +47,8 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /** Where the cost of upgrading the tile is printed, in place of the clearest spot found. */
+    upgradeCostPosition?: Point
     /**
      * Degrees clockwise to turn a city's row of station spaces off the tile's own axis, by node
      * id, such as to level a two-space city under a row of revenues.
@@ -75,6 +80,12 @@ export type TileLayout = {
     revenueCaptionsAfter?: boolean
     /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
     spikeReach?: number
+    /**
+     * Sides, before the tile's rotation, whose parallel tracks are drawn in the other order, so
+     * that tracks running side by side through a hex do not cross. The hex across each such side
+     * flips its own matching side, since a lane meets the same lane there.
+     */
+    flippedLaneEdges?: readonly TileEdge[]
 }
 
 export type TilePrintedToken = {
@@ -196,6 +207,32 @@ export function createTileDrawing(
         centers.set(node.id, orientPoint(position, angle))
     }
 
+    // The parallel tracks each side carries: one unless some track names a further lane there.
+    const laneCounts = new Map<TileEdge, number>()
+    for (const endpoint of face.paths.flatMap((path) => path.endpoints))
+        if (endpoint.kind === 'edge')
+            laneCounts.set(
+                endpoint.edge,
+                Math.max(laneCounts.get(endpoint.edge) ?? 1, (endpoint.lane ?? 0) + 1)
+            )
+    const laned = (path: TilePath) =>
+        path.endpoints.some(
+            (endpoint) => endpoint.kind === 'edge' && (laneCounts.get(endpoint.edge) ?? 1) > 1
+        )
+    function sideMiddle(edge: TileEdge): { middle: Point; along: Point } {
+        const index =
+            orientation === HexOrientation.Flat
+                ? ClockwiseFlatHexDirections.indexOf(tileEdgeDirection(edge, orientation))
+                : ClockwisePointyHexDirections.indexOf(tileEdgeDirection(edge, orientation))
+        const a = geometry.vertices[index]
+        const b = geometry.vertices[(index + 1) % 6]
+        const length = Math.hypot(b.x - a.x, b.y - a.y)
+        return {
+            middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+            along: { x: (b.x - a.x) / length, y: (b.y - a.y) / length }
+        }
+    }
+
     function endpointPosition(endpoint: TileEndpoint): Point {
         if (endpoint.kind === 'node') {
             const center = centers.get(endpoint.nodeId)
@@ -203,17 +240,36 @@ export function createTileDrawing(
             return center
         }
         const edge = rotateTileEdge(endpoint.edge, rotation)
-        const index =
-            orientation === HexOrientation.Flat
-                ? ClockwiseFlatHexDirections.indexOf(tileEdgeDirection(edge, orientation))
-                : ClockwisePointyHexDirections.indexOf(tileEdgeDirection(edge, orientation))
-        const a = geometry.vertices[index]
-        const b = geometry.vertices[(index + 1) % 6]
-        return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+        const { middle, along } = sideMiddle(edge)
+        const lanes = laneCounts.get(endpoint.edge) ?? 1
+        if (lanes === 1) return middle
+        // Opposite sides run opposite ways round the hex, so each side of a border orders its
+        // lanes the other way and a lane meets itself across it.
+        const order =
+            (edge < 3 ? -1 : 1) * (layout.flippedLaneEdges?.includes(endpoint.edge) ? -1 : 1)
+        const offset = order * ((endpoint.lane ?? 0) - (lanes - 1) / 2) * TrackLaneGap
+        return { x: middle.x + along.x * offset, y: middle.y + along.y * offset }
+    }
+    /** A control point straight in from a side, for track that leaves it at a right angle. */
+    function squareControl(endpoint: TileEndpoint, point: Point, distance: number): Point {
+        if (endpoint.kind !== 'edge') return point
+        const { middle } = sideMiddle(rotateTileEdge(endpoint.edge, rotation))
+        const length = Math.hypot(middle.x, middle.y)
+        return {
+            x: point.x - (middle.x / length) * distance,
+            y: point.y - (middle.y / length) * distance
+        }
     }
 
     function plainPath(path: TilePath, start: Point, end: Point): TileDrawnPath {
         const hint = layout.pathControls?.[path.id]
+        if (!hint && laned(path)) {
+            const reach = Math.hypot(end.x - start.x, end.y - start.y) * 0.45
+            return createCubicTilePath(path.id, start, end, [
+                squareControl(path.endpoints[0], start, reach),
+                squareControl(path.endpoints[1], end, reach)
+            ])
+        }
         if (!hint && path.endpoints.every((endpoint) => endpoint.kind === 'edge'))
             return createEdgeTilePath(path.id, start, end)
         const handleLength = Math.hypot(end.x - start.x, end.y - start.y) * 0.45
@@ -455,14 +511,9 @@ export function createTileDrawing(
         markerRadius
     )
     if (face.symbols?.length) occupied.push(symbolPosition)
-    const upgradeCostPosition = annotationPosition(
-        paths,
-        occupied,
-        31,
-        undefined,
-        undefined,
-        markerRadius
-    )
+    const upgradeCostPosition = layout.upgradeCostPosition
+        ? orientPoint(layout.upgradeCostPosition, angle)
+        : annotationPosition(paths, occupied, 31, undefined, undefined, markerRadius)
     return {
         polygon: geometry.vertices.map((point) => `${point.x},${point.y}`).join(' '),
         citySlotRadius,

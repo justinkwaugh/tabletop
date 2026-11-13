@@ -31,7 +31,7 @@ export const StartCompany = Type.Object(
         buyer: Owner,
         companyId: Type.String(),
         marketSpaceId: Type.String(),
-        expectedPrice: Type.Integer({ minimum: 1 }),
+        expectedPrice: Type.Integer({ minimum: 0 }),
         home: Type.Optional(
             Type.Object(
                 { locationId: Type.String(), nodeId: Type.String() },

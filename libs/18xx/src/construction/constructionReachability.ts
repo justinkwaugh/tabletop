@@ -2,16 +2,16 @@ import { assertExists } from '@tabletop/common'
 import type { RailwayMapState } from '../map/mapState.js'
 import { cityIsBlocked, companyStationCenters, type StationState } from '../map/station.js'
 import type { RevenueCenter } from '../routes/route.js'
-import type { TileEdge, TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
+import type { TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
 import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
 import { continueStretch, type RunningGauge, type StretchGauge } from '../tiles/trackGauge.js'
-import { reachRoutes } from './routeReach.js'
+import { reachRoutes, type EdgeEndpoint } from './routeReach.js'
 
 export type ConstructionConnections = { paths: ReadonlySet<string>; nodes: ReadonlySet<string> }
 
 export class ConstructionReachability {
     private readonly reachable = new Set<string>()
-    private readonly entries = new Map<string, { edge: TileEdge; gauge: RunningGauge }[]>()
+    private readonly entries = new Map<string, { endpoint: EdgeEndpoint; gauge: RunningGauge }[]>()
 
     constructor(
         mapState: RailwayMapState,
@@ -35,11 +35,11 @@ export class ConstructionReachability {
             this.blocked(stations),
             {
                 reached: (locationId) => this.reachable.add(locationId),
-                entered: (locationId, edge, gauge) => {
+                entered: (locationId, endpoint, gauge) => {
                     this.reachable.add(locationId)
                     this.entries.set(locationId, [
                         ...(this.entries.get(locationId) ?? []),
-                        { edge, gauge }
+                        { endpoint, gauge }
                     ])
                 }
             }
@@ -61,8 +61,8 @@ export class ConstructionReachability {
         const blocked = this.blocked(stations)
         type Arrival = { endpoint: TileEndpoint; gauge: StretchGauge }
         const queue: Arrival[] = [
-            ...(this.entries.get(locationId) ?? []).map(({ edge, gauge }): Arrival => ({
-                endpoint: { kind: 'edge', edge },
+            ...(this.entries.get(locationId) ?? []).map(({ endpoint, gauge }): Arrival => ({
+                endpoint,
                 gauge
             })),
             ...this.origins(stations)
@@ -77,7 +77,7 @@ export class ConstructionReachability {
         const nodes = new Set<string>()
         for (let index = 0; index < queue.length; index++) {
             const { endpoint, gauge } = queue[index]
-            const key = `${endpoint.kind === 'edge' ? `e${endpoint.edge}` : `n${endpoint.nodeId}`} ${gauge}`
+            const key = `${endpoint.kind === 'edge' ? `e${endpoint.edge}/${endpoint.lane ?? 0}` : `n${endpoint.nodeId}`} ${gauge}`
             if (visited.has(key)) continue
             visited.add(key)
             if (endpoint.kind === 'node') {

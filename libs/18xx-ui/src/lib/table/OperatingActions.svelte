@@ -25,13 +25,11 @@
     import { prefersReducedMotion } from 'svelte/motion'
     let {
         session,
-        createRouteWorker,
         onFocusRoute,
         privateOperationDescription,
         titleMode,
         purchasedTrain
     }: {
-        createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         privateOperationDescription: (id: string, companyId: string) => string | undefined
         session: EighteenXXSessionView
@@ -91,7 +89,6 @@
             /><ProjectedRun {session} {onFocusRoute} />
         {:else if gameState.machineState === 'RunningTrains'}<AutomaticRoutes
                 {session}
-                {createRouteWorker}
                 {onFocusRoute}
                 {trainColors}
             />

@@ -305,7 +305,37 @@
                     <dt>Net worth</dt>
                     <dd>{money(player.netWorth)}</dd>
                 </dl>
+                {#each player.playerId ? (session.presentation.playerFacts?.(session.gameState, player.playerId) ?? []) : [] as fact (fact.label)}
+                    <span class="stat-divider" aria-hidden="true"></span>
+                    <dl>
+                        <dt>{fact.label}</dt>
+                        <dd>{fact.value}</dd>
+                    </dl>
+                {/each}
             </div>
+            {#if player.playerId && session.bidBoxes.available}
+                {@const bids = session.bidBoxes.playerBids(player.playerId)}
+                {#if bids.length}
+                    <section class="auction-lot" aria-label={`${player.name} bids`}>
+                        <h4>
+                            Bids · {session.bidBoxes.tokensFree(player.playerId)} of
+                            {session.bidBoxes.tokens(player.playerId)} tokens free
+                        </h4>
+                        <table>
+                            <tbody>
+                                {#each bids as bid (bid.lotId)}
+                                    <tr class:outbid={!bid.leading}>
+                                        <th scope="row">{session.companyName(bid.lotId)}</th>
+                                        <td class="amount"
+                                            >{money(bid.amount)}{bid.leading ? '' : ' outbid'}</td
+                                        >
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    </section>
+                {/if}
+            {/if}
             {#if player.playerId && playerAuctionLots?.byPlayer.has(player.playerId)}
                 {@const heading = playerAuctionLots.kind === 'bids' ? 'Bids' : 'Auction lot'}
                 <section class="auction-lot" aria-label={`${player.name} ${heading.toLowerCase()}`}>
@@ -847,6 +877,9 @@
     .president th,
     .president .amount {
         font-weight: 700;
+    }
+    .auction-lot tr.outbid {
+        color: var(--rail-muted, #887664);
     }
     .auction-lot + section,
     .privates {

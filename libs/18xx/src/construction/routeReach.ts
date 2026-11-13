@@ -1,11 +1,14 @@
 import { assertExists } from '@tabletop/common'
 import type { RailwayMap } from '../map/map.js'
 import type { RevenueCenter } from '../routes/route.js'
-import type { TileEdge, TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
+import type { TileEdge, TileEndpoint, TileFace, TileNode, TilePath } from '../tiles/tile.js'
+import { sameTileEndpoint, terminusNodeId } from '../tiles/topology.js'
 import { pathRunningGauges, type RunningGauge } from '../tiles/trackGauge.js'
 
+export type EdgeEndpoint = Extract<TileEndpoint, { kind: 'edge' }>
+
 export type RouteVisitor = {
-    entered?(locationId: string, edge: TileEdge, gauge: RunningGauge): void
+    entered?(locationId: string, endpoint: EdgeEndpoint, gauge: RunningGauge): void
     reached?(locationId: string, endpoint: TileEndpoint): void
     used?(locationId: string, pathId: string): void
     blocked?(locationId: string, node: TileNode): void
@@ -17,14 +20,22 @@ type Stop = {
     pair: [number, number]
     passable: boolean
     track: number[]
+    // Where a route that reaches the stop along terminus track ends, once any such track exists.
+    arrival?: [number, number]
+    // The stop's terminus track, each by the vertex a route leaves the stop along it from.
+    departures: number[]
 }
 type Side = {
     locationId: string
-    edge: TileEdge
+    endpoint: EdgeEndpoint
     gauge: RunningGauge
     // The vertex across this side's matched edge; a route reaches it by reaching the side.
     beyond: number
-    into?: { locationId: string; edge: TileEdge; tracked: boolean }
+    into?: { locationId: string; endpoint: EdgeEndpoint; tracked: boolean }
+}
+
+function edgeEndpoint(edge: TileEdge, lane: number | undefined): EdgeEndpoint {
+    return lane ? { kind: 'edge', edge, lane } : { kind: 'edge', edge }
 }
 
 // Finds everything a legal route from the origins can reach: no stop, track or hex side used twice,
@@ -42,11 +53,16 @@ type Side = {
 //   dual track between two of them is a pair for each gauge, so a route keeps its gauge along it;
 // - the start joins the first vertex of each origin's pair, so a route leaves an origin unless it
 //   is blocked; an offboard origin, which no route may pass, has a matched pair of its own for
-//   leaving by its track.
+//   leaving by its track;
+// - terminus track is two pairs: one a route arrives along, ending at a matched pair of the stop's
+//   that leads nowhere, and one a route leaves along, joined to a matched pair of its own that the
+//   start joins once a route may leave the stop that way: from an origin, or from a stop a route
+//   reaches by other track and may pass. A hex side's parallel lanes are sides of their own.
 // A vertex is reached by an alternating path ending in its matched edge exactly when Edmonds' search
 // from the start labels it outer. Where gauges mix, the pairs for each gauge let a route use the same
 // dual track or hex side once on each gauge, so reach may overstate what a route can use where
-// track of both gauges meets at one hex side or junction.
+// track of both gauges meets at one hex side or junction. A route that passes a stop to leave along
+// its terminus track is not checked against the track it came by, so reach may overstate there too.
 export function reachRoutes(
     map: RailwayMap,
     face: (locationId: string) => TileFace,
@@ -61,44 +77,52 @@ export function reachRoutes(
     const sides: Side[] = []
     const paths: { locationId: string; pathId: string; ends: [number, number] }[] = []
 
-    const tracked = (locationId: string, edge: TileEdge, gauge: RunningGauge) =>
+    const tracked = (locationId: string, endpoint: EdgeEndpoint, gauge: RunningGauge) =>
         face(locationId).paths.some(
             (path) =>
                 pathRunningGauges(path).includes(gauge) &&
-                path.endpoints.some((end) => end.kind === 'edge' && end.edge === edge)
+                path.endpoints.some((end) => sameTileEndpoint(end, endpoint))
         )
 
-    const sideVertex = (locationId: string, edge: TileEdge, gauge: RunningGauge): number => {
-        const existing = sideVertices.get(`${locationId} ${edge} ${gauge}`)
+    const sideKey = (locationId: string, endpoint: EdgeEndpoint, gauge: RunningGauge) =>
+        `${locationId} ${endpoint.edge}/${endpoint.lane ?? 0} ${gauge}`
+
+    const sideVertex = (
+        locationId: string,
+        endpoint: EdgeEndpoint,
+        gauge: RunningGauge
+    ): number => {
+        const existing = sideVertices.get(sideKey(locationId, endpoint, gauge))
         if (existing !== undefined) return existing
         const vertex = graph.vertex()
         const beyond = graph.vertex()
         graph.match(vertex, beyond)
-        sideVertices.set(`${locationId} ${edge} ${gauge}`, vertex)
-        const crossing = map.across(locationId, edge)
+        sideVertices.set(sideKey(locationId, endpoint, gauge), vertex)
+        const crossing = map.across(locationId, endpoint.edge)
         if (!crossing) {
-            sides.push({ locationId, edge, gauge, beyond })
+            sides.push({ locationId, endpoint, gauge, beyond })
             return vertex
         }
         const into = crossing.location.id
-        sideVertices.set(`${into} ${crossing.edge} ${gauge}`, beyond)
+        const opposite = edgeEndpoint(crossing.edge, endpoint.lane)
+        sideVertices.set(sideKey(into, opposite, gauge), beyond)
         sides.push({
             locationId,
-            edge,
+            endpoint,
             gauge,
             beyond,
             into: {
                 locationId: into,
-                edge: crossing.edge,
-                tracked: tracked(into, crossing.edge, gauge)
+                endpoint: opposite,
+                tracked: tracked(into, opposite, gauge)
             }
         })
         sides.push({
             locationId: into,
-            edge: crossing.edge,
+            endpoint: opposite,
             gauge,
             beyond: vertex,
-            into: { locationId, edge, tracked: tracked(locationId, edge, gauge) }
+            into: { locationId, endpoint, tracked: tracked(locationId, endpoint, gauge) }
         })
         return vertex
     }
@@ -119,15 +143,24 @@ export function reachRoutes(
         if (existing) return existing
         const pair: [number, number] = [graph.vertex(), graph.vertex()]
         graph.match(...pair)
-        const created = {
+        const created: Stop = {
             center: { locationId, nodeId },
             node: stopNode,
             pair,
             passable: stopNode.kind !== 'offboard' && !blocked(locationId, stopNode),
-            track: []
+            track: [],
+            departures: []
         }
         stops.set(key, created)
         return created
+    }
+
+    const arrival = (reached: Stop): [number, number] => {
+        if (!reached.arrival) {
+            reached.arrival = [graph.vertex(), graph.vertex()]
+            graph.match(...reached.arrival)
+        }
+        return reached.arrival
     }
 
     const attach = (
@@ -138,7 +171,7 @@ export function reachRoutes(
     ) => {
         for (const gauge of gauges) {
             if (end.kind === 'edge') {
-                graph.join(vertex, sideVertex(locationId, end.edge, gauge))
+                graph.join(vertex, sideVertex(locationId, end, gauge))
                 continue
             }
             const { node, pair, passable, track } = stop(locationId, end.nodeId, gauge)
@@ -147,6 +180,29 @@ export function reachRoutes(
             if (passable) graph.join(vertex, pair[1])
             if (node.kind !== 'junction') return
         }
+    }
+
+    // The path's own pair is the track a route arrives along; a second pair leaves the stop.
+    const attachTerminus = (
+        locationId: string,
+        path: TilePath,
+        terminusId: string,
+        ends: [number, number],
+        gauges: readonly RunningGauge[]
+    ) => {
+        const stopIndex = path.endpoints.findIndex(
+            (end) => end.kind === 'node' && end.nodeId === terminusId
+        )
+        const far = path.endpoints[1 - stopIndex]
+        assertExists(far, 'Terminus track has a far end')
+        const reached = stop(locationId, terminusId, gauges[0])
+        attach(ends[1 - stopIndex], locationId, far, gauges)
+        graph.join(ends[stopIndex], arrival(reached)[0])
+        const leaving: [number, number] = [graph.vertex(), graph.vertex()]
+        graph.match(...leaving)
+        attach(leaving[1], locationId, far, gauges)
+        reached.departures.push(leaving[0])
+        paths.push({ locationId, pathId: path.id, ends: leaving })
     }
 
     const atStop = (locationId: string, end: TileEndpoint) =>
@@ -159,32 +215,55 @@ export function reachRoutes(
                 gauges.length > 1 && !path.endpoints.some((end) => atStop(locationId, end))
                     ? gauges.map((gauge) => [gauge])
                     : [gauges]
+            const terminusId = terminusNodeId(path)
             for (const layer of layers) {
                 // ends[i] joins the path's endpoint i.
                 const ends: [number, number] = [graph.vertex(), graph.vertex()]
                 graph.match(...ends)
-                attach(ends[0], locationId, path.endpoints[0], layer)
-                attach(ends[1], locationId, path.endpoints[1], layer)
                 paths.push({ locationId, pathId: path.id, ends })
+                if (terminusId === undefined) {
+                    attach(ends[0], locationId, path.endpoints[0], layer)
+                    attach(ends[1], locationId, path.endpoints[1], layer)
+                    continue
+                }
+                attachTerminus(locationId, path, terminusId, ends, layer)
             }
         }
     }
-    for (const { locationId, nodeId } of origins) {
-        const origin = stop(locationId, nodeId, 'standard')
-        graph.join(start, origin.pair[0])
-        if (origin.node.kind !== 'offboard') continue
+    const exits = new Set<number>()
+    const openExit = (vertices: readonly number[]) => {
+        const fresh = vertices.filter((vertex) => !exits.has(vertex))
+        if (!fresh.length) return false
         const entry = graph.vertex()
         const exit = graph.vertex()
         graph.match(entry, exit)
         graph.join(start, entry)
-        for (const vertex of origin.track) graph.join(exit, vertex)
+        for (const vertex of fresh) {
+            graph.join(exit, vertex)
+            exits.add(vertex)
+        }
+        return true
+    }
+    for (const { locationId, nodeId } of origins) {
+        const origin = stop(locationId, nodeId, 'standard')
+        graph.join(start, origin.pair[0])
+        openExit([...(origin.node.kind === 'offboard' ? origin.track : []), ...origin.departures])
     }
 
-    const outer = graph.outerFrom(start)
+    let outer = graph.outerFrom(start)
+    // A stop a route reaches by other track and may pass can be left along its terminus track.
+    for (;;) {
+        const opened = [...stops.values()].filter(
+            ({ pair, passable, departures }) =>
+                passable && (outer[pair[0]] || outer[pair[1]]) && openExit(departures)
+        )
+        if (!opened.length) break
+        outer = graph.outerFrom(start)
+    }
 
     const reachedNodes = new Set<string>()
-    for (const { center, node, pair, passable } of stops.values()) {
-        if (!outer[pair[0]] && !outer[pair[1]]) continue
+    for (const { center, node, pair, passable, arrival: ended } of stops.values()) {
+        if (!outer[pair[0]] && !outer[pair[1]] && !(ended && outer[ended[1]])) continue
         const key = `${center.locationId} ${center.nodeId}`
         if (reachedNodes.has(key)) continue
         reachedNodes.add(key)
@@ -194,12 +273,12 @@ export function reachRoutes(
     for (const { locationId, pathId, ends } of paths) {
         if (outer[ends[0]] || outer[ends[1]]) visitor.used?.(locationId, pathId)
     }
-    for (const { locationId, edge, gauge, beyond, into } of sides) {
+    for (const { locationId, endpoint, gauge, beyond, into } of sides) {
         if (!outer[beyond]) continue
-        visitor.reached?.(locationId, { kind: 'edge', edge })
+        visitor.reached?.(locationId, endpoint)
         if (!into) continue
-        visitor.entered?.(into.locationId, into.edge, gauge)
-        if (into.tracked) visitor.reached?.(into.locationId, { kind: 'edge', edge: into.edge })
+        visitor.entered?.(into.locationId, into.endpoint, gauge)
+        if (into.tracked) visitor.reached?.(into.locationId, into.endpoint)
     }
 }
 

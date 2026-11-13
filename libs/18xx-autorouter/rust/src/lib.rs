@@ -56,6 +56,7 @@ struct Arc {
     junctions: Vec<usize>,
     path: usize,
     hex: usize,
+    /// A route that follows the arc to its stop ends there; the reverse arc leaves the stop freely.
     terminal: bool,
     crossings: u32,
     #[serde(default)]
@@ -661,7 +662,7 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 8
+    if problem.version != 9
         || !problem.budget_ms.is_finite()
         || problem.budget_ms <= 0.0
         || problem.memory_budget_bytes == 0
@@ -698,7 +699,6 @@ fn validate(problem: &Problem) -> Result<(), String> {
             || arc.junctions != reverse.junctions
             || arc.path != reverse.path
             || arc.hex != reverse.hex
-            || arc.terminal != reverse.terminal
             || arc
                 .next
                 .iter()
@@ -2466,7 +2466,7 @@ mod tests {
         fn new() -> Self {
             Self {
                 problem: serde_json::from_value(serde_json::json!({
-                    "version": 8, "stops": [], "arcs": [], "trains": [],
+                    "version": 9, "stops": [], "arcs": [], "trains": [],
                     "resource_count": 130, "junction_count": 0, "group_count": 0,
                     "hex_bonuses": [], "budget_ms": 30000, "memory_budget_bytes": 65536,
                 }))

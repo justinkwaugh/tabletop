@@ -13,6 +13,39 @@ export function sameStopCounts(before: TileFace, after: TileFace): boolean {
 }
 
 /**
+ * A face without some of its stops, as a replacement that removes them must keep it: track that
+ * ran through a removed stop still runs between its other ends, and track that only joined a
+ * removed stop to another stop is gone with it.
+ */
+export function withoutStops(face: TileFace, removedNodeIds: readonly string[]): TileFace {
+    if (!removedNodeIds.length) return face
+    const removed = (end: TileEndpoint) =>
+        end.kind === 'node' && removedNodeIds.includes(end.nodeId)
+    const through = removedNodeIds.flatMap((nodeId) => {
+        const ends = face.paths.flatMap((path) => {
+            const [a, b] = path.endpoints
+            if (a.kind === 'node' && a.nodeId === nodeId) return removed(b) ? [] : [b]
+            if (b.kind === 'node' && b.nodeId === nodeId) return removed(a) ? [] : [a]
+            return []
+        })
+        return ends.flatMap((from, index) =>
+            ends
+                .slice(index + 1)
+                .flatMap((to): TilePath[] =>
+                    from.kind === 'edge' && to.kind === 'edge'
+                        ? [{ id: `${nodeId}:${index}:${ends.indexOf(to)}`, endpoints: [from, to] }]
+                        : []
+                )
+        )
+    })
+    return {
+        ...face,
+        nodes: face.nodes.filter((node) => !removedNodeIds.includes(node.id)),
+        paths: [...face.paths.filter((path) => !path.endpoints.some(removed)), ...through]
+    }
+}
+
+/**
  * The node mappings preserving a tile's track and stops; ``townsBecomeCities`` lets a town map
  * onto a city, as when a title promotes a town within its colour.
  */

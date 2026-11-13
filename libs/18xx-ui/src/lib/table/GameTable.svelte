@@ -13,8 +13,10 @@
         saveTableWorkspace
     } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
-    import { trainRouteOverlays } from '../routes/routePresentation.js'
-    import { LatestRouteSolver, type RouteWorker } from '../routes/latestRouteSolver.js'
+    import { runLocationIds, trainRouteOverlays } from '../routes/routePresentation.js'
+    import { LatestRouteSolver } from '../routes/latestRouteSolver.js'
+    import type { QueuedRouteWorker } from '../routes/routeSolveQueue.js'
+    import { provideTableRouteSolver } from '../routes/tableRouteSolver.js'
     import TableNotices from './TableNotices.svelte'
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
@@ -135,7 +137,7 @@
             privateCompanyId: string,
             companyId: string
         ) => string | undefined
-        createRouteWorker: () => RouteWorker
+        createRouteWorker: () => QueuedRouteWorker
         /** The title's own panel on the board, given a way to reveal a hex on the map. */
         boardPanel?: { label: string; content: Snippet<[(locationId: string) => void]> }
     } = $props()
@@ -302,7 +304,7 @@
         )?.routes.find((route) => route.trainId === trainId)
         if (!route) return
         void toggleMapFocus({ key: `route:${trainId}` }, () =>
-            focusLocations([...new Set(route.paths.map((path) => path.locationId))])
+            focusLocations(runLocationIds([route]))
         )
     }
     function previewHistoryMap(action: GameAction) {
@@ -535,11 +537,8 @@
             showMap()
             void tick().then(() => {
                 if (current !== request) return
-                const locations = preview.result.routes.flatMap((route) =>
-                    route.paths.map((path) => path.locationId)
-                )
                 restoreRouteView ??= captureMaps()
-                autoFocusLocations([...new Set(locations)])
+                autoFocusLocations(runLocationIds(preview.result.routes))
             })
         }
         frame(initial)
@@ -620,8 +619,9 @@
               : session.projectedRun.overlays
         return settledRoutes
     })
+    const routeSolver = provideTableRouteSolver(() => createRouteWorker())
     function projectRuns(_table: HTMLElement, request: typeof session.projectedRun.request) {
-        const solver = new LatestRouteSolver<NonNullable<typeof request>>(createRouteWorker, {
+        const solver = new LatestRouteSolver<NonNullable<typeof request>>(routeSolver, {
             solved: (solved, solution) => session.projectedRun.setSolved(solved, solution),
             failed: (failed) => session.projectedRun.setFailed(failed)
         })

@@ -45,6 +45,10 @@ export class RouteEditor {
     get trains() {
         return this.companyId ? this.evaluation.runnableTrains(this.companyId) : []
     }
+    /** Rolling stock the company may attach to its trains for the run, such as a Pullman. */
+    get attachments() {
+        return this.companyId ? this.evaluation.attachments(this.companyId) : []
+    }
     get draft(): RouteDraft | undefined {
         return getStagedSelectionValue<Stages, 'draft'>(this.#stages, 'draft')
     }

@@ -218,11 +218,13 @@ export class StationPlacement {
     private hexSpaces(companyId: string, locationId: string): number {
         return this.mapState.tile(locationId).face.nodes.reduce((total, node) => {
             if (node.kind !== 'city') return total
+            // A station beside a full city takes none of its spaces.
             const placed = this.state.stations.filter(
                 (station) =>
                     station.status === 'placed' &&
                     station.position.locationId === locationId &&
-                    station.position.nodeId === node.id
+                    station.position.nodeId === node.id &&
+                    station.position.slot < node.stationSlots
             ).length
             const reserved = new Set(
                 this.state.stationReservations

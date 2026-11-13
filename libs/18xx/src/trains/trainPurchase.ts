@@ -30,6 +30,11 @@ export interface TrainRules {
     trainLimit(state: TrainPurchaseState, companyId: string): number
     countsForLimit?(state: TrainPurchaseState, train: Train): boolean
     /**
+     * Whether a train is one a company must own; every train unless the title says, as 1822's
+     * permanent 2-trains and Pullmans leave their company still obliged to buy one (§5.5.13).
+     */
+    satisfiesRequirement?(state: TrainPurchaseState, train: Train): boolean
+    /**
      * Why the company may not take on a train of this definition beyond ``trainLimit``, as limits
      * for each kind of train do (1862); judged before any depot or intercompany purchase.
      */
@@ -40,8 +45,12 @@ export interface TrainRules {
     ): string | undefined
     marketDefinitions?(state: TrainPurchaseState, train: Train): readonly string[]
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
-    /** Where a train given in exchange goes: the open market unless the title removes it. */
-    exchangedTrainDestination?: TrainDestination
+    /**
+     * Where a train given in exchange goes: the open market unless the title removes it, or back
+     * into the depot's supply where the exchange turns one certificate over, as an 1822 L train
+     * flipped to its 2 side (§5.5.7).
+     */
+    exchangedTrainDestination?: TrainDestination | 'depot'
     /** The open privates that close when the company acquires a train by any purchase. */
     privatesClosedByPurchase?(state: TrainPurchaseState, companyId: string): readonly string[]
     /** Records the title's consequences of trains departing, returning what the bank pays. */
@@ -49,6 +58,16 @@ export interface TrainRules {
         state: TrainPurchaseState,
         departures: readonly TrainDeparture[]
     ): DeparturePayment[]
+}
+/** Whether the company owns a train of the kind it is required to own. */
+export function ownsRequiredTrain(
+    state: TrainPurchaseState,
+    rules: Pick<TrainRules, 'satisfiesRequirement'>,
+    companyId: string
+): boolean {
+    return trainsOwnedBy(state, { kind: 'company', companyId }).some(
+        (train) => rules.satisfiesRequirement?.(state, train) ?? true
+    )
 }
 export function trainsCountingForLimit(
     state: TrainPurchaseState,

@@ -42,6 +42,8 @@ import {
     isReserveBid,
     isRaiseAuctionBid,
     isContributeTrainFunds,
+    isPlaceBids,
+    isSettleBidBoxes,
     isFundTrain,
     isSellFundingShares,
     isIssueTreasuryShares,
@@ -81,6 +83,7 @@ import {
     isPlaceHomeStations,
     type DeparturePayment,
     type Owner,
+    type PlacedBid,
     type PresidencyChange,
     type CashPayment,
     type EighteenXXState,
@@ -731,12 +734,56 @@ function describeShared(
             text: `${isReserveBid(action) ? 'Reserved bid on' : 'Bid on'} ${lotName(action.lotId)}`,
             value: money(action.amount)
         }
-    if (isContributeTrainFunds(action))
+    if (isContributeTrainFunds(action)) {
+        const borrowed = action.metadata?.borrowed
         return {
             text: `Contributed ${money(action.amount)} toward the train`,
             ledgerText: 'Contributed toward the train',
+            ...(borrowed ? { detail: `Borrowed ${money(borrowed)} of it` } : {}),
             important: true
         }
+    }
+    if (isPlaceBids(action)) {
+        const placed: readonly PlacedBid[] = action.metadata?.bids ?? action.bids
+        const [only] = placed
+        const bidDetail = (bid: PlacedBid) =>
+            joinDetails(
+                bid.raisedFrom !== undefined ? `raised from ${money(bid.raisedFrom)}` : undefined,
+                bid.outbid
+                    ? `over ${playerName(bid.outbid.playerId)}’s ${money(bid.outbid.amount)}`
+                    : undefined
+            )
+        if (placed.length === 1 && only)
+            return {
+                text: `Bid on ${lotName(only.lotId)}`,
+                value: money(only.amount),
+                detail: bidDetail(only)
+            }
+        return {
+            text: `Placed ${placed.length} bids`,
+            detail: placed
+                .map((bid) => {
+                    const detail = bidDetail(bid)
+                    return `${lotName(bid.lotId)} ${money(bid.amount)}${detail ? ` (${detail})` : ''}`
+                })
+                .join(' · ')
+        }
+    }
+    if (isSettleBidBoxes(action)) {
+        const awards = action.metadata?.awards ?? []
+        return {
+            text: 'Settled the bidding boxes',
+            detail: awards.length
+                ? awards
+                      .map(
+                          (award) =>
+                              `${playerName(award.playerId)} bought ${lotName(award.lotId)} for ${money(award.amount)}`
+                      )
+                      .join(' · ')
+                : 'Nothing had a bid',
+            important: true
+        }
+    }
     if (isFundTrain(action))
         return {
             text: action.metadata?.voluntary ? 'Helped buy a train' : 'Must buy a train',

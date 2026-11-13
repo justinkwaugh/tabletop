@@ -1,20 +1,20 @@
 <script lang="ts">
-    import type { AutoroutingRequest, AutoroutingResponse } from '@tabletop/18xx-autorouter'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type { PendingRouteAnswer } from './routeSolveQueue.js'
+    import { tableRouteSolver } from './tableRouteSolver.js'
     import TrainRunTable from './TrainRunTable.svelte'
 
     let {
         session,
-        createRouteWorker,
         onFocusRoute,
         trainColors
     }: {
         session: EighteenXXSessionView
-        createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         trainColors: Readonly<Record<string, string>>
     } = $props()
     const money = $derived(session.presentation.money)
+    const solver = tableRouteSolver()
     let error = $state<string>()
     let attempt = $state(0)
     const routes = $derived(session.routes)
@@ -33,57 +33,38 @@
         attempt
     })
     function solveRoutes(_section: HTMLElement, initial: RouteSolve) {
-        let worker: Worker | undefined
+        let pending: PendingRouteAnswer | undefined
         function start({ gameState, companyId }: RouteSolve) {
-            worker?.terminate()
-            worker = undefined
+            pending?.cancel()
+            pending = undefined
             if (!companyId || session.routes.solved) return
             error = undefined
-            try {
-                const solver = createRouteWorker()
-                worker = solver
-                solver.onmessage = (event: MessageEvent<AutoroutingResponse>) => {
-                    if (worker !== solver) return
-                    if (event.data.error !== undefined) error = event.data.error
-                    else {
-                        try {
-                            session.routes.setSolved(
-                                gameState,
-                                event.data.result.result,
-                                event.data.result.exhaustive
-                            )
-                        } catch (failure) {
-                            error =
-                                failure instanceof Error
-                                    ? failure.message
-                                    : 'Route calculation failed.'
-                        }
-                    }
-                    solver.terminate()
+            const asked = solver.ask({ state: session.gameState.dehydrate(), companyId })
+            pending = asked
+            void asked.answer.then((response) => {
+                if (pending !== asked) return
+                pending = undefined
+                if (response.error !== undefined) {
+                    error = response.error
+                    return
                 }
-                solver.onerror = () => {
-                    if (worker === solver)
-                        error = 'The route solver could not finish. Please try again.'
-                    solver.terminate()
+                try {
+                    session.routes.setSolved(
+                        gameState,
+                        response.result.result,
+                        response.result.exhaustive
+                    )
+                } catch (failure) {
+                    error = failure instanceof Error ? failure.message : 'Route calculation failed.'
                 }
-                const request: AutoroutingRequest = {
-                    state: session.gameState.dehydrate(),
-                    companyId
-                }
-                solver.postMessage(request)
-            } catch (failure) {
-                worker?.terminate()
-                worker = undefined
-                error =
-                    failure instanceof Error ? failure.message : 'The route solver could not start.'
-            }
+            })
         }
         start(initial)
         return {
             update: start,
             destroy() {
-                worker?.terminate()
-                worker = undefined
+                pending?.cancel()
+                pending = undefined
             }
         }
     }
@@ -111,6 +92,8 @@
                 ? () => routes.clearTrain()
                 : undefined}
             chosenTrainId={routes.editor.trainId}
+            attachments={routes.editor.attachments}
+            bonusName={(sourceId) => session.names.routeBonus(sourceId)}
             trainName={(id) => session.trainDepot.trainDefinition(id).name}
         />
         <span class="buttons">

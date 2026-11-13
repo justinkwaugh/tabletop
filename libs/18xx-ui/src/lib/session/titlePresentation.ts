@@ -203,6 +203,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * treasury pays as it starts.
      */
     startNotes?(state: State, companyId: string): readonly string[]
+    /** Facts of the title's own about a player, such as a loan they owe, shown beside their cash. */
+    playerFacts?(state: State, playerId: string): readonly TitleFact[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]

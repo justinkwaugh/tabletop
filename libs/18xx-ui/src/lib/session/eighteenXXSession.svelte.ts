@@ -69,6 +69,7 @@ import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareC
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
 import type { PhaseChangePalette } from '../table/historyPhaseChange.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
+import { BidBoxModule } from './bidBoxModule.svelte.js'
 import { CashCrisisModule } from './cashCrisisModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
@@ -288,6 +289,8 @@ export class EighteenXXSession<
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly selectionAuction = new SelectionAuctionModule(this.moduleSession)
     readonly companyAuction = new CompanyAuctionModule(this.moduleSession)
+    /** Bids in the boxes of a stock round, for titles with bid boxes. */
+    readonly bidBoxes = new BidBoxModule(this.moduleSession)
     get privateAuctionActive(): boolean {
         return this.offers.active || this.waterfall.active || this.selectionAuction.active
     }
@@ -1027,6 +1030,7 @@ export class EighteenXXSession<
         localSelections.register(this.waterfall.choice)
         localSelections.register(this.selectionAuction.choice)
         localSelections.register(this.companyAuction)
+        localSelections.register(this.bidBoxes.selection)
         localSelections.register(this.decisions.choice)
         localSelections.register(this.privateActions)
         localSelections.register(this.privates.exchangeChoice)
