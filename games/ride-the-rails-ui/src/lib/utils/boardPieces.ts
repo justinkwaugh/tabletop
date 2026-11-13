@@ -140,12 +140,15 @@ export function lastJourneyLinks(actions: readonly GameAction[], draftHoldsStart
     return isRideJourney(latest) ? latest.links : []
 }
 
-/** R-4.2: where each railroad started, from the placements that record a start. */
-export function railroadStarts(actions: readonly GameAction[]): Map<RailroadId, HexId> {
-    const starts = new Map<RailroadId, HexId>()
+/**
+ * R-4.2, R-4.2.3-H1: where each railroad started, in placement order, from the placements that
+ * record a start; Yellow may have two.
+ */
+export function railroadStarts(actions: readonly GameAction[]): Map<RailroadId, HexId[]> {
+    const starts = new Map<RailroadId, HexId[]>()
     for (const action of actions) {
         if (isPlaceLocomotive(action) && action.metadata?.isStart) {
-            starts.set(action.railroadId, action.hexId)
+            starts.set(action.railroadId, [...(starts.get(action.railroadId) ?? []), action.hexId])
         }
     }
     return starts

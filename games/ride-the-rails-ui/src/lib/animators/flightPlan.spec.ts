@@ -23,7 +23,6 @@ import {
 const RED: RailroadId = 'railroad.red'
 const CHICAGO: HexId = 'hex.usa.5-43'
 const NEXT_TO_CHICAGO: HexId = 'hex.usa.5-41'
-const NEW_YORK: HexId = 'hex.usa.6-60'
 
 describe('the flight plan', () => {
     it('finds the locomotive a placement adds, and the one an Undo takes away (R-3.2, R-4.2)', () => {
@@ -33,18 +32,11 @@ describe('the flight plan', () => {
             track: { [NEXT_TO_CHICAGO]: [RED], [CHICAGO]: [RED] }
         })
         const forward = placementChanges(before, after)
-        expect(forward.arriving.map((piece) => [piece.hexId, piece.isStart])).toEqual([
-            [CHICAGO, false]
-        ])
+        expect(forward.arriving.map((piece) => piece.hexId)).toEqual([CHICAGO])
         expect(forward.leaving).toEqual([])
         const back = placementChanges(after, before)
+        expect(back.arriving).toEqual([])
         expect(back.leaving.map((piece) => piece.hexId)).toEqual([CHICAGO])
-
-        const empty = buildState({ phase: PhaseName.Build })
-        const start = buildState({ phase: PhaseName.Build, track: { [NEW_YORK]: [RED] } })
-        expect(placementChanges(empty, start).arriving.map((piece) => piece.isStart)).toEqual([
-            true
-        ])
     })
 
     it('finds the share a seat takes, with its count after it (R-3.1)', () => {

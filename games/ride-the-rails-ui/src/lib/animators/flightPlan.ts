@@ -2,7 +2,6 @@ import type { Point } from '@tabletop/common'
 import {
     RAILROAD_IDS,
     TRANSCONTINENTAL_BONUS,
-    hasTrack,
     transcontinentalLine,
     usaCity,
     type HexId,
@@ -13,25 +12,18 @@ import { hexCenter } from '$lib/utils/boardGeometry.js'
 import { locomotivePieces, type LocomotivePiece } from '$lib/utils/boardPieces.js'
 import type { State } from './motion.js'
 
-/** A locomotive on one state's map and not the other's; `isStart` when it began its railroad. */
-export type PlacementChange = LocomotivePiece & { isStart: boolean }
-
 // R-3.2, R-4.1: the locomotives the transition adds and the ones it takes away (an Undo).
 export function placementChanges(
     from: State,
     to: State
-): { arriving: PlacementChange[]; leaving: PlacementChange[] } {
+): { arriving: LocomotivePiece[]; leaving: LocomotivePiece[] } {
     const before = locomotivePieces(from.track)
     const after = locomotivePieces(to.track)
     const beforeKeys = new Set(before.map((piece) => piece.key))
     const afterKeys = new Set(after.map((piece) => piece.key))
     return {
-        arriving: after
-            .filter((piece) => !beforeKeys.has(piece.key))
-            .map((piece) => ({ ...piece, isStart: !hasTrack(from.track, piece.railroadId) })),
-        leaving: before
-            .filter((piece) => !afterKeys.has(piece.key))
-            .map((piece) => ({ ...piece, isStart: !hasTrack(to.track, piece.railroadId) }))
+        arriving: after.filter((piece) => !beforeKeys.has(piece.key)),
+        leaving: before.filter((piece) => !afterKeys.has(piece.key))
     }
 }
 

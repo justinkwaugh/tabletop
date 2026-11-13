@@ -1,8 +1,9 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isPlaceLocomotive, supplyOf } from '@tabletop/ride-the-rails'
+import type { LocomotivePiece } from '$lib/utils/boardPieces.js'
 import { STRIP_LOCOMOTIVE } from '$lib/utils/marginLayout.js'
 import { railroadSourcePoint, seatMoneyPoint } from './flightPlaces.js'
-import { bonusCoins, moneyAfterEach, placementChanges, type PlacementChange } from './flightPlan.js'
+import { bonusCoins, moneyAfterEach, placementChanges } from './flightPlan.js'
 import { moneyKey, supplyKey, type Flights, type Flyer } from './flights.svelte.js'
 import {
     FLIGHT,
@@ -43,6 +44,7 @@ export function placementAnimator(flights: Flights): GameStateChangeListener<Sta
         if (mode === 'cinematic' && isPlaceLocomotive(action) && arriving.length === 1) {
             await flyPlacement(flights, { from, to, animationContext }, arriving[0], {
                 playerId: action.playerId,
+                isStart: action.metadata?.isStart ?? false,
                 bonuses: action.metadata?.bonuses ?? []
             })
             return
@@ -63,8 +65,8 @@ async function flyPlacement(
         to,
         animationContext
     }: Pick<Step, 'from' | 'to' | 'animationContext'> & { from: State },
-    piece: PlacementChange,
-    paid: { playerId: string; bonuses: Parameters<typeof bonusCoins>[1] }
+    piece: LocomotivePiece,
+    paid: { playerId: string; isStart: boolean; bonuses: Parameters<typeof bonusCoins>[1] }
 ) {
     const key = locomotiveFlyerKey(piece.key)
     const start = railroadSourcePoint(from.mapId, piece.railroadId)
@@ -96,7 +98,8 @@ async function flyPlacement(
         y: slot.y,
         scale: 1
     })
-    if (piece.isStart) {
+    // R-4.2, R-4.2.3-H1: the start the placement recorded, so Yellow's second start bounces too.
+    if (paid.isStart) {
         locomotive
             .to({ y: slot.y - 9 }, FLIGHT.bounce, FLIGHT.lands, 'power1.out')
             .to({ y: slot.y }, FLIGHT.settle, FLIGHT.lands + FLIGHT.bounce, 'bounce.out')
@@ -122,7 +125,7 @@ async function flyPlacement(
     animationContext.afterAnimations(() => flights.remove(coins.map((coin) => coin.key)))
 }
 
-function slotFlyer(piece: PlacementChange): Flyer {
+function slotFlyer(piece: LocomotivePiece): Flyer {
     return {
         key: locomotiveFlyerKey(piece.key),
         kind: 'locomotive',
