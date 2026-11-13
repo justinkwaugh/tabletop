@@ -23,15 +23,16 @@ export function afterMove(
     return continueResolving(state)
 }
 
-// Rows go one at a time, the mover's first, and are found again after each, since a removal can
-// uncover a piece that completes a new one. After the move the mover may also take rows of
-// GIPF-pieces alone; anyone else takes only rows that must go.
+// After the regular move, rows go one at a time, the mover's first, and are found again after
+// each, since a removal can uncover a piece that completes a new one. The mover may also take rows
+// of GIPF-pieces alone; the opponent takes only rows that must go. A row of GIPF-pieces alone
+// taken before the move leaves any row it frees for after the move.
 export function continueResolving(state: HydratedGipfPotentialsGameState): MachineState {
     const turnPlayerId = currentPlayerId(state)
     while (state.resolvingPlayerIds.length > 0) {
         const resolverId = state.resolvingPlayerIds[0]
         const rows = state.board.rowsOf(resolverId)
-        const mayTakeAny = state.movedThisTurn && resolverId === turnPlayerId
+        const mayTakeAny = resolverId === turnPlayerId
         const needsResolver = mayTakeAny
             ? rows.length > 0
             : rows.some((row) => state.board.isMandatory(row))
@@ -40,7 +41,9 @@ export function continueResolving(state: HydratedGipfPotentialsGameState): Machi
         }
         state.resolvingPlayerIds.shift()
     }
-    return state.movedThisTurn ? endTurn(state, turnPlayerId) : beginTurn(state, turnPlayerId)
+    return state.movedThisTurn
+        ? endTurn(state, turnPlayerId)
+        : beginRegularMove(state, turnPlayerId)
 }
 
 export function finishResolver(state: HydratedGipfPotentialsGameState): MachineState {
@@ -76,12 +79,9 @@ function endTurn(state: HydratedGipfPotentialsGameState, moverId: string): Machi
     return beginTurn(state, opponentId)
 }
 
-// A turn opens with the player's own rows that must go, then an extra move the opponent gave.
+// Both players' rows that must go are taken after every regular move, so none stand when a turn
+// begins; it opens with an extra move the opponent gave.
 function beginTurn(state: HydratedGipfPotentialsGameState, playerId: string): MachineState {
-    if (state.board.rowsOf(playerId).some((row) => state.board.isMandatory(row))) {
-        state.resolvingPlayerIds = [playerId]
-        return MachineState.ResolvingRows
-    }
     const owed = state.extraMoveOwedIds.includes(playerId)
     state.extraMoveOwedIds = state.extraMoveOwedIds.filter((owedId) => owedId !== playerId)
     if (owed && state.ownTamskOnCentre(playerId)) {

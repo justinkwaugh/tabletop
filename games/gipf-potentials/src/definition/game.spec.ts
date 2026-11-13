@@ -517,6 +517,50 @@ describe('TAMSK', () => {
         expect(state.machineState).toBe(MachineState.TakingTurn)
         expect(state.activePlayerIds).toEqual([W])
     })
+
+    it('an extra move the opponent gave is made only if the piece still stands on the centre', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...KEEPERS,
+            ['E2', [basic(W)]],
+            ['E3', [basic(W)]],
+            ['E4', [loaded(W, PieceKind.Tamsk)]],
+            ['E6', [basic(W)]]
+        ])
+        state = passWhite(game, state)
+        // Black's push lines up White's E3–E6 with the TAMSK piece on the centre: a four with a
+        // loaded piece, which White must break before the turn ends.
+        state = push(game, state, B, 'E1', 'E2', PieceKind.Yinsh)
+        expect(state.machineState).toBe(MachineState.ResolvingRows)
+        expect(state.activePlayerIds).toEqual([W])
+        state = removeRow(game, state, W, 'E3', 'E6')
+        expect(stackAt(state, 'E5')).toEqual([])
+        expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([W])
+        expect(state.extraMoveOwedIds).toEqual([])
+    })
+
+    it('rows an extra move makes before the regular move wait for the regular move', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...KEEPERS,
+            ['B4', [basic(W)]],
+            ['E2', [basic(W)]],
+            ['E3', [basic(B)]],
+            ['E4', [loaded(W, PieceKind.Tamsk)]]
+        ])
+        state = passWhite(game, state)
+        state = push(game, state, B, 'E1', 'E2', PieceKind.Yinsh)
+        expect(state.machineState).toBe(MachineState.ExtraMove)
+        // The used TAMSK lands on B5 and completes White's B2–B5, which must go.
+        state = extraMove(game, state, W, 'B6', 'B5')
+        expect(hydrated(state).board.rowsOf(W)).toHaveLength(1)
+        expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([W])
+        state = passWhite(game, state)
+        expect(state.machineState).toBe(MachineState.ResolvingRows)
+        expect(state.activePlayerIds).toEqual([W])
+    })
 })
 
 describe('taking rows', () => {
@@ -605,23 +649,20 @@ describe('taking rows', () => {
         expect(state.activePlayerIds).toEqual([B])
     })
 
-    it('a row freed for the opponent before your move waits until after it', () => {
+    it('a row freed by taking a row of GIPF-pieces before your move waits until after it', () => {
         const game = createGame()
         let state = withPieces(start(game), [
             ...KEEPERS,
-            ['E2', [basic(W)]],
-            ['E3', [basic(W)]],
-            ['E4', [basic(W)]],
-            ['E5', [basic(B), used(W, PieceKind.Dvonn)]],
+            ['E2', [gipf(W)]],
+            ['E3', [gipf(W)]],
+            ['E4', [gipf(W)]],
+            ['E5', [gipf(B), gipf(W)]],
             ['F4', [basic(B)]],
             ['G3', [basic(B)]],
             ['H2', [basic(B)]]
         ])
-        state.machineState = MachineState.ResolvingRows
-        state.resolvingPlayerIds = [W]
-        state.activePlayerIds = [W]
         state = removeRow(game, state, W, 'E2', 'E5')
-        expect(stackAt(state, 'E5')).toEqual([basic(B)])
+        expect(stackAt(state, 'E5')).toEqual([gipf(B)])
         expect(state.machineState).toBe(MachineState.TakingTurn)
         expect(state.activePlayerIds).toEqual([W])
         state = push(game, state, W, 'A1', 'B2', PieceKind.Yinsh)
