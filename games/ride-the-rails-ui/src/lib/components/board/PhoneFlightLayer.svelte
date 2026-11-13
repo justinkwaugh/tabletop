@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { poseTransform, type Flyer as FlyerShape } from '$lib/animators/flights.svelte.js'
+    import type { Flyer as FlyerShape } from '$lib/animators/flights.svelte.js'
     import {
         BOARD_ATTRIBUTE,
-        boardFrame,
+        frameOf,
         frameTransform,
         readableBoost
     } from '$lib/animators/flightPlaces.js'
@@ -29,12 +29,12 @@
     const onMap = $derived(flights.flyers.filter((flyer) => ON_THE_MAP.has(flyer.kind)))
     const travelling = $derived(flights.flyers.filter((flyer) => !ON_THE_MAP.has(flyer.kind)))
 
-    /** The box that clips the board on screen: the nearest of its boxes that hides its overflow. */
-    function boardView(board: Element): DOMRect | undefined {
+    /** What clips the board on screen: the nearest of its boxes that hides its overflow. */
+    function boardClipper(board: Element): Element | undefined {
         const window = board.ownerDocument.defaultView
         for (let element = board.parentElement; element; element = element.parentElement) {
             if (window?.getComputedStyle(element).overflow !== 'visible') {
-                return element.getBoundingClientRect()
+                return element
             }
         }
         return undefined
@@ -42,25 +42,28 @@
 
     /**
      * While anything flies, keeps the flyers' board units on the board as it is drawn on screen
-     * now, and the map's own flyers inside the board's view.
+     * now, and the map's own flyers inside the board's view. Each frame reads the boxes before it
+     * writes, so the browser lays out once.
      */
     function followBoard(svg: SVGSVGElement) {
         if (flights.flyers.length === 0) return
-        const document = svg.ownerDocument
+        const boardSvg = svg.ownerDocument.querySelector(`svg[${BOARD_ATTRIBUTE}]`)
+        const clipper = boardSvg ? boardClipper(boardSvg) : undefined
+        const boardUnits = svg.querySelectorAll('[data-board-units]')
+        const clip = svg.querySelector(`#${CLIP_ID} rect`)
         let frame = 0
         const place = () => {
-            const board = boardFrame(document)
+            const box = boardSvg?.getBoundingClientRect()
+            const view = clipper?.getBoundingClientRect()
+            const board = box && frameOf(box)
             if (board) {
-                for (const group of svg.querySelectorAll('[data-board-units]')) {
+                for (const group of boardUnits) {
                     group.setAttribute('transform', frameTransform(board))
                 }
                 for (const group of svg.querySelectorAll('[data-readable]')) {
                     group.setAttribute('transform', `scale(${readableBoost(board)})`)
                 }
             }
-            const boardSvg = document.querySelector(`svg[${BOARD_ATTRIBUTE}]`)
-            const view = boardSvg ? boardView(boardSvg) : undefined
-            const clip = svg.querySelector(`#${CLIP_ID} rect`)
             if (view && clip) {
                 clip.setAttribute('x', String(view.left))
                 clip.setAttribute('y', String(view.top))
@@ -86,31 +89,13 @@
         <g clip-path="url(#{CLIP_ID})">
             <g data-board-units>
                 {#each onMap as flyer (flyer.key)}
-                    <g
-                        data-flyer={flyer.key}
-                        use:flights.register={flyer.key}
-                        transform={poseTransform(flyer.pose)}
-                        opacity={flyer.pose.opacity}
-                    >
-                        <Flyer {flyer} />
-                    </g>
+                    <Flyer {flyer} />
                 {/each}
             </g>
         </g>
         <g data-board-units>
             {#each travelling as flyer (flyer.key)}
-                <g
-                    data-flyer={flyer.key}
-                    use:flights.register={flyer.key}
-                    transform={poseTransform(flyer.pose)}
-                    opacity={flyer.pose.opacity}
-                >
-                    {#if readable(flyer)}
-                        <g data-readable><Flyer {flyer} /></g>
-                    {:else}
-                        <Flyer {flyer} />
-                    {/if}
-                </g>
+                <Flyer {flyer} readable={readable(flyer)} />
             {/each}
         </g>
     </svg>

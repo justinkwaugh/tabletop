@@ -1,6 +1,4 @@
-import { tick } from 'svelte'
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
-import type { HydratedRideTheRailsGameState } from '@tabletop/ride-the-rails'
 import {
     PHONE_LATER_OPACITY,
     STRIP_VEIL_OPACITY,
@@ -16,22 +14,23 @@ import {
     type Flights
 } from './flights.svelte.js'
 import { markerSlides, railroadsMadeAvailable, roundStep } from './journeyPlan.js'
-import { END_OF_ROUND, PoseTween, QUICK, motionMode, pose, tickAt, tweenNumbers } from './motion.js'
-
-type State = HydratedRideTheRailsGameState
-type Step = Parameters<GameStateChangeListener<State>>[0]
+import {
+    END_OF_ROUND,
+    PoseTween,
+    QUICK,
+    motionMode,
+    pose,
+    showFlyers,
+    tickAt,
+    tweenNumbers,
+    type State,
+    type Step
+} from './motion.js'
 
 export const ROUND_MARKER_KEY = 'round-marker'
 
 /** Where each part of the end of round starts and how long it takes, in seconds. */
-export type EndOfRoundTiming = {
-    slide: number
-    slideArc: number
-    stepsAt: number
-    step: number
-    brightensAt: number
-    brighten: number
-}
+export type EndOfRoundTiming = typeof END_OF_ROUND
 
 /** Without an action every part starts at once and lands within the platform's 200 ms. */
 export const QUICK_END_OF_ROUND: EndOfRoundTiming = {
@@ -69,9 +68,14 @@ export function endOfRoundAnimator(flights: Flights): GameStateChangeListener<St
         const onPhone = isPhoneWidth()
         if (step && !onPhone) {
             const ticket = roundTicketPoint(step.from)
-            flights.show([{ key: ROUND_MARKER_KEY, kind: 'round', pose: pose(ticket.x, ticket.y) }])
-            await tick()
-            if (flights.interrupted) return
+            const roundMarker = pose(ticket.x, ticket.y)
+            if (
+                !(await showFlyers(flights, [
+                    { key: ROUND_MARKER_KEY, kind: 'round', pose: roundMarker }
+                ]))
+            ) {
+                return
+            }
         }
 
         // R-2.5.1: each marker slides along the track, rising past the others when it moves

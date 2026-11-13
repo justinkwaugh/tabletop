@@ -1,6 +1,11 @@
-import type { GameAction } from '@tabletop/common'
-import type { AnimationContext } from '@tabletop/frontend-components'
-import { writePose, type Flights, type Pose } from './flights.svelte.js'
+import { tick } from 'svelte'
+import type { GameAction, Point } from '@tabletop/common'
+import type { AnimationContext, GameStateChangeListener } from '@tabletop/frontend-components'
+import type { HydratedRideTheRailsGameState } from '@tabletop/ride-the-rails'
+import { writePose, type Flights, type Flyer, type Pose } from './flights.svelte.js'
+
+export type State = HydratedRideTheRailsGameState
+export type Step = Parameters<GameStateChangeListener<State>>[0]
 
 /** Players who ask for less motion get the quick changes Undo uses, as the platform's games do. */
 export function prefersReducedMotion(): boolean {
@@ -72,6 +77,87 @@ export class PoseTween {
             position
         )
         return this
+    }
+}
+
+/** Puts the flyers up and waits for them to mount; false when an interruption ended the step. */
+export async function showFlyers(flights: Flights, flyers: readonly Flyer[]): Promise<boolean> {
+    flights.show(flyers)
+    await tick()
+    return !flights.interrupted
+}
+
+/** A locomotive lifts from its railroad's strip entry, then flies to its target. */
+export function liftAndFly(
+    flights: Flights,
+    animationContext: AnimationContext,
+    key: string,
+    start: Pose,
+    target: Partial<Pose>
+): PoseTween {
+    return new PoseTween(flights, animationContext, key, start)
+        .to({ y: start.y - 8, scale: start.scale * 1.12 }, FLIGHT.lift, 0, 'power1.out')
+        .to(target, FLIGHT.fly, FLIGHT.lift)
+}
+
+export type CoinTiming = { coinRise: number; coinFly: number; fade: number }
+
+export type CoinFlight = {
+    key: string
+    /** Where the coin is paid, unseen until it rises. */
+    start: Point
+    rise: Partial<Pose>
+    marker: Point
+    rises: number
+}
+
+/** A coin rises where it is paid, flies to the seat's money and fades; returns when it lands. */
+export function flyCoin(
+    flights: Flights,
+    animationContext: AnimationContext,
+    { key, start, rise, marker, rises }: CoinFlight,
+    timing: CoinTiming
+): number {
+    const lands = rises + timing.coinRise + timing.coinFly
+    new PoseTween(flights, animationContext, key, pose(start.x, start.y, 1, 0))
+        .to({ opacity: 1, ...rise }, timing.coinRise, rises, 'power1.out')
+        .to(
+            { x: marker.x, y: marker.y, scale: 0.7 },
+            timing.coinFly,
+            rises + timing.coinRise,
+            'power2.in'
+        )
+        .to({ opacity: 0 }, timing.fade, lands)
+    return lands
+}
+
+/**
+ * Without an action, arriving flyers pop in to their poses and leaving ones shrink away; the
+ * pieces they stand for are hidden while they do.
+ */
+export async function popFlyers(
+    flights: Flights,
+    animationContext: AnimationContext,
+    { arriving, leaving, hidden }: { arriving: Flyer[]; leaving: Flyer[]; hidden: string[] }
+) {
+    const shrunk = (flyer: Flyer): Flyer => ({ ...flyer, pose: { ...flyer.pose, scale: 0 } })
+    flights.hide(hidden)
+    if (!(await showFlyers(flights, [...arriving.map(shrunk), ...leaving]))) return
+    for (const flyer of arriving) {
+        new PoseTween(flights, animationContext, flyer.key, shrunk(flyer).pose).to(
+            { scale: flyer.pose.scale },
+            QUICK.pop,
+            0,
+            'back.out(2)'
+        )
+    }
+    for (const flyer of leaving) {
+        new PoseTween(flights, animationContext, flyer.key, flyer.pose).to(
+            { scale: 0, opacity: 0 },
+            QUICK.pop,
+            0,
+            'power2.in'
+        )
     }
 }
 

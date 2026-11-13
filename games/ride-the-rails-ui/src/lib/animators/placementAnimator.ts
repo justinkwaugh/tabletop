@@ -1,18 +1,21 @@
-import { tick } from 'svelte'
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
-import {
-    isPlaceLocomotive,
-    supplyOf,
-    type HydratedRideTheRailsGameState
-} from '@tabletop/ride-the-rails'
+import { isPlaceLocomotive, supplyOf } from '@tabletop/ride-the-rails'
 import { STRIP_LOCOMOTIVE } from '$lib/utils/marginLayout.js'
 import { railroadSourcePoint, seatMoneyPoint } from './flightPlaces.js'
 import { bonusCoins, moneyAfterEach, placementChanges, type PlacementChange } from './flightPlan.js'
 import { moneyKey, supplyKey, type Flights, type Flyer } from './flights.svelte.js'
-import { FLIGHT, PoseTween, QUICK, motionMode, pose, tickAt } from './motion.js'
-
-type State = HydratedRideTheRailsGameState
-type Step = Parameters<GameStateChangeListener<State>>[0]
+import {
+    FLIGHT,
+    flyCoin,
+    liftAndFly,
+    motionMode,
+    popFlyers,
+    pose,
+    showFlyers,
+    tickAt,
+    type State,
+    type Step
+} from './motion.js'
 
 export function locomotiveFlyerKey(pieceKey: string): string {
     return `locomotive:${pieceKey}`
@@ -43,7 +46,11 @@ export function placementAnimator(flights: Flights): GameStateChangeListener<Sta
             })
             return
         }
-        await popPlacements(flights, animationContext, arriving, leaving)
+        await popFlyers(flights, animationContext, {
+            arriving: arriving.map(slotFlyer),
+            leaving: leaving.map(slotFlyer),
+            hidden: leaving.map((piece) => piece.key)
+        })
     }
 }
 
@@ -63,7 +70,7 @@ async function flyPlacement(
     const startScale = STRIP_LOCOMOTIVE.width / piece.slot.width
     const startPose = pose(start.x, start.y, startScale)
     const coins = bonusCoins(piece.hexId, paid.bonuses)
-    flights.show([
+    const shown = await showFlyers(flights, [
         {
             key,
             kind: 'locomotive',
@@ -79,8 +86,7 @@ async function flyPlacement(
             pose: pose(coin.from.x, coin.from.y, 1, 0)
         }))
     ])
-    await tick()
-    if (flights.interrupted) return
+    if (!shown) return
 
     tickAt(
         animationContext,
@@ -90,9 +96,11 @@ async function flyPlacement(
         0
     )
     const { slot } = piece
-    const locomotive = new PoseTween(flights, animationContext, key, startPose)
-        .to({ y: start.y - 8, scale: startScale * 1.12 }, FLIGHT.lift, 0, 'power1.out')
-        .to({ x: slot.x, y: slot.y, scale: 1 }, FLIGHT.fly, FLIGHT.lift)
+    const locomotive = liftAndFly(flights, animationContext, key, startPose, {
+        x: slot.x,
+        y: slot.y,
+        scale: 1
+    })
     if (piece.isStart) {
         locomotive
             .to({ y: slot.y - 9 }, FLIGHT.bounce, FLIGHT.lands, 'power1.out')
@@ -102,59 +110,29 @@ async function flyPlacement(
     const marker = seatMoneyPoint(from.turnManager.turnOrder, paid.playerId)
     const money = moneyAfterEach(from.getPlayerState(paid.playerId).money, coins)
     coins.forEach((coin, index) => {
-        const rises = FLIGHT.lands + index * FLIGHT.coinStagger
-        const lands = rises + FLIGHT.coinRise + FLIGHT.coinFly
-        new PoseTween(flights, animationContext, coin.key, pose(coin.from.x, coin.from.y, 1, 0))
-            .to({ opacity: 1, y: coin.from.y - 24 }, FLIGHT.coinRise, rises, 'power1.out')
-            .to(
-                { x: marker.x, y: marker.y, scale: 0.7 },
-                FLIGHT.coinFly,
-                rises + FLIGHT.coinRise,
-                'power2.in'
-            )
-            .to({ opacity: 0 }, FLIGHT.fade, lands)
+        const lands = flyCoin(
+            flights,
+            animationContext,
+            {
+                key: coin.key,
+                start: coin.from,
+                rise: { y: coin.from.y - 24 },
+                marker,
+                rises: FLIGHT.lands + index * FLIGHT.coinStagger
+            },
+            FLIGHT
+        )
         tickAt(animationContext, flights, moneyKey(paid.playerId), money[index], lands)
     })
     animationContext.afterAnimations(() => flights.remove(coins.map((coin) => coin.key)))
 }
 
-async function popPlacements(
-    flights: Flights,
-    animationContext: Step['animationContext'],
-    arriving: readonly PlacementChange[],
-    leaving: readonly PlacementChange[]
-) {
-    const flyer = (piece: PlacementChange, scale: number): Flyer => ({
+function slotFlyer(piece: PlacementChange): Flyer {
+    return {
         key: locomotiveFlyerKey(piece.key),
         kind: 'locomotive',
         railroadId: piece.railroadId,
         width: piece.slot.width,
-        pose: pose(piece.slot.x, piece.slot.y, scale)
-    })
-    flights.hide(leaving.map((piece) => piece.key))
-    flights.show([
-        ...arriving.map((piece) => flyer(piece, 0)),
-        ...leaving.map((piece) => flyer(piece, 1))
-    ])
-    await tick()
-    if (flights.interrupted) return
-
-    for (const piece of arriving) {
-        const start = pose(piece.slot.x, piece.slot.y, 0)
-        new PoseTween(flights, animationContext, locomotiveFlyerKey(piece.key), start).to(
-            { scale: 1 },
-            QUICK.pop,
-            0,
-            'back.out(2)'
-        )
-    }
-    for (const piece of leaving) {
-        const start = pose(piece.slot.x, piece.slot.y, 1)
-        new PoseTween(flights, animationContext, locomotiveFlyerKey(piece.key), start).to(
-            { scale: 0, opacity: 0 },
-            QUICK.pop,
-            0,
-            'power2.in'
-        )
+        pose: pose(piece.slot.x, piece.slot.y)
     }
 }

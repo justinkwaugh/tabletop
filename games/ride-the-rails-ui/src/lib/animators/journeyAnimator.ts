@@ -1,11 +1,9 @@
-import { tick } from 'svelte'
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import {
     isRideJourney,
     journeyHexIds,
     usaCity,
     type CityId,
-    type HydratedRideTheRailsGameState,
     type RideJourney
 } from '@tabletop/ride-the-rails'
 import { hexCenter, stationOf } from '$lib/utils/boardGeometry.js'
@@ -13,10 +11,18 @@ import { passengerSpot } from '$lib/utils/passengerLayout.js'
 import { seatMoneyPoint } from './flightPlaces.js'
 import { moneyKey, passengerKey, type Flights, type Flyer } from './flights.svelte.js'
 import { coinFan, hexStep, journeyCoins, passengerChanges } from './journeyPlan.js'
-import { JOURNEY, PoseTween, QUICK, motionMode, pose, tickAt } from './motion.js'
-
-type State = HydratedRideTheRailsGameState
-type Step = Parameters<GameStateChangeListener<State>>[0]
+import {
+    JOURNEY,
+    PoseTween,
+    flyCoin,
+    motionMode,
+    popFlyers,
+    pose,
+    showFlyers,
+    tickAt,
+    type State,
+    type Step
+} from './motion.js'
 
 /** The flyer that carries a city's passenger, on its journey or as an Undo puts it back. */
 export function passengerFlyerKey(cityId: CityId): string {
@@ -56,7 +62,11 @@ export function journeyAnimator(flights: Flights): GameStateChangeListener<State
         const { arriving, leaving } = passengerChanges(from, to)
         if (arriving.length + leaving.length === 0) return
         flights.follow(animationContext)
-        await popPassengers(flights, animationContext, arriving, leaving)
+        await popFlyers(flights, animationContext, {
+            arriving: arriving.map(passengerFlyer),
+            leaving: leaving.map(passengerFlyer),
+            hidden: leaving.map(passengerKey)
+        })
     }
 }
 
@@ -94,7 +104,7 @@ async function ride(
     const fan = coinFan(end, coins.length, COIN_RISE)
 
     flights.hide([passengerKey(startCityId)])
-    flights.show([
+    const shown = await showFlyers(flights, [
         ...pulses.map(({ key, radius, pose }): Flyer => ({ key, kind: 'pulse', radius, pose })),
         { key: passenger, kind: 'passenger', pose: passengerPose },
         ...coins.map((coin): Flyer => ({
@@ -105,8 +115,7 @@ async function ride(
             pose: pose(end.x, end.y, 1, 0)
         }))
     ])
-    await tick()
-    if (flights.interrupted) return
+    if (!shown) return
 
     const travel = new PoseTween(flights, animationContext, passenger, passengerPose)
     for (let index = 1; index <= moves; index++) {
@@ -122,19 +131,21 @@ async function ride(
     }
 
     const rises = travelEnds(moves)
-    const lands = rises + JOURNEY.coinRise + JOURNEY.coinFly
     const turnOrder = from.turnManager.turnOrder
+    const lands = rises + JOURNEY.coinRise + JOURNEY.coinFly
     coins.forEach((coin, index) => {
-        const marker = seatMoneyPoint(turnOrder, coin.playerId)
-        new PoseTween(flights, animationContext, coin.key, pose(end.x, end.y, 1, 0))
-            .to({ opacity: 1, ...fan[index] }, JOURNEY.coinRise, rises, 'power1.out')
-            .to(
-                { x: marker.x, y: marker.y, scale: 0.7 },
-                JOURNEY.coinFly,
-                rises + JOURNEY.coinRise,
-                'power2.in'
-            )
-            .to({ opacity: 0 }, JOURNEY.fade, lands)
+        flyCoin(
+            flights,
+            animationContext,
+            {
+                key: coin.key,
+                start: end,
+                rise: fan[index],
+                marker: seatMoneyPoint(turnOrder, coin.playerId),
+                rises
+            },
+            JOURNEY
+        )
     })
     for (const playerId of new Set(coins.map((coin) => coin.playerId))) {
         const money = to.getPlayerState(playerId).money
@@ -149,46 +160,11 @@ async function ride(
     )
 }
 
-async function popPassengers(
-    flights: Flights,
-    animationContext: Step['animationContext'],
-    arriving: readonly CityId[],
-    leaving: readonly CityId[]
-) {
-    const flyer = (cityId: CityId, shown: boolean): Flyer => {
-        const spot = passengerSpot(cityId, false)
-        return {
-            key: passengerFlyerKey(cityId),
-            kind: 'passenger',
-            pose: pose(spot.x, spot.y, shown ? spot.scale : 0)
-        }
-    }
-    flights.hide(leaving.map(passengerKey))
-    flights.show([
-        ...arriving.map((cityId) => flyer(cityId, false)),
-        ...leaving.map((cityId) => flyer(cityId, true))
-    ])
-    await tick()
-    if (flights.interrupted) return
-
-    for (const cityId of arriving) {
-        const spot = passengerSpot(cityId, false)
-        const start = pose(spot.x, spot.y, 0)
-        new PoseTween(flights, animationContext, passengerFlyerKey(cityId), start).to(
-            { scale: spot.scale },
-            QUICK.pop,
-            0,
-            'back.out(2)'
-        )
-    }
-    for (const cityId of leaving) {
-        const spot = passengerSpot(cityId, false)
-        const start = pose(spot.x, spot.y, spot.scale)
-        new PoseTween(flights, animationContext, passengerFlyerKey(cityId), start).to(
-            { scale: 0, opacity: 0 },
-            QUICK.pop,
-            0,
-            'power2.in'
-        )
+function passengerFlyer(cityId: CityId): Flyer {
+    const spot = passengerSpot(cityId, false)
+    return {
+        key: passengerFlyerKey(cityId),
+        kind: 'passenger',
+        pose: pose(spot.x, spot.y, spot.scale)
     }
 }

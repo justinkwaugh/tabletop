@@ -89,7 +89,12 @@ export function landingPoint(boxes: readonly ScreenBox[], view: ScreenBox): Poin
 /** The board's frame on screen, read from its SVG. */
 export function boardFrame(document: Document): BoardFrame | undefined {
     const box = document.querySelector(`svg[${BOARD_ATTRIBUTE}]`)?.getBoundingClientRect()
-    if (!box || box.width === 0 || box.height === 0) return undefined
+    return box && frameOf(box)
+}
+
+/** The board's frame from its box on screen; none while the board is not drawn. */
+export function frameOf(box: ScreenBox): BoardFrame | undefined {
+    if (box.width === 0 || box.height === 0) return undefined
     return {
         left: box.left,
         top: box.top,
