@@ -60,7 +60,7 @@
 
     // Contract, Phone layout: a hex focused out of view is panned into it, and nothing scrolls.
     const keepFocusInBoard = keepFocusedHexInBoard((hexId) => {
-        focus.release()
+        focus.moveByHand()
         wrapper?.revealRect(hexBox(hexId), { padding: REVEAL_PADDING })
     })
 </script>
@@ -102,7 +102,7 @@
                     insetTop={boardInsetTop()}
                     renderAtViewScale
                     expandable
-                    onManualViewChange={() => focus.release()}
+                    onManualViewChange={() => focus.moveByHand()}
                 >
                     <Board viewScale={wrapper?.viewScale() ?? FITTED_DESKTOP_SCALE} />
                     {#snippet overlay(viewport)}

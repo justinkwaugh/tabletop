@@ -1,16 +1,23 @@
 <script lang="ts">
     import type { ScalingWrapper } from '@tabletop/frontend-components'
     import type { RectangleDimensions } from '@tabletop/common'
+    import { untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
+    import { prefersReducedMotion } from 'svelte/motion'
     import type { BoardFocusSelection } from '$lib/model/boardFocus.svelte.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         BOARD_FOCUSES,
         focusRequest,
+        litRevealRect,
         restingFocus,
+        restsAtCover,
+        shownBoardRect,
         showsFocusChooser,
         type BoardFocus
     } from '$lib/utils/boardFocus.js'
     import { boardInsetTop } from '$lib/utils/phoneLayout.svelte.js'
+    import { findInTable, tableOf } from '$lib/utils/tableScope.js'
 
     let {
         wrapper,
@@ -21,6 +28,8 @@
         viewport: HTMLElement
         selection: BoardFocusSelection
     } = $props()
+
+    const gameSession = getGameSession()
 
     // Contract, Phone layout (U-8): shown only while a hex is small on screen.
     const shown = $derived(wrapper !== undefined && showsFocusChooser(wrapper.viewScale()))
@@ -40,11 +49,45 @@
         selection.choose(focus)
     }
 
+    function choose(focus: BoardFocus) {
+        show(focus, true)
+        selection.offer.moveByHand()
+    }
+
+    // Set once the view first rests, so an offer lit before then is looked at from where it rests.
+    let rested = false
+
+    // Contract, Phone layout: a new offer whose lit hexes all lie outside a cover-fit view pans the
+    // board, at its scale, to the nearest of them, unless the player has moved the view since.
+    function lookAtOffer() {
+        const hexIds = selection.offer.take()
+        const board = findInTable(tableOf(viewport), '[data-map-board]')
+        if (!wrapper || !hexIds || !board || !restsAtCover(viewOf(viewport))) return
+        const shown = shownBoardRect(
+            board.getBoundingClientRect(),
+            viewport.getBoundingClientRect(),
+            boardInsetTop()
+        )
+        const target = litRevealRect(hexIds, shown)
+        if (!target) return
+        selection.release()
+        wrapper.revealRect(target, { animate: !prefersReducedMotion.current })
+    }
+
+    // Re-runs whenever the lit hexes change; while history is shown the offer is left as it was.
+    const followOffer: Attachment<HTMLElement> = () => {
+        const hexIds = gameSession.boardOffer.lit.map((hex) => hex.hexId)
+        if (gameSession.isViewingHistory) return
+        untrack(() => {
+            selection.offer.light(hexIds)
+            if (rested) lookAtOffer()
+        })
+    }
+
     // A phone's view first rests on the middle third with hexes at least 33 px, not the wrapper's
     // cover fit; a chosen focus is kept at its scale as the view resizes.
     const followView: Attachment<HTMLElement> = () => {
         const view = viewport
-        let rested = false
         const observer = new ResizeObserver(() => {
             const size = viewOf(view)
             if (!wrapper || size.width === 0 || size.height === 0) return
@@ -52,6 +95,7 @@
                 rested = true
                 const resting = restingFocus(size)
                 if (resting) show(resting, false)
+                lookAtOffer()
             } else if (selection.current) {
                 show(selection.current, false)
             }
@@ -61,7 +105,7 @@
     }
 </script>
 
-<div class="chooser-anchor" {@attach followView}>
+<div class="chooser-anchor" {@attach followView} {@attach followOffer}>
     {#if shown}
         <div class="chooser shadow-md" role="group" aria-label="Focus the map">
             {#each BOARD_FOCUSES as { focus, label } (focus)}
@@ -69,7 +113,7 @@
                     type="button"
                     class:on={selection.current === focus}
                     aria-pressed={selection.current === focus}
-                    onclick={() => show(focus, true)}>{label}</button
+                    onclick={() => choose(focus)}>{label}</button
                 >
             {/each}
         </div>

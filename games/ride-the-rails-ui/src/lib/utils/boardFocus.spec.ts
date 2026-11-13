@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { USA_HEXES } from '@tabletop/ride-the-rails'
+import { assertExists } from '@tabletop/common'
+import { USA_CITIES, USA_HEXES, isEastCoastCity, type HexId } from '@tabletop/ride-the-rails'
 import {
     BOARD_FOCUSES,
     FOCUS_CHOOSER_BELOW_HEX_PX,
     FOCUS_CHOOSER_INSET,
+    LitOffer,
     MIN_RESTING_HEX_PX,
     focusRequest,
     hexWidthOnScreen,
+    litRevealRect,
     regionRect,
     regionScale,
     restingFocus,
     restsAtCover,
+    shownBoardRect,
     showsFocusChooser
 } from './boardFocus.js'
 import {
@@ -22,6 +26,7 @@ import {
     HEX_WIDTH,
     MAP_EXTENTS,
     drawsCityLabels,
+    hexBox,
     hexCenter
 } from './boardGeometry.js'
 
@@ -111,6 +116,154 @@ describe('the focus chooser (U-8)', () => {
         const request = focusRequest('east', PHONE_VIEW)
         expect(request.rect.x + request.rect.width / 2).toBeCloseTo(rect.x + rect.width / 2)
         expect(request.rect.y + request.rect.height / 2).toBeCloseTo(BOARD_HEIGHT / 2)
+    })
+})
+
+describe('the part of the board a view shows', () => {
+    it('reads the view below its inset through where the board is drawn', () => {
+        const board = { left: -500, top: 100, width: BOARD_WIDTH / 2, height: BOARD_HEIGHT / 2 }
+        const view = { left: 10, top: 120, width: 330, height: 500 }
+        expect(shownBoardRect(board, view, 40)).toEqual({
+            x: 1020,
+            y: 120,
+            width: 660,
+            height: 920
+        })
+    })
+})
+
+type Box = { x: number; y: number; width: number; height: number }
+
+function centreOf(box: Box) {
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/** What a phone's view shows around a point, at a scale. */
+function viewAround(centre: { x: number; y: number }, viewScale: number): Box {
+    const width = PHONE_VIEW.width / viewScale
+    const height = PHONE_VIEW.height / viewScale
+    return { x: centre.x - width / 2, y: centre.y - height / 2, width, height }
+}
+
+function shows(view: Box, hexId: HexId): boolean {
+    const box = hexBox(hexId)
+    return (
+        box.x >= view.x &&
+        box.y >= view.y &&
+        box.x + box.width <= view.x + view.width &&
+        box.y + box.height <= view.y + view.height
+    )
+}
+
+describe('bringing an offer lit out of view into it (contract, Phone layout)', () => {
+    // The middle third where a phone rests, at its resting scale.
+    const resting = viewAround(centreOf(regionRect('middle')), regionScale('middle', PHONE_VIEW))
+    const eastCoast = USA_CITIES.filter(isEastCoastCity).map((city) => city.hexId)
+
+    it('leaves the view alone with nothing lit', () => {
+        expect(litRevealRect([], resting)).toBeUndefined()
+    })
+
+    it('leaves the view alone while a lit hex lies whole inside it', () => {
+        const inside = USA_HEXES.map((hex) => hex.id).find((hexId) => shows(resting, hexId))
+        assertExists(inside)
+        expect(litRevealRect([...eastCoast, inside], resting)).toBeUndefined()
+    })
+
+    it('counts a hex the view’s edge cuts as out of view', () => {
+        const box = hexBox(eastCoast[0])
+        const cut = { ...resting, x: box.x + box.width / 2 - resting.width }
+        expect(litRevealRect([eastCoast[0]], cut)).toBeDefined()
+    })
+
+    it('brings the East Coast into view from the middle third, keeping the view’s size', () => {
+        expect(eastCoast.some((hexId) => shows(resting, hexId))).toBe(false)
+        const target = litRevealRect(eastCoast, resting)
+        assertExists(target)
+        expect(target.width).toBeCloseTo(resting.width)
+        expect(target.height).toBeCloseTo(resting.height)
+        expect(eastCoast.some((hexId) => shows(target, hexId))).toBe(true)
+    })
+
+    it('centres the box of every lit hex when they all fit', () => {
+        const target = litRevealRect(eastCoast, viewAround(centreOf(regionRect('west')), 0.5))
+        assertExists(target)
+        const boxes = eastCoast.map(hexBox)
+        const left = Math.min(...boxes.map((box) => box.x))
+        const right = Math.max(...boxes.map((box) => box.x + box.width))
+        const top = Math.min(...boxes.map((box) => box.y))
+        const bottom = Math.max(...boxes.map((box) => box.y + box.height))
+        expect(centreOf(target).x).toBeCloseTo((left + right) / 2)
+        expect(centreOf(target).y).toBeCloseTo((top + bottom) / 2)
+        expect(eastCoast.every((hexId) => shows(target, hexId))).toBe(true)
+    })
+
+    it('brings the hexes nearest the view’s centre when they do not all fit', () => {
+        const west = USA_HEXES.map((hex) => hex.id).reduce((a, b) =>
+            hexCenter(a).x < hexCenter(b).x ? a : b
+        )
+        const target = litRevealRect([west, ...eastCoast], resting)
+        assertExists(target)
+        expect(shows(target, west)).toBe(false)
+        expect(eastCoast.some((hexId) => shows(target, hexId))).toBe(true)
+    })
+
+    it('breaks a tie of distance by map order', () => {
+        const first = eastCoast[0]
+        const last = eastCoast[eastCoast.length - 1]
+        const a = hexCenter(first)
+        const b = hexCenter(last)
+        const { width, height } = hexBox(first)
+        // A view one hex in size, halfway between two hexes: it holds one at a time.
+        const between = { x: (a.x + b.x - width) / 2, y: (a.y + b.y - height) / 2, width, height }
+        const firstWins = litRevealRect([first, last], between)
+        const lastWins = litRevealRect([last, first], between)
+        assertExists(firstWins)
+        assertExists(lastWins)
+        expect(centreOf(firstWins).x).toBeCloseTo(a.x)
+        expect(centreOf(firstWins).y).toBeCloseTo(a.y)
+        expect(centreOf(lastWins).x).toBeCloseTo(b.x)
+        expect(centreOf(lastWins).y).toBeCloseTo(b.y)
+    })
+})
+
+describe('the offer the board last lit', () => {
+    const NEW_YORK: HexId = 'hex.usa.6-60'
+    const PHILADELPHIA: HexId = 'hex.usa.7-57'
+
+    it('owes a new set of lit hexes one look', () => {
+        const offer = new LitOffer()
+        offer.light([NEW_YORK, PHILADELPHIA])
+        expect(offer.take()).toEqual([NEW_YORK, PHILADELPHIA])
+        expect(offer.take()).toBeUndefined()
+    })
+
+    it('owes nothing for the same set again, nor for nothing lit', () => {
+        const offer = new LitOffer()
+        offer.light([NEW_YORK])
+        offer.take()
+        offer.light([NEW_YORK])
+        expect(offer.take()).toBeUndefined()
+        offer.light([])
+        expect(offer.take()).toBeUndefined()
+    })
+
+    it('owes the same set again once nothing was lit in between', () => {
+        const offer = new LitOffer()
+        offer.light([NEW_YORK])
+        offer.take()
+        offer.light([])
+        offer.light([NEW_YORK])
+        expect(offer.take()).toEqual([NEW_YORK])
+    })
+
+    it('owes nothing once the view is moved by hand during the offer', () => {
+        const offer = new LitOffer()
+        offer.light([NEW_YORK])
+        offer.moveByHand()
+        expect(offer.take()).toBeUndefined()
+        offer.light([PHILADELPHIA])
+        expect(offer.take()).toEqual([PHILADELPHIA])
     })
 })
 
