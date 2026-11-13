@@ -1,4 +1,4 @@
-import type { AxialCoordinates, Point } from '@tabletop/common'
+import { assert, type AxialCoordinates, type Point } from '@tabletop/common'
 import { pointName } from '@tabletop/gipf-potentials'
 import type { BoardView } from './geometry.js'
 
@@ -37,8 +37,10 @@ export function boardNotation(view: BoardView): BoardNotation {
     })
 
     return {
-        name: (coords) =>
-            view.geometry.isPoint(coords) ? pointName(coords) : `${coords.q},${coords.r}`,
+        name: (coords) => {
+            assert(view.geometry.isPoint(coords), 'Only points of the board are named')
+            return pointName(coords)
+        },
         labels
     }
 }
