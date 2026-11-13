@@ -108,7 +108,7 @@
                     <span class="flex shrink-0 items-center gap-1 text-[11px] text-rtr-ink-muted">
                         <button
                             type="button"
-                            class="link hover:text-rtr-ink hover:underline"
+                            class="link hover:enabled:text-rtr-ink hover:enabled:underline"
                             disabled={!!frozen}
                             onclick={() => jump(entry)}>jump</button
                         >
@@ -116,7 +116,7 @@
                             <span aria-hidden="true">·</span>
                             <button
                                 type="button"
-                                class="link hover:text-rtr-ink hover:underline"
+                                class="link hover:enabled:text-rtr-ink hover:enabled:underline"
                                 disabled={!!frozen}
                                 onclick={() => replay(entry)}>replay</button
                             >

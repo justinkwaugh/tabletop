@@ -30,7 +30,7 @@
         {@const enabled = gameSession.shareChoices.includes(button.railroadId)}
         <button
             type="button"
-            class="flex min-w-0 flex-col items-start gap-0.5 rounded-lg border border-rtr-line bg-rtr-panel-raised px-2.5 py-1.5 text-left hover:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent disabled:pointer-events-none disabled:opacity-50 sm:w-32"
+            class="flex min-w-0 flex-col items-start gap-0.5 rounded-lg border border-rtr-line bg-rtr-panel-raised px-2.5 py-1.5 text-left hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent disabled:pointer-events-none disabled:opacity-50 sm:w-32"
             disabled={!enabled}
             aria-label="{railroadName(button.railroadId)}, {shareButtonDetail(button)}"
             onclick={() => gameSession.takeShare(button.railroadId)}
