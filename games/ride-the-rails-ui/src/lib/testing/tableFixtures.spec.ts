@@ -72,9 +72,17 @@ describe('the named table fixtures', () => {
                 expect(Object.keys(played.shares)).toHaveLength(recipe.playerCount)
             }
         }
-        // R-3.3.6: a passenger leaves only with a journey, at most one a seat in each round ridden.
-        const ridden = round - 1
-        expect(recipe.carried?.length ?? 0).toBeLessThanOrEqual(ridden * recipe.playerCount)
+        // R-3.3.6: a passenger leaves only with a journey, at most one a seat in each round ridden,
+        // and in this round's Ride phase one for each seat before the deciding one (R-2.2).
+        const riddenRounds = round - 1
+        const riddenThisRound =
+            recipe.phase === PhaseName.Ride
+                ? hydrated.turnManager.turnOrder.indexOf(state.activePlayerIds[0] ?? '')
+                : 0
+        expect(riddenThisRound).toBeGreaterThanOrEqual(0)
+        expect(recipe.carried?.length ?? 0).toBeLessThanOrEqual(
+            riddenRounds * recipe.playerCount + riddenThisRound
+        )
         for (const cityId of recipe.carried ?? []) {
             expect(hydrated.passengers).not.toContain(cityId)
         }

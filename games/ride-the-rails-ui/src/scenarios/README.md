@@ -60,3 +60,29 @@ Round 3 with three seats, Build. Ada holds Red, Orange and Yellow; Omaha, Des Mo
 Round 3, Build. Ada holds Red and Blue, and Red has two locomotives left in the supply (scenario 11).
 
 - Watch from another seat: each new locomotive carries Ada's bar, and Red leaves the waiting view's "May build" list once its supply runs out.
+
+## Journey choices
+
+Round 3, Ride, Ada first. Orange and Yellow both run from Chicago to Milwaukee over one plain hex; Orange goes on to Des Moines, and Yellow's line to Saint Louis leaves Chicago through Orange's first hex towards Des Moines. Chicago's passenger is gone (scenarios 12 to 15 and 17).
+
+- Lit to start: Milwaukee, Des Moines, New York, Saint Louis and Baltimore; Chicago, with no passenger, is not.
+- Des Moines to Chicago is one Orange link, "1 link · fare $2". From there only Milwaukee lights: Saint Louis would reuse a hex.
+- Chicago to Milwaukee asks which railroad: Orange pays Ada $1 more than Yellow, since she holds Orange.
+
+## No journey
+
+Round 2, Ride, Ada first. Round 1's journeys carried every passenger the East Coast links reach, and Orange's stub from Chicago links no city (scenario 16).
+
+- Nothing lights; Pass is the only button.
+
+## Round one ends
+
+Round 1, Ride. Ada, Ben and Cora have ridden; Dell rides last (scenario 18).
+
+- Dell's journey from Washington brings him level with Ben at $4; the tied pair swap places, so round 2's order is Dell, Ben, Cora, Ada, and Orange becomes available.
+
+## Last journey
+
+Round 6 with three seats, Ride. Ada and Ben have ridden; Cora rides the game's last journey (scenario 19).
+
+- Saint Louis to Chicago to Milwaukee, both links by Yellow, gives Cora $44, level with Ada: the two share the win.

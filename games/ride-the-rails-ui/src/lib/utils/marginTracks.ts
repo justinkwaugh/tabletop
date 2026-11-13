@@ -1,8 +1,6 @@
 import {
     RAILROAD_INTRODUCTIONS,
     ROUND_COUNT,
-    availableRailroads,
-    currentRoundNumber,
     supplyOf,
     trackCount,
     type HydratedRideTheRailsGameState,
@@ -47,15 +45,21 @@ export function romanRound(round: number): string {
     return ROMAN_NUMERALS[round - 1] ?? String(round)
 }
 
+// R-2.1, R-6.1: the round the table shows; once round 6 ends the game no round is current, so
+// the last one stays on show.
+export function shownRoundNumber(state: HydratedRideTheRailsGameState): number {
+    return state.roundManager.currentRound?.number ?? state.roundManager.series.at(-1)?.number ?? 1
+}
+
 // R-1.1, R-1.1-H1, R-1.4: one entry per railroad in R-1.4 order, its supply from the logic package,
 // dim until its round; shareholders in turn order.
 export function railroadStrip(state: HydratedRideTheRailsGameState): RailroadStripEntry[] {
-    const available = new Set(availableRailroads(state))
+    const round = shownRoundNumber(state)
     const turnOrder = state.turnManager.turnOrder
     return RAILROAD_INTRODUCTIONS[state.mapId].map(({ railroadId, availableFromRound }) => ({
         railroadId,
         availableFromRound,
-        available: available.has(railroadId),
+        available: availableFromRound <= round,
         supply: supplyOf(state, railroadId),
         trackCount: trackCount(state.track, railroadId),
         shareholders: turnOrder
@@ -69,7 +73,7 @@ export function railroadStrip(state: HydratedRideTheRailsGameState): RailroadStr
 
 // R-1.4, R-2.1: rounds I-VI, each with the railroads it makes available.
 export function roundTrack(state: HydratedRideTheRailsGameState): RoundStop[] {
-    const currentRound = currentRoundNumber(state)
+    const currentRound = shownRoundNumber(state)
     const introductions = RAILROAD_INTRODUCTIONS[state.mapId]
     return Array.from({ length: ROUND_COUNT }, (_, index) => {
         const round = index + 1

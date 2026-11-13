@@ -41,6 +41,12 @@ export async function openScenario(page: Page, name: string) {
     }).toPass()
     await expect(page.getByRole('navigation')).toContainText(name)
     await expect.poll(() => page.evaluate(() => window.rtrSession !== undefined)).toBe(true)
+    // The emulated phone still clicks with a mouse, which would rest over whatever the menu
+    // covered (a railroad entry hovers its spotlight); park it in the corner.
+    await page.mouse.move(0, 0)
+    await expect
+        .poll(() => page.evaluate(() => window.rtrSession.spotlightRailroadId))
+        .toBe(undefined)
     await settled(page)
 }
 
@@ -73,12 +79,14 @@ export async function pressHex(page: Page, hex: Locator) {
         await settled(page)
         return
     }
+    // The lit set redraws as a pick changes, so the hex is read again until it holds still.
+    await settled(page)
     const zoomOut = page.getByRole('button', { name: 'Zoom out', exact: true })
     for (let step = 0; step < 6 && !(await onScreen(page, hex)); step++) {
         await zoomOut.tap()
         await page.waitForTimeout(300)
     }
-    expect(await onScreen(page, hex)).toBe(true)
+    await expect.poll(() => onScreen(page, hex)).toBe(true)
     await hex.tap()
     await settled(page)
 }

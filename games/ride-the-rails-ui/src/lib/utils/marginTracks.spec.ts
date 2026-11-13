@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { flushSync } from 'svelte'
 import {
     LOCOMOTIVES_PER_RAILROAD,
     PhaseName,
@@ -8,7 +9,19 @@ import {
     type HexId
 } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
-import { ordinal, railroadStrip, romanRound, roundTrack, turnOrderTrack } from './marginTracks.js'
+import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
+import {
+    ordinal,
+    railroadStrip,
+    romanRound,
+    roundTrack,
+    shownRoundNumber,
+    turnOrderTrack
+} from './marginTracks.js'
+
+afterEach(() => {
+    disposeSessions()
+})
 
 const NEW_YORK: HexId = usaCity('city.usa.new-york').hexId
 const PITTSBURGH: HexId = usaCity('city.usa.pittsburgh').hexId
@@ -90,6 +103,29 @@ describe('the round track', () => {
             []
         ])
         expect(track.filter((stop) => stop.current).map((stop) => stop.round)).toEqual([5])
+    })
+})
+
+describe('the tracks once the game ends', () => {
+    it('keep round 6 on show with every railroad available (R-6.1, R-1.4)', async () => {
+        const session = await openSessionOn(
+            buildState({ playerCount: 3, round: 6, phase: PhaseName.Ride })
+        )
+        for (let seat = 0; seat < 3; seat++) {
+            await session.passJourney()
+            await session.waitForVisibleTransitionSettled()
+            flushSync()
+        }
+        const state = session.gameState
+        expect(state.result).toBeDefined()
+        expect(state.roundManager.currentRound).toBeUndefined()
+        expect(shownRoundNumber(state)).toBe(6)
+        expect(railroadStrip(state).every((entry) => entry.available)).toBe(true)
+        expect(
+            roundTrack(state)
+                .filter((stop) => stop.current)
+                .map((stop) => stop.round)
+        ).toEqual([6])
     })
 })
 

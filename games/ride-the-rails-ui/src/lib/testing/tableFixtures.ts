@@ -287,6 +287,28 @@ const PURPLE_EAST: HexId[] = [
 
 const SHARE_ROUND_ONE: PlayedRound['shares'] = { p1: RED, p2: BLUE, p3: RED, p4: BLUE }
 
+// R-4.2.1: Red joins New York to Philadelphia; a branch reaches Albany.
+const RED_NEW_YORK = line(['New York', 'Philadelphia'], { start: true })
+const RED_ALBANY = line(['New York', 'Albany'])
+// R-4.2.2, R-4.2.3: Orange and Yellow both run from Chicago to Milwaukee, over the same plain hex.
+const ORANGE_MILWAUKEE = line(['Chicago', 'Milwaukee'], { start: true })
+const YELLOW_MILWAUKEE = line(['Chicago', 'Milwaukee'], { start: true })
+// Orange on to Des Moines. Yellow's line to Saint Louis leaves Chicago through Orange's first hex
+// of it, so a journey that came in from Des Moines cannot go on to Saint Louis (R-3.3.3).
+const ORANGE_DES_MOINES = line(['Chicago', 'Des Moines'])
+const SHARED_HEX = ORANGE_DES_MOINES[0] ?? cityHexId('Chicago')
+const YELLOW_SAINT_LOUIS = [SHARED_HEX, ...walk(SHARED_HEX, cityHexId('Saint Louis'))]
+
+/** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
+const EAST_COAST_ROUND: PlayedRound = {
+    shares: SHARE_ROUND_ONE,
+    builds: [
+        { playerId: 'p1', runs: [[RED, RED_NEW_YORK]] },
+        { playerId: 'p2', runs: [[BLUE, BLUE_SOUTH]] },
+        { playerId: 'p3', runs: [[RED, RED_ALBANY]] }
+    ]
+}
+
 export const TABLE_FIXTURES: readonly TableFixture[] = [
     // Scenario 1: the last seat in turn order takes the game's first share (R-2.2, R-3.1).
     {
@@ -544,6 +566,133 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
             phase: PhaseName.Build,
             journeyMoney: { p1: 6, p2: 9, p3: 11, p4: 14 },
             carried: [cityIdOf('New York'), cityIdOf('Pittsburgh'), cityIdOf('Baltimore')]
+        }
+    },
+    // Scenarios 12 to 15 and 17: round 3, Ride, Ada first. Orange and Yellow both link Chicago to
+    // Milwaukee, and Yellow's line to Saint Louis shares a hex with Orange's to Des Moines.
+    {
+        slug: 'journey-choices',
+        name: 'Journey choices',
+        recipe: {
+            playerCount: 4,
+            rounds: [
+                EAST_COAST_ROUND,
+                {
+                    shares: { p4: ORANGE, p3: ORANGE, p2: RED, p1: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
+                        { playerId: 'p3', runs: [[ORANGE, ORANGE_DES_MOINES]] }
+                    ]
+                },
+                {
+                    shares: { p4: YELLOW, p3: BLUE, p2: YELLOW, p1: BLUE },
+                    builds: [
+                        { playerId: 'p2', runs: [[YELLOW, YELLOW_MILWAUKEE]] },
+                        { playerId: 'p4', runs: [[YELLOW, YELLOW_SAINT_LOUIS.slice(0, 4)]] }
+                    ]
+                }
+            ],
+            phase: PhaseName.Ride,
+            journeyMoney: { p1: 9, p2: 7, p3: 10, p4: 6 },
+            carried: [
+                cityIdOf('Albany'),
+                cityIdOf('Washington'),
+                cityIdOf('Philadelphia'),
+                cityIdOf('Chicago')
+            ]
+        }
+    },
+    // Scenario 16: round 2, Ride. Round 1's journeys carried every passenger the links reach, and
+    // Orange's stub out of Chicago links nothing, so Ada can only pass (R-3.3.1-H1).
+    {
+        slug: 'no-journey',
+        name: 'No journey',
+        recipe: {
+            playerCount: 4,
+            rounds: [
+                {
+                    shares: SHARE_ROUND_ONE,
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, RED_NEW_YORK]] },
+                        { playerId: 'p2', runs: [[BLUE, BLUE_SOUTH]] }
+                    ]
+                },
+                {
+                    shares: { p4: ORANGE, p3: RED, p2: BLUE, p1: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, [cityHexId('Chicago'), SHARED_HEX]]] }
+                    ]
+                }
+            ],
+            phase: PhaseName.Ride,
+            journeyMoney: { p1: 4, p2: 4, p3: 4, p4: 4 },
+            carried: [
+                cityIdOf('New York'),
+                cityIdOf('Philadelphia'),
+                cityIdOf('Baltimore'),
+                cityIdOf('Washington')
+            ]
+        }
+    },
+    // Scenario 18: round 1's last journey. Ada, Ben and Cora have ridden; Dell's journey from
+    // Washington ties him with Ben, so the two swap places in the new order (R-2.5-H1).
+    {
+        slug: 'round-one-ends',
+        name: 'Round one ends',
+        recipe: {
+            playerCount: 4,
+            rounds: [EAST_COAST_ROUND],
+            phase: PhaseName.Ride,
+            currentPlayerId: 'p4',
+            journeyMoney: { p1: 6, p2: 3, p3: 5, p4: 1 },
+            carried: [cityIdOf('Albany'), cityIdOf('Baltimore'), cityIdOf('Philadelphia')]
+        }
+    },
+    // Scenario 19: round 6's last journey. Cora's ride from Saint Louis brings her level with Ada,
+    // and the two share the win (R-6.2-H1).
+    {
+        slug: 'last-journey',
+        name: 'Last journey',
+        recipe: {
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, RED_NEW_YORK]] },
+                        { playerId: 'p2', runs: [[BLUE, BLUE_SOUTH]] },
+                        { playerId: 'p3', runs: [[RED, RED_ALBANY]] }
+                    ]
+                },
+                {
+                    shares: { p3: ORANGE, p2: ORANGE, p1: RED },
+                    builds: [
+                        { playerId: 'p2', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
+                        { playerId: 'p3', runs: [[ORANGE, ORANGE_DES_MOINES]] }
+                    ]
+                },
+                {
+                    shares: { p3: YELLOW, p2: BLUE, p1: YELLOW },
+                    builds: [
+                        { playerId: 'p1', runs: [[YELLOW, YELLOW_MILWAUKEE]] },
+                        { playerId: 'p3', runs: [[YELLOW, YELLOW_SAINT_LOUIS.slice(0, 4)]] }
+                    ]
+                },
+                { shares: { p3: PURPLE, p2: RED, p1: ORANGE }, builds: [] },
+                { shares: { p3: BLACK, p2: BLACK, p1: BLUE }, builds: [] },
+                { shares: { p3: RED, p2: YELLOW, p1: ORANGE }, builds: [] }
+            ],
+            phase: PhaseName.Ride,
+            currentPlayerId: 'p3',
+            journeyMoney: { p1: 40, p2: 38, p3: 39 },
+            carried: [
+                cityIdOf('Albany'),
+                cityIdOf('Philadelphia'),
+                cityIdOf('Baltimore'),
+                cityIdOf('Washington'),
+                cityIdOf('Chicago'),
+                cityIdOf('Des Moines')
+            ]
         }
     }
 ]

@@ -1,8 +1,12 @@
 <script lang="ts">
-    import { currentRoundNumber } from '@tabletop/ride-the-rails'
     import { supplyKey } from '$lib/animators/flights.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { railroadStrip, romanRound, type RailroadStripEntry } from '$lib/utils/marginTracks.js'
+    import {
+        railroadStrip,
+        romanRound,
+        shownRoundNumber,
+        type RailroadStripEntry
+    } from '$lib/utils/marginTracks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
     import LocomotiveIcon from './board/LocomotiveIcon.svelte'
     import RailroadSpotlightControl from './RailroadSpotlightControl.svelte'
@@ -16,7 +20,7 @@
             supply: gameSession.flights.shown(supplyKey(entry.railroadId), entry.supply)
         }))
     )
-    const round = $derived(currentRoundNumber(gameSession.gameState))
+    const round = $derived(shownRoundNumber(gameSession.gameState))
 
     function entryText(entry: RailroadStripEntry): string {
         if (!entry.available) return `R${romanRound(entry.availableFromRound)}`
