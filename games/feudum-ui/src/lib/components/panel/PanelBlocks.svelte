@@ -58,16 +58,15 @@
     let handEnd = $derived(view.blocks.filter(({ stands }) => stands === 'hand-end'))
 
     /**
-     * Contract, Hand selection: what stands beside the eleven of a hand draft, each in its place. The
-     * finalise row heads it; the hand's count, then its slots with the send beside them, then the
-     * pouch; the at-will chips at the count's end.
+     * Contract, Hand selection: tray A. The heading over the eleven; beside them one tray, its labels
+     * in one column and its rows in the other: the hand's slots, the pouch, then the send. The
+     * at-will chips stand under the eleven.
      */
-    type DraftArea = 'order' | 'count' | 'slots' | 'send' | 'pouch' | 'more'
-    const DraftAreas: readonly DraftArea[] = ['order', 'count', 'more', 'slots', 'send', 'pouch']
+    type DraftPlace = 'head' | 'count' | 'slots' | 'pouch' | 'send' | 'more'
 
-    function areaOf(block: ActionBlock): DraftArea {
+    function placeOf(block: ActionBlock): DraftPlace {
         if (block.kind === 'finalise') {
-            return 'order'
+            return 'head'
         }
         if (block.kind === 'slots') {
             return 'slots'
@@ -81,13 +80,21 @@
         return block.kind === 'rows' && block.name === 'pouch' ? 'pouch' : 'more'
     }
 
-    let draftAreas = $derived(
-        DraftAreas.map((area) => ({
-            area,
-            blocks: view.blocks.filter(
-                (block) => block.stands === 'draft' && areaOf(block) === area
-            )
-        })).filter(({ blocks }) => blocks.length > 0)
+    let draftBlocks = $derived(view.blocks.filter(({ stands }) => stands === 'draft'))
+
+    function draftAt(place: DraftPlace): ActionBlock[] {
+        return draftBlocks.filter((block) => placeOf(block) === place)
+    }
+
+    let draftCount = $derived(
+        draftAt('count').find(
+            (block): block is Extract<ActionBlock, { kind: 'line' }> => block.kind === 'line'
+        )
+    )
+    let draftPouch = $derived(
+        draftAt('pouch').find(
+            (block): block is Extract<ActionBlock, { kind: 'rows' }> => block.kind === 'rows'
+        )
     )
 
     /**
@@ -220,12 +227,23 @@
 {/snippet}
 
 <!--
-    Contract, Hand selection: the eleven in rows of six, and beside them the finalise row, the hand's
-    count, the plan's slots with the send beside them, and the pouch. A phone stands it in a bottom
-    sheet over the board: the count and the order, the slots, the eleven, then the pouch and the send.
+    Contract, Hand selection: tray A. The round's heading, then the eleven in rows of six and, beside
+    them, one tray: "Hand" over its count and the slots, "Pouch" and its two choices under them, and
+    the send under those, each as wide as the slots. A phone stands it in a bottom sheet over the
+    board: the heading, the eleven, then the tray.
 -->
 {#snippet draftView(block: Extract<ActionBlock, { kind: 'cards' }>)}
+    {@const head = draftAt('head')}
+    {@const more = draftAt('more')}
+    {@const send = draftAt('send')}
     <div class="hand-draft w-full" data-hand-draft>
+        {#if head.length > 0}
+            <div class="draft-head" data-draft-area="head">
+                {#each head as inner, index (index)}
+                    {@render blockView(inner, index, head)}
+                {/each}
+            </div>
+        {/if}
         <div
             class="draft-cards grid gap-1.5"
             style:grid-template-columns={DraftColumns}
@@ -235,13 +253,45 @@
                 <CardChoice {row} paint={block.paint} {pointer} />
             {/each}
         </div>
-        {#each draftAreas as { area, blocks } (area)}
-            <div class="draft-{area} flex flex-wrap items-center gap-1.5" data-draft-area={area}>
-                {#each blocks as inner, index (index)}
-                    {@render blockView(inner, index, blocks)}
+        {#if more.length > 0}
+            <div class="draft-more flex flex-wrap items-center gap-1.5" data-draft-area="more">
+                {#each more as inner, index (index)}
+                    {@render blockView(inner, index, more)}
                 {/each}
             </div>
-        {/each}
+        {/if}
+        <div
+            class="hand-tray rounded-lg border border-feudum-frame bg-feudum-surface-raised"
+            role="group"
+            aria-label="Your hand, pouch and finalise"
+            data-hand-tray
+        >
+            {#each draftAt('slots') as inner, index (index)}
+                <p class="tray-label" data-tray-label="hand">
+                    {draftCount?.lead ?? 'Hand'}
+                    {#if draftCount}<small data-hand-count>{draftCount.text}</small>{/if}
+                </p>
+                <div class="tray-row" data-tray-row="hand">
+                    {@render blockView(inner, index, [inner])}
+                </div>
+            {/each}
+            {#if draftPouch}
+                <p class="tray-label" data-tray-label="pouch">
+                    {draftPouch.heading ?? 'Pouch'}
+                    {#if draftPouch.hint}<small>{draftPouch.hint}</small>{/if}
+                </p>
+                <div class="tray-row" data-tray-row="pouch">
+                    {@render blockView(draftPouch, 0, [draftPouch])}
+                </div>
+            {/if}
+            {#if send.length > 0}
+                <div class="tray-row tray-send" data-tray-row="send">
+                    {#each send as inner, index (index)}
+                        {@render blockView(inner, index, send)}
+                    {/each}
+                </div>
+            {/if}
+        </div>
     </div>
 {/snippet}
 
@@ -299,64 +349,85 @@
 </div>
 
 <style>
-    /* Contract, Hand selection: the draft's places on a desk. */
+    /* Contract, Hand selection: tray A's places on a desk. */
     .hand-draft {
         display: grid;
         /*
-         * The eleven, six 72 px faces a row, give way first on a narrow desk; the plan and the send
-         * keep their size. The faces scale to their cell, so the column names its width.
+         * The eleven, six 72 px faces a row, give way first on a narrow desk; the tray keeps its
+         * size. The faces scale to their cell, so the column names its width. The last column takes
+         * what is left, so the heading runs the panel's width with the seats at its end.
          */
-        grid-template-columns: minmax(0, calc(6 * 72px + 5 * 0.375rem)) max-content max-content;
+        grid-template-columns: minmax(0, calc(6 * 72px + 5 * 0.375rem)) max-content minmax(0, 1fr);
         justify-content: start;
         grid-template-areas:
-            'order order order'
-            'cards count more'
-            'cards slots send'
-            'cards pouch pouch';
-        grid-template-rows: auto auto auto 1fr;
+            'head head head'
+            'cards tray .'
+            'more tray .';
+        grid-template-rows: auto auto 1fr;
         column-gap: 1rem;
         row-gap: 0.375rem;
         align-items: start;
+    }
+
+    /* The heading spans both columns: it wraps in what they leave, rather than widening the tray's. */
+    .draft-head {
+        grid-area: head;
+        width: 0;
+        min-width: 100%;
     }
 
     .draft-cards {
         grid-area: cards;
     }
 
-    .draft-order {
-        grid-area: order;
-    }
-
-    .draft-count {
-        grid-area: count;
-        align-self: end;
-    }
-
     .draft-more {
         grid-area: more;
-        justify-content: flex-end;
     }
 
-    .draft-slots {
-        grid-area: slots;
+    /* One grid: the labels' column, then the rows', every edge lined up with the slots. */
+    .hand-tray {
+        --slot-width: 62px;
+        grid-area: tray;
+        display: grid;
+        grid-template-columns: 62px max-content;
+        column-gap: 0.625rem;
+        row-gap: 0.5rem;
+        align-items: center;
+        padding: 0.5rem 0.875rem;
     }
 
-    .draft-send {
-        grid-area: send;
-        align-self: center;
-        flex-direction: column;
-        align-items: flex-start;
+    .tray-label {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 700;
+        line-height: 1.15;
+        color: var(--feudum-heading);
     }
 
-    .draft-pouch {
-        grid-area: pouch;
+    .tray-label small {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--feudum-text-muted);
     }
 
-    /* The lines that span columns wrap in what the others leave, rather than widening them. */
-    .draft-order,
-    .draft-pouch {
+    /* The rows under the slots take the slots' width rather than widening the column. */
+    .tray-row[data-tray-row='pouch'],
+    .tray-send {
         width: 0;
         min-width: 100%;
+    }
+
+    .tray-send {
+        grid-column: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .tray-send > :global(.sends),
+    .tray-send :global([data-primary]) {
+        width: 100%;
     }
 
     /* The hand's 72 px faces, which give way on a narrow line; the picked one lifts. */
@@ -438,43 +509,49 @@
             line-height: 1rem;
         }
 
-        /* Contract, Phone layout: the sheet's hand: count and order, slots, the eleven, pouch and send. */
+        /* Contract, Phone layout: the sheet's hand: the heading, the eleven, then tray A. */
         .hand-draft {
-            grid-template-columns: max-content max-content minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1fr);
             grid-template-areas:
-                'count order order'
-                'slots slots slots'
-                'cards cards cards'
-                'pouch more send';
+                'head'
+                'cards'
+                'more'
+                'tray';
             grid-template-rows: none;
             align-content: start;
-            column-gap: 0.25rem;
             row-gap: 0.25rem;
         }
 
-        /* A magnifier's 44 px reaches below its card: the rows, and the pouch, stand clear of it. */
+        /* A magnifier's 44 px reaches below its card: the tray stands clear of it. */
         .draft-cards {
             column-gap: 0.25rem;
             row-gap: 0.5rem;
             margin-bottom: 0.5rem;
         }
 
-        .draft-order {
-            justify-content: flex-end;
+        .hand-tray {
+            --slot-width: 44px;
+            grid-template-columns: 48px minmax(0, 1fr);
+            column-gap: 0.5rem;
+            row-gap: 0.375rem;
+            padding: 0.375rem 0.5rem;
         }
 
-        /* Here the pouch has its column, which it sets. */
-        .draft-pouch {
+        .tray-label {
+            font-size: 0.75rem;
+        }
+
+        .tray-label small {
+            font-size: 0.6875rem;
+        }
+
+        .tray-row[data-tray-row='pouch'],
+        .tray-send {
             width: auto;
             min-width: 0;
         }
 
-        /* The sends' line basis is a width; in the draft's column it would be the send's height. */
-        .draft-send {
-            align-items: stretch;
-        }
-
-        .draft-send > .sends {
+        .tray-send > :global(.sends) {
             flex: none;
         }
 

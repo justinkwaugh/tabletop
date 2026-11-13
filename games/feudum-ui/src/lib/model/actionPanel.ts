@@ -94,6 +94,8 @@ export interface FinaliseEntry {
     readonly name: string
     readonly paint: SeatPaint
     readonly finalised: boolean
+    /** The seat looking: its chip reads "(you)". */
+    readonly you: boolean
     readonly pouchGood?: PouchGood
 }
 
@@ -125,7 +127,7 @@ type PanelBlock =
     | {
           readonly kind: 'finalise'
           readonly entries: readonly FinaliseEntry[]
-          /** R-3.1-H1 "everyone chooses now · pouches shown when all are final" */
+          /** R-3.1-H1 "everyone at once · pouch goods shown when all have finalised" */
           readonly caption: string
           /** "Round 4 · choose your hand", while this seat drafts. */
           readonly lead?: string
@@ -180,6 +182,8 @@ type PanelBlock =
           readonly name: string
           /** A small heading before the rows: the attack's saltpeter count, a landscape's place. */
           readonly heading?: string
+          /** Beneath the heading, where it has one: the pouch's "one or none". */
+          readonly hint?: string
           readonly rows: readonly ActionRow[]
       }
     | {
@@ -396,7 +400,7 @@ function pawnBlocks(
 }
 
 /** R-3.1-H1 Choosing and finalising are simultaneous; the pouch goods are shown together. */
-const FinaliseCaption = 'everyone chooses now · pouches shown when all are final'
+const FinaliseCaption = 'everyone at once · pouch goods shown when all have finalised'
 
 function handBlocks(
     session: PanelSession,
@@ -408,7 +412,8 @@ function handBlocks(
         entries: panel.finaliseRow.map((entry) => ({
             ...entry,
             name: session.getPlayerName(entry.playerId),
-            paint: session.paintOf(entry.playerId)
+            paint: session.paintOf(entry.playerId),
+            you: entry.playerId === session.myPlayerId
         })),
         caption: FinaliseCaption,
         ...(drafting ? { lead: drafting.line } : {})
@@ -430,7 +435,7 @@ function handBlocks(
     }))
     const beside: ActionBlock[] = [
         finalise,
-        line('count', drafting.count, 'Your hand'),
+        line('count', drafting.count, 'Hand'),
         {
             kind: 'slots',
             paint,
@@ -438,17 +443,20 @@ function handBlocks(
                 const card = cards.find((row) => row.kind === kind)
                 return { at: at + 1, ...(card ? { card } : {}) }
             }),
-            caption: 'your plan · play in any order'
+            caption: 'play in any order'
         },
-        ...rows(
-            'pouch',
-            drafting.pouch.map(({ good, label, title, caption, picked, refusal }) => ({
+        {
+            kind: 'rows',
+            name: 'pouch',
+            heading: 'Pouch',
+            hint: 'one or none',
+            rows: drafting.pouch.map(({ good, label, title, caption, picked, refusal }) => ({
                 choice: { ...plainChoice(label, picked, refusal), shown: title },
                 press: () => session.choosePouch(good),
                 art: { kind: 'good', good },
                 caption
             }))
-        ),
+        },
         ...(drafting.conquerWarning ? [line('warning', drafting.conquerWarning)] : []),
         primaryBlock(drafting.primary, () => session.finaliseHand()),
         ...atWillBlocks(session)

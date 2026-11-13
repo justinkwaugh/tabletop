@@ -56,21 +56,36 @@ describe('R-3.1 the finalise row', () => {
                 name: 'Ana',
                 paint,
                 finalised: true,
+                you: true,
                 pouchGood: 'saltpeter'
             },
-            { playerId: 'p2', name: 'Ben', paint, finalised: true },
-            { playerId: 'p3', name: 'Cyd', paint, finalised: false }
+            { playerId: 'p2', name: 'Ben', paint, finalised: true, you: false },
+            { playerId: 'p3', name: 'Cyd', paint, finalised: false, you: false }
         ],
-        caption: 'everyone chooses now · pouches shown when all are final',
+        caption: 'everyone at once · pouch goods shown when all have finalised',
         lead: 'Round 2 · choose your hand'
     })
+    const words = (markup: string) =>
+        markup
+            .replace(/<title>.*?<\/title>|<!--.*?-->|<[^>]+>/gs, '')
+            .replace(/\s+/g, ' ')
+            .trim()
 
-    it('R-3.1-H1 says everyone chooses now and the pouches are shown together, after the round', () => {
+    it('R-3.1-H1 one heading and one caption: everyone at once, the pouch goods shown when all have finalised', () => {
         expect(row).toContain('data-finalise-caption')
-        expect(row.replace(/<!--.*?-->|<[^>]+>/gs, '').replace(/\s+/g, ' ')).toContain(
-            'Round 2 · choose your hand · everyone chooses now · pouches shown when all are final'
+        expect(words(row)).toContain(
+            'Round 2 · choose your hand everyone at once · pouch goods shown when all have finalised'
         )
         expect(row).not.toContain('Finalise order')
+    })
+
+    it('R-3.1-H1 each seat says choosing or finalised and nothing else; the viewer is "you"', () => {
+        const body = row.slice(0, row.lastIndexOf('</div>'))
+        const chips = body
+            .split('data-finalise-seat=')
+            .slice(1)
+            .map((chip) => words(chip.slice(chip.indexOf('>') + 1).replace(/<[^>]*$/, '')))
+        expect(chips).toEqual(['Ana (you) · finalised ✓', 'Ben · finalised ✓', 'Cyd · choosing'])
     })
 
     it('S4 S8 R-3.1-H1 names the seats in order, ticks those done, shows only the pouch good given, marks no next', () => {
@@ -367,17 +382,26 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
     const draft = (refusal?: string) =>
         markupOf(
             { kind: 'cards', tone: 'draft', paint, rows: [tax, move] },
-            { kind: 'line', role: 'count', text: '1 of 4', lead: 'Your hand', stands: 'draft' },
+            {
+                kind: 'finalise',
+                entries: [{ playerId: 'p1', name: 'Ana', paint, finalised: false, you: true }],
+                caption: 'everyone at once · pouch goods shown when all have finalised',
+                lead: 'Round 2 · choose your hand',
+                stands: 'draft'
+            },
+            { kind: 'line', role: 'count', text: '1 of 4', lead: 'Hand', stands: 'draft' },
             {
                 kind: 'slots',
                 paint,
                 slots: [{ at: 1, card: tax }, { at: 2 }, { at: 3 }, { at: 4 }],
-                caption: 'your plan · play in any order',
+                caption: 'play in any order',
                 stands: 'draft'
             },
             {
                 kind: 'rows',
                 name: 'pouch',
+                heading: 'Pouch',
+                hint: 'one or none',
                 rows: pouch(refusal),
                 stands: 'draft'
             },
@@ -405,13 +429,15 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
         expect(tax).toContain('data-slot-badge="1"')
     })
 
-    it('the slots are numbered, the filled one takes its card back, the caption says play in any order', () => {
+    it('the slots are numbered, the filled one takes its card back, their name says play in any order', () => {
         const markup = draft()
         const slots = [...markup.matchAll(/data-slot="(\d)"/g)].map(([, at]) => Number(at))
         expect(slots).toEqual([1, 2, 3, 4])
         expect(markup).toContain('aria-label="Tax, slot 1: take back"')
         expect(markup.match(/data-slot-empty/g)).toHaveLength(3)
-        expect(textOf(markup, 'data-plan-caption')).toBe('your plan · play in any order')
+        expect(markup).toContain('aria-label="Your hand · play in any order"')
+        // One heading and one caption: the plan has no caption of its own.
+        expect(markup).not.toContain('data-plan-caption')
     })
 
     it('R-3.3 each pouch choice is its art, its short name and what it does; the full words its name', () => {
@@ -451,11 +477,36 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
         expect(markup).toContain(`aria-label="Long live the king · finalise · can't be undone"`)
     })
 
-    it('everything beside the eleven stands in the draft, in its place', () => {
+    it('tray A: the hand, the pouch and the send stand in one tray, each row by its label', () => {
         const markup = draft()
-        const areas = [...markup.matchAll(/data-draft-area="([a-z]+)"/g)].map(([, area]) => area)
-        expect(areas).toEqual(['count', 'slots', 'send', 'pouch'])
+        const tray = markup.slice(markup.indexOf('data-hand-tray'))
         expect(markup.indexOf('data-hand-draft')).toBeLessThan(markup.indexOf('data-cards="draft"'))
+        // The heading stands over the eleven, outside the tray; the eleven stand before it.
+        expect(markup.indexOf('data-finalise-row')).toBeLessThan(
+            markup.indexOf('data-cards="draft"')
+        )
+        expect(markup.indexOf('data-cards="draft"')).toBeLessThan(markup.indexOf('data-hand-tray'))
+        const rows = [...tray.matchAll(/data-tray-row="([a-z]+)"/g)].map(([, name]) => name)
+        expect(rows).toEqual(['hand', 'pouch', 'send'])
+        const labels = [...tray.matchAll(/data-tray-label="([a-z]+)"/g)].map(([, name]) => name)
+        expect(labels).toEqual(['hand', 'pouch'])
+        const labelWords = (name: string) => {
+            const at = tray.indexOf(`data-tray-label="${name}"`)
+            return tray
+                .slice(at, tray.indexOf('data-tray-row', at))
+                .replace(/^[^>]*>/, '')
+                .replace(/<!--.*?-->|<[^>]+>/gs, ' ')
+                .replace(/\s+/g, ' ')
+                .replace(/<[^>]*$/, '')
+                .trim()
+        }
+        expect(labelWords('hand')).toBe('Hand 1 of 4')
+        expect(labelWords('pouch')).toBe('Pouch one or none')
+        expect(textOf(tray, 'data-hand-count')).toBe('1 of 4')
+        expect(tray.indexOf('data-tray-row="hand"')).toBeLessThan(tray.indexOf('data-plan'))
+        expect(tray.indexOf('data-rows="pouch"')).toBeGreaterThan(tray.indexOf('data-plan'))
+        expect(tray.indexOf('data-primary')).toBeGreaterThan(tray.indexOf('data-rows="pouch"'))
+        expect(markup).toContain('aria-label="Your hand, pouch and finalise"')
     })
 })
 

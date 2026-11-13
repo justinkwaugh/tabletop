@@ -317,9 +317,20 @@ describe('Render ownership: each shared row reads the same for every seat', () =
         await settled(first)
         await settled(second)
         expect(blockOf(first.actionPanel, 'finalise')).toBeDefined()
-        expect(plain(blockOf(second.actionPanel, 'finalise'))).toEqual(
-            plain(blockOf(first.actionPanel, 'finalise'))
-        )
+        // Only the viewer differs: each seat's chip says "you" on its own seat.
+        const yous = (session: typeof first) => {
+            const block = blockOf(session.actionPanel, 'finalise')
+            return block?.entries.filter((entry) => entry.you).map((entry) => entry.playerId)
+        }
+        expect([yous(first), yous(second)]).toEqual([[host.order[0]], [host.order[1]]])
+        const unseen = (session: typeof first) => {
+            const block = blockOf(session.actionPanel, 'finalise')
+            return {
+                ...block,
+                entries: block?.entries.map((entry) => ({ ...entry, you: undefined }))
+            }
+        }
+        expect(plain(unseen(second))).toEqual(plain(unseen(first)))
     })
 })
 

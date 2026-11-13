@@ -24,6 +24,9 @@ test.afterEach(({ page }) => {
 })
 
 const panel = (page: Page) => page.locator('[data-action-panel]')
+
+/** Contract, Hand selection: a desk's draft, the eleven beside tray A, stays under about 320 px. */
+const DeskDraftHeight = 320
 const lit = (page: Page) => page.locator('[data-pick-role="lit"]')
 const bright = (page: Page) => page.locator('[data-bright]')
 const enlarged = (page: Page) => page.locator('[data-enlarged]')
@@ -140,11 +143,11 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
     const faces = panel(page).locator('[data-cards="draft"] [data-row]')
     const slots = panel(page).locator('[data-plan] [data-slot]')
     await expect(slots).toHaveCount(4)
-    await expect(panel(page).locator('[data-plan-caption]')).toHaveText(
-        'your plan · play in any order'
+    await expect(panel(page).locator('[data-plan] [role="list"]')).toHaveAccessibleName(
+        'Your hand · play in any order'
     )
     await expect(panel(page).locator('[data-finalise-caption]')).toContainText(
-        'everyone chooses now · pouches shown when all are final'
+        'everyone at once · pouch goods shown when all have finalised'
     )
 
     await faces.nth(2).locator('button').first().click()
@@ -164,15 +167,45 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
     )
     await expect(panel(page).locator('[data-hand-count]')).toHaveText('2 of 4')
 
-    // Contract, Hand selection: a desk's draft stays under about 300 px, the send beside the slots.
+    // Contract, Hand selection: tray A. Right of the eleven, one tray: the slots, the pouch under
+    // them and the send under that, each as wide as the slots and on their left edge.
     const area = await panel(page).boundingBox()
-    expect(area?.height ?? 0).toBeLessThanOrEqual(300)
-    const plan = await panel(page).locator('[data-plan] [role="list"]').boundingBox()
-    const send = await primary(page).boundingBox()
-    expect(send && plan && send.x).toBeGreaterThanOrEqual((plan?.x ?? 0) + (plan?.width ?? 0))
-    expect(send && plan && send.y).toBeLessThan((plan?.y ?? 0) + (plan?.height ?? 0))
-    const pouch = await panel(page).locator('[data-rows="pouch"]').boundingBox()
-    expect(pouch?.y ?? 0).toBeGreaterThanOrEqual((plan?.y ?? 0) + (plan?.height ?? 0))
+    expect(area?.height ?? 0).toBeLessThanOrEqual(DeskDraftHeight)
+    const box = async (locator: Locator) => {
+        const found = await locator.boundingBox()
+        expect(found).not.toBeNull()
+        return found ?? { x: 0, y: 0, width: 0, height: 0 }
+    }
+    const cards = await box(panel(page).locator('[data-cards="draft"]'))
+    const tray = await box(panel(page).locator('[data-hand-tray]'))
+    // The heading runs the panel's width, the seats at its end, over the eleven and the tray.
+    const head = await box(panel(page).locator('[data-finalise-row]'))
+    const chips = await box(panel(page).locator('[data-finalise-seats]'))
+    expect(Math.abs(chips.x + chips.width - (head.x + head.width))).toBeLessThan(1)
+    expect(head.x + head.width).toBeGreaterThan(tray.x + tray.width)
+    expect(chips.y + chips.height).toBeLessThanOrEqual(cards.y)
+    const plan = await box(panel(page).locator('[data-plan] [role="list"]'))
+    const pouch = await box(panel(page).locator('[data-rows="pouch"]'))
+    const send = await box(primary(page))
+    expect(tray.x).toBeGreaterThanOrEqual(cards.x + cards.width)
+    for (const part of [plan, pouch, send]) {
+        expect(part.x).toBeGreaterThanOrEqual(tray.x)
+        expect(part.x + part.width).toBeLessThanOrEqual(tray.x + tray.width)
+    }
+    expect(pouch.y).toBeGreaterThanOrEqual(plan.y + plan.height)
+    expect(send.y).toBeGreaterThanOrEqual(pouch.y + pouch.height)
+    for (const part of [pouch, send]) {
+        expect(Math.abs(part.x - plan.x)).toBeLessThan(1)
+        expect(Math.abs(part.width - plan.width)).toBeLessThan(1)
+    }
+    // The labels stand in their own column, level with their rows.
+    const label = await box(panel(page).locator('[data-tray-label="hand"]'))
+    expect(label.x + label.width).toBeLessThanOrEqual(plan.x)
+    expect(label.y).toBeGreaterThanOrEqual(plan.y - 1)
+    expect(label.y).toBeLessThan(plan.y + plan.height)
+    const pouchLabel = await box(panel(page).locator('[data-tray-label="pouch"]'))
+    expect(pouchLabel.y).toBeGreaterThanOrEqual(pouch.y - 1)
+    expect(pouchLabel.y).toBeLessThan(pouch.y + pouch.height)
     await shot(page, 'draft-two-picked')
 
     await slots.nth(0).locator('button').click()

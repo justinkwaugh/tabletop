@@ -5,7 +5,7 @@
     /**
      * R-3.1 The plan: a numbered slot per card the hand needs, filled in the order pressed. A filled
      * slot's press takes its card back. The numbers are the seat's own plan; the cards may be played
-     * in any order, as the caption says.
+     * in any order, as the slots' name says. The tray's label counts them, so they have no caption.
      */
     let { block }: { block: Extract<ActionBlock, { kind: 'slots' }> } = $props()
 
@@ -14,7 +14,7 @@
 </script>
 
 <div class="flex flex-col gap-1" data-plan>
-    <div class="flex gap-1.5" role="list" aria-label="Your hand">
+    <div class="flex gap-1.5 max-sm:gap-1" role="list" aria-label="Your hand · {block.caption}">
         {#each block.slots as slot (slot.at)}
             <div class="slot relative" role="listitem" data-slot={slot.at}>
                 {#if slot.card}
@@ -47,14 +47,20 @@
             </div>
         {/each}
     </div>
-    <p class="text-xs text-feudum-text-muted" data-plan-caption>{block.caption}</p>
 </div>
 
 <style>
-    /* A slot stands at the face's width and a card's height. */
+    /* A slot stands at the tray's slot width and a card's height. */
     .slot {
         flex: 0 0 auto;
-        width: 64px;
+        width: var(--slot-width, 64px);
+    }
+
+    /* The face is drawn at its own width and scales to the slot's. */
+    .slot :global(svg) {
+        display: block;
+        width: 100%;
+        height: auto;
     }
 
     .empty {

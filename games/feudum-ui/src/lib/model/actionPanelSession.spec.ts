@@ -379,7 +379,7 @@ describe('Hand selection', () => {
         }
         const count = () => linesOf(session.actionPanel, 'count')
         expect(count()).toEqual(['4 of 4'])
-        expect(blockOf(session.actionPanel, 'line')?.lead).toBe('Your hand')
+        expect(blockOf(session.actionPanel, 'line')?.lead).toBe('Hand')
         expect(blockOf(session.actionPanel, 'finalise')?.lead).toMatch(
             /^Round \d+ · choose your hand$/
         )
@@ -398,15 +398,38 @@ describe('Hand selection', () => {
         expect(count()).toEqual(['5 of 5'])
     })
 
-    it('R-3.1, R-3.1-H1 the finalise row says everyone chooses now and the pouches are shown together', async () => {
+    it('R-3.1, R-3.1-H1 the finalise row: everyone at once, and the pouch goods shown when all have finalised', async () => {
         const table = await atHands()
         const drafting = await table.openSeat(table.order[1])
         const watching = await table.openSpectator()
         for (const session of [drafting, watching]) {
             expect(blockOf(session.actionPanel, 'finalise')?.caption).toBe(
-                'everyone chooses now · pouches shown when all are final'
+                'everyone at once · pouch goods shown when all have finalised'
             )
         }
+        expect(
+            blockOf(drafting.actionPanel, 'finalise')?.entries.map(({ playerId, you }) => [
+                playerId,
+                you
+            ])
+        ).toEqual(table.order.map((playerId) => [playerId, playerId === table.order[1]]))
+        expect(blockOf(watching.actionPanel, 'finalise')?.entries.some(({ you }) => you)).toBe(
+            false
+        )
+    })
+
+    it('R-3.1, R-3.3 tray A: the hand counted under its label, the pouch headed "one or none"', async () => {
+        const table = await atHands()
+        const session = await table.openSeat(table.order[0])
+        const count = blockOf(session.actionPanel, 'line')
+        expect([count?.role, count?.lead, count?.text]).toEqual(['count', 'Hand', '0 of 4'])
+        const pouch = session.actionPanel.blocks.find(
+            (block) => block.kind === 'rows' && block.name === 'pouch'
+        )
+        expect(pouch?.kind === 'rows' && [pouch.heading, pouch.hint]).toEqual([
+            'Pouch',
+            'one or none'
+        ])
     })
 
     it('R-3.1 the plan: a press fills the next slot and numbers the card; the slot or the card takes it back', async () => {
@@ -421,7 +444,7 @@ describe('Hand selection', () => {
         const slotOf = (kind: string) =>
             cardRows(session.actionPanel).find((row) => row.kind === kind)?.slot
         expect(slots()?.slots.map(({ at }) => at)).toEqual([1, 2, 3, 4])
-        expect(slots()?.caption).toBe('your plan · play in any order')
+        expect(slots()?.caption).toBe('play in any order')
 
         await pressCard(session.actionPanel, 'tax')
         await pressCard(session.actionPanel, 'move')
