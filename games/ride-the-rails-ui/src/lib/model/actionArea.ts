@@ -14,14 +14,13 @@ import {
     placementLimit,
     richestPlayerIds,
     supplyOf,
-    type CityId,
     type HydratedRideTheRailsGameState,
     type JourneyPayment,
     type LinksPerRailroad,
     type PlayerMoney,
     type RailroadId
 } from '@tabletop/ride-the-rails'
-import { cityName, type Description } from '$lib/utils/describeAction.js'
+import { routeText, type Description } from '$lib/utils/describeAction.js'
 
 export type ShareAvailability =
     { kind: 'open' } | { kind: 'later'; fromRound: number } | { kind: 'empty' }
@@ -113,15 +112,11 @@ export function buildableRailroads(
     return RAILROAD_IDS.filter((railroadId) => placeable.has(railroadId))
 }
 
-export function routeText(cityIds: readonly CityId[]): string {
-    return cityIds.map(cityName).join(' → ')
-}
-
 export function totalLinks(linksPerRailroad: LinksPerRailroad): number {
     return Object.values(linksPerRailroad).reduce((sum, links) => sum + (links ?? 0), 0)
 }
 
-export function linksText(links: number): string {
+function linksText(links: number): string {
     return links === 1 ? '1 link' : `${links} links`
 }
 

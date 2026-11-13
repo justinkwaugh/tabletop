@@ -1,12 +1,11 @@
 <script lang="ts">
     import { TRANSCONTINENTAL_BONUS } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { MARGIN_BOXES, drawsSeatInitials } from '$lib/utils/boardGeometry.js'
+    import { MARGIN_BOXES } from '$lib/utils/boardGeometry.js'
     import MarginPanel from './MarginPanel.svelte'
     import SeatMarker from './SeatMarker.svelte'
 
-    let { viewScale, initials }: { viewScale: number; initials: ReadonlyMap<string, string> } =
-        $props()
+    let { initials }: { initials: ReadonlyMap<string, string> } = $props()
 
     const gameSession = getGameSession()
 
@@ -47,7 +46,7 @@
             >
             <SeatMarker
                 playerId={claim.playerId}
-                initials={drawsSeatInitials(viewScale) ? initials.get(claim.playerId) : undefined}
+                initials={initials.get(claim.playerId)}
                 x={40}
                 y={164}
                 radius={15}

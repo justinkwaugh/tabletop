@@ -1,14 +1,13 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { MARGIN_BOXES, drawsSeatInitials } from '$lib/utils/boardGeometry.js'
+    import { MARGIN_BOXES } from '$lib/utils/boardGeometry.js'
     import { ordinal, turnOrderTrack } from '$lib/utils/marginTracks.js'
     import { TURN_ORDER_MARKER, turnOrderMarkerX } from '$lib/utils/marginLayout.js'
     import { markerKey, moneyKey } from '$lib/animators/flights.svelte.js'
     import MarginPanel from './MarginPanel.svelte'
     import SeatMarker from './SeatMarker.svelte'
 
-    let { viewScale, initials }: { viewScale: number; initials: ReadonlyMap<string, string> } =
-        $props()
+    let { initials }: { initials: ReadonlyMap<string, string> } = $props()
 
     const gameSession = getGameSession()
     const flights = gameSession.flights
@@ -25,7 +24,6 @@
             money: gameSession.flights.shown(moneyKey(stop.playerId), stop.money)
         }))
     )
-    const showsInitials = $derived(drawsSeatInitials(viewScale))
 </script>
 
 <!-- R-2.3, R-2.5: the turn manager's order, each seat's marker with its money. -->
@@ -48,7 +46,7 @@
             <g use:flights.register={markerKey(stop.playerId)}>
                 <SeatMarker
                     playerId={stop.playerId}
-                    initials={showsInitials ? initials.get(stop.playerId) : undefined}
+                    initials={initials.get(stop.playerId)}
                     x={centre}
                     y={MARKER_Y}
                     radius={MARKER_RADIUS}

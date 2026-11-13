@@ -11,6 +11,7 @@
         railroadStrip,
         romanRound,
         shownRoundNumber,
+        supplyText,
         type RailroadStripEntry
     } from '$lib/utils/marginTracks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
@@ -39,7 +40,7 @@
     function entryLabel(entry: RailroadStripEntry): string {
         const name = railroadStyle(entry.railroadId).name
         if (!entry.available) return `${name}: available from round ${entry.availableFromRound}`
-        return `${name}: ${entry.supply > 0 ? `${entry.supply} left` : 'none left'}, ${entry.trackCount} track`
+        return `${name}: ${supplyText(entry.supply)}, ${entry.trackCount} track`
     }
 </script>
 

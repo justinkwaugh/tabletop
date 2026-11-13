@@ -29,7 +29,7 @@ export function passengerFlyerKey(cityId: CityId): string {
     return `flyer:${passengerKey(cityId)}`
 }
 
-export function pulseFlyerKey(index: number, cityId: CityId): string {
+function pulseFlyerKey(index: number, cityId: CityId): string {
     return `pulse:${index}:${cityId}`
 }
 

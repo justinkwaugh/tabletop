@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { drawsSeatInitials } from '$lib/utils/boardGeometry.js'
     import { seatInitials } from '$lib/utils/seatCards.js'
     import RailroadStrip from './RailroadStrip.svelte'
     import RoundTrack from './RoundTrack.svelte'
@@ -10,10 +11,18 @@
 
     const gameSession = getGameSession()
 
+    const NO_INITIALS: ReadonlyMap<string, string> = new Map()
+
+    // Seat initials are drawn only once the view is large enough to read them.
     const initials = $derived(
-        seatInitials(
-            gameSession.game.players.map((player) => ({ playerId: player.id, name: player.name }))
-        )
+        drawsSeatInitials(viewScale)
+            ? seatInitials(
+                  gameSession.game.players.map((player) => ({
+                      playerId: player.id,
+                      name: player.name
+                  }))
+              )
+            : NO_INITIALS
     )
 </script>
 
@@ -21,7 +30,7 @@
      they move above the board (Phone layout). -->
 <g class="margin max-sm:hidden">
     <RoundTrack />
-    <TurnOrderTrack {viewScale} {initials} />
-    <TranscontinentalClaim {viewScale} {initials} />
-    <RailroadStrip {viewScale} {initials} />
+    <TurnOrderTrack {initials} />
+    <TranscontinentalClaim {initials} />
+    <RailroadStrip {initials} />
 </g>

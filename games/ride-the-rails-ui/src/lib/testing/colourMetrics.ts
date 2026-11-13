@@ -41,7 +41,7 @@ function lab(hex: string): Rgb {
 }
 
 /** CIE76 colour difference (ΔE) of two opaque `#rrggbb` colours. */
-export function colourDifference(a: string, b: string): number {
+function colourDifference(a: string, b: string): number {
     const [l1, a1, b1] = lab(a)
     const [l2, a2, b2] = lab(b)
     return Math.hypot(l1 - l2, a1 - a2, b1 - b2)

@@ -2,7 +2,6 @@ import type { GameAction } from '@tabletop/common'
 import {
     BONUSES,
     RAILROAD_IDS,
-    RAILROADS,
     isEndBuilding,
     isEndGame,
     isEndRound,
@@ -18,11 +17,11 @@ import {
     type FinishBuildingReason,
     type HexId,
     type JourneyPayment,
-    type LinksPerRailroad,
     type PaidBonus,
     type PlayerMoney,
     type RailroadId
 } from '@tabletop/ride-the-rails'
+import { railroadStyle } from './railroadStyle.js'
 
 // One piece of a history line. A seat is drawn as its name ("you" for the reader) and a railroad
 // as its colour chip, so the same description reads right for every seat and for a spectator.
@@ -30,11 +29,15 @@ export type DescriptionSegment = string | { playerId: string } | { railroadId: R
 export type Description = DescriptionSegment[]
 
 export function railroadName(railroadId: RailroadId): string {
-    return RAILROADS.find(({ id }) => id === railroadId)?.printedName ?? railroadId
+    return railroadStyle(railroadId).name
 }
 
 export function cityName(cityId: CityId): string {
     return usaCity(cityId).name
+}
+
+export function routeText(cityIds: readonly CityId[]): string {
+    return cityIds.map(cityName).join(' → ')
 }
 
 function hexName(hexId: HexId): string {
@@ -71,18 +74,18 @@ export function bonusLabel(bonus: PaidBonus): string {
     return `${definition?.printedName ?? 'Bonus'} $${bonus.amount}`
 }
 
-// R-3.3.5: link counts in R-1.4 railroad order ("Red ×2, Blue ×1").
-export function linkCounts(linksPerRailroad: LinksPerRailroad): Description {
+// R-1.4: counts per railroad in railroad order ("Red ×2, Blue ×1"), as R-3.3.5 counts links.
+export function countsInRailroadOrder(counts: Partial<Record<RailroadId, number>>): Description {
     return joined(
         RAILROAD_IDS.flatMap((railroadId) => {
-            const links = linksPerRailroad[railroadId]
-            return links === undefined ? [] : [[{ railroadId }, ` ×${links}`]]
+            const count = counts[railroadId]
+            return count === undefined ? [] : [[{ railroadId }, ` ×${count}`]]
         })
     )
 }
 
 // R-3.3.4: each seat's dividends ("you +$3"); a seat that earned none is left out.
-export function dividendLines(payments: readonly JourneyPayment[]): Description[] {
+function dividendLines(payments: readonly JourneyPayment[]): Description[] {
     return payments
         .filter(({ dividends }) => dividends > 0)
         .map(({ playerId, dividends }) => [{ playerId }, ` +$${dividends}`])
@@ -154,8 +157,8 @@ function ridingDescription(action: GameAction): Description | undefined {
         const fare = metadata.payments.find(({ playerId }) => playerId === action.playerId)
         return [
             { playerId: action.playerId },
-            ` made a journey: ${metadata.cityIds.map(cityName).join(' → ')} · `,
-            ...linkCounts(metadata.linksPerRailroad),
+            ` made a journey: ${routeText(metadata.cityIds)} · `,
+            ...countsInRailroadOrder(metadata.linksPerRailroad),
             ...(fare ? [` · fare $${fare.fare}`] : []),
             ...dividendLines(metadata.payments).flatMap((line) => [' · ', ...line])
         ]

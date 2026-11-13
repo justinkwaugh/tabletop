@@ -48,13 +48,9 @@ export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
     return isCityHex(hexId) ? 'city' : 'open-hex'
 }
 
-export function trackSlotOffsets(layout: TrackSlotLayout): readonly TrackSlot[] {
-    return SLOT_OFFSETS[layout]
-}
-
 export function trackSlots(hexId: HexId): TrackSlot[] {
     const center = hexCenter(hexId)
-    return trackSlotOffsets(trackSlotLayout(hexId)).map((offset) => ({
+    return SLOT_OFFSETS[trackSlotLayout(hexId)].map((offset) => ({
         ...offset,
         x: center.x + offset.x,
         y: center.y + offset.y

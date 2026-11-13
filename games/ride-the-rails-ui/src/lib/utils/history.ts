@@ -7,7 +7,6 @@ import {
 } from '@tabletop/common'
 import {
     PhaseName,
-    RAILROAD_IDS,
     isEndBuilding,
     isEndGame,
     isEndRound,
@@ -23,6 +22,7 @@ import { PHASE_LABELS } from '$lib/model/actionArea.js'
 import {
     FINISH_BUILDING_REASONS,
     bonusLabel,
+    countsInRailroadOrder,
     describeAction,
     type Description
 } from './describeAction.js'
@@ -185,15 +185,11 @@ export function phaseHeading(entry: HistoryPhase): string {
 // turn ended by itself (R-3.2.3, R-3.2.4).
 export function buildingTurnDescription(turn: HistoryTurn): Description {
     const placements = turn.actions.filter(isPlaceLocomotive)
-    const counts = new Map<RailroadId, number>()
-    for (const placement of placements) {
-        counts.set(placement.railroadId, (counts.get(placement.railroadId) ?? 0) + 1)
+    const counts: Partial<Record<RailroadId, number>> = {}
+    for (const { railroadId } of placements) {
+        counts[railroadId] = (counts[railroadId] ?? 0) + 1
     }
-    // R-1.4 railroad order.
-    const railroads: Description = RAILROAD_IDS.flatMap((railroadId): Description[] => {
-        const count = counts.get(railroadId)
-        return count === undefined ? [] : [[{ railroadId }, ` ×${count}`]]
-    }).flatMap((part, index) => (index === 0 ? part : [', ', ...part]))
+    const railroads = countsInRailroadOrder(counts)
     const bonuses = placements.flatMap((placement) =>
         (placement.metadata?.bonuses ?? []).map((bonus) => ` · ${bonusLabel(bonus)}`)
     )

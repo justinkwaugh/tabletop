@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { linksAndFareText, routeText, seatGains, totalLinks } from '$lib/model/actionArea.js'
+    import { linksAndFareText, seatGains, totalLinks } from '$lib/model/actionArea.js'
+    import { routeText } from '$lib/utils/describeAction.js'
     import SeatChip from './SeatChip.svelte'
 
     const gameSession = getGameSession()

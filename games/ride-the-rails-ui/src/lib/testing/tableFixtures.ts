@@ -74,13 +74,13 @@ export type TableFixture = {
 
 const FIXED_DATE = new Date('2026-01-05T12:00:00Z')
 
-export function cityHexId(name: string): HexId {
+function cityHexId(name: string): HexId {
     const city = USA_CITIES.find((candidate) => candidate.name === name)
     assertExists(city, `No city ${name}`)
     return city.hexId
 }
 
-export function cityIdOf(name: string): CityId {
+function cityIdOf(name: string): CityId {
     const city = USA_CITIES.find((candidate) => candidate.name === name)
     assertExists(city, `No city ${name}`)
     return city.id

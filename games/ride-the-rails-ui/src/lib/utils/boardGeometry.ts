@@ -164,7 +164,7 @@ export const FITTED_DESKTOP_SCALE = Math.min(
     1
 )
 
-export const SEAT_INITIALS_MIN_SCALE = 0.3
+const SEAT_INITIALS_MIN_SCALE = 0.3
 
 export function drawsSeatInitials(viewScale: number): boolean {
     return viewScale >= SEAT_INITIALS_MIN_SCALE
@@ -180,7 +180,7 @@ export function cityLabelFontSize(viewScale: number): number {
 export const LARGEST_CITY_LABEL_FONT_SIZE = cityLabelFontSize(FITTED_DESKTOP_SCALE)
 
 /** Contract, Phone layout: a phone's whole map would draw names about 4 px high, so it leaves them off; a press shows the city. */
-export const MIN_CITY_LABEL_SCREEN_SIZE = 6
+const MIN_CITY_LABEL_SCREEN_SIZE = 6
 
 export function drawsCityLabels(viewScale: number): boolean {
     return cityLabelFontSize(viewScale) * viewScale >= MIN_CITY_LABEL_SCREEN_SIZE
@@ -188,64 +188,16 @@ export function drawsCityLabels(viewScale: number): boolean {
 
 export type LabelSide = 'above' | 'below' | 'left' | 'right'
 
+// Every city's label sits below it but these, where the coast or a neighbour is in the way.
 const CITY_LABEL_SIDES: ReadonlyMap<CityId, LabelSide> = new Map<CityId, LabelSide>([
-    ['city.usa.seattle', 'below'],
-    ['city.usa.spokane', 'below'],
-    ['city.usa.billings', 'below'],
-    ['city.usa.fargo', 'below'],
-    ['city.usa.butte', 'below'],
-    ['city.usa.bismarck', 'below'],
-    ['city.usa.green-bay', 'below'],
     ['city.usa.portland-or', 'right'],
-    ['city.usa.minneapolis', 'below'],
     ['city.usa.portland-me', 'left'],
-    ['city.usa.rapid-city', 'below'],
-    ['city.usa.milwaukee', 'below'],
-    ['city.usa.boise', 'below'],
-    ['city.usa.pocatello', 'below'],
-    ['city.usa.detroit', 'below'],
-    ['city.usa.buffalo', 'below'],
-    ['city.usa.albany', 'below'],
-    ['city.usa.boston', 'below'],
-    ['city.usa.cheyenne', 'below'],
-    ['city.usa.omaha', 'below'],
-    ['city.usa.des-moines', 'below'],
-    ['city.usa.chicago', 'below'],
-    ['city.usa.salt-lake-city', 'below'],
-    ['city.usa.new-york', 'below'],
-    ['city.usa.reno', 'below'],
-    ['city.usa.pittsburgh', 'below'],
-    ['city.usa.philadelphia', 'below'],
-    ['city.usa.denver', 'below'],
-    ['city.usa.kansas-city', 'below'],
-    ['city.usa.saint-louis', 'below'],
-    ['city.usa.cincinnati', 'below'],
-    ['city.usa.san-francisco', 'below'],
-    ['city.usa.baltimore', 'below'],
-    ['city.usa.las-vegas', 'below'],
-    ['city.usa.oklahoma-city', 'below'],
-    ['city.usa.nashville', 'below'],
-    ['city.usa.santa-fe', 'below'],
-    ['city.usa.little-rock', 'below'],
     ['city.usa.washington', 'above'],
-    ['city.usa.los-angeles', 'below'],
-    ['city.usa.atlanta', 'below'],
-    ['city.usa.charleston', 'above'],
-    ['city.usa.phoenix', 'below'],
-    ['city.usa.dallas', 'below'],
-    ['city.usa.el-paso', 'below'],
-    ['city.usa.jacksonville', 'below'],
-    ['city.usa.houston', 'below'],
-    ['city.usa.new-orleans', 'below'],
-    ['city.usa.tampa', 'below'],
-    ['city.usa.corpus-christi', 'below'],
-    ['city.usa.miami', 'below']
+    ['city.usa.charleston', 'above']
 ])
 
-export function cityLabelSide(cityId: CityId): LabelSide {
-    const side = CITY_LABEL_SIDES.get(cityId)
-    assertExists(side, `No label side for city ${cityId}`)
-    return side
+function cityLabelSide(cityId: CityId): LabelSide {
+    return CITY_LABEL_SIDES.get(cityId) ?? 'below'
 }
 
 export type CityLabel = Point & {

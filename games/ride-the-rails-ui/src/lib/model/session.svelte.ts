@@ -222,7 +222,6 @@ export class RideTheRailsGameSession extends GameSession<
         return (
             this.canAct &&
             playerId !== undefined &&
-            this.gameState.machineState === MachineState.Riding &&
             HydratedPassJourney.canPass(this.gameState, playerId)
         )
     })
@@ -375,6 +374,4 @@ export class RideTheRailsGameSession extends GameSession<
     journeyPossible = $derived(
         this.gameState.machineState === MachineState.Riding && journeyExists(this.gameState)
     )
-
-    choosingJourney = $derived(this.journeyRiderId !== undefined && this.journeyPossible)
 }

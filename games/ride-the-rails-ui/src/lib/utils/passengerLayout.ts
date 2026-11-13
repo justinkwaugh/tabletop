@@ -6,7 +6,7 @@ import { stationOf } from './boardGeometry.js'
 const DRAWN_RADIUS = 10.6
 const OFFSET = { x: 17.2, y: -8.8 }
 /** A picked journey start lifts its passenger slightly, in the figure's own units. */
-export const PASSENGER_LIFT = 6
+const PASSENGER_LIFT = 6
 
 export type PassengerSpot = Point & { scale: number }
 

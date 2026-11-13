@@ -9,13 +9,13 @@ import { moneyKey, seatCardKey, supplyKey } from './flights.svelte.js'
 export const BOARD_ATTRIBUTE = 'data-map-board'
 
 /** The attribute that marks what a phone's flight lifts from or lands on, by the flight key. */
-export const FLIGHT_TARGET_ATTRIBUTE = 'data-flight-target'
+const FLIGHT_TARGET_ATTRIBUTE = 'data-flight-target'
 
 /**
  * The smallest a coin or a share's locomotive is drawn on a phone, in pixels a board unit: the
  * whole map draws a board unit at about a fifth of a pixel, where a coin is a dot.
  */
-export const READABLE_SCALE = 0.8
+const READABLE_SCALE = 0.8
 
 /** How much a phone enlarges a coin or a share's locomotive on a board drawn at `frame`. */
 export function readableBoost(frame: BoardFrame): number {
@@ -52,12 +52,9 @@ function visiblePart(box: ScreenBox, view: ScreenBox): ScreenBox {
 }
 
 function visibleShare(box: ScreenBox, view: ScreenBox): number {
-    const width =
-        Math.min(box.left + box.width, view.left + view.width) - Math.max(box.left, view.left)
-    const height =
-        Math.min(box.top + box.height, view.top + view.height) - Math.max(box.top, view.top)
-    if (width <= 0 || height <= 0 || box.width <= 0 || box.height <= 0) return 0
-    return (width * height) / (box.width * box.height)
+    const part = visiblePart(box, view)
+    if (part.width <= 0 || part.height <= 0 || box.width <= 0 || box.height <= 0) return 0
+    return (part.width * part.height) / (box.width * box.height)
 }
 
 /**
@@ -87,7 +84,7 @@ export function landingPoint(boxes: readonly ScreenBox[], view: ScreenBox): Poin
 }
 
 /** The board's frame on screen, read from its SVG. */
-export function boardFrame(document: Document): BoardFrame | undefined {
+function boardFrame(document: Document): BoardFrame | undefined {
     const box = document.querySelector(`svg[${BOARD_ATTRIBUTE}]`)?.getBoundingClientRect()
     return box && frameOf(box)
 }
@@ -108,7 +105,7 @@ export function frameOf(box: ScreenBox): BoardFrame | undefined {
  * above the board and the money on the seat cards and the waiting view instead. On a phone a
  * flight goes to the element marked with its key, in board units; elsewhere there is none.
  */
-export function phonePlace(key: string): Point | undefined {
+function phonePlace(key: string): Point | undefined {
     if (!isPhoneWidth() || typeof document === 'undefined') return undefined
     const frame = boardFrame(document)
     if (!frame) return undefined

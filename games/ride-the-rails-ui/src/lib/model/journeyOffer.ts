@@ -18,7 +18,7 @@ import {
     type RailroadId,
     type RideTheRailsGameState
 } from '@tabletop/ride-the-rails'
-import type { BoardOffer, OfferedHex } from './boardOffer.js'
+import { EMPTY_BOARD_OFFER, type BoardOffer, type OfferedHex } from './boardOffer.js'
 import {
     closeRailroadChoice,
     draftLinks,
@@ -89,7 +89,7 @@ export function startCities(state: RideTheRailsGameState): JourneyCity[] {
 // R-3.3.2, R-3.3.2-H1, R-3.3.3: the cities one more link reaches from the route's last city, each
 // with the railroads for which the whole route still visits no hex twice. The route is named by its
 // cities and railroads, so a link may take other hexes than the draft's current realisation.
-export function extensionCities(
+function extensionCities(
     state: RideTheRailsGameState,
     startCityId: CityId,
     links: readonly DraftLink[]
@@ -107,7 +107,7 @@ export function extensionCities(
 }
 
 // R-X.1: the hexes of the route the player named, for the RideJourney the player sends.
-export function realiseDraft(
+function realiseDraft(
     state: RideTheRailsGameState,
     startCityId: CityId,
     links: readonly DraftLink[]
@@ -215,7 +215,7 @@ export function bestRoute(
 // hole for every lit city and for the picked start, which a press clears.
 export function journeyBoardOffer(offer: JourneyOffer): BoardOffer {
     if (offer.lit.length === 0 && !offer.draft) {
-        return { lit: [], scrim: undefined, popup: undefined }
+        return EMPTY_BOARD_OFFER
     }
     const lit = offer.lit.map((city): OfferedHex => ({
         hexId: city.hexId,

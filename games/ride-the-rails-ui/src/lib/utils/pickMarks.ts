@@ -402,7 +402,7 @@ export function linkChoice(popup: JourneyPopup): RailroadChoice {
     }
 }
 
-export function chipLabel(chip: RailroadChip): string {
+function chipLabel(chip: RailroadChip): string {
     const name = railroadStyle(chip.railroadId).name
     return chip.isStart ? `Start ${name}` : `Place ${name}`
 }

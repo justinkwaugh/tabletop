@@ -27,7 +27,6 @@ import {
     mountainNote,
     placedText,
     roundLabels,
-    routeText,
     seatGains,
     seatMoney,
     shareButtonDetail,
@@ -36,6 +35,7 @@ import {
     stillToTakeShare,
     winnersHeadline
 } from './actionArea.js'
+import { routeText } from '$lib/utils/describeAction.js'
 import type { RideTheRailsGameSession } from './session.svelte.js'
 
 const RED: RailroadId = 'railroad.red'
@@ -223,7 +223,6 @@ describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1-H1)', () => {
             buildState({ playerCount: 3, round: 2, phase: PhaseName.Ride })
         )
         expect(session.journeyPossible).toBe(false)
-        expect(session.choosingJourney).toBe(false)
         expect(session.canPassJourney).toBe(true)
         expect(NO_JOURNEY_PROMPT).toBe(
             "No passenger can travel: no link leaves any passenger's city"
@@ -241,7 +240,6 @@ describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1-H1)', () => {
             })
         )
         expect(session.journeyPossible).toBe(true)
-        expect(session.choosingJourney).toBe(true)
         expect(session.canPassJourney).toBe(false)
     })
 

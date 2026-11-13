@@ -28,7 +28,7 @@
         <TakeSharePanel />
     {:else if machineState === MachineState.Building}
         <BuildPanel />
-    {:else if machineState === MachineState.Riding && gameSession.journeyPossible}
+    {:else if gameSession.journeyPossible}
         <JourneyPanel />
     {:else if machineState === MachineState.Riding}
         <PassPanel />

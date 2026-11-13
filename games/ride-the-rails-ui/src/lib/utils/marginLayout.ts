@@ -1,5 +1,10 @@
 import type { Point } from '@tabletop/common'
-import { RAILROAD_INTRODUCTIONS, type MapId, type RailroadId } from '@tabletop/ride-the-rails'
+import {
+    RAILROAD_INTRODUCTIONS,
+    ROUND_COUNT,
+    type MapId,
+    type RailroadId
+} from '@tabletop/ride-the-rails'
 import { MARGIN_BOXES } from './boardGeometry.js'
 
 // The margin panels' inner layout, in each panel's own units, shared by the panels that draw it
@@ -44,7 +49,7 @@ export function turnOrderMarkerPoint(turnOrder: readonly string[], playerId: str
 
 /** The round track's tickets, in the panel's units; the current one is punched. */
 export const ROUND_TICKET = { width: 68, height: 46, top: 38, punch: 6 }
-const ROUND_STEP = (MARGIN_BOXES.roundTrack.width - 32) / 6
+const ROUND_STEP = (MARGIN_BOXES.roundTrack.width - 32) / ROUND_COUNT
 
 /** The left edge of a round's ticket, in the panel's units. */
 export function roundTicketLeft(round: number): number {

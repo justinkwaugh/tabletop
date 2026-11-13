@@ -41,6 +41,11 @@ export function ordinal(position: number): string {
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI'] as const
 
+// R-1.1-H1: a railroad's locomotives still off the map.
+export function supplyText(supply: number): string {
+    return supply > 0 ? `${supply} left` : 'none left'
+}
+
 export function romanRound(round: number): string {
     return ROMAN_NUMERALS[round - 1] ?? String(round)
 }

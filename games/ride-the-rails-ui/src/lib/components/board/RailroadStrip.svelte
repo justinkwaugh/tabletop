@@ -2,8 +2,8 @@
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import { spotlightHandlers } from '$lib/model/railroadSpotlight.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { MARGIN_BOXES, drawsSeatInitials } from '$lib/utils/boardGeometry.js'
-    import { railroadStrip, type RailroadStripEntry } from '$lib/utils/marginTracks.js'
+    import { MARGIN_BOXES } from '$lib/utils/boardGeometry.js'
+    import { railroadStrip, supplyText, type RailroadStripEntry } from '$lib/utils/marginTracks.js'
     import {
         STRIP_COLUMN as COLUMN,
         STRIP_LOCOMOTIVE,
@@ -16,8 +16,7 @@
     import MarginPanel from './MarginPanel.svelte'
     import SeatMarker from './SeatMarker.svelte'
 
-    let { viewScale, initials }: { viewScale: number; initials: ReadonlyMap<string, string> } =
-        $props()
+    let { initials }: { initials: ReadonlyMap<string, string> } = $props()
 
     const gameSession = getGameSession()
     const flights = gameSession.flights
@@ -39,11 +38,6 @@
             }))
         }))
     )
-    const showsInitials = $derived(drawsSeatInitials(viewScale))
-
-    function supplyText(entry: RailroadStripEntry): string {
-        return entry.supply > 0 ? `${entry.supply} left` : 'none left'
-    }
 
     function entryLabel(entry: RailroadStripEntry): string {
         const name = railroadStyle(entry.railroadId).name
@@ -51,7 +45,7 @@
         const holders = entry.shareholders
             .map((holding) => `${gameSession.getPlayerName(holding.playerId)} ${holding.shares}`)
             .join(', ')
-        return `${name}: ${supplyText(entry)}, ${entry.trackCount} track${holders ? `, shares ${holders}` : ''}`
+        return `${name}: ${supplyText(entry.supply)}, ${entry.trackCount} track${holders ? `, shares ${holders}` : ''}`
     }
 
     function handlersFor(railroadId: RailroadId) {
@@ -111,7 +105,7 @@
                     text-anchor="end"
                     class="figure"
                     fill={entry.supply > 0 ? 'var(--rtr-ink)' : 'var(--rtr-cost)'}
-                    >{supplyText(entry)}</text
+                    >{supplyText(entry.supply)}</text
                 >
                 <text
                     x={COLUMN.track}
@@ -124,7 +118,7 @@
                     {@const x = COLUMN.holders + holderIndex * COLUMN.holderStep}
                     <SeatMarker
                         playerId={holding.playerId}
-                        initials={showsInitials ? initials.get(holding.playerId) : undefined}
+                        initials={initials.get(holding.playerId)}
                         {x}
                         y={middle + 15}
                         radius={HOLDER_RADIUS}
