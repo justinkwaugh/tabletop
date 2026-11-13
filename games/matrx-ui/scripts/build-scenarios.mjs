@@ -139,7 +139,7 @@ write(
 
 write(
     'gipf-piece-back',
-    'Gipf piece back',
+    'GIPF piece back',
     position({
         B2: 'G',
         D2: 'G',
