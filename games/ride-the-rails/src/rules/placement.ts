@@ -82,17 +82,10 @@ export function placementTest(
     railroadId: RailroadId,
     hexId: HexId
 ): PlacementVerdict {
-    const refusal = firstRefusal(state, playerId, railroadId, hexId)
-    if (refusal) {
-        return { legal: false, reason: refusal }
-    }
-    if (isAdjacentToOwnTrack(state.track, railroadId, hexId)) {
-        return { legal: true, isStart: false }
-    }
-    if (mayStartIn(state, railroadId, hexId)) {
-        return { legal: true, isStart: true }
-    }
-    return { legal: false, reason: 'not-adjacent-or-start' }
+    const refusal =
+        railroadRefusal(state, playerId, railroadId) ??
+        hexRefusal(state, railroadId, hexId, () => eastCoastCitiesHeld(state.track, railroadId))
+    return refusal ? { legal: false, reason: refusal } : startOrAdjacency(state, railroadId, hexId)
 }
 
 // Every placement that passes the placement test, by railroad in R-1.4 order, then by hex in
@@ -101,19 +94,42 @@ export function legalPlacements(
     state: HydratedRideTheRailsGameState,
     playerId: string
 ): LegalPlacement[] {
-    return RAILROAD_IDS.flatMap((railroadId) =>
-        USA_HEXES.flatMap((hex): LegalPlacement[] => {
-            const verdict = placementTest(state, playerId, railroadId, hex.id)
-            return verdict.legal ? [{ railroadId, hexId: hex.id, isStart: verdict.isStart }] : []
-        })
-    )
+    return [...placementsPassing(state, playerId)]
 }
 
-function firstRefusal(
+// R-3.2.1: whether any placement passes the placement test, without listing them all.
+export function hasLegalPlacement(state: HydratedRideTheRailsGameState, playerId: string): boolean {
+    return placementsPassing(state, playerId).next().done !== true
+}
+
+// The placement test on every hex, the clauses about the railroad alone (share, supply, the
+// East Coast cities it holds) checked once per railroad.
+function* placementsPassing(
+    state: HydratedRideTheRailsGameState,
+    playerId: string
+): Generator<LegalPlacement> {
+    for (const railroadId of RAILROAD_IDS) {
+        if (railroadRefusal(state, playerId, railroadId)) {
+            continue
+        }
+        const held = eastCoastCitiesHeld(state.track, railroadId)
+        for (const hex of USA_HEXES) {
+            if (hexRefusal(state, railroadId, hex.id, () => held)) {
+                continue
+            }
+            const verdict = startOrAdjacency(state, railroadId, hex.id)
+            if (verdict.legal) {
+                yield { railroadId, hexId: hex.id, isStart: verdict.isStart }
+            }
+        }
+    }
+}
+
+// R-3.2.2, R-1.1-H1: the clauses that hold for the railroad on every hex.
+function railroadRefusal(
     state: HydratedRideTheRailsGameState,
     playerId: string,
-    railroadId: RailroadId,
-    hexId: HexId
+    railroadId: RailroadId
 ): PlacementRefusal | undefined {
     if (state.getPlayerState(playerId).sharesOf(railroadId) < 1) {
         return 'no-share'
@@ -121,6 +137,16 @@ function firstRefusal(
     if (!hasSupply(state, railroadId)) {
         return 'empty-supply'
     }
+    return undefined
+}
+
+// R-3.2.3, R-3.2.4, R-4.1.3, R-4.1.4: the clauses about this hex, in order.
+function hexRefusal(
+    state: HydratedRideTheRailsGameState,
+    railroadId: RailroadId,
+    hexId: HexId,
+    eastCoastHeld: () => number
+): PlacementRefusal | undefined {
     if (!withinPlacementLimit(state, hexId)) {
         return 'over-placement-limit'
     }
@@ -130,13 +156,25 @@ function firstRefusal(
     if (!hasRoomIn(state.track, hexId)) {
         return 'hex-at-capacity'
     }
-    if (
-        isEastCoastHex(hexId) &&
-        eastCoastCitiesHeld(state.track, railroadId) >= EAST_COAST_CITIES_PER_RAILROAD
-    ) {
+    if (isEastCoastHex(hexId) && eastCoastHeld() >= EAST_COAST_CITIES_PER_RAILROAD) {
         return 'east-coast-cities-held'
     }
     return undefined
+}
+
+// R-4.1.1, R-4.1.2, R-4.2: next to the railroad's own track, or else a start.
+function startOrAdjacency(
+    state: HydratedRideTheRailsGameState,
+    railroadId: RailroadId,
+    hexId: HexId
+): PlacementVerdict {
+    if (isAdjacentToOwnTrack(state.track, railroadId, hexId)) {
+        return { legal: true, isStart: false }
+    }
+    if (mayStartIn(state, railroadId, hexId)) {
+        return { legal: true, isStart: true }
+    }
+    return { legal: false, reason: 'not-adjacent-or-start' }
 }
 
 export function isEastCoastHex(hexId: HexId): boolean {

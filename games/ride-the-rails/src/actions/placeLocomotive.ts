@@ -10,7 +10,7 @@ import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { placementBonuses, type BonusPayment } from '../rules/bonuses.js'
 import { isBuildingTurnOf } from '../rules/buildingTurn.js'
 import {
-    legalPlacements,
+    hasLegalPlacement,
     placementTest,
     type LegalPlacement,
     type PlacementRefusal
@@ -164,6 +164,6 @@ export class HydratedPlaceLocomotive
     }
 
     static canPlace(state: HydratedRideTheRailsGameState, playerId: string): boolean {
-        return isBuildingTurnOf(state, playerId) && legalPlacements(state, playerId).length > 0
+        return isBuildingTurnOf(state, playerId) && hasLegalPlacement(state, playerId)
     }
 }

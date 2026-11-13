@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
-import { legalPlacements, placementsLeft } from './placement.js'
+import { hasLegalPlacement, placementsLeft } from './placement.js'
 
 // R-3.2.3, R-3.2.4: the limit is reached, or no placement passes the placement test.
 export type FinishBuildingReason = Type.Static<typeof FinishBuildingReason>
@@ -20,7 +20,7 @@ export function buildingTurnEnd(
     state: HydratedRideTheRailsGameState,
     playerId: string
 ): FinishBuildingReason | undefined {
-    if (legalPlacements(state, playerId).length > 0) {
+    if (hasLegalPlacement(state, playerId)) {
         return undefined
     }
     return placementsLeft(state) > 0 ? 'nothing-legal' : 'limit'

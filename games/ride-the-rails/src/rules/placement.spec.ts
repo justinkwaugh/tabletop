@@ -5,7 +5,7 @@ import { USA_HEXES } from '../data/usaMap.js'
 import { PhaseName } from '../definition/phases.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import { buildState, type StateRecipe } from '../testing/fixtures.js'
-import { legalPlacements, placementsLeft, placementTest } from './placement.js'
+import { hasLegalPlacement, legalPlacements, placementsLeft, placementTest } from './placement.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -373,6 +373,25 @@ describe('legal placements (R-3.2, R-4.1, R-4.2)', () => {
                 })
             )
             expect(legalPlacements(state, 'p1')).toEqual(expected)
+        }
+    )
+
+    it.each([
+        ...Object.entries(PROPERTY_FIXTURES),
+        ['no shares', { round: 2, phase: PhaseName.Build }],
+        [
+            'the placement limit reached',
+            {
+                phase: PhaseName.Build,
+                shares: { p1: ALL_SHARES },
+                building: { placed: 8, usedMountain: false }
+            }
+        ]
+    ] satisfies [string, StateRecipe][])(
+        'R-3.2.1: finds whether any placement is legal: %s',
+        (_name, recipe) => {
+            const state = buildState(recipe)
+            expect(hasLegalPlacement(state, 'p1')).toBe(legalPlacements(state, 'p1').length > 0)
         }
     )
 
