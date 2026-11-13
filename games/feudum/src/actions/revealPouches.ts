@@ -9,7 +9,24 @@ import {
 } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import type { HydratedFeudumPlayerState } from '../model/playerState.js'
 import { PouchGood } from './finaliseHand.js'
+
+/**
+ * R-3.1-H1, R-3.3 One seat's part of the reveal: its hand's size is told, and a committed good
+ * leaves its supply for the pouch. Returns that good.
+ */
+export function revealPouchOf(player: HydratedFeudumPlayerState): PouchGood | undefined {
+    player.handCount = player.requireHand().length
+    const good = player.committedPouch
+    if (good) {
+        assert(player.goods[good] > 0, 'R-3.3 A committed pouch good is still held')
+        player.goods[good] -= 1
+        player.pouch = good
+        player.committedPouch = undefined
+    }
+    return good
+}
 
 export type RevealPouchesMetadata = Type.Static<typeof RevealPouchesMetadata>
 export const RevealPouchesMetadata = Type.Object({
@@ -58,14 +75,8 @@ export class HydratedRevealPouches
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const pouches: RevealPouchesMetadata['pouches'] = []
         for (const playerId of state.turnManager.turnOrder) {
-            const player = state.getPlayerState(playerId)
-            player.handCount = player.requireHand().length
-            const good = player.committedPouch
+            const good = revealPouchOf(state.getPlayerState(playerId))
             if (good) {
-                assert(player.goods[good] > 0, 'R-3.3 A committed pouch good is still held')
-                player.goods[good] -= 1
-                player.pouch = good
-                player.committedPouch = undefined
                 pouches.push({ playerId, good })
             }
         }
