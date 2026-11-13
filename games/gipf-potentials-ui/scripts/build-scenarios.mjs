@@ -8,6 +8,7 @@ import { startingPositionFile } from '@tabletop/common/testing'
 import {
     Definition,
     emptyBoard,
+    GEOMETRY,
     GipfPotentialsInfo,
     GipfPotentialsRuntime,
     pointAt,
@@ -63,9 +64,8 @@ function position(stacks, { config = {}, players = {}, moved = false } = {}) {
     }
     for (const [name, units] of Object.entries(stacks)) {
         const { q, r } = pointAt(name)
-        const spot = state.board.spots.find((s) => s.coords.q === q && s.coords.r === r)
-        if (spot === undefined) throw Error(`${name} is not a spot`)
-        spot.stack = units.split(' ').map((code) => {
+        if (!GEOMETRY.isSpot({ q, r })) throw Error(`${name} is not a spot`)
+        const stack = units.split(' ').map((code) => {
             const used = code.startsWith('*')
             const letter = used ? code[1] : code[0]
             const playerId = letter === letter.toUpperCase() ? WHITE : BLACK
@@ -84,6 +84,7 @@ function position(stacks, { config = {}, players = {}, moved = false } = {}) {
             const discIds = Array.from({ length: discs }, () => state.nextDiscId++)
             return { ...unit, discIds }
         })
+        state.board.stacks.push({ coords: { q, r }, units: stack })
     }
     for (const player of state.players) {
         for (const kind of Object.keys(player.potentials)) {

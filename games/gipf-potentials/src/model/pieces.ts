@@ -59,7 +59,7 @@ export const Unit = Type.Object({
     playerId: Type.String(),
     kind: Type.Enum(PieceKind),
     load: Type.Optional(PotentialKind),
-    discIds: Type.Array(Type.Integer({ minimum: 0 }))
+    discIds: Type.Array(Type.Integer({ minimum: 0 }), { minItems: 1, maxItems: 2 })
 })
 
 export function isLoaded(unit: Unit | undefined): boolean {

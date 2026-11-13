@@ -151,7 +151,7 @@ function discsBetween(
 ): DiscsChange {
     const removed: DiscChange[] = []
     const added: DiscChange[] = []
-    for (const { coords } of before.spots) {
+    for (const coords of GEOMETRY.spots) {
         const was = discsOf(before.stackAt(coords))
         const now = discsOf(after.stackAt(coords))
         let same = 0
@@ -171,11 +171,10 @@ function discsBetween(
 }
 
 function layout(board: HydratedGipfPotentialsBoard): string {
-    return board.spots
-        .filter((spot) => spot.stack.length > 0)
+    return board.stacks
         .map(
-            (spot) =>
-                `${coordsKey(spot.coords)}:${spot.stack
+            (stack) =>
+                `${coordsKey(stack.coords)}:${stack.units
                     .map((unit) => `${unit.playerId}/${unit.kind}/${unit.load}`)
                     .join(',')}`
         )

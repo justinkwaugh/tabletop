@@ -2,23 +2,25 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     addAxial,
+    assertExists,
     AxialCoordinates,
     Hydratable,
     sameCoordinates,
     scaleAxial
 } from '@tabletop/common'
-import { AXES, CENTRE, DIRECTIONS, GEOMETRY, pointKey, type Entry } from './geometry.js'
+import { AXES, CENTRE, DIRECTIONS, GEOMETRY, type Entry } from './geometry.js'
 import { isLoaded, mayStayInRow, PieceKind, Unit, type PotentialKind } from './pieces.js'
 
-export type Spot = Type.Static<typeof Spot>
-export const Spot = Type.Object({
+// Bottom to top; only the top unit is in play.
+export type Stack = Type.Static<typeof Stack>
+export const Stack = Type.Object({
     coords: AxialCoordinates,
-    stack: Type.Array(Unit)
+    units: Type.Array(Unit, { minItems: 1 })
 })
 
 export type GipfPotentialsBoard = Type.Static<typeof GipfPotentialsBoard>
 export const GipfPotentialsBoard = Type.Object({
-    spots: Type.Array(Spot)
+    stacks: Type.Array(Stack)
 })
 
 // A row is four or more adjacent spots topped by one player's pieces in a line. Its reach runs on
@@ -37,34 +39,25 @@ export const ROW_LENGTH = 4
 const GipfPotentialsBoardValidator = Compile(GipfPotentialsBoard)
 
 export function emptyBoard(): GipfPotentialsBoard {
-    return { spots: GEOMETRY.spots.map((coords) => ({ coords: { ...coords }, stack: [] })) }
+    return { stacks: [] }
 }
 
 export class HydratedGipfPotentialsBoard
     extends Hydratable<typeof GipfPotentialsBoard>
     implements GipfPotentialsBoard
 {
-    declare spots: Spot[]
+    declare stacks: Stack[]
 
     constructor(data: GipfPotentialsBoard) {
         super(data, GipfPotentialsBoardValidator)
     }
 
-    private spotAt(coords: AxialCoordinates): Spot | undefined {
-        const key = pointKey(coords)
-        return this.spots.find((spot) => pointKey(spot.coords) === key)
-    }
-
-    private requireSpot(coords: AxialCoordinates): Spot {
-        const spot = this.spotAt(coords)
-        if (spot === undefined) {
-            throw Error(`No spot at ${coords.q},${coords.r}`)
-        }
-        return spot
+    private stackOf(coords: AxialCoordinates): Stack | undefined {
+        return this.stacks.find((stack) => sameCoordinates(stack.coords, coords))
     }
 
     stackAt(coords: AxialCoordinates): Unit[] {
-        return this.spotAt(coords)?.stack ?? []
+        return this.stackOf(coords)?.units ?? []
     }
 
     topAt(coords: AxialCoordinates): Unit | undefined {
@@ -77,14 +70,23 @@ export class HydratedGipfPotentialsBoard
     }
 
     place(coords: AxialCoordinates, unit: Unit) {
-        this.requireSpot(coords).stack.push(structuredClone(unit))
+        if (!GEOMETRY.isSpot(coords)) {
+            throw Error(`No spot at ${coords.q},${coords.r}`)
+        }
+        const placed = structuredClone(unit)
+        const stack = this.stackOf(coords)
+        if (stack === undefined) {
+            this.stacks.push({ coords: { ...coords }, units: [placed] })
+        } else {
+            stack.units.push(placed)
+        }
     }
 
     tops(): PlacedUnit[] {
-        return this.spots.flatMap((spot) => {
-            const unit = spot.stack[spot.stack.length - 1]
-            return unit === undefined ? [] : [{ coords: spot.coords, unit }]
-        })
+        return this.stacks.map((stack) => ({
+            coords: stack.coords,
+            unit: stack.units[stack.units.length - 1]
+        }))
     }
 
     // PÜNCT, rule 5: a covered GIPF-piece does not count while something lies on it.
@@ -122,11 +124,11 @@ export class HydratedGipfPotentialsBoard
             throw Error('The line is full')
         }
         for (let index = gap; index > 0; index--) {
-            this.requireSpot(entry.line[index]).stack = this.requireSpot(
-                entry.line[index - 1]
-            ).stack
+            const moving = this.stackOf(entry.line[index - 1])
+            assertExists(moving, 'Every spot before the gap holds a stack')
+            moving.coords = { ...entry.line[index] }
         }
-        this.requireSpot(entry.line[0]).stack = [structuredClone(unit)]
+        this.place(entry.line[0], unit)
         const centre = entry.line.findIndex((coords) => sameCoordinates(coords, CENTRE))
         return centre >= 0 && centre <= gap ? this.topAt(CENTRE) : undefined
     }
@@ -194,11 +196,8 @@ export class HydratedGipfPotentialsBoard
             throw Error('No loaded piece to unload')
         }
         const [basicId, potentialId] = unit.discIds
-        const potential: Unit = {
-            playerId: unit.playerId,
-            kind: unit.load,
-            discIds: potentialId === undefined ? [] : [potentialId]
-        }
+        assertExists(potentialId, 'A loaded piece has two discs')
+        const potential: Unit = { playerId: unit.playerId, kind: unit.load, discIds: [potentialId] }
         delete unit.load
         unit.discIds = [basicId]
         return potential
@@ -279,9 +278,13 @@ export class HydratedGipfPotentialsBoard
     }
 
     removeTop(coords: AxialCoordinates): Unit {
-        const unit = this.requireSpot(coords).stack.pop()
-        if (unit === undefined) {
+        const stack = this.stackOf(coords)
+        const unit = stack?.units.pop()
+        if (stack === undefined || unit === undefined) {
             throw Error(`No piece at ${coords.q},${coords.r}`)
+        }
+        if (stack.units.length === 0) {
+            this.stacks.splice(this.stacks.indexOf(stack), 1)
         }
         return unit
     }

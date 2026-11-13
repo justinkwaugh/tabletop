@@ -95,13 +95,11 @@ type FlierNodes = { whole?: SVGGElement; body?: SVGGElement; shadow?: SVGGElemen
 type Occluder = { x: number; y: number; top: number }
 
 function drawnStacks(state: HydratedGipfPotentialsGameState): DrawnStack[] {
-    return state.board.spots
-        .filter((spot) => spot.stack.length > 0)
-        .map((spot) => ({
-            key: coordsKey(spot.coords),
-            coords: spot.coords,
-            discs: discsOf(spot.stack)
-        }))
+    return state.board.stacks.map((stack) => ({
+        key: coordsKey(stack.coords),
+        coords: stack.coords,
+        discs: discsOf(stack.units)
+    }))
 }
 
 export class BoardAnimator {

@@ -164,19 +164,20 @@ function withPieces(
     const next = structuredClone(state)
     next.board = emptyBoard()
     let discId = 1000
-    for (const [name, stack] of pieces) {
+    // A later stack on a spot replaces an earlier one, so tests can put pieces over the keepers.
+    for (const [name, stack] of new Map(pieces)) {
         const coords = at(name)
-        const spot = next.board.spots.find(
-            (candidate) => candidate.coords.q === coords.q && candidate.coords.r === coords.r
-        )
-        if (spot === undefined) throw Error(`${name} is not a spot`)
-        spot.stack = stack.map((piece) => ({
-            ...piece,
-            discIds: Array.from(
-                { length: piece.kind === PieceKind.Gipf || piece.load !== undefined ? 2 : 1 },
-                () => discId++
-            )
-        }))
+        if (!GEOMETRY.isSpot(coords)) throw Error(`${name} is not a spot`)
+        next.board.stacks.push({
+            coords,
+            units: stack.map((piece) => ({
+                ...piece,
+                discIds: Array.from(
+                    { length: piece.kind === PieceKind.Gipf || piece.load !== undefined ? 2 : 1 },
+                    () => discId++
+                )
+            }))
+        })
     }
     next.nextDiscId = discId
     for (const player of next.players) {
