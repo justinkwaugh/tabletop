@@ -163,6 +163,44 @@ test('Tabbing to a lit hex off screen pans the board and scrolls nothing sideway
     await expect(page.locator('g.hits [role="button"]:focus')).toBeInViewport()
 })
 
+test('A press that cannot move focus to a hex reads no scroll positions', async ({ page }) => {
+    await openScenario(page, 'Black unstarted')
+    const reads = await board(page).evaluate((root) => {
+        const scrollLeft = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollLeft')
+        if (!scrollLeft?.get || !scrollLeft.set) throw new Error('No scrollLeft accessor')
+        const { get, set } = scrollLeft
+        let count = 0
+        Object.defineProperty(Element.prototype, 'scrollLeft', {
+            configurable: true,
+            get() {
+                count += 1
+                return get.call(this)
+            },
+            set(value: number) {
+                set.call(this, value)
+            }
+        })
+        const press = (target: Element, event: Event) => {
+            const before = count
+            target.dispatchEvent(event)
+            return count - before
+        }
+        const outside = document.body
+        const result = {
+            letterKey: press(outside, new KeyboardEvent('keydown', { key: 'a', bubbles: true })),
+            pointerOutside: press(outside, new PointerEvent('pointerdown', { bubbles: true })),
+            tab: press(outside, new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })),
+            pointerInside: press(root, new PointerEvent('pointerdown', { bubbles: true }))
+        }
+        Object.defineProperty(Element.prototype, 'scrollLeft', scrollLeft)
+        return result
+    })
+    expect(reads.letterKey).toBe(0)
+    expect(reads.pointerOutside).toBe(0)
+    expect(reads.tab).toBeGreaterThan(0)
+    expect(reads.pointerInside).toBeGreaterThan(0)
+})
+
 function isPhone(): boolean {
     return test.info().project.use.isMobile === true
 }
