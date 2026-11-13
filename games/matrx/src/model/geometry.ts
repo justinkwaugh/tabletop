@@ -100,6 +100,14 @@ export const GEOMETRIES: Record<BoardShape, BoardGeometry> = {
 
 export function pointAt(name: string): AxialCoordinates {
     const q = name.charCodeAt(0) - 'A'.charCodeAt(0) - GIPF_RADIUS
-    const bottom = q <= 0 ? GIPF_RADIUS : GIPF_RADIUS - q
-    return { q, r: bottom - (Number(name.slice(1)) - 1) }
+    return { q, r: columnBottom(q) - (Number(name.slice(1)) - 1) }
+}
+
+export function pointName({ q, r }: AxialCoordinates): string {
+    const letter = String.fromCharCode('A'.charCodeAt(0) + q + GIPF_RADIUS)
+    return `${letter}${columnBottom(q) - r + 1}`
+}
+
+function columnBottom(q: number): number {
+    return q <= 0 ? GIPF_RADIUS : GIPF_RADIUS - q
 }

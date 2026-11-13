@@ -39,7 +39,7 @@ import {
     setMatrxSelection,
     type MatrxSelection
 } from './stagedSelection.js'
-import { viewOf, type BoardView } from '$lib/board/geometry.js'
+import { includesCoords, viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
@@ -48,10 +48,6 @@ export type MoveInterrupter = {
     interrupt(): void
     // Lands it and drops the rest of its replay: another state is being shown.
     abandon(): void
-}
-
-export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
-    return list.some((candidate) => sameCoordinates(candidate, coords))
 }
 
 // Moves Undo restages: a push returns to its dot, a potential's move to its stack.

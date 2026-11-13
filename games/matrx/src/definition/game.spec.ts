@@ -21,7 +21,7 @@ import {
     type Unit
 } from '../model/board.js'
 import { BoardShape } from '../model/boardShape.js'
-import { GEOMETRIES, pointAt } from '../model/geometry.js'
+import { GEOMETRIES, pointAt, pointName } from '../model/geometry.js'
 import type { Potentials } from '../model/playerState.js'
 import type { PushPiece } from '../actions/pushPiece.js'
 import type { MovePotential } from '../actions/movePotential.js'
@@ -167,6 +167,13 @@ describe('board', () => {
         expect(['I2', 'I3', 'I4', 'E5'].every((name) => geometry.isSpot(at(name)))).toBe(true)
         expect(['J1', 'J4', 'I1', 'I5', 'A5'].every((name) => geometry.isDot(at(name)))).toBe(true)
         expect(geometry.lineFrom(at('E2'), { q: 0, r: -1 })).toHaveLength(7)
+    })
+
+    it.each(Object.values(BoardShape))('%s: every point is named as pointAt reads it', (shape) => {
+        for (const coords of GEOMETRIES[shape].points) {
+            expect(pointAt(pointName(coords))).toEqual(coords)
+        }
+        expect(pointName(pointAt('J4'))).toBe('J4')
     })
 
     it('GIPF: 37 spots and 24 dots', () => {

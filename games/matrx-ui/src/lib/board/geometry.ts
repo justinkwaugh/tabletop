@@ -1,4 +1,9 @@
-import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@tabletop/common'
+import {
+    flatHexCoordsToCenterPoint,
+    sameCoordinates,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
 import { GEOMETRIES, type BoardGeometry, type BoardShape } from '@tabletop/matrx'
 import { stackTop } from './pieceShape.js'
 import { hull } from './hull.js'
@@ -106,4 +111,8 @@ export function viewOf(shape: BoardShape, turned = false): BoardView {
         VIEWS.set(key, view)
     }
     return view
+}
+
+export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
+    return list.some((candidate) => sameCoordinates(candidate, coords))
 }

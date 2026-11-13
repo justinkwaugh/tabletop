@@ -1,24 +1,29 @@
 <script lang="ts">
     import {
-        addAxial,
         Color,
         coordinatesToNumber,
         sameCoordinates,
-        scaleAxial,
         type AxialCoordinates
     } from '@tabletop/common'
-    import { AXES, CENTRE, PieceKind, type Entry } from '@tabletop/matrx'
+    import { CENTRE, PieceKind, type Entry } from '@tabletop/matrx'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { includesCoords } from '$lib/model/session.svelte.js'
     import {
         DOT_RADIUS,
+        includesCoords,
         PIECE_RADIUS,
         RESERVE_DOT_RADIUS,
-        RESERVE_LINE_WIDTH,
-        SPACING
+        RESERVE_LINE_WIDTH
     } from '$lib/board/geometry.js'
     import type { BoardDisc } from '$lib/board/boardChange.js'
-    import { markGaps, turnOf, type Disc } from '$lib/board/pieceShape.js'
+    import { turnOf, type Disc } from '$lib/board/pieceShape.js'
+    import {
+        centreTriangles as centreTrianglesOf,
+        FINE_LINES,
+        FINE_TILE,
+        gridLines,
+        tableArea as tableAreaOf
+    } from '$lib/board/boardLines.js'
+    import { pushArrow, stackOutline, topRing, type RingArc } from '$lib/board/marks.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
     import StandingStack from './StandingStack.svelte'
@@ -31,21 +36,7 @@
     const frame = $derived(view.frame())
     const playArea = $derived(view.playAreaOutline())
 
-    const lines = $derived(
-        AXES.flatMap((axis) =>
-            geometry.points
-                .filter((point) => !geometry.isPoint(addAxial(point, scaleAxial(axis, -1))))
-                .flatMap((start) => {
-                    const points = [start]
-                    while (geometry.isPoint(addAxial(points[points.length - 1], axis))) {
-                        points.push(addAxial(points[points.length - 1], axis))
-                    }
-                    const crossesPlay = points.some((point) => geometry.isSpot(point))
-                    const end = points[points.length - 1]
-                    return crossesPlay ? [{ from: view.center(start), to: view.center(end) }] : []
-                })
-        )
-    )
+    const lines = $derived(gridLines(view))
 
     const animator = new BoardAnimator(session)
     let hoveredDot: number | undefined = $state()
@@ -125,40 +116,9 @@
     const STATION_INNER = PIECE_RADIUS * 0.4
     const SPOT_RADIUS = PIECE_RADIUS * 0.13
 
-    const FINE = SPACING / 5
-    const FINE_TILE = { width: FINE * Math.sqrt(3), height: FINE }
-    const fineLines = [-1, 0, 1].flatMap((k) => {
-        const { width, height } = FINE_TILE
-        return [
-            { x1: (width / 2) * (k + 1), y1: -height, x2: (width / 2) * (k + 1), y2: 2 * height },
-            { x1: -width, y1: (k - 1) * height, x2: 2 * width, y2: (k + 2) * height },
-            { x1: -width, y1: (k + 2) * height, x2: 2 * width, y2: (k - 1) * height }
-        ]
-    })
-    const tableArea = $derived.by(() => {
-        const [x, y, width, height] = frame.viewBox.split(' ').map(Number)
-        const spread = 0.3
-        return {
-            x: x - width * spread,
-            y: y - height * spread,
-            width: width * (1 + 2 * spread),
-            height: height * (1 + 2 * spread)
-        }
-    })
-    const centreTriangles = $derived(
-        AXES.flatMap((axis) => [axis, scaleAxial(axis, -1)])
-            .map((direction) => view.center(addAxial(CENTRE, direction)))
-            .toSorted(
-                (a, b) =>
-                    Math.atan2(a.y - centre.y, a.x - centre.x) -
-                    Math.atan2(b.y - centre.y, b.x - centre.x)
-            )
-            .map((point) => `${point.x},${point.y}`)
-            .join(' ')
-    )
+    const tableArea = $derived(tableAreaOf(frame))
+    const centreTriangles = $derived(centreTrianglesOf(view))
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
-    const DASH = 5
-    const DASH_GAP = 4
 
     const chosen = $derived(session.chosenFrom !== undefined || session.chosenDot !== undefined)
 
@@ -215,75 +175,9 @@
         )
     }
 
-    function outline(discs: number): string {
-        const r = PIECE_RADIUS
-        const ry = r * view.tilt
-        const top = view.topFace(Math.max(discs, 2))
-        return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
-    }
-
-    // In dash-and-gap units: whole dashes round a ring, and a dash at each end of a broken arc.
-    function topRing(
-        discs: readonly BoardDisc[],
-        radius: number,
-        cy: number
-    ): { d: string; length: number }[] {
-        const rx = radius
-        const ry = radius * view.tilt
+    function ring(discs: readonly BoardDisc[], radius: number, cy: number): RingArc[] {
         const [top] = toned(discs.slice(-1))
-        const gaps = markGaps(top, radius / PIECE_RADIUS).toSorted((a, b) => a[0] - b[0])
-        const point = (angle: number) => ({
-            x: rx * Math.cos(angle),
-            y: cy - ry * Math.sin(angle)
-        })
-        const at = (angle: number) => `${point(angle).x} ${point(angle).y}`
-        const arcLength = (from: number, to: number) =>
-            Array.from({ length: 48 }, (_, step) => {
-                const a = point(from + ((to - from) * step) / 48)
-                const b = point(from + ((to - from) * (step + 1)) / 48)
-                return Math.hypot(b.x - a.x, b.y - a.y)
-            }).reduce((sum, length) => sum + length, 0)
-        const period = DASH + DASH_GAP
-        if (gaps.length === 0) {
-            const dashes = Math.max(1, Math.round(arcLength(0, 2 * Math.PI) / period))
-            return [
-                {
-                    d: `M ${-rx} ${cy} A ${rx} ${ry} 0 1 0 ${rx} ${cy} A ${rx} ${ry} 0 1 0 ${-rx} ${cy}`,
-                    length: dashes * period
-                }
-            ]
-        }
-        return gaps.map(([, end], index) => {
-            const [next] = gaps[(index + 1) % gaps.length]
-            const start = next + (index === gaps.length - 1 ? 2 * Math.PI : 0)
-            const large = start - end > Math.PI ? 1 : 0
-            const dashes = Math.max(1, Math.round((arcLength(end, start) + DASH_GAP) / period))
-            return {
-                d: `M ${at(end)} A ${rx} ${ry} 0 ${large} 0 ${at(start)}`,
-                length: dashes * period - DASH_GAP
-            }
-        })
-    }
-
-    // The tilt shortens an arrow pointing up or down the screen more than one along a slanted line,
-    // so each starts as far from its dot on screen as an upright one does.
-    const ARROW_START = DOT_RADIUS * 2 + 12
-    const ARROW_REACH = 24
-    function arrow(from: AxialCoordinates, to: AxialCoordinates): string {
-        const start = view.center(from)
-        const end = view.center(to)
-        const flat = (x: number, y: number) => `${x} ${y * view.tilt}`
-        const [sx, sy, ex, ey] = [start.x, start.y / view.tilt, end.x, end.y / view.tilt]
-        const length = Math.hypot(ex - sx, ey - sy)
-        const ux = (ex - sx) / length
-        const uy = (ey - sy) / length
-        const tipX = ex - ux * (PIECE_RADIUS + 2 - ARROW_REACH)
-        const tipY = ey - uy * (PIECE_RADIUS + 2 - ARROW_REACH)
-        const tail = (ARROW_START * view.tilt) / Math.hypot(ux, uy * view.tilt)
-        const baseX = sx + ux * tail
-        const baseY = sy + uy * tail
-        const wing = 8
-        return `M ${flat(baseX, baseY)} L ${flat(tipX, tipY)} M ${flat(tipX - ux * wing - uy * wing, tipY - uy * wing + ux * wing)} L ${flat(tipX, tipY)} L ${flat(tipX - ux * wing + uy * wing, tipY - uy * wing - ux * wing)}`
+        return topRing(view, top, radius, cy)
     }
 
     // Bodies only: a shadow drawn twice shows darker.
@@ -315,7 +209,7 @@
             height={FINE_TILE.height}
             patternTransform="translate({centre.x} {centre.y}) scale(1 {view.tilt})"
         >
-            {#each fineLines as line, index (index)}
+            {#each FINE_LINES as line, index (index)}
                 <line {...line} class="fine-line"></line>
             {/each}
         </pattern>
@@ -492,7 +386,7 @@
                     <g {@attach animator.marks()}>
                         {#if target}
                             {#each ['under', 'over'] as layer (layer)}
-                                {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                {#each ring(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
                                     <path
                                         d={arc.d}
                                         pathLength={arc.length}
@@ -503,7 +397,7 @@
                             {/each}
                         {:else if role === 'row' || role === 'movable' || role === 'chosen'}
                             {#each role === 'row' ? ['over'] : ['under', 'over'] as layer (layer)}
-                                {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                {#each ring(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
                                     <path
                                         d={arc.d}
                                         pathLength={arc.length}
@@ -514,7 +408,7 @@
                             {/each}
                         {:else}
                             {#if includesCoords(session.rowPairs, stack.coords)}
-                                {#each topRing(stack.discs, TOGGLE_RADIUS, faceY) as arc, index (index)}
+                                {#each ring(stack.discs, TOGGLE_RADIUS, faceY) as arc, index (index)}
                                     <path
                                         d={arc.d}
                                         pathLength={arc.length}
@@ -601,13 +495,14 @@
         >
             {#if part === 'area'}
                 <path
-                    d={outline(stackHeight(entry.line[0]))}
+                    d={stackOutline(view, stackHeight(entry.line[0]))}
                     transform="translate({center.x} {center.y})"
                     class="target-hit"
                 ></path>
             {:else}
                 {#each ['under', 'over'] as layer (layer)}
-                    <path d={arrow(entry.dot, entry.line[0])} class="arrow {layer}"></path>
+                    <path d={pushArrow(view, entry.dot, entry.line[0])} class="arrow {layer}"
+                    ></path>
                 {/each}
             {/if}
         </g>
@@ -620,7 +515,7 @@
             {@const dot = session.chosenDot}
             {@const center = view.center(dot)}
             <path
-                d={outline(preview.discs.length)}
+                d={stackOutline(view, preview.discs.length)}
                 transform="translate({center.x} {center.y})"
                 class="target-hit target"
                 role="button"
@@ -637,7 +532,7 @@
             {@const center = view.center(coords)}
             {@const key = coordinatesToNumber(coords)}
             <path
-                d={outline(stackHeight(coords))}
+                d={stackOutline(view, stackHeight(coords))}
                 transform="translate({center.x} {center.y})"
                 class="target-hit target"
                 role="button"
