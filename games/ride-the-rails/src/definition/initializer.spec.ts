@@ -136,6 +136,23 @@ describe('turn order (R-1.3.7, R-2.3)', () => {
         expect(orders.size).toBeGreaterThan(1)
     })
 
+    it('is drawn from the seed in a hosted game started without starting positions', () => {
+        // A hosted start passes only the stored master seed (and any continuation).
+        const seatOrder = gameFor(4).players.map((player) => player.id)
+        const orders = Array.from(
+            { length: 24 },
+            (_, index) =>
+                engine.startGame(gameFor(4), { masterSeed: seedFor(index + 1) }).initialState
+                    .turnManager.turnOrder
+        )
+        expect(new Set(orders.map((order) => order.join(','))).size).toBeGreaterThan(8)
+        expect(new Set(orders.map((order) => order[0]))).toEqual(new Set(seatOrder))
+        expect(orders.filter((order) => order.join(',') === seatOrder.join(','))).not.toHaveLength(
+            orders.length
+        )
+        for (const order of orders) expect([...order].sort()).toEqual([...seatOrder].sort())
+    })
+
     it('follows an assigned starting order, and the last seat in it acts first (R-2.2)', () => {
         const playerIds = ['seat3', 'seat1', 'seat4', 'seat2']
         const { initialState } = engine.startGame(gameFor(4), {

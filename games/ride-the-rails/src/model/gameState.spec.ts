@@ -198,4 +198,28 @@ describe('the canonical validator', () => {
         })
         expect(RideTheRailsGameStateValidator.Check(state)).toBe(false)
     })
+
+    it.each(['hex.usa.99-99', 'hex.usa.0-0', 'not-a-hex'])(
+        'rejects track in %s, which is not a hex of the map (R-8.1)',
+        (hexId) => {
+            const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
+            expect(
+                RideTheRailsGameStateValidator.Check({
+                    ...state,
+                    track: { ...state.track, [hexId]: ['railroad.red'] }
+                })
+            ).toBe(false)
+        }
+    )
+
+    it('refuses to hydrate track in a hex that is not on the map (R-8.1)', () => {
+        const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
+        expect(
+            () =>
+                new HydratedRideTheRailsGameState({
+                    ...state,
+                    track: { ...state.track, 'hex.usa.99-99': ['railroad.red'] }
+                })
+        ).toThrow()
+    })
 })
