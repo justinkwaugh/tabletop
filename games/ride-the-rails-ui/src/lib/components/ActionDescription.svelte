@@ -12,11 +12,12 @@
     const description = $derived(describeAction(action))
 </script>
 
+<!-- Inline text flow, not flex: a flex container drops the spaces at the ends of its segments. -->
 <span
-    class="inline-flex flex-wrap items-baseline gap-y-1"
-    class:justify-start={justify === 'start'}
-    class:justify-center={justify === 'center'}
-    class:justify-end={justify === 'end'}
+    class="inline"
+    class:text-left={justify === 'start'}
+    class:text-center={justify === 'center'}
+    class:text-right={justify === 'end'}
 >
     <Description {description} />
 </span>
