@@ -37,6 +37,7 @@ import {
     DROP,
     landing,
     quickDrop,
+    type DropTiming,
     LIFT_OFF,
     type Lift,
     type PieceParts
@@ -53,6 +54,8 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 const SLIDE = 0.35
 const TAKE: Lift = { duration: 0.55, rise: -34, fade: 'power1.out' }
 const MARK_FADE = 0.2
+// GIPF pieces taken back from a row drop onto their reserve dot as the row lifts away.
+const RESERVE_DROP_AT = 0.15
 const QUICK = 0.18
 // A push taken back that no one restages slides back to its dot and lifts off there; slide and
 // lift overlap so the change stays within an actionless step's 0.2s.
@@ -114,8 +117,12 @@ export class BoardAnimator implements MoveInterrupter {
     // Until the state lands: your pushed stack stays off its dot, and an undone one stands on it.
     pushedIn: boolean = $derived.by(() => this.untilLanded(false))
     returned: Entering | undefined = $derived.by(() => this.untilLanded(undefined))
+    // GIPF pieces a step returns to a player's reserve are drawn on its dot from the step's start,
+    // so they can drop on.
+    reserveCounts: Map<string, number> | undefined = $derived.by(() => this.untilLanded(undefined))
 
     private readonly stackNodes = new Map<number, StackNodes>()
+    private readonly reserveNodes = new Map<string, StackNodes>()
     private readonly enteringNodes: StackNodes = { discs: new Map(), creases: new Map() }
     private enteringNode: SVGGElement | undefined
     private flierNodes: FlierNodes = {}
@@ -175,10 +182,29 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     parts(key: number): PieceParts {
-        const nodes = this.nodesOf(key)
-        return {
-            disc: (index) => register(nodes.discs, index),
-            crease: (index) => register(nodes.creases, index)
+        return partsOf(this.nodesOf(key))
+    }
+
+    private reserveNodesOf(playerId: string): StackNodes {
+        let nodes = this.reserveNodes.get(playerId)
+        if (nodes === undefined) {
+            nodes = { discs: new Map(), creases: new Map() }
+            this.reserveNodes.set(playerId, nodes)
+        }
+        return nodes
+    }
+
+    reserveParts(playerId: string): PieceParts {
+        return partsOf(this.reserveNodesOf(playerId))
+    }
+
+    reserveShadow(playerId: string): Attachment<SVGGElement> {
+        return (node) => {
+            const nodes = this.reserveNodesOf(playerId)
+            nodes.shadow = node
+            return () => {
+                if (nodes.shadow === node) delete nodes.shadow
+            }
         }
     }
 
@@ -273,6 +299,15 @@ export class BoardAnimator implements MoveInterrupter {
         let returned: Entering | undefined
 
         this.stacks = this.inBetween(from, to, change)
+        const returning = to.players.flatMap((player) => {
+            const gain = player.gipfPieces - from.getPlayerState(player.playerId).gipfPieces
+            return gain > 0 ? [{ playerId: player.playerId, gain }] : []
+        })
+        if (returning.length > 0) {
+            this.reserveCounts = new Map(
+                returning.map(({ playerId }) => [playerId, to.getPlayerState(playerId).gipfPieces])
+            )
+        }
         if (change.kind === 'move') {
             this.flier = {
                 coords: change.from,
@@ -295,6 +330,20 @@ export class BoardAnimator implements MoveInterrupter {
             this.hop(from, change, timeline, quick)
         } else {
             this.discs(change, timeline, touched, quick)
+        }
+        for (const { playerId, gain } of returning) {
+            const nodes = this.reserveNodes.get(playerId)
+            if (nodes === undefined) continue
+            const timing = quick ? quickDrop(gain) : DROP
+            this.dropDiscs(
+                nodes,
+                nodes.discs.size - gain,
+                gain,
+                timeline,
+                touched,
+                timing,
+                quick ? 0 : RESERVE_DROP_AT
+            )
         }
         if (this.markNodes.size > 0) {
             timeline.to([...this.markNodes], { opacity: 0, duration: quick ? QUICK : MARK_FADE }, 0)
@@ -499,20 +548,31 @@ export class BoardAnimator implements MoveInterrupter {
     ) {
         const nodes = this.stackNodes.get(coordinatesToNumber(coords))
         if (nodes === undefined) return
-        const timing = quick ? quickDrop(count) : DROP
+        this.dropDiscs(nodes, from, count, timeline, touched, quick ? quickDrop(count) : DROP)
+    }
+
+    private dropDiscs(
+        nodes: StackNodes,
+        from: number,
+        count: number,
+        timeline: Timeline,
+        touched: SVGGElement[],
+        timing: DropTiming,
+        at = 0
+    ) {
         if (from === 0 && nodes.shadow) {
             touched.push(...scaledFromCentre(nodes.shadow))
-            dropShadow(timeline, nodes.shadow, 0, timing)
+            dropShadow(timeline, nodes.shadow, at, timing)
         }
         for (let index = from; index < from + count; index++) {
             const disc = nodes.discs.get(index)
             if (disc === undefined) continue
             touched.push(...scaledFromCentre(disc))
-            dropDisc(timeline, disc, index - from, 0, timing)
+            dropDisc(timeline, disc, index - from, at, timing)
             const crease = nodes.creases.get(index - 1)
             if (crease) {
                 touched.push(crease)
-                dropCrease(timeline, crease, index - 1 - from, 0, timing)
+                dropCrease(timeline, crease, index - 1 - from, at, timing)
             }
         }
     }
@@ -705,6 +765,13 @@ export class BoardAnimator implements MoveInterrupter {
         const start = view.center(from)
         const end = view.center(to)
         return { x: end.x - start.x, y: end.y - start.y }
+    }
+}
+
+function partsOf(nodes: StackNodes): PieceParts {
+    return {
+        disc: (index) => register(nodes.discs, index),
+        crease: (index) => register(nodes.creases, index)
     }
 }
 

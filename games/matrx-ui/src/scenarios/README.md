@@ -6,6 +6,7 @@ The dev harness lists these under **Scenarios**. Each starts with White to move,
 - **Tamsk extra move.** Push in from E1 onto E2: E2–E4 move up a spot, putting White's TAMSK stack on E5. White gets an extra move with its top piece (or Skip, which takes that piece out of the game) before the row E4–E7 is taken.
 - **Their tamsk.** The same push puts Black's TAMSK stack on E5: Black's turn opens with the extra move.
 - **Take a row.** Push in from E1 onto E2: White's row E2–E5 reaches over Black's ZÈRTZ stack on E6 and single on E7. Singles go; White's stacks of two (E2, E3) start left and Black's (E6) marked for removal, each tapped to switch, and Take row stays disabled while every spot of the row of four is kept.
+- **Gipf piece back.** White's GIPF piece on E3 stands in E3–E5. Push in from E1 onto E2 and take the row E2–E5: the GIPF piece goes back to White's reserve dot, dropping onto it, and White must bring it in next.
 - **Uncovered row.** Push in from E1 onto E2 and take the row E2–E5: its reach captures Black's DVONN piece on E6, uncovering White's DVONN stack, which completes D6–G4. White must take that row too before the turn passes.
 - **Last gipf piece.** Black has one GIPF piece left, on E6. Push in from E1 onto E2 and take the row: it captures the piece and White wins.
 - **Gipf piece out of reach.** The near miss: Black's last GIPF piece is on E7, past the empty E6; the row is taken and play goes on.

@@ -141,6 +141,19 @@ write(
 )
 
 write(
+    'gipf-piece-back',
+    'Gipf piece back',
+    position({
+        B2: 'G',
+        D2: 'G',
+        E3: 'G',
+        ...BLACK_GIPF,
+        E4: 'Y',
+        E5: 'Y'
+    })
+)
+
+write(
     'uncovered-row',
     'Uncovered row',
     position({

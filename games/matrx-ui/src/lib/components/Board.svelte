@@ -67,7 +67,10 @@
         session.gameState.turnManager.turnOrder.map((playerId, seat) => {
             const staged =
                 session.myPlayer?.id === playerId && session.stagedKind === PieceKind.Gipf
-            const count = session.gameState.getPlayerState(playerId).gipfPieces - (staged ? 1 : 0)
+            const inReserve =
+                animator.reserveCounts?.get(playerId) ??
+                session.gameState.getPlayerState(playerId).gipfPieces
+            const count = inReserve - (staged ? 1 : 0)
             return {
                 playerId,
                 at: view.reserveDot(seat),
@@ -393,7 +396,12 @@
             <ellipse rx={RESERVE_DOT_RADIUS} ry={RESERVE_DOT_RADIUS * view.tilt} class="dot-core"
             ></ellipse>
             {#if reserve.discs.length > 0}
-                <StandingStack discs={reserve.discs} {view} />
+                <StandingStack
+                    discs={reserve.discs}
+                    {view}
+                    parts={animator.reserveParts(reserve.playerId)}
+                    shadow={animator.reserveShadow(reserve.playerId)}
+                />
             {/if}
         </g>
     {/each}
