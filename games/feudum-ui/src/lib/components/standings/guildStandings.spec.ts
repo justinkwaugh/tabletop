@@ -20,7 +20,7 @@ function paintOf(playerId: string) {
     }
 }
 
-function markupOn(numPlayers: number, sheet = false): string {
+function markupOn(numPlayers: number): string {
     const host = new FeudumHost(numPlayers)
     host.edit((state) => {
         setPawns(state, 'p1', ['farmer', 'farmer', 'farmer'])
@@ -35,7 +35,7 @@ function markupOn(numPlayers: number, sheet = false): string {
     })
     const state = new HydratedFeudumGameState(structuredClone(host.state))
     const view = guildStandingsOf(state, (id) => Names[id] ?? id)
-    return render(GuildStandings, { props: { view, paintOf, sheet } }).body
+    return render(GuildStandings, { props: { view, paintOf } }).body
 }
 
 /** The one button named so: its whole opening tag. */
@@ -73,11 +73,12 @@ describe('Guild standings markup (R-4.5, R-4.7)', () => {
         expect(markup).toContain('Farmer journeyman: vacant')
         expect(markup).toContain('Merchant master: vacant')
         expect(markup).toContain('Merchant, no place: none')
-        expect(markup).toContain('hover or press a place for names')
+        expect(markup).toContain('press a place for names')
+        expect(markup).not.toContain('hover or press')
     })
 
     it('R-4.5.2 a seat with stars and no place stands muted under Others, its reason in the tooltip', () => {
-        const markup = markupOn(4, true)
+        const markup = markupOn(4)
 
         const other = buttonNamed(markup, 'Farmer, no place: Bram, 1 star, outranked')
         expect(other).toMatch(/class="place [^"]*\bother\b/)

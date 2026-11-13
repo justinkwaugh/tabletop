@@ -3,8 +3,8 @@
     import Scrim from './Scrim.svelte'
 
     /**
-     * A phone's Guilds sheet (contract: Phone layout): the Players tab's guild standings, opened
-     * from the seat strip's Guilds chip. It is for looking and holds no target.
+     * A phone's Guilds sheet (contract: Phone layout): the guild standings table, opened from the
+     * seat strip's Guilds chip. It is for looking and holds no target.
      */
     let { onClose }: { onClose: () => void } = $props()
 
@@ -13,6 +13,6 @@
 
 <Scrim label="the guild standings" layer="guilds" {onClose} sheet={SheetShare}>
     <div class="px-2 pb-3 pt-10" data-guilds-sheet>
-        <SessionStandings sheet />
+        <SessionStandings />
     </div>
 </Scrim>

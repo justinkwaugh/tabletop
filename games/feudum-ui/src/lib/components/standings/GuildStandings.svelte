@@ -14,15 +14,14 @@
      */
     let {
         view,
-        paintOf,
-        sheet = false
+        paintOf
     }: {
         view: GuildStandingsView
         paintOf: (playerId: string) => SeatPaint
-        /** In a phone's sheet: no hover, so the hint asks for a press. */
-        sheet?: boolean
     } = $props()
 
+    /** It stands only in a phone's Guilds sheet, with no hover, so the hint asks for a press. */
+    const Hint = 'press a place for names'
     const Die = 26
     const Marker = 16
     const LeadMarker = 18
@@ -37,7 +36,6 @@
     const uid = $props.id()
     const headingId = `${uid}-heading`
     let said: string | undefined = $state(undefined)
-    let hint = $derived(sheet ? 'press a place for names' : 'hover or press a place for names')
 </script>
 
 {#snippet marker(playerId: string, size: number)}
@@ -49,7 +47,7 @@
 <section class="standings" aria-labelledby={headingId} data-guild-standings>
     <div class="head">
         <h3 id={headingId}>Guild standings</h3>
-        <small aria-live="polite" data-standings-said>{said ?? hint}</small>
+        <small aria-live="polite" data-standings-said>{said ?? Hint}</small>
     </div>
     <table>
         <thead>
