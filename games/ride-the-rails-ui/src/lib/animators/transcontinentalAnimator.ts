@@ -74,7 +74,7 @@ export function transcontinentalAnimator(flights: Flights): GameStateChangeListe
                 key: TRANSCONTINENTAL_COIN_KEY,
                 start: coinFrom,
                 rise: { y: coinFrom.y - 24 },
-                marker: seatMoneyPoint(from.turnManager.turnOrder, claim.playerId),
+                marker: seatMoneyPoint(flights.table, from.turnManager.turnOrder, claim.playerId),
                 rises: drawn + SETTLE_INTO_LINE
             },
             FLIGHT

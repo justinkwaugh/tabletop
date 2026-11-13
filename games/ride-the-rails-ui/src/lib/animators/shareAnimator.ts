@@ -33,8 +33,8 @@ export function shareAnimator(flights: Flights): GameStateChangeListener<State> 
         if (!change) return
         flights.follow(animationContext)
 
-        const start = railroadSourcePoint(from.mapId, change.railroadId)
-        const marker = seatCardPoint(from.turnManager.turnOrder, change.playerId)
+        const start = railroadSourcePoint(flights.table, from.mapId, change.railroadId)
+        const marker = seatCardPoint(flights.table, from.turnManager.turnOrder, change.playerId)
         const startPose = pose(start.x, start.y)
         const shown = await showFlyers(flights, [
             {

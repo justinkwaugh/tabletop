@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'svelte'
 import type { Floater } from '@tabletop/frontend-components'
+import { findInTable, tableOf, viewOf } from './tableScope.js'
 
 export type Box = { left: number; top: number; width: number; height: number }
 export type Size = { width: number; height: number }
@@ -101,16 +102,11 @@ export function clearOfChoice(choiceSelector: string, onPhone: boolean): Middlew
     return {
         name: 'clearOfChoice',
         fn({ x, y, rects, elements }) {
-            const document = elements.floating.ownerDocument
-            const choice = document.querySelector(choiceSelector)?.getBoundingClientRect()
+            const table = tableOf(elements.floating)
+            const choice = findInTable(table, choiceSelector)?.getBoundingClientRect()
             const hex = elements.reference.getBoundingClientRect()
             if (!choice) return { x, y }
-            const view = {
-                left: 0,
-                top: 0,
-                width: document.documentElement.clientWidth,
-                height: document.documentElement.clientHeight
-            }
+            const view = viewOf(elements.floating)
             const spot = detailClearOfChoice(hex, rects.floating, choice, view, onPhone)
             // From the view's coordinates to the Floater's, which measure from the reference's
             // offset parent.

@@ -72,7 +72,7 @@
     fontWeight="700"
 />
 
-<div class="bg-rtr-table">
+<div class="bg-rtr-table" data-rtr-table {@attach session.flights.attachTable}>
     <DefaultTableLayout>
         {#snippet sideContent()}
             {#if sidePanelHexId}

@@ -69,7 +69,7 @@ async function flyPlacement(
     paid: { playerId: string; isStart: boolean; bonuses: Parameters<typeof bonusCoins>[1] }
 ) {
     const key = locomotiveFlyerKey(piece.key)
-    const start = railroadSourcePoint(from.mapId, piece.railroadId)
+    const start = railroadSourcePoint(flights.table, from.mapId, piece.railroadId)
     const startScale = STRIP_LOCOMOTIVE.width / piece.slot.width
     const startPose = pose(start.x, start.y, startScale)
     const coins = bonusCoins(piece.hexId, paid.bonuses)
@@ -105,7 +105,7 @@ async function flyPlacement(
             .to({ y: slot.y }, FLIGHT.settle, FLIGHT.lands + FLIGHT.bounce, 'bounce.out')
     }
 
-    const marker = seatMoneyPoint(from.turnManager.turnOrder, paid.playerId)
+    const marker = seatMoneyPoint(flights.table, from.turnManager.turnOrder, paid.playerId)
     const money = moneyAfterEach(from.getPlayerState(paid.playerId).money, coins)
     coins.forEach((coin, index) => {
         const lands = flyCoin(

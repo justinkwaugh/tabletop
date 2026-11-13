@@ -3,10 +3,11 @@ import type { MapId, RailroadId } from '@tabletop/ride-the-rails'
 import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardGeometry.js'
 import { stripLocomotivePoint, turnOrderMarkerPoint } from '$lib/utils/marginLayout.js'
 import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
+import { findInTable, viewOf } from '$lib/utils/tableScope.js'
 import { moneyKey, seatCardKey, supplyKey } from './flights.svelte.js'
 
 /** The board's own SVG, found by this attribute. */
-export const BOARD_ATTRIBUTE = 'data-map-board'
+const BOARD_ATTRIBUTE = 'data-map-board'
 
 /** The attribute that marks what a phone's flight lifts from or lands on, by the flight key. */
 const FLIGHT_TARGET_ATTRIBUTE = 'data-flight-target'
@@ -83,10 +84,9 @@ export function landingPoint(boxes: readonly ScreenBox[], view: ScreenBox): Poin
     }
 }
 
-/** The board's frame on screen, read from its SVG. */
-function boardFrame(document: Document): BoardFrame | undefined {
-    const box = document.querySelector(`svg[${BOARD_ATTRIBUTE}]`)?.getBoundingClientRect()
-    return box && frameOf(box)
+/** The board's SVG in the title's table; none while the board is not drawn. */
+export function boardIn(table: Element | undefined): Element | undefined {
+    return findInTable(table, `svg[${BOARD_ATTRIBUTE}]`)
 }
 
 /** The board's frame from its box on screen; none while the board is not drawn. */
@@ -105,34 +105,40 @@ export function frameOf(box: ScreenBox): BoardFrame | undefined {
  * above the board and the money on the seat cards and the waiting view instead. On a phone a
  * flight goes to the element marked with its key, in board units; elsewhere there is none.
  */
-function phonePlace(key: string): Point | undefined {
-    if (!isPhoneWidth() || typeof document === 'undefined') return undefined
-    const frame = boardFrame(document)
-    if (!frame) return undefined
-    const boxes = [...document.querySelectorAll(`[${FLIGHT_TARGET_ATTRIBUTE}="${key}"]`)]
+function phonePlace(table: Element | undefined, key: string): Point | undefined {
+    const board = isPhoneWidth() ? boardIn(table) : undefined
+    const frame = board && frameOf(board.getBoundingClientRect())
+    if (!table || !frame) return undefined
+    const boxes = [...table.querySelectorAll(`[${FLIGHT_TARGET_ATTRIBUTE}="${key}"]`)]
         .map((element) => element.getBoundingClientRect())
         .filter((box) => box.width > 0 && box.height > 0)
-    const view = {
-        left: 0,
-        top: 0,
-        width: document.documentElement.clientWidth,
-        height: document.documentElement.clientHeight
-    }
-    const landing = landingPoint(boxes, view)
+    const landing = landingPoint(boxes, viewOf(board))
     return landing ? toBoard(frame, landing) : undefined
 }
 
 /** Where a railroad's locomotives lift from: its strip entry, in the margin or above the board. */
-export function railroadSourcePoint(mapId: MapId, railroadId: RailroadId): Point {
-    return phonePlace(supplyKey(railroadId)) ?? stripLocomotivePoint(mapId, railroadId)
+export function railroadSourcePoint(
+    table: Element | undefined,
+    mapId: MapId,
+    railroadId: RailroadId
+): Point {
+    return phonePlace(table, supplyKey(railroadId)) ?? stripLocomotivePoint(mapId, railroadId)
 }
 
 /** Where a seat's shares and money land: its turn-order marker, or its money on a phone. */
-export function seatMoneyPoint(turnOrder: readonly string[], playerId: string): Point {
-    return phonePlace(moneyKey(playerId)) ?? turnOrderMarkerPoint(turnOrder, playerId)
+export function seatMoneyPoint(
+    table: Element | undefined,
+    turnOrder: readonly string[],
+    playerId: string
+): Point {
+    return phonePlace(table, moneyKey(playerId)) ?? turnOrderMarkerPoint(turnOrder, playerId)
 }
 
 /** Where a seat's new share lands: its turn-order marker, or its seat card on a phone. */
-export function seatCardPoint(turnOrder: readonly string[], playerId: string): Point {
-    return phonePlace(seatCardKey(playerId)) ?? turnOrderMarkerPoint(turnOrder, playerId)
+export function seatCardPoint(
+    table: Element | undefined,
+    turnOrder: readonly string[],
+    playerId: string
+): Point {
+    return phonePlace(table, seatCardKey(playerId)) ?? turnOrderMarkerPoint(turnOrder, playerId)
 }

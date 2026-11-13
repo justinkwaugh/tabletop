@@ -101,6 +101,8 @@ export class Flights {
     interrupted = false
 
     private readonly elements = new Map<string, FlightTarget>()
+    /** The title's table while it is drawn: where a phone flight looks for its landing. */
+    table: Element | undefined = undefined
     private readonly contexts = new Set<AnimationContext>()
     /** Attributes the animators wrote on the board's own elements (Pattern A), to put back. */
     private readonly written = new Map<string, Map<string, string | null>>()
@@ -162,6 +164,14 @@ export class Flights {
             destroy: () => {
                 if (this.elements.get(current) === node) this.elements.delete(current)
             }
+        }
+    }
+
+    /** An attachment that holds the title's table while it is drawn (`tableScope`). */
+    readonly attachTable = (node: Element) => {
+        this.table = node
+        return () => {
+            if (this.table === node) this.table = undefined
         }
     }
 

@@ -1,13 +1,9 @@
 <script lang="ts">
     import type { Flyer as FlyerShape } from '$lib/animators/flights.svelte.js'
-    import {
-        BOARD_ATTRIBUTE,
-        frameOf,
-        frameTransform,
-        readableBoost
-    } from '$lib/animators/flightPlaces.js'
+    import { boardIn, frameOf, frameTransform, readableBoost } from '$lib/animators/flightPlaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
+    import { tableOf } from '$lib/utils/tableScope.js'
     import Flyer from './Flyer.svelte'
 
     const flights = getGameSession().flights
@@ -30,10 +26,17 @@
     const travelling = $derived(flights.flyers.filter((flyer) => !ON_THE_MAP.has(flyer.kind)))
     const flying = $derived(flights.flyers.length > 0)
 
-    /** What clips the board on screen: the nearest of its boxes that hides its overflow. */
-    function boardClipper(board: Element): Element | undefined {
+    /**
+     * What clips the board on screen: the nearest of its boxes in the title's table that hides its
+     * overflow.
+     */
+    function boardClipper(board: Element, table: Element): Element | undefined {
         const window = board.ownerDocument.defaultView
-        for (let element = board.parentElement; element; element = element.parentElement) {
+        for (
+            let element = board.parentElement;
+            element && table.contains(element);
+            element = element.parentElement
+        ) {
             if (window?.getComputedStyle(element).overflow !== 'visible') {
                 return element
             }
@@ -52,8 +55,9 @@
      */
     function followBoard(svg: SVGSVGElement) {
         if (!flying) return
-        const boardSvg = svg.ownerDocument.querySelector(`svg[${BOARD_ATTRIBUTE}]`)
-        const clipper = boardSvg ? boardClipper(boardSvg) : undefined
+        const table = tableOf(svg)
+        const boardSvg = boardIn(table)
+        const clipper = boardSvg && table ? boardClipper(boardSvg, table) : undefined
         const boardUnits = svg.querySelectorAll('[data-board-units]')
         const clip = svg.querySelector(`#${CLIP_ID} rect`)
         let frame = 0

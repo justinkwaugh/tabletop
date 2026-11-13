@@ -137,7 +137,7 @@ async function ride(
                 key: coin.key,
                 start: end,
                 rise: fan[index],
-                marker: seatMoneyPoint(turnOrder, coin.playerId),
+                marker: seatMoneyPoint(flights.table, turnOrder, coin.playerId),
                 rises
             },
             JOURNEY
