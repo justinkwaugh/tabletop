@@ -1,6 +1,6 @@
 // Written by scripts/render-looks.mjs: the file of every look, by name.
-import darkDvonn0 from '../images/looks/dark-dvonn-0.webp'
 import darkBasic0 from '../images/looks/dark-basic-0.webp'
+import darkDvonn0 from '../images/looks/dark-dvonn-0.webp'
 import darkPunct0 from '../images/looks/dark-punct-0.webp'
 import darkPunct1 from '../images/looks/dark-punct-1.webp'
 import darkTamsk0 from '../images/looks/dark-tamsk-0.webp'
@@ -20,8 +20,8 @@ import darkZertz0 from '../images/looks/dark-zertz-0.webp'
 import darkZertz1 from '../images/looks/dark-zertz-1.webp'
 import darkZertz2 from '../images/looks/dark-zertz-2.webp'
 import darkZertz3 from '../images/looks/dark-zertz-3.webp'
-import lightDvonn0 from '../images/looks/light-dvonn-0.webp'
 import lightBasic0 from '../images/looks/light-basic-0.webp'
+import lightDvonn0 from '../images/looks/light-dvonn-0.webp'
 import lightPunct0 from '../images/looks/light-punct-0.webp'
 import lightPunct1 from '../images/looks/light-punct-1.webp'
 import lightTamsk0 from '../images/looks/light-tamsk-0.webp'
@@ -43,8 +43,8 @@ import lightZertz2 from '../images/looks/light-zertz-2.webp'
 import lightZertz3 from '../images/looks/light-zertz-3.webp'
 
 export const LOOK_URLS: Record<string, string> = {
-    'dark-dvonn-0': darkDvonn0,
     'dark-basic-0': darkBasic0,
+    'dark-dvonn-0': darkDvonn0,
     'dark-punct-0': darkPunct0,
     'dark-punct-1': darkPunct1,
     'dark-tamsk-0': darkTamsk0,
@@ -64,8 +64,8 @@ export const LOOK_URLS: Record<string, string> = {
     'dark-zertz-1': darkZertz1,
     'dark-zertz-2': darkZertz2,
     'dark-zertz-3': darkZertz3,
-    'light-dvonn-0': lightDvonn0,
     'light-basic-0': lightBasic0,
+    'light-dvonn-0': lightDvonn0,
     'light-punct-0': lightPunct0,
     'light-punct-1': lightPunct1,
     'light-tamsk-0': lightTamsk0,
