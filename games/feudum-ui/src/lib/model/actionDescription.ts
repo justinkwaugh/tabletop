@@ -5,7 +5,6 @@ import {
     ChickenSpaces,
     type ChickenSpaceId,
     type ImproveMetadata,
-    type PouchGood,
     type SpaceId,
     GuildById,
     isAdvanceTurn,
@@ -74,6 +73,7 @@ import {
 } from '@tabletop/feudum'
 import { regionOf, spaceLabel } from './cardFlows.js'
 import { handFaceShown, writFaceShown } from './perspective.js'
+import { PouchTitles } from './pouchWords.js'
 import { fillLine, goodsLine } from './roundEnd.js'
 import { EpochNames, tileName } from './tileName.js'
 import { writName } from './writLabels.js'
@@ -269,11 +269,6 @@ function finaliseLine(action: GameAction, words: Words): string | undefined {
 }
 
 /** R-3.3 A pouch good by the short name its choice had. */
-const PouchTitles: Readonly<Record<PouchGood, string>> = {
-    saltpeter: '+1 card',
-    sulfur: '2 in a row'
-}
-
 /**
  * R-3.1-H1, R-3.3 Once every hand is final, the pouch goods are shown together in one line: each
  * good with its seat, then the seats without one.
