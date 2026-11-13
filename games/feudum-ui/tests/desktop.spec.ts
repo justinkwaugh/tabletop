@@ -242,3 +242,62 @@ test.describe('a 1440 px desk', () => {
         }
     })
 })
+
+/** The game column holding the board view: how far its content runs past its height, and its foot. */
+async function columnOf(page: Page) {
+    return page.locator('[data-board-view]').evaluate((view) => {
+        let column = view.parentElement
+        while (column && getComputedStyle(column).display === 'contents') {
+            column = column.parentElement
+        }
+        if (!column) {
+            throw new Error('the board view has no column')
+        }
+        return {
+            over: column.scrollHeight - column.clientHeight,
+            foot: column.getBoundingClientRect().bottom
+        }
+    })
+}
+
+for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 1440, height: 900 },
+    { width: 1920, height: 1080 }
+]) {
+    test.describe(`a ${viewport.width} x ${viewport.height} desk`, () => {
+        test.use({ viewport })
+
+        test('R-3.1 while a hand is chosen the board scales down, so the standings and the zoom row stay in the column', async ({
+            page
+        }) => {
+            await openFixture(page, 'hands-five-seats')
+            await expect(page.locator('[data-hand-tray]')).toBeVisible()
+            await settled(page)
+            const column = await columnOf(page)
+            expect(column.over).toBeLessThanOrEqual(1)
+            const strip = await rect(page.locator('[data-guild-strip]'))
+            const zoom = await rect(page.getByRole('button', { name: 'Zoom in' }))
+            const key = await rect(page.locator('[data-symbol-key-toggle]'))
+            expect(strip.y + strip.height).toBeLessThanOrEqual(zoom.y)
+            expect(key.y + key.height).toBeLessThanOrEqual(column.foot + 0.5)
+            // R-1.2 Whole: smaller, the board keeps its shape.
+            const surface = await rect(page.locator('[data-board-surface]'))
+            expect(surface.width / surface.height).toBeCloseTo(2500 / 953, 1)
+        })
+
+        test('R-3.2 in card play the board is back at the column’s full width, and the column holds it all', async ({
+            page
+        }) => {
+            await openFixture(page, 'seats-four-mid-game')
+            await settled(page)
+            const surface = await rect(page.locator('[data-board-surface]'))
+            const view = await rect(page.locator('[data-board-view]'))
+            expect(Math.abs(surface.width - view.width)).toBeLessThan(2)
+            const column = await columnOf(page)
+            expect(column.over).toBeLessThanOrEqual(1)
+            const key = await rect(page.locator('[data-symbol-key-toggle]'))
+            expect(key.y + key.height).toBeLessThanOrEqual(column.foot + 0.5)
+        })
+    })
+}

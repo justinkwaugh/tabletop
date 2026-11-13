@@ -79,8 +79,9 @@
 
     /**
      * Contract, Supply: on a desk the board's view is as tall as the board, the standings' strip
-     * and the zoom row's band at the column's width, so the row stands under the strip. A phone's
-     * view takes the column's height.
+     * and the zoom row's band at the column's width, so the row stands under the strip; where the
+     * action area leaves less (the hand tray), it gives way and the wrapper fits it all to the
+     * height left. A phone's view takes the column's height.
      */
     let deskView = $derived(
         `aspect-ratio:${BoardWidth} / ${deskScaledHeight(feudumSession.gameState.players.length)}`
@@ -195,7 +196,7 @@
                 >
                     <ScalingWrapper
                         bind:this={wrapper}
-                        justify="center"
+                        justify={phone.phone ? 'center' : 'left'}
                         controls="bottom-left"
                         coverBelowScale={CoverBelowScale}
                         insetTop={phone.phone ? ChooserInset : 0}
@@ -252,10 +253,14 @@
         display: contents;
     }
 
-    /* A desk's board view: its own shape at the column's width, no taller. */
+    /*
+     * A desk's board view: its own shape at the column's width, no taller, and shorter where the
+     * action area leaves less height; nothing is reserved for the tallest action area.
+     */
     .feudum-table:not([data-phone]) .board-view {
-        flex: none;
+        flex: 0 1 auto;
         width: 100%;
+        min-height: 0;
     }
 
     /* The column's height is the action area's measure, in the page and in full screen alike. */

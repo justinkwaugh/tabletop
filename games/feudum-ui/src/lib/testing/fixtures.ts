@@ -612,6 +612,13 @@ export const Fixtures = {
             return { host, seat: first(host) }
         }
     },
+    /** R-3.1 Five seats choose their hands: the tallest guild standings' strip a desk draws. */
+    'hands-five-seats': {
+        build: async () => {
+            const host = await atHands(seats(plain, plain, plain, plain, plain))
+            return { host, seat: first(host) }
+        }
+    },
     'hands-barrel-sulfur': {
         build: async () => {
             const host = await atHands(
