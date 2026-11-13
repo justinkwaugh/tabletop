@@ -1,5 +1,5 @@
 import type { AxialCoordinates } from '@tabletop/common'
-import { isPotentialKind, PieceKind } from '@tabletop/gipf-potentials'
+import { isPotentialKind, PieceKind, type PotentialKind } from '@tabletop/gipf-potentials'
 import type { DiscKind } from '$lib/board/pieceShape.js'
 import type { HistoryEntry, Taking } from './historyEntries.js'
 
@@ -21,11 +21,18 @@ function pushed(kind: PieceKind, extra: boolean): Segment {
 }
 
 // What each potential's move is called.
-const MOVED: Partial<Record<DiscKind, string>> = {
-    [PieceKind.Zertz]: 'jumped',
-    [PieceKind.Yinsh]: 'slid',
-    [PieceKind.Dvonn]: 'covered with',
-    [PieceKind.Punct]: 'covered with'
+function moved(kind: PotentialKind): string {
+    switch (kind) {
+        case PieceKind.Zertz:
+            return 'jumped'
+        case PieceKind.Yinsh:
+            return 'slid'
+        case PieceKind.Dvonn:
+        case PieceKind.Punct:
+            return 'covered with'
+        case PieceKind.Tamsk:
+            throw Error('A TAMSK-potential has no move of its own')
+    }
 }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
@@ -41,7 +48,7 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
             const covers = entry.piece === PieceKind.Dvonn || entry.piece === PieceKind.Punct
             const pieces = entry.cover === 2 ? 'a GIPF-piece' : 'a piece'
             return [
-                text(` ${MOVED[entry.piece] ?? 'moved'} `),
+                text(` ${moved(entry.piece)} `),
                 piece(entry.piece),
                 text(' from '),
                 point(entry.from),

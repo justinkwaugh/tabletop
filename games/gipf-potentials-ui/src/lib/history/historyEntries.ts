@@ -1,5 +1,6 @@
-import type { AxialCoordinates, GameAction } from '@tabletop/common'
+import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
+    basicsIn,
     isExtraMove,
     isFinishRemoving,
     isMovePotential,
@@ -57,15 +58,16 @@ export type HistoryEntry = PushEntry | MoveEntry | SkipEntry | TakingEntry
 
 function takingsOf(action: GameAction): Taking[] {
     if (isFinishRemoving(action)) {
-        return (action.metadata?.left ?? []).map((row) => {
+        assertExists(action.metadata, 'Rows left standing are recorded')
+        return action.metadata.left.map((row) => {
             const [from, to] = inReadingOrder(row.from, row.to)
             return { from, to, left: true, returned: 0, captured: 0, capturedGipf: 0 }
         })
     }
     if (!isRemoveRow(action)) return []
-    const removed = action.metadata?.removed ?? []
-    const size = ({ unit }: (typeof removed)[number]) =>
-        unit.kind === PieceKind.Gipf ? 2 : unit.kind === PieceKind.Basic ? 1 : 0
+    assertExists(action.metadata, 'A row taken records what it removed')
+    const { removed } = action.metadata
+    const size = ({ unit }: (typeof removed)[number]) => basicsIn(unit)
     const own = removed.filter(({ unit }) => unit.playerId === action.playerId)
     const theirs = removed.filter(({ unit }) => unit.playerId !== action.playerId)
     const [from, to] = inReadingOrder(action.from, action.to)
@@ -94,6 +96,7 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
     if (action.playerId === undefined) return undefined
     const span = { id: action.id, firstIndex: index, lastIndex: index, playerId: action.playerId }
     if (isPushPiece(action) || isExtraMove(action)) {
+        assertExists(action.metadata, 'A push records what it moved on')
         return {
             ...span,
             kind: 'push',
@@ -101,13 +104,14 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
             extra: isExtraMove(action),
             dot: action.dot,
             to: action.to,
-            shifted: action.metadata?.shifted ?? 0,
-            tamskOwnerId: action.metadata?.tamskOwnerId,
-            forfeited: isPushPiece(action) ? action.metadata?.forfeited : undefined,
+            shifted: action.metadata.shifted,
+            tamskOwnerId: action.metadata.tamskOwnerId,
+            forfeited: isPushPiece(action) ? action.metadata.forfeited : undefined,
             takings: []
         }
     }
-    if (isMovePotential(action) && action.metadata !== undefined) {
+    if (isMovePotential(action)) {
+        assertExists(action.metadata, "A potential's move records its kind")
         return {
             ...span,
             kind: 'move',

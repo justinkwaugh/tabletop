@@ -17,7 +17,6 @@ import {
     FinishRemoving,
     GIPF_PIECE_SIZE,
     isExtraMove,
-    isLoaded,
     isMovePotential,
     MachineState,
     isPushPiece,
@@ -54,10 +53,6 @@ export function rowKey(row: Row): string {
 // The moves Undo walks back through one choice at a time: a push or extra move returns its piece
 // to its dot, a potential's move returns it to its piece, still chosen.
 type StepBack = PushPiece | ExtraMove | MovePotential
-
-function isStepBack(action: GameAction): action is StepBack {
-    return isPushPiece(action) || isExtraMove(action) || isMovePotential(action)
-}
 
 export class GipfPotentialsGameSession extends GameSession<
     GipfPotentialsGameState,
@@ -256,11 +251,9 @@ export class GipfPotentialsGameSession extends GameSession<
     })
 
     // GIPF-pieces and loaded pieces in the chosen row, which may stay; everything else goes.
-    rowKeepable: AxialCoordinates[] = $derived.by(() => {
-        const row = this.chosenRow
-        if (row === undefined) return []
-        return row.reach.filter((coords) => this.gameState.board.mayStay(coords))
-    })
+    rowKeepable: AxialCoordinates[] = $derived(
+        this.chosenRow ? this.gameState.board.keepableIn(this.chosenRow) : []
+    )
 
     // Your own pieces stay and the opponent's go unless you mark them otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
@@ -280,18 +273,18 @@ export class GipfPotentialsGameSession extends GameSession<
             : []
     )
 
-    // General use, rule 8: a four holding a loaded piece must be broken.
     mustBreak: boolean = $derived(
-        this.chosenRow !== undefined &&
-            this.chosenRow.run.some((coords) => isLoaded(this.gameState.board.topAt(coords)))
+        this.chosenRow !== undefined && this.gameState.board.mustBreak(this.chosenRow)
     )
 
     breaksRow: boolean = $derived(
         this.chosenRow !== undefined &&
-            this.removing.length > 0 &&
-            (!this.mustBreak ||
-                this.chosenRow.run.some((coords) => includesCoords(this.removing, coords)))
+            this.gameState.board.isValidRemoval(this.chosenRow, this.keep)
     )
+
+    private isStepBack(action: GameAction): action is StepBack {
+        return isPushPiece(action) || isExtraMove(action) || isMovePotential(action)
+    }
 
     private canAct(type: ActionType): boolean {
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
@@ -314,11 +307,11 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     override willUndo(action: GameAction): void {
-        this.undoingMove = isStepBack(action) ? action : undefined
+        this.undoingMove = this.isStepBack(action) ? action : undefined
     }
 
     override onHistoryAction(action?: GameAction): void {
-        this.historyMove = action !== undefined && isStepBack(action) ? action : undefined
+        this.historyMove = action !== undefined && this.isStepBack(action) ? action : undefined
     }
 
     override beforeNewState({ kind }: PresentedTransition): void {

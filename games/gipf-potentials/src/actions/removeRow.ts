@@ -1,16 +1,10 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    AxialCoordinates,
-    GameAction,
-    HydratableAction,
-    MachineContext,
-    sameCoordinates
-} from '@tabletop/common'
+import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { isLoaded, Unit } from '../model/pieces.js'
+import { Unit } from '../model/pieces.js'
 
 export const RemovedUnit = Type.Object({ coords: AxialCoordinates, unit: Unit })
 
@@ -70,20 +64,10 @@ export class HydratedRemoveRow extends HydratableAction<typeof RemoveRow> implem
         if (row === undefined) {
             return false
         }
-        const kept = (coords: AxialCoordinates) =>
-            this.keep.some((keep) => sameCoordinates(keep, coords))
-        const keepsOnlyWhatMayStay = this.keep.every(
-            (coords) =>
-                row.reach.some((reach) => sameCoordinates(reach, coords)) && board.mayStay(coords)
-        )
-        const removesSomething = row.reach.some((coords) => !kept(coords))
-        const breaksFour =
-            !row.run.some((coords) => isLoaded(board.topAt(coords))) ||
-            row.run.some((coords) => !kept(coords))
         const mayRemoveNow =
             state.machineState === MachineState.ResolvingRows
                 ? state.resolvingPlayerIds[0] === this.playerId
                 : !board.isMandatory(row)
-        return keepsOnlyWhatMayStay && removesSomething && breaksFour && mayRemoveNow
+        return mayRemoveNow && board.isValidRemoval(row, this.keep)
     }
 }

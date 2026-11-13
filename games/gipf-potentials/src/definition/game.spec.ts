@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
     assert,
+    Color,
     defaultGameConfig,
     GameResult,
     isListConfigOption,
@@ -17,7 +18,12 @@ import {
 } from './tests/playthrough.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
-import { GipfPotentialsConfigurator, GipfVersion, potentialsFromConfig } from './config.js'
+import {
+    GipfPotentialsConfigurator,
+    GipfVersion,
+    potentialsFromConfig,
+    WhitePlayer
+} from './config.js'
 import {
     EndReason,
     HydratedGipfPotentialsGameState,
@@ -264,6 +270,42 @@ describe('setting up', () => {
         expect(potentialsFromConfig({ [PieceKind.Yinsh]: '0' })).toEqual(
             potentials({ [PieceKind.Yinsh]: 6 })
         )
+    })
+})
+
+describe('the White option', () => {
+    // Without an assigned order, the White option decides; p2 created the game.
+    const firstWith = (whitePlayer: WhitePlayer, creator: string, masterSeed: string) => {
+        const game = createGame({ whitePlayer }, ['p1', 'p2'], creator)
+        const { initialState } = engine.startGame(game, { masterSeed })
+        const [first] = initialState.turnManager.turnOrder
+        expect(initialState.players.find((player) => player.playerId === first)?.color).toBe(
+            Color.White
+        )
+        return first
+    }
+    const seeds = Array.from({ length: 8 }, (_, index) => `${index}`.padStart(32, '0'))
+
+    it('Game creator: the creator plays White and goes first', () => {
+        expect(seeds.map((seed) => firstWith(WhitePlayer.Creator, 'p2', seed))).toEqual(
+            seeds.map(() => 'p2')
+        )
+    })
+
+    it('Opponent: the creator plays Black', () => {
+        expect(seeds.map((seed) => firstWith(WhitePlayer.Opponent, 'p2', seed))).toEqual(
+            seeds.map(() => 'p1')
+        )
+    })
+
+    it('White goes to the draw when chosen at random, or when the creator does not play', () => {
+        for (const [whitePlayer, creator] of [
+            [WhitePlayer.Random, 'p2'],
+            [WhitePlayer.Creator, 'someone-else']
+        ] as const) {
+            const firsts = new Set(seeds.map((seed) => firstWith(whitePlayer, creator, seed)))
+            expect(firsts).toEqual(new Set(['p1', 'p2']))
+        }
     })
 })
 

@@ -38,14 +38,14 @@ describe('history entries', () => {
         dot: pointAt('E1'),
         to: pointAt('E2'),
         kind: PieceKind.Zertz,
-        metadata: { line: [], shifted: 2, tamskOwnerId: 'w' }
+        metadata: { shifted: 2, tamskOwnerId: 'w' }
     }
     const extra: ExtraMove = {
         ...base('w'),
         type: ActionType.ExtraMove,
         dot: pointAt('A3'),
         to: pointAt('B3'),
-        metadata: { line: [], shifted: 0 }
+        metadata: { shifted: 0 }
     }
     const row: RemoveRow = {
         ...base('w'),
@@ -117,7 +117,7 @@ describe('history entries', () => {
             dot: pointAt('E1'),
             to: pointAt('E2'),
             kind: PieceKind.Gipf,
-            metadata: { line: [], shifted: 3 }
+            metadata: { shifted: 3 }
         }
         const leave: FinishRemoving = {
             ...base('w'),

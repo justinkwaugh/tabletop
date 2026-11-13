@@ -266,15 +266,35 @@ export class HydratedGipfPotentialsBoard
     // General use, rule 8: only a row of GIPF-pieces alone may stay; a loaded piece in the four
     // means it must be broken, and a piece that may not stay means it must be taken.
     isMandatory(row: Row): boolean {
-        return (
-            row.reach.some((coords) => !this.mayStay(coords)) ||
-            row.run.some((coords) => isLoaded(this.topAt(coords)))
-        )
+        return row.reach.some((coords) => !this.mayStay(coords)) || this.mustBreak(row)
     }
 
     mayStay(coords: AxialCoordinates): boolean {
         const top = this.topAt(coords)
         return top !== undefined && mayStayInRow(top)
+    }
+
+    // The pieces in a row's reach that may stay when it is taken.
+    keepableIn(row: Row): AxialCoordinates[] {
+        return row.reach.filter((coords) => this.mayStay(coords))
+    }
+
+    // General use, rule 8: a four holding a loaded piece must be broken.
+    mustBreak(row: Row): boolean {
+        return row.run.some((coords) => isLoaded(this.topAt(coords)))
+    }
+
+    // Taking a row keeps only pieces that may stay, takes something, and breaks a four that must
+    // be broken.
+    isValidRemoval(row: Row, keep: readonly AxialCoordinates[]): boolean {
+        const keepable = this.keepableIn(row)
+        const kept = (coords: AxialCoordinates) =>
+            keep.some((candidate) => sameCoordinates(candidate, coords))
+        return (
+            keep.every((coords) => keepable.some((spot) => sameCoordinates(spot, coords))) &&
+            row.reach.some((coords) => !kept(coords)) &&
+            (!this.mustBreak(row) || row.run.some((coords) => !kept(coords)))
+        )
     }
 
     removeTop(coords: AxialCoordinates): Unit {

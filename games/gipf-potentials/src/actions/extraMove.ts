@@ -44,7 +44,7 @@ export class HydratedExtraMove extends HydratableAction<typeof ExtraMove> implem
         }
         const shifted = state.board.shiftedBy(entry)
         const result = state.pushTamsk(entry)
-        this.metadata = { line: structuredClone(entry.line), shifted, ...result }
+        this.metadata = { shifted, ...result }
     }
 
     isValid(state: HydratedGipfPotentialsGameState): boolean {

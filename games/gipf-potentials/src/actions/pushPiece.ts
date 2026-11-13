@@ -5,11 +5,10 @@ import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PieceKind, PotentialCounts } from '../model/pieces.js'
 
-// The line a push moved, how many stacks it shifted on, whose TAMSK-loaded piece it put on the
-// centre, and the potentials a plain piece left unplayed.
+// How many stacks a push shifted on, whose TAMSK-loaded piece it put on the centre, and the
+// potentials a plain piece left unplayed.
 export type PushMetadata = Type.Static<typeof PushMetadata>
 export const PushMetadata = Type.Object({
-    line: Type.Array(AxialCoordinates),
     shifted: Type.Integer({ minimum: 0 }),
     tamskOwnerId: Type.Optional(Type.String()),
     forfeited: Type.Optional(PotentialCounts)
@@ -57,7 +56,7 @@ export class HydratedPushPiece extends HydratableAction<typeof PushPiece> implem
         }
         const shifted = state.board.shiftedBy(entry)
         const result = state.pushPiece(this.playerId, entry, this.kind)
-        this.metadata = { line: structuredClone(entry.line), shifted, ...result }
+        this.metadata = { shifted, ...result }
     }
 
     isValid(state: HydratedGipfPotentialsGameState): boolean {
