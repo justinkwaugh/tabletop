@@ -141,7 +141,7 @@ describe('state shape', () => {
         ])
     })
 
-    it('stores no supply, availability, starts, East Coast holdings or $5 claims (D6, D7)', () => {
+    it('stores no supply, availability, starts, East Coast holdings or $5 claims: they derive from track and shares', () => {
         const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
         expect(Object.keys(state.players[0]).sort()).toEqual([
             'color',

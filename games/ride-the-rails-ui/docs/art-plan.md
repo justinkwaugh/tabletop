@@ -151,4 +151,3 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 - `boardGeometry.spec.ts`: every hex and city in the logic's map data has a position and a label anchor, no position names a hex the data lacks, the extents are the data's bounding box plus the fixed margin, and every margin box lies inside the board and covers no hex.
 - `trackLayout.spec.ts`: every capacity has slots for its locomotives.
 - `ink.spec.ts`: monogram and initials contrast, and every railroad's locomotive told from the plain under the scrim (by its fill or its edge, at least 1.5:1).
-- Readiness gates 1 and 2 pass on the first run.
