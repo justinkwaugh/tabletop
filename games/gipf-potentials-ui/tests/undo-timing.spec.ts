@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { pointAt } from '@tabletop/gipf-potentials'
+import { PieceKind, pointAt } from '@tabletop/gipf-potentials'
 import type { GipfPotentialsGameSession } from '../src/lib/model/session.svelte.js'
 
 // A step without an action (Undo, another player's Undo, a history step) must finish its motion
@@ -142,7 +142,7 @@ test('Undo of a row taken, and of one that freed a second row', async ({ page })
 
 test('Undo of a row of GIPF-pieces left standing', async ({ page }) => {
     await openScenario(page, 'Gipf row')
-    await page.evaluate(() => window.gipfPotentialsSession.chooseKind('gipf'))
+    await page.evaluate((kind) => window.gipfPotentialsSession.chooseKind(kind), PieceKind.Gipf)
     await pushE1E2(page)
     await act(page, () => window.gipfPotentialsSession.leaveRows())
     await undoAsOtherPlayer(page)
@@ -175,7 +175,6 @@ test('history steps back and forward', async ({ page }) => {
     await expectActionlessWithinBudget(page)
 })
 
-// A potential's move, from one spot to another; a PÜNCT onto a GIPF-piece covers it with `cover`.
 async function movePotential(page: Page, from: string, to: string, cover?: number) {
     await page.evaluate(
         async ([from, to, cover]) => {
