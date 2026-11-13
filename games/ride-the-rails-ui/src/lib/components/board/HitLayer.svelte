@@ -20,14 +20,45 @@
         return USA_HEXES.find((hex) => hex.id === id)?.id
     }
 
-    // U-1, U-5: one listener for every hex; the whole hex is the hit target.
+    /** The longest a browser takes from lifting a finger to the click it sends for the tap. */
+    const TAP_TO_CLICK_MS = 1000
+
+    type Touch = { x: number; y: number; at: number }
+
+    // U-1, U-5: one listener for every hex; the whole hex is the hit target. A browser may move a
+    // tap's click onto a nearby button (a lit hex) when the finger lands beside it, so a press by
+    // touch or pen goes to the hex under the point where it lifted, and only a press with no hex
+    // there (beyond the map's edge) keeps the browser's target.
     const pressOnClick: Attachment<SVGGElement> = (group) => {
+        const document = group.ownerDocument
+        let lastTouch: Touch | undefined
+        const noteLift = (event: PointerEvent) => {
+            lastTouch =
+                event.pointerType === 'mouse'
+                    ? undefined
+                    : { x: event.clientX, y: event.clientY, at: event.timeStamp }
+        }
+        const hexUnder = (touch: Touch | undefined): HexId | undefined => {
+            if (!touch) return undefined
+            const element = document.elementFromPoint(touch.x, touch.y)
+            return element && group.contains(element) ? hexIdOf(element) : undefined
+        }
         const press = (event: MouseEvent) => {
-            const hexId = hexIdOf(event.target)
+            const touch =
+                lastTouch && event.timeStamp - lastTouch.at < TAP_TO_CLICK_MS
+                    ? lastTouch
+                    : undefined
+            lastTouch = undefined
+            const hexId = hexUnder(touch) ?? hexIdOf(event.target)
             if (hexId) void gameSession.pressHex(hexId)
         }
+        // Capture on the document, as the board's pan may hold the pointer while the finger is down.
+        document.addEventListener('pointerup', noteLift, { capture: true })
         group.addEventListener('click', press)
-        return () => group.removeEventListener('click', press)
+        return () => {
+            document.removeEventListener('pointerup', noteLift, { capture: true })
+            group.removeEventListener('click', press)
+        }
     }
 
     function pressOnKey(event: KeyboardEvent, hexId: HexId) {
@@ -68,8 +99,10 @@
 </g>
 
 <style>
+    /* Only a hex's own area takes presses; a lit hex's focus stroke does not reach its neighbours. */
     .hit {
         cursor: pointer;
+        pointer-events: fill;
     }
     .hit.lit:focus {
         outline: none;
