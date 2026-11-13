@@ -66,18 +66,32 @@ export const ZertzGameConfig = Type.Object({
     setup: Type.Optional(Type.Enum(ZertzSetup))
 })
 
+const standardDescription =
+    '37 rings and 6 white, 8 grey and 10 black marbles. Win with 4 white, 5 grey, 6 black or 3 of each.'
+const blitzDescription =
+    '37 rings and 5 white, 7 grey and 9 black marbles. Win with 3 white, 4 grey, 5 black or 2 of each.'
+const tournamentDescription = '48 rings, with the standard marbles and win.'
+
 export const ZertzGameConfigOptions: GameConfigOptions = [
     {
         id: 'setup',
         type: ConfigOptionType.List,
         name: 'Setup',
-        description:
-            'Standard: 37 rings, 6/8/10 marbles. Blitz: 37 rings, 5/7/9 marbles and lower win targets. Tournament: 48 rings, standard marbles.',
+        // Older site forms show only this, so it describes every setup.
+        description: `Standard: ${standardDescription} Blitz: ${blitzDescription} Tournament: ${tournamentDescription}`,
         default: ZertzSetup.Standard,
         options: [
-            { name: 'Standard (37 rings)', value: ZertzSetup.Standard },
-            { name: 'Blitz (37 rings)', value: ZertzSetup.Blitz },
-            { name: 'Tournament (48 rings)', value: ZertzSetup.Tournament }
+            {
+                name: 'Standard (37 rings)',
+                value: ZertzSetup.Standard,
+                description: standardDescription
+            },
+            { name: 'Blitz (37 rings)', value: ZertzSetup.Blitz, description: blitzDescription },
+            {
+                name: 'Tournament (48 rings)',
+                value: ZertzSetup.Tournament,
+                description: tournamentDescription
+            }
         ],
         alwaysShow: true
     }
