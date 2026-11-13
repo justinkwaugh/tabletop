@@ -193,7 +193,7 @@ scenario(
 )
 
 scenario(
-    'S68 R-3.1 Phone hand: the eleven-card draft in two rows, the finalise line under them',
+    'S68 R-3.1 Phone hand: the eleven-card draft in two rows, tray A under them',
     'hands-first-saltpeter',
     async (table) => {
         const cells = table.panel().locator('[data-cards] [data-row]')
@@ -203,7 +203,7 @@ scenario(
         expect(rows.length).toBe(table.phone ? 2 : rows.length)
         expect(rows.length).toBeLessThanOrEqual(2)
         const lowest = Math.max(...boxes.map(({ y, height }) => y + height))
-        // A desk stands the pouch and the send beside the eleven; a phone's sheet, under them.
+        // A desk stands tray A beside the eleven; a phone's sheet, under them.
         for (const line of table.phone
             ? [
                   table.panel().locator('[data-rows="pouch"]'),

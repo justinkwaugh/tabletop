@@ -485,7 +485,7 @@ test.describe('held upright', () => {
         await expectNoSidewaysScroll(page)
     })
 
-    test('S68 R-3.1 the hand is drafted in a bottom sheet over the board: the slots, the eleven in two rows, the pouch and the send', async ({
+    test('S68 R-3.1 the hand is drafted in a bottom sheet over the board: the heading, the eleven in two rows, then tray A', async ({
         page
     }) => {
         await createGame(page)
@@ -501,12 +501,6 @@ test.describe('held upright', () => {
         expect(
             await cap(page).evaluate((element) => element.scrollHeight <= element.clientHeight + 1)
         ).toBe(true)
-        const slots = panel(page).locator('[data-plan] [data-slot]')
-        await expect(slots).toHaveCount(4)
-        const firstSlot = await rect(slots.first())
-        expect(firstSlot.y + firstSlot.height).toBeLessThanOrEqual(
-            (await rect(panel(page).locator('[data-cards] [data-row]').first())).y
-        )
         const cells = panel(page).locator('[data-cards] [data-row]')
         await expect(cells).toHaveCount(11)
         const boxes = await Promise.all((await cells.all()).map((cell) => rect(cell)))
@@ -517,21 +511,26 @@ test.describe('held upright', () => {
         expect(new Set(secondRow.map(({ y }) => y)).size).toBe(1)
         await expectNoSidewaysScroll(page)
 
-        // The finalise order shares the prompt's line, so the second row stands clear of the send.
-        const order = await rect(panel(page).locator('[data-finalise-row]'))
-        const prompt = await rect(panel(page).locator('[data-hand-count]'))
-        expect(Math.abs(order.y + order.height / 2 - (prompt.y + prompt.height / 2))).toBeLessThan(
-            4
-        )
+        // The round's heading over the eleven; tray A under them: the slots, the pouch, the send.
+        const heading = await rect(panel(page).locator('[data-finalise-row]'))
+        expect(heading.y + heading.height).toBeLessThanOrEqual((boxes[0]?.y ?? 0) + 1)
         const lastCard = boxes[10]
         expect(lastCard).toBeDefined()
-        expect((lastCard?.y ?? 0) + (lastCard?.height ?? 0)).toBeLessThanOrEqual(
-            (await rect(panel(page).locator('[data-rows="pouch"]'))).y
-        )
-
+        const tray = await rect(panel(page).locator('[data-hand-tray]'))
+        expect(tray.y).toBeGreaterThanOrEqual((lastCard?.y ?? 0) + (lastCard?.height ?? 0) - 1)
+        const slots = panel(page).locator('[data-plan] [data-slot]')
+        await expect(slots).toHaveCount(4)
+        const plan = await rect(panel(page).locator('[data-plan] [role="list"]'))
         const pouch = await rect(panel(page).locator('[data-rows="pouch"]'))
         const send = await rect(panel(page).locator('[data-primary]'))
-        expect(Math.abs(pouch.y + pouch.height / 2 - (send.y + send.height / 2))).toBeLessThan(4)
+        expect(pouch.y).toBeGreaterThanOrEqual(plan.y + plan.height)
+        expect(send.y).toBeGreaterThanOrEqual(pouch.y + pouch.height)
+        // The labels share one column, the rows another, so the rows line up on the left.
+        const label = await rect(panel(page).locator('[data-tray-label="hand"]'))
+        expect(label.x + label.width).toBeLessThanOrEqual(plan.x)
+        expect(Math.abs(pouch.x - plan.x)).toBeLessThan(1)
+        expect(Math.abs(send.x - plan.x)).toBeLessThan(1)
+        expect(send.x + send.width).toBeLessThanOrEqual(tray.x + tray.width)
         for (const button of await panel(page).locator('[data-rows="pouch"] button').all()) {
             await expectTarget(button)
         }
