@@ -133,6 +133,21 @@ describe.skipIf(!process.env.SCENARIOS)('1849 harness scenarios', () => {
         )
     })
 
+    it('writes the bond money raising', { timeout: 900_000 }, () => {
+        save(
+            'bond-money',
+            playUntil(
+                4,
+                1,
+                (game) =>
+                    game.state.machineState === 'RaisingCash' &&
+                    game.valid().includes('SellSharesToPay'),
+                20000,
+                { bonds: true }
+            )
+        )
+    })
+
     it('writes the station purchase', { timeout: 900_000 }, () => {
         save(
             'station-purchase',

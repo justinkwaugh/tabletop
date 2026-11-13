@@ -5,6 +5,7 @@ import { createEighteenXXRuntime, type EighteenXXTitleRules } from '@tabletop/18
 import { Names1849 } from '../names.js'
 import { AuctionRules1849, createOpening1849 } from '../opening.js'
 import {
+    CashCrisisRules1849,
     CorporateFinanceRules1849,
     EarningsRules1849,
     EndingRules1849,
@@ -51,6 +52,7 @@ export const TitleRules1849: EighteenXXTitleRules<typeof State1849, HydratedStat
     phases: Phases1849,
     phaseRules: PhaseRules1849,
     trainFundingRules: TrainFundingRules1849,
+    cashCrisisRules: CashCrisisRules1849,
     privateRules: PrivateRules1849,
     privatePowerRules: PrivatePowerRules1849,
     transferRules: TransferRules1849,

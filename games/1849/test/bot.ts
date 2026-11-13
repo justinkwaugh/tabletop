@@ -1,5 +1,8 @@
 import {
     EmergencyTrainFunding,
+    crisisInsolvencyChoices,
+    crisisSales,
+    currentDebt,
     StationPlacement,
     TrackConstruction,
     TrainPurchase,
@@ -19,6 +22,7 @@ import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { Autorouter } from '@tabletop/18xx-autorouter'
 import {
+    CashCrisisRules1849,
     CorporateFinanceRules1849,
     TrainFundingRules1849,
     TrainRules1849,
@@ -373,6 +377,16 @@ export function botMove(game: Table, random: Random): Move {
                 })
             const choices = insolvencyChoices(state, TrainFundingRules1849, next)
             return move('DeclareBankruptcy', choices.length ? { choice: pick(choices) } : {})
+        }
+        case 'RaisingCash': {
+            // Bond money a corporation cannot pay (§14.2, §10.7): sell what raises it, or fail.
+            const debt = currentDebt(state)
+            if (!debt) throw new Error('Raising cash without a debt')
+            const [sale] = crisisSales(state, CashCrisisRules1849, debt.playerId)
+            if (sale)
+                return move('SellSharesToPay', { sale: sale.sale, expectedProceeds: sale.proceeds })
+            const choices = crisisInsolvencyChoices(state, CashCrisisRules1849, debt)
+            return move('GoBankrupt', choices.length ? { choice: pick(choices) } : {})
         }
         default:
             throw new Error(`The bot has no move in ${state.machineState}: ${valid.join()}`)

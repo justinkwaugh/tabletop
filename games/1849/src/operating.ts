@@ -17,6 +17,7 @@ import {
     payOrWithholdEarningsRules,
     placeStockMarker,
     presidentTrainFundingRules,
+    reorderPendingOperatingCompanies,
     privateOwner,
     requiresStationRoute,
     CashPayment,
@@ -25,7 +26,10 @@ import {
     totalCertificateShares,
     trainsOwnedBy,
     treasuryPoolId,
+    isCloseCorporation,
+    isGoBankrupt,
     type Bankruptcy,
+    type CashCrisisRules,
     type Certificate,
     type CorporateFinanceRules,
     type EarningsRules,
@@ -203,7 +207,18 @@ export const CorporationClosure1849 = Type.Object(
         restoredReservations: Type.Array(StationReservation),
         removedPortBonus: Type.Optional(Type.Literal(true)),
         /** The outstanding bond repaid as the corporation closed (§14.2). */
-        bondRepayment: Type.Optional(Type.Array(CashPayment))
+        bondRepayment: Type.Optional(Type.Array(CashPayment)),
+        /**
+         * What of the bond its president still owed once their cash was spent: raised from their
+         * shares after a closure in the Closed box, written off after a failure in which they have
+         * already sold all they can (§14.2, §10.7).
+         */
+        bondShortfall: Type.Optional(
+            Type.Object(
+                { playerId: Type.String(), amount: Type.Integer({ minimum: 1 }) },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -220,7 +235,7 @@ export function closeCorporation1849(
 ): CorporationClosure1849 {
     const state = requireState1849(stateObject)
     // An outstanding bond is repaid first (§14.2).
-    const bondRepayment = repayBondOnClosure(state, companyId)
+    const bond = repayBondOnClosure(state, companyId)
     const closure = closeShareCompany(state, companyId, 'removed', {
         poolId: treasuryPoolId(companyId),
         shareCount: ShareCount1849,
@@ -259,14 +274,23 @@ export function closeCorporation1849(
         ...closure,
         restoredReservations,
         ...(removedPortBonus ? { removedPortBonus: true as const } : {}),
-        ...(bondRepayment.length ? { bondRepayment } : {})
+        ...(bond.payments.length ? { bondRepayment: bond.payments } : {}),
+        ...(bond.shortfall ? { bondShortfall: bond.shortfall } : {})
     }
 }
 
 /** A corporation whose price enters the Closed box closes at once (§5, §11). */
 export const ZeroPriceClosure1849: ZeroPriceClosureRules<typeof CorporationClosure1849> = {
     market: Market1849,
-    closure: { schema: CorporationClosure1849, close: closeCorporation1849 }
+    closure: {
+        schema: CorporationClosure1849,
+        close: closeCorporation1849,
+        // Its president raises what is left of its bond by selling shares (§14.2, §10.7).
+        debts: (closure) =>
+            closure.bondShortfall
+                ? [{ ...closure.bondShortfall, companyId: closure.companyId }]
+                : []
+    }
 }
 
 // A run from a city to a port alone is no route (§10.5.1).
@@ -463,13 +487,35 @@ export const InsolvencyChoices1849 = { loan: 'loan', leave: 'leave' } as const
 
 export const Insolvency1849 = Type.Object(
     {
-        closure: CorporationClosure1849,
+        /** Absent where the corporation had already closed, its president failing to raise its bond. */
+        closure: Type.Optional(CorporationClosure1849),
         loan: Type.Optional(Type.Literal(true)),
         left: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )
 export type Insolvency1849 = Type.Static<typeof Insolvency1849>
+
+const ClosureValidator = Compile(CorporationClosure1849)
+
+/** What a corporation's closure in the Closed box recorded, such as its bond repaid (§11, §14.2). */
+export function corporationClosureOf(action: GameAction): CorporationClosure1849 | undefined {
+    if (!isCloseCorporation(action) || !action.metadata) return undefined
+    const { roundEnd: _roundEnd, ...closure } = action.metadata
+    return ClosureValidator.Check(closure) ? closure : undefined
+}
+
+const InsolvencyValidator = Compile(Insolvency1849)
+
+/**
+ * What a president's failure to raise their corporation's bond money recorded: its closure, if
+ * it had not already closed, and their loan or leaving (§14.2, §10.7).
+ */
+export function bondInsolvencyOf(action: GameAction): Insolvency1849 | undefined {
+    if (!isGoBankrupt(action)) return undefined
+    const changes = action.metadata?.changes
+    return InsolvencyValidator.Check(changes) ? changes : undefined
+}
 
 /** Whether the president owns no shares but those of the corporation failing (§10.7). */
 function leftWithoutStock(state: FinancialState, bankruptcy: Bankruptcy): boolean {
@@ -494,7 +540,10 @@ export const InsolvencyRules1849: InsolvencyRules<typeof Insolvency1849> = {
             : [],
     fail(stateObject: FundingState & OperatingState, bankruptcy, choice) {
         const state = requireState1849(stateObject)
-        const closure = closeCorporation1849(state, bankruptcy.companyId)
+        // A corporation whose closure left its bond to raise has already gone.
+        const closure = getCompany(state, bankruptcy.companyId).started
+            ? closeCorporation1849(state, bankruptcy.companyId)
+            : undefined
         if (choice === InsolvencyChoices1849.loan) {
             const player = { kind: 'player' as const, playerId: bankruptcy.playerId }
             settleCashPayments(state, [
@@ -504,7 +553,7 @@ export const InsolvencyRules1849: InsolvencyRules<typeof Insolvency1849> = {
                 ...state.loans.filter((entry) => entry.playerId !== bankruptcy.playerId),
                 { playerId: bankruptcy.playerId, count: loanCount(state, bankruptcy.playerId) + 1 }
             ]
-            return { closure, loan: true }
+            return { ...(closure ? { closure } : {}), loan: true }
         }
         if (choice === InsolvencyChoices1849.leave) {
             state.bankruptPlayerIds = [...(state.bankruptPlayerIds ?? []), bankruptcy.playerId]
@@ -514,9 +563,9 @@ export const InsolvencyRules1849: InsolvencyRules<typeof Insolvency1849> = {
             state.stockRound.passedPlayerIds = state.stockRound.passedPlayerIds.filter(
                 (id) => id !== bankruptcy.playerId
             )
-            return { closure, left: true }
+            return { ...(closure ? { closure } : {}), left: true }
         }
-        return { closure }
+        return closure ? { closure } : {}
     }
 }
 
@@ -529,6 +578,27 @@ export const TrainFundingRules1849: TrainFundingRules = {
         stockRules: StockRules1849,
         protectsPresidency: (companyId, operatingCompanyId) => companyId === operatingCompanyId
     }),
+    insolvency: InsolvencyRules1849
+}
+
+/**
+ * Bond money its corporation cannot pay its president raises from their own shares, by the
+ * usual sales but never passing the corporation's presidency; if they cannot, the corporation
+ * closes as one that cannot buy its train does (§14.2, §10.7).
+ */
+export const CashCrisisRules1849: CashCrisisRules = {
+    market: StockRules1849.market,
+    charters: StockRules1849.charters,
+    presidencyCandidates: StockRules1849.presidencyCandidates,
+    presidencyExchangeChoice: StockRules1849.presidencyExchangeChoice,
+    holdsMarketMove: StockRules1849.holdsMarketMove,
+    saleTerms: StockRules1849.saleTerms,
+    afterSale(stateObject, details) {
+        StockRules1849.afterSale?.(stateObject, details)
+        const state = requireState1849(stateObject)
+        reorderPendingOperatingCompanies(state, OperatingRules1849.companyOrder(state))
+    },
+    protectsPresidency: (companyId, debt) => companyId === debt.companyId,
     insolvency: InsolvencyRules1849
 }
 

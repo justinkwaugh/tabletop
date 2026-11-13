@@ -30,7 +30,13 @@ export const InterestDefault = Type.Object(
     {
         payments: Type.Array(CashPayment),
         marketMoves: Type.Array(StockMarketMove),
-        unpaid: Type.Integer({ minimum: 0 })
+        unpaid: Type.Integer({ minimum: 0 }),
+        /**
+         * The interest stays the company's debt, paid in full: what is unpaid its president
+         * raises for it, as 1849's emergency money raising does (§14.2), rather than owing it as
+         * their own.
+         */
+        companyDebt: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )

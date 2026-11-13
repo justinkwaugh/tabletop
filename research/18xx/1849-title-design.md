@@ -7,31 +7,32 @@ track layouts and counts only, checked against the rulebook.
 
 ## What makes 1849 different
 
-| Mechanism                                                                                     | Rulebook                | Family support                                                                                             |
-| --------------------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Narrow, standard and dual gauge track; gauge changes only at stops                            | §10.1, §10.3, §10.5.1   | New: `TilePath.gauge`, gauge-aware reach, routes, upgrades and the autorouter; see `track-gauge-design.md` |
-| Hex trains weighting gauges (R6H reversed)                                                    | §10.5.1                 | `'hex-edges'` measure plus per-gauge weights (gauge work)                                                  |
-| Two non-port stops per run; ports only at a run's ends                                        | §10.1, §10.5.1          | Ports are offboards (terminal); declared minimum non-offboard stops (gauge work)                           |
-| Terrain cost by gauge of new track, paid again on every upgrade; SIGI halves standard gauge   | §10.3.1                 | Title `TrackRules.terrainCost` with the family new-track helper                                            |
-| Grey cities' three revenue values                                                             | §10.5.2                 | Staged revenue by phase (`revenueStagesByPhase`)                                                           |
-| Incremental capitalization, 20% float                                                         | §9.3, §9.4              | `treasuryShareStockRules` / `treasuryShareCompanyRules` (1846)                                             |
-| President buys 20–40% in the start                                                            | §9.4                    | New: `CompanyRules.additionalStartCertificates`, `StartCompany.additionalCertificateIds`                   |
-| Fixed, dealt start order; Garibaldi chooses its home; closed corporations go last             | §2.2, §9.4, §9.4.1, §11 | Title order in state, gated by `startMarketSpaces`; Garibaldi through `startHomes`                         |
-| Token fee paid by the corporation at start                                                    | §9.4                    | Home placed on float with the fee (others), `StartHome.cost` (Garibaldi)                                   |
-| Two-share "last certificate"                                                                  | §9.3, §9.6              | Certificates already sized by shares; purchase rule in `purchaseTerms`; sales pick ten-percents first      |
-| Market blue zone closed until phase 16                                                        | §5                      | Title: a second chart without the blue spaces drives dividend and round-end moves                          |
-| Dividend ≥ price → right; withheld or no train → left; otherwise no move                      | §10.5.3                 | Title `EarningsRules.marketEffect`                                                                         |
-| Financial activities after buying trains: issue any treasury certificates or redeem one       | §10.8                   | New: `CorporateFinanceRules.timing: 'after-trains'`; certificates move by shares                           |
-| Closed box, closure and restart with home reserved                                            | §5, §11                 | Zero-price closure with new restartable `closeShareCompany(…, restart)`, `keepsAllStations`                |
-| Emergency money raising closes the corporation, president may take a loan or leave            | §10.7                   | New: `TrainFundingRules.insolvency`, `DeclareBankruptcy.choice`                                            |
-| L.750 per loan off final wealth                                                               | §13                     | New: `ValuationRules.playerItems`                                                                          |
-| Ends after a corporation reaching L.377 operates; bank broken ends the set; no start possible | §13, ruling 15          | Title trigger; `bankExhaustionAtSetEnd`                                                                    |
-| Messina earthquake at the first 12H                                                           | §6, §12                 | Title `PhaseRules.changes`                                                                                 |
-| Waterfall private sale with bids; SCE price falls                                             | §8                      | `waterfallAuction` as 1830                                                                                 |
-| RSA gives the first corporation's president's certificate, par 68/100, treasury from the bank | §8.1                    | `awardCertificates` + `requirePar`; title funding on par                                                   |
-| Bonds variant: one L. 500 bond from phase 8, L. 50 interest, L. 100 a share off at the end    | §14.2                   | Family loans (`LoanRules`) with `inPlay`, `marketFor`, turn-end borrowing only; `loanTerms` words          |
-| Buy station tokens variant: another's token, from phase 6, with its president's agreement     | §14.1                   | Family purchase offers with a `station` asset; title `canPurchase` (reach, home, once a turn)              |
-| Electric Dreams variant: E tokens, E trains off narrow gauge doubling four cities             | §14.3                   | Access rights (E token), a zero-count depot variant, `stopRevenue` by train                                |
+| Mechanism                                                                                     | Rulebook                | Family support                                                                                               |
+| --------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Narrow, standard and dual gauge track; gauge changes only at stops                            | §10.1, §10.3, §10.5.1   | New: `TilePath.gauge`, gauge-aware reach, routes, upgrades and the autorouter; see `track-gauge-design.md`   |
+| Hex trains weighting gauges (R6H reversed)                                                    | §10.5.1                 | `'hex-edges'` measure plus per-gauge weights (gauge work)                                                    |
+| Two non-port stops per run; ports only at a run's ends                                        | §10.1, §10.5.1          | Ports are offboards (terminal); declared minimum non-offboard stops (gauge work)                             |
+| Terrain cost by gauge of new track, paid again on every upgrade; SIGI halves standard gauge   | §10.3.1                 | Title `TrackRules.terrainCost` with the family new-track helper                                              |
+| Grey cities' three revenue values                                                             | §10.5.2                 | Staged revenue by phase (`revenueStagesByPhase`)                                                             |
+| Incremental capitalization, 20% float                                                         | §9.3, §9.4              | `treasuryShareStockRules` / `treasuryShareCompanyRules` (1846)                                               |
+| President buys 20–40% in the start                                                            | §9.4                    | New: `CompanyRules.additionalStartCertificates`, `StartCompany.additionalCertificateIds`                     |
+| Fixed, dealt start order; Garibaldi chooses its home; closed corporations go last             | §2.2, §9.4, §9.4.1, §11 | Title order in state, gated by `startMarketSpaces`; Garibaldi through `startHomes`                           |
+| Token fee paid by the corporation at start                                                    | §9.4                    | Home placed on float with the fee (others), `StartHome.cost` (Garibaldi)                                     |
+| Two-share "last certificate"                                                                  | §9.3, §9.6              | Certificates already sized by shares; purchase rule in `purchaseTerms`; sales pick ten-percents first        |
+| Market blue zone closed until phase 16                                                        | §5                      | Title: a second chart without the blue spaces drives dividend and round-end moves                            |
+| Dividend ≥ price → right; withheld or no train → left; otherwise no move                      | §10.5.3                 | Title `EarningsRules.marketEffect`                                                                           |
+| Financial activities after buying trains: issue any treasury certificates or redeem one       | §10.8                   | New: `CorporateFinanceRules.timing: 'after-trains'`; certificates move by shares                             |
+| Closed box, closure and restart with home reserved                                            | §5, §11                 | Zero-price closure with new restartable `closeShareCompany(…, restart)`, `keepsAllStations`                  |
+| Emergency money raising closes the corporation, president may take a loan or leave            | §10.7                   | New: `TrainFundingRules.insolvency`, `DeclareBankruptcy.choice`                                              |
+| L.750 per loan off final wealth                                                               | §13                     | New: `ValuationRules.playerItems`                                                                            |
+| Ends after a corporation reaching L.377 operates; bank broken ends the set; no start possible | §13, ruling 15          | Title trigger; `bankExhaustionAtSetEnd`                                                                      |
+| Messina earthquake at the first 12H                                                           | §6, §12                 | Title `PhaseRules.changes`                                                                                   |
+| Waterfall private sale with bids; SCE price falls                                             | §8                      | `waterfallAuction` as 1830                                                                                   |
+| RSA gives the first corporation's president's certificate, par 68/100, treasury from the bank | §8.1                    | `awardCertificates` + `requirePar`; title funding on par                                                     |
+| Bonds variant: one L. 500 bond from phase 8, L. 50 interest, L. 100 a share off at the end    | §14.2                   | Family loans (`LoanRules`) with `inPlay`, `marketFor`, turn-end borrowing only; `loanTerms` words            |
+| Bond money raised by emergency money raising: president's cash, then shares, or closure       | §14.2, §10.7            | Family cash crisis: a company's debt (`Debt.companyId`), `protectsPresidency`, `insolvency`; closure `debts` |
+| Buy station tokens variant: another's token, from phase 6, with its president's agreement     | §14.1                   | Family purchase offers with a `station` asset; title `canPurchase` (reach, home, once a turn)                |
+| Electric Dreams variant: E tokens, E trains off narrow gauge doubling four cities             | §14.3                   | Access rights (E token), a zero-count depot variant, `stopRevenue` by train                                  |
 
 ## Family surveys for the new family assets
 
@@ -186,11 +187,16 @@ track layouts and counts only, checked against the rulebook.
     open, every private has closed and no player has the cash for a president's certificate at
     the lowest start price, nothing can change again, so the game ends there and is scored as
     usual. §13 is silent; without it such a game would pass every round forever.
-16. **Bond money a corporation lacks** (§14.2): bond interest the treasury cannot pay, and a
-    bond outstanding as a corporation closes, are paid from the treasury and then the
-    president's own cash, as far as it goes; emergency money raising's share sales are not
-    asked for, and anything beyond is written off. The research engine charges interest the same
-    way but repays nothing on closure.
+16. **Bond money a corporation lacks** (§14.2) is raised by emergency money raising as §10.7
+    has it, confirmed by the owner: bond interest the treasury cannot pay, and a bond
+    outstanding as a corporation closes, come from the treasury, then the president's own
+    cash, then shares the president sells by the usual rules, never passing the presidency of
+    the corporation whose bond it is; the corporation cannot sell its treasury certificates.
+    A president who cannot raise the interest has sold all they can: the corporation closes,
+    as one that cannot buy its train does, and a president left without stock takes the bank
+    loan or leaves the game. A bond still unpaid once its president has sold all they can, at a
+    closure after such a failure or a failed train purchase, is written off. The research
+    engine raises interest by sales or the president's cash but repays nothing on closure.
 17. **A bond issued into the Closed box** closes the corporation at once, ending its turn, as
     issuing shares there does (ruling 8); the bond it just issued is repaid from the money it
     brought in. §14.2 is silent; the research engine moves the price and plays on.

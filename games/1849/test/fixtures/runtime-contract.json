@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AdvancePhase": "7a83ab7dc6d70dbdbe9b70a2e2f61054abf7cdafacea7f0096907cd15fc317aa",
+    "AdvancePhase": "25eecb265467ae31f31a89b6f3168a3cb00693cf23a40cace47dd40d2b132019",
     "BuyAccessRight": "e5add64316bb77d0ccd09d7450534c0a4f872d1aa95086eee87b7867ce832ce7",
     "BuyAuctionLot": "df80f4b640533164abba9db13143745a1855e1b333d6df8899119feef8a2ed9b",
     "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
@@ -8,12 +8,12 @@
     "BuyTrain": "67db41a89629078c0a016eb92e68f08d9e2cbb905cf469d9824897e55d7b7fed",
     "ChooseHomeStation": "264f0eba472ebb68768ef9ab57e604791f4c73e729d0b2fede63bb1e33c08625",
     "ChoosePresidencyExchange": "5307d78f56235ed835df1f719a75722ea00d5b79604da2619a61b66a0f6b6a31",
-    "CloseCorporation": "b9630683ff966aca16e9e31f8e4eadf0754865a9b57ce9a2fd8ce14a77f76537",
+    "CloseCorporation": "fe7263d1b6b92fd1b1b71d4068ccfc10eed8eb0cc412c5040ece01699531ddc8",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
     "ContinueOperatingRound": "d7859bd006d0cf1a3bf6b0d3424ab8d61dcbe1741a5ee6943bdc0a5bd90b3fa7",
     "ContributeTrainFunds": "9aab8e3d874a342cd810be78376e00d627c1e1ee8e0cb71079b7ef9e4068d9bd",
     "CorporateFinance": "3bde49d283bb67f4cc501080324f37e99f25340ac0b810ec1d588b549dc31398",
-    "DeclareBankruptcy": "fb09685f06d500a877f02080572704679d838da586bd57e893ae5fdb43dd1c91",
+    "DeclareBankruptcy": "dd26913f22c9e820115d503cf9c790393d676e1352ae66fe539745d04b5748f6",
     "DeclinePrivateStation": "5fc81238fdb36d3947514c86fdd84e4bd542338923e5a564211431bb01136250",
     "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
@@ -27,13 +27,14 @@
     "FinishTrains": "5e60ea89af68b7f73e1419f3a012b43d3babb5cee3b63ce06fc31ae35e417e1c",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
+    "GoBankrupt": "a6b8c5f79d0cc11e2e7c2d29dcc271727eac38ae152765e1cac6e5f08ddf3aed",
     "IssueTreasuryShares": "2414c902af2580da0ccda4017e237fa9681499131e28f339e0f0b07d9691878e",
     "LayPrivateTile": "2c1c2e82a092785252309a959bcd99df6a4e43e3b03266802cf62f577400193a",
     "LayTile": "868b093634c99f842201af6a9ac020db319a6de25618de0d6cc7f94fff136e60",
     "OfferPurchase": "1f32fcc7fb46c3b76cc507e13ab905faf3d27b17c8630bce9943d838e6f462fa",
     "ParCompany": "60222e2c9b43ed99477b9497798bba73d49f0517b0af2f4e89fc9bb472ba6775",
     "PassAuction": "8f80db14291be75adbc7a2ac100d007b389a0f925a9bdca6308769d9b093ec87",
-    "PayInterest": "cbe892bd212145fb64e49971c3d1f7e612f5cec912d4069a17bf416f404527ed",
+    "PayInterest": "7f5c1012a733ffc48259ece437ecbda56f228eebb2646a8293c19a7cac73b98c",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlacePrivateMarker": "7ac3e4bba2ab07834bbfa9b8916627a88e2b4b516cb7f4b6f0934fc1a401168e",
     "PlacePrivateStation": "45653cf9ae1bb8e018214799a735efc02bb4f9324cbc715873f8bc551f475e71",
@@ -50,6 +51,7 @@
     "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
     "SellFundingShares": "4c9708bae00e844a934ab06c78cf3deb3d932abe57982034bf8edb105f5220b2",
     "SellShares": "dd02bc6cee2000d751bd2b90323b75fd8f6ac7e6c3344d0ac038cfcce2ad8bed",
+    "SellSharesToPay": "35906ccce02bc59447bc918a903252b8a7c96d5402d5c1d4bd6c895af3d46f11",
     "SetRunInstruction": "fd1f8f2b6b809029041c58ad6c42d126cfcdb578826a4c82c6c7aaf1b69b524a",
     "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
     "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
@@ -222,6 +224,45 @@
           "type": "object"
         },
         "type": "array"
+      },
+      "cashCrisis": {
+        "additionalProperties": false,
+        "properties": {
+          "continuation": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "debts": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amount": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "playerId": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amount",
+                "playerId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "continuation",
+          "debts"
+        ],
+        "type": "object"
       },
       "certificatePools": {
         "items": {
@@ -1522,6 +1563,10 @@
           },
           {
             "const": "RepayingLoans",
+            "type": "string"
+          },
+          {
+            "const": "RaisingCash",
             "type": "string"
           },
           {
@@ -4677,6 +4722,7 @@
     "LayingTrack",
     "OperatingSet",
     "PlacingStation",
+    "RaisingCash",
     "RepayingLoans",
     "RunningTrains",
     "RustingTrains",

@@ -1,5 +1,8 @@
 import {
     GaribaldiId,
+    LoanAmount1849,
+    bondInsolvencyOf,
+    corporationClosureOf,
     lastCertificateId,
     messinaEarthquakeOf,
     StationTokenCount1849,
@@ -9,9 +12,11 @@ import {
 } from '@tabletop/1849'
 import {
     isChoosePresidencyExchange,
+    isGoBankrupt,
     isFloatCompany,
     isPayInterest,
     isRepayLoan,
+    isSellSharesToPay,
     isStartCompany,
     isTakeLoan,
     type FloatCompany
@@ -21,6 +26,7 @@ import { Presentation1849 } from './presentation.js'
 import { assertExists } from '@tabletop/common'
 
 const names = new Intl.ListFormat('en', { type: 'conjunction' })
+const money = Presentation1849.money
 
 /** The Messina earthquake, called out under the phase change that set it off (§12). */
 export function earthquakeCallout(
@@ -79,13 +85,63 @@ export function describe1849Action(stations: () => State1849['stations']): Title
             const president = (action.metadata?.default?.payments ?? [])
                 .filter((payment) => payment.from.kind === 'player')
                 .reduce((sum, payment) => sum + payment.amount, 0)
+            const unpaid = action.metadata?.default?.unpaid
             return {
                 ...row,
                 text: `${companyName(action.companyId)} paid bond interest`,
-                detail: president
-                    ? `The president paid ${Presentation1849.money(president)}`
-                    : undefined
+                detail:
+                    [
+                        president && `The president paid ${money(president)}`,
+                        unpaid && `${money(unpaid)} left to raise from their shares`
+                    ]
+                        .filter(Boolean)
+                        .join(' · ') || undefined
             }
+        }
+        // Emergency money raising for a bond (§14.2, §10.7).
+        if (isSellSharesToPay(action)) {
+            const { shares, companyId } = action.sale
+            return {
+                ...shared(),
+                text: `Sold ${shares} ${companyName(companyId)} ${shares === 1 ? 'share' : 'shares'} to raise bond money`
+            }
+        }
+        const insolvency = bondInsolvencyOf(action)
+        if (insolvency) {
+            const row = shared()
+            const { closure, loan, left } = insolvency
+            const forgiven = isGoBankrupt(action) ? action.metadata?.forgiven : undefined
+            return {
+                ...row,
+                text: closure
+                    ? `${companyName(closure.companyId)} closed, its bond money not raised`
+                    : 'Could not raise the rest of the bond',
+                detail:
+                    [
+                        forgiven && `${money(forgiven)} unpaid`,
+                        loan && `Took a ${money(LoanAmount1849)} loan`,
+                        left && 'Left the game'
+                    ]
+                        .filter(Boolean)
+                        .join(' · ') || undefined
+            }
+        }
+        // A corporation in the Closed box repays its bond as it closes (§14.2).
+        const closure = corporationClosureOf(action)
+        if (closure?.bondRepayment || closure?.bondShortfall) {
+            const row = shared()
+            const repaid = (closure.bondRepayment ?? []).reduce(
+                (sum, payment) => sum + payment.amount,
+                0
+            )
+            const owed = closure.bondShortfall
+            const bond = [
+                repaid && `${money(repaid)} of its bond repaid`,
+                owed && `${money(owed.amount)} left for its president to raise`
+            ]
+                .filter(Boolean)
+                .join(' · ')
+            return { ...row, detail: row.detail ? `${row.detail} · ${bond}` : bond }
         }
         // The outgoing president took the last certificate or two single ones (§9.5).
         if (isChoosePresidencyExchange(action))

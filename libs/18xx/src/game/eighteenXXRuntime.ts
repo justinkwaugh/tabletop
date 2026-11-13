@@ -29,6 +29,7 @@ import { cashCrisisActions } from '../funding/cashCrisisActions.js'
 import { fundingActions } from '../funding/fundingActions.js'
 import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
 import { RaisingCashHandler } from '../funding/raisingCashHandler.js'
+import { holdSettledCrisis, resumeCashCrisis } from '../funding/cashCrisis.js'
 import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
 import { AccessRightsHandler } from '../rights/accessRightsHandler.js'
@@ -570,7 +571,18 @@ export function createEighteenXXRuntime<
         ...(options.cashCrisisRules
             ? {
                   RaisingCash: endsGame(
-                      decides('RaisingCash', new RaisingCashHandler(options.cashCrisisRules))
+                      decides(
+                          'RaisingCash',
+                          zeroPriceClosure
+                              ? // A sale that closes a company closes it before play goes on.
+                                new ZeroPriceClosureHandler(
+                                    new RaisingCashHandler(options.cashCrisisRules),
+                                    zeroPriceClosure,
+                                    (state, next) => next ?? resumeCashCrisis(state),
+                                    holdSettledCrisis
+                                )
+                              : new RaisingCashHandler(options.cashCrisisRules)
+                      )
                   )
               }
             : {})

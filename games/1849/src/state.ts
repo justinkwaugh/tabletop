@@ -1,6 +1,8 @@
 import {
     AccessRightFields,
     AuctionFields,
+    CashCrisisFields,
+    CashCrisisMachineStates,
     ClosingOperatingCorporationState,
     CorporateFinanceFields,
     LocationMarkerFields,
@@ -17,6 +19,7 @@ import {
     composeEighteenXXState,
     defineEighteenXXState,
     railwayStateValidation,
+    validateCashCrisis,
     validatePendingPar,
     validateWaterfallAuction,
     type EighteenXXStateHandler,
@@ -40,12 +43,14 @@ export const State1849 = composeEighteenXXState(
         ...CorporateFinanceFields,
         ...LocationMarkerFields,
         ...AccessRightFields,
+        ...CashCrisisFields,
         ...TitleFields1849
     },
     [
         ...RailwayMachineStates,
         ...WaterfallAuctionMachineStates,
         ...LoanMachineStates,
+        ...CashCrisisMachineStates,
         ClosingOperatingCorporationState
     ]
 )
@@ -55,7 +60,8 @@ export type StateHandler1849 = EighteenXXStateHandler<HydratedState1849>
 export const StateDefinition1849 = defineEighteenXXState(State1849, [
     railwayStateValidation({ operatingInterruptions: [] }),
     validateWaterfallAuction,
-    validatePendingPar
+    validatePendingPar,
+    validateCashCrisis
 ])
 
 function isState1849(state: object): state is HydratedState1849 {

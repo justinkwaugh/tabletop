@@ -30,11 +30,19 @@ export function bondIssued(state: LoanState, companyId: string): boolean {
     return (getCompany(state, companyId).loans ?? 0) > 0
 }
 
+/** What a corporation's bond money left its president owing, once their own cash is spent. */
+export type BondShortfall1849 = { playerId: string; amount: number }
+
 /**
- * The amount owed beyond what the treasury holds is paid from the president's own cash; any
- * of it the president cannot pay is written off (ruling 16).
+ * Pays what the corporation owes on its bond: from its treasury, then, by emergency money raising
+ * (§14.2, §10.7), from its president's own cash. What is still owed the president must raise by
+ * selling shares.
  */
-function treasuryThenPresident(state: LoanState, companyId: string, owed: number): CashPayment[] {
+function treasuryThenPresident(
+    state: LoanState,
+    companyId: string,
+    owed: number
+): { payments: CashPayment[]; shortfall?: BondShortfall1849 } {
     const company = { kind: 'company' as const, companyId }
     const fromTreasury = Math.min(owed, finiteCashOwnedBy(state, company))
     const president = controllingOwner(state, companyId)
@@ -50,7 +58,10 @@ function treasuryThenPresident(state: LoanState, companyId: string, owed: number
             : [])
     ]
     settleCashPayments(state, payments)
-    return payments
+    const unpaid = owed - fromTreasury - fromPresident
+    return president?.kind === 'player' && unpaid > 0
+        ? { payments, shortfall: { playerId: president.playerId, amount: unpaid } }
+        : { payments }
 }
 
 /**
@@ -70,10 +81,16 @@ export const LoanRules1849: LoanRules = {
     rate: () => BondInterestRate1849,
     takeMove: { direction: 'left', steps: 1 },
     repayMove: { direction: 'right', steps: 1 },
-    // Emergency money raising pays interest the treasury cannot (§14.2): ruling 16.
+    // Emergency money raising pays interest the treasury cannot (§14.2, §10.7): the president's
+    // cash, then their shares, or the corporation closes.
     interestDefault: (state, companyId, owed) => {
-        const payments = treasuryThenPresident(state, companyId, owed)
-        return { payments, marketMoves: [], unpaid: 0 }
+        const { payments, shortfall } = treasuryThenPresident(state, companyId, owed)
+        return {
+            payments,
+            marketMoves: [],
+            unpaid: shortfall?.amount ?? 0,
+            companyDebt: true
+        }
     },
     borrowsInLoanStepOnly: true,
     noBorrowingAfterRepaying: true
@@ -81,12 +98,15 @@ export const LoanRules1849: LoanRules = {
 
 /**
  * A closing corporation repays its outstanding bond at once: from its treasury, then by
- * emergency money raising (§14.2), the president's own cash (ruling 16). It may issue again if
- * it starts again.
+ * emergency money raising (§14.2), its president's cash and then their shares. It may issue again
+ * if it starts again.
  */
-export function repayBondOnClosure(state: LoanState, companyId: string): CashPayment[] {
-    if (!bondIssued(state, companyId)) return []
-    const payments = treasuryThenPresident(state, companyId, BondValue1849)
+export function repayBondOnClosure(
+    state: LoanState,
+    companyId: string
+): { payments: CashPayment[]; shortfall?: BondShortfall1849 } {
+    if (!bondIssued(state, companyId)) return { payments: [] }
+    const repayment = treasuryThenPresident(state, companyId, BondValue1849)
     delete getCompany(state, companyId).loans
-    return payments
+    return repayment
 }

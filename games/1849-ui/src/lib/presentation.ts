@@ -66,6 +66,8 @@ export const Presentation1849: TitlePresentation<State1849> = {
     insolvency: {
         explanation:
             'The corporation cannot buy a train and closes. Its president has no shares left.',
+        debtExplanation:
+            'Its president cannot raise the rest of the bond money and has no shares left. A corporation still running closes.',
         choices: {
             [InsolvencyChoices1849.loan]: {
                 label: `Take a ${money(LoanAmount1849)} loan`,

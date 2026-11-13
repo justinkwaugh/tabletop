@@ -182,6 +182,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      */
     insolvency?: {
         explanation: string
+        /** Where a company's debt its president cannot raise fails it, rather than a train. */
+        debtExplanation?: string
         choices: Readonly<Record<string, { label: string; description: string }>>
     }
     openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>

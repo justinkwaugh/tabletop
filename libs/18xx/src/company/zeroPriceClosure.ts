@@ -16,9 +16,13 @@ import { RoundEnd } from '../ending/roundEnd.js'
 import { operatingRoundEnd } from '../operating/operatingRoundSnapshot.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import { endOperatingTurn } from '../operating/finishOperatingTurn.js'
+import { nextOperatingCompany } from '../operating/operatingSet.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { HydratedEighteenXXState } from '../game/eighteenXXState.js'
 import { CompanyClosure } from './companyClosure.js'
+import type { Debt } from '../funding/cashCrisis.js'
+
+const CashCrisisState = 'RaisingCash'
 
 /**
  * A corporation whose price reaches the market's zero closes at once (1846 and 1833NE §8). The
@@ -29,7 +33,29 @@ export interface ZeroPriceClosureRules<Closure extends Type.TObject = typeof Com
     closure: {
         schema: Closure
         close(state: HydratedEighteenXXState, companyId: string): Type.Static<Closure>
+        /**
+         * What the closure leaves players owing the bank, raised in a cash crisis before play
+         * goes on, as 1849's president raises a closing corporation's bond (§14.2).
+         */
+        debts?(closure: Type.Static<Closure>): readonly Debt[]
     }
+}
+
+/**
+ * Where play goes after a closure: to raise what it left owing first, the crisis then resuming
+ * play where it was going.
+ */
+function afterClosure(
+    state: HydratedEighteenXXState,
+    rules: ZeroPriceClosureRules,
+    closure: CloseCorporation['metadata'],
+    next: string
+): string {
+    const debts = closure && rules.closure.debts ? rules.closure.debts(closure) : []
+    if (!debts.length) return next
+    if (state.cashCrisis) state.cashCrisis.debts.push(...debts)
+    else state.cashCrisis = { debts: [...debts], continuation: next }
+    return CashCrisisState
 }
 
 export const ClosingOperatingCorporationState = 'ClosingOperatingCorporation'
@@ -130,8 +156,27 @@ export class HydratedCloseCorporation extends HydratableAction<typeof CloseCorpo
         assert(this.awaited(state), 'Only the next zero-price corporation can close')
         const closure = this.#rules.closure.close(state, this.companyId)
         const fundingItsTrain = state.trainFunding?.purchase.companyId === this.companyId
+        // A sale raising a company's own debt that closes it ends the debt, its closure settling
+        // what it owes, and ends its turn if it is operating.
+        const crisis = state.cashCrisis
+        const raisingItsDebt = !!crisis?.debts.some((debt) => debt.companyId === this.companyId)
+        if (crisis && raisingItsDebt)
+            crisis.debts = crisis.debts.filter((debt) => debt.companyId !== this.companyId)
+        const raisingInItsTurn =
+            raisingItsDebt &&
+            !!state.operatingSet &&
+            !state.operatingSet.completed &&
+            nextOperatingCompany(state) === this.companyId
+        if (crisis && raisingInItsTurn) {
+            crisis.continuation = 'OperatingSet'
+            state.activePlayerIds = formerPresidentIds(closure)
+        }
         // Closing on its own turn ends that turn, as does a sale closing the company it funds.
-        if (state.machineState !== ClosingOperatingCorporationState && !fundingItsTrain) {
+        if (
+            state.machineState !== ClosingOperatingCorporationState &&
+            !fundingItsTrain &&
+            !raisingInItsTurn
+        ) {
             this.metadata = closure
             return
         }
@@ -186,7 +231,9 @@ export class ZeroPriceClosureHandler<S extends State> implements MachineStateHan
         private readonly handler: MachineStateHandler<HydratedAction, S>,
         private readonly rules: ZeroPriceClosureRules,
         /** Where the step goes once no closure is pending: after the closure, or the step's own next. */
-        private readonly resume: (state: S, next?: string) => string
+        private readonly resume: (state: S, next?: string) => string,
+        /** Keeps where the step's action was going while the closures it caused come first. */
+        private readonly holds?: (state: S, next: string) => void
     ) {}
     private awaiting(state: S): string | undefined {
         return corporationAwaitingClosure(state, this.rules.market)
@@ -208,9 +255,16 @@ export class ZeroPriceClosureHandler<S extends State> implements MachineStateHan
     onAction(action: HydratedAction, context: MachineContext<S>): string {
         const state = context.gameState
         if (action instanceof HydratedCloseCorporation)
-            return this.awaiting(state) ? state.machineState : this.resume(state)
+            return afterClosure(
+                state,
+                this.rules,
+                action.metadata,
+                this.awaiting(state) ? state.machineState : this.resume(state)
+            )
         const next = this.handler.onAction(action, context)
-        return this.awaiting(state) ? state.machineState : this.resume(state, next)
+        if (!this.awaiting(state)) return this.resume(state, next)
+        this.holds?.(state, next)
+        return state.machineState
     }
 }
 
@@ -244,6 +298,6 @@ export class ClosingOperatingCorporationHandler<S extends State> implements Mach
         // Its president stays the turn's owner, as after any ended turn, should no company follow.
         assertExists(action.metadata, 'A closure records what it closed')
         gameState.activePlayerIds = formerPresidentIds(action.metadata)
-        return 'OperatingSet'
+        return afterClosure(gameState, this.rules, action.metadata, 'OperatingSet')
     }
 }

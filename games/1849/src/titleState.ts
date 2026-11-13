@@ -87,8 +87,6 @@ export const TitleFields1849 = {
             },
             { additionalProperties: false }
         )
-    ),
-    /** Players who left the game after their corporation closed (§10.7). */
-    bankruptPlayerIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
+    )
 }
 export type TitleState1849 = Type.Static<Type.TObject<typeof TitleFields1849>>

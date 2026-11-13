@@ -1,19 +1,19 @@
 {
   "actionSchemaDigests": {
     "AdvancePhase": "12a257b1b22207c83ef2121de86eea5757ba889002911b4fc7ef4845c97fa65c",
-    "AnswerMerger": "ddc02f152afbbcb3856362b9e5cdd1ccc24ddd494badf47e352447e5d6646696",
+    "AnswerMerger": "1a29ae36b3283357c40fd9465992652d83ccf1819ff30c8447a8d107a391889a",
     "AnswerRedemption": "f42c39d0294da496cdf7ce93d9b6e60b6ec72bab835c72e807d6fd3623aa01da",
     "BuyAuctionLot": "df80f4b640533164abba9db13143745a1855e1b333d6df8899119feef8a2ed9b",
     "BuyCoalRights": "5fc26eca3aa082f759be11423d9e177ef2572041fef7ae6927b245fbfc4d8887",
     "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
-    "BuyShares": "ea32f0c8f1d4ef09bcfceae831c752c10cc989a03646740d5987a8b841342e0e",
+    "BuyShares": "7fa30ec23e3bcafec0c936e80b8aed0ed7a20da9cccf3278b0f455ee454f9247",
     "BuyTrain": "67db41a89629078c0a016eb92e68f08d9e2cbb905cf469d9824897e55d7b7fed",
     "CapitalizeCompany": "4cfdd493c127d35dff8a8c0693c078f4fa0e38080a5ed59a2a87a01f240723d3",
     "CloseCompany": "3af61e5735319bc5790a0a2119178f59ce4c551cf20c1767814733c99cca8e9b",
     "CompleteMergerPhase": "6f641f15bda39cd112826a283a451e2f5613f5d30753c6de1bea2886aa23b321",
     "CompletePriceProtection": "13f3089e9789141cc1a2f2ab3bbf7ec0d12e0b9db76e8c504a9164fd0636a1a1",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
-    "CompleteTakeover": "bc8ff4977c5521ad6a4bba536b9d2108be37e3f8f4f916bc5be07505b1207eae",
+    "CompleteTakeover": "a53fbc9c0f3f7ac18f0f83f95f1855e67ecc1e254f21eb2f988c70cffdfb538c",
     "ContinueOperatingRound": "d7859bd006d0cf1a3bf6b0d3424ab8d61dcbe1741a5ee6943bdc0a5bd90b3fa7",
     "ContributeTrainFunds": "9aab8e3d874a342cd810be78376e00d627c1e1ee8e0cb71079b7ef9e4068d9bd",
     "DeclareBankruptcy": "c9c6d1807edd67328d52cb83f5c099f7f22b7305402dff171a2e3b17e0d245c7",
@@ -23,25 +23,25 @@
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
     "DistributeEarnings": "c51f3cf0a4ececf77a22318d21b0312a9ee6fc5a4c6c765dba32d99494ea8c42",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
-    "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
+    "ExchangePrivate": "6aec6cd4b4f44c612649a9caa57492a104915a4a12ce08af215190292aef79f9",
     "FinishOperatingTurn": "b653940dd0621cbe3c462eac1732da050c2e6425ff1bdbfbc4dc01b07fe1a4de",
     "FinishStations": "258ec9a61f997c96475a6d9fd4ee5de918640128aa4949ce721a388fea7a41be",
     "FinishStockTurn": "739e1c6386055439b031b34dae3f9cb9fd2b8b8901c100395b0f675e201733a5",
     "FinishTrack": "7ae429d56b33034c6bf55f6167db28e6f2e6ae33a15a0c42e0ef422bd316443e",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
-    "IssueTreasuryShares": "a581a7ab3ea225a2d51e4546ae6f5c086d244c6ab91792308f4b47ab7fed3876",
+    "IssueTreasuryShares": "2414c902af2580da0ccda4017e237fa9681499131e28f339e0f0b07d9691878e",
     "LayPrivateTile": "2c1c2e82a092785252309a959bcd99df6a4e43e3b03266802cf62f577400193a",
     "LayTile": "868b093634c99f842201af6a9ac020db319a6de25618de0d6cc7f94fff136e60",
     "OfferPrivatePurchase": "73661953f8b783241a5e276a91dabd9a085d3ca23d1e075a6108c55657f5aeef",
-    "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
+    "OfferPurchase": "1f32fcc7fb46c3b76cc507e13ab905faf3d27b17c8630bce9943d838e6f462fa",
     "ParCompany": "60222e2c9b43ed99477b9497798bba73d49f0517b0af2f4e89fc9bb472ba6775",
     "PassAuction": "8f80db14291be75adbc7a2ac100d007b389a0f925a9bdca6308769d9b093ec87",
     "PassMerger": "3b599556500613184e217a5be80b12ed0fbf1d693a46f97d65bd9e69a100c172",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceRevenueToken": "294c82382fcefa7a436f54c91ae5b5bfac506004e4657a0aa991f5534d090ed8",
     "PlaceStation": "642f3ab37cd70c2294fd3704f13f035b5678061c83c47ab5318f791c9d8cfee1",
-    "ProposeMerger": "2b4210043b7b62fc5e9b46d7dff14a5c3e5e98bd556431746017cea1095ef679",
+    "ProposeMerger": "211d96a8ef7e0b12b8b288fb524c738a04de544770a909a738c6df2b17ccb684",
     "ProtectShares": "047c8eef094cb601070e73483cb5787f86cfa01db4f8f782134fc6a94856d63e",
     "RaiseAuctionBid": "b7a3c42f3ba48036ce2e086754d8e398190b772e6d4dc7c3d2f380d626b4941e",
     "RecordMiamiRun": "07aaa4f3d0d3ab777d03bfda6a3bcbe96d574909d530f693112a0eea0e0a14cc",
@@ -50,19 +50,19 @@
     "RequestTrackConsent": "d707e81670fcfd54f376f8cc7d602a7a9b1b3c964f0fc61238601ab1446d0118",
     "ReserveBid": "33f9b477a99277d658ca91a7568b99e0ac319b1251ff8a0c7575c0eaf3b81ea1",
     "ResolveAuction": "9c8f176314018029b7c625d56a546a68de6645aa264ff9a89e554ad3eb358b87",
-    "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
+    "RespondToPurchaseOffer": "fb2101950a88528eb07640a74bfaef2587f4bb268830dda676b5fa183842e50d",
     "RespondToTrackConsent": "aad7dd92e162c66f272958e6d20de3b4b51150b9709018be7ddbb78b166aaf4f",
     "RunTrains": "ba69db079932ff9830df4e05552ae24defcae82417a21fc3ddfde12591e2060d",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
-    "SellFundingShares": "a19afe593f613b955720889fb576ec502d4e63c7d41603dc9c9b44cd56f4b310",
-    "SellShares": "d12d2caac4f4112b11aaa4b3a30398d39272daa267f9a864978658e84c2b305c",
-    "SellTakeoverShares": "6dc0cf1a92444e4c49070a491e1b193ae3f99c9c073e083a544097c0b8b7c63c",
+    "SellFundingShares": "4c9708bae00e844a934ab06c78cf3deb3d932abe57982034bf8edb105f5220b2",
+    "SellShares": "dd02bc6cee2000d751bd2b90323b75fd8f6ac7e6c3344d0ac038cfcce2ad8bed",
+    "SellTakeoverShares": "bf9bb66a2c012d0650574a17c7080408812525c4133075e69eb7ad4724e4e32f",
     "SetRunInstruction": "fd1f8f2b6b809029041c58ad6c42d126cfcdb578826a4c82c6c7aaf1b69b524a",
     "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
     "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
     "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
-    "StartCompany": "8d9e7f101e26e29a2269c1b40efd2c06dede5f624fcc034d606d908b35cef36a",
+    "StartCompany": "81f8003f2ec1241d2c28e3aed16b90295eb4c908f1fd8b871e383a14c7b3eea2",
     "StartMergerPhase": "2613ad99ae9dd71f73a3aed54a1bd6bad8807d02b659888a18c456ea5dbacabc",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
@@ -71,7 +71,7 @@
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
     "StopRunInstruction": "7dcf5bbf14792352693bd5f3a98620696252e9bd57da315c4dea3595e33f4fd2",
     "StopStockInstruction": "78a2288c361e0ab3de8d2919d4ceaab5cc933ba29512128afba3b4ef9512d1a2",
-    "TakeLondonShare": "c2c5abbb391e79ce83d87f8acb25610f3be76cb3e293f76d7cba74bf7c697cc2"
+    "TakeLondonShare": "89ba8a745f34793b1b0e33fe2fe2ba66fb0e490330fd489af9ea636ce698a2e6"
   },
   "canonicalState": {
     "additionalProperties": false,
@@ -2159,6 +2159,24 @@
                     "required": [
                       "kind",
                       "privateCompanyId"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "station",
+                        "type": "string"
+                      },
+                      "stationId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "stationId"
                     ],
                     "type": "object"
                   }

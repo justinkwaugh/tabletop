@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
     cashOwnedBy,
+    crisisSales,
+    evaluateCrisisSale,
     corporateFinanceChoices,
     finalWealth,
     canTakeLoan,
@@ -11,6 +13,7 @@ import {
     stretchWeight,
     placeStockMarker,
     sharesOwned,
+    trainsOwnedBy,
     treasuryPoolId
 } from '@tabletop/18xx'
 import { kit, type Table } from '../test/kit.js'
@@ -28,12 +31,15 @@ import {
 } from './companies.js'
 import { Map1849, MessinaLocationId } from './map.js'
 import {
+    CashCrisisRules1849,
     CorporateFinanceRules1849,
     EarningsRules1849,
     EndingRules1849,
     PhaseRules1849,
     TrainRules1849,
     TransferRules1849,
+    InsolvencyChoices1849,
+    ZeroPriceClosure1849,
     closeCorporation1849,
     stalemate1849
 } from './operating.js'
@@ -514,7 +520,7 @@ describe('the Bonds variant (§14.2)', () => {
         state.phaseId = '8H'
         return { game, state, companyId }
     }
-    const president = (state: Table['hydrated'], companyId: string) => {
+    const president = (state: Parameters<typeof getCompany>[0], companyId: string) => {
         const owner = getCompany(state, companyId).president
         if (owner?.kind !== 'player') throw new Error('A player presides')
         return owner.playerId
@@ -539,23 +545,124 @@ describe('the Bonds variant (§14.2)', () => {
         expect(canTakeLoan(state, LoanRules1849, playerId, companyId)).toBe(false)
     })
 
-    it('has the president pay interest the treasury cannot (ruling 16)', () => {
+    /**
+     * A four-player game with bonds played on until a corporation with an issued bond and a
+     * train is buying trains, its treasury then emptied and its president left `cash`, its
+     * turn then finished so that its bond interest falls due.
+     */
+    function interestDue(cash: number, onlyPresidency = false) {
+        const game = kit.table(4, 1, { bonds: true })
+        const random = new Random(1)
+        const companyOf = () => game.state.trainPurchaseStep?.companyId
+        const ready = () => {
+            const companyId = companyOf()
+            return (
+                game.state.machineState === 'BuyingTrains' &&
+                !!companyId &&
+                (getCompany(game.state, companyId).loans ?? 0) > 0 &&
+                trainsOwnedBy(game.hydrated, { kind: 'company', companyId }).length > 0
+            )
+        }
+        for (let count = 0; count < 20000 && !ready(); count++) {
+            const next = botMove(game, random)
+            game.act(next.type, next.fields, next.playerId)
+        }
+        const companyId = companyOf()
+        if (!companyId || !ready()) throw new Error('No bond came due')
+        const playerId = president(game.state, companyId)
+        const bank = game.state.cash.find((entry) => entry.owner.kind === 'bank')
+        if (!bank) throw new Error('No bank')
+        for (const entry of game.state.cash) {
+            const owner = entry.owner
+            const drained =
+                (owner.kind === 'company' && owner.companyId === companyId) ||
+                (owner.kind === 'player' && owner.playerId === playerId)
+            if (!drained) continue
+            const keep = owner.kind === 'player' ? cash : 0
+            bank.amount += entry.amount - keep
+            entry.amount = keep
+        }
+        // Their other shares go to another player, leaving them only the presidency.
+        if (onlyPresidency) {
+            const other = game.state.players.find((entry) => entry.playerId !== playerId)
+            if (!other) throw new Error('No other player')
+            for (const certificate of game.state.certificates)
+                if (
+                    certificate.kind === 'share' &&
+                    certificate.owner.kind === 'player' &&
+                    certificate.owner.playerId === playerId &&
+                    !(certificate.companyId === companyId && certificate.president)
+                )
+                    certificate.owner = { kind: 'player', playerId: other.playerId }
+        }
+        game.act(
+            game.valid().includes('FinishTrains') ? 'FinishTrains' : 'FinishOperatingTurn',
+            { companyId },
+            playerId
+        )
+        return { game, companyId, playerId }
+    }
+
+    it('has the president pay interest the treasury cannot, then sell shares (§10.7)', () => {
+        const { game, companyId, playerId } = interestDue(10)
+        expect(game.state.machineState).toBe('RaisingCash')
+        expect(game.state.cashCrisis?.debts).toEqual([{ playerId, amount: 40, companyId }])
+        const state = game.hydrated
+        const sales = crisisSales(state, CashCrisisRules1849, playerId)
+        expect(sales.length).toBeGreaterThan(0)
+        // No sale gives up the presidency of the corporation whose bond it is.
+        for (const { sale } of sales) {
+            const details = evaluateCrisisSale(state, CashCrisisRules1849, playerId, sale).details
+            if (sale.companyId === companyId) expect(details?.sales[0]?.presidency).toBeUndefined()
+        }
+        const [first] = sales
+        game.act(
+            'SellSharesToPay',
+            { sale: first.sale, expectedProceeds: first.proceeds },
+            playerId
+        )
+        // The turn goes on past the bond step, its president left nothing to decide.
+        expect(game.state.machineState).not.toBe('RaisingCash')
+        expect(game.state.cashCrisis).toBeUndefined()
+        expect(getCompany(game.state, companyId).started).toBe(true)
+        expect(game.state.operatingSet?.completedCompanyIds).toContain(companyId)
+    })
+
+    it('closes the corporation when its president cannot raise the interest (§10.7)', () => {
+        const { game, companyId, playerId } = interestDue(0, true)
+        expect(game.state.machineState).toBe('RaisingCash')
+        expect(game.valid(playerId)).toContain('GoBankrupt')
+        expect(game.valid(playerId)).not.toContain('SellSharesToPay')
+        game.act('GoBankrupt', { choice: InsolvencyChoices1849.loan }, playerId)
+        expect(getCompany(game.state, companyId).started).toBeFalsy()
+        expect(game.state.cashCrisis).toBeUndefined()
+        expect(game.state.loans).toContainEqual({ playerId, count: 1 })
+        expect(game.state.operatingSet?.completedCompanyIds).toContain(companyId)
+    })
+
+    it('leaves a closing corporation’s president owing what they cannot pay of its bond', () => {
         const { state, companyId } = bonded()
         const playerId = president(state, companyId)
         getCompany(state, companyId).loans = 1
-        const treasury = state.cash.find(
-            (cash) => cash.owner.kind === 'company' && cash.owner.companyId === companyId
-        )
-        if (!treasury) throw new Error('No treasury')
         const bank = state.cash.find((cash) => cash.owner.kind === 'bank')
         if (!bank) throw new Error('No bank')
-        bank.amount += treasury.amount - 20
-        treasury.amount = 20
-        const before = cashOwnedBy(state, player(playerId))
-        const result = LoanRules1849.interestDefault(state, companyId, 50)
-        expect(result.unpaid).toBe(0)
-        expect(cashOwnedBy(state, { kind: 'company', companyId })).toBe(0)
-        expect(cashOwnedBy(state, player(playerId))).toBe(before - 30)
+        for (const entry of state.cash) {
+            const owner = entry.owner
+            const keep =
+                owner.kind === 'company' && owner.companyId === companyId
+                    ? 100
+                    : owner.kind === 'player' && owner.playerId === playerId
+                      ? 50
+                      : undefined
+            if (keep === undefined) continue
+            bank.amount += entry.amount - keep
+            entry.amount = keep
+        }
+        const closure = closeCorporation1849(state, companyId)
+        expect(closure.bondShortfall).toEqual({ playerId, amount: 350 })
+        expect(ZeroPriceClosure1849.closure.debts?.(closure)).toEqual([
+            { playerId, amount: 350, companyId }
+        ])
     })
 
     it('repays an outstanding bond from the treasury as the corporation closes', () => {
