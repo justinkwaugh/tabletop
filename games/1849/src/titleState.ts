@@ -27,17 +27,6 @@ export const TitleFields1849 = {
      * not start until one began with room (§9.4.1).
      */
     garibaldiAside: Type.Optional(Type.Literal(true)),
-    /** The station token bought this turn, which allows one a turn (§14.1). */
-    stationPurchase: Type.Optional(
-        Type.Object(
-            {
-                companyId: Id,
-                operatingSet: Type.Integer({ minimum: 1 }),
-                round: Type.Integer({ minimum: 1 })
-            },
-            { additionalProperties: false }
-        )
-    ),
     /**
      * An E token has gone back to the bank with its corporation's closure, so the next sells at
      * the later price though no corporation holds one (§14.3, §11).
@@ -78,20 +67,6 @@ export const TitleFields1849 = {
     /** The corporation that put the +L. 20 token on a port, and the port (§7.1). */
     portBonus: Type.Optional(
         Type.Object({ companyId: Id, locationId: Id }, { additionalProperties: false })
-    ),
-    /**
-     * The turn a corporation used the SMS, in place of its tile and token steps: it places no
-     * other station that turn (§7.1).
-     */
-    marittimaTurn: Type.Optional(
-        Type.Object(
-            {
-                companyId: Id,
-                operatingSet: Type.Integer({ minimum: 1 }),
-                operatingRound: Type.Integer({ minimum: 1 })
-            },
-            { additionalProperties: false }
-        )
     )
 }
 export type TitleState1849 = Type.Static<Type.TObject<typeof TitleFields1849>>

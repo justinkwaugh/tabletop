@@ -2,6 +2,8 @@ import {
     EighteenXXTransferTiming,
     closePrivate,
     controllingOwner,
+    markTurn,
+    nextOperatingCompany,
     privateOwner,
     privatePowerUsed,
     type CompanyDecisionState,
@@ -9,6 +11,7 @@ import {
 } from '@tabletop/18xx'
 import { CoastalCityLocationIds, PortLocationIds } from './map.js'
 import { MarittimaPrivateId, NavalePrivateId } from './privates.js'
+import { MarittimaTurnMark } from './stations.js'
 import { requireState1849 } from './state.js'
 import { TileSet1849 } from './tiles.js'
 
@@ -57,14 +60,9 @@ export const PrivatePowerRules1849: PrivatePowerRules = {
     stationPrivateIds: [MarittimaPrivateId],
     afterTrackLay(stateObject, privateCompanyId, details) {
         if (privateCompanyId !== MarittimaPrivateId) return { payments: [], closedPrivateIds: [] }
+        // In place of its tile and token steps, so it places no other station that turn (§7.1).
         const state = requireState1849(stateObject)
-        const set = state.operatingSet
-        if (set)
-            state.marittimaTurn = {
-                companyId: details.companyId,
-                operatingSet: set.number,
-                operatingRound: set.roundNumber
-            }
+        if (nextOperatingCompany(state) === details.companyId) markTurn(state, MarittimaTurnMark)
         return { payments: [], closedPrivateIds: [privateCompanyId] }
     },
     earlyTrainCompany: () => undefined,

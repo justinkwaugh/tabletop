@@ -3,7 +3,7 @@ import { corporateFinanceChoices, finalWealth, treasuryPoolId } from '@tabletop/
 import { Random, botMove } from '../test/bot.js'
 import { kit, type Table } from '../test/kit.js'
 import { CorporateFinanceRules1849, EndingRules1849, RequiresTrain1849 } from './operating.js'
-import { StationRules1849 } from './stations.js'
+import { MarittimaTurnMark, StationRules1849 } from './stations.js'
 import { nextCorporation1849 } from './stock.js'
 
 /** A four-player table in its first stock round, the privates sold. */
@@ -109,9 +109,10 @@ describe('the SMS (§7.1)', () => {
             completed: false
         }
         expect(StationRules1849.placementLimit(state, companyId)).toBe(1)
-        state.marittimaTurn = { companyId, operatingSet: 2, operatingRound: 1 }
+        state.turnMarks = [MarittimaTurnMark]
         expect(StationRules1849.placementLimit(state, companyId)).toBe(0)
-        state.operatingSet = { ...state.operatingSet, number: 3 }
+        // The mark ends with the turn.
+        delete state.turnMarks
         expect(StationRules1849.placementLimit(state, companyId)).toBe(1)
     })
 })

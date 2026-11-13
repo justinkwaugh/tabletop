@@ -32,6 +32,7 @@ import { CorporateFinanceFields } from '../finance/corporateFinance.js'
 import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
 import { LoanFields } from '../loans/loans.js'
 import { AccessRightFields } from '../rights/accessRights.js'
+import type { TurnMarkFields } from '../operating/finishOperatingTurn.js'
 import { LocationMarkerFields } from '../map/locationMarkers.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import { validateStations } from '../map/station.js'
@@ -118,7 +119,8 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof LoanFields &
     typeof AccessRightFields &
     typeof CorporateFinanceFields &
-    typeof CashCrisisFields & {
+    typeof CashCrisisFields &
+    typeof TurnMarkFields & {
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
     }

@@ -1,6 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import {
     getCompany,
+    isStartOperatingRound,
     isStartStockRound,
     placeReservedHome,
     settleCashPayments,
@@ -170,8 +171,22 @@ export function reviewGaribaldi1849(state: FormationState & MapStateData): void 
     title.garibaldiAside = true
 }
 
-/** Reviews the Garibaldi as each stock round begins, after an operating set (§9.4.1). */
-export function reviewsGaribaldi1849(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+/**
+ * Drops what no rule needs once a round begins: the floats once their corporations' first
+ * operating round is past (§10.8), and the waits of closed corporations whose stock round to
+ * start again has come (§11).
+ */
+function expireRoundRecords1849(stateObject: object, stockRound: boolean): void {
+    const state = requireState1849(stateObject)
+    if (stockRound || (state.operatingSet?.roundNumber ?? 1) > 1) state.floats = []
+    state.restarts = state.restarts.filter((entry) => entry.stockRound > state.stockRound.number)
+}
+
+/**
+ * Between operating rounds: reviews the Garibaldi as each stock round begins (§9.4.1), and drops
+ * the records the round's start leaves no rule needing.
+ */
+export function beginsRounds1849(handler: EighteenXXStateHandler): EighteenXXStateHandler {
     return {
         isValidAction: (action, context) => handler.isValidAction(action, context),
         validActionsForPlayer: (playerId, context) =>
@@ -180,6 +195,8 @@ export function reviewsGaribaldi1849(handler: EighteenXXStateHandler): EighteenX
         onAction(action, context) {
             const next = handler.onAction(action, context)
             if (isStartStockRound(action)) reviewGaribaldi1849(context.gameState)
+            if (isStartStockRound(action) || isStartOperatingRound(action))
+                expireRoundRecords1849(context.gameState, isStartStockRound(action))
             return next
         }
     }

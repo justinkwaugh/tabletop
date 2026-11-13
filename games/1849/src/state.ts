@@ -13,6 +13,7 @@ import {
     PresidencyExchangeFields,
     PrivatePowerFields,
     PrivateStationFields,
+    TurnMarkFields,
     RailwayFields,
     RailwayMachineStates,
     WaterfallAuctionMachineStates,
@@ -44,6 +45,7 @@ export const State1849 = composeEighteenXXState(
         ...LocationMarkerFields,
         ...AccessRightFields,
         ...CashCrisisFields,
+        ...TurnMarkFields,
         ...TitleFields1849
     },
     [

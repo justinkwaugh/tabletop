@@ -1575,29 +1575,6 @@
           }
         ]
       },
-      "marittimaTurn": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "operatingRound": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "operatingSet": {
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "companyId",
-          "operatingRound",
-          "operatingSet"
-        ],
-        "type": "object"
-      },
       "masterSeed": {
         "pattern": "^[0-9a-f]{32}$",
         "type": "string",
@@ -3005,29 +2982,6 @@
           "type": "object"
         },
         "type": "array"
-      },
-      "stationPurchase": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "operatingSet": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "round": {
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "companyId",
-          "operatingSet",
-          "round"
-        ],
-        "type": "object"
       },
       "stationReservations": {
         "items": {
@@ -4634,6 +4588,14 @@
           "turnOrder"
         ],
         "type": "object"
+      },
+      "turnMarks": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": "array",
+        "uniqueItems": true
       },
       "usedPrivatePowerIds": {
         "items": {

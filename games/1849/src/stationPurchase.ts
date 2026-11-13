@@ -2,7 +2,9 @@ import {
     ConstructionReachability,
     RailwayMapState,
     getCompany,
+    hasTurnMark,
     homeStationId,
+    markTurn,
     nextOperatingCompany,
     type CompanyDecisionState
 } from '@tabletop/18xx'
@@ -10,6 +12,9 @@ import { Map1849 } from './map.js'
 import { requireState1849 } from './state.js'
 import { TileSet1849 } from './tiles.js'
 import { Phases1849 } from './trains.js'
+
+/** The operating turn's mark that its corporation bought a station token (§14.1). */
+export const StationPurchaseMark = 'station-purchase'
 
 /** Station tokens may be bought from phase 6 (§14.1). */
 export const StationPurchasePhaseId1849 = '6H'
@@ -55,14 +60,7 @@ export function stationPurchaseReason1849(
     // The turn's order puts it before the trains bought (§14).
     if (state.trainPurchaseStep.purchasedTrainIds.length)
         return 'A station token is bought before the turn’s trains.'
-    const set = state.operatingSet
-    const bought = state.stationPurchase
-    if (
-        set &&
-        bought?.companyId === companyId &&
-        bought.operatingSet === set.number &&
-        bought.round === set.roundNumber
-    )
+    if (hasTurnMark(state, StationPurchaseMark))
         return 'A corporation buys one station token a turn.'
     if (
         !state.stations.some(
@@ -102,6 +100,5 @@ export function stationPurchaseReason1849(
 /** Records the turn's station token purchase (§14.1). */
 export function recordStationPurchase1849(stateObject: CompanyDecisionState, companyId: string) {
     const state = requireState1849(stateObject)
-    const set = state.operatingSet
-    if (set) state.stationPurchase = { companyId, operatingSet: set.number, round: set.roundNumber }
+    if (nextOperatingCompany(state) === companyId) markTurn(state, StationPurchaseMark)
 }

@@ -1,6 +1,7 @@
 import {
     StationPlacement,
     getCompany,
+    hasTurnMark,
     homeStationId,
     nextOperatingCompany,
     type HomeStationChoice,
@@ -33,15 +34,13 @@ function garibaldiHomeChoice(stateObject: OperatingStationState): HomeStationCho
     return positions.length ? { companyId: GaribaldiId, stationId, positions } : undefined
 }
 
+/** The operating turn's mark that its corporation used the SMS (§7.1). */
+export const MarittimaTurnMark = 'marittima'
+
 /** Whether the corporation used the SMS this turn. */
 function usedMarittima(stateObject: object, companyId: string): boolean {
     const state = requireState1849(stateObject)
-    const turn = state.marittimaTurn
-    return (
-        turn?.companyId === companyId &&
-        turn.operatingSet === state.operatingSet?.number &&
-        turn.operatingRound === state.operatingSet.roundNumber
-    )
+    return nextOperatingCompany(state) === companyId && hasTurnMark(state, MarittimaTurnMark)
 }
 
 // Stations are paid for as a corporation starts (§9.4), and it places one a turn (§10.4).

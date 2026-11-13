@@ -841,6 +841,36 @@ describe('the Electric Dreams variant (§14.3)', () => {
     })
 })
 
+describe('records kept only while a rule needs them', () => {
+    it(
+        'drops floats after their first operating round and restarts once they come',
+        { timeout: 120_000 },
+        () => {
+            const game = kit.table(4, 3)
+            const random = new Random(3)
+            let restarted = false
+            for (let count = 0; count < 8000 && game.state.machineState !== 'GameOver'; count++) {
+                const next = botMove(game, random)
+                game.act(next.type, next.fields, next.playerId)
+                const state = game.state
+                const set = state.operatingSet
+                // Floats belong to the latest stock round, and only until its first operating round.
+                for (const entry of state.floats) {
+                    expect(entry.stockRound).toBe(state.stockRound.number)
+                    if (set && !set.completed && set.number === entry.stockRound)
+                        expect(set.roundNumber).toBe(1)
+                }
+                // A closed corporation's wait lasts only until its stock round.
+                for (const entry of state.restarts)
+                    expect(entry.stockRound).toBeGreaterThan(state.stockRound.number)
+                restarted ||= state.restarts.length > 0
+            }
+            expect(game.state.machineState).toBe('GameOver')
+            expect(restarted).toBe(true)
+        }
+    )
+})
+
 describe('the end (§13)', () => {
     it('comes once a corporation at L. 377 has finished operating', () => {
         const game = stockRound()

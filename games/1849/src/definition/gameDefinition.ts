@@ -22,7 +22,7 @@ import { RouteRules1849 } from '../routes.js'
 import { startingCash1849 } from '../setup.js'
 import { State1849, StateDefinition1849, type HydratedState1849 } from '../state.js'
 import { StationRules1849 } from '../stations.js'
-import { CompanyRules1849, StockRules1849, reviewsGaribaldi1849 } from '../stock.js'
+import { CompanyRules1849, StockRules1849, beginsRounds1849 } from '../stock.js'
 import { TrackRules1849 } from '../track.js'
 import { Phases1849 } from '../trains.js'
 import { Info1849 } from './info.js'
@@ -58,7 +58,7 @@ export const TitleRules1849: EighteenXXTitleRules<typeof State1849, HydratedStat
     transferRules: TransferRules1849,
     corporateFinanceRules: CorporateFinanceRules1849,
     zeroPriceClosure: ZeroPriceClosure1849,
-    decisionHandlers: { OperatingSet: (family) => reviewsGaribaldi1849(family) }
+    decisionHandlers: { OperatingSet: (family) => beginsRounds1849(family) }
 }
 
 export const Definition: GameDefinition<State1849, HydratedState1849> = defineGame({
