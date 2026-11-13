@@ -64,7 +64,6 @@
                         ? 'Buy'
                         : 'Offer'}</button
                 >
-                <button onclick={() => session.decisions.back()}>Back</button>
             </div>
             {#if evaluation?.reason}<p class="reason">{evaluation.reason}</p>{/if}
         {:else}

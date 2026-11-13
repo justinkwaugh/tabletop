@@ -134,7 +134,7 @@ export type MapViewDefinition = {
      * Markers the game state implies rather than a power places, such as a city closed to
      * upgrades for a time; each kind is named in ``locationMarkerNames``.
      */
-    stateMarkers?: (state: object) => readonly { locationId: string; kind: string }[]
+    stateMarkers?: (state: object) => readonly StateMarker[]
     layouts?: Readonly<Record<string, TileLayout>>
     /**
      * How a one-space city draws while it holds two stations, by tile id then node id: as a
@@ -215,4 +215,15 @@ export function stationMapTokens(
         assertExists(appearance, `Missing station appearance: ${station.companyId}`)
         return [{ id: station.id, ...station.position, ...appearance }]
     })
+}
+
+/** A marker the game state implies at a location, of a kind the map view names. */
+export type StateMarker = { locationId: string; kind: string }
+
+/** The markers a map draws: those placed in play, then those the state implies. */
+export function withStateMarkers<Marker>(
+    placed: readonly Marker[] | undefined,
+    implied: readonly StateMarker[]
+): readonly (Marker | StateMarker)[] | undefined {
+    return implied.length ? [...(placed ?? []), ...implied] : placed
 }

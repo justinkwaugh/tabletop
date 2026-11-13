@@ -1,11 +1,13 @@
 import type {
     AuctionAwardDetails,
     CertificateLimitChange,
+    CompanyCharters,
     CompanyClosure,
     RouteBonus
 } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
+    companyShareCount,
     isCloseCorporation,
     isLayTile,
     isPrivateTileLay,
@@ -87,8 +89,16 @@ import {
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
 import type { TitleCallout } from './historyCallouts.js'
 import { trainCount } from './awaitedDecision.js'
+import { purchaseAssetName } from '../finance/purchaseAssets.js'
 import { counted } from '../presentation/count.js'
-import { assertExists, gameCallDescription, gameCallOf, type GameAction } from '@tabletop/common'
+import { exchangeChoiceWords } from '../stock/presidencyExchangeWords.js'
+import {
+    assert,
+    assertExists,
+    gameCallDescription,
+    gameCallOf,
+    type GameAction
+} from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
@@ -287,6 +297,15 @@ function runBonusesDetail(
         : undefined
 }
 
+/**
+ * What names a title's certificates in the history: its charters, for their shares, and its
+ * certificate of several shares, as 1849's last certificate.
+ */
+export type HistoryCertificates = {
+    charters: CompanyCharters | undefined
+    multiShare?: { name: string }
+}
+
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
@@ -302,7 +321,8 @@ export function historyDescription(
     place: (locationId: string) => string = (locationId) => locationId,
     poolName: (poolId: string) => string = (poolId) => {
         throw new Error(`Certificate pool ${poolId} needs the title's names`)
-    }
+    },
+    certificates: HistoryCertificates = { charters: undefined }
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -315,7 +335,8 @@ export function historyDescription(
         lotName,
         routeBonusName,
         place,
-        poolName
+        poolName,
+        certificates
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -336,7 +357,8 @@ function describeShared(
     lotName: (id: string) => string,
     routeBonusName: (sourceId: string) => string,
     place: (locationId: string) => string,
-    poolName: (poolId: string) => string
+    poolName: (poolId: string) => string,
+    certificates: HistoryCertificates
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -676,12 +698,18 @@ function describeShared(
         }
     }
     if (isChoosePresidencyExchange(action)) {
-        const shares = action.certificateIds.reduce((sum, id) => {
+        const { charters, multiShare } = certificates
+        const shareCount = charters && companyShareCount(state, charters, action.companyId)
+        const taken = action.certificateIds.map((id) => {
             const certificate = state.certificates.find((entry) => entry.id === id)
-            return sum + (certificate?.kind === 'share' ? certificate.shares : 0)
-        }, 0)
+            assert(certificate?.kind === 'share' && shareCount, 'Exchanged certificates are shares')
+            return {
+                shares: certificate.shares,
+                percent: Math.round((certificate.shares * 100) / shareCount)
+            }
+        })
         return {
-            text: `Took ${counted(action.certificateIds.length, 'certificate')} (${counted(shares, 'share')}) for ${companyName(action.companyId)}’s president’s certificate`,
+            text: `Took ${exchangeChoiceWords(taken, multiShare)} for ${companyName(action.companyId)}’s president’s certificate`,
             important: true
         }
     }
@@ -904,14 +932,14 @@ function describeShared(
             }
         }
         const stationLocationId = action.metadata.stationLocationId
-        const asset =
-            purchaseAsset.kind === 'private'
-                ? companyName(purchaseAsset.privateCompanyId)
-                : purchaseAsset.kind === 'company'
-                  ? companyName(purchaseAsset.companyId)
-                  : purchaseAsset.kind === 'station' && stationLocationId
-                    ? `${nameOf(offer.seller)}’s station at ${place(stationLocationId)}`
-                    : `${trainDefinitionId} train`
+        const asset = purchaseAssetName(purchaseAsset, {
+            company: companyName,
+            station: () => {
+                assertExists(stationLocationId, 'A recorded station offer names its city')
+                return `${nameOf(offer.seller)}’s station at ${place(stationLocationId)}`
+            },
+            train: () => `${trainDefinitionId} train`
+        })
         return {
             text: accepted
                 ? `Bought ${asset}`

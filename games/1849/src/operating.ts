@@ -56,6 +56,7 @@ import {
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { BondShareDeduction1849, repayBondOnClosure } from './bonds.js'
+import { returnEToken1849 } from './electricDreams.js'
 import { recordStationPurchase1849, stationPurchaseReason1849 } from './stationPurchase.js'
 import { Charters1849, GaribaldiId, ShareCount1849 } from './companies.js'
 import { Map1849, MessinaLocationId } from './map.js'
@@ -140,10 +141,6 @@ function finishedAtTopPrice(state: EndingState): boolean {
     )
 }
 
-// The game ends after a corporation reaching L. 377 finishes operating, after the set of
-// operating rounds in which the bank breaks, or with one player left (§13). Wealth is money and
-// corporation stock, shares at market value and privates at nothing, less L. 750 a loan to no
-// lower than nothing (§13).
 /**
  * Whether play can no longer change: no corporation is open, every private has closed, and no
  * player has the cash for a president's certificate at the lowest start price. With nothing to
@@ -168,6 +165,10 @@ export function stalemate1849(stateObject: object): boolean {
     )
 }
 
+// The game ends after a corporation reaching L. 377 finishes operating, after the set of
+// operating rounds in which the bank breaks, or with one player left (§13). Wealth is money and
+// corporation stock, shares at market value and privates at nothing, less L. 750 a loan to no
+// lower than nothing (§13).
 export const EndingRules1849: EndingRules = {
     trigger(state) {
         if (state.turnManager.turnOrder.length <= 1) return { reason: 'One player left' }
@@ -206,6 +207,8 @@ export const CorporationClosure1849 = Type.Object(
         ...CompanyClosure.properties,
         restoredReservations: Type.Array(StationReservation),
         removedPortBonus: Type.Optional(Type.Literal(true)),
+        /** Its E token, back in the bank (§14.3). */
+        returnedEToken: Type.Optional(Type.Literal(true)),
         /** The outstanding bond repaid as the corporation closed (§14.2). */
         bondRepayment: Type.Optional(Type.Array(CashPayment)),
         /**
@@ -270,10 +273,12 @@ export function closeCorporation1849(
     if (state.royalFunding === companyId) delete state.royalFunding
     const removedPortBonus = state.portBonus?.companyId === companyId
     if (removedPortBonus) delete state.portBonus
+    const returnedEToken = returnEToken1849(state, companyId)
     return {
         ...closure,
         restoredReservations,
         ...(removedPortBonus ? { removedPortBonus: true as const } : {}),
+        ...(returnedEToken ? { returnedEToken: true as const } : {}),
         ...(bond.payments.length ? { bondRepayment: bond.payments } : {}),
         ...(bond.shortfall ? { bondShortfall: bond.shortfall } : {})
     }
@@ -315,9 +320,6 @@ function bankHasTrain(state: TrainPurchaseState): boolean {
 export const RequiresTrain1849: TrainRules['requiresTrain'] = (state, companyId) =>
     RequiresStationRoute1849(state, companyId) && bankHasTrain(state)
 
-// Trains are bought from the bank in order, any number a turn; the R6H goes on sale beside the
-// 16H once the first is bought (§10.6). The Reale Società d'Affari closes when its corporation
-// buys its first train (§8.1).
 // The R6H goes on sale with the first 16H, beside whatever comes next (§10.6).
 const ReverseTrains1849 = dieselTrains({
     depot: TrainDepot1849,
@@ -328,6 +330,9 @@ const ReverseTrains1849 = dieselTrains({
     credit: 0
 })
 
+// Trains are bought from the bank in order, any number a turn; the R6H goes on sale beside the
+// 16H once the first is bought (§10.6). The Reale Società d'Affari closes when its corporation
+// buys its first train (§8.1).
 export const TrainRules1849: TrainRules = {
     depot: TrainDepot1849,
     requiresTrain: RequiresTrain1849,
@@ -460,6 +465,8 @@ export const PrivateRules1849: PrivateRules = {
 export const TransferRules1849: TransferRules = {
     ...EighteenXXTransferTiming,
     charters: Charters1849,
+    // The Buy station tokens variant's purchases, which stationPurchaseReason1849 limits (§14.1).
+    stationPurchases: true,
     canPurchase(state, companyId, asset) {
         // The Buy station tokens variant (§14.1).
         if (asset.kind === 'station')
@@ -590,7 +597,7 @@ export const CashCrisisRules1849: CashCrisisRules = {
     market: StockRules1849.market,
     charters: StockRules1849.charters,
     presidencyCandidates: StockRules1849.presidencyCandidates,
-    presidencyExchangeChoice: StockRules1849.presidencyExchangeChoice,
+    presidencyExchange: StockRules1849.presidencyExchange,
     holdsMarketMove: StockRules1849.holdsMarketMove,
     saleTerms: StockRules1849.saleTerms,
     afterSale(stateObject, details) {

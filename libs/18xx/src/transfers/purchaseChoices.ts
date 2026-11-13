@@ -31,7 +31,7 @@ export function purchaseChoices(
         ...state.companies
             .filter((company) => company.kind === 'private')
             .map((company) => ({ kind: 'private', privateCompanyId: company.id }) as const),
-        ...state.stations
+        ...(rules.stationPurchases ? state.stations : [])
             .filter((station) => station.status === 'placed' && station.companyId !== companyId)
             .map((station) => ({ kind: 'station', stationId: station.id }) as const)
     ]

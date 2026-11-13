@@ -30,12 +30,9 @@ export type CertificateLimitChange = Type.Static<typeof CertificateLimitChange>
 
 /** How the title's new presidents make up the president's certificate's shares. */
 export function presidencyExchangeTerms(
-    rules: Pick<StockRules, 'presidencyExchangeLargestFirst' | 'presidencyExchangeChoice'>
+    rules: Pick<StockRules, 'presidencyExchange'>
 ): PresidencyExchangeTerms {
-    return {
-        largestFirst: rules.presidencyExchangeLargestFirst === true,
-        choice: rules.presidencyExchangeChoice === true
-    }
+    return rules.presidencyExchange ?? {}
 }
 
 export type ShareSaleTerms = {
@@ -76,16 +73,12 @@ export interface StockRules {
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
     /**
-     * Whether a new president exchanges their largest ordinary certificates first, as 1832's
-     * vice-president's certificates must be included.
+     * How a new president's certificates make up the president's certificate's shares: their
+     * largest ordinary certificates first, as 1832's vice-president's certificates must be
+     * included; or the outgoing president's choice where they hold the shares more than one way,
+     * 1849's last certificate or two single ones (§9.5), the largest exchanged until they choose.
      */
-    presidencyExchangeLargestFirst?: boolean
-    /**
-     * The outgoing president chooses which of the new president's certificates to take for the
-     * president's certificate, where they hold the shares more than one way: 1849's last
-     * certificate or two single ones (§9.5). The largest are exchanged until they choose.
-     */
-    presidencyExchangeChoice?: true
+    presidencyExchange?: PresidencyExchangeTerms
     /**
      * A president may sell below the president's certificate with no one to succeed them: the
      * certificate goes to the pool and the company has no president until someone claims it

@@ -13,13 +13,11 @@ const reverseHexEdges = (maximum: number) => ({
     gaugeWeights: { standard: 2, narrow: 1 }
 })
 
-// The Electric Dreams variant's E train runs any distance but never on narrow gauge (§14.3): 999
-// standard hexes is past any route on the board, and a narrow hex costing more keeps it off
-// narrow track, while track dual from stop to stop counts one.
+// The Electric Dreams variant's E train runs any distance but never on narrow gauge (§14.3).
 const electricRange = {
     measure: 'hex-edges' as const,
-    maximum: 999,
-    gaugeWeights: { standard: 1, narrow: 1000 }
+    maximum: 'unlimited' as const,
+    standardGaugeOnly: true as const
 }
 
 export const CorporationCounts1849 = [5, 6] as const
@@ -51,6 +49,14 @@ export function depotId1849(corporations: CorporationCount1849, electric = false
     return electric ? TrainDepot1849.definition.id : StandardDepotId
 }
 
+// The trains five corporations have fewer of (§2), and the E trains only Electric Dreams has.
+const FiveCorporationCounts = Object.fromEntries(
+    Object.entries(TrainCounts1849[5]).filter(
+        ([definitionId, count]) => count !== TrainCounts1849[6][definitionId]
+    )
+)
+const WithoutElectricTrains = { [ElectricTrainId]: 0 }
+
 /** Goes on sale once the first 16H is bought (§10.6). */
 export const ReverseTrainId = 'R6H'
 
@@ -74,18 +80,9 @@ export const TrainDepot1849 = new TrainDepot({
         { definitionId: ElectricTrainId, count: ElectricTrainCount }
     ],
     supplyVariants: {
-        [StandardDepotId]: { [ElectricTrainId]: 0 },
-        [FiveCorporationDepotId]: {
-            '6H': TrainCounts1849[5]['6H'],
-            '8H': TrainCounts1849[5]['8H'],
-            '16H': TrainCounts1849[5]['16H'],
-            [ElectricTrainId]: 0
-        },
-        [FiveCorporationElectricDepotId]: {
-            '6H': TrainCounts1849[5]['6H'],
-            '8H': TrainCounts1849[5]['8H'],
-            '16H': TrainCounts1849[5]['16H']
-        }
+        [StandardDepotId]: WithoutElectricTrains,
+        [FiveCorporationDepotId]: { ...FiveCorporationCounts, ...WithoutElectricTrains },
+        [FiveCorporationElectricDepotId]: FiveCorporationCounts
     }
 })
 

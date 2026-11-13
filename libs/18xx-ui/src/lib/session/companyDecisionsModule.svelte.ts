@@ -28,11 +28,8 @@ import {
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
+import { isCompanyAsset } from '../finance/purchaseAssets.js'
 
-/** A private or a whole company, as a purchase asset; a station's price starts at its minimum. */
-function isCompanyAsset(asset: PurchaseOfferRequest['asset']): boolean {
-    return asset.kind === 'private' || asset.kind === 'company'
-}
 export type PrivateTileOption = {
     privateCompanyId: string
     playerId: string

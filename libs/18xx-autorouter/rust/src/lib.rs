@@ -1705,6 +1705,10 @@ impl Compatibility {
         let fill = |compatible: &mut Vec<u64>, resource_candidates: &ResourceCandidates| {
             compatible.clear();
             compatible.resize(self.words - start, u64::MAX);
+            // No candidates follow, and no columns were kept for them.
+            if compatible.is_empty() {
+                return;
+            }
             for resource in resources {
                 for (bits, conflicts) in compatible
                     .iter_mut()

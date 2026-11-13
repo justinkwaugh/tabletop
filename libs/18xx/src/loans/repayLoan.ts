@@ -62,6 +62,5 @@ export class HydratedRepayLoan extends HydratableAction<typeof RepayLoan> implem
             'Only the operating company’s president may repay its loans after interest'
         )
         this.metadata = repayLoan(state, this.#rules, this.companyId)
-        if (state.loanStep) state.loanStep.repaidAfterInterest = true
     }
 }

@@ -19,6 +19,11 @@ import { PhaseColors1849, TrainColors1849 } from './trainPresentation.js'
 
 const money = moneyFormat(TitleRules1849.currencySymbol)
 
+/** The one fee a corporation pays for all its station tokens as it starts (§9.4). */
+export function tokenFeeWords(fee: number): string {
+    return `${money(fee)} for its ${StationTokenCount1849} station tokens`
+}
+
 export const Presentation1849: TitlePresentation<State1849> = {
     money,
     phaseChart: PhaseChart1849,
@@ -36,7 +41,7 @@ export const Presentation1849: TitlePresentation<State1849> = {
         const fee = TokenFees1849[companyId]
         return fee === undefined || companyId === GaribaldiId
             ? []
-            : [`${money(fee)} for its ${StationTokenCount1849} station tokens, from its treasury`]
+            : [`${tokenFeeWords(fee)}, from its treasury`]
     },
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: {
@@ -47,15 +52,15 @@ export const Presentation1849: TitlePresentation<State1849> = {
         issueNote:
             'Issue treasury certificates to the bank pool, the price dropping a row for each share, or redeem one.'
     },
-    // The two-share last certificate, marked wherever it is held (§9.6).
     // The Bonds variant's bond, the family's corporate loan (§14.2).
     loanTerms: {
         name: 'Bond',
         take: 'Issue the bond',
         repay: 'Repay the bond',
-        interestDefault: 'The president paid what the treasury could not.',
+        interestDefault: 'The president raised what the treasury could not.',
         fixedTerms: true
     },
+    // The two-share last certificate, marked wherever it is held (§9.6).
     multiShareCertificate: {
         label: 'L',
         name: 'Last certificate',

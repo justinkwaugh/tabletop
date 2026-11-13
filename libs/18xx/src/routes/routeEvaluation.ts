@@ -289,6 +289,11 @@ export class RouteEvaluation {
         const distance = routeDistance(definition, trace)
         if (exceedsRouteDistance(definition, trace))
             return { reason: `The route exceeds the ${definition.name} train’s distance limit.` }
+        if (
+            definition.distance.standardGaugeOnly &&
+            trace.stretches.some((stretch) => stretch.gauge === 'narrow')
+        )
+            return { reason: `The ${definition.name} train cannot run on narrow gauge.` }
         if (complete) {
             if (
                 !route.paths.length ||

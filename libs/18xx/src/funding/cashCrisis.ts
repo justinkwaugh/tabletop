@@ -51,8 +51,7 @@ export interface CashCrisisRules extends Pick<
     | 'market'
     | 'charters'
     | 'presidencyCandidates'
-    | 'presidencyExchangeLargestFirst'
-    | 'presidencyExchangeChoice'
+    | 'presidencyExchange'
     | 'afterSale'
     | 'holdsMarketMove'
 > {

@@ -16,8 +16,12 @@ export function electricDreamsInPlay(state: object): boolean {
 }
 
 /** The first E token sold costs more than the five after it, and all cost less in phase 16. */
-export function eTokenPrice1849(state: { phaseId: string } & AccessRightState): number {
-    const sold = (state.accessRights ?? []).some((right) => right.rightId === ETokenId)
+export function eTokenPrice1849(
+    state: { phaseId: string; eTokenReturned?: true } & AccessRightState
+): number {
+    const sold =
+        state.eTokenReturned === true ||
+        (state.accessRights ?? []).some((right) => right.rightId === ETokenId)
     const late = Phases1849.isAtLeast(state.phaseId, CheaperETokenPhaseId1849)
     return sold ? (late ? 550 : 800) : late ? 800 : 1100
 }
@@ -53,4 +57,18 @@ export function electricTrainReason1849(
         !holdsAccessRight(requireState1849(state), companyId, ETokenId)
         ? 'An E train needs an E token.'
         : undefined
+}
+
+/**
+ * A closing corporation's E token goes back to the bank with its other tokens, so that the
+ * corporation may buy one again if it starts again (§11, §14.3).
+ */
+export function returnEToken1849(stateObject: object, companyId: string): boolean {
+    const state = requireState1849(stateObject)
+    if (!holdsAccessRight(state, companyId, ETokenId)) return false
+    state.accessRights = (state.accessRights ?? []).filter(
+        (right) => !(right.companyId === companyId && right.rightId === ETokenId)
+    )
+    state.eTokenReturned = true
+    return true
 }

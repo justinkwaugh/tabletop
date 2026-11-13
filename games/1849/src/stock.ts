@@ -59,7 +59,7 @@ export const StockRules1849: StockRules = {
     ...SharedTrading,
     // A new president holding the last certificate and two single ones lets the outgoing
     // president choose which they take for the president's certificate (§9.5).
-    presidencyExchangeChoice: true,
+    presidencyExchange: { choice: true },
     round: {
         ...SharedTrading.round,
         // A price at L. 230 cannot rise into the blue zone before phase 16 (§5, §9.7).

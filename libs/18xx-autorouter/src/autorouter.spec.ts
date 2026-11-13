@@ -651,6 +651,24 @@ const ReverseHex = (maximum: number): TrainDistance => ({
     maximum,
     gaugeWeights: { standard: 2, narrow: 1 }
 })
+// Any distance but never on narrow gauge, as 1849's E train (§14.3).
+const StandardOnlyHex: TrainDistance = {
+    measure: 'hex-edges',
+    maximum: 'unlimited',
+    standardGaugeOnly: true
+}
+it('keeps a standard-gauge train off narrow track, though not dual', () => {
+    const narrow = position(
+        [gaugedStop('city', 20, [[0, 'narrow']]), gaugedStop('city', 50, [[3, 'narrow']])],
+        [StandardOnlyHex]
+    )
+    expect(router.solve(narrow.state, narrow.rules, 'A').result.revenue).toBe(0)
+    const dual = position(
+        [gaugedStop('city', 20, [[0, 'dual']]), gaugedStop('city', 50, [[3, 'dual']])],
+        [StandardOnlyHex]
+    )
+    expect(router.solve(dual.state, dual.rules, 'A').result.revenue).toBe(70)
+})
 it('changes gauge only at stops and weighs each stretch by its gauge', () => {
     const through = position(
         [
@@ -734,7 +752,11 @@ it('matches exhaustive route enumeration on random mixed-gauge lines', () => {
         ]
         const { state, rules } = position(
             faces,
-            [OrdinaryHex(2 + Math.floor(random() * 5)), ReverseHex(2 + Math.floor(random() * 5))],
+            [
+                OrdinaryHex(2 + Math.floor(random() * 5)),
+                ReverseHex(2 + Math.floor(random() * 5)),
+                ...(random() < 0.5 ? [StandardOnlyHex] : [])
+            ],
             {},
             random() < 0.5 ? { minimumCitiesAndTowns: 2 } : {}
         )

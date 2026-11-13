@@ -1,6 +1,6 @@
 {
   "actionSchemaDigests": {
-    "AdvancePhase": "25eecb265467ae31f31a89b6f3168a3cb00693cf23a40cace47dd40d2b132019",
+    "AdvancePhase": "45eab0175da4b6bee9ddd47d6e798c9a63fbe2b17af9542b428795857671ba17",
     "BuyAccessRight": "e5add64316bb77d0ccd09d7450534c0a4f872d1aa95086eee87b7867ce832ce7",
     "BuyAuctionLot": "df80f4b640533164abba9db13143745a1855e1b333d6df8899119feef8a2ed9b",
     "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
@@ -8,12 +8,12 @@
     "BuyTrain": "67db41a89629078c0a016eb92e68f08d9e2cbb905cf469d9824897e55d7b7fed",
     "ChooseHomeStation": "264f0eba472ebb68768ef9ab57e604791f4c73e729d0b2fede63bb1e33c08625",
     "ChoosePresidencyExchange": "5307d78f56235ed835df1f719a75722ea00d5b79604da2619a61b66a0f6b6a31",
-    "CloseCorporation": "fe7263d1b6b92fd1b1b71d4068ccfc10eed8eb0cc412c5040ece01699531ddc8",
+    "CloseCorporation": "aec03951d0a85ce7230b5bf40097059ebdfa03335faa2190343eb2d5a8e0eb16",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
     "ContinueOperatingRound": "d7859bd006d0cf1a3bf6b0d3424ab8d61dcbe1741a5ee6943bdc0a5bd90b3fa7",
     "ContributeTrainFunds": "9aab8e3d874a342cd810be78376e00d627c1e1ee8e0cb71079b7ef9e4068d9bd",
     "CorporateFinance": "3bde49d283bb67f4cc501080324f37e99f25340ac0b810ec1d588b549dc31398",
-    "DeclareBankruptcy": "dd26913f22c9e820115d503cf9c790393d676e1352ae66fe539745d04b5748f6",
+    "DeclareBankruptcy": "d5a3f477f878f7a53e3fa5216ef8428d02c40eb2bfdb74b92aae4e69766affe6",
     "DeclinePrivateStation": "5fc81238fdb36d3947514c86fdd84e4bd542338923e5a564211431bb01136250",
     "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
@@ -27,7 +27,7 @@
     "FinishTrains": "5e60ea89af68b7f73e1419f3a012b43d3babb5cee3b63ce06fc31ae35e417e1c",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
-    "GoBankrupt": "a6b8c5f79d0cc11e2e7c2d29dcc271727eac38ae152765e1cac6e5f08ddf3aed",
+    "GoBankrupt": "e2163003911fdc8bce2cda843d506dfa52b68086e14938721fb1afb65660ce03",
     "IssueTreasuryShares": "2414c902af2580da0ccda4017e237fa9681499131e28f339e0f0b07d9691878e",
     "LayPrivateTile": "2c1c2e82a092785252309a959bcd99df6a4e43e3b03266802cf62f577400193a",
     "LayTile": "868b093634c99f842201af6a9ac020db319a6de25618de0d6cc7f94fff136e60",
@@ -978,6 +978,10 @@
         ],
         "type": "object"
       },
+      "eTokenReturned": {
+        "const": true,
+        "type": "boolean"
+      },
       "explorationState": {
         "properties": {
           "actionCount": {
@@ -1458,10 +1462,6 @@
           },
           "companyId": {
             "type": "string"
-          },
-          "repaidAfterInterest": {
-            "const": true,
-            "type": "boolean"
           }
         },
         "required": [

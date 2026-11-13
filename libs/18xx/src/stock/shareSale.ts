@@ -236,8 +236,7 @@ export function evaluateShareDisposal(
         | 'charters'
         | 'saleTerms'
         | 'presidencyCandidates'
-        | 'presidencyExchangeLargestFirst'
-        | 'presidencyExchangeChoice'
+        | 'presidencyExchange'
         | 'holdsMarketMove'
         | 'presidencyLapses'
     >

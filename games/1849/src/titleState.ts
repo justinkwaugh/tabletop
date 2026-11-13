@@ -38,6 +38,11 @@ export const TitleFields1849 = {
             { additionalProperties: false }
         )
     ),
+    /**
+     * An E token has gone back to the bank with its corporation's closure, so the next sells at
+     * the later price though no corporation holds one (§14.3, §11).
+     */
+    eTokenReturned: Type.Optional(Type.Literal(true)),
     /** The corporation left out of a five-corporation game (§2.2). */
     removedCorporationId: Type.Optional(Id),
     /** Closed corporations and the stock round from which each may start again (§11). */

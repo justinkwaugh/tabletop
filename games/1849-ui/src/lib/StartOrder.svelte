@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { StationTokenCount1849, TokenFees1849 } from '@tabletop/1849'
+    import { TokenFees1849 } from '@tabletop/1849'
+    import { tokenFeeWords } from './presentation.js'
     import { CompanyToken, type EighteenXXSessionView } from '@tabletop/18xx-ui'
     import { startOrder, type StartStanding } from './startOrder.js'
     let {
@@ -44,7 +45,7 @@
             {@const homes = homeLocationIds.map((id) => session.placeName(id)).join(', ')}
             {@const words = standingWords(standing)}
             {@const fee = standing.kind === 'started' ? undefined : TokenFees1849[companyId]}
-            {@const description = `${index + 1}. ${name}, ${words.description}; home ${homes}${fee === undefined ? '' : `; ${StationTokenCount1849} station tokens for ${session.presentation.money(fee)} together`}`}
+            {@const description = `${index + 1}. ${name}, ${words.description}; home ${homes}${fee === undefined ? '' : `; ${tokenFeeWords(fee)}`}`}
             <li class={standing.kind}>
                 <span class="place">{index + 1}</span>
                 <button

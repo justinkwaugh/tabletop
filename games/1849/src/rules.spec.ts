@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+    accessRightsLeft,
     cashOwnedBy,
+    holdsAccessRight,
     crisisSales,
     evaluateCrisisSale,
     corporateFinanceChoices,
@@ -13,13 +15,14 @@ import {
     stretchWeight,
     placeStockMarker,
     sharesOwned,
+    takeLoanReason,
     trainsOwnedBy,
     treasuryPoolId
 } from '@tabletop/18xx'
 import { kit, type Table } from '../test/kit.js'
 import { BondValue1849, LoanRules1849 } from './bonds.js'
 import { stationPurchaseReason1849 } from './stationPurchase.js'
-import { ETokenId, eTokenPrice1849 } from './electricDreams.js'
+import { AccessRightRules1849, ETokenId, eTokenPrice1849 } from './electricDreams.js'
 import { RouteRules1849 } from './routes.js'
 import { ElectricTrainId, TrainDepot1849 } from './trains.js'
 import { botMove, Random } from '../test/bot.js'
@@ -528,21 +531,22 @@ describe('the Bonds variant (§14.2)', () => {
 
     it('lets a corporation issue one bond from phase 8, only with the variant', () => {
         const { state, companyId } = bonded()
-        expect(LoanRules1849.capacity(state, companyId)).toBe(1)
+        expect(takeLoanReason(state, LoanRules1849, companyId)).toBeUndefined()
         state.phaseId = '6H'
-        expect(LoanRules1849.capacity(state, companyId)).toBe(0)
+        expect(takeLoanReason(state, LoanRules1849, companyId)).toBeDefined()
         state.phaseId = '8H'
         state.variants = { ...state.variants, bonds: undefined }
-        expect(LoanRules1849.capacity(state, companyId)).toBe(0)
+        expect(takeLoanReason(state, LoanRules1849, companyId)).toBe('Loans are not in this game.')
     })
 
-    it('does not issue the bond in the turn it was repaid', () => {
+    it('may issue its bond again once it has repaid it (§14.2)', () => {
         const { state, companyId } = bonded()
         const playerId = president(state, companyId)
         state.loanStep = { companyId }
-        expect(canTakeLoan(state, LoanRules1849, playerId, companyId)).toBe(true)
-        state.loanStep = { companyId, repaidAfterInterest: true }
+        getCompany(state, companyId).loans = 1
         expect(canTakeLoan(state, LoanRules1849, playerId, companyId)).toBe(false)
+        delete getCompany(state, companyId).loans
+        expect(canTakeLoan(state, LoanRules1849, playerId, companyId)).toBe(true)
     })
 
     /**
@@ -807,6 +811,20 @@ describe('the Electric Dreams variant (§14.3)', () => {
         const sold = { accessRights: [{ rightId: ETokenId, companyId: 'RCS' }] }
         expect(eTokenPrice1849({ ...sold, phaseId: '12H' })).toBe(800)
         expect(eTokenPrice1849({ ...sold, phaseId: '16H' })).toBe(550)
+    })
+
+    it('returns a closing corporation’s E token to the bank, at the later price (§11)', () => {
+        const game = stockRound()
+        const companyId = startNext(game, 100)
+        const state = game.hydrated
+        state.variants = { ...state.variants, electricDreams: true }
+        state.phaseId = '12H'
+        state.accessRights = [{ rightId: ETokenId, companyId }]
+        const closure = closeCorporation1849(state, companyId)
+        expect(closure.returnedEToken).toBe(true)
+        expect(holdsAccessRight(state, companyId, ETokenId)).toBe(false)
+        expect(accessRightsLeft(state, AccessRightRules1849, ETokenId)).toBe(6)
+        expect(eTokenPrice1849(state)).toBe(800)
     })
 
     it('doubles the four great cities for E trains and keeps them off narrow gauge', () => {

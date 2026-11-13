@@ -37,6 +37,11 @@ const Reverse: TrainDistance = {
     maximum: 6,
     gaugeWeights: { standard: 2, narrow: 1 }
 }
+const Electric: TrainDistance = {
+    measure: 'hex-edges',
+    maximum: 'unlimited',
+    standardGaugeOnly: true
+}
 
 // A column of hexes, each joined to the next by its edge 0 and the next one's edge 3; the company
 // is at the first hex's city.
@@ -46,7 +51,8 @@ function column(faces: readonly TileFace[], rules: Partial<RouteRules> = {}) {
         id: 'trains',
         trains: [
             { id: 'ordinary', name: '8H', price: 0, distance: Ordinary },
-            { id: 'reverse', name: 'R6H', price: 0, distance: Reverse }
+            { id: 'reverse', name: 'R6H', price: 0, distance: Reverse },
+            { id: 'electric', name: 'E', price: 0, distance: Electric }
         ],
         supply: []
     })
@@ -68,7 +74,7 @@ function column(faces: readonly TileFace[], rules: Partial<RouteRules> = {}) {
         tileInventory: tileSet.createInventory(),
         trainInventory: {
             nextTrainNumber: 1,
-            trains: ['ordinary', 'reverse'].map((id) => ({
+            trains: ['ordinary', 'reverse', 'electric'].map((id) => ({
                 id,
                 definitionId: id,
                 status: 'owned',
@@ -170,6 +176,28 @@ describe('route distance by gauge', () => {
         ]).trace
         expect(trace?.crossings).toBe(1)
         expect(trace?.stretches).toEqual([{ gauge: 'narrow', crossings: 1 }])
+    })
+})
+
+describe('a train kept to standard gauge (1849 §14.3)', () => {
+    it('runs standard and dual track but never narrow', () => {
+        const standard = column([
+            city('yellow', [0], 40, 1),
+            track('yellow', [[3, 0]]),
+            city('yellow', [3], 20, 1)
+        ])
+        expect(standard.run('electric').result?.revenue).toBe(60)
+        const dual = column([
+            gauged(city('yellow', [0], 40, 1), 'dual'),
+            gauged(city('yellow', [3], 20, 1), 'dual')
+        ])
+        expect(dual.run('electric').result?.revenue).toBe(60)
+        const narrow = column([
+            gauged(city('yellow', [0], 40, 1), 'narrow'),
+            gauged(city('yellow', [3], 20, 1), 'narrow')
+        ])
+        expect(narrow.run('electric').reason).toBe('The E train cannot run on narrow gauge.')
+        expect(narrow.run('ordinary').result?.revenue).toBe(60)
     })
 })
 

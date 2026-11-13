@@ -113,6 +113,8 @@ export interface TransferRules {
     charters: CompanyCharters
     /** Whether a company may be bought whole, as 1846's independents are. */
     companyAcquisitions?: boolean
+    /** Whether a company may buy another's station token, as 1849's variant allows (§14.1). */
+    stationPurchases?: true
     operatingCompany(state: CompanyDecisionState): string | undefined
     canPurchase(state: CompanyDecisionState, companyId: string, asset: PurchaseAsset): boolean
     priceRange(
@@ -178,6 +180,8 @@ export function evaluatePurchaseOffer(
     | { reason: string; buyerPlayerId?: never; sellerPlayerId?: never } {
     if (rules.operatingCompany(state) !== request.companyId)
         return { reason: 'Only the operating company may make a purchase offer.' }
+    if (request.asset.kind === 'station' && !rules.stationPurchases)
+        return { reason: 'Station tokens are not bought in this game.' }
     if (!rules.canPurchase(state, request.companyId, request.asset))
         return { reason: 'This asset cannot be purchased at this point in the turn.' }
     const buyer = state.companies.find((item) => item.id === request.companyId)

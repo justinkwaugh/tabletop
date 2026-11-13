@@ -1,5 +1,6 @@
 <script lang="ts">
     import CompanyPurchaseCard from './CompanyPurchaseCard.svelte'
+    import { isCompanyAsset } from './purchaseAssets.js'
     import { currencyAffixes } from '../presentation/money.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session, showEntry = true }: { session: EighteenXXSessionView; showEntry?: boolean } =
@@ -19,7 +20,7 @@
     const selection = $derived(session.decisions.selection)
 </script>
 
-{#if (showEntry || source) && (session.decisions.companyPurchases.length || (selection?.kind === 'purchase' && (selection.request.asset.kind === 'private' || selection.request.asset.kind === 'company')))}
+{#if (showEntry || source) && (session.decisions.companyPurchases.length || (selection?.kind === 'purchase' && isCompanyAsset(selection.request.asset)))}
     <section aria-label={session.presentation.privatePurchaseLabel ?? 'Buy privates'}>
         {#if !source}
             <button
@@ -28,7 +29,7 @@
                 >{session.presentation.privatePurchaseLabel ?? 'Buy privates'}</button
             >
         {:else}
-            {#if session.presentation.privatePurchaseHeading && !(selection?.kind === 'purchase' && (selection.request.asset.kind === 'private' || selection.request.asset.kind === 'company'))}
+            {#if session.presentation.privatePurchaseHeading && !(selection?.kind === 'purchase' && isCompanyAsset(selection.request.asset))}
                 <p class="prompt">{session.presentation.privatePurchaseHeading}</p>
             {/if}
             {#if others.length}
@@ -46,7 +47,7 @@
                     >
                 </div>
             {/if}
-            {#if selection?.kind === 'purchase' && (selection.request.asset.kind === 'private' || selection.request.asset.kind === 'company')}
+            {#if selection?.kind === 'purchase' && isCompanyAsset(selection.request.asset)}
                 {@const companyId =
                     selection.request.asset.kind === 'private'
                         ? selection.request.asset.privateCompanyId
@@ -105,7 +106,7 @@
             {:else}
                 <div class="privates">
                     {#each choices as option, i (i)}
-                        {#if option.request.asset.kind === 'private' || option.request.asset.kind === 'company'}
+                        {#if isCompanyAsset(option.request.asset)}
                             {@const companyId =
                                 option.request.asset.kind === 'private'
                                     ? option.request.asset.privateCompanyId

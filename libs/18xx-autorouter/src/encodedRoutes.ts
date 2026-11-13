@@ -172,7 +172,14 @@ export class EncodedRoutes {
         const trains = runnable.map((train) => {
             const definition = rules.depot.trainDefinition(train.definitionId)
             const countsCrossings = definition.distance.measure === 'hex-edges'
-            const crossingCosts = this.crossingCosts(definition.distance)
+            const { measure, maximum, extraTowns = 0 } = definition.distance
+            const unlimitedDistance = (costs: readonly number[]) =>
+                nodes.length +
+                arcs.reduce((sum, arc) => sum + arc.crossings, 0) * Math.max(1, ...costs)
+            // A train kept off narrow gauge finds each narrow hex side past its whole reach.
+            const crossingCosts = this.crossingCosts(definition.distance, (costs) =>
+                maximum === 'unlimited' ? unlimitedDistance(costs) + 1 : maximum + extraTowns + 1
+            )
             const visitCosts = nodes.map((node) =>
                 countsCrossings ||
                 (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
@@ -181,7 +188,6 @@ export class EncodedRoutes {
             )
             const policy = rules.revenuePolicy?.(definition, state, companyId)
             const fleet = rules.fleet?.trains?.[definition.id] ?? {}
-            const { measure, maximum, extraTowns = 0 } = definition.distance
             assert(
                 !extraTowns || measure === 'revenue-centers',
                 'Only revenue-center trains may visit extra towns'
@@ -230,7 +236,12 @@ export class EncodedRoutes {
                     maximum === 'unlimited'
                         ? visitCosts.reduce<number>((sum, cost) => sum + cost, 0) +
                           arcs.reduce((sum, arc) => sum + arc.crossings, 0) *
-                              Math.max(1, ...crossingCosts)
+                              Math.max(
+                                  1,
+                                  ...(definition.distance.standardGaugeOnly
+                                      ? [crossingCosts[0], crossingCosts[2]]
+                                      : crossingCosts)
+                              )
                         : maximum + extraTowns,
                 major_limit: extraTowns && maximum !== 'unlimited' ? maximum : null,
                 crossing_costs: crossingCosts,
@@ -456,12 +467,20 @@ export class EncodedRoutes {
         })
     }
 
-    private crossingCosts(distance: TrainDistance): [number, number, number] {
+    /** What each hex side of standard, narrow and dual track costs; `beyondReach` given the others. */
+    private crossingCosts(
+        distance: TrainDistance,
+        beyondReach: (costs: readonly number[]) => number
+    ): [number, number, number] {
         if (distance.measure !== 'hex-edges') return [0, 0, 0]
+        const standard = stretchWeight(distance, 'standard')
+        const either = stretchWeight(distance, 'either')
         return [
-            stretchWeight(distance, 'standard'),
-            stretchWeight(distance, 'narrow'),
-            stretchWeight(distance, 'either')
+            standard,
+            distance.standardGaugeOnly
+                ? beyondReach([standard, either])
+                : stretchWeight(distance, 'narrow'),
+            either
         ]
     }
 

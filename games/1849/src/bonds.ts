@@ -67,7 +67,7 @@ function treasuryThenPresident(
 /**
  * The Bonds variant (§14.2): each corporation may issue one L. 500 bond from phase 8 at the end
  * of its operating turn, its price moving a column left, and repay it there for L. 500, moving a
- * column right, but not both in one turn. An issued bond costs L. 50 each operating turn after
+ * column right, from where it may be issued again. An issued bond costs L. 50 each operating turn after
  * the turn it was issued, after the financial activities.
  */
 export const LoanRules1849: LoanRules = {
@@ -76,8 +76,7 @@ export const LoanRules1849: LoanRules = {
     marketFor: (state) => marketInForce1849(state),
     value: BondValue1849,
     supply: CorporationIds1849.length,
-    capacity: (state) =>
-        bondsInPlay(state) && Phases1849.isAtLeast(state.phaseId, BondPhaseId1849) ? 1 : 0,
+    capacity: (state) => (Phases1849.isAtLeast(state.phaseId, BondPhaseId1849) ? 1 : 0),
     rate: () => BondInterestRate1849,
     takeMove: { direction: 'left', steps: 1 },
     repayMove: { direction: 'right', steps: 1 },
@@ -92,8 +91,7 @@ export const LoanRules1849: LoanRules = {
             companyDebt: true
         }
     },
-    borrowsInLoanStepOnly: true,
-    noBorrowingAfterRepaying: true
+    borrowsInLoanStepOnly: true
 }
 
 /**

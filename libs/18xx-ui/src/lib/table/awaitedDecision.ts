@@ -7,6 +7,7 @@ import {
     type PhaseChangeState,
     type TrainRules
 } from '@tabletop/18xx'
+import { purchaseAssetName } from '../finance/purchaseAssets.js'
 import { counted } from '../presentation/count.js'
 import type { MoneyFormat } from '../presentation/money.js'
 import { pendingDiscard } from '../session/discardModule.svelte.js'
@@ -71,13 +72,11 @@ export function purchaseOfferText(
     const buyer = isCompanyPurchaseOffer(offer)
         ? names.companyName(offer.buyer.companyId)
         : names.ownerName(offer.buyer)
-    const asset =
-        offer.asset.kind === 'private'
-            ? names.companyName(offer.asset.privateCompanyId)
-            : offer.asset.kind === 'company'
-              ? names.companyName(offer.asset.companyId)
-              : offer.asset.kind === 'station'
-                ? `${names.ownerName(offer.seller)}’s station at ${names.stationPlace(offer.asset.stationId)}`
-                : `${names.ownerName(offer.seller)}’s ${names.trainName(offer.asset.trainId)} train`
+    const seller = names.ownerName(offer.seller)
+    const asset = purchaseAssetName(offer.asset, {
+        company: names.companyName,
+        station: (stationId) => `${seller}’s station at ${names.stationPlace(stationId)}`,
+        train: (trainId) => `${seller}’s ${names.trainName(trainId)} train`
+    })
     return `${buyer} offers ${names.money(offer.price)} for ${asset}`
 }

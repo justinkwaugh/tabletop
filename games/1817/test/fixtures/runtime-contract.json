@@ -1794,10 +1794,6 @@
           },
           "companyId": {
             "type": "string"
-          },
-          "repaidAfterInterest": {
-            "const": true,
-            "type": "boolean"
           }
         },
         "required": [

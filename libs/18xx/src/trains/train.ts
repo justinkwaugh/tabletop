@@ -26,7 +26,9 @@ export const TrainDistance = Type.Object(
                 },
                 { additionalProperties: false }
             )
-        )
+        ),
+        /** It never runs on narrow-gauge track, though on dual track, as 1849's E train (§14.3). */
+        standardGaugeOnly: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )

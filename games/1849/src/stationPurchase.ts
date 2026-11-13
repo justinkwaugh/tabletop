@@ -34,7 +34,7 @@ function reach(state: CompanyDecisionState, companyId: string): ConstructionReac
 
 /**
  * Why the operating corporation may not buy a station token now (§14.1), if it may: with the
- * variant, from phase 6, after running trains, once a turn, never a home token nor in a city
+ * variant, from phase 6, after running trains and before buying any, once a turn, never a home token nor in a city
  * where it already has a token, and only where its routes reach. The seller keeps a station.
  */
 export function stationPurchaseReason1849(
@@ -52,6 +52,9 @@ export function stationPurchaseReason1849(
         state.trainPurchaseStep?.companyId !== companyId
     )
         return 'A corporation buys a station token after running its trains.'
+    // The turn's order puts it before the trains bought (§14).
+    if (state.trainPurchaseStep.purchasedTrainIds.length)
+        return 'A station token is bought before the turn’s trains.'
     const set = state.operatingSet
     const bought = state.stationPurchase
     if (

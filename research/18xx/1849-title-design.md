@@ -200,10 +200,15 @@ track layouts and counts only, checked against the rulebook.
 17. **A bond issued into the Closed box** closes the corporation at once, ending its turn, as
     issuing shares there does (ruling 8); the bond it just issued is repaid from the money it
     brought in. §14.2 is silent; the research engine moves the price and plays on.
-18. **Station tokens bought** (§14.1) are one a turn, after running trains, never a home token
-    nor in a city where the buyer has one, and leave the seller a station, as the research
-    engine has it; the seller's president agrees through the family's purchase offer, which
-    the research engine leaves to the table.
+18. **Station tokens bought** (§14.1) are one a turn, after running trains and before buying
+    any (§14's turn order), never a home token nor in a city where the buyer has one, and leave
+    the seller a station, as the research engine has it; the seller's president agrees through
+    the family's purchase offer, which the research engine leaves to the table. Its order
+    against the E token, both before the trains, is not enforced: neither bears on the other.
+19. **A closing corporation's E token** goes back to the bank with its other tokens (§11), so
+    that it may buy one again if it starts again; the next E token sells at the later price.
+    The research engine rebuilds a closed corporation from scratch, losing its token the same
+    way, and has no limit of six to return it to.
 
 ## Implemented later or not at all
 

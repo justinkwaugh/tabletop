@@ -3,15 +3,12 @@ import {
     LoanAmount1849,
     bondInsolvencyOf,
     corporationClosureOf,
-    lastCertificateId,
     messinaEarthquakeOf,
-    StationTokenCount1849,
     TokenFees1849,
     type Earthquake1849,
     type State1849
 } from '@tabletop/1849'
 import {
-    isChoosePresidencyExchange,
     isGoBankrupt,
     isFloatCompany,
     isPayInterest,
@@ -22,7 +19,7 @@ import {
     type FloatCompany
 } from '@tabletop/18xx'
 import type { TitleActionDescription, TitleCallout } from '@tabletop/18xx-ui'
-import { Presentation1849 } from './presentation.js'
+import { Presentation1849, tokenFeeWords } from './presentation.js'
 import { assertExists } from '@tabletop/common'
 
 const names = new Intl.ListFormat('en', { type: 'conjunction' })
@@ -126,29 +123,24 @@ export function describe1849Action(stations: () => State1849['stations']): Title
                         .join(' · ') || undefined
             }
         }
-        // A corporation in the Closed box repays its bond as it closes (§14.2).
+        // A corporation in the Closed box repays its bond and returns its E token (§14).
         const closure = corporationClosureOf(action)
-        if (closure?.bondRepayment || closure?.bondShortfall) {
+        if (closure?.bondRepayment || closure?.bondShortfall || closure?.returnedEToken) {
             const row = shared()
             const repaid = (closure.bondRepayment ?? []).reduce(
                 (sum, payment) => sum + payment.amount,
                 0
             )
             const owed = closure.bondShortfall
-            const bond = [
+            const effects = [
                 repaid && `${money(repaid)} of its bond repaid`,
-                owed && `${money(owed.amount)} left for its president to raise`
+                owed && `${money(owed.amount)} left for its president to raise`,
+                closure.returnedEToken && 'Its E token back to the bank'
             ]
                 .filter(Boolean)
                 .join(' · ')
-            return { ...row, detail: row.detail ? `${row.detail} · ${bond}` : bond }
+            return { ...row, detail: row.detail ? `${row.detail} · ${effects}` : effects }
         }
-        // The outgoing president took the last certificate or two single ones (§9.5).
-        if (isChoosePresidencyExchange(action))
-            return {
-                ...shared(),
-                text: `Took ${action.certificateIds.includes(lastCertificateId(action.companyId)) ? 'the last certificate' : 'two single certificates'} for ${companyName(action.companyId)}’s president’s certificate`
-            }
         const earthquake = messinaEarthquakeOf(action)
         if (earthquake)
             return {
@@ -162,7 +154,7 @@ export function describe1849Action(stations: () => State1849['stations']): Title
               : undefined
         if (fee === undefined) return undefined
         const row = shared()
-        const tokens = `${Presentation1849.money(fee)} for its ${StationTokenCount1849} station tokens`
+        const tokens = tokenFeeWords(fee)
         return { ...row, detail: row.detail ? `${row.detail} · ${tokens}` : tokens }
     }
 }

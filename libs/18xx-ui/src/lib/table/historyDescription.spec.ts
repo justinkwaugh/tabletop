@@ -18,7 +18,7 @@ import type {
 } from '@tabletop/18xx'
 import { afterPlayerName, historyDescription } from './historyDescription.js'
 import { historyStateFixture } from './history.fixture.js'
-import { TestMarket } from '@tabletop/18xx/testing'
+import { TestCharters, TestCompanyId, TestMarket } from '@tabletop/18xx/testing'
 import { placeReference } from '@tabletop/18xx'
 
 it('describes purchased and auctioned bonus shares without current certificates or reversal data', () => {
@@ -385,4 +385,47 @@ it('describes a called game by its call, not by an actor', () => {
             id.toUpperCase()
         )
     ).toEqual({ text: 'ALEX conceded; BLAKE wins', important: true })
+})
+
+it('names what an outgoing president took for the president’s certificate (1849 §9.5)', () => {
+    const state = historyStateFixture()
+    const owner = { kind: 'player' as const, playerId: 'alex' }
+    const share = (id: string, shares: number) => ({
+        id,
+        companyId: TestCompanyId,
+        kind: 'share' as const,
+        shares,
+        owner
+    })
+    state.certificates = [share('last', 2), share('one', 1), share('two', 1)]
+    const choice = (certificateIds: string[]) => ({
+        id: 'choice',
+        gameId: 'history',
+        source: ActionSource.User,
+        type: 'ChoosePresidencyExchange',
+        playerId: 'alex',
+        companyId: TestCompanyId,
+        certificateIds
+    })
+    const describe = (certificateIds: string[]) =>
+        historyDescription(
+            choice(certificateIds),
+            state,
+            TestMarket,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            { charters: TestCharters, multiShare: { name: 'Last certificate' } }
+        ).text
+    expect(describe(['last'])).toBe(
+        'Took the last certificate (20%) for R’s president’s certificate'
+    )
+    expect(describe(['one', 'two'])).toBe(
+        'Took two 10% certificates for R’s president’s certificate'
+    )
 })

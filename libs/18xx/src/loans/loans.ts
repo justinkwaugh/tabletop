@@ -8,8 +8,7 @@ import type { StockState } from '../stock/stockState.js'
 export const LoanStep = Type.Object(
     {
         companyId: Type.String(),
-        borrowedAfterInterest: Type.Optional(Type.Literal(true)),
-        repaidAfterInterest: Type.Optional(Type.Literal(true))
+        borrowedAfterInterest: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )
@@ -66,8 +65,6 @@ export interface LoanRules {
      * bonds are issued at the end of the operating turn (§14.2).
      */
     borrowsInLoanStepOnly?: true
-    /** A company that repays in the loan step may not borrow again that turn (1849 §14.2). */
-    noBorrowingAfterRepaying?: true
 }
 
 export function companyLoans(state: LoanState, companyId: string): number {
@@ -95,6 +92,7 @@ export function takeLoanReason(
     rules: LoanRules,
     companyId: string
 ): string | undefined {
+    if (rules.inPlay?.(state) === false) return 'Loans are not in this game.'
     const company = getCompany(state, companyId)
     if (!company.started || company.closed || company.kind === 'private')
         return 'Only a started company may borrow.'

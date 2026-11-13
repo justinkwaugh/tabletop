@@ -130,7 +130,7 @@ function validateStateComposition(
         ['openingAuction', !!options.auctionRules],
         ['selectionAuction', !!options.selectionAuctionRules],
         ['pendingPar', !!options.companyRules.parAfterAward],
-        ['presidencyExchanges', !!options.stockRules.presidencyExchangeChoice],
+        ['presidencyExchanges', !!options.stockRules.presidencyExchange?.choice],
         ['companyAuction', !!options.stockRules.companyAuction],
         ['stockTurnPurchases', !!options.stockRules.multipleBuys],
         ['loanStep', !!options.loanRules],
@@ -597,7 +597,7 @@ export function createEighteenXXRuntime<
         : undefined
     // An outgoing president's choice of certificates holds whatever state the change came in.
     const awaitsExchange = (handler: Handler): Handler =>
-        rules.presidencyExchangeChoice ? new PresidencyExchangeHandler(handler) : handler
+        rules.presidencyExchange?.choice ? new PresidencyExchangeHandler(handler) : handler
     const stateHandlers: Record<string, Handler> = Object.fromEntries(
         Object.entries({ ...familyStateHandlers, ...options.titleStateHandlers }).map(
             ([machineState, handler]) => [
@@ -608,7 +608,7 @@ export function createEighteenXXRuntime<
     )
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
-        ...(rules.presidencyExchangeChoice
+        ...(rules.presidencyExchange?.choice
             ? [
                   defineAction(
                       ChoosePresidencyExchange,
