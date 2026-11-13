@@ -48,6 +48,7 @@ Adding or removing a `touchstart`, `touchmove`, or `wheel` listener anywhere res
 - **HTML text under zoom**: keep HTML out of a `renderAtViewScale` board's zoom, as the 18xx `BoardInset` does with `--render-unzoom` and a transform. Safari 27.0 draws zoomed-out HTML text specified at 9px or more no smaller than 9px, and HTML laid out again at each zoom moves its text.
 - **Images in SVG**: size an `<image>` to cover its box yourself, scale = max(boxW/artW, boxH/artH), and clip it to the box; browsers disagree on `preserveAspectRatio="slice"`. Give exported SVG art `width` and `height` on its root.
 - **Moving SVG under zoom**: tween a plain point and write `translate(...)` yourself. GSAP writes SVG `x`/`y` as `matrix(...)`, whose offset Firefox 140 leaves out of CSS zoom, so pieces inside a `renderAtViewScale` board spread apart.
+- **Measuring under zoom**: measure an element inside a `renderAtViewScale` board with `visualClientRect` from `@tabletop/frontend-components`, not `getBoundingClientRect`. Safari 26.0 and older report its rect divided by the CSS zoom, so a picker or popover placed from it lands off the board. Playwright's current WebKit measures correctly; Playwright 1.55's WebKit 26.0 (build 2203) shows the fault.
 
 ## Measure in WebKit
 
@@ -72,5 +73,6 @@ Done means the open and heaviest-interaction memory and the repaint time are rec
 | Long frames with no slow script                         | Restyle or paint                | Ask the user for a Safari Web Inspector timeline export; read what precedes each long `recalculate-styles` or paint |
 | Board or pieces vanish for a moment                     | Offscreen bitmaps exhausted     | Find fades and filters whose area is a sheet or the board                                                           |
 | Text sits high or low; pieces spread when zoomed        | Baseline or `matrix` under zoom | Apply [Correct drawing across browsers](#correct-drawing-across-browsers)                                           |
+| Overlay on the board misplaced or missing, older Safari | Rect measured under zoom        | Apply [Correct drawing across browsers](#correct-drawing-across-browsers)                                           |
 
 Playwright WebKit reproduces the memory and repaint costs; the user's iPhone confirms the fix.

@@ -79,6 +79,7 @@ export * from './utils/runeBackedStore.svelte.js'
 export * from './utils/pinToNewest.js'
 export * from './utils/wheelDelta.js'
 export * from './utils/scrollChain.js'
+export * from './utils/visualClientRect.js'
 
 export * from './utils/validateLocalGameState.js'
 
