@@ -21,8 +21,15 @@ import {
 import type { MapSelection } from '../maps/mapDrawing.js'
 
 /** A route with no track yet is only its start. */
-export type DraftRoute = Omit<TrainRoute, 'paths'> & { paths: readonly RoutePath[] }
-export type RouteDraft = { routes: readonly DraftRoute[]; trainId?: string }
+export type DraftRoute = Omit<TrainRoute, 'paths' | 'attachmentIds'> & {
+    paths: readonly RoutePath[]
+}
+export type RouteDraft = {
+    routes: readonly DraftRoute[]
+    trainId?: string
+    /** The train each piece of attached rolling stock runs with, by the stock's id. */
+    attachedTo?: Readonly<Record<string, string>>
+}
 type Stages = { draft: RouteDraft }
 const Order: readonly 'draft'[] = ['draft']
 /** The most hexes one tap may add to a route. */
@@ -55,9 +62,30 @@ export class RouteEditor {
     get trainId() {
         return this.draft?.trainId
     }
+    /** The drawn routes as they would run: a start alone runs only for a train that runs at one station. */
     get routes(): TrainRoute[] {
-        return (this.draft?.routes ?? []).flatMap((route) =>
-            route.paths.length ? [{ ...route, paths: [...route.paths] }] : []
+        const draft = this.draft
+        if (!draft) return []
+        const attached = Object.entries(draft.attachedTo ?? {})
+        return draft.routes.flatMap((route) => {
+            if (!route.paths.length && !this.runsAtStation(route.trainId)) return []
+            const attachmentIds = attached
+                .filter(([, trainId]) => trainId === route.trainId)
+                .map(([attachmentId]) => attachmentId)
+            return [
+                {
+                    ...route,
+                    paths: [...route.paths],
+                    ...(attachmentIds.length ? { attachmentIds } : {})
+                }
+            ]
+        })
+    }
+    private runsAtStation(trainId: string): boolean {
+        const train = this.trains.find((candidate) => candidate.id === trainId)
+        return (
+            !!train &&
+            this.rules.depot.trainDefinition(train.definitionId).distance.stationRun === true
         )
     }
     get evaluated() {
@@ -91,11 +119,49 @@ export class RouteEditor {
             this.trains.some((train) => train.id === trainId),
             'Choose an owned train'
         )
-        const draft = this.draft
+        const draft = this.draft ?? this.drafted(base)
         this.push({
-            routes: draft?.routes ?? base,
-            ...(draft?.trainId === trainId ? {} : { trainId })
+            routes: draft.routes,
+            ...(draft.attachedTo ? { attachedTo: draft.attachedTo } : {}),
+            ...(draft.trainId === trainId ? {} : { trainId })
         })
+    }
+    /** The rolling stock the chosen train could take over from the train that carries it now. */
+    get movableAttachments() {
+        const draft = this.draft
+        const companyId = this.companyId
+        const train = this.trains.find((candidate) => candidate.id === draft?.trainId)
+        if (!draft || !companyId || !train) return []
+        return this.attachments.filter(
+            (stock) =>
+                draft.attachedTo?.[stock.id] !== train.id &&
+                !!this.evaluation.runningDefinition(companyId, train, [stock.id]).definition
+        )
+    }
+    /** Runs a piece of rolling stock with the chosen train in place of the one that carried it. */
+    attach(attachmentId: string) {
+        const draft = this.draft
+        assert(
+            draft?.trainId && this.movableAttachments.some((stock) => stock.id === attachmentId),
+            'The chosen train cannot take this rolling stock'
+        )
+        this.push({ ...draft, attachedTo: { ...draft.attachedTo, [attachmentId]: draft.trainId } })
+    }
+    private drafted(base: readonly TrainRoute[]): RouteDraft {
+        const attachedTo = Object.fromEntries(
+            base.flatMap((route) =>
+                (route.attachmentIds ?? []).map((attachmentId) => [attachmentId, route.trainId])
+            )
+        )
+        return {
+            routes: base.map(({ trainId, start, paths, extension }) => ({
+                trainId,
+                start,
+                paths,
+                ...(extension ? { extension } : {})
+            })),
+            ...(Object.keys(attachedTo).length ? { attachedTo } : {})
+        }
     }
     tap(selection: MapSelection): boolean {
         const draft = this.draft
@@ -114,6 +180,7 @@ export class RouteEditor {
         const order = this.trains.map((train) => train.id)
         this.push({
             trainId,
+            ...(draft.attachedTo ? { attachedTo: draft.attachedTo } : {}),
             routes: routes.toSorted(
                 (first, second) => order.indexOf(first.trainId) - order.indexOf(second.trainId)
             )
@@ -125,7 +192,10 @@ export class RouteEditor {
         const draft = this.draft
         assert(draft?.trainId, 'Choose a train to clear its route')
         const trainId = draft.trainId
-        this.push({ trainId, routes: draft.routes.filter((route) => route.trainId !== trainId) })
+        this.push({
+            ...draft,
+            routes: draft.routes.filter((route) => route.trainId !== trainId)
+        })
     }
     undo(): boolean {
         const { nextState, poppedStage } = popHighestManualStagedSelection<Stages>(

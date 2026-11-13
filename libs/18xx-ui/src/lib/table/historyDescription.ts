@@ -113,6 +113,8 @@ export type HistoryDescription = {
     ledgerText?: string
     value?: string
     detail?: string
+    /** What the action did where it did several things, a line for each. */
+    detailLines?: readonly string[]
     routine?: boolean
     important?: boolean
     /** A company whose token leads the row, such as one that floated or closed. */
@@ -787,14 +789,14 @@ function describeShared(
         const awards = action.metadata?.awards ?? []
         return {
             text: 'Settled the bidding boxes',
-            detail: awards.length
-                ? awards
-                      .map(
+            ...(awards.length
+                ? {
+                      detailLines: awards.map(
                           (award) =>
                               `${playerName(award.playerId)} bought ${lotName(award.lotId)} for ${money(award.amount)}`
                       )
-                      .join(' · ')
-                : 'Nothing had a bid',
+                  }
+                : { detail: 'Nothing had a bid' }),
             important: true
         }
     }

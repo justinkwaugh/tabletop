@@ -368,7 +368,8 @@ export class EighteenXXSession<
     readonly routes = new RoutesModule(
         this.moduleSession,
         () => this.map.networkRoutes,
-        (companyId) => this.presentation.manualRoutes?.(this.gameState, companyId) ?? false
+        (companyId) => this.presentation.manualRoutes?.(this.gameState, companyId) ?? false,
+        () => this.presentation.drawnRunsEarnMost
     )
     readonly stock = new StockModule(
         this.moduleSession,

@@ -11,6 +11,7 @@ import {
 import { trainRouteOverlays } from '../routes/routePresentation.js'
 import type { MapRoute, MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
+import type { DrawnRunStandard } from './titlePresentation.js'
 import type { ModuleSession } from './moduleSession.js'
 import type { LocalSelection } from '@tabletop/frontend-components'
 
@@ -35,7 +36,8 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     constructor(
         private readonly session: RoutesSession<State>,
         private readonly networkRoutes: () => readonly RouteOverlay[],
-        private readonly mayDrawRoutes: (companyId: string) => boolean = () => false
+        private readonly mayDrawRoutes: (companyId: string) => boolean = () => false,
+        private readonly drawnRunsEarnMost: () => DrawnRunStandard | undefined = () => undefined
     ) {}
 
     editor = $derived.by(() => new RouteEditor(this.session.state, this.session.rules.routeRules))
@@ -66,9 +68,36 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     })
     shown = $derived.by(() => (this.editor.draft ? this.editor.result : this.solved?.result))
     drawnReason = $derived.by(() => this.editor.evaluated?.reason)
+    /** The best run found, which a drawn run is held to where the title holds it so. */
+    private standard = $derived.by(() =>
+        this.editable && this.drawnRunsEarnMost() ? this.solved?.result : undefined
+    )
+    /** The revenue a drawn run has to reach, where the title holds drawn runs to the best found. */
+    revenueToReach = $derived.by(() => this.standard?.revenue)
+    /**
+     * How a legal drawn run that earns less than the best found stands: refused, or allowed for
+     * the higher subsidy it pays the treasury. ``subsidyToBeat`` is set where a subsidy counts.
+     */
+    reducedRun = $derived.by(() => {
+        const drawn = this.editor.evaluated?.result
+        const best = this.standard
+        if (!drawn || !best || drawn.revenue >= best.revenue) return undefined
+        const subsidyCounts = this.drawnRunsEarnMost() === 'unless-subsidy-rises'
+        const subsidy = drawn.subsidy ?? 0
+        const subsidyToBeat = best.subsidy ?? 0
+        return {
+            revenue: drawn.revenue,
+            subsidy,
+            allowed: subsidyCounts && subsidy > subsidyToBeat,
+            ...(subsidyCounts && (subsidy || subsidyToBeat) ? { subsidyToBeat } : {})
+        }
+    })
     submission = $derived.by((): TrainRoute[] | undefined => {
         if (!this.canRun) return undefined
-        if (this.editor.draft) return this.editor.evaluated?.result ? this.editor.routes : undefined
+        if (this.editor.draft)
+            return this.editor.evaluated?.result && this.reducedRun?.allowed !== false
+                ? this.editor.routes
+                : undefined
         return this.solved && trainRoutesOf(this.solved.result)
     })
     overlays = $derived.by((): RouteOverlay[] => {
@@ -136,6 +165,10 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     clearTrain() {
         assert(this.editable, 'Routes cannot be drawn')
         this.editor.clearTrain()
+    }
+    attach(attachmentId: string) {
+        assert(this.editable, 'Routes cannot be drawn')
+        this.editor.attach(attachmentId)
     }
     /** Drops the drawn routes, so the best run found runs again. */
     useBestRun() {

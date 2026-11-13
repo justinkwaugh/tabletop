@@ -255,6 +255,94 @@ describe('RouteEditor', () => {
         expect(editor.routes[1]).toEqual({ trainId: four, start: center(3), paths: line(3, 4) })
     })
 
+    it('runs a train that runs at one station from its start alone', () => {
+        const local = new TrainDepot({
+            id: 'local-trains',
+            trains: [
+                {
+                    id: 'L',
+                    name: 'L',
+                    price: 60,
+                    distance: { measure: 'revenue-centers', maximum: 1, stationRun: true }
+                }
+            ],
+            supply: [{ definitionId: 'L', count: 1 }]
+        })
+        const state = {
+            ...minimalPlayState(),
+            trainInventory: local.createInventory(),
+            tileInventory: minimalTileSet.createInventory(),
+            routeStep: { companyId: TestCompanyId }
+        }
+        state.stations.push({
+            id: 'station',
+            companyId: TestCompanyId,
+            status: 'placed',
+            position: { locationId: 'a1', nodeId: 'city', slot: 0 }
+        })
+        const train = companyTrain(local, state.trainInventory, 'L')
+        const editor = new RouteEditor(state, { ...minimalRouteRules, map, depot: local })
+        editor.selectTrain(train, [])
+        editor.tap(stop(1))
+        expect(editor.routes).toEqual([{ trainId: train, start: center(1), paths: [] }])
+        expect(editor.evaluated?.result?.revenue).toBe(30)
+    })
+
+    it('keeps attached rolling stock through a redraw and moves it to a chosen train that can take it', () => {
+        const stocked = new TrainDepot({
+            id: 'stocked-trains',
+            trains: [
+                ...depot.definition.trains,
+                {
+                    id: 'P',
+                    name: 'P',
+                    price: 0,
+                    distance: { measure: 'revenue-centers', maximum: 1 },
+                    attachment: true
+                }
+            ],
+            supply: [
+                { definitionId: '2', count: 1 },
+                { definitionId: '4', count: 1 },
+                { definitionId: 'P', count: 1 }
+            ]
+        })
+        const state = {
+            ...minimalPlayState(),
+            trainInventory: stocked.createInventory(),
+            tileInventory: minimalTileSet.createInventory(),
+            routeStep: { companyId: TestCompanyId }
+        }
+        state.stations.push({
+            id: 'station',
+            companyId: TestCompanyId,
+            status: 'placed',
+            position: { locationId: 'a1', nodeId: 'city', slot: 0 }
+        })
+        const [two, four, carriage] = ['2', '4', 'P'].map((definitionId) =>
+            companyTrain(stocked, state.trainInventory, definitionId)
+        )
+        const editor = new RouteEditor(state, {
+            ...minimalRouteRules,
+            map,
+            depot: stocked,
+            attachedDefinition: (_state, train) => train
+        })
+        editor.selectTrain(four, [
+            { trainId: two, start: center(1), paths: line(1, 2), attachmentIds: [carriage] },
+            { trainId: four, start: center(3), paths: line(3, 4) }
+        ])
+        editor.tap(stop(2))
+        expect(editor.routes.find((route) => route.trainId === four)?.paths).toHaveLength(4)
+        expect(editor.routes.find((route) => route.trainId === two)?.attachmentIds).toEqual([
+            carriage
+        ])
+        expect(editor.movableAttachments.map((stock) => stock.id)).toEqual([carriage])
+        editor.attach(carriage)
+        expect(editor.routes.map((route) => route.attachmentIds)).toEqual([undefined, [carriage]])
+        expect(editor.movableAttachments).toEqual([])
+    })
+
     it('lets a chosen train go when it is chosen again', () => {
         const { editor, four } = drawing()
         editor.selectTrain(four, [])

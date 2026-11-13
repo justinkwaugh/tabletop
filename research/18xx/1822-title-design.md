@@ -127,7 +127,12 @@ Readings this title keeps, each as the research engine has it unless noted:
 7. **P8's and P10's tokens are declared before the lay** they pay for (`UseDiscountToken`);
    P10's estuary tokens pay for as many crossings of that lay as the company holds tokens for
    (the engine spends one a lay).
-8. **No route-maximisation check** (§5.13.6), as in the other titles.
+8. **Every run earns the most possible** (§5.13.6): a company runs the best routes found. One
+   that holds a mail contract, a permanent train or a Pullman may redraw its routes and move the
+   Pullman to another train. A drawn run runs only if it earns as much as the best found, or,
+   earning less, pays more mail income than the best found does: the rule's leave to reduce a
+   run for mail. This is held by the game's screens; the logic accepts any legal run. The mail
+   income compared is that of the one best run found, not of every run that ties with it.
 9. **Merthyr Tydfil–Pontypool** is one track through E32 that ends the route at the city it
    reaches; the research engine draws a second, direct track and lets a company's trains use one
    of the two in a turn. The same runs are legal.

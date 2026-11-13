@@ -16,6 +16,8 @@
         chosenTrainId,
         label = 'Train income',
         attachments = [],
+        movableAttachments = [],
+        onAttach,
         bonusName
     }: {
         money: MoneyFormat
@@ -31,6 +33,9 @@
         label?: string
         /** Rolling stock the company may attach to a train for the run, such as a Pullman. */
         attachments?: readonly Train[]
+        /** The rolling stock the chosen train could take over, offered under its row. */
+        movableAttachments?: readonly Train[]
+        onAttach?: (attachmentId: string) => void
         /** Names what earned a route's bonus, so that each train's bonuses are listed under it. */
         bonusName?: (sourceId: string) => string
     } = $props()
@@ -95,6 +100,17 @@
                         >{/if}</td
                 >
             </tr>
+            {#if onAttach && chosenTrainId === train.id}
+                {#each movableAttachments as stock (stock.id)}
+                    <tr class="attachment">
+                        <td colspan="2"
+                            ><button class="attach" onclick={() => onAttach(stock.id)}
+                                >Attach the {trainName(stock.definitionId)} to this train</button
+                            ></td
+                        >
+                    </tr>
+                {/each}
+            {/if}
             {#each bonuses(route) as bonus (bonus.label)}
                 <tr class="bonus">
                     <td>{bonus.label}</td><td class="income">incl. {money(bonus.amount)}</td>
@@ -180,6 +196,20 @@
         position: relative;
     }
     /* Beside the row, so the income column keeps its alignment. */
+    .attach {
+        margin: 2px 0 4px 18px;
+        padding: 3px 8px;
+        border: 1px solid var(--rail-border, #b9ac99);
+        border-radius: 5px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 11px;
+        cursor: pointer;
+    }
+    .attach:hover {
+        border-color: var(--rail-focus, #443e35);
+    }
     .clear {
         position: absolute;
         left: calc(100% + 6px);

@@ -92,28 +92,32 @@
 {/snippet}
 
 {#if id === 'metropolitan'}
+    {@const station = session.metropolitanStation}
     <section class="mode title-panel" aria-label="Metropolitan Railway home">
         <p>
             The Metropolitan Railway places its home beside one of London’s six stations for
             {money(session.metropolitanHomeCost)}. This is its track lay for the turn.
         </p>
-        <div class="choices" role="group" aria-label="London stations">
-            {#each LondonNodeIds as nodeId (nodeId)}
-                <button
-                    class="choice"
-                    disabled={!session.canPlaceMetropolitanHome}
-                    onclick={() => session.placeMetropolitanHome(nodeId)}
+        {#if station}
+            <p class="chosen-station">
+                Beside London’s {LondonStationNames[station]} station
+                <span class="marks"
+                    >{#each londonHomes[station] ?? [] as homeId (homeId)}{@render token(
+                            homeId,
+                            20
+                        )}{/each}</span
                 >
-                    <span class="choice-title">{LondonStationNames[nodeId]}</span>
-                    <span class="marks"
-                        >{#each londonHomes[nodeId] ?? [] as homeId (homeId)}{@render token(
-                                homeId,
-                                20
-                            )}{/each}</span
-                    >
-                </button>
-            {/each}
-        </div>
+            </p>
+            <button
+                class="action-button"
+                disabled={!session.canPlaceMetropolitanHome}
+                onclick={() => session.placeMetropolitanHome()}
+                >Place its home for {money(session.metropolitanHomeCost)}</button
+            >
+            <small class="muted">Tap another London station to change it.</small>
+        {:else}
+            <p><strong>Tap a London station on the map.</strong></p>
+        {/if}
     </section>
 {:else if id === 'first-train' && session.firstTrain}
     {@const offer = session.firstTrain}
@@ -449,8 +453,12 @@
         opacity: 0.5;
         cursor: default;
     }
-    .choice-title {
-        text-transform: capitalize;
+    .chosen-station {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 600;
     }
     .marks {
         display: inline-flex;

@@ -5,7 +5,10 @@ import {
     Map1822,
     MarketPoolId1822,
     MarketZoneColors1822,
+    MailContractPrivateIds,
+    PermanentTrainIds,
     PhaseCreditPrivateIds,
+    PullmanTrainId,
     RiverDiscountPrivateId,
     TitleRules1822,
     isAcquireMinor,
@@ -15,13 +18,21 @@ import {
     major1822,
     type State1822
 } from '@tabletop/1822'
-import { finiteCashOwnedBy, getCompany, privateOwner, privateOwningCompany } from '@tabletop/18xx'
+import {
+    finiteCashOwnedBy,
+    getCompany,
+    privateOwner,
+    privateOwningCompany,
+    trainsOwnedBy
+} from '@tabletop/18xx'
 import { moneyFormat, type TitleFact, type TitlePresentation } from '@tabletop/18xx-ui'
 import { CompanyNames1822 } from './companyPresentation.js'
 import { PhaseChart1822 } from './phaseChart.js'
 import { PhaseColors1822, TrainColors1822 } from './trainPresentation.js'
 
 const money = moneyFormat(TitleRules1822.currencySymbol)
+/** The trains that give their company a choice of run: the permanent trains and the Pullman. */
+const ChosenRunTrainIds: readonly string[] = [...PermanentTrainIds, PullmanTrainId]
 const place = (locationId: string) => Map1822.location(locationId).name ?? locationId
 
 /** Whether the major company has joined its destination (§5.11). */
@@ -59,6 +70,15 @@ export const Presentation1822: TitlePresentation<State1822> = {
     phaseColors: PhaseColors1822,
     marketPoolId: MarketPoolId1822,
     separateEarningsName: 'Permanent train',
+    // A company with a mail contract, a permanent train or a Pullman chooses among its best runs
+    // (§5.13.6, §5.5.6). A run must earn the most possible, unless it is reduced for more mail
+    // income.
+    manualRoutes: (state, companyId) =>
+        MailContractPrivateIds.some((id) => privateOwningCompany(state, id) === companyId) ||
+        trainsOwnedBy(state, { kind: 'company', companyId }).some((train) =>
+            ChosenRunTrainIds.includes(train.definitionId)
+        ),
+    drawnRunsEarnMost: 'unless-subsidy-rises',
     poolName: (poolId) => (poolId === MarketPoolId1822 ? 'Bank pool' : 'Treasury'),
     companyNames: CompanyNames1822,
     corporateFinance: {

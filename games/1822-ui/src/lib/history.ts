@@ -162,7 +162,10 @@ export function describe1822Action(session: {
             return Value.Check(BidBoxSettlement1822, details)
                 ? {
                       ...description,
-                      detail: joinDetails(description.detail, ...settlementDetails(details, names))
+                      detailLines: [
+                          ...(description.detailLines ?? []),
+                          ...settlementDetails(details, names)
+                      ]
                   }
                 : description
         }

@@ -108,6 +108,8 @@
     const nodeInkFilter = $derived(appearance.roughness ? `url(#${nodeInkId})` : undefined)
     const trackInkFilter = $derived(appearance.roughness ? `url(#${trackInkId})` : undefined)
     const cityRingWidth = $derived(appearance.cityRingWidth ?? 1.1)
+    // A station space that is no stop of its own, as 1822's English Channel, has a broken ring.
+    const UncountedStopDashes = '2.4 1.8'
     const revenueCircle = $derived(
         appearance.revenueCircle ?? { radius: 8.7, ringWidth: 0.55, fontSize: 10 }
     )
@@ -359,6 +361,7 @@
                         fill={appearance.paper}
                         stroke={appearance.ink}
                         stroke-width={cityRingWidth}
+                        stroke-dasharray={node.uncounted ? UncountedStopDashes : undefined}
                     ></circle>
                 {/each}
                 {#if slots.length === 0}<circle

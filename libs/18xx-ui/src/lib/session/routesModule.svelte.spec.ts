@@ -1,4 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { HexOrientation, assertExists } from '@tabletop/common'
+import {
+    RailwayMap,
+    RouteEvaluation,
+    TrainDepot,
+    createCityTileFace,
+    type RouteResult
+} from '@tabletop/18xx'
 import {
     TestCompanyId,
     TestHomeLocationId,
@@ -68,6 +76,101 @@ describe('RoutesModule', () => {
         const { module } = running('RunningTrains', ['FinishTrack'])
         expect(() => module.selectTrain('t1')).toThrow('Routes cannot be drawn')
         expect(module.tap({ kind: 'hex', locationId: 'a' })).toBe(false)
+    })
+
+    it('holds a drawn run to the revenue of the best found, unless it pays the treasury more', async () => {
+        const map = new RailwayMap({
+            id: 'line',
+            name: 'Line',
+            orientation: HexOrientation.Flat,
+            locations: [0, 1, 2, 3].map((r) => ({
+                id: `a${r}`,
+                coordinates: { q: 0, r },
+                buildable: true,
+                preprintedTile: createCityTileFace('green', [0, 3], 30, 1)
+            }))
+        })
+        const depot = new TrainDepot({
+            id: 'line-trains',
+            trains: [
+                {
+                    id: '4',
+                    name: '4',
+                    price: 300,
+                    distance: { measure: 'revenue-centers', maximum: 4 }
+                }
+            ],
+            supply: [{ definitionId: '4', count: 1 }]
+        })
+        const state = {
+            ...minimalPlayState(),
+            machineState: 'RunningTrains' as const,
+            trainInventory: depot.createInventory(),
+            tileInventory: minimalTileSet.createInventory(),
+            routeStep: { companyId: TestCompanyId }
+        }
+        state.stations.push({
+            id: 'station',
+            companyId: TestCompanyId,
+            status: 'placed',
+            position: { locationId: 'a1', nodeId: 'city', slot: 0 }
+        })
+        const train = companyTrain(depot, state.trainInventory, '4')
+        // A run of two stations pays the treasury more than any other, as a mail contract might.
+        const rules = {
+            routeRules: {
+                ...minimalRouteRules,
+                map,
+                depot,
+                runSubsidy: (
+                    _state: unknown,
+                    _companyId: string,
+                    routes: readonly RouteResult[]
+                ) => (routes[0]?.visits.length === 2 ? 50 : 10)
+            }
+        }
+        const { session, applied } = testSession(state, rules, ['RunTrains'])
+        const module = new RoutesModule(
+            session,
+            () => networkRoutes,
+            () => true,
+            () => 'unless-subsidy-rises'
+        )
+        const along = (from: number, to: number) =>
+            Array.from({ length: to - from }, (_, index) => [
+                { locationId: `a${from + index}`, pathId: 'edge-0' },
+                { locationId: `a${from + index + 1}`, pathId: 'edge-3' }
+            ]).flat()
+        const start = { locationId: 'a0', nodeId: 'city' }
+        const best = new RouteEvaluation(state, rules.routeRules).evaluate(TestCompanyId, [
+            { trainId: train, start, paths: along(0, 3) }
+        ])
+        assertExists(best.result)
+        module.setSolved(state, best.result, true)
+        expect(module.revenueToReach).toBe(120)
+        module.selectTrain(train)
+        module.tap({ kind: 'node', locationId: 'a2', nodeId: 'city' })
+        expect(module.shown?.revenue).toBe(90)
+        expect(module.reducedRun).toEqual({
+            revenue: 90,
+            subsidy: 10,
+            allowed: false,
+            subsidyToBeat: 10
+        })
+        expect(module.submission).toBeUndefined()
+        module.tap({ kind: 'node', locationId: 'a1', nodeId: 'city' })
+        expect(module.shown?.revenue).toBe(60)
+        expect(module.reducedRun).toEqual({
+            revenue: 60,
+            subsidy: 50,
+            allowed: true,
+            subsidyToBeat: 10
+        })
+        expect(module.submission).toHaveLength(1)
+        module.useBestRun()
+        expect(module.reducedRun).toBeUndefined()
+        await module.run()
+        expect(applied).toMatchObject([{ type: 'RunTrains', companyId: TestCompanyId }])
     })
 
     it('has nothing pending without a route selection and yields Undo to game history', () => {

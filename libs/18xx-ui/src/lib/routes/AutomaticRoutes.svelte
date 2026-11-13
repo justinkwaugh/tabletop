@@ -93,6 +93,8 @@
                 : undefined}
             chosenTrainId={routes.editor.trainId}
             attachments={routes.editor.attachments}
+            movableAttachments={routes.editable ? routes.editor.movableAttachments : []}
+            onAttach={(attachmentId) => routes.attach(attachmentId)}
             bonusName={(sourceId) => session.names.routeBonus(sourceId)}
             trainName={(id) => session.trainDepot.trainDefinition(id).name}
         />
@@ -107,6 +109,21 @@
             >
         </span>
         {#if routes.drawnReason}<p class="note" role="alert">{routes.drawnReason}</p>
+        {:else if routes.reducedRun && !routes.reducedRun.allowed}<p class="note" role="alert">
+                This run earns {money(routes.reducedRun.revenue)}; the most possible is
+                {money(routes.revenueToReach ?? 0)}.
+                {#if routes.reducedRun.subsidyToBeat !== undefined}
+                    <br />To run for less, it must pay the treasury more than
+                    {money(routes.reducedRun.subsidyToBeat)}. It pays
+                    {money(routes.reducedRun.subsidy)}.
+                {/if}
+            </p>
+        {:else if routes.reducedRun}<p class="note">
+                This run earns {money(routes.reducedRun.revenue)}, less than the
+                {money(routes.revenueToReach ?? 0)} possible, and pays the treasury
+                {money(routes.reducedRun.subsidy)} instead of
+                {money(routes.reducedRun.subsidyToBeat ?? 0)}.
+            </p>
         {:else if chosenTrain}<small
                 >Tap stops on the map to change the {session.trainDepot.trainDefinition(
                     chosenTrain.definitionId
@@ -114,6 +131,9 @@
             >
         {:else if routes.editable && !drawn}<small>Tap a train to draw its route.</small>
         {/if}
+        {#if drawn && routes.revenueToReach !== undefined && !routes.reducedRun}<small
+                >Most possible: {money(routes.revenueToReach)}.</small
+            >{/if}
         {#if !drawn && !routes.solved?.exhaustive}<small
                 >Best routes found within the search time.</small
             >{/if}

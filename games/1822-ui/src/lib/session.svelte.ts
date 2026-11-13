@@ -5,11 +5,13 @@ import {
     AnswerPrivateOffer,
     BuyLocalTrain,
     DeclareCash,
+    LondonLocationId,
     LondonNodeIds,
     MetropolitanHomeCost1822,
     MetropolitanId,
     MoveStackCard,
     PlaceMetropolitanHome,
+    RoundelSlot1822,
     RepayPlayerLoan,
     SwapStationToken,
     TitleRules1822,
@@ -33,11 +35,13 @@ import {
     type DiscountTokenKind,
     type HydratedState1822,
     type MinorAcquisition1822,
+    type LondonNodeId,
     type State1822,
     type TokenChoice1822
 } from '@tabletop/1822'
 import {
     finiteCashOwnedBy,
+    homeStationId,
     nextOperatingCompany,
     trainsCountingForLimit,
     type Train
@@ -46,6 +50,7 @@ import { assertExists } from '@tabletop/common'
 import {
     createEighteenXXSessionClass,
     type AwaitedDecision,
+    type MapLocationChoice,
     type TitleOperatingMode
 } from '@tabletop/18xx-ui'
 import type { LocalSelection } from '@tabletop/frontend-components'
@@ -101,6 +106,8 @@ export class Session1822 extends BaseSession {
     minorDraft = $state<MinorDraft>()
     privateDraft = $state<PrivateDraft>()
     stackCard = $state<string>()
+    /** The London station tapped for the Metropolitan Railway's home, until it is placed. */
+    metropolitanDraft = $state<LondonNodeId>()
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
         for (const selection of [
@@ -115,6 +122,10 @@ export class Session1822 extends BaseSession {
             stagedChoice(
                 () => this.stackCard !== undefined,
                 () => (this.stackCard = undefined)
+            ),
+            stagedChoice(
+                () => this.metropolitanDraft !== undefined,
+                () => (this.metropolitanDraft = undefined)
             )
         ])
             this.localSelections.register(selection)
@@ -188,10 +199,54 @@ export class Session1822 extends BaseSession {
     )
     readonly canPlaceMetropolitanHome = $derived(this.can('PlaceMetropolitanHome'))
     readonly metropolitanHomeCost = MetropolitanHomeCost1822
-    async placeMetropolitanHome(nodeId: (typeof LondonNodeIds)[number]): Promise<void> {
+    /** The London station chosen for the Metropolitan Railway's home while that is its to place. */
+    readonly metropolitanStation = $derived(
+        this.metropolitanHomeDue && this.canPlaceMetropolitanHome
+            ? this.metropolitanDraft
+            : undefined
+    )
+    async placeMetropolitanHome(): Promise<void> {
+        const nodeId = this.metropolitanStation
+        assertExists(nodeId, 'Choose the London station the home stands beside')
         await this.applyAction(
             this.createPlayerAction(PlaceMetropolitanHome, { companyId: MetropolitanId, nodeId })
         )
+        this.metropolitanDraft = undefined
+    }
+    // The Metropolitan Railway's home is chosen on the map: a tap on one of London's six stations.
+    override get mapLocationChoice(): MapLocationChoice | undefined {
+        if (!this.metropolitanHomeDue || !this.canPlaceMetropolitanHome)
+            return super.mapLocationChoice
+        return {
+            locationIds: [LondonLocationId],
+            choose: (_locationId, nodeId) => {
+                const station = LondonNodeIds.find((id) => id === nodeId)
+                if (station) this.metropolitanDraft = station
+            }
+        }
+    }
+    protected override get mapDisplayState() {
+        const state = super.mapDisplayState
+        const nodeId = this.metropolitanStation
+        if (!nodeId) return state
+        const homeId = homeStationId(MetropolitanId)
+        return {
+            ...state,
+            stations: state.stations.map((station) =>
+                station.id === homeId
+                    ? {
+                          id: homeId,
+                          companyId: MetropolitanId,
+                          status: 'placed' as const,
+                          position: {
+                              locationId: LondonLocationId,
+                              nodeId,
+                              slot: RoundelSlot1822
+                          }
+                      }
+                    : station
+            )
+        }
     }
     readonly privateOffers = $derived.by((): readonly PrivateOffer[] => {
         const playerId = this.me

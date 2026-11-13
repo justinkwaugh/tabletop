@@ -139,6 +139,9 @@ export type TitleOperatingStep<State extends GameState = EighteenXXState> = {
     ): string | undefined
 }
 
+/** How a drawn run is held to the best routes found. */
+export type DrawnRunStandard = 'always' | 'unless-subsidy-rises'
+
 export type TitlePresentation<State extends GameState = EighteenXXState> = {
     money: MoneyFormat
     phaseChart: PhaseChartData
@@ -226,6 +229,13 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * best routes found.
      */
     manualRoutes?(state: State, companyId: string): boolean
+    /**
+     * A drawn run must earn as much as the best routes found, where the title lets a director
+     * choose among the best runs but not run for less (1822 §5.13.6). With
+     * ``unless-subsidy-rises`` a run that earns less may still run where it pays the treasury a
+     * higher subsidy than the best found, as a run reduced for mail income does.
+     */
+    drawnRunsEarnMost?: DrawnRunStandard
     /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
     historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions

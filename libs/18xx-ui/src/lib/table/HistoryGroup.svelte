@@ -134,7 +134,10 @@
         })
     )
     const visible = $derived(
-        rows.filter((row) => !row.routine && (row.text || row.detail || row.order))
+        rows.filter(
+            (row) =>
+                !row.routine && (row.text || row.detail || row.detailLines?.length || row.order)
+        )
     )
 </script>
 
@@ -210,6 +213,7 @@
                         )}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
+                    {#each row.detailLines ?? [] as line, index (index)}<small>{line}</small>{/each}
                     <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}
@@ -315,6 +319,7 @@
                             : (row.value ?? '')}</strong
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
+                    {#each row.detailLines ?? [] as line, index (index)}<small>{line}</small>{/each}
                     <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}

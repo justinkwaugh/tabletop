@@ -6,6 +6,7 @@ import {
     EarningsDistribution,
     finiteCashOwnedBy,
     getCompany,
+    privateOwningCompany,
     trainRoutesOf,
     trainsCountingForLimit,
     trainsOwnedBy,
@@ -22,6 +23,7 @@ import {
     acquisitionChoices1822,
     privateAgreementPlayerId1822
 } from './privateAcquisition.js'
+import { MailContractPrivateIds } from './privates.js'
 import { RouteRules1822 } from './routes.js'
 import {
     ElectricTrainId,
@@ -332,6 +334,28 @@ describe.skipIf(!process.env.SCENARIOS)('1822 harness scenarios', () => {
         save(
             'track-beside-london',
             playUntil(4, 1, (game) => !!game.state.trackConsent, LateGame)
+        )
+    })
+
+    it('writes a mail contract to run for', { timeout: 900_000 }, () => {
+        save(
+            'mail-contract-run',
+            playUntil(
+                4,
+                1,
+                (game) => {
+                    const companyId = game.state.routeStep?.companyId
+                    return (
+                        game.state.machineState === 'RunningTrains' &&
+                        !!companyId &&
+                        MailContractPrivateIds.some(
+                            (id) => privateOwningCompany(game.state, id) === companyId
+                        ) &&
+                        bestRoutes(game).filter((route) => route.paths.length > 2).length > 1
+                    )
+                },
+                LateGame
+            )
         )
     })
 

@@ -190,6 +190,7 @@
                 historyPhaseChange(action, session.phaseChangePalette)?.label,
                 description.detail
             ),
+            detailLines: description.detailLines ?? [],
             trainDefinitionIds: trainCards.length ? [] : (description.trainDefinitionIds ?? []),
             track:
                 isLayTile(action) || isPrivateTileLay(action)
@@ -289,6 +290,9 @@
                     </p>
                     {#if latest.payments}<p class="detail">{latest.payments}</p>{/if}
                     {#if latest.detail}<p class="detail"><PlaceText text={latest.detail} /></p>{/if}
+                    {#each latest.detailLines as line, index (index)}<p class="detail">
+                            <PlaceText text={line} />
+                        </p>{/each}
                     {#each latest.consequences as consequence (consequence.id)}
                         {@const appearance = consequence.companyId
                             ? session.mapView.stations[consequence.companyId]
@@ -313,7 +317,8 @@
                                         />{/each}</span
                                 >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{' · '}<PlaceText
                                     text={consequence.detail}
-                                />{/if}
+                                />{/if}{#each consequence.description.detailLines ?? [] as line, index (index)}<br
+                                /><PlaceText text={line} />{/each}
                         </p>
                     {/each}
                 </div>
