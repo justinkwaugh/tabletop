@@ -1,15 +1,10 @@
 <script lang="ts">
-    import {
-        addAxial,
-        coordinatesToNumber,
-        sameCoordinates,
-        scaleAxial,
-        type AxialCoordinates
-    } from '@tabletop/common'
-    import { ALL_POINTS, AXES, DOTS, SPOTS, type BoardPiece } from '@tabletop/gipf'
+    import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+    import { DOTS, type BoardPiece } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { includesCoords } from '$lib/model/session.svelte.js'
-    import { CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
+    import { CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, includesCoords } from '$lib/board/geometry.js'
+    import { gridLines } from '$lib/board/boardLines.js'
+    import { pushArrow, stackOutline } from '$lib/board/marks.js'
     import PieceDefs from './PieceDefs.svelte'
     import StandingPiece from './StandingPiece.svelte'
     import StagedPiece from './StagedPiece.svelte'
@@ -20,24 +15,7 @@
     const view = $derived(session.view)
     const frame = $derived(view.frame())
     const playArea = $derived(view.playAreaOutline())
-    const inBoard = (coords: AxialCoordinates) => includesCoords(ALL_POINTS, coords)
-
-    // Lines run dot to dot across the play area; the board's rim has no line between dots.
-    const lines = $derived(
-        AXES.flatMap((axis) =>
-            ALL_POINTS.filter((point) => !inBoard(addAxial(point, scaleAxial(axis, -1)))).flatMap(
-                (start) => {
-                    const points = [start]
-                    while (inBoard(addAxial(points[points.length - 1], axis))) {
-                        points.push(addAxial(points[points.length - 1], axis))
-                    }
-                    const crossesPlay = points.some((point) => includesCoords(SPOTS, point))
-                    const end = points[points.length - 1]
-                    return crossesPlay ? [{ from: view.center(start), to: view.center(end) }] : []
-                }
-            )
-        )
-    )
+    const lines = $derived(gridLines(view))
 
     const animator = new BoardAnimator(session)
     let hoveredDot: number | undefined = $state()
@@ -134,34 +112,7 @@
         }
     }
 
-    // The tilt shortens upright arrows most, so each starts as far from its dot on screen, as in
-    // MATRX GIPF.
-    const ARROW_START = DOT_RADIUS * 2 + 12
-    const ARROW_REACH = 24
-    function arrow(from: AxialCoordinates, to: AxialCoordinates): string {
-        const start = view.center(from)
-        const end = view.center(to)
-        const flat = (x: number, y: number) => `${x} ${y * view.tilt}`
-        const [sx, sy, ex, ey] = [start.x, start.y / view.tilt, end.x, end.y / view.tilt]
-        const length = Math.hypot(ex - sx, ey - sy)
-        const ux = (ex - sx) / length
-        const uy = (ey - sy) / length
-        const tipX = ex - ux * (PIECE_RADIUS + 2 - ARROW_REACH)
-        const tipY = ey - uy * (PIECE_RADIUS + 2 - ARROW_REACH)
-        const tail = (ARROW_START * view.tilt) / Math.hypot(ux, uy * view.tilt)
-        const baseX = sx + ux * tail
-        const baseY = sy + uy * tail
-        const wing = 8
-        return `M ${flat(baseX, baseY)} L ${flat(tipX, tipY)} M ${flat(tipX - ux * wing - uy * wing, tipY - uy * wing + ux * wing)} L ${flat(tipX, tipY)} L ${flat(tipX - ux * wing + uy * wing, tipY - uy * wing - ux * wing)}`
-    }
-
-    // Everything a GIPF-piece standing on a spot would cover, for clicks on a target there.
-    const standingOutline = (() => {
-        const r = PIECE_RADIUS
-        const ry = r * VIEW.tilt
-        const top = VIEW.topFace(true)
-        return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
-    })()
+    const standingOutline = $derived(stackOutline(view))
 </script>
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
@@ -373,7 +324,8 @@
                     class="target-hit"
                 ></path>
                 {#each ['under', 'over'] as layer (layer)}
-                    <path d={arrow(entry.dot, entry.line[0])} class="arrow {layer}"></path>
+                    <path d={pushArrow(view, entry.dot, entry.line[0])} class="arrow {layer}"
+                    ></path>
                 {/each}
             </g>
         {/each}

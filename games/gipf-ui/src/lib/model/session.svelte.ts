@@ -32,7 +32,7 @@ import {
     setGipfSelection,
     type GipfSelection
 } from './stagedSelection.js'
-import { viewOf, type BoardView } from '$lib/board/geometry.js'
+import { includesCoords, viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 
 // Lets the session stop the move the board animator is playing.
@@ -41,10 +41,6 @@ export type MoveInterrupter = {
     interrupt(): void
     // Lands it and drops the rest of its replay: another state is being shown.
     abandon(): void
-}
-
-export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
-    return list.some((candidate) => sameCoordinates(candidate, coords))
 }
 
 type SessionOptions = ConstructorParameters<

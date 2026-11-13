@@ -1,4 +1,9 @@
-import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@tabletop/common'
+import {
+    flatHexCoordsToCenterPoint,
+    sameCoordinates,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
 import { BOARD_RADIUS, PLAY_RADIUS } from '@tabletop/gipf'
 import { pieceTop } from './pieceShape.js'
 
@@ -90,4 +95,8 @@ const TURNED_VIEW = new BoardView(TILT, true)
 
 export function viewOf(turned: boolean): BoardView {
     return turned ? TURNED_VIEW : VIEW
+}
+
+export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
+    return list.some((candidate) => sameCoordinates(candidate, coords))
 }
