@@ -1,7 +1,8 @@
 <script lang="ts">
+    import { CalledGameDescription } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { describeAction } from '$lib/utils/describeAction.js'
-    import { historyStep } from '$lib/utils/history.js'
+    import { historyStep, historyStepLine } from '$lib/utils/history.js'
     import Description from '../Description.svelte'
 
     const gameSession = getGameSession()
@@ -21,8 +22,13 @@
         <p class="text-[15px] font-semibold leading-snug max-sm:text-[13px]">The game is set up.</p>
     {/if}
     {#each step.consequences as action (action.id)}
+        {@const line = historyStepLine(action)}
         <p class="text-[13px] leading-snug text-rtr-ink-muted max-sm:text-xs">
-            <Description description={describeAction(action)} />
+            {#if line.kind === 'called'}
+                <CalledGameDescription action={line.action} />
+            {:else}
+                <Description description={line.description} />
+            {/if}
         </p>
     {/each}
 </div>

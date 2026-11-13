@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction, type Phase, type Round } from '@tabletop/common'
+import {
+    ActionSource,
+    createCallGameAction,
+    type GameAction,
+    type Phase,
+    type Round
+} from '@tabletop/common'
 import {
     ActionType,
     PhaseName,
@@ -25,6 +31,7 @@ import {
     buildingTurnDescription,
     historyEntries,
     historyStep,
+    historyStepLine,
     jumpTarget,
     openEntryKey,
     phaseHeading,
@@ -385,6 +392,27 @@ describe('the history description (docs/game-ui-layout.md, History description)'
 
     it('is empty before the first action', () => {
         expect(historyStep([])).toEqual({ action: undefined, consequences: [] })
+    })
+
+    it('draws a called game with the platform description, not its action type', () => {
+        const called = createCallGameAction({
+            gameId: 'game',
+            index: 7,
+            ballot: {
+                initiatorPlayerId: 'p1',
+                approvingPlayerIds: ['p1', 'p2', 'p3'],
+                decliningPlayerIds: []
+            },
+            players: ['p1', 'p2', 'p3']
+        })
+        const step = historyStep([journey(5, 'p1'), pass(6, 'p2'), called])
+        expect(step.consequences).toEqual([called])
+        expect(historyStepLine(called)).toEqual({ kind: 'called', action: called })
+        const pass6 = pass(6, 'p2')
+        expect(historyStepLine(pass6)).toEqual({
+            kind: 'sentence',
+            description: describeAction(pass6)
+        })
     })
 })
 

@@ -2,7 +2,7 @@
 
 This contract fixes what players see and press. It follows `docs/ui-interaction-visual-contract.md`, `docs/game-ui-layout.md`, `docs/user-interactions.md`, `docs/phone-rendering.md` and the game UI animation skill. Rules are cited as `R-x.y` (`games/ride-the-rails/docs/rules-digest.md`), house rulings as `R-x.y-Hn` and implementation rules as `R-X.n` (`games/ride-the-rails/docs/rulings.md`). Colours, shapes and fonts are in `games/ride-the-rails-ui/docs/art-plan.md`.
 
-It is written before the UI is built. Once built, the code and its tests are the source of truth: where this file and they differ, they win and this file is corrected.
+The code and its tests are the source of truth: where this file and they differ, they win and this file is corrected.
 
 The choices a player would notice are gathered in [Design choices](#design-choices), each with the alternative not taken.
 

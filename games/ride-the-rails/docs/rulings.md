@@ -2,7 +2,7 @@
 
 The code cites the rules as `R-<section>` of `rules-digest.md`. A citation ending in `-H1` or `-H2` names one of the house rulings below, made where the rules are silent or ambiguous. `R-X.<n>` names a rule of this implementation. A ruling marked _provisional_ awaits the publisher's answer; it stands until answered. Each ruling names the spec that covers it.
 
-Rules version: the 2020 rulebook (USA map). Each ruling names the question in `open-questions.md` it settles, where its readings and sources are given in full. The engine is not yet written: each spec named below is the file that will cover the ruling.
+Rules version: the 2020 rulebook (USA map). Each ruling names the question in `open-questions.md` it settles, where its readings and sources are given in full.
 
 ## House rulings
 

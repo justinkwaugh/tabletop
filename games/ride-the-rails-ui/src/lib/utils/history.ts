@@ -1,6 +1,7 @@
 import {
     ActionSource,
     isCallGameAction,
+    type CallGameAction,
     type GameAction,
     type Phase,
     type Round
@@ -259,4 +260,15 @@ export function historyStep(actions: readonly GameAction[]): HistoryStep {
         return { action: undefined, consequences: ordered }
     }
     return { action: ordered[start], consequences: ordered.slice(start + 1) }
+}
+
+// One line of the History description: a called game is drawn by the platform's own
+// description; every other action reads as its sentence.
+export type HistoryStepLine =
+    { kind: 'called'; action: CallGameAction } | { kind: 'sentence'; description: Description }
+
+export function historyStepLine(action: GameAction): HistoryStepLine {
+    return isCallGameAction(action)
+        ? { kind: 'called', action }
+        : { kind: 'sentence', description: describeAction(action) }
 }
