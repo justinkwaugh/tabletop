@@ -3,6 +3,7 @@
     import type { Attachment } from 'svelte/attachments'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexPoints } from '$lib/utils/boardGeometry.js'
+    import { hexIdOf } from '$lib/utils/hexElements.js'
     import type { LitHexView } from '$lib/utils/pickMarks.js'
 
     let { views }: { views: readonly LitHexView[] } = $props()
@@ -13,12 +14,6 @@
     const labels: ReadonlyMap<HexId, string> = $derived(
         new Map(views.map((view) => [view.hexId, view.label]))
     )
-
-    function hexIdOf(target: EventTarget | null): HexId | undefined {
-        if (!(target instanceof Element)) return undefined
-        const id = target.closest('[data-hex-id]')?.getAttribute('data-hex-id')
-        return USA_HEXES.find((hex) => hex.id === id)?.id
-    }
 
     /** The longest a browser takes from lifting a finger to the click it sends for the tap. */
     const TAP_TO_CLICK_MS = 1000

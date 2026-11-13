@@ -76,6 +76,17 @@ export function hexCenter(hexId: HexId): Point {
     return hexGeometry(hexId).center
 }
 
+/** The box around a hex, as wide as its flats and as tall as its points. */
+export function hexBox(hexId: HexId): BoundingBox {
+    const center = hexCenter(hexId)
+    return {
+        x: center.x - HEX_WIDTH / 2,
+        y: center.y - HEX_SIZE,
+        width: HEX_WIDTH,
+        height: HEX_SIZE * 2
+    }
+}
+
 export function hexCorners(hexId: HexId): readonly Point[] {
     return hexGeometry(hexId).vertices
 }

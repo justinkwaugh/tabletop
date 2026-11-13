@@ -113,3 +113,67 @@ test('On the whole map a press on an unlit hex beside a lit one shows that hex',
     const picked = await page.evaluate(() => window.rtrSession.buildHexId)
     expect(picked === lit.hexId || (await trackCount(page)) === before + 1).toBe(true)
 })
+
+/** Every element scrolled away from its start, with how far, by its place in the document. */
+function scrolledElements(page: Page): Promise<string[]> {
+    return page.evaluate(() => {
+        const all = [document.documentElement, ...document.body.querySelectorAll('div')]
+        return all.flatMap((element, index) =>
+            element.scrollLeft || element.scrollTop
+                ? [`${index}: ${element.scrollLeft},${element.scrollTop}`]
+                : []
+        )
+    })
+}
+
+test('Tabbing to a lit hex off screen pans the board and scrolls nothing sideways', async ({
+    page
+}) => {
+    test.skip(!isPhone(), 'The fitted desktop board shows every hex, so none is off screen.')
+    await openScenario(page, 'Black unstarted')
+    // Start from the first lit hex on screen, as a player tabbing across the map would.
+    const started = await board(page).evaluate((root) => {
+        const first = [...root.querySelectorAll<SVGElement>('g.hits [role="button"]')].find(
+            (hit) => {
+                const box = hit.getBoundingClientRect()
+                return box.left >= 0 && box.right <= innerWidth && box.top >= 0
+            }
+        )
+        first?.focus({ preventScroll: true })
+        return first !== undefined
+    })
+    expect(started).toBe(true)
+    const before = await scrolledElements(page)
+    let reachedOffScreen = false
+    for (let step = 0; step < 80 && !reachedOffScreen; step++) {
+        const offScreen = await offScreenLitHexes(page)
+        await page.keyboard.press('Tab')
+        const focused = await page.evaluate(() =>
+            document.activeElement?.closest('g.hits')
+                ? document.activeElement.getAttribute('data-hex-id')
+                : null
+        )
+        if (!focused) break
+        expect(await scrolledElements(page)).toEqual(before)
+        reachedOffScreen = offScreen.includes(focused)
+    }
+    expect(reachedOffScreen).toBe(true)
+    // The board brought the focused hex into view.
+    await settled(page)
+    await expect(page.locator('g.hits [role="button"]:focus')).toBeInViewport()
+})
+
+function isPhone(): boolean {
+    return test.info().project.use.isMobile === true
+}
+
+function offScreenLitHexes(page: Page): Promise<string[]> {
+    return board(page).evaluate((root) =>
+        [...root.querySelectorAll('g.hits [role="button"]')].flatMap((hit) => {
+            const box = hit.getBoundingClientRect()
+            const off =
+                box.right < 0 || box.left > innerWidth || box.bottom < 0 || box.top > innerHeight
+            return off ? [hit.getAttribute('data-hex-id') ?? ''] : []
+        })
+    )
+}

@@ -23,7 +23,8 @@
     import { BoardFocusSelection } from '$lib/model/boardFocus.svelte'
     import { BOARD_COVER_BELOW_SCALE, BOARD_MAX_SCALE } from '$lib/utils/boardFocus.js'
     import { boardInsetTop } from '$lib/utils/phoneLayout.svelte.js'
-    import { FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
+    import { FITTED_DESKTOP_SCALE, hexBox } from '$lib/utils/boardGeometry.js'
+    import { keepFocusedHexInBoard } from '$lib/utils/focusScroll.js'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import { DisplayFontFamily } from '$lib/definitions/fonts.js'
@@ -47,11 +48,20 @@
 
     let wrapper = $state<ScalingWrapper>()
     const focus = new BoardFocusSelection()
+    /** Screen pixels kept between a hex panned into view and the board's edge. */
+    const REVEAL_PADDING = 24
 
-    // Contract, Coexistence and precedence: during a map pick the hex detail opens in the side panel.
+    // Contract, Coexistence and precedence: during a map pick on wider screens the hex detail opens
+    // in the side panel.
     const sidePanelHexId = $derived(
         session.hexDetailInSidePanel ? session.hexDetailHexId : undefined
     )
+
+    // Contract, Phone layout: a hex focused out of view is panned into it, and nothing scrolls.
+    const keepFocusInBoard = keepFocusedHexInBoard((hexId) => {
+        focus.release()
+        wrapper?.revealRect(hexBox(hexId), { padding: REVEAL_PADDING })
+    })
 </script>
 
 <CustomFont
@@ -81,7 +91,7 @@
         {#snippet gameContent()}
             <div class="shrink-0"><TableControls /></div>
             <PhoneRailroadStrip />
-            <div class="grow-0 overflow-hidden" style="flex:1;">
+            <div class="grow-0 overflow-hidden" style="flex:1;" {@attach keepFocusInBoard}>
                 <ScalingWrapper
                     bind:this={wrapper}
                     justify="center"
