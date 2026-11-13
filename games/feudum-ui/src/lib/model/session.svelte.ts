@@ -53,6 +53,7 @@ import { KeepWritsDraft, type KeepWritsPanel } from './keepWritsDraft.svelte.js'
 import { LandscapesDraft, type LandscapesPanel } from './landscapesDraft.svelte.js'
 import { MoveDraft, type MoveContext, type MovePanel } from './moveDraft.svelte.js'
 import { NourishDraft, type NourishPanel } from './nourishDraft.svelte.js'
+import { PouchTitles } from './pouchWords.js'
 import { StartingGoodsDraft, type SulfurDestination } from './startingGoodsDraft.svelte.js'
 import { StartingPawnDraft } from './startingPawnDraft.svelte.js'
 import type { FlowPlay, FlowPopup, PanelChoice } from './cardFlows.js'
@@ -175,13 +176,13 @@ const PouchRows: readonly {
     {
         good: 'saltpeter',
         label: 'Saltpeter: 5 cards',
-        title: '+1 card',
+        title: PouchTitles.saltpeter,
         caption: 'opens a fifth slot'
     },
     {
         good: 'sulfur',
         label: 'Sulfur: two cards back to back',
-        title: '2 in a row',
+        title: PouchTitles.sulfur,
         caption: 'once this round'
     }
 ]
