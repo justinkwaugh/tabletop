@@ -1,0 +1,151 @@
+import { gsap } from 'gsap'
+import type { HexId, RailroadId } from '@tabletop/ride-the-rails'
+import type { AnimationContext } from '@tabletop/frontend-components'
+
+/** Where a travelling piece is drawn: its centre, its scale and its opacity. */
+export type Pose = { x: number; y: number; scale: number; opacity: number }
+
+/**
+ * Contract, Shared visual state, Animation transients: what the flight layer draws. Each flyer is
+ * drawn centred on its outer wrapper's origin, so a pose moves and scales it about its centre.
+ */
+export type Flyer =
+    | { key: string; kind: 'locomotive'; railroadId: RailroadId; width: number; pose: Pose }
+    | { key: string; kind: 'coin'; amount: number; gold: boolean; pose: Pose }
+    | { key: string; kind: 'outline'; hexId: HexId; pose: Pose }
+    | { key: string; kind: 'line'; hexIds: readonly HexId[]; pose: Pose }
+
+export function moneyKey(playerId: string): string {
+    return `money:${playerId}`
+}
+
+export function supplyKey(railroadId: RailroadId): string {
+    return `supply:${railroadId}`
+}
+
+export function sharesKey(playerId: string, railroadId: RailroadId): string {
+    return `shares:${playerId}:${railroadId}`
+}
+
+/** Writes a pose as a plain `translate(...) scale(...)`, never through GSAP's SVG transforms. */
+export function writePose(element: SVGGraphicsElement | undefined, pose: Pose) {
+    if (!element) return
+    element.setAttribute('transform', poseTransform(pose))
+    element.setAttribute('opacity', String(pose.opacity))
+}
+
+export function poseTransform(pose: Pose): string {
+    return `translate(${pose.x} ${pose.y}) scale(${pose.scale})`
+}
+
+/**
+ * The flight layer's transient state. The state-change animators write presence (flyers, hidden
+ * locomotives, ticked counts) and tween each flyer's pose; the board reads it. Everything here
+ * describes the transition under way, so it all goes when a new Game State is shown, when an
+ * Undo interrupts the motion, and when the board is torn down.
+ */
+export class Flights {
+    flyers: readonly Flyer[] = $state.raw([])
+    /** Locomotives on the shown state that an Undo is taking away; the flight layer shrinks a copy. */
+    hiddenKeys: ReadonlySet<string> = $state.raw(new Set())
+    /** Counts and money that have ticked ahead of the shown state (Pattern D). */
+    private values: ReadonlyMap<string, number> = $state.raw(new Map())
+
+    /** Set by an interruption until the next Game State is shown: later steps move nothing. */
+    interrupted = false
+
+    private readonly elements = new Map<string, SVGGraphicsElement>()
+    private readonly contexts = new Set<AnimationContext>()
+
+    show(flyers: readonly Flyer[]) {
+        const keys = new Set(flyers.map((flyer) => flyer.key))
+        this.flyers = [...this.flyers.filter((flyer) => !keys.has(flyer.key)), ...flyers]
+    }
+
+    remove(keys: readonly string[]) {
+        const gone = new Set(keys)
+        this.flyers = this.flyers.filter((flyer) => !gone.has(flyer.key))
+    }
+
+    hide(keys: readonly string[]) {
+        this.hiddenKeys = new Set([...this.hiddenKeys, ...keys])
+    }
+
+    tick(key: string, value: number) {
+        this.values = new Map(this.values).set(key, value)
+    }
+
+    /** A count as the board shows it: ticked ahead of the shown state while a flight lands. */
+    shown(key: string, actual: number): number {
+        return this.values.get(key) ?? actual
+    }
+
+    element(key: string): SVGGraphicsElement | undefined {
+        return this.elements.get(key)
+    }
+
+    /** A `use:` action that keeps a flyer's outer wrapper by its key. */
+    readonly register = (node: SVGGraphicsElement, key: string) => {
+        let current = key
+        this.elements.set(current, node)
+        return {
+            update: (next: string) => {
+                if (this.elements.get(current) === node) this.elements.delete(current)
+                current = next
+                this.elements.set(current, node)
+            },
+            destroy: () => {
+                if (this.elements.get(current) === node) this.elements.delete(current)
+            }
+        }
+    }
+
+    /** Remembers a step's timelines until they have played, so an interruption can end them. */
+    follow(animationContext: AnimationContext) {
+        if (this.contexts.has(animationContext)) return
+        this.contexts.add(animationContext)
+        animationContext.afterAnimations(() => this.contexts.delete(animationContext))
+    }
+
+    get moving(): boolean {
+        return this.contexts.size > 0
+    }
+
+    /**
+     * Contract, Verification scenario 23: ends the motion at once. A step already playing jumps
+     * to its end, which settles it; one still being built loses its tweens. The steps after it in
+     * the same transition move nothing, and the flight layer empties.
+     */
+    interrupt() {
+        this.interrupted = true
+        for (const animationContext of this.contexts) {
+            const playing = animationContext.actionTimeline.parent
+            if (playing && playing !== gsap.globalTimeline) {
+                playing.progress(1)
+            } else {
+                animationContext.actionTimeline.clear()
+                animationContext.finalTimeline.clear()
+            }
+        }
+        this.contexts.clear()
+        this.clear()
+    }
+
+    /** A new Game State is shown: it draws everything the flights were showing ahead of it. */
+    settle() {
+        this.interrupted = false
+        this.clear()
+    }
+
+    teardown() {
+        this.interrupt()
+        this.interrupted = false
+        this.elements.clear()
+    }
+
+    private clear() {
+        if (this.flyers.length > 0) this.flyers = []
+        if (this.hiddenKeys.size > 0) this.hiddenKeys = new Set()
+        if (this.values.size > 0) this.values = new Map()
+    }
+}

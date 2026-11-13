@@ -3,6 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ordinal } from '$lib/utils/marginTracks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
+    import { moneyKey } from '$lib/animators/flights.svelte.js'
     import type { SeatCard } from '$lib/utils/seatCards.js'
     import LocomotiveIcon from './board/LocomotiveIcon.svelte'
     import RailroadSpotlightControl from './RailroadSpotlightControl.svelte'
@@ -42,7 +43,9 @@
             {/each}
         </div>
         <div class="money">
-            <span class="rtr-display figure">${card.money}</span>
+            <span class="rtr-display figure"
+                >${gameSession.flights.shown(moneyKey(card.playerId), card.money)}</span
+            >
             <span class="caption">Money</span>
             {#if pendingGain}
                 <span class="pending" aria-label="Pending +${pendingGain}">+${pendingGain}</span>

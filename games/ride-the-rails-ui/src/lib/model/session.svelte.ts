@@ -36,6 +36,7 @@ import {
     type BuildStage
 } from './buildStage.js'
 import { hexChangedBetween } from './hexDetail.js'
+import { Flights } from '$lib/animators/flights.svelte.js'
 import {
     EMPTY_JOURNEY_OFFER,
     bestRoute,
@@ -75,6 +76,7 @@ export class RideTheRailsGameSession extends GameSession<
     private journeyStage: JourneyStage = $state({})
     private shownHexId: HexId | undefined = $state()
     private spotlight: RailroadSpotlight | undefined = $state()
+    readonly flights = new Flights()
 
     constructor(options: SessionOptions) {
         super(options)
@@ -339,7 +341,18 @@ export class RideTheRailsGameSession extends GameSession<
         }
     }
 
+    // Contract, Verification scenario 23: Undo during a flight ends the motion, then undoes.
+    // A staged selection pops without waiting; only an action undo ends the flights first.
+    override async undoCommittedAction() {
+        if (this.updatingVisibleState && !this.isViewingHistory) {
+            this.flights.interrupt()
+            await this.waitForVisibleTransitionSettled()
+        }
+        await super.undoCommittedAction()
+    }
+
     override beforeNewState(transition: PresentedTransition) {
+        this.flights.settle()
         const hexId = this.shownHexId
         const incoming = this.incomingGameState
         if (

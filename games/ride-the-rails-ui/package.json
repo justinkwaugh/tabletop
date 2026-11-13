@@ -39,7 +39,8 @@
     "dependencies": {
         "@tabletop/common": "workspace:*",
         "@tabletop/frontend-components": "workspace:*",
-        "@tabletop/ride-the-rails": "workspace:*"
+        "@tabletop/ride-the-rails": "workspace:*",
+        "gsap": "^3.15.0"
     },
     "devDependencies": {
         "@playwright/test": "^1.42.1",

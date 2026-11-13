@@ -5,7 +5,12 @@
 
     const gameSession = getGameSession()
 
-    const locomotives = $derived(locomotivePieces(gameSession.gameState.track))
+    // An Undo's flight shrinks a copy of each locomotive it takes away (FlightLayer).
+    const locomotives = $derived(
+        locomotivePieces(gameSession.gameState.track).filter(
+            (piece) => !gameSession.flights.hiddenKeys.has(piece.key)
+        )
+    )
     const thisTurn = $derived(thisTurnPlacements(gameSession.gameState, gameSession.actions))
     const barColour = $derived(
         thisTurn ? gameSession.colors.getPlayerUiColor(thisTurn.playerId) : 'transparent'

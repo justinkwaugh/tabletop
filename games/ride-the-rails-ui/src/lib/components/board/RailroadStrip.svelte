@@ -4,7 +4,13 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { MARGIN_BOXES, drawsSeatInitials } from '$lib/utils/boardGeometry.js'
     import { railroadStrip, type RailroadStripEntry } from '$lib/utils/marginTracks.js'
+    import {
+        STRIP_COLUMN as COLUMN,
+        STRIP_LOCOMOTIVE,
+        STRIP_ROW as ROW
+    } from '$lib/utils/marginLayout.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
+    import { sharesKey, supplyKey } from '$lib/animators/flights.svelte.js'
     import Locomotive from './Locomotive.svelte'
     import MarginPanel from './MarginPanel.svelte'
     import SeatMarker from './SeatMarker.svelte'
@@ -15,11 +21,22 @@
     const gameSession = getGameSession()
 
     const box = MARGIN_BOXES.railroadStrip
-    const ROW = { top: 40, height: 63 }
-    const COLUMN = { name: 66, supply: 300, track: 406, holders: 80, holderStep: 66 }
     const HOLDER_RADIUS = 12
 
-    const entries = $derived(railroadStrip(gameSession.gameState))
+    // Counts tick ahead of the shown state as a flight lifts or lands (Animation plan, Share).
+    const entries = $derived(
+        railroadStrip(gameSession.gameState).map((entry) => ({
+            ...entry,
+            supply: gameSession.flights.shown(supplyKey(entry.railroadId), entry.supply),
+            shareholders: entry.shareholders.map((holding) => ({
+                ...holding,
+                shares: gameSession.flights.shown(
+                    sharesKey(holding.playerId, entry.railroadId),
+                    holding.shares
+                )
+            }))
+        }))
+    )
     const showsInitials = $derived(drawsSeatInitials(viewScale))
 
     function supplyText(entry: RailroadStripEntry): string {
@@ -76,7 +93,12 @@
                 stroke={spotlit ? 'var(--rtr-accent)' : 'transparent'}
                 stroke-width="3"
             ></rect>
-            <Locomotive railroadId={entry.railroadId} x={36} y={middle} width={44} />
+            <Locomotive
+                railroadId={entry.railroadId}
+                x={STRIP_LOCOMOTIVE.x}
+                y={middle}
+                width={STRIP_LOCOMOTIVE.width}
+            />
             <text x={COLUMN.name} y={middle - 4} class="name" fill="var(--rtr-ink)"
                 >{railroadStyle(entry.railroadId).name}</text
             >

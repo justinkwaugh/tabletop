@@ -6,6 +6,7 @@
     import { BUILD_PICK, litHexViews, type PickContext } from '$lib/utils/pickMarks.js'
     import { EMPTY_STAGED_ROUTE } from '$lib/utils/routePath.js'
     import CityLayer from './board/CityLayer.svelte'
+    import FlightLayer from './board/FlightLayer.svelte'
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
     import LineLayer from './board/LineLayer.svelte'
@@ -67,7 +68,7 @@
     <MarginLayer {viewScale} />
     <StagedRouteLayer route={stagedRoute} />
     <PickLayer {views} {viewScale} />
-    <!-- The flight layer for travelling pieces goes here, with the animations. -->
+    <FlightLayer />
     <HitLayer {views} />
     <PopupAnchor id={CHOICE_ANCHOR_ID} hexId={choiceHexId} />
     <PopupAnchor id={DETAIL_ANCHOR_ID} hexId={detailBeside} />
