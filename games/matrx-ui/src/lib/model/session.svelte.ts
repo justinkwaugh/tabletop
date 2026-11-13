@@ -310,7 +310,14 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         return setMatrxSelection({}, 'dot', move.dot)
     }
 
+    // Once a move is played, its motion runs on the state it started from, whose choices still
+    // show as they fade; taps on them do nothing until the new state lands.
+    private get moving(): boolean {
+        return this.updatingVisibleState
+    }
+
     chooseKind(kind: PieceKind) {
+        if (this.moving) return
         if (!this.pushKinds.includes(kind)) return
         this.preferredKind = kind
     }
@@ -318,6 +325,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     // Choosing the chosen dot again brings in the next potential you hold instead; with only one
     // to choose from, or a GIPF piece or extra move standing there, it lets go.
     chooseDot(dot: AxialCoordinates) {
+        if (this.moving) return
         if (!includesCoords(this.entryDots, dot)) return
         const same = this.chosenDot !== undefined && sameCoordinates(this.chosenDot, dot)
         if (same && this.nextPotential()) return
@@ -334,18 +342,21 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     }
 
     chooseFrom(from: AxialCoordinates) {
+        if (this.moving) return
         if (!includesCoords(this.movable, from)) return
         const same = this.chosenFrom !== undefined && sameCoordinates(this.chosenFrom, from)
         this.select(setMatrxSelection({}, 'from', same ? undefined : from))
     }
 
     letGo() {
+        if (this.moving) return
         if (this.chosenFrom === undefined && this.chosenDot === undefined) return
         this.select(setMatrxSelection(this.ownSelection, 'from', undefined))
     }
 
     // A piece can belong to two crossing rows; choosing it again moves to the next one.
     chooseRowAt(coords: AxialCoordinates) {
+        if (this.moving) return
         const containing = this.rows.filter((row) => includesCoords(row.reach, coords))
         if (containing.length === 0) return
         const current = this.chosenRow ? containing.findIndex((row) => row === this.chosenRow) : -1
@@ -357,6 +368,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     }
 
     toggleKeep(coords: AxialCoordinates) {
+        if (this.moving) return
         if (!includesCoords(this.rowPairs, coords)) return
         const keys = this.keep.map((kept) => coordinatesToNumber(kept))
         const key = coordinatesToNumber(coords)
