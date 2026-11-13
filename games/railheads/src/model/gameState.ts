@@ -26,6 +26,7 @@ import {
     HexKind,
     INDUSTRIES,
     Industry,
+    InvestmentItem,
     isLayTrackSpace,
     type CompanyDefinition,
     type LayTrackRules,
@@ -37,6 +38,7 @@ import {
     IndustryAuction,
     IndustryState,
     InitialOffer,
+    InvestmentClaim,
     ShareAuction,
     TrackHex
 } from './components.js'
@@ -83,7 +85,12 @@ export const RailheadsGameState = Type.Evaluate(
             activeSpace: Type.Optional(Type.Enum(ActionSpaceId)),
             initialOffers: Type.Array(InitialOffer),
             shareAuction: Type.Optional(ShareAuction),
-            industryAuction: Type.Optional(IndustryAuction)
+            industryAuction: Type.Optional(IndustryAuction),
+            investmentClaim: Type.Optional(InvestmentClaim),
+            // Credit Suisse shares or Government Bonds left to auction.
+            partnerSupply: Type.Optional(Type.Number()),
+            // Denmark: the Danish Government's State Treasury.
+            stateTreasury: Type.Optional(Type.Number())
         })
     ])
 )
@@ -122,6 +129,9 @@ export class HydratedRailheadsGameState
     declare initialOffers: InitialOffer[]
     declare shareAuction?: ShareAuction
     declare industryAuction?: RailheadsProjectedState['industryAuction']
+    declare investmentClaim?: InvestmentClaim
+    declare partnerSupply?: number
+    declare stateTreasury?: number
 
     constructor(data: RailheadsProjectedState) {
         super(data, RailheadsProjectedStateValidator)
@@ -149,6 +159,52 @@ export class HydratedRailheadsGameState
         const playerId = this.turnManager.currentTurn()?.playerId
         assertExists(playerId, 'No turn in progress')
         return playerId
+    }
+
+    tollStars(playerId: string): number {
+        return (this.getPlayerState(playerId).tolls ?? []).reduce(
+            (sum, tollId) => sum + this.edition.map.toll(tollId).stars,
+            0
+        )
+    }
+
+    // Toll chits cash in for $1 a star whenever a player needs the money for an auction.
+    spendingPower(playerId: string): number {
+        return this.getPlayerState(playerId).cash + this.tollStars(playerId)
+    }
+
+    // Pays from cash, cashing in the toll chits that cover any shortfall with the fewest stars.
+    charge(playerId: string, amount: number): string[] {
+        const player = this.getPlayerState(playerId)
+        const shortfall = amount - player.cash
+        const cashedIn = shortfall > 0 ? this.chitsCovering(player.tolls ?? [], shortfall) : []
+        for (const tollId of cashedIn) {
+            player.tolls?.splice(player.tolls.indexOf(tollId), 1)
+            player.cash += this.edition.map.toll(tollId).stars
+        }
+        assert(player.cash >= amount, 'Not enough money')
+        player.cash -= amount
+        return cashedIn
+    }
+
+    private chitsCovering(tolls: readonly string[], shortfall: number): string[] {
+        const stars = (chits: readonly string[]) =>
+            chits.reduce((sum, tollId) => sum + this.edition.map.toll(tollId).stars, 0)
+        let best: string[] | undefined
+        for (let mask = 1; mask < 1 << tolls.length; mask++) {
+            const chits = tolls.filter((_, index) => mask & (1 << index))
+            const total = stars(chits)
+            if (total < shortfall) continue
+            if (
+                !best ||
+                total < stars(best) ||
+                (total === stars(best) && chits.length < best.length)
+            ) {
+                best = chits
+            }
+        }
+        assertExists(best, 'Toll chits cannot cover the payment')
+        return best
     }
 
     company(companyId: CompanyId): CompanyState {
@@ -250,7 +306,7 @@ export class HydratedRailheadsGameState
     }
 
     issuableCompanies(playerId: string): CompanyId[] {
-        const cash = this.getPlayerState(playerId).cash
+        const cash = this.spendingPower(playerId)
         return this.companies
             .filter(
                 (company) =>
@@ -279,11 +335,66 @@ export class HydratedRailheadsGameState
     }
 
     investableIndustries(playerId: string): Industry[] {
-        const cash = this.getPlayerState(playerId).cash
+        const cash = this.spendingPower(playerId)
         return INDUSTRIES.filter(
             (industry) =>
-                this.industry(industry).available > 0 && this.raisedLevel(industry, 1) <= cash
+                this.industry(industry).available > 0 &&
+                this.investmentMinimum(this.raisedLevel(industry, 1)) <= cash
         )
+    }
+
+    // The partner item on offer with the next industry token, if any are left.
+    offeredPartner(): InvestmentItem | undefined {
+        const partner = this.edition.definition.investmentPartner
+        return partner && (this.partnerSupply ?? 0) > 0 ? partner.item : undefined
+    }
+
+    // The least a sealed bid can be: enough for the industry token or the partner item.
+    investmentMinimum(level: number): number {
+        const partner = this.edition.definition.investmentPartner
+        return this.offeredPartner() && partner ? Math.min(level, partner.minimum) : level
+    }
+
+    itemMinimum(item: InvestmentItem, level: number): number {
+        return item === InvestmentItem.Industry
+            ? level
+            : (this.edition.definition.investmentPartner?.minimum ?? level)
+    }
+
+    loans(companyId: CompanyId): number {
+        return this.company(companyId).loans ?? 0
+    }
+
+    // How many loans the company may take out (positive) or repay (negative) right now.
+    loanRange(space: LayTrackSpace, companyId: CompanyId): { take: number; repay: number } {
+        const rules = this.edition.definition.loans
+        if (!rules || !this.layTrackRules(space).allowsLoans) {
+            return { take: 0, repay: 0 }
+        }
+        const company = this.company(companyId)
+        const loans = this.loans(companyId)
+        let take = 0
+        let treasury = company.treasury
+        while (
+            take < rules.perAction &&
+            loans + take < rules.maximum &&
+            treasury < rules.treasuryBelow
+        ) {
+            take++
+            treasury += rules.amount
+        }
+        const repay = Math.min(loans, Math.floor(company.treasury / rules.repayment))
+        return { take, repay }
+    }
+
+    changeLoans(space: LayTrackSpace, companyId: CompanyId, change: number) {
+        const rules = this.edition.definition.loans
+        assertExists(rules, 'This title has no loans')
+        const { take, repay } = this.loanRange(space, companyId)
+        assert(change <= take && -change <= repay, 'That loan change is not allowed')
+        const company = this.company(companyId)
+        company.loans = this.loans(companyId) + change
+        company.treasury += change > 0 ? change * rules.amount : change * rules.repayment
     }
 
     layTrackRules(space: LayTrackSpace): LayTrackRules {
@@ -304,11 +415,16 @@ export class HydratedRailheadsGameState
         )
     }
 
-    private placementContext(companyId: CompanyId, space: LayTrackSpace): PlacementContext {
+    private placementContext(
+        companyId: CompanyId,
+        space: LayTrackSpace,
+        tollsLaid: number
+    ): PlacementContext {
+        const rules = this.layTrackRules(space)
         return {
             track: this.track,
             companyId,
-            rules: this.layTrackRules(space),
+            rules: { ...rules, tolls: rules.tolls - tollsLaid },
             siteCapacity: (coords) => this.siteCapacity(coords),
             industryInDemand: (industry) =>
                 this.edition.definition.industryInDemand(
@@ -319,7 +435,8 @@ export class HydratedRailheadsGameState
                 ),
             discsLeft: this.discsLeft(companyId),
             cubesLeft: this.cubesLeft(companyId),
-            neighbours: (coords) => this.edition.map.neighbourCoords(coords)
+            neighbours: (coords) => this.edition.map.neighbourCoords(coords),
+            isAnchor: (coords) => this.edition.map.isAnchor(coords)
         }
     }
 
@@ -338,26 +455,27 @@ export class HydratedRailheadsGameState
         coords: AxialCoordinates,
         kind: PlacementKind
     ): number {
+        const { kind: hexKind } = this.edition.map.hex(coords)
+        const span = this.edition.map.span(coords)
         if (kind === PlacementKind.Cube) {
-            return this.edition.definition.crossingCubeCost
+            return this.edition.definition.crossingCubeCost(hexKind, span)
         }
         const discsBelow = trackAt(this.track, coords)?.discs.length ?? 0
-        const cost = this.edition.definition.trackCost(
-            this.edition.map.hex(coords).kind,
-            discsBelow
-        )
+        const cost = this.edition.definition.trackCost(hexKind, discsBelow, span)
         return this.layTrackRules(space).halfPriceWithoutShare &&
             !this.holdsShare(companyId, playerId)
             ? halfPrice(cost)
             : cost
     }
 
+    // tollsLaid counts the bridges or tunnels already staged in this Lay Track action.
     placementTargets(
         playerId: string,
         space: LayTrackSpace,
-        companyId: CompanyId
+        companyId: CompanyId,
+        tollsLaid = 0
     ): PlacementTarget[] {
-        const context = this.placementContext(companyId, space)
+        const context = this.placementContext(companyId, space, tollsLaid)
         const treasury = this.company(companyId).treasury
         return this.edition.map.hexes().flatMap((place) => {
             const kind = placementKind(context, place)
@@ -404,6 +522,11 @@ export class HydratedRailheadsGameState
         }
         hex.discs.push(companyId)
         const place = this.edition.map.hex(coords)
+        if (place.tollId) {
+            const player = this.getPlayerState(playerId)
+            player.tolls = [...(player.tolls ?? []), place.tollId]
+            return { companyId, kind, cost: target.cost, revenueGain: 0, tollId: place.tollId }
+        }
         if (place.industry) {
             const industry = this.industry(place.industry)
             const development = placement.boost === IndustryBoost.Development
@@ -419,9 +542,7 @@ export class HydratedRailheadsGameState
                 level: industry.level
             }
         }
-        const revenueGain = place.siteId
-            ? this.edition.definition.siteRevenue[this.edition.site(place.siteId).kind]
-            : 0
+        const revenueGain = place.siteId ? this.edition.siteRevenue(place.siteId) : 0
         company.revenue += revenueGain
         return { companyId, kind, cost: target.cost, revenueGain }
     }
@@ -446,7 +567,32 @@ export class HydratedRailheadsGameState
     }
 
     endBonusPerShare(companyId: CompanyId): number {
-        return this.edition.definition.endBonusPerShare(companyId, this.track, this.edition.map)
+        const company = this.company(companyId)
+        return this.edition.definition.endBonusPerShare({
+            companyId,
+            revenue: company.revenue,
+            loans: this.loans(companyId),
+            track: this.track,
+            map: this.edition.map
+        })
+    }
+
+    // Each Credit Suisse share pays the Loan Table's dividend for every company's loans.
+    creditSuisseValue(): number {
+        const dividend = this.edition.definition.loanDividend
+        return dividend
+            ? this.companies.reduce((sum, company) => sum + dividend(this.loans(company.id)), 0)
+            : 0
+    }
+
+    bondsHeld(): number {
+        return this.players.reduce((sum, player) => sum + (player.bonds ?? 0), 0)
+    }
+
+    // The State Treasury shared among the bonds held, rounded up.
+    bondValue(): number {
+        const bonds = this.bondsHeld()
+        return bonds === 0 ? 0 : Math.ceil((this.stateTreasury ?? 0) / bonds)
     }
 
     regionsReached(companyId: CompanyId): number {
@@ -479,7 +625,14 @@ export class HydratedRailheadsGameState
             industries: INDUSTRIES.map((industry) => ({
                 industry,
                 perToken: this.industryBonusPerToken(industry)
-            }))
+            })),
+            ...(this.edition.map.tolls.length > 0
+                ? { perTollStar: this.edition.definition.tollValuePerStar }
+                : {}),
+            ...(this.edition.definition.loanDividend
+                ? { perCreditSuisse: this.creditSuisseValue() }
+                : {}),
+            ...(this.edition.definition.wealthTax ? { perBond: this.bondValue() } : {})
         }
     }
 
@@ -493,7 +646,10 @@ export class HydratedRailheadsGameState
             payouts.industries.reduce(
                 (sum, rate) => sum + rate.perToken * player.tokensOf(rate.industry),
                 0
-            )
+            ) +
+            (payouts.perTollStar ?? 0) * this.tollStars(playerId) +
+            (payouts.perCreditSuisse ?? 0) * (player.creditSuisse ?? 0) +
+            (payouts.perBond ?? 0) * (player.bonds ?? 0)
         )
     }
 

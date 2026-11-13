@@ -66,8 +66,9 @@ export class RailheadsGameInitializer
             companies: definition.companies.map((company) => ({
                 id: company.id,
                 treasury: company.startingTreasury,
-                revenue: definition.siteRevenue[setup.site(company.homeSiteId).kind],
-                owners: []
+                revenue: setup.siteRevenue(company.homeSiteId),
+                owners: [],
+                ...(definition.loans ? { loans: definition.loans.starting } : {})
             })),
             track: definition.companies.map((company) => ({
                 coords: setup.homeHex(company.id),
@@ -82,12 +83,24 @@ export class RailheadsGameInitializer
             roundTimer: 0,
             initialOffers: definition.initialAuctionOrder.map((companyId) => {
                 if (companyId === definition.startPlayerCompany) {
-                    return { companyId, startPlayer: true }
+                    return {
+                        companyId,
+                        startPlayer: true,
+                        ...(definition.bondWithStartPlayer ? { bond: true } : {})
+                    }
                 }
                 const industry = shareTokens.shift()
                 assertExists(industry, 'Every opening share but one comes with an industry token')
                 return { companyId, industry, startPlayer: false }
-            })
+            }),
+            ...(definition.investmentPartner
+                ? {
+                      partnerSupply:
+                          definition.investmentPartner.supply -
+                          (definition.bondWithStartPlayer ? 1 : 0)
+                  }
+                : {}),
+            ...(definition.wealthTax ? { stateTreasury: 0 } : {})
         })
         const hydrated = new HydratedRailheadsGameState(railheadsState)
         const [openerId] = turnManager.turnOrder

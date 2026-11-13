@@ -1,7 +1,9 @@
 import type { GameAction, GameHydrator, HydratedAction } from '@tabletop/common'
 import { HydratedRailheadsGameState, type RailheadsProjectedState } from '../model/gameState.js'
 import { HydratedChooseAction, isChooseAction } from '../actions/chooseAction.js'
+import { HydratedClaimInvestment, isClaimInvestment } from '../actions/claimInvestment.js'
 import { HydratedConsolidate, isConsolidate } from '../actions/consolidate.js'
+import { HydratedDeclineInvestment, isDeclineInvestment } from '../actions/declineInvestment.js'
 import { HydratedEndRound, isEndRound } from '../actions/endRound.js'
 import { HydratedInvestInIndustry, isInvestInIndustry } from '../actions/investInIndustry.js'
 import { HydratedIssueShare, isIssueShare } from '../actions/issueShare.js'
@@ -37,6 +39,10 @@ export class RailheadsHydrator implements GameHydrator<
                 return new HydratedPlaceSealedBid(data)
             case isResolveIndustryAuction(data):
                 return new HydratedResolveIndustryAuction(data)
+            case isClaimInvestment(data):
+                return new HydratedClaimInvestment(data)
+            case isDeclineInvestment(data):
+                return new HydratedDeclineInvestment(data)
             case isLayTrack(data):
                 return new HydratedLayTrack(data)
             case isEndRound(data):

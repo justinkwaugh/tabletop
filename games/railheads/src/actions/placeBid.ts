@@ -43,10 +43,7 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
     apply(state: HydratedRailheadsGameState, _context?: MachineContext) {
         assert(Number.isSafeInteger(this.amount), 'Bids are whole dollars')
         assert(this.amount >= state.smallestBid(), 'The bid is too low')
-        assert(
-            this.amount <= state.getPlayerState(this.playerId).cash,
-            'A bid cannot exceed your cash'
-        )
+        assert(this.amount <= state.spendingPower(this.playerId), 'A bid cannot exceed your cash')
         const withdrawnPlayerIds = placeShareBid(state, this.playerId, this.amount)
         const sale = settleShareAuction(state)
         this.metadata = { withdrawnPlayerIds, ...(sale ? { sale } : {}) }
@@ -56,7 +53,7 @@ export class HydratedPlaceBid extends HydratableAction<typeof PlaceBid> implemen
         return (
             state.shareAuction !== undefined &&
             state.bidding().currentBidderId === playerId &&
-            state.getPlayerState(playerId).cash >= state.smallestBid()
+            state.spendingPower(playerId) >= state.smallestBid()
         )
     }
 }

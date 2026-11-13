@@ -22,10 +22,10 @@ export function afterSale(state: HydratedRailheadsGameState, sale: ShareSale): M
     return MachineState.ChoosingAction
 }
 
+// The Start Player token holder takes the first turn of the game. After that, turns go clockwise
+// without a break, across round ends too.
 export function startNextTurn(state: HydratedRailheadsGameState) {
-    const roundStart = state.rounds.currentRound?.start ?? 0
-    const lastTurn = state.turnManager.series.at(-1)
-    if (lastTurn === undefined || lastTurn.start < roundStart) {
+    if (state.turnManager.series.length === 0) {
         state.turnManager.restartTurnOrder(state.actionCount)
     } else {
         state.turnManager.startNextTurn(state.actionCount)

@@ -5,6 +5,7 @@ export enum MachineState {
     ChoosingIndustry = 'ChoosingIndustry',
     SealedBidding = 'SealedBidding',
     ResolvingIndustryAuction = 'ResolvingIndustryAuction',
+    ClaimingInvestment = 'ClaimingInvestment',
     LayingTrack = 'LayingTrack',
     EndingRound = 'EndingRound',
     FinalScoring = 'FinalScoring',

@@ -46,6 +46,20 @@ const OPENING_BUYERS: Record<EditionId, Partial<Record<CompanyId, string>>> = {
         [CompanyId.IC]: 'p2',
         [CompanyId.BO]: 'p3',
         [CompanyId.PRR]: 'p1'
+    },
+    [EditionId.Switzerland]: {
+        [CompanyId.SNB]: 'p0',
+        [CompanyId.AB]: 'p1',
+        [CompanyId.PB]: 'p2',
+        [CompanyId.RHB]: 'p3',
+        [CompanyId.MOB]: 'p1'
+    },
+    [EditionId.Denmark]: {
+        [CompanyId.SFJ]: 'p0',
+        [CompanyId.AAAJ]: 'p1',
+        [CompanyId.AHB]: 'p2',
+        [CompanyId.JFJ]: 'p3',
+        [CompanyId.DSJ]: 'p1'
     }
 }
 
