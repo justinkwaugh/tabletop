@@ -15,6 +15,7 @@ import {
     isNourishPawns,
     FinaliseHand,
     Goods,
+    handSelectionGroup,
     MachineState,
     PlaceStartingPawn,
     previewFinaliseHand,
@@ -767,7 +768,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         await this.applyAction(
             this.createPlayerAction(FinaliseHand, {
                 cards: [...cards],
-                ...(pouchGood ? { pouchGood } : {})
+                ...(pouchGood ? { pouchGood } : {}),
+                simultaneousGroupId: handSelectionGroup(this.gameState)
             })
         )
     }

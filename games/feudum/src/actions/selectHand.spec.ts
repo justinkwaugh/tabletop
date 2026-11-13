@@ -8,6 +8,7 @@ import { FeudumGameState } from '../model/gameState.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtHandSelection, type Table } from '../testing/table.js'
 import {
+    handSelectionGroup,
     HydratedFinaliseHand,
     isFinaliseHand,
     previewFinaliseHand,
@@ -197,6 +198,21 @@ describe('FinaliseHand', () => {
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.state.activePlayerIds).toEqual([first])
         expect(table.state.flow.selection).toBeUndefined()
+    })
+
+    it('R-3.1-H1 two seats finalising from the same state both go through, as one simultaneous group', () => {
+        const table = tableAtHandSelection(3)
+        const [first, second] = table.order
+        const index = table.state.actionCount
+        const simultaneousGroupId = handSelectionGroup(table.hydrated())
+        const hand = { type: ActionType.FinaliseHand, revealsInfo: true, cards: FOUR, index }
+
+        table.send(first, { ...hand, simultaneousGroupId })
+        expect(() => table.send(second, hand)).toThrow(/Action index is not valid/)
+        table.send(second, { ...hand, simultaneousGroupId })
+
+        expect(table.state.flow.selection?.finalised).toEqual([first, second])
+        expect(simultaneousGroupId).toBe('hands-1')
     })
 
     it('R-X.2 is always a barrier, and an Action not saying so is refused (S8)', () => {

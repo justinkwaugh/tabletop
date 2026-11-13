@@ -48,6 +48,14 @@ export function isFinaliseHand(action?: GameAction): action is FinaliseHand {
     return action?.type === ActionType.FinaliseHand
 }
 
+/**
+ * R-3.1-H1 Every seat finalises at once, so a round's finalises share one simultaneous group:
+ * a seat sending from a state another seat's finalise has since moved on is still taken.
+ */
+export function handSelectionGroup(state: HydratedFeudumGameState): string {
+    return `hands-${state.roundManager.currentRound?.number ?? 0}`
+}
+
 /** R-3.1, R-3.3 */
 export function handSizeFor(pouchGood?: PouchGood): number {
     return pouchGood === 'saltpeter' ? ExtraActionHandSize : HandSize
