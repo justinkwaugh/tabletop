@@ -73,8 +73,8 @@ export function coverPlacement(source: ImageSize, title?: PrintedTitle): CoverPl
  * fills the page behind the drawn title band.
  */
 export type CoverScene =
-    | { kind: 'art'; href: string; titled: false }
-    | { kind: 'art'; href: string; titled: true; size: ImageSize; title?: PrintedTitle }
+    | { href: string; titled: false }
+    | { href: string; titled: true; size: ImageSize; title?: PrintedTitle }
 
 function titleBand(token: Token) {
     return `
