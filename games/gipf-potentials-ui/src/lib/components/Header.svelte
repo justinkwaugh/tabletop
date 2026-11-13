@@ -5,7 +5,8 @@
 
     const session = getGameSession()
 
-    const currentTurnPlayerId = $derived(session.gameState.turnManager.currentTurn()?.playerId)
+    // The player to act, who may be taking a row in the other player's turn.
+    const actingPlayerId = $derived(session.gameState.activePlayerIds[0])
 </script>
 
 <div
@@ -23,7 +24,7 @@
                 class="inline-flex gap-x-1"
             >
                 <PlayerName
-                    playerId={currentTurnPlayerId}
+                    playerId={actingPlayerId}
                     capitalization="uppercase"
                     possessive={true}
                     additionalClasses="tracking-widest"
