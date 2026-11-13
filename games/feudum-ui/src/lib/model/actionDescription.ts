@@ -268,7 +268,6 @@ function finaliseLine(action: GameAction, words: Words): string | undefined {
     )
 }
 
-/** R-3.3 A pouch good by the short name its choice had. */
 /**
  * R-3.1-H1, R-3.3 Once every hand is final, the pouch goods are shown together in one line: each
  * good with its seat, then the seats without one.
