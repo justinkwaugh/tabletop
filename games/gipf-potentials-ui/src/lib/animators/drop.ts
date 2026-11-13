@@ -91,9 +91,11 @@ export class StagedDrop {
     readonly parts: PieceParts = {
         disc: (index) => (node) => {
             if (this.drops) dropDisc(this.timeline, node, index)
+            return () => gsap.killTweensOf(node)
         },
         crease: (index) => (node) => {
             if (this.drops) dropCrease(this.timeline, node, index)
+            return () => gsap.killTweensOf(node)
         },
         lifts: true
     }
@@ -125,11 +127,18 @@ export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfi
 // A disc taken off the piece below lifts off it, and its shadow on that piece goes with it.
 type DiscLiftOff = { parts?: PieceParts }
 
+// The lift takes over from a drop still under way: the disc rises from where it is.
+function stopDrops(wrapper: Element) {
+    for (const child of wrapper.children) gsap.killTweensOf(child)
+}
+
 export function liftOffDisc(node: Element, { parts }: DiscLiftOff): TransitionConfig {
+    stopDrops(node)
     return liftOffBody(node, { lifts: () => parts?.lifts === true })
 }
 
-export function liftOffCrease(_node: Element, { parts }: DiscLiftOff): TransitionConfig {
+export function liftOffCrease(node: Element, { parts }: DiscLiftOff): TransitionConfig {
+    stopDrops(node)
     if (parts?.lifts !== true) return { duration: 0 }
     return { duration: LIFT_OFF.duration * 1000, css: (t) => `opacity: ${t}` }
 }
