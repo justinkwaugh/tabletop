@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Country, HexKind, hexKey } from '@tabletop/railheads'
+    import { Country, HexKind, hexKey, isCountry } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boardLayout } from '$lib/utils/boardLayout.js'
     import { DEMAND_FILL, INDUSTRY_STYLE, PEAK_FILL, WATER_FILL } from '$lib/utils/companyStyle.js'
@@ -41,10 +41,7 @@
                         ? style.regionFill[place.regionId]
                         : undefined) ?? style.hexFill[place.kind],
                 industry: place.industry,
-                country:
-                    place.industry && Object.values<string>(Country).includes(place.regionId ?? '')
-                        ? (place.regionId as Country)
-                        : undefined,
+                country: place.industry && isCountry(place.regionId) ? place.regionId : undefined,
                 center: layout.hexCenter(place.coords),
                 name: site?.name,
                 value: site ? `+${edition.siteRevenue(site.id)}` : undefined

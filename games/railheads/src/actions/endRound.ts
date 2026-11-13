@@ -37,6 +37,13 @@ export function isEndRound(action?: GameAction): action is EndRound {
     return action?.type === ActionType.EndRound
 }
 
+// Games stored before turns ran clockwise across rounds pass the token to the next seat.
+function passStartPlayerToken(state: HydratedRailheadsGameState): string {
+    const startPlayerId = state.turnManager.nextPlayer(state.turnManager.turnOrder[0])
+    state.turnManager.newFirstPlayer(startPlayerId)
+    return startPlayerId
+}
+
 function collectWealthTax(state: HydratedRailheadsGameState): PlayerIncome[] | undefined {
     const tax = state.edition.definition.wealthTax
     if (!tax) return undefined
@@ -81,7 +88,9 @@ export class HydratedEndRound extends HydratableAction<typeof EndRound> implemen
             this.metadata = { round, final: true, rates, income, obsolescence: [], ...extras }
             return
         }
-        const startPlayerId = state.turnManager.nextPlayer(state.turnManager.lastPlayer())
+        const startPlayerId = state.clockwiseRounds
+            ? state.turnManager.nextPlayer(state.turnManager.lastPlayer())
+            : passStartPlayerToken(state)
         const obsolescence = state.companies.map((company) => {
             const from = company.revenue
             company.revenue = Math.max(0, from - state.edition.obsolescenceDrop(from))

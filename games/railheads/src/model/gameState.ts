@@ -92,6 +92,9 @@ export const RailheadsGameState = Type.Evaluate(
             partnerSupply: Type.Optional(Type.Number()),
             // Denmark: the Danish Government's State Treasury.
             stateTreasury: Type.Optional(Type.Number()),
+            // Turns run clockwise across round ends. Games stored before this rule lack the field
+            // and keep passing the Start Player token each round, so their history replays.
+            clockwiseRounds: Type.Optional(Type.Boolean()),
             // England & Wales: the Big Four companies already coupled to the Underground.
             tubeConnections: Type.Optional(Type.Array(Type.Enum(CompanyId)))
         })
@@ -136,6 +139,7 @@ export class HydratedRailheadsGameState
     declare partnerSupply?: number
     declare stateTreasury?: number
     declare tubeConnections?: CompanyId[]
+    declare clockwiseRounds?: boolean
 
     constructor(data: RailheadsProjectedState) {
         super(data, RailheadsProjectedStateValidator)

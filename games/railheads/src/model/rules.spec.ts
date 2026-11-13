@@ -462,6 +462,20 @@ describe('the end of a round', () => {
         expect(state.turnManager.turnOrder[0]).toBe('p1')
     })
 
+    it('passes the Start Player token each round in games stored before clockwise rounds', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.roundTimer = 2
+            state.clockwiseRounds = undefined
+        })
+        for (const player of ['p1', 'p2']) {
+            choose(table, ActionSpaceId.LayTrackII)
+            table.act(player, { type: ActionType.LayTrack, placements: [] })
+        }
+        expect(table.active).toBe('p2')
+        expect(table.hydrated.turnManager.turnOrder[0]).toBe('p2')
+    })
+
     it('drops revenue by the band printed on the Revenue Track', () => {
         const germany = edition(EditionId.Germany)
         expect(

@@ -63,6 +63,7 @@ export class RailheadsGameInitializer
             editionId,
             offTheRails,
             rounds: HydratedRoundManager.generate(),
+            clockwiseRounds: true,
             companies: definition.companies.map((company) => ({
                 id: company.id,
                 treasury: company.startingTreasury,

@@ -38,11 +38,11 @@ export function loanLimit(revenue: number): number {
 }
 
 // The subsidy boxes beside each flag, by Industry Sites of that country reached.
-const TRANSALPINE: Readonly<Record<string, readonly number[]>> = {
-    [Country.France]: [0, 6, 9],
-    [Country.Germany]: [0, 6, 9],
-    [Country.Austria]: [0, 4, 8]
-}
+const TRANSALPINE: readonly (readonly [Country, readonly number[]])[] = [
+    [Country.France, [0, 6, 9]],
+    [Country.Germany, [0, 6, 9]],
+    [Country.Austria, [0, 4, 8]]
+]
 const CISALPINE: readonly number[] = [0, 1, 2]
 
 function sitesReached(context: EndBonusContext, country: Country): number {
@@ -56,9 +56,8 @@ function fromTable(table: readonly number[], reached: number): number {
 }
 
 export function transalpineFactor(context: EndBonusContext): number {
-    return Object.entries(TRANSALPINE).reduce(
-        (sum, [country, table]) =>
-            sum + fromTable(table, sitesReached(context, country as Country)),
+    return TRANSALPINE.reduce(
+        (sum, [country, table]) => sum + fromTable(table, sitesReached(context, country)),
         0
     )
 }

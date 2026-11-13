@@ -25,7 +25,11 @@ export function afterSale(state: HydratedRailheadsGameState, sale: ShareSale): M
 // The Start Player token holder takes the first turn of the game. After that, turns go clockwise
 // without a break, across round ends too.
 export function startNextTurn(state: HydratedRailheadsGameState) {
-    if (state.turnManager.series.length === 0) {
+    const roundStart = state.rounds.currentRound?.start ?? 0
+    const lastTurn = state.turnManager.series.at(-1)
+    const legacyRoundStart =
+        !state.clockwiseRounds && lastTurn !== undefined && lastTurn.start < roundStart
+    if (lastTurn === undefined || legacyRoundStart) {
         state.turnManager.restartTurnOrder(state.actionCount)
     } else {
         state.turnManager.startNextTurn(state.actionCount)

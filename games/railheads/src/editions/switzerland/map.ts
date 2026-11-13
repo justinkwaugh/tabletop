@@ -21,6 +21,10 @@ export enum Country {
     Italy = 'Italy'
 }
 
+export function isCountry(value: string | undefined): value is Country {
+    return Object.values<string | undefined>(Country).includes(value)
+}
+
 // Each neighbour's flag marks the Industry Sites that earn its subsidy.
 const COUNTRIES: readonly RegionDefinition[] = [
     { id: Country.France, name: 'France', hexes: [hex(3, 11), hex(8, 6), hex(14, 4)] },
