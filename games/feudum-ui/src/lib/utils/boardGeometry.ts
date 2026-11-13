@@ -8,6 +8,7 @@ import {
     FarmerBarn,
     FarmerPurse,
     Goods,
+    GuildIds,
     GuildRanks,
     GuildTrackSpaces,
     Inventions,
@@ -629,10 +630,34 @@ export function westGuild(guild: GuildId): boolean {
 }
 
 /**
- * Contract, Guild standings: on a desk each guild's rail stands in a column beside the board,
- * level with its area. `scale` is board units to a screen pixel of the rail's own drawing.
+ * Contract, Guild standings: on a desk the six rails stand in one strip under the board, the West
+ * guilds' then the East's, each in its area's order. In board units: `gap` above the strip and
+ * between two rails, `divide` more between the West's and the East's. A rail's own drawing is
+ * `drawing` pixels wide, and as tall as its heading and one line for each seat: the master's line
+ * and the rest held, or with no master the heading's line holds "no master yet" and every seat may
+ * stand placeless under it, so every place fits however the places fall.
  */
-export const RailBeside = { width: 320, gap: 24, scale: 320 / 108 } as const
+export const StandingsStrip = {
+    gap: 20,
+    divide: 40,
+    drawing: { width: 170, head: 36, line: 19 }
+} as const
+/** One rail's width in the strip, in board units. */
+export const StripRailWidth =
+    (BoardWidth - 5 * StandingsStrip.gap - StandingsStrip.divide) / GuildIds.length
+/** Board units to a pixel of a strip rail's own drawing. */
+export const StripRailScale = StripRailWidth / StandingsStrip.drawing.width
+
+/** A strip rail's own drawing height at this many seats. */
+export function stripRailDrawingHeight(seats: number): number {
+    return StandingsStrip.drawing.head + StandingsStrip.drawing.line * seats
+}
+
+/** The strip's height under the board in board units, the gap above it included. */
+export function standingsStripHeight(seats: number): number {
+    return StandingsStrip.gap + stripRailDrawingHeight(seats) * StripRailScale
+}
+
 /** On a phone it stands over the map's inner edge, inside its column's view. */
 export const RailOver = { width: 168, gap: 8, inset: 6, scale: 168 / 96 } as const
 

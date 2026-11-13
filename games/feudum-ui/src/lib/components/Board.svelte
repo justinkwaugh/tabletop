@@ -4,17 +4,18 @@
     import MapLayers from '$lib/components/map/MapLayers.svelte'
     import BoardFrame from '$lib/components/tracks/BoardFrame.svelte'
     import GuildRails from '$lib/components/standings/GuildRails.svelte'
+    import GuildStrip from '$lib/components/standings/GuildStrip.svelte'
     import TrackLayers from '$lib/components/tracks/TrackLayers.svelte'
     import { guildStandingsOf } from '$lib/model/guildStandings.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { takesTradePicker } from '$lib/model/tradePicker.js'
-    import { BoardHeight, BoardWidth, RailBeside } from '$lib/utils/boardGeometry.js'
+    import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
 
     /**
-     * Contract, Guild standings: where the guild rails stand. Beside the board on a desk; on a
-     * phone only in a guild column's view, over the map's inner edge; none otherwise.
+     * Contract, Guild standings: where the guild rails stand. In one strip under the board on a
+     * desk; on a phone only in a guild column's view, over the map's inner edge; none otherwise.
      */
-    let { rails }: { rails?: 'beside' | 'west' | 'east' } = $props()
+    let { rails }: { rails?: 'strip' | 'west' | 'east' } = $props()
 
     let gameSession = getGameSession()
     let chrome = $derived(gameSession.boardChrome)
@@ -34,14 +35,10 @@
               )
             : undefined
     )
-    let beside = $derived(rails === 'beside')
     let overSide = $derived(rails === 'west' || rails === 'east' ? rails : undefined)
 </script>
 
-<div class="relative flex" style:gap={beside ? `${RailBeside.gap}px` : undefined} data-board-row>
-    {#if standings && beside}
-        <GuildRails view={standings} {paintOf} side="west" />
-    {/if}
+<div class="relative flex" data-board-row>
     <svg
         class="bg-feudum-surface"
         data-board-surface
@@ -75,9 +72,10 @@
             />
         </g>
     </svg>
-    {#if standings && beside}
-        <GuildRails view={standings} {paintOf} side="east" />
-    {:else if standings && overSide}
-        <GuildRails view={standings} {paintOf} side={overSide} over />
+    {#if standings && overSide}
+        <GuildRails view={standings} {paintOf} side={overSide} />
     {/if}
 </div>
+{#if standings && rails === 'strip'}
+    <GuildStrip view={standings} {paintOf} seats={gameSession.gameState.players.length} />
+{/if}

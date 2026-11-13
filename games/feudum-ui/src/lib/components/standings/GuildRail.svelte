@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { GuildRank } from '@tabletop/feudum'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import type { StandingRow } from '$lib/model/guildStandings.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
@@ -10,18 +11,28 @@
      * a ringed dot for a reeve, or "no master yet" beside an empty marker outline; then the lower
      * places held, and muted, the seats with stars and no place. Markers carry no letters, so each
      * place's words are its accessible name and tooltip, and a press says them at the rail's foot,
-     * where a touch screen has no tooltip.
+     * where a touch screen has no tooltip. Spelled out, in the desk's strip, each holder's name
+     * follows the stars, a lower place is lettered (J, A), and a seat with no place shows its reason,
+     * so nothing needs a hover.
      */
     let {
         row,
-        paintOf
+        paintOf,
+        spelled = false
     }: {
         row: StandingRow
         paintOf: (playerId: string) => SeatPaint
+        spelled?: boolean
     } = $props()
 
-    const LeadMarker = 19
+    let LeadMarker = $derived(spelled ? 17 : 19)
     const Marker = 13
+    /** A lower place's letter, spelled out. */
+    const Letters: Readonly<Record<GuildRank, string>> = {
+        master: 'M',
+        journeyman: 'J',
+        apprentice: 'A'
+    }
 
     let master = $derived.by(() => {
         const place = row.places.find((each) => each.rank === 'master')
@@ -44,13 +55,47 @@
     </span>
 {/snippet}
 
-<section class="rail" aria-label="{row.name} standing" data-standing-row={row.guild}>
+{#snippet named(name: string)}
+    {#if spelled}
+        <span class="name" aria-hidden="true" data-standing-name>{name}</span>
+    {/if}
+{/snippet}
+
+{#snippet heading()}
     <h3 class="head">
         <svg class="icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
             <path d={GuildIconPaths[row.guild]} fill="currentColor"></path>
         </svg>
         {row.name}
     </h3>
+{/snippet}
+
+{#snippet open()}
+    <p class="open" data-standing-place="master" data-no-master>
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+            <polygon
+                points="12,1 21.6,6.5 21.6,17.5 12,23 2.4,17.5 2.4,6.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-dasharray="3 2"
+            ></polygon>
+        </svg>
+        <span aria-hidden="true">no master yet</span>
+        <span class="sr-only">{master.label}</span>
+    </p>
+{/snippet}
+
+<section class="rail" class:spelled aria-label="{row.name} standing" data-standing-row={row.guild}>
+    {#if spelled && !master.holder}
+        <!-- Spelled out, an open master shares the heading's line, so a line is left for each seat. -->
+        <div class="top">
+            {@render heading()}
+            {@render open()}
+        </div>
+    {:else}
+        {@render heading()}
+    {/if}
     {#if master.holder}
         <button
             type="button"
@@ -69,21 +114,10 @@
             {#if master.holder.reeve}
                 <span class="reeve" aria-hidden="true"></span>
             {/if}
+            {@render named(master.holder.name)}
         </button>
-    {:else}
-        <p class="open" data-standing-place="master" data-no-master>
-            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
-                <polygon
-                    points="12,1 21.6,6.5 21.6,17.5 12,23 2.4,17.5 2.4,6.5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-dasharray="3 2"
-                ></polygon>
-            </svg>
-            <span aria-hidden="true">no master yet</span>
-            <span class="sr-only">{master.label}</span>
-        </p>
+    {:else if !spelled}
+        {@render open()}
     {/if}
     {#if lower.length > 0 || row.others.length > 0}
         <div class="rest">
@@ -100,11 +134,17 @@
                         data-reeve={place.holder.reeve ? '' : undefined}
                         onclick={() => say(place.label)}
                     >
+                        {#if spelled}
+                            <span class="rank" aria-hidden="true" data-standing-rank
+                                >{Letters[place.rank]}</span
+                            >
+                        {/if}
                         {@render marker(place.holder.playerId, Marker)}
                         <span aria-hidden="true">★{place.holder.stars}</span>
                         {#if place.holder.reeve}
                             <span class="reeve" aria-hidden="true"></span>
                         {/if}
+                        {@render named(place.holder.name)}
                     </button>
                 {/if}
             {/each}
@@ -120,6 +160,12 @@
                 >
                     {@render marker(other.playerId, Marker)}
                     <span aria-hidden="true">★{other.stars}</span>
+                    {@render named(other.name)}
+                    {#if spelled}
+                        <span class="reason" aria-hidden="true" data-standing-reason
+                            >{other.reason}</span
+                        >
+                    {/if}
                 </button>
             {/each}
         </div>
@@ -208,6 +254,39 @@
 
     .marker {
         display: inline-flex;
+    }
+
+    .top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0 8px;
+    }
+
+    /* Spelled out, a place is one line as wide as the rail at most; a long name ends in an ellipsis. */
+    .spelled .place {
+        max-width: 100%;
+    }
+
+    .spelled .rest {
+        gap: 2px 8px;
+    }
+
+    .name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .rank,
+    .reason {
+        flex: none;
+        font-weight: 400;
+        color: var(--feudum-text-muted);
+    }
+
+    .reason {
+        font-style: italic;
     }
 
     .reeve {

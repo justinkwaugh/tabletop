@@ -131,7 +131,7 @@ test.describe('a 1440 px desk', () => {
         await openFixture(page, 'cards-tile-gone-epoch-1')
         await expect(page.locator('[data-margin-layer], [data-layer="margin"]')).toHaveCount(0)
 
-        // The board is its own height: the frame reaches the surface's foot, and the board with its rails fills the view one way.
+        // The board is its own height: the frame reaches the surface's foot, and the board fills the view one way.
         const surface = await rect(page.locator('[data-board-surface]'))
         const frame = await rect(page.locator('[data-board-surface] > svg').first())
         const row = await rect(page.locator('[data-board-row]'))
