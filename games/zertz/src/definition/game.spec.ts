@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-    ActionSource,
-    assert,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    type AxialCoordinates,
-    type GameAction
-} from '@tabletop/common'
-import { Definition } from './definition.js'
-import { ZertzRuntime } from './runtime.js'
-import { ZertzInfo } from './info.js'
+import { assert, GameResult, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import { ZertzSetup } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
@@ -25,41 +13,20 @@ import { MarbleColor, noMarbles, type MarbleCounts } from '../model/marbles.js'
 import { isPlaceMarble, type PlaceMarble } from '../actions/placeMarble.js'
 import type { Capture } from '../actions/capture.js'
 import type { Ring } from '../model/board.js'
-
-const engine = new GameEngine(ZertzRuntime)
-
-function createGame(setup: ZertzSetup = ZertzSetup.Standard) {
-    return ZertzRuntime.initializer.initializeGame(
-        {
-            id: 'zertz-test',
-            typeId: 'zertz',
-            ownerId: 'owner',
-            seed: 7,
-            config: { ...defaultGameConfig(ZertzInfo.configurator?.options ?? []), setup },
-            players: ['p0', 'p1'].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
-type ZertzGame = ReturnType<typeof createGame>
+import {
+    actionBase,
+    createGame,
+    engine,
+    execute,
+    playToEnd,
+    type ZertzGame
+} from './tests/playthrough.js'
 
 function start(game: ZertzGame): ZertzGameState {
     return engine.startGame(game, { startingPositions: { playerIds: ['p0', 'p1'] } }).initialState
 }
 
-let actionCounter = 0
-function userAction(game: ZertzGame) {
-    actionCounter += 1
-    return { id: `action-${actionCounter}`, gameId: game.id, source: ActionSource.User }
-}
-
-function execute(game: ZertzGame, state: ZertzGameState, action: GameAction) {
+function run(game: ZertzGame, state: ZertzGameState, action: GameAction) {
     return engine.executeCanonicalAction({ game, state, action })
 }
 
@@ -71,7 +38,7 @@ function place(
     coords: AxialCoordinates,
     remove?: AxialCoordinates
 ): ZertzGameState {
-    return execute(game, state, placing(game, playerId, color, coords, remove)).updatedState
+    return execute(game, state, placing(game, playerId, color, coords, remove))
 }
 
 function placing(
@@ -82,9 +49,8 @@ function placing(
     remove?: AxialCoordinates
 ): PlaceMarble {
     return {
-        ...userAction(game),
+        ...actionBase(game, playerId),
         type: ActionType.PlaceMarble,
-        playerId,
         color,
         coords,
         ...(remove === undefined ? {} : { remove })
@@ -98,12 +64,12 @@ function capture(
     from: AxialCoordinates,
     to: AxialCoordinates
 ): ZertzGameState {
-    const action: Capture = { ...userAction(game), type: ActionType.Capture, playerId, from, to }
-    return execute(game, state, action).updatedState
+    const action: Capture = { ...actionBase(game, playerId), type: ActionType.Capture, from, to }
+    return execute(game, state, action)
 }
 
 function placeMetadata(game: ZertzGame, state: ZertzGameState, action: PlaceMarble) {
-    const [processed] = execute(game, state, action).processedActions
+    const [processed] = run(game, state, action).processedActions
     assert(isPlaceMarble(processed))
     return processed.metadata
 }
@@ -256,15 +222,14 @@ describe('placing and removing', () => {
             captured: { p0: captured(0, 1, 0) }
         })
         const action: PlaceMarble = {
-            ...userAction(game),
+            ...actionBase(game, 'p0'),
             type: ActionType.PlaceMarble,
-            playerId: 'p0',
             color: MarbleColor.Grey,
             coords: { q: 2, r: 0 },
             remove: { q: 0, r: 0 }
         }
         expect(placeMetadata(game, state, action)).toMatchObject({ source: MarbleSource.Captured })
-        const after = execute(game, state, action).updatedState
+        const after = execute(game, state, action)
         expect(after.players[0].captured).toEqual(noMarbles())
     })
 
@@ -325,7 +290,7 @@ describe('isolated groups', () => {
             claimedOnPlacing: [],
             claimedOnRemoving: [{ coords: { q: 0, r: 0 }, marble: MarbleColor.White }]
         })
-        state = execute(game, state, action).updatedState
+        state = execute(game, state, action)
         expect(state.players[0].captured).toEqual(captured(1, 0, 0))
         expect(state.board.rings).toHaveLength(3)
     })
@@ -340,7 +305,7 @@ describe('isolated groups', () => {
             claimedOnPlacing: [{ coords: { q: 0, r: 2 }, marble: MarbleColor.Black }],
             claimedOnRemoving: []
         })
-        const state = execute(game, before, action).updatedState
+        const state = execute(game, before, action)
         expect(state.players[0].captured).toEqual(captured(0, 0, 1))
         expect(state.board.rings).toHaveLength(3)
         expect(state.activePlayerIds).toEqual(['p1'])
@@ -407,43 +372,6 @@ describe('end of game', () => {
     })
 })
 
-function legalActions(game: ZertzGame, state: ZertzGameState): GameAction[] {
-    const hydrated = new HydratedZertzGameState(state)
-    const playerId = state.activePlayerIds[0]
-    const base = () => ({ ...userAction(game), playerId })
-    const { board } = hydrated
-    switch (state.machineState) {
-        case MachineState.ContinuingCapture:
-        case MachineState.TakingTurn: {
-            const chainFrom = hydrated.captureChainFrom
-            const jumps = chainFrom ? board.jumpsFrom(chainFrom) : board.allJumps()
-            if (jumps.length > 0) {
-                return jumps.map((jump) => ({
-                    ...base(),
-                    type: ActionType.Capture,
-                    from: jump.from,
-                    to: jump.to
-                }))
-            }
-            return hydrated.placeableColors(playerId).flatMap((color) =>
-                board.vacantRings().flatMap(({ coords }) => {
-                    const removable = hydrated.removableAfterPlacing(playerId, color, coords)
-                    const removals = removable.length === 0 ? [undefined] : removable
-                    return removals.map((remove) => ({
-                        ...base(),
-                        type: ActionType.PlaceMarble,
-                        color,
-                        coords,
-                        ...(remove === undefined ? {} : { remove })
-                    }))
-                })
-            )
-        }
-        default:
-            return []
-    }
-}
-
 describe('random playouts', () => {
     it.each(
         Object.values(ZertzSetup).flatMap((setup) =>
@@ -451,20 +379,7 @@ describe('random playouts', () => {
         )
     )('%s seed %i plays to a single winner', (setup, seed) => {
         const game = createGame(setup)
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions)).updatedState
-            steps += 1
-            expect(steps).toBeLessThan(300)
-        }
+        const state = playToEnd(game, start(game), seed)
         expect(state.result).toBe(GameResult.Win)
         expect(state.winningPlayerIds).toHaveLength(1)
         expect(state.endReason).toBeDefined()
