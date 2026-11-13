@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { doubledToAxial, hexCoordinates, type HexId } from '../data/hexes.js'
-import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
+import { LOCOMOTIVES_PER_RAILROAD, RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import {
     adjacentHexIds,
+    hexOrder,
     USA_CITIES,
     USA_HEXES,
     usaCity,
@@ -33,6 +34,9 @@ const CINCINNATI: CityId = 'city.usa.cincinnati'
 const PITTSBURGH: CityId = 'city.usa.pittsburgh'
 const LITTLE_ROCK: CityId = 'city.usa.little-rock'
 const DES_MOINES: CityId = 'city.usa.des-moines'
+const SEATTLE: CityId = 'city.usa.seattle'
+const SPOKANE: CityId = 'city.usa.spokane'
+const PORTLAND: CityId = 'city.usa.portland-or'
 
 const KANSAS_CITY_TO_SAINT_LOUIS: readonly HexId[] = [
     'hex.usa.8-32',
@@ -489,4 +493,57 @@ describe('the expansion cap (R-X.1)', () => {
         expect(capped.journeys.length).toBeLessThan(whole.journeys.length)
         expect(isSubsequence(capped.journeys, whole.journeys)).toBe(true)
     })
+})
+
+// Red's whole railroad in one block: Spokane, Seattle and the non-city hexes nearest Spokane. The
+// block holds millions of distinct paths between the two cities.
+function spokaneBlock(): HexId[] {
+    const spokane = usaCity(SPOKANE).hexId
+    const block = USA_HEXES.filter((hex) => hex.terrain !== 'city')
+        .map((hex) => hex.id)
+        .sort((a, b) => distance(spokane, a) - distance(spokane, b) || hexOrder(a) - hexOrder(b))
+        .slice(0, LOCOMOTIVES_PER_RAILROAD - 2)
+    return [spokane, usaCity(SEATTLE).hexId, ...block]
+}
+
+describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', () => {
+    const block = spokaneBlock()
+    const track = trackOf([RED, block])
+    const state = riding(track)
+    const seattle = usaCity(SEATTLE).hexId
+
+    it('is one railroad of 27 locomotives, Seattle next to the block', () => {
+        expect(Object.keys(track)).toHaveLength(LOCOMOTIVES_PER_RAILROAD)
+        expect(adjacentHexIds(seattle).filter((hexId) => track[hexId] !== undefined)).toEqual([
+            'hex.usa.0-6',
+            'hex.usa.1-5',
+            'hex.usa.1-3'
+        ])
+    })
+
+    it('offers the next city and realises the link without walking every path', () => {
+        expect(nextCities(state, SPOKANE, [])).toEqual([{ cityId: SEATTLE, railroadIds: [RED] }])
+        const realised = realise(state, [SPOKANE, SEATTLE], [RED])
+        expect(realised).toEqual([
+            link(RED, ['hex.usa.0-10', 'hex.usa.0-8', 'hex.usa.0-6', 'hex.usa.0-4'])
+        ])
+        expect(nextCities(state, SPOKANE, realised ?? [])).toEqual([])
+        expect(realise(state, [SPOKANE, SEATTLE, SPOKANE], [RED, RED])).toBeUndefined()
+    }, 2000)
+
+    it('finds no realisation, quickly, when every way through the block meets a later link', () => {
+        // Red reaches Seattle only through 0-6, which Blue's only link out of Seattle uses.
+        const neck = block.filter((hexId) => hexId !== 'hex.usa.1-5' && hexId !== 'hex.usa.1-3')
+        const blueLink: HexId[] = [
+            seattle,
+            'hex.usa.0-6',
+            'hex.usa.1-7',
+            'hex.usa.2-6',
+            usaCity(PORTLAND).hexId
+        ]
+        const blocked = riding(trackOf([RED, neck], [BLUE, blueLink]))
+        expect(realise(blocked, [SEATTLE, PORTLAND], [BLUE])).toEqual([link(BLUE, blueLink)])
+        expect(realise(blocked, [SPOKANE, SEATTLE], [RED])).toBeDefined()
+        expect(realise(blocked, [SPOKANE, SEATTLE, PORTLAND], [RED, BLUE])).toBeUndefined()
+    }, 2000)
 })

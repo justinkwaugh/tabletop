@@ -128,6 +128,37 @@ function routeEndHexId(startHexId: HexId, links: readonly Link[]): HexId {
     return links.at(-1)?.hexIds.at(-1) ?? startHexId
 }
 
+// R-3.3.2, R-3.3.2-H1, R-3.3.3: the cities one link of this railroad reaches from the city at
+// fromHexId through non-city hexes outside the visited ones (the city itself may be among them).
+// A search of the railroad's track, each hex reached once.
+function railroadCitiesFrom(
+    track: Track,
+    railroadId: RailroadId,
+    fromHexId: HexId,
+    visited: ReadonlySet<HexId>
+): Set<HexId> {
+    const cities = new Set<HexId>()
+    if (!hasTrackIn(track, fromHexId, railroadId)) {
+        return cities
+    }
+    const reached = new Set<HexId>([fromHexId])
+    const frontier: HexId[] = [fromHexId]
+    for (let hexId = frontier.pop(); hexId !== undefined; hexId = frontier.pop()) {
+        for (const next of neighboursInHexOrder(hexId)) {
+            if (reached.has(next) || visited.has(next) || !hasTrackIn(track, next, railroadId)) {
+                continue
+            }
+            reached.add(next)
+            if (isCityHex(next)) {
+                cities.add(next)
+            } else {
+                frontier.push(next)
+            }
+        }
+    }
+    return cities
+}
+
 // R-3.3.2, R-3.3.3: the cities one more link reaches without reusing a hex of the route, in hex
 // id order, each with the railroads (R-1.4 order) that make that link.
 export function nextCities(
@@ -137,29 +168,83 @@ export function nextCities(
 ): NextCity[] {
     const startHexId = usaCity(startCityId).hexId
     assert(links.length === 0 || links[0].hexIds[0] === startHexId, 'The route leaves its start')
-    const reachable = linksFrom(
-        state,
-        routeEndHexId(startHexId, links),
-        routeHexIds(startHexId, links)
+    const fromHexId = routeEndHexId(startHexId, links)
+    const visited = routeHexIds(startHexId, links)
+    const reached = RAILROAD_IDS.map(
+        (railroadId) =>
+            [railroadId, railroadCitiesFrom(state.track, railroadId, fromHexId, visited)] as const
     )
-    const endHexIds = [...new Set(reachable.map((link) => link.hexIds[link.hexIds.length - 1]))]
+    const endHexIds = [...new Set(reached.flatMap(([, cities]) => [...cities]))]
     return endHexIds
         .sort((a, b) => hexOrder(a) - hexOrder(b))
         .map((endHexId) => ({
             cityId: cityAt(endHexId).id,
-            railroadIds: RAILROAD_IDS.filter((railroadId) =>
-                reachable.some(
-                    (link) =>
-                        link.railroadId === railroadId &&
-                        link.hexIds[link.hexIds.length - 1] === endHexId
-                )
-            )
+            railroadIds: reached
+                .filter(([, cities]) => cities.has(endHexId))
+                .map(([railroadId]) => railroadId)
         }))
 }
 
+// R-3.3.2, R-3.3.3: one link of this railroad from fromHexId reaches targetHexId through non-city
+// hexes outside the blocked ones.
+function reachesCity(
+    track: Track,
+    railroadId: RailroadId,
+    fromHexId: HexId,
+    targetHexId: HexId,
+    blocked: ReadonlySet<HexId>
+): boolean {
+    return railroadCitiesFrom(track, railroadId, fromHexId, blocked).has(targetHexId)
+}
+
+// R-3.3.2, R-3.3.2-H1, R-3.3.3: the links of one railroad from the city at fromHexId to the city
+// at targetHexId that use none of the visited hexes, in the order the depth-first search of
+// railroadLinksFrom finds them. A step is taken only while the target can still be reached
+// without the hexes already used, so finding each next link takes polynomial time.
+function* railroadLinksTo(
+    track: Track,
+    railroadId: RailroadId,
+    fromHexId: HexId,
+    targetHexId: HexId,
+    visited: ReadonlySet<HexId>
+): Generator<Link> {
+    if (!hasTrackIn(track, fromHexId, railroadId) || visited.has(targetHexId)) {
+        return
+    }
+    const path: HexId[] = [fromHexId]
+    const blocked = new Set<HexId>([...visited, fromHexId])
+    function* extend(hexId: HexId): Generator<Link> {
+        for (const next of neighboursInHexOrder(hexId)) {
+            if (blocked.has(next) || !hasTrackIn(track, next, railroadId)) {
+                continue
+            }
+            if (next === targetHexId) {
+                yield { railroadId, hexIds: [...path, next] }
+                continue
+            }
+            if (isCityHex(next)) {
+                continue
+            }
+            path.push(next)
+            blocked.add(next)
+            if (reachesCity(track, railroadId, next, targetHexId, blocked)) {
+                yield* extend(next)
+            }
+            blocked.delete(next)
+            path.pop()
+        }
+    }
+    yield* extend(fromHexId)
+}
+
+// R-X.1: how many candidate links one realise may try before it gives up. Only a route whose
+// every realisation of an earlier link blocks a later one reaches it.
+export const REALISE_CANDIDATE_CAP = 1_000
+
 // R-3.3.2, R-3.3.3, R-X.1: the hexes of a route given as its cities and each link's railroad,
-// the first realisation in link order that visits no hex twice; undefined when none exists or
-// the start holds no passenger.
+// the first realisation in link order that visits no hex twice; undefined when none exists, when
+// the start holds no passenger, or when the search tries REALISE_CANDIDATE_CAP candidate links.
+// The server checks the journey itself (journeyRefusal), so the cap bounds only this offer.
 export function realise(
     state: RideTheRailsGameState,
     cities: readonly CityId[],
@@ -169,30 +254,48 @@ export function realise(
     if (railroadIds.length === 0 || !state.passengers.includes(cities[0])) {
         return undefined
     }
+    const cityHexIds = cities.map((cityId) => usaCity(cityId).hexId)
+    // R-3.3.3: a city twice, or a link that does not exist even alone, leaves no realisation.
+    if (
+        new Set(cityHexIds).size !== cityHexIds.length ||
+        railroadIds.some(
+            (railroadId, index) =>
+                !reachesCity(
+                    state.track,
+                    railroadId,
+                    cityHexIds[index],
+                    cityHexIds[index + 1],
+                    new Set()
+                )
+        )
+    ) {
+        return undefined
+    }
+    const budget = new ExpansionBudget(REALISE_CANDIDATE_CAP)
     const realiseFrom = (links: Link[], visited: ReadonlySet<HexId>): Link[] | undefined => {
         const index = links.length
         if (index === railroadIds.length) {
             return links
         }
-        const fromHexId = routeEndHexId(usaCity(cities[0]).hexId, links)
-        const targetHexId = usaCity(cities[index + 1]).hexId
-        const candidates = railroadLinksFrom(
+        const candidates = railroadLinksTo(
             state.track,
             railroadIds[index],
-            fromHexId,
-            visited,
-            unbounded()
-        ).filter((link) => link.hexIds[link.hexIds.length - 1] === targetHexId)
+            cityHexIds[index],
+            cityHexIds[index + 1],
+            visited
+        )
         for (const link of candidates) {
+            if (!budget.spend()) {
+                return undefined
+            }
             const realised = realiseFrom([...links, link], new Set([...visited, ...link.hexIds]))
-            if (realised) {
+            if (realised || budget.capped) {
                 return realised
             }
         }
         return undefined
     }
-    const startHexId = usaCity(cities[0]).hexId
-    return realiseFrom([], new Set([startHexId]))
+    return realiseFrom([], new Set([cityHexIds[0]]))
 }
 
 // R-3.3.4, R-3.3.5: the rider's fare plus the dividends on the rider's own shares.

@@ -562,3 +562,51 @@ describe('a draft re-checked against the displayed state', () => {
         expect(draftLinks(held)).toEqual([{ cityId: SAINT_LOUIS, railroadId: BLUE }])
     })
 })
+
+describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', () => {
+    // Red's whole railroad: Spokane, Seattle and the 25 non-city hexes nearest Spokane.
+    const SPOKANE_BLOCK: HexId[] = [
+        'hex.usa.0-10',
+        'hex.usa.0-4',
+        'hex.usa.0-8',
+        'hex.usa.0-12',
+        'hex.usa.1-9',
+        'hex.usa.1-11',
+        'hex.usa.0-6',
+        'hex.usa.0-14',
+        'hex.usa.1-7',
+        'hex.usa.1-13',
+        'hex.usa.2-8',
+        'hex.usa.2-10',
+        'hex.usa.2-12',
+        'hex.usa.0-16',
+        'hex.usa.1-5',
+        'hex.usa.1-15',
+        'hex.usa.2-6',
+        'hex.usa.2-14',
+        'hex.usa.3-7',
+        'hex.usa.3-9',
+        'hex.usa.3-11',
+        'hex.usa.3-13',
+        'hex.usa.0-18',
+        'hex.usa.1-3',
+        'hex.usa.2-16',
+        'hex.usa.3-5',
+        'hex.usa.3-15'
+    ]
+    const SPOKANE: CityId = 'city.usa.spokane'
+    const SEATTLE: CityId = 'city.usa.seattle'
+
+    it('offers the route out of Spokane and back without walking every path', () => {
+        const state = riding(trackOf([RED, SPOKANE_BLOCK]))
+        const started = heldJourneyStage(state, pickJourneyStart({}, SPOKANE))
+        expect(journeyOffer(state, started, 'p1').lit.map((city) => city.cityId)).toEqual([SEATTLE])
+        const linked = heldJourneyStage(
+            state,
+            pushDraftLink(started, { cityId: SEATTLE, railroadId: RED })
+        )
+        const offer = journeyOffer(state, linked, 'p1')
+        expect(offer.draft?.links.map((link) => link.hexIds.at(-1))).toEqual([hexOf(SEATTLE)])
+        expect(offer.lit).toEqual([])
+    }, 2000)
+})
