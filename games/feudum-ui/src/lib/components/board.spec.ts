@@ -2,10 +2,15 @@
 import { render } from 'svelte/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { Color } from '@tabletop/common'
-import { GuildIds, HydratedFeudumGameState, type GuildId } from '@tabletop/feudum'
+import { HydratedFeudumGameState, type GuildId } from '@tabletop/feudum'
 import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
-import { BoardHeight, BoardWidth, GuildAreas, railOverRect } from '$lib/utils/boardGeometry.js'
+import {
+    BoardHeight,
+    BoardWidth,
+    railOverRect,
+    standingsStripHeight
+} from '$lib/utils/boardGeometry.js'
 import Board from './Board.svelte'
 
 const session = vi.hoisted(() => {
@@ -16,7 +21,7 @@ vi.mock('$lib/model/sessionContext.svelte.js', () => ({
     getGameSession: () => session.current
 }))
 
-async function boardOf(props: { rails?: 'beside' | 'west' | 'east' } = {}) {
+async function boardOf(props: { rails?: 'strip' | 'west' | 'east' } = {}) {
     const { host } = await atPlayingCards(['explore'])
     const gameState = new HydratedFeudumGameState(structuredClone(host.state))
     const colors = {
@@ -42,21 +47,19 @@ function railTag(html: string, guild: GuildId): string {
     return tag ?? ''
 }
 
-describe('Contract, Guild standings: a rail beside each guild area (R-4.5)', () => {
-    it('on a desk six rails stand in two columns beside the board, each level with its area', async () => {
-        const { html } = await boardOf({ rails: 'beside' })
-        const west = html.indexOf('data-guild-rails="west"')
+describe('Contract, Guild standings: a rail for each guild (R-4.5)', () => {
+    it('on a desk the six rails stand in one strip under the board, the West guilds then the East, each in its area’s order', async () => {
+        const { html, gameState } = await boardOf({ rails: 'strip' })
         const surface = html.indexOf('data-board-surface')
-        const east = html.indexOf('data-guild-rails="east"')
-        expect(west).toBeGreaterThan(-1)
-        expect(west).toBeLessThan(surface)
-        expect(surface).toBeLessThan(east)
-        expect(html.match(/data-guild-rail="/g)).toHaveLength(GuildIds.length)
-        for (const guild of GuildIds) {
-            expect(railTag(html, guild)).toContain(`top:${GuildAreas[guild].y}px`)
-        }
-        expect(html.indexOf('data-guild-rail="farmer"')).toBeLessThan(surface)
-        expect(html.indexOf('data-guild-rail="knight"')).toBeGreaterThan(surface)
+        const strip = html.match(/<div[^>]*data-guild-strip[^>]*>/)?.[0] ?? ''
+        expect(strip).toContain(`width:${BoardWidth}px`)
+        expect(strip).toContain(`height:${standingsStripHeight(gameState.players.length)}px`)
+        expect(html.indexOf('data-guild-strip')).toBeGreaterThan(surface)
+        expect(html).not.toContain('data-guild-rails')
+        const order = [...html.matchAll(/data-guild-rail="([a-z]+)"/g)].map(([, guild]) => guild)
+        expect(order).toEqual(['alchemist', 'merchant', 'farmer', 'knight', 'noble', 'monk'])
+        expect(railTag(html, 'knight')).toContain('data-strip-east')
+        expect(railTag(html, 'farmer')).not.toContain('data-strip-east')
     })
 
     it("on a phone a guild view carries its own three rails over the map's inner edge, and the map view none", async () => {

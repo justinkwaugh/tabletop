@@ -20,7 +20,7 @@ function paintOf(playerId: string) {
     }
 }
 
-function railOf(guild: GuildId): string {
+function railOf(guild: GuildId, spelled = false): string {
     const host = new FeudumHost(3)
     host.edit((state) => {
         setPawns(state, 'p1', ['farmer', 'farmer', 'farmer'])
@@ -38,7 +38,7 @@ function railOf(guild: GuildId): string {
     if (!row) {
         throw new Error('No such guild')
     }
-    return render(GuildRail, { props: { row, paintOf } }).body
+    return render(GuildRail, { props: { row, paintOf, spelled } }).body
 }
 
 /** The one button named so: its whole opening tag. */
@@ -75,5 +75,26 @@ describe('a guild rail (R-4.5, R-4.7)', () => {
         expect(markup).toContain('data-no-master')
         expect(markup).toContain('Monk master: vacant')
         expect(markup).not.toContain('<button')
+    })
+
+    it('R-4.5.1 spelled out in the desk strip: each holder named beside the stars, the lower places lettered, the placeless muted with their reason', () => {
+        const markup = railOf('farmer', true)
+        const master = buttonNamed(markup, 'Farmer master: Ana, 3 stars, reeve')
+        expect(master).toContain('data-lead')
+        expect(markup).toMatch(/data-standing-place="master"[\s\S]*?data-standing-name[^>]*>Ana</)
+        expect(markup).toMatch(
+            /data-standing-place="journeyman"[\s\S]*?data-standing-rank[^>]*>J<[\s\S]*?data-standing-name[^>]*>Cleo</
+        )
+        expect(markup).toMatch(
+            /data-standing-other="p2"[\s\S]*?data-standing-name[^>]*>Bram<[\s\S]*?data-standing-reason[^>]*>outranked</
+        )
+        // Beside its area on a phone, the rail stays markers and stars, its words in the tooltips.
+        expect(railOf('farmer')).not.toContain('data-standing-name')
+    })
+
+    it('R-4.5 spelled out, a guild with no master yet still says so and nothing else', () => {
+        const markup = railOf('monk', true)
+        expect(markup).toContain('no master yet')
+        expect(markup).not.toContain('data-standing-name')
     })
 })

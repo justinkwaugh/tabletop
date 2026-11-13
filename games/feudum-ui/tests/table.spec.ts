@@ -44,7 +44,7 @@ async function pressRow(page: Page, label: string) {
 test('the board fits the table beside the panel, and scales down with it', async ({ page }) => {
     await createGame(page)
     await settled(page)
-    // The board and the guild standings' rails beside it fill the table's width.
+    // The board fills the table's width; the guild standings stand under it.
     const row = await page.locator('[data-board-row]').boundingBox()
     expect(row?.x).toBeGreaterThanOrEqual(330)
     expect((row?.x ?? 0) + (row?.width ?? 0)).toBeLessThanOrEqual(1280)

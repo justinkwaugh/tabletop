@@ -192,7 +192,7 @@
                                 ? focus.shown === 'west' || focus.shown === 'east'
                                     ? focus.shown
                                     : undefined
-                                : 'beside'}
+                                : 'strip'}
                         />
                         <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
                         <div class="block" style:height="{ZoomRowBand}px" data-zoom-row-band></div>

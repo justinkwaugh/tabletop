@@ -1248,6 +1248,19 @@ export const Fixtures = {
                 )
             )
     },
+    /** R-4.5.3 Five seats, every one a Merchant: three places held and two seats outranked. */
+    'standings-crowded': {
+        build: () =>
+            atGuild(
+                seats(
+                    guildSeat('merchant'),
+                    guildSeat('merchant'),
+                    guildSeat('merchant'),
+                    guildSeat('merchant'),
+                    guildSeat('merchant')
+                )
+            )
+    },
     'seats-four-mid-game': {
         arranged:
             'Contract, Seat panel: four seats a card into the round, each with a forfeited card, a tile, a seal, a writ and a sulfur in its barrel; the second has a ship and has served.',
