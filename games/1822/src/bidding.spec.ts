@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { committedCash, evaluateBids, leadingBid, trainsOwnedBy } from '@tabletop/18xx'
+import { Random, botMove } from '../test/bot.js'
 import { kit, type Table } from '../test/kit.js'
 import { cashOf, company, player } from '../test/positions.js'
 import { FirstConcessionId, FirstMinorId, concessionId } from './companies.js'
@@ -183,6 +184,28 @@ describe('the end of a stock round (§4.10)', () => {
         expect(TrainDepot1822.remaining(state.trainInventory, 'L')).toBe(22 - 5)
         expect(state.bidBoxes.boxes.some((box) => box.lotId === FirstMinorId)).toBe(false)
         expect(state.phaseId).toBe('1')
+    })
+
+    it('closes a gap left during the operating rounds as the next stock round starts (§4.5.2)', () => {
+        const game = kit.table(4, 3)
+        const random = new Random(3)
+        const play = (until: () => boolean) => {
+            for (let count = 0; count < 2000 && !until(); count++) {
+                const next = botMove(game, random)
+                game.act(next.type, next.fields, next.playerId)
+            }
+        }
+        play(() => game.state.machineState !== 'StockRound')
+        const state = structuredClone(game.state)
+        const gone = boxLot(state, bidBoxId1822('minor', 1))
+        state.bidBoxes.boxes = state.bidBoxes.boxes.filter((box) => box.lotId !== gone)
+        game.state = state
+        play(() => game.state.machineState === 'StockRound')
+        const minors = game.state.bidBoxes.boxes.filter((box) => box.boxId.startsWith('minor'))
+        expect(minors.map((box) => box.boxId)).toEqual(
+            [1, 2, 3, 4].map((number) => bidBoxId1822('minor', number))
+        )
+        expect(minors.map((box) => box.lotId)).not.toContain(gone)
     })
 
     it('ends the game at once when the first stock round sells nothing (§1.3.1)', () => {

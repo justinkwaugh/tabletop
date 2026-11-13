@@ -63,9 +63,10 @@ export class HydratedLayTile extends HydratableAction<typeof LayTile> implements
         assert(result.details, result.reason ?? 'Invalid track lay')
         const details = result.details
         assert(details.cost === this.expectedCost, 'Construction cost has changed')
+        const consenters = construction.consenters(this)
         assert(
-            !details.consentPlayerId || details.consentPlayerId === this.playerId,
-            'Track requires the private owner’s consent'
+            !consenters.length || consenters.includes(this.playerId),
+            'This track requires another player’s agreement'
         )
         this.metadata = applyTrackLay(
             state,

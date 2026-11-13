@@ -7,7 +7,11 @@ import {
     type TrackRules
 } from '@tabletop/18xx'
 import { major1822, minor1822 } from './companies.js'
-import { layRestriction1822, londonConsentPlayerId1822 } from './layRestriction.js'
+import {
+    layRestriction1822,
+    londonConsentPlayerId1822,
+    londonOtherConsentPlayerIds1822
+} from './layRestriction.js'
 import { Map1822, OystermouthNodeId, SwanseaLocationId } from './map.js'
 import {
     AdvancedLayMark,
@@ -98,5 +102,6 @@ export const TrackRules1822: TrackRules = {
         return home ? [home.locationId] : []
     },
     restriction: layRestriction1822,
-    consentPlayerId: londonConsentPlayerId1822
+    consentPlayerId: londonConsentPlayerId1822,
+    otherConsentPlayerIds: londonOtherConsentPlayerIds1822
 }

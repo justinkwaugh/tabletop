@@ -35,7 +35,9 @@ import {
     private1822,
     type Private1822
 } from './privates.js'
+import { awaitsAnswer, declinedMark } from './offers.js'
 import type { HydratedState1822, StateHandler1822 } from './state.js'
+import { AcquisitionChoice, type AcquisitionChoice1822 } from './titleState.js'
 import { EnglishChannelTileIds1822, TileSet1822 } from './tiles.js'
 import { TrackRules1822 } from './track.js'
 import {
@@ -54,21 +56,6 @@ import {
 
 /** The estuary tokens P10 gives the company that acquires it (Table 3). */
 const EstuaryTokenCount = 2
-
-/** How a private company with a choice is taken up as it is acquired (Table 3: P5, P8). */
-export const AcquisitionChoices1822 = [
-    'token',
-    'discount',
-    'channel',
-    'upgrade',
-    'available'
-] as const
-export type AcquisitionChoice1822 = (typeof AcquisitionChoices1822)[number]
-
-/** The turn's mark that the private company's holder declined to let the company have it. */
-function declinedMark(privateCompanyId: string): string {
-    return `declined:${privateCompanyId}`
-}
 
 /** The company in its turn before any track is laid, when it acquires private companies (§5.3.1, §5.7). */
 function acquiringCompany(state: HydratedState1822, playerId: string): string | undefined {
@@ -212,15 +199,7 @@ export function acquirablePrivates1822(state: HydratedState1822, playerId: strin
 const AcquirePrivateAction = titleAction('AcquirePrivate', {
     companyId: Type.String({ minLength: 1 }),
     privateCompanyId: Type.String({ minLength: 1 }),
-    choice: Type.Optional(
-        Type.Union([
-            Type.Literal('token'),
-            Type.Literal('discount'),
-            Type.Literal('channel'),
-            Type.Literal('upgrade'),
-            Type.Literal('available')
-        ])
-    ),
+    choice: Type.Optional(AcquisitionChoice),
     /** The train the company discards where P1's 5-train takes it over its limit (§3.1.19). */
     discardTrainId: Type.Optional(Type.String({ minLength: 1 })),
     metadata: Type.Optional(
@@ -419,26 +398,13 @@ export class HydratedAnswerPrivateOffer extends AnswerPrivateOfferAction.Base {
 
 /** While a company's request for a private company awaits its holder, only their answer is taken (§3.1.2). */
 export function awaitsPrivateAnswer(handler: StateHandler1822): StateHandler1822 {
-    return {
-        isValidAction: (action, context) =>
-            action instanceof HydratedAnswerPrivateOffer
-                ? action.isValid(context.gameState)
-                : !context.gameState.privateOffer && handler.isValidAction(action, context),
-        validActionsForPlayer(playerId, context) {
-            const offer = context.gameState.privateOffer
-            if (!offer) return handler.validActionsForPlayer(playerId, context)
-            return offer.playerId === playerId ? [AnswerPrivateOfferAction.type] : []
-        },
-        enter(context) {
-            const offer = context.gameState.privateOffer
-            if (offer) context.gameState.activePlayerIds = [offer.playerId]
-            else handler.enter(context)
-        },
-        onAction: (action, context) =>
-            action instanceof HydratedAnswerPrivateOffer
-                ? context.gameState.machineState
-                : handler.onAction(action, context)
-    }
+    return awaitsAnswer(handler, {
+        type: AnswerPrivateOfferAction.type,
+        is: (action): action is HydratedAnswerPrivateOffer =>
+            action instanceof HydratedAnswerPrivateOffer,
+        isValid: (action, state) => action.isValid(state),
+        offeredTo: (state) => state.privateOffer?.playerId
+    })
 }
 
 /** Gives a company discount tokens of a kind, added to any it already holds. */

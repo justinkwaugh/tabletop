@@ -8,6 +8,8 @@ import {
     settleCashPayments,
     sharesOwned,
     ShareSaleDetails,
+    systemAction,
+    titleAction,
     type EighteenXXStateHandler
 } from '@tabletop/18xx'
 import {
@@ -21,7 +23,6 @@ import * as Type from 'typebox'
 import { resetCompany1862 } from './companyReset.js'
 import { PayingFineState, type HydratedState1862 } from './state.js'
 import { StockRules1862, marketSale, saleValue } from './stockRules.js'
-import { systemAction, titleAction } from './titleAction.js'
 
 /** The fine for a charter not floated: five times its par (§4.3). */
 export const FineMultiple = 5

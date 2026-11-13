@@ -4,6 +4,7 @@ import {
     canStartStockRound,
     finiteCashOwnedBy,
     sharesOwned,
+    systemAction,
     type EighteenXXStateHandler,
     type EndingState,
     type GameEnding
@@ -19,7 +20,6 @@ import {
     Market1862,
     NonCharteredStartPrices
 } from './stockMarket.js'
-import { systemAction } from './titleAction.js'
 
 export const LnerFormed = 'LNER formed'
 export const MarketTop = 'Share price reached the top of the market'

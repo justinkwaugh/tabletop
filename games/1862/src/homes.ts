@@ -3,6 +3,7 @@ import {
     getCompany,
     homeStationId,
     nextOperatingCompany,
+    systemAction,
     type ConstructionState,
     type StationPosition,
     type StationState,
@@ -15,7 +16,6 @@ import { company1862 } from './companies.js'
 import { Map1862 } from './map.js'
 import type { HydratedState1862 } from './state.js'
 import { TileSet1862 } from './tiles.js'
-import { systemAction } from './titleAction.js'
 import { Phases1862 } from './trains.js'
 import { TileUpgrades1862 } from './tileRules.js'
 

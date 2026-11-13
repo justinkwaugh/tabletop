@@ -149,7 +149,8 @@ Changed to follow the rulebook as the engine reads it:
   its concession, lays there freely; another company's yellow tile needs that player's agreement
   (the family's track consent); with no such player the tile must join the London station's
   track. Upgrades are free of all this. The Metropolitan Railway's director shares the rights of
-  the station its home stands beside.
+  the station its home stands beside: either of the two may be asked, and the layer chooses
+  which.
 - **Privates from any consenting player** (§3.1.2), not only the company's own director.
 - **A permanent train's revenue may be decided apart** from the other trains': paid, split or
   kept; two halves are halved as one sum, and the price moves on the whole dividend (§5.14.2,
@@ -163,6 +164,20 @@ Changed to follow the rulebook as the engine reads it:
   which closes both.
 - **Several London stations** may each hold a station of one company, never two in one (§5.4.2,
   §5.12.6).
+
+Found by review and corrected:
+
+- **The bidding boxes close their gaps and refill as each stock round starts** (§4.5.2), not only
+  as one ends, so a minor bought from the boxes in the operating rounds is replaced.
+- **A destination token never takes a space kept for another company's home**: with no space
+  to spare it stands beside the city, and is one of the city's own once an upgrade adds a space
+  (§2.1.11, §5.11.8). An exchange token placed for a minor bought from the boxes follows the
+  same rule.
+- **The Metropolitan Railway lays no track in the turn it places its home**, London's upgrade
+  included (§5.6.7).
+- **A token standing beside a full station stays there through an upgrade** unless the upgrade
+  adds a space no other company's home still awaits, when it moves into it (§5.10.3, §5.11.8).
+  The family used to seat it in any free space, which could take a home's reserved one.
 
 The engine also lets P2, P8, P10, P11 and P12 share one lay in further pairs. Here those results
 are reached in sequence rather than as one combined lay: P8's and P10's discount tokens apply to

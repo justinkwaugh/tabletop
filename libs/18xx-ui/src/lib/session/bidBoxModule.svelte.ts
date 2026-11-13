@@ -1,4 +1,4 @@
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import {
     PlaceBids,
     committedCash,
@@ -6,6 +6,7 @@ import {
     finiteCashOwnedBy,
     leadingBid,
     lowestBid,
+    withBids,
     type BidBoxBid,
     type BidBoxState,
     type BidBoxes,
@@ -20,6 +21,7 @@ import {
     type LocalSelection,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
+import type { MoneyFormat } from '../presentation/money.js'
 import type { ModuleSession } from './moduleSession.js'
 
 export type BidBoxSession = ModuleSession<
@@ -45,10 +47,6 @@ const DraftOrder = ['bids'] as const satisfies readonly (keyof DraftStages)[]
 
 type BoxedState = BidBoxState & { bidBoxes: BidBoxes }
 
-function hasBidBoxes(state: BidBoxState): state is BoxedState {
-    return state.bidBoxes !== undefined
-}
-
 /**
  * Bidding in the boxes of a stock round (1822 §4.9): a turn's bids are prepared one at a time and
  * placed together as one Action. Each press on a bid is a step Undo takes back.
@@ -63,9 +61,13 @@ export class BidBoxModule {
     )
     constructor(private readonly session: BidBoxSession) {}
 
+    private hasBidBoxes(state: BidBoxState): state is BoxedState {
+        return state.bidBoxes !== undefined
+    }
+
     private readonly state = $derived.by((): BoxedState | undefined => {
         const state = this.session.state
-        return hasBidBoxes(state) ? state : undefined
+        return this.hasBidBoxes(state) ? state : undefined
     })
     private readonly rules = $derived.by(() => this.session.rules.bidBoxRules)
     /** Whether the title has bid boxes at all. */
@@ -77,8 +79,13 @@ export class BidBoxModule {
     readonly drafted = $derived.by((): readonly BidRequest[] =>
         this.canBid ? (getStagedSelectionValue<DraftStages, 'bids'>(this.#draft, 'bids') ?? []) : []
     )
-    readonly bidsPerTurn = $derived.by(() => this.rules?.bidsPerTurn ?? 0)
-    readonly increment = $derived.by(() => this.rules?.increment ?? 1)
+    private get boxRules() {
+        const rules = this.rules
+        assertExists(rules, 'Bidding in boxes is for a title with bid box rules')
+        return rules
+    }
+    readonly bidsPerTurn = $derived.by(() => this.boxRules.bidsPerTurn)
+    readonly increment = $derived.by(() => this.boxRules.increment)
 
     private evaluate(bids: readonly BidRequest[]) {
         const playerId = this.session.playerId
@@ -144,22 +151,21 @@ export class BidBoxModule {
         if (!state) return 0
         if (playerId !== this.session.playerId || !this.drafted.length)
             return committedCash(state, playerId)
-        const bids = [
-            ...state.bidBoxes.bids.filter(
-                (bid) =>
-                    !(
-                        bid.playerId === playerId &&
-                        this.drafted.some((drafted) => drafted.lotId === bid.lotId)
-                    )
-            ),
-            ...this.drafted.map((bid) => ({ ...bid, playerId }))
-        ]
+        const bids = withBids(state.bidBoxes.bids, playerId, this.drafted)
         return committedCash({ ...state, bidBoxes: { ...state.bidBoxes, bids } }, playerId)
     }
     cash(playerId: string): number {
         return this.state ? finiteCashOwnedBy(this.state, { kind: 'player', playerId }) : 0
     }
 
+    /** Why an amount the player typed for a lot is no bid they may prepare. */
+    typedBidReason(lot: BidBoxLot, amount: number, money: MoneyFormat): string | undefined {
+        if (!Number.isFinite(amount)) return 'Type the amount of the bid.'
+        if (lot.lowest !== undefined && amount < lot.lowest)
+            return `The lowest bid on this lot is ${money(lot.lowest)}.`
+        if (amount % this.increment !== 0) return `Bids go up in steps of ${money(this.increment)}.`
+        return this.draftReason(lot.lotId, amount)
+    }
     /** Why the player may not prepare this bid beside those already prepared. */
     draftReason(lotId: string, amount: number): string | undefined {
         return this.canBid

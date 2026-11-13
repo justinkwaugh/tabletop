@@ -2,16 +2,19 @@ import { assertExists } from '@tabletop/common'
 import type { RailwayMapState } from '../map/mapState.js'
 import { cityIsBlocked, companyStationCenters, type StationState } from '../map/station.js'
 import type { RevenueCenter } from '../routes/route.js'
-import type { TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
-import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
+import type { TileEdgeEndpoint, TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
+import { rotateTileFace, sameTileEndpoint, tileEdgeKey } from '../tiles/topology.js'
 import { continueStretch, type RunningGauge, type StretchGauge } from '../tiles/trackGauge.js'
-import { reachRoutes, type EdgeEndpoint } from './routeReach.js'
+import { reachRoutes } from './routeReach.js'
 
 export type ConstructionConnections = { paths: ReadonlySet<string>; nodes: ReadonlySet<string> }
 
 export class ConstructionReachability {
     private readonly reachable = new Set<string>()
-    private readonly entries = new Map<string, { endpoint: EdgeEndpoint; gauge: RunningGauge }[]>()
+    private readonly entries = new Map<
+        string,
+        { endpoint: TileEdgeEndpoint; gauge: RunningGauge }[]
+    >()
 
     constructor(
         mapState: RailwayMapState,
@@ -77,7 +80,7 @@ export class ConstructionReachability {
         const nodes = new Set<string>()
         for (let index = 0; index < queue.length; index++) {
             const { endpoint, gauge } = queue[index]
-            const key = `${endpoint.kind === 'edge' ? `e${endpoint.edge}/${endpoint.lane ?? 0}` : `n${endpoint.nodeId}`} ${gauge}`
+            const key = `${endpoint.kind === 'edge' ? `e${tileEdgeKey(endpoint)}` : `n${endpoint.nodeId}`} ${gauge}`
             if (visited.has(key)) continue
             visited.add(key)
             if (endpoint.kind === 'node') {

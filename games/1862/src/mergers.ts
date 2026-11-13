@@ -15,6 +15,8 @@ import {
     transferCompanyAssets,
     trainsOwnedBy,
     CashPayment,
+    systemAction,
+    titleAction,
     type EighteenXXStateHandler,
     type PlacedStation,
     type StepAction
@@ -52,7 +54,6 @@ import {
 } from './stockMarket.js'
 import { hasTrain } from './stockRules.js'
 import { TileSet1862 } from './tiles.js'
-import { systemAction, titleAction } from './titleAction.js'
 import { maximumStations } from './stationPurchase.js'
 
 const Id = Type.String({ minLength: 1 })

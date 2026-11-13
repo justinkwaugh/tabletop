@@ -12,6 +12,8 @@ import {
     stepAction,
     trainsOwnedBy,
     CashPayment,
+    systemAction,
+    titleAction,
     type EighteenXXStateHandler,
     type ReceivershipRules,
     type StepAction
@@ -26,7 +28,6 @@ import { beginShareMerge } from './shareMerge.js'
 import { requireState1862, type HydratedState1862, type State1862 } from './state.js'
 import { BankruptcyPrice, Market1862 } from './stockMarket.js'
 import { saleValue } from './stockRules.js'
-import { systemAction, titleAction } from './titleAction.js'
 import { TrainDepot1862, trainFace, trainDefinitionId } from './trains.js'
 import { TrainRules1862 } from './operating.js'
 

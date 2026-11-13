@@ -1037,6 +1037,7 @@ export class EighteenXXSession<
         localSelections.register(this.privates.exchangeChoice)
         localSelections.register(this.discard.choice)
         localSelections.register(this.earnings.choice)
+        localSelections.register(this.earnings.separate)
         localSelections.register(this.routes)
         localSelections.register(this.trainBuying.depotChoice)
         localSelections.register(this.stations.stages)

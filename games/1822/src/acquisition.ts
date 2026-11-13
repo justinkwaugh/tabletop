@@ -43,12 +43,14 @@ import { RoundelSlot1822 } from './housekeeping.js'
 import { charterCertificateId, lotKind1822, removeUnsoldMinor1822 } from './lots.js'
 import { TrainRules1822 } from './operating.js'
 import { RouteRules1822 } from './routes.js'
+import { awaitsAnswer, declinedMark } from './offers.js'
 import type { HydratedState1822, StateHandler1822 } from './state.js'
+import { TokenChoice, type TokenChoice1822 } from './titleState.js'
 import { StockRules1822 } from './stock.js'
 import { Market1822 } from './stockMarket.js'
 import {
     exchangeTokens1822,
-    nextStationSlot,
+    tokenSpace1822,
     placeExchangeToken1822,
     releaseExchangeToken1822
 } from './tokens.js'
@@ -58,14 +60,8 @@ import { PermanentLocalTrainId, PermanentTwoTrainId, Phases1822, PullmanTrainId 
 export const AcquiredMark = 'acquired'
 /** What a major company pays the bank for a minor company still in the bidding boxes (§5.19.2). */
 export const BoxAcquisitionCost1822 = 200
-/** The turn's mark that the minor company's director declined the major's offer. */
-function declinedMark(minorId: string): string {
-    return `declined:${minorId}`
-}
 /** The most shares a major company gives for a minor company (§5.18.3). */
 const MaximumShares = 2
-
-export type TokenChoice1822 = 'place' | 'available' | 'none'
 
 export type MinorAcquisition1822 = {
     companyId: string
@@ -268,12 +264,6 @@ export function minorAcquisitions1822(
         })
     ]
 }
-
-const TokenChoice = Type.Union([
-    Type.Literal('place'),
-    Type.Literal('available'),
-    Type.Literal('none')
-])
 
 /** What an acquisition moved (§5.18.6). */
 const AcquisitionDetails = Type.Object(
@@ -563,7 +553,7 @@ export class HydratedAcquireMinor extends AcquireMinorAction.Base {
         assertExists(city, 'A minor company has a home')
         const position = roundel
             ? { ...city, slot: RoundelSlot1822 }
-            : { ...city, slot: nextStationSlot(state, city) }
+            : { ...city, slot: tokenSpace1822(state, this.companyId, city) }
         return {
             source: 'box',
             payments,
@@ -641,26 +631,13 @@ export class HydratedAnswerAcquisition extends AnswerAcquisitionAction.Base {
 
 /** While an offer for a minor company awaits its director, only their answer is taken (§5.18.1). */
 export function awaitsAcquisitionAnswer(handler: StateHandler1822): StateHandler1822 {
-    return {
-        isValidAction: (action, context) =>
-            action instanceof HydratedAnswerAcquisition
-                ? action.isValid(context.gameState)
-                : !context.gameState.acquisitionOffer && handler.isValidAction(action, context),
-        validActionsForPlayer(playerId, context) {
-            const offer = context.gameState.acquisitionOffer
-            if (!offer) return handler.validActionsForPlayer(playerId, context)
-            return offer.playerId === playerId ? [AnswerAcquisitionAction.type] : []
-        },
-        enter(context) {
-            const offer = context.gameState.acquisitionOffer
-            if (offer) context.gameState.activePlayerIds = [offer.playerId]
-            else handler.enter(context)
-        },
-        onAction: (action, context) =>
-            action instanceof HydratedAnswerAcquisition
-                ? context.gameState.machineState
-                : handler.onAction(action, context)
-    }
+    return awaitsAnswer(handler, {
+        type: AnswerAcquisitionAction.type,
+        is: (action): action is HydratedAnswerAcquisition =>
+            action instanceof HydratedAnswerAcquisition,
+        isValid: (action, state) => action.isValid(state),
+        offeredTo: (state) => state.acquisitionOffer?.playerId
+    })
 }
 
 export const AcquireMinorStep: StepAction<HydratedState1822> = stepAction(

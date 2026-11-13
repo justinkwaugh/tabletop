@@ -67,7 +67,7 @@ describe('1822 history', () => {
                 names
             )
         ).toEqual([
-            'Player a took a share of LNWR',
+            'Player a took 1 share of LNWR',
             'LNWR paid Player a £20',
             'Treasury of £35',
             'Took its 2-train',

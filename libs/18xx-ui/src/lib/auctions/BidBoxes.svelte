@@ -48,17 +48,9 @@
     function step(entry: BidBoxLot, amount: number) {
         if (bidding.canDraft(entry.lotId, amount)) bidding.draft(entry.lotId, amount)
     }
-    function typedReason(entry: BidBoxLot, amount: number): string | undefined {
-        if (!Number.isFinite(amount)) return 'Type the amount of the bid.'
-        if (entry.lowest !== undefined && amount < entry.lowest)
-            return `The lowest bid on this lot is ${money(entry.lowest)}.`
-        if (amount % bidding.increment !== 0)
-            return `Bids go up in steps of ${money(bidding.increment)}.`
-        return bidding.draftReason(entry.lotId, amount)
-    }
     function type(entry: BidBoxLot, field: HTMLInputElement) {
         const amount = field.valueAsNumber
-        const reason = typedReason(entry, amount)
+        const reason = bidding.typedBidReason(entry, amount, money)
         if (reason) rejected = { lotId: entry.lotId, text: field.value, reason }
         else if (amount === entry.drafted) rejected = undefined
         else bidding.draft(entry.lotId, amount)

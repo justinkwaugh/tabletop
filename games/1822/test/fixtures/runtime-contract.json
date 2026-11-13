@@ -37,7 +37,7 @@
     "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
     "ReachDestination": "0f2483ca387db1bc436ac8a6acd32ad08bfe9e3ad4a313fb71d23594f6316de9",
     "RepayPlayerLoan": "d0db4690d8eb10a1d1774a2dff1e53970d379e7a241dab6ac743d719a03f96f2",
-    "RequestTrackConsent": "791e0b9677f573405edba6e0640065044c0e678d7fad70ca6655275582a77b48",
+    "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
     "RespondToTrackConsent": "ffd2dd7d01d094d6292ffbc89e8fdecf9ac8a62505542ccd64a70a0aa13abe24",
     "RunTrains": "f77e13e519cdbe71c499b87416f7dd039f58690003a440888b48845bb0ec985a",
@@ -1111,10 +1111,6 @@
           "revenue"
         ],
         "type": "object"
-      },
-      "endsAfterNextOperatingRound": {
-        "const": true,
-        "type": "boolean"
       },
       "exchangeTokens": {
         "items": {

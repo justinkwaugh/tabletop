@@ -5,7 +5,8 @@ import {
     oppositeTileEndpoint,
     rotateTileFace,
     sameTileEndpoint,
-    terminusNodeId
+    terminusNodeId,
+    tileEdgeKey
 } from '../tiles/topology.js'
 import { continueStretch, type StretchGauge } from '../tiles/trackGauge.js'
 import type { RailwayMapState } from '../map/mapState.js'
@@ -220,7 +221,7 @@ export class RouteNetwork {
     /** Where track continues from an end: across the hex side it reaches, if track meets it there. */
     private arrive(end: TrackEnd): (TrackEnd & { crossed: 0 | 1 }) | undefined {
         if (end.endpoint.kind !== 'edge') return { ...end, crossed: 0 }
-        const key = `${end.locationId} ${end.endpoint.edge}/${end.endpoint.lane ?? 0}`
+        const key = `${end.locationId} ${tileEdgeKey(end.endpoint)}`
         if (!this.crossings.has(key)) {
             const { edge } = end.endpoint
             const connection = this.mapState

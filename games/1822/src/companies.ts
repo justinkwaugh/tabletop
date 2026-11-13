@@ -189,6 +189,18 @@ export function minor1822(companyId: string): Minor1822 | undefined {
     return Minors1822.find((entry) => entry.id === companyId)
 }
 
+/** The companies whose printed home is the London station, the Metropolitan Railway choosing its own (§5.10). */
+export function londonHomeCompanyIds1822(nodeId: string): string[] {
+    return [...Majors1822, ...Minors1822]
+        .filter(
+            (company) =>
+                company.id !== MetropolitanId &&
+                company.home?.locationId === LondonLocationId &&
+                company.home.nodeId === nodeId
+        )
+        .map((company) => company.id)
+}
+
 /** A major company's concession, bid for and later converted to its director's certificate (§3.2). */
 export function concessionId(majorId: string): string {
     return `C-${majorId}`

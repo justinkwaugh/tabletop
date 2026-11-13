@@ -4,6 +4,24 @@ const Id = Type.String({ minLength: 1 })
 
 export type DiscountTokenKind = 'terrain' | 'estuary'
 
+/** What becomes of an exchange token as a major company acquires a minor (§5.18.6, §5.18.7). */
+export const TokenChoice = Type.Union([
+    Type.Literal('place'),
+    Type.Literal('available'),
+    Type.Literal('none')
+])
+export type TokenChoice1822 = Type.Static<typeof TokenChoice>
+
+/** How a private company with a choice is taken up as it is acquired (Table 3: P5, P8). */
+export const AcquisitionChoice = Type.Union([
+    Type.Literal('token'),
+    Type.Literal('discount'),
+    Type.Literal('channel'),
+    Type.Literal('upgrade'),
+    Type.Literal('available')
+])
+export type AcquisitionChoice1822 = Type.Static<typeof AcquisitionChoice>
+
 export const TitleFields1822 = {
     /** What each player owes on loans taken to buy a train, interest included (§4.2, §5.17.2). */
     playerLoans: Type.Array(
@@ -63,11 +81,7 @@ export const TitleFields1822 = {
                 /** The minor company's director, who answers. */
                 playerId: Id,
                 shares: Type.Integer({ minimum: 0 }),
-                token: Type.Union([
-                    Type.Literal('place'),
-                    Type.Literal('available'),
-                    Type.Literal('none')
-                ]),
+                token: TokenChoice,
                 discardTrainIds: Type.Array(Id)
             },
             { additionalProperties: false }
@@ -84,26 +98,13 @@ export const TitleFields1822 = {
                 privateCompanyId: Id,
                 /** The private company's holder, who answers. */
                 playerId: Id,
-                choice: Type.Optional(
-                    Type.Union([
-                        Type.Literal('token'),
-                        Type.Literal('discount'),
-                        Type.Literal('channel'),
-                        Type.Literal('upgrade'),
-                        Type.Literal('available')
-                    ])
-                ),
+                choice: Type.Optional(AcquisitionChoice),
                 discardTrainId: Type.Optional(Id)
             },
             { additionalProperties: false }
         )
     ),
     /** The first stock round ended with nothing sold, which ends the game (§1.3.1). */
-    nothingSold: Type.Optional(Type.Literal(true)),
-    /**
-     * A company's stock value reached the game end value during a stock round, so the game ends
-     * after the first operating round that follows (§1.3.1).
-     */
-    endsAfterNextOperatingRound: Type.Optional(Type.Literal(true))
+    nothingSold: Type.Optional(Type.Literal(true))
 }
 export type TitleState1822 = Type.Static<Type.TObject<typeof TitleFields1822>>

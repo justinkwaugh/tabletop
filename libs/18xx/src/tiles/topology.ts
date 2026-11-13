@@ -1,5 +1,12 @@
 import { FlatHexDirection, HexOrientation, PointyHexDirection } from '@tabletop/common'
-import type { TileEdge, TileEndpoint, TileFace, TilePath, TileRotation } from './tile.js'
+import type {
+    TileEdge,
+    TileEdgeEndpoint,
+    TileEndpoint,
+    TileFace,
+    TilePath,
+    TileRotation
+} from './tile.js'
 
 export const TileEdges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
 const FlatDirections: Record<TileEdge, FlatHexDirection> = {
@@ -62,15 +69,17 @@ export function sameTileEndpoint(a: TileEndpoint, b: TileEndpoint): boolean {
 }
 
 /** Which parallel track of its hex side an edge endpoint is; the first, 0, unless it names one. */
-export function tileEdgeLane(endpoint: Extract<TileEndpoint, { kind: 'edge' }>): number {
+export function tileEdgeLane(endpoint: TileEdgeEndpoint): number {
     return endpoint.lane ?? 0
 }
 
+/** Names an edge endpoint's track among its hex's: the side, and which parallel track of it. */
+export function tileEdgeKey(endpoint: TileEdgeEndpoint): string {
+    return `${endpoint.edge}/${tileEdgeLane(endpoint)}`
+}
+
 /** The endpoint across a hex side that an edge endpoint's track meets: the same lane there. */
-export function oppositeTileEndpoint(
-    endpoint: Extract<TileEndpoint, { kind: 'edge' }>,
-    edge: TileEdge
-): Extract<TileEndpoint, { kind: 'edge' }> {
+export function oppositeTileEndpoint(endpoint: TileEdgeEndpoint, edge: TileEdge): TileEdgeEndpoint {
     return { ...endpoint, edge }
 }
 

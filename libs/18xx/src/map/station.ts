@@ -161,6 +161,24 @@ export function validateStations(state: StationState, companyIds: readonly strin
         assert(companyIds.includes(access.companyId), 'Unknown station access company')
 }
 
+/**
+ * How many of a city's spaces hold stations. A station beside a full city, such as 1822's
+ * Metropolitan Railway in London, fills none of them.
+ */
+export function filledStationSpaces(
+    state: Pick<StationState, 'stations'>,
+    locationId: string,
+    node: Extract<TileNode, { kind: 'city' }>
+): number {
+    return state.stations.filter(
+        (station) =>
+            station.status === 'placed' &&
+            station.position.locationId === locationId &&
+            station.position.nodeId === node.id &&
+            station.position.slot < node.stationSlots
+    ).length
+}
+
 export function cityIsBlocked(
     state: StationState,
     companyId: string,
@@ -168,17 +186,8 @@ export function cityIsBlocked(
     node: TileNode
 ): boolean {
     if (node.kind !== 'city' || node.stationSlots === 0) return false
-    // A station beside a full city, such as 1822's Metropolitan Railway in London, fills none
-    // of its spaces.
-    const stations = state.stations.filter(
-        (station) =>
-            station.status === 'placed' &&
-            station.position.locationId === locationId &&
-            station.position.nodeId === node.id &&
-            station.position.slot < node.stationSlots
-    )
     return (
-        stations.length >= node.stationSlots &&
+        filledStationSpaces(state, locationId, node) >= node.stationSlots &&
         !usesStationAt(state, companyId, locationId, node.id)
     )
 }

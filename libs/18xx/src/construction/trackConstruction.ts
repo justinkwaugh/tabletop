@@ -11,6 +11,7 @@ import {
     type StationReservation,
     type StationState
 } from '../map/station.js'
+import { reservationFulfilled } from '../stations/stationPlacement.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
 import {
@@ -199,6 +200,11 @@ export interface TrackRules {
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
+    /**
+     * Others whose agreement serves as well as that of ``consentPlayerId``, where the layer may
+     * ask any one of several players, as beside 1822's London (§5.10.7).
+     */
+    otherConsentPlayerIds?(state: ConstructionState, request: TrackRequest): readonly string[]
     borderCost?(
         state: ConstructionState,
         request: TrackRequest,
@@ -298,6 +304,15 @@ export class TrackConstruction {
             }
         }
         return choices
+    }
+    /**
+     * The players whose agreement lets the lay go ahead, the one asked unless another is named
+     * first; one of them lays without asking.
+     */
+    consenters(request: TrackRequest): string[] {
+        const first = this.rules.consentPlayerId?.(this.state, request)
+        if (!first) return []
+        return [first, ...(this.rules.otherConsentPlayerIds?.(this.state, request) ?? [])]
     }
     evaluate(request: TrackRequest): TrackEvaluation {
         const result = this.evaluatePlacement(request)
@@ -593,35 +608,82 @@ export class TrackConstruction {
                 reconfigured
             }
         }
+        const before = this.mapState.tile(locationId).face
         const occupied = new Map<string, Set<number>>()
-        const stations: Station[] = []
-        const moved: PlacedStation[] = []
-        for (const station of this.state.stations) {
-            if (station.status !== 'placed' || station.position.locationId !== locationId) {
-                stations.push(station)
-                continue
-            }
+        const seated = new Map<string, PlacedStation>()
+        const here = this.state.stations.flatMap((station) =>
+            station.status === 'placed' && station.position.locationId === locationId
+                ? [station]
+                : []
+        )
+        const cityAfter = (station: PlacedStation) => {
             const nodeId = mapping[station.position.nodeId]
-            const node = after.nodes.find((node) => node.id === nodeId)
-            if (node?.kind !== 'city') return undefined
-            const slots = occupied.get(nodeId) ?? new Set<number>()
-            const slot =
-                station.position.slot < node.stationSlots && !slots.has(station.position.slot)
-                    ? station.position.slot
-                    : Array.from({ length: node.stationSlots }, (_, index) => index).find(
-                          (index) => !slots.has(index)
-                      )
+            const node = after.nodes.find((entry) => entry.id === nodeId)
+            return node?.kind === 'city' ? node : undefined
+        }
+        const spacesBefore = (station: PlacedStation) => {
+            const node = before.nodes.find((entry) => entry.id === station.position.nodeId)
+            return node?.kind === 'city' ? node.stationSlots : 0
+        }
+        const take = (station: PlacedStation, nodeId: string, slot: number) => {
+            occupied.set(nodeId, (occupied.get(nodeId) ?? new Set<number>()).add(slot))
+            seated.set(station.id, {
+                ...station,
+                position: { locationId, nodeId, slot }
+            })
+        }
+        const free = (nodeId: string, from: number, to: number) =>
+            Array.from({ length: Math.max(0, to - from) }, (_, index) => from + index).filter(
+                (slot) => !occupied.get(nodeId)?.has(slot)
+            )
+        // Stations in a city's own spaces keep them, or take another where theirs is gone.
+        for (const station of here.filter((entry) => entry.position.slot < spacesBefore(entry))) {
+            const node = cityAfter(station)
+            if (!node) return undefined
+            const kept = free(node.id, 0, node.stationSlots)
+            const slot = kept.includes(station.position.slot) ? station.position.slot : kept[0]
             if (slot === undefined) return undefined
-            slots.add(slot)
-            occupied.set(nodeId, slots)
-            if (nodeId === station.position.nodeId && slot === station.position.slot) {
-                stations.push(station)
+            take(station, node.id, slot)
+        }
+        // A station beside a full city moves into a space the upgrade adds, unless that space
+        // is still awaited by another company's home; otherwise it stays beside the city.
+        for (const station of here.filter((entry) => entry.position.slot >= spacesBefore(entry))) {
+            const node = cityAfter(station)
+            if (!node) return undefined
+            const awaited = new Set(
+                this.state.stationReservations
+                    .filter(
+                        (reservation) =>
+                            reservation.locationId === locationId &&
+                            reservation.nodeId === station.position.nodeId &&
+                            reservation.companyId !== station.companyId &&
+                            !reservationFulfilled(this.state, reservation, {})
+                    )
+                    .map((reservation) => reservation.companyId)
+            ).size
+            const spaces = free(node.id, 0, node.stationSlots)
+            const [space] = spaces
+            const moves =
+                node.stationSlots > spacesBefore(station) &&
+                space !== undefined &&
+                spaces.length > awaited
+            if (moves) {
+                take(station, node.id, space)
                 continue
             }
-            const migrated = { ...station, position: { locationId, nodeId, slot } }
-            stations.push(migrated)
-            moved.push(migrated)
+            const [beside] = free(node.id, node.stationSlots, node.stationSlots + here.length)
+            assertExists(beside, 'There is always room beside a city')
+            take(station, node.id, beside)
         }
+        const stations = this.state.stations.map((station) => seated.get(station.id) ?? station)
+        const moved = here.flatMap((station) => {
+            const now = seated.get(station.id)
+            return now &&
+                (now.position.nodeId !== station.position.nodeId ||
+                    now.position.slot !== station.position.slot)
+                ? [now]
+                : []
+        })
         return {
             stations,
             moved,

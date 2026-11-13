@@ -9,6 +9,7 @@ import {
 import {
     rotateTileEdge,
     tileEdgeDirection,
+    tileEdgeLane,
     type TileEdge,
     type TileEndpoint,
     type TileFace,
@@ -213,7 +214,7 @@ export function createTileDrawing(
         if (endpoint.kind === 'edge')
             laneCounts.set(
                 endpoint.edge,
-                Math.max(laneCounts.get(endpoint.edge) ?? 1, (endpoint.lane ?? 0) + 1)
+                Math.max(laneCounts.get(endpoint.edge) ?? 1, tileEdgeLane(endpoint) + 1)
             )
     const laned = (path: TilePath) =>
         path.endpoints.some(
@@ -247,7 +248,7 @@ export function createTileDrawing(
         // lanes the other way and a lane meets itself across it.
         const order =
             (edge < 3 ? -1 : 1) * (layout.flippedLaneEdges?.includes(endpoint.edge) ? -1 : 1)
-        const offset = order * ((endpoint.lane ?? 0) - (lanes - 1) / 2) * TrackLaneGap
+        const offset = order * (tileEdgeLane(endpoint) - (lanes - 1) / 2) * TrackLaneGap
         return { x: middle.x + along.x * offset, y: middle.y + along.y * offset }
     }
     /** A control point straight in from a side, for track that leaves it at a right angle. */

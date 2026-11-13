@@ -1,18 +1,15 @@
 <script lang="ts">
     import {
         BoxAcquisitionCost1822,
-        LondonNodeIds,
-        Majors1822,
         MetropolitanId,
-        Minors1822,
-        LondonLocationId,
         TrainDepot1822,
+        londonHomeCompanyIds1822,
         lotKind1822,
         private1822,
         type AcquisitionChoice1822,
         type TokenChoice1822
     } from '@tabletop/1822'
-    import { CompanyToken } from '@tabletop/18xx-ui'
+    import { CompanyToken, counted } from '@tabletop/18xx-ui'
     import { LondonStationNames } from './history.js'
     import { bidBoxGroups, lotName } from './lots.js'
     import type { Session1822 } from './session.svelte.js'
@@ -25,21 +22,6 @@
     )
     const company = $derived(companyId ? session.companyName(companyId) : 'The company')
 
-    /** The companies whose printed home is each London station. */
-    const londonHomes = $derived(
-        Object.fromEntries(
-            LondonNodeIds.map((nodeId) => [
-                nodeId,
-                [...Majors1822, ...Minors1822]
-                    .filter(
-                        (entry) =>
-                            entry.home?.locationId === LondonLocationId &&
-                            entry.home.nodeId === nodeId
-                    )
-                    .map((entry) => entry.id)
-            ])
-        )
-    )
     const trainName = (definitionId: string) => TrainDepot1822.trainDefinition(definitionId).name
 
     const PrivateChoiceLabels: Readonly<Record<AcquisitionChoice1822, string>> = {
@@ -68,22 +50,11 @@
     )
 
     function terms(shares: number, payment: number): string {
-        const given = shares === 0 ? 'No shares' : shares === 1 ? 'One share' : `${shares} shares`
+        const given = shares ? counted(shares, 'share') : 'No shares'
         if (payment === 0) return given
         return payment > 0
             ? `${given} and ${money(payment)}`
             : `${given}; the director pays back ${money(-payment)}`
-    }
-    function toggleDiscard(trainId: string) {
-        const draft = session.minorDraft
-        const offer = session.draftedAcquisition
-        if (!draft || !offer) return
-        const kept = draft.discardTrainIds.filter((entry) => entry !== trainId)
-        const chosen =
-            kept.length < draft.discardTrainIds.length
-                ? kept
-                : [...draft.discardTrainIds, trainId].slice(-offer.excessTrains)
-        session.minorDraft = { ...draft, discardTrainIds: chosen }
     }
 </script>
 
@@ -102,7 +73,7 @@
             <p class="chosen-station">
                 Beside London’s {LondonStationNames[station]} station
                 <span class="marks"
-                    >{#each londonHomes[station] ?? [] as homeId (homeId)}{@render token(
+                    >{#each londonHomeCompanyIds1822(station) as homeId (homeId)}{@render token(
                             homeId,
                             20
                         )}{/each}</span
@@ -146,7 +117,7 @@
                         <button
                             class="choice"
                             aria-pressed={privateDraft.choice === choice}
-                            onclick={() => (session.privateDraft = { ...privateDraft, choice })}
+                            onclick={() => session.changePrivateTerms({ choice })}
                             >{PrivateChoiceLabels[choice]}</button
                         >
                     {/each}
@@ -159,11 +130,8 @@
                         <button
                             class="choice"
                             aria-pressed={privateDraft.discardTrainId === train.id}
-                            onclick={() =>
-                                (session.privateDraft = {
-                                    ...privateDraft,
-                                    discardTrainId: train.id
-                                })}>{trainName(train.definitionId)}</button
+                            onclick={() => session.changePrivateTerms({ discardTrainId: train.id })}
+                            >{trainName(train.definitionId)}</button
                         >
                     {/each}
                 </div>
@@ -171,7 +139,7 @@
             <button
                 class="action-button"
                 disabled={busy}
-                onclick={() => session.acquirePrivate(privateDraft)}
+                onclick={() => session.acquireChosenPrivate()}
                 >{draftedPrivate.agreementPlayerId ? 'Ask for' : 'Acquire'}
                 {privateDraft.privateCompanyId}</button
             >
@@ -256,7 +224,7 @@
                                 <button
                                     class="choice small"
                                     disabled={busy}
-                                    onclick={() => (session.stackCard = lotId)}
+                                    onclick={() => session.chooseStackCard(lotId)}
                                     >{lotKind1822(lotId) === 'private'
                                         ? `${lotId} ${private1822(lotId)?.power ?? ''}`
                                         : lotName(lotId)}</button
@@ -291,8 +259,7 @@
                         <button
                             class="choice"
                             aria-pressed={minorDraft.shares === offer.shares}
-                            onclick={() =>
-                                (session.minorDraft = { ...minorDraft, shares: offer.shares })}
+                            onclick={() => session.changeMinorTerms({ shares: offer.shares })}
                             >{terms(offer.shares, offer.payment)}</button
                         >
                     {/each}
@@ -311,7 +278,7 @@
                         <button
                             class="choice"
                             aria-pressed={minorDraft.nodeId === nodeId}
-                            onclick={() => (session.minorDraft = { ...minorDraft, nodeId })}
+                            onclick={() => session.changeMinorTerms({ nodeId })}
                             >London {LondonStationNames[nodeId]}</button
                         >
                     {/each}
@@ -323,7 +290,7 @@
                         class="choice"
                         aria-pressed={minorDraft.token === choice}
                         disabled={choice === 'none'}
-                        onclick={() => (session.minorDraft = { ...minorDraft, token: choice })}
+                        onclick={() => session.changeMinorTerms({ token: choice })}
                         >{TokenLabels[choice]}</button
                     >
                 {/each}
@@ -341,7 +308,7 @@
                         <button
                             class="choice"
                             aria-pressed={minorDraft.discardTrainIds.includes(train.id)}
-                            onclick={() => toggleDiscard(train.id)}
+                            onclick={() => session.toggleMinorDiscard(train.id)}
                             >{trainName(train.definitionId)}</button
                         >
                     {/each}

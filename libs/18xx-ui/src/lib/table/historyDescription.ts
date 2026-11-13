@@ -254,7 +254,6 @@ export type TitleHistoryNames = {
     place: (locationId: string) => string
 }
 
-/** A title's own history row for an action, given the shared row it may add to. */
 const SeparateChoices: Readonly<Record<EarningsChoice, string>> = {
     pay: 'paid',
     'half-pay': 'half paid',
@@ -262,6 +261,7 @@ const SeparateChoices: Readonly<Record<EarningsChoice, string>> = {
     'top-up': 'topped up and paid'
 }
 
+/** A title's own history row for an action, given the shared row it may add to. */
 export type TitleActionDescription = (
     action: GameAction,
     names: TitleHistoryNames,

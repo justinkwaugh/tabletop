@@ -4,6 +4,7 @@ import {
     EmergencyTrainFunding,
     RouteEvaluation,
     StationPlacement,
+    TrackConstruction,
     corporateFinanceChoices,
     homeStationId,
     type TileRotation,
@@ -12,7 +13,14 @@ import {
 } from '@tabletop/18xx'
 import { kit, type Table } from '../test/kit.js'
 import { company, giveCharter, layTiles, player, runMinor, setCash } from '../test/positions.js'
-import { MetropolitanId, concessionId, major1822, minor1822 } from './companies.js'
+import {
+    LondonLocationId,
+    MetropolitanId,
+    concessionId,
+    major1822,
+    minor1822
+} from './companies.js'
+import { LondonNodeIds } from './faces.js'
 import {
     layRestriction1822,
     londonConsentPlayerId1822,
@@ -33,9 +41,10 @@ import { EnglishChannelLocationId } from './privates.js'
 import { RouteRules1822 } from './routes.js'
 import type { State1822 } from './state.js'
 import { StationRules1822 } from './stations.js'
+import { tokenSpace1822 } from './tokens.js'
 import { StockRules1822 } from './stock.js'
 import { EndGameSpaceId1822, Market1822 } from './stockMarket.js'
-import { EnglishChannelTileIds1822 } from './tiles.js'
+import { EnglishChannelTileIds1822, LondonTileIds1822 } from './tiles.js'
 import { TrackRules1822 } from './track.js'
 
 function prepared(prepare: (state: State1822, players: string[]) => void, count = 4): Table {
@@ -162,6 +171,50 @@ describe('the hexes beside London (§5.10.7)', () => {
         const [first, second] = game.state.turnManager.turnOrder
         expect(londonTrackHolders1822(game.hydrated, beside)).toEqual([first, second])
         expect(londonConsentPlayerId1822(game.hydrated, lay(MetropolitanId, 0))).toBeUndefined()
+    })
+
+    it('lets a third company ask either holder where the Metropolitan shares the station', () => {
+        const game = prepared((state, [first, second, third]) => {
+            kit.operated(state, 'GWR', first, { price: 100, shares: 6 })
+            runMinor(state, MetropolitanId, second)
+            runMinor(state, 'M5', third)
+            const home = major1822('GWR')?.home
+            if (!home) throw new Error('The Great Western starts in London')
+            state.stations = state.stations.map((station) =>
+                station.id === homeStationId(MetropolitanId)
+                    ? {
+                          id: station.id,
+                          companyId: MetropolitanId,
+                          status: 'placed',
+                          position: { ...home, slot: 1 }
+                      }
+                    : station
+            )
+        })
+        const [first, second] = game.state.turnManager.turnOrder
+        const state = game.hydrated
+        state.trackStep = { companyId: 'M5', lays: [], completed: false }
+        expect(new TrackConstruction(state, TrackRules1822).consenters(lay('M5', 0))).toEqual([
+            first,
+            second
+        ])
+    })
+
+    it('keeps the Metropolitan Railway from upgrading London in the turn it places its home (§5.6.7)', () => {
+        const game = prepared((state, [first]) => {
+            runMinor(state, MetropolitanId, first)
+            state.debutCompanyIds = [MetropolitanId]
+        })
+        const [yellow] = LondonTileIds1822
+        expect(
+            layRestriction1822(game.hydrated, {
+                companyId: MetropolitanId,
+                locationId: LondonLocationId,
+                definitionId: yellow,
+                rotation: 0,
+                nodeMapping: {}
+            })
+        ).toMatch(/home station/)
     })
 })
 
@@ -414,6 +467,55 @@ describe('the end of the game (§1.3)', () => {
 })
 
 describe('stations (§5.12)', () => {
+    it('stands a destination token beside a city whose one space waits for another home (§5.11.8)', () => {
+        const york = major1822('NER')?.home
+        if (!york) throw new Error('The North Eastern starts in York')
+        const waiting = prepared((state, [first]) =>
+            kit.operated(state, 'MR', first, { price: 100, shares: 6 })
+        )
+        // York's one space is kept for the North Eastern, so the Midland's token stands beside it.
+        expect(tokenSpace1822(waiting.hydrated, 'MR', york)).toBe(1)
+        expect(tokenSpace1822(waiting.hydrated, 'NER', york)).toBe(0)
+        const settled = prepared((state, [first, second]) => {
+            kit.operated(state, 'MR', first, { price: 100, shares: 6 })
+            kit.operated(state, 'NER', second, { price: 100, shares: 6 })
+        })
+        expect(tokenSpace1822(settled.hydrated, 'MR', york)).toBe(1)
+    })
+
+    it('leaves the Metropolitan Railway beside its station when London is upgraded (§5.10.3)', () => {
+        const beside = minor1822('M16')?.home
+        if (!beside) throw new Error('M16 starts in London')
+        const game = prepared((state, [first, second]) => {
+            runMinor(state, 'M15', first)
+            runMinor(state, MetropolitanId, second)
+            state.stations = state.stations.map((station) =>
+                station.id === homeStationId(MetropolitanId)
+                    ? {
+                          id: station.id,
+                          companyId: MetropolitanId,
+                          status: 'placed',
+                          position: { ...beside, slot: 1 }
+                      }
+                    : station
+            )
+        })
+        const state = game.hydrated
+        state.trackStep = { companyId: 'M15', lays: [], completed: false }
+        const [yellow] = LondonTileIds1822
+        const construction = new TrackConstruction(state, TrackRules1822)
+        const lay = construction.evaluate({
+            companyId: 'M15',
+            locationId: LondonLocationId,
+            definitionId: yellow,
+            rotation: 0,
+            nodeMapping: Object.fromEntries(LondonNodeIds.map((id) => [id, id]))
+        })
+        expect(lay.reason).toBeUndefined()
+        // M16 has yet to place its home in the station's one space, which stays free for it.
+        expect(lay.details?.movedStations).toEqual([])
+    })
+
     it('lets a company with a London station take another of London’s, left free by a minor (§5.12.6)', () => {
         const game = prepared((state, [first]) => {
             kit.operated(state, 'GWR', first, { price: 100, shares: 6 })

@@ -11,7 +11,7 @@ import * as Type from 'typebox'
 import { LnwrId, destinationStationId, major1822 } from './companies.js'
 import { RouteRules1822 } from './routes.js'
 import type { HydratedState1822 } from './state.js'
-import { nextStationSlot } from './tokens.js'
+import { tokenSpace1822 } from './tokens.js'
 
 /**
  * The major company that has just joined its home to its destination: it places its destination
@@ -68,7 +68,7 @@ export class HydratedReachDestination extends ReachDestinationAction.Base {
             this.metadata = { ...major.destination }
             return
         }
-        const slot = nextStationSlot(state, major.destination)
+        const slot = tokenSpace1822(state, this.companyId, major.destination)
         state.stations.push({
             id: destinationStationId(this.companyId),
             companyId: this.companyId,

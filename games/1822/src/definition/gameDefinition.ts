@@ -5,6 +5,7 @@ import {
     clearsOnLeaving,
     createEighteenXXRuntime,
     isStartOperatingRound,
+    isStartStockRound,
     isStartOperatingTurn,
     getCompany,
     hasTurnMark,
@@ -23,6 +24,7 @@ import {
     destinationDue1822
 } from '../destinations.js'
 import { HousekeepingActions, HousekeepingSteps, metropolitanHomeDue1822 } from '../housekeeping.js'
+import { refillBidBoxes1822 } from '../lots.js'
 import { Names1822 } from '../names.js'
 import { createOpening1822 } from '../opening.js'
 import {
@@ -64,9 +66,9 @@ import { Phases1822 } from '../trains.js'
 import { Info1822 } from './info.js'
 
 /**
- * As each operating round begins, phase-credit privates set their income aside and loans take
- * what their players were paid; a company on its first turn is noted for the round (§4.2.2,
- * §5.18.1, Table 3).
+ * As each operating round begins, phase-credit privates set their income aside, and a company on
+ * its first turn is noted for the round (§5.18.1, Table 3). As a stock round begins, the bidding
+ * boxes close their gaps and fill from the stacks (§4.5.2).
  */
 const tracksRounds = (handler: StateHandler1822): StateHandler1822 => ({
     enter: (context) => handler.enter(context),
@@ -75,6 +77,7 @@ const tracksRounds = (handler: StateHandler1822): StateHandler1822 => ({
     onAction(action, context) {
         const next = handler.onAction(action, context)
         const state = context.gameState
+        if (isStartStockRound(action)) refillBidBoxes1822(state)
         if (isStartOperatingRound(action)) {
             state.debutCompanyIds = []
             settleCashPayments(state, phaseCreditPayments1822(state))

@@ -3,11 +3,11 @@ import { cityIsBlocked, sameCenter, type StationState } from '../map/station.js'
 import type { RevenueCenter, RoutePath } from '../routes/route.js'
 import type { RouteNetwork } from '../routes/routeNetwork.js'
 import type { TileEndpoint, TileNode } from '../tiles/tile.js'
-import { oppositeTileEndpoint } from '../tiles/topology.js'
+import { oppositeTileEndpoint, tileEdgeKey } from '../tiles/topology.js'
 
 const endpointKey = (locationId: string, endpoint: TileEndpoint) =>
     endpoint.kind === 'edge'
-        ? `${locationId} edge ${endpoint.edge}/${endpoint.lane ?? 0}`
+        ? `${locationId} edge ${tileEdgeKey(endpoint)}`
         : `${locationId} node ${endpoint.nodeId}`
 
 type Link = { to: string; stops: 0 | 1 }

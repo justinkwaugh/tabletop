@@ -1,6 +1,6 @@
 <script lang="ts">
     import { private1822 } from '@tabletop/1822'
-    import { CompanyToken } from '@tabletop/18xx-ui'
+    import { CompanyToken, counted } from '@tabletop/18xx-ui'
     import type { Session1822 } from './session.svelte.js'
 
     let { session }: { session: Session1822 } = $props()
@@ -44,12 +44,7 @@
 {#if offer}
     {@const major = session.companyName(offer.companyId)}
     {@const minor = session.companyName(offer.minorId)}
-    {@const shares =
-        offer.shares === 0
-            ? undefined
-            : offer.shares === 1
-              ? 'one share'
-              : `${offer.shares} shares`}
+    {@const shares = offer.shares ? counted(offer.shares, 'share') : undefined}
     <section class="offer title-panel centered-panel" aria-label="Offer for a minor company">
         <h3>
             <CompanyToken appearance={session.mapView.stations[offer.companyId]} size={24} />

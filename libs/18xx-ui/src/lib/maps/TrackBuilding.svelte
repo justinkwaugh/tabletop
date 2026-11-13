@@ -15,6 +15,7 @@
     const turn = $derived(session.gameState.trackStep)
     const selection = $derived(session.track.selection)
     const preview = $derived(session.track.preview)
+    const askable = $derived(session.track.consentersToAsk)
 </script>
 
 {#if turn && session.gameState.machineState === 'LayingTrack' && !session.gameState.trackConsent}
@@ -24,6 +25,19 @@
                 {session.getPlayerName(declined.playerId)} declined permission to lay track at {declined
                     .metadata?.request.details.locationId}.
             </p>
+        {/if}
+        {#if askable.length > 1}
+            <div class="ask" role="group" aria-label="Whom to ask for permission">
+                <span>This track needs one of them to agree:</span>
+                {#each askable as playerId (playerId)}
+                    <button
+                        class="action-button inline-action"
+                        disabled={!session.track.canBuild}
+                        onclick={() => session.track.confirm(playerId)}
+                        >Ask {session.getPlayerName(playerId)}</button
+                    >
+                {/each}
+            </div>
         {/if}
         {#if mapControls}
             <header class="map-prompt">
@@ -132,10 +146,7 @@
                     <button
                         onclick={() => session.track.confirm()}
                         disabled={!session.track.canBuild}
-                        >{preview.consentPlayerId &&
-                        preview.consentPlayerId !== session.myPlayer?.id
-                            ? 'Request track permission'
-                            : 'Confirm track'}</button
+                        >{askable.length ? 'Request track permission' : 'Confirm track'}</button
                     >
                 {:else}<p>Choose a rotation to preview.</p>{/if}
             {/if}
@@ -170,6 +181,14 @@
     .map-prompt {
         justify-content: center;
         margin-bottom: 0;
+    }
+    .ask {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px 8px;
+        margin-bottom: 8px;
     }
     section {
         margin: 12px 0;

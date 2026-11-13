@@ -6,13 +6,14 @@ import {
     settleCashPayments,
     stepAction,
     trainsOwnedBy,
+    systemAction,
+    titleAction,
     type EighteenXXStateHandler,
     type StepAction
 } from '@tabletop/18xx'
 import { ActionSource, assert, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
 import { requireState1862, type HydratedState1862 } from './state.js'
-import { systemAction, titleAction } from './titleAction.js'
 import { Phases1862, bandRustsOn, trainFace } from './trains.js'
 
 export const WarrantyCost = 50

@@ -106,6 +106,7 @@ export function privateTrackConstruction(
             ? state.trackStep
             : { companyId: terms.companyId, lays: [], completed: false }
     const discount = terms.terrainDiscount ?? 0
+    const { colors } = terms
     return new TrackConstruction(
         stateWith(state, { trackStep }),
         {
@@ -119,7 +120,7 @@ export function privateTrackConstruction(
                     ? terms.restriction?.(request)
                     : 'This private cannot place that tile here.',
             useful: terms.connected ? rules.useful : () => true,
-            ...(terms.colors ? { availableColors: () => terms.colors ?? [] } : {}),
+            ...(colors ? { availableColors: () => colors } : {}),
             ...(terms.removedStops ? { removedStops: terms.removedStops } : {}),
             relabels: (locationId, definitionId) =>
                 !!terms.relabels &&

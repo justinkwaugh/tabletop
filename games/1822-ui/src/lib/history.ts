@@ -20,7 +20,7 @@ import {
     type TokenChoice1822
 } from '@tabletop/1822'
 import { isAdvancePhase, isSettleBidBoxes } from '@tabletop/18xx'
-import { joinDetails, type TitleActionDescription } from '@tabletop/18xx-ui'
+import { counted, joinDetails, type TitleActionDescription } from '@tabletop/18xx-ui'
 import { Value } from 'typebox/value'
 import { lotName } from './lots.js'
 import { Presentation1822 } from './presentation.js'
@@ -94,7 +94,7 @@ export function minorAcquisitionDetails(
     return [
         ...(details.source === 'box' ? ['From the bidding boxes'] : []),
         ...(director && shares
-            ? [`${director} took ${shares === 1 ? 'a share' : `${shares} shares`} of ${company}`]
+            ? [`${director} took ${counted(shares, 'share')} of ${company}`]
             : []),
         ...(paid
             ? [

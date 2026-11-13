@@ -15,41 +15,6 @@ import { Compile } from 'typebox/compile'
 import { EncodedRoutes, type EncodedTrain } from './encodedRoutes.js'
 import { SolverError, SolverSolution, type SolverProblem } from './solverProtocol.js'
 
-/**
- * Every way of choosing a run, or none, for each station-run train, no two from the same station
- * or on the same track, the most valuable first.
- */
-function stationChoices(
-    runs: readonly (readonly StationRun[])[]
-): { revenue: number; routes: TrainRoute[]; resources: string[] }[] {
-    const choices: { revenue: number; routes: TrainRoute[]; resources: string[] }[] = []
-    const choose = (index: number, chosen: readonly StationRun[]): void => {
-        const options = runs[index]
-        if (!options) {
-            choices.push({
-                revenue: chosen.reduce((sum, run) => sum + run.revenue, 0),
-                routes: chosen.map((run) => run.route),
-                resources: chosen.flatMap((run) => run.resources)
-            })
-            return
-        }
-        choose(index + 1, chosen)
-        for (const option of options) {
-            if (
-                chosen.some(
-                    (run) =>
-                        run.station === option.station ||
-                        run.resources.some((key) => option.resources.includes(key))
-                )
-            )
-                continue
-            choose(index + 1, [...chosen, option])
-        }
-    }
-    choose(0, [])
-    return choices.sort((a, b) => b.revenue - a.revenue)
-}
-
 export type AutoroutingOptions = { timeLimitMs?: number }
 
 // What the solver may hold in track paths, candidate routes and the tables that combine them. With
@@ -183,14 +148,9 @@ export class Autorouter {
         const evaluation = new RouteEvaluation(state, rules)
         const available = evaluation.evaluate(companyId, [])
         assertExists(available.result, available.reason ?? 'Company cannot run trains')
-        if (this.routesApart(state, rules, companyId, evaluation))
-            return this.solveApart({
-                state,
-                rules,
-                companyId,
-                evaluation,
-                deadline: started + timeLimitMs
-            })
+        const fleet = { state, rules, companyId, evaluation }
+        if (this.routesApart(fleet))
+            return this.solveApart({ ...fleet, deadline: started + timeLimitMs })
         const encoded = new EncodedRoutes(state, rules, companyId, evaluation.network, {
             timeLimitMs,
             memoryBudgetBytes: SolverMemoryBudgetBytes
@@ -242,12 +202,12 @@ export class Autorouter {
      * trains, trains that share track, attached rolling stock, or a bonus one route of the run
      * earns.
      */
-    private routesApart(
-        state: TrainRunningState,
-        rules: RouteRules,
-        companyId: string,
-        evaluation: RouteEvaluation
-    ): boolean {
+    private routesApart({
+        state,
+        rules,
+        companyId,
+        evaluation
+    }: Omit<FleetSearch, 'deadline'>): boolean {
         if (evaluation.attachments(companyId).length) return true
         return evaluation.runnableTrains(companyId).some((train) => {
             const definition = rules.depot.trainDefinition(train.definitionId)
@@ -436,7 +396,7 @@ export class Autorouter {
             exhaustive &&= found.exhausted
             return found.runs
         })
-        const choices = stationChoices(runs)
+        const choices = this.stationChoices(runs)
         let chosen: { value: number; routes: TrainRoute[] } | undefined
         for (const choice of choices) {
             const bound = choice.revenue + openRevenue
@@ -462,6 +422,40 @@ export class Autorouter {
         }
     }
 
+    /**
+     * Every way of choosing a run, or none, for each station-run train, no two from the same station
+     * or on the same track, the most valuable first.
+     */
+    private stationChoices(
+        runs: readonly (readonly StationRun[])[]
+    ): { revenue: number; routes: TrainRoute[]; resources: string[] }[] {
+        const choices: { revenue: number; routes: TrainRoute[]; resources: string[] }[] = []
+        const choose = (index: number, chosen: readonly StationRun[]): void => {
+            const options = runs[index]
+            if (!options) {
+                choices.push({
+                    revenue: chosen.reduce((sum, run) => sum + run.revenue, 0),
+                    routes: chosen.map((run) => run.route),
+                    resources: chosen.flatMap((run) => run.resources)
+                })
+                return
+            }
+            choose(index + 1, chosen)
+            for (const option of options) {
+                if (
+                    chosen.some(
+                        (run) =>
+                            run.station === option.station ||
+                            run.resources.some((key) => option.resources.includes(key))
+                    )
+                )
+                    continue
+                choose(index + 1, [...chosen, option])
+            }
+        }
+        choose(0, [])
+        return choices.sort((a, b) => b.revenue - a.revenue)
+    }
     /**
      * Every run a station-run train may make from one of its company's stations: there alone, or
      * out along track for as long as the train's distance allows.

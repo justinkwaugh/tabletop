@@ -9,6 +9,8 @@ import {
     startCompanyAtPar,
     startFirstStockRound,
     stockCertificateCount,
+    systemAction,
+    titleAction,
     type CashPayment,
     type EighteenXXStateHandler
 } from '@tabletop/18xx'
@@ -27,7 +29,6 @@ import { ParliamentState, type HydratedState1862, type State1862 } from './state
 import { DirectorShares } from './charters.js'
 import { CharteredParPrices, Market1862, marketSpaceIdAt } from './stockMarket.js'
 import { StockRules1862, certificateLimit1862 } from './stockRules.js'
-import { systemAction, titleAction } from './titleAction.js'
 import type { CharterAuction, ParliamentRound } from './titleState.js'
 
 /** Bids are made in multiples of £5 (§4.1). */

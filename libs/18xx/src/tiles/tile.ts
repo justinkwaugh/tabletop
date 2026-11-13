@@ -34,6 +34,8 @@ export const TileEndpoint = Type.Union([
     Type.Object({ kind: Type.Literal('node'), nodeId: Identifier }, { additionalProperties: false })
 ])
 export type TileEndpoint = ImmutableTileData<Type.Static<typeof TileEndpoint>>
+/** A track end at a hex side. */
+export type TileEdgeEndpoint = Extract<TileEndpoint, { kind: 'edge' }>
 
 export const TileRevenue = Type.Union([
     Type.Object(

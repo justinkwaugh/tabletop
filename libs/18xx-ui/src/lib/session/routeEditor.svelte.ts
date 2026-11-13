@@ -14,6 +14,7 @@ import {
     type RouteResult,
     type RoutePath,
     type RouteWalk,
+    type Train,
     type TrainRoute,
     type TrainRunningState,
     type RouteRules
@@ -132,10 +133,14 @@ export class RouteEditor {
         const companyId = this.companyId
         const train = this.trains.find((candidate) => candidate.id === draft?.trainId)
         if (!draft || !companyId || !train) return []
+        const carries = (candidate: Train, stockId: string) =>
+            !!this.evaluation.runningDefinition(companyId, candidate, [stockId]).definition
+        // With one train able to carry it there is nothing to choose: the best run decides.
         return this.attachments.filter(
             (stock) =>
                 draft.attachedTo?.[stock.id] !== train.id &&
-                !!this.evaluation.runningDefinition(companyId, train, [stock.id]).definition
+                carries(train, stock.id) &&
+                this.trains.filter((candidate) => carries(candidate, stock.id)).length > 1
         )
     }
     /** Runs a piece of rolling stock with the chosen train in place of the one that carried it. */

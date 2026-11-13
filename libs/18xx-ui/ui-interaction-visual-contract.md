@@ -2777,3 +2777,91 @@ exposes the family controls and displayed State without owning the title runtime
 renderer. Title panels retain their concrete session type. Both views refer to the same
 session; action authorization, transient selection lifetimes, Back/Undo and visible
 state publication keep their existing ownership and order.
+
+## Bid boxes, separate revenue, drawn runs and track agreements
+
+These interactions came with 1822 and are available to any title whose rules select them.
+
+### Visual intents
+
+- **Preparing bids.** In a stock turn of a title with bid boxes, each box the player may bid on
+  offers its lowest bid. Pressing it prepares a bid: the box gains a stepper with the amount
+  between a lower and a raise control, and **Remove bid** on its own row beneath. The amount is
+  also a field the player may type into. A typed amount that is a bid the player may prepare
+  becomes the prepared bid at once; one that is not turns the figure red, shows why beneath it
+  and disables **Place bid** until it is corrected or the prepared bids change. Boxes the player
+  cannot bid on say why. The footer shows the player's free tokens and what their highest bids
+  commit of their cash, prepared bids included. Nothing reaches the game until **Place bid**
+  sends every prepared bid as one Action.
+- **Bid boxes on the board.** A title may draw its boxes as a board panel: every box and bid,
+  with no controls.
+- **Revenue decided apart.** Where a run has revenue the company may decide apart from the rest,
+  the earnings panel shows it above the payout cards with **With the rest** and each payout
+  choice. Choosing one recomputes every card for the rest of the revenue, each card showing the
+  whole dividend, what is retained and the price movement. The cards remain one press each.
+- **Drawn runs held to the best.** Where a title lets a director redraw the best run found, a
+  title may hold the drawn run to it. While routes are drawn the panel shows the most possible.
+  A drawn run that earns less is refused with its own revenue beside the most possible and, where
+  a higher subsidy would excuse it, the subsidy it would have to beat; **Run trains** is then
+  disabled. A lower run that the higher subsidy excuses says what it earns and pays instead.
+- **Attached rolling stock.** A train's row shows stock attached to it. While a train is chosen
+  for drawing, **Attach … to this train** is offered under its row where another train carries
+  the stock and more than one train could. There is no detach.
+- **A run on no track.** A train that runs at one station is drawn as a ring at that station in
+  its route colour. The map frames and lights that station as it would a route's hexes.
+- **Track that needs agreement.** A lay that needs another player's agreement is confirmed as a
+  request. Where more than one player's agreement would serve, the track panel names them and
+  offers **Ask …** for each; the map's confirm control asks the first.
+- **A station space that is no stop.** Its ring is broken where an ordinary space's is solid.
+- **Several things in one history row.** An action that did several things lists each on its own
+  line under the row, in the history list and in the last-action panel.
+
+### Coexistence and precedence
+
+- Prepared bids exist only in the bid panel of a stock turn; they cannot overlap share buying,
+  which is another stock panel.
+- A rejected typed amount belongs to one box. Stepping, removing or typing a legal amount in any
+  box changes the prepared bids and so clears it.
+- The separate-revenue choice composes with the payout cards: it never selects a card.
+- A drawn run's own illegality is reported before any shortfall against the best run.
+- A lay made with a private company's power is never a request for agreement in the track panel;
+  the power settles it.
+
+### Shared visual state
+
+- **Prepared bids.** Meaning: the bids the player means to place this turn, in the order made.
+  Producer: the bid-box module, through the shared staged-selection helpers, registered with the
+  session's local selections. Consumers: the bid panel, the footer totals and the players panel's
+  bid lines. Lifetime: one stock turn; Undo takes back one press at a time before any game Undo.
+  Validity: only while the player may place bids. Hidden in History View.
+- **Rejected typed amount.** Meaning: text in one box's amount field that is no legal bid.
+  Producer and consumer: the bid panel. Lifetime: until the prepared bids change. It never
+  reaches the session.
+- **Separate-revenue choice.** Meaning: the payout chosen for the revenue decided apart; absent
+  while it is decided with the rest. Producer: the earnings module, registered with the session's
+  local selections, so Undo returns it to the rest. Consumers: the payout cards. Validity: only
+  while distributing earnings of a run that has such revenue.
+- **Route draft.** As before, with the train each piece of attached stock runs with. Undo drops
+  the whole drawing.
+- **Whom to ask.** Derived from the previewed lay; not stored.
+
+### Render ownership
+
+- The bid panel owns boxes, prepared-bid controls and the footer; a title supplies what a lot
+  looks like inside a box.
+- Tile artwork owns the broken ring of a station space that is no stop.
+- The map owns the ring of a run on no track; the table owns framing it.
+
+### Verification scenarios
+
+- In a stock turn with bids on several lots, prepare two bids, type a legal amount in one and an
+  amount off the increment in the other: the first is taken, the second is red with its reason
+  and **Place bid** is disabled; correcting it enables the button and placing sends both. Manual
+  in a title's harness; the module's rules are covered by its spec.
+- With a run that includes revenue decided apart, choose a payout for it: the cards recompute,
+  and Undo returns to **With the rest**. Manual; the evaluation is covered by the title's spec.
+- For a company allowed to redraw, clear a train's route: the panel names the run's revenue and
+  the most possible and disables **Run trains**; **Auto** restores the best run. Automated in
+  the routes module spec for the standard and for the higher-subsidy excuse.
+- After a lay that leaves a company running one station, the map stays framed on that station.
+  Manual.

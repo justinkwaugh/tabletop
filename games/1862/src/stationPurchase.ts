@@ -1,9 +1,13 @@
-import { controllingOwner, finiteCashOwnedBy, type EighteenXXStateHandler } from '@tabletop/18xx'
+import {
+    controllingOwner,
+    finiteCashOwnedBy,
+    type EighteenXXStateHandler,
+    titleAction
+} from '@tabletop/18xx'
 import { ActionSource, assert, type HydratedAction, type MachineContext } from '@tabletop/common'
 import * as Type from 'typebox'
 import { NonCharteredStationCost, buyStations } from './companyRules.js'
 import { BuyingStationsState, type HydratedState1862 } from './state.js'
-import { titleAction } from './titleAction.js'
 
 export const MinimumStations = 2
 

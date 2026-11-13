@@ -17,6 +17,8 @@ export type EarningsSession = ModuleSession<
 
 export class EarningsModule {
     readonly choice = singleChoice<EarningsChoice>()
+    /** What is chosen for the revenue decided apart, while it is decided apart; Undo joins it to the rest. */
+    readonly separate = singleChoice<EarningsChoice>()
     constructor(private readonly session: EarningsSession) {}
 
     private distributing = $derived.by(
@@ -47,10 +49,11 @@ export class EarningsModule {
         this.companyId ? this.distribution.separateRevenue(this.companyId) : 0
     )
     /** What is chosen for that revenue: nothing while it is decided with the rest. */
-    separateChoice = $derived.by((): EarningsChoice | undefined => {
-        void this.companyId
-        return undefined
-    })
+    separateChoice = $derived.by(() =>
+        this.session.selectionsVisible && this.separateRevenue
+            ? this.separate.value('choice')
+            : undefined
+    )
     /** The choices the revenue decided apart may take. */
     separateChoices = $derived.by((): EarningsChoice[] =>
         this.companyId && this.separateRevenue
@@ -59,7 +62,7 @@ export class EarningsModule {
     )
     choices = $derived.by(() => {
         const companyId = this.companyId
-        const separate = this.separateRevenue ? this.separateChoice : undefined
+        const separate = this.separateChoice
         return companyId
             ? this.distribution.choices(companyId).map((choice) => ({
                   choice,
@@ -85,7 +88,8 @@ export class EarningsModule {
             this.canDistribute && (!choice || this.separateChoices.includes(choice)),
             'Choose an available distribution'
         )
-        this.separateChoice = choice
+        if (choice) this.separate.choose('choice', choice)
+        else this.separate.clear()
     }
     async confirm() {
         const details = this.preview

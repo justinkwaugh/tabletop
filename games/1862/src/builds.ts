@@ -7,6 +7,7 @@ import {
     rotateTileFace,
     stepAction,
     TileEdge,
+    titleAction,
     type PlacedStation,
     type StepAction
 } from '@tabletop/18xx'
@@ -22,7 +23,6 @@ import {
 import { homeBuildLocation } from './homes.js'
 import type { HydratedState1862 } from './state.js'
 import { TileSet1862 } from './tiles.js'
-import { titleAction } from './titleAction.js'
 
 /** A small station is worth £20 to Local trains (§7.8.2). */
 export const SmallStationRevenue = 20

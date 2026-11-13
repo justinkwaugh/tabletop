@@ -39,6 +39,7 @@ export { ownerPortfolio } from './finance/ownerPortfolio.js'
 export { withDraftedCompanies, type DraftedCompany } from './finance/draftedCompanies.js'
 
 export * from './session/eighteenXXSession.svelte.js'
+export { StagedSelection, singleChoice } from './session/stagedSelection.svelte.js'
 export type { PrivateTrackPower, TitlePrivatePower } from './session/privateActionsModule.svelte.js'
 export { default as StockTrading } from './stock/StockTrading.svelte'
 export { default as StockMarket } from './stock/StockMarket.svelte'

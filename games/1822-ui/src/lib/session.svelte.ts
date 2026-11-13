@@ -48,12 +48,13 @@ import {
 } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
 import {
+    StagedSelection,
     createEighteenXXSessionClass,
+    singleChoice,
     type AwaitedDecision,
     type MapLocationChoice,
     type TitleOperatingMode
 } from '@tabletop/18xx-ui'
-import type { LocalSelection } from '@tabletop/frontend-components'
 import { MapView1822 } from './mapView.js'
 import { Presentation1822 } from './presentation.js'
 import { createRouteWorker } from './routeWorker.js'
@@ -67,17 +68,15 @@ const BaseSession: ReturnType<
     createRouteWorker
 )
 
-/** A minor company the major has chosen to acquire, and how it takes it (§5.18, §5.19). */
-export type MinorDraft = {
-    minorId: string
+/** How a major company takes the minor it has chosen to acquire (§5.18, §5.19). */
+export type MinorTerms = {
     shares: number
     token: TokenChoice1822
     discardTrainIds: string[]
     nodeId?: string
 }
-/** A private company the operating company has chosen to acquire (§5.7). */
-export type PrivateDraft = {
-    privateCompanyId: string
+/** How the operating company takes up the private it has chosen to acquire (§5.7). */
+export type PrivateTerms = {
     choice?: AcquisitionChoice1822
     discardTrainId?: string
 }
@@ -90,43 +89,26 @@ export type PrivateOffer = {
     agreementPlayerId?: string
 }
 
-function stagedChoice(isMade: () => boolean, clear: () => void): LocalSelection {
-    return {
-        hasManual: isMade,
-        undo() {
-            if (!isMade()) return false
-            clear()
-            return true
-        },
-        clear
-    }
-}
-
 export class Session1822 extends BaseSession {
-    minorDraft = $state<MinorDraft>()
-    privateDraft = $state<PrivateDraft>()
-    stackCard = $state<string>()
-    /** The London station tapped for the Metropolitan Railway's home, until it is placed. */
-    metropolitanDraft = $state<LondonNodeId>()
+    // Each choice below is a player's pick followed by how it is taken up: the terms start at
+    // their defaults and are the player's own once changed. Undo drops the whole choice.
+    private readonly minorChoice = new StagedSelection<{ minor: string; terms: MinorTerms }>([
+        'minor',
+        'terms'
+    ])
+    private readonly privateChoice = new StagedSelection<{ private: string; terms: PrivateTerms }>([
+        'private',
+        'terms'
+    ])
+    private readonly stackCardChoice = singleChoice<string>()
+    private readonly metropolitanChoice = singleChoice<LondonNodeId>()
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
         for (const selection of [
-            stagedChoice(
-                () => this.minorDraft !== undefined,
-                () => (this.minorDraft = undefined)
-            ),
-            stagedChoice(
-                () => this.privateDraft !== undefined,
-                () => (this.privateDraft = undefined)
-            ),
-            stagedChoice(
-                () => this.stackCard !== undefined,
-                () => (this.stackCard = undefined)
-            ),
-            stagedChoice(
-                () => this.metropolitanDraft !== undefined,
-                () => (this.metropolitanDraft = undefined)
-            )
+            this.minorChoice,
+            this.privateChoice,
+            this.stackCardChoice,
+            this.metropolitanChoice
         ])
             this.localSelections.register(selection)
     }
@@ -202,7 +184,7 @@ export class Session1822 extends BaseSession {
     /** The London station chosen for the Metropolitan Railway's home while that is its to place. */
     readonly metropolitanStation = $derived(
         this.metropolitanHomeDue && this.canPlaceMetropolitanHome
-            ? this.metropolitanDraft
+            ? this.metropolitanChoice.value('choice')
             : undefined
     )
     async placeMetropolitanHome(): Promise<void> {
@@ -211,7 +193,7 @@ export class Session1822 extends BaseSession {
         await this.applyAction(
             this.createPlayerAction(PlaceMetropolitanHome, { companyId: MetropolitanId, nodeId })
         )
-        this.metropolitanDraft = undefined
+        this.metropolitanChoice.clear()
     }
     // The Metropolitan Railway's home is chosen on the map: a tap on one of London's six stations.
     override get mapLocationChoice(): MapLocationChoice | undefined {
@@ -221,7 +203,7 @@ export class Session1822 extends BaseSession {
             locationIds: [LondonLocationId],
             choose: (_locationId, nodeId) => {
                 const station = LondonNodeIds.find((id) => id === nodeId)
-                if (station) this.metropolitanDraft = station
+                if (station) this.metropolitanChoice.choose('choice', station)
             }
         }
     }
@@ -276,22 +258,47 @@ export class Session1822 extends BaseSession {
             ? trainsCountingForLimit(this.gameState, TrainRules1822, this.operatingCompanyId())
             : []
     )
+    /** The private company chosen to acquire and how it is taken up, while that is being decided. */
+    readonly privateDraft = $derived.by(() => {
+        const privateCompanyId = this.privateChoice.value('private')
+        const terms = this.privateChoice.value('terms')
+        return privateCompanyId && terms ? { privateCompanyId, ...terms } : undefined
+    })
     async choosePrivate(offer: PrivateOffer): Promise<void> {
         if (!offer.choices.length && !offer.needsDiscard)
-            return this.acquirePrivate({ privateCompanyId: offer.privateCompanyId })
-        this.privateDraft = {
-            privateCompanyId: offer.privateCompanyId,
-            ...(offer.choices.length ? { choice: offer.choices[0] } : {}),
-            ...(offer.needsDiscard ? { discardTrainId: this.limitedTrains[0]?.id } : {})
-        }
+            return this.acquirePrivate(offer.privateCompanyId, {})
+        const [choice] = offer.choices
+        const [discard] = this.limitedTrains
+        this.privateChoice.choose('private', offer.privateCompanyId)
+        this.privateChoice.choose(
+            'terms',
+            {
+                ...(choice ? { choice } : {}),
+                ...(offer.needsDiscard && discard ? { discardTrainId: discard.id } : {})
+            },
+            'auto'
+        )
     }
-    async acquirePrivate(draft: PrivateDraft): Promise<void> {
+    changePrivateTerms(change: PrivateTerms): void {
+        const terms = this.privateChoice.value('terms')
+        assertExists(terms, 'Choose the private company to acquire')
+        this.privateChoice.choose('terms', { ...terms, ...change })
+    }
+    async acquireChosenPrivate(): Promise<void> {
+        const draft = this.privateDraft
+        assertExists(draft, 'Choose the private company to acquire')
+        const { privateCompanyId, ...terms } = draft
+        await this.acquirePrivate(privateCompanyId, terms)
+    }
+    private async acquirePrivate(privateCompanyId: string, terms: PrivateTerms): Promise<void> {
         await this.applyAction(
             this.createPlayerAction(AcquirePrivate, {
                 companyId: this.operatingCompanyId(),
-                ...draft
+                privateCompanyId,
+                ...terms
             })
         )
+        this.privateChoice.clear()
     }
     readonly discountTokens = $derived.by((): readonly DiscountTokenKind[] =>
         this.me && this.can('UseDiscountToken')
@@ -309,6 +316,11 @@ export class Session1822 extends BaseSession {
     readonly movableStackCards = $derived.by((): readonly string[] =>
         this.me && this.can('MoveStackCard') ? movableStackCards1822(this.gameState, this.me) : []
     )
+    /** The certificate chosen to move within its stack with P17. */
+    readonly stackCard = $derived(this.stackCardChoice.value('choice'))
+    chooseStackCard(lotId: string): void {
+        this.stackCardChoice.choose('choice', lotId)
+    }
     async moveStackCard(to: 'top' | 'bottom'): Promise<void> {
         const lotId = this.stackCard
         assertExists(lotId, 'Choose the certificate to move')
@@ -319,6 +331,7 @@ export class Session1822 extends BaseSession {
                 to
             })
         )
+        this.stackCardChoice.clear()
     }
     readonly stationSwaps = $derived(
         this.me && this.can('SwapStationToken') ? stationSwaps1822(this.gameState, this.me) : []
@@ -336,21 +349,46 @@ export class Session1822 extends BaseSession {
     readonly minorAcquisitions = $derived.by((): readonly MinorAcquisition1822[] =>
         this.me && this.can('AcquireMinor') ? minorAcquisitions1822(this.gameState, this.me) : []
     )
+    /** The minor company chosen to acquire and how it is taken, while that is being decided. */
+    readonly minorDraft = $derived.by(() => {
+        const minorId = this.minorChoice.value('minor')
+        const terms = this.minorChoice.value('terms')
+        return minorId && terms ? { minorId, ...terms } : undefined
+    })
     readonly draftedAcquisition = $derived(
         this.minorAcquisitions.find((offer) => offer.minorId === this.minorDraft?.minorId)
     )
     chooseMinor(offer: MinorAcquisition1822): void {
         const [terms] = offer.terms.toSorted((a, b) => b.shares - a.shares)
         const [token] = offer.tokens
+        const [nodeId] = offer.londonNodeIds ?? []
         assertExists(terms, 'An acquisition has terms')
         assertExists(token, 'An acquisition says what becomes of the exchange token')
-        this.minorDraft = {
-            minorId: offer.minorId,
-            shares: terms.shares,
-            token,
-            discardTrainIds: [],
-            ...(offer.londonNodeIds?.[0] ? { nodeId: offer.londonNodeIds[0] } : {})
-        }
+        this.minorChoice.choose('minor', offer.minorId)
+        this.minorChoice.choose(
+            'terms',
+            { shares: terms.shares, token, discardTrainIds: [], ...(nodeId ? { nodeId } : {}) },
+            'auto'
+        )
+    }
+    changeMinorTerms(change: Partial<MinorTerms>): void {
+        const terms = this.minorChoice.value('terms')
+        assertExists(terms, 'Choose the minor company to acquire')
+        this.minorChoice.choose('terms', { ...terms, ...change })
+    }
+    /** Marks a train to discard or keeps it after all, never more than the acquisition must discard. */
+    toggleMinorDiscard(trainId: string): void {
+        const draft = this.minorDraft
+        const offer = this.draftedAcquisition
+        assertExists(draft, 'Choose the minor company to acquire')
+        assertExists(offer, 'Choose the minor company to acquire')
+        const kept = draft.discardTrainIds.filter((entry) => entry !== trainId)
+        this.changeMinorTerms({
+            discardTrainIds:
+                kept.length < draft.discardTrainIds.length
+                    ? kept
+                    : [...draft.discardTrainIds, trainId].slice(-offer.excessTrains)
+        })
     }
     /** The trains of the major and the minor it is acquiring that count towards the limit. */
     readonly acquisitionTrains = $derived.by((): readonly Train[] => {
@@ -374,6 +412,7 @@ export class Session1822 extends BaseSession {
         await this.applyAction(
             this.createPlayerAction(AcquireMinor, { companyId: offer.companyId, ...draft })
         )
+        this.minorChoice.clear()
     }
 
     /**

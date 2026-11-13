@@ -1,10 +1,9 @@
 import { privateOwner, type ConstructionState, type TrackRequest } from '@tabletop/18xx'
 import {
     LondonLocationId,
-    Majors1822,
     MetropolitanId,
-    Minors1822,
     concessionId,
+    londonHomeCompanyIds1822,
     major1822
 } from './companies.js'
 import { LondonNodeIds } from './faces.js'
@@ -40,18 +39,11 @@ export function londonTrackHolders1822(state: ConstructionState, locationId: str
     const nodeId = LondonStations[locationId]
     if (!nodeId) return []
     const title = requireState1822(state)
-    const adjoining = [...Majors1822, ...Minors1822].find(
-        (company) =>
-            company.id !== MetropolitanId &&
-            company.home?.locationId === LondonLocationId &&
-            company.home.nodeId === nodeId
-    )
+    const [adjoining] = londonHomeCompanyIds1822(nodeId)
     const held =
         adjoining &&
-        major1822(adjoining.id) &&
-        title.companies.find(
-            (company) => company.id === concessionId(adjoining.id) && !company.closed
-        )
+        major1822(adjoining) &&
+        title.companies.find((company) => company.id === concessionId(adjoining) && !company.closed)
     const concession = held ? privateOwner(title, held.id) : undefined
     const metropolitan = state.stations.some(
         (station) =>
@@ -63,7 +55,7 @@ export function londonTrackHolders1822(state: ConstructionState, locationId: str
     return [
         ...new Set(
             [
-                adjoining && director(state, adjoining.id),
+                adjoining && director(state, adjoining),
                 concession?.kind === 'player' ? concession.playerId : undefined,
                 metropolitan ? director(state, MetropolitanId) : undefined
             ].filter((playerId) => playerId !== undefined)
@@ -92,19 +84,29 @@ export function londonConsentPlayerId1822(
     return layer !== undefined && holders.includes(layer) ? undefined : holders[0]
 }
 
+/** The hex's other holders, any of whom may be asked in place of the first (§5.10.7). */
+export function londonOtherConsentPlayerIds1822(
+    state: ConstructionState,
+    request: TrackRequest
+): string[] {
+    return londonConsentPlayerId1822(state, request)
+        ? londonTrackHolders1822(state, request.locationId).slice(1)
+        : []
+}
+
 /** Why a tile may not be laid as asked, whoever lays it and by what power. */
 export function layRestriction1822(
     state: ConstructionState,
     request: TrackRequest
 ): string | undefined {
-    // London's stations keep their sides (§1.2.3).
-    if (LondonTileIds1822.includes(request.definitionId) && request.rotation !== 0)
-        return 'London is developed in place.'
-    if (request.locationId === LondonLocationId) return undefined
     // The Metropolitan Railway's home token is its track lay in its first turn (§5.6.7).
     const title = requireState1822(state)
     if (request.companyId === MetropolitanId && title.debutCompanyIds.includes(MetropolitanId))
         return 'Placing its home station is the Metropolitan Railway’s track lay this turn.'
+    // London's stations keep their sides (§1.2.3).
+    if (LondonTileIds1822.includes(request.definitionId) && request.rotation !== 0)
+        return 'London is developed in place.'
+    if (request.locationId === LondonLocationId) return undefined
     // A hex beside London with no holder takes a yellow tile only if it joins the London
     // station's track (§5.10.7).
     const side = LondonSides[request.locationId]

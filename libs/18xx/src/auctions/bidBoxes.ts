@@ -146,6 +146,21 @@ export const PlacedBid = Type.Object(
 )
 export type PlacedBid = Type.Static<typeof PlacedBid>
 
+/** The bids with a player's new ones in place of any they had on the same lots. */
+export function withBids(
+    bids: readonly BidBoxBid[],
+    playerId: string,
+    placed: readonly BidRequest[]
+): BidBoxBid[] {
+    return [
+        ...bids.filter(
+            (bid) =>
+                !(bid.playerId === playerId && placed.some((entry) => entry.lotId === bid.lotId))
+        ),
+        ...placed.map(({ lotId, amount }) => ({ lotId, playerId, amount }))
+    ]
+}
+
 export type BidEvaluation = { bids: PlacedBid[]; reason?: never } | { reason: string; bids?: never }
 
 /** Judges a turn's bids in the order given, each on the bids the earlier ones leave. */
@@ -181,10 +196,7 @@ export function evaluateBids(
         ).size
         if (!own && lotsBidOn >= rules.tokens(view, playerId))
             return { reason: 'Every bidding token is on a lot.' }
-        bids = [
-            ...bids.filter((bid) => !(bid.lotId === lotId && bid.playerId === playerId)),
-            { lotId, playerId, amount }
-        ]
+        bids = withBids(bids, playerId, [{ lotId, amount }])
         if (
             committedCash(projected(), playerId) >
             finiteCashOwnedBy(state, { kind: 'player', playerId })
@@ -241,13 +253,7 @@ export class HydratedPlaceBids extends PlaceBidsAction.Base {
         assert(!reason, reason ?? 'Invalid bids')
         const evaluation = evaluateBids(state, this.#rules, this.playerId, this.bids)
         assertExists(evaluation.bids, 'Valid bids are evaluated')
-        for (const { lotId, amount } of evaluation.bids)
-            bidBoxesOf(state).bids = [
-                ...bidBoxesOf(state).bids.filter(
-                    (bid) => !(bid.lotId === lotId && bid.playerId === this.playerId)
-                ),
-                { lotId, playerId: this.playerId, amount }
-            ]
+        bidBoxesOf(state).bids = withBids(bidBoxesOf(state).bids, this.playerId, evaluation.bids)
         recordStockAction(state, this.playerId, this.#rules.round)
         state.stockRound.turn.bought = true
         this.metadata = { bids: evaluation.bids }

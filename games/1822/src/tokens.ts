@@ -1,7 +1,15 @@
-import { addCompanyStations, type StationPosition } from '@tabletop/18xx'
+import {
+    RailwayMapState,
+    addCompanyStations,
+    reservationFulfilled,
+    type StationPosition
+} from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
 import { exchangeStationId, exchangeTokenCount1822 } from './companies.js'
+import { Map1822 } from './map.js'
 import type { HydratedState1822 } from './state.js'
+import { StationRules1822 } from './stations.js'
+import { TileSet1822 } from './tiles.js'
 
 /** The exchange tokens left on a major company's charter (§5.6.3). */
 export function exchangeTokens1822(state: HydratedState1822, companyId: string): number {
@@ -64,4 +72,46 @@ export function nextStationSlot(
     let slot = 0
     while (taken.includes(slot)) slot++
     return slot
+}
+
+/**
+ * The space a token takes where it is placed whatever the city holds: its lowest free space once
+ * the homes other companies have still to place are allowed for, else the space beside the city,
+ * which is one of the city's own once an upgrade adds a space (§2.1.11, §5.11.8).
+ */
+export function tokenSpace1822(
+    state: HydratedState1822,
+    companyId: string,
+    city: Omit<StationPosition, 'slot'>
+): number {
+    const node = new RailwayMapState(Map1822, TileSet1822, state.tileInventory)
+        .tile(city.locationId)
+        .face.nodes.find((entry) => entry.id === city.nodeId)
+    assert(node?.kind === 'city', 'A station token stands in a city')
+    const taken = state.stations.flatMap((station) =>
+        station.status === 'placed' &&
+        station.position.locationId === city.locationId &&
+        station.position.nodeId === city.nodeId
+            ? [station.position.slot]
+            : []
+    )
+    const free = Array.from({ length: node.stationSlots }, (_, slot) => slot).filter(
+        (slot) => !taken.includes(slot)
+    )
+    const awaited = new Set(
+        state.stationReservations
+            .filter(
+                (reservation) =>
+                    reservation.locationId === city.locationId &&
+                    reservation.nodeId === city.nodeId &&
+                    reservation.companyId !== companyId &&
+                    !reservationFulfilled(state, reservation, StationRules1822)
+            )
+            .map((reservation) => reservation.companyId)
+    ).size
+    const [first] = free
+    if (first !== undefined && free.length > awaited) return first
+    let beside = node.stationSlots
+    while (taken.includes(beside)) beside++
+    return beside
 }

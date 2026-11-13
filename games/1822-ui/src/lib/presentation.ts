@@ -92,9 +92,6 @@ export const Presentation1822: TitlePresentation<State1822> = {
         return loan ? [{ label: 'Loan', value: money(loan.amount) }] : []
     },
     gameFacts: (state) => [
-        ...(state.endsAfterNextOperatingRound
-            ? [{ label: 'Game end', value: 'After the next operating round' }]
-            : []),
         ...(state.doubledCashPlayerId &&
         state.machineState === 'StockRound' &&
         state.cashDeclarationRound === state.stockRound.number
@@ -107,7 +104,7 @@ export const Presentation1822: TitlePresentation<State1822> = {
         const name = place(major.destination.locationId)
         return {
             text: destinationReached(state, companyId)
-                ? `Reached ${name}: a run from home to there doubles the higher of the two`
+                ? `Reached ${name}: one train a turn that runs through both its home and ${name} doubles ${name}’s value`
                 : `Destination: ${name}`,
             connection: { from: major.home.locationId, to: major.destination.locationId }
         }
@@ -130,7 +127,7 @@ export const Presentation1822: TitlePresentation<State1822> = {
                   {
                       label: 'Dest.',
                       description:
-                          'Joined to its destination: a run between its home and destination stations doubles the higher of the two.'
+                          'Joined to its destination: one train a turn that runs through both its home and destination stations doubles the destination’s value.'
                   }
               ]
             : [],

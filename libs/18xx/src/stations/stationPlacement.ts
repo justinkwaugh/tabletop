@@ -6,7 +6,12 @@ import { assert } from '@tabletop/common'
 import { cashOwnedBy, getCompany } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
-import { StationPosition, type StationReservation, type StationState } from '../map/station.js'
+import {
+    StationPosition,
+    filledStationSpaces,
+    type StationReservation,
+    type StationState
+} from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import { TrackNetwork } from '../construction/trackNetwork.js'
@@ -225,14 +230,7 @@ export class StationPlacement {
     private hexSpaces(companyId: string, locationId: string): number {
         return this.mapState.tile(locationId).face.nodes.reduce((total, node) => {
             if (node.kind !== 'city') return total
-            // A station beside a full city takes none of its spaces.
-            const placed = this.state.stations.filter(
-                (station) =>
-                    station.status === 'placed' &&
-                    station.position.locationId === locationId &&
-                    station.position.nodeId === node.id &&
-                    station.position.slot < node.stationSlots
-            ).length
+            const placed = filledStationSpaces(this.state, locationId, node)
             const reserved = new Set(
                 this.state.stationReservations
                     .filter(
