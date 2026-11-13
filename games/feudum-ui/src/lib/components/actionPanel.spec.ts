@@ -470,6 +470,20 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
         expect(markup).not.toContain('data-refusal')
     })
 
+    it('R-3.3 tray A: the reason stands under the pair for a phone, without a press, one line', () => {
+        const markup = untitled(draft('You hold no saltpeter.'))
+        expect(all(markup, 'data-pouch-reason')).toEqual(['+1 card · You hold no saltpeter.'])
+        expect(markup.indexOf('data-pouch-reason')).toBeGreaterThan(
+            markup.lastIndexOf('data-pouch-choice')
+        )
+        // The choice's own name already says why: the line is not read twice.
+        expect(markup).toMatch(/aria-hidden="true"[^>]*data-pouch-reason/)
+    })
+
+    it('R-3.3 tray A: with both goods to hand there is no reason line', () => {
+        expect(draft()).not.toContain('data-pouch-reason')
+    })
+
     it("R-X.2 the send's second line says it finalises and can't be undone", () => {
         const markup = draft()
         expect(textOf(markup, 'data-primary-label')).toBe('Long live the king')

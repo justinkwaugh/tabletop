@@ -6,32 +6,29 @@
      * R-3.3 One pouch choice: its good, its short name, and what it does beneath; the full words are
      * its accessible name. The chosen one is ringed, and a second press clears it. One that can't be
      * chosen is dimmed and says why in place of what it does, once: a press adds nothing. A phone
-     * drops the line beneath, so there a press says why.
+     * drops the line beneath; the pouch says why under the pair instead.
      */
     let { row }: { row: ActionRow } = $props()
 
     const GoodSize = 22
 
     let refused = $derived(row.choice.refusal !== undefined)
-    let refusalShown = $state(false)
 
     function press() {
-        if (refused) {
-            refusalShown = true
-        } else {
+        if (!refused) {
             void row.press()
         }
     }
 </script>
 
 <span
-    class="inline-flex flex-col"
+    class="flex min-w-0 flex-col"
     data-row={row.choice.label}
     data-picked={row.choice.picked ? '' : undefined}
 >
     <button
         type="button"
-        class="choice inline-flex items-center gap-2 rounded-lg border px-2 py-1 text-left text-feudum-text
+        class="choice flex w-full items-center gap-2 rounded-lg border px-2 py-1 text-left text-feudum-text
             {row.choice.picked
             ? 'border-feudum-accent bg-feudum-primary ring-2 ring-feudum-accent'
             : 'border-feudum-frame bg-feudum-control'}
@@ -55,29 +52,18 @@
             >
         </span>
     </button>
-    {#if refusalShown && row.choice.refusal}
-        <span class="phone-refusal text-xs text-feudum-danger" data-refusal
-            >{row.choice.refusal}</span
-        >
-    {/if}
 </span>
 
 <style>
-    .phone-refusal {
-        display: none;
-    }
-
     /*
-     * Contract, Phone layout: the art over its short name, without the line beneath, so the two
-     * share the send's line; a refused press says why.
+     * Contract, Phone layout: the art beside its short name, without the line beneath, so the two
+     * share a line; the pouch says a dimmed one's reason under them.
      */
     @media (width < 40rem), (max-height: 520px) and (orientation: landscape) {
         .choice {
-            flex-direction: column;
             justify-content: center;
-            gap: 0.125rem;
+            gap: 0.375rem;
             padding: 0.125rem 0.375rem;
-            text-align: center;
         }
 
         .title {
@@ -88,10 +74,6 @@
 
         .caption {
             display: none;
-        }
-
-        .phone-refusal {
-            display: block;
         }
     }
 </style>

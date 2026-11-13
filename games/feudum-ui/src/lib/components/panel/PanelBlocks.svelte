@@ -164,15 +164,25 @@
     {:else if block.kind === 'game-end'}
         <GameEndSummary summary={block.summary} seats={block.seats} />
     {:else if block.kind === 'rows' && block.name === 'pouch'}
-        <div
-            class="flex flex-wrap items-start gap-1"
-            role="group"
-            aria-label="Pouch"
-            data-rows="pouch"
-        >
-            {#each block.rows as row (row.choice.label)}
-                <PouchChoice {row} />
-            {/each}
+        {@const reasons = block.rows.flatMap(({ choice }) =>
+            choice.refusal ? [`${choice.shown ?? choice.label} · ${choice.refusal}`] : []
+        )}
+        <div class="pouch-rows" role="group" aria-label="Pouch" data-rows="pouch">
+            <div class="pouch-choices">
+                {#each block.rows as row (row.choice.label)}
+                    <PouchChoice {row} />
+                {/each}
+            </div>
+            <!-- Contract, Phone layout: the choices drop the line beneath, so the reason stands here. -->
+            {#if reasons.length > 0}
+                <p
+                    class="pouch-reason text-xs text-feudum-danger"
+                    aria-hidden="true"
+                    data-pouch-reason
+                >
+                    {reasons.join(' ')}
+                </p>
+            {/if}
         </div>
     {:else if block.kind === 'rows'}
         <div
@@ -418,6 +428,18 @@
         min-width: 100%;
     }
 
+    /* R-3.3 The two choices stack, each as wide as the slots, each saying what it does. */
+    .pouch-choices {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+
+    .pouch-reason {
+        display: none;
+        margin: 0.1875rem 0 0;
+    }
+
     .tray-send {
         grid-column: 2;
         display: flex;
@@ -549,6 +571,19 @@
         .tray-send {
             width: auto;
             min-width: 0;
+        }
+
+        /* Side by side, without the line beneath: a dimmed one's reason stands under the pair. */
+        .pouch-choices {
+            flex-direction: row;
+        }
+
+        .pouch-choices > :global(*) {
+            flex: 1 1 0;
+        }
+
+        .pouch-reason {
+            display: block;
         }
 
         .tray-send > :global(.sends) {
