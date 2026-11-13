@@ -3,7 +3,8 @@
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { buildChoice, linkChoice } from '$lib/utils/pickMarks.js'
-    import { popupSide } from '$lib/utils/phoneLayout.svelte.js'
+    import { isPhoneWidth, popupSide } from '$lib/utils/phoneLayout.svelte.js'
+    import { POPUP_GAP, clearOfChoice } from '$lib/utils/popupPlacement.js'
     import HexDetailCard from './HexDetailCard.svelte'
     import { CHOICE_ANCHOR_ID, DETAIL_ANCHOR_ID } from './PopupAnchor.svelte'
     import RailroadChoicePopup from './RailroadChoicePopup.svelte'
@@ -28,9 +29,13 @@
         }
     }
 
-    // Contract, Coexistence and precedence: during a map pick the hex detail is in the side panel.
+    // Contract, Coexistence and precedence: during a map pick on wider screens the hex detail is in
+    // the side panel. Beside its hex, it keeps clear of the railroad popup when that shows too.
     const detailBeside = $derived(
         gameSession.hexDetailInSidePanel ? undefined : gameSession.hexDetailHexId
+    )
+    const detailMiddlewares = $derived(
+        choice ? [clearOfChoice('[data-railroad-choice]', isPhoneWidth())] : undefined
     )
 </script>
 
@@ -46,7 +51,8 @@
         <Floater
             reference="#{DETAIL_ANCHOR_ID}"
             placement={popupSide('left')}
-            offset={8}
+            offset={detailMiddlewares ? 0 : POPUP_GAP}
+            middlewares={detailMiddlewares}
             trigger="manual"
         >
             <HexDetailCard hexId={detailBeside} />

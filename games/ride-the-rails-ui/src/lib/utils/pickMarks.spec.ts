@@ -223,8 +223,13 @@ describe('the scrim, the spotlight and hex detail (Contract, Coexistence and pre
     })
 
     it('shows hex detail beside the hex, or in the side panel during a map pick', () => {
-        expect(hexDetailPlace(EMPTY_BOARD_OFFER)).toBe('beside')
-        expect(hexDetailPlace(pick)).toBe('side-panel')
+        expect(hexDetailPlace(EMPTY_BOARD_OFFER, false)).toBe('beside')
+        expect(hexDetailPlace(pick, false)).toBe('side-panel')
+    })
+
+    it('keeps hex detail beside its hex on phones, where the side panel is off screen', () => {
+        expect(hexDetailPlace(EMPTY_BOARD_OFFER, true)).toBe('beside')
+        expect(hexDetailPlace(pick, true)).toBe('beside')
     })
 })
 

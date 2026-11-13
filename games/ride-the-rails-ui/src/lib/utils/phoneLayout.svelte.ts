@@ -4,6 +4,11 @@ import { FOCUS_CHOOSER_INSET } from './boardFocus.js'
 /** Below `sm`, the width the contract's Phone layout covers. */
 const PHONE_WIDTH = new MediaQuery('(width < 40rem)', false)
 
+/** Whether the view is phone width, below `sm` (reactive). */
+export function isPhoneWidth(): boolean {
+    return PHONE_WIDTH.current
+}
+
 export type PopupSide = 'left' | 'right' | 'bottom'
 
 /**

@@ -304,10 +304,11 @@ export function spotlightMode(
 
 export type HexDetailPlace = 'beside' | 'side-panel'
 
-// Contract, Coexistence and precedence: during a map pick the hex detail moves to the side panel,
-// so it never covers the railroad popup.
-export function hexDetailPlace(offer: BoardOffer): HexDetailPlace {
-    return offer.scrim ? 'side-panel' : 'beside'
+// Contract, Coexistence and precedence: during a map pick on wider screens the hex detail moves to
+// the side panel beside the board, so it never covers the railroad popup. On phones the side panel
+// is off screen, so the detail stays beside its hex and keeps clear of the popup there.
+export function hexDetailPlace(offer: BoardOffer, onPhone: boolean): HexDetailPlace {
+    return offer.scrim && !onPhone ? 'side-panel' : 'beside'
 }
 
 export type ChipNote =

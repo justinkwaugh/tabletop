@@ -37,6 +37,8 @@ import {
 } from './buildStage.js'
 import { hexChangedBetween } from './hexDetail.js'
 import { Flights } from '$lib/animators/flights.svelte.js'
+import { hexDetailPlace } from '$lib/utils/pickMarks.js'
+import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
 import {
     EMPTY_JOURNEY_OFFER,
     bestRoute,
@@ -318,7 +320,9 @@ export class RideTheRailsGameSession extends GameSession<
         return this.shownHexId
     }
 
-    hexDetailInSidePanel = $derived(this.boardOffer.scrim !== undefined)
+    hexDetailInSidePanel = $derived(
+        hexDetailPlace(this.boardOffer, isPhoneWidth()) === 'side-panel'
+    )
 
     closeHexDetail() {
         this.shownHexId = undefined

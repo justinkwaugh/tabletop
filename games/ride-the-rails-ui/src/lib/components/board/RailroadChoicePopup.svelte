@@ -24,6 +24,7 @@
         class="max-w-72 rounded-lg border border-rtr-line bg-rtr-panel-raised p-2 text-rtr-ink shadow-lg"
         role="group"
         aria-label={choice.title}
+        data-railroad-choice
     >
         <div class="px-1 text-sm font-semibold">{choice.title}</div>
         <div class="px-1 pb-1.5 text-xs text-rtr-ink-muted">Undo closes</div>
