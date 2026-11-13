@@ -7,10 +7,19 @@ export type Pose = { x: number; y: number; scale: number; opacity: number }
 
 /**
  * Contract, Shared visual state, Animation transients: what the flight layer draws. Each flyer is
- * drawn centred on its outer wrapper's origin, so a pose moves and scales it about its centre.
+ * drawn centred on its outer wrapper's origin, so a pose moves and scales it about its centre. A
+ * locomotive that `leavesTheMap` (a share) never lands in a slot, so a phone draws it, like a
+ * coin, no smaller than it can be read.
  */
 export type Flyer =
-    | { key: string; kind: 'locomotive'; railroadId: RailroadId; width: number; pose: Pose }
+    | {
+          key: string
+          kind: 'locomotive'
+          railroadId: RailroadId
+          width: number
+          pose: Pose
+          leavesTheMap?: boolean
+      }
     | { key: string; kind: 'coin'; amount: number; gold: boolean; pose: Pose }
     | { key: string; kind: 'outline'; hexId: HexId; pose: Pose }
     | { key: string; kind: 'line'; hexIds: readonly HexId[]; pose: Pose }
@@ -24,6 +33,22 @@ export function moneyKey(playerId: string): string {
 
 export function supplyKey(railroadId: RailroadId): string {
     return `supply:${railroadId}`
+}
+
+/** A seat's card, where a phone's share flight lands. */
+export function seatCardKey(playerId: string): string {
+    return `seat:${playerId}`
+}
+
+/** The phone strip's round badge, which steps at the end of a round. */
+export const PHONE_ROUND_KEY = 'phone-round'
+
+/** The round the phone strip's badge shows, ticked ahead of the state as the badge steps. */
+export const ROUND_KEY = 'round'
+
+/** A railroad's entry on the phone strip, dim until its round. */
+export function phoneEntryKey(railroadId: RailroadId): string {
+    return `phone-entry:${railroadId}`
 }
 
 export function sharesKey(playerId: string, railroadId: RailroadId): string {

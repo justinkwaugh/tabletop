@@ -1,11 +1,8 @@
 import { tick } from 'svelte'
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isTakeShare, supplyOf, type HydratedRideTheRailsGameState } from '@tabletop/ride-the-rails'
-import {
-    STRIP_LOCOMOTIVE,
-    stripLocomotivePoint,
-    turnOrderMarkerPoint
-} from '$lib/utils/marginLayout.js'
+import { STRIP_LOCOMOTIVE } from '$lib/utils/marginLayout.js'
+import { railroadSourcePoint, seatCardPoint } from './flightPlaces.js'
 import { shareChanges } from './flightPlan.js'
 import { sharesKey, supplyKey, type Flights } from './flights.svelte.js'
 import { FLIGHT, PoseTween, motionMode, pose, tickAt } from './motion.js'
@@ -19,6 +16,8 @@ export const SHARE_FLYER_KEY = 'share'
  * Contract, Animation plan, Share (Patterns B and D): R-3.1, a locomotive lifts from its
  * railroad's strip entry and flies to the seat's turn-order marker; the strip's supply ticks as it
  * lifts and the seat's share count as it lands. Without an action the counts change with the state.
+ * On a phone it lifts from the strip above the board and lands on the seat's card
+ * (`flightPlaces`).
  */
 export function shareAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -29,8 +28,8 @@ export function shareAnimator(flights: Flights): GameStateChangeListener<State> 
         if (!change) return
         flights.follow(animationContext)
 
-        const start = stripLocomotivePoint(from.mapId, change.railroadId)
-        const marker = turnOrderMarkerPoint(from.turnManager.turnOrder, change.playerId)
+        const start = railroadSourcePoint(from.mapId, change.railroadId)
+        const marker = seatCardPoint(from.turnManager.turnOrder, change.playerId)
         const startPose = pose(start.x, start.y)
         flights.show([
             {
@@ -38,7 +37,8 @@ export function shareAnimator(flights: Flights): GameStateChangeListener<State> 
                 kind: 'locomotive',
                 railroadId: change.railroadId,
                 width: STRIP_LOCOMOTIVE.width,
-                pose: startPose
+                pose: startPose,
+                leavesTheMap: true
             }
         ])
         await tick()

@@ -9,6 +9,8 @@ export const STRIP_ROW = { top: 40, height: 63 }
 export const STRIP_COLUMN = { name: 66, supply: 300, track: 406, holders: 80, holderStep: 66 }
 /** How strongly the veil over a strip entry dims it until its railroad's round (R-1.4). */
 export const STRIP_VEIL_OPACITY = 0.55
+/** How dim a railroad's entry on the phone strip is until its round (R-1.4). */
+export const PHONE_LATER_OPACITY = 0.45
 /** The locomotive drawn at the head of each strip entry. */
 export const STRIP_LOCOMOTIVE = { x: 36, width: 44 }
 

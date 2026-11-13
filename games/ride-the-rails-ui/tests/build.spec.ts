@@ -249,17 +249,20 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await openScenario(page, 'Transcontinental in reach')
     expect(await activePlayerId(page)).toBe('p1')
     const money = (await moneyOf(page, 'p1')) ?? 0
-    // The medallion sits in the board's margin, which phones leave out (Phone layout).
+    // The medallion sits in the board's margin, which phones leave out; there the railroad strip
+    // shows it once claimed (Phone layout).
     const phone = test.info().project.use.isMobile === true
     const claimed = (text: string) =>
         phone
-            ? expect(board(page).locator('g.margin')).toBeHidden()
+            ? expect(
+                  page.getByRole('img', { name: /^Transcontinental: claimed by / })
+              ).toHaveAccessibleName(`Transcontinental: c${text.slice(1)}`)
             : expect(board(page).getByRole('img', { name: /^Claimed by / })).toHaveAccessibleName(
                   text
               )
     const unclaimed = () =>
         phone
-            ? expect(board(page).locator('g.margin')).toBeHidden()
+            ? expect(page.getByRole('img', { name: /^Transcontinental: / })).toHaveCount(0)
             : expect(board(page).getByRole('img', { name: /^Unclaimed: / })).toBeVisible()
     const goldLine = board(page).locator('g.lines polyline[stroke="var(--rtr-gold)"]')
     await unclaimed()

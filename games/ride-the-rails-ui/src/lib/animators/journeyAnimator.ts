@@ -8,8 +8,8 @@ import {
     type RideJourney
 } from '@tabletop/ride-the-rails'
 import { hexCenter, stationOf } from '$lib/utils/boardGeometry.js'
-import { turnOrderMarkerPoint } from '$lib/utils/marginLayout.js'
 import { passengerSpot } from '$lib/utils/passengerLayout.js'
+import { seatMoneyPoint } from './flightPlaces.js'
 import { moneyKey, passengerKey, type Flights, type Flyer } from './flights.svelte.js'
 import { coinFan, hexStep, journeyCoins, journeyHexes, passengerChanges } from './journeyPlan.js'
 import { JOURNEY, PoseTween, QUICK, motionMode, pose, tickAt } from './motion.js'
@@ -39,7 +39,8 @@ const COIN_RISE = 24
  * pulses its station ring once; at the end it fades. Then every dividend coin and the fare rise
  * from the end city and fly to the seats' markers together, and money ticks as they land.
  * Without an action (Undo, state-only history) or with reduced motion there is no travel: a
- * passenger taken away shrinks, one put back pops in, and money changes with the state.
+ * passenger taken away shrinks, one put back pops in, and money changes with the state. On a phone
+ * the coins land on the seats' money (`flightPlaces`).
  */
 export function journeyAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -123,7 +124,7 @@ async function ride(
     const lands = rises + JOURNEY.coinRise + JOURNEY.coinFly
     const turnOrder = from.turnManager.turnOrder
     coins.forEach((coin, index) => {
-        const marker = turnOrderMarkerPoint(turnOrder, coin.playerId)
+        const marker = seatMoneyPoint(turnOrder, coin.playerId)
         new PoseTween(flights, animationContext, coin.key, pose(end.x, end.y, 1, 0))
             .to({ opacity: 1, ...fan[index] }, JOURNEY.coinRise, rises, 'power1.out')
             .to(

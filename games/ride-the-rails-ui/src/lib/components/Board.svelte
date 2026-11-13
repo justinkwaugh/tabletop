@@ -58,6 +58,7 @@
     viewBox="0 0 {BOARD_WIDTH} {BOARD_HEIGHT}"
     role="group"
     aria-label="Map of the USA"
+    data-map-board
 >
     <GroundLayer />
     <CityLayer {viewScale} {litHexIds} />

@@ -1,10 +1,22 @@
 import { tick } from 'svelte'
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import type { HydratedRideTheRailsGameState } from '@tabletop/ride-the-rails'
-import { STRIP_VEIL_OPACITY, roundTicketPoint } from '$lib/utils/marginLayout.js'
-import { markerKey, veilKey, type Flights } from './flights.svelte.js'
+import {
+    PHONE_LATER_OPACITY,
+    STRIP_VEIL_OPACITY,
+    roundTicketPoint
+} from '$lib/utils/marginLayout.js'
+import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
+import {
+    PHONE_ROUND_KEY,
+    ROUND_KEY,
+    markerKey,
+    phoneEntryKey,
+    veilKey,
+    type Flights
+} from './flights.svelte.js'
 import { markerSlides, railroadsMadeAvailable, roundStep } from './journeyPlan.js'
-import { END_OF_ROUND, PoseTween, QUICK, motionMode, pose, tweenNumbers } from './motion.js'
+import { END_OF_ROUND, PoseTween, QUICK, motionMode, pose, tickAt, tweenNumbers } from './motion.js'
 
 type State = HydratedRideTheRailsGameState
 type Step = Parameters<GameStateChangeListener<State>>[0]
@@ -39,7 +51,8 @@ export const QUICK_END_OF_ROUND: EndOfRoundTiming = {
  * The markers and the veil are the board's own elements, tweened in place and given back their
  * attributes when the new state is shown. Without an action (Undo, state-only history), with
  * reduced motion, or when one step carries the last journey and the end of round together, every
- * part starts at 0 and lands within 200 ms.
+ * part starts at 0 and lands within 200 ms. Phones leave the margin out, so there the strip's
+ * round badge hops and turns to the next round, and the entry made available brightens.
  */
 export function endOfRoundAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -53,7 +66,8 @@ export function endOfRoundAnimator(flights: Flights): GameStateChangeListener<St
         flights.follow(animationContext)
         const timing = mode === 'cinematic' ? END_OF_ROUND : QUICK_END_OF_ROUND
 
-        if (step) {
+        const onPhone = isPhoneWidth()
+        if (step && !onPhone) {
             const ticket = roundTicketPoint(step.from)
             flights.show([{ key: ROUND_MARKER_KEY, kind: 'round', pose: pose(ticket.x, ticket.y) }])
             await tick()
@@ -95,7 +109,7 @@ export function endOfRoundAnimator(flights: Flights): GameStateChangeListener<St
         }
 
         // R-2.5.2: the round marker steps to the next ticket.
-        if (step) {
+        if (step && !onPhone) {
             const start = roundTicketPoint(step.from)
             const target = roundTicketPoint(step.to)
             const hop = timing.slideArc
@@ -114,8 +128,52 @@ export function endOfRoundAnimator(flights: Flights): GameStateChangeListener<St
             }
         }
 
-        // R-2.5.3: the veil over the newly available railroad's strip entry lifts.
+        // R-2.5.2 on a phone: the round badge hops and shows the next round at the top of its hop.
+        if (step && onPhone) {
+            const badge = { lift: 0, scale: 1 }
+            const write = () =>
+                flights.write(
+                    PHONE_ROUND_KEY,
+                    'style',
+                    `transform: translateY(${-badge.lift}px) scale(${badge.scale})`
+                )
+            const half = timing.step / 2
+            tweenNumbers(
+                animationContext,
+                badge,
+                { lift: timing.slideArc / 2, scale: 1.2 },
+                { duration: half, position: timing.stepsAt, ease: 'power1.out' },
+                write
+            )
+            tweenNumbers(
+                animationContext,
+                badge,
+                { lift: 0, scale: 1 },
+                { duration: half, position: timing.stepsAt + half, ease: 'power1.in' },
+                write
+            )
+            tickAt(animationContext, flights, ROUND_KEY, step.to, timing.stepsAt + half)
+        }
+
+        // R-2.5.3: the veil over the newly available railroad's strip entry lifts; on a phone,
+        // its entry brightens.
         for (const railroadId of brightened) {
+            if (onPhone) {
+                const entry = { opacity: PHONE_LATER_OPACITY }
+                tweenNumbers(
+                    animationContext,
+                    entry,
+                    { opacity: 1 },
+                    { duration: timing.brighten, position: timing.brightensAt, ease: 'power1.out' },
+                    () =>
+                        flights.write(
+                            phoneEntryKey(railroadId),
+                            'style',
+                            `opacity: ${entry.opacity}`
+                        )
+                )
+                continue
+            }
             const key = veilKey(railroadId)
             const veil = { opacity: STRIP_VEIL_OPACITY }
             tweenNumbers(

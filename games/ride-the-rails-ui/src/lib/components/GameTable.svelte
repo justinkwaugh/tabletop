@@ -17,6 +17,7 @@
     import Board from '$lib/components/Board.svelte'
     import BoardPopups from '$lib/components/board/BoardPopups.svelte'
     import HexDetailCard from '$lib/components/board/HexDetailCard.svelte'
+    import PhoneFlightLayer from '$lib/components/board/PhoneFlightLayer.svelte'
     import TableControls from '$lib/components/panel/TableControls.svelte'
     import FullScreenControls from '$lib/components/panel/FullScreenControls.svelte'
     import BoardFocusChooser from '$lib/components/BoardFocusChooser.svelte'
@@ -108,10 +109,11 @@
                         <BoardFocusChooser {wrapper} {viewport} selection={focus} />
                     {/snippet}
                     {#snippet toolbar()}
-                        <!-- Outside the content's CSS zoom, which would shrink and misplace the popups,
-                             and inside full screen's dialog. -->
+                        <!-- Outside the content's CSS zoom, which would shrink and misplace the popups
+                             and the phone's flyers, and inside full screen's dialog. -->
                         <BoardPopups />
                         <FullScreenControls />
+                        <PhoneFlightLayer />
                     {/snippet}
                 </ScalingWrapper>
             </div>

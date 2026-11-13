@@ -5,11 +5,8 @@ import {
     supplyOf,
     type HydratedRideTheRailsGameState
 } from '@tabletop/ride-the-rails'
-import {
-    STRIP_LOCOMOTIVE,
-    stripLocomotivePoint,
-    turnOrderMarkerPoint
-} from '$lib/utils/marginLayout.js'
+import { STRIP_LOCOMOTIVE } from '$lib/utils/marginLayout.js'
+import { railroadSourcePoint, seatMoneyPoint } from './flightPlaces.js'
 import { bonusCoins, moneyAfterEach, placementChanges, type PlacementChange } from './flightPlan.js'
 import { moneyKey, supplyKey, type Flights, type Flyer } from './flights.svelte.js'
 import { FLIGHT, PoseTween, QUICK, motionMode, pose, tickAt } from './motion.js'
@@ -27,7 +24,8 @@ export function locomotiveFlyerKey(pieceKey: string): string {
  * Chicago and $5 coins rise from the hex and fly to the seat's marker, and money ticks as each
  * lands. Without an action, new locomotives pop in and undone ones shrink away. A landed
  * locomotive stays in the flight layer until the new state is shown, so a replayed building turn
- * keeps each placement on the map as the next one flies.
+ * keeps each placement on the map as the next one flies. On a phone the locomotive lifts from the
+ * strip above the board and the coins land on the seat's money (`flightPlaces`).
  */
 export function placementAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -61,7 +59,7 @@ async function flyPlacement(
     paid: { playerId: string; bonuses: Parameters<typeof bonusCoins>[1] }
 ) {
     const key = locomotiveFlyerKey(piece.key)
-    const start = stripLocomotivePoint(from.mapId, piece.railroadId)
+    const start = railroadSourcePoint(from.mapId, piece.railroadId)
     const startScale = STRIP_LOCOMOTIVE.width / piece.slot.width
     const startPose = pose(start.x, start.y, startScale)
     const coins = bonusCoins(piece.hexId, paid.bonuses)
@@ -101,7 +99,7 @@ async function flyPlacement(
             .to({ y: slot.y }, FLIGHT.settle, FLIGHT.lands + FLIGHT.bounce, 'bounce.out')
     }
 
-    const marker = turnOrderMarkerPoint(from.turnManager.turnOrder, paid.playerId)
+    const marker = seatMoneyPoint(from.turnManager.turnOrder, paid.playerId)
     const money = moneyAfterEach(from.getPlayerState(paid.playerId).money, coins)
     coins.forEach((coin, index) => {
         const rises = FLIGHT.lands + index * FLIGHT.coinStagger

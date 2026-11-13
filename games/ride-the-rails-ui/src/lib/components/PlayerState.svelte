@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { ordinal } from '$lib/utils/marginTracks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
-    import { moneyKey } from '$lib/animators/flights.svelte.js'
+    import { moneyKey, seatCardKey } from '$lib/animators/flights.svelte.js'
     import type { SeatCard } from '$lib/utils/seatCards.js'
     import LocomotiveIcon from './board/LocomotiveIcon.svelte'
     import RailroadSpotlightControl from './RailroadSpotlightControl.svelte'
@@ -22,7 +22,12 @@
 </script>
 
 <!-- Contract, Seat card: a station departure board. -->
-<section class="seat" class:acting={card.acting} aria-label="{name}, {ordinal(card.position)}">
+<section
+    class="seat"
+    class:acting={card.acting}
+    aria-label="{name}, {ordinal(card.position)}"
+    data-flight-target={seatCardKey(card.playerId)}
+>
     <header class="rtr-display" style:background={headerFill} style:color={headerInk}>
         <span class="name">{name}</span>
         <span class="position">{ordinal(card.position)}</span>
@@ -42,7 +47,7 @@
                 <span class="none">No shares</span>
             {/each}
         </div>
-        <div class="money">
+        <div class="money" data-flight-target={moneyKey(card.playerId)}>
             <span class="rtr-display figure"
                 >${gameSession.flights.shown(moneyKey(card.playerId), card.money)}</span
             >

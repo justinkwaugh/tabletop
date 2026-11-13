@@ -82,7 +82,7 @@ The file is `src/lib/fonts/BigShouldersDisplay-Bold.woff2`, instanced at weight 
 
 **The coast** is the outer boundary of the hex set, computed once from the geometry and drawn as one path over the sea ground. No state borders, rivers or lakes are drawn: the map data has none and no rule uses them.
 
-**Margin.** On desktop the margin panels sit in the board's fixed margin, at the map's empty lower corners (UI contract, The table): the lower left (the Pacific, below row 12) the round track and the turn order track; the lower right (the Atlantic, below row 13) the railroad strip and the Transcontinental claim's medallion. The geometry spec checks that no margin box covers a hex.
+**Margin.** On desktop the margin panels sit in the board's fixed margin, at the map's empty lower corners (UI contract, The table): the lower left (the Pacific, below row 12) the round track and the turn order track; the lower right (the Atlantic, below row 13) the railroad strip and the Transcontinental claim's medallion. The geometry spec checks that no margin box covers a hex. Phones leave the margin out: the round badge and the railroad entries form a strip above the board, ended by the claimed medallion, a gold disc with its amount ringed in the claimant's colour (UI contract, Phone layout).
 
 **Layers**, back to front, as the contract's render ownership sets them: ground and coast; hexes (plain, mountain with its glyph); cities (station, name, capacity mark, start-colour pips, bonus banner, Transcontinental end); passengers; track and this turn's bars; the claimed Transcontinental line, then the last journey line over its halo; the scrim; the staged route; rings, pips and marks; the flight layer; hit targets. All in one SVG.
 
