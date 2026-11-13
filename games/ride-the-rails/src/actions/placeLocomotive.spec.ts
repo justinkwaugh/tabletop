@@ -305,6 +305,17 @@ describe('Yellow’s starts (R-4.2.3, R-4.2.3-H1, R-4.2.3-H2)', () => {
         const { after } = place(state, 'railroad.yellow', POCATELLO)
         expect(after.yellow).toEqual({ ...yellow, westStartCityId: 'city.usa.pocatello' })
     })
+
+    it('makes both starts in the same building turn, the western one first', () => {
+        const state = building({ track: WESTERN_TRACK })
+        const first = place(state, 'railroad.yellow', POCATELLO)
+        const { after } = place(hydrated(first.after), 'railroad.yellow', CHICAGO)
+        expect(after.yellow).toMatchObject({
+            startedInChicago: true,
+            westStartCityId: 'city.usa.pocatello'
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(12)
+    })
 })
 
 describe('the turn ends by itself when nothing more is legal (R-3.2.3, R-3.2.4)', () => {
