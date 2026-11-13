@@ -314,6 +314,20 @@ describe('Choosing what to bring in', () => {
         expect(session.chosenDot).toEqual(DOT)
     })
 
+    it('ignores taps on choices while a move plays', async () => {
+        const session = await sessionFor(prepared())
+        session.updatingVisibleState = true
+        session.chooseDot(DOT)
+        session.chooseFrom(pointAt('C2'))
+        session.chooseKind(PieceKind.Yinsh)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenKind).toBe(PieceKind.Tamsk)
+
+        session.updatingVisibleState = false
+        session.chooseDot(DOT)
+        expect(session.chosenDot).toEqual(DOT)
+    })
+
     it('lets go, without undoing any action', async () => {
         const session = await sessionFor(prepared())
         session.chooseDot(DOT)

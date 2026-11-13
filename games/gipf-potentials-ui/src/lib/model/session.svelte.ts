@@ -371,7 +371,14 @@ export class GipfPotentialsGameSession extends GameSession<
         return setGipfPotentialsSelection({}, 'dot', move.dot)
     }
 
+    // Once a move is played, its motion runs on the state it started from, whose choices still
+    // show as they fade; taps on them do nothing until the new state lands.
+    private get moving(): boolean {
+        return this.updatingVisibleState
+    }
+
     chooseKind(kind: PieceKind) {
+        if (this.moving) return
         if (!this.pushKinds.includes(kind)) return
         this.preferredKind = kind
     }
@@ -379,6 +386,7 @@ export class GipfPotentialsGameSession extends GameSession<
     // Choosing the chosen dot again brings in the next kind you could push instead; with only one
     // to choose from, or an extra move standing there, it lets go.
     chooseDot(dot: AxialCoordinates) {
+        if (this.moving) return
         if (!includesCoords(this.entryDots, dot)) return
         const same = this.chosenDot !== undefined && sameCoordinates(this.chosenDot, dot)
         if (same && this.nextPotential()) return
@@ -394,6 +402,7 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     chooseFrom(from: AxialCoordinates) {
+        if (this.moving) return
         if (!includesCoords(this.movable, from)) return
         const same = this.chosenFrom !== undefined && sameCoordinates(this.chosenFrom, from)
         this.select(setGipfPotentialsSelection({}, 'from', same ? undefined : from))
@@ -402,6 +411,7 @@ export class GipfPotentialsGameSession extends GameSession<
     // Tapping where there is nothing to choose lets go of a chosen piece or dot, or of a row of
     // GIPF-pieces you might have taken; rows you must take stay chosen.
     letGo() {
+        if (this.moving) return
         const optionalRow = !this.resolving && this.ownSelection.row !== undefined
         if (this.chosenFrom === undefined && this.chosenDot === undefined && !optionalRow) return
         this.select(setGipfPotentialsSelection(this.ownSelection, 'from', undefined))
@@ -409,6 +419,7 @@ export class GipfPotentialsGameSession extends GameSession<
 
     // A piece can belong to two crossing rows; choosing it again moves to the next one.
     chooseRowAt(coords: AxialCoordinates) {
+        if (this.moving) return
         const containing = this.rows.filter((row) => includesCoords(row.reach, coords))
         if (containing.length === 0) return
         const current = this.chosenRow ? containing.findIndex((row) => row === this.chosenRow) : -1
@@ -424,6 +435,7 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     toggleKeep(coords: AxialCoordinates) {
+        if (this.moving) return
         if (!includesCoords(this.rowKeepable, coords)) return
         const keys = this.keep.map(coordinatesToNumber)
         const key = coordinatesToNumber(coords)
@@ -457,6 +469,7 @@ export class GipfPotentialsGameSession extends GameSession<
     // A PÜNCT-potential landing on a GIPF-piece waits for how many pieces cover it, when there
     // are two to choose from.
     async movePotential(to: AxialCoordinates) {
+        if (this.moving) return
         const from = this.chosenFrom
         if (from === undefined || !includesCoords(this.moveTargets, to)) return
         const coversGipf = this.gameState.board.topAt(to)?.kind === PieceKind.Gipf
