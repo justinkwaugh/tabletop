@@ -17,6 +17,7 @@ import {
     StackCentres,
     VoyageSpaces,
     railOverRect,
+    standingsStripHeight,
     westGuild,
     type Point
 } from '$lib/utils/boardGeometry.js'
@@ -52,8 +53,16 @@ export const ChooserInset = 36
  * when its height binds, a phone's cover fit, it still holds the 40 px row.
  */
 export const ZoomRowBand = 128
-/** What the scaling wrapper fits: the board and the band under it. */
+/** What the scaling wrapper fits on a phone: the board and the band under it. */
 export const ScaledHeight = BoardHeight + ZoomRowBand
+
+/**
+ * What it fits on a desk: the board, the guild standings' strip and the band. The board's view is
+ * this shape at the column's width, so the zoom row stands right under the strip.
+ */
+export function deskScaledHeight(seats: number): number {
+    return BoardHeight + standingsStripHeight(seats) + ZoomRowBand
+}
 /** Contract, Pick framing: how far past its rest a pick may bring the board. */
 export const PickFrameZoom = 2.5
 /** Room in screen pixels round what is framed. */
