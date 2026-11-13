@@ -80,17 +80,19 @@ export class RideTheRailsGameSession extends GameSession<
 
     constructor(options: SessionOptions) {
         super(options)
+        // A selection already sent is no longer one Undo can step back while its action plays:
+        // Undo then takes back the action itself.
         this.localSelections.register(
             undoableStagedSelection(
                 BuildStageOrder,
-                () => this.buildStage,
+                () => (this.updatingVisibleState ? {} : this.buildStage),
                 (stage) => (this.buildStage = stage)
             )
         )
         this.localSelections.register(
             undoableStagedSelection(
                 JourneyStageOrder,
-                () => this.heldJourney,
+                () => (this.updatingVisibleState ? {} : this.heldJourney),
                 (stage) => (this.journeyStage = stage)
             )
         )

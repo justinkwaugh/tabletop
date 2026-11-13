@@ -1,5 +1,6 @@
 <script lang="ts">
     import { currentRoundNumber } from '@tabletop/ride-the-rails'
+    import { supplyKey } from '$lib/animators/flights.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { railroadStrip, romanRound, type RailroadStripEntry } from '$lib/utils/marginTracks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
@@ -8,7 +9,13 @@
 
     const gameSession = getGameSession()
 
-    const entries = $derived(railroadStrip(gameSession.gameState))
+    // Supply ticks ahead of the shown state as a flight lifts (Animation plan, Share).
+    const entries = $derived(
+        railroadStrip(gameSession.gameState).map((entry) => ({
+            ...entry,
+            supply: gameSession.flights.shown(supplyKey(entry.railroadId), entry.supply)
+        }))
+    )
     const round = $derived(currentRoundNumber(gameSession.gameState))
 
     function entryText(entry: RailroadStripEntry): string {

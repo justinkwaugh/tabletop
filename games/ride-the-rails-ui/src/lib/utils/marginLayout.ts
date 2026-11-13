@@ -7,6 +7,8 @@ import { MARGIN_BOXES } from './boardGeometry.js'
 
 export const STRIP_ROW = { top: 40, height: 63 }
 export const STRIP_COLUMN = { name: 66, supply: 300, track: 406, holders: 80, holderStep: 66 }
+/** How strongly the veil over a strip entry dims it until its railroad's round (R-1.4). */
+export const STRIP_VEIL_OPACITY = 0.55
 /** The locomotive drawn at the head of each strip entry. */
 export const STRIP_LOCOMOTIVE = { x: 36, width: 44 }
 
@@ -36,4 +38,22 @@ export function turnOrderMarkerPoint(turnOrder: readonly string[], playerId: str
     const box = MARGIN_BOXES.turnOrder
     const position = Math.max(turnOrder.indexOf(playerId), 0) + 1
     return { x: box.x + turnOrderMarkerX(position), y: box.y + TURN_ORDER_MARKER.y }
+}
+
+/** The round track's tickets, in the panel's units; the current one is punched. */
+export const ROUND_TICKET = { width: 68, height: 46, top: 38, punch: 6 }
+const ROUND_STEP = (MARGIN_BOXES.roundTrack.width - 32) / 6
+
+/** The left edge of a round's ticket, in the panel's units. */
+export function roundTicketLeft(round: number): number {
+    return 16 + (round - 1) * ROUND_STEP + (ROUND_STEP - ROUND_TICKET.width) / 2
+}
+
+/** The centre of a round's ticket, in board units. */
+export function roundTicketPoint(round: number): Point {
+    const box = MARGIN_BOXES.roundTrack
+    return {
+        x: box.x + roundTicketLeft(round) + ROUND_TICKET.width / 2,
+        y: box.y + ROUND_TICKET.top + ROUND_TICKET.height / 2
+    }
 }

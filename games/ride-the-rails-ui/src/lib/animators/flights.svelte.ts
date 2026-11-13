@@ -1,5 +1,5 @@
 import { gsap } from 'gsap'
-import type { HexId, RailroadId } from '@tabletop/ride-the-rails'
+import type { CityId, HexId, RailroadId } from '@tabletop/ride-the-rails'
 import type { AnimationContext } from '@tabletop/frontend-components'
 
 /** Where a travelling piece is drawn: its centre, its scale and its opacity. */
@@ -14,6 +14,9 @@ export type Flyer =
     | { key: string; kind: 'coin'; amount: number; gold: boolean; pose: Pose }
     | { key: string; kind: 'outline'; hexId: HexId; pose: Pose }
     | { key: string; kind: 'line'; hexIds: readonly HexId[]; pose: Pose }
+    | { key: string; kind: 'passenger'; pose: Pose }
+    | { key: string; kind: 'pulse'; radius: number; pose: Pose }
+    | { key: string; kind: 'round'; pose: Pose }
 
 export function moneyKey(playerId: string): string {
     return `money:${playerId}`
@@ -27,8 +30,26 @@ export function sharesKey(playerId: string, railroadId: RailroadId): string {
     return `shares:${playerId}:${railroadId}`
 }
 
+/** A city's waiting passenger, hidden on the passenger layer while a flyer draws it. */
+export function passengerKey(cityId: CityId): string {
+    return `passenger:${cityId}`
+}
+
+/** A seat's turn-order marker and money, slid in place at the end of a round. */
+export function markerKey(playerId: string): string {
+    return `marker:${playerId}`
+}
+
+/** The veil that dims a railroad's strip entry until its round. */
+export function veilKey(railroadId: RailroadId): string {
+    return `veil:${railroadId}`
+}
+
+/** What the animators write on: a flyer's outer wrapper or one of the board's own elements. */
+export type FlightTarget = Pick<SVGElement, 'getAttribute' | 'setAttribute' | 'removeAttribute'>
+
 /** Writes a pose as a plain `translate(...) scale(...)`, never through GSAP's SVG transforms. */
-export function writePose(element: SVGGraphicsElement | undefined, pose: Pose) {
+export function writePose(element: FlightTarget | undefined, pose: Pose) {
     if (!element) return
     element.setAttribute('transform', poseTransform(pose))
     element.setAttribute('opacity', String(pose.opacity))
@@ -54,8 +75,10 @@ export class Flights {
     /** Set by an interruption until the next Game State is shown: later steps move nothing. */
     interrupted = false
 
-    private readonly elements = new Map<string, SVGGraphicsElement>()
+    private readonly elements = new Map<string, FlightTarget>()
     private readonly contexts = new Set<AnimationContext>()
+    /** Attributes the animators wrote on the board's own elements (Pattern A), to put back. */
+    private readonly written = new Map<string, Map<string, string | null>>()
 
     show(flyers: readonly Flyer[]) {
         const keys = new Set(flyers.map((flyer) => flyer.key))
@@ -80,12 +103,29 @@ export class Flights {
         return this.values.get(key) ?? actual
     }
 
-    element(key: string): SVGGraphicsElement | undefined {
+    element(key: string): FlightTarget | undefined {
         return this.elements.get(key)
     }
 
+    /**
+     * Pattern A: writes an attribute on one of the board's own elements, remembering what it was.
+     * Each one goes back when the new Game State is shown, which draws the element where the
+     * motion left it, so the board never keeps a value the state did not give it.
+     */
+    write(key: string, attribute: string, value: string) {
+        const element = this.elements.get(key)
+        if (!element) return
+        let attributes = this.written.get(key)
+        if (!attributes) {
+            attributes = new Map()
+            this.written.set(key, attributes)
+        }
+        if (!attributes.has(attribute)) attributes.set(attribute, element.getAttribute(attribute))
+        element.setAttribute(attribute, value)
+    }
+
     /** A `use:` action that keeps a flyer's outer wrapper by its key. */
-    readonly register = (node: SVGGraphicsElement, key: string) => {
+    readonly register = (node: FlightTarget, key: string) => {
         let current = key
         this.elements.set(current, node)
         return {
@@ -144,6 +184,14 @@ export class Flights {
     }
 
     private clear() {
+        for (const [key, attributes] of this.written) {
+            const element = this.elements.get(key)
+            for (const [attribute, value] of attributes) {
+                if (value === null) element?.removeAttribute(attribute)
+                else element?.setAttribute(attribute, value)
+            }
+        }
+        this.written.clear()
         if (this.flyers.length > 0) this.flyers = []
         if (this.hiddenKeys.size > 0) this.hiddenKeys = new Set()
         if (this.values.size > 0) this.values = new Map()

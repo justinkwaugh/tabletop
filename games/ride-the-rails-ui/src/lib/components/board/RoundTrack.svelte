@@ -2,6 +2,7 @@
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { MARGIN_BOXES } from '$lib/utils/boardGeometry.js'
+    import { ROUND_TICKET as TICKET, roundTicketLeft } from '$lib/utils/marginLayout.js'
     import { romanRound, roundTrack } from '$lib/utils/marginTracks.js'
     import { railroadNames } from '$lib/utils/railroadStyle.js'
     import Locomotive from './Locomotive.svelte'
@@ -10,8 +11,6 @@
     const gameSession = getGameSession()
 
     const box = MARGIN_BOXES.roundTrack
-    const TICKET = { width: 68, height: 46, top: 38, punch: 6 }
-    const STEP = (box.width - 32) / 6
     const LOCOMOTIVE_WIDTH = 26
 
     const stops = $derived(roundTrack(gameSession.gameState))
@@ -27,7 +26,7 @@
 <!-- R-1.4, R-2.1: rounds I-VI, the current one a punched ticket, each with its new railroads. -->
 <MarginPanel {box} caption="Round · new railroad">
     {#each stops as stop (stop.round)}
-        {@const left = 16 + (stop.round - 1) * STEP + (STEP - TICKET.width) / 2}
+        {@const left = roundTicketLeft(stop.round)}
         {@const centre = left + TICKET.width / 2}
         <g
             role="img"

@@ -3,7 +3,7 @@
     import { MARGIN_BOXES, drawsSeatInitials } from '$lib/utils/boardGeometry.js'
     import { ordinal, turnOrderTrack } from '$lib/utils/marginTracks.js'
     import { TURN_ORDER_MARKER, turnOrderMarkerX } from '$lib/utils/marginLayout.js'
-    import { moneyKey } from '$lib/animators/flights.svelte.js'
+    import { markerKey, moneyKey } from '$lib/animators/flights.svelte.js'
     import MarginPanel from './MarginPanel.svelte'
     import SeatMarker from './SeatMarker.svelte'
 
@@ -11,12 +11,14 @@
         $props()
 
     const gameSession = getGameSession()
+    const flights = gameSession.flights
 
     const box = MARGIN_BOXES.turnOrder
     const MARKER_RADIUS = TURN_ORDER_MARKER.radius
     const MARKER_Y = TURN_ORDER_MARKER.y
 
-    // Money ticks ahead of the shown state as each coin lands (Animation plan).
+    // Money ticks ahead of the shown state as each coin lands, and at the end of a round each
+    // marker slides with its money to its new place (Animation plan).
     const stops = $derived(
         turnOrderTrack(gameSession.gameState).map((stop) => ({
             ...stop,
@@ -43,20 +45,22 @@
                 class="position"
                 fill="var(--rtr-ink-muted)">{stop.position}</text
             >
-            <SeatMarker
-                playerId={stop.playerId}
-                initials={showsInitials ? initials.get(stop.playerId) : undefined}
-                x={centre}
-                y={MARKER_Y}
-                radius={MARKER_RADIUS}
-            />
-            <text
-                x={centre}
-                y={MARKER_Y + MARKER_RADIUS + 26}
-                text-anchor="middle"
-                class="money"
-                fill="var(--rtr-ink)">${stop.money}</text
-            >
+            <g use:flights.register={markerKey(stop.playerId)}>
+                <SeatMarker
+                    playerId={stop.playerId}
+                    initials={showsInitials ? initials.get(stop.playerId) : undefined}
+                    x={centre}
+                    y={MARKER_Y}
+                    radius={MARKER_RADIUS}
+                />
+                <text
+                    x={centre}
+                    y={MARKER_Y + MARKER_RADIUS + 26}
+                    text-anchor="middle"
+                    class="money"
+                    fill="var(--rtr-ink)">${stop.money}</text
+                >
+            </g>
         </g>
     {/each}
 </MarginPanel>

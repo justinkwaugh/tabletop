@@ -1,5 +1,7 @@
 import { untrack } from 'svelte'
 import type { RideTheRailsGameSession } from '$lib/model/session.svelte.js'
+import { endOfRoundAnimator } from './endOfRoundAnimator.js'
+import { journeyAnimator } from './journeyAnimator.js'
 import { placementAnimator } from './placementAnimator.js'
 import { shareAnimator } from './shareAnimator.js'
 import { transcontinentalAnimator } from './transcontinentalAnimator.js'
@@ -9,7 +11,9 @@ export function registerFlightAnimators(session: RideTheRailsGameSession): () =>
     const listeners = [
         shareAnimator(session.flights),
         placementAnimator(session.flights),
-        transcontinentalAnimator(session.flights)
+        transcontinentalAnimator(session.flights),
+        journeyAnimator(session.flights),
+        endOfRoundAnimator(session.flights)
     ]
     for (const listener of listeners) session.addGameStateChangeListener(listener)
     return () => {

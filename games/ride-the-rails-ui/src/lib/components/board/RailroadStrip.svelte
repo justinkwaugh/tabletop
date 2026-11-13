@@ -7,10 +7,11 @@
     import {
         STRIP_COLUMN as COLUMN,
         STRIP_LOCOMOTIVE,
-        STRIP_ROW as ROW
+        STRIP_ROW as ROW,
+        STRIP_VEIL_OPACITY
     } from '$lib/utils/marginLayout.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
-    import { sharesKey, supplyKey } from '$lib/animators/flights.svelte.js'
+    import { sharesKey, supplyKey, veilKey } from '$lib/animators/flights.svelte.js'
     import Locomotive from './Locomotive.svelte'
     import MarginPanel from './MarginPanel.svelte'
     import SeatMarker from './SeatMarker.svelte'
@@ -19,6 +20,7 @@
         $props()
 
     const gameSession = getGameSession()
+    const flights = gameSession.flights
 
     const box = MARGIN_BOXES.railroadStrip
     const HOLDER_RADIUS = 12
@@ -142,15 +144,17 @@
                     class="later"
                     fill="var(--rtr-ink-muted)">from round {entry.availableFromRound}</text
                 >
-                <!-- A plain translucent veil over the one entry, never a group opacity. -->
+                <!-- A plain translucent veil over the one entry, never a group opacity; the end of
+                     round lifts it when the railroad becomes available (Animation plan). -->
                 <rect
+                    use:flights.register={veilKey(entry.railroadId)}
                     x="8"
                     y={top + 3}
                     width={box.width - 16}
                     height={ROW.height - 6}
                     rx="10"
                     fill="var(--rtr-panel)"
-                    fill-opacity="0.55"
+                    fill-opacity={STRIP_VEIL_OPACITY}
                 ></rect>
             {/if}
         </g>
