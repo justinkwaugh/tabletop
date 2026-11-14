@@ -1,5 +1,3 @@
-import { startingCashByPlayerCount } from '@tabletop/18xx'
-
 export const MinimumPlayers1822 = 3
 export const MaximumPlayers1822 = 7
 
@@ -14,7 +12,6 @@ export const StartingCash1822: Readonly<Record<number, number>> = {
     6: 350,
     7: 300
 }
-export const startingCash1822 = startingCashByPlayerCount(StartingCash1822)
 
 export const CertificateLimits1822: Readonly<Record<number, number>> = {
     3: 26,

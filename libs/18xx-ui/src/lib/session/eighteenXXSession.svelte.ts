@@ -832,6 +832,15 @@ export class EighteenXXSession<
             ? playerId
             : undefined
     }
+    /**
+     * The cash a player's bids hold back: their reserved bids in an opening auction, or their
+     * highest bids in the bid boxes.
+     */
+    reservedCash(playerId: string): number {
+        return this.bidBoxes.available
+            ? this.bidBoxes.reserved(playerId)
+            : this.waterfall.reserved(playerId)
+    }
     portfolio(owner: Owner, minorsAsPrivates = false) {
         const portfolio = ownerPortfolio(
             this.gameState,

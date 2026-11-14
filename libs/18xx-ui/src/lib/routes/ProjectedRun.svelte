@@ -26,6 +26,7 @@
             trainColors={session.presentation.trainColors}
             {onFocusRoute}
             label="Projected train income"
+            subsidyName={session.presentation.runSubsidyName}
             trainName={(id) => session.trainDepot.trainDefinition(id).name}
         />
         {#if !projection.solution.exhaustive}<small>Best routes found within the search time.</small

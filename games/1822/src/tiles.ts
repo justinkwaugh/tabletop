@@ -1,3 +1,4 @@
+import { assert, assertExists } from '@tabletop/common'
 import {
     StandardTileCatalog,
     TileCatalog,
@@ -9,6 +10,7 @@ import {
     type TileEdge,
     type TileFace
 } from '@tabletop/18xx'
+import { OverlayPieces1822 } from './overlays.js'
 import {
     EnglishChannelUpgradeCost1822,
     LondonUpgradeCost1822,
@@ -62,7 +64,8 @@ export const TileCatalog1822 = new TileCatalog([
     tile('X17', townFace('gray', [SixWay], 10)),
     tile('X18', cityFace('gray', FiveWay, 50, 3)),
     tile('X19', cityFace('gray', SixWay, 50, 3)),
-    tile('X23', londonFace('gray', 100))
+    tile('X23', londonFace('gray', 100)),
+    ...OverlayPieces1822.map((piece) => piece.tile)
 ])
 
 type Count = number | 'unlimited'
@@ -149,12 +152,23 @@ export const TileSet1822 = new TileSet(
                 id: number,
                 faceDefinitionIds: [`1822:${number}`],
                 count
+            })),
+            ...OverlayPieces1822.map(({ tile, count }) => ({
+                id: tile.printedNumber,
+                faceDefinitionIds: [tile.id],
+                count
             }))
         ]
     },
     [StandardTileCatalog, TileCatalog1822]
 )
 export const Tiles1822 = TileSet1822.definitions
+
+export function tileDefinition1822(definitionId: string): TileDefinition {
+    const definition = Tiles1822.find((tile) => tile.id === definitionId)
+    assertExists(definition, `Tile ${definitionId} is in the 1822 set`)
+    return definition
+}
 
 /** The London upgrades in order, each replacing the one before (§5.10.1). */
 export const LondonTileIds1822: readonly string[] = ['X20', 'X21', 'X22', 'X23'].map(
@@ -164,3 +178,14 @@ export const LondonTileIds1822: readonly string[] = ['X20', 'X21', 'X22', 'X23']
 export const EnglishChannelTileIds1822: readonly string[] = ['X4', 'X9', 'X15'].map(
     (number) => `1822:${number}`
 )
+
+/** The pieces a game plays without: the last so many of each tile named. */
+export function retiredPieceIds1822(removed: Readonly<Record<string, number>>): string[] {
+    return Object.entries(removed).flatMap(([definitionId, count]) => {
+        const pieces = TileSet1822.pieces.filter((piece) =>
+            piece.faceDefinitionIds.includes(definitionId)
+        )
+        assert(pieces.length >= count, `The set has ${count} of tile ${definitionId} to remove`)
+        return pieces.slice(pieces.length - count).map((piece) => piece.id)
+    })
+}

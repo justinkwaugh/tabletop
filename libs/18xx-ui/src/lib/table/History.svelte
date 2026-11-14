@@ -93,7 +93,8 @@
             (id) => session.names.routeBonus(id),
             session.placeName,
             (id) => session.poolName(id),
-            { charters: session.charters, multiShare: session.presentation.multiShareCertificate }
+            { charters: session.charters, multiShare: session.presentation.multiShareCertificate },
+            session.presentation.runSubsidyName
         )
     }
     function describe(action: GameAction) {

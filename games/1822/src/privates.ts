@@ -4,7 +4,8 @@ import { placeReference as place } from '@tabletop/18xx'
 export type PrivateColor1822 = 'blue' | 'red' | 'green'
 
 /** The 1822+ stack a private is dealt from: trains, track, or the rest (§2.1.7). */
-export type PrivateStack1822 = 'trains' | 'track' | 'other'
+export const PrivateStacks1822 = ['trains', 'track', 'other'] as const
+export type PrivateStack1822 = (typeof PrivateStacks1822)[number]
 
 export type Private1822 = {
     id: string

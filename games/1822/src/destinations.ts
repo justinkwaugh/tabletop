@@ -3,15 +3,17 @@ import {
     actsFor,
     connectedWithin,
     getCompany,
+    homeStationId,
     nextOperatingCompany,
-    systemAction
+    systemAction,
+    type RevenueCenter
 } from '@tabletop/18xx'
 import { ActionSource, assert, assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import { LnwrId, destinationStationId, major1822 } from './companies.js'
 import { RouteRules1822 } from './routes.js'
 import type { HydratedState1822 } from './state.js'
-import { tokenSpace1822 } from './tokens.js'
+import { stationsAt1822, tokenSpace1822 } from './tokens.js'
 
 /**
  * The major company that has just joined its home to its destination: it places its destination
@@ -32,6 +34,38 @@ export function destinationDue1822(state: HydratedState1822): { companyId: strin
         : undefined
 }
 
+/**
+ * Places a major company's destination token in its destination city, free (§5.11.1, §5.11.8).
+ * Where the company already has a station there, as one placed in an acquired minor company's
+ * home, that station becomes its destination station instead, as the LNWR's Manchester station
+ * does (§5.11.3): a placed station is never moved (§5.12.8), a company has one station in a city
+ * (§5.12.6), and the destination token stays off the map.
+ */
+export function placeDestinationToken1822(
+    state: HydratedState1822,
+    companyId: string,
+    destination: RevenueCenter
+): { locationId: string; nodeId: string; slot: number; stationId?: string } {
+    const destinationId = destinationStationId(companyId)
+    const existing = stationsAt1822(state, destination).find(
+        (station) => station.companyId === companyId && station.id !== homeStationId(companyId)
+    )
+    if (existing) {
+        state.stations = state.stations.map((station) =>
+            station.id === existing.id ? { ...existing, id: destinationId } : station
+        )
+        return { ...destination, slot: existing.position.slot, stationId: existing.id }
+    }
+    const slot = tokenSpace1822(state, companyId, destination)
+    state.stations.push({
+        id: destinationId,
+        companyId,
+        status: 'placed',
+        position: { ...destination, slot }
+    })
+    return { ...destination, slot }
+}
+
 const ReachDestinationAction = systemAction('ReachDestination', {
     companyId: Type.String({ minLength: 1 }),
     metadata: Type.Optional(
@@ -40,7 +74,12 @@ const ReachDestinationAction = systemAction('ReachDestination', {
                 locationId: Type.String(),
                 nodeId: Type.String(),
                 /** Absent for the LNWR, whose token already stands in Manchester (§5.11.3). */
-                slot: Type.Optional(Type.Integer({ minimum: 0 }))
+                slot: Type.Optional(Type.Integer({ minimum: 0 })),
+                /**
+                 * The company's station already in the city, which became its destination station
+                 * in place of the token (§5.12.6, §5.12.8).
+                 */
+                stationId: Type.Optional(Type.String())
             },
             { additionalProperties: false }
         )
@@ -68,14 +107,7 @@ export class HydratedReachDestination extends ReachDestinationAction.Base {
             this.metadata = { ...major.destination }
             return
         }
-        const slot = tokenSpace1822(state, this.companyId, major.destination)
-        state.stations.push({
-            id: destinationStationId(this.companyId),
-            companyId: this.companyId,
-            status: 'placed',
-            position: { ...major.destination, slot }
-        })
-        this.metadata = { ...major.destination, slot }
+        this.metadata = placeDestinationToken1822(state, this.companyId, major.destination)
     }
 }
 

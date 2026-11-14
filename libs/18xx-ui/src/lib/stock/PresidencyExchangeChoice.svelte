@@ -1,11 +1,11 @@
 <script lang="ts">
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import { capitalized } from '../presentation/words.js'
     import { exchangeChoiceWords } from './presidencyExchangeWords.js'
     let { session }: { session: EighteenXXSessionView } = $props()
     const pending = $derived(session.stock.presidencyExchange)
     const choices = $derived(session.stock.presidencyExchangeChoices)
     const multiShare = $derived(session.presentation.multiShareCertificate)
-    const capitalized = (words: string) => words.charAt(0).toUpperCase() + words.slice(1)
 </script>
 
 {#if pending}

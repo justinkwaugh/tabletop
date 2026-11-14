@@ -6,21 +6,32 @@ import {
     settleCashPayments,
     startCompanyAtPar,
     type BidBoxAward,
+    type BidBoxes,
     type BidBoxSettlement,
     type BidBoxState
 } from '@tabletop/18xx'
-import { assertExists } from '@tabletop/common'
+import { assertExists, shuffle, type Prng } from '@tabletop/common'
 import * as Type from 'typebox'
 import {
     ConcessionIds1822,
     FirstConcessionId,
-    FirstMinorId,
+    MetropolitanId,
     MinorIds1822,
+    concessionId,
     minor1822,
     minorDirectorCertificateId
 } from './companies.js'
 import { chargeLoanInterest1822 } from './loans.js'
-import { FirstPrivateId, Privates1822 } from './privates.js'
+import type { Variants1822 } from './definition/gameConfig.js'
+import {
+    EnglishChannelPrivateId,
+    FirstPrivateId,
+    PrivateStacks1822,
+    Privates1822,
+    type Private1822,
+    type PrivateStack1822
+} from './privates.js'
+import { setupOf1822, type Setup1822 } from './scenarios.js'
 import { BiddingBoxes1822, FaceValues1822 } from './setup.js'
 import { requireState1822 } from './state.js'
 import { Market1822, MinorOnlyParSpaceId1822, minorParSpaceId1822 } from './stockMarket.js'
@@ -55,36 +66,198 @@ export function charterCertificateId(companyId: string): string {
     return `${companyId}:charter`
 }
 
-/** The lots of the base game, each stack's fixed first certificate named (§2.1.4–§2.1.6). */
-export const LotStacks1822: Readonly<Record<LotKind1822, { first: string; lotIds: string[] }>> = {
-    minor: {
-        first: FirstMinorId,
-        lotIds: MinorIds1822.filter((id) => !minor1822(id)?.expansion)
-    },
-    concession: { first: FirstConcessionId, lotIds: [...ConcessionIds1822] },
-    private: {
-        first: FirstPrivateId,
-        lotIds: Privates1822.filter((entry) => !entry.expansion).map((entry) => entry.id)
+/** The 1822+ private bidding box each kind of private company is sold from (§2.1.7). */
+const PrivateStackBoxes: Readonly<Record<PrivateStack1822, number>> = {
+    trains: 1,
+    track: 2,
+    other: 3
+}
+
+/** The stack that fills one private bidding box alone, named for its box (§2.1.7). */
+export function privateBoxStackId1822(stack: PrivateStack1822): string {
+    return bidBoxId1822('private', PrivateStackBoxes[stack])
+}
+
+/** What 1822+ takes out at random: one track private, never P5, and two of the rest (§2.1.7). */
+const PlusRemovals: readonly { stack: PrivateStack1822; count: number; kept: readonly string[] }[] =
+    [
+        { stack: 'track', count: 1, kept: [EnglishChannelPrivateId] },
+        { stack: 'other', count: 2, kept: [] }
+    ]
+
+/** Shuffles a stack, its fixed certificate on top where it has one (§2.1.4–§2.1.6). */
+function dealStack(prng: Prng, lotIds: readonly string[], first?: string): string[] {
+    const rest = lotIds.filter((id) => id !== first)
+    shuffle(rest, prng.random)
+    return first && lotIds.includes(first) ? [first, ...rest] : rest
+}
+
+/** The minor companies in play: thirty with 1822+, the first twenty-four without (§3.3.1). */
+export function minorIdsInPlay1822(variants: Variants1822): string[] {
+    return MinorIds1822.filter((id) => variants.plus || !minor1822(id)?.expansion)
+}
+
+/** The private companies of the set played with: twenty-one with 1822+, eighteen without (§3.1.1). */
+export function privateSet1822(variants: Variants1822): Private1822[] {
+    return Privates1822.filter((entry) => variants.plus || !entry.expansion)
+}
+
+/** So many of the candidates, chosen at random. */
+function drawnAtRandom(prng: Prng, candidates: readonly string[], count: number): string[] {
+    return dealStack(prng, candidates).slice(0, count)
+}
+
+/**
+ * The companies of the original game a setup plays without (§6.2.1; scenario pack, General
+ * sheet): the regional scenarios name theirs; the full-map scenarios remove theirs at random,
+ * keeping P1 and the Metropolitan Railway and taking at most one major company from each of the
+ * groups the scenario names.
+ */
+function removals(
+    prng: Prng,
+    setup: Setup1822
+): { privateIds: string[]; minorIds: string[]; majorIds: string[] } {
+    const privates = privateSet1822({}).map((entry) => entry.id)
+    const { majors } = setup
+    const groupOf = (majorId: string) =>
+        'groups' in majors ? majors.groups.findIndex((group) => group.includes(majorId)) : -1
+    const majorIds =
+        'groups' in majors
+            ? dealStack(prng, majors.groups.flat())
+                  .filter(
+                      (id, index, order) =>
+                          !order.slice(0, index).some((earlier) => groupOf(earlier) === groupOf(id))
+                  )
+                  .slice(0, majors.count)
+            : [...majors.removedIds]
+    return {
+        privateIds:
+            'through' in setup.privates
+                ? privates.slice(setup.privates.through)
+                : drawnAtRandom(
+                      prng,
+                      privates.filter((id) => id !== FirstPrivateId),
+                      setup.privates.removed
+                  ),
+        minorIds:
+            'removedIds' in setup.minors
+                ? [...setup.minors.removedIds]
+                : drawnAtRandom(
+                      prng,
+                      minorIdsInPlay1822({}).filter((id) => id !== MetropolitanId),
+                      setup.minors.removed
+                  ),
+        majorIds
     }
 }
 
 /**
- * Moves the certificates of each kind down to its lowest-numbered boxes and fills the empty ones
- * from the top of its stack (§4.1.1, §4.5.2).
+ * The stacks the bidding boxes fill from, each shuffled under its fixed first certificate
+ * (§2.1.4–§2.1.6). 1822+ first removes three private companies at random and gives each private
+ * box its own stack, unless the players chose otherwise (§2.1.7, §6.1.3). A scenario first
+ * removes its companies, and may name another minor company for the first box (§6.2.1).
+ */
+export function dealLots1822(
+    prng: Prng,
+    variants: Variants1822
+): {
+    stacks: { id: string; lotIds: string[] }[]
+    removedPrivateIds: string[]
+    removedCompanyIds: string[]
+} {
+    const setup = setupOf1822({ variants })
+    // The standard game removes nothing, and so draws nothing here.
+    const removed = removals(prng, setup)
+    const minors = dealStack(
+        prng,
+        minorIdsInPlay1822(variants).filter((id) => !removed.minorIds.includes(id)),
+        setup.firstMinorId
+    )
+    const concessions = dealStack(
+        prng,
+        ConcessionIds1822.filter(
+            (id) => !removed.majorIds.some((majorId) => concessionId(majorId) === id)
+        ),
+        FirstConcessionId
+    )
+    const privates = privateSet1822(variants)
+    const removedPrivateIds =
+        variants.plus && !variants.allPrivates
+            ? PlusRemovals.flatMap(({ stack, count, kept }) =>
+                  drawnAtRandom(
+                      prng,
+                      privates
+                          .filter((entry) => entry.stack === stack && !kept.includes(entry.id))
+                          .map((entry) => entry.id),
+                      count
+                  )
+              )
+            : removed.privateIds
+    const dealt = privates.filter((entry) => !removedPrivateIds.includes(entry.id))
+    const ids = (entries: readonly Private1822[]) => entries.map((entry) => entry.id)
+    const privateStacks =
+        variants.plus && !variants.mixedPrivates
+            ? PrivateStacks1822.map((stack) => ({
+                  id: privateBoxStackId1822(stack),
+                  lotIds: dealStack(
+                      prng,
+                      ids(dealt.filter((entry) => entry.stack === stack)),
+                      FirstPrivateId
+                  )
+              }))
+            : [{ id: 'private', lotIds: dealStack(prng, ids(dealt), FirstPrivateId) }]
+    return {
+        stacks: [
+            { id: 'minor', lotIds: minors },
+            { id: 'concession', lotIds: concessions },
+            ...privateStacks
+        ],
+        removedPrivateIds,
+        removedCompanyIds: [...removed.majorIds, ...removed.minorIds]
+    }
+}
+
+type Stacks = Pick<BidBoxes, 'stacks'>
+
+/** The one stack every box of a kind fills from, where the kind has one (§4.5.2). */
+export function sharedStack1822(
+    bidBoxes: Stacks,
+    kind: LotKind1822
+): Stacks['stacks'][number] | undefined {
+    return bidBoxes.stacks.find((stack) => stack.id === kind)
+}
+
+/** The stack that fills one box alone, where its kind has no shared stack (§2.1.7). */
+export function boxStack1822(bidBoxes: Stacks, boxId: string): Stacks['stacks'][number] {
+    const stack = bidBoxes.stacks.find((entry) => entry.id === boxId)
+    assertExists(stack, `Box ${boxId} has its stack`)
+    return stack
+}
+
+/**
+ * Fills the empty bidding boxes from the top of their stacks. Certificates of a kind sold from
+ * one stack first move down to its lowest-numbered boxes (§4.1.1, §4.5.2); a box with its own
+ * stack keeps its place and fills from that stack alone (§2.1.7).
  */
 export function refillBidBoxes1822(state: BidBoxState): void {
     const bidBoxes = bidBoxesOf(state)
     bidBoxes.boxes = LotKinds1822.flatMap((kind) => {
-        const present = bidBoxes.boxes
-            .filter((box) => boxKind(box.boxId) === kind)
-            .map((box) => box.lotId)
-        const stack = bidBoxes.stacks.find((entry) => entry.id === kind)
-        assertExists(stack, 'Each kind of lot has its stack')
-        const drawn = stack.lotIds.splice(0, Math.max(0, BiddingBoxes1822[kind] - present.length))
-        return [...present, ...drawn].map((lotId, index) => ({
-            boxId: bidBoxId1822(kind, index + 1),
-            lotId
-        }))
+        const present = bidBoxes.boxes.filter((box) => boxKind(box.boxId) === kind)
+        const boxIds = BidBoxIds1822.filter((boxId) => boxKind(boxId) === kind)
+        const shared = sharedStack1822(bidBoxes, kind)
+        if (shared) {
+            const drawn = shared.lotIds.splice(0, Math.max(0, boxIds.length - present.length))
+            return [...present.map((box) => box.lotId), ...drawn].map((lotId, index) => ({
+                boxId: boxIds[index],
+                lotId
+            }))
+        }
+        return boxIds.flatMap((boxId) => {
+            const box = present.find((entry) => entry.boxId === boxId)
+            if (box) return [box]
+            const lotId = boxStack1822(bidBoxes, boxId).lotIds.shift()
+            return lotId ? [{ boxId, lotId }] : []
+        })
     })
 }
 

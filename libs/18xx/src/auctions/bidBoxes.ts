@@ -18,6 +18,7 @@ import {
     type StockRoundRules
 } from '../stock/stockRoundRules.js'
 import type { StockState } from '../stock/stockState.js'
+import { isFinishStockTurn } from '../stock/finishStockTurn.js'
 
 const Id = Type.String({ minLength: 1 })
 
@@ -41,6 +42,8 @@ export const BidBoxes = Type.Object(
         boxes: Type.Array(Type.Object({ boxId: Id, lotId: Id }, { additionalProperties: false })),
         /** Each player's bid on a lot, where their bidding token stands. */
         bids: Type.Array(BidBoxBid),
+        /** The bids placed or raised so far in the stock turn under way. */
+        turnBids: Type.Optional(Type.Integer({ minimum: 1 })),
         /** The stock round whose bids have been settled, until the next round begins. */
         settledRound: Type.Optional(Type.Integer({ minimum: 1 }))
     },
@@ -163,7 +166,10 @@ export function withBids(
 
 export type BidEvaluation = { bids: PlacedBid[]; reason?: never } | { reason: string; bids?: never }
 
-/** Judges a turn's bids in the order given, each on the bids the earlier ones leave. */
+/**
+ * Judges bids in the order given, each on the bids the earlier ones leave, after those the turn
+ * has already placed.
+ */
 export function evaluateBids(
     state: BidBoxState,
     rules: BidBoxRules,
@@ -171,7 +177,7 @@ export function evaluateBids(
     requests: readonly BidRequest[]
 ): BidEvaluation {
     if (!requests.length) return { reason: 'Choose a lot to bid on.' }
-    if (requests.length > rules.bidsPerTurn)
+    if (requests.length + (bidBoxesOf(state).turnBids ?? 0) > rules.bidsPerTurn)
         return { reason: `Only ${rules.bidsPerTurn} bids may be made in a turn.` }
     if (new Set(requests.map((request) => request.lotId)).size !== requests.length)
         return { reason: 'Bid once on a lot in a turn.' }
@@ -232,7 +238,10 @@ export const PlaceBids = PlaceBidsAction.schema
 export type PlaceBids = Type.Static<typeof PlaceBids>
 export const isPlaceBids = PlaceBidsAction.is
 
-/** A stock turn's bids, in place of a purchase: new bids, or raises of bids since topped. */
+/**
+ * Bids in a stock turn, in place of a purchase: new bids, or raises of bids since topped. A turn
+ * may go on to place more, one Action each, up to the title's bids in a turn.
+ */
 export class HydratedPlaceBids extends PlaceBidsAction.Base {
     declare playerId: string
     declare bids: PlaceBids['bids']
@@ -245,7 +254,8 @@ export class HydratedPlaceBids extends PlaceBidsAction.Base {
     reason(state: BidBoxState): string | undefined {
         if (this.source !== ActionSource.User) return 'Bids are a player’s own.'
         if (!state.activePlayerIds.includes(this.playerId)) return 'It is not this player’s turn.'
-        if (state.stockRound.turn.bought) return 'This turn’s purchase has been made.'
+        if (state.stockRound.turn.bought && !bidBoxesOf(state).turnBids)
+            return 'This turn’s purchase has been made.'
         return evaluateBids(state, this.#rules, this.playerId, this.bids).reason
     }
     apply(state: HydratedEighteenXXState & BidBoxState): void {
@@ -256,6 +266,7 @@ export class HydratedPlaceBids extends PlaceBidsAction.Base {
         bidBoxesOf(state).bids = withBids(bidBoxesOf(state).bids, this.playerId, evaluation.bids)
         recordStockAction(state, this.playerId, this.#rules.round)
         state.stockRound.turn.bought = true
+        bidBoxesOf(state).turnBids = (bidBoxesOf(state).turnBids ?? 0) + evaluation.bids.length
         this.metadata = { bids: evaluation.bids }
     }
 }
@@ -396,7 +407,7 @@ export class BidBoxStockRoundHandler<
         return state.activePlayerIds.includes(playerId) &&
             !state.stockRound.completed &&
             !allPlayersPassed(state) &&
-            !state.stockRound.turn.bought &&
+            (!state.stockRound.turn.bought || !!bidBoxesOf(state).turnBids) &&
             canBid(state, this.rules, playerId)
             ? [...actions, PlaceBidsAction.type]
             : actions
@@ -409,6 +420,9 @@ export class BidBoxStockRoundHandler<
         if (action instanceof HydratedSettleBidBoxes)
             return context.gameState.phaseChange ? 'AdvancingPhase' : context.gameState.machineState
         if (action instanceof HydratedPlaceBids) return context.gameState.machineState
+        // The boxes keep the turn's bid count, since the stock turn record is every title's, and
+        // drop it as the turn ends, as share redemption drops its refusals.
+        if (isFinishStockTurn(action)) delete bidBoxesOf(context.gameState).turnBids
         return this.handler.onAction(action, context)
     }
 }

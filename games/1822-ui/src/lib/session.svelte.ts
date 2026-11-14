@@ -11,7 +11,6 @@ import {
     MetropolitanId,
     MoveStackCard,
     PlaceMetropolitanHome,
-    RoundelSlot1822,
     RepayPlayerLoan,
     SwapStationToken,
     TitleRules1822,
@@ -21,7 +20,9 @@ import {
     acquisitionChoices1822,
     cashDeclarationDue1822,
     firstTrainOffer1822,
+    marketChart1822,
     metropolitanHomeDue1822,
+    metropolitanHomeSlot1822,
     minorAcquisitions1822,
     movableStackCards1822,
     offeredPayment1822,
@@ -42,6 +43,7 @@ import {
 import {
     finiteCashOwnedBy,
     homeStationId,
+    placeReference,
     nextOperatingCompany,
     trainsCountingForLimit,
     type Train
@@ -52,9 +54,11 @@ import {
     createEighteenXXSessionClass,
     singleChoice,
     type AwaitedDecision,
+    type HistoricalMapState,
     type MapLocationChoice,
     type TitleOperatingMode
 } from '@tabletop/18xx-ui'
+import { destinationMarkers1822 } from './destinationMarkers.js'
 import { MapView1822 } from './mapView.js'
 import { Presentation1822 } from './presentation.js'
 import { createRouteWorker } from './routeWorker.js'
@@ -195,6 +199,10 @@ export class Session1822 extends BaseSession {
         )
         this.metropolitanChoice.clear()
     }
+    // A scenario's market marks its own game end spaces (§6.2.1).
+    override get stockMarketChart() {
+        return marketChart1822(this.gameState.variants.scenario)
+    }
     // The Metropolitan Railway's home is chosen on the map: a tap on one of London's six stations.
     override get mapLocationChoice(): MapLocationChoice | undefined {
         if (!this.metropolitanHomeDue || !this.canPlaceMetropolitanHome)
@@ -206,6 +214,9 @@ export class Session1822 extends BaseSession {
                 if (station) this.metropolitanChoice.choose('choice', station)
             }
         }
+    }
+    protected override projectMapState(state: HydratedState1822): HistoricalMapState {
+        return { ...state, locationMarkers: destinationMarkers1822(state) }
     }
     protected override get mapDisplayState() {
         const state = super.mapDisplayState
@@ -223,7 +234,7 @@ export class Session1822 extends BaseSession {
                           position: {
                               locationId: LondonLocationId,
                               nodeId,
-                              slot: RoundelSlot1822
+                              slot: metropolitanHomeSlot1822(this.gameState, nodeId)
                           }
                       }
                     : station
@@ -479,7 +490,7 @@ export class Session1822 extends BaseSession {
             return {
                 title: 'Metropolitan Railway',
                 companyId: MetropolitanId,
-                text: 'The Metropolitan Railway chooses its London station'
+                text: `The Metropolitan Railway chooses its ${placeReference(LondonLocationId)} station`
             }
         return undefined
     }

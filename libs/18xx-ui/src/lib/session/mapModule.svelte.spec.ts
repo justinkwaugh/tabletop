@@ -40,7 +40,8 @@ function table(
     valid: string[],
     availability = {},
     homeOffers: readonly HomeOffer[] = [noAuctionHomes],
-    stateOverrides = {}
+    stateOverrides = {},
+    mapView = view
 ) {
     const base = minimalPlayState()
     const state = {
@@ -67,7 +68,7 @@ function table(
     const { session } = testSession(state, rules, valid, availability)
     const track = new TrackModule(
         session,
-        () => view,
+        () => mapView,
         { selection: undefined, trackPowerSelection: undefined, titlePower: undefined },
         { selectPrivateTile: () => {}, confirm: async () => {} },
         () => {
@@ -82,7 +83,14 @@ function table(
         () => false
     )
     const routes = new RoutesModule(session, () => map.networkRoutes)
-    const map: MapModule = new MapModule(session, () => view, track, stations, routes, homeOffers)
+    const map: MapModule = new MapModule(
+        session,
+        () => mapView,
+        track,
+        stations,
+        routes,
+        homeOffers
+    )
     return { map, track }
 }
 
@@ -93,6 +101,27 @@ describe('MapModule', () => {
         expect(map.tokens).toMatchObject([
             { locationId: TestTrackHomeLocationId, label: TestCompanyId }
         ])
+    })
+
+    it('lists the supply’s tiles in the manifest, each with its count, and none of the board’s', () => {
+        const { map } = table('StockRound', [])
+        expect(map.manifestTiles).toEqual(tileSet.definitions)
+        const counted = map.tileCounts.map((count) => count.definitionId)
+        expect(map.manifestTiles.filter((tile) => !counted.includes(tile.id))).toEqual([])
+        const [boardTile] = tileSet.definitions
+        const onBoard = table(
+            'StockRound',
+            [],
+            {},
+            [noAuctionHomes],
+            {},
+            {
+                ...view,
+                boardTiles: { [boardTile.id]: {} }
+            }
+        )
+        expect(onBoard.map.manifestTiles.map((tile) => tile.id)).not.toContain(boardTile.id)
+        expect(onBoard.map.tileCounts.map((count) => count.definitionId)).toEqual(counted)
     })
 
     it('inspects a clicked location when no action claims the click', () => {

@@ -171,6 +171,11 @@ export class MapModule {
         stationMapTokens(this.displayState(), this.view().stations, this.view().sharedStations)
     )
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
+    /** The tiles of the supply, which the manifest lists; the board's own tiles are not among them. */
+    manifestTiles = $derived.by(() => {
+        const { tileSet, boardTiles = {} } = this.view()
+        return tileSet.definitions.filter((tile) => !(tile.id in boardTiles))
+    })
     private landedLay = $derived.by(() =>
         this.track.tileInFlight ? undefined : this.track.displayedPreview
     )

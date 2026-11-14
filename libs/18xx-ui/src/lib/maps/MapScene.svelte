@@ -20,11 +20,12 @@
         DefaultLabelFont,
         type TileAppearance
     } from '../tiles/tileAppearance.js'
-    import { labelFontSize } from '../tiles/tileDrawing.js'
+    import { labelFontSize, TileRadius } from '../tiles/tileDrawing.js'
     import {
         stationSlotPoint,
         borderDash,
         assertMapOverlays,
+        laidNeighbors,
         mapViewport,
         type BoardArtwork,
         printedMapReservations,
@@ -732,6 +733,43 @@
             </g>
         {/if}
     {/each}
+    <!-- Shapes a hex prints past its sides lie on the board beside it, under any tile laid there. -->
+    <g data-map-layer="overhangs" fill={appearance.ink} pointer-events="none" aria-hidden="true">
+        {#each entries.filter((entry) => !entry.hidden && entry.drawing.overhangs.length) as entry (entry.location.id)}
+            {@const maskId = `${sceneId}-overhangs-${entry.location.id}`}
+            {@const reach = 3 * TileRadius}
+            <mask
+                id={maskId}
+                maskUnits="userSpaceOnUse"
+                x={entry.center.x - reach}
+                y={entry.center.y - reach}
+                width={2 * reach}
+                height={2 * reach}
+            >
+                <rect
+                    x={entry.center.x - reach}
+                    y={entry.center.y - reach}
+                    width={2 * reach}
+                    height={2 * reach}
+                    fill="white"
+                ></rect>
+                {#each laidNeighbors(scene, entry) as other (other.location.id)}
+                    <polygon
+                        transform={`translate(${other.center.x} ${other.center.y})`}
+                        points={other.drawing.polygon}
+                        fill="black"
+                    ></polygon>
+                {/each}
+            </mask>
+            <g mask={`url(#${maskId})`}>
+                <g transform={`translate(${entry.center.x} ${entry.center.y})`}>
+                    {#each entry.drawing.overhangs as points, index (index)}
+                        <polygon {points} data-map-overhang={entry.location.id}></polygon>
+                    {/each}
+                </g>
+            </g>
+        {/each}
+    </g>
     <g data-map-layer="printed-lines" fill="none" pointer-events="none" aria-hidden="true">
         {#each entries
             .filter((entry) => !entry.placed && !entry.hidden)

@@ -1,30 +1,39 @@
 import {
     beginOpening,
     createCompanyStations,
+    startingCashByPlayerCount,
     treasuryPoolId,
     type InitialPosition,
     type Opening,
-    type OpeningSetup
+    type OpeningSetup,
+    type StartingCashSetup
 } from '@tabletop/18xx'
-import { assert, shuffle, type Prng } from '@tabletop/common'
+import { assert, shuffle } from '@tabletop/common'
 import {
-    ConcessionIds1822,
     LnwrId,
     MajorIds1822,
     Majors1822,
-    MinorIds1822,
+    concessionId,
     createMajorCertificates1822,
     createMinorCertificates1822,
-    exchangeTokenCount1822,
-    minor1822
+    exchangeTokenCount1822
 } from './companies.js'
-import { LotKinds1822, LotStacks1822, charterCertificateId, refillBidBoxes1822 } from './lots.js'
+import { GameConfig1822 } from './definition/gameConfig.js'
+import {
+    charterCertificateId,
+    dealLots1822,
+    minorIdsInPlay1822,
+    privateSet1822,
+    refillBidBoxes1822
+} from './lots.js'
 import { Map1822 } from './map.js'
+import { OutOfPlayTileId1822 } from './overlays.js'
+import { setupOf1822 } from './scenarios.js'
 import { MarketPoolId1822 } from './names.js'
-import { PhaseCreditPrivateIds, Privates1822, TaxHavenPrivateId } from './privates.js'
-import { Bank1822, MaximumPlayers1822, MinimumPlayers1822, startingCash1822 } from './setup.js'
+import { PhaseCreditPrivateIds, TaxHavenPrivateId } from './privates.js'
+import { MaximumPlayers1822, MinimumPlayers1822 } from './setup.js'
 import type { HydratedState1822, State1822 } from './state.js'
-import { TileSet1822 } from './tiles.js'
+import { TileSet1822, retiredPieceIds1822 } from './tiles.js'
 import { TrainDepot1822 } from './trains.js'
 
 /** A major company begins with two station tokens it may place: its home and one more (§5.12.2). */
@@ -34,11 +43,10 @@ const MinorStationCount = 1
 /** Private companies that hold money or a share on their own charter (Table 3: P15, P16, P20). */
 const PrivatesHoldingCash: readonly string[] = [...PhaseCreditPrivateIds, TaxHavenPrivateId]
 
-/** Shuffles a stack with its fixed certificate on top (§2.1.4–§2.1.6). */
-function dealStack(prng: Prng, lotIds: readonly string[], first: string): string[] {
-    const rest = lotIds.filter((id) => id !== first)
-    shuffle(rest, prng.random)
-    return [first, ...rest]
+/** Each player's start money: Table 1's, or the scenario's where one is played (§6.2.1). */
+export function startingCash1822(setup: StartingCashSetup): number {
+    const { startingCash } = setupOf1822({ variants: GameConfig1822.variants(setup.config) })
+    return startingCashByPlayerCount(startingCash)(setup)
 }
 
 export function createOpening1822({
@@ -51,34 +59,63 @@ export function createOpening1822({
         players.length >= MinimumPlayers1822 && players.length <= MaximumPlayers1822,
         '1822 supports three to seven players'
     )
-    const minorIds = MinorIds1822.filter((id) => !minor1822(id)?.expansion)
-    const privates = Privates1822.filter((entry) => !entry.expansion)
-    const charterIds = [...privates.map((entry) => entry.id), ...ConcessionIds1822]
+    const variants = GameConfig1822.variants(config)
+    const setup = setupOf1822({ variants })
+    const privateIds = privateSet1822(variants).map((entry) => entry.id)
     const capital = startingCash1822({ playerCount: players.length, config })
     // The player number cards are dealt at random (§2.1.14).
     const order = players.map((entry) => entry.playerId)
     shuffle(order, prng.random)
     const playerOrder = startingPositions ? [...startingPositions.playerIds] : order
-    const stacks = LotKinds1822.map((kind) => ({
-        id: kind,
-        lotIds: dealStack(prng, LotStacks1822[kind].lotIds, LotStacks1822[kind].first)
-    }))
-    const companyIds = [...MajorIds1822, ...minorIds]
+    const { stacks, removedPrivateIds, removedCompanyIds } = dealLots1822(prng, variants)
+    const inPlay = (id: string) => !removedCompanyIds.includes(id)
+    const majorIds = MajorIds1822.filter(inPlay)
+    const minorIds = minorIdsInPlay1822(variants).filter(inPlay)
+    const concessionIds = majorIds.map(concessionId)
+    const charterIds = [
+        ...privateIds.filter((id) => !removedPrivateIds.includes(id)),
+        ...concessionIds
+    ]
+    const companyIds = [...majorIds, ...minorIds]
+    // A scenario's overlays stand on the map from the start, with the hexes they take out of
+    // play covered (§6.2.1).
+    const tileInventory = TileSet1822.createInventory(
+        setup.overlays
+            .flatMap((overlay) => [
+                ...overlay.stations,
+                ...overlay.approaches,
+                ...overlay.outOfPlay.map((locationId) => ({
+                    locationId,
+                    definitionId: OutOfPlayTileId1822
+                }))
+            ])
+            .map(({ locationId, definitionId }) => ({ locationId, definitionId, rotation: 0 }))
+    )
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
         bank: {},
         phaseId: '1',
         companies: [
-            ...MajorIds1822.map((id) => ({ id, kind: 'major' })),
+            ...majorIds.map((id) => ({ id, kind: 'major' })),
             ...minorIds.map((id) => ({ id, kind: 'minor' })),
-            ...charterIds.map((id) => ({ id, kind: 'private' }))
-        ].map((company) =>
-            company.kind === 'private'
-                ? company
-                : { ...company, started: false, floated: false, funded: false, operated: false }
-        ),
+            ...[...privateIds, ...concessionIds].map((id) => ({ id, kind: 'private' }))
+        ].map((company) => {
+            if (company.kind !== 'private')
+                return {
+                    ...company,
+                    started: false,
+                    floated: false,
+                    funded: false,
+                    operated: false
+                }
+            // A private company removed during setup is closed from the start (§2.1.7).
+            return removedPrivateIds.includes(company.id) ? { ...company, closed: true } : company
+        }),
         cash: [
-            { owner: { kind: 'bank' }, amount: Bank1822 - players.length * capital },
+            {
+                owner: { kind: 'bank' },
+                amount: setup.bank - players.length * capital
+            },
             ...players.map((entry) => ({
                 owner: { kind: 'player' as const, playerId: entry.playerId },
                 amount: capital
@@ -98,7 +135,7 @@ export function createOpening1822({
             }))
         ],
         certificates: [
-            ...MajorIds1822.flatMap((companyId) => createMajorCertificates1822(companyId)),
+            ...majorIds.flatMap((companyId) => createMajorCertificates1822(companyId)),
             ...minorIds.flatMap((companyId) =>
                 createMinorCertificates1822(companyId, { owner: { kind: 'bank' } })
             ),
@@ -110,9 +147,7 @@ export function createOpening1822({
             }))
         ],
         stations: [
-            ...MajorIds1822.flatMap((companyId) =>
-                createCompanyStations(companyId, MajorStationCount)
-            ),
+            ...majorIds.flatMap((companyId) => createCompanyStations(companyId, MajorStationCount)),
             ...minorIds.flatMap((companyId) => createCompanyStations(companyId, MinorStationCount))
         ],
         stationReservations: [
@@ -120,21 +155,29 @@ export function createOpening1822({
                 companyIds.includes(reservation.companyId)
             ),
             // The LNWR's destination token starts in Manchester as a second home (§5.6.2).
-            ...Majors1822.filter((major) => major.id === LnwrId).map((major) => ({
-                companyId: major.id,
-                ...major.destination
-            }))
+            ...Majors1822.filter((major) => major.id === LnwrId && inPlay(major.id)).map(
+                (major) => ({
+                    companyId: major.id,
+                    ...major.destination
+                })
+            )
         ],
-        tileInventory: TileSet1822.createInventory(),
-        trainInventory: TrainDepot1822.createInventory()
+        tileInventory: {
+            ...tileInventory,
+            retiredPieceIds: retiredPieceIds1822(setup.tilesRemoved)
+        },
+        trainInventory: TrainDepot1822.createInventory(variants.scenario)
     }
     const titleState = {
+        variants,
+        ...(removedPrivateIds.length ? { removedPrivateIds } : {}),
+        ...(removedCompanyIds.length ? { removedCompanyIds } : {}),
         ownershipLimitExemptions: [],
         bidBoxes: { stacks, boxes: [], bids: [] },
         playerLoans: [],
         debutCompanyIds: [],
         discountTokens: [],
-        exchangeTokens: MajorIds1822.map((companyId) => ({
+        exchangeTokens: majorIds.map((companyId) => ({
             companyId,
             count: exchangeTokenCount1822(companyId)
         }))

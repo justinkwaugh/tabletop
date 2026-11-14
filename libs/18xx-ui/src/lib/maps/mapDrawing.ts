@@ -225,6 +225,8 @@ export type MapDrawnLocation = {
     placed: boolean
     /** True for a presentation placement that hides the hex entirely. */
     hidden: boolean
+    /** A board tile marks the hex as taking no part in this game. */
+    outOfPlay: boolean
     markerArt: Readonly<Record<string, MapMarkerArt>>
     /** Whether the hex's towns are ringed, as a medium city is printed. */
     townRing: boolean
@@ -336,6 +338,22 @@ function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
     }
 }
 
+/**
+ * The laid tiles beside a location, which cover what it prints past its sides onto the board
+ * there, as the spikes from 1822's London.
+ */
+export function laidNeighbors(
+    scene: Pick<MapDrawing, 'map' | 'locations'>,
+    entry: MapDrawnLocation
+): MapDrawnLocation[] {
+    const neighborIds = TileEdges.flatMap(
+        (edge) => scene.map.neighbor(entry.location.id, edge)?.id ?? []
+    )
+    return scene.locations.filter(
+        (other) => other.placed && neighborIds.includes(other.location.id)
+    )
+}
+
 export type MapDrawing = {
     map: RailwayMap
     locations: readonly MapDrawnLocation[]
@@ -414,9 +432,12 @@ export function createMapDrawing(
         printedLines = {},
         placements = {},
         joinedEdges = {},
+        joinedTileEdges = {},
+        drawnLast = [],
         splitHexes = {},
         locationMarkerNames = {},
         hideLocationNames,
+        boardTiles = {},
         labelsReplaceNames,
         drawingStyle,
         revenueStageLabels,
@@ -450,8 +471,11 @@ export function createMapDrawing(
         | 'placements'
         | 'joinedEdges'
         | 'splitHexes'
+        | 'joinedTileEdges'
+        | 'drawnLast'
         | 'locationMarkerNames'
         | 'hideLocationNames'
+        | 'boardTiles'
         | 'labelsReplaceNames'
         | 'drawingStyle'
         | 'revenueStageLabels'
@@ -489,10 +513,14 @@ export function createMapDrawing(
     const liftedPrivateBlocks = supply?.liftedPrivateBlocks ?? []
     const blockLifted = (marker: NonNullable<MapLocation['markers']>[number]) =>
         !!marker.privateCompanyId && liftedPrivateBlocks.includes(marker.privateCompanyId)
-    const locations = map.definition.locations.map((printed): MapDrawnLocation => {
+    const drawingOrder = [
+        ...map.definition.locations.filter((location) => !drawnLast.includes(location.id)),
+        ...map.definition.locations.filter((location) => drawnLast.includes(location.id))
+    ]
+    const locations = drawingOrder.map((printed): MapDrawnLocation => {
         const markerArt = { ...sharedMarkerArt, ...locationMarkerArt[printed.id] }
         const placed = placedMarkers(printed.id)
-        const location =
+        const marked =
             placed.length || printed.markers?.some(blockLifted)
                 ? {
                       ...printed,
@@ -502,8 +530,12 @@ export function createMapDrawing(
                       ]
                   }
                 : printed
-        const tile = mapState?.tile(location.id)
+        const tile = mapState?.tile(marked.id)
         const placement = tile?.placement
+        const boardTile = placement ? boardTiles[placement.definitionId] : undefined
+        const tileName = boardTile?.name
+        const location = tileName ? { ...marked, name: tileName } : marked
+        const outOfPlay = !!boardTile?.outOfPlay
         const relocation = placement ? undefined : placements[location.id]
         const leads = revenueLeads(location.markers ?? [], markerArt)
         const printedFace = withRevenueLeads(
@@ -543,7 +575,7 @@ export function createMapDrawing(
             hideLocationNames !== true &&
             !hideLocationNames?.includes(location.id) &&
             !(labelsReplaceNames && face.labels.length) &&
-            !placement &&
+            (!placement || !!tileName) &&
             !!location.name
         const nameStyle =
             nameStyles[location.id] ??
@@ -684,7 +716,10 @@ export function createMapDrawing(
             border,
             ...segment(border.edge)
         }))
-        const joined = joinedEdges[location.id] ?? []
+        const joined = [
+            ...(joinedEdges[location.id] ?? []),
+            ...(placement ? (joinedTileEdges[placement.definitionId] ?? []) : [])
+        ]
         const { drawing, badges } = centreRevenue(
             lifted,
             revenueBadges(lifted, markers, markerArt),
@@ -737,15 +772,16 @@ export function createMapDrawing(
             face,
             rotation,
             placed: !!placement,
-            hidden: !!relocation?.hidden,
+            hidden: !!relocation?.hidden || outOfPlay,
+            outOfPlay,
             drawing,
             markerArt,
             townRing,
             printedLines: printedLines[location.id] ?? [],
-            borders,
-            outline: TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(
-                segment
-            ),
+            borders: outOfPlay ? [] : borders,
+            outline: outOfPlay
+                ? []
+                : TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(segment),
             joints: joined.map(segment),
             nameShown,
             nameBaseline,
@@ -840,13 +876,15 @@ export function createMapDrawing(
             ]
         }
     })
-    const vertices = locations.flatMap(
-        ({ location }) =>
-            calculateHexGeometry(
-                { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
-                location.coordinates
-            ).vertices
-    )
+    const vertices = locations
+        .filter((entry) => !entry.outOfPlay)
+        .flatMap(
+            ({ location }) =>
+                calculateHexGeometry(
+                    { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
+                    location.coordinates
+                ).vertices
+        )
     const x = Math.min(...vertices.map((point) => point.x)) - 26
     const y = Math.min(...vertices.map((point) => point.y)) - 26
     const drawnArrows = bonusArrows.map(drawBonusArrow)
@@ -891,7 +929,8 @@ function withSharedCityLayouts(
                       ...merged,
                       ...cityLayout,
                       nodePositions: { ...merged?.nodePositions, ...cityLayout.nodePositions },
-                      slotRowTurns: { ...merged?.slotRowTurns, ...cityLayout.slotRowTurns }
+                      slotRowTurns: { ...merged?.slotRowTurns, ...cityLayout.slotRowTurns },
+                      slotSpacing: { ...merged?.slotSpacing, ...cityLayout.slotSpacing }
                   }
                 : merged,
         layout

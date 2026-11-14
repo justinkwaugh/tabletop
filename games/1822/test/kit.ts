@@ -24,3 +24,32 @@ export const kit = titleTestKit<State1822, HydratedState1822>({
     privates: [],
     home: (companyId) => (major1822(companyId)?.home ?? minor1822(companyId)?.home)?.locationId
 })
+
+/** The seeds a spec deals a random setup over. */
+export const SetupSeeds = Array.from({ length: 12 }, (_, index) => index + 1)
+
+/**
+ * A table standing as prepared before its first move: in its second stock round, so that one
+ * with nothing sold does not end the game (§1.3.1), and in the phase given.
+ */
+export function prepared(
+    prepare: (state: State1822, players: string[]) => void,
+    {
+        config,
+        seed = 3,
+        phaseId
+    }: { config?: Record<string, boolean | string>; seed?: number; phaseId?: string } = {}
+): Table {
+    const game = kit.table(4, seed, config)
+    const state = structuredClone(game.state)
+    state.stockRound.number = 2
+    if (phaseId) state.phaseId = phaseId
+    prepare(state, state.turnManager.turnOrder)
+    game.state = state
+    return game
+}
+
+/** The certificate in a bidding box. */
+export function boxLot(state: Pick<State1822, 'bidBoxes'>, boxId: string): string | undefined {
+    return state.bidBoxes.boxes.find((box) => box.boxId === boxId)?.lotId
+}

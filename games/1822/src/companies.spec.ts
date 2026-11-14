@@ -18,19 +18,14 @@ import {
     minorStations1822
 } from './companies.js'
 import { Names1822 } from './names.js'
+import { startingCash1822 } from './opening.js'
 import {
     CompanyRevenuePrivateIds1822,
     FirstPrivateId,
     Privates1822,
     TaxHavenPrivateId
 } from './privates.js'
-import {
-    Bank1822,
-    BiddingTokens1822,
-    CertificateLimits1822,
-    StartingCash1822,
-    startingCash1822
-} from './setup.js'
+import { Bank1822, BiddingTokens1822, CertificateLimits1822, StartingCash1822 } from './setup.js'
 import { Phases1822, PrivateTrains1822 } from './trains.js'
 
 describe('the setup (§2.1, Table 1)', () => {

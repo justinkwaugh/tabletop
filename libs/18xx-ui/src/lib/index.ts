@@ -3,11 +3,14 @@ export { default as TileArtwork } from './tiles/TileArtwork.svelte'
 export { default as TileLibraryViewer } from './tiles/TileLibraryViewer.svelte'
 export { default as TileManifest } from './tiles/TileManifest.svelte'
 export {
+    TileApothem,
     TileRadius,
     createTileDrawing,
     type TileDrawing,
     type TileDrawnPath,
     type TilePrintedToken,
+    type TilePrintedTrack,
+    type TilePrintedText,
     type TileDrawnNode,
     type TileDrawingStyle,
     type TileLayout
@@ -55,6 +58,7 @@ export { default as TrainBuying } from './trains/TrainBuying.svelte'
 
 export { default as PrivateCompanies } from './privates/PrivateCompanies.svelte'
 export { setPlaceLinks, type PlaceLinks } from './places/placeLinks.js'
+export { default as PlaceText } from './places/PlaceText.svelte'
 
 export { default as CompanyDecisions } from './finance/CompanyDecisions.svelte'
 export { default as DecisionResponse } from './finance/DecisionResponse.svelte'

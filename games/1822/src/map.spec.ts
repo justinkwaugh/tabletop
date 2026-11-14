@@ -17,10 +17,12 @@ import {
     LondonApproachLocationIds,
     LondonStopGroup,
     Map1822,
+    MerthyrToPontypoolSide,
     MerthyrTydfilLocationId,
     MidWalesLocationId,
     OystermouthNodeId,
     PontypoolLocationId,
+    PontypoolToMerthyrSide,
     SwanseaLocationId
 } from './map.js'
 import { EnglishChannelLocationId, GrimsbyLocationId, HullLocationId } from './privates.js'
@@ -56,8 +58,9 @@ function edgeEnds(locationId: string): Extract<TileEndpoint, { kind: 'edge' }>[]
 }
 
 describe('the map (§1.2)', () => {
-    it('has every hex of the board once', () => {
-        expect(locations).toHaveLength(211)
+    it('has every hex of the board once, E32 beside Merthyr Tydfil being off the map', () => {
+        expect(locations).toHaveLength(208)
+        expect(locations.some(({ id }) => id === 'E32')).toBe(false)
         expect(new Set(locations.map(({ id }) => id)).size).toBe(locations.length)
     })
 
@@ -69,7 +72,7 @@ describe('the map (§1.2)', () => {
                 .sort()
         ).toEqual(
             [
-                'A42 C34 E2 E4 E6 E26 E28 E30 E32 E34 F23 F25 F27 F29 F31 F33 H1 Q44',
+                'A42 C34 E2 E4 E6 E28 E34 F23 F25 F27 F29 F31 F33 H1 Q44',
                 'F15 F17 F21 J43 L11 Q36 Q42 R31'
             ]
                 .join(' ')
@@ -373,11 +376,16 @@ describe('the grey areas (§5.4.4, §5.4.5)', () => {
         expect(toHighlands.visits.at(-1)).toMatchObject({ locationId: 'E2', terminus: true })
     })
 
-    it('join Merthyr Tydfil and Pontypool by one track that ends a route at either (§5.4.7)', () => {
+    it('join Merthyr Tydfil and Pontypool across their shared side by one track that ends a route at either (§5.4.7)', () => {
+        expect(Map1822.neighbor(MerthyrTydfilLocationId, MerthyrToPontypoolSide)?.id).toBe(
+            PontypoolLocationId
+        )
+        expect(Map1822.neighbor(PontypoolLocationId, PontypoolToMerthyrSide)?.id).toBe(
+            MerthyrTydfilLocationId
+        )
         const crossing = [
-            path(MerthyrTydfilLocationId, 'edge-3'),
-            path('E32', 'path-0'),
-            path(PontypoolLocationId, 'edge-2')
+            path(MerthyrTydfilLocationId, `edge-${MerthyrToPontypoolSide}`),
+            path(PontypoolLocationId, `edge-${PontypoolToMerthyrSide}`)
         ]
         const fromCardiff = trace(city('F35'), [
             path('F35', 'edge-2'),

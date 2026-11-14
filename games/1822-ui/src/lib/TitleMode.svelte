@@ -1,6 +1,7 @@
 <script lang="ts">
     import {
         BoxAcquisitionCost1822,
+        LondonLocationId,
         MetropolitanId,
         TrainDepot1822,
         londonHomeCompanyIds1822,
@@ -9,9 +10,10 @@
         type AcquisitionChoice1822,
         type TokenChoice1822
     } from '@tabletop/1822'
-    import { CompanyToken, counted } from '@tabletop/18xx-ui'
+    import { placeReference } from '@tabletop/18xx'
+    import { CompanyToken, PlaceText, counted } from '@tabletop/18xx-ui'
     import { LondonStationNames } from './history.js'
-    import { bidBoxGroups, lotName } from './lots.js'
+    import { lotName, lotStacks } from './lots.js'
     import type { Session1822 } from './session.svelte.js'
 
     let { session, id }: { session: Session1822; id: string } = $props()
@@ -45,9 +47,7 @@
     )
     const minorDraft = $derived(session.minorDraft)
     const acquisition = $derived(session.draftedAcquisition)
-    const stackGroups = $derived(
-        bidBoxGroups(session.gameState.bidBoxes).filter((group) => group.upcoming.length)
-    )
+    const stacks = $derived(lotStacks(session.gameState).filter((stack) => stack.lotIds.length))
 
     function terms(shares: number, payment: number): string {
         const given = shares ? counted(shares, 'share') : 'No shares'
@@ -66,12 +66,15 @@
     {@const station = session.metropolitanStation}
     <section class="mode title-panel" aria-label="Metropolitan Railway home">
         <p>
-            The Metropolitan Railway places its home beside one of London’s six stations for
-            {money(session.metropolitanHomeCost)}. This is its track lay for the turn.
+            <PlaceText
+                text={`The Metropolitan Railway places its home beside one of ${placeReference(LondonLocationId)}’s six stations for ${money(session.metropolitanHomeCost)}. This is its track lay for the turn.`}
+            />
         </p>
         {#if station}
             <p class="chosen-station">
-                Beside London’s {LondonStationNames[station]} station
+                <PlaceText
+                    text={`Beside ${placeReference(LondonLocationId)}’s ${LondonStationNames[station]} station`}
+                />
                 <span class="marks"
                     >{#each londonHomeCompanyIds1822(station) as homeId (homeId)}{@render token(
                             homeId,
@@ -216,11 +219,11 @@
             {/if}
             {#if session.movableStackCards.length}
                 <h3>P17 moves one certificate within its stack, then closes</h3>
-                {#each stackGroups as group (group.id)}
+                {#each stacks as stack (stack.id)}
                     <div class="stack">
-                        <span class="muted">{group.label}</span>
-                        <div class="choices" role="group" aria-label={group.label}>
-                            {#each group.upcoming as lotId (lotId)}
+                        <span class="muted">{stack.label}</span>
+                        <div class="choices" role="group" aria-label={stack.label}>
+                            {#each stack.lotIds as lotId (lotId)}
                                 <button
                                     class="choice small"
                                     disabled={busy}

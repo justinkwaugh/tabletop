@@ -1,16 +1,22 @@
 import {
     BidBoxIds1822,
+    LocalTrainId,
+    LondonLocationId,
+    TrainDepot1822,
+    boxStack1822,
+    sharedStack1822,
     LotKinds1822,
-    Map1822,
     MetropolitanId,
+    concessionId,
     concessionMajorId,
     lotKind1822,
     major1822,
     minor1822,
     private1822,
-    type LotKind1822
+    type LotKind1822,
+    type State1822
 } from '@tabletop/1822'
-import type { BidBoxes } from '@tabletop/18xx'
+import { placeReference } from '@tabletop/18xx'
 import type { BidBoxGroup } from '@tabletop/18xx-ui'
 import { assertExists } from '@tabletop/common'
 
@@ -20,18 +26,66 @@ const KindLabels: Readonly<Record<LotKind1822, string>> = {
     private: 'Private companies'
 }
 
-export function placeName(locationId: string): string {
-    return Map1822.location(locationId).name ?? locationId
+type LotState = Pick<
+    State1822,
+    'bidBoxes' | 'removedPrivateIds' | 'removedCompanyIds' | 'trainInventory'
+>
+
+/**
+ * What an unsold minor's box costs at the round's end (§4.10.3): an L-train for each minor no one
+ * bid on while any are left, and the minor in box 1 leaves the game with the next train as well.
+ */
+function minorUnsoldNotes(state: LotState, boxCount: number): (string | undefined)[] {
+    const localTrainsLeft = TrainDepot1822.remaining(state.trainInventory, LocalTrainId) !== 0
+    return Array.from({ length: boxCount }, (_, index) =>
+        index === 0
+            ? `If unsold, it leaves the game and removes ${localTrainsLeft ? 'two trains' : 'one train'}`
+            : localTrainsLeft
+              ? 'If unsold, it removes one train'
+              : undefined
+    )
 }
 
-/** The boxes of each kind with the stack they fill from (§4.9.1). */
-export function bidBoxGroups(bidBoxes: BidBoxes): BidBoxGroup[] {
-    return LotKinds1822.map((kind) => ({
-        id: kind,
-        label: KindLabels[kind],
-        boxIds: BidBoxIds1822.filter((boxId) => boxId.startsWith(`${kind}:`)),
-        upcoming: bidBoxes.stacks.find((stack) => stack.id === kind)?.lotIds ?? []
-    }))
+/** The certificates of a kind a game plays without, as its boxes name them (§2.1.7, §6.2.1). */
+function removedLots(state: LotState, kind: LotKind1822): string[] {
+    if (kind === 'private') return [...(state.removedPrivateIds ?? [])]
+    const companies = state.removedCompanyIds ?? []
+    return kind === 'minor'
+        ? companies.filter((id) => !!minor1822(id))
+        : companies.filter((id) => !!major1822(id)).map(concessionId)
+}
+
+/** The boxes of each kind with the stack, or in 1822+ the stacks, they fill from (§4.9.1, §2.1.7). */
+export function bidBoxGroups(state: LotState): BidBoxGroup[] {
+    const { bidBoxes } = state
+    return LotKinds1822.map((kind) => {
+        const boxIds = BidBoxIds1822.filter((boxId) => boxId.startsWith(`${kind}:`))
+        const shared = sharedStack1822(bidBoxes, kind)
+        const removed = removedLots(state, kind)
+        const group = {
+            id: kind,
+            label: KindLabels[kind],
+            boxIds,
+            ...(removed.length ? { removed } : {}),
+            ...(kind === 'minor' ? { unsoldNotes: minorUnsoldNotes(state, boxIds.length) } : {})
+        }
+        if (shared) return { ...group, upcoming: shared.lotIds }
+        const boxStacks = boxIds.map((boxId) => boxStack1822(bidBoxes, boxId).lotIds)
+        return { ...group, upcoming: boxStacks.flat(), boxStacks }
+    })
+}
+
+/** Each stack of certificates still to come, as P17 moves one within its own (Table 3). */
+export function lotStacks(state: LotState): { id: string; label: string; lotIds: string[] }[] {
+    return bidBoxGroups(state).flatMap((group) =>
+        group.boxStacks
+            ? group.boxStacks.map((lotIds, index) => ({
+                  id: group.boxIds[index],
+                  label: `${group.label}, box ${index + 1}`,
+                  lotIds: [...lotIds]
+              }))
+            : [{ id: group.id, label: group.label, lotIds: [...group.upcoming] }]
+    )
 }
 
 export type Lot1822 =
@@ -67,8 +121,8 @@ export function lot1822(lotId: string, money: (amount: number) => string): Lot18
             name: minor.name,
             detail:
                 lotId === MetropolitanId || !minor.home
-                    ? 'Beside a London station'
-                    : placeName(minor.home.locationId)
+                    ? `Beside a ${placeReference(LondonLocationId)} station`
+                    : placeReference(minor.home.locationId)
         }
     }
     if (kind === 'concession') {
@@ -80,7 +134,7 @@ export function lot1822(lotId: string, money: (amount: number) => string): Lot18
             markId: major.id,
             initials: major.initials,
             name: major.name,
-            detail: `${placeName(major.home.locationId)} to ${placeName(major.destination.locationId)}`
+            detail: `${placeReference(major.home.locationId)} to ${placeReference(major.destination.locationId)}`
         }
     }
     const company = private1822(lotId)

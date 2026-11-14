@@ -1,6 +1,7 @@
 import {
     allSharesHeld,
     certificatesInPool,
+    certificatesOwnedBy,
     finiteCashOwnedBy,
     getCompany,
     leadingLotIds,
@@ -24,6 +25,7 @@ import {
 import { assertExists } from '@tabletop/common'
 import {
     Charters1822,
+    MajorIds1822,
     MajorShareCount1822,
     concessionId,
     directorShares1822,
@@ -34,12 +36,8 @@ import { playerLoan1822 } from './loans.js'
 import { MarketPoolId1822 } from './names.js'
 import { operatingOrder1822 } from './order.js'
 import { DoubleCashPrivateId, TaxHavenPrivateId } from './privates.js'
-import {
-    BidIncrement1822,
-    BiddingTokens1822,
-    CertificateLimits1822,
-    FaceValues1822
-} from './setup.js'
+import { BidIncrement1822, BiddingTokens1822, FaceValues1822 } from './setup.js'
+import { setupOf1822 } from './scenarios.js'
 import { requireState1822 } from './state.js'
 import { MajorParSpaceIds1822, Market1822, NoLimitSpaceIds1822 } from './stockMarket.js'
 import { Phases1822 } from './trains.js'
@@ -67,7 +65,7 @@ export function taxHavenPlayerId(state: StockState): string | undefined {
 }
 
 function playerCertificateLimit(state: StockState): number {
-    const limit = CertificateLimits1822[state.players.length]
+    const limit = setupOf1822(requireState1822(state)).certificateLimits[state.players.length]
     assertExists(limit, '1822 is played by three to seven players')
     return limit
 }
@@ -149,21 +147,37 @@ export const StockRules1822: StockRules = {
         if (!buyingPlayerId) return 'This owner buys no shares.'
         if (playerLoan1822(state, buyingPlayerId))
             return 'A player with a loan may not buy shares (§4.2.1).'
-        const price = Market1822.companySpace(state.stockMarket, company.id).price
-        if (price * certificate.shares > spendableCash1822(state, buyingPlayerId))
-            return 'The cash left after the highest bids does not cover this share.'
-        // The tax haven's share is bought with its player's money, and never one of a company
-        // they sold this round (§3.1.15).
-        if (
-            isTaxHaven(buyer) &&
-            soldThisStockRound(state.stockRound, player(buyingPlayerId), company.id)
-        )
-            return 'The tax haven buys no share of a company its player sold this round.'
-        return {
-            price: price * certificate.shares,
-            recipient: fromTreasury ? { kind: 'company', companyId: company.id } : { kind: 'bank' },
-            payers: [player(buyingPlayerId)]
+        const price =
+            Market1822.companySpace(state.stockMarket, company.id).price * certificate.shares
+        const recipient: Owner = fromTreasury
+            ? { kind: 'company', companyId: company.id }
+            : { kind: 'bank' }
+        if (isTaxHaven(buyer)) {
+            // Never a share of a company its player sold this round (§3.1.15).
+            if (soldThisStockRound(state.stockRound, player(buyingPlayerId), company.id))
+                return 'The tax haven buys no share of a company its player sold this round.'
+            const held = certificatesOwnedBy(state, taxHaven)
+            // Its first share is bought with its player's money; under the variant its own
+            // money buys the rest, one a stock round and one of a company (§6.1.2).
+            if (held.length) {
+                const title = requireState1822(state)
+                if (!title.variants.taxHavenShares) return 'The tax haven holds a single share.'
+                if (title.taxHavenPurchaseRound === state.stockRound.number)
+                    return 'The tax haven buys one share each stock round.'
+                if (held.some((entry) => entry.companyId === company.id))
+                    return 'The tax haven holds one certificate of a company.'
+                if (price > finiteCashOwnedBy(state, taxHaven))
+                    return 'The tax haven’s money does not cover this share.'
+                return { price, recipient, payers: [taxHaven] }
+            }
         }
+        if (price > spendableCash1822(state, buyingPlayerId))
+            return 'The cash left after the highest bids does not cover this share.'
+        return { price, recipient, payers: [player(buyingPlayerId)] }
+    },
+    afterSharePurchase(state, details) {
+        if (isTaxHaven(details.buyer))
+            requireState1822(state).taxHavenPurchaseRound = state.stockRound.number
     },
     // Only ordinary shares of a major company that has completed an operating round are sold, a
     // space down for each share, half the company at most in the bank pool (§4.6).
@@ -183,9 +197,11 @@ export const StockRules1822: StockRules = {
             movement: shares
         }
     },
-    // A highest bid counts as a certificate held (§4.9.4); the tax haven holds a single share.
+    // A highest bid counts as a certificate held (§4.9.4). The tax haven holds a single share,
+    // or under the variant one of each company (§6.1.2).
     certificateLimit(state, buyer) {
-        if (buyer.kind !== 'player') return 1
+        if (buyer.kind !== 'player')
+            return requireState1822(state).variants.taxHavenShares ? MajorIds1822.length : 1
         return (
             playerCertificateLimit(state) -
             leadingLotIds(requireState1822(state), buyer.playerId).length

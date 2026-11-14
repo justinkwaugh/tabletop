@@ -12,6 +12,18 @@
         boxIds: readonly string[]
         /** The lots still in the stack, the next to enter a box first. */
         upcoming: readonly string[]
+        /**
+         * The stack each box fills from, in the order of the boxes, where each has its own, as
+         * 1822+ deals its private companies. `upcoming` then holds them all.
+         */
+        boxStacks?: readonly (readonly string[])[]
+        /** Lots of the kind taken out of the game during setup, named under its stack. */
+        removed?: readonly string[]
+        /**
+         * What becomes of the lot in each box, in the order of the boxes, if no one has bid on it
+         * when the round ends, as 1822's minor boxes remove trains. Shown while it has no bid.
+         */
+        unsoldNotes?: readonly (string | undefined)[]
     }
 
     let {
@@ -36,7 +48,6 @@
     const lots = $derived(new Map(bidding.lots.map((entry) => [entry.boxId, entry])))
     let openStack = $state<string>()
     const playerColor = (playerId: string) => session.colors.getPlayerBgColorValue(playerId)
-    const draftedCount = $derived(bidding.drafted.length)
 
     const currency = $derived(currencyAffixes(money))
     // Typed text that is not a bid the player may prepare; any change to the prepared bids clears it.
@@ -76,14 +87,37 @@
                         class="stack-toggle"
                         aria-expanded={openStack === group.id}
                         onclick={() => (openStack = openStack === group.id ? undefined : group.id)}
-                        >{group.upcoming.length} more in the stack</button
+                        >{group.upcoming.length} more in the {group.boxStacks
+                            ? 'stacks'
+                            : 'stack'}</button
                     >
-                {:else}<span class="stack-empty">stack empty</span>{/if}
+                {:else}<span class="stack-empty"
+                        >{group.boxStacks ? 'stacks empty' : 'stack empty'}</span
+                    >{/if}
             </header>
             {#if openStack === group.id && !board}
-                <ol class="stack" aria-label={`${group.label} still to come`}>
-                    {#each group.upcoming as lotId (lotId)}<li>{lotName(lotId)}</li>{/each}
-                </ol>
+                {#if group.boxStacks}
+                    {#each group.boxStacks as stack, index (index)}
+                        <h4 class="stack-box">Box {index + 1}</h4>
+                        {#if stack.length}
+                            <ol
+                                class="stack"
+                                aria-label={`${group.label} still to come to box ${index + 1}`}
+                            >
+                                {#each stack as lotId (lotId)}<li>{lotName(lotId)}</li>{/each}
+                            </ol>
+                        {:else}<p class="stack-none">Nothing more</p>{/if}
+                    {/each}
+                {:else}
+                    <ol class="stack" aria-label={`${group.label} still to come`}>
+                        {#each group.upcoming as lotId (lotId)}<li>{lotName(lotId)}</li>{/each}
+                    </ol>
+                {/if}
+                {#if group.removed?.length}
+                    <p class="stack-removed">
+                        Not in this game: {group.removed.map(lotName).join('; ')}
+                    </p>
+                {/if}
             {/if}
             <div class="boxes">
                 {#each group.boxIds as boxId, index (boxId)}
@@ -108,7 +142,10 @@
                                         </li>
                                     {/each}
                                 </ol>
-                            {:else}<p class="no-bids">No bids</p>{/if}
+                            {:else}<p class="no-bids">No bids</p>
+                                {#if group.unsoldNotes?.[index]}<p class="unsold">
+                                        {group.unsoldNotes[index]}
+                                    </p>{/if}{/if}
                             {#if interactive}
                                 {#if entry.drafted !== undefined}
                                     {@const amount = entry.drafted}
@@ -153,9 +190,9 @@
                                                 {typed.reason}
                                             </p>{/if}
                                         <button
-                                            class="withdraw"
-                                            onclick={() => bidding.withdraw(entry.lotId)}
-                                            >Remove bid</button
+                                            class="action-button place"
+                                            disabled={!bidding.canPlace || !!typed}
+                                            onclick={() => bidding.place()}>Place bid</button
                                         >
                                     </div>
                                 {:else if entry.bids[0]?.playerId === viewerId}
@@ -166,10 +203,6 @@
                                     {@const lowest = entry.lowest}
                                     <button
                                         class="start-bid"
-                                        disabled={draftedCount >= bidding.bidsPerTurn}
-                                        title={draftedCount >= bidding.bidsPerTurn
-                                            ? `A turn places ${bidding.bidsPerTurn} bids at most.`
-                                            : undefined}
                                         onclick={() => bidding.draft(entry.lotId, lowest)}
                                         >Bid {money(lowest)}</button
                                     >
@@ -188,15 +221,13 @@
                 > free</span
             >
             <span
-                >Committed <strong>{money(bidding.committed(viewerId))}</strong> of
+                >Reserved <strong>{money(bidding.reserved(viewerId))}</strong> of
                 {money(bidding.cash(viewerId))}</span
             >
             {#if interactive}
-                <button
-                    class="action-button place"
-                    disabled={!bidding.canPlace || !!rejected}
-                    onclick={() => bidding.place()}
-                    >{draftedCount > 1 ? `Place ${draftedCount} bids` : 'Place bid'}</button
+                <span
+                    >Bids this turn <strong>{bidding.bidsThisTurn} of {bidding.bidsPerTurn}</strong
+                    ></span
                 >
             {/if}
         </footer>
@@ -246,6 +277,22 @@
     }
     .stack-toggle:hover {
         color: var(--rail-text, #443c34);
+    }
+    .stack-removed {
+        margin: 0;
+        color: var(--rail-muted, #887664);
+        font-size: 11px;
+    }
+    .stack-box,
+    .stack-none {
+        margin: 0;
+        color: var(--rail-muted, #887664);
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .stack-none {
+        padding-left: 22px;
+        font-weight: 400;
     }
     .stack {
         margin: 0;
@@ -320,6 +367,11 @@
     .bids li.leading strong {
         font-weight: 700;
     }
+    .unsold {
+        margin: 0;
+        color: var(--rail-text, #443c34);
+        font-size: 11px;
+    }
     .no-bids,
     .reason {
         margin: 0;
@@ -362,8 +414,7 @@
         border-radius: 0;
         font-size: 18px;
     }
-    .stepper button:hover:enabled,
-    .drafted-bid .withdraw:hover {
+    .stepper button:hover:enabled {
         background: var(--rail-surface-raised, #eae1d5);
     }
     .stepper .amount {
@@ -411,11 +462,10 @@
         color: var(--rail-negative, #b33a32);
         font-size: 11px;
     }
-    .drafted-bid .withdraw {
-        height: 28px;
-        background: transparent;
-        color: var(--rail-muted, #887664);
-        font-size: 11px;
+    .box .place {
+        border-color: transparent;
+        font-weight: 600;
+        white-space: nowrap;
     }
     .bidder {
         display: flex;
@@ -428,18 +478,6 @@
     .bidder strong {
         font-weight: 600;
         font-variant-numeric: tabular-nums;
-    }
-    .bidder .place {
-        margin-left: auto;
-        height: 30px;
-        padding: 0 14px;
-        border-radius: 4px;
-        border: 1px solid transparent;
-        cursor: pointer;
-    }
-    .bidder .place:disabled {
-        opacity: 0.45;
-        cursor: default;
     }
     .board {
         width: 760px;
@@ -456,9 +494,6 @@
         .box button,
         .stepper button {
             height: 40px;
-        }
-        .drafted-bid .withdraw {
-            height: 36px;
         }
     }
     @media (max-width: 600px) {

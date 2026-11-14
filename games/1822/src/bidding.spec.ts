@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { committedCash, evaluateBids, leadingBid, trainsOwnedBy } from '@tabletop/18xx'
 import { Random, botMove } from '../test/bot.js'
-import { kit, type Table } from '../test/kit.js'
+import { boxLot, kit, type Table } from '../test/kit.js'
 import { cashOf, company, player } from '../test/positions.js'
 import { FirstConcessionId, FirstMinorId, concessionId } from './companies.js'
 import { bidBoxId1822, minorStart1822 } from './lots.js'
@@ -19,11 +19,6 @@ function bid(game: Table, bids: { lotId: string; amount: number }[]): string {
     return playerId
 }
 const pass = (game: Table) => game.act('FinishStockTurn', {}, game.player)
-
-const boxLot = (
-    state: { bidBoxes: { boxes: { boxId: string; lotId: string }[] } },
-    boxId: string
-) => state.bidBoxes.boxes.find((box) => box.boxId === boxId)?.lotId
 
 describe('setting up (§2.1)', () => {
     it('fills four minor, three concession and three private boxes with the fixed certificates first', () => {
@@ -74,6 +69,34 @@ describe('bidding (§4.9)', () => {
             evaluateBids(after, BidBoxRules1822, second, [{ lotId: FirstMinorId, amount: 105 }])
                 .bids
         ).toBeDefined()
+    })
+
+    it('places a turn’s bids one at a time, up to three, and the third ends the turn', () => {
+        const game = kit.table(4, 3)
+        const [first, second] = game.state.turnManager.turnOrder
+        game.act('PlaceBids', { bids: [{ lotId: FirstMinorId, amount: 100 }] }, first)
+        expect(game.player).toBe(first)
+        expect(game.valid(first)).toEqual(expect.arrayContaining(['PlaceBids', 'FinishStockTurn']))
+        expect(game.valid(first)).not.toContain('BuyShares')
+        game.act('PlaceBids', { bids: [{ lotId: FirstPrivateId, amount: 0 }] }, first)
+        expect(game.player).toBe(first)
+        game.act('PlaceBids', { bids: [{ lotId: FirstConcessionId, amount: 100 }] }, first)
+        expect(game.player).toBe(second)
+        expect(game.state.bidBoxes.bids.filter((entry) => entry.playerId === first)).toHaveLength(3)
+        // The count was the first player's turn's alone: the next turn bids from none.
+        expect(game.state.bidBoxes.turnBids).toBeUndefined()
+        game.act('PlaceBids', { bids: [{ lotId: FirstMinorId, amount: 105 }] }, second)
+        expect(game.player).toBe(second)
+        expect(game.state.bidBoxes.turnBids).toBe(1)
+    })
+
+    it('ends a turn of fewer bids when the player is done', () => {
+        const game = kit.table(4, 3)
+        const [first, second] = game.state.turnManager.turnOrder
+        game.act('PlaceBids', { bids: [{ lotId: FirstMinorId, amount: 100 }] }, first)
+        game.act('FinishStockTurn', {}, first)
+        expect(game.player).toBe(second)
+        expect(game.state.stockRound.passedPlayerIds).not.toContain(first)
     })
 
     it('lets a player raise only a bid that was topped, and never past their cash', () => {

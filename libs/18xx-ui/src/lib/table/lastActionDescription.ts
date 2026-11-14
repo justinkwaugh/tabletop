@@ -37,7 +37,8 @@ export function describeLastAction(
             (id) => session.names.routeBonus(id),
             placeReference,
             (id) => session.poolName(id),
-            { charters: session.charters, multiShare: session.presentation.multiShareCertificate }
+            { charters: session.charters, multiShare: session.presentation.multiShareCertificate },
+            session.presentation.runSubsidyName
         )
     return describeAction?.(action, { companyName, place: placeReference }, shared) ?? shared()
 }

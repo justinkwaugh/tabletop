@@ -17,6 +17,7 @@ import {
     LondonLocationId,
     MetropolitanId,
     concessionId,
+    destinationStationId,
     major1822,
     minor1822
 } from './companies.js'
@@ -37,6 +38,7 @@ import {
 } from './operating.js'
 import { operatingOrder1822 } from './order.js'
 import { FranceLocationId } from './map.js'
+import { placeDestinationToken1822 } from './destinations.js'
 import { EnglishChannelLocationId } from './privates.js'
 import { RouteRules1822 } from './routes.js'
 import type { State1822 } from './state.js'
@@ -483,6 +485,50 @@ describe('stations (§5.12)', () => {
         expect(tokenSpace1822(settled.hydrated, 'MR', york)).toBe(1)
     })
 
+    it('makes a company’s station already in its destination city its destination station, moving nothing (§5.12.6, §5.12.8)', () => {
+        const york = major1822('MR')?.destination
+        if (!york) throw new Error('The Midland’s destination is York')
+        const game = prepared((state, [first, second]) => {
+            kit.operated(state, 'MR', first, { price: 100, shares: 6 })
+            kit.operated(state, 'NER', second, { price: 100, shares: 6 })
+        })
+        const state = game.hydrated
+        const spare = state.stations.find(
+            (station) => station.companyId === 'MR' && station.status === 'available'
+        )
+        if (!spare) throw new Error('The Midland has a spare station')
+        state.stations = state.stations.map((station) =>
+            station === spare
+                ? {
+                      id: spare.id,
+                      companyId: 'MR',
+                      status: 'placed',
+                      position: { ...york, slot: 1 }
+                  }
+                : station
+        )
+        const placed = placeDestinationToken1822(state, 'MR', york)
+        expect(placed).toMatchObject({ slot: 1, stationId: spare.id })
+        expect(state.stations.find((station) => station.id === destinationStationId('MR'))).toEqual(
+            {
+                id: destinationStationId('MR'),
+                companyId: 'MR',
+                status: 'placed',
+                position: { ...york, slot: 1 }
+            }
+        )
+        // The destination token never comes onto the map, and the Midland has one station in York.
+        expect(state.stations.find((station) => station.id === spare.id)).toBeUndefined()
+        expect(
+            state.stations.filter(
+                (station) =>
+                    station.companyId === 'MR' &&
+                    station.status === 'placed' &&
+                    station.position.locationId === york.locationId
+            )
+        ).toHaveLength(1)
+    })
+
     it('leaves the Metropolitan Railway beside its station when London is upgraded (§5.10.3)', () => {
         const beside = minor1822('M16')?.home
         if (!beside) throw new Error('M16 starts in London')
@@ -632,10 +678,7 @@ describe('routes (§5.4, §5.5)', () => {
         })
         const { state, evaluation } = running(game, 'M21')
         const [train] = state.trainInventory.trains.filter((entry) => entry.status === 'owned')
-        const route = kit.route(state, train.id, { locationId: 'E34', nodeId: 'city' }, [
-            'E32',
-            'F33'
-        ])
+        const route = kit.route(state, train.id, { locationId: 'E34', nodeId: 'city' }, ['F33'])
         const result = evaluation.evaluate('M21', [route]).result
         // Phase 1 values: Merthyr Tydfil £30 and Pontypool £20 (§5.4.5).
         expect(result?.revenue).toBe(50)

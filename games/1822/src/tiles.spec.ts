@@ -1,3 +1,4 @@
+import { OverlayPieces1822 } from './overlays.js'
 import { describe, expect, it } from 'vitest'
 import {
     TileEdges,
@@ -60,18 +61,23 @@ const upgrades = new TileUpgrades({
 
 describe('the tiles (tile manifest, p. 36)', () => {
     it('count 44 yellow besides the plain track, 75 green, 58 brown and 22 grey', () => {
+        // The scenarios' overlays are grey tiles of their own, apart from the manifest's.
+        const overlayIds = OverlayPieces1822.map((piece) => piece.tile.id)
         const count = (color: string) =>
-            TileSet1822.pieces.filter((piece) => face(piece.faceDefinitionIds[0]).color === color)
-                .length
+            TileSet1822.pieces.filter(
+                (piece) =>
+                    !overlayIds.includes(piece.faceDefinitionIds[0]) &&
+                    face(piece.faceDefinitionIds[0]).color === color
+            ).length
         expect(['yellow', 'green', 'brown', 'gray'].map(count)).toEqual([44, 75, 58, 22])
     })
 
-    it('never run out of plain yellow track (§5.8.15)', () => {
+    it('never run out of plain yellow track, nor of covers for hexes out of play (§5.8.15)', () => {
         expect(
             TileSet1822.manifest.entries
                 .filter((entry) => entry.count === 'unlimited')
                 .map((entry) => entry.id)
-        ).toEqual(['7', '8', '9'])
+        ).toEqual(['7', '8', '9', 'OUT'])
     })
 
     it('print the manifest’s numbers of the scarce tiles', () => {

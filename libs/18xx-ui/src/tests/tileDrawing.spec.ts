@@ -320,6 +320,27 @@ describe('offboard track', () => {
         )
         expect(city.paths.every((path) => !path.spike)).toBe(true)
     })
+
+    it('prints track no route uses beside the face’s own: straight, or as a spike', () => {
+        const face = createCityTileFace('gray', [1], 20, 2)
+        const drawing = createTileDrawing(face, HexOrientation.Flat, 0, {
+            printedPaths: { 'edge-1': 'hidden' },
+            printedTrack: [
+                { id: 'out', from: { x: 0, y: 0 }, to: { x: -30, y: 20 } },
+                { id: 'in', from: { x: -30, y: 10 }, to: { x: -10, y: -5 }, spike: true }
+            ]
+        })
+        const [own, out, spiked] = drawing.paths
+        expect(drawing.paths.map((path) => path.id)).toEqual(['edge-1', 'out', 'in'])
+        expect(own.hidden).toBe(true)
+        expect([out.start, out.end]).toEqual([
+            { x: 0, y: 0 },
+            { x: -30, y: 20 }
+        ])
+        expect(out.spike).toBeUndefined()
+        expect(spiked.spike).toEqual({ base: { x: -30, y: 10 }, tip: { x: -10, y: -5 } })
+        expect(drawing.crossings).toEqual([])
+    })
 })
 
 it('swings a four-space city’s lower spaces out into an upside-down V, open at the bottom', () => {

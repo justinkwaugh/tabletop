@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CompanyToken } from '@tabletop/18xx-ui'
+    import { CompanyToken, PlaceText } from '@tabletop/18xx-ui'
     import { lot1822 } from './lots.js'
     import type { Session1822 } from './session.svelte.js'
 
@@ -15,7 +15,7 @@
             <span class="name">{lot.name} · {lot.income}</span>
             <details>
                 <summary>What it does</summary>
-                <p>{lot.description}</p>
+                <p><PlaceText text={lot.description} /></p>
             </details>
         </div>
     {:else}
@@ -28,7 +28,7 @@
                     ? `${lot.id} ${lot.initials}`
                     : `${lot.initials} concession`}</strong
             >
-            <span class="detail">{lot.detail}</span>
+            <span class="detail"><PlaceText text={lot.detail} /></span>
         </div>
     {/if}
 </div>

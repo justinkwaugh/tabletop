@@ -25,7 +25,8 @@ import {
     tilePathPoint,
     trackCrossings,
     type TileDrawnPath,
-    type TrackCrossing
+    type TrackCrossing,
+    type TrackSpike
 } from './tileTrackGeometry.js'
 import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
@@ -33,6 +34,8 @@ export type { TileDrawnPath } from './tileTrackGeometry.js'
 
 /** Corner radius of every tile and map hex, in the units tiles are drawn in about their centre. */
 export const TileRadius = 50
+/** How far each side's middle stands from the hex's: half the way to a neighbouring hex's middle. */
+export const TileApothem = (TileRadius * Math.sqrt(3)) / 2
 
 const OffboardSpikeReach = 0.6
 const PierReach = 0.6
@@ -51,6 +54,11 @@ export type TileLayout = {
     /** Where the cost of upgrading the tile is printed, in place of the clearest spot found. */
     upgradeCostPosition?: Point
     /**
+     * Prints the cost of upgrading the tile as bare text, without its box, after any prefix such
+     * as a currency's sign, as 1822's London prints £20.
+     */
+    upgradeCostText?: { prefix?: string }
+    /**
      * Degrees clockwise to turn a city's row of station spaces off the tile's own axis, by node
      * id, such as to level a two-space city under a row of revenues.
      */
@@ -60,27 +68,58 @@ export type TileLayout = {
      * opening the square into an upside-down V toward the two hexes below.
      */
     slotSpreads?: Readonly<Record<string, number>>
+    /**
+     * How far each of a two-space city's spaces stands from its middle, by node id, where the
+     * print sets them closer than touching, as 1822 overlaps the Metropolitan Railway's space on
+     * the London station it stands beside.
+     */
+    slotSpacing?: Readonly<Record<string, number>>
+    /**
+     * Prints the whole hex in its ink rather than the tile's colour, with its label, its
+     * upgrade's cost and any printed text in the paper's colour, as 1822's board prints London.
+     */
+    inkGround?: true
+    /** Text the print sets on the tile, such as a city's name that every upgrade repeats. */
+    printedText?: readonly TilePrintedText[]
+    /**
+     * Shapes the print fills with its ink past the hex's sides into the hexes beside it, drawn
+     * on a map over whatever lies there, as the spikes from 1822's London toward its neighbours.
+     */
+    overhangs?: readonly (readonly Point[])[]
     hideRevenue?: true | readonly string[]
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
     /** Centres the revenue, with any badge beneath it on a map, on the hex's middle line. */
     revenueAlign?: 'middle'
     /**
-     * How the print draws a connection to the board's edge, by path id: a spike, or a port's
-     * dashes from the edge to an anchor.
+     * How the print draws a connection to the board's edge, by path id: a spike, which a track
+     * from side to side draws at its first side pointing in toward the hex's middle; a port's
+     * dashes from the edge to an anchor; or
+     * nothing, where the print shows the connection another way.
      */
-    printedPaths?: Readonly<Record<string, 'spike' | 'pier'>>
+    printedPaths?: Readonly<Record<string, 'spike' | 'pier' | 'hidden'>>
     /**
      * Tokens the tile prints, such as a reservation in a city's space or a private's mark on
      * its track: in a station space by node and slot, or at a point before the tile's rotation.
      */
     printedTokens?: readonly TilePrintedToken[]
+    /**
+     * Track the print shows beside the face's own, which no route uses, straight between two
+     * points of the tile before its rotation. 1822 prints its one Merthyr Tydfil–Pontypool
+     * connection as two straight pointed tracks, one from each city into the other's hex (§5.4.7).
+     */
+    printedTrack?: readonly TilePrintedTrack[]
     /** Prints a staged location's captions above its values, in a row. */
     revenueCaptionsAbove?: boolean
     /** Prints staged values' phase captions after them, as on a board's east edge. */
     revenueCaptionsAfter?: boolean
     /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
     spikeReach?: number
+    /**
+     * Points every spike straight in from its side toward the hex's middle rather than at its
+     * stop, where the stop stands off to one side, as the Highlands' station across its two hexes.
+     */
+    spikesTowardMiddle?: true
     /**
      * Sides, before the tile's rotation, whose parallel tracks are drawn in the other order, so
      * that tracks running side by side through a hex do not cross. The hex across each such side
@@ -89,6 +128,16 @@ export type TileLayout = {
     flippedLaneEdges?: readonly TileEdge[]
 }
 
+/** Text a layout prints on the tile; see ``TileLayout.printedText``. */
+export type TilePrintedText = { content: string; at: Point; fontSize: number }
+/** Track a layout prints that no route uses; see ``TileLayout.printedTrack``. */
+export type TilePrintedTrack = {
+    id: string
+    from: Point
+    to: Point
+    /** Drawn as a spike, full width at ``from`` and coming to a point at ``to``. */
+    spike?: true
+}
 export type TilePrintedToken = {
     imageUrl: string
     title: string
@@ -150,6 +199,11 @@ export type TileDrawing = {
     symbolPosition: Point
     upgradeCostPosition: Point
     printedTokens: readonly TileDrawnToken[]
+    inkGround: boolean
+    upgradeCostText?: { prefix: string }
+    printedText: readonly TilePrintedText[]
+    /** Polygon points, each pair "x,y", of the shapes reaching past the hex's sides. */
+    overhangs: readonly string[]
 }
 
 export function createTileDrawing(
@@ -176,7 +230,8 @@ export function createTileDrawing(
             center,
             (node.stationSlots === 4 ? -Math.PI / 4 : angle) +
                 ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
-            citySlotRadius
+            citySlotRadius,
+            node.stationSlots === 2 ? layout.slotSpacing?.[node.id] : undefined
         )
         const spread = layout.slotSpreads?.[node.id]
         return spread === undefined || slots.length !== 4 ? slots : spreadSquare(slots, spread)
@@ -346,16 +401,28 @@ export function createTileDrawing(
         )
         const printed = layout.printedPaths?.[path.id]
         if (!offboard && !printed) return drawn
-        const [base, center] =
-            path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
-        const reach = printed === 'pier' ? PierReach : (layout.spikeReach ?? OffboardSpikeReach)
-        const tip = {
-            x: base.x + (center.x - base.x) * reach,
-            y: base.y + (center.y - base.y) * reach
-        }
+        if (printed === 'hidden') return { ...drawn, hidden: true }
         return printed === 'pier'
-            ? { ...drawn, pier: { base, tip } }
-            : { ...drawn, spike: { base, tip } }
+            ? { ...drawn, pier: towardStop(path, drawn, PierReach) }
+            : { ...drawn, spike: towardStop(path, drawn, layout.spikeReach ?? OffboardSpikeReach) }
+    }
+    /** A spike or pier from a track's side, reaching that share of the way to its other end. */
+    const towardStop = (path: TilePath, drawn: TileDrawnPath, reach: number): TrackSpike => {
+        const [base, stop] =
+            path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
+        // A track between two sides has no stop, so its spike points in toward the hex's middle.
+        const center =
+            layout.spikesTowardMiddle ||
+            path.endpoints.every((endpoint) => endpoint.kind === 'edge')
+                ? { x: 0, y: 0 }
+                : stop
+        return {
+            base,
+            tip: {
+                x: base.x + (center.x - base.x) * reach,
+                y: base.y + (center.y - base.y) * reach
+            }
+        }
     }
     const drawnPath = (path: TilePath): TileDrawnPath => {
         const townPath = townPaths.get(path.id)
@@ -364,14 +431,21 @@ export function createTileDrawing(
         const end = endpointPosition(path.endpoints[1])
         const drawn = plainPath(path, start, end)
         return path.endpoints.every((endpoint) => endpoint.kind === 'edge') &&
-            !layout.pathControls?.[path.id]
+            !layout.pathControls?.[path.id] &&
+            !layout.printedPaths?.[path.id]
             ? drawn
             : withOffboardSpike(path, drawn)
     }
-    const paths = face.paths.map((path): TileDrawnPath => {
+    const facePaths = face.paths.map((path): TileDrawnPath => {
         const drawn = drawnPath(path)
         return path.gauge ? { ...drawn, gauge: path.gauge } : drawn
     })
+    // Track the print shows that no route uses, drawn straight after the face's own.
+    const printedTrackPaths = (layout.printedTrack ?? []).map(({ id, from, to, spike }) => {
+        const drawn = createStraightTilePath(id, orientPoint(from, angle), orientPoint(to, angle))
+        return spike ? { ...drawn, spike: { base: drawn.start, tip: drawn.end } } : drawn
+    })
+    const paths = [...facePaths, ...printedTrackPaths]
 
     const stationSlots = face.nodes.flatMap((node) => {
         const center = centers.get(node.id)
@@ -524,6 +598,20 @@ export function createTileDrawing(
         labelPosition,
         symbolPosition,
         upgradeCostPosition,
+        inkGround: !!layout.inkGround,
+        ...(layout.upgradeCostText
+            ? { upgradeCostText: { prefix: layout.upgradeCostText.prefix ?? '' } }
+            : {}),
+        printedText: (layout.printedText ?? []).map((text) => ({
+            ...text,
+            at: orientPoint(text.at, angle)
+        })),
+        overhangs: (layout.overhangs ?? []).map((points) =>
+            points
+                .map((point) => orientPoint(point, angle))
+                .map((point) => `${point.x},${point.y}`)
+                .join(' ')
+        ),
         printedTokens: (layout.printedTokens ?? []).flatMap((token): TileDrawnToken[] => {
             if ('at' in token)
                 return [
@@ -571,9 +659,9 @@ function stationPositions(
     count: number,
     center: Point,
     rotation: number,
-    slotRadius: number
+    slotRadius: number,
+    spacing = Math.max(DefaultCitySlotRadius + 1, slotRadius)
 ): Point[] {
-    const spacing = Math.max(DefaultCitySlotRadius + 1, slotRadius)
     return Array.from({ length: count }, (_, index) => {
         if (count === 1) return center
         const radius = count === 2 ? spacing : spacing / Math.sin(Math.PI / count)

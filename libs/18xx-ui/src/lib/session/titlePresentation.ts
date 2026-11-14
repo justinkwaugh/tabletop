@@ -162,6 +162,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     includedPortfolioCompanyIds?: readonly string[]
     poolName?: (poolId: string) => string
     instructionStopText?: (reason: TitleStopReason) => string
+    /**
+     * What a run pays the treasury beside its revenue is called, as 1822's mail income; "subsidy
+     * to the treasury" where the title names nothing.
+     */
+    runSubsidyName?: string
     /** What the revenue a company may decide apart from the rest is called, as 1822's permanent train's. */
     separateEarningsName?: string
     privatePurchaseLabel?: string
@@ -217,6 +222,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     trainTokens?(state: State, train: Train): TrainTokens
     /** A word for an open private's state in place of its income, such as Flipped. */
     privateStatus?(state: State, privateCompanyId: string): string | undefined
+    /**
+     * What a private company keeps on its own charter for the player who holds it, said under
+     * its name on that player's card, as 1822's tax haven holds shares and money.
+     */
+    privateHoldings?(state: State, privateCompanyId: string): string | undefined
     companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
     /**
      * What an operating company takes off printed terrain and border costs, by terrain kind, such

@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import { ScenarioId1822 } from './scenarios.js'
 
 const Id = Type.String({ minLength: 1 })
 
@@ -23,6 +24,28 @@ export const AcquisitionChoice = Type.Union([
 export type AcquisitionChoice1822 = Type.Static<typeof AcquisitionChoice>
 
 export const TitleFields1822 = {
+    /** The options chosen before the game began (§2.1.7, §6.1). */
+    variants: Type.Object(
+        {
+            /** The scenario played, where it is not the standard game (§6.2.1). */
+            scenario: Type.Optional(ScenarioId1822),
+            /** The 1822+ expansion: six more minor and three more private companies (§6.2.2). */
+            plus: Type.Optional(Type.Literal(true)),
+            /** No private company was removed during setup (§6.1.3). */
+            allPrivates: Type.Optional(Type.Literal(true)),
+            /** The private companies fill their boxes from one stack (§6.1.3). */
+            mixedPrivates: Type.Optional(Type.Literal(true)),
+            /** The tax haven's money buys it further shares (§6.1.2). */
+            taxHavenShares: Type.Optional(Type.Literal(true))
+        },
+        { additionalProperties: false }
+    ),
+    /** The private companies removed at random during setup, which take no part (§2.1.7). */
+    removedPrivateIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
+    /** The major and minor companies a scenario plays without (§6.2.1). */
+    removedCompanyIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
+    /** The stock round in which the tax haven last bought a share; it buys one a round (§6.1.2). */
+    taxHavenPurchaseRound: Type.Optional(Type.Integer({ minimum: 1 })),
     /** What each player owes on loans taken to buy a train, interest included (§4.2, §5.17.2). */
     playerLoans: Type.Array(
         Type.Object(

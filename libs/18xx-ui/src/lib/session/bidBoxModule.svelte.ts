@@ -42,18 +42,19 @@ export type BidBoxLot = {
     reason?: string
 }
 
-type DraftStages = { bids: BidRequest[] }
-const DraftOrder = ['bids'] as const satisfies readonly (keyof DraftStages)[]
+type DraftStages = { bid: BidRequest }
+const DraftOrder = ['bid'] as const satisfies readonly (keyof DraftStages)[]
 
 type BoxedState = BidBoxState & { bidBoxes: BidBoxes }
 
 /**
- * Bidding in the boxes of a stock round (1822 §4.9): a turn's bids are prepared one at a time and
- * placed together as one Action. Each press on a bid is a step Undo takes back.
+ * Bidding in the boxes of a stock round (1822 §4.9): the player prepares a bid in one box, sets
+ * its amount and places it as one Action; the turn may go on to place more. Preparing a bid in
+ * another box drops the first. Each press on a bid is a step Undo takes back.
  */
 export class BidBoxModule {
     #draft = $state<StagedSelectionState<DraftStages>>({})
-    /** The prepared bids as a staged selection, for the session's Undo. */
+    /** The prepared bid as a staged selection, for the session's Undo. */
     readonly selection: LocalSelection = undoableStagedSelection(
         DraftOrder,
         () => this.#draft,
@@ -75,9 +76,9 @@ export class BidBoxModule {
     readonly canBid = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('PlaceBids')
     )
-    /** The bids prepared this turn, in the order they were made. */
-    readonly drafted = $derived.by((): readonly BidRequest[] =>
-        this.canBid ? (getStagedSelectionValue<DraftStages, 'bids'>(this.#draft, 'bids') ?? []) : []
+    /** The bid being prepared, if any. */
+    readonly drafted = $derived.by((): BidRequest | undefined =>
+        this.canBid ? getStagedSelectionValue<DraftStages, 'bid'>(this.#draft, 'bid') : undefined
     )
     private get boxRules() {
         const rules = this.rules
@@ -85,15 +86,16 @@ export class BidBoxModule {
         return rules
     }
     readonly bidsPerTurn = $derived.by(() => this.boxRules.bidsPerTurn)
+    /** The bids the turn has placed so far. */
+    readonly bidsThisTurn = $derived.by(() =>
+        this.canBid ? (this.state?.bidBoxes.turnBids ?? 0) : 0
+    )
     readonly increment = $derived.by(() => this.boxRules.increment)
 
-    private evaluate(bids: readonly BidRequest[]) {
+    private evaluate(bid: BidRequest) {
         const playerId = this.session.playerId
         if (!this.state || !this.rules || !playerId) return { reason: 'Bidding is closed.' }
-        return evaluateBids(this.state, this.rules, playerId, bids)
-    }
-    private withBid(lotId: string, amount: number): BidRequest[] {
-        return [...this.drafted.filter((bid) => bid.lotId !== lotId), { lotId, amount }]
+        return evaluateBids(this.state, this.rules, playerId, [bid])
     }
 
     readonly lots = $derived.by((): readonly BidBoxLot[] => {
@@ -104,10 +106,10 @@ export class BidBoxModule {
             const bids = state.bidBoxes.bids
                 .filter((bid) => bid.lotId === lotId)
                 .toSorted((a, b) => b.amount - a.amount)
-            const drafted = this.drafted.find((bid) => bid.lotId === lotId)?.amount
+            const drafted = this.drafted?.lotId === lotId ? this.drafted.amount : undefined
             if (!this.canBid) return { boxId, lotId, bids }
             const lowest = lowestBid(state, rules, lotId)
-            const reason = this.evaluate(this.withBid(lotId, drafted ?? lowest)).reason
+            const reason = this.evaluate({ lotId, amount: drafted ?? lowest }).reason
             return {
                 boxId,
                 lotId,
@@ -133,25 +135,25 @@ export class BidBoxModule {
     tokensFree(playerId: string): number {
         const state = this.state
         if (!state || !this.rules) return 0
-        const drafted = playerId === this.session.playerId ? this.drafted : []
+        const drafted = playerId === this.session.playerId ? this.drafted : undefined
         const lots = new Set([
             ...state.bidBoxes.bids
                 .filter((bid) => bid.playerId === playerId)
                 .map((bid) => bid.lotId),
-            ...drafted.map((bid) => bid.lotId)
+            ...(drafted ? [drafted.lotId] : [])
         ])
         return Math.max(0, this.rules.tokens(state, playerId) - lots.size)
     }
     tokens(playerId: string): number {
         return this.state && this.rules ? this.rules.tokens(this.state, playerId) : 0
     }
-    /** What a player's highest bids commit of their cash, the prepared bids included for the bidder. */
-    committed(playerId: string): number {
+    /** The cash a player's highest bids reserve, the prepared bid included for the bidder. */
+    reserved(playerId: string): number {
         const state = this.state
         if (!state) return 0
-        if (playerId !== this.session.playerId || !this.drafted.length)
+        if (playerId !== this.session.playerId || !this.drafted)
             return committedCash(state, playerId)
-        const bids = withBids(state.bidBoxes.bids, playerId, this.drafted)
+        const bids = withBids(state.bidBoxes.bids, playerId, [this.drafted])
         return committedCash({ ...state, bidBoxes: { ...state.bidBoxes, bids } }, playerId)
     }
     cash(playerId: string): number {
@@ -166,40 +168,28 @@ export class BidBoxModule {
         if (amount % this.increment !== 0) return `Bids go up in steps of ${money(this.increment)}.`
         return this.draftReason(lot.lotId, amount)
     }
-    /** Why the player may not prepare this bid beside those already prepared. */
+    /** Why the player may not prepare this bid. */
     draftReason(lotId: string, amount: number): string | undefined {
-        return this.canBid
-            ? this.evaluate(this.withBid(lotId, amount)).reason
-            : 'Bidding is closed.'
+        return this.canBid ? this.evaluate({ lotId, amount }).reason : 'Bidding is closed.'
     }
     canDraft(lotId: string, amount: number): boolean {
         return !this.draftReason(lotId, amount)
     }
-    /** Prepares a bid on a lot, or changes the one prepared. */
+    /** Prepares a bid on a lot in place of any other, or changes its amount. */
     draft(lotId: string, amount: number): void {
         assert(this.canDraft(lotId, amount), 'This bid cannot be made')
-        this.#draft = pushStagedSelectionValue(
-            this.#draft,
-            DraftOrder,
-            'bids',
-            this.withBid(lotId, amount)
-        )
-    }
-    /** Takes a prepared bid off its lot. */
-    withdraw(lotId: string): void {
-        this.#draft = pushStagedSelectionValue(
-            this.#draft,
-            DraftOrder,
-            'bids',
-            this.drafted.filter((bid) => bid.lotId !== lotId)
-        )
+        this.#draft = pushStagedSelectionValue(this.#draft, DraftOrder, 'bid', { lotId, amount })
     }
     readonly canPlace = $derived.by(
-        () => this.canBid && this.drafted.length > 0 && !this.evaluate(this.drafted).reason
+        () => this.canBid && !!this.drafted && !this.evaluate(this.drafted).reason
     )
     async place(): Promise<void> {
-        assert(this.canPlace, 'Prepare a bid to place')
-        const bids = this.drafted.map(({ lotId, amount }) => ({ lotId, amount }))
-        await this.session.applyAction(this.session.createPlayerAction(PlaceBids, { bids }))
+        const bid = this.drafted
+        assert(this.canPlace && bid, 'Prepare a bid to place')
+        await this.session.applyAction(
+            this.session.createPlayerAction(PlaceBids, {
+                bids: [{ lotId: bid.lotId, amount: bid.amount }]
+            })
+        )
     }
 }

@@ -19,6 +19,9 @@ export function recordedRunRoutes(run: RunTrains): readonly (TrainRoute | RouteR
     return run.metadata?.routes ?? run.routes
 }
 
+/** What a run's payment to the treasury beside its revenue is called where a title names nothing. */
+export const DefaultRunSubsidyName = 'subsidy to the treasury'
+
 /** The hexes the trains' runs stand on: each start and its track, a run at one station having no track. */
 export function runLocationIds(routes: readonly Pick<TrainRoute, 'start' | 'paths'>[]): string[] {
     return [

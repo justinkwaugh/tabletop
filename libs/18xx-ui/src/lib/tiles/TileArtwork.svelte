@@ -83,8 +83,10 @@
             (face.symbols ?? []).every((symbol) => symbol === 'port'),
             'Unsupported tile symbol'
         )
-        return color
+        return drawing.inkGround ? appearance.ink : color
     })
+    // A hex printed in ink prints its annotations in the paper's colour.
+    const annotationInk = $derived(drawing.inkGround ? appearance.paper : appearance.ink)
     const styleId = $derived(
         `tile-style-${appearance.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
     )
@@ -244,7 +246,7 @@
         {/if}
     {/each}
     <g fill="none" stroke-linecap="butt" filter={trackInkFilter}>
-        {#each drawing.paths as path (path.id)}
+        {#each drawing.paths.filter((path) => !path.hidden) as path (path.id)}
             {#if path.pier}
                 {@const { base, tip } = path.pier}
                 {@const angle = (Math.atan2(tip.y - base.y, tip.x - base.x) * 180) / Math.PI}
@@ -280,7 +282,7 @@
                 />
             {/if}
         {/each}
-        {#each drawing.paths.filter((path) => !path.spike && !path.pier) as path (path.id)}
+        {#each drawing.paths.filter((path) => !path.spike && !path.pier && !path.hidden) as path (path.id)}
             <g data-path-id={path.id} data-track-gauge={path.gauge}>
                 <TrackStrokes d={path.d} strokes={trackInk(appearance, path.gauge)} />
             </g>
@@ -396,24 +398,42 @@
         </g>
     {/each}
     {@render overlays?.(drawing)}
-    <g class="annotations" text-anchor="middle" fill={appearance.ink}>
+    <g class="annotations" text-anchor="middle" fill={annotationInk}>
+        {#each drawing.printedText as text, index (index)}
+            <text
+                data-tile-printed-text
+                x={text.at.x}
+                y={text.at.y}
+                dy={centredTextShift(text.fontSize)}
+                font-size={text.fontSize}
+                font-weight={labelFont.weight}
+                font-family={labelFont.family}>{text.content}</text
+            >
+        {/each}
         {#if face.upgradeCost !== undefined}
+            {@const bare = drawing.upgradeCostText}
+            {@const size = bare ? 7 : 6.5}
             <g
                 data-tile-upgrade-cost
                 transform={`translate(${drawing.upgradeCostPosition.x} ${drawing.upgradeCostPosition.y})`}
             >
-                <rect
-                    x="-9"
-                    y="-5"
-                    width="18"
-                    height="10"
-                    rx="1"
-                    fill={appearance.paper}
-                    stroke={appearance.ink}
-                    stroke-width="0.5"
-                ></rect>
-                <text dy={centredTextShift(6.5)} font-size="6.5" font-weight="650"
-                    >{face.upgradeCost}</text
+                {#if !bare}<rect
+                        x="-9"
+                        y="-5"
+                        width="18"
+                        height="10"
+                        rx="1"
+                        fill={appearance.paper}
+                        stroke={appearance.ink}
+                        stroke-width="0.5"
+                    ></rect>{/if}
+                <text
+                    dy={centredTextShift(size)}
+                    font-size={size}
+                    font-weight={bare ? labelFont.weight : 650}
+                    font-family={bare ? labelFont.family : undefined}
+                    fill={bare ? undefined : appearance.ink}
+                    >{bare?.prefix ?? ''}{face.upgradeCost}</text
                 >
             </g>
         {/if}
@@ -483,7 +503,7 @@
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 750}
-                                >{node.revenue.amount}</text
+                                fill={appearance.ink}>{node.revenue.amount}</text
                             >
                         {/if}
                     {:else}

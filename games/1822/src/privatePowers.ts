@@ -17,18 +17,22 @@ import {
     type PrivatePowerRules,
     type PrivateTrackTerms,
     type StepAction,
+    type TileEdge,
     type TileFace,
     type TrackLayDetails,
     type TrackRequest
 } from '@tabletop/18xx'
 import { ActionSource, assert, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
+import { HexSides } from './faces.js'
 import { layRestriction1822 } from './layRestriction.js'
-import { lotKind1822 } from './lots.js'
 import { Map1822 } from './map.js'
 import {
     AdvancedTileLayPrivateId,
     ExtraTileLayPrivateId,
+    GrimsbyLocationId,
+    HullLocationId,
+    HumberBridgePrivateId,
     MoveCardPrivateId,
     RemoveSmallStationPrivateId,
     RiverDiscountPrivateId,
@@ -37,8 +41,13 @@ import {
 import { addDiscountTokens } from './privateAcquisition.js'
 import { requireState1822, type HydratedState1822 } from './state.js'
 import { trackCompany1822 } from './turn.js'
-import { TileColorOrder1822, TileSet1822, Tiles1822 } from './tiles.js'
-import { exchangeTokens1822, releaseExchangeToken1822, returnExchangeToken1822 } from './tokens.js'
+import { TileColorOrder1822, TileSet1822, Tiles1822, tileDefinition1822 } from './tiles.js'
+import {
+    exchangeTokens1822,
+    placedStations1822,
+    releaseExchangeToken1822,
+    returnExchangeToken1822
+} from './tokens.js'
 import { Phases1822 } from './trains.js'
 import type { DiscountTokenKind } from './titleState.js'
 
@@ -46,6 +55,18 @@ const Yellow = 'yellow'
 /** The operating turn's marks: an advanced lay taken, and P12's first extra yellow tile laid. */
 export const AdvancedLayMark = 'advanced-lay'
 export const ExtraLayMark = 'extra-lay'
+/** The turn's mark that P12's extra lays came after the turn's own track, which then is over. */
+const ExtrasAfterTrackMark = 'extra-lay-after-track'
+/** The turn's marks of P21's lays: the city each was made in, and that one was an upgrade. */
+const HumberUpgradeMark = 'humber-upgrade'
+function humberLayMark(locationId: string): string {
+    return `humber-lay:${locationId}`
+}
+const HumberLocationIds: readonly string[] = [HullLocationId, GrimsbyLocationId]
+/** Whether the company has laid with P21 this turn, which is then its track for the turn (Table 3). */
+export function humberBridgeLaid1822(state: HydratedState1822): boolean {
+    return HumberLocationIds.some((id) => hasTurnMark(state, humberLayMark(id)))
+}
 /** The turn's mark that the next lay spends a discount token of the kind (Table 3: P8, P10). */
 export function discountTokenMark(kind: DiscountTokenKind): string {
     return `discount-token:${kind}`
@@ -94,6 +115,72 @@ function nextColor(state: { phaseId: string }, minor: boolean): string | undefin
     return next && (!minor || next === 'green') ? next : undefined
 }
 
+/** Whether the company has made any of the turn's own track lays, a private's in their place included. */
+function ownTrackLaid(state: HydratedState1822): boolean {
+    return (
+        !!state.trackStep?.lays.length ||
+        hasTurnMark(state, AdvancedLayMark) ||
+        humberBridgeLaid1822(state)
+    )
+}
+
+/**
+ * P12's extra lays all come before the turn's own track or all after it (the designer's ruling,
+ * BoardGameGeek thread 2425653): once they have followed it, the company lays no more of its own.
+ */
+export function extraLaysEndedTrack1822(state: HydratedState1822): boolean {
+    return hasTurnMark(state, ExtrasAfterTrackMark)
+}
+
+/** The side of Hull and of Grimsby that faces the other across the Humber. */
+const HumberEdges: Readonly<Record<string, TileEdge>> = {
+    [HullLocationId]: HexSides.south,
+    [GrimsbyLocationId]: HexSides.north
+}
+
+/**
+ * P21's lays: yellow tiles in Hull and Grimsby, one in each, whose track crosses the Humber, at
+ * no terrain cost. From phase 3 one of the two may be a green upgrade of a yellow tile already
+ * there. They are the company's track for the turn, and it needs a station in either city
+ * (Table 3).
+ */
+function humberTerms(state: HydratedState1822, companyId: string): PrivateTrackTerms | undefined {
+    const begun = humberBridgeLaid1822(state)
+    const stationed = placedStations1822(state).some(
+        (station) =>
+            station.companyId === companyId &&
+            HumberLocationIds.includes(station.position.locationId)
+    )
+    if (!stationed || (!begun && state.trackStep?.lays.length)) return undefined
+    if (hasTurnMark(state, AdvancedLayMark) || extraLaysEndedTrack1822(state)) return undefined
+    const upgrades =
+        Phases1822.isAtLeast(state.phaseId, '3') && !hasTurnMark(state, HumberUpgradeMark)
+    const colors = upgrades ? [Yellow, 'green'] : [Yellow]
+    const mapState = new RailwayMapState(Map1822, TileSet1822, state.tileInventory)
+    return {
+        companyId,
+        locationIds: HumberLocationIds.filter((id) => !hasTurnMark(state, humberLayMark(id))),
+        definitionIds: Tiles1822.filter((tile) => colors.includes(tile.face.color)).map(
+            (tile) => tile.id
+        ),
+        payer: { kind: 'company', companyId },
+        connected: false,
+        free: true,
+        reusable: true,
+        colors,
+        restriction(request) {
+            const edge = HumberEdges[request.locationId]
+            const tile = mapState.tile(request.locationId)
+            const { face } = tileDefinition1822(request.definitionId)
+            const before = tileExits(rotateTileFace(tile.face, tile.rotation))
+            const after = tileExits(rotateTileFace(face, request.rotation))
+            return after.has(edge) && !before.has(edge)
+                ? layRestriction1822(state, request)
+                : 'P21’s track crosses the Humber.'
+        }
+    }
+}
+
 /** The single small station of a hex, if that is all it has (§3.1.14). */
 function loneTownId(face: TileFace): string | undefined {
     const stops = face.nodes.filter((node) => node.kind !== 'junction')
@@ -112,7 +199,8 @@ export function advancedColor1822(
         privateOwningCompany(state, AdvancedTileLayPrivateId) !== companyId ||
         privatePowerUsed(state, AdvancedTileLayPrivateId) ||
         state.trackStep?.companyId !== companyId ||
-        state.trackStep.lays.length
+        state.trackStep.lays.length ||
+        humberBridgeLaid1822(requireState1822(state))
     )
         return undefined
     const next = nextColor(requireState1822(state), getCompany(state, companyId).kind === 'minor')
@@ -132,6 +220,7 @@ function trackTerms(
         state.trackStep?.companyId !== companyId
     )
         return undefined
+    if (privateCompanyId === HumberBridgePrivateId) return humberTerms(state, companyId)
     const minor = getCompany(state, companyId).kind === 'minor'
     const payer = { kind: 'company' as const, companyId }
     const restriction = (request: TrackRequest) => layRestriction1822(state, request)
@@ -179,6 +268,14 @@ function trackTerms(
     }
     // P12 lays an extra yellow tile, two for a major company, or one extra upgrade (Table 3).
     if (privateCompanyId === ExtraTileLayPrivateId) {
+        // Its second tile is given up once the turn's own track follows its first (the ruling
+        // cited at `extraLaysEndedTrack1822`).
+        if (
+            hasTurnMark(state, ExtraLayMark) &&
+            !hasTurnMark(state, ExtrasAfterTrackMark) &&
+            ownTrackLaid(state)
+        )
+            return undefined
         const colors = layableColors(state, minor).filter(
             (color) => color === Yellow || !hasTurnMark(state, ExtraLayMark)
         )
@@ -210,6 +307,14 @@ function afterTrackLay(
         return closes
     }
     const face = Tiles1822.find((tile) => tile.id === details.definitionId)?.face
+    // P21 closes with its second lay, or with the track step if it made only one (Table 3).
+    if (privateCompanyId === HumberBridgePrivateId) {
+        markTurn(state, humberLayMark(details.locationId))
+        if (face?.color !== Yellow) markTurn(state, HumberUpgradeMark)
+        return HumberLocationIds.every((id) => hasTurnMark(state, humberLayMark(id)))
+            ? closes
+            : stays
+    }
     // P2's plain track in a colour not yet available was laid with P11 too (§3.1.13).
     if (
         privateCompanyId === RemoveSmallStationPrivateId &&
@@ -220,6 +325,7 @@ function afterTrackLay(
         return { payments: [], closedPrivateIds: [privateCompanyId, AdvancedTileLayPrivateId] }
     }
     if (privateCompanyId !== ExtraTileLayPrivateId) return closes
+    if (ownTrackLaid(state)) markTurn(state, ExtrasAfterTrackMark)
     const major = getCompany(state, details.companyId).kind === 'major'
     if (face?.color === Yellow && major && !hasTurnMark(state, ExtraLayMark)) {
         markTurn(state, ExtraLayMark)
@@ -228,10 +334,15 @@ function afterTrackLay(
     return closes
 }
 
-/** P12 closes with the track step in which a major company laid only one of its two extra tiles (Table 3). */
-export function closeSpentExtraLay1822(state: HydratedState1822): void {
+/**
+ * P12 closes with the track step in which a major company laid only one of its two extra tiles,
+ * and P21 with the step in which it laid in only one of its cities (Table 3).
+ */
+export function closeSpentTrackPowers1822(state: HydratedState1822): void {
     if (hasTurnMark(state, ExtraLayMark) && !getCompany(state, ExtraTileLayPrivateId).closed)
         closePrivate(state, ExtraTileLayPrivateId)
+    if (humberBridgeLaid1822(state) && !getCompany(state, HumberBridgePrivateId).closed)
+        closePrivate(state, HumberBridgePrivateId)
 }
 
 export const PrivatePowerRules1822: PrivatePowerRules = {
@@ -424,9 +535,8 @@ export class HydratedMoveStackCard extends MoveStackCardAction.Base {
     }
     apply(state: HydratedState1822): void {
         assert(this.isValid(state), 'P17 moves a certificate still in its stack')
-        const kind = lotKind1822(this.lotId)
         state.bidBoxes.stacks = state.bidBoxes.stacks.map((stack) => {
-            if (stack.id !== kind) return stack
+            if (!stack.lotIds.includes(this.lotId)) return stack
             const rest = stack.lotIds.filter((lotId) => lotId !== this.lotId)
             return {
                 ...stack,

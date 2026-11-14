@@ -1,6 +1,6 @@
 import { assertExists, type Point } from '@tabletop/common'
 import type { RoutePath } from '@tabletop/18xx'
-import { TileRadius, type TileDrawnNode } from '../tiles/tileDrawing.js'
+import { TileApothem, type TileDrawnNode } from '../tiles/tileDrawing.js'
 import { tilePathPoint, type TileDrawnPath, type TrackSpike } from '../tiles/tileTrackGeometry.js'
 import type { MapDrawing, MapRoute } from './mapDrawing.js'
 
@@ -158,9 +158,8 @@ function unitNormal(from: Point, to: Point): Point {
 
 /** Measured one way along the side both hexes share, so lanes meet across it. */
 function hexSideSign(point: Point, normal: Point): number | undefined {
-    const apothem = (TileRadius * Math.sqrt(3)) / 2
     const distance = Math.hypot(point.x, point.y)
-    if (distance < apothem * 0.9) return undefined
+    if (distance < TileApothem * 0.9) return undefined
     let along = { x: -point.y / distance, y: point.x / distance }
     if (along.x < -1e-6 || (Math.abs(along.x) <= 1e-6 && along.y < 0))
         along = { x: -along.x, y: -along.y }

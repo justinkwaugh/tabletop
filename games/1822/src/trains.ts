@@ -1,4 +1,5 @@
 import { PhaseTable, TrainDepot, revenueStagesByPhase } from '@tabletop/18xx'
+import { Scenarios1822, StandardSetup1822 } from './scenarios.js'
 
 // A numbered train reaches that many stations, towns counting (§5.5.4).
 const stations = (maximum: number) => ({ measure: 'revenue-centers' as const, maximum })
@@ -13,6 +14,7 @@ const local = {
 }
 
 export const LocalTrainId = 'L'
+const Standard = StandardSetup1822.trains
 export const ElectricTrainId = 'E'
 /** The permanent 2-train of private companies P3 and P4 (§5.5.13). */
 export const PermanentTwoTrainId = '2P'
@@ -22,9 +24,6 @@ export const PermanentLocalTrainId = 'LP'
 export const PermanentTrainIds: readonly string[] = [PermanentTwoTrainId, PermanentLocalTrainId]
 /** The Pullman carriage of private companies P13 and P14 (§5.5.6, §5.5.14). */
 export const PullmanTrainId = 'P+'
-
-/** An L train is flipped to a 2-train for this, as a train purchase (§5.5.7, Table 7). */
-export const LocalUpgradePrice1822 = 80
 
 /** The trains that come with private companies, by the private's id (§3.1.18). */
 export const PrivateTrains1822: Readonly<Record<string, { id: string; definitionId: string }>> = {
@@ -71,13 +70,17 @@ export const TrainDepot1822 = new TrainDepot({
         { id: PullmanTrainId, name: 'P+', price: 0, distance: stations(1), attachment: true }
     ],
     supply: [
-        { definitionId: LocalTrainId, variantDefinitionIds: ['2'], count: 22 },
-        { definitionId: '3', count: 9 },
-        { definitionId: '4', count: 6 },
-        { definitionId: '5', count: 3 },
-        { definitionId: '6', count: 3 },
+        { definitionId: LocalTrainId, variantDefinitionIds: ['2'], count: Standard[LocalTrainId] },
+        ...['3', '4', '5', '6'].map((definitionId) => ({
+            definitionId,
+            count: Standard[definitionId]
+        })),
         { definitionId: '7', variantDefinitionIds: [ElectricTrainId], count: 'unlimited' }
     ],
+    // Each scenario's bank holds fewer trains (§6.2.1; scenario pack, Train Mix sheet).
+    supplyVariants: Object.fromEntries(
+        Scenarios1822.map((scenario) => [scenario.id, scenario.trains])
+    ),
     assignedTrains: Object.values(PrivateTrains1822)
 })
 

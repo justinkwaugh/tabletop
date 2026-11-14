@@ -4,6 +4,8 @@ import {
     laidTileFace,
     sameStopCounts,
     type ConstructionState,
+    type TileFace,
+    type TrackRequest,
     type TrackRules
 } from '@tabletop/18xx'
 import { major1822, minor1822 } from './companies.js'
@@ -17,11 +19,14 @@ import {
     AdvancedLayMark,
     advancedColor1822,
     discountTokensSpent1822,
+    extraLaysEndedTrack1822,
+    humberBridgeLaid1822,
     spendDiscountTokens1822,
     terrainCost1822
 } from './privatePowers.js'
+import { setupOf1822, type TurnLays1822 } from './scenarios.js'
 import { requireState1822 } from './state.js'
-import { TileColorOrder1822, TileSet1822 } from './tiles.js'
+import { TileColorOrder1822, TileSet1822, tileDefinition1822 } from './tiles.js'
 import { Phases1822 } from './trains.js'
 
 const Yellow = 'yellow'
@@ -41,13 +46,49 @@ function upgradeColors(state: ConstructionState, minor: boolean): readonly strin
     return minor ? available.filter((color) => color === 'green') : available
 }
 
+/** A minor company lays one tile a turn: a yellow tile or an upgrade (§5.8.13). */
+const MinorLays: readonly TurnLays1822[] = [
+    { yellow: 1, upgrades: 0 },
+    { yellow: 0, upgrades: 1 }
+]
+
+/**
+ * The tiles a company may lay in one turn, as the mixes of yellow tiles and upgrades open to it
+ * (§5.8.13; scenario pack, General sheet).
+ */
+function turnLaysOpen(state: ConstructionState, minor: boolean): readonly TurnLays1822[] {
+    if (minor) return MinorLays
+    const { early, later } = setupOf1822(requireState1822(state)).majorLays
+    return Phases1822.isAtLeast(state.phaseId, '3') ? later : early
+}
+
+function isCityFace(face: TileFace): boolean {
+    return face.nodes.some((node) => node.kind === 'city')
+}
+
+/** Where a turn makes two upgrades, as the Mini Game allows, neither is of a city (General sheet). */
+function secondUpgradeRestriction(
+    state: ConstructionState,
+    request: TrackRequest
+): string | undefined {
+    const { face } = tileDefinition1822(request.definitionId)
+    if (face.color === Yellow) return undefined
+    const upgraded = (state.trackStep?.lays ?? [])
+        .map((lay) => laidTileFace(state, TrackRules1822, lay))
+        .filter((laid) => laid.color !== Yellow)
+    return upgraded.length && [face, ...upgraded].some(isCityFace)
+        ? 'Two upgrades in a turn are of track and small stations only.'
+        : undefined
+}
+
 export const TrackRules1822: TrackRules = {
     map: Map1822,
     tileSet: TileSet1822,
     colorOrder: TileColorOrder1822,
     availableColors: (state) => Phases1822.phase(state.phaseId).tileColors,
     // A minor company lays one tile a turn, yellow or from phase 3 a green upgrade. A major lays
-    // one yellow tile in phase 2, and from phase 3 two yellow tiles or one upgrade (§5.8.13).
+    // one yellow tile in phase 2, and from phase 3 two yellow tiles or one upgrade (§5.8.13); the
+    // full-map scenarios let it lay more (§6.2.1).
     allowance(state, color) {
         const companyId = state.trackStep?.companyId
         if (!companyId) return { reason: 'No company is laying track.' }
@@ -56,17 +97,34 @@ export const TrackRules1822: TrackRules = {
         // P11's early upgrade is the turn's track (Table 3).
         if (hasTurnMark(requireState1822(state), AdvancedLayMark))
             return { reason: 'The advanced tile lay was the turn’s track.' }
-        if (upgrades) return { reason: 'An upgrade is the turn’s only tile.' }
-        if (color !== Yellow) {
-            if (yellow) return { reason: 'A turn lays yellow tiles or one upgrade, not both.' }
-            // The colour P11 lays early is the turn's track like any upgrade (§3.1.13).
-            return upgradeColors(state, minor).includes(color) ||
-                color === advancedColor1822(requireState1822(state), companyId)
-                ? { cost: 0 }
-                : { reason: 'This company may not lay that colour.' }
+        if (extraLaysEndedTrack1822(requireState1822(state)))
+            return { reason: 'P12’s extra tiles followed the turn’s track, which is over.' }
+        // So are P21's tiles across the Humber (Table 3).
+        if (humberBridgeLaid1822(requireState1822(state)))
+            return { reason: 'The Humber bridge was the turn’s track.' }
+        // The colour P11 lays early is the turn's track like any upgrade (§3.1.13).
+        if (
+            color !== Yellow &&
+            !upgradeColors(state, minor).includes(color) &&
+            color !== advancedColor1822(requireState1822(state), companyId)
+        )
+            return { reason: 'This company may not lay that colour.' }
+        const next = {
+            yellow: yellow + (color === Yellow ? 1 : 0),
+            upgrades: upgrades + (color === Yellow ? 0 : 1)
         }
-        const limit = minor || !Phases1822.isAtLeast(state.phaseId, '3') ? 1 : 2
-        return yellow < limit ? { cost: 0 } : { reason: 'No yellow tile remains this turn.' }
+        if (
+            turnLaysOpen(state, minor).some(
+                (allowed) => next.yellow <= allowed.yellow && next.upgrades <= allowed.upgrades
+            )
+        )
+            return { cost: 0 }
+        if (color === Yellow) return { reason: 'No yellow tile remains this turn.' }
+        return {
+            reason: upgrades
+                ? 'No upgrade remains this turn.'
+                : 'The yellow tiles laid leave no upgrade this turn.'
+        }
     },
     preservesStops: sameStopCounts,
     // The first tile on the Swansea hex is a yellow city tile, which takes away the printed small
@@ -101,7 +159,8 @@ export const TrackRules1822: TrackRules = {
         const home = minor1822(companyId)?.home
         return home ? [home.locationId] : []
     },
-    restriction: layRestriction1822,
+    restriction: (state, request) =>
+        layRestriction1822(state, request) ?? secondUpgradeRestriction(state, request),
     consentPlayerId: londonConsentPlayerId1822,
     otherConsentPlayerIds: londonOtherConsentPlayerIds1822
 }

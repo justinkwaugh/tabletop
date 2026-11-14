@@ -59,14 +59,14 @@ import {
     private1822
 } from './privates.js'
 import { ConcessionRevenue1822, FaceValues1822 } from './setup.js'
-import { requireState1822 } from './state.js'
+import { setupOf1822 } from './scenarios.js'
+import { requireState1822, type HydratedState1822 } from './state.js'
 import { StockRules1822 } from './stock.js'
-import { EndGameSpaceId1822, Market1822 } from './stockMarket.js'
+import { Market1822, endsGameAt1822 } from './stockMarket.js'
 import {
     ElectricTrainId,
     ExtraTrainIds1822,
     LocalTrainId,
-    LocalUpgradePrice1822,
     MinorTrainLimits1822,
     PermanentTrainIds,
     Phases1822,
@@ -196,13 +196,12 @@ function isExtraTrain(definitionId: string): boolean {
 
 export const TrainRules1822: TrainRules = {
     depot: TrainDepot1822,
-    // In phases 1 and 2 an L train is flipped to a 2-train for £80, as a train purchase (§5.15.4).
-    exchangePrice: (state, _companyId, definitionId, train) =>
-        definitionId === '2' &&
-        train.definitionId === LocalTrainId &&
-        !Phases1822.isAtLeast(state.phaseId, '3')
-            ? LocalUpgradePrice1822
-            : undefined,
+    // In phases 1 and 2 an L train is flipped to a 2-train for £80, as a train purchase
+    // (§5.15.4); some scenarios lower that, at once or from phase 2 (§6.2.1).
+    exchangePrice(state, _companyId, definitionId, train) {
+        if (definitionId !== '2' || train.definitionId !== LocalTrainId) return undefined
+        return setupOf1822(requireState1822(state)).localUpgradePrices[state.phaseId]
+    },
     exchangedTrainDestination: 'depot',
     // Every operating company must own a train at the end of its turn (§5.5.2).
     requiresTrain: () => true,
@@ -345,10 +344,15 @@ export const TrainFundingRules1822: TrainFundingRules = {
     }
 }
 
-/** Whether a company's marker stands on the value that ends the game (§1.3.1). */
-function reachedEndValue(state: EndingState): boolean {
+/**
+ * Whether a company's marker stands on a value that ends the game: the chart's last space, or in
+ * a scenario any space of its lower game end value (§1.3.1, §6.2.1).
+ */
+function reachedEndValue(state: HydratedState1822): boolean {
+    const { endPrice } = setupOf1822(state)
     return state.stockMarket.stacks.some(
-        (stack) => stack.spaceId === EndGameSpaceId1822 && stack.companyIds.length > 0
+        (stack) =>
+            stack.companyIds.length > 0 && endsGameAt1822(Market1822.space(stack.spaceId), endPrice)
     )
 }
 

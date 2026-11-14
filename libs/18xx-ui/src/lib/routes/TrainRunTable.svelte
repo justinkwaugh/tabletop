@@ -2,7 +2,8 @@
     import type { MoneyFormat } from '../presentation/money.js'
     import { isObsoleteTrain, type OperatingResult, type Train } from '@tabletop/18xx'
     import TrainBadge from '../trains/TrainBadge.svelte'
-    import { routeColor } from './routePresentation.js'
+    import { capitalized } from '../presentation/words.js'
+    import { DefaultRunSubsidyName, routeColor } from './routePresentation.js'
 
     let {
         money,
@@ -18,6 +19,7 @@
         attachments = [],
         movableAttachments = [],
         onAttach,
+        subsidyName = DefaultRunSubsidyName,
         bonusName
     }: {
         money: MoneyFormat
@@ -36,6 +38,8 @@
         /** The rolling stock the chosen train could take over, offered under its row. */
         movableAttachments?: readonly Train[]
         onAttach?: (attachmentId: string) => void
+        /** What the run's payment to the treasury beside its revenue is called. */
+        subsidyName?: string
         /** Names what earned a route's bonus, so that each train's bonuses are listed under it. */
         bonusName?: (sourceId: string) => string
     } = $props()
@@ -121,7 +125,7 @@
     <tfoot
         ><tr><th scope="row">Total</th><td class="income">{money(result.revenue)}</td></tr
         >{#if result.subsidy}<tr class="subsidy"
-                ><th scope="row">Subsidy to treasury</th><td class="income"
+                ><th scope="row">{capitalized(subsidyName)}</th><td class="income"
                     >{money(result.subsidy)}</td
                 ></tr
             >{/if}</tfoot

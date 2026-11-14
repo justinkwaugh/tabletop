@@ -7,6 +7,7 @@ import type {
     RouteBonus
 } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
+import { DefaultRunSubsidyName } from '../routes/routePresentation.js'
 import {
     companyShareCount,
     isCloseCorporation,
@@ -335,7 +336,8 @@ export function historyDescription(
     poolName: (poolId: string) => string = (poolId) => {
         throw new Error(`Certificate pool ${poolId} needs the title's names`)
     },
-    certificates: HistoryCertificates = { charters: undefined }
+    certificates: HistoryCertificates = { charters: undefined },
+    runSubsidyName: string = DefaultRunSubsidyName
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -349,7 +351,8 @@ export function historyDescription(
         routeBonusName,
         place,
         poolName,
-        certificates
+        certificates,
+        runSubsidyName
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -371,7 +374,8 @@ function describeShared(
     routeBonusName: (sourceId: string) => string,
     place: (locationId: string) => string,
     poolName: (poolId: string) => string,
-    certificates: HistoryCertificates
+    certificates: HistoryCertificates,
+    runSubsidyName: string
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -503,7 +507,7 @@ function describeShared(
             detail: joinDetails(
                 runBonusesDetail(action.metadata.routes, money, routeBonusName, place),
                 action.metadata.subsidy
-                    ? `${money(action.metadata.subsidy)} subsidy to the treasury`
+                    ? `${money(action.metadata.subsidy)} ${runSubsidyName}`
                     : undefined
             )
         }

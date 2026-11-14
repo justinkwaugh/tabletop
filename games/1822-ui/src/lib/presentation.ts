@@ -10,15 +10,18 @@ import {
     PhaseCreditPrivateIds,
     PullmanTrainId,
     RiverDiscountPrivateId,
+    TaxHavenPrivateId,
     TitleRules1822,
     isAcquireMinor,
     isAcquirePrivate,
     isPlaceMetropolitanHome,
     isReachDestination,
     major1822,
+    scenario1822,
     type State1822
 } from '@tabletop/1822'
 import {
+    certificatesOwnedBy,
     finiteCashOwnedBy,
     getCompany,
     privateOwner,
@@ -31,6 +34,7 @@ import { PhaseChart1822 } from './phaseChart.js'
 import { PhaseColors1822, TrainColors1822 } from './trainPresentation.js'
 
 const money = moneyFormat(TitleRules1822.currencySymbol)
+const list = new Intl.ListFormat('en', { type: 'conjunction' })
 /** The trains that give their company a choice of run: the permanent trains and the Pullman. */
 const ChosenRunTrainIds: readonly string[] = [...PermanentTrainIds, PullmanTrainId]
 const place = (locationId: string) => Map1822.location(locationId).name ?? locationId
@@ -47,6 +51,26 @@ function destinationReached(state: State1822, companyId: string): boolean {
             station.position.locationId === major.destination.locationId &&
             station.position.nodeId === major.destination.nodeId
     )
+}
+
+/**
+ * What a private keeps on its charter while a player holds it: the tax haven its shares and
+ * dividends, P15 and P20 the money a company would take with them (Table 3).
+ */
+function charterHoldings(state: State1822, privateCompanyId: string): string | undefined {
+    const charter = { kind: 'company' as const, companyId: privateCompanyId }
+    const keepsCash = PhaseCreditPrivateIds.includes(privateCompanyId)
+    if (!keepsCash && privateCompanyId !== TaxHavenPrivateId) return undefined
+    if (privateOwner(state, privateCompanyId)?.kind !== 'player') return undefined
+    const cash = finiteCashOwnedBy(state, charter)
+    const held = [
+        ...certificatesOwnedBy(state, charter).map(
+            (certificate) =>
+                `a ${major1822(certificate.companyId)?.initials ?? certificate.companyId} share`
+        ),
+        ...(cash ? [money(cash)] : [])
+    ]
+    return held.length ? `Holds ${list.format(held)}` : undefined
 }
 
 function discountFacts(state: State1822, companyId: string): TitleFact[] {
@@ -70,6 +94,7 @@ export const Presentation1822: TitlePresentation<State1822> = {
     phaseColors: PhaseColors1822,
     marketPoolId: MarketPoolId1822,
     separateEarningsName: 'Permanent train',
+    runSubsidyName: 'mail income',
     // A company with a mail contract, a permanent train or a Pullman chooses among its best runs
     // (§5.13.6, §5.5.6). A run must earn the most possible, unless it is reduced for more mail
     // income.
@@ -91,13 +116,17 @@ export const Presentation1822: TitlePresentation<State1822> = {
         const loan = state.playerLoans.find((entry) => entry.playerId === playerId)
         return loan ? [{ label: 'Loan', value: money(loan.amount) }] : []
     },
-    gameFacts: (state) => [
-        ...(state.doubledCashPlayerId &&
-        state.machineState === 'StockRound' &&
-        state.cashDeclarationRound === state.stockRound.number
-            ? [{ label: 'P9', value: 'Double cash declared' }]
-            : [])
-    ],
+    gameFacts: (state) => {
+        const scenario = scenario1822(state.variants.scenario)
+        return [
+            ...(scenario ? [{ label: 'Scenario', value: scenario.name }] : []),
+            ...(state.doubledCashPlayerId &&
+            state.machineState === 'StockRound' &&
+            state.cashDeclarationRound === state.stockRound.number
+                ? [{ label: 'P9', value: 'Double cash declared' }]
+                : [])
+        ]
+    },
     companyOrigin: (state, companyId) => {
         const major = major1822(companyId)
         if (!major) return undefined
@@ -132,12 +161,11 @@ export const Presentation1822: TitlePresentation<State1822> = {
               ]
             : [],
     // P15 and P20 keep what they have paid on their charter for the company that takes them (Table 3).
-    privateStatus: (state, privateCompanyId) => {
-        if (!PhaseCreditPrivateIds.includes(privateCompanyId)) return undefined
-        if (privateOwner(state, privateCompanyId)?.kind !== 'player') return undefined
-        const held = finiteCashOwnedBy(state, { kind: 'company', companyId: privateCompanyId })
-        return held ? `Holds ${money(held)}` : undefined
-    },
+    privateStatus: (state, privateCompanyId) =>
+        PhaseCreditPrivateIds.includes(privateCompanyId)
+            ? charterHoldings(state, privateCompanyId)
+            : undefined,
+    privateHoldings: charterHoldings,
     // P8's standing discount and P10's on rivers (Table 3).
     terrainDiscounts: (state, companyId) => ({
         ...(state.hillDiscountCompanyId === companyId ? { hill: 20, mountain: 20 } : {}),
@@ -187,7 +215,7 @@ export const Presentation1822: TitlePresentation<State1822> = {
             color: MarketZoneColors1822.end,
             name: 'Game end',
             description:
-                'The game ends after the operating round in which a company’s value reaches £700.'
+                'The game ends after the operating round in which a company’s value reaches £700, or the lower value a scenario marks.'
         }
     ]
 }

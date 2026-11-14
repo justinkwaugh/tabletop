@@ -42,6 +42,12 @@ it.each([HexOrientation.Flat, HexOrientation.Pointy])(
         )
         expect(mapTrackJoins(scene)).toHaveLength(1)
         expect(mapTrackJoins({ ...scene, locations: scene.locations.slice(0, 1) })).toHaveLength(0)
+        const [firstTrack] = scene.locations[0].face.paths
+        const undrawn = createMapDrawing(scene.map, undefined, {
+            layouts: { 'location-0': { printedPaths: { [firstTrack.id]: 'hidden' } } }
+        })
+        // A track the print does not draw joins nothing at its side.
+        expect(mapTrackJoins(undrawn)).toHaveLength(0)
         const [first, second] = scene.locations
         const a = first.borders[0],
             b = second.borders[0]

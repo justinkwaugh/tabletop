@@ -1,5 +1,7 @@
 import {
     BidBoxSettlement1822,
+    EnglishChannelLocationId,
+    LondonLocationId,
     LnwrId,
     PhaseChanges1822,
     isAcquireMinor,
@@ -43,6 +45,8 @@ function trains(definitionIds: readonly string[]): string {
 }
 
 type Names = { companyName(id: string): string; playerName(id: string): string }
+/** Names with a place's, which the history shows as a link to it. */
+type PlaceNames = Names & { place(locationId: string): string }
 
 /** What a round's settled bids did beside selling the lots (§3.3.5, §4.10). */
 export function settlementDetails(details: BidBoxSettlement1822, names: Names): string[] {
@@ -74,7 +78,7 @@ export function settlementDetails(details: BidBoxSettlement1822, names: Names): 
 export function minorAcquisitionDetails(
     terms: { companyId: string; token: TokenChoice1822 },
     details: AcquisitionDetails1822,
-    names: Names & { place(locationId: string): string }
+    names: PlaceNames
 ): string[] {
     const company = names.companyName(terms.companyId)
     const director = details.playerId ? names.playerName(details.playerId) : undefined
@@ -120,23 +124,25 @@ export function minorAcquisitionDetails(
     ]
 }
 
-const PrivateChoices: Readonly<Record<NonNullable<AcquirePrivate['choice']>, string>> = {
-    token: 'Took its terrain token',
-    discount: 'Took its standing hill and mountain discount',
-    channel: 'Placed an exchange token in the English Channel',
-    upgrade: 'Upgraded the English Channel and placed an exchange token there',
-    available: 'Made an exchange token available'
+const PrivateChoices: Readonly<
+    Record<NonNullable<AcquirePrivate['choice']>, (channel: string) => string>
+> = {
+    token: () => 'Took its terrain token',
+    discount: () => 'Took its standing hill and mountain discount',
+    channel: (channel) => `Placed an exchange token in the ${channel}`,
+    upgrade: (channel) => `Upgraded the ${channel} and placed an exchange token there`,
+    available: () => 'Made an exchange token available'
 }
 
 /** What a company took with a private company (§3.1.7, Table 3). */
 export function privateAcquisitionDetails(
     choice: AcquirePrivate['choice'],
     details: PrivateAcquisitionDetails1822,
-    names: Names
+    names: PlaceNames
 ): string[] {
     return [
         `From ${names.playerName(details.playerId)}`,
-        ...(choice ? [PrivateChoices[choice]] : []),
+        ...(choice ? [PrivateChoices[choice](names.place(EnglishChannelLocationId))] : []),
         ...(details.upgradeCost ? [`Paid ${money(details.upgradeCost)} for the upgrade`] : []),
         ...(details.received ? [`Received ${money(details.received)}`] : []),
         ...(details.discardedDefinitionId
@@ -194,7 +200,7 @@ export function describe1822Action(session: {
             return {
                 text: `${companyName(action.companyId)} reached ${destination}`,
                 detail:
-                    action.companyId === LnwrId
+                    action.companyId === LnwrId || action.metadata?.stationId
                         ? 'Its station there is now its destination'
                         : 'Placed its destination token',
                 omitActor: true,
@@ -211,7 +217,7 @@ export function describe1822Action(session: {
             }
         if (isPlaceMetropolitanHome(action))
             return {
-                text: `Placed its home beside London’s ${LondonStationNames[action.nodeId]} station`,
+                text: `Placed its home beside ${place(LondonLocationId)}’s ${LondonStationNames[action.nodeId]} station`,
                 ...(action.metadata ? { value: money(action.metadata.cost) } : {})
             }
         if (isAcquirePrivate(action)) {

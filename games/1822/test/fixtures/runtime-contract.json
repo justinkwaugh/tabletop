@@ -35,7 +35,7 @@
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceMetropolitanHome": "24cfcc86baed6c569afe9bb7ae35de17b2652335fb220f9dbceb616463b08357",
     "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
-    "ReachDestination": "0f2483ca387db1bc436ac8a6acd32ad08bfe9e3ad4a313fb71d23594f6316de9",
+    "ReachDestination": "396a20d9bc5dc8936fb076f725577d5fbab23f53c6646009d8f634f443659c84",
     "RepayPlayerLoan": "d0db4690d8eb10a1d1774a2dff1e53970d379e7a241dab6ac743d719a03f96f2",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
@@ -232,6 +232,10 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "turnBids": {
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
@@ -2351,6 +2355,24 @@
           }
         ]
       },
+      "removedCompanyIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array",
+        "uniqueItems": true
+      },
+      "removedPrivateIds": {
+        "items": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "minItems": 1,
+        "type": "array",
+        "uniqueItems": true
+      },
       "result": {
         "enum": [
           "Abandoned",
@@ -3767,6 +3789,10 @@
       "systemVersion": {
         "type": "number"
       },
+      "taxHavenPurchaseRound": {
+        "minimum": 1,
+        "type": "integer"
+      },
       "tileInventory": {
         "additionalProperties": false,
         "properties": {
@@ -5010,6 +5036,56 @@
         "type": "array",
         "uniqueItems": true
       },
+      "variants": {
+        "additionalProperties": false,
+        "properties": {
+          "allPrivates": {
+            "const": true,
+            "type": "boolean"
+          },
+          "mixedPrivates": {
+            "const": true,
+            "type": "boolean"
+          },
+          "plus": {
+            "const": true,
+            "type": "boolean"
+          },
+          "scenario": {
+            "anyOf": [
+              {
+                "const": "large-regional",
+                "type": "string"
+              },
+              {
+                "const": "medium-regional",
+                "type": "string"
+              },
+              {
+                "const": "small-regional",
+                "type": "string"
+              },
+              {
+                "const": "medium-game",
+                "type": "string"
+              },
+              {
+                "const": "short-game",
+                "type": "string"
+              },
+              {
+                "const": "mini-game",
+                "type": "string"
+              }
+            ]
+          },
+          "taxHavenShares": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "winningPlayerIds": {
         "items": {
           "type": "string"
@@ -5047,6 +5123,7 @@
       "trainInventory",
       "turnManager",
       "usedPrivatePowerIds",
+      "variants",
       "winningPlayerIds"
     ],
     "type": "object"

@@ -11,6 +11,42 @@ what 1822 adds or composes differently.
 
 - **Bidding and the boxes.** The stock menu has **Bid** beside the family's panels. The boxes are
   also drawn on the board, with the stock market and depot, for every seat.
+- **Termini.** Track that reaches a station where a route must end is pointed: a spike from the
+  hex side to the station. So are the standard off-board areas (Highlands, Aberdeen, Cornwall,
+  Fishguard, Mid Wales, Holyhead and France, §5.4.4) and every scenario overlay. Merthyr Tydfil
+  and Pontypool, termini only from each other, share a side; as printed, their one connection
+  is two pointed tracks side by side, each from its own station into the other's hex, Pontypool's
+  above (§5.4.7). A route across them is drawn along the connection between the two.
+- **London.** The board's London hex is black, as printed, with a black spike from the middle
+  of each side out into the hex beyond, drawn under any tile laid there. Its six stations stand
+  in a ring out at the sides their track leaves by; "London" in white and its value stand in
+  the middle, the £20 upgrade cost in white in the left corner and the L in the right. A London
+  tile laid over it is in its own colour with the same layout and spikes. The Metropolitan
+  Railway's space beside a station overlaps that station toward the middle.
+- **Grey areas across hexes.** The Highlands' station stands upright across the side its two
+  hexes share, its spike pointing straight in from its side. Mid Wales is one strip of hexes,
+  its station and values centred on it. Southwest England's scenario overlay is one area across
+  its two hexes: its station to the west of the upper, its values in a column in the lower.
+- **Destinations.** Each major company's destination shows its token beside the city until it
+  connects there (§5.11); the destination station it then places, or the station it already had
+  there, which becomes its destination station, is outlined in orange (§5.11.7). The LNWR shows
+  none: its Manchester station is a second home until it connects to London, then outlined.
+- **Minor bid boxes.** While a minor company's box has no bid it says what the minor costs if
+  unsold: box 1 that it leaves the game and removes two trains (one once the L-trains are gone),
+  the others that it removes one train, while any L-trains are left (§4.10.3).
+- **Scenarios.** A scenario's name is among the game's facts. The board draws only the hexes
+  in play, with each overlay a grey station named for its area. The market colours every space
+  of the scenario's game end value or more as a game end space. Under each stack, the boxes name
+  the companies the game plays without. Where the Metropolitan Railway may take a removed London
+  company's station space, its home previews in that space.
+- **1822+ private stacks.** With 1822+ each private box has its own stack. The boxes keep their
+  places as they empty and fill; the list of what is still to come is one per box, and the
+  private companies removed during setup are named beneath it. P17's choice lists each stack
+  apart.
+- **What a held private keeps.** Under its name on its holder's player card, the tax haven says
+  which shares and how much money it holds, and P15 and P20 the money on their charters. A share
+  is bought for the tax haven from the stock menu's buyer choice, like any share; the choice
+  shows the haven's money once it buys with its own.
 - **Repaying a loan.** A player with a loan sees what they owe above whichever stock panel is
   open, with an amount field, starting at the most they can pay, and one button to pay it.
 - **Declaring cash.** At the end of a stock round the holder of P9 is asked whether to declare
@@ -70,6 +106,17 @@ Each is manual in the harness, in the named scenario.
 - **Offer for a minor** and **Request for a private:** the player asked sees the terms and both
   answers; accepting applies the acquisition, declining leaves everything as it was and the
   asker's list no longer offers it that turn.
+- **Small regional scenario:** the north, the southwest and South Wales are not drawn; Glasgow,
+  Edinburgh, Southwest England and South Wales stand at the edge; the market's game end spaces
+  begin at £400; the stack lists name twelve minors, four concessions and six privates not in
+  the game.
+- **First stock round of 1822 plus:** open the private companies' stack list: three lists by box
+  and the removed companies beneath.
+- **Humber bridge to lay:** choose P21: only Hull and Grimsby light; lay in one, then the other
+  only; after the first, ordinary track is no longer offered; finishing track after one lay
+  closes P21.
+- **Tax haven with money:** under the haven on its owner's card: its share and money; buying for the tax
+  haven offers companies it holds no share of, priced within its own money.
 - **Loan to repay:** the amount starts at the most payable; a larger or empty amount disables
   the button; paying part leaves the panel with the remainder.
 - **Private to acquire** and **Minor to acquire:** choose one with terms, change a term, Undo:

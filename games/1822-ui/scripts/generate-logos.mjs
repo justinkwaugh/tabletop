@@ -15,6 +15,11 @@ const LightInk = '#fffefa'
 const MinorFill = '#f3ead6'
 const BaselineShift = 0.35
 const Serif = `Georgia, 'Times New Roman', Times, serif`
+// Georgia's figures are old-style, its 1 no taller than a small letter, so a number set in it sits
+// low in the token's ring; Times' figures stand at the height of its capitals.
+const FigureSerif = `'Times New Roman', Times, serif`
+// Half the height of Times' figures, which are a little shorter than Georgia's capitals.
+const FigureBaselineShift = 0.33
 
 function luminance(hex) {
     const channel = (offset) => {
@@ -30,10 +35,10 @@ const contrast = (first, second) => {
 const ink = (fill) => (contrast(fill, LightInk) >= contrast(fill, DarkInk) ? LightInk : DarkInk)
 const escape = (text) => text.replaceAll('&', '&amp;')
 
-function label(text, size, fill) {
+function label(text, size, fill, family = Serif, shift = BaselineShift) {
     return (
-        `<text x="20" y="${(20 + BaselineShift * size).toFixed(2)}" text-anchor="middle" ` +
-        `font-family="${Serif}" font-weight="bold" font-size="${size.toFixed(2)}" ` +
+        `<text x="20" y="${(20 + shift * size).toFixed(2)}" text-anchor="middle" ` +
+        `font-family="${family}" font-weight="bold" font-size="${size.toFixed(2)}" ` +
         `fill="${fill}">${escape(text)}</text>`
     )
 }
@@ -53,7 +58,7 @@ function minorToken(number) {
         `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">` +
         `<circle cx="20" cy="20" r="19.4" fill="${MinorFill}" stroke="${Outline}" stroke-width="0.8"/>` +
         `<circle cx="20" cy="20" r="15.6" fill="none" stroke="${Outline}" stroke-width="1.6"/>` +
-        label(number, number.length > 1 ? 15 : 17, DarkInk) +
+        label(number, number.length > 1 ? 15 : 17, DarkInk, FigureSerif, FigureBaselineShift) +
         `</svg>\n`
     )
 }

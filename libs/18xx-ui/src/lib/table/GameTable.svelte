@@ -108,6 +108,9 @@
     const MapHexDiameter = 140
     const HexRadius = MapHexDiameter / 2
     const FocusRadius = 220
+    // A place a link points to is shown with about four hexes of the map around it, enough to
+    // see where on the board it lies.
+    const PlaceRevealRadius = 4 * MapHexDiameter
     const RevealMargin = 24
     let {
         session,
@@ -258,21 +261,31 @@
         return undefined
     })
     const outlinedLocationId = $derived(revealedLocationId ?? mapFocus?.outlinedLocationId)
+    /** Returns auto-zooming maps to how they stood before a place link focused them. */
+    let restoreBeforeReveal: ReturnType<typeof captureMaps> | undefined
     async function revealLocation(locationId: string) {
         session.closeHistoricalMap()
         if (mapFocus?.outlinedLocationId) mapFocus = undefined
         if (revealedLocationId === locationId) {
             revealedLocationId = undefined
+            restoreBeforeReveal?.({ animate: true })
+            restoreBeforeReveal = undefined
             return
         }
+        if (!revealedLocationId) restoreBeforeReveal = captureMaps()
         revealedLocationId = locationId
         showMap()
         await tick()
-        for (const { wrapper, extents } of mapViewers())
-            wrapper.revealRect(hexViewRect(locationId, HexRadius, extents), {
-                padding: RevealMargin,
-                animate: true
-            })
+        // An auto-zooming map focuses the place with the map around it; another only brings it
+        // into view.
+        for (const viewer of mapViewers())
+            if (autoZooms(viewer.wrapper))
+                focusViewerLocations(viewer, [locationId], true, PlaceRevealRadius)
+            else
+                viewer.wrapper.revealRect(hexViewRect(locationId, HexRadius, viewer.extents), {
+                    padding: RevealMargin,
+                    animate: true
+                })
     }
     function focusConnection({ from, to }: PlaceConnection) {
         revealedLocationId = undefined
@@ -1473,7 +1486,7 @@
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
                             <TileManifest
-                                tiles={session.mapView.tileSet.definitions}
+                                tiles={session.map.manifestTiles}
                                 inventory={session.map.tileCounts}
                                 upgrades={session.tileUpgrades}
                                 layouts={session.mapView.layouts}

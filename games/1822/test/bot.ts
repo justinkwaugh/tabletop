@@ -153,20 +153,29 @@ export function botMove(game: Table, random: Random): Move {
                 if (bids.length) return move('PlaceBids', { bids })
             }
             if (valid.includes('BuyShares') && random.randInt(3) > 0) {
-                const offers = state.certificates.flatMap((certificate) => {
-                    const result = evaluateSharePurchase(
-                        state,
-                        { playerId, buyer: me, certificateId: certificate.id },
-                        StockRules1822
-                    )
-                    return result.details
-                        ? [{ certificateId: certificate.id, price: result.details.price }]
-                        : []
-                })
+                // The player buys for themselves, or for the tax haven they own (Table 3, P16).
+                const offers = StockRules1822.buyers(state, playerId).flatMap((buyer) =>
+                    state.certificates.flatMap((certificate) => {
+                        const result = evaluateSharePurchase(
+                            state,
+                            { playerId, buyer, certificateId: certificate.id },
+                            StockRules1822
+                        )
+                        return result.details
+                            ? [
+                                  {
+                                      buyer,
+                                      certificateId: certificate.id,
+                                      price: result.details.price
+                                  }
+                              ]
+                            : []
+                    })
+                )
                 if (offers.length) {
                     const offer = pick(offers)
                     return move('BuyShares', {
-                        buyer: me,
+                        buyer: offer.buyer,
                         certificateId: offer.certificateId,
                         expectedPrice: offer.price
                     })

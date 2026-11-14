@@ -62,6 +62,7 @@
             playerId,
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
+            reserved: session.reservedCash(playerId),
             certs: session.playerCertificates(playerId),
             ...session.portfolio(
                 { kind: 'player', playerId },
@@ -80,6 +81,7 @@
                 controller: controller ? session.getPlayerName(controller.playerId) : undefined,
                 bankrupt: false,
                 liquidity: undefined,
+                reserved: 0,
                 certs: undefined,
                 ...session.portfolio({ kind: 'company', companyId })
             }
@@ -170,6 +172,10 @@
     }
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 </script>
+
+{#snippet holdings(text: string | undefined)}
+    {#if text}<small class="private-holdings">{text}</small>{/if}
+{/snippet}
 
 <div class="players" aria-label="Players">
     {#each players as player, index (player.id)}
@@ -276,6 +282,12 @@
                 <dl>
                     <dt>Cash</dt>
                     <dd>{money(player.cash)}</dd>
+                    {#if player.reserved}<dd
+                            class="reserved"
+                            title="The cash the player’s bids hold back"
+                        >
+                            {money(player.reserved)} reserved
+                        </dd>{/if}
                 </dl>
                 {#if player.liquidity !== undefined}<span class="stat-divider" aria-hidden="true"
                     ></span>
@@ -553,7 +565,12 @@
                                             .filter((power) => power.playerId === player.playerId) as power (power.privateCompanyId)}<span
                                                 class="private-power"
                                                 ><PrivateTrackPowerButton {session} {power} /></span
-                                            >{/each}</th
+                                            >{/each}{@render holdings(
+                                            session.presentation.privateHoldings?.(
+                                                session.gameState,
+                                                entry.company.id
+                                            )
+                                        )}</th
                                     >
                                     <td class="amount"
                                         >{#if entry.income !== 0}{money(
@@ -573,6 +590,19 @@
 </div>
 
 <style>
+    /* A line under the cash, the card's first column, that runs on to the right rather than
+       widening its column. */
+    .stats dd.reserved {
+        display: flex;
+        justify-content: flex-start;
+        width: 0;
+        min-width: 100%;
+        line-height: 12px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--rail-muted, #887664);
+        white-space: nowrap;
+    }
     .header-controls {
         display: flex;
         align-items: center;
@@ -911,6 +941,13 @@
     }
     .privates tr {
         cursor: pointer;
+    }
+    .private-holdings {
+        display: block;
+        color: var(--rail-muted, #817565);
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 14px;
     }
     .private-power {
         margin-left: 6px;

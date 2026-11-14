@@ -18,7 +18,7 @@ const bidBoxRules: BidBoxRules = {
     }
 }
 
-function bidding(validActionTypes = ['PlaceBids']) {
+function bidding(validActionTypes = ['PlaceBids'], turnBids?: number) {
     const state = {
         ...minimalPlayState(),
         cash: [
@@ -36,7 +36,8 @@ function bidding(validActionTypes = ['PlaceBids']) {
             bids: [
                 { lotId: 'M1', playerId: TestPlayerId, amount: 100 },
                 { lotId: 'M1', playerId: Rival, amount: 110 }
-            ]
+            ],
+            ...(turnBids ? { turnBids } : {})
         }
     }
     const { session, applied } = testSession(state, { bidBoxRules }, validActionTypes)
@@ -56,18 +57,17 @@ describe('bid boxes', () => {
             { lotId: 'M1', amount: 100, leading: false }
         ])
         expect(module.tokensFree(TestPlayerId)).toBe(2)
-        expect(module.committed(TestPlayerId)).toBe(0)
+        expect(module.reserved(TestPlayerId)).toBe(0)
     })
 
-    it('prepares a turn’s bids a press at a time, Undo taking back the latest', () => {
+    it('prepares one bid at a time, a press on another box replacing it', () => {
         const { module } = bidding()
         module.draft('M1', 115)
+        expect(module.reserved(TestPlayerId)).toBe(115)
+        expect(module.tokensFree(TestPlayerId)).toBe(2)
         module.draft('M2', 100)
-        expect(module.drafted).toEqual([
-            { lotId: 'M1', amount: 115 },
-            { lotId: 'M2', amount: 100 }
-        ])
-        expect(module.committed(TestPlayerId)).toBe(215)
+        expect(module.drafted).toEqual({ lotId: 'M2', amount: 100 })
+        expect(module.lots[0]?.drafted).toBeUndefined()
         expect(module.tokensFree(TestPlayerId)).toBe(1)
         module.draft('M2', 105)
         expect(module.lots[1]?.drafted).toBe(105)
@@ -76,25 +76,29 @@ describe('bid boxes', () => {
         expect(module.draftReason('M2', 110)).toBeUndefined()
         expect(module.selection.undo()).toBe(true)
         expect(module.lots[1]?.drafted).toBe(100)
-        module.withdraw('M1')
-        expect(module.drafted).toEqual([{ lotId: 'M2', amount: 100 }])
         expect(module.selection.undo()).toBe(true)
-        expect(module.drafted).toHaveLength(2)
+        expect(module.drafted).toEqual({ lotId: 'M1', amount: 115 })
     })
 
-    it('places the prepared bids as one Action', async () => {
+    it('places the prepared bid as one Action', async () => {
         const { module, applied } = bidding()
         expect(module.canPlace).toBe(false)
-        module.draft('M1', 115)
         module.draft('M3', 100)
         expect(module.canPlace).toBe(true)
         await module.place()
         const [action] = applied
         expect(applied).toHaveLength(1)
-        expect(action && isPlaceBids(action) && action.bids).toEqual([
-            { lotId: 'M1', amount: 115 },
-            { lotId: 'M3', amount: 100 }
-        ])
+        expect(action && isPlaceBids(action) && action.bids).toEqual([{ lotId: 'M3', amount: 100 }])
+    })
+
+    it('counts the bids the turn has placed, and offers none past the turn’s three', () => {
+        expect(bidding().module.bidsThisTurn).toBe(0)
+        const two = bidding(['PlaceBids'], 2).module
+        expect(two.bidsThisTurn).toBe(2)
+        expect(two.canDraft('M2', 100)).toBe(true)
+        const three = bidding(['PlaceBids'], 3).module
+        expect(three.bidsThisTurn).toBe(3)
+        expect(three.draftReason('M2', 100)).toBe('Only 3 bids may be made in a turn.')
     })
 
     it('offers nothing to bid to a player who may not', () => {

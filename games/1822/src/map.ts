@@ -8,9 +8,7 @@ import {
     type CityReservation,
     type RevenueCenter,
     type TileEdge,
-    type TileFace,
-    type TilePath,
-    type TileRevenue
+    type TileFace
 } from '@tabletop/18xx'
 import { LondonLocationId, Majors1822, Minors1822 } from './companies.js'
 import {
@@ -18,9 +16,14 @@ import {
     EnglishChannelUpgradeCost1822,
     LondonUpgradeCost1822,
     englishChannelFace,
+    greyCity,
     londonFace,
     phasedRevenue,
-    sideEnd
+    sideEnd,
+    terminus,
+    through,
+    throughTrack,
+    HexSides
 } from './faces.js'
 import { EnglishChannelLocationId } from './privates.js'
 
@@ -114,6 +117,9 @@ export const SwanseaLocationId = 'D35'
 export const MidWalesLocationId = 'E28'
 export const MerthyrTydfilLocationId = 'E34'
 export const PontypoolLocationId = 'F33'
+/** The sides of Merthyr Tydfil and of Pontypool that they share (§5.4.7). */
+export const MerthyrToPontypoolSide = HexSides.northEast
+export const PontypoolToMerthyrSide = HexSides.southWest
 /** The second stop of the Swansea & Oystermouth hex (§1.2.2). */
 export const OystermouthNodeId = 'town'
 /** A route includes the London hex once, whichever of its stations it uses (§5.4.2). */
@@ -190,44 +196,6 @@ const town = townFace('white', [[]], 0)
 const twoTowns = townFace('white', [[], []], 0)
 const city = cityFace('white', [], 0, 1)
 
-/** A grey hex's track from side to side, each a pair of sides with the lane it uses on each. */
-function throughTrack(
-    tracks: readonly (readonly [from: TileEdge, to: TileEdge, fromLane?: number, toLane?: number])[]
-): TileFace {
-    return {
-        color: 'gray',
-        nodes: [],
-        paths: tracks.map(([from, to, fromLane = 0, toLane = 0], index): TilePath => ({
-            id: `path-${index}`,
-            endpoints: [sideEnd(from, fromLane), sideEnd(to, toLane)]
-        })),
-        labels: []
-    }
-}
-
-type Exit = { edge: TileEdge; lanes?: number; terminus?: true }
-const through = (edge: TileEdge): Exit => ({ edge })
-const terminus = (edge: TileEdge, lanes = 1): Exit => ({ edge, lanes, terminus: true })
-
-/**
- * A grey city with its printed values by phase (§5.4.5). A route that reaches it along terminus
- * track ends there (§5.4.4, §5.4.7).
- */
-function greyCity(revenue: TileRevenue, stationSlots: number, exits: readonly Exit[]): TileFace {
-    return {
-        color: 'gray',
-        nodes: [{ id: CityNodeId, kind: 'city', stationSlots, revenue }],
-        paths: exits.flatMap(({ edge, lanes = 1, terminus }) =>
-            Array.from({ length: lanes }, (_, lane): TilePath => ({
-                id: lane ? `edge-${edge}-lane-${lane}` : `edge-${edge}`,
-                endpoints: [sideEnd(edge, lane), { kind: 'node', nodeId: CityNodeId }],
-                ...(terminus ? { terminus } : {})
-            }))
-        ),
-        labels: []
-    }
-}
-
 // An off-shore arrow beside a coastal town: sea a coastal tile may point track at (§5.8.8).
 const sea = (landward: TileEdge): TileFace => ({
     color: 'blue',
@@ -274,18 +242,37 @@ const france: TileFace = {
     labels: []
 }
 
-// Mid Wales is reached by eight tracks of its own, two through each of F25, F27, F29 and F31;
-// none joins Holyhead or Pontypool (§1.2.4).
-const midWalesFan = (inward: TileEdge) =>
+// Mid Wales is one strip of hexes with its station in the middle, reached by eight tracks of its
+// own, two from the east side of each of F25, F27, F29 and F31; none joins Holyhead or Pontypool
+// (§1.2.4). The outer hexes' tracks run along the strip through the inner ones to the station,
+// and each track names first the side it is reached by.
+const midWalesOuter = (inward: TileEdge) =>
     throughTrack([
-        [inward, 4, 0],
-        [inward, 5, 1]
+        [4, inward, 0, 0],
+        [5, inward, 0, 1]
     ])
-const midWalesTrunk = (inward: TileEdge, outward: TileEdge) =>
+const midWalesInner = (outer: TileEdge, inward: TileEdge) =>
     throughTrack([
-        [inward, outward, 0, 0],
-        [inward, outward, 1, 1]
+        [outer, inward, 0, 0],
+        [outer, inward, 1, 1],
+        [4, inward, 0, 2],
+        [5, inward, 0, 3]
     ])
+
+/**
+ * The standard grey off-board areas, whose stations end a route (§5.4.4), each as the hexes the
+ * board prints as one area: the Highlands with the hex of its track down to Glasgow, Aberdeen,
+ * Cornwall, Fishguard, Holyhead, and Mid Wales with its eight tracks. France is the seventh, an
+ * off-board area of its own kind.
+ */
+export const OffBoardAreas1822: readonly (readonly string[])[] = [
+    ['E2', 'E4'],
+    ['H1'],
+    ['A42'],
+    ['C34'],
+    ['F23'],
+    [MidWalesLocationId, 'F25', 'F27', 'F29', 'F31']
+]
 
 export const Map1822 = new RailwayMap({
     id: '1822',
@@ -368,18 +355,8 @@ export const Map1822 = new RailwayMap({
         // The grey areas (§5.4.4, §5.4.5). The standard off-board areas are termini.
         ...locations('A42', greyCity(phasedRevenue(40, 30, 30, 40), 2, [terminus(4), terminus(5)])),
         ...locations('C34', greyCity(phasedRevenue(10, 20, 30, 40), 2, [terminus(5)])),
-        ...locations('E2', greyCity(phasedRevenue(10, 10, 20, 20), 2, [terminus(0), terminus(5)])),
         ...locations('F23', greyCity(phasedRevenue(20, 20, 30, 40), 2, [terminus(5)])),
         ...locations('H1', greyCity(phasedRevenue(30, 40, 50, 60), 2, [terminus(0), terminus(1)])),
-        ...locations(
-            MidWalesLocationId,
-            greyCity(phasedRevenue(10, 20, 20, 30), 3, [
-                terminus(0, 2),
-                terminus(3, 2),
-                terminus(4, 2),
-                terminus(5, 2)
-            ])
-        ),
         ...locations(
             'E6',
             greyCity(phasedRevenue(40, 50, 60, 70), 3, [
@@ -389,22 +366,32 @@ export const Map1822 = new RailwayMap({
                 through(5)
             ])
         ),
-        // One train a turn crosses between Merthyr Tydfil and Pontypool, and ends at the city it
-        // reaches (§5.4.7).
+        // Merthyr Tydfil and Pontypool share a side, and one track across it joins them: a route
+        // that crosses ends at the city it reaches, and only one train a turn crosses (§5.4.7).
         ...locations(
             MerthyrTydfilLocationId,
-            greyCity(phasedRevenue(30, 40, 30, 10), 2, [terminus(3), through(5)])
+            greyCity(phasedRevenue(30, 40, 30, 10), 2, [
+                terminus(MerthyrToPontypoolSide),
+                through(5)
+            ])
         ),
         ...locations(
             PontypoolLocationId,
-            greyCity(phasedRevenue(20, 40, 30, 10), 2, [terminus(2), through(5)])
+            greyCity(phasedRevenue(20, 40, 30, 10), 2, [
+                terminus(PontypoolToMerthyrSide),
+                through(5)
+            ])
         ),
-        ...locations('E32', throughTrack([[0, 5]])),
+        ...locations('E2', greyCity(phasedRevenue(10, 10, 20, 20), 2, [terminus(0), terminus(5)])),
         ...locations('E4', throughTrack([[0, 3]])),
-        ...locations('E26', midWalesTrunk(0, 4)),
-        ...locations('E30', midWalesTrunk(3, 5)),
-        ...locations('F25 F27', midWalesFan(1)),
-        ...locations('F29 F31', midWalesFan(2)),
+        ...locations('F25', midWalesOuter(0)),
+        ...locations('F27', midWalesInner(3, 1)),
+        ...locations('F29', midWalesInner(0, 2)),
+        ...locations('F31', midWalesOuter(3)),
+        ...locations(
+            MidWalesLocationId,
+            greyCity(phasedRevenue(10, 20, 20, 30), 3, [terminus(4, 4), terminus(5, 4)])
+        ),
         ...locations(FranceLocationId, france),
         ...locations('L11 J43 Q36 Q42 R31', sea(2)),
         ...locations('F17', sea(4)),

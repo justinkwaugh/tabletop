@@ -26,7 +26,7 @@ import {
 import { HousekeepingActions, HousekeepingSteps, metropolitanHomeDue1822 } from '../housekeeping.js'
 import { refillBidBoxes1822 } from '../lots.js'
 import { Names1822 } from '../names.js'
-import { createOpening1822 } from '../opening.js'
+import { createOpening1822, startingCash1822 } from '../opening.js'
 import {
     CorporateFinanceRules1822,
     EarningsRules1822,
@@ -48,11 +48,10 @@ import {
     PrivatePowerActions,
     PrivatePowerRules1822,
     PrivatePowerSteps,
-    closeSpentExtraLay1822
+    closeSpentTrackPowers1822
 } from '../privatePowers.js'
 import { RepayPlayerLoanStep, StockTurnActions, declaresCash } from '../stockTurn.js'
 import { RouteRules1822 } from '../routes.js'
-import { startingCash1822 } from '../setup.js'
 import {
     State1822,
     StateDefinition1822,
@@ -169,7 +168,7 @@ export const TitleRules1822: EighteenXXTitleRules<typeof State1822, HydratedStat
                     )
                 ),
                 'LayingTrack',
-                closeSpentExtraLay1822
+                closeSpentTrackPowers1822
             ),
         PlacingStation: reachesDestination,
         BuyingTrains: (family) =>

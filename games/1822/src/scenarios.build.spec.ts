@@ -15,7 +15,8 @@ import {
 import { Autorouter } from '@tabletop/18xx-autorouter'
 import { assertExists } from '@tabletop/common'
 import { botMove, Random } from '../test/bot.js'
-import { kit, type Table } from '../test/kit.js'
+import { kit, prepared, type Table } from '../test/kit.js'
+import { company, giveCharter, player, runMinor, setCash, stepTo } from '../test/positions.js'
 import { minorAcquisitions1822 } from './acquisition.js'
 import { EarningsRules1822, TrainRules1822 } from './operating.js'
 import {
@@ -23,8 +24,9 @@ import {
     acquisitionChoices1822,
     privateAgreementPlayerId1822
 } from './privateAcquisition.js'
-import { MailContractPrivateIds } from './privates.js'
+import { HumberBridgePrivateId, MailContractPrivateIds, TaxHavenPrivateId } from './privates.js'
 import { RouteRules1822 } from './routes.js'
+import { ScenarioIds1822 } from './scenarios.js'
 import {
     ElectricTrainId,
     LocalTrainId,
@@ -100,6 +102,49 @@ const bestRoutes = (game: Table): TrainRoute[] => {
 describe.skipIf(!process.env.SCENARIOS)('1822 harness scenarios', () => {
     it('writes the first stock round', { timeout: 900_000 }, () => {
         save('first-stock-round', kit.table(4, 1))
+    })
+
+    it('writes the first stock round of 1822+', { timeout: 900_000 }, () => {
+        save('first-stock-round-of-1822-plus', kit.table(4, 1, { plus: true }))
+    })
+
+    it.each(ScenarioIds1822)('writes the opening of the %s scenario', (scenario) => {
+        save(`${scenario}-scenario`, kit.table(4, 1, { scenario }))
+    })
+
+    it('writes the Humber bridge to lay', { timeout: 900_000 }, () => {
+        const game = prepared(
+            (state, [first]) => {
+                runMinor(state, 'M9', first, { cash: 100 })
+                kit.giveTrain(state, 'M9', '2')
+                giveCharter(state, HumberBridgePrivateId, company('M9'))
+            },
+            { config: { plus: true, allPrivates: true }, seed: 1, phaseId: '3' }
+        )
+        stepTo(game, 'LayingTrack', 'M9')
+        save('humber-bridge-to-lay', game)
+    })
+
+    it('writes a tax haven with money to spend', { timeout: 900_000 }, () => {
+        const haven = company(TaxHavenPrivateId)
+        const game = prepared(
+            (state, [first, second]) => {
+                for (const companyId of ['CR', 'GWR', 'NBR']) {
+                    kit.operated(state, companyId, second, { price: 100, shares: 4, cash: 400 })
+                    kit.giveTrain(state, companyId, '2')
+                }
+                giveCharter(state, TaxHavenPrivateId, player(first))
+                const share = state.certificates.find(
+                    (entry) => entry.companyId === 'CR' && entry.kind === 'share' && entry.poolId
+                )
+                assertExists(share, 'The Caledonian has a share in its treasury')
+                share.owner = haven
+                delete share.poolId
+                setCash(state, haven, 250)
+            },
+            { config: { taxHavenShares: true }, seed: 1, phaseId: '3' }
+        )
+        save('tax-haven-with-money', game)
     })
 
     it('writes bids under way', { timeout: 900_000 }, () => {

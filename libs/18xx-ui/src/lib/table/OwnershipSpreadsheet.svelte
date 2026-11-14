@@ -289,13 +289,16 @@
     type OwnerStatistics = {
         turnOrder?: number
         cash: number
+        /** The cash a player's bids hold back, shown under it. */
+        reserved?: number
         shares: number
         netWorth: number
         certs?: { count: number; limit: number }
     }
     function ownerStatisticsFor(owner: Owner, certs?: OwnerStatistics['certs']): OwnerStatistics {
         const { cash, netWorth, shares } = session.portfolio(owner)
-        return { cash, shares, netWorth, certs }
+        const reserved = owner.kind === 'player' ? session.reservedCash(owner.playerId) : 0
+        return { cash, ...(reserved ? { reserved } : {}), shares, netWorth, certs }
     }
     function firstSortDirection(column: SpreadsheetSortColumn<never>): SpreadsheetSortDirection {
         const first = nextSpreadsheetSort(undefined, 'column', column.directions)
@@ -579,6 +582,10 @@
                 limit={values.certs.limit}
             />{:else}{values ? ownerStatisticColumns[key].text(values) : '—'}{/if}{#if included}<sup
                 >*</sup
+            >{/if}{#if key === 'cash' && values?.reserved}<small
+                class="reserved"
+                title="The cash the player’s bids hold back"
+                >{money(values.reserved)} reserved</small
             >{/if}</span
     >
 {/snippet}
@@ -1313,6 +1320,13 @@
 </div>
 
 <style>
+    .reserved {
+        display: block;
+        font-size: 0.85em;
+        font-weight: 400;
+        opacity: 0.75;
+        white-space: nowrap;
+    }
     .share-confirmation {
         transform: translateX(-50%);
     }

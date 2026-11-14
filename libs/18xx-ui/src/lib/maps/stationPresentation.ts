@@ -47,6 +47,9 @@ export type BoardAreas = {
     panel?: BoundingBox
 }
 
+/** A tile that stands on the map from setup; see ``MapViewDefinition.boardTiles``. */
+export type BoardTile = { name?: string; outOfPlay?: true }
+
 export type MapViewDefinition = {
     boardArtwork?: BoardArtwork
     /** Board arrows printed beside the map, such as route bonus arrows. */
@@ -161,6 +164,16 @@ export type MapViewDefinition = {
     publishedPlacements?: Readonly<Record<string, MapPlacement>>
     joinedEdges?: Readonly<Record<string, readonly TileEdge[]>>
     /**
+     * Sides along which a laid tile joins the tile beside it as one printed area, by tile
+     * definition id, as a scenario overlay that spans two hexes.
+     */
+    joinedTileEdges?: Readonly<Record<string, readonly TileEdge[]>>
+    /**
+     * Locations drawn after all the others, so that what they print across a side, such as a
+     * station or values standing over the hex beside them, stays above that hex.
+     */
+    drawnLast?: readonly string[]
+    /**
      * Hexes printed as two areas, by location id: the edges on one area's side. A line divides
      * that side from the rest, and joined edges join only the side they leave by.
      */
@@ -172,6 +185,13 @@ export type MapViewDefinition = {
      * hexes in labels and text.
      */
     hideLocationNames?: true | readonly string[]
+    /**
+     * Tiles that are part of the board in some games rather than of the supply companies lay
+     * from, by tile definition, as 1822's scenario overlays. The tile manifest leaves them out.
+     * One with a name shows it in place of its hex's. One marked out of play draws nothing, and
+     * the board is fitted to the hexes without one.
+     */
+    boardTiles?: Readonly<Record<string, BoardTile>>
     /** Hexside border widths by kind, such as a heavier impassable border; 3 otherwise. */
     borderWidths?: Readonly<Record<string, number>>
     /** A hex whose tile prints a label, such as Pr, shows the label in place of its name. */

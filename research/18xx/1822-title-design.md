@@ -6,10 +6,50 @@ Rules authority: _1822 Rules of Play_ v2.0 (1 May 2018), saved with a text copy 
 against the rulebook; where the two differ the rulebook wins and the difference is listed under
 "Data notes".
 
-Scope: the base game for 3–7 players (minors M1–M24, privates P1–P18, ten majors). Not built: the
-1822+ expansion (its minors, privates and trains are in the data, flagged `expansion`, with nothing
-switching them on), the regional scenarios, the tax haven variant (§6.1.2) and the hidden-stack
-variants (§6.1.1).
+Scope: the base game for 3–7 players (minors M1–M24, privates P1–P18, ten majors), and as game
+options the 1822+ expansion (§2.1.7, §6.2.2: minors M25–M30, privates P19–P21, a stack for each
+private bidding box), its two setup choices (§6.1.3: all 21 privates; one mixed private stack),
+the tax haven variant (§6.1.2) and the six scenarios of §6.2.1. See "Game options" and
+"Scenarios" below.
+
+Not built:
+
+- **The hidden-stack variants** (§6.1.1: stacks not inspected, or only the next batch seen). They
+  would make 1822 a hidden-information title: a canonical state with the stack order protected,
+  secret shuffles, a sampler for exploration, and a ruling on what P17's holder sees. The family
+  has that path (1846 uses it for its draft), but nothing in 1822 uses it yet.
+
+## Game options
+
+`definition/gameConfig.ts` offers five options; `variants` in the title state records the ones in
+play, and the two 1822+ setup choices count only with 1822+.
+
+- **1822+** (`plus`): the six further minors join the minor stack under the S&MR; P19–P21 join the
+  privates. One "track" private other than P5 and two of the "other" privates are removed at
+  random and recorded in `removedPrivateIds` (they exist as closed companies with no certificate,
+  so nothing that asks after a private by id needs to know it was removed). Each private bidding
+  box has its own stack, named for its box (`private:1` trains, `private:2` track, `private:3` the
+  rest), P1 on top of the first: a box fills only from its own stack and private certificates do
+  not move down the boxes. P17 moves a certificate within the stack it lies in.
+- **All 21 privates** (`allPrivates`): no removals.
+- **One private stack** (`mixedPrivates`): the privates left after the removals are shuffled into
+  the one `private` stack under P1 and fill the boxes as in the original game. The removals still
+  happen unless "all 21" is also chosen, as the research engine has it; §6.1.3 does not say.
+- **Tax haven buys further shares** (`taxHavenShares`): the haven's first share is bought with its
+  owner's money as always. After that its own money, and only that, buys further shares: one a
+  stock round (`taxHavenPurchaseRound`), never a second certificate of a company, each purchase
+  being the owner's stock action. That the owner's money buys no further share is the research
+  engine's reading of "the cash that accumulates in the tax haven can be used".
+
+- **Scenario** (`scenario`): one of the six scenarios of §6.2.1; see "Scenarios" below.
+
+P21 (the Humber bridge): up to two lays, one in Hull and one in Grimsby, each adding track across
+the Humber, free of terrain and estuary costs; yellow tiles, and from phase 3 one of the two may be
+a green upgrade of a tile already there (a tile laid with the power that turn is not upgraded with
+it). The company needs a station in either city, must not have laid track that turn, and lays no
+ordinary track after it; P12 may still add its lays. P21 closes with its second lay, or with the
+track step if it made one. The lay need not join the company's route: the rule asks for a station
+in either city and nothing else.
 
 ## What makes 1822 different
 
@@ -54,7 +94,11 @@ remain the executable baseline and every existing title's suites still pass.
   bids topping bids in fixed increments, a bidder's tokens, cash committed by highest bids, and
   settlement in highest-bid order before the round completes. Title: which lots, face values,
   tokens, what winning a lot gives, what happens to unsold lots, refilling. Not done: bids that
-  can be withdrawn, sealed bids.
+  can be withdrawn, sealed bids. Each bid is one `PlaceBids` Action (one press, one Action): the
+  turn stays open until it has placed the title's `bidsPerTurn` (§4.9.1's three), counted in
+  `bidBoxes.turnBids` and dropped as the turn ends; the stock turn record is every title's, so the
+  count lives with the boxes. A `PlaceBids` may still carry several bids, as earlier saved games
+  do. The UI prepares one bid at a time, inside its box.
 - **Lanes** (`lane` on an edge endpoint). Parallel tracks across one hex side appear in the 1822
   family, 18Mag, 1860's ferries and others. Shared: a lane meets the same lane across the side
   and is its own track resource; reach, route tracing, the autorouter and construction all follow
@@ -94,6 +138,36 @@ remain the executable baseline and every existing title's suites still pass.
   Shared: the subsidy on the operating result. The autorouter optimises revenue and reports the
   subsidy of the run it found (§5.13.6 lets a director run for mail instead; they can by drawing
   the route).
+- **Naming a run subsidy** (`TitlePresentation.runSubsidyName`). Ten catalogue titles compute a
+  payment to the treasury for a run beside its revenue (the engine's `routes_subsidy` in 1822,
+  1837, 1860, 1862, 1866, 1888, 18ESP, 18Mag, 18VA and 18ZOO); what each calls it was not
+  surveyed beyond 1822's mail and 1862's subsidy. Shared: where the amount shows (run table,
+  messages, history). Title: the name; "subsidy to the treasury" where it gives none.
+- **Stacks by box, and lots not in the game** (`BidBoxGroup.boxStacks`, `removed`). Only the
+  1822 family has bid boxes (1822, Africa, CA, MX, PNW, MRS). 1822+ fills each private box from
+  its own stack; how the other family titles stack their boxes was not surveyed. Eleven
+  catalogue titles' rules announce components removed from the game. Shared: the list of what
+  is still to come, one list a box where the title says so, and the removed lots named beneath.
+  Title: which stack fills which box (`sharedStack1822`, `boxStack1822`), and what was removed.
+- **What a held private keeps** (`TitlePresentation.privateHoldings`). The tax haven, which
+  holds shares and money for its owner, appears in every 1822-family title and nowhere else in
+  the catalogue; other privates that hold things were not surveyed. Shared: one line under the
+  private on its holder's card. It stands apart from `privateStatus`, which replaces a private's
+  income on a company card.
+- **Printed connections** (`TileLayout.printedPaths`, `printedTrack`). Spikes for off-board
+  entries are catalogue-wide; the layout option already let a title print a named track as a
+  spike or a port's pier. Added for 1822: a spike on a track that runs from side to side, and
+  `hidden` for a track the print does not draw, both used by the Southwest England overlay,
+  whose second hex prints two arrows that stand for tracks running on to the station; and
+  `printedTrack`, track the print shows that no route uses, for Merthyr Tydfil and Pontypool,
+  whose one connection prints as two pointed tracks. Not surveyed beyond 1822.
+- **Board tiles** (`MapViewDefinition.boardTiles`). Tiles on the map from setup that are not of
+  the supply: 1822's scenario overlays. Nineteen catalogue titles vary their board's hexes by
+  option (the engine's `optional_hexes` and `game_hexes`, among them 1824, 1825, 1840, 1860,
+  1873, 18Mag, 18MEX and 18USA); how each does it was not surveyed. Shared: such a tile is left
+  out of the manifest, may name its hex, and may mark it out of play (not drawn, board fitted
+  without it). Not done: a board that adds hexes or moves its panels by option; 1822's panels
+  keep their places.
 - **Borrowing in emergency funding** (`TrainFundingRules.recordLoan`). Player loans appear in the
   1822 family and 1873; 1817 and 1849 lend to companies through `LoanRules`. Shared: a
   contributor whose cash and sales are spent borrows the rest instead of going bankrupt. Title:
@@ -101,10 +175,97 @@ remain the executable baseline and every existing title's suites still pass.
 - **Removed stops** (`TrackRules.removedStops`). Tiles that drop a stop: 1822's Swansea and P2;
   1860 and 18Ireland-style town removal. Shared: the replaced face is kept without the removed
   stops, track through one running on between its other ends.
+- **Printed hex art** (`TileLayout.inkGround`, `printedText`, `overhangs`, `slotSpacing`,
+  `upgradeCostText`, `spikesTowardMiddle`). 1822's London is printed black with its name and
+  upgrade cost in white and spikes reaching into the hexes beside it; the Metropolitan Railway's
+  space overlaps the station it stands beside; the Highlands' station stands across its two
+  hexes, so its spike points in from its side rather than at the station. Other titles' printed
+  special hexes (1830's NYC, 1846's Chicago, 18Chesapeake's Baltimore) were looked at only in
+  the family's existing layouts; none needs these yet. Shared: a hex in ink with its annotations
+  in paper colour; text a tile prints; shapes past the hex drawn on the map over the board but
+  under any tile laid beside it; two-space spacing; a bare upgrade cost with a currency sign;
+  spikes aimed at the hex's middle. Title: the shapes and positions. Not done: overhangs in the
+  tile manifest, which draws a tile alone.
+- **Joined overlay tiles and draw order** (`MapViewDefinition.joinedTileEdges`, `drawnLast`).
+  1822's southwest England overlay is one area across two laid tiles; printed areas spanning
+  several hexes were already joined by location (`joinedEdges`). Shared: a laid tile's sides
+  joined by its definition, and locations drawn after the rest so a station or values standing
+  across a side stay above the hex beside it. Title: which tiles and locations.
+- **Reserved cash** (`EighteenXXSession.reservedCash`). Cash a player's bids hold back: the bid
+  boxes' highest bids (1822 family) and the opening waterfall auction's reserved bids (1830,
+  1889 and the titles sharing that auction). Shared: one line under the player's cash on their
+  card and their spreadsheet row; companies never bid. The waterfall panel already called it
+  Reserved.
+- **Unsold-lot notes** (`BidBoxGroup.unsoldNotes`). What a box's lot costs if no one bids on it:
+  1822's minor boxes remove trains (§4.10.3). Only the 1822 family has bid boxes. Shared: a note
+  in each box while it has no bid. Title: the words, from the trains left.
+- **Place links that focus the map** (`GameTable` place links). Every 18xx title's place links
+  outline the hex; an auto-zooming map now also zooms to it with about four hexes of context,
+  and a second press returns the view. Title: which text names places.
 - **Stations beside a full city**. 1894 already lets a set-aside station join a full city
   (`sharesFullCities`); 1822 adds the Metropolitan Railway's roundel space and overflowing
   destination tokens. Shared: a station at a slot past the city's own takes none of its spaces
   when counting free spaces and blocking; when an upgrade adds a space the station is within it.
+
+## Scenarios
+
+Source: the designer's print-and-play pack, "1822 Scenario Rules" version 1.0 of 15 July 2016
+(sheets General, Cash and Shares, Train Mix, Tile Manifest, a read-me, and the overlays of 16 July
+2016), supplied by the owner and kept in `/workspace/artassets/1822/scenarios`. The pack predates
+rulebook v2.0 and 1822+; a scenario is played with the original companies and ignores the 1822+
+option. `scenarios.ts` holds the table, each entry citing its sheet.
+
+Three scenarios play on the whole map with companies removed at random (Medium, Short and Mini
+Game), three on part of it with named companies removed (Large, Medium and Small Regional). Each
+sets start money, bank, share limit, train counts and the share value that ends the game; all
+take £10 off a minor's first-turn L train; four lower the price of flipping an L to a 2-train to
+£70, two of them only from phase 2.
+
+- **Companies removed** are never created; `removedCompanyIds` and `removedPrivateIds` name
+  them. Random removal keeps P1 and the Metropolitan Railway. The majors are shuffled and taken
+  in order, passing over one whose group (the four London companies; MR, L&YR and SWR; NBR, NER
+  and CR) has already lost a company.
+- **Track.** Medium and Short Game: a major lays two yellow tiles from phase 2, and from phase 3
+  two yellow tiles or a yellow tile and an upgrade. Mini Game: from phase 3 three tiles, of which
+  at most two are upgrades, and two upgrades in one turn are neither of a city.
+- **The Metropolitan Railway** (Short and Mini Game) may take the station space of a London
+  major that was removed: choosing that London station gives it the space itself rather than the
+  roundel's.
+- **Overlays** are grey tiles placed at setup (`overlays.ts`): Glasgow and Edinburgh, Southwest
+  England and South Wales, each a station with values by phase reached along terminus track
+  where the overlay prints an arrow. Southwest England is one station over two hexes with four
+  arrows: its second hex carries two tracks that run on to the station side by side. Hexes an
+  overlay covers or cuts off carry an out-of-play tile, which the board does not draw. A regional
+  scenario's reduced tile manifest retires the surplus pieces at setup.
+
+The overlays and out-of-play covers are held as tile placements, which is where the family keeps
+what lies on each hex; they follow from the scenario alone, so they could instead be a second map
+definition chosen by it. That would need the family's rules and views to take their map from the
+game rather than the title, which nothing else in the catalogue built so far needs; recorded here
+as a decision to revisit if a second title varies its map.
+
+The pack calls the game end value a "Max Price", but markers are not stopped at it: a two-space
+rise, or play to the end of the operating round, can carry one past. Every space of the value
+or more counts as reached.
+
+Readings of the pack that are mine:
+
+1. **The share value that ends the game** follows the overlay, which colours four bands and is
+   dated a day after the sheets: Small Regional £400, Mini Game £450, Large and Medium Regional
+   and Short Game £500, Medium Game £550. The Cash and Shares sheet prints £500 for the Medium
+   Game and £400 for the Mini Game. Any space of the value or more ends the game.
+2. **Which hexes are out of play** is not listed anywhere; it is read off the overlays' hex
+   labels. The northern Scotland overlay stands on G10 and J7 (with H9 and I8); everything north
+   is out, and so is Galloway, whose only ways south are Carlisle's red-bordered side and G10.
+   The southern Scotland overlay stands on H17 and K16 (with I18, J17 and L15); everything north
+   of that line is out, Scarborough staying in. Southwest England stands on E38 and E40;
+   everything west is out. South Wales stands on F35 with F33 and E34; Swansea, Fishguard and
+   E36 are cut off behind it.
+3. **Where the arrows enter**: Glasgow and Edinburgh from the hex south of each; Southwest
+   England from F37, F39 (twice) and F41; South Wales from Newport alone.
+4. **The Medium Regional starts with the Metropolitan Railway in the first box** though it keeps
+   the S&MR, as the General sheet prints.
+5. **"L&YR" and "LYR"** on the sheet are the one company.
 
 ## Rulings and interpretations
 
@@ -133,15 +294,29 @@ Readings this title keeps, each as the research engine has it unless noted:
    earning less, pays more mail income than the best found does: the rule's leave to reduce a
    run for mail. This is held by the game's screens; the logic accepts any legal run. The mail
    income compared is that of the one best run found, not of every run that ties with it.
-9. **Merthyr Tydfil–Pontypool** is one track through E32 that ends the route at the city it
-   reaches; the research engine draws a second, direct track and lets a company's trains use one
-   of the two in a turn. The same runs are legal.
+9. **Merthyr Tydfil–Pontypool** is one track across the side the two share, ending the route at
+   the city it reaches; with one track, only one train crosses a turn. The board prints the
+   connection as two pointed tracks, one from each city into the other's hex (the illustration
+   at §5.4.7), and E32 is off the map. The research engine models the two as one direct track
+   and one through E32, and lets a company's trains use one of the two in a turn; the same runs
+   are legal. An earlier version of this title had only the track through E32.
 10. **Agreement between two players is asked for in the game**: a major's offer for a minor
     another player directs (§5.18.1) and a company's request for a private another player holds
     (§3.1.2) wait for that player to accept or decline, and a refusal ends the matter for the
     turn. The engine takes the agreement on trust.
 11. **A Pullman may be attached to an L-train**; the rulebook bars only the E-train (§5.5.6). The
     engine attaches it to no L-train.
+12. **A company's station already in its destination city becomes its destination station**
+    when it connects, and its destination token stays off the map, as the LNWR's Manchester
+    station does (§5.11.3). A company reaches its destination city before joining it to home only
+    through an acquired minor company: an exchange token in the minor's home (§5.12.4; M28 in
+    Carlisle, M1 in Aberdeen, M3 in Edinburgh), or a station traced from one. The rulebook does not
+    say what happens then; this reading moves no placed station (§5.12.8) and never puts a second
+    station of one company in a city (§5.12.6). Confirmed by the user 2026-11-14.
+13. **P12's extra lays all come before the turn's own track or all after it.** The rulebook does
+    not say so; this is the designer's ruling the engine cites (BoardGameGeek thread 2425653),
+    which I have not read myself. It forbids an own tile, an extra tile and then another own
+    tile in one turn.
 
 Changed to follow the rulebook as the engine reads it:
 
@@ -179,12 +354,17 @@ Found by review and corrected:
   adds a space no other company's home still awaits, when it moves into it (§5.10.3, §5.11.8).
   The family used to seat it in any free space, which could take a home's reserved one.
 
-The engine also lets P2, P8, P10, P11 and P12 share one lay in further pairs. Here those results
-are reached in sequence rather than as one combined lay: P8's and P10's discount tokens apply to
-any lay, one made with a private included, and P2 and P11 take the company's normal track, after
-which P12 adds its extra lays. This equivalence was reasoned from the allowances and is not
-covered by a spec; the engine's rule that P12's extra lays all come before or all after the normal
-ones was not compared.
+The engine also lets P2, P8, P10, P11 and P12 share one lay in further pairs. Nothing is missing
+for want of that: the same results are reached in sequence. P8's and P10's discount tokens apply
+to any lay, one made with a private included; P2 and P11 take the company's normal track, after
+which P12 adds its extra lays (`acquisition.spec.ts`, "P12 with P2 or P11 in one turn").
+
+One difference was found in making that comparison and corrected. **P12's extra lays all come
+before the turn's own track or all after it** (the designer's ruling the engine cites,
+BoardGameGeek thread 2425653; the rulebook is silent). Once an extra lay follows any of the turn's
+own track, the company lays no more of its own; and P12's second tile is given up once the turn's
+own track follows its first. A private's lay made in place of the normal track (P2, P11, P21)
+counts as the turn's own.
 
 ## Data notes
 
@@ -196,6 +376,9 @@ ones was not compared.
 
 ## Verification
 
+- `games/1822`: `variants.spec.ts` for the options, the 1822+ setup over twelve seeds, the
+  per-box refill, P21 and the tax haven with and without its variant; whole bot games under each
+  way of dealing the privates.
 - `games/1822`: map, tile, market, train and company data specs; bidding, stock, operating,
   route and acquisition specs with the rulebook's examples (Table 5; §5.18.4's terms; §5.20.2's
   issue; §5.8.4's Swansea and Mumbles runs; §5.17.2's loan); conformance specs; whole games played

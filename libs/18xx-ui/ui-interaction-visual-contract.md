@@ -2141,7 +2141,7 @@ Branch allocation uses one cash slider spanning both panels and one parent-cash 
 
 Player text names a map location by its printed name, or by its coordinate when the hex has none; `RailwayMap.placeName` owns that choice. Text that may link a place carries a place reference (`placeReference` in `@tabletop/18xx`) instead of a name: private descriptions, the shared history description when PositionPanel asks for references, the awaited-decision text, and the deciding player's track-permission prompt. History rows, toasts, tooltips and the route breakdown pass names instead and show no links, since a history row is already one button that opens the historical map.
 
-PositionPanel (headline, detail lines and consequences, and the awaited decision), the track-permission prompt, private cards, the 1817 lot table, and the title prototype's private list draw each reference as a dotted-underlined name (`PlaceLink`), reading the name and reveal action from the place-links context. GameTable provides that context: activating a link closes a historical map preview, switches a tabbed table to its map, outlines the hex on the map's outline layer (`outlinedLocationIds`), and pans each map viewer at its current scale by the least amount that brings the hex into view with a small margin (`ScalingWrapper.revealRect`). It never zooms. The outline is GameTable's own revealed location, separate from inspection, construction and station selections and from history's selected-event outline, so it shows in live and history positions alike. Activating the link of the revealed hex again clears the outline and leaves the view alone; the next published game state, including a history step, also clears it. The title prototype table provides its own context that inspects the hex in its finance map. A place link inside a private-description row does not toggle the row's popover, and a link inside a nominate button would nest controls, so the 1817 pyramid slots show names only.
+PositionPanel (headline, detail lines and consequences, and the awaited decision), the track-permission prompt, private cards, the 1817 lot table, and the title prototype's private list draw each reference as a dotted-underlined name (`PlaceLink`), reading the name and reveal action from the place-links context. GameTable provides that context: activating a link closes a historical map preview, switches a tabbed table to its map, outlines the hex on the map's outline layer (`outlinedLocationIds`), and brings it into view in each map viewer. A viewer that auto-zooms (the map view, and the board while **Auto zoom** is on) focuses the hex with about four hexes of the map around it, so the player can see where on the board it lies; any other viewer pans at its current scale by the least amount that brings the hex into view with a small margin (`ScalingWrapper.revealRect`). The outline is GameTable's own revealed location, separate from inspection, construction and station selections and from history's selected-event outline, so it shows in live and history positions alike. Activating the link of the revealed hex again clears the outline and returns the auto-zooming viewers to the view they had before the first link focused them; the next published game state, including a history step, also clears the outline. Lot cards in 1822's bid boxes link each minor's home and each concession's home and destination. The title prototype table provides its own context that inspects the hex in its finance map. A place link inside a private-description row does not toggle the row's popover, and a link inside a nominate button would nest controls, so the 1817 pyramid slots show names only.
 
 ### Sidebar tab typography
 
@@ -2785,16 +2785,50 @@ These interactions came with 1822 and are available to any title whose rules sel
 ### Visual intents
 
 - **Preparing bids.** In a stock turn of a title with bid boxes, each box the player may bid on
-  offers its lowest bid. Pressing it prepares a bid: the box gains a stepper with the amount
-  between a lower and a raise control, and **Remove bid** on its own row beneath. The amount is
-  also a field the player may type into. A typed amount that is a bid the player may prepare
-  becomes the prepared bid at once; one that is not turns the figure red, shows why beneath it
-  and disables **Place bid** until it is corrected or the prepared bids change. Boxes the player
-  cannot bid on say why. The footer shows the player's free tokens and what their highest bids
-  commit of their cash, prepared bids included. Nothing reaches the game until **Place bid**
-  sends every prepared bid as one Action.
+  offers its lowest bid. Pressing it prepares a bid there: the box gains a stepper with the amount
+  between a lower and a raise control, and **Place bid** across the box beneath it. Pressing the
+  lowest bid in another box moves the prepared bid there; Undo takes back one press at a time.
+  The amount is also a field the player may type into. A typed amount that is a bid the player
+  may prepare becomes the prepared bid at once; one that is not turns the figure red, shows why
+  beneath it and disables **Place bid** until it is corrected. Boxes the player cannot bid on say
+  why. **Place bid** sends that one bid as an Action. The turn then goes on, so the player may
+  bid again, up to the title's bids in a turn, or end it with **End turn**; the last bid the
+  turn allows ends it. The footer shows the player's free tokens, the cash their highest bids
+  reserve, the prepared bid included, and the turn's bids so far.
+- **Reserved cash.** Each player's card and their row of the ownership spreadsheet show the
+  cash their bids hold back, as a small line under the cash: their highest bids in a title's bid
+  boxes, or their reserved bids in an opening auction, the same figure the auction panel calls
+  Reserved. A player with none shows no line. Companies never bid, so they have none.
 - **Bid boxes on the board.** A title may draw its boxes as a board panel: every box and bid,
   with no controls.
+- **Printed connections.** A layout may print a track as a spike from its hex side, also one
+  that runs from side to side, which is spiked at its first side pointing toward the hex's
+  middle; or leave it undrawn where the
+  print shows the connection another way. An undrawn track, and a spike's far end, draw no join
+  at the hex side. A layout may also print track that no route uses, straight or as a spike,
+  where the print shows one connection as more than one track. A route is still drawn along the
+  track it uses, drawn or not.
+- **Printed hex art.** A layout may print its whole hex in ink, with its label, upgrade cost and
+  printed text in the paper's colour; print text of its own, such as a city's name every
+  upgrade repeats; print its upgrade cost as bare text after a currency sign; set a two-space
+  city's spaces closer than touching, so one overlaps the other; and point its spikes in from
+  their sides toward the hex's middle rather than at their stop. It may also print shapes past
+  its sides: the map draws them in ink over the board beside the hex, in a layer above every
+  hex, masked out wherever a tile is laid beside it, so a laid tile covers them as it covers the
+  printed board.
+- **Joined areas and draw order.** A view may join a laid tile's sides to the tile beside it, by
+  the tile's definition, so a scenario overlay spanning two hexes reads as one area with no
+  seam; and may draw named locations after all the others, so a station or values that stand
+  across a side stay above the hex beside them.
+- **Tiles that are part of the board.** A title may name tiles that stand on the map from
+  setup. One that marks a hex as out of play draws nothing, and the board is fitted to the hexes
+  in play. One with a name of its own shows it in place of the hex's. None is listed in the tile
+  manifest.
+- **What a held private keeps.** Where a title says what a private company keeps on its own
+  charter, that is a muted line under the private's name on its holder's player card.
+- **Stacks still to come.** Each kind of lot says how many are left in its stack; pressing that
+  lists them, the next to enter a box first. Where each box fills from its own stack the list is
+  one per box, headed by the box's number. Lots a title removed during setup are named beneath.
 - **Revenue decided apart.** Where a run has revenue the company may decide apart from the rest,
   the earnings panel shows it above the payout cards with **With the rest** and each payout
   choice. Choosing one recomputes every card for the rest of the revenue, each card showing the
@@ -2804,6 +2838,9 @@ These interactions came with 1822 and are available to any title whose rules sel
   A drawn run that earns less is refused with its own revenue beside the most possible and, where
   a higher subsidy would excuse it, the subsidy it would have to beat; **Run trains** is then
   disabled. A lower run that the higher subsidy excuses says what it earns and pays instead.
+- **What a run pays beside its revenue** is called by the title's name for it, 1822's mail
+  income, in the run table, the reduced-run messages and the history row; "subsidy to the
+  treasury" where the title names nothing.
 - **Attached rolling stock.** A train's row shows stock attached to it. While a train is chosen
   for drawing, **Attach … to this train** is offered under its row where another train carries
   the stock and more than one train could. There is no detach.
@@ -2820,8 +2857,8 @@ These interactions came with 1822 and are available to any title whose rules sel
 
 - Prepared bids exist only in the bid panel of a stock turn; they cannot overlap share buying,
   which is another stock panel.
-- A rejected typed amount belongs to one box. Stepping, removing or typing a legal amount in any
-  box changes the prepared bids and so clears it.
+- A rejected typed amount belongs to its box. Stepping, typing a legal amount or preparing the
+  bid in another box changes the prepared bid and so clears it.
 - The separate-revenue choice composes with the payout cards: it never selects a card.
 - A drawn run's own illegality is reported before any shortfall against the best run.
 - A lay made with a private company's power is never a request for agreement in the track panel;
@@ -2829,13 +2866,13 @@ These interactions came with 1822 and are available to any title whose rules sel
 
 ### Shared visual state
 
-- **Prepared bids.** Meaning: the bids the player means to place this turn, in the order made.
-  Producer: the bid-box module, through the shared staged-selection helpers, registered with the
-  session's local selections. Consumers: the bid panel, the footer totals and the players panel's
-  bid lines. Lifetime: one stock turn; Undo takes back one press at a time before any game Undo.
+- **Prepared bid.** Meaning: the one bid the player means to place next, on one lot. Producer:
+  the bid-box module, through the shared staged-selection helpers, registered with the session's
+  local selections. Consumers: the bid panel, the footer totals and the players panel's bid
+  lines. Lifetime: until it is placed; Undo takes back one press at a time before any game Undo.
   Validity: only while the player may place bids. Hidden in History View.
 - **Rejected typed amount.** Meaning: text in one box's amount field that is no legal bid.
-  Producer and consumer: the bid panel. Lifetime: until the prepared bids change. It never
+  Producer and consumer: the bid panel. Lifetime: until the prepared bid changes. It never
   reaches the session.
 - **Separate-revenue choice.** Meaning: the payout chosen for the revenue decided apart; absent
   while it is decided with the rest. Producer: the earnings module, registered with the session's
@@ -2854,10 +2891,11 @@ These interactions came with 1822 and are available to any title whose rules sel
 
 ### Verification scenarios
 
-- In a stock turn with bids on several lots, prepare two bids, type a legal amount in one and an
-  amount off the increment in the other: the first is taken, the second is red with its reason
-  and **Place bid** is disabled; correcting it enables the button and placing sends both. Manual
-  in a title's harness; the module's rules are covered by its spec.
+- In a stock turn with bids on several lots, prepare a bid, then press the lowest bid in another
+  box: the first box returns to its offer. Type an amount off the increment: it is red with its
+  reason and **Place bid** is disabled; correcting it enables the button, and placing sends that
+  one bid and leaves the turn open with **End turn**. Manual in a title's harness; the module's
+  rules are covered by its spec, the turn's by the title's.
 - With a run that includes revenue decided apart, choose a payout for it: the cards recompute,
   and Undo returns to **With the rest**. Manual; the evaluation is covered by the title's spec.
 - For a company allowed to redraw, clear a train's route: the panel names the run's revenue and

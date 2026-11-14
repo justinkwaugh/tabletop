@@ -22,7 +22,7 @@
         privateOwningCompany(session.gameState, privateCompanyId)
             ? PrivateRules1822.description(session.gameState, privateCompanyId)
             : undefined
-    const groups = $derived(bidBoxGroups(session.gameState.bidBoxes))
+    const groups = $derived(bidBoxGroups(session.gameState))
     const historyDescription = $derived(describe1822Action(session))
 </script>
 

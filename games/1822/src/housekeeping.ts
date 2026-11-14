@@ -13,7 +13,15 @@ import {
 } from '@tabletop/18xx'
 import { ActionSource, assert, assertExists, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
-import { LondonLocationId, MetropolitanHomeCost1822, MetropolitanId } from './companies.js'
+import {
+    LondonLocationId,
+    MetropolitanHomeCost1822,
+    MetropolitanId,
+    londonHomeCompanyIds1822,
+    major1822
+} from './companies.js'
+import { setupOf1822 } from './scenarios.js'
+import { stationsAt1822 } from './tokens.js'
 import { TrainRules1822 } from './operating.js'
 import type { HydratedState1822 } from './state.js'
 import { trackCompany1822 } from './turn.js'
@@ -59,7 +67,9 @@ export function firstTrainOffer1822(
         (TrainRules1822.availableDefinitions(state).includes(LocalTrainId)
             ? TrainDepot1822.nextTrain(state.trainInventory, LocalTrainId)
             : undefined)
-    const price = TrainDepot1822.trainDefinition(LocalTrainId).price
+    // A scenario takes £10 off this train (§6.2.1; scenario pack, Train Mix sheet).
+    const price =
+        TrainDepot1822.trainDefinition(LocalTrainId).price - setupOf1822(state).firstTrainDiscount
     if (
         !train ||
         finiteCashOwnedBy(state, { kind: 'company', companyId }) < price ||
@@ -132,6 +142,28 @@ export const isPlaceMetropolitanHome = PlaceMetropolitanHomeAction.is
  * (§5.10.3, §5.10.4).
  */
 export const RoundelSlot1822 = 1
+/** A London station's own space, which its home company's token takes (§5.10.2). */
+const StationSlot1822 = 0
+
+/**
+ * The space the Metropolitan Railway's home takes at a London station: the roundel's, beside the
+ * station; or, in the scenarios that say so, the station's own where the major company whose home
+ * it was is not in the game (§5.10.3; scenario pack, General sheet).
+ */
+export function metropolitanHomeSlot1822(
+    state: Pick<HydratedState1822, 'variants' | 'removedCompanyIds' | 'stations'>,
+    nodeId: string
+): number {
+    const vacated =
+        setupOf1822(state).metropolitanTakesLondonHome &&
+        londonHomeCompanyIds1822(nodeId).some(
+            (companyId) => major1822(companyId) && state.removedCompanyIds?.includes(companyId)
+        ) &&
+        !stationsAt1822(state, { locationId: LondonLocationId, nodeId }).some(
+            (station) => station.position.slot === StationSlot1822
+        )
+    return vacated ? StationSlot1822 : RoundelSlot1822
+}
 
 /**
  * The Metropolitan Railway places its home on the London roundel, beside the London station it
@@ -158,7 +190,7 @@ export class HydratedPlaceMetropolitanHome extends PlaceMetropolitanHomeAction.B
         )
         const station = state.stations.find((entry) => entry.id === homeStationId(MetropolitanId))
         assertExists(station, 'The Metropolitan Railway has its home token')
-        const slot = RoundelSlot1822
+        const slot = metropolitanHomeSlot1822(state, this.nodeId)
         settleCashPayments(state, [
             {
                 from: { kind: 'company', companyId: MetropolitanId },

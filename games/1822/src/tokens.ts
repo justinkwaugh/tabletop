@@ -2,6 +2,7 @@ import {
     RailwayMapState,
     addCompanyStations,
     reservationFulfilled,
+    type PlacedStation,
     type StationPosition
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
@@ -57,18 +58,29 @@ export function returnExchangeToken1822(state: HydratedState1822, stationId: str
     ]
 }
 
+/** The station tokens standing on the map. */
+export function placedStations1822(state: Pick<HydratedState1822, 'stations'>): PlacedStation[] {
+    return state.stations.filter((station) => station.status === 'placed')
+}
+
+/** The station tokens standing at a city, whichever company's. */
+export function stationsAt1822(
+    state: Pick<HydratedState1822, 'stations'>,
+    city: Omit<StationPosition, 'slot'>
+): PlacedStation[] {
+    return placedStations1822(state).filter(
+        (station) =>
+            station.position.locationId === city.locationId &&
+            station.position.nodeId === city.nodeId
+    )
+}
+
 /** The lowest station space of a city not yet taken, which may be the space beside a full city. */
 export function nextStationSlot(
     state: HydratedState1822,
     city: Omit<StationPosition, 'slot'>
 ): number {
-    const taken = state.stations.flatMap((station) =>
-        station.status === 'placed' &&
-        station.position.locationId === city.locationId &&
-        station.position.nodeId === city.nodeId
-            ? [station.position.slot]
-            : []
-    )
+    const taken = stationsAt1822(state, city).map((station) => station.position.slot)
     let slot = 0
     while (taken.includes(slot)) slot++
     return slot

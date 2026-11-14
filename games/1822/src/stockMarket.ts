@@ -1,4 +1,5 @@
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
+import { Scenarios1822, type ScenarioId1822 } from './scenarios.js'
 import {
     createRectangularStockMarketSpaces,
     StockMarketChart,
@@ -69,6 +70,34 @@ export const Market1822 = new StockMarketChart(
         )
     )
 )
+
+/** Whether a space is of the value that ends the game, or more (§1.3.1, §6.2.1). */
+export function endsGameAt1822(space: StockMarketSpace, endPrice: number): boolean {
+    return space.price >= endPrice
+}
+
+// A scenario ends the game at a lower value, and its market shows every space that ends it, as
+// the pack's overlay colours them (§6.2.1).
+const ScenarioMarkets = new Map(
+    Scenarios1822.map((scenario) => [
+        scenario.id,
+        new StockMarketChart(
+            Market1822.spaces.map((space) =>
+                endsGameAt1822(space, scenario.endPrice)
+                    ? { ...space, color: MarketZoneColors1822.end }
+                    : space
+            )
+        )
+    ])
+)
+
+/** The market as a game shows it, its scenario's game end spaces marked where it plays one. */
+export function marketChart1822(scenarioId: ScenarioId1822 | undefined): StockMarketChart {
+    if (!scenarioId) return Market1822
+    const chart = ScenarioMarkets.get(scenarioId)
+    assertExists(chart, `Scenario ${scenarioId} has its market`)
+    return chart
+}
 
 function spaceIdsIn(zone: string): string[] {
     return Cells.flatMap((row, rowIndex) =>

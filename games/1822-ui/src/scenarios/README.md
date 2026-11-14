@@ -7,6 +7,10 @@ cd games/1822 && SCENARIOS=1 pnpm exec vitest run src/scenarios.build.spec.ts
 ```
 
 - **First stock round**: the bidding boxes filled, before any bid.
+- **First stock round of 1822 plus**: the 1822+ expansion's opening, each private box with its own stack and three private companies removed.
+- **Large regional scenario**, **Medium regional scenario**, **Small regional scenario**, **Medium game scenario**, **Short game scenario**, **Mini game scenario**: the opening of each scenario of §6.2.1, with its overlays, removed companies, trains and money.
+- **Humber bridge to lay**: a minor company with a station in Grimsby holding P21 as its track step begins, in a game with all 21 private companies. A prepared position, not a played one.
+- **Tax haven with money**: a stock turn of the tax haven's owner under the variant, the haven holding a share and money to buy another. A prepared position, not a played one.
 - **Bids under way**: a stock turn with bids on several lots, some of them outbid.
 - **Concession to convert**: a player holding a concession, able to start its major company.
 - **Minors with L trains**: a minor company in phase 1 running its L-train from its station to a small station.

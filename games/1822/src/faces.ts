@@ -1,5 +1,15 @@
 import type { TileEdge, TileEndpoint, TileFace, TilePath, TileRevenue } from '@tabletop/18xx'
 
+/** The sides of a hex by compass point: side 0 faces south and the rest follow clockwise. */
+export const HexSides = {
+    south: 0,
+    southWest: 1,
+    northWest: 2,
+    north: 3,
+    northEast: 4,
+    southEast: 5
+} as const
+
 /** The node of a hex's one city, as the family's city faces name it. */
 export const CityNodeId = 'city'
 
@@ -97,5 +107,47 @@ export function phasedRevenue(
             { stage: 'brown', amount: brown },
             { stage: 'gray', amount: grey }
         ]
+    }
+}
+
+/** A grey hex's track from side to side, each a pair of sides with the lane it uses on each. */
+export function throughTrack(
+    tracks: readonly (readonly [from: TileEdge, to: TileEdge, fromLane?: number, toLane?: number])[]
+): TileFace {
+    return {
+        color: 'gray',
+        nodes: [],
+        paths: tracks.map(([from, to, fromLane = 0, toLane = 0], index): TilePath => ({
+            id: `path-${index}`,
+            endpoints: [sideEnd(from, fromLane), sideEnd(to, toLane)]
+        })),
+        labels: []
+    }
+}
+
+export type GreyExit = { edge: TileEdge; lanes?: number; terminus?: true }
+export const through = (edge: TileEdge): GreyExit => ({ edge })
+export const terminus = (edge: TileEdge, lanes = 1): GreyExit => ({ edge, lanes, terminus: true })
+
+/**
+ * A grey city with its printed values by phase (§5.4.5). A route that reaches it along terminus
+ * track ends there (§5.4.4, §5.4.7).
+ */
+export function greyCity(
+    revenue: TileRevenue,
+    stationSlots: number,
+    exits: readonly GreyExit[]
+): TileFace {
+    return {
+        color: 'gray',
+        nodes: [{ id: CityNodeId, kind: 'city', stationSlots, revenue }],
+        paths: exits.flatMap(({ edge, lanes = 1, terminus }) =>
+            Array.from({ length: lanes }, (_, lane): TilePath => ({
+                id: lane ? `edge-${edge}-lane-${lane}` : `edge-${edge}`,
+                endpoints: [sideEnd(edge, lane), { kind: 'node', nodeId: CityNodeId }],
+                ...(terminus ? { terminus } : {})
+            }))
+        ),
+        labels: []
     }
 }

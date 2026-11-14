@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { getCompany, placeStockMarker, sharesOwned, trainsOwnedBy } from '@tabletop/18xx'
-import { kit, type Table } from '../test/kit.js'
+import {
+    TrackConstruction,
+    getCompany,
+    markTurn,
+    placeStockMarker,
+    privateTrackConstruction,
+    sharesOwned,
+    trainsOwnedBy
+} from '@tabletop/18xx'
+import { kit, prepared, type Table } from '../test/kit.js'
 import {
     cashOf,
     company,
@@ -13,22 +21,14 @@ import {
     stepTo
 } from '../test/positions.js'
 import { minorAcquisitions1822 } from './acquisition.js'
+import { Map1822 } from './map.js'
 import { acquirablePrivates1822, acquisitionChoices1822 } from './privateAcquisition.js'
 import { EnglishChannelLocationId } from './privates.js'
-import { PrivatePowerRules1822, terrainCost1822 } from './privatePowers.js'
+import { AdvancedLayMark, PrivatePowerRules1822, terrainCost1822 } from './privatePowers.js'
 import type { State1822 } from './state.js'
 import { exchangeTokens1822 } from './tokens.js'
-import { EnglishChannelTileIds1822 } from './tiles.js'
+import { EnglishChannelTileIds1822, Tiles1822 } from './tiles.js'
 import { TrackRules1822 } from './track.js'
-
-function prepared(prepare: (state: State1822, players: string[]) => void): Table {
-    const game = kit.table(4, 3)
-    const state = structuredClone(game.state)
-    state.stockRound.number = 2
-    prepare(state, state.turnManager.turnOrder)
-    game.state = state
-    return game
-}
 
 /**
  * The Caledonian with four treasury shares and the Lanarkshire & Dunbartonshire, one director.
@@ -311,6 +311,102 @@ describe('P2 with P11 in one lay (§3.1.13)', () => {
         const state = game.hydrated
         expect(PrivatePowerRules1822.trackTerms(state, 'P2', game.player)?.colors).toBeUndefined()
         expect(TrackRules1822.allowance(state, 'green')).toHaveProperty('reason')
+    })
+})
+
+describe('P12 with P2 or P11 in one turn (Table 3)', () => {
+    function laying(privates: readonly string[]): Table {
+        const game = prepared((state, [first]) => {
+            state.phaseId = '3'
+            kit.operated(state, 'CR', first, { price: 100, shares: 6, cash: 400 })
+            kit.giveTrain(state, 'CR', '2')
+            for (const id of privates) giveCharter(state, id, company('CR'))
+        })
+        stepTo(game, 'LayingTrack', 'CR')
+        return game
+    }
+    const extraLays = (game: Table) =>
+        PrivatePowerRules1822.trackTerms(game.hydrated, 'P12', game.player)
+
+    it('still adds P12’s extra lays, and the major’s second yellow tile, after P2’s plain track', () => {
+        const game = laying(['P2', 'P12'])
+        const state = structuredClone(game.state)
+        // P2's plain yellow track was the first of the turn's two yellow tiles.
+        state.trackStep = {
+            companyId: 'CR',
+            completed: false,
+            lays: [{ locationId: 'test', definitionId: '18xx:9' }]
+        }
+        game.state = state
+        expect(extraLays(game)).toBeDefined()
+        expect(TrackRules1822.allowance(game.hydrated, 'yellow')).toEqual({ cost: 0 })
+    })
+
+    it('still adds P12’s extra lays after P11’s early upgrade took the turn’s track', () => {
+        const game = laying(['P11', 'P12'])
+        const state = game.hydrated
+        markTurn(state, AdvancedLayMark)
+        expect(TrackRules1822.allowance(state, 'yellow')).toHaveProperty('reason')
+        const terms = PrivatePowerRules1822.trackTerms(state, 'P12', game.player)
+        expect(terms?.definitionIds).toContain('18xx:9')
+        expect(terms?.definitionIds).toContain('18xx:80')
+    })
+
+    type Lay = ReturnType<TrackConstruction['choices']>[number]
+    /** The first yellow tile the construction can lay anywhere. */
+    function yellowLay(construction: TrackConstruction): Lay {
+        for (const location of Map1822.definition.locations) {
+            const choice = construction
+                .choices(location.id)
+                .find(
+                    (entry) =>
+                        Tiles1822.find((tile) => tile.id === entry.definitionId)?.face.color ===
+                        'yellow'
+                )
+            if (choice) return choice
+        }
+        throw new Error('No yellow tile to lay')
+    }
+    const request = ({ locationId, definitionId, rotation, nodeMapping, cost }: Lay) => ({
+        companyId: 'CR',
+        locationId,
+        definitionId,
+        rotation,
+        nodeMapping,
+        expectedCost: cost
+    })
+    function layOwn(game: Table) {
+        const lay = yellowLay(new TrackConstruction(game.hydrated, TrackRules1822))
+        game.act('LayTile', request(lay))
+    }
+    function layExtra(game: Table) {
+        const terms = extraLays(game)
+        if (!terms) throw new Error('P12 has no lay')
+        const lay = yellowLay(privateTrackConstruction(game.hydrated, terms, TrackRules1822))
+        game.act('LayPrivateTile', { ...request(lay), privateCompanyId: 'P12' })
+    }
+
+    it('ends the turn’s own track once P12’s extra tiles follow it (designer’s ruling)', () => {
+        const game = laying(['P12'])
+        layOwn(game)
+        layExtra(game)
+        expect(TrackRules1822.allowance(game.hydrated, 'yellow')).toHaveProperty('reason')
+        // Its second extra tile still follows.
+        expect(extraLays(game)).toBeDefined()
+        layExtra(game)
+        expect(getCompany(game.state, 'P12').closed).toBe(true)
+    })
+
+    it('gives up P12’s second tile once the turn’s own track follows its first', () => {
+        const game = laying(['P12'])
+        layExtra(game)
+        expect(extraLays(game)).toBeDefined()
+        layOwn(game)
+        expect(extraLays(game)).toBeUndefined()
+        // The turn's own second yellow tile is still to lay.
+        expect(TrackRules1822.allowance(game.hydrated, 'yellow')).toEqual({ cost: 0 })
+        game.act('FinishTrack', { companyId: 'CR' })
+        expect(getCompany(game.state, 'P12').closed).toBe(true)
     })
 })
 
