@@ -148,28 +148,38 @@
     }
 
     .ribbon {
+        position: relative;
         padding: 0.2em 0.6em;
         cursor: pointer;
     }
 
-    .ribbon.deciding {
+    /*
+     * The waiting ring pulses by its opacity alone, which the compositor runs without repainting the
+     * ribbon each frame; it lies within the ribbon's padding, clear of its words.
+     */
+    .ribbon.deciding::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 0 0 0.15em var(--feudum-accent);
+        pointer-events: none;
         animation: ribbon-pulse 2.5s infinite;
     }
 
     @keyframes ribbon-pulse {
         0%,
         100% {
-            box-shadow: inset 0 0 0 0.15em transparent;
+            opacity: 0;
         }
         50% {
-            box-shadow: inset 0 0 0 0.15em var(--feudum-accent);
+            opacity: 1;
         }
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .ribbon.deciding {
+        .ribbon.deciding::after {
             animation: none;
-            box-shadow: inset 0 0 0 0.15em var(--feudum-accent);
         }
     }
 

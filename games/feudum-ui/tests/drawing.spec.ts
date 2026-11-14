@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createGame, playToCards, settled } from './helpers.js'
+import { createGame, playToCards, playToHands, settled } from './helpers.js'
 
 /**
  * How the table draws, by the platform's phone-rendering rules: what WebKit pays for on a phone
@@ -38,6 +38,25 @@ async function logListeners(page: Page) {
     })
 }
 
+/** The properties each running CSS animation changes, by animation name. */
+async function animatedProperties(page: Page): Promise<Record<string, string[]>> {
+    return page.evaluate(() => {
+        const timing = new Set(['offset', 'computedOffset', 'easing', 'composite'])
+        const found: Record<string, string[]> = {}
+        for (const animation of document.getAnimations()) {
+            if (!(animation instanceof CSSAnimation)) continue
+            const effect = animation.effect as KeyframeEffect
+            // A component's keyframes are named after it: its own name ends the scoped one.
+            const name = animation.animationName.split('-').slice(-2).join('-')
+            const properties = effect
+                .getKeyframes()
+                .flatMap((frame) => Object.keys(frame).filter((key) => !timing.has(key)))
+            found[name] = [...new Set([...(found[name] ?? []), ...properties])].sort()
+        }
+        return found
+    })
+}
+
 test('opening and closing the Key and the Supply card adds and removes no wheel or touch listener', async ({
     page
 }) => {
@@ -65,4 +84,34 @@ test('opening and closing the Key and the Supply card adds and removes no wheel 
     expect(await page.locator('[data-board-surface]').boundingBox()).toEqual(before)
 
     expect(await page.evaluate(() => window.feudumListenerLog)).toEqual([])
+})
+
+test.describe('waiting seats', () => {
+    test('a seat waiting on its choice pulses by opacity alone, at a desk', async ({ page }) => {
+        await createGame(page)
+        await playToHands(page)
+        await settled(page)
+        await expect(page.locator('[data-seat-panel] [data-deciding]').first()).toBeVisible()
+        const animated = await animatedProperties(page)
+        expect(Object.keys(animated)).toContain('ribbon-pulse')
+        for (const properties of Object.values(animated)) {
+            expect(properties.filter((property) => property !== 'opacity')).toEqual([])
+        }
+    })
+
+    test.describe('on a phone', () => {
+        test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+        test('a seat waiting on its choice pulses by opacity alone', async ({ page }) => {
+            await createGame(page)
+            await playToHands(page)
+            await settled(page)
+            await expect(page.locator('[data-seat-chip][data-deciding]').first()).toBeVisible()
+            const animated = await animatedProperties(page)
+            expect(Object.keys(animated)).toContain('chip-pulse')
+            for (const properties of Object.values(animated)) {
+                expect(properties.filter((property) => property !== 'opacity')).toEqual([])
+            }
+        })
+    })
 })

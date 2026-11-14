@@ -64,6 +64,7 @@
 
 <style>
     .chip {
+        position: relative;
         background: var(--feudum-surface-raised);
     }
 
@@ -75,24 +76,30 @@
         background: var(--seat-paint);
     }
 
-    .chip.deciding {
+    /* The waiting ring pulses by its opacity alone, so the chip is not repainted each frame. */
+    .chip.deciding::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 0 0 2px var(--feudum-accent);
+        pointer-events: none;
         animation: chip-pulse 2.5s infinite;
     }
 
     @keyframes chip-pulse {
         0%,
         100% {
-            box-shadow: inset 0 0 0 2px transparent;
+            opacity: 0;
         }
         50% {
-            box-shadow: inset 0 0 0 2px var(--feudum-accent);
+            opacity: 1;
         }
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .chip.deciding {
+        .chip.deciding::after {
             animation: none;
-            box-shadow: inset 0 0 0 2px var(--feudum-accent);
         }
     }
 </style>
