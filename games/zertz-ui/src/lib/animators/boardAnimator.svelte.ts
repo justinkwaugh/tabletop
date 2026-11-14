@@ -96,7 +96,9 @@ export class BoardAnimator implements MoveInterrupter {
 
     constructor(private readonly session: ZertzGameSession) {
         // Kept as each state is shown, as a jump forward through history needs the actions it
-        // hides; this runs again once leaving history has finished.
+        // hides; this runs again once leaving history has finished. Board.svelte constructs the
+        // animator during its setup, so the board owns this effect, as GameTable owns
+        // DebouncedLayout's.
         $effect(() => this.rememberActions())
     }
 
