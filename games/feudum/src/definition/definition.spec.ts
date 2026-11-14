@@ -1,11 +1,13 @@
 import {
     assert,
     assertExists,
+    GameMetadata,
     GameResult,
     reportGameProgress,
     validateGameResult,
     type GameProgress
 } from '@tabletop/common'
+import { Value } from 'typebox/value'
 import { describe, expect, it } from 'vitest'
 import { RegionIds, type RegionId, type TileId } from '../data/regionTiles.js'
 import { LastEpoch, type Epoch } from '../data/tracks.js'
@@ -112,6 +114,16 @@ describe('The definition', () => {
             minPlayers: 2,
             maxPlayers: 5
         })
+    })
+
+    it('credits the designer and the artist on one line, and links the publisher', () => {
+        // The title page reads "Designed by <designer>"; the platform has no artist field.
+        expect(FeudumInfo.metadata.designer).toBe('Mark Swanson · Art by Justin Schultz')
+        expect(FeudumInfo.metadata.publisher).toEqual({
+            name: 'Odd Bird Games',
+            url: 'https://oddbirdgames.com/'
+        })
+        expect(Value.Check(GameMetadata, FeudumInfo.metadata)).toBe(true)
     })
 
     it('R-X.2 uses the versioned randomness: a master seed and a protected stream', () => {
