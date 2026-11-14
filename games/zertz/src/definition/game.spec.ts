@@ -352,6 +352,60 @@ describe('end of game', () => {
         expect(after.machineState === MachineState.EndOfGame).toBe(wins)
     })
 
+    it.each([
+        [MarbleColor.White, captured(3, 0, 0)],
+        [MarbleColor.Grey, captured(0, 4, 0)],
+        [MarbleColor.Black, captured(0, 0, 5)]
+    ])('wins with enough of one colour: %s', (color, before) => {
+        const game = createGame()
+        const state = withPosition(start(game), line(4, { 0: MarbleColor.White, 1: color }), {
+            captured: { p0: before }
+        })
+        const after = capture(game, state, 'p0', { q: 0, r: 0 }, { q: 2, r: 0 })
+        expect(after.machineState).toBe(MachineState.EndOfGame)
+        expect(after.endReason).toBe(EndReason.Captures)
+    })
+
+    it('counts claimed marbles towards a win', () => {
+        const game = createGame()
+        const state = withPosition(start(game), line(5, { 0: MarbleColor.White }), {
+            captured: { p0: captured(2, 3, 3) }
+        })
+        const after = place(game, state, 'p0', MarbleColor.Grey, { q: 4, r: 0 }, { q: 1, r: 0 })
+        expect(after.machineState).toBe(MachineState.EndOfGame)
+        expect(after.winningPlayerIds).toEqual(['p0'])
+        expect(after.endReason).toBe(EndReason.Captures)
+    })
+
+    it('a placement that wins by claiming ends the move without a removal', () => {
+        const game = createGame()
+        const state = withPosition(start(game), [...line(4), { coords: { q: 0, r: 2 } }], {
+            captured: { p0: captured(0, 0, 5) }
+        })
+        expect(() =>
+            place(game, state, 'p0', MarbleColor.Black, { q: 0, r: 2 }, { q: 3, r: 0 })
+        ).toThrow()
+        const after = place(game, state, 'p0', MarbleColor.Black, { q: 0, r: 2 })
+        expect(after.machineState).toBe(MachineState.EndOfGame)
+        expect(after.endReason).toBe(EndReason.Captures)
+        expect(after.board.rings).toHaveLength(4)
+    })
+
+    it('a chain ends with the jump that wins', () => {
+        const game = createGame()
+        const state = withPosition(
+            start(game),
+            line(5, { 0: MarbleColor.White, 1: MarbleColor.Grey, 3: MarbleColor.Black }),
+            { captured: { p0: captured(0, 4, 0) } }
+        )
+        const after = capture(game, state, 'p0', { q: 0, r: 0 }, { q: 2, r: 0 })
+        expect(after.machineState).toBe(MachineState.EndOfGame)
+        expect(after.captureChainFrom).toBeUndefined()
+        expect(after.board.rings.find((ring) => ring.coords.q === 3)?.marble).toBe(
+            MarbleColor.Black
+        )
+    })
+
     it('the player who fills the board wins', () => {
         const game = createGame()
         let state = withPosition(start(game), flower({ q: 0, r: 0 }))
