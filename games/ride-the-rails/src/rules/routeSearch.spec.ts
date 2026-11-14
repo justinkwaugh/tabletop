@@ -37,6 +37,7 @@ const DES_MOINES: CityId = 'city.usa.des-moines'
 const SEATTLE: CityId = 'city.usa.seattle'
 const SPOKANE: CityId = 'city.usa.spokane'
 const PORTLAND: CityId = 'city.usa.portland-or'
+const OKLAHOMA_CITY: CityId = 'city.usa.oklahoma-city'
 
 const KANSAS_CITY_TO_SAINT_LOUIS: readonly HexId[] = [
     'hex.usa.8-32',
@@ -545,5 +546,122 @@ describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', ()
         expect(realise(blocked, [SEATTLE, PORTLAND], [BLUE])).toEqual([link(BLUE, blueLink)])
         expect(realise(blocked, [SPOKANE, SEATTLE], [RED])).toBeDefined()
         expect(realise(blocked, [SPOKANE, SEATTLE, PORTLAND], [RED, BLUE])).toBeUndefined()
+    }, 2000)
+})
+
+// The 25 non-city hexes nearest a city, a railroad's whole track with that city and one more.
+function blockAround(cityId: CityId): HexId[] {
+    const hexId = usaCity(cityId).hexId
+    return USA_HEXES.filter((hex) => hex.terrain !== 'city')
+        .map((hex) => hex.id)
+        .sort((a, b) => distance(hexId, a) - distance(hexId, b) || hexOrder(a) - hexOrder(b))
+        .slice(0, LOCOMOTIVES_PER_RAILROAD - 2)
+}
+
+describe('a route whose first link must leave room for a later one (R-3.3.2, R-3.3.3, R-X.1)', () => {
+    // Red: Kansas City, Saint Louis and the block around Kansas City. Blue: Saint Louis round the
+    // north and west of Kansas City to Oklahoma City, through 7-31, the first hex Red's search
+    // takes out of Kansas City; every way Red has through 7-31 meets Blue's only link.
+    const BLUE_AROUND: HexId[] = [
+        usaCity(SAINT_LOUIS).hexId,
+        'hex.usa.7-37',
+        'hex.usa.6-36',
+        'hex.usa.6-34',
+        'hex.usa.6-32',
+        'hex.usa.7-31',
+        'hex.usa.8-30',
+        'hex.usa.9-29',
+        usaCity(OKLAHOMA_CITY).hexId
+    ]
+    const state = riding(
+        trackOf(
+            [RED, [usaCity(KANSAS_CITY).hexId, usaCity(SAINT_LOUIS).hexId]],
+            [RED, blockAround(KANSAS_CITY)],
+            [BLUE, BLUE_AROUND]
+        )
+    )
+
+    it('lights the later city and realises the route round the hexes its link needs', () => {
+        expect(nextCities(state, SAINT_LOUIS, [])).toContainEqual({
+            cityId: OKLAHOMA_CITY,
+            railroadIds: [BLUE]
+        })
+        const route = realise(state, [KANSAS_CITY, SAINT_LOUIS, OKLAHOMA_CITY], [RED, BLUE])
+        expect(route).toBeDefined()
+        expect(isLegalJourney(state, route ?? [])).toBe(true)
+        expect(route?.[1]).toEqual(link(BLUE, BLUE_AROUND))
+    }, 2000)
+
+    it('realises every city nextCities offers after a route, keeping the route as it was', () => {
+        const route = realise(state, [KANSAS_CITY, SAINT_LOUIS], [RED]) ?? []
+        expect(route).toHaveLength(1)
+        for (const next of nextCities(state, KANSAS_CITY, route)) {
+            for (const railroadId of next.railroadIds) {
+                const extended = realise(
+                    state,
+                    [KANSAS_CITY, SAINT_LOUIS, next.cityId],
+                    [RED, railroadId]
+                )
+                expect(extended?.slice(0, 1)).toEqual(route)
+            }
+        }
+    }, 2000)
+})
+
+describe('the realise cap (R-X.1)', () => {
+    // Red enters Saint Louis only through 7-37 or 8-36. Blue's link on to Des Moines passes one
+    // of them and its link from Des Moines to Little Rock the other, so no hex is one either must
+    // have, yet whichever Red takes leaves the two Blue links one between them: the search backs
+    // up over every way through Red's block until it spends its cap.
+    const BLUE_GATES: [RailroadId, readonly HexId[]][] = [
+        [BLUE, [usaCity(SAINT_LOUIS).hexId, 'hex.usa.7-37', 'hex.usa.8-36']],
+        [BLUE, ['hex.usa.7-37', 'hex.usa.6-36', usaCity(DES_MOINES).hexId]],
+        [BLUE, [usaCity(DES_MOINES).hexId, 'hex.usa.5-35', 'hex.usa.6-34', 'hex.usa.7-35']],
+        [BLUE, ['hex.usa.7-35', 'hex.usa.8-36', 'hex.usa.9-37', 'hex.usa.10-36']],
+        [BLUE, ['hex.usa.7-37', 'hex.usa.7-39', 'hex.usa.8-40', 'hex.usa.9-41', 'hex.usa.10-40']],
+        [BLUE, ['hex.usa.10-40', 'hex.usa.11-39', usaCity(LITTLE_ROCK).hexId]],
+        [BLUE, ['hex.usa.10-36', usaCity(LITTLE_ROCK).hexId]]
+    ]
+    const track = trackOf(
+        [RED, [usaCity(KANSAS_CITY).hexId, usaCity(SAINT_LOUIS).hexId]],
+        [RED, blockAround(KANSAS_CITY)],
+        ...BLUE_GATES
+    )
+    const state = riding(track)
+    const cities = [KANSAS_CITY, SAINT_LOUIS, DES_MOINES, LITTLE_ROCK]
+
+    it('is a board the placement rules allow, each Blue link possible after some Red link', () => {
+        const overCapacity = USA_HEXES.filter(
+            (hex) => hex.terrain !== 'city' && railroadsIn(track, hex.id).length > 2
+        )
+        expect(overCapacity).toEqual([])
+        expect(realise(state, cities.slice(0, 3), [RED, BLUE])).toBeDefined()
+        expect(realise(state, [SAINT_LOUIS, DES_MOINES, LITTLE_ROCK], [BLUE, BLUE])).toBeDefined()
+    })
+
+    it('gives up, quickly, on a route whose later links contend for the hexes every way meets', () => {
+        expect(realise(state, cities, [RED, BLUE, BLUE])).toBeUndefined()
+    }, 2000)
+})
+
+describe('bestJourneys on track that leads to no other city (R-3.3.1-H1, R-X.1)', () => {
+    // Red: Spokane and the block around it, no second city. Blue: one link to Seattle.
+    const SPOKANE_TO_SEATTLE: HexId[] = [
+        usaCity(SPOKANE).hexId,
+        'hex.usa.0-8',
+        'hex.usa.0-6',
+        usaCity(SEATTLE).hexId
+    ]
+    const state = riding(
+        trackOf(
+            [RED, [usaCity(SPOKANE).hexId, ...blockAround(SPOKANE)]],
+            [BLUE, SPOKANE_TO_SEATTLE]
+        )
+    )
+
+    it('spends nothing on it and still suggests the journey there is', () => {
+        const result = bestJourneys(state, SPOKANE, 'p1')
+        expect(result.capped).toBe(false)
+        expect(result.journeys).toEqual([{ links: [link(BLUE, SPOKANE_TO_SEATTLE)], gain: 2 }])
     }, 2000)
 })

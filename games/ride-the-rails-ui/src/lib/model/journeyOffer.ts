@@ -194,21 +194,27 @@ export function journeyPreview(
     }
 }
 
-// R-3.3, R-X.1: the route that pays the rider most from the start, as a suggestion to edit.
+// R-3.3, R-X.1: the route that pays the rider most from the start, as a suggestion to edit. The
+// draft names its cities and railroads, and holds only while realise finds hexes for them, so the
+// suggestion is the best-ranked journey the draft can hold. bestJourneys lists a journey whenever
+// one leaves the start, and a one-link journey always realises, so a start with a journey always
+// gets one. When bestJourneys reaches its cap, the suggestion is the best of the journeys it found.
 export function bestRoute(
     state: RideTheRailsGameState,
     startCityId: CityId,
     riderId: string
 ): DraftLink[] | undefined {
-    const best = bestJourneys(state, startCityId, riderId).journeys[0]
-    if (!best) {
-        return undefined
+    for (const { links } of bestJourneys(state, startCityId, riderId).journeys) {
+        const cityIds = journeyCities(links).slice(1)
+        const draft = links.map((link, index) => ({
+            cityId: cityIds[index],
+            railroadId: link.railroadId
+        }))
+        if (realiseDraft(state, startCityId, draft)) {
+            return draft
+        }
     }
-    const cityIds = journeyCities(best.links).slice(1)
-    return best.links.map((link, index) => ({
-        cityId: cityIds[index],
-        railroadId: link.railroadId
-    }))
+    return undefined
 }
 
 // The journey's lit cities as the board offer the map layers draw: a pip per railroad, a scrim

@@ -14,6 +14,7 @@ import {
     isRideJourney,
     journeyCities,
     journeyPayments,
+    journeyRefusal,
     nextCities,
     railroadsIn,
     usaCity,
@@ -608,5 +609,92 @@ describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', ()
         const offer = journeyOffer(state, linked, 'p1')
         expect(offer.draft?.links.map((link) => link.hexIds.at(-1))).toEqual([hexOf(SEATTLE)])
         expect(offer.lit).toEqual([])
+    }, 2000)
+
+    it('Best route suggests the journey another railroad makes when Red leads to no other city', async () => {
+        // Red: Spokane and the block, but not Seattle. Blue: one link from Spokane to Seattle.
+        const toSeattle: HexId[] = [hexOf(SPOKANE), 'hex.usa.0-8', 'hex.usa.0-6', hexOf(SEATTLE)]
+        const state = riding(
+            trackOf(
+                [RED, SPOKANE_BLOCK.filter((hexId) => hexId !== hexOf(SEATTLE))],
+                [BLUE, toSeattle]
+            )
+        )
+        const session = await startedIn(SPOKANE, state)
+        expect(session.canChooseBestRoute).toBe(true)
+        session.chooseBestRoute()
+        expect(routeOf(session)).toEqual([[SEATTLE, BLUE]])
+        expect(session.journeyDraft?.links).toEqual([{ railroadId: BLUE, hexIds: toSeattle }])
+    }, 2000)
+})
+
+describe('a route whose first link must leave room for a later one (R-3.3.2, R-3.3.3, R-X.1)', () => {
+    // Red: Kansas City, Saint Louis and the 25 non-city hexes nearest Kansas City. Blue: Saint
+    // Louis round the north and west of Kansas City to Oklahoma City, through 7-31, where Red's
+    // first ways from Kansas City go.
+    const KANSAS_CITY_BLOCK: HexId[] = [
+        'hex.usa.7-31',
+        'hex.usa.7-33',
+        'hex.usa.8-30',
+        'hex.usa.8-34',
+        'hex.usa.9-31',
+        'hex.usa.9-33',
+        'hex.usa.6-30',
+        'hex.usa.6-32',
+        'hex.usa.6-34',
+        'hex.usa.7-29',
+        'hex.usa.7-35',
+        'hex.usa.8-28',
+        'hex.usa.8-36',
+        'hex.usa.9-29',
+        'hex.usa.9-35',
+        'hex.usa.10-32',
+        'hex.usa.10-34',
+        'hex.usa.5-29',
+        'hex.usa.5-33',
+        'hex.usa.5-35',
+        'hex.usa.6-28',
+        'hex.usa.6-36',
+        'hex.usa.7-27',
+        'hex.usa.7-37',
+        'hex.usa.8-26'
+    ]
+    const OKLAHOMA_CITY: CityId = 'city.usa.oklahoma-city'
+    const BLUE_AROUND: HexId[] = [
+        hexOf(SAINT_LOUIS),
+        'hex.usa.7-37',
+        'hex.usa.6-36',
+        'hex.usa.6-34',
+        'hex.usa.6-32',
+        'hex.usa.7-31',
+        'hex.usa.8-30',
+        'hex.usa.9-29',
+        hexOf(OKLAHOMA_CITY)
+    ]
+
+    it('lights the later city, and Ride sends a route that leaves its link the hexes it needs', () => {
+        const state = riding(
+            trackOf(
+                [RED, [hexOf(KANSAS_CITY), hexOf(SAINT_LOUIS), ...KANSAS_CITY_BLOCK]],
+                [BLUE, BLUE_AROUND]
+            )
+        )
+        const started = heldJourneyStage(state, pickJourneyStart({}, KANSAS_CITY))
+        const linked = heldJourneyStage(
+            state,
+            pushDraftLink(started, { cityId: SAINT_LOUIS, railroadId: RED })
+        )
+        expect(journeyOffer(state, linked, 'p1').lit).toContainEqual({
+            cityId: OKLAHOMA_CITY,
+            hexId: hexOf(OKLAHOMA_CITY),
+            railroadIds: [BLUE]
+        })
+        const extended = heldJourneyStage(
+            state,
+            pushDraftLink(linked, { cityId: OKLAHOMA_CITY, railroadId: BLUE })
+        )
+        const links = journeyOffer(state, extended, 'p1').draft?.links ?? []
+        expect(links.at(-1)).toEqual({ railroadId: BLUE, hexIds: BLUE_AROUND })
+        expect(journeyRefusal(state, links)).toBeUndefined()
     }, 2000)
 })
