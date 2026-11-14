@@ -1,16 +1,42 @@
 import { describe, expect, it } from 'vitest'
 import { contrastRatio, laidOver } from '$lib/testing/colourMetrics.js'
-import { railroadNames, Themes, tokenValue } from '$lib/testing/paletteSource.js'
+import { paletteNames, railroadNames, tokenValue } from '$lib/testing/paletteSource.js'
 import { RideTheRailsSeatPalette } from '$lib/definitions/seatPalette.js'
 
-/** Art plan, Seat colours and colour blindness: "Ink by contrast", at least 4.5:1. */
+/** Art plan, Seat colours and colour blindness: "Ink by contrast", at least 4.5:1 (WCAG AA). */
 const MinInkContrast = 4.5
 
+/** WCAG AA for the parts of a graphic a player must see: 3:1 against what is next to it. */
+const MinGraphicContrast = 3
+
 /**
- * Art plan, Palette: under the scrim a locomotive is dimmed, yet still told from the plain it
- * stands on by its fill or its edge.
+ * Art plan, Palette: under the scrim a cube is dimmed, yet still told from the plain it stands
+ * on by its fill or its edge.
  */
 const MinScrimmedTrackContrast = 1.5
+
+const Palettes = paletteNames()
+
+function weakPairs(palette: string, pairs: readonly [string, string][], minimum: number) {
+    return pairs
+        .map(([ink, ground]) => ({
+            pair: `${ink} on ${ground}`,
+            ratio: contrastRatio(tokenValue(palette, ink), tokenValue(palette, ground))
+        }))
+        .filter(({ ratio }) => ratio < minimum)
+        .map(({ pair, ratio }) => `${pair} ${ratio.toFixed(2)}:1`)
+}
+
+/** Every ground a city's name is written on: the land it may spill onto and each hex tint. */
+const LabelGrounds = [
+    'rtr-plain',
+    'rtr-mountain',
+    'rtr-hex-city',
+    'rtr-hex-east',
+    'rtr-hex-west',
+    'rtr-hex-chicago',
+    'rtr-hex-five'
+]
 
 describe('ink', () => {
     it('measures contrast as WCAG does', () => {
@@ -18,45 +44,93 @@ describe('ink', () => {
         expect(contrastRatio('#777777', '#ffffff')).toBeCloseTo(4.48, 2)
     })
 
-    it.each(Themes)(
-        'gives every railroad monogram its contrast in the %s theme (R-1.1)',
-        (theme) => {
-            const weak = railroadNames()
-                .map((name) => {
-                    const fill = tokenValue(theme, `rtr-railroad-${name}`)
-                    const ink = tokenValue(theme, `rtr-railroad-${name}-ink`)
-                    return { name, ratio: contrastRatio(fill, ink) }
-                })
-                .filter(({ ratio }) => ratio < MinInkContrast)
-                .map(({ name, ratio }) => `${name} ${ratio.toFixed(2)}:1`)
+    it('reads the palettes the stylesheet declares', () => {
+        expect(Palettes).toContain('paper')
+    })
+
+    it.each(Palettes)(
+        'gives every railroad letter its contrast in the %s palette (R-1.1)',
+        (palette) => {
+            const pairs = railroadNames().map((name): [string, string] => [
+                `rtr-railroad-${name}-ink`,
+                `rtr-railroad-${name}`
+            ])
             expect(railroadNames()).toHaveLength(6)
-            expect(weak).toEqual([])
+            expect(weakPairs(palette, pairs, MinInkContrast)).toEqual([])
         }
     )
+
+    it.each(Palettes)('gives the table and panel text AA in the %s palette', (palette) => {
+        const pairs = ['rtr-table', 'rtr-panel', 'rtr-panel-raised'].flatMap(
+            (ground): [string, string][] => [
+                ['rtr-ink', ground],
+                ['rtr-ink-muted', ground]
+            ]
+        )
+        expect(weakPairs(palette, pairs, MinInkContrast)).toEqual([])
+    })
+
+    it.each(Palettes)(
+        'writes city names and station marks with AA in the %s palette',
+        (palette) => {
+            const pairs: [string, string][] = [
+                ...LabelGrounds.map((ground): [string, string] => ['rtr-ink', ground]),
+                ['rtr-station-ink', 'rtr-station']
+            ]
+            expect(weakPairs(palette, pairs, MinInkContrast)).toEqual([])
+        }
+    )
+
+    it.each(Palettes)(
+        'writes every bonus coin with AA, a used $5 too, in the %s palette',
+        (palette) => {
+            const pairs: [string, string][] = [
+                ['rtr-coin-ink', 'rtr-coin'],
+                ['rtr-five-ink', 'rtr-five'],
+                ['rtr-coin-used-ink', 'rtr-coin-used']
+            ]
+            expect(weakPairs(palette, pairs, MinInkContrast)).toEqual([])
+        }
+    )
+
+    it.each(Palettes)(
+        'stands the passenger clear of every city ground in the %s palette',
+        (palette) => {
+            const pairs = LabelGrounds.map((ground): [string, string] => ['rtr-passenger', ground])
+            expect(weakPairs(palette, pairs, MinGraphicContrast)).toEqual([])
+        }
+    )
+
+    it.each(Palettes)('edges every cube clear of the land in the %s palette', (palette) => {
+        const pairs = LabelGrounds.map((ground): [string, string] => ['rtr-cube-edge', ground])
+        expect(weakPairs(palette, pairs, MinGraphicContrast)).toEqual([])
+    })
 
     it('lays the scrim over colours as the screen does', () => {
         expect(laidOver('#ffffff', '#00000080')).toBe('#7f7f7f')
         expect(laidOver('#123456', '#abcdef')).toBe('#abcdef')
     })
 
-    it.each(Themes)('keeps every railroad readable under the scrim in the %s theme', (theme) => {
-        const scrim = tokenValue(theme, 'rtr-scrim')
-        const plain = laidOver(tokenValue(theme, 'rtr-plain'), scrim)
-        const faint = railroadNames()
-            .map((name) => {
-                // As railroadStyle draws it: a dark edge, but a light one on Black.
-                const edge = tokenValue(theme, name === 'black' ? 'rtr-station' : 'rtr-halo')
-                const fill = tokenValue(theme, `rtr-railroad-${name}`)
-                const ratio = Math.max(
-                    contrastRatio(laidOver(fill, scrim), plain),
-                    contrastRatio(laidOver(edge, scrim), plain)
-                )
-                return { name, ratio }
-            })
-            .filter(({ ratio }) => ratio < MinScrimmedTrackContrast)
-            .map(({ name, ratio }) => `${name} ${ratio.toFixed(2)}:1`)
-        expect(faint).toEqual([])
-    })
+    it.each(Palettes)(
+        'keeps every railroad readable under the scrim in the %s palette',
+        (palette) => {
+            const scrim = tokenValue(palette, 'rtr-scrim')
+            const plain = laidOver(tokenValue(palette, 'rtr-plain'), scrim)
+            const edge = laidOver(tokenValue(palette, 'rtr-cube-edge'), scrim)
+            const faint = railroadNames()
+                .map((name) => {
+                    const fill = tokenValue(palette, `rtr-railroad-${name}`)
+                    const ratio = Math.max(
+                        contrastRatio(laidOver(fill, scrim), plain),
+                        contrastRatio(edge, plain)
+                    )
+                    return { name, ratio }
+                })
+                .filter(({ ratio }) => ratio < MinScrimmedTrackContrast)
+                .map(({ name, ratio }) => `${name} ${ratio.toFixed(2)}:1`)
+            expect(faint).toEqual([])
+        }
+    )
 
     it('gives every seat colour initials with their contrast (R-1.2)', () => {
         const weak = Object.entries(RideTheRailsSeatPalette)

@@ -5,13 +5,13 @@
     import { ROUND_TICKET as TICKET, roundTicketLeft } from '$lib/utils/marginLayout.js'
     import { romanRound, roundTrack } from '$lib/utils/marginTracks.js'
     import { railroadNames } from '$lib/utils/railroadStyle.js'
-    import Locomotive from './Locomotive.svelte'
+    import RailroadPiece from './RailroadPiece.svelte'
     import MarginPanel from './MarginPanel.svelte'
 
     const gameSession = getGameSession()
 
     const box = MARGIN_BOXES.roundTrack
-    const LOCOMOTIVE_WIDTH = 26
+    const PIECE_WIDTH = 24
 
     const stops = $derived(roundTrack(gameSession.gameState))
 
@@ -64,12 +64,11 @@
                 >{romanRound(stop.round)}</text
             >
             {#each stop.newRailroadIds as railroadId, index (railroadId)}
-                <Locomotive
+                <RailroadPiece
                     {railroadId}
-                    x={centre +
-                        (index - (stop.newRailroadIds.length - 1) / 2) * (LOCOMOTIVE_WIDTH + 4)}
+                    x={centre + (index - (stop.newRailroadIds.length - 1) / 2) * (PIECE_WIDTH + 4)}
                     y={TICKET.top + TICKET.height + 15}
-                    width={LOCOMOTIVE_WIDTH}
+                    width={PIECE_WIDTH}
                 />
             {/each}
         </g>

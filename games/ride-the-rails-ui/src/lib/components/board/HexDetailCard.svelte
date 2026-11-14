@@ -3,7 +3,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexDetailFacts } from '$lib/utils/boardPieces.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
-    import LocomotiveIcon from './LocomotiveIcon.svelte'
+    import RailroadPieceIcon from './RailroadPieceIcon.svelte'
 
     let { hexId }: { hexId: HexId } = $props()
 
@@ -61,7 +61,7 @@
         <dd class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             {#each facts.locomotives as railroadId (railroadId)}
                 <span class="inline-flex items-center gap-1">
-                    <LocomotiveIcon {railroadId} width={20} />{railroadStyle(railroadId).name}
+                    <RailroadPieceIcon {railroadId} size={18} />{railroadStyle(railroadId).name}
                 </span>
             {:else}
                 None

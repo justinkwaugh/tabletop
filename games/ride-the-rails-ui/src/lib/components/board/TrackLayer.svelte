@@ -1,11 +1,14 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { locomotivePieces, thisTurnPlacements } from '$lib/utils/boardPieces.js'
-    import Locomotive from './Locomotive.svelte'
+    import { cubeLettered } from '$lib/utils/cubeShape.js'
+    import RailroadPiece from './RailroadPiece.svelte'
+
+    let { viewScale }: { viewScale: number } = $props()
 
     const gameSession = getGameSession()
 
-    // An Undo's flight shrinks a copy of each locomotive it takes away (FlightLayer).
+    // An Undo's flight shrinks a copy of each cube it takes away (FlightLayer).
     const locomotives = $derived(
         locomotivePieces(gameSession.gameState.track).filter(
             (piece) => !gameSession.flights.hiddenKeys.has(piece.key)
@@ -16,19 +19,20 @@
         thisTurn ? gameSession.colors.getPlayerUiColor(thisTurn.playerId) : 'transparent'
     )
 
-    // The bar under a locomotive placed this building turn, as a share of the locomotive's width.
+    // The bar under a cube placed this building turn, as a share of the cube's width.
     const BAR_WIDTH = 0.76
     const BAR_HEIGHT = 4.4
 </script>
 
-<!-- R-3.2, R-4.1: every locomotive in its rule colour; this building turn's carry a seat bar. -->
+<!-- R-3.2, R-4.1: every railroad's cubes in its rule colour; this building turn's carry a seat bar. -->
 <g class="track" aria-hidden="true">
     {#each locomotives as piece (piece.key)}
-        <Locomotive
+        <RailroadPiece
             railroadId={piece.railroadId}
             x={piece.slot.x}
             y={piece.slot.y}
             width={piece.slot.width}
+            lettered={cubeLettered(piece.slot.width, viewScale)}
         />
     {/each}
     {#each thisTurn?.locomotives ?? [] as piece (piece.key)}

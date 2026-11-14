@@ -12,7 +12,7 @@
     } from '$lib/utils/marginLayout.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
     import { sharesKey, supplyKey, veilKey } from '$lib/animators/flights.svelte.js'
-    import Locomotive from './Locomotive.svelte'
+    import RailroadPiece from './RailroadPiece.svelte'
     import MarginPanel from './MarginPanel.svelte'
     import SeatMarker from './SeatMarker.svelte'
 
@@ -89,7 +89,7 @@
                 stroke={spotlit ? 'var(--rtr-accent)' : 'transparent'}
                 stroke-width="3"
             ></rect>
-            <Locomotive
+            <RailroadPiece
                 railroadId={entry.railroadId}
                 x={STRIP_LOCOMOTIVE.x}
                 y={middle}

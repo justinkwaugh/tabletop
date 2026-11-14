@@ -29,37 +29,33 @@
 
 /* Ride the Rails' palette: the art plan's "Palette" section. Components name these, never a raw
    colour. The scope plugin in postcss.config.js rewrites `:root` to the title root,
-   `[data-game-ui="ride-the-rails"]`. The site keeps `.dark` on its document, above the title root,
-   so the dark values apply to a root inside its scope. */
+   `[data-game-ui="ride-the-rails"]`, and prefixes every other selector with it. The tokens every
+   palette shares sit on the root; each palette's own sit on `[data-rtr-palette='<name>']`, which
+   the table carries from `BOARD_LOOK.palette` (`src/lib/utils/boardLook.ts`). The board is a printed
+   board on the table, so it keeps one look in the site's light and dark themes. */
 :root {
-    --rtr-table: #dcd3be;
-    --rtr-sea: #b9cdd6;
-    --rtr-plain: #efe6cf;
-    --rtr-mountain: #c9b593;
-    --rtr-mountain-ink: #7a6648;
-    --rtr-hex-edge: #cdbf9f;
-    --rtr-station: #ffffff;
-    --rtr-station-ink: #2b2b2b;
-    --rtr-panel: #f6f1e4;
-    --rtr-panel-raised: #fffdf7;
-    --rtr-line: #bdb29a;
-    --rtr-ink: #2a2a2a;
-    --rtr-ink-muted: #6b6458;
     --rtr-ink-light: #ffffff;
     --rtr-accent: #d18e0f;
     --rtr-accent-fill: #e8a31733;
     --rtr-accent-start: #d18e0f80;
     --rtr-cost: #c8506a;
     --rtr-halo: #1b1b1b;
-    --rtr-scrim: #1b1b1b73;
-    --rtr-coin: #d7b44a;
-    --rtr-five: #3f8f4f;
+    --rtr-scrim: #2a272240;
+    --rtr-coin: #e2b33c;
+    --rtr-coin-rim: #9a7316;
+    --rtr-coin-ink: #2b2205;
+    --rtr-five: #357f45;
+    --rtr-five-rim: #25633a;
+    --rtr-five-ink: var(--rtr-ink-light);
+    --rtr-coin-used: #d9d3c5;
+    --rtr-coin-used-rim: #a39c8d;
+    --rtr-coin-used-ink: #5c564b;
     --rtr-gold: #b9851f;
-    --rtr-departure: #23272c;
-    --rtr-departure-ink: #f3ebd6;
-    --rtr-departure-muted: #a59d8b;
-    --rtr-departure-row: #ffffff0d;
-    --rtr-departure-figure: #f7d774;
+    --rtr-passenger: #1e3a5c;
+    --rtr-passenger-gone: #9a9384;
+    --rtr-cube-edge: #2b1d10;
+    --rtr-cube-shade: #3a1f05;
+    --rtr-cube-sheen: #ffffff;
     --rtr-railroad-red: #c8372d;
     --rtr-railroad-blue: #2f6db5;
     --rtr-railroad-orange: #e5892a;
@@ -74,65 +70,36 @@
     --rtr-railroad-black-ink: var(--rtr-ink-light);
 }
 
-@scope (.dark) {
-    :root {
-        --rtr-table: #1e2328;
-        --rtr-sea: #22343d;
-        --rtr-plain: #3a3a33;
-        --rtr-mountain: #57503f;
-        --rtr-mountain-ink: #9c8b6c;
-        --rtr-hex-edge: #4a4638;
-        --rtr-station: #e8e2d2;
-        --rtr-station-ink: #1b1b1b;
-        --rtr-panel: #2a2f35;
-        --rtr-panel-raised: #343a41;
-        --rtr-line: #4b525a;
-        --rtr-ink: #ece7dc;
-        --rtr-ink-muted: #a8a193;
-        --rtr-ink-light: #ffffff;
-        --rtr-accent: #f2b33d;
-        --rtr-accent-fill: #f2b33d33;
-        --rtr-accent-start: #f2b33d80;
-        --rtr-cost: #e36f88;
-        --rtr-halo: #0d0d0d;
-        --rtr-scrim: #00000073;
-        --rtr-coin: #e2c25e;
-        --rtr-five: #5db26c;
-        --rtr-gold: #d9a43a;
-        --rtr-departure: #15181b;
-        --rtr-departure-ink: #f3ebd6;
-        --rtr-departure-muted: #a59d8b;
-        --rtr-departure-row: #ffffff0d;
-        --rtr-departure-figure: #f7d774;
-        --rtr-railroad-red: #d9473c;
-        --rtr-railroad-blue: #4a86cf;
-        --rtr-railroad-orange: #ee9a3e;
-        --rtr-railroad-yellow: #f0d555;
-        --rtr-railroad-purple: #9668bc;
-        --rtr-railroad-black: #24262b;
-        --rtr-railroad-red-ink: var(--rtr-halo);
-        --rtr-railroad-blue-ink: var(--rtr-halo);
-        --rtr-railroad-orange-ink: var(--rtr-halo);
-        --rtr-railroad-yellow-ink: var(--rtr-halo);
-        --rtr-railroad-purple-ink: var(--rtr-halo);
-        --rtr-railroad-black-ink: var(--rtr-ink-light);
-    }
+/* Paper: warm cream land, a soft blue sea with a pale shelf, tan mountains, a slate coast. */
+[data-rtr-palette='paper'] {
+    --rtr-table: #efe8d8;
+    --rtr-panel: #f9f5ec;
+    --rtr-panel-raised: #fffdf7;
+    --rtr-line: #d9cfb8;
+    --rtr-ink: #2a2722;
+    --rtr-ink-muted: #6e665a;
+    --rtr-sea: #cfe3ea;
+    --rtr-sea-shelf: #e2eef1;
+    --rtr-coast: #54808f;
+    --rtr-plain: #f5edd8;
+    --rtr-mountain: #e0cba3;
+    --rtr-mountain-ink: #8c6d45;
+    --rtr-hex-edge: #dacba8;
+    --rtr-hex-city: #fffcf3;
+    --rtr-hex-city-rim: #bfa77a;
+    --rtr-hex-east: #f4d8cf;
+    --rtr-hex-east-rim: #a9503b;
+    --rtr-hex-west: #e8dcf0;
+    --rtr-hex-west-rim: #6e43a0;
+    --rtr-hex-chicago: #f9e1bf;
+    --rtr-hex-chicago-rim: #b86c12;
+    --rtr-hex-five: #dcebcf;
+    --rtr-hex-five-rim: #3f7f48;
+    --rtr-station: #ffffff;
+    --rtr-station-ink: #2b2b2b;
 }
 
 @theme inline {
-    --color-rtr-table: var(--rtr-table);
-    --color-rtr-sea: var(--rtr-sea);
-    --color-rtr-plain: var(--rtr-plain);
-    --color-rtr-mountain: var(--rtr-mountain);
-    --color-rtr-mountain-ink: var(--rtr-mountain-ink);
-    --color-rtr-hex-edge: var(--rtr-hex-edge);
-    --color-rtr-station: var(--rtr-station);
-    --color-rtr-station-ink: var(--rtr-station-ink);
-    --color-rtr-panel: var(--rtr-panel);
-    --color-rtr-panel-raised: var(--rtr-panel-raised);
-    --color-rtr-line: var(--rtr-line);
-    --color-rtr-ink: var(--rtr-ink);
-    --color-rtr-ink-muted: var(--rtr-ink-muted);
     --color-rtr-ink-light: var(--rtr-ink-light);
     --color-rtr-accent: var(--rtr-accent);
     --color-rtr-accent-fill: var(--rtr-accent-fill);
@@ -141,13 +108,20 @@
     --color-rtr-halo: var(--rtr-halo);
     --color-rtr-scrim: var(--rtr-scrim);
     --color-rtr-coin: var(--rtr-coin);
+    --color-rtr-coin-rim: var(--rtr-coin-rim);
+    --color-rtr-coin-ink: var(--rtr-coin-ink);
     --color-rtr-five: var(--rtr-five);
+    --color-rtr-five-rim: var(--rtr-five-rim);
+    --color-rtr-five-ink: var(--rtr-five-ink);
+    --color-rtr-coin-used: var(--rtr-coin-used);
+    --color-rtr-coin-used-rim: var(--rtr-coin-used-rim);
+    --color-rtr-coin-used-ink: var(--rtr-coin-used-ink);
     --color-rtr-gold: var(--rtr-gold);
-    --color-rtr-departure: var(--rtr-departure);
-    --color-rtr-departure-ink: var(--rtr-departure-ink);
-    --color-rtr-departure-muted: var(--rtr-departure-muted);
-    --color-rtr-departure-row: var(--rtr-departure-row);
-    --color-rtr-departure-figure: var(--rtr-departure-figure);
+    --color-rtr-passenger: var(--rtr-passenger);
+    --color-rtr-passenger-gone: var(--rtr-passenger-gone);
+    --color-rtr-cube-edge: var(--rtr-cube-edge);
+    --color-rtr-cube-shade: var(--rtr-cube-shade);
+    --color-rtr-cube-sheen: var(--rtr-cube-sheen);
     --color-rtr-railroad-red: var(--rtr-railroad-red);
     --color-rtr-railroad-blue: var(--rtr-railroad-blue);
     --color-rtr-railroad-orange: var(--rtr-railroad-orange);
@@ -160,6 +134,31 @@
     --color-rtr-railroad-yellow-ink: var(--rtr-railroad-yellow-ink);
     --color-rtr-railroad-purple-ink: var(--rtr-railroad-purple-ink);
     --color-rtr-railroad-black-ink: var(--rtr-railroad-black-ink);
+    --color-rtr-table: var(--rtr-table);
+    --color-rtr-panel: var(--rtr-panel);
+    --color-rtr-panel-raised: var(--rtr-panel-raised);
+    --color-rtr-line: var(--rtr-line);
+    --color-rtr-ink: var(--rtr-ink);
+    --color-rtr-ink-muted: var(--rtr-ink-muted);
+    --color-rtr-sea: var(--rtr-sea);
+    --color-rtr-sea-shelf: var(--rtr-sea-shelf);
+    --color-rtr-coast: var(--rtr-coast);
+    --color-rtr-plain: var(--rtr-plain);
+    --color-rtr-mountain: var(--rtr-mountain);
+    --color-rtr-mountain-ink: var(--rtr-mountain-ink);
+    --color-rtr-hex-edge: var(--rtr-hex-edge);
+    --color-rtr-hex-city: var(--rtr-hex-city);
+    --color-rtr-hex-city-rim: var(--rtr-hex-city-rim);
+    --color-rtr-hex-east: var(--rtr-hex-east);
+    --color-rtr-hex-east-rim: var(--rtr-hex-east-rim);
+    --color-rtr-hex-west: var(--rtr-hex-west);
+    --color-rtr-hex-west-rim: var(--rtr-hex-west-rim);
+    --color-rtr-hex-chicago: var(--rtr-hex-chicago);
+    --color-rtr-hex-chicago-rim: var(--rtr-hex-chicago-rim);
+    --color-rtr-hex-five: var(--rtr-hex-five);
+    --color-rtr-hex-five-rim: var(--rtr-hex-five-rim);
+    --color-rtr-station: var(--rtr-station);
+    --color-rtr-station-ink: var(--rtr-station-ink);
 }
 
 .rtr-display {

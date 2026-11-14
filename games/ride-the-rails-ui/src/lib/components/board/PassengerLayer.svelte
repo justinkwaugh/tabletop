@@ -10,21 +10,24 @@
 
     const gameSession = getGameSession()
 
-    // A passenger on its journey, or one an Undo is taking away, is drawn by the flight layer.
-    const waiting = $derived(
-        cityPieces(gameSession.gameState).filter(
-            (city) =>
+    // A passenger on its journey, or one an Undo is taking away, is drawn by the flight layer and
+    // leaves its outline here, as a taken one does.
+    const cities = $derived(
+        cityPieces(gameSession.gameState).map((city) => ({
+            cityId: city.cityId,
+            waiting:
                 city.passenger && !gameSession.flights.hiddenKeys.has(passengerKey(city.cityId))
-        )
+        }))
     )
 </script>
 
-<!-- R-3.3.1: a passenger waits at each city in the state's passengers. -->
+<!-- R-3.3.1: a passenger waits at each city in the state's passengers; a taken one leaves an
+     outline. -->
 <g class="passengers" aria-hidden="true">
-    {#each waiting as city (city.cityId)}
-        {@const spot = passengerSpot(city.cityId, city.cityId === startCityId)}
+    {#each cities as city (city.cityId)}
+        {@const spot = passengerSpot(city.cityId, city.waiting && city.cityId === startCityId)}
         <g transform="translate({spot.x} {spot.y}) scale({spot.scale})">
-            <PassengerFigure />
+            <PassengerFigure gone={!city.waiting} />
         </g>
     {/each}
 </g>

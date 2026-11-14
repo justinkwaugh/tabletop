@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { finalStandings, sharedWinNote, winnersHeadline } from '$lib/model/actionArea.js'
-    import LocomotiveIcon from '../board/LocomotiveIcon.svelte'
+    import RailroadPieceIcon from '../board/RailroadPieceIcon.svelte'
     import SeatDot from './SeatDot.svelte'
 
     const gameSession = getGameSession()
@@ -39,7 +39,7 @@
             <span class="flex flex-wrap items-center gap-x-2 text-xs text-rtr-ink-muted">
                 {#each standing.shares as held (held.railroadId)}
                     <span class="inline-flex items-center gap-0.5">
-                        <LocomotiveIcon railroadId={held.railroadId} width={18} />×{held.count}
+                        <RailroadPieceIcon railroadId={held.railroadId} size={16} />×{held.count}
                     </span>
                 {/each}
             </span>

@@ -4,13 +4,15 @@ import {
     appCss,
     declaredTokens,
     planPalette,
+    paletteNames,
+    paletteTokens,
     railroadNames,
-    Themes,
-    tokenValue,
-    type Theme
+    sharedTokens,
+    tokenValue
 } from '$lib/testing/paletteSource.js'
 import { RideTheRailsSeatPalette } from '$lib/definitions/seatPalette.js'
 import { DisplayFontFamily } from '$lib/definitions/fonts.js'
+import { BOARD_LOOK } from '$lib/utils/boardLook.js'
 
 const components = import.meta.glob<string>('./**/*.svelte', {
     query: '?raw',
@@ -52,10 +54,12 @@ function rawColours(source: string): string[] {
     )
 }
 
-function railroadColours(theme: Theme): NamedColour[] {
+const Palettes = paletteNames()
+
+function railroadColours(palette: string): NamedColour[] {
     return railroadNames().map((name) => ({
-        name: `${theme} ${name}`,
-        value: tokenValue(theme, `rtr-railroad-${name}`)
+        name: `${palette} ${name}`,
+        value: tokenValue(palette, `rtr-railroad-${name}`)
     }))
 }
 
@@ -63,30 +67,42 @@ const seatColours: NamedColour[] = Object.entries(RideTheRailsSeatPalette).map(
     ([name, values]) => ({ name: `seat ${name}`, value: values?.fill ?? '' })
 )
 
-const fixedColours: NamedColour[] = Themes.flatMap((theme) => [
-    ...railroadColours(theme),
-    { name: `${theme} accent`, value: tokenValue(theme, 'rtr-accent') }
+const fixedColours: NamedColour[] = Palettes.flatMap((palette) => [
+    ...railroadColours(palette),
+    { name: `${palette} accent`, value: tokenValue(palette, 'rtr-accent') }
 ])
 
 /** Art plan, Palette: components name the title's tokens, never a raw colour. */
 describe('palette', () => {
-    it('declares every colour of the art plan on the title root, in both themes', () => {
+    it('declares every colour of the art plan in every palette', () => {
         const palette = planPalette()
         expect(palette.length).toBeGreaterThan(20)
+        expect(Palettes.length).toBeGreaterThan(0)
         const mismatched = palette.flatMap((colour) =>
-            Themes.filter(
-                (theme) =>
-                    declaredTokens(theme).get(colour.token)?.toLowerCase() !==
-                    colour[theme].toLowerCase()
-            ).map((theme) => `${theme} --${colour.token}: ${colour[theme]}`)
+            Palettes.filter(
+                (name) =>
+                    declaredTokens(name).get(colour.token)?.toLowerCase() !==
+                    colour.values.get(name)?.toLowerCase()
+            ).map((name) => `${name} --${colour.token}: ${colour.values.get(name)}`)
         )
         expect(mismatched).toEqual([])
     })
 
-    it('declares the same tokens in both themes', () => {
-        expect([...declaredTokens('dark').keys()].sort()).toEqual(
-            [...declaredTokens('light').keys()].sort()
+    it('lists every declared colour in the art plan, an alias of another token aside', () => {
+        const planned = new Set(planPalette().map(({ token }) => token))
+        const unlisted = Palettes.flatMap((name) =>
+            [...declaredTokens(name)]
+                .filter(([token, value]) => !value.startsWith('var(') && !planned.has(token))
+                .map(([token]) => token)
         )
+        expect(unlisted).toEqual([])
+    })
+
+    it('declares the same tokens in every palette, and none twice', () => {
+        const [first, ...rest] = Palettes.map((name) => [...paletteTokens(name).keys()].sort())
+        for (const tokens of rest) expect(tokens).toEqual(first)
+        const shared = sharedTokens()
+        expect(first.filter((token) => shared.has(token))).toEqual([])
     })
 
     it('makes every token a Tailwind colour of the same name', () => {
@@ -96,7 +112,9 @@ describe('palette', () => {
                 .map(([, utility]) => utility)
         )
         expect(
-            [...declaredTokens('light').keys()].filter((token) => !utilities.has(token))
+            Palettes.flatMap((name) => [...declaredTokens(name).keys()]).filter(
+                (token) => !utilities.has(token)
+            )
         ).toEqual([])
     })
 
@@ -128,7 +146,7 @@ describe('palette', () => {
     })
 
     it('every token a component names is declared', () => {
-        const declared = declaredTokens('light')
+        const declared = declaredTokens(BOARD_LOOK.palette)
         const unknown = Object.entries(components).flatMap(([path, source]) =>
             [...source.matchAll(/(?:var\(--|[a-z]-)(rtr-[a-z-]+?)(?=[)\s"'/]|$)/g)]
                 .filter(([, token]) => !declared.has(token))
@@ -145,8 +163,8 @@ describe('palette', () => {
         expect(closePairs(MinColourDifference, pair)).toHaveLength(1)
     })
 
-    it.each(Themes)('keeps the railroad colours apart in the %s theme (R-1.1)', (theme) => {
-        const railroads = railroadColours(theme)
+    it.each(Palettes)('keeps the railroad colours apart in the %s palette (R-1.1)', (palette) => {
+        const railroads = railroadColours(palette)
         expect(railroads.map(({ name }) => name.split(' ')[1])).toEqual([
             'red',
             'blue',

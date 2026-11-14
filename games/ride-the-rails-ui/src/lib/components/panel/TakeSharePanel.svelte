@@ -2,7 +2,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { shareButtonDetail, shareButtons, shareOrder } from '$lib/model/actionArea.js'
     import { railroadName } from '$lib/utils/describeAction.js'
-    import LocomotiveIcon from '../board/LocomotiveIcon.svelte'
+    import RailroadPieceIcon from '../board/RailroadPieceIcon.svelte'
 
     const gameSession = getGameSession()
 
@@ -36,7 +36,7 @@
             onclick={() => gameSession.takeShare(button.railroadId)}
         >
             <span class="flex items-center gap-1.5 text-sm font-semibold">
-                <LocomotiveIcon railroadId={button.railroadId} width={24} />
+                <RailroadPieceIcon railroadId={button.railroadId} size={22} />
                 <span class="truncate">{railroadName(button.railroadId)}</span>
             </span>
             <span class="text-xs whitespace-nowrap text-rtr-ink-muted"

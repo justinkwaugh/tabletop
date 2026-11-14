@@ -4,7 +4,7 @@
     import type { RailroadChoice } from '$lib/utils/pickMarks.js'
     import { popupSide } from '$lib/utils/phoneLayout.svelte.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
-    import LocomotiveIcon from './LocomotiveIcon.svelte'
+    import RailroadPieceIcon from './RailroadPieceIcon.svelte'
     import MarkPill from './MarkPill.svelte'
 
     let {
@@ -37,7 +37,7 @@
                     onclick={() => onChoose(chip.railroadId)}
                 >
                     <span class="flex items-center gap-1.5 text-sm font-semibold">
-                        <LocomotiveIcon railroadId={chip.railroadId} width={24} />
+                        <RailroadPieceIcon railroadId={chip.railroadId} size={22} />
                         {railroadStyle(chip.railroadId).name}
                     </span>
                     {#if chip.detail}

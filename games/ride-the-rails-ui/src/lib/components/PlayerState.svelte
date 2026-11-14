@@ -5,7 +5,7 @@
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
     import { moneyKey, seatCardKey } from '$lib/animators/flights.svelte.js'
     import type { SeatCard } from '$lib/utils/seatCards.js'
-    import LocomotiveIcon from './board/LocomotiveIcon.svelte'
+    import RailroadPieceIcon from './board/RailroadPieceIcon.svelte'
     import RailroadSpotlightControl from './RailroadSpotlightControl.svelte'
 
     let { card, pendingGain }: { card: SeatCard; pendingGain: number | undefined } = $props()
@@ -14,21 +14,22 @@
 
     const name = $derived(gameSession.getPlayerName(card.playerId))
     const headerFill = $derived(gameSession.colors.getPlayerUiColor(card.playerId))
-    const headerInk = $derived(gameSession.colors.getPlayerTextColorValue(card.playerId))
 
     function rowLabel(railroadId: RailroadId, shares: number): string {
         return `${railroadStyle(railroadId).name}: ${shares} share${shares === 1 ? '' : 's'}`
     }
 </script>
 
-<!-- Contract, Seat card: a station departure board. -->
+<!-- Contract, Seat card: a paper card on the table, edged and marked in the seat's colour. -->
 <section
     class="seat"
     class:acting={card.acting}
     aria-label="{name}, {ordinal(card.position)}"
     data-flight-target={seatCardKey(card.playerId)}
+    style:--seat={headerFill}
 >
-    <header class="rtr-display" style:background={headerFill} style:color={headerInk}>
+    <header class="rtr-display">
+        <span class="disc" aria-hidden="true"></span>
         <span class="name">{name}</span>
         <span class="position">{ordinal(card.position)}</span>
     </header>
@@ -40,7 +41,7 @@
                     label={rowLabel(row.railroadId, row.shares)}
                     class="share-row"
                 >
-                    <LocomotiveIcon railroadId={row.railroadId} width={22} />
+                    <RailroadPieceIcon railroadId={row.railroadId} size={18} />
                     <span class="count">×{row.shares}</span>
                 </RailroadSpotlightControl>
             {:else}
@@ -61,11 +62,12 @@
 
 <style>
     .seat {
-        border-radius: 9px;
+        border-radius: 10px;
         overflow: hidden;
-        border: 1px solid var(--rtr-halo);
-        background: var(--rtr-departure);
-        color: var(--rtr-departure-ink);
+        border: 1px solid var(--rtr-line);
+        border-left: 6px solid var(--seat);
+        background: var(--rtr-panel-raised);
+        color: var(--rtr-ink);
         text-align: left;
     }
 
@@ -77,11 +79,19 @@
 
     header {
         display: flex;
-        align-items: baseline;
-        justify-content: space-between;
+        align-items: center;
         gap: 8px;
-        padding: 2px 10px;
+        padding: 6px 10px 0;
         letter-spacing: 0.02em;
+    }
+
+    .disc {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--seat);
+        box-shadow: 0 0 0 1px var(--rtr-halo);
     }
 
     .name {
@@ -93,15 +103,16 @@
     }
 
     .position {
+        margin-left: auto;
         font-size: 15px;
-        opacity: 0.85;
+        color: var(--rtr-ink-muted);
     }
 
     .board {
         display: flex;
         align-items: stretch;
         gap: 10px;
-        padding: 6px 10px 8px;
+        padding: 4px 10px 8px;
     }
 
     .rows {
@@ -120,8 +131,9 @@
         gap: 4px;
         padding: 1px 6px 1px 3px;
         border-radius: 4px;
-        background: var(--rtr-departure-row);
-        color: var(--rtr-departure-ink);
+        border: 1px solid var(--rtr-line);
+        background: var(--rtr-panel);
+        color: var(--rtr-ink);
     }
 
     .count {
@@ -133,7 +145,7 @@
     .none {
         align-self: center;
         font-size: 12px;
-        color: var(--rtr-departure-muted);
+        color: var(--rtr-ink-muted);
     }
 
     .money {
@@ -147,14 +159,14 @@
 
     .figure {
         font-size: 34px;
-        color: var(--rtr-departure-figure);
+        color: var(--rtr-ink);
     }
 
     .caption {
         font-size: 11px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--rtr-departure-muted);
+        color: var(--rtr-ink-muted);
     }
 
     .pending {

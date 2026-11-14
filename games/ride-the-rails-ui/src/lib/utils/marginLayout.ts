@@ -16,8 +16,8 @@ export const STRIP_COLUMN = { name: 66, supply: 300, track: 406, holders: 80, ho
 export const STRIP_VEIL_OPACITY = 0.55
 /** How dim a railroad's entry on the phone strip is until its round (R-1.4). */
 export const PHONE_LATER_OPACITY = 0.45
-/** The locomotive drawn at the head of each strip entry. */
-export const STRIP_LOCOMOTIVE = { x: 36, width: 44 }
+/** The cube drawn at the head of each strip entry. */
+export const STRIP_LOCOMOTIVE = { x: 36, width: 40 }
 
 export const TURN_ORDER_MARKER = { radius: 20, y: 64 }
 const TURN_ORDER_SLOTS = 5
@@ -28,7 +28,7 @@ export function turnOrderMarkerX(position: number): number {
     return 16 + (position - 1) * TURN_ORDER_STEP + TURN_ORDER_STEP / 2 + 8
 }
 
-/** Where a railroad's strip entry draws its locomotive, in board units (R-1.4 order). */
+/** Where a railroad's strip entry draws its cube, in board units (R-1.4 order). */
 export function stripLocomotivePoint(mapId: MapId, railroadId: RailroadId): Point {
     const box = MARGIN_BOXES.railroadStrip
     const index = RAILROAD_INTRODUCTIONS[mapId].findIndex(

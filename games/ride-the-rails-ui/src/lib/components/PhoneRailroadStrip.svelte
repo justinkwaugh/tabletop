@@ -15,7 +15,7 @@
         type RailroadStripEntry
     } from '$lib/utils/marginTracks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
-    import LocomotiveIcon from './board/LocomotiveIcon.svelte'
+    import RailroadPieceIcon from './board/RailroadPieceIcon.svelte'
     import RailroadSpotlightControl from './RailroadSpotlightControl.svelte'
     import PhoneTranscontinental from './PhoneTranscontinental.svelte'
 
@@ -67,7 +67,7 @@
                 class="entry {entry.available && entry.supply === 0 ? 'empty' : ''}"
             >
                 <span class="icon" data-flight-target={supplyKey(entry.railroadId)}>
-                    <LocomotiveIcon railroadId={entry.railroadId} width={22} />
+                    <RailroadPieceIcon railroadId={entry.railroadId} size={20} />
                 </span>
                 <span>{entryText(entry)}</span>
             </RailroadSpotlightControl>

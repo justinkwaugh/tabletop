@@ -5,7 +5,7 @@
     import { ROUND_TICKET } from '$lib/utils/marginLayout.js'
     import { polylinePoints } from '$lib/utils/routePath.js'
     import CoinChip from './CoinChip.svelte'
-    import Locomotive from './Locomotive.svelte'
+    import RailroadPiece from './RailroadPiece.svelte'
     import PassengerFigure from './PassengerFigure.svelte'
 
     let { flyer, readable = false }: { flyer: Flyer; readable?: boolean } = $props()
@@ -26,7 +26,7 @@
 >
     <g data-readable={readable ? '' : undefined}>
         {#if flyer.kind === 'locomotive'}
-            <Locomotive railroadId={flyer.railroadId} x={0} y={0} width={flyer.width} />
+            <RailroadPiece railroadId={flyer.railroadId} x={0} y={0} width={flyer.width} />
         {:else if flyer.kind === 'coin'}
             <CoinChip amount={flyer.amount} gold={flyer.gold} />
         {:else if flyer.kind === 'passenger'}

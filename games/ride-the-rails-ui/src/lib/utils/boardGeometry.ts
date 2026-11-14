@@ -209,7 +209,8 @@ export type CityLabel = Point & {
 
 const LABEL_GAP = 3
 const LABEL_ABOVE_REACH = STATION_RISE + STATION_RADIUS + LABEL_GAP
-const LABEL_BELOW_REACH = 24
+// A name below its city clears the cubes standing under the station (trackLayout.ts).
+const LABEL_BELOW_REACH = 26.5
 const LABEL_SIDE_REACH = HEX_WIDTH / 2
 const CHARACTER_WIDTH_EM = 0.6
 const LABEL_HEIGHT_EM = 1.2

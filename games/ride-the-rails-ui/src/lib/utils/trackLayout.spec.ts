@@ -8,13 +8,8 @@ import {
     type HexId
 } from '@tabletop/ride-the-rails'
 import { hexCorners, stationOf } from './boardGeometry.js'
-import {
-    LOCOMOTIVE_ASPECT,
-    MOST_LOCOMOTIVES_IN_A_HEX,
-    trackSlot,
-    trackSlotLayout,
-    trackSlots
-} from './trackLayout.js'
+import { CUBE_ASPECT } from './cubeShape.js'
+import { MOST_LOCOMOTIVES_IN_A_HEX, trackSlot, trackSlotLayout, trackSlots } from './trackLayout.js'
 import {
     boxCorners,
     boxesOverlap,
@@ -85,11 +80,33 @@ describe('track slot shapes', () => {
         }
     })
 
-    it('keeps the locomotive shape’s proportions in every slot', () => {
+    it('keeps the cube’s proportions in every slot', () => {
         for (const hex of USA_HEXES) {
             for (const slot of trackSlots(hex.id)) {
-                expect(slot.width / slot.height).toBeCloseTo(LOCOMOTIVE_ASPECT, 6)
+                expect(slot.width / slot.height).toBeCloseTo(CUBE_ASPECT, 6)
             }
         }
+    })
+
+    it('sizes the cubes by capacity: largest two to an open hex, one to an East Coast city, six small in Chicago', () => {
+        const widths = (hexId: HexId | undefined) =>
+            hexId ? trackSlots(hexId).map((slot) => slot.width) : []
+        expect(widths(PLAIN_HEX?.id)).toEqual([28, 28])
+        expect(widths(MOUNTAIN_HEX?.id)).toEqual([28, 28])
+        expect(widths(cityHex('city.usa.denver'))).toEqual([20, 20])
+        expect(widths(cityHex('city.usa.new-york'))).toEqual([21])
+        expect(widths(cityHex('city.usa.chicago'))).toEqual([15, 15, 15, 15, 15, 15])
+    })
+
+    it('stands an open hex’s two cubes side by side and a city’s below its station', () => {
+        const denver = cityHex('city.usa.denver')
+        const station = stationOf('city.usa.denver')
+        const [left, right] = trackSlots(denver)
+        expect(left.y).toBe(right.y)
+        expect(left.x).toBeLessThan(station.x)
+        expect(right.x).toBeGreaterThan(station.x)
+        expect(left.y - left.height / 2).toBeGreaterThanOrEqual(station.y + station.radius)
+        const [only] = trackSlots(cityHex('city.usa.new-york'))
+        expect(only.x).toBe(stationOf('city.usa.new-york').x)
     })
 })

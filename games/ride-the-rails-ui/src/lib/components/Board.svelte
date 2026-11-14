@@ -17,10 +17,17 @@
     import ScrimLayer from './board/ScrimLayer.svelte'
     import StagedRouteLayer from './board/StagedRouteLayer.svelte'
     import TrackLayer from './board/TrackLayer.svelte'
+    import CubeShading from './board/CubeShading.svelte'
+    import { provideCubeShading } from '$lib/utils/cubeShape.js'
 
     let { viewScale = FITTED_DESKTOP_SCALE }: { viewScale?: number } = $props()
 
     const gameSession = getGameSession()
+
+    // Every cube on the board shares one set of gradients, under an id of this board's own.
+    const uid = $props.id()
+    const cubeShadingPrefix = `rtr-cube-${uid}`
+    provideCubeShading(cubeShadingPrefix)
 
     const offer = $derived(gameSession.boardOffer)
     const draft = $derived(gameSession.journeyDraft)
@@ -60,10 +67,11 @@
     aria-label="Map of the USA"
     data-map-board
 >
+    <CubeShading prefix={cubeShadingPrefix} />
     <GroundLayer />
     <CityLayer {viewScale} {litHexIds} />
     <PassengerLayer startCityId={stagedRoute.startCityId} />
-    <TrackLayer />
+    <TrackLayer {viewScale} />
     <LineLayer {lastJourney} />
     <ScrimLayer {offer} spotlight={gameSession.spotlightRailroadId} />
     <MarginLayer {viewScale} />

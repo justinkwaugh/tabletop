@@ -2,7 +2,8 @@
     import { untrack } from 'svelte'
     import {
         ScalingWrapper,
-        DefaultSideContent,
+        DefaultTabs,
+        HistoryControls,
         DefaultTableLayout,
         CustomFont,
         GameSession
@@ -26,6 +27,7 @@
     import { boardInsetTop } from '$lib/utils/phoneLayout.svelte.js'
     import { FITTED_DESKTOP_SCALE, hexBox } from '$lib/utils/boardGeometry.js'
     import { keepFocusedHexInBoard } from '$lib/utils/focusScroll.js'
+    import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import { DisplayFontFamily } from '$lib/definitions/fonts.js'
@@ -72,7 +74,13 @@
     fontWeight="700"
 />
 
-<div class="bg-rtr-table" data-rtr-table {@attach session.flights.attachTable}>
+<!-- The palette's tokens sit on the table (src/app.css), so everything the title draws sees them. -->
+<div
+    class="bg-rtr-table"
+    data-rtr-table
+    data-rtr-palette={BOARD_LOOK.palette}
+    {@attach session.flights.attachTable}
+>
     <DefaultTableLayout>
         {#snippet sideContent()}
             {#if sidePanelHexId}
@@ -80,14 +88,26 @@
                     <HexDetailCard hexId={sidePanelHexId} />
                 {/key}
             {/if}
-            <DefaultSideContent>
+            <!-- The site's history bar and tabs, inked for the table's paper. -->
+            <div class="max-sm:hidden">
+                <HistoryControls
+                    enabledColor="text-rtr-ink"
+                    disabledColor="text-rtr-line"
+                    borderClass="rounded-lg border-2 border-rtr-line"
+                    bgClass="bg-rtr-panel-raised"
+                />
+            </div>
+            <DefaultTabs
+                activeTabClass="py-1 px-3 bg-rtr-panel-raised border-2 border-rtr-line rounded-lg text-rtr-ink"
+                inactiveTabClass="py-1 px-3 rounded-lg border-2 border-transparent text-rtr-ink-muted hover:enabled:border-rtr-line"
+            >
                 {#snippet playersPanel()}
                     <PlayersPanel />
                 {/snippet}
                 {#snippet history()}
                     <History />
                 {/snippet}
-            </DefaultSideContent>
+            </DefaultTabs>
         {/snippet}
         {#snippet gameContent()}
             <div class="shrink-0"><TableControls /></div>

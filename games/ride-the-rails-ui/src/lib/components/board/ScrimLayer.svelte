@@ -11,7 +11,7 @@
         spotlightMode
     } from '$lib/utils/pickMarks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
-    import Locomotive from './Locomotive.svelte'
+    import RailroadPiece from './RailroadPiece.svelte'
 
     let { offer, spotlight }: { offer: BoardOffer; spotlight: RailroadId | undefined } = $props()
 
@@ -40,7 +40,7 @@
     {#if mode === 'dim'}
         <path d={BOARD_OUTLINE_PATH} fill="var(--rtr-scrim)"></path>
         {#each spotlit as piece (piece.key)}
-            <Locomotive
+            <RailroadPiece
                 railroadId={piece.railroadId}
                 x={piece.slot.x}
                 y={piece.slot.y}

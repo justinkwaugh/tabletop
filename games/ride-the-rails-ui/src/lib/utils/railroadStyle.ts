@@ -7,10 +7,8 @@ export type RailroadStyle = {
     monogram: string
     /** The rule colour (R-1.1) as the art plan's token, never a seat colour (U-6). */
     fill: string
-    /** The monogram's ink, chosen per theme by contrast. */
+    /** The letter's ink on the railroad's colour, chosen by contrast. */
     ink: string
-    /** The locomotive's edge: dark, but light on Black so it shows on dark ground. */
-    edge: string
     /** The monogram on a hollow (start) pip, on the station's white: the rule colour, but dark for Yellow. */
     hollowInk: string
 }
@@ -38,7 +36,6 @@ export function railroadStyle(railroadId: RailroadId): RailroadStyle {
         monogram: MONOGRAMS[railroadId],
         fill: `var(--rtr-railroad-${token})`,
         ink: `var(--rtr-railroad-${token}-ink)`,
-        edge: railroadId === 'railroad.black' ? 'var(--rtr-station)' : 'var(--rtr-halo)',
         hollowInk:
             railroadId === 'railroad.yellow'
                 ? 'var(--rtr-station-ink)'

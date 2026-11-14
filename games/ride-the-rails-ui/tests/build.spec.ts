@@ -222,6 +222,9 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     expect(await moneyOf(page, 'p1')).toBe(money)
 
     // R-4.3.2: an empty $5 city pays $5 to an adjacent railroad; a start there pays nothing.
+    // Its coin is green while the bonus is to be had and grey once a cube has used it up.
+    const denverCoin = board(page).locator('[data-city-marks="city.usa.denver"] [data-bonus]')
+    await expect(denverCoin).toHaveAttribute('data-bonus', 'five')
     const denver = litHex(page, 'Denver: place Orange or start Black, $5')
     await expect(denver).toBeVisible()
     await pressHex(page, denver)
@@ -237,12 +240,15 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     expect(await page.evaluate(() => window.rtrSession.gameState.track['hex.usa.8-22'])).toEqual([
         'railroad.black'
     ])
+    await expect(denverCoin).toHaveAttribute('data-bonus', 'used')
 
     await undo(page)
+    await expect(denverCoin).toHaveAttribute('data-bonus', 'five')
     await pressHex(page, litHex(page, 'Denver: place Orange or start Black, $5'))
     const orangeFlyers = await flyersDuring(page, () => orange.click())
     expect(orangeFlyers).toContain('coin $5')
     expect(await moneyOf(page, 'p1')).toBe(money + 5)
+    await expect(denverCoin).toHaveAttribute('data-bonus', 'used')
 })
 
 test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) => {
