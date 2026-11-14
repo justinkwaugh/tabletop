@@ -307,7 +307,11 @@ export class RailheadsGameSession extends GameSession<
         this.laySpace ? this.gameState.layTrackRules(this.laySpace) : undefined
     )
 
-    placements: Placement[] = $derived(this.laySpace ? stagedPlacements(this.trackSelection) : [])
+    // Plain copies: placing track stores a placement's coords in the preview state, which the
+    // logic may structuredClone, and a reactive proxy cannot be cloned.
+    placements: Placement[] = $derived(
+        this.laySpace ? $state.snapshot(stagedPlacements(this.trackSelection)) : []
+    )
 
     // Placements apply in order, as the action does, because a disc's cost can
     // depend on the discs staged before it.
