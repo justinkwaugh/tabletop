@@ -1,8 +1,6 @@
 <script lang="ts">
     import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
-    import { LinkOutline } from 'flowbite-svelte-icons'
     import {
-        assertExists,
         Game,
         GameStatus,
         PlayerStatus,
@@ -32,21 +30,15 @@
     } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
     import { turnWaitDisplay } from '$lib/utils/gamePace'
-    import { gameShareLink } from '$lib/utils/gameLinks'
     import { startCountdownText } from '$lib/utils/startCountdown'
     import { minuteClock, secondClock, timeSince } from '$lib/utils/clock.svelte'
-    import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
     import GameProgressBar from './GameProgressBar.svelte'
     import TurnWait from './TurnWait.svelte'
-    import {
-        copyTextToClipboard,
-        GAME_PACE_LABELS,
-        GameEditForm,
-        getAppContext
-    } from '@tabletop/frontend-components'
+    import CopyGameLinkButton from './CopyGameLinkButton.svelte'
+    import { GAME_PACE_LABELS, GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
     const HIGHLIGHT_CLASS = { active: 'text-orange-400', winner: 'text-blue-400', none: '' }
     const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
@@ -90,7 +82,6 @@
     let isExpanded = $derived(expanded ? true : false)
 
     let sessionUser = $derived(authorizationService.getSessionUser())
-    let shareLink = $derived(gameShareLink(game))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
     let sortedPlayers = $derived(playersHostFirst(game.players, game.ownerId))
 
@@ -213,19 +204,6 @@
         event.stopPropagation()
         game = await gameService.joinGame(game.id)
         onjoin?.(game)
-    }
-
-    async function copyShareLink(event: Event) {
-        event.stopPropagation()
-        assertExists(shareLink, 'A shareable game is required to copy its link')
-        const url = new URL(shareLink.path, window.location.origin).href
-        const kind = shareLink.kind
-        try {
-            await copyTextToClipboard(url)
-            toast.success(kind === 'invite' ? 'Invite link copied' : 'Game link copied')
-        } catch {
-            toast.error('Unable to copy the link. Please try again.')
-        }
     }
 
     async function declineGame(event: Event) {
@@ -412,17 +390,7 @@
                                 >{/if}
                         </div>
                         <div class="ms-2 flex shrink-0 items-center gap-1">
-                            {#if shareLink}
-                                <button
-                                    type="button"
-                                    aria-label={`Copy ${shareLink.kind} link`}
-                                    title={`Copy ${shareLink.kind} link`}
-                                    class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-700 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                    onclick={copyShareLink}
-                                >
-                                    <LinkOutline class="h-4 w-4" aria-hidden="true" />
-                                </button>
-                            {/if}
+                            <CopyGameLinkButton {game} />
                             {#if !isExpanded}
                                 <div class="text-nowrap">
                                     {#if collapsedButton === 'join'}

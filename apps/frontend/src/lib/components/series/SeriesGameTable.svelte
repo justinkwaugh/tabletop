@@ -14,6 +14,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import GameProgressBar from '$lib/components/GameProgressBar.svelte'
     import SeriesGameEntry from './SeriesGameEntry.svelte'
+    import CopyGameLinkButton from '$lib/components/CopyGameLinkButton.svelte'
     import TurnWait from '$lib/components/TurnWait.svelte'
     import { minuteClock, timeSince } from '$lib/utils/clock.svelte'
     import { turnWaitDisplay } from '$lib/utils/gamePace'
@@ -104,8 +105,9 @@
 
 <div class="game-table {kind}" role="region" aria-label={label}>
     <div class="row heading" aria-hidden="true">
-        {#each HEADINGS[kind] as heading (heading.area)}<span style:grid-area={heading.area}
-                >{heading.label}</span
+        {#each HEADINGS[kind] as heading (heading.area)}<span
+                data-area={heading.area}
+                style:grid-area={heading.area}>{heading.label}</span
             >{/each}
     </div>
     <ul>
@@ -183,42 +185,47 @@
                         <GameProgressBar progress={game.progress} class="progress" />
                     {/if}
                     <span class="action"
-                        ><SeriesGameEntry {game} entry={lobbyEntry(game, userId)} /></span
+                        ><CopyGameLinkButton {game} namesGame /><SeriesGameEntry
+                            {game}
+                            entry={lobbyEntry(game, userId)}
+                        /></span
                     >
                 </div>
                 {#if isOpen}
                     {@const scores = recordedFinalScores(game, title?.metadata)}
                     <div class="panel" id={panelId} transition:slide={{ duration: 150 }}>
-                        {#if gameOptions && gameOptions.length > 0}
-                            <section class="block" aria-label="Game options">
-                                <div class="block-heading"><span>GAME OPTIONS</span></div>
-                                <dl>
-                                    {#each gameOptions as option (option.name)}<div
-                                            class="line option"
+                        <div class="panel-blocks">
+                            {#if gameOptions && gameOptions.length > 0}
+                                <section class="block" aria-label="Game options">
+                                    <div class="block-heading"><span>GAME OPTIONS</span></div>
+                                    <dl>
+                                        {#each gameOptions as option (option.name)}<div
+                                                class="line option"
+                                            >
+                                                <dt>{option.name}</dt>
+                                                <dd>{option.value}</dd>
+                                            </div>{/each}
+                                    </dl>
+                                </section>
+                            {/if}
+                            <section class="block" aria-label="Players">
+                                <div class="block-heading">
+                                    <span>PLAYERS</span>{#if scores}<span>SCORE</span>{/if}
+                                </div>
+                                <ul>
+                                    {#each panelPlayers(game, scores) as player (player.id)}<li
+                                            class="line player"
                                         >
-                                            <dt>{option.name}</dt>
-                                            <dd>{option.value}</dd>
-                                        </div>{/each}
-                                </dl>
+                                            <span
+                                                class:active={player.highlight === 'active'}
+                                                class:won={player.highlight === 'winner'}
+                                                >{player.name}</span
+                                            >
+                                            <span class="note">{player.note}</span>
+                                        </li>{/each}
+                                </ul>
                             </section>
-                        {/if}
-                        <section class="block" aria-label="Players">
-                            <div class="block-heading">
-                                <span>PLAYERS</span>{#if scores}<span>SCORE</span>{/if}
-                            </div>
-                            <ul>
-                                {#each panelPlayers(game, scores) as player (player.id)}<li
-                                        class="line player"
-                                    >
-                                        <span
-                                            class:active={player.highlight === 'active'}
-                                            class:won={player.highlight === 'winner'}
-                                            >{player.name}</span
-                                        >
-                                        <span class="note">{player.note}</span>
-                                    </li>{/each}
-                            </ul>
-                        </section>
+                        </div>
                     </div>
                 {/if}
             </li>
@@ -292,24 +299,6 @@
     .chevron:focus-visible {
         outline: 2px solid var(--color-blue-300);
         outline-offset: 1px;
-    }
-    .open .row {
-        grid-template-columns:
-            var(--chevron) var(--cover) var(--title) minmax(0, 1fr) 7.5rem minmax(0, 9rem) 4rem
-            6.5rem 5.5rem;
-        grid-template-areas: 'chevron cover title name seats options pace age action';
-    }
-    .inProgress .row {
-        grid-template-columns:
-            var(--chevron) var(--cover) var(--title) minmax(0, 1fr) minmax(11.5rem, 1fr)
-            minmax(0, 5.5rem) 4rem minmax(0, 7.5rem) 6.5rem 5.5rem;
-        grid-template-areas: 'chevron cover title name progress options pace onmove age action';
-    }
-    .finished .row {
-        grid-template-columns:
-            var(--chevron) var(--cover) var(--title) minmax(0, 1fr) minmax(0, 10rem)
-            minmax(0, 9rem) 7rem 5.5rem;
-        grid-template-areas: 'chevron cover title name winner options age action';
     }
     .cover {
         grid-area: cover;
@@ -404,16 +393,20 @@
     .action {
         grid-area: action;
         justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
     .panel {
+        padding: 2px var(--pad-x) 18px;
+        border-bottom: 1px solid var(--color-gray-800);
+        color: var(--color-gray-400);
+    }
+    .panel-blocks {
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
         gap: 18px 48px;
-        padding: 2px var(--pad-x) 18px
-            calc(var(--pad-x) + var(--chevron) + var(--cover) + var(--title) + 3 * var(--gap));
-        border-bottom: 1px solid var(--color-gray-800);
-        color: var(--color-gray-400);
     }
     .block {
         width: 20rem;
@@ -449,6 +442,63 @@
     }
     .player .won {
         color: var(--color-blue-400);
+    }
+    @media (min-width: 641px) {
+        .game-table {
+            display: grid;
+            column-gap: var(--gap);
+        }
+        .game-table > .heading,
+        .game-table > ul,
+        .game-table > ul > li,
+        li > .row,
+        li > .panel {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: subgrid;
+        }
+        .panel-blocks {
+            grid-column: 4 / -1;
+        }
+        .open {
+            grid-template-columns:
+                var(--chevron) var(--cover) fit-content(var(--title)) minmax(8rem, 1fr)
+                max-content fit-content(9rem) max-content max-content max-content;
+        }
+        .open .row {
+            grid-template-areas: 'chevron cover title name seats options pace age action';
+        }
+        .inProgress {
+            grid-template-columns:
+                var(--chevron) var(--cover) fit-content(var(--title)) minmax(8rem, 1fr)
+                minmax(11.5rem, 1fr) fit-content(9rem) max-content fit-content(7.5rem)
+                max-content max-content;
+        }
+        .inProgress .row {
+            grid-template-areas: 'chevron cover title name progress options pace onmove age action';
+        }
+        .finished {
+            grid-template-columns:
+                var(--chevron) var(--cover) fit-content(var(--title)) minmax(8rem, 1fr)
+                fit-content(10rem) fit-content(9rem) max-content max-content;
+        }
+        .finished .row {
+            grid-template-areas: 'chevron cover title name winner options age action';
+        }
+    }
+    @media (min-width: 641px) and (max-width: 1199px) {
+        .inProgress {
+            grid-template-columns:
+                var(--chevron) var(--cover) fit-content(var(--title)) minmax(8rem, 1fr)
+                fit-content(9rem) max-content fit-content(7.5rem) max-content max-content;
+        }
+        .inProgress .row {
+            grid-template-areas: 'chevron cover title name options pace onmove age action';
+        }
+        .inProgress .row :global(.progress),
+        .inProgress [data-area='progress'] {
+            display: none;
+        }
     }
     @media (max-width: 640px) {
         .game-table {
@@ -526,8 +576,10 @@
             margin-top: 3px;
         }
         .panel {
-            flex-direction: column;
             padding-left: calc(var(--pad-x) + var(--chevron) + var(--cover) + 2 * var(--gap));
+        }
+        .panel-blocks {
+            flex-direction: column;
         }
         .block {
             width: 100%;
