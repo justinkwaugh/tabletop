@@ -17,6 +17,7 @@ import {
     journeyRefusal,
     nextCities,
     railroadsIn,
+    realise,
     usaCity,
     type CityId,
     type HexId,
@@ -27,7 +28,13 @@ import {
 } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
-import { heldJourneyStage, journeyOffer, startCities } from './journeyOffer.js'
+import {
+    BEST_ROUTE_TRIES,
+    bestRoute,
+    heldJourneyStage,
+    journeyOffer,
+    startCities
+} from './journeyOffer.js'
 import {
     JourneyStageOrder,
     draftLinks,
@@ -347,6 +354,38 @@ describe('Best route (R-3.3, R-X.1)', () => {
             [CINCINNATI, RED]
         ])
         expect(actionUndo).not.toHaveBeenCalled()
+    })
+
+    describe('falls back to the next-ranked journey whose draft realises', () => {
+        const state = riding()
+        const ranked = bestJourneys(state, KANSAS_CITY, 'p1').journeys
+        const draftOf = (index: number) =>
+            journeyCities(ranked[index].links)
+                .slice(1)
+                .map((cityId, link) => ({
+                    cityId,
+                    railroadId: ranked[index].links[link].railroadId
+                }))
+
+        it('takes the best-ranked journey when its draft realises', () => {
+            const realiser = vi.fn(realise)
+            expect(bestRoute(state, KANSAS_CITY, 'p1', realiser)).toEqual(draftOf(0))
+            expect(realiser).toHaveBeenCalledTimes(1)
+        })
+
+        it('takes the next-ranked journey when the best one does not realise', () => {
+            expect(draftOf(1)).not.toEqual(draftOf(0))
+            const realiser = vi.fn(realise).mockReturnValueOnce(undefined)
+            expect(bestRoute(state, KANSAS_CITY, 'p1', realiser)).toEqual(draftOf(1))
+            expect(realiser).toHaveBeenCalledTimes(2)
+        })
+
+        it('gives up after BEST_ROUTE_TRIES journeys', () => {
+            expect(ranked.length).toBeGreaterThan(BEST_ROUTE_TRIES)
+            const realiser = vi.fn(realise).mockReturnValue(undefined)
+            expect(bestRoute(state, KANSAS_CITY, 'p1', realiser)).toBeUndefined()
+            expect(realiser).toHaveBeenCalledTimes(BEST_ROUTE_TRIES)
+        })
     })
 
     it('is offered only once a start is picked', async () => {

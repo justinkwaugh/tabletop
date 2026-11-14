@@ -110,9 +110,10 @@ function extensionCities(
 function realiseDraft(
     state: RideTheRailsGameState,
     startCityId: CityId,
-    links: readonly DraftLink[]
+    links: readonly DraftLink[],
+    realiser: typeof realise = realise
 ): Link[] | undefined {
-    return realise(
+    return realiser(
         state,
         [startCityId, ...links.map((link) => link.cityId)],
         links.map((link) => link.railroadId)
@@ -194,23 +195,30 @@ export function journeyPreview(
     }
 }
 
+// Best route tries at most this many journeys. Each try is one realise call, which spends up to
+// REALISE_EXPANSION_CAP steps, so one press costs at most this many times that cap.
+export const BEST_ROUTE_TRIES = 3
+
 // R-3.3, R-X.1: the route that pays the rider most from the start, as a suggestion to edit. The
 // draft names its cities and railroads, and holds only while realise finds hexes for them, so the
-// suggestion is the best-ranked journey the draft can hold. bestJourneys lists a journey whenever
-// one leaves the start, and a one-link journey always realises, so a start with a journey always
-// gets one. When bestJourneys reaches its cap, the suggestion is the best of the journeys it found.
+// suggestion is the best-ranked journey the draft can hold. A listed journey's own links realise
+// its draft, so realise refuses one only when it spends its cap; after BEST_ROUTE_TRIES refusals
+// there is no suggestion. When bestJourneys reaches its cap, the suggestion is the best of the
+// journeys it found.
 export function bestRoute(
     state: RideTheRailsGameState,
     startCityId: CityId,
-    riderId: string
+    riderId: string,
+    realiser: typeof realise = realise
 ): DraftLink[] | undefined {
-    for (const { links } of bestJourneys(state, startCityId, riderId).journeys) {
+    const { journeys } = bestJourneys(state, startCityId, riderId)
+    for (const { links } of journeys.slice(0, BEST_ROUTE_TRIES)) {
         const cityIds = journeyCities(links).slice(1)
         const draft = links.map((link, index) => ({
             cityId: cityIds[index],
             railroadId: link.railroadId
         }))
-        if (realiseDraft(state, startCityId, draft)) {
+        if (realiseDraft(state, startCityId, draft, realiser)) {
             return draft
         }
     }
