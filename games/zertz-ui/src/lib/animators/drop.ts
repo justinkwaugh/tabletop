@@ -82,7 +82,14 @@ export class StagedDrop {
 // Taking back the marble you staged lifts it out of its ring again, unless it is going in.
 type LiftOff = { lifts: () => boolean }
 
-export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfig {
+// The lift takes over from a drop still under way, so the marble rises from where it is. The drop
+// runs on nodes inside the one lifted, so the two never write the same transform.
+function stopDrop(wrapper: Element) {
+    gsap.killTweensOf(wrapper.querySelectorAll('g'))
+}
+
+export function liftOffBody(node: Element, { lifts }: LiftOff): TransitionConfig {
+    stopDrop(node)
     if (!lifts()) return { duration: 0 }
     return {
         duration: LIFT_OFF.duration * 1000,
@@ -94,7 +101,8 @@ export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfi
     }
 }
 
-export function liftOffShadow(_node: Element, { lifts }: LiftOff): TransitionConfig {
+export function liftOffShadow(node: Element, { lifts }: LiftOff): TransitionConfig {
+    stopDrop(node)
     if (!lifts()) return { duration: 0 }
     return {
         duration: LIFT_OFF.duration * 1000,
