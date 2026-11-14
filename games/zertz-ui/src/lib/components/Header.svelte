@@ -5,7 +5,7 @@
 
     const session = getGameSession()
 
-    const currentTurnPlayerId = $derived(session.gameState.turnManager.currentTurn()?.playerId)
+    const actingPlayerId = $derived(session.gameState.activePlayerIds[0])
 </script>
 
 <div
@@ -23,7 +23,7 @@
                 class="inline-flex gap-x-1"
             >
                 <PlayerName
-                    playerId={currentTurnPlayerId}
+                    playerId={actingPlayerId}
                     capitalization="uppercase"
                     possessive={true}
                     additionalClasses="tracking-widest"
@@ -36,7 +36,7 @@
     </div>
 
     <div class="header-grid grid text-[18px] max-sm:text-[14px]">
-        {#if session.hasManualSelection() || session.undoableAction}
+        {#if session.hasLocalSelection || session.undoableAction}
             <button type="button" onclick={() => session.undo()} class="header-button">UNDO</button>
         {/if}
     </div>

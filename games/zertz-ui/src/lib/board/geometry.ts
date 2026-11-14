@@ -1,4 +1,9 @@
-import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@tabletop/common'
+import {
+    flatHexCoordsToCenterPoint,
+    sameCoordinates,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
 import { layoutCoordinates, SETUP_RULES, type ZertzSetup } from '@tabletop/zertz'
 
 export const RING_SPACING = 64
@@ -93,4 +98,8 @@ const TURNED_VIEW = new BoardView(true)
 
 export function viewOf(turned: boolean): BoardView {
     return turned ? TURNED_VIEW : VIEW
+}
+
+export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
+    return list.some((candidate) => sameCoordinates(candidate, coords))
 }

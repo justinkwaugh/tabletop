@@ -1,14 +1,36 @@
 import { describe, expect, it } from 'vitest'
+import {
+    hasManualStagedSelection,
+    popHighestManualStagedSelection,
+    setStagedSelectionValue
+} from '@tabletop/frontend-components'
 import { MarbleColor } from '@tabletop/zertz'
 import {
-    hasManualZertzSelection,
-    popZertzSelection,
     restagedZertzSelection,
     setZertzSelection,
-    type ZertzSelection
+    ZertzStageOrder,
+    type ZertzSelection,
+    type ZertzSelectionValues
 } from './stagedSelection.js'
 
-describe('zertz staged selection', () => {
+const popZertzSelection = (selection: ZertzSelection) =>
+    popHighestManualStagedSelection<ZertzSelectionValues>(selection, ZertzStageOrder).nextState
+const hasManualZertzSelection = (selection: ZertzSelection) =>
+    hasManualStagedSelection<ZertzSelectionValues>(selection, ZertzStageOrder)
+
+describe('ZÈRTZ staged selection', () => {
+    it('throws for a stage outside its stage order', () => {
+        expect(() =>
+            setStagedSelectionValue<Record<string, string>, string>(
+                {},
+                ZertzStageOrder,
+                'notAStage',
+                'x',
+                'manual'
+            )
+        ).toThrow(/does not exist in stage order/)
+    })
+
     it('setting the colour clears a later jumper stage', () => {
         const withJumper = setZertzSelection({}, 'jumper', { q: 0, r: 0 })
         const next = setZertzSelection(withJumper, 'color', MarbleColor.White)

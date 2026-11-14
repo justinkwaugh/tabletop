@@ -7,10 +7,14 @@
     import RingLook from './RingLook.svelte'
     import StagedMarble from './StagedMarble.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { includesCoords } from '$lib/model/session.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import { placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
-    import { RING_MID_RADIUS, RING_OUTER_RADIUS, TILT } from '$lib/board/geometry.js'
+    import {
+        includesCoords,
+        RING_MID_RADIUS,
+        RING_OUTER_RADIUS,
+        TILT
+    } from '$lib/board/geometry.js'
     import {
         MARBLE_SHADOW_RADIUS,
         MARBLE_SHADOW_STOPS,

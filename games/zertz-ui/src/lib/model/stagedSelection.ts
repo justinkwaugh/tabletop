@@ -2,8 +2,6 @@ import type { AxialCoordinates } from '@tabletop/common'
 import type { MarbleColor } from '@tabletop/zertz'
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -44,15 +42,6 @@ export function setZertzSelection<TStage extends keyof ZertzSelectionValues>(
               value,
               'manual'
           )
-}
-
-export function hasManualZertzSelection(selection: ZertzSelection): boolean {
-    return hasManualStagedSelection<ZertzSelectionValues>(selection, ZertzStageOrder)
-}
-
-export function popZertzSelection(selection: ZertzSelection): ZertzSelection {
-    return popHighestManualStagedSelection<ZertzSelectionValues>(selection, ZertzStageOrder)
-        .nextState
 }
 
 // A move Undo took back stands staged again: its marble on its ring, its colour chosen when there
