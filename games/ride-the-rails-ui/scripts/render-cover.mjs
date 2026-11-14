@@ -1,8 +1,9 @@
 /**
  * Renders the catalog cover, src/lib/images/cover.webp, from the SVG drawn below: a band of map
- * hexes, a Red and a Blue locomotive meeting at a station, a passenger waiting, and the title in
- * the title's display font. Every colour is a palette token from src/app.css, in its dark values,
- * which are the site's.
+ * hexes, a Red and a Blue wooden cube meeting at a station ringed in its start colours, a
+ * passenger waiting, a $5 coin, and the title in the title's display font. Every colour is a
+ * palette token from src/app.css: the shared tokens and those of the palette BOARD_LOOK picks
+ * (src/lib/utils/boardLook.ts), read from its source.
  *
  * Prerequisite: Playwright's Chromium is installed:
  *     cd games/ride-the-rails-ui && pnpm exec playwright install chromium
@@ -24,10 +25,17 @@ const Height = 680
 const WebpQuality = 0.86
 const FontFamily = 'Ride the Rails Display'
 
-function darkTokens(css) {
-    const block = /@scope \(\.dark\) \{\s*:root \{([^}]*)\}/.exec(css)
-    if (!block) throw new Error('src/app.css has no dark palette block')
-    return block[1]
+const boardLook = readFileSync(new URL('src/lib/utils/boardLook.ts', packageRoot), 'utf8')
+
+/** The shared tokens and the picked palette's, as one block of declarations. */
+function paletteTokens(css, look) {
+    const picks = look.slice(look.indexOf('BOARD_LOOK: BoardLook'))
+    const palette = /\n\s+palette: '([a-z-]+)',/.exec(picks)
+    if (!palette) throw new Error('src/lib/utils/boardLook.ts picks no palette')
+    const shared = /^:root \{([^}]*)\}/m.exec(css)
+    const own = new RegExp(`^\\[data-rtr-palette='${palette[1]}'\\] \\{([^}]*)\\}`, 'm').exec(css)
+    if (!shared || !own) throw new Error(`src/app.css has no ${palette[1]} palette`)
+    return shared[1] + own[1]
 }
 
 // Pointy-topped hexes of size `HexSize`, centre to corner, as the board draws them.
@@ -43,11 +51,11 @@ function hexCentre(row, column) {
     return { x: CityX + (column + shift) * HexWidth, y: FirstRowY + row * RowHeight }
 }
 
-function hexPoints({ x, y }) {
+function hexPoints({ x, y }, size = HexSize) {
     return Array.from({ length: 6 }, (_, corner) => {
         const angle = (Math.PI / 180) * (60 * corner - 90)
-        const px = x + HexSize * Math.cos(angle)
-        const py = y + HexSize * Math.sin(angle)
+        const px = x + size * Math.cos(angle)
+        const py = y + size * Math.sin(angle)
         return `${px.toFixed(1)},${py.toFixed(1)}`
     }).join(' ')
 }
@@ -75,33 +83,47 @@ function routeLine(className, points) {
     return `<polyline class="halo-line" points="${path}"/><polyline class="${className}" points="${path}"/>`
 }
 
-// A side-view locomotive facing right, its rails at y = 0: cab, boiler, dome, chimney,
-// cow-catcher and two wheels, with the railroad's monogram on the cab.
-function locomotive(railroad, monogram, x, facing) {
-    const fill = `loco-${railroad}`
-    const ink = `ink-${railroad}`
-    const mirror = facing === 'left' ? ' scale(-1 1)' : ''
-    const text = facing === 'left' ? ' transform="scale(-1 1)"' : ''
-    const textX = facing === 'left' ? 41 : -41
-    return `<g transform="translate(${x} ${railY})${mirror}">
-        <rect class="edge ${fill}" x="-62" y="-30" width="114" height="12" rx="2"/>
-        <polygon class="edge ${fill}" points="52,-30 70,-4 52,-4"/>
-        <rect class="edge ${fill}" x="-26" y="-62" width="72" height="34" rx="15"/>
-        <path class="edge ${fill}" d="M-6,-62 a10,10 0 0 1 20,0 z"/>
-        <path class="edge ${fill}" d="M24,-62 L22,-78 L18,-84 L42,-84 L38,-78 L36,-62 z"/>
-        <rect class="edge ${fill}" x="-60" y="-82" width="40" height="54" rx="3"/>
-        <rect class="edge ${fill}" x="-66" y="-90" width="52" height="10" rx="3"/>
-        <rect class="window" x="-54" y="-74" width="28" height="14" rx="2"/>
-        <text class="monogram ${ink}" x="${textX}" y="-34"${text}>${monogram}</text>
-        <circle class="wheel" cx="-36" cy="-17" r="17"/>
-        <circle class="hub ${fill}" cx="-36" cy="-17" r="6"/>
-        <circle class="wheel" cx="28" cy="-13" r="13"/>
-        <circle class="hub ${fill}" cx="28" cy="-13" r="5"/>
+// A wooden cube as the board draws it (src/lib/utils/cubeShape.ts, 10 units across), centred on
+// (x, y) and `width` across: the railroad's colour, its sides shaded by gradients, grain strokes,
+// a worn edge and its letter on top.
+function cube(railroad, letter, x, y, width) {
+    const top = -2.8
+    const n = `0,${top - 2.5}`
+    const e = `5,${top}`
+    const s = `0,${top + 2.5}`
+    const w = `-5,${top}`
+    const eLow = `5,${top + 5.6}`
+    const sLow = `0,${top + 8.1}`
+    const wLow = `-5,${top + 5.6}`
+    return `<g transform="translate(${x} ${y}) scale(${width / 10})">
+        <polygon class="cube-${railroad} cube-edge" points="${n} ${e} ${eLow} ${sLow} ${wLow} ${w}"/>
+        <polygon fill="url(#cube-left)" points="${w} ${s} ${sLow} ${wLow}"/>
+        <polygon fill="url(#cube-right)" points="${s} ${e} ${eLow} ${sLow}"/>
+        <polygon fill="url(#cube-top)" points="${n} ${e} ${s} ${w}"/>
+        <path class="grain" d="M-3.1 -3.4 Q-1 -3.7 0.9 -2.3 T3.4 -1.9 M-2.2 -2.1 Q-0.4 -2.6 1.5 -1.2 M-4.4 -0.9 Q-2.6 -0.3 -0.5 1.2 M-4.4 1 Q-2.4 2.1 -0.6 3.3 M0.6 1.8 Q2.4 0.4 4.4 -0.2 M0.6 3.9 Q2.8 2.6 4.4 2.1"/>
+        <path class="worn" d="M-4.6 ${top + 0.2} L0 ${top + 2.5} L4.6 ${top + 0.2}"/>
+        <text class="letter ink-${railroad}" y="${top + 4.2 * 0.35}">${letter}</text>
     </g>`
 }
 
+// The station's start ring: one arc per railroad that may start there, on a white ring.
+function startRing({ x, y }, railroads) {
+    const radius = 52
+    const gap = 0.3
+    const span = (2 * Math.PI) / railroads.length
+    const point = (angle) =>
+        `${(x + radius * Math.cos(angle)).toFixed(1)} ${(y + radius * Math.sin(angle)).toFixed(1)}`
+    const arcs = railroads.map((railroad, index) => {
+        const from = -Math.PI / 2 - span / 2 + index * span + gap / 2
+        const to = from + span - gap
+        return `<path class="ring-${railroad}" d="M${point(from)} A${radius} ${radius} 0 0 1 ${point(to)}"/>`
+    })
+    return `<circle class="ring-outline" cx="${x}" cy="${y}" r="${radius}"/>
+<circle class="ring-ground" cx="${x}" cy="${y}" r="${radius}"/>
+${arcs.join('\n')}`
+}
+
 const city = hexCentre(CityRow, 0)
-const railY = city.y - 4
 const west = [hexCentre(CityRow, -4), hexCentre(CityRow, -3), hexCentre(CityRow, -2), city]
 const east = [city, hexCentre(CityRow, 1), hexCentre(CityRow, 2), hexCentre(CityRow, 3)]
 const south = [city, hexCentre(4, 0), hexCentre(5, 0), hexCentre(5, 1)]
@@ -112,58 +134,91 @@ const coverSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Width}" heigh
     .sea { fill: var(--rtr-sea); }
     .plain { fill: var(--rtr-plain); stroke: var(--rtr-hex-edge); stroke-width: 3; }
     .mountain { fill: var(--rtr-mountain); stroke: var(--rtr-hex-edge); stroke-width: 3; }
-    .peaks { fill: none; stroke: var(--rtr-mountain-ink); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+    .city-hex { fill: var(--rtr-hex-east); stroke: var(--rtr-hex-edge); stroke-width: 3; }
+    .city-rim { fill: none; stroke: var(--rtr-hex-east-rim); stroke-width: 5; }
+    .peaks { fill: var(--rtr-mountain-ink); fill-opacity: 0.6; }
     .halo-line { fill: none; stroke: var(--rtr-halo); stroke-width: 16; stroke-linejoin: round; stroke-linecap: round; }
     .route-red, .route-blue, .route-yellow, .route-purple { fill: none; stroke-width: 8; stroke-linejoin: round; stroke-linecap: round; }
     .route-red { stroke: var(--rtr-railroad-red); }
     .route-blue { stroke: var(--rtr-railroad-blue); }
     .route-yellow { stroke: var(--rtr-railroad-yellow); }
     .route-purple { stroke: var(--rtr-railroad-purple); }
-    .station { fill: var(--rtr-station); stroke: var(--rtr-halo); stroke-width: 4; }
+    .ring-outline { fill: none; stroke: var(--rtr-station-ink); stroke-width: 30; }
+    .ring-ground { fill: none; stroke: var(--rtr-station); stroke-width: 23; }
+    .ring-red, .ring-blue, .ring-orange, .ring-yellow { fill: none; stroke-width: 19; }
+    .ring-red { stroke: var(--rtr-railroad-red); }
+    .ring-blue { stroke: var(--rtr-railroad-blue); }
+    .ring-orange { stroke: var(--rtr-railroad-orange); }
+    .ring-yellow { stroke: var(--rtr-railroad-yellow); }
+    .station { fill: var(--rtr-station); stroke: var(--rtr-station-ink); stroke-width: 5; }
     .station-ink { fill: var(--rtr-station-ink); }
-    .edge { stroke: var(--rtr-halo); stroke-width: 3; stroke-linejoin: round; }
-    .loco-red { fill: var(--rtr-railroad-red); }
-    .loco-blue { fill: var(--rtr-railroad-blue); }
+    .cube-edge { stroke: var(--rtr-cube-edge); stroke-width: 0.8; stroke-linejoin: round; }
+    .cube-red { fill: var(--rtr-railroad-red); }
+    .cube-blue { fill: var(--rtr-railroad-blue); }
+    .grain { fill: none; stroke: var(--rtr-cube-shade); stroke-opacity: 0.3; stroke-width: 0.32; stroke-linecap: round; }
+    .worn { fill: none; stroke: var(--rtr-cube-sheen); stroke-opacity: 0.45; stroke-width: 0.42; stroke-linecap: round; stroke-linejoin: round; }
+    .letter { font-family: Arial, sans-serif; font-weight: 800; font-size: 4.2px; text-anchor: middle; }
     .ink-red { fill: var(--rtr-railroad-red-ink); }
     .ink-blue { fill: var(--rtr-railroad-blue-ink); }
-    .window { fill: var(--rtr-halo); opacity: 0.55; }
-    .wheel { fill: var(--rtr-halo); stroke: var(--rtr-station); stroke-width: 2; }
-    .monogram { font-family: '${FontFamily}'; font-size: 34px; text-anchor: middle; }
-    .passenger { fill: var(--rtr-ink); stroke: var(--rtr-station); stroke-width: 3; }
+    .passenger { fill: var(--rtr-passenger); stroke: var(--rtr-station); stroke-width: 4; paint-order: stroke; stroke-linejoin: round; }
+    .coin-shadow { fill: var(--rtr-halo); fill-opacity: 0.18; }
+    .coin { fill: var(--rtr-five); stroke: var(--rtr-five-rim); stroke-width: 4; }
+    .coin-ring { fill: none; stroke: var(--rtr-station); stroke-opacity: 0.5; stroke-width: 2; }
+    .coin-ink { fill: var(--rtr-five-ink); font-family: Arial, sans-serif; font-weight: 900; font-size: 30px; text-anchor: middle; letter-spacing: -1px; }
     .title { font-family: '${FontFamily}'; text-anchor: middle; letter-spacing: 2px; }
     .title-ink { fill: var(--rtr-ink); }
     .title-gold { fill: var(--rtr-gold); }
-    .title-shadow { fill: var(--rtr-halo); }
-    .rule { stroke: var(--rtr-gold); stroke-width: 4; }
-    .tie { fill: var(--rtr-gold); stroke: var(--rtr-halo); stroke-width: 2; }
+    .title-shadow { fill: var(--rtr-ink); }
+    .title-halo { fill: none; stroke: var(--rtr-station); stroke-width: 10; stroke-linejoin: round; }
 </style>
 <defs>
-    <g id="peaks"><path class="peaks" d="M-26,14 L-10,-10 L0,4 L12,-16 L28,14"/></g>
+    <g id="peaks"><path class="peaks" d="M-27,13.5 L-10.2,-13.8 L1.8,4.2 L10.8,-6.6 L27,13.5 Z"/></g>
+    <linearGradient id="cube-top" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="var(--rtr-cube-sheen)" stop-opacity="0.34"/>
+        <stop offset="0.6" stop-color="var(--rtr-cube-sheen)" stop-opacity="0"/>
+        <stop offset="1" stop-color="var(--rtr-cube-shade)" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="cube-left" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--rtr-cube-shade)" stop-opacity="0.12"/>
+        <stop offset="1" stop-color="var(--rtr-cube-shade)" stop-opacity="0.36"/>
+    </linearGradient>
+    <linearGradient id="cube-right" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--rtr-cube-shade)" stop-opacity="0.34"/>
+        <stop offset="1" stop-color="var(--rtr-cube-shade)" stop-opacity="0.54"/>
+    </linearGradient>
 </defs>
 <rect class="sea" width="${Width}" height="${Height}"/>
 ${hexes()}
+<polygon class="city-hex" points="${hexPoints(city)}"/>
+<polygon class="city-rim" points="${hexPoints(city, HexSize - 4)}"/>
 ${routeLine('route-purple', north)}
 ${routeLine('route-yellow', south)}
 ${routeLine('route-red', west)}
 ${routeLine('route-blue', east)}
-<rect class="tie" x="${city.x - 30}" y="${city.y + 30}" width="60" height="10" rx="2"/>
+${startRing(city, ['red', 'blue', 'orange', 'yellow'])}
 <circle class="station" cx="${city.x}" cy="${city.y}" r="34"/>
 <path class="station-ink" d="M${city.x - 20},${city.y - 2} L${city.x},${city.y - 20} L${city.x + 20},${city.y - 2} L${city.x + 15},${city.y - 2} L${city.x + 15},${city.y + 16} L${city.x - 15},${city.y + 16} L${city.x - 15},${city.y - 2} z"/>
 <rect class="station" x="${city.x - 6}" y="${city.y + 3}" width="12" height="13" style="stroke-width: 0"/>
-<g transform="translate(${city.x + 34} ${city.y - 46})">
-    <circle class="passenger" cx="0" cy="-22" r="9"/>
-    <path class="passenger" d="M-11,14 L-11,-4 a11,11 0 0 1 22,0 L11,14 z"/>
+<g transform="translate(${city.x + 84} ${city.y - 40})">
+    <circle class="passenger" cx="0" cy="-26" r="15"/>
+    <path class="passenger" d="M-23,29 L-20,-3 Q0,-14 20,-3 L23,29 z"/>
 </g>
-${locomotive('red', 'R', city.x - 128, 'right')}
-${locomotive('blue', 'B', city.x + 128, 'left')}
-<text class="title title-shadow" x="${Width / 2 + 4}" y="104" font-size="104">RIDE THE</text>
+<g transform="translate(${city.x - 88} ${city.y - 66})">
+    <circle class="coin-shadow" cy="3" r="27"/>
+    <circle class="coin" r="27"/>
+    <circle class="coin-ring" r="20"/>
+    <text class="coin-ink" y="${30 * 0.35}">$5</text>
+</g>
+${cube('red', 'R', city.x - 150, city.y + 6, 92)}
+${cube('blue', 'B', city.x + 150, city.y + 6, 92)}
+<text class="title title-halo" x="${Width / 2}" y="100" font-size="104">RIDE THE</text>
 <text class="title title-ink" x="${Width / 2}" y="100" font-size="104">RIDE THE</text>
 <text class="title title-shadow" x="${Width / 2 + 5}" y="230" font-size="150">RAILS</text>
 <text class="title title-gold" x="${Width / 2}" y="225" font-size="150">RAILS</text>
 </svg>`
 
 const page = `<!doctype html><html><head><style>
-    :root {${darkTokens(appCss)}}
+    :root {${paletteTokens(appCss, boardLook)}}
     body { margin: 0; }
     svg { display: block; }
 </style></head><body>${coverSvg}</body></html>`
