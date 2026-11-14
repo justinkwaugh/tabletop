@@ -93,6 +93,8 @@ export class BoardAnimator implements MoveInterrupter {
     private playing: Timeline | undefined
     private staged: StagedDrop | undefined
     private liveActions: readonly GameAction[] = []
+    private explorationActions: readonly GameAction[] = []
+    private exploring = false
     private abandoned: HydratedZertzGameState | undefined
 
     constructor(private readonly session: ZertzGameSession) {}
@@ -183,20 +185,27 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Leaving history publishes the live state while the session still counts as viewing it, so
+    // The live game's and an exploration's actions are kept apart, so neither stands in for the
+    // other. Leaving history publishes the state while the session still counts as viewing it, so
     // this asks history itself.
     private rememberLiveActions() {
         const { actions, history, isExploring } = this.session
-        if (!history.inHistory && !isExploring) this.liveActions = actions
+        if (isExploring !== this.exploring) {
+            this.exploring = isExploring
+            this.explorationActions = []
+        }
+        if (history.inHistory) return
+        if (isExploring) this.explorationActions = actions
+        else this.liveActions = actions
     }
 
-    // History shows its actions only up to the step it is on, so a jump forward reads the live
-    // game's list, as last seen, while it still begins with the actions shown.
+    // History shows its actions only up to the step it is on, so a jump forward reads the list, as
+    // last seen outside history, while it still begins with the actions shown.
     private actionsAhead(): readonly GameAction[] {
         const shown = this.session.actions
-        const live = this.liveActions
-        const continues = shown.every((action, index) => live[index]?.id === action.id)
-        return continues && live.length > shown.length ? live : shown
+        const known = this.session.isExploring ? this.explorationActions : this.liveActions
+        const continues = shown.every((action, index) => known[index]?.id === action.id)
+        return continues && known.length > shown.length ? known : shown
     }
 
     private untilLanded<T>(value: T): T {
@@ -225,15 +234,16 @@ export class BoardAnimator implements MoveInterrupter {
                 : kind === 'history'
                   ? this.session.historyAction
                   : undefined)
-        const placement = isPlaceMarble(stepped) ? stepped : undefined
         const forward = to.actionCount > from.actionCount
+        // History does not name the action again as a step leaves it, so the one it last named
+        // counts only when it is the one stepped to.
+        const steppedTo = stepped?.index === from.actionCount ? stepped : undefined
+        const known = forward ? steppedTo : stepped
+        const placement = isPlaceMarble(known) ? known : undefined
         // The actions list is published with the state, once the step has played, so a move's
         // seeds come from the move itself.
         const seedsBefore = this.seeds
         const seedsDuring = new Map(seedsBefore)
-        // History does not name the action again as a step leaves it, so the one it last named
-        // counts only when it is the one stepped to.
-        const steppedTo = stepped?.index === from.actionCount ? stepped : undefined
         const oneForward = forward && to.actionCount === from.actionCount + 1
         if (action !== undefined) applyToSeeds(seedsDuring, action, from.actionCount)
         else if (oneForward && steppedTo !== undefined) {
