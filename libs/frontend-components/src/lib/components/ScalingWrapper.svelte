@@ -1491,7 +1491,11 @@
                     {@render children()}
                 </div>
             </div>
-            {#if viewport && overlay}{@render overlay(viewport)}{/if}
+            <!-- Always present, so an overlay appearing never takes :last-child from the content:
+                 WebKit restyles the whole board when it does. -->
+            <div style="display: contents">
+                {#if viewport && overlay}{@render overlay(viewport)}{/if}
+            </div>
         </div>
     </div>
     <div
