@@ -16,7 +16,7 @@ import {
     type RideTheRailsGameState
 } from '../model/gameState.js'
 import { legalPlacements } from '../rules/placement.js'
-import { linksFrom } from '../rules/routeSearch.js'
+import { firstLinkFrom } from '../rules/routeSearch.js'
 import { shareableRailroads } from '../rules/shares.js'
 import {
     buildState,
@@ -71,7 +71,7 @@ function nextInput(state: RideTheRailsGameState, step: number): UserInput {
         case MachineState.Riding: {
             for (const cityId of state.passengers) {
                 const { hexId } = usaCity(cityId)
-                const [link] = linksFrom(state, hexId, [hexId])
+                const link = firstLinkFrom(state, hexId, [hexId])
                 if (link) {
                     return { type: ActionType.RideJourney, playerId, links: [link] }
                 }

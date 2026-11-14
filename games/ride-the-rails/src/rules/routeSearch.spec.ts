@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { doubledToAxial, hexCoordinates, type HexId } from '../data/hexes.js'
 import { LOCOMOTIVES_PER_RAILROAD, RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
@@ -17,7 +18,7 @@ import { buildState } from '../testing/fixtures.js'
 import {
     BEST_JOURNEYS_EXPANSION_CAP,
     bestJourneys,
-    linksFrom,
+    firstLinkFrom,
     nextCities,
     realise,
     type RankedJourney
@@ -246,7 +247,7 @@ function isSubsequence(shorter: readonly RankedJourney[], longer: readonly Ranke
 function startsWithPassengers(state: HydratedRideTheRailsGameState): CityId[] {
     return state.passengers.filter((cityId) => {
         const { hexId } = usaCity(cityId)
-        return linksFrom(state, hexId, [hexId]).length > 0
+        return firstLinkFrom(state, hexId, [hexId]) !== undefined
     })
 }
 
@@ -255,12 +256,12 @@ describe('every route a search helper returns passes the journey test (R-3.3.2, 
         const state = riding(track)
         const starts = startsWithPassengers(state)
 
-        it('linksFrom: each link from a passenger city is a one-link journey', () => {
-            for (const cityId of state.passengers) {
-                const { hexId } = usaCity(cityId)
-                for (const found of linksFrom(state, hexId, [hexId])) {
-                    expect(journeyRefusal(state, [found])).toBeUndefined()
-                }
+        it('firstLinkFrom: the first link from each passenger city is a one-link journey', () => {
+            for (const startCityId of starts) {
+                const { hexId } = usaCity(startCityId)
+                const found = firstLinkFrom(state, hexId, [hexId])
+                assertExists(found, `No link from ${startCityId}`)
+                expect(journeyRefusal(state, [found])).toBeUndefined()
             }
         })
 
@@ -308,38 +309,39 @@ describe('every route a search helper returns passes the journey test (R-3.3.2, 
     })
 })
 
-describe('linksFrom (R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
+describe('firstLinkFrom (R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
     const state = riding(NETWORK)
 
-    it('lists links in railroad order of R-1.4, then hex id order', () => {
-        expect(linksFrom(state, 'hex.usa.8-38', ['hex.usa.8-38'])).toEqual([
-            link(RED, [...KANSAS_CITY_TO_SAINT_LOUIS].reverse()),
-            link(RED, SAINT_LOUIS_TO_CINCINNATI),
-            link(BLUE, [...KANSAS_CITY_TO_SAINT_LOUIS_FAR_NORTH].reverse()),
-            link(BLUE, SAINT_LOUIS_TO_LITTLE_ROCK_CROSSING)
-        ])
-    })
-
-    it('offers each realisation of a link, the lower hex ids first', () => {
-        expect(linksFrom(riding(BACKTRACK), 'hex.usa.8-32', ['hex.usa.8-32'])).toEqual([
-            link(RED, KANSAS_CITY_TO_SAINT_LOUIS_NORTH),
-            link(RED, KANSAS_CITY_TO_SAINT_LOUIS_SOUTH)
-        ])
+    it('takes the first railroad of R-1.4 with a link, then its lowest link by hex id', () => {
+        expect(firstLinkFrom(state, 'hex.usa.8-38', ['hex.usa.8-38'])).toEqual(
+            link(RED, [...KANSAS_CITY_TO_SAINT_LOUIS].reverse())
+        )
     })
 
     it('R-3.3.3: avoids the visited hexes', () => {
         const visited: HexId[] = ['hex.usa.8-38', 'hex.usa.8-36']
-        expect(linksFrom(state, 'hex.usa.8-38', visited)).toEqual([
-            link(RED, SAINT_LOUIS_TO_CINCINNATI),
+        expect(firstLinkFrom(state, 'hex.usa.8-38', visited)).toEqual(
+            link(RED, SAINT_LOUIS_TO_CINCINNATI)
+        )
+    })
+
+    it('takes the next railroad of R-1.4 once the visited hexes block every link of the first', () => {
+        const visited: HexId[] = ['hex.usa.8-38', 'hex.usa.8-36', 'hex.usa.8-40']
+        expect(firstLinkFrom(state, 'hex.usa.8-38', visited)).toEqual(
             link(BLUE, [...KANSAS_CITY_TO_SAINT_LOUIS_FAR_NORTH].reverse())
-        ])
+        )
+    })
+
+    it('is undefined when the visited hexes block every link', () => {
+        const visited: HexId[] = ['hex.usa.8-38', 'hex.usa.8-36', 'hex.usa.8-40', 'hex.usa.7-39']
+        expect(firstLinkFrom(state, 'hex.usa.8-38', visited)).toBeUndefined()
     })
 
     it('R-3.3.2-H1: stops at the first city', () => {
-        for (const found of linksFrom(state, 'hex.usa.8-32', ['hex.usa.8-32'])) {
-            expect(isLink(NETWORK, found)).toBe(true)
-            expect(found.hexIds.at(-1)).toBe('hex.usa.8-38')
-        }
+        const found = firstLinkFrom(state, 'hex.usa.8-32', ['hex.usa.8-32'])
+        assertExists(found, 'No link from Kansas City')
+        expect(isLink(NETWORK, found)).toBe(true)
+        expect(found.hexIds.at(-1)).toBe('hex.usa.8-38')
     })
 })
 

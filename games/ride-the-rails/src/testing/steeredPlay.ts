@@ -6,7 +6,7 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import { legalPlacements, type LegalPlacement } from '../rules/placement.js'
-import { linksFrom } from '../rules/routeSearch.js'
+import { firstLinkFrom } from '../rules/routeSearch.js'
 import { shareableRailroads } from '../rules/shares.js'
 import { railroadsIn } from '../rules/track.js'
 import { createGame, engine, hydrated, runAction, type ActionRun } from './fixtures.js'
@@ -84,7 +84,7 @@ export function steeredPlacement(
 function journeyOrPass(state: HydratedRideTheRailsGameState, playerId: string): UserActionFields {
     for (const cityId of state.passengers) {
         const { hexId } = usaCity(cityId)
-        const [link] = linksFrom(state, hexId, [hexId])
+        const link = firstLinkFrom(state, hexId, [hexId])
         if (link) {
             return { type: ActionType.RideJourney, playerId, links: [link] }
         }

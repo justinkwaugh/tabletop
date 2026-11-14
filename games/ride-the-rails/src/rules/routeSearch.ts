@@ -72,13 +72,15 @@ function neighboursInHexOrder(hexId: HexId): readonly HexId[] {
 // R-3.3.2, R-3.3.2-H1, R-3.3.3: a depth-first search in one railroad's track through non-city
 // hexes, neighbours in hex order, so the links come out in hex id order. It steps onto a non-city
 // hex only while some city outside the route and the path can still be reached from it, so every
-// expansion lies on the way to a link and track that leads to no other city costs nothing.
+// expansion lies on the way to a link and track that leads to no other city costs nothing. The
+// search stops once it has found limit links.
 function railroadLinksFrom(
     track: Track,
     railroadId: RailroadId,
     cityHexId: HexId,
     visited: ReadonlySet<HexId>,
-    budget: ExpansionBudget
+    budget: ExpansionBudget,
+    limit = Number.POSITIVE_INFINITY
 ): Link[] {
     if (!hasTrackIn(track, cityHexId, railroadId)) {
         return []
@@ -88,6 +90,9 @@ function railroadLinksFrom(
     const blocked = new Set<HexId>([...visited, cityHexId])
     const extend = (hexId: HexId) => {
         for (const next of neighboursInHexOrder(hexId)) {
+            if (links.length >= limit) {
+                return
+            }
             if (blocked.has(next) || !hasTrackIn(track, next, railroadId)) {
                 continue
             }
@@ -126,15 +131,25 @@ function searchLinksFrom(
 
 const unbounded = () => new ExpansionBudget(Number.POSITIVE_INFINITY)
 
-// R-3.3.2, R-3.3.3: every link out of the city at hexId that uses none of the visited hexes
-// (the city itself may be among them), in railroad order of R-1.4, then hex id order.
-export function linksFrom(
+// R-3.3.2, R-3.3.2-H1, R-3.3.3: the first link out of the city at hexId that uses none of the
+// visited hexes (the city itself may be among them), in railroad order of R-1.4, then hex id
+// order; undefined when it has none. The search steps only onto hexes from which a city outside
+// the path can still be reached, so it never backs out of a step on its way to the first link:
+// at most one step per hex of each railroad, each a search of its track.
+export function firstLinkFrom(
     state: RideTheRailsGameState,
     hexId: HexId,
     visited: Iterable<HexId>
-): Link[] {
+): Link | undefined {
     assert(isCityHex(hexId), `Hex ${hexId} is not a city`)
-    return searchLinksFrom(state.track, hexId, new Set(visited), unbounded())
+    const blocked = new Set(visited)
+    for (const railroadId of RAILROAD_IDS) {
+        const [link] = railroadLinksFrom(state.track, railroadId, hexId, blocked, unbounded(), 1)
+        if (link) {
+            return link
+        }
+    }
+    return undefined
 }
 
 function routeHexIds(startHexId: HexId, links: readonly Link[]): Set<HexId> {
