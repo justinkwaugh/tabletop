@@ -48,6 +48,17 @@ describe('seat cards', () => {
                 .map((card) => card.playerId)
         ).toEqual(['p2'])
     })
+
+    it('shows a share count ticked ahead of the state, adding the row of a first share', () => {
+        const landed = (playerId: string, railroadId: string, shares: number) =>
+            playerId === 'p3' && railroadId === 'railroad.blue' ? shares + 1 : shares
+        const cards = new Map(seatCards(state, landed).map((card) => [card.playerId, card]))
+        expect(cards.get('p3')?.rows).toEqual([{ railroadId: 'railroad.blue', shares: 1 }])
+        expect(cards.get('p1')?.rows).toEqual([
+            { railroadId: 'railroad.red', shares: 2 },
+            { railroadId: 'railroad.yellow', shares: 1 }
+        ])
+    })
 })
 
 describe('pending gains', () => {

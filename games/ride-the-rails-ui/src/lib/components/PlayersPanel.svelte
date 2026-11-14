@@ -1,11 +1,17 @@
 <script lang="ts">
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { sharesKey } from '$lib/animators/flights.svelte.js'
     import { pendingGains, seatCards } from '$lib/utils/seatCards.js'
 
     const gameSession = getGameSession()
 
-    const cards = $derived(seatCards(gameSession.gameState))
+    // Share counts tick ahead of the shown state as a share's locomotive lands (Animation plan, Share).
+    const cards = $derived(
+        seatCards(gameSession.gameState, (playerId, railroadId, shares) =>
+            gameSession.flights.shown(sharesKey(playerId, railroadId), shares)
+        )
+    )
     const pending = $derived(pendingGains(gameSession.journeyPreview?.payments ?? []))
 </script>
 

@@ -24,9 +24,14 @@ export type SeatName = {
     name: string
 }
 
+/** A seat's shares in a railroad as the card shows them, given the shown state's count. */
+export type ShownShares = (playerId: string, railroadId: RailroadId, shares: number) => number
+
 // Contract, Seat card: one card per seat in turn order (R-2.3), a row per railroad held in R-1.4
-// order and none for a railroad not held.
-export function seatCards(state: HydratedRideTheRailsGameState): SeatCard[] {
+// order and none for a railroad not held. Contract, Animation plan, Share: a count that ticks
+// ahead of the shown state as a share lands (`shown`) is the one the row shows, so a seat's first
+// share in a railroad brings its row in as the locomotive lands.
+export function seatCards(state: HydratedRideTheRailsGameState, shown?: ShownShares): SeatCard[] {
     return state.turnManager.turnOrder.map((playerId, index) => {
         const player = state.getPlayerState(playerId)
         return {
@@ -36,7 +41,9 @@ export function seatCards(state: HydratedRideTheRailsGameState): SeatCard[] {
             acting: state.activePlayerIds.includes(playerId),
             rows: RAILROAD_IDS.map((railroadId) => ({
                 railroadId,
-                shares: player.sharesOf(railroadId)
+                shares: shown
+                    ? shown(playerId, railroadId, player.sharesOf(railroadId))
+                    : player.sharesOf(railroadId)
             })).filter((row) => row.shares > 0)
         }
     })
