@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { actionPanel, createGame, playSetup } from './helpers'
+import { actionPanel, createGame, playSetup, takeOpenSeaSpace } from './helpers'
 
 test('a history entry shows the table as its player left it', async ({ page }) => {
     await createGame(page, 2)
@@ -13,10 +13,7 @@ test('a history entry shows the table as its player left it', async ({ page }) =
         .getByRole('button', { name: /^(Place|Attack with) an? / })
         .first()
         .click()
-    await page
-        .getByRole('button', { name: /^Take the \w+ larva cube/ })
-        .first()
-        .click()
+    await takeOpenSeaSpace(page)
     await expect(actions).toContainText('Choose your actions')
 
     await page.getByRole('tab', { name: 'History' }).click()
@@ -44,10 +41,7 @@ test("Replay plays a turn's moves and returns to the live game", async ({ page }
         .getByRole('button', { name: /^(Place|Attack with) an? / })
         .first()
         .click()
-    await page
-        .getByRole('button', { name: /^Take the \w+ larva cube/ })
-        .first()
-        .click()
+    await takeOpenSeaSpace(page)
     await expect(actions).toContainText('Choose your actions')
 
     await page.getByRole('tab', { name: 'History' }).click()

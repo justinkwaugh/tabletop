@@ -1,6 +1,5 @@
 import type { AlgaColor, CoralColor, ReefSquare } from '@tabletop/reef-encounter'
 import {
-    hasManualStagedSelection,
     popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
@@ -17,6 +16,7 @@ export type ReefSelectionValues = {
     cylinderPayment: CoralColor
     cylinderAlga: AlgaColor
     eating: true
+    openSeaSpace: CoralColor
 }
 
 export type ReefSelection = StagedSelectionState<ReefSelectionValues>
@@ -27,7 +27,8 @@ export const ReefStageOrder = [
     'shrimp',
     'cylinderPayment',
     'cylinderAlga',
-    'eating'
+    'eating',
+    'openSeaSpace'
 ] as const satisfies readonly (keyof ReefSelectionValues)[]
 type MissingStages = Exclude<keyof ReefSelectionValues, (typeof ReefStageOrder)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
@@ -71,8 +72,8 @@ export function startEating(selection: ReefSelection) {
     return setReefSelection(selection, 'eating', true)
 }
 
-export function hasManualReefSelection(selection: ReefSelection): boolean {
-    return hasManualStagedSelection<ReefSelectionValues>(selection, ReefStageOrder)
+export function chooseOpenSeaSpace(selection: ReefSelection, larvaColor: CoralColor) {
+    return setReefSelection(selection, 'openSeaSpace', larvaColor)
 }
 
 export function popReefSelection(selection: ReefSelection): ReefSelection {

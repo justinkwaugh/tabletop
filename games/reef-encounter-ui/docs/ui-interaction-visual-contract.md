@@ -6,7 +6,7 @@ How the action panel and the table share the acting player's choices. Follow `do
 
 - **Placing polyps.** Trigger: the player has played a larva cube and has a polyp of its colour to place. Every square that can take one is ringed in white; a square holding a weaker polyp that the new one would attack is ringed in dashed orange instead. A weaker polyp the colour could attack but for a shrimp protecting it gets a dotted pale-blue outline, which takes no clicks. Clicking, tapping, or Enter or Space on a focused ring places the polyp. The panel names the colour and how many more may come from the supply, and how many consumed ones may follow.
 - **Choosing the polyp's source.** Trigger: choosing a square while polyps of the colour are both in the supply and consumed. The square gets a solid orange ring, every other ring goes, and a popup beside the square offers _From your supply_ or _Consumed_; choosing one places the polyp. The panel asks which polyp goes there. With only one source the square places the polyp at once.
-- **Taking an open-sea space.** Trigger: the player may end their turn. Every larva space they may take is ringed in white on the open sea; choosing one ends the turn.
+- **Taking an open-sea space.** Trigger: the player may end their turn. Every larva space they may take is ringed in white on the open sea. Choosing one rings it in orange and takes over the panel: "End your turn", the cube and polyps on that space, and a Confirm button, which ends the turn. Until then the other larva spaces stay ringed, and choosing one moves the choice there; choosing the chosen space again, or Undo, drops it. Confirm waits because the refill that follows draws from the bag and can't be undone.
 - **Picking up a shrimp.** Trigger: the player may move a shrimp and no choice is open. Each of their shrimps on the reefs gets a dashed white ring; choosing one opens _Moving a shrimp_.
 - **Action tiles.** Trigger: no choice is open. The panel offers one tile per action from the player aid, numbered as there; an action the player may take with several colours shows its number and verb once, then a button for each colour. A shared result (6's cube, 8's polyp) appears once after those buttons, as an outline until a button is under the pointer or focused, when it takes that colour; with one colour the tile shows it outright. Moving a shrimp and taking an open-sea space are done on the table alone, so a line under the tiles says so whenever either is possible.
 - **Introducing a shrimp.** Trigger: the panel's Introduce tile. Every polyp the new shrimp may go on is ringed in white, and the panel asks for one.
@@ -25,7 +25,7 @@ Coral tiles, larva cubes and cylinders on the open sea always stand upright, wha
 
 ## Coexistence and precedence
 
-- An open choice (_Choosing the polyp's source_, _Introducing_ or _Moving a shrimp_, _Buying an alga cylinder_, _Eating a coral_) wins over everything else on the table: while one is open, no other placement, open-sea or pick-up rings show, and the panel shows only that choice's prompt. The session derives this once, as `turnChoiceOpen`.
+- An open choice (_Choosing the polyp's source_, _Introducing_ or _Moving a shrimp_, _Buying an alga cylinder_, _Eating a coral_, a chosen open-sea space) wins over everything else on the table: while one is open, no other placement, open-sea or pick-up rings show (a chosen open-sea space keeps the other larva spaces' rings), and the panel shows only that choice's prompt. The session derives this once, as `turnChoiceOpen`.
 - _Placing polyps_, _Taking an open-sea space_ and _Picking up a shrimp_ coexist; each rings different things (reef squares, larva spaces, the player's own shrimps).
 - A square never shows both a placement ring and a shrimp pick-up ring: a polyp is never placed under a shrimp.
 - The _Bare rock warning_ and _Taking an open-sea space_ never coexist: the rules make no space takeable while a shrimp is on bare rock.
@@ -39,6 +39,7 @@ Every stage below is a manual stage of the staged selection. Each is cleared whe
 - **Shrimp choice** (`shrimp`). Producer: the panel's Introduce tile and the board's pick-up rings; choosing a picked-up shrimp again clears it. Consumers: the board's rings, the panel's prompt, and, for a picked-up shrimp, the orange ring and the popup beside it; it decides precedence.
 - **Cylinder payment and colour** (`cylinderPayment`, `cylinderAlga`). Producer: the panel. Consumers: the panel's prompt and the open sea's rings; they decide precedence.
 - **Choosing a coral to eat** (`eating`). Producer: the panel. Consumers: the board's red rings and the panel's prompt; it decides precedence.
+- **Chosen open-sea space** (`openSeaSpace`). Producer: the open sea's larva-space rings; choosing the chosen space again clears it. Consumers: the space's orange ring and the panel's Confirm prompt; it decides precedence.
 - **First larva cube** (`firstLarvaCube`). Producer and consumer: the setup panel.
 
 ## Render ownership
