@@ -69,10 +69,7 @@ export class BoardAnimator implements MoveInterrupter {
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
     seeds: MarbleSeeds = $derived.by(() => {
         const { actionCount } = this.session.gameState
-        return untrack(() => {
-            this.rememberLiveActions()
-            return marbleSeedsAfter(this.session.actions.slice(0, actionCount))
-        })
+        return untrack(() => marbleSeedsAfter(this.session.actions.slice(0, actionCount)))
     })
     flight: Flight | undefined = $state()
     // Until the state lands: your placed marble stays out of the way, and an undone one stands staged.
@@ -97,7 +94,11 @@ export class BoardAnimator implements MoveInterrupter {
     private exploring = false
     private abandoned: HydratedZertzGameState | undefined
 
-    constructor(private readonly session: ZertzGameSession) {}
+    constructor(private readonly session: ZertzGameSession) {
+        // Kept as each state is shown, as a jump forward through history needs the actions it
+        // hides; this runs again once leaving history has finished.
+        $effect(() => this.rememberActions())
+    }
 
     readonly attach: Attachment = () => {
         this.session.addGameStateChangeListener(this.listener)
@@ -186,15 +187,14 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     // The live game's and an exploration's actions are kept apart, so neither stands in for the
-    // other. Leaving history publishes the state while the session still counts as viewing it, so
-    // this asks history itself.
-    private rememberLiveActions() {
-        const { actions, history, isExploring } = this.session
+    // other.
+    private rememberActions() {
+        const { actions, isViewingHistory, isExploring } = this.session
         if (isExploring !== this.exploring) {
             this.exploring = isExploring
             this.explorationActions = []
         }
-        if (history.inHistory) return
+        if (isViewingHistory) return
         if (isExploring) this.explorationActions = actions
         else this.liveActions = actions
     }

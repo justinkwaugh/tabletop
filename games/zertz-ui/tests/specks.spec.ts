@@ -122,6 +122,12 @@ for (const back of [1, 3]) {
     })
 }
 
+test('Go to beginning, then Go to end', async ({ page }) => {
+    await fourPlaced(page)
+    await act(page, () => window.zertzSession.history.goToBeginning())
+    await expectSpecksKept(page, () => void window.zertzSession.history.goToEnd())
+})
+
 test('Go to beginning, then single steps forward out of history', async ({ page }) => {
     await fourPlaced(page)
     await act(page, () => window.zertzSession.history.goToBeginning())
@@ -143,4 +149,16 @@ test('inside an exploration, a step back then Go to end, and again once it ends'
     await act(page, () => window.zertzSession.explorations.endExploring())
     await act(page, () => window.zertzSession.history.goToPreviousAction())
     await expectSpecksKept(page, () => void window.zertzSession.history.goToEnd())
+})
+
+test('inside an exploration, Go to beginning then Go to end, and ending it at its beginning', async ({
+    page
+}) => {
+    await fourPlaced(page)
+    await act(page, () => window.zertzSession.startExploring())
+    await act(page, () => window.placeAway())
+    await act(page, () => window.zertzSession.history.goToBeginning())
+    await expectSpecksKept(page, () => void window.zertzSession.history.goToEnd())
+    await act(page, () => window.zertzSession.history.goToBeginning())
+    await expectSpecksKept(page, () => void window.zertzSession.explorations.endExploring())
 })
