@@ -3,13 +3,6 @@ import { STANDARD_LAY_TRACK, STANDARD_OBSOLESCENCE } from '../standard.js'
 import { GERMANY_MAP } from './map.js'
 import { railroadBonus } from './railroadBonus.js'
 
-const GERMANY_TRACK_COST: Record<HexKind, number> = {
-    [HexKind.Countryside]: 2,
-    [HexKind.City]: 4,
-    [HexKind.Town]: 4,
-    [HexKind.Industry]: 4
-}
-
 const COMPANY_SUPPLY = { shares: 4, discs: 25, crossingCubes: 5, startingTreasury: 0 }
 
 export const GERMANY: EditionDefinition = {
@@ -67,16 +60,17 @@ export const GERMANY: EditionDefinition = {
     startingCash: { 3: 40, 4: 30, 5: 24 },
     roundTimer: { 3: 18, 4: 15, 5: 15 },
     layTrack: STANDARD_LAY_TRACK,
-    trackCost: (hexKind) => GERMANY_TRACK_COST[hexKind],
+    trackCost: (hexKind) => (hexKind === HexKind.Countryside ? 2 : 4),
     siteRevenue: { [SiteKind.City]: 5, [SiteKind.Town]: 3 },
-    crossingCubeCost: 1,
+    crossingCubeCost: () => 1,
     siteCapacity: (round) => round,
     industryInDemand: () => true,
-    endBonusPerShare: railroadBonus,
+    endBonusPerShare: ({ companyId, track, map }) => railroadBonus(companyId, track, map),
     obsolescence: STANDARD_OBSOLESCENCE,
     industryTokensPerType: 4,
     developmentTrackLength: 20,
     // The board's "$6 per industry site reached" with four sites a type, rather than the
     // rulebook's $10 with three.
-    industryBonusPerSite: 6
+    industryBonusPerSite: 6,
+    tollValuePerStar: 0
 }

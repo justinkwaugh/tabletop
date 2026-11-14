@@ -3,6 +3,7 @@ import { MachineState } from './states.js'
 import type { HydratedRailheadsGameState } from '../model/gameState.js'
 import { ChoosingActionStateHandler } from '../stateHandlers/choosingAction.js'
 import { ChoosingIndustryStateHandler } from '../stateHandlers/choosingIndustry.js'
+import { ClaimingInvestmentStateHandler } from '../stateHandlers/claimingInvestment.js'
 import { EndingRoundStateHandler } from '../stateHandlers/endingRound.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { FinalScoringStateHandler } from '../stateHandlers/finalScoring.js'
@@ -22,6 +23,7 @@ export const RailheadsStateHandlers: Record<
     [MachineState.ChoosingIndustry]: new ChoosingIndustryStateHandler(),
     [MachineState.SealedBidding]: new SealedBiddingStateHandler(),
     [MachineState.ResolvingIndustryAuction]: new ResolvingIndustryAuctionStateHandler(),
+    [MachineState.ClaimingInvestment]: new ClaimingInvestmentStateHandler(),
     [MachineState.LayingTrack]: new LayingTrackStateHandler(),
     [MachineState.EndingRound]: new EndingRoundStateHandler(),
     [MachineState.FinalScoring]: new FinalScoringStateHandler(),

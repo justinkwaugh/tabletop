@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { industryName } from '$lib/utils/describeAction.js'
+    import { ITEM_NAMES, industryName } from '$lib/utils/describeAction.js'
     import BidStepper from './BidStepper.svelte'
     import IndustryToken from './IndustryToken.svelte'
 
@@ -8,20 +8,33 @@
 
     const view = $derived(gameSession.industryAuctionView)
     const cash = $derived(
-        gameSession.myPlayerId
-            ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash
-            : 0
+        gameSession.myPlayerId ? gameSession.gameState.spendingPower(gameSession.myPlayerId) : 0
     )
+    const partner = $derived(gameSession.gameState.industryAuction?.partner)
+    const partnerMinimum = $derived(
+        gameSession.gameState.edition.definition.investmentPartner?.minimum ?? 0
+    )
+    const level = $derived(view ? gameSession.gameState.industry(view.industry).level : 0)
 </script>
 
 {#if view}
     <div class="auction">
         <div class="heading">
             <IndustryToken industry={view.industry} size={26} />
-            {industryName(view.industry)} token · level {view.minimum}
+            {industryName(view.industry)} token · level {level}
+            {#if partner}+ {ITEM_NAMES[partner]}{/if}
         </div>
         <p class="terms">
-            Sealed bids: the highest bidder pays the second-highest bid. A bid is $0 or at least ${view.minimum}.
+            {#if partner}
+                Sealed bids, each paying their own: the highest bidder takes either item, then the
+                next bids may take the other. The token needs ${level}, the {ITEM_NAMES[partner]}
+                ${partnerMinimum}.
+            {:else if gameSession.gameState.edition.definition.investmentPartner}
+                Sealed bids: the highest bidder pays their own bid. A bid is $0 or at least ${view.minimum}.
+            {:else}
+                Sealed bids: the highest bidder pays the second-highest bid. A bid is $0 or at least
+                ${view.minimum}.
+            {/if}
         </p>
         <div class="seats">
             {#each view.seats as seat (seat.playerId)}

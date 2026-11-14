@@ -21,7 +21,17 @@
     const perSite = $derived(definition.industryBonusPerSite)
     const stack = [CompanyId.KPEV, CompanyId.KSSE, CompanyId.GBSE]
     const subsidies = STATE_SUBSIDIES.map((perShare, states) => ({ states, perShare })).slice(1)
-    const industryTop = $derived(editionId === EditionId.Midwest ? panel.height - 70 : 98)
+    const industryTop = $derived(
+        editionId === EditionId.Midwest || editionId === EditionId.Denmark ? panel.height - 70 : 98
+    )
+    const SWISS_SUBSIDIES = [
+        { country: 'France', one: '$6', more: '$9' },
+        { country: 'Germany', one: '$6', more: '$9' },
+        { country: 'Austria', one: '$4', more: '$8' },
+        { country: 'Italy', one: '×1', more: '×2' }
+    ]
+    const treasury = $derived(gameSession.gameState.stateTreasury ?? 0)
+    const bondsHeld = $derived(gameSession.gameState.bondsHeld())
 </script>
 
 <g
@@ -41,6 +51,34 @@
             <text x={x + 30} {y} class="body leader">{row.states === 1 ? 'state' : 'states'}</text>
             <text x={x + panel.width / 2 - 8} {y} class="amount">${row.perShare}</text>
         {/each}
+    {:else if editionId === EditionId.Switzerland}
+        <text x="10" y="34" class="subtitle">{style.endBonusName} · per share</text>
+        <text x="108" y="45" class="amount">1 site</text>
+        <text x="146" y="45" class="amount">more</text>
+        {#each SWISS_SUBSIDIES as row, index (row.country)}
+            {@const y = 56 + index * 11}
+            <text x="12" {y} class="body">{row.country}</text>
+            <text x="108" {y} class="amount">{row.one}</text>
+            <text x="146" {y} class="amount">{row.more}</text>
+        {/each}
+        <text x="12" y="104" class="body">None over the Loan Limit</text>
+        <line x1="168" x2="168" y1="28" y2={panel.height - 8} class="rule"></line>
+        <text x="176" y="34" class="subtitle">Credit Suisse</text>
+        <text x="176" y="48" class="body">per share: +1 per</text>
+        <text x="176" y="61" class="body">two loans, every</text>
+        <text x="176" y="74" class="body">company</text>
+        <text x="176" y="92" class="subtitle">Tunnel tolls</text>
+        <text x="176" y="104" class="body">$2 per ★</text>
+    {:else if editionId === EditionId.EnglandWales}
+        <text x="10" y="40" class="subtitle">{style.endBonusShort} · per share</text>
+        <text x="14" y="56" class="body">$1 per town, city and site</text>
+        <text x="14" y="69" class="body">outside the designated region;</text>
+        <text x="14" y="82" class="body">not London, not the Underground</text>
+    {:else if editionId === EditionId.Denmark}
+        <text x="10" y="40" class="subtitle">{style.endBonusName} · per bond</text>
+        <text x="14" y="56" class="body">State Treasury ÷ bonds held</text>
+        <text x="14" y="72" class="body">Now ${treasury} ÷ {bondsHeld}</text>
+        <text x="10" y="96" class="subtitle">Bridge toll chits · $2 per ★</text>
     {:else}
         <text x="10" y="40" class="subtitle">Railroad · per share</text>
         <polygon
@@ -73,20 +111,20 @@
         <text x="52" y="84" class="body">disc beneath</text>
     {/if}
 
-    <g transform="translate(0 {industryTop})">
-        <line x1="10" x2={panel.width - 10} y1="0" y2="0" class="rule"></line>
-        <text x="10" y="18" class="subtitle">Industry · per token</text>
-        <polygon
-            points={layout.hexPoints({ x: 26, y: 44 }, 18)}
-            fill={style.hexFill[HexKind.Industry]}
-            stroke="#1d1d1b"
-            stroke-width="1.5"
-        ></polygon>
-        <text x="26" y="49" class="plus">${perSite}</text>
-        <text x="52" y="34" class="body">${perSite} per site</text>
-        <text x="52" y="47" class="body">reached, split</text>
-        <text x="52" y="60" class="body">across tokens</text>
-    </g>
+    {#if perSite > 0}<g transform="translate(0 {industryTop})">
+            <line x1="10" x2={panel.width - 10} y1="0" y2="0" class="rule"></line>
+            <text x="10" y="18" class="subtitle">Industry · per token</text>
+            <polygon
+                points={layout.hexPoints({ x: 26, y: 44 }, 18)}
+                fill={style.hexFill[HexKind.Industry]}
+                stroke="#1d1d1b"
+                stroke-width="1.5"
+            ></polygon>
+            <text x="26" y="49" class="plus">${perSite}</text>
+            <text x="52" y="34" class="body">${perSite} per site</text>
+            <text x="52" y="47" class="body">reached, split</text>
+            <text x="52" y="60" class="body">across tokens</text>
+        </g>{/if}
 </g>
 
 <style>

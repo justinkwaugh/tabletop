@@ -1,7 +1,13 @@
 import * as Type from 'typebox'
 import { AxialCoordinates, sameCoordinates } from '@tabletop/common'
 import { hexKey, type MapHex } from '../editions/editions.js'
-import { CompanyId, HexKind, Industry, type LayTrackRules } from '../editions/types.js'
+import {
+    CompanyId,
+    Industry,
+    TRACK_HEX_KINDS,
+    isTollKind,
+    type LayTrackRules
+} from '../editions/types.js'
 import type { TrackHex } from './components.js'
 import { networkHexes } from './network.js'
 
@@ -23,6 +29,12 @@ export const Placement = Type.Object({
     boost: Type.Optional(Type.Enum(IndustryBoost))
 })
 
+export type TubeBonus = Type.Static<typeof TubeBonus>
+export const TubeBonus = Type.Object({
+    companyId: Type.Enum(CompanyId),
+    perShare: Type.Number()
+})
+
 export type PlacementEffect = Type.Static<typeof PlacementEffect>
 export const PlacementEffect = Type.Object({
     companyId: Type.Enum(CompanyId),
@@ -31,7 +43,10 @@ export const PlacementEffect = Type.Object({
     crossedCompanyId: Type.Optional(Type.Enum(CompanyId)),
     revenueGain: Type.Number(),
     industry: Type.Optional(Type.Enum(Industry)),
-    level: Type.Optional(Type.Number())
+    level: Type.Optional(Type.Number()),
+    tollId: Type.Optional(Type.String()),
+    // England & Wales: bonus dividends paid when the Underground couples with a company.
+    bonuses: Type.Optional(Type.Array(TubeBonus))
 })
 
 export type PlacementTarget = {
@@ -72,13 +87,19 @@ export type PlacementContext = {
     discsLeft: number
     cubesLeft: number
     neighbours: (coords: AxialCoordinates) => AxialCoordinates[]
+    isAnchor: (coords: AxialCoordinates) => boolean
 }
 
 export function placementKind(context: PlacementContext, place: MapHex): PlacementKind | undefined {
+    if (!context.isAnchor(place.coords)) {
+        return undefined
+    }
     const discs = trackAt(context.track, place.coords)?.discs ?? []
-    if (place.kind === HexKind.Countryside) {
+    if (TRACK_HEX_KINDS.includes(place.kind)) {
         if (discs.length === 0) {
-            return context.discsLeft > 0 ? PlacementKind.Disc : undefined
+            return context.discsLeft > 0 && (!isTollKind(place.kind) || context.rules.tolls > 0)
+                ? PlacementKind.Disc
+                : undefined
         }
         const cube = trackAt(context.track, place.coords)?.cube
         return context.rules.allowsCrossingCubes &&

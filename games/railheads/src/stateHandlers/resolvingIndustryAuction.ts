@@ -1,6 +1,6 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import type { ActionType } from '../definition/actions.js'
-import type { MachineState } from '../definition/states.js'
+import { MachineState } from '../definition/states.js'
 import {
     HydratedResolveIndustryAuction,
     isResolveIndustryAuction
@@ -34,6 +34,8 @@ export class ResolvingIndustryAuctionStateHandler implements MachineStateHandler
         _action: HydratedResolveIndustryAuction,
         context: MachineContext<HydratedRailheadsGameState>
     ): MachineState {
-        return finishTurn(context.gameState)
+        return context.gameState.investmentClaim
+            ? MachineState.ClaimingInvestment
+            : finishTurn(context.gameState)
     }
 }

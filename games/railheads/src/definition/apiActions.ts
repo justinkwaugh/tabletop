@@ -1,6 +1,8 @@
 import { ActionType } from './actions.js'
 import { ChooseAction } from '../actions/chooseAction.js'
+import { ClaimInvestment } from '../actions/claimInvestment.js'
 import { Consolidate } from '../actions/consolidate.js'
+import { DeclineInvestment } from '../actions/declineInvestment.js'
 import { InvestInIndustry } from '../actions/investInIndustry.js'
 import { IssueShare } from '../actions/issueShare.js'
 import { LayTrack } from '../actions/layTrack.js'
@@ -16,5 +18,7 @@ export const RailheadsApiActions = {
     [ActionType.IssueShare]: IssueShare,
     [ActionType.InvestInIndustry]: InvestInIndustry,
     [ActionType.PlaceSealedBid]: PlaceSealedBid,
-    [ActionType.LayTrack]: LayTrack
+    [ActionType.LayTrack]: LayTrack,
+    [ActionType.ClaimInvestment]: ClaimInvestment,
+    [ActionType.DeclineInvestment]: DeclineInvestment
 }

@@ -79,7 +79,9 @@ async function layOneDisc(page: Page, prefix: string) {
         .first()
         .click()
     await expect(page.getByRole('button', { name: /^Lay 1 piece/ })).toBeVisible()
-    await expect(page.locator('.panel .prompt')).toContainText(/lay a disc for/i)
+    await expect(page.locator('.panel .prompt')).toContainText(
+        /lay a disc (or crossing cube )?for/i
+    )
     await screenshot(page, `${prefix}-staged`)
     const tracks = await page.evaluate(() => window.railheadsSession.gameState.track.length)
     await page.getByRole('button', { name: /^Lay 1 piece/ }).click()
@@ -135,7 +137,56 @@ test('runs a sealed-bid industry auction', async ({ page }) => {
         .screenshot({ path: test.info().outputPath('07c-history-panel.png') })
 })
 
-for (const edition of ['Germany', 'Midwest']) {
+for (const [edition, partner] of [
+    ['Switzerland', 'Credit Suisse share'],
+    ['Denmark', 'Government Bond']
+]) {
+    test(`claims the paired Industry Investment items (${edition})`, async ({ page }) => {
+        await createGame(page, edition)
+        await playInitialAuctions(page)
+        await screenshot(page, `11-${edition}-first-turn`)
+        await page.getByRole('button', { name: /^Choose Industry Investment/ }).click()
+        await page
+            .getByRole('button', { name: /level 2/ })
+            .first()
+            .click()
+        await expect.poll(() => machineState(page)).toBe('SealedBidding')
+        await expect(page.getByText(partner).first()).toBeVisible()
+        for (let seat = 0; seat < 4; seat++) {
+            if ((await machineState(page)) !== 'SealedBidding') break
+            await page.getByRole('button', { name: /^Seal bid/ }).click()
+            await page.waitForTimeout(150)
+        }
+        await expect.poll(() => machineState(page)).toBe('ClaimingInvestment')
+        await screenshot(page, `12-${edition}-claim`)
+        await page
+            .getByRole('button', { name: /^Take the / })
+            .first()
+            .click()
+        for (
+            let step = 0;
+            step < 4 && (await machineState(page)) === 'ClaimingInvestment';
+            step++
+        ) {
+            await page.getByRole('button', { name: 'Pass', exact: true }).click()
+            await page.waitForTimeout(150)
+        }
+        await expect.poll(() => machineState(page)).toBe('ChoosingAction')
+        await screenshot(page, `13-${edition}-after-claim`)
+        await layOneDisc(page, `14-${edition}`)
+    })
+}
+
+test('plays the England & Wales opening auctions and lays track', async ({ page }) => {
+    await createGame(page, 'EnglandWales')
+    await expect(page.getByRole('img', { name: /railheads england & wales/i })).toBeAttached()
+    await playInitialAuctions(page)
+    await expect.poll(() => machineState(page)).toBe('ChoosingAction')
+    await screenshot(page, '15-england-first-turn')
+    await layOneDisc(page, '16-england')
+})
+
+for (const edition of ['Germany', 'Midwest', 'Switzerland', 'Denmark', 'EnglandWales']) {
     test(`fits a phone screen without sideways scrolling in the action area (${edition})`, async ({
         page
     }) => {

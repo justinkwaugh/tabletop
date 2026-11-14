@@ -34,9 +34,26 @@
         if (!state.isFinalRound()) {
             return []
         }
-        const { companies, industries } = state.finalPayouts()
+        const { companies, industries, ...extras } = state.finalPayoutsIfEndedNow()
         const style = editionStyle(state.editionId)
+        const holdings =
+            extras.perTollStar !== undefined ||
+            extras.perCreditSuisse !== undefined ||
+            extras.perBond !== undefined
+                ? [
+                      {
+                          label: 'Game End Holdings',
+                          title: 'Toll chits, Credit Suisse shares and bonds, if the game ended now',
+                          amount: state.playerIncome(playerId, {
+                              companies: [],
+                              industries: [],
+                              ...extras
+                          })
+                      }
+                  ]
+                : []
         return [
+            ...holdings,
             {
                 label: `Game End ${style.endBonusShort}`,
                 title: `Game-end ${style.endBonusName} on your shares, if the game ended now`,
@@ -53,6 +70,9 @@
         state.playerIncome(playerId, state.roundPayouts()) +
             endBonuses.reduce((sum, bonus) => sum + bonus.amount, 0)
     )
+    const tollStars = $derived(state.tollStars(playerId))
+    const creditSuisse = $derived(playerState.creditSuisse ?? 0)
+    const bonds = $derived(playerState.bonds ?? 0)
     const startPlayer = $derived(
         state.initialOffers.length === 0 && state.turnManager.turnOrder[0] === playerId
     )
@@ -90,6 +110,34 @@
             <span class="amount">+${line.amount}</span>
         </div>
     {/each}
+    {#if (playerState.tolls ?? []).length > 0}
+        <div
+            class="line"
+            title="Toll chits: $1 a star when needed to pay for an auction, $2 a star at game end"
+        >
+            <span class="items">
+                {#each playerState.tolls ?? [] as tollId, index (index)}
+                    <span class="chit">{'★'.repeat(state.edition.map.toll(tollId).stars)}</span>
+                {/each}
+            </span>
+            <span class="leader"></span>
+            <span class="amount">{tollStars}★</span>
+        </div>
+    {/if}
+    {#if creditSuisse > 0}
+        <div class="line" title="Credit Suisse shares pay at game end by every company's loans">
+            <span class="items">Credit Suisse × {creditSuisse}</span>
+            <span class="leader"></span>
+            <span class="amount">${creditSuisse * state.creditSuisseValue()}</span>
+        </div>
+    {/if}
+    {#if bonds > 0}
+        <div class="line" title="Government Bonds share the State Treasury at game end">
+            <span class="items">Government Bond × {bonds}</span>
+            <span class="leader"></span>
+            <span class="amount">${bonds * state.bondValue()}</span>
+        </div>
+    {/if}
     {#if shares.length === 0 && tokens.length === 0}
         <div class="none">No shares or tokens yet</div>
     {/if}
@@ -113,6 +161,16 @@
 </div>
 
 <style>
+    .chit {
+        border: 1px solid #5a3a08;
+        border-radius: 3px;
+        padding: 0 2px;
+        background: #3a3a38;
+        color: #f2a33a;
+        font-size: 10px;
+        line-height: 1.3;
+    }
+
     .depot {
         position: relative;
         overflow: hidden;

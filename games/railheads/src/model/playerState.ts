@@ -9,7 +9,11 @@ export const RailheadsPlayerState = Type.Evaluate(
         PlayerState,
         Type.Object({
             cash: Type.Number(),
-            industryTokens: Type.Array(Type.Enum(Industry))
+            industryTokens: Type.Array(Type.Enum(Industry)),
+            // Toll chits held, by bridge or tunnel id.
+            tolls: Type.Optional(Type.Array(Type.String())),
+            creditSuisse: Type.Optional(Type.Number()),
+            bonds: Type.Optional(Type.Number())
         })
     ])
 )
@@ -24,6 +28,9 @@ export class HydratedRailheadsPlayerState
     declare color: Color
     declare cash: number
     declare industryTokens: Industry[]
+    declare tolls?: string[]
+    declare creditSuisse?: number
+    declare bonds?: number
 
     constructor(data: RailheadsPlayerState) {
         super(data, RailheadsPlayerStateValidator)

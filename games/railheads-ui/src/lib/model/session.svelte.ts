@@ -2,7 +2,13 @@ import { sameCoordinates, type AuctionParticipant, type AxialCoordinates } from 
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ChooseAction,
+    ClaimInvestment,
     Consolidate,
+    DeclineInvestment,
+    InvestmentItem,
+    claimableItems,
+    currentClaimant,
+    mayDecline,
     HydratedRailheadsGameState,
     Industry,
     InvestInIndustry,
@@ -73,12 +79,23 @@ export type IndustryAuctionView = {
 
 export type TrackTarget = PlacementTarget & { companyId: CompanyId }
 
+export type InvestmentClaimView = {
+    industry: Industry
+    claimantId: string
+    amount: number
+    items: InvestmentItem[]
+    mine: InvestmentItem[]
+    mayDecline: boolean
+}
+
 export class RailheadsGameSession extends GameSession<
     RailheadsProjectedState,
     HydratedRailheadsGameState
 > {
     private trackSelection: TrackSelection = $state({})
     private issueSelection: IssueSelection = $state({})
+    // Switzerland: loans to take (positive) or repay (negative) before the staged track.
+    loanChange: number = $state(0)
 
     myPlayerId = $derived(this.myPlayer?.id)
 
@@ -240,6 +257,45 @@ export class RailheadsGameSession extends GameSession<
         await this.applyAction(action)
     }
 
+    claimingInvestment = $derived(this.actingIn(MachineState.ClaimingInvestment))
+
+    investmentClaimView: InvestmentClaimView | undefined = $derived.by(() => {
+        const state = this.gameState
+        const claim = state.investmentClaim
+        const claimant = currentClaimant(state)
+        if (!claim || !claimant) {
+            return undefined
+        }
+        return {
+            industry: claim.industry,
+            claimantId: claimant.playerId,
+            amount: claimant.amount,
+            items: claim.items,
+            mine:
+                this.myPlayerId && this.claimingInvestment
+                    ? claimableItems(state, this.myPlayerId)
+                    : [],
+            mayDecline: mayDecline(state)
+        }
+    })
+
+    async claimInvestment(item: InvestmentItem, fundedCompanyId?: CompanyId) {
+        if (this.investmentClaimView?.mine.includes(item)) {
+            await this.applyAction(
+                this.createPlayerAction(ClaimInvestment, {
+                    item,
+                    ...(fundedCompanyId ? { fundedCompanyId } : {})
+                })
+            )
+        }
+    }
+
+    async declineInvestment() {
+        if (this.investmentClaimView?.mayDecline) {
+            await this.applyAction(this.createPlayerAction(DeclineInvestment, {}))
+        }
+    }
+
     layingTrack = $derived(this.actingIn(MachineState.LayingTrack))
 
     laySpace: LayTrackSpace | undefined = $derived.by(() => {
@@ -259,12 +315,17 @@ export class RailheadsGameSession extends GameSession<
         $derived.by(() => {
             const space = this.laySpace
             const playerId = this.myPlayerId
-            if (!space || !playerId || this.placements.length === 0) {
+            const loanCompany = this.loanCompany
+            const loan = loanCompany && this.loanChange !== 0 ? this.loanChange : 0
+            if (!space || !playerId || (this.placements.length === 0 && loan === 0)) {
                 return { state: this.gameState, effects: [] }
             }
             const preview = new HydratedRailheadsGameState(
                 structuredClone(this.gameState.dehydrate())
             )
+            if (loanCompany && loan !== 0) {
+                preview.changeLoans(space, loanCompany, loan)
+            }
             const effects = this.placements.map((placement) =>
                 preview.placeTrack(playerId, space, placement)
             )
@@ -287,7 +348,8 @@ export class RailheadsGameSession extends GameSession<
             .filter(
                 (companyId) =>
                     companyId !== exclude &&
-                    state.placementTargets(playerId, space, companyId).length > 0
+                    (state.placementTargets(playerId, space, companyId).length > 0 ||
+                        state.loanRange(space, companyId).take > 0)
             )
     }
 
@@ -305,6 +367,29 @@ export class RailheadsGameSession extends GameSession<
 
     secondCompany: CompanyId | undefined = $derived(selectedCompany(this.trackSelection, 'second'))
 
+    // The company a loan change applies to: the one this single-company action builds for.
+    loanCompany: CompanyId | undefined = $derived(
+        this.laySpace && this.layRules?.allowsLoans ? this.firstCompany : undefined
+    )
+
+    loanRange: { take: number; repay: number } = $derived(
+        this.laySpace && this.loanCompany
+            ? this.gameState.loanRange(this.laySpace, this.loanCompany)
+            : { take: 0, repay: 0 }
+    )
+
+    // Staged track was priced against the old loan money, so a loan change starts it over.
+    setLoanChange(change: number) {
+        const { take, repay } = this.loanRange
+        const next = Math.max(-repay, Math.min(take, change))
+        if (next === this.loanChange) return
+        const companyId = this.firstCompany
+        if (this.placements.length > 0 || this.boostHex) {
+            this.trackSelection = companyId ? selectCompany({}, 'first', companyId) : {}
+        }
+        this.loanChange = next
+    }
+
     secondCompanyOptions: CompanyId[] = $derived.by(() => {
         const first = this.firstCompany
         if (!first || !this.layRules || this.layRules.maxCompanies < 2 || this.secondCompany) {
@@ -313,10 +398,20 @@ export class RailheadsGameSession extends GameSession<
         return this.companiesWithTargets(this.shownState, first)
     })
 
+    // England & Wales allows one more piece while every staged disc stays in the company's region.
     private slotFull(slot: CompanySlot): boolean {
-        return (
-            piecesOf(this.trackSelection, slot).length >= (this.layRules?.placementsPerCompany ?? 0)
+        const space = this.laySpace
+        const companyId = slot === 'second' ? this.secondCompany : this.firstCompany
+        const pieces = piecesOf(this.trackSelection, slot)
+        if (!space || !companyId) {
+            return pieces.length >= (this.layRules?.placementsPerCompany ?? 0)
+        }
+        const limit = this.gameState.placementLimit(
+            space,
+            companyId,
+            pieces.filter((piece) => piece.kind === PlacementKind.Disc).map((piece) => piece.coords)
         )
+        return pieces.length >= limit
     }
 
     buildingSlot: CompanySlot | undefined = $derived.by(() => {
@@ -345,8 +440,20 @@ export class RailheadsGameSession extends GameSession<
         if (!space || !playerId || !companyId) {
             return []
         }
+        const tollsLaid = this.trackPreview.effects.filter((effect) => effect.tollId).length
+        const staged = this.placements.filter((placement) => placement.companyId === companyId)
+        // The bonus piece, if a disc, must stay inside the region like every disc before it.
+        const regionOnly =
+            staged.length >= (this.layRules?.placementsPerCompany ?? 0) &&
+            (this.layRules?.regionPlacements ?? 0) > 0
         return this.shownState
-            .placementTargets(playerId, space, companyId)
+            .placementTargets(playerId, space, companyId, tollsLaid)
+            .filter(
+                (target) =>
+                    !regionOnly ||
+                    target.kind === PlacementKind.Cube ||
+                    this.gameState.inRegion(companyId, target.coords)
+            )
             .map((target) => ({ ...target, companyId }))
     })
 
@@ -406,8 +513,15 @@ export class RailheadsGameSession extends GameSession<
 
     async layTrack() {
         if (this.laySpace) {
+            const loan =
+                this.loanCompany && this.loanChange !== 0
+                    ? { companyId: this.loanCompany, change: this.loanChange }
+                    : undefined
             await this.applyAction(
-                this.createPlayerAction(LayTrack, { placements: this.placements })
+                this.createPlayerAction(LayTrack, {
+                    placements: this.placements,
+                    ...(loan ? { loan } : {})
+                })
             )
         }
     }
@@ -434,5 +548,6 @@ export class RailheadsGameSession extends GameSession<
     override beforeNewState(): void {
         this.trackSelection = {}
         this.issueSelection = {}
+        this.loanChange = 0
     }
 }

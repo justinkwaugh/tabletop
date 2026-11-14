@@ -9,7 +9,14 @@ import { ActionType } from '../definition/actions.js'
 import { Definition } from '../definition/definition.js'
 import { RailheadsRuntime } from '../definition/runtime.js'
 import { MachineState } from '../definition/states.js'
-import { HexKind, isLayTrackSpace, type CompanyId, type LayTrackSpace } from '../editions/types.js'
+import {
+    HexKind,
+    InvestmentItem,
+    isLayTrackSpace,
+    type CompanyId,
+    type LayTrackSpace
+} from '../editions/types.js'
+import { claimableItems, mayDecline } from '../model/industryAuctionRules.js'
 import { HydratedRailheadsGameState } from '../model/gameState.js'
 import {
     IndustryBoost,
@@ -54,11 +61,19 @@ export function botPlacements(
         .toSorted((a, b) => preview.company(b).treasury - preview.company(a).treasury)
         .slice(0, rules.maxCompanies)
     const placements: Placement[] = []
+    let tollsLaid = 0
     for (const companyId of companies) {
         for (let count = 0; count < rules.placementsPerCompany; count++) {
-            const placement = nextPlacement(preview, playerId, space, companyId, step + count)
+            const placement = nextPlacement(
+                preview,
+                playerId,
+                space,
+                companyId,
+                step + count,
+                tollsLaid
+            )
             if (!placement) break
-            preview.placeTrack(playerId, space, placement)
+            if (preview.placeTrack(playerId, space, placement).tollId) tollsLaid++
             placements.push(placement)
         }
     }
@@ -70,11 +85,14 @@ function nextPlacement(
     playerId: string,
     space: LayTrackSpace,
     companyId: CompanyId,
-    step: number
+    step: number,
+    tollsLaid: number
 ): Placement | undefined {
-    const targets = state.placementTargets(playerId, space, companyId)
-    const sites = targets.filter(
-        (target) => state.edition.map.hex(target.coords).kind !== HexKind.Countryside
+    const targets = state.placementTargets(playerId, space, companyId, tollsLaid)
+    const sites = targets.filter((target) =>
+        [HexKind.City, HexKind.Town, HexKind.Industry, HexKind.Tunnel, HexKind.Bridge].includes(
+            state.edition.map.hex(target.coords).kind
+        )
     )
     const target =
         sites[0] ??
@@ -115,13 +133,27 @@ function towardGoals(
     return targets.toSorted((a, b) => distance(a) - distance(b))[0]
 }
 
+function botLoan(
+    state: HydratedRailheadsGameState,
+    playerId: string,
+    space: LayTrackSpace,
+    step: number
+): { companyId: CompanyId; change: number } | undefined {
+    const [companyId] = state.buildableCompanies(playerId, space)
+    if (!companyId) return undefined
+    const { take, repay } = state.loanRange(space, companyId)
+    if (take > 0 && step % 3 === 0) return { companyId, change: take }
+    if (repay > 0 && step % 3 === 1) return { companyId, change: -1 }
+    return undefined
+}
+
 export function botAction(
     state: HydratedRailheadsGameState,
     playerId: string,
     step: number
 ): GameAction {
     const base = { id: `a${step}`, gameId: state.gameId, source: ActionSource.User, playerId }
-    const cash = state.getPlayerState(playerId).cash
+    const cash = state.spendingPower(playerId)
     switch (state.machineState) {
         case MachineState.ShareBidding: {
             const amount = state.smallestBid()
@@ -172,14 +204,33 @@ export function botAction(
                     : Math.max(raise, auction.minimum)
             return act({ ...base, type: ActionType.PlaceSealedBid, amount })
         }
+        case MachineState.ClaimingInvestment: {
+            const items = claimableItems(state, playerId)
+            if (mayDecline(state) && step % 4 === 0) {
+                return act({ ...base, type: ActionType.DeclineInvestment })
+            }
+            const item = items[step % items.length]
+            const fund =
+                item === InvestmentItem.Bond && step % 2 === 0
+                    ? { fundedCompanyId: state.companies[step % state.companies.length].id }
+                    : {}
+            return act({ ...base, type: ActionType.ClaimInvestment, item, ...fund })
+        }
         case MachineState.LayingTrack: {
             const space = state.activeSpace
             assertExists(space, 'A Lay Track action is being taken')
             if (!isLayTrackSpace(space)) throw Error(`${space} lays no track`)
+            const loan = botLoan(state, playerId, space, step)
+            const preview = new HydratedRailheadsGameState(structuredClone(state.dehydrate()))
+            if (loan) preview.changeLoans(space, loan.companyId, loan.change)
+            const placements = botPlacements(preview, playerId, space, step).filter(
+                (placement) => !loan || placement.companyId === loan.companyId
+            )
             return act({
                 ...base,
                 type: ActionType.LayTrack,
-                placements: botPlacements(state, playerId, space, step)
+                placements,
+                ...(loan ? { loan } : {})
             })
         }
         default:
