@@ -18,7 +18,7 @@
     }
 
     function slotsBetween(from: number, to: number): number[] {
-        return Array.from({ length: Math.max(to - from, 0) }, (_, index) => from + index)
+        return Array.from({ length: to - from }, (_, index) => from + index)
     }
 </script>
 

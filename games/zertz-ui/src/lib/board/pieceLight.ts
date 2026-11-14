@@ -7,6 +7,7 @@ import {
     eyeOf,
     LIGHTING,
     linear,
+    mapRgb,
     mix,
     normalize,
     scale,
@@ -80,11 +81,12 @@ function glossy(
     )
     const mirror = environment(reflect(normal, eye))
     const glance = fresnel(dot(normal, eye)) * reflection
-    return albedo.map(
+    return mapRgb(
+        albedo,
         (channel, index) =>
             (channel * (lighting.ambient + 0.95 * diffuse) + mirror[index] * glance) * occlusion +
             specular
-    ) as Rgb
+    )
 }
 
 export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIGHTING): Bitmap {

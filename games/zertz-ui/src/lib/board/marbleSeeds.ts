@@ -1,4 +1,9 @@
-import { coordinatesToNumber, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    coordinatesToNumber,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import { isCapture, isPlaceMarble } from '@tabletop/zertz'
 
 // Seeded by ring and action number, so two marbles placed on one ring at different times differ.
@@ -21,7 +26,8 @@ export function applyToSeeds(seeds: Map<number, number>, action: GameAction, ind
     } else if (isCapture(action)) {
         const seed = seedAt(seeds, action.from)
         seeds.delete(coordinatesToNumber(action.from))
-        if (action.metadata !== undefined) seeds.delete(coordinatesToNumber(action.metadata.over))
+        assertExists(action.metadata, 'A processed capture has its metadata')
+        seeds.delete(coordinatesToNumber(action.metadata.over))
         seeds.set(coordinatesToNumber(action.to), seed)
     }
 }

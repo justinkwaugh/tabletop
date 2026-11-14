@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import { hasAnyMarble, MARBLE_COLORS, type MarbleColor } from '@tabletop/zertz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { textSeed } from '$lib/board/marbleSeeds.js'
@@ -7,12 +8,11 @@
     const session = getGameSession()
 
     const poolEmpty = $derived(!hasAnyMarble(session.gameState.pool))
-    const myCaptures = $derived(
-        session.myPlayer
-            ? session.gameState.getPlayerState(session.myPlayer.id).captured
-            : undefined
-    )
-    const supply = $derived(poolEmpty && session.canPlace ? myCaptures : session.gameState.pool)
+    const supply = $derived.by(() => {
+        if (!poolEmpty || !session.canPlace) return session.gameState.pool
+        assertExists(session.myPlayer, 'Only a player may place')
+        return session.gameState.getPlayerState(session.myPlayer.id).captured
+    })
 
     function selectable(color: MarbleColor): boolean {
         return session.placeableColors.includes(color) && session.placeableColors.length > 1
@@ -25,29 +25,27 @@
     >
         {poolEmpty ? (session.canPlace ? 'Your captures' : 'Pool empty') : 'Pool'}
     </span>
-    {#if supply}
-        {#each MARBLE_COLORS as color (color)}
-            {@const chosen = session.chosenColor === color}
-            <button
-                type="button"
-                class="pool-choice"
-                class:chosen
-                class:selectable={selectable(color)}
-                disabled={!selectable(color)}
-                aria-pressed={chosen}
-                aria-label="{color} marble, {supply[color]} left"
-                onclick={() => session.chooseColor(color)}
-            >
-                <MarbleIcon
-                    {color}
-                    seed={textSeed(`pool ${color}`)}
-                    size={26}
-                    faded={supply[color] === 0}
-                />
-                <span class="count">{supply[color]}</span>
-            </button>
-        {/each}
-    {/if}
+    {#each MARBLE_COLORS as color (color)}
+        {@const chosen = session.chosenColor === color}
+        <button
+            type="button"
+            class="pool-choice"
+            class:chosen
+            class:selectable={selectable(color)}
+            disabled={!selectable(color)}
+            aria-pressed={chosen}
+            aria-label="{color} marble, {supply[color]} left"
+            onclick={() => session.chooseColor(color)}
+        >
+            <MarbleIcon
+                {color}
+                seed={textSeed(`pool ${color}`)}
+                size={26}
+                faded={supply[color] === 0}
+            />
+            <span class="count">{supply[color]}</span>
+        </button>
+    {/each}
 </div>
 
 <style>

@@ -1,7 +1,12 @@
 import { tick, untrack } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    assertExists,
+    coordinatesToNumber,
+    sameCoordinates,
+    type AxialCoordinates
+} from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
@@ -277,7 +282,8 @@ export class BoardAnimator implements MoveInterrupter {
                 await tick()
                 if (kind !== 'own-action') claimsAt = this.drop(action.coords, timeline)
             }
-            if (isCapture(action) && action.metadata !== undefined) {
+            if (isCapture(action)) {
+                assertExists(action.metadata, 'A processed capture has its metadata')
                 await this.jump(
                     action.from,
                     action.to,
@@ -511,7 +517,8 @@ export class BoardAnimator implements MoveInterrupter {
 
 function cutOffBy({ remove, metadata }: PlaceMarble) {
     if (remove === undefined) return undefined
-    return { remove, cutOff: (metadata?.claimedOnRemoving ?? []).map((ring) => ring.coords) }
+    assertExists(metadata, 'A processed placement has its metadata')
+    return { remove, cutOff: metadata.claimedOnRemoving.map((ring) => ring.coords) }
 }
 
 function withMarbles(rings: Ring[], placed: Ring[]): Ring[] {

@@ -3,8 +3,8 @@ import { MARBLE_RADIUS, RING_OUTER_RADIUS, type BoardView } from './geometry.js'
 
 // The light is the viewer's, so the turned view shows the same images.
 
-// The board fits at up to 2.5 px per unit (GameTable's maxFitScale), and the readiness review
-// allows images up to 2.5 times the size they are drawn at.
+// 2.5 times the 2.5 px per unit the board fits at (GameTable's maxFitScale): larger images cost
+// download and decoding for sharpness seen only at full zoom.
 export const LOOK_PIXELS = 2.5 * 2.5
 
 export type LookBox = { x: number; y: number; width: number; height: number }

@@ -6,6 +6,12 @@ import type { BoardView } from './geometry.js'
 export type Vec = [number, number, number]
 export type Rgb = [number, number, number]
 
+export const mapRgb = (color: Rgb, channel: (value: number, index: number) => number): Rgb => [
+    channel(color[0], 0),
+    channel(color[1], 1),
+    channel(color[2], 2)
+]
+
 export const dot = (a: Vec, b: Vec) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 export const scale = (a: Vec, k: number): Vec => [a[0] * k, a[1] * k, a[2] * k]
 export const add = (a: Vec, b: Vec): Vec => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
@@ -50,10 +56,10 @@ export function screenUpOf(view: BoardView): Vec {
 
 export function linear(color: string): Rgb {
     const value = parseInt(color.slice(1), 16)
-    return [16, 8, 0].map((shift) => {
+    return mapRgb([16, 8, 0], (shift) => {
         const channel = ((value >> shift) & 255) / 255
         return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
-    }) as Rgb
+    })
 }
 
 export function srgb(channel: number): number {
@@ -72,5 +78,5 @@ export function hex(color: Rgb): string {
 }
 
 export function mix(from: Rgb, to: Rgb, amount: number): Rgb {
-    return from.map((channel, index) => channel + (to[index] - channel) * amount) as Rgb
+    return mapRgb(from, (channel, index) => channel + (to[index] - channel) * amount)
 }

@@ -6,9 +6,9 @@ import {
     hex,
     LIGHTING,
     linear,
+    mapRgb,
     screenUpOf,
     smoothstep,
-    type Rgb,
     type Vec
 } from './light.js'
 import { SPECK_COLOR, SPECK_COUNT, seededRandom } from './marbleStyle.js'
@@ -30,8 +30,9 @@ export function surfaceSpecks(
         const z = random() * 2 - 1
         const around = random() * Math.PI * 2
         const across = Math.sqrt(1 - z * z)
+        const direction: Vec = [across * Math.cos(around), across * Math.sin(around), z]
         return {
-            direction: [across * Math.cos(around), across * Math.sin(around), z] as Vec,
+            direction,
             size: 0.018 + 0.036 * random() ** 2
         }
     })
@@ -77,7 +78,7 @@ export function speckPaths(view: BoardView, color: MarbleColor, seed: number): S
     }
     const paths = [...byShade].map(([shade, parts]) => ({
         d: parts.join(''),
-        fill: hex(albedo.map((channel) => (channel * shade) / SHADES) as Rgb)
+        fill: hex(mapRgb(albedo, (channel) => (channel * shade) / SHADES))
     }))
     drawn.set(key, paths)
     return paths

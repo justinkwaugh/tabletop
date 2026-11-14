@@ -259,6 +259,18 @@ describe('captures', () => {
         expect(after.machineState).toBe(MachineState.TakingTurn)
     })
 
+    it('lets the player choose a capture that takes fewer marbles', () => {
+        const game = createGame()
+        const state = withPosition(start(game), [
+            ...line(5, { 0: MarbleColor.White, 1: MarbleColor.Grey, 3: MarbleColor.Black }),
+            { coords: { q: 1, r: 1 }, marble: MarbleColor.Grey },
+            { coords: { q: 1, r: 2 } }
+        ])
+        const after = capture(game, state, 'p0', { q: 1, r: 0 }, { q: 1, r: 2 })
+        expect(after.players[0].captured).toEqual(captured(0, 1, 0))
+        expect(after.activePlayerIds).toEqual(['p1'])
+    })
+
     it('requires the same marble to keep jumping', () => {
         const game = createGame()
         let state = withPosition(start(game), [
@@ -358,6 +370,20 @@ describe('end of game', () => {
         [MarbleColor.Black, captured(0, 0, 5)]
     ])('wins with enough of one colour: %s', (color, before) => {
         const game = createGame()
+        const state = withPosition(start(game), line(4, { 0: MarbleColor.White, 1: color }), {
+            captured: { p0: before }
+        })
+        const after = capture(game, state, 'p0', { q: 0, r: 0 }, { q: 2, r: 0 })
+        expect(after.machineState).toBe(MachineState.EndOfGame)
+        expect(after.endReason).toBe(EndReason.Captures)
+    })
+
+    it.each([
+        [MarbleColor.Grey, captured(0, 3, 0)],
+        [MarbleColor.Black, captured(0, 0, 4)],
+        [MarbleColor.Black, captured(2, 2, 1)]
+    ])('Blitz: capturing a %s with %o already captured wins', (color, before) => {
+        const game = createGame(ZertzSetup.Blitz)
         const state = withPosition(start(game), line(4, { 0: MarbleColor.White, 1: color }), {
             captured: { p0: before }
         })

@@ -4,7 +4,12 @@ import {
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    sameCoordinates,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import {
     ActionType,
     Capture,
@@ -270,7 +275,7 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     private removableAfterPlacing(color: MarbleColor, place: AxialCoordinates) {
         const playerId = this.myPlayer?.id
-        if (playerId === undefined) return []
+        assertExists(playerId, 'Only a player who may place stages a marble')
         return this.gameState.removableAfterPlacing(playerId, color, place)
     }
 
