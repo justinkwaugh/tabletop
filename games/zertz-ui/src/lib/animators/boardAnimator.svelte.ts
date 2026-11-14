@@ -5,7 +5,8 @@ import {
     assertExists,
     coordinatesToNumber,
     sameCoordinates,
-    type AxialCoordinates
+    type AxialCoordinates,
+    type GameAction
 } from '@tabletop/common'
 import type {
     AnimationContext,
@@ -68,7 +69,6 @@ export class BoardAnimator implements MoveInterrupter {
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
     seeds: MarbleSeeds = $derived.by(() => {
         const { actionCount } = this.session.gameState
-        // The actions list moves ahead as an action is taken, before its move has played.
         return untrack(() => this.seedsAt(actionCount))
     })
     flight: Flight | undefined = $state()
@@ -89,6 +89,7 @@ export class BoardAnimator implements MoveInterrupter {
     private readonly listener = (step: Step) => this.onGameStateChange(step)
     private playing: Timeline | undefined
     private staged: StagedDrop | undefined
+    private liveActions: readonly GameAction[] = []
     private abandoned: HydratedZertzGameState | undefined
 
     constructor(private readonly session: ZertzGameSession) {}
@@ -179,8 +180,13 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
+    // History shows its actions only up to the step it is on, so a step forward reads the list
+    // as it was last seen live.
     private seedsAt(actionCount: number): MarbleSeeds {
-        return marbleSeedsAfter(this.session.actions.slice(0, actionCount))
+        const { actions, isViewingHistory } = this.session
+        if (!isViewingHistory) this.liveActions = actions
+        const known = this.liveActions.length >= actionCount ? this.liveActions : actions
+        return marbleSeedsAfter(known.slice(0, actionCount))
     }
 
     private untilLanded<T>(value: T): T {

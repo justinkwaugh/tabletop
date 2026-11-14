@@ -21,6 +21,8 @@ export type DropPose = {
     shadowScale: number
     shadowOpacity: number
     left: number
+    // Down on its ring and bouncing, rather than still falling.
+    settling: boolean
 }
 
 // Undo and history steps have no action, so everything they move ends by 0.2 s.
@@ -42,10 +44,12 @@ export function dropMarble(
         opacity: 0,
         shadowScale: DROP.shadow,
         shadowOpacity: 0,
-        left: fall
+        left: fall,
+        settling: false
     }
 ): number {
     scaledFromCentre(body, shadow)
+    if (from.settling) return settle(timeline, body, shadow, at, from)
     const { left } = from
     timeline.fromTo(
         body,
@@ -69,6 +73,25 @@ export function dropMarble(
         time += DROP.settle * 2
     }
     return time
+}
+
+// A marble taken over mid-bounce comes to rest from where it is, as the bounce would have.
+function settle(
+    timeline: Timeline,
+    body: SVGGElement,
+    shadow: SVGGElement,
+    at: number,
+    { y }: DropPose
+): number {
+    const duration = DROP.settle * 2
+    timeline.fromTo(
+        body,
+        { y, scale: 1, opacity: 1 },
+        { y: 0, duration, ease: 'sine.inOut', immediateRender: true },
+        at
+    )
+    timeline.set(shadow, { opacity: 1, scale: 1 }, at)
+    return at + duration
 }
 
 // A staged choice, not a state change, so this local timeline owns its motion.
@@ -99,7 +122,7 @@ export class StagedDrop {
         const { body, shadowNode } = this
         const time = this.timeline.time()
         if (!this.drops || body === undefined || shadowNode === undefined) return undefined
-        if (time >= DROP.fall) return undefined
+        if (time >= DROP.fall + DROP.wobble.length * DROP.settle * 2) return undefined
         const read = (node: SVGGElement, property: string) =>
             Number(gsap.getProperty(node, property))
         return {
@@ -108,7 +131,8 @@ export class StagedDrop {
             opacity: read(body, 'opacity'),
             shadowScale: read(shadowNode, 'scale'),
             shadowOpacity: read(shadowNode, 'opacity'),
-            left: DROP.fall - time
+            left: DROP.fall - time,
+            settling: time >= DROP.fall
         }
     }
 

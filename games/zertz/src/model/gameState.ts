@@ -2,6 +2,7 @@ import {
     addToChecksum,
     assertExists,
     AxialCoordinates,
+    coordinatesToNumber,
     GameResult,
     GameState,
     HydratableGameState,
@@ -196,15 +197,24 @@ export class HydratedZertzGameState
     // often enough to draw the game.
     recordPosition(playerId: string): boolean {
         if (hasAnyMarble(this.pool)) return false
-        const position = JSON.stringify({
-            rings: this.board.rings,
-            captured: this.players.map((player) => player.captured),
-            playerId
-        })
-        const hash = addToChecksum(0, [position])
+        const hash = this.positionHash(playerId)
         this.positions.push(hash)
         const seen = this.positions.filter((other) => other === hash).length
         return seen >= REPETITIONS_TO_DRAW
+    }
+
+    // The rings by place with the marble on each, each player's captures in seat order, and who is
+    // to move, written out field by field so the hash never hangs on how the state is stored.
+    positionHash(playerId: string): number {
+        const rings = this.board.rings
+            .map((ring) => [coordinatesToNumber(ring.coords), ring.marble ?? '-'] as const)
+            .toSorted(([a], [b]) => a - b)
+            .map(([place, marble]) => `${place}:${marble}`)
+        const captures = this.players.map(
+            (player) =>
+                `${player.playerId}:${MARBLE_COLORS.map((color) => player.captured[color]).join(',')}`
+        )
+        return addToChecksum(0, [[...rings, '|', ...captures, '|', playerId].join(' ')])
     }
 
     declareDraw() {

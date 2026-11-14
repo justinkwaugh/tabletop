@@ -507,6 +507,46 @@ describe('repeated positions', () => {
         expect(ZertzRuntime.scoring?.finalScores(thrice)).toEqual({ p0: 1, p1: 1 })
     })
 
+    it('counts a position as the same only with the same rings, marbles, captures and mover', () => {
+        const game = createGame()
+        const state = enclosed(game)
+        const hash = new HydratedZertzGameState(state).positionHash('p1')
+        const hashOf = (changed: ZertzGameState, playerId = 'p1') =>
+            new HydratedZertzGameState(changed).positionHash(playerId)
+
+        const reordered = withPosition(state, state.board.rings.toReversed())
+        expect(hashOf(reordered)).toBe(hash)
+        expect(hashOf(state, 'p0')).not.toBe(hash)
+        expect(
+            hashOf(withPosition(state, state.board.rings, { captured: { p1: captured(1, 0, 0) } }))
+        ).not.toBe(hash)
+        const recoloured = state.board.rings.map((ring) =>
+            ring.coords.q === 2 && ring.coords.r === 0
+                ? { ...ring, marble: MarbleColor.Grey }
+                : ring
+        )
+        expect(hashOf(withPosition(state, recoloured))).not.toBe(hash)
+    })
+
+    it('goes on when the third time differs only in captures or in who is to move', () => {
+        const game = createGame()
+        const before = enclosed(game)
+        const move = (positions: number[]) =>
+            place(game, { ...before, positions }, 'p0', MarbleColor.White, { q: 1, r: 0 })
+        const reached = move([])
+        const otherCaptures = withPosition(reached, reached.board.rings, {
+            captured: { p1: captured(0, 1, 0) }
+        })
+        const capturesDiffer = new HydratedZertzGameState(otherCaptures).positionHash('p1')
+        const moverDiffers = new HydratedZertzGameState(reached).positionHash('p0')
+
+        expect(move([capturesDiffer, capturesDiffer]).machineState).toBe(MachineState.TakingTurn)
+        expect(move([moverDiffers, moverDiffers]).machineState).toBe(MachineState.TakingTurn)
+        expect(move([reached.positions[0], reached.positions[0]]).machineState).toBe(
+            MachineState.EndOfGame
+        )
+    })
+
     it('keeps no positions while the pool has marbles', () => {
         const game = createGame()
         const state = place(
