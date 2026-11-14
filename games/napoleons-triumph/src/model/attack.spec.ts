@@ -1,3 +1,4 @@
+import { ActionSource } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { Side } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
@@ -12,6 +13,7 @@ import {
     defendWith
 } from '../testing/harness.js'
 import { CommandKind, ResultTermKind } from './attack.js'
+import { faceOf } from './pieces.js'
 import { FeintEnd } from './attackDeclaration.js'
 
 const ATTACK_FROM = 95
@@ -94,6 +96,51 @@ describe('rule 11, steps 2 to 4: the defence is named, then pressed, then led', 
         game.act(ActionType.LeadDefense, allied, { leaderIds: [] })
         expect(game.state.machineState).toBe(MachineState.AttackDeclaration)
         expect(game.state.attack?.defenseLeaderIds).toEqual([])
+    })
+
+    describe('when no defending piece could lead', () => {
+        const weak: PiecePlacement[] = [
+            { id: 'F-inf', side: Side.French, face: infantry(3), locale: ATTACK_FROM },
+            { id: 'A-weak', side: Side.Allied, face: cavalry(1), locale: DEFEND_IN },
+            { id: 'A-able', side: Side.Allied, face: infantry(2), locale: DEFEND_IN }
+        ]
+
+        function pressedAgainst(defenderId: string, shown: boolean) {
+            const game = frenchTurn(weak)
+            const french = game.playerOf(Side.French)
+            const allied = game.playerOf(Side.Allied)
+            if (shown) {
+                game.arrange((state) => {
+                    const unit = state.unit(defenderId)
+                    unit.shown = faceOf(unit)
+                })
+            }
+            threaten(game)
+            game.act(ActionType.DeclareDefense, allied, { unitIds: [defenderId] })
+            return { game, allied, pressed: game.act(ActionType.PressAttack, french) }
+        }
+
+        it('names no leading unit without asking once the attacker can see every defender', () => {
+            const { game, allied, pressed } = pressedAgainst('A-weak', true)
+            expect(pressed.map((action) => [action.type, action.source])).toEqual([
+                [ActionType.PressAttack, ActionSource.User],
+                [ActionType.LeadDefense, ActionSource.System]
+            ])
+            expect(pressed[1].playerId).toBe(allied)
+            expect(game.state.machineState).toBe(MachineState.AttackDeclaration)
+            expect(game.state.attack?.defenseLeaderIds).toEqual([])
+        })
+
+        it('still asks while a defender is face-down, so the pause gives nothing away', () => {
+            const { game, allied } = pressedAgainst('A-weak', false)
+            expect(game.state.machineState).toBe(MachineState.DefenseDeclaration)
+            expect(game.state.activePlayerIds).toEqual([allied])
+        })
+
+        it('still asks when a face-up defender could lead', () => {
+            const { game } = pressedAgainst('A-able', true)
+            expect(game.state.machineState).toBe(MachineState.DefenseDeclaration)
+        })
     })
 
     it('takes leading units only from the defending pieces, each once, and only when it is time', () => {

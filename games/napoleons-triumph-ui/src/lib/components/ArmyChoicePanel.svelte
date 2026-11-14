@@ -33,9 +33,13 @@
 
 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[16px] max-sm:text-[13px]">
     {#if canChoose}
-        <span
-            >Your bid of {highBid ?? 0} wins the choice of army. It comes off that army's morale.</span
-        >
+        {#if auction}
+            <span
+                >Your bid of {highBid ?? 0} wins the choice of army. It comes off that army's morale.</span
+            >
+        {:else}
+            <span>Choose the army you will command.</span>
+        {/if}
         <div class="flex basis-full flex-wrap gap-2">
             {#each ARMIES as army (army.side)}
                 {@const morale = STARTING_MORALE[army.side] - (highBid ?? 0)}
@@ -95,6 +99,11 @@
                 : ''}. Waiting for <PlayerName
                 playerId={gameSession.gameState.activePlayerIds[0]}
             />.
+        </span>
+    {:else}
+        <span>
+            Waiting for <PlayerName playerId={gameSession.gameState.activePlayerIds[0]} /> to choose an
+            army.
         </span>
     {/if}
 </div>

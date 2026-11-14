@@ -25,7 +25,7 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import BattlePanel from '$lib/components/BattlePanel.svelte'
     import SetupPanel from '$lib/components/SetupPanel.svelte'
-    import AuctionPanel from '$lib/components/AuctionPanel.svelte'
+    import ArmyChoicePanel from '$lib/components/ArmyChoicePanel.svelte'
     import ArmiesPanel from '$lib/components/ArmiesPanel.svelte'
     import History from '$lib/components/History.svelte'
     import SideRail from '$lib/components/SideRail.svelte'
@@ -448,8 +448,8 @@
                                 {/if}
                             {:else if session.gameState.result}
                                 <ActionPanel bind:ordersDrawerHeight />
-                            {:else if session.isAuction}
-                                <AuctionPanel />
+                            {:else if session.isChoosingArmies}
+                                <ArmyChoicePanel />
                             {:else if session.isDeploying}
                                 <SetupPanel />
                             {:else}

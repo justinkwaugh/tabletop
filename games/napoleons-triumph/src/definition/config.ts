@@ -9,6 +9,7 @@ import { Scenario } from '../components/timeTrack.js'
 
 export enum SideSelection {
     Random = 'Random',
+    FirstPlayerChooses = 'FirstPlayerChooses',
     Auction = 'Auction'
 }
 
@@ -37,11 +38,25 @@ export const NapoleonsTriumphGameConfigOptions: GameConfigOptions = [
         id: 'sideSelection',
         type: ConfigOptionType.List,
         name: 'Sides',
-        description: 'Deal the armies at random, or bid starting morale for the choice of army',
+        description: 'How the players come to command the French and the Allies',
         default: SideSelection.Random,
         options: [
-            { name: 'Random', value: SideSelection.Random },
-            { name: 'Morale auction', value: SideSelection.Auction }
+            {
+                name: 'Random',
+                value: SideSelection.Random,
+                description: 'The armies are dealt at random'
+            },
+            {
+                name: 'First player chooses',
+                value: SideSelection.FirstPlayerChooses,
+                description: 'A player drawn at random chooses which army to command'
+            },
+            {
+                name: 'Morale auction',
+                value: SideSelection.Auction,
+                description:
+                    'The players bid starting morale for the choice of army; the winning bid comes off that army'
+            }
         ],
         alwaysShow: true
     },

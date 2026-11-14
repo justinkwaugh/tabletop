@@ -238,7 +238,7 @@ export function describeAction(action: GameAction, game: DescribedGame, fight?: 
         return 'A pass in the morale auction.'
     }
     if (isChooseSide(action)) {
-        return `The auction winner takes ${action.side === Side.French ? 'the French' : 'the Allied'} army.`
+        return `The ${action.side === Side.French ? 'French' : 'Allied'} army is chosen.`
     }
     if (isMove(action)) {
         const from = action.metadata?.from

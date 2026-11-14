@@ -4,6 +4,7 @@ import {
     FeintEnd,
     MachineState,
     attackerLeadsInitially,
+    canDefend,
     canPressAttack,
     checkAttackDeclaration,
     checkDefenseLeaders,
@@ -738,7 +739,7 @@ export function battleStageOf(
 ): BattleStage | undefined {
     switch (state.machineState) {
         case MachineState.DefenseResponse:
-            return defenceSelection.value(selections.defence, 'retreating')
+            return !canDefend(state) || defenceSelection.value(selections.defence, 'retreating')
                 ? retreatStage(state, selections)
                 : defenceStage(state, selections)
         case MachineState.DefenseDeclaration:

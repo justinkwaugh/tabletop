@@ -335,3 +335,19 @@ describe('the morale auction', () => {
         expect(game.hydrated.playerOf(Side.Allied).morale).toBe(1)
     })
 })
+
+describe('the first player choosing the army', () => {
+    it('lets the first player alone take either army at full morale, then sets up the Allies first', () => {
+        const game = new TestGame({ sideSelection: 'FirstPlayerChooses' })
+        const [first, second] = game.state.turnManager.turnOrder
+        expect(game.state.machineState).toBe(MachineState.ChoosingSide)
+        expect(game.state.activePlayerIds).toEqual([first])
+        expect(() => game.act(ActionType.ChooseSide, second, { side: Side.French })).toThrow()
+        game.act(ActionType.ChooseSide, first, { side: Side.French })
+        expect(game.hydrated.playerOf(Side.French).playerId).toBe(first)
+        expect(game.hydrated.playerOf(Side.French).morale).toBe(STARTING_MORALE[Side.French])
+        expect(game.hydrated.playerOf(Side.Allied).morale).toBe(STARTING_MORALE[Side.Allied])
+        expect(game.state.machineState).toBe(MachineState.AlliedSetup)
+        expect(game.state.activePlayerIds).toEqual([second])
+    })
+})

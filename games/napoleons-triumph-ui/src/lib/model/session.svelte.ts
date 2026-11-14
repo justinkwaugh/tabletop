@@ -396,7 +396,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
         this.canAct && this.gameState.machineState === MachineState.RideRevealed
     )
 
-    isAuction = $derived(
+    isChoosingArmies = $derived(
         this.gameState.machineState === MachineState.Bidding ||
             this.gameState.machineState === MachineState.ChoosingSide
     )

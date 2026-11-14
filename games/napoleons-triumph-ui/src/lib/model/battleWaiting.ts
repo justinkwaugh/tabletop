@@ -2,6 +2,7 @@ import {
     DecisionKind,
     MachineState,
     attackStep,
+    canDefend,
     lossOwnerOf,
     stepsOwed,
     type Attack,
@@ -36,7 +37,10 @@ export function oddStepTakers(
 export function awaitedStep(attack: AttackState, state: HydratedNapoleonsTriumphGameState): string {
     const decision = attack.pending[0]
     if (decision?.kind !== DecisionKind.OddLoss && decision?.kind !== DecisionKind.ExcessLosses) {
-        return WAITING[attackStep(attack)]
+        const step = attackStep(attack)
+        return step === MachineState.DefenseResponse && !canDefend(state)
+            ? WAITING[MachineState.Retreating]
+            : WAITING[step]
     }
     const army = ARMIES[state.sideOf(lossOwnerOf(attack, decision))].adjective
     if (decision.kind === DecisionKind.OddLoss) {
