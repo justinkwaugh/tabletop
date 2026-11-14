@@ -183,9 +183,11 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
+    // Leaving history publishes the live state while the session still counts as viewing it, so
+    // this asks history itself.
     private rememberLiveActions() {
-        const { actions, isViewingHistory, isExploring } = this.session
-        if (!isViewingHistory && !isExploring) this.liveActions = actions
+        const { actions, history, isExploring } = this.session
+        if (!history.inHistory && !isExploring) this.liveActions = actions
     }
 
     // History shows its actions only up to the step it is on, so a jump forward reads the live
@@ -229,10 +231,13 @@ export class BoardAnimator implements MoveInterrupter {
         // seeds come from the move itself.
         const seedsBefore = this.seeds
         const seedsDuring = new Map(seedsBefore)
+        // History does not name the action again as a step leaves it, so the one it last named
+        // counts only when it is the one stepped to.
+        const steppedTo = stepped?.index === from.actionCount ? stepped : undefined
         const oneForward = forward && to.actionCount === from.actionCount + 1
         if (action !== undefined) applyToSeeds(seedsDuring, action, from.actionCount)
-        else if (oneForward && stepped !== undefined) {
-            applyToSeeds(seedsDuring, stepped, from.actionCount)
+        else if (oneForward && steppedTo !== undefined) {
+            applyToSeeds(seedsDuring, steppedTo, from.actionCount)
         } else {
             const ahead = marbleSeedsAfter(this.actionsAhead().slice(0, to.actionCount))
             for (const [key, seed] of ahead) seedsDuring.set(key, seed)
