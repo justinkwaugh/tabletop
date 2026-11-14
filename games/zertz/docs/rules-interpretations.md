@@ -31,5 +31,5 @@ Choices made where the [rules](https://www.gipf.com/zertz/rules/rules.html) are 
 - **A winning set.** Captured and claimed marbles both count. The first player to hold a winning set wins.
 - **Full board.** The player who fills the last vacant ring claims every remaining ring and wins.
 - **Empty pool.** Once the pool is empty, a player places marbles from their own captures, any colour they hold. A player who then has none to place, and no capture to make, loses; the rules do not say what happens.
-- **Repeated sequences.** The rules' tie for a repeated sequence of moves is not played: the game has no draw.
-- **Scores.** ZÈRTZ has no points: the winner scores 1 and the loser 0.
+- **Repeated sequences.** The rules call a game a tie once the players start repeating the same sequence of moves. Here the game is drawn when the position a player faces at the start of their turn (the rings, the marbles on them, both players' captures, and who is to move) comes round a third time, which gives either player two chances to break the sequence. A position can come round again only once the pool is empty and while no ring leaves the board, so only the positions since then are kept. A drawn game names both players as winners, as the site's results expect.
+- **Scores.** ZÈRTZ has no points: the winner scores 1 and the loser 0, and a drawn game gives both 1.

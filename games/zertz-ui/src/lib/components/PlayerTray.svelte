@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { MARBLE_COLORS, SETUP_RULES, type HydratedZertzPlayerState } from '@tabletop/zertz'
+    import {
+        EndReason,
+        MARBLE_COLORS,
+        SETUP_RULES,
+        type HydratedZertzPlayerState
+    } from '@tabletop/zertz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { textSeed } from '$lib/board/marbleSeeds.js'
     import MarbleIcon from './MarbleIcon.svelte'
@@ -11,6 +16,7 @@
     const win = $derived(SETUP_RULES[session.gameState.setup].win)
     const isActive = $derived(session.gameState.activePlayerIds.includes(playerState.playerId))
     const isWinner = $derived(session.gameState.winningPlayerIds.includes(playerState.playerId))
+    const drawn = $derived(session.gameState.endReason === EndReason.Repetition)
     const name = $derived(session.getPlayerName(playerState.playerId))
 
     function seedOf(color: string, slot: number): number {
@@ -30,7 +36,7 @@
     >
         <span class="truncate text-[17px]">{name}</span>
         <span class="text-[13px] tracking-[0.12em] uppercase">
-            {#if isWinner}Winner{:else if isActive}Playing{/if}
+            {#if isWinner}{drawn ? 'Drawn' : 'Winner'}{:else if isActive}Playing{/if}
         </span>
     </div>
     <div class="flex flex-col gap-[6px] px-3 py-2">

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { assert, GameResult, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assert,
+    GameResult,
+    validateGameResult,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import { ZertzSetup } from './config.js'
+import { ZertzRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import {
@@ -449,6 +456,89 @@ describe('end of game', () => {
         expect(state.machineState).toBe(MachineState.EndOfGame)
         expect(state.winningPlayerIds).toEqual(['p0'])
         expect(state.endReason).toBe(EndReason.NoMarbles)
+    })
+})
+
+describe('repeated positions', () => {
+    // Every outer ring of a two-ring hexagon holds a marble, so no ring is free, and the pool is
+    // empty: a position can come round again.
+    function enclosed(game: ZertzGame): ZertzGameState {
+        const rings: Ring[] = []
+        for (let q = -2; q <= 2; q++) {
+            for (let r = -2; r <= 2; r++) {
+                const distance = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r))
+                if (distance > 2) continue
+                const coords = { q, r }
+                rings.push(distance === 2 ? { coords, marble: MarbleColor.Black } : { coords })
+            }
+        }
+        return withPosition(start(game), rings, {
+            pool: noMarbles(),
+            captured: { p0: captured(1, 0, 0) }
+        })
+    }
+
+    it('draws when the position a player faces comes round a third time', () => {
+        const game = createGame()
+        const before = enclosed(game)
+        const once = place(game, before, 'p0', MarbleColor.White, { q: 1, r: 0 })
+        expect(once.machineState).toBe(MachineState.TakingTurn)
+        expect(once.positions).toHaveLength(1)
+        const [position] = once.positions
+
+        const twice = place(game, { ...before, positions: [position] }, 'p0', MarbleColor.White, {
+            q: 1,
+            r: 0
+        })
+        expect(twice.machineState).toBe(MachineState.TakingTurn)
+
+        const thrice = place(
+            game,
+            { ...before, positions: [position, position] },
+            'p0',
+            MarbleColor.White,
+            { q: 1, r: 0 }
+        )
+        expect(thrice.machineState).toBe(MachineState.EndOfGame)
+        expect(thrice.result).toBe(GameResult.Draw)
+        expect(thrice.endReason).toBe(EndReason.Repetition)
+        expect(thrice.winningPlayerIds).toEqual(['p0', 'p1'])
+        expect(() => validateGameResult(thrice)).not.toThrow()
+        expect(ZertzRuntime.scoring?.finalScores(thrice)).toEqual({ p0: 1, p1: 1 })
+    })
+
+    it('keeps no positions while the pool has marbles', () => {
+        const game = createGame()
+        const state = place(
+            game,
+            start(game),
+            'p0',
+            MarbleColor.White,
+            { q: 0, r: 0 },
+            {
+                q: 3,
+                r: 0
+            }
+        )
+        expect(state.positions).toEqual([])
+    })
+
+    it('forgets the positions before a ring left the board', () => {
+        const game = createGame()
+        const before = withPosition(start(game), line(5), {
+            pool: noMarbles(),
+            captured: { p0: captured(0, 1, 0), p1: captured(1, 0, 0) }
+        })
+        const after = place(
+            game,
+            { ...before, positions: [1, 2, 3] },
+            'p0',
+            MarbleColor.Grey,
+            { q: 2, r: 0 },
+            { q: 0, r: 0 }
+        )
+        expect(after.positions).toHaveLength(1)
+        expect(after.positions).not.toContain(1)
     })
 })
 

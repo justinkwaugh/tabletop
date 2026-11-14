@@ -6,7 +6,7 @@ import {
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
-import { HydratedZertzGameState } from '../model/gameState.js'
+import { EndReason, HydratedZertzGameState } from '../model/gameState.js'
 
 export class EndOfGameStateHandler implements MachineStateHandler<
     HydratedAction,
@@ -28,7 +28,8 @@ export class EndOfGameStateHandler implements MachineStateHandler<
 
     enter(context: MachineContext<HydratedZertzGameState>) {
         const { gameState } = context
-        gameState.result = GameResult.Win
+        gameState.result =
+            gameState.endReason === EndReason.Repetition ? GameResult.Draw : GameResult.Win
         gameState.activePlayerIds = []
     }
 

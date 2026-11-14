@@ -1,4 +1,5 @@
 import {
+    addToChecksum,
     assertExists,
     AxialCoordinates,
     GameResult,
@@ -19,8 +20,13 @@ import { MARBLE_COLORS, MarbleColor, MarbleCounts, hasAnyMarble } from './marble
 export enum EndReason {
     Captures = 'Captures',
     FullBoard = 'FullBoard',
-    NoMarbles = 'NoMarbles'
+    NoMarbles = 'NoMarbles',
+    Repetition = 'Repetition'
 }
+
+// The rules' tie for a repeated sequence of moves: a drawn game once a position, with the same
+// player to move, comes round a third time.
+const REPETITIONS_TO_DRAW = 3
 
 export enum MarbleSource {
     Pool = 'Pool',
@@ -38,6 +44,9 @@ export const ZertzGameState = Type.Evaluate(
             board: ZertzBoard,
             pool: MarbleCounts,
             captureChainFrom: Type.Optional(AxialCoordinates),
+            // A position can come round again only while the pool is empty and no ring leaves the
+            // board, so only the turns since then are kept, each as a hash of its position.
+            positions: Type.Array(Type.Number()),
             endReason: Type.Optional(Type.Enum(EndReason))
         })
     ])
@@ -64,6 +73,7 @@ export class HydratedZertzGameState
     declare board: HydratedZertzBoard
     declare pool: MarbleCounts
     declare captureChainFrom?: AxialCoordinates
+    declare positions: number[]
     declare endReason?: EndReason
 
     constructor(data: ZertzGameState) {
@@ -143,8 +153,14 @@ export class HydratedZertzGameState
         return trial.isOver ? [] : trial.board.freeRings().map((ring) => ring.coords)
     }
 
+    removeRing(coords: AxialCoordinates) {
+        this.board.removeRing(coords)
+        this.positions = []
+    }
+
     claimFullGroups(playerId: string): Ring[] {
         const claimed = this.board.claimFullGroups()
+        if (claimed.length > 0) this.positions = []
         const player = this.getPlayerState(playerId)
         for (const ring of claimed) {
             if (ring.marble !== undefined) {
@@ -174,6 +190,26 @@ export class HydratedZertzGameState
     declareWinner(playerId: string, reason: EndReason) {
         this.winningPlayerIds = [playerId]
         this.endReason = reason
+    }
+
+    // Records the position the player to move faces, and says whether it has now come round
+    // often enough to draw the game.
+    recordPosition(playerId: string): boolean {
+        if (hasAnyMarble(this.pool)) return false
+        const position = JSON.stringify({
+            rings: this.board.rings,
+            captured: this.players.map((player) => player.captured),
+            playerId
+        })
+        const hash = addToChecksum(0, [position])
+        this.positions.push(hash)
+        const seen = this.positions.filter((other) => other === hash).length
+        return seen >= REPETITIONS_TO_DRAW
+    }
+
+    declareDraw() {
+        this.winningPlayerIds = this.players.map((player) => player.playerId)
+        this.endReason = EndReason.Repetition
     }
 
     opponentOf(playerId: string): string {

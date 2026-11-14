@@ -86,6 +86,7 @@
             }
         },
         "setup": "Standard",
+        "positions": [],
         "board": {
             "rings": [
                 {

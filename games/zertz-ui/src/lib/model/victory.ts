@@ -12,6 +12,7 @@ export type Victory =
     | { reason: EndReason.Captures; color: MarbleColor; count: number }
     | { reason: EndReason.FullBoard }
     | { reason: EndReason.NoMarbles; loserId: string }
+    | { reason: EndReason.Repetition }
 
 export function victoryOf(state: ZertzGameState): Victory {
     const [winnerId] = state.winningPlayerIds
@@ -21,6 +22,8 @@ export function victoryOf(state: ZertzGameState): Victory {
     switch (state.endReason) {
         case EndReason.FullBoard:
             return { reason: EndReason.FullBoard }
+        case EndReason.Repetition:
+            return { reason: EndReason.Repetition }
         case EndReason.NoMarbles: {
             const loser = state.players.find((player) => player.playerId !== winnerId)
             assertExists(loser, 'A two-player game has a loser')

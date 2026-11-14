@@ -64,7 +64,7 @@ export class HydratedPlaceMarble
         const claimedOnPlacing = structuredClone(placed.claimed)
         let claimedOnRemoving: Ring[] = []
         if (this.remove !== undefined) {
-            state.board.removeRing(this.remove)
+            state.removeRing(this.remove)
             claimedOnRemoving = structuredClone(state.claimFullGroups(this.playerId))
             state.concludeMove(this.playerId)
         }

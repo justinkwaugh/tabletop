@@ -14,9 +14,10 @@
         return playerId === session.myPlayer?.id ? 'You' : session.getPlayerName(playerId)
     }
 
-    const verdict = $derived(
-        winnerId === session.myPlayer?.id ? 'You win' : `${nameOf(winnerId)} wins`
-    )
+    const verdict = $derived.by(() => {
+        if (victory.reason === EndReason.Repetition) return 'Drawn'
+        return winnerId === session.myPlayer?.id ? 'You win' : `${nameOf(winnerId)} wins`
+    })
 </script>
 
 <div class="flex flex-col items-center gap-1 px-3 py-2 text-center text-(--zertz-ink)">
@@ -24,6 +25,8 @@
     <div class="flex items-center gap-2 text-[15px] text-(--zertz-ink-quiet)">
         {#if victory.reason === EndReason.FullBoard}
             by filling the last ring on the board
+        {:else if victory.reason === EndReason.Repetition}
+            the same position came round a third time
         {:else if victory.reason === EndReason.NoMarbles}
             {nameOf(victory.loserId)} had no marble to place
         {:else if 'color' in victory}

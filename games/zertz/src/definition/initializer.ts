@@ -49,7 +49,8 @@ export class ZertzGameInitializer
             turnManager,
             setup,
             board: { rings: layoutCoordinates(rules.board).map((coords) => ({ coords })) },
-            pool: structuredClone(rules.pool)
+            pool: structuredClone(rules.pool),
+            positions: []
         })
 
         return new HydratedZertzGameState(zertzGameState)

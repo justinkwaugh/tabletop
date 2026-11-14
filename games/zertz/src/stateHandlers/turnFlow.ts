@@ -26,6 +26,10 @@ export function endTurn(gameState: HydratedZertzGameState): MachineState {
         gameState.declareWinner(endedTurn.playerId, EndReason.NoMarbles)
         return MachineState.EndOfGame
     }
+    if (gameState.recordPosition(nextPlayerId)) {
+        gameState.declareDraw()
+        return MachineState.EndOfGame
+    }
     turnManager.startNextTurn(gameState.actionCount)
     return MachineState.TakingTurn
 }
