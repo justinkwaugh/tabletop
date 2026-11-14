@@ -73,8 +73,20 @@ export function coverPlacement(source: ImageSize, title?: PrintedTitle): CoverPl
  * fills the page behind the drawn title band.
  */
 export type CoverScene =
-    | { href: string; titled: false }
+    | { href: string; titled: false; size: ImageSize }
     | { href: string; titled: true; size: ImageSize; title?: PrintedTitle }
+
+/**
+ * Where a scene without a title stands: scaled to cover the whole page and centred, so the page's
+ * edge crops what lies past it. Sized here rather than by `preserveAspectRatio="slice"`, which
+ * browsers draw differently.
+ */
+export function coverFill(source: ImageSize): CoverPlacement {
+    const scale = Math.max(Width / source.width, Height / source.height)
+    const width = source.width * scale
+    const height = source.height * scale
+    return { x: (Width - width) / 2, y: (Height - height) / 2, width, height }
+}
 
 function titleBand(token: Token) {
     return `
@@ -95,7 +107,8 @@ export function coverSvg(scene: CoverScene, token: Token): string {
 
 function ground(scene: CoverScene, token: Token): string {
     if (!scene.titled) {
-        return `<image href="${scene.href}" width="${Width}" height="${Height}" preserveAspectRatio="xMidYMid slice" />`
+        const { x, y, width, height } = coverFill(scene.size)
+        return `<image href="${scene.href}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none" />`
     }
     const { x, y, width, height } = coverPlacement(scene.size, scene.title)
     const page =

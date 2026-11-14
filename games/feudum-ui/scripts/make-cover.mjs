@@ -88,14 +88,15 @@ async function sizeOf(href) {
 }
 
 const href = artHref(art)
+const size = await sizeOf(href)
 const scene = values.titled
     ? {
           href,
           titled: true,
-          size: await sizeOf(href),
+          size,
           title: basename(art, extname(art)) === 'box-front' ? BoxFrontTitle : undefined
       }
-    : { href, titled: false }
+    : { href, titled: false, size }
 console.log(`from ${art}`)
 
 const page = `<!doctype html><html><head><style>
