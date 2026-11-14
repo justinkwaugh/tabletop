@@ -13,6 +13,16 @@ export const DROP = {
 
 export type DropTiming = { fall: number; wobble: readonly number[] }
 
+// Where a marble is in its fall, and how much of the fall is left.
+export type DropPose = {
+    y: number
+    scale: number
+    opacity: number
+    shadowScale: number
+    shadowOpacity: number
+    left: number
+}
+
 // Undo and history steps have no action, so everything they move ends by 0.2 s.
 export const QUICK_DROP: DropTiming = { fall: 0.16, wobble: [] }
 
@@ -25,23 +35,34 @@ export function dropMarble(
     body: SVGGElement,
     shadow: SVGGElement,
     at = 0,
-    { fall, wobble }: DropTiming = DROP
+    { fall, wobble }: DropTiming = DROP,
+    from: DropPose = {
+        y: DROP.rise,
+        scale: DROP.scale,
+        opacity: 0,
+        shadowScale: DROP.shadow,
+        shadowOpacity: 0,
+        left: fall
+    }
 ): number {
     scaledFromCentre(body, shadow)
+    const { left } = from
     timeline.fromTo(
         body,
-        { opacity: 0, scale: DROP.scale, y: DROP.rise },
-        { opacity: 1, duration: fall * 0.25, ease: 'none', immediateRender: true },
+        { opacity: from.opacity, scale: from.scale, y: from.y },
+        { opacity: 1, duration: Math.min(fall * 0.25, left), ease: 'none', immediateRender: true },
         at
     )
-    timeline.to(body, { scale: 1, y: 0, duration: fall, ease: 'power2.in' }, at)
+    // A fall taken over mid-way is already moving, so it keeps on rather than easing in again.
+    const ease = left < fall ? 'none' : 'power2.in'
+    timeline.to(body, { scale: 1, y: 0, duration: left, ease }, at)
     timeline.fromTo(
         shadow,
-        { opacity: 0, scale: DROP.shadow },
-        { opacity: 1, scale: 1, duration: fall, ease: 'power2.in', immediateRender: true },
+        { opacity: from.shadowOpacity, scale: from.shadowScale },
+        { opacity: 1, scale: 1, duration: left, ease: 'power2.in', immediateRender: true },
         at
     )
-    let time = at + fall
+    let time = at + left
     for (const height of wobble) {
         timeline.to(body, { y: height, duration: DROP.settle, ease: 'power1.out' }, time)
         timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, time + DROP.settle)
@@ -71,6 +92,24 @@ export class StagedDrop {
     private start() {
         if (!this.drops || this.body === undefined || this.shadowNode === undefined) return
         dropMarble(this.timeline, this.body, this.shadowNode)
+    }
+
+    // Undefined once the marble has reached its ring, or when it never dropped.
+    falling(): DropPose | undefined {
+        const { body, shadowNode } = this
+        const time = this.timeline.time()
+        if (!this.drops || body === undefined || shadowNode === undefined) return undefined
+        if (time >= DROP.fall) return undefined
+        const read = (node: SVGGElement, property: string) =>
+            Number(gsap.getProperty(node, property))
+        return {
+            y: read(body, 'y'),
+            scale: read(body, 'scale'),
+            opacity: read(body, 'opacity'),
+            shadowScale: read(shadowNode, 'scale'),
+            shadowOpacity: read(shadowNode, 'opacity'),
+            left: DROP.fall - time
+        }
     }
 
     stop() {

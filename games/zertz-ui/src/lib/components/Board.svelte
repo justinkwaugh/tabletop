@@ -320,6 +320,7 @@
                         {view}
                         drops={staged.drops}
                         lifts={() => !animator.placedIn}
+                        register={animator.stagedDrop}
                     />
                 </g>
             {/key}

@@ -13,18 +13,24 @@
         seed,
         view,
         drops,
-        lifts
+        lifts,
+        register
     }: {
         color: MarbleColor
         seed: number
         view: BoardView
         drops: boolean
         lifts: () => boolean
+        register: (drop: StagedDrop) => () => void
     } = $props()
 
     // Whether it drops is settled when it is first drawn.
     const drop = new StagedDrop(untrack(() => drops))
-    onDestroy(() => drop.stop())
+    const unregister = untrack(() => register(drop))
+    onDestroy(() => {
+        unregister()
+        drop.stop()
+    })
 </script>
 
 <g out:liftOffShadow|global={{ lifts }}>

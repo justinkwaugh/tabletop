@@ -23,8 +23,16 @@ import {
 import type { MoveInterrupter, ZertzGameSession } from '$lib/model/session.svelte.js'
 import { inferJump } from '$lib/board/inferJump.js'
 import { ringExits, type RingExit } from '$lib/board/pullOut.js'
-import { marbleSeedsAfter, seedAt, type MarbleSeeds } from '$lib/board/marbleSeeds.js'
-import { DROP, dropMarble, QUICK_DROP, scaledFromCentre, type DropTiming } from './drop.js'
+import { applyToSeeds, marbleSeedsAfter, seedAt, type MarbleSeeds } from '$lib/board/marbleSeeds.js'
+import {
+    DROP,
+    dropMarble,
+    QUICK_DROP,
+    scaledFromCentre,
+    type DropPose,
+    type DropTiming,
+    type StagedDrop
+} from './drop.js'
 
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
@@ -80,6 +88,7 @@ export class BoardAnimator implements MoveInterrupter {
     private outlineLayer: SVGGElement | undefined
     private readonly listener = (step: Step) => this.onGameStateChange(step)
     private playing: Timeline | undefined
+    private staged: StagedDrop | undefined
     private abandoned: HydratedZertzGameState | undefined
 
     constructor(private readonly session: ZertzGameSession) {}
@@ -202,9 +211,13 @@ export class BoardAnimator implements MoveInterrupter {
                   : undefined)
         const placement = isPlaceMarble(stepped) ? stepped : undefined
         const forward = to.actionCount > from.actionCount
-        // An Undo has already taken its action off the list.
+        // The actions list is published with the state, once the step has played, so a move's
+        // seeds come from the move itself.
         const seedsBefore = this.seeds
-        this.seeds = new Map([...seedsBefore, ...this.seedsAt(to.actionCount)])
+        const seedsDuring = new Map(seedsBefore)
+        if (action !== undefined) applyToSeeds(seedsDuring, action, from.actionCount)
+        else for (const [key, seed] of this.seedsAt(to.actionCount)) seedsDuring.set(key, seed)
+        this.seeds = seedsDuring
         // A placement that fills an isolated group claims it, so its ring goes with the others.
         const before =
             placement && forward ? placedOn(from.board.rings, placement) : from.board.rings
@@ -242,7 +255,14 @@ export class BoardAnimator implements MoveInterrupter {
                     ...this.sliding,
                     ...returning.map((ring) => coordinatesToNumber(ring.coords))
                 ])
-                this.rings = [...withMarbles(from.board.rings, appearing), ...returning]
+                // A restaged marble whose ring was claimed comes back with its group.
+                const restaged = returned
+                    ? [{ coords: returned.coords, marble: returned.color }]
+                    : []
+                this.rings = [
+                    ...withMarbles(from.board.rings, appearing),
+                    ...withMarbles(returning, restaged)
+                ]
                 await tick()
                 const entries = ringExits(
                     view,
@@ -253,7 +273,9 @@ export class BoardAnimator implements MoveInterrupter {
                 )
                 const twoLegs = [...entries.values()].some((entry) => entry.first !== undefined)
                 const leg = twoLegs ? PUSH.slide / 2 : PUSH.slide
-                for (const ring of returning) this.pushIn(ring, entries, timeline, leg)
+                for (const ring of withMarbles(returning, restaged)) {
+                    this.pushIn(ring, entries, timeline, leg)
+                }
                 for (const ring of appearing) this.drop(ring.coords, timeline, QUICK_DROP)
             }
             if (jump !== undefined) {
@@ -274,13 +296,19 @@ export class BoardAnimator implements MoveInterrupter {
                 }
             }
         } else {
-            // Your own marble already stands in its ring; anyone else's drops in first.
+            // Your own marble goes on from where its staged drop has it: one that has landed stands,
+            // one sent the moment its ring was chosen drops in as anyone else's does.
             let claimsAt = 0
             if (isPlaceMarble(action)) {
-                if (kind === 'own-action') this.placedIn = true
+                const own = kind === 'own-action'
+                const staged = own ? this.staged : undefined
+                const falling = staged?.falling()
+                if (own) this.placedIn = true
                 this.rings = before
                 await tick()
-                if (kind !== 'own-action') claimsAt = this.drop(action.coords, timeline)
+                if (!own || staged === undefined || falling !== undefined) {
+                    claimsAt = this.drop(action.coords, timeline, DROP, falling)
+                }
             }
             if (isCapture(action)) {
                 assertExists(action.metadata, 'A processed capture has its metadata')
@@ -424,12 +452,25 @@ export class BoardAnimator implements MoveInterrupter {
         timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, at)
     }
 
-    private drop(coords: AxialCoordinates, timeline: Timeline, timing: DropTiming = DROP): number {
+    private drop(
+        coords: AxialCoordinates,
+        timeline: Timeline,
+        timing: DropTiming = DROP,
+        from?: DropPose
+    ): number {
         const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
         const shadow = this.marbleShadowNodes.get(key)
         if (body === undefined || shadow === undefined) return 0
-        return dropMarble(timeline, body, shadow, 0, timing)
+        return dropMarble(timeline, body, shadow, 0, timing, from)
+    }
+
+    // The staged marble on the board, if any.
+    readonly stagedDrop = (drop: StagedDrop) => {
+        this.staged = drop
+        return () => {
+            if (this.staged === drop) this.staged = undefined
+        }
     }
 
     // The move's targets are spent.

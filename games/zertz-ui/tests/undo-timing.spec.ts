@@ -142,6 +142,22 @@ test("another player's Undo of a placement that cut a group off", async ({ page 
     await expectActionlessWithinBudget(page)
 })
 
+test('your own Undo of a placement that claimed its own ring', async ({ page }) => {
+    await openScenario(page, 'Claim by placement')
+    await act(page, async () => {
+        const session = window.zertzSession
+        session.chooseColor(session.placeableColors[0])
+        await session.chooseRing({ q: -2, r: 2 })
+    })
+    await act(page, () => {
+        const session = window.zertzSession
+        return session.chooseRing(session.removableRings[0])
+    })
+    await act(page, () => window.zertzSession.undo())
+    expect(await page.evaluate(() => window.zertzSession.chosenPlace)).toEqual({ q: -2, r: 2 })
+    await expectActionlessWithinBudget(page)
+})
+
 test('Undo of each jump of a chain', async ({ page }) => {
     await openScenario(page, 'Capture chain')
     await captureChain(page)
