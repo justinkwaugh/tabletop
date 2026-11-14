@@ -13,20 +13,11 @@ import {
 } from './light.js'
 import { SPECK_COLOR, SPECK_COUNT, seededRandom } from './marbleStyle.js'
 
-// A marble's specks, drawn over its pre-rendered look and under its shine. They lie on the
-// sphere, the same for a seed every time, so each marble has its own: an ellipse flattened by how
-// far the surface there turns from you, shaded as the body is. Specks round the back are left
-// out, and a turned view sees the marble from the far side, so its specks turn with it. Each
-// shade is one path, so a marble draws a few paths rather than hundreds of shapes.
+// Each shade is one path, so a marble draws a few paths rather than hundreds of shapes.
 
-// A speck on the sphere: which way it faces from the centre, and its size as a fraction of the
-// radius.
 export type SurfaceSpeck = { direction: Vec; size: number }
 
-// How many specks a marble has over its whole surface, against the flat look's count over its
-// face.
 export const SPECK_DENSITY = 3
-// Shades of speck, from the shadowed side to the lit one.
 const SHADES = 12
 
 export function surfaceSpecks(
@@ -50,7 +41,6 @@ export type SpeckPath = { d: string; fill: string }
 
 const drawn = new Map<string, SpeckPath[]>()
 
-// The specks of the marble with this seed, about its centre.
 export function speckPaths(view: BoardView, color: MarbleColor, seed: number): SpeckPath[] {
     const speckColor = SPECK_COLOR[color]
     if (!speckColor) return []
@@ -72,7 +62,6 @@ export function speckPaths(view: BoardView, color: MarbleColor, seed: number): S
         const light = (LIGHTING.ambient + 0.95 * diffuse) * occlusion
         const shade = Math.round(light * SHADES)
 
-        // Long across the line from the centre, short along it.
         const [cx, cy] = [direction[0], -dot(direction, up)].map((at) => at * MARBLE_RADIUS)
         const across = Math.atan2(cy, cx) + Math.PI / 2
         const rx = speck.size * MARBLE_RADIUS

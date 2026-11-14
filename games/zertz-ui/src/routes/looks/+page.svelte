@@ -15,9 +15,7 @@
     import RingLook from '$lib/components/RingLook.svelte'
     import '../../app.css'
 
-    // The pieces' looks, lit pixel by pixel, for scripts/render-looks.mjs to save as the images the
-    // game shows; drawn here alone and as a patch of board, from either side of the table, to
-    // check them.
+    // For scripts/render-looks.mjs to save as the images the game shows.
     const SHADOW_COLOR = '#021624'
     const COLORS = Object.values(MarbleColor)
 
@@ -46,7 +44,6 @@
         millis = Math.round(performance.now() - start)
     })
 
-    // A flower of rings, marbles on three of them.
     const PATCH: { coords: AxialCoordinates; marble?: MarbleColor }[] = [
         { coords: { q: 0, r: -1 } },
         { coords: { q: 1, r: -1 }, marble: MarbleColor.Black },
@@ -56,7 +53,6 @@
         { coords: { q: -1, r: 1 }, marble: MarbleColor.Grey },
         { coords: { q: 0, r: 1 } }
     ]
-    // Far rings first, as on the board.
     function spotsOf(turned: boolean) {
         const view = viewOf(turned)
         return PATCH.map((spot) => ({

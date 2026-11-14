@@ -9,9 +9,7 @@ export type Segment =
     | { kind: 'step' }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks. The
-// brief form keeps the action panel's message to one line on a phone, as the other titles do:
-// a capture chain by where it began and ended, claims by their marbles alone, and no word of
-// where a placed marble came from. The history panel reads the full one.
+// brief form keeps the action panel's message to one line on a phone, as the other titles do.
 export function entrySegments(entry: HistoryEntry, isMe: boolean, brief = false): Segment[] {
     const text = (value: string): Segment => ({ kind: 'text', text: value })
     const marble = (color: MarbleColor, seed: number): Segment => ({ kind: 'marble', color, seed })

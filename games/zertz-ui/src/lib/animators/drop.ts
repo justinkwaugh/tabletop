@@ -2,8 +2,6 @@ import type { Attachment } from 'svelte/attachments'
 import type { TransitionConfig } from 'svelte/transition'
 import { gsap } from 'gsap'
 
-// A placed marble falls into its ring, gathering speed, and settles with a small wobble; its
-// shadow waits in the ring and darkens as the marble comes down.
 export const DROP = {
     fall: 0.26,
     rise: -50,
@@ -13,19 +11,15 @@ export const DROP = {
     shadow: 0.55
 }
 
-// How long a dropped marble falls, and how it settles.
 export type DropTiming = { fall: number; wobble: readonly number[] }
 
-// Undo and history steps have no action, so a marble they bring back has landed by 0.16 s,
-// without the wobble.
+// Undo and history steps have no action, so everything they move ends by 0.2 s.
 export const QUICK_DROP: DropTiming = { fall: 0.16, wobble: [] }
 
-// A staged marble taken back lifts out of its ring quickly, fading as it rises.
 const LIFT_OFF = { duration: 0.18, rise: -25, scale: 1.04 }
 
 type Timeline = gsap.core.Timeline
 
-// Drops a marble into its ring at `at`. Says when it has settled.
 export function dropMarble(
     timeline: Timeline,
     body: SVGGElement,
@@ -56,9 +50,7 @@ export function dropMarble(
     return time
 }
 
-// The marble you stage drops into its ring by itself as it is drawn: it shows a choice, not a
-// change to the game, so no game state change owns its motion. One Undo took back out stands
-// there already.
+// A staged choice, not a state change, so this local timeline owns its motion.
 export class StagedDrop {
     private readonly timeline = gsap.timeline()
     private body: SVGGElement | undefined
@@ -86,11 +78,9 @@ export class StagedDrop {
     }
 }
 
-// Taking back the marble you staged lifts it out of its ring again, unless it is going in.
 type LiftOff = { lifts: () => boolean }
 
-// The lift takes over from a drop still under way, so the marble rises from where it is. The drop
-// runs on nodes inside the one lifted, so the two never write the same transform.
+// The drop runs on nodes inside the one lifted, so the two never write the same transform.
 function stopDrop(wrapper: Element) {
     gsap.killTweensOf(wrapper.querySelectorAll('g'))
 }
@@ -120,9 +110,8 @@ export function liftOffShadow(node: Element, { lifts }: LiftOff): TransitionConf
     }
 }
 
-// Nodes about to grow or shrink, around their ring's centre. Set only on the nodes a move
-// scales, as it starts: GSAP measures each node's drawing to place the origin, and done for every
-// ring, marble and shadow as it was drawn, that froze opening a game for seconds on a phone.
+// Set only as a move starts: GSAP measures each node to place the origin, and doing it for every
+// node as it was drawn froze opening a game for seconds on a phone.
 export function scaledFromCentre(...nodes: SVGGElement[]) {
     gsap.set(nodes, { svgOrigin: '0 0' })
 }

@@ -120,8 +120,6 @@ export class HydratedZertzGameState
         return source
     }
 
-    // The first half of a move: the marble taken from its supply and placed, and any group it
-    // fills claimed. Says where the marble came from and which rings were claimed.
     placeMarble(
         playerId: string,
         color: MarbleColor,
@@ -134,8 +132,7 @@ export class HydratedZertzGameState
         return { source, claimed }
     }
 
-    // A placement is followed by removing a free ring, if one is left and the game goes on. The
-    // rings that could then be removed: none when the move ends with the placing.
+    // A free ring is removed after placing, if one is left and the game goes on.
     removableAfterPlacing(
         playerId: string,
         color: MarbleColor,
@@ -166,7 +163,6 @@ export class HydratedZertzGameState
         )
     }
 
-    // Applies the end of game checks that follow a move's captures and claims.
     concludeMove(playerId: string) {
         if (this.board.rings.length === 0) {
             this.declareWinner(playerId, EndReason.FullBoard)

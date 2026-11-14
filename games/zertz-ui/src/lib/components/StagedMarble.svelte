@@ -8,9 +8,6 @@
     import { liftOffBody, liftOffShadow, StagedDrop } from '$lib/animators/drop.js'
     import MarbleLook from './MarbleLook.svelte'
 
-    // The marble you are about to place, dropping into the ring you chose unless Undo took it back
-    // out there. Taken back, it lifts out again, unless it is going in (lifts says which). Drawn at
-    // the marble's centre, as the board's marbles are.
     let {
         color,
         seed,

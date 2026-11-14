@@ -15,7 +15,6 @@ import { Ring } from '../model/board.js'
 export type PlaceMarbleMetadata = Type.Static<typeof PlaceMarbleMetadata>
 export const PlaceMarbleMetadata = Type.Object({
     source: Type.Enum(MarbleSource),
-    // Groups the placed marble filled, then groups the removed ring cut off.
     claimedOnPlacing: Type.Array(Ring),
     claimedOnRemoving: Type.Array(Ring)
 })
@@ -29,8 +28,7 @@ export const PlaceMarble = Type.Evaluate(
             playerId: Type.String(),
             color: Type.Enum(MarbleColor),
             coords: AxialCoordinates,
-            // The free ring removed after placing; none when no ring is free or the placing ends
-            // the game.
+            // None when no ring is free or the placing ends the game.
             remove: Type.Optional(AxialCoordinates),
             metadata: Type.Optional(PlaceMarbleMetadata)
         })

@@ -47,8 +47,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
             ? this.selection
             : {}
     )
-    // The move being undone. Undo takes your marble back onto its ring, staged as you chose it,
-    // and a further Undo takes it off the ring.
     undoingMove: PlaceMarble | undefined
     historyAction: GameAction | undefined
     moveInterrupter: MoveInterrupter | undefined
@@ -68,7 +66,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.createPreferences(ZertzPreferenceDefinition)
 
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
-    // The board seen from the far side, half a turn round.
     turned: boolean = $derived(this.preferences.values.turned)
     view: BoardView = $derived(viewOf(this.turned))
 
@@ -123,7 +120,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.gameState.board.vacantRings().map((ring) => ring.coords)
     )
 
-    // The ring your marble stands on, staged until you choose a ring to remove.
     chosenPlace: AxialCoordinates | undefined = $derived.by(() => {
         const place = this.ownSelection.place?.value
         if (place === undefined || this.chosenColor === undefined) return undefined
@@ -141,7 +137,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         return this.removableAfterPlacing(color, place)
     })
 
-    // Choosing the staged marble again changes its colour, when there is another to place.
     canChangeStagedColor: boolean = $derived(
         this.chosenPlace !== undefined && this.placeableColors.length > 1
     )
@@ -173,7 +168,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         return this.incomingGameState
     }
 
-    // The action a step back to `to` takes back.
     undoneAction(to: Pick<ZertzGameState, 'actionCount'>): GameAction | undefined {
         return this.actions.find((candidate) => candidate.index === to.actionCount)
     }
@@ -197,13 +191,12 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         if (kind !== 'undo') this.undoingMove = undefined
     }
 
-    // Whether the player of a move taken back could have placed another colour.
     private hadColorChoice(move: PlaceMarble): boolean {
         const state = this.incomingGameState ?? this.gameState
         return state.placeableColors(move.playerId).length > 1
     }
 
-    // A move's motion runs on the state it started from, whose choices still show as they fade.
+    // A move runs on the state it started from, whose choices still show as they fade.
     private get moving(): boolean {
         return this.updatingVisibleState
     }
@@ -220,7 +213,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
             )
             return
         }
-        // A marble already staged in its ring changes to the colour chosen.
         void this.stagePlacement(setZertzSelection(this.ownSelection, 'color', color), place)
     }
 
@@ -233,8 +225,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.select(setZertzSelection(this.ownSelection, 'jumper', toggledOff ? undefined : coords))
     }
 
-    // Tapping where there is nothing to choose takes a staged marble off its ring, or else lets go
-    // of a chosen colour or jumper.
     letGo() {
         if (this.moving) return
         if (this.ownSelection.place !== undefined) {
@@ -244,8 +234,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         }
     }
 
-    // A placement that leaves a ring to remove stands staged on its ring; one that ends the move
-    // goes straight in, as does the removal that completes a staged one.
     async chooseRing(coords: AxialCoordinates) {
         if (this.moving) return
         if (includesCoords(this.removableRings, coords)) {
@@ -257,7 +245,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         }
     }
 
-    // The next colour takes the staged marble's place.
     async changeStagedColor() {
         const place = this.chosenPlace
         const color = this.chosenColor

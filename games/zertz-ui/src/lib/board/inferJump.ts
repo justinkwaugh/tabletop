@@ -8,8 +8,7 @@ export type InferredJump = {
     color: MarbleColor
 }
 
-// A history step carries no action, so a jump is read from the boards: a marble leaves one
-// ring, a marble of its colour appears two rings away in a line, and the ring between changes.
+// A history step carries no action, so a jump is read from the boards.
 export function inferJump(
     before: readonly Ring[],
     after: readonly Ring[]

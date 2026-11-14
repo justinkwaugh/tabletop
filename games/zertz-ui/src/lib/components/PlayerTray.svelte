@@ -13,7 +13,6 @@
     const isWinner = $derived(session.gameState.winningPlayerIds.includes(playerState.playerId))
     const name = $derived(session.getPlayerName(playerState.playerId))
 
-    // Each slot's marble has its own specks.
     function seedOf(color: string, slot: number): number {
         return textSeed(`tray ${playerState.playerId} ${color} ${slot}`)
     }

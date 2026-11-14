@@ -19,17 +19,12 @@ import {
 } from './light.js'
 import { LOOK_PIXELS, marbleBox, ringBox } from './looks.js'
 
-// Lit drawings of the pieces, worked out pixel by pixel from their shapes: the ring a thin
-// hollow cone of black plastic, the marble a glossy sphere. Only the looks page, which
-// scripts/render-looks.mjs saves as images, uses this; the game shows the images.
+// The game shows these pre-rendered: rerun scripts/render-looks.mjs after changing anything here.
 
-// The table's colour, mirrored in the lower half of glossy surfaces.
 const TABLE: Rgb = linear('#0f527c')
-// What the upper half mirrors: a dim room.
 const ROOM: Rgb = [0.32, 0.33, 0.35]
 
 const RING_ALBEDO: Rgb = linear('#0b0d0f')
-// The table seen under the ring, through its hole, in the ring's shade.
 const UNDER_RING: Rgb = linear('#021624')
 
 export const MARBLE_ALBEDO: Record<MarbleColor, Rgb> = {
@@ -38,14 +33,13 @@ export const MARBLE_ALBEDO: Record<MarbleColor, Rgb> = {
     [MarbleColor.Black]: linear('#040405')
 }
 
-// How much of the room each marble mirrors: the black less, so it stays black.
+// The black mirrors less, so it stays black.
 const MARBLE_REFLECTION: Record<MarbleColor, number> = {
     [MarbleColor.White]: 1,
     [MarbleColor.Grey]: 1,
     [MarbleColor.Black]: 0.55
 }
 
-// An image in board units: `pixels` per unit, its top left at (x, y) on screen.
 export type Bitmap = {
     x: number
     y: number
@@ -68,7 +62,6 @@ function reflect(normal: Vec, eye: Vec): Vec {
     return add(scale(normal, 2 * dot(normal, eye)), scale(eye, -1))
 }
 
-// A glossy surface's colour: lit diffusely, with a sheen and the room mirrored at glancing angles.
 function glossy(
     albedo: Rgb,
     normal: Vec,
@@ -94,9 +87,6 @@ function glossy(
     ) as Rgb
 }
 
-// The ring: a cone of plastic `band / rise` tall from its base out to its hole's rim, a shell
-// `rimEdge / rise` thick, hollow underneath, its rim's cut edge a short wall round the hole. On
-// screen its hole's centre at the rim is the origin, as on the board.
 export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIGHTING): Bitmap {
     const rise = Math.sqrt(1 - view.tilt ** 2)
     const tilt = view.tilt
@@ -106,7 +96,6 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
     const slope = (a - b) / height
     const under = a - slope * shell
     const eye = eyeOf(view)
-    // The lip rounds over this far below the rim.
     const fillet = shell * 0.35
 
     const box = ringBox(view, pixels)
@@ -115,7 +104,6 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
     const data = new Uint8ClampedArray(width * rows * 4)
     const samples = 3
 
-    // Where a ray first meets a cone r = radius − slope × z for z in [low, high]: the largest t.
     const cone = (x: number, y0: number, radius: number, low: number, high: number) => {
         const qa = rise * rise - slope * slope * tilt * tilt
         const qb = 2 * (y0 * rise + radius * slope * tilt)
@@ -146,7 +134,6 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
                     if (outer !== undefined) hits.push({ t: outer, surface: 'outer' })
                     const inner = cone(sx, y0, under, 0, height - shell)
                     if (inner !== undefined) hits.push({ t: inner, surface: 'inner' })
-                    // The wall round the hole, x² + y² = b² between the rim and a shell below.
                     const la = rise * rise
                     const lb = 2 * y0 * rise
                     const lc = sx * sx + y0 * y0 - b * b
@@ -169,7 +156,6 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
                     let color: Rgb
                     let opacity = 1
                     if (hit.surface === 'ground') {
-                        // Darker towards the shell's edge, where less light gets in.
                         opacity = 0.42 + 0.4 * smoothstep(b * 0.6, under, radial)
                         color = UNDER_RING
                     } else {
@@ -177,10 +163,8 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
                         let occlusion: number
                         if (hit.surface === 'outer') {
                             normal = normalize([outward[0], outward[1], slope])
-                            // The lip rounds over towards the hole.
                             const round = smoothstep(height - fillet, height, point[2])
                             normal = normalize(add(scale(normal, 1 - round), [0, 0, round]))
-                            // The crease where neighbouring rings meet at the table.
                             occlusion = 0.45 + 0.55 * smoothstep(0, height * 0.45, point[2])
                         } else if (hit.surface === 'lip') {
                             const round = smoothstep(height - fillet, height, point[2])
@@ -222,8 +206,7 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
     return { ...box, width, height: rows, data }
 }
 
-// A marble's body and, apart, its gloss, so specks drawn between them stay under the shine. Both
-// centred on the marble's centre.
+// Body and gloss apart, so specks drawn between them stay under the shine.
 export function renderMarble(
     view: BoardView,
     color: MarbleColor,
@@ -254,7 +237,6 @@ export function renderMarble(
                     const normal = normalize(
                         add(add(scale([1, 0, 0], u), scale(up, -v)), scale(eye, w))
                     )
-                    // Where it rests in its ring, less light reaches its underside.
                     const occlusion = 0.55 + 0.45 * smoothstep(-0.85, 0.1, normal[2])
                     const lit = glossy(
                         albedo,

@@ -21,7 +21,6 @@ import { ringExits, type RingExit } from '$lib/board/pullOut.js'
 import { marbleSeedsAfter, seedAt, type MarbleSeeds } from '$lib/board/marbleSeeds.js'
 import { DROP, dropMarble, QUICK_DROP, scaledFromCentre, type DropTiming } from './drop.js'
 
-// A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
     'other-action',
@@ -30,26 +29,15 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'exploration'
 ])
 
-// A removed ring is pulled out of the board as the real ones are, sliding across the table a
-// ring's width, gathering speed, and fading over the latter part. One that cuts groups off first
-// slides out of its place (`first`), and they leave together.
 type PullTiming = { duration: number; first: number }
 const PULL = { duration: 0.45, first: 0.3 }
 const PULL_FADE = 0.6
 // Undo and history steps have no action, so everything they move ends by 0.2 s.
 const QUICK_PULL = { duration: 0.14, first: 0.06 }
-// Undone, it slides back in the way it went, appearing over the first part, and the marbles it
-// took settle back into their rings. A ring that cut groups off with it follows them in, in a
-// second leg of the same slide.
 const PUSH = { slide: 0.14, fade: 0.4, settle: 0.06 }
-// A marble taken from the board floats straight up; one taken by a jump goes quicker, so the next
-// jump of a chain can be chosen soon after it lands.
+// A captured marble lifts quicker, so the next jump of a chain can be chosen soon after.
 const LIFT = { duration: 0.55, captured: 0.3, rise: -34, scale: 1.04 }
-// A jumper flies as a thrown marble does: across the board at a steady pace while it rises and
-// falls, as high as `arc` of the way it goes, so a longer jump climbs higher. Its shadow keeps to
-// the board, smaller and fainter the higher it is.
 const JUMP = { duration: 0.3, arc: 0.6, peakScale: 1.06, shadowScale: 0.75, shadowFade: 0.5 }
-// A jumper's momentum carries it a little past its ring as it lands; it rocks back and settles.
 const LANDING = { rebound: [2.4, -1.2, 0.45, 0], step: 0.045 }
 const CLAIMED_RING_DELAY = 0.1
 const CAPTURED_LIFT_AT = JUMP.duration * 0.45
@@ -63,24 +51,18 @@ type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedZertzGameState, AnimationContext>
 
 export class BoardAnimator implements MoveInterrupter {
-    // The rings drawn. A replay plays several actions before the visible state catches up, so
-    // each animated action leaves the board as it ended until that state lands.
+    // A replay leaves each action's board drawn until the state catches up.
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
-    // Each drawn marble's speck seed. While a move plays, the marbles it takes away keep theirs
-    // and the ones it places or moves already have theirs.
     seeds: MarbleSeeds = $derived.by(() => {
         const { actionCount } = this.session.gameState
         // The actions list moves ahead as an action is taken, before its move has played.
         return untrack(() => this.seedsAt(actionCount))
     })
     flight: Flight | undefined = $state()
-    // Until the state a move made lands, your choices still name the ring you placed on: the
-    // marble you staged, which went in, stays out of the way, and one Undo took back stands
-    // staged in its ring.
+    // Until the state lands: your placed marble stays out of the way, and an undone one stands staged.
     placedIn: boolean = $derived.by(() => this.untilLanded(false))
     returned: Staged | undefined = $derived.by(() => this.untilLanded(undefined))
-    // The rings sliding out or back in, by key, until the state lands: the dashes where each
-    // stood lie under it, so it uncovers them as it goes.
+    // Until the state lands, so each sliding ring uncovers the dashes where it stood.
     sliding: ReadonlySet<number> = $derived.by(() => this.untilLanded(new Set<number>()))
 
     private readonly ringNodes = new Map<number, SVGGElement>()
@@ -215,11 +197,10 @@ export class BoardAnimator implements MoveInterrupter {
                   : undefined)
         const placement = isPlaceMarble(stepped) ? stepped : undefined
         const forward = to.actionCount > from.actionCount
-        // The seeds the board shows: an Undo has already taken its action off the list.
+        // An Undo has already taken its action off the list.
         const seedsBefore = this.seeds
         this.seeds = new Map([...seedsBefore, ...this.seedsAt(to.actionCount)])
-        // The board as the move found it, with a placed marble already in its ring: a placement
-        // that fills an isolated group claims it, and that ring goes with the others.
+        // A placement that fills an isolated group claims it, so its ring goes with the others.
         const before =
             placement && forward ? placedOn(from.board.rings, placement) : from.board.rings
         const removedRings = before.filter((ring) => !to.board.hasRing(ring.coords))
@@ -237,18 +218,14 @@ export class BoardAnimator implements MoveInterrupter {
 
         let returned: Staged | undefined
         if (action === undefined) {
-            // Undo takes your marble back out of the move, staged in its ring as you left it.
             const undone = kind === 'undo' ? this.session.restagedMove(to) : undefined
-            // It keeps the specks it had, though it stands staged before the state it was staged
-            // in lands.
+            // Staged before its state lands, so it keeps the specks it had.
             if (undone !== undefined) {
                 const { color, coords } = undone
                 returned = { color, coords, seed: seedAt(seedsBefore, coords) }
             }
             const returning = to.board.rings.filter((ring) => !from.board.hasRing(ring.coords))
             const jump = inferJump(from.board.rings, to.board.rings)
-            // A marble the step puts on a ring already standing drops in: one placed, stepping
-            // forward, or one a jump took, stepping back.
             const appearing = to.board.rings.filter(
                 (ring) =>
                     ring.marble !== undefined &&
@@ -269,7 +246,6 @@ export class BoardAnimator implements MoveInterrupter {
                     from.board.rings.map((ring) => ring.coords),
                     placement && !forward ? cutOffBy(placement) : undefined
                 )
-                // A ring that cut groups off comes back in two legs, and the groups with its first.
                 const twoLegs = [...entries.values()].some((entry) => entry.first !== undefined)
                 const leg = twoLegs ? PUSH.slide / 2 : PUSH.slide
                 for (const ring of returning) this.pushIn(ring, entries, timeline, leg)
@@ -293,9 +269,7 @@ export class BoardAnimator implements MoveInterrupter {
                 }
             }
         } else {
-            // Your own marble already stands in its ring; another player's, or one replayed from
-            // history, drops in first. A group it claims, and the ring removed, go once it has
-            // landed.
+            // Your own marble already stands in its ring; anyone else's drops in first.
             let claimsAt = 0
             if (isPlaceMarble(action)) {
                 if (kind === 'own-action') this.placedIn = true
@@ -336,8 +310,6 @@ export class BoardAnimator implements MoveInterrupter {
         })
     }
 
-    // The ring and its shadow go together. A ring that first slides out of its place does so from
-    // `startsAt`, and the groups it cut off wait for it.
     private pullOut(
         coords: AxialCoordinates,
         exits: ReadonlyMap<number, RingExit>,
@@ -370,8 +342,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Undone, rings slide back in the way they went: the group a ring cut off with it, then that
-    // ring back into its place. Their marbles settle back in once they are home.
     private pushIn(
         ring: Ring,
         entries: ReadonlyMap<number, RingExit>,
@@ -448,7 +418,6 @@ export class BoardAnimator implements MoveInterrupter {
         timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, at)
     }
 
-    // Says when the marble has settled.
     private drop(coords: AxialCoordinates, timeline: Timeline, timing: DropTiming = DROP): number {
         const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
@@ -457,14 +426,13 @@ export class BoardAnimator implements MoveInterrupter {
         return dropMarble(timeline, body, shadow, 0, timing)
     }
 
-    // The move's targets are spent, so their outlines fade for as long as the move animates.
+    // The move's targets are spent.
     private fadeOutlines(timeline: Timeline, shortest: number) {
         if (this.outlineLayer === undefined) return
         const duration = Math.max(timeline.duration(), shortest)
         timeline.to(this.outlineLayer, { opacity: 0, duration, ease: 'power1.out' }, 0)
     }
 
-    // An undone placement lifts back out of its ring as it fades.
     private fade(coords: AxialCoordinates, timeline: Timeline) {
         const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
@@ -501,12 +469,10 @@ export class BoardAnimator implements MoveInterrupter {
         const start = view.center(from)
         const end = view.center(to)
         const distance = Math.hypot(end.x - start.x, end.y - start.y)
-        // How far it goes across the table, and so how high it climbs, seen from the side.
         const across = Math.hypot(end.x - start.x, (end.y - start.y) / view.tilt)
         const rise = JUMP.arc * across * Math.sqrt(1 - view.tilt ** 2)
         const half = duration / 2
         timeline.to(flier, { x: end.x - start.x, y: end.y - start.y, duration, ease: 'none' }, 0)
-        // Rising and falling on a parabola, over the one it takes.
         const body = this.flierBodyNode
         if (body === undefined) return
         scaledFromCentre(body)
@@ -543,13 +509,11 @@ export class BoardAnimator implements MoveInterrupter {
     }
 }
 
-// The ring a move removes, and the rings that cut off.
 function cutOffBy({ remove, metadata }: PlaceMarble) {
     if (remove === undefined) return undefined
     return { remove, cutOff: (metadata?.claimedOnRemoving ?? []).map((ring) => ring.coords) }
 }
 
-// The rings with the marbles `placed` names put in.
 function withMarbles(rings: Ring[], placed: Ring[]): Ring[] {
     return rings.map(
         (ring) => placed.find((other) => sameCoordinates(other.coords, ring.coords)) ?? ring

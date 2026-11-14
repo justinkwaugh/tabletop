@@ -7,8 +7,6 @@
     import { LOOK_URLS } from '$lib/board/lookUrls.js'
     import { speckPaths } from '$lib/board/marbleSpecks.js'
 
-    // A marble about its centre: its colour's lit body, its own specks, and the shine over them.
-    // The looks page passes the images it has just drawn.
     let {
         color,
         seed,

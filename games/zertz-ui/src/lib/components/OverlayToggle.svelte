@@ -1,8 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
 
-    // A text glyph, or an icon drawn by the caller. The hint, shown on hover, says what a press
-    // does now.
     let {
         glyph,
         label,
@@ -69,7 +67,6 @@
         stroke-linejoin: round;
     }
 
-    /* On, the lines brighten and a thin ring shows round the button, quieter than a solid fill. */
     .toggle[aria-pressed='true'] {
         color: var(--zertz-ink);
         box-shadow:

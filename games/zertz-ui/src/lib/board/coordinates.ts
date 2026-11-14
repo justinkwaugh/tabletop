@@ -8,7 +8,6 @@ import {
 import { LABEL_GAP, VIEW, type BoardView } from './geometry.js'
 
 // BoardSpace notation: columns lettered left to right, each counted up from 1 at its bottom ring.
-// Each column is labelled with the names of its bottom and top rings.
 export type BoardNotation = {
     name(coords: AxialCoordinates): string
     labels: CoordinateLabel[]

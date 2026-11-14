@@ -3,7 +3,6 @@
     import { MARBLE_RADIUS, VIEW } from '$lib/board/geometry.js'
     import MarbleLook from './MarbleLook.svelte'
 
-    // A marble off the board, specked as the board's are; `seed` gives it its own specks.
     let {
         color,
         seed = MARBLE_COLORS.indexOf(color) + 1,

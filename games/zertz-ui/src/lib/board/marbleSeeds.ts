@@ -1,13 +1,8 @@
 import { coordinatesToNumber, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import { isCapture, isPlaceMarble } from '@tabletop/zertz'
 
-// Each marble's speck seed, so its specks go with it when it jumps. A marble takes its seed as it
-// is placed, from its ring and the place of its move in the game, so two marbles placed on one
-// ring at different times differ; a jumper carries its own to where it lands. A marble no action
-// placed (on a scenario's starting board) takes its ring's.
+// Seeded by ring and action number, so two marbles placed on one ring at different times differ.
 
-// The seed of a marble placed on `coords` by the game's action number `index`, counting from 0:
-// the marble you stage takes the seed of the move it will be.
 export function placementSeed(coords: AxialCoordinates, index: number): number {
     return coordinatesToNumber(coords) + 7919 * (index + 1)
 }
@@ -20,7 +15,6 @@ export function marbleSeedsAfter(actions: readonly GameAction[]): MarbleSeeds {
     return seeds
 }
 
-// Moves the seeds on past the game's action number `index`.
 export function applyToSeeds(seeds: Map<number, number>, action: GameAction, index: number) {
     if (isPlaceMarble(action)) {
         seeds.set(coordinatesToNumber(action.coords), placementSeed(action.coords, index))
@@ -36,8 +30,6 @@ export function seedAt(seeds: MarbleSeeds, coords: AxialCoordinates): number {
     return seeds.get(coordinatesToNumber(coords)) ?? coordinatesToNumber(coords)
 }
 
-// A seed for a marble drawn off the board (an icon), from where it is drawn, so each icon has its
-// own specks and keeps them as the page redraws.
 export function textSeed(text: string): number {
     let hash = 0x811c9dc5
     for (let index = 0; index < text.length; index++) {

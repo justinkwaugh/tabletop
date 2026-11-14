@@ -110,7 +110,6 @@
                         <div
                             class="pointer-events-auto absolute right-3 bottom-2 z-10 flex items-center gap-1.5"
                         >
-                            <!-- The board seen half a turn round, from the far side of the table. -->
                             <OverlayToggle
                                 label="Far side"
                                 hint={gameSession.turned

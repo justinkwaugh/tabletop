@@ -13,19 +13,14 @@ const NEIGHBOR_OFFSETS = ClockwiseFlatHexDirections.map(
     (direction) => FlatNeighborOffsets[direction]
 )
 
-// Where removed rings slide to as they are pulled off the table, on screen, by key. As on the real
-// board, a ring comes out through an open side, where no ring that stays stands, along a line of
-// rings: of its open sides, the one facing most nearly away from the board's middle. Out of the
-// middle column they leave along a diagonal where one is open, since straight up the screen read
-// as lifting away; the middle column's end rings go straight up or down it. Rings removed
-// together that touch go as one, through an open side of the group. Each goes a ring's width.
+// As on the real board, a ring leaves through an open side, along a line of rings. Out of the
+// middle column they take a diagonal, since straight up the screen read as lifting away.
 export function pullOuts(
     view: BoardView,
     removed: readonly AxialCoordinates[],
     staying: readonly AxialCoordinates[],
     layout: readonly AxialCoordinates[]
 ): Map<number, Point> {
-    // On the table, seen from above, where the screen squashes depth by the tilt.
     const plane = (coords: AxialCoordinates): Point => {
         const { x, y } = view.center(coords)
         return { x, y: y / view.tilt }
@@ -85,10 +80,6 @@ function mean(points: readonly Point[]): Point {
     return { x: sum.x / points.length, y: sum.y / points.length }
 }
 
-// How each of a move's removed rings leaves: a ring's width out (`out`, on screen), and, for the
-// ring the move removes when that cuts groups off, a first slide out of its place (`first`) the
-// way it is free to go among every ring still there; it then leaves beside the group it cut off,
-// which waits for it (`waits`), rather than through them.
 export type RingExit = { first?: Point; out: Point; waits: boolean }
 
 export function ringExits(

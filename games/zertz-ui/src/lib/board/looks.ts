@@ -1,19 +1,14 @@
 import { MarbleColor } from '@tabletop/zertz'
 import { MARBLE_RADIUS, RING_OUTER_RADIUS, type BoardView } from './geometry.js'
 
-// The pieces are shown as images, lit pixel by pixel (board/pieceLight.ts) on the /looks page and
-// saved by scripts/render-looks.mjs: one ring for every ring, a body for each colour of marble
-// and one shine over every marble. Each marble's own specks lie between its body and its shine
-// (board/marbleSpecks.ts). The light is the viewer's, so the turned view shows the same images.
+// The light is the viewer's, so the turned view shows the same images.
 
-// Pixels per board unit: the board fits at up to 2.5 pixels per unit (GameTable's maxFitScale), and
-// the readiness review allows images up to 2.5 times the size they are drawn at, so a ring is 400 px
-// across. Zoomed further in, as far as 4 pixels per unit, the pieces are a little soft.
+// The board fits at up to 2.5 px per unit (GameTable's maxFitScale), and the readiness review
+// allows images up to 2.5 times the size they are drawn at.
 export const LOOK_PIXELS = 2.5 * 2.5
 
 export type LookBox = { x: number; y: number; width: number; height: number }
 
-// A whole number of pixels across.
 function whole(box: LookBox, pixels: number): LookBox {
     return {
         ...box,
@@ -22,7 +17,6 @@ function whole(box: LookBox, pixels: number): LookBox {
     }
 }
 
-// About the centre of the ring's hole at its rim: its base, the whole outline, spreads below.
 export function ringBox(view: BoardView, pixels = LOOK_PIXELS): LookBox {
     const a = RING_OUTER_RADIUS
     return whole(
@@ -31,7 +25,6 @@ export function ringBox(view: BoardView, pixels = LOOK_PIXELS): LookBox {
     )
 }
 
-// About the marble's centre.
 export function marbleBox(pixels = LOOK_PIXELS): LookBox {
     const r = MARBLE_RADIUS
     return whole({ x: -r, y: -r, width: 2 * r, height: 2 * r }, pixels)

@@ -29,11 +29,10 @@
     const view = $derived(session.view)
     const frame = $derived(view.frame(session.gameState.setup))
     const rings = $derived(animator.rings)
-    // Far rings first, so nearer rings and their marbles stand in front of them.
+    // Far rings first, so nearer rings and their marbles stand in front.
     const drawOrder = $derived(
         rings.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     )
-    // Where rings were taken off, and where rings are sliding out or back in, under them.
     const removedPositions = $derived.by(() => {
         const present = new Set(rings.map((ring) => coordinatesToNumber(ring.coords)))
         return frame.positions.filter(
@@ -50,8 +49,7 @@
     let hoveredKey: number | undefined = $state()
     let focusedKey: number | undefined = $state()
 
-    // Marks lie round a ring's base, just inside its outer edge, so they never reach the touching
-    // neighbours. Dashed marks take a whole number of dashes round the ring.
+    // Inside a ring's outer edge, so marks never reach the touching neighbours.
     const MARK_RADIUS = RING_OUTER_RADIUS - 2
     const DASH_PERIOD = 8
     const MARK_PATH = DASH_PERIOD * Math.round(ellipseLength(MARK_RADIUS, TILT) / DASH_PERIOD)
@@ -87,8 +85,6 @@
         return session.chosenPlace !== undefined && sameCoordinates(session.chosenPlace, coords)
     }
 
-    // The marble you are placing stands in the ring you chose, until it goes in. One Undo took
-    // back out stands there already.
     const staged = $derived.by(() => {
         if (animator.placedIn) return undefined
         if (animator.returned) return { ...animator.returned, drops: false }
@@ -129,8 +125,7 @@
         return hoveredKey === coordinatesToNumber(coords)
     }
 
-    // A tap on nothing you can choose lets go of what is chosen. Marbles pass taps to their
-    // rings without being buttons, so both are marked interactive.
+    // Marbles pass taps to their rings without being buttons, so both are marked interactive.
     function onBoardClick(event: MouseEvent) {
         if (event.target instanceof Element && event.target.closest('.interactive')) return
         session.letGo()
@@ -178,7 +173,6 @@
         </g>
     {/snippet}
 
-    <!-- Drawn at the marble's centre, which sits above its ring; the shadow falls on the ring. -->
     {#snippet marble(
         color: MarbleColor,
         seed: number,
@@ -207,7 +201,6 @@
         </g>
     {/if}
 
-    <!-- A removed ring takes its shadow with it as it is pulled out. -->
     <g>
         {#each rings as ring (coordinatesToNumber(ring.coords))}
             <g {@attach animator.ringShadow(coordinatesToNumber(ring.coords))}>
@@ -216,7 +209,6 @@
         {/each}
     </g>
 
-    <!-- Where a ring stood on the table: round its base, which lies below its hole's rim. -->
     {#each removedPositions as coords (coordinatesToNumber(coords))}
         {@const center = view.center(coords)}
         <ellipse
@@ -260,8 +252,7 @@
         </g>
     {/each}
 
-    <!-- Outlines sit above the rings rather than in them, so a ring is pulled out without its outline. The
-         animator fades the whole layer with each move, and every new position gets a fresh one. -->
+    <!-- Above the rings, so a ring is pulled out without its outline; each position gets a fresh layer. -->
     {#key session.gameState}
         <g {@attach animator.outlines()}>
             {#each rings as ring (coordinatesToNumber(ring.coords))}
@@ -270,8 +261,6 @@
                     {@const center = view.center(ring.coords)}
                     {@const emphasized =
                         isHovered(ring.coords) || focusedKey === coordinatesToNumber(ring.coords)}
-                    <!-- Round the ring's base, which spreads past its top. Once a jumper is
-                         chosen, the others fade. -->
                     <g
                         class="mark role-{role}"
                         class:emphasized
@@ -292,8 +281,7 @@
         </g>
     {/key}
 
-    <!-- Marbles stand above every ring and outline. A marble reaches beyond its own ring, so it
-         passes pointing on to its ring. -->
+    <!-- A marble reaches beyond its own ring, so it passes pointing on to its ring. -->
     {#each drawOrder as ring (coordinatesToNumber(ring.coords))}
         {@const center = view.center(ring.coords)}
         {@const role = roleOf(ring)}
@@ -315,8 +303,7 @@
                 )}
             </g>
         {:else if staged && sameCoordinates(staged.coords, ring.coords)}
-            <!-- Choosing it again, while there is another colour to place, changes its colour:
-                 the marble lifts out and the next drops in. -->
+            <!-- Keyed by colour, so a colour change lifts the marble out and drops the next in. -->
             {#key staged.color}
                 <g
                     transform="translate({center.x} {center.y - view.lift})"
@@ -389,10 +376,8 @@
         fill: transparent;
     }
 
-    /* Choice marks are cyan, as in every title. The other titles lay them on a dark band so they
-       read on light pieces too; here every mark lies on a black ring, so the band would not show.
-       Pieces that move take a solid mark, thicker once chosen; rings to land on or remove take
-       dashes, whole while pointed at. */
+    /* Every mark lies on a black ring, so the dark band the other titles lay cyan marks on would
+       not show. */
     .mark {
         fill: none;
         stroke: var(--zertz-mark);

@@ -14,7 +14,6 @@ export type ZertzSelectionValues = {
 
 export type ZertzSelection = StagedSelectionState<ZertzSelectionValues>
 
-// The marble's colour, then the ring it stands on until a ring is chosen to remove.
 export const ZertzStageOrder = [
     'color',
     'place',
@@ -44,8 +43,6 @@ export function setZertzSelection<TStage extends keyof ZertzSelectionValues>(
           )
 }
 
-// A move Undo took back stands staged again: its marble on its ring, its colour chosen when there
-// was a choice.
 export function restagedZertzSelection(
     move: { color: MarbleColor; coords: AxialCoordinates },
     colorChosen: boolean

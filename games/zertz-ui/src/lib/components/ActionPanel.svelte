@@ -28,8 +28,6 @@
     })
 </script>
 
-<!-- One message row, as Bus and Magna Grecia do: the last move while you wait, the prompt on
-     your turn. The pool strip below is the same height in every state, so the board never moves. -->
 <div class="flex flex-col items-center gap-1 px-3 py-1 text-center text-(--zertz-ink)">
     <div class="message">
         {#if session.isViewingHistory || !prompt}
