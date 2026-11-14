@@ -1,4 +1,9 @@
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    sameCoordinates,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import {
     isCapture,
     isPlaceMarble,
@@ -45,10 +50,9 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
         if (isPlaceMarble(action)) {
             chain = undefined
             const seed = placementSeed(action.coords, index)
-            const claimed = [
-                ...(action.metadata?.claimedOnPlacing ?? []),
-                ...(action.metadata?.claimedOnRemoving ?? [])
-            ]
+            const { metadata } = action
+            assertExists(metadata, 'A processed placement has its metadata')
+            const claimed = [...metadata.claimedOnPlacing, ...metadata.claimedOnRemoving]
             entries.push({
                 kind: 'placement',
                 id: action.id,
@@ -58,7 +62,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 color: action.color,
                 seed,
                 placedAt: action.coords,
-                fromCaptures: action.metadata?.source === MarbleSource.Captured,
+                fromCaptures: metadata.source === MarbleSource.Captured,
                 ...(action.remove === undefined ? {} : { removedAt: action.remove }),
                 claimed: claimed.map((ring) => ({
                     ...ring,
@@ -67,7 +71,9 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                         : seedAt(seeds, ring.coords)
                 }))
             })
-        } else if (isCapture(action) && action.metadata !== undefined) {
+        } else if (isCapture(action)) {
+            const { metadata } = action
+            assertExists(metadata, 'A processed capture has its metadata')
             if (chain === undefined) {
                 chain = {
                     kind: 'capture',
@@ -75,7 +81,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                     firstIndex: index,
                     lastIndex: index,
                     playerId: action.playerId,
-                    jumper: action.metadata.jumper,
+                    jumper: metadata.jumper,
                     jumperSeed: seedAt(seeds, action.from),
                     path: [action.from],
                     captured: []
@@ -85,10 +91,10 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             chain.lastIndex = index
             chain.path.push(action.to)
             chain.captured.push({
-                color: action.metadata.captured,
-                seed: seedAt(seeds, action.metadata.over)
+                color: metadata.captured,
+                seed: seedAt(seeds, metadata.over)
             })
-            if (!action.metadata.continues) {
+            if (!metadata.continues) {
                 chain = undefined
             }
         }

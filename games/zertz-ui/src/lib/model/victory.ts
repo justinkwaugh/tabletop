@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import {
     EndReason,
     MARBLE_COLORS,
@@ -12,18 +13,18 @@ export type Victory =
     | { reason: EndReason.FullBoard }
     | { reason: EndReason.NoMarbles; loserId: string }
 
-export function victoryOf(state: ZertzGameState): Victory | undefined {
+export function victoryOf(state: ZertzGameState): Victory {
     const [winnerId] = state.winningPlayerIds
     const winner = state.players.find((player) => player.playerId === winnerId)
-    if (winner === undefined || state.endReason === undefined) {
-        return undefined
-    }
+    assertExists(winner, 'A finished game has a winner')
+    assertExists(state.endReason, 'A finished game has an end reason')
     switch (state.endReason) {
         case EndReason.FullBoard:
             return { reason: EndReason.FullBoard }
         case EndReason.NoMarbles: {
             const loser = state.players.find((player) => player.playerId !== winnerId)
-            return loser ? { reason: EndReason.NoMarbles, loserId: loser.playerId } : undefined
+            assertExists(loser, 'A two-player game has a loser')
+            return { reason: EndReason.NoMarbles, loserId: loser.playerId }
         }
         case EndReason.Captures: {
             const { win } = SETUP_RULES[state.setup]

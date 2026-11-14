@@ -1,4 +1,10 @@
-import { addAxial, coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
+import {
+    addAxial,
+    assertExists,
+    coordinatesToNumber,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
 import { LABEL_GAP, VIEW, type BoardView } from './geometry.js'
 
 // BoardSpace notation: columns lettered left to right, each counted up from 1 at its bottom ring.
@@ -29,12 +35,17 @@ export function boardNotation(
         topOf.set(q, Math.min(topOf.get(q) ?? r, r))
     }
 
+    const rowOf = (rows: Map<number, number>, q: number) => {
+        const r = rows.get(q)
+        assertExists(r, `No ring in column ${q}`)
+        return r
+    }
     const letterOf = (q: number) => String.fromCharCode(65 + columns.indexOf(q))
-    const numberOf = ({ q, r }: AxialCoordinates) => (bottomOf.get(q) ?? r) - r + 1
+    const numberOf = ({ q, r }: AxialCoordinates) => rowOf(bottomOf, q) - r + 1
 
     const labels = columns.flatMap((q) => {
-        const top = { q, r: topOf.get(q) ?? 0 }
-        const bottom = { q, r: bottomOf.get(q) ?? 0 }
+        const top = { q, r: rowOf(topOf, q) }
+        const bottom = { q, r: rowOf(bottomOf, q) }
         const letter = letterOf(q)
         return [
             labelBeside(view, `top-${letter}`, `${letter}${numberOf(top)}`, top, ABOVE),
@@ -49,7 +60,11 @@ export function boardNotation(
         ])
     )
     return {
-        name: (coords) => names.get(coordinatesToNumber(coords)) ?? `${coords.q},${coords.r}`,
+        name: (coords) => {
+            const name = names.get(coordinatesToNumber(coords))
+            assertExists(name, `No ring at ${coords.q},${coords.r}`)
+            return name
+        },
         labels
     }
 }
