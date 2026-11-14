@@ -21,7 +21,7 @@
     const passed = $derived(
         state.machineState === MachineState.Bidding && state.auction.passed.includes(playerId)
     )
-    const tricks = $derived(gameSession.tricksWonBy(playerId))
+    const won = $derived(gameSession.wonCardsOf(playerId))
     const openHand = $derived(showBacks ? gameSession.openHand(playerId) : undefined)
     const openRowsOfCards = $derived.by(() => {
         const cards = openHand ?? []
@@ -42,16 +42,17 @@
         {#if declarer}<span class="badge declarer">Declarer</span>{/if}
         {#if partner}<span class="badge partner">Partner</span>{/if}
         {#if passed}<span class="badge">Passed</span>{/if}
-        {#if state.tricks.length > 0 || state.machineState === MachineState.Playing}
-            <!-- The pile of won tricks and how many; an outline until the first. -->
-            <span
-                class="won"
-                title="{tricks} {tricks === 1 ? 'trick' : 'tricks'}"
-                {@attach gameSession.cardPlaces.trickPile(playerId)}
-            >
-                <span class="pile" class:empty={tricks === 0} class:deep={tricks > 1}></span>
-                <span class="count">{tricks}</span>
-                <span class="sr-only">{tricks === 1 ? 'trick' : 'tricks'}</span>
+        {#if won > 0 || state.machineState === MachineState.Playing}
+            <!-- The face-down cards won and how many; an outline until the first. -->
+            <span class="won" title="{won} {won === 1 ? 'card' : 'cards'} won">
+                <span
+                    class="pile"
+                    class:empty={won === 0}
+                    class:deep={won > 4}
+                    {@attach gameSession.cardPlaces.trickPile(playerId)}
+                ></span>
+                <span class="count">{won}</span>
+                <span class="sr-only">{won === 1 ? 'card' : 'cards'} won</span>
             </span>
         {/if}
     </div>
@@ -116,6 +117,7 @@
 
     .facts {
         display: flex;
+        align-items: center;
         gap: 6px;
         font-size: 0.8rem;
         min-height: 1.2em;
@@ -124,15 +126,16 @@
     .won {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
+        padding-top: 3px;
     }
 
-    /* The won tricks, face down: one card, or a small stack. */
+    /* The cards won, face down: one trick's worth, or a stack. */
     .pile {
-        width: 8px;
-        height: 13px;
-        border: 1px solid #f1e7cf;
-        border-radius: 2px;
+        width: 18px;
+        height: 27px;
+        border: 2px solid #f1e7cf;
+        border-radius: 3px;
         background: #2d3a7c;
     }
 
@@ -143,7 +146,9 @@
     }
 
     .count {
-        font-weight: 700;
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1;
     }
 
     /* More than one trick: a second card behind, its edge showing up and to the right. Both are
@@ -158,14 +163,14 @@
     .pile.deep::after {
         content: '';
         position: absolute;
-        inset: -1px;
-        border: 1px solid #f1e7cf;
-        border-radius: 2px;
+        inset: -2px;
+        border: 2px solid #f1e7cf;
+        border-radius: 3px;
         background: #2d3a7c;
     }
 
     .pile.deep::before {
-        translate: 2px -2px;
+        translate: 3px -3px;
     }
 
     .badge {

@@ -53,7 +53,7 @@ test('names a Rufer after Mein Spiel and shows the called King', async ({ page }
         .locator('.row', { hasText: /^\s*1\s*Rufer/ })
         .locator('button')
         .click()
-    await area.locator('button.choice', { hasText: /^K/ }).first().click()
+    await area.locator('button.king-call').first().click()
     await expect(page.locator('.header .called')).toContainText('called K')
 })
 
@@ -79,24 +79,34 @@ test("takes back a defender's announcement choice before any action", async ({ p
         .locator('.menu:popover-open .row', { hasText: /^\s*1\s*Rufer/ })
         .locator('button')
         .click()
-    await area.locator('button.choice', { hasText: /^K/ }).first().click()
+    await area.locator('button.king-call').first().click()
     await page.getByRole('button', { name: 'Take talon half 1' }).click()
     for (let chosen = 0; chosen < 3; chosen++) {
         await page.locator('.hand .card.selectable:not(.chosen)').first().click()
     }
     await area.locator('button', { hasText: 'Lay away' }).click()
-    // The declarer passes and the next player, a defender, chooses a bonus.
+    // The declarer passes and the next player, a defender, ticks a bonus in the menu.
     await area.locator('button.confirm', { hasText: 'Pass' }).click()
-    const bonuses = area.getByRole('group', { name: 'Bonuses to announce' })
+    const menu = page.locator('.menu:popover-open')
     const confirm = area.locator('button.confirm')
     await expect(confirm).toHaveText('Pass')
-    const bonus = bonuses.locator('button').first()
+    const bonus = menu.getByRole('group', { name: 'Bonuses' }).locator('button').first()
     await bonus.click()
     await expect(bonus).toHaveAttribute('aria-pressed', 'true')
     await expect(confirm).toHaveText('Announce')
     // Undo takes back the choice, leaving the declarer's pass in place.
     await page.locator('.header .undo').click()
-    await expect(bonus).toHaveAttribute('aria-pressed', 'false')
     await expect(confirm).toHaveText('Pass')
+    await area
+        .locator('button', { hasText: /^Choose/ })
+        .first()
+        .click()
+    await expect(
+        page
+            .locator('.menu:popover-open')
+            .getByRole('group', { name: 'Bonuses' })
+            .locator('button')
+            .first()
+    ).toHaveAttribute('aria-pressed', 'false')
     await expect(page.locator('.action-area')).not.toContainText('Lay away')
 })

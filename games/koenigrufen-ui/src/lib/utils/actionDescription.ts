@@ -1,7 +1,6 @@
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     Contracts,
-    DoubleNames,
     FourthKing,
     isAnnounce,
     isBid,
@@ -20,7 +19,7 @@ import {
     type CalledKing,
     type HandResult
 } from '@tabletop/koenigrufen'
-import { bonusName, doubleTargetName } from './announcementText.js'
+import { announcedItems } from './announcementText.js'
 import { bidName } from './contractText.js'
 import { cardLabel, SuitSymbols, type CardStyle } from './cardStyle.js'
 
@@ -33,6 +32,10 @@ function cards(cardIds: readonly string[], style: CardStyle): string {
 // Short, like the cards: K♠, or the fourth king (the one not in the caller's hand).
 export function calledKingName(king: CalledKing): string {
     return king === FourthKing ? '4th K' : `K${SuitSymbols[king]}`
+}
+
+export function spokenKingName(king: CalledKing): string {
+    return king === FourthKing ? 'the fourth King' : `the King of ${king}`
 }
 
 function signed(value: number): string {
@@ -108,13 +111,7 @@ export function describeAction(
                 : `${who} laid away ${laid}`
         }
         case isAnnounce(action): {
-            const said = [
-                ...action.bonuses.map(bonusName),
-                ...action.doubles.map((target, index) => {
-                    const level = action.metadata?.doubleLevels[index] ?? 1
-                    return `${DoubleNames[level - 1]} on ${doubleTargetName(target, names)}`
-                })
-            ]
+            const said = announcedItems(action, names)
             return said.length > 0 ? `${who} announced ${said.join(', ')}` : `${who} passed`
         }
         case isPlayCard(action): {

@@ -6,6 +6,7 @@ import {
     PackPoints,
     SackPoints,
     Side,
+    type Announce,
     type Announcements,
     type BonusResult,
     type ContractDefinition,
@@ -60,12 +61,16 @@ export function bonusHeading(bonus: Bonus, definition: ContractDefinition): stri
     return `${bonusName(bonus)} (${announcedValue(bonus, definition)})`
 }
 
-export function bonusSummary(bonus: Bonus, definition: ContractDefinition): string {
+// What the bonus is worth made without announcing it, if it scores at all then.
+export function silentValue(bonus: Bonus, definition: ContractDefinition): number | undefined {
     const silent = Bonuses[bonus].silent
+    return silent === undefined ? undefined : scaledValue(bonus, silent, definition)
+}
+
+export function bonusSummary(bonus: Bonus, definition: ContractDefinition): string {
+    const silent = silentValue(bonus, definition)
     const unannounced =
-        silent === undefined
-            ? 'Scores only when announced.'
-            : `Worth ${scaledValue(bonus, silent, definition)} unannounced.`
+        silent === undefined ? 'Scores only when announced.' : `Worth ${silent} unannounced.`
     return `${bonusGoal(bonus)} ${unannounced}`
 }
 
@@ -100,7 +105,9 @@ export function shortTargetName(target: DoubleTarget, names: Names, myId?: strin
     return `Game with ${names.name(target.defenderId)}`
 }
 
-export type DoubleGroup = { word: string; targets: DoubleTarget[] }
+export type DoubleWord = (typeof DoubleNames)[number]
+
+export type DoubleGroup = { word: DoubleWord; targets: DoubleTarget[] }
 
 // The doubles on offer, one group per word, in the order Kontra, Re, Sub.
 export function doubleGroups(
@@ -124,19 +131,20 @@ export function gameDoublesLine(entry: GameDoubles, names: Names): string {
         : `${names.name(entry.defenderId)} ${label}`
 }
 
-// Everything said so far, for the table: Kontras on the game, then each side's bonuses.
-export function announcementsSummary(announcements: Announcements, names: Names): string[] {
-    return [
-        ...announcements.game.map((entry) => gameDoublesLine(entry, names)),
-        ...announcements.bonuses.map(
-            (entry) =>
-                `${bonusName(entry.bonus)}${entry.side === Side.Defenders ? ' (defenders)' : ''}${doublesSuffix(entry.doubles)}`
-        )
-    ]
+export function bonusResultLine(result: BonusResult): string {
+    const team = result.side === Side.Declarer ? 'Declarer' : 'Defenders'
+    const outcome = result.made ? 'made' : 'lost'
+    const deed = result.announced ? `announced and ${outcome}` : outcome
+    return `${team} ${deed} ${bonusName(result.bonus)}${doublesSuffix(result.doubles)}`
 }
 
-export function bonusResultLine(result: BonusResult): string {
-    const how = result.announced ? 'announced' : 'silent'
-    const outcome = result.made ? 'made' : 'lost'
-    return `${bonusName(result.bonus)} · ${sideName(result.side)} · ${how}${doublesSuffix(result.doubles)} · ${outcome}`
+// The bonuses and doubles one announcement said, as "Trull" and "Kontra on the game".
+export function announcedItems(action: Announce, names: Names, myId?: string): string[] {
+    return [
+        ...action.bonuses.map(bonusName),
+        ...action.doubles.map((target, index) => {
+            const level = action.metadata?.doubleLevels[index] ?? 1
+            return `${DoubleNames[level - 1]} on ${doubleTargetName(target, names, myId)}`
+        })
+    ]
 }

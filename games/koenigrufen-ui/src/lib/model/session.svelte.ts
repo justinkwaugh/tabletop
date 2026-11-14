@@ -42,6 +42,13 @@ import { TrickAnimator } from '$lib/animators/trickAnimator.js'
 import { shownTrickOf, type ShownTrick } from '$lib/utils/trickMotion.js'
 import type { CardStyle } from '$lib/utils/cardStyle.js'
 import { scoreSheet, type ScoreSheet } from '$lib/utils/scoreSheet.js'
+import { wonCardCount } from '$lib/utils/wonCards.js'
+import {
+    announcementSections,
+    chosenItems,
+    type AnnouncementSection
+} from '$lib/utils/announcementRows.js'
+import { panelFacts, type PanelFacts } from '$lib/utils/panelFacts.js'
 import { bonusKey, doubleKey } from '$lib/utils/announcementText.js'
 import {
     AnnouncementStageOrder,
@@ -135,7 +142,7 @@ export class KoenigrufenGameSession extends GameSession<
         return hand?.toSorted((a, b) => handSortKey(a) - handSortKey(b))
     }
 
-    // Seats from mine round the table in turn order, so the next to play sits on my right.
+    // Seats from mine round the table in turn order; the board draws them clockwise from my seat.
     readonly seatsFromMe: string[] = $derived.by(() => {
         const order = this.gameState.turnManager.turnOrder
         const start = Math.max(order.indexOf(this.myPlayer?.id ?? ''), 0)
@@ -205,6 +212,21 @@ export class KoenigrufenGameSession extends GameSession<
         )
     )
     readonly canConfirmAnnouncement: boolean = $derived(this.isAnnouncing)
+    readonly announcementSections: AnnouncementSection[] = $derived(
+        this.isAnnouncing
+            ? announcementSections(
+                  this.announceableBonuses,
+                  this.doubleTargets,
+                  this.gameState.knownAnnouncements(),
+                  this.gameState.contractDefinition(),
+                  { name: (id) => this.getPlayerName(id) },
+                  this.myPlayer?.id
+              )
+            : []
+    )
+    readonly chosenAnnouncementItems: string[] = $derived(
+        chosenItems(this.announcementSections, this.chosenAnnouncementKeys)
+    )
 
     // ----- Play -----
 
@@ -291,8 +313,14 @@ export class KoenigrufenGameSession extends GameSession<
         return this.myPlayer.id
     }
 
-    tricksWonBy(playerId: string): number {
-        return this.gameState.tricks.filter((trick) => trick.winnerId === playerId).length
+    wonCardsOf(playerId: string): number {
+        return wonCardCount(this.gameState, playerId)
+    }
+
+    panelFactsOf(playerId: string): PanelFacts {
+        return panelFacts(this.gameState, this.actions, playerId, this.myPlayer?.id, {
+            name: (id) => this.getPlayerName(id)
+        })
     }
 
     setCardStyle(change: Partial<CardStyle>) {

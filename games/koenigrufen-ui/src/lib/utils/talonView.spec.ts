@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-    Contract,
-    contractDefinition,
-    MachineState,
-    type HydratedKoenigrufenGameState
-} from '@tabletop/koenigrufen'
-import { defenderCollector, talonViewOf, TalonPlace } from './talonView.js'
+import { Contract, contractDefinition, MachineState } from '@tabletop/koenigrufen'
+import { defenderCollector, talonViewOf, TalonPlace, type TalonTable } from './talonView.js'
 
 const halves = [
     ['a1', 'a2', 'a3'],
@@ -25,16 +20,16 @@ function state({
     talonHalves?: string[][]
     rejectedTalonHalf?: string[]
     kingInTalon?: boolean
-}): HydratedKoenigrufenGameState {
+}): TalonTable {
     return {
-        contract: contract === undefined ? undefined : { contract, declarerId: 'c' },
+        contract: contract === undefined ? undefined : { declarerId: 'c' },
         machineState,
         talonHalves,
         rejectedTalonHalf,
         contractDefinition: () => contractDefinition(contract ?? Contract.Rufer),
         isCalledKingInTalon: () => kingInTalon,
         turnManager: { turnOrder: ['a', 'b', 'c', 'd'] }
-    } as unknown as HydratedKoenigrufenGameState
+    }
 }
 
 describe('the talon on the table', () => {

@@ -9,7 +9,6 @@ import {
 import { describe, expect, it } from 'vitest'
 import {
     announcedValue,
-    announcementsSummary,
     bonusHeading,
     bonusResultLine,
     bonusSummary,
@@ -84,32 +83,30 @@ describe('announcement text', () => {
         expect(shortTargetName({ kind: 'game', defenderId: 'b' }, names, 'b')).toBe('Game')
     })
 
-    it('summarises what has been said', () => {
-        const announcements: Announcements = {
-            ...newAnnouncements(),
-            game: [{ doubles: 1 }],
-            bonuses: [
-                { bonus: Bonus.Pagat, side: Side.Declarer, doubles: 2 },
-                { bonus: Bonus.Trull, side: Side.Defenders, doubles: 0 }
-            ]
+    it('describes a scored bonus as a short phrase', () => {
+        const result = {
+            bonus: Bonus.Kakadu,
+            side: Side.Declarer,
+            announced: true,
+            doubles: 1,
+            made: false,
+            points: -12
         }
-        expect(announcementsSummary(announcements, names)).toEqual([
-            'Game Kontra',
-            'Pagat (Re)',
-            'Trull (defenders)'
-        ])
-    })
-
-    it('describes a scored bonus', () => {
+        expect(bonusResultLine(result)).toBe('Declarer announced and lost Kakadu (Kontra)')
         expect(
             bonusResultLine({
-                bonus: Bonus.Kakadu,
-                side: Side.Declarer,
-                announced: true,
-                doubles: 1,
-                made: false,
-                points: -12
+                ...result,
+                bonus: Bonus.Trull,
+                announced: false,
+                doubles: 0,
+                made: true
             })
-        ).toBe('Kakadu · declarer’s · announced (Kontra) · lost')
+        ).toBe('Declarer made Trull')
+        expect(bonusResultLine({ ...result, side: Side.Defenders, doubles: 0, made: true })).toBe(
+            'Defenders announced and made Kakadu'
+        )
+        expect(bonusResultLine({ ...result, announced: false, doubles: 0 })).toBe(
+            'Declarer lost Kakadu'
+        )
     })
 })

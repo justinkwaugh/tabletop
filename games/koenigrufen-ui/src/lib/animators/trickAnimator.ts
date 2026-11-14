@@ -32,8 +32,9 @@ const FAST_FLIGHT = 0.2
 
 // A card in a hand is drawn at about this fraction of its size in the trick.
 const SeatCardScale = 0.36
-// A won trick lands at the size of the card drawn on its winner's pile.
-const PileCardWidth = 8
+// A won trick lands at the size of the card drawn on its winner's pile. The pile is measured
+// where it is drawn; this is its width for a seat that draws none.
+const PileCardWidth = 18
 
 type TrickPresenter = {
     // Presence only: draws `trick` on the table before the state swap.
@@ -146,16 +147,15 @@ export class TrickAnimator {
         if (!to || !element) {
             return []
         }
-        const card = pileOf === undefined ? (element.querySelector('.card') ?? element) : undefined
+        const cardWidth =
+            pileOf === undefined
+                ? layoutWidthOf(element.querySelector('.card') ?? element)
+                : this.pileCardWidth(pileOf, scaleOf(element))
         return [
             {
                 key: `back-${play.cardId}`,
                 cardId: play.cardId,
-                from: {
-                    element,
-                    cardWidth:
-                        card === undefined ? PileCardWidth * scaleOf(element) : layoutWidthOf(card)
-                },
+                from: { element, cardWidth },
                 to,
                 at: 0,
                 duration: FAST_FLIGHT
@@ -165,6 +165,12 @@ export class TrickAnimator {
 
     private pileOf(playerId: string): HTMLElement | undefined {
         return this.places.trickPileOf(playerId) ?? this.places.seatOf(playerId)
+    }
+
+    // The on-screen width of the card drawn on a player's pile.
+    private pileCardWidth(playerId: string, scale: number): number {
+        const pile = this.places.trickPileOf(playerId)
+        return pile ? centerOf(pile).width : PileCardWidth * scale
     }
 
     // A card's flight into its place in the trick: from where it was held, or from the pile of a
@@ -191,11 +197,12 @@ export class TrickAnimator {
         const to = centerOf(target)
         const from = centerOf(origin)
         const scale = scaleOf(target)
-        const startScale = pile
-            ? (PileCardWidth * scale) / to.width
-            : card
-              ? from.width / to.width
-              : SeatCardScale
+        const startScale =
+            pileOf !== undefined
+                ? this.pileCardWidth(pileOf, scale) / to.width
+                : card
+                  ? from.width / to.width
+                  : SeatCardScale
         // The card leaves its hand upright and turns into its place's tilt as it lands.
         const tilt = Number(target.dataset.tilt ?? 0)
         if (card) {
@@ -246,7 +253,7 @@ export class TrickAnimator {
                 {
                     x: (to.x - from.x) / scale,
                     y: (to.y - from.y) / scale,
-                    scale: (PileCardWidth * scale) / from.width,
+                    scale: this.pileCardWidth(trick.winnerId, scale) / from.width,
                     duration: ACTION.sweep,
                     ease: 'power2.inOut'
                 },

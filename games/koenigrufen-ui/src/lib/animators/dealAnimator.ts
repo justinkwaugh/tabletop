@@ -10,7 +10,7 @@ const DEAL = { flight: 0.38, spacing: 0.13 }
 // Each packet is drawn as a few fanned backs.
 const PacketBacks = 3
 
-// Pagat: starting on the dealer's right, a packet of six to each player, six face down to the
+// Pagat: starting with the next player in turn order after the dealer, a packet of six to each player, six face down to the
 // talon, then a second packet of six to each player.
 export function dealOrder(turnOrder: readonly string[], dealerId: string): (string | 'talon')[] {
     const dealer = turnOrder.indexOf(dealerId)

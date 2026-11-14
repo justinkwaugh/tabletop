@@ -78,13 +78,13 @@ function goal(definition: ContractDefinition): string {
 
 function talonNote(definition: ContractDefinition): string | undefined {
     if (definition.talonCards === 3) {
-        return 'Take 3 talon cards; Kontra gets the other 3.'
+        return 'Take 3 talon cards; the defenders get the other 3.'
     }
     if (definition.talonCards === 6) {
         return 'Take all 6 talon cards unseen.'
     }
     return definition.goal === Goal.TakePoints
-        ? 'All 6 talon cards go to Kontra unseen.'
+        ? 'All 6 talon cards go to the defenders unseen.'
         : undefined
 }
 
