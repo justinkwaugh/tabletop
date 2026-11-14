@@ -7,7 +7,8 @@ export const FeudumInfo: GameInfo = {
         name: 'Feudum',
         bggId: 163839,
         hasScores: true,
-        designer: 'Mark Swanson',
+        designer: 'Mark Swanson · Art by Justin Schultz',
+        publisher: { name: 'Odd Bird Games', url: 'https://oddbirdgames.com/' },
         description:
             'Move pawns across a medieval realm and work the six interlocking guilds, pushing and pulling goods through an economy that every player shares.',
         year: '2018',
