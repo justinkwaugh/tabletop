@@ -7,8 +7,8 @@ import {
 } from '@tabletop/ride-the-rails'
 
 /**
- * The board's look, one pick for each of six questions. It is a placeholder
- * until the look is reviewed: to switch a pick, change its line in `BOARD_LOOK`.
+ * The board's look, one pick for each of six questions. The look is chosen here: to switch a
+ * pick, change its line in `BOARD_LOOK`.
  *
  * `LOOK_OPTIONS` lists the options drawn so far. The other options considered, not drawn yet:
  * - palette: 'prairie' (pale sage land, a cooler sea), 'atlas' (near-white land, a navy coast);
