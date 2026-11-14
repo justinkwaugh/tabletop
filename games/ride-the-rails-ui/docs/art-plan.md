@@ -6,7 +6,7 @@ Every visual, its source, and the budget it must meet. What players see and pres
 
 ## Palette
 
-**The look is a placeholder pending the owner's review.** It is a light board (paper palette, a ring of start colours, city groups tinted, coin bonuses, wooden cubes, a navy passenger figure), and every one of those six picks is a named constant in one module, `src/lib/utils/boardLook.ts` (`BOARD_LOOK`). Switching a pick is a one-line change there; the module lists the other options considered and where each would be drawn.
+**The look is chosen in one place.** It is a light board (paper palette, a ring of start colours, city groups tinted, coin bonuses, wooden cubes, a navy passenger figure), and every one of those six picks is a named constant in one module, `src/lib/utils/boardLook.ts` (`BOARD_LOOK`). Switching a pick is a one-line change there; the module lists the other options considered and where each would be drawn.
 
 Colours are CSS custom properties in `src/app.css` of the UI package, scoped to `[data-game-ui="ride-the-rails"]`. The tokens every palette shares (railroad colours, coins, cubes, passenger, the pick colours) sit on the title root; each palette's own (land, sea, city tints, panels, ink) sit in a block `[data-rtr-palette='<name>']`, and the table carries `data-rtr-palette` from `BOARD_LOOK.palette`. A new palette is a new block and a new column in the table below. The board is a printed board on the table: it keeps one look in the site's light and dark themes, and the panels and seat cards take its paper. Each token is also a Tailwind colour of the same name (`bg-rtr-panel`). Components use these tokens and never a raw colour; `palette.spec.ts` fails on a raw colour in any component.
 
