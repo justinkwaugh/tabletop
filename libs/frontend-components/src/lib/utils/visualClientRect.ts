@@ -12,7 +12,9 @@ function rectsOmitZoom(): boolean {
     const probe = document.createElement('div')
     probe.style.cssText = 'width: 100px; height: 1px'
     zoomed.append(probe)
-    document.body.append(zoomed)
+    // Before <head>, where no rendered element changes its :first-child or :last-child state:
+    // appended to <body>, it restyles the whole page twice under such selectors.
+    document.documentElement.prepend(zoomed)
     omitsZoom = Math.round(probe.getBoundingClientRect().width) === 100
     zoomed.remove()
     return omitsZoom
