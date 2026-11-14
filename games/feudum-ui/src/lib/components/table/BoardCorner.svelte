@@ -43,6 +43,17 @@
         }
     }
 
+    /**
+     * A card scrolls by itself: a wheel over it never zooms the board beneath. The one listener is
+     * the corner's own, there for as long as the board is: WebKit restyles the whole page each time a
+     * wheel listener is added or removed, which a listener on each card would do at every opening.
+     */
+    function keepWheelOnCard(event: WheelEvent) {
+        if (event.target instanceof Element && event.target.closest('.card')) {
+            event.stopPropagation()
+        }
+    }
+
     function openDeck() {
         open = undefined
         gameSession.boardChrome.openStack?.({ kind: 'deck' })
@@ -51,14 +62,12 @@
 
 <svelte:window onkeydown={closeOnEscape} onpointerdown={closeOnPress} />
 
-<div class="layer">
+<div class="layer" onwheel={keepWheelOnCard}>
     {#if open === 'key'}
-        <!-- The card scrolls by itself: a wheel over it never zooms the board beneath. -->
         <div
             class="card"
             id="feudum-symbol-key"
             role="presentation"
-            onwheel={(event) => event.stopPropagation()}
             onpointerdown={(event) => event.stopPropagation()}
         >
             <SymbolKeyCard {paint} />
@@ -69,7 +78,6 @@
             class="card"
             id="feudum-supply"
             role="presentation"
-            onwheel={(event) => event.stopPropagation()}
             onpointerdown={(event) => event.stopPropagation()}
             onclick={() => (open = undefined)}
         >
