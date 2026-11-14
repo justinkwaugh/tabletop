@@ -18,10 +18,40 @@ const title = />Feudum</
 
 describe('the cover page', () => {
     it('a supplied scene without a title stands behind the title band', () => {
-        const svg = coverSvg({ href, titled: false }, token)
+        const svg = coverSvg({ href, titled: false, size: RulebookCover }, token)
         expect(svg).toContain(`href="${href}"`)
         expect(svg).toMatch(band)
         expect(svg).toMatch(title)
+    })
+
+    it('a scene without a title covers the page at the scale the page sets, not by slice fitting', () => {
+        // Browsers disagree on preserveAspectRatio="slice": the cover is sized here, centred, and
+        // the page's own edge crops it.
+        const placed = (size: { width: number; height: number }) => {
+            const svg = coverSvg({ href, titled: false, size }, token)
+            expect(svg).not.toContain('slice')
+            const image = svg.match(
+                /<image href="[^"]*" x="([^"]*)" y="([^"]*)" width="([^"]*)" height="([^"]*)" preserveAspectRatio="none" \/>/
+            )
+            expect(image).not.toBeNull()
+            const [x, y, width, height] = image!.slice(1).map(Number)
+            return { x, y, width, height }
+        }
+        // Wider than the page: it fills the height and loses equal strips at the sides.
+        const wide = placed({ width: 1200, height: 600 })
+        expect(wide.y).toBe(0)
+        expect(wide.height).toBeCloseTo(CoverSize.height, 9)
+        expect(wide.width).toBeCloseTo(CoverSize.height * 2, 9)
+        expect(wide.x).toBeCloseTo((CoverSize.width - wide.width) / 2, 9)
+        // Taller than the page: it fills the width and loses equal strips above and below.
+        const tall = placed(RulebookCover)
+        expect(tall.x).toBe(0)
+        expect(tall.width).toBeCloseTo(CoverSize.width, 9)
+        expect(tall.height).toBeCloseTo(
+            (RulebookCover.height * CoverSize.width) / RulebookCover.width,
+            9
+        )
+        expect(tall.y).toBeCloseTo((CoverSize.height - tall.height) / 2, 9)
     })
 
     it('a supplied cover that prints its own title is the whole cover, with nothing drawn over it', () => {
