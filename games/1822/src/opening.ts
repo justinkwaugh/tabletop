@@ -75,8 +75,6 @@ export function createOpening1822({
         ...concessionIds
     ]
     const companyIds = [...majorIds, ...minorIds]
-    // A scenario's overlays, the hexes it takes out of play and its smaller supply follow from
-    // the scenario, which the inventory records as its tile set's variant (§6.2.1).
     const tileInventory = TileSet1822.createInventory(
         [],
         variants.scenario && TileSet1822Variants.includes(variants.scenario)

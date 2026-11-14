@@ -110,7 +110,6 @@ export class TileSet {
         }
         this.manifest = Clone(manifest)
         deepFreeze(this.manifest)
-        // A variant's board tiles are definitions of the set with no pieces in its supply.
         const selected = new Set([
             ...manifest.entries.flatMap((entry) => [...entry.faceDefinitionIds]),
             ...Object.values(variants).flatMap((variant) =>

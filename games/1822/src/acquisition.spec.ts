@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import {
     TrackConstruction,
     getCompany,
@@ -470,7 +471,7 @@ describe('exchange tokens (§5.6.3, §5.12.4, Table 3)', () => {
         const spare = state.stations.find(
             (station) => station.companyId === 'CR' && station.status === 'available'
         )
-        if (!spare) throw new Error('The Caledonian has an available token')
+        assertExists(spare, 'The Caledonian has an available token')
         returnExchangeToken1822(state, spare.id)
         expect(exchangeTokens1822(state, 'CR')).toBe(3)
         const second = placeExchangeToken1822(state, 'CR', {

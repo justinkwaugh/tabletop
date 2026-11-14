@@ -37,6 +37,7 @@
     class="private-card"
     class:image={artwork.shown}
     class:artwork-stand-in={artwork.standingIn}
+    {@attach artwork.holdStandIn}
     data-card-image={imageUrl ? true : undefined}
 >
     {#if imageUrl}
@@ -96,15 +97,6 @@
 </div>
 
 <style>
-    /* Held back so artwork that arrives quickly from cache replaces the stand-in unseen. */
-    .artwork-stand-in {
-        animation: reveal-artwork-stand-in 1ms 200ms backwards;
-    }
-    @keyframes reveal-artwork-stand-in {
-        from {
-            visibility: hidden;
-        }
-    }
     .private-card.image {
         border: 0;
         border-radius: 10px;

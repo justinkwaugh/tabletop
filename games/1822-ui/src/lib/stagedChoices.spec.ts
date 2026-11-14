@@ -107,6 +107,26 @@ describe('1822 staged choices', () => {
         })
     })
 
+    it('undoes P17’s chosen certificate before any Action, a changed pick and all', () => {
+        const { choices, selections } = table()
+        choices.stackCard.choose('choice', 'M7')
+        choices.stackCard.choose('choice', 'M9')
+        expect(choices.stackCard.value('choice')).toBe('M9')
+        expect(selections.undo()).toBe(true)
+        expect(choices.stackCard.value('choice')).toBeUndefined()
+        expect(selections.undo()).toBe(false)
+    })
+
+    it('undoes the Metropolitan’s chosen London station before any Action', () => {
+        const { choices, selections } = table()
+        choices.metropolitanStation.choose('choice', 'n')
+        choices.metropolitanStation.choose('choice', 'se')
+        expect(choices.metropolitanStation.value('choice')).toBe('se')
+        expect(selections.undo()).toBe(true)
+        expect(choices.metropolitanStation.value('choice')).toBeUndefined()
+        expect(selections.undo()).toBe(false)
+    })
+
     it('clears every choice when a new state arrives', () => {
         const { choices, selections } = table()
         choices.chooseMinor(minorOffer('M2'))

@@ -12,20 +12,22 @@ import type { HydratedState1822 } from './state.js'
 import { StationRules1822 } from './stations.js'
 import { TileSet1822 } from './tiles.js'
 
-type ExchangeTokenUse = HydratedState1822['exchangeTokenUse'][number]
+/** How many of a major company's exchange tokens play has taken from its charter and put back. */
+type ExchangeTokenCounts = { taken: number; returned: number }
 
 function exchangeTokenUse(
     state: Pick<HydratedState1822, 'exchangeTokenUse'>,
     companyId: string
-): ExchangeTokenUse {
-    return state.exchangeTokenUse.find((entry) => entry.companyId === companyId) ?? { companyId }
+): ExchangeTokenCounts {
+    const entry = state.exchangeTokenUse.find((use) => use.companyId === companyId)
+    return { taken: entry?.taken ?? 0, returned: entry?.returned ?? 0 }
 }
 
 function recordExchangeTokenUse(
     state: HydratedState1822,
-    use: { companyId: string; taken: number; returned: number }
+    companyId: string,
+    { taken, returned }: ExchangeTokenCounts
 ): void {
-    const { companyId, taken, returned } = use
     state.exchangeTokenUse = [
         ...state.exchangeTokenUse.filter((entry) => entry.companyId !== companyId),
         { companyId, ...(taken ? { taken } : {}), ...(returned ? { returned } : {}) }
@@ -41,7 +43,7 @@ export function exchangeTokens1822(
     companyId: string
 ): number {
     if (!major1822(companyId)) return 0
-    const { taken = 0, returned = 0 } = exchangeTokenUse(state, companyId)
+    const { taken, returned } = exchangeTokenUse(state, companyId)
     return exchangeTokenCount1822(companyId) - taken + returned
 }
 
@@ -51,9 +53,9 @@ export function exchangeTokens1822(
  */
 function takeExchangeToken(state: HydratedState1822, companyId: string): number {
     assert(exchangeTokens1822(state, companyId) > 0, 'The company has no exchange token left')
-    const { taken = 0, returned = 0 } = exchangeTokenUse(state, companyId)
-    recordExchangeTokenUse(state, { companyId, taken: taken + 1, returned })
-    return taken + 1
+    const use = exchangeTokenUse(state, companyId)
+    recordExchangeTokenUse(state, companyId, { ...use, taken: use.taken + 1 })
+    return use.taken + 1
 }
 
 /** Places one of the company's exchange tokens on the map (§5.12.4, §5.12.10). */
@@ -81,8 +83,8 @@ export function returnExchangeToken1822(state: HydratedState1822, stationId: str
     state.stations = state.stations.map((entry) =>
         entry.id === stationId ? { id: entry.id, companyId, status: 'removed' as const } : entry
     )
-    const { taken = 0, returned = 0 } = exchangeTokenUse(state, companyId)
-    recordExchangeTokenUse(state, { companyId, taken, returned: returned + 1 })
+    const use = exchangeTokenUse(state, companyId)
+    recordExchangeTokenUse(state, companyId, { ...use, returned: use.returned + 1 })
 }
 
 /** The station tokens standing on the map. */

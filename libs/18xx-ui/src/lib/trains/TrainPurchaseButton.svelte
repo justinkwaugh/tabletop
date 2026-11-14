@@ -35,6 +35,7 @@
 <button
     class:card={artwork.shown}
     class:artwork-stand-in={artwork.standingIn}
+    {@attach artwork.holdStandIn}
     class:upcoming
     style:background={artwork.shown ? undefined : color}
     style:color={artwork.shown ? undefined : contrastingTextColor(color)}
@@ -60,15 +61,6 @@
 </button>
 
 <style>
-    /* Held back so artwork that arrives quickly from cache replaces the stand-in unseen. */
-    .artwork-stand-in {
-        animation: reveal-artwork-stand-in 1ms 200ms backwards;
-    }
-    @keyframes reveal-artwork-stand-in {
-        from {
-            visibility: hidden;
-        }
-    }
     button {
         display: flex;
         align-items: baseline;

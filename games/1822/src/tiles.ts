@@ -142,8 +142,7 @@ const TitleCounts: Readonly<Record<string, Count>> = {
 }
 
 // A scenario prints its overlays on the board, covers the hexes it takes out of play, and
-// plays without some of the supply (§6.2.1, Tile Manifest sheet). Its game records only the
-// scenario.
+// plays without some of the supply (§6.2.1, Tile Manifest sheet).
 const ScenarioTileVariants: Readonly<Record<string, TileSetVariant>> = Object.fromEntries(
     Scenarios1822.filter(
         (scenario) => scenario.overlays.length || Object.keys(scenario.tilesRemoved).length

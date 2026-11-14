@@ -1,3 +1,5 @@
+const StandInHoldMs = 200
+
 /** Whether published artwork has loaded, so the generated presentation can stand in until it has. */
 export class ArtworkLoad {
     #url: () => string | undefined
@@ -14,6 +16,13 @@ export class ArtworkLoad {
 
     get standingIn() {
         return !!this.#url() && !this.shown
+    }
+
+    /** Hides the stand-in at first, so that artwork arriving quickly from cache replaces it unseen. */
+    holdStandIn = (element: HTMLElement) => {
+        if (!this.standingIn) return
+        const hold = element.animate({ visibility: ['hidden', 'hidden'] }, StandInHoldMs)
+        return () => hold.cancel()
     }
 
     markLoaded = () => {
