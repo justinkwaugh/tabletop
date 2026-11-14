@@ -92,9 +92,7 @@ function nextPlayerOrder(stateObject: StockState): string[] {
     const state = requireState1822(stateObject)
     return orderByCash(
         state,
-        state.cashDeclarationRound === state.stockRound.number
-            ? state.doubledCashPlayerId
-            : undefined
+        state.cashDeclaration?.doubled ? state.cashDeclaration.playerId : undefined
     )
 }
 
@@ -162,8 +160,7 @@ export const StockRules1822: StockRules = {
             if (held.length) {
                 const title = requireState1822(state)
                 if (!title.variants.taxHavenShares) return 'The tax haven holds a single share.'
-                if (title.taxHavenPurchaseRound === state.stockRound.number)
-                    return 'The tax haven buys one share each stock round.'
+                if (title.taxHavenBought) return 'The tax haven buys one share each stock round.'
                 if (held.some((entry) => entry.companyId === company.id))
                     return 'The tax haven holds one certificate of a company.'
                 if (price > finiteCashOwnedBy(state, taxHaven))
@@ -176,8 +173,7 @@ export const StockRules1822: StockRules = {
         return { price, recipient, payers: [player(buyingPlayerId)] }
     },
     afterSharePurchase(state, details) {
-        if (isTaxHaven(details.buyer))
-            requireState1822(state).taxHavenPurchaseRound = state.stockRound.number
+        if (isTaxHaven(details.buyer)) requireState1822(state).taxHavenBought = true
     },
     // Only ordinary shares of a major company that has completed an operating round are sold, a
     // space down for each share, half the company at most in the bank pool (§4.6).

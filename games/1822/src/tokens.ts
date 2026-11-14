@@ -6,25 +6,54 @@ import {
     type StationPosition
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
-import { exchangeStationId, exchangeTokenCount1822 } from './companies.js'
+import { exchangeStationId, exchangeTokenCount1822, major1822 } from './companies.js'
 import { Map1822 } from './map.js'
 import type { HydratedState1822 } from './state.js'
 import { StationRules1822 } from './stations.js'
 import { TileSet1822 } from './tiles.js'
 
-/** The exchange tokens left on a major company's charter (§5.6.3). */
-export function exchangeTokens1822(state: HydratedState1822, companyId: string): number {
-    return state.exchangeTokens.find((entry) => entry.companyId === companyId)?.count ?? 0
+type ExchangeTokenUse = HydratedState1822['exchangeTokenUse'][number]
+
+function exchangeTokenUse(
+    state: Pick<HydratedState1822, 'exchangeTokenUse'>,
+    companyId: string
+): ExchangeTokenUse {
+    return state.exchangeTokenUse.find((entry) => entry.companyId === companyId) ?? { companyId }
 }
 
-function takeExchangeToken(state: HydratedState1822, companyId: string): number {
-    const count = exchangeTokens1822(state, companyId)
-    assert(count > 0, 'The company has no exchange token left')
-    state.exchangeTokens = [
-        ...state.exchangeTokens.filter((entry) => entry.companyId !== companyId),
-        ...(count > 1 ? [{ companyId, count: count - 1 }] : [])
+function recordExchangeTokenUse(
+    state: HydratedState1822,
+    use: { companyId: string; taken: number; returned: number }
+): void {
+    const { companyId, taken, returned } = use
+    state.exchangeTokenUse = [
+        ...state.exchangeTokenUse.filter((entry) => entry.companyId !== companyId),
+        { companyId, ...(taken ? { taken } : {}), ...(returned ? { returned } : {}) }
     ]
-    return exchangeTokenCount1822(companyId) - count + 1
+}
+
+/**
+ * The exchange tokens left on a major company's charter: those it prints, less those taken in
+ * play, with those P18 has put back (§5.6.3, Table 3). A minor company has none.
+ */
+export function exchangeTokens1822(
+    state: Pick<HydratedState1822, 'exchangeTokenUse'>,
+    companyId: string
+): number {
+    if (!major1822(companyId)) return 0
+    const { taken = 0, returned = 0 } = exchangeTokenUse(state, companyId)
+    return exchangeTokenCount1822(companyId) - taken + returned
+}
+
+/**
+ * Takes one of the company's exchange tokens from its charter, numbered by how many it has ever
+ * taken, so that no two of its stations share an id.
+ */
+function takeExchangeToken(state: HydratedState1822, companyId: string): number {
+    assert(exchangeTokens1822(state, companyId) > 0, 'The company has no exchange token left')
+    const { taken = 0, returned = 0 } = exchangeTokenUse(state, companyId)
+    recordExchangeTokenUse(state, { companyId, taken: taken + 1, returned })
+    return taken + 1
 }
 
 /** Places one of the company's exchange tokens on the map (§5.12.4, §5.12.10). */
@@ -52,10 +81,8 @@ export function returnExchangeToken1822(state: HydratedState1822, stationId: str
     state.stations = state.stations.map((entry) =>
         entry.id === stationId ? { id: entry.id, companyId, status: 'removed' as const } : entry
     )
-    state.exchangeTokens = [
-        ...state.exchangeTokens.filter((entry) => entry.companyId !== companyId),
-        { companyId, count: exchangeTokens1822(state, companyId) + 1 }
-    ]
+    const { taken = 0, returned = 0 } = exchangeTokenUse(state, companyId)
+    recordExchangeTokenUse(state, { companyId, taken, returned: returned + 1 })
 }
 
 /** The station tokens standing on the map. */

@@ -4025,6 +4025,10 @@
           "tileSetId": {
             "minLength": 1,
             "type": "string"
+          },
+          "variantId": {
+            "minLength": 1,
+            "type": "string"
           }
         },
         "required": [

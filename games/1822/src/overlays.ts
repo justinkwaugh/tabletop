@@ -55,26 +55,23 @@ const arrowAt = (side: number) => `edge-${side}`
  */
 export const OverlayPieces1822: readonly {
     tile: TileDefinition
-    count: number | 'unlimited'
     arrowPathIds: readonly string[]
     name?: string
     outOfPlay?: true
 }[] = [
-    { tile: Glasgow, count: 1, arrowPathIds: [arrowAt(south)], name: 'Glasgow' },
-    { tile: Edinburgh, count: 1, arrowPathIds: [arrowAt(south)], name: 'Edinburgh' },
+    { tile: Glasgow, arrowPathIds: [arrowAt(south)], name: 'Glasgow' },
+    { tile: Edinburgh, arrowPathIds: [arrowAt(south)], name: 'Edinburgh' },
     {
         tile: Southwest,
-        count: 1,
         arrowPathIds: [arrowAt(northEast), arrowAt(southEast)],
         name: 'Southwest England'
     },
     {
         tile: SouthwestApproach,
-        count: 1,
         arrowPathIds: SouthwestApproach.face.paths.map((path) => path.id)
     },
-    { tile: SouthWales, count: 1, arrowPathIds: [arrowAt(northEast)], name: 'South Wales' },
-    { tile: OutOfPlay, count: 'unlimited', arrowPathIds: [], outOfPlay: true }
+    { tile: SouthWales, arrowPathIds: [arrowAt(northEast)], name: 'South Wales' },
+    { tile: OutOfPlay, arrowPathIds: [], outOfPlay: true }
 ]
 
 export type ScenarioOverlay1822 = {

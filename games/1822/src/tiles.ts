@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assertExists } from '@tabletop/common'
 import {
     StandardTileCatalog,
     TileCatalog,
@@ -8,9 +8,11 @@ import {
     createTownTileFace as townFace,
     type TileDefinition,
     type TileEdge,
-    type TileFace
+    type TileFace,
+    type TileSetVariant
 } from '@tabletop/18xx'
-import { OverlayPieces1822 } from './overlays.js'
+import { OutOfPlayTileId1822, OverlayPieces1822 } from './overlays.js'
+import { Scenarios1822 } from './scenarios.js'
 import {
     EnglishChannelUpgradeCost1822,
     LondonUpgradeCost1822,
@@ -139,6 +141,32 @@ const TitleCounts: Readonly<Record<string, Count>> = {
     X23: 1
 }
 
+// A scenario prints its overlays on the board, covers the hexes it takes out of play, and
+// plays without some of the supply (§6.2.1, Tile Manifest sheet). Its game records only the
+// scenario.
+const ScenarioTileVariants: Readonly<Record<string, TileSetVariant>> = Object.fromEntries(
+    Scenarios1822.filter(
+        (scenario) => scenario.overlays.length || Object.keys(scenario.tilesRemoved).length
+    ).map((scenario) => [
+        scenario.id,
+        {
+            board: scenario.overlays
+                .flatMap((overlay) => [
+                    ...overlay.stations,
+                    ...overlay.approaches,
+                    ...overlay.outOfPlay.map((locationId) => ({
+                        locationId,
+                        definitionId: OutOfPlayTileId1822
+                    }))
+                ])
+                .map((tile) => ({ ...tile, rotation: 0 as const })),
+            removed: scenario.tilesRemoved
+        }
+    ])
+)
+/** The scenarios that change the board or the supply, each a variant of the tile set. */
+export const TileSet1822Variants: readonly string[] = Object.keys(ScenarioTileVariants)
+
 export const TileSet1822 = new TileSet(
     {
         id: '1822:standard',
@@ -152,15 +180,11 @@ export const TileSet1822 = new TileSet(
                 id: number,
                 faceDefinitionIds: [`1822:${number}`],
                 count
-            })),
-            ...OverlayPieces1822.map(({ tile, count }) => ({
-                id: tile.printedNumber,
-                faceDefinitionIds: [tile.id],
-                count
             }))
         ]
     },
-    [StandardTileCatalog, TileCatalog1822]
+    [StandardTileCatalog, TileCatalog1822],
+    ScenarioTileVariants
 )
 export const Tiles1822 = TileSet1822.definitions
 
@@ -178,14 +202,3 @@ export const LondonTileIds1822: readonly string[] = ['X20', 'X21', 'X22', 'X23']
 export const EnglishChannelTileIds1822: readonly string[] = ['X4', 'X9', 'X15'].map(
     (number) => `1822:${number}`
 )
-
-/** The pieces a game plays without: the last so many of each tile named. */
-export function retiredPieceIds1822(removed: Readonly<Record<string, number>>): string[] {
-    return Object.entries(removed).flatMap(([definitionId, count]) => {
-        const pieces = TileSet1822.pieces.filter((piece) =>
-            piece.faceDefinitionIds.includes(definitionId)
-        )
-        assert(pieces.length >= count, `The set has ${count} of tile ${definitionId} to remove`)
-        return pieces.slice(pieces.length - count).map((piece) => piece.id)
-    })
-}

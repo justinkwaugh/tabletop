@@ -72,12 +72,22 @@ describe('the tiles (tile manifest, p. 36)', () => {
         expect(['yellow', 'green', 'brown', 'gray'].map(count)).toEqual([44, 75, 58, 22])
     })
 
-    it('never run out of plain yellow track, nor of covers for hexes out of play (§5.8.15)', () => {
+    it('never run out of plain yellow track (§5.8.15)', () => {
         expect(
             TileSet1822.manifest.entries
                 .filter((entry) => entry.count === 'unlimited')
                 .map((entry) => entry.id)
-        ).toEqual(['7', '8', '9', 'OUT'])
+        ).toEqual(['7', '8', '9'])
+    })
+
+    it('keep the scenarios’ overlays out of the supply, printed by each scenario’s variant (§6.2.1)', () => {
+        const overlayIds = OverlayPieces1822.map((piece) => piece.tile.id)
+        expect(
+            TileSet1822.pieces.filter((piece) =>
+                piece.faceDefinitionIds.some((id) => overlayIds.includes(id))
+            )
+        ).toEqual([])
+        expect(overlayIds.every((id) => Tiles1822.some((tile) => tile.id === id))).toBe(true)
     })
 
     it('print the manifest’s numbers of the scarce tiles', () => {

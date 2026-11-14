@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import {
+    RailwayMapState,
     getCompany,
     placeStockMarker,
     rotateTileFace,
@@ -26,7 +27,8 @@ import { Map1822 } from './map.js'
 import { EndingRules1822, TrainRules1822 } from './operating.js'
 import { OutOfPlayTileId1822 } from './overlays.js'
 import { RouteRules1822 } from './routes.js'
-import { MajorRemovalGroups1822, Scenarios1822, type ScenarioId1822 } from './scenarios.js'
+import type { ScenarioId1822 } from './scenarioCatalog.js'
+import { MajorRemovalGroups1822, Scenarios1822 } from './scenarios.js'
 import type { State1822 } from './state.js'
 import { StockRules1822 } from './stock.js'
 import { TileSet1822, Tiles1822 } from './tiles.js'
@@ -196,8 +198,14 @@ describe('the regional scenarios (General sheet)', () => {
         '$name lays its overlays and covers the hexes out of play',
         (scenario) => {
             const { state } = table(scenario.id)
-            const placed = (locationId: string) =>
-                state.tileInventory.placements[locationId]?.definitionId
+            // The game records only its scenario; the board follows from it.
+            expect(state.tileInventory).toEqual({
+                variantId: scenario.id,
+                placements: {},
+                retiredPieceIds: []
+            })
+            const board = new RailwayMapState(Map1822, TileSet1822, state.tileInventory)
+            const placed = (locationId: string) => board.tile(locationId).placement?.definitionId
             for (const overlay of scenario.overlays) {
                 for (const station of overlay.stations)
                     expect(placed(station.locationId)).toBe(station.definitionId)

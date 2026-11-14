@@ -26,7 +26,7 @@ import {
 } from './privateAcquisition.js'
 import { HumberBridgePrivateId, MailContractPrivateIds, TaxHavenPrivateId } from './privates.js'
 import { RouteRules1822 } from './routes.js'
-import { ScenarioIds1822 } from './scenarios.js'
+import { ScenarioIds1822 } from './scenarioCatalog.js'
 import {
     ElectricTrainId,
     LocalTrainId,

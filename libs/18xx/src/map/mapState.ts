@@ -32,8 +32,19 @@ export class RailwayMapState {
             tileSet.definitions.map((definition) => [definition.id, definition])
         )
         for (const locationId of Object.keys(parsed.placements)) map.location(locationId)
+        // A variant's board tiles stand where play has laid nothing over them.
+        const board = new Map(
+            tileSet.boardTiles(parsed).map((tile): [string, TilePlacement] => [
+                map.location(tile.locationId).id,
+                {
+                    pieceId: `${tileSet.manifest.id}/board/${tile.locationId}`,
+                    definitionId: tile.definitionId,
+                    rotation: tile.rotation
+                }
+            ])
+        )
         for (const location of map.definition.locations) {
-            const placement = parsed.placements[location.id]
+            const placement = parsed.placements[location.id] ?? board.get(location.id)
             if (placement) {
                 const definition = definitions.get(placement.definitionId)
                 assertExists(definition, 'Placed map tile requires a definition')

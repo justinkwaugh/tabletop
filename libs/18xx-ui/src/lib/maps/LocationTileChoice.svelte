@@ -37,18 +37,17 @@
 
 <span class="hex-anchor" hidden use:trackHex={followUp.locationId}></span>
 {#if frame.width}
-    <div
-        class="choice"
-        role="group"
-        aria-label={followUp.label}
-        transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
-    >
+    <!-- Each tile fades on its own: fading the whole overlay would draw it all offscreen. -->
+    <div class="choice" role="group" aria-label={followUp.label}>
         {#if arc}
             {#each followUp.options as option, index (option.id)}
                 {@const chosen = option.id === followUp.selected}
                 {@const point = chosen ? frame.center : (arc.points[index] ?? frame.center)}
                 {@const size = chosen ? frame.tileSize : arc.size}
                 {#if option.tile}<button
+                        transition:fade|global={{
+                            duration: prefersReducedMotion.current ? 0 : 120
+                        }}
                         class="tile-choice"
                         class:chosen
                         aria-pressed={chosen}
@@ -66,6 +65,7 @@
                             {orientation}
                             {appearance}
                             {size}
+                            shadow
                         /></button
                     >{/if}
             {/each}
@@ -91,7 +91,6 @@
         pointer-events: none;
         z-index: 5;
         overflow: hidden;
-        transform: translateZ(0);
     }
     .tile-choice {
         position: absolute;
@@ -102,7 +101,6 @@
         padding: 0;
         border: 0;
         background: transparent;
-        filter: drop-shadow(0 2px 4px #0009);
         pointer-events: auto;
         cursor: pointer;
     }

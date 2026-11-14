@@ -205,9 +205,9 @@
             },
             "type": "array"
           },
-          "settledRound": {
-            "minimum": 1,
-            "type": "integer"
+          "settled": {
+            "const": true,
+            "type": "boolean"
           },
           "stacks": {
             "items": {
@@ -330,9 +330,22 @@
         },
         "type": "array"
       },
-      "cashDeclarationRound": {
-        "minimum": 1,
-        "type": "integer"
+      "cashDeclaration": {
+        "additionalProperties": false,
+        "properties": {
+          "doubled": {
+            "type": "boolean"
+          },
+          "playerId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "doubled",
+          "playerId"
+        ],
+        "type": "object"
       },
       "certificatePools": {
         "items": {
@@ -732,10 +745,6 @@
         },
         "type": "array"
       },
-      "doubledCashPlayerId": {
-        "minLength": 1,
-        "type": "string"
-      },
       "earningsDistribution": {
         "additionalProperties": false,
         "properties": {
@@ -1116,7 +1125,7 @@
         ],
         "type": "object"
       },
-      "exchangeTokens": {
+      "exchangeTokenUse": {
         "items": {
           "additionalProperties": false,
           "properties": {
@@ -1124,14 +1133,17 @@
               "minLength": 1,
               "type": "string"
             },
-            "count": {
+            "returned": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "taken": {
               "minimum": 1,
               "type": "integer"
             }
           },
           "required": [
-            "companyId",
-            "count"
+            "companyId"
           ],
           "type": "object"
         },
@@ -3789,9 +3801,9 @@
       "systemVersion": {
         "type": "number"
       },
-      "taxHavenPurchaseRound": {
-        "minimum": 1,
-        "type": "integer"
+      "taxHavenBought": {
+        "const": true,
+        "type": "boolean"
       },
       "tileInventory": {
         "additionalProperties": false,
@@ -3938,6 +3950,10 @@
             "uniqueItems": true
           },
           "tileSetId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "variantId": {
             "minLength": 1,
             "type": "string"
           }
@@ -5105,7 +5121,7 @@
       "companies",
       "debutCompanyIds",
       "discountTokens",
-      "exchangeTokens",
+      "exchangeTokenUse",
       "gameId",
       "id",
       "machineState",

@@ -161,6 +161,13 @@ remain the executable baseline and every existing title's suites still pass.
   whose second hex prints two arrows that stand for tracks running on to the station; and
   `printedTrack`, track the print shows that no route uses, for Merthyr Tydfil and Pontypool,
   whose one connection prints as two pointed tracks. Not surveyed beyond 1822.
+- **Tile set variants** (`TileSetVariant`, `TileInventory.variantId`). A supply chosen at setup
+  that also prints tiles on the board: 1822's scenarios, whose overlays stand on the map and
+  whose games play without part of the tile manifest. The train depot already had
+  `supplyVariants` and `depotId`. Shared: the inventory records the variant's id; its board tiles
+  stand under whatever play lays and are definitions of the set with no pieces in its supply, so
+  no lay can offer them; its removed pieces, the last of each definition, are never available.
+  Title: each variant's board and removals. Nothing of either is stored in a game.
 - **Board tiles** (`MapViewDefinition.boardTiles`). Tiles on the map from setup that are not of
   the supply: 1822's scenario overlays. Nineteen catalogue titles vary their board's hexes by
   option (the engine's `optional_hexes` and `game_hexes`, among them 1824, 1825, 1840, 1860,
@@ -231,18 +238,17 @@ take £10 off a minor's first-turn L train; four lower the price of flipping an 
 - **The Metropolitan Railway** (Short and Mini Game) may take the station space of a London
   major that was removed: choosing that London station gives it the space itself rather than the
   roundel's.
-- **Overlays** are grey tiles placed at setup (`overlays.ts`): Glasgow and Edinburgh, Southwest
-  England and South Wales, each a station with values by phase reached along terminus track
-  where the overlay prints an arrow. Southwest England is one station over two hexes with four
-  arrows: its second hex carries two tracks that run on to the station side by side. Hexes an
-  overlay covers or cuts off carry an out-of-play tile, which the board does not draw. A regional
-  scenario's reduced tile manifest retires the surplus pieces at setup.
+- **Overlays** are grey tiles printed by the scenario (`overlays.ts`): Glasgow and Edinburgh,
+  Southwest England and South Wales, each a station with values by phase reached along terminus
+  track where the overlay prints an arrow. Southwest England is one station over two hexes with
+  four arrows: its second hex carries two tracks that run on to the station side by side. Hexes
+  an overlay covers or cuts off carry an out-of-play tile, which the board does not draw. A
+  regional scenario's reduced tile manifest plays without the surplus pieces.
 
-The overlays and out-of-play covers are held as tile placements, which is where the family keeps
-what lies on each hex; they follow from the scenario alone, so they could instead be a second map
-definition chosen by it. That would need the family's rules and views to take their map from the
-game rather than the title, which nothing else in the catalogue built so far needs; recorded here
-as a decision to revisit if a second title varies its map.
+Each scenario that changes the board or the supply is a variant of the tile set
+(`TileSet1822Variants`): its overlays, its out-of-play covers and its removed pieces follow from
+the variant, and a game records only the scenario as its inventory's `variantId`. None of it is
+in the supply manifest, so no lay can ever offer an overlay.
 
 The pack calls the game end value a "Max Price", but markers are not stopped at it: a two-space
 rise, or play to the end of the operating round, can carry one past. Every space of the value

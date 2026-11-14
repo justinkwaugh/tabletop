@@ -221,6 +221,7 @@
                             printedNumber={tile.printedNumber}
                             {appearance}
                             {size}
+                            shadow
                             layout={placedTileLayout(session.mapView.layouts, tile.id)}
                             orientation={session.mapView.map.definition.orientation}
                             rotation={chosen
@@ -282,7 +283,6 @@
         padding: 0;
         border: 0;
         background: transparent;
-        filter: drop-shadow(0 2px 4px #0009);
     }
     .picker[data-track-motion='true'] .tile-choice {
         transition: none;

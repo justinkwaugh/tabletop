@@ -16,6 +16,7 @@ import {
     isAcquirePrivate,
     isPlaceMetropolitanHome,
     isReachDestination,
+    exchangeTokens1822,
     major1822,
     scenario1822,
     type State1822
@@ -120,9 +121,7 @@ export const Presentation1822: TitlePresentation<State1822> = {
         const scenario = scenario1822(state.variants.scenario)
         return [
             ...(scenario ? [{ label: 'Scenario', value: scenario.name }] : []),
-            ...(state.doubledCashPlayerId &&
-            state.machineState === 'StockRound' &&
-            state.cashDeclarationRound === state.stockRound.number
+            ...(state.cashDeclaration?.doubled
                 ? [{ label: 'P9', value: 'Double cash declared' }]
                 : [])
         ]
@@ -144,9 +143,8 @@ export const Presentation1822: TitlePresentation<State1822> = {
             return [{ label: 'Pays', value: 'Half' }, ...discountFacts(state, companyId)]
         const major = major1822(companyId)
         if (!major) return []
-        const exchange = state.exchangeTokens.find((entry) => entry.companyId === companyId)
         return [
-            { label: 'Exchange', value: String(exchange?.count ?? 0) },
+            { label: 'Exchange', value: String(exchangeTokens1822(state, companyId)) },
             ...discountFacts(state, companyId)
         ]
     },

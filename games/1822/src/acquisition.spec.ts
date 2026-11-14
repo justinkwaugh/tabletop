@@ -26,7 +26,7 @@ import { acquirablePrivates1822, acquisitionChoices1822 } from './privateAcquisi
 import { EnglishChannelLocationId } from './privates.js'
 import { AdvancedLayMark, PrivatePowerRules1822, terrainCost1822 } from './privatePowers.js'
 import type { State1822 } from './state.js'
-import { exchangeTokens1822 } from './tokens.js'
+import { exchangeTokens1822, placeExchangeToken1822, returnExchangeToken1822 } from './tokens.js'
 import { EnglishChannelTileIds1822, Tiles1822 } from './tiles.js'
 import { TrackRules1822 } from './track.js'
 
@@ -455,5 +455,39 @@ describe('acquiring another director’s minor company (§5.18.1)', () => {
         expect(getCompany(game.state, 'M2').closed).toBeFalsy()
         expect(game.state.activePlayerIds).toEqual([first])
         expect(minorAcquisitions1822(game.hydrated, first)).toEqual([])
+    })
+})
+
+describe('exchange tokens (§5.6.3, §5.12.4, Table 3)', () => {
+    it('never gives two stations one id, though P18 puts a token back between placements', () => {
+        const state = caledonian().hydrated
+        const first = placeExchangeToken1822(state, 'CR', {
+            locationId: 'E2',
+            nodeId: 'city',
+            slot: 0
+        })
+        expect(exchangeTokens1822(state, 'CR')).toBe(2)
+        const spare = state.stations.find(
+            (station) => station.companyId === 'CR' && station.status === 'available'
+        )
+        if (!spare) throw new Error('The Caledonian has an available token')
+        returnExchangeToken1822(state, spare.id)
+        expect(exchangeTokens1822(state, 'CR')).toBe(3)
+        const second = placeExchangeToken1822(state, 'CR', {
+            locationId: 'H1',
+            nodeId: 'city',
+            slot: 0
+        })
+        expect(second).not.toBe(first)
+        expect(new Set(state.stations.map((station) => station.id)).size).toBe(
+            state.stations.length
+        )
+        expect(state.exchangeTokenUse).toEqual([{ companyId: 'CR', taken: 2, returned: 1 }])
+    })
+
+    it('records nothing for a company that has used none', () => {
+        expect(caledonian().state.exchangeTokenUse).toEqual([])
+        expect(exchangeTokens1822(caledonian().state, 'LNWR')).toBe(4)
+        expect(exchangeTokens1822(caledonian().state, 'M2')).toBe(0)
     })
 })

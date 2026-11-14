@@ -1,5 +1,6 @@
 import { assert, assertExists } from '@tabletop/common'
-import { Scenarios1822, type ScenarioId1822 } from './scenarios.js'
+import type { ScenarioId1822 } from './scenarioCatalog.js'
+import { Scenarios1822 } from './scenarios.js'
 import {
     createRectangularStockMarketSpaces,
     StockMarketChart,

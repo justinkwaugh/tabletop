@@ -192,6 +192,10 @@ describe('the end of a stock round (§4.10)', () => {
         // Most cash goes first next round, those level keeping their order (§4.10.5).
         expect(state.turnManager.turnOrder).toEqual([first, fourth, third, second])
         expect(trainsOwnedBy(state, company(FirstMinorId))).toHaveLength(0)
+        // The round's settling and declarations were its own, dropped as it completed.
+        expect(state.bidBoxes.settled).toBeUndefined()
+        expect(state.cashDeclaration).toBeUndefined()
+        expect(state.taxHavenBought).toBeUndefined()
     })
 
     it('removes a minor left unsold in box 1 with the next train in the bank', () => {

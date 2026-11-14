@@ -1410,7 +1410,7 @@ Viewport-driven picker repositioning settles with a 100ms CSS translate transiti
 
 Private-company rows in player panels and company cards (including purchasable privates) open title-owned descriptions on click or keyboard activation of the name. The shared floating layer centers above the row, flips or shifts against viewport boundaries, and locally rises 6px into place over 140ms (suppressed with reduced motion). The next click anywhere, Escape, or row removal dismisses it. This local information affordance neither stages nor commits game actions.
 
-Accepting a track lay fades unchosen picker tiles in place over 120ms as the tile picker disappears. This non-blocking local exit does not delay confirmation or animate the committed tile. Cancel retains its collapse; reduced motion skips the exit.
+Tiles offered over the map, in the track-lay picker and in a follow-up tile choice, draw their shadow as two offset, faint copies of the hex inside their own SVG (`Tile` with `shadow`), not as a CSS filter, so a tile that moves carries no effect to redraw. A follow-up choice fades each of its tiles on its own, never the whole overlay. Accepting a track lay fades unchosen picker tiles in place over 120ms as the tile picker disappears. This non-blocking local exit does not delay confirmation or animate the committed tile. Cancel retains its collapse; reduced motion skips the exit.
 
 A company portfolio header can expose its title-owned private description using the same click popover as private rows. TOP uses this for Union Bank; player headers remain ordinary headings.
 

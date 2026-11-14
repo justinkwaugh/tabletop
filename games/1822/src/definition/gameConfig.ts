@@ -9,7 +9,7 @@ import {
     type GameConfigurator
 } from '@tabletop/common'
 
-import { ScenarioId1822, ScenarioIds1822, Scenarios1822 } from '../scenarios.js'
+import { ScenarioCatalog1822, ScenarioId1822, ScenarioIds1822 } from '../scenarioCatalog.js'
 
 const StandardGame = 'standard'
 
@@ -59,7 +59,11 @@ const scenarioOption: ListConfigOption = {
     default: StandardGame,
     options: [
         { name: 'Standard game', value: StandardGame, description: 'The whole game.' },
-        ...Scenarios1822.map(({ id, name, summary }) => ({ name, value: id, description: summary }))
+        ...ScenarioCatalog1822.map(({ id, name, summary }) => ({
+            name,
+            value: id,
+            description: summary
+        }))
     ],
     alwaysShow: true
 }

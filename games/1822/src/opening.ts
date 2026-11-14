@@ -15,8 +15,7 @@ import {
     Majors1822,
     concessionId,
     createMajorCertificates1822,
-    createMinorCertificates1822,
-    exchangeTokenCount1822
+    createMinorCertificates1822
 } from './companies.js'
 import { GameConfig1822 } from './definition/gameConfig.js'
 import {
@@ -27,13 +26,12 @@ import {
     refillBidBoxes1822
 } from './lots.js'
 import { Map1822 } from './map.js'
-import { OutOfPlayTileId1822 } from './overlays.js'
 import { setupOf1822 } from './scenarios.js'
 import { MarketPoolId1822 } from './names.js'
 import { PhaseCreditPrivateIds, TaxHavenPrivateId } from './privates.js'
 import { MaximumPlayers1822, MinimumPlayers1822 } from './setup.js'
 import type { HydratedState1822, State1822 } from './state.js'
-import { TileSet1822, retiredPieceIds1822 } from './tiles.js'
+import { TileSet1822, TileSet1822Variants } from './tiles.js'
 import { TrainDepot1822 } from './trains.js'
 
 /** A major company begins with two station tokens it may place: its home and one more (§5.12.2). */
@@ -77,19 +75,13 @@ export function createOpening1822({
         ...concessionIds
     ]
     const companyIds = [...majorIds, ...minorIds]
-    // A scenario's overlays stand on the map from the start, with the hexes they take out of
-    // play covered (§6.2.1).
+    // A scenario's overlays, the hexes it takes out of play and its smaller supply follow from
+    // the scenario, which the inventory records as its tile set's variant (§6.2.1).
     const tileInventory = TileSet1822.createInventory(
-        setup.overlays
-            .flatMap((overlay) => [
-                ...overlay.stations,
-                ...overlay.approaches,
-                ...overlay.outOfPlay.map((locationId) => ({
-                    locationId,
-                    definitionId: OutOfPlayTileId1822
-                }))
-            ])
-            .map(({ locationId, definitionId }) => ({ locationId, definitionId, rotation: 0 }))
+        [],
+        variants.scenario && TileSet1822Variants.includes(variants.scenario)
+            ? variants.scenario
+            : undefined
     )
     const position: InitialPosition = {
         stockMarket: { stacks: [] },
@@ -162,10 +154,7 @@ export function createOpening1822({
                 })
             )
         ],
-        tileInventory: {
-            ...tileInventory,
-            retiredPieceIds: retiredPieceIds1822(setup.tilesRemoved)
-        },
+        tileInventory,
         trainInventory: TrainDepot1822.createInventory(variants.scenario)
     }
     const titleState = {
@@ -177,10 +166,7 @@ export function createOpening1822({
         playerLoans: [],
         debutCompanyIds: [],
         discountTokens: [],
-        exchangeTokens: majorIds.map((companyId) => ({
-            companyId,
-            count: exchangeTokenCount1822(companyId)
-        }))
+        exchangeTokenUse: []
     }
     return {
         position,

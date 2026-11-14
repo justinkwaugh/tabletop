@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { ScenarioId1822 } from './scenarios.js'
+import { ScenarioId1822 } from './scenarioCatalog.js'
 
 const Id = Type.String({ minLength: 1 })
 
@@ -44,8 +44,8 @@ export const TitleFields1822 = {
     removedPrivateIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
     /** The major and minor companies a scenario plays without (§6.2.1). */
     removedCompanyIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
-    /** The stock round in which the tax haven last bought a share; it buys one a round (§6.1.2). */
-    taxHavenPurchaseRound: Type.Optional(Type.Integer({ minimum: 1 })),
+    /** The tax haven has bought its share this stock round; it buys one a round (§6.1.2). */
+    taxHavenBought: Type.Optional(Type.Literal(true)),
     /** What each player owes on loans taken to buy a train, interest included (§4.2, §5.17.2). */
     playerLoans: Type.Array(
         Type.Object(
@@ -75,23 +75,29 @@ export const TitleFields1822 = {
         )
     ),
     /**
-     * The exchange tokens left on each major company's charter, which reach the map only through
-     * an acquisition or a private company (§5.6.3, §5.12.7).
+     * The exchange tokens each major company has taken from its charter in play, onto the map or
+     * among its available tokens, and those P18 has put back; the charter prints the rest
+     * (§5.6.3, §5.12.4, §5.12.7). A company that has done neither has no entry.
      */
-    exchangeTokens: Type.Array(
+    exchangeTokenUse: Type.Array(
         Type.Object(
-            { companyId: Id, count: Type.Integer({ minimum: 1 }) },
+            {
+                companyId: Id,
+                taken: Type.Optional(Type.Integer({ minimum: 1 })),
+                returned: Type.Optional(Type.Integer({ minimum: 1 }))
+            },
             { additionalProperties: false }
         )
     ),
     /** The company that took P8's £20 hill and mountain discount instead of its token (Table 3). */
     hillDiscountCompanyId: Type.Optional(Id),
     /**
-     * P9's holder declared double their cash for the turn order that follows the stock round
-     * (§3.1.9), and the round they made their declaration in.
+     * P9's holder's declaration this stock round, of their cash or double it, for the turn order
+     * that follows the round (§3.1.9); dropped as the round completes.
      */
-    doubledCashPlayerId: Type.Optional(Id),
-    cashDeclarationRound: Type.Optional(Type.Integer({ minimum: 1 })),
+    cashDeclaration: Type.Optional(
+        Type.Object({ playerId: Id, doubled: Type.Boolean() }, { additionalProperties: false })
+    ),
     /**
      * A major company's offer for a minor company another player directs, until that director
      * answers it (§5.18.1).

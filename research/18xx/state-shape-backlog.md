@@ -270,7 +270,8 @@ fields back before hashing, are unchanged.
   upgrade a hex the company laid this turn. The cost is in the Action's metadata.
 - **Inventories keep no constant ids.** The tile inventory no longer records its set; the
   train inventory records `depotId` only for a supply variant chosen at setup (1846's
-  two-player depot).
+  two-player depot), and the tile inventory `variantId` likewise (1822's scenarios), from which
+  the variant's board tiles and the pieces it plays without follow (`TileSetVariant`).
 - **Sale records hold the least fact.** A stock round records each (owner, company) sale
   once; train funding records sales only for titles that sell in blocks, without the
   share count. `stockRound.companyPurchases` stays: TOP's Union Bank rule reads it.

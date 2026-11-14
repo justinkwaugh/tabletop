@@ -18,6 +18,7 @@ import {
     type StockRoundRules
 } from '../stock/stockRoundRules.js'
 import type { StockState } from '../stock/stockState.js'
+import { isCompleteStockRound } from '../stock/completeStockRound.js'
 import { isFinishStockTurn } from '../stock/finishStockTurn.js'
 
 const Id = Type.String({ minLength: 1 })
@@ -44,8 +45,8 @@ export const BidBoxes = Type.Object(
         bids: Type.Array(BidBoxBid),
         /** The bids placed or raised so far in the stock turn under way. */
         turnBids: Type.Optional(Type.Integer({ minimum: 1 })),
-        /** The stock round whose bids have been settled, until the next round begins. */
-        settledRound: Type.Optional(Type.Integer({ minimum: 1 }))
+        /** The round's bids have been settled; dropped as the round completes. */
+        settled: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )
@@ -290,11 +291,7 @@ export const isSettleBidBoxes = SettleBidBoxesAction.is
 
 /** Whether a round whose turns are over still has its bids to settle. */
 export function bidsAwaitSettlement(state: BidBoxState): boolean {
-    return (
-        !state.stockRound.completed &&
-        allPlayersPassed(state) &&
-        bidBoxesOf(state).settledRound !== state.stockRound.number
-    )
+    return !state.stockRound.completed && allPlayersPassed(state) && !bidBoxesOf(state).settled
 }
 
 /** The winning bids, highest first, the earlier box first among equals. */
@@ -343,7 +340,7 @@ export class HydratedSettleBidBoxes extends SettleBidBoxesAction.Base {
             }))
         settleCashPayments(state, payments)
         bidBoxesOf(state).bids = []
-        bidBoxesOf(state).settledRound = state.stockRound.number
+        bidBoxesOf(state).settled = true
         const details = this.#rules.settlement.settle(state, awards)
         this.metadata = { awards, payments, details }
     }
@@ -420,9 +417,11 @@ export class BidBoxStockRoundHandler<
         if (action instanceof HydratedSettleBidBoxes)
             return context.gameState.phaseChange ? 'AdvancingPhase' : context.gameState.machineState
         if (action instanceof HydratedPlaceBids) return context.gameState.machineState
-        // The boxes keep the turn's bid count, since the stock turn record is every title's, and
-        // drop it as the turn ends, as share redemption drops its refusals.
+        // The boxes keep the turn's bid count and the round's settling, since the stock round's
+        // records are every title's, and drop each as its turn or round ends, as share redemption
+        // drops its refusals.
         if (isFinishStockTurn(action)) delete bidBoxesOf(context.gameState).turnBids
+        if (isCompleteStockRound(action)) delete bidBoxesOf(context.gameState).settled
         return this.handler.onAction(action, context)
     }
 }

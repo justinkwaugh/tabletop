@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { playOut } from '../test/bot.js'
 import { kit } from '../test/kit.js'
-import { ScenarioIds1822 } from './scenarios.js'
+import { ScenarioIds1822 } from './scenarioCatalog.js'
 
 // eslint-disable-next-line turbo/no-undeclared-env-vars -- a manual run's switch
 const Sweep = !!process.env.SWEEP

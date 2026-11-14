@@ -1,4 +1,3 @@
-import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import {
     ScotlandNorthOverlay1822,
@@ -8,23 +7,15 @@ import {
     type ScenarioOverlay1822
 } from './overlays.js'
 import { Bank1822, CertificateLimits1822, StartingCash1822 } from './setup.js'
+import {
+    ScenarioCatalog1822,
+    type ScenarioEntry1822,
+    type ScenarioId1822
+} from './scenarioCatalog.js'
 
 // The scenarios of the designer's print-and-play pack, "1822 Scenario Rules" version 1.0 of
 // 15 July 2016 (sheets General, Cash and Shares, Train Mix, Tile Manifest) with its overlays of
 // 16 July 2016. Rulebook §6.2.1 names them. The sheets are cited below by name.
-
-export const ScenarioId1822 = Type.Union([
-    Type.Literal('large-regional'),
-    Type.Literal('medium-regional'),
-    Type.Literal('small-regional'),
-    Type.Literal('medium-game'),
-    Type.Literal('short-game'),
-    Type.Literal('mini-game')
-])
-export type ScenarioId1822 = Type.Static<typeof ScenarioId1822>
-export const ScenarioIds1822: readonly ScenarioId1822[] = ScenarioId1822.anyOf.map(
-    (literal) => literal.const
-)
 
 /** The major companies by the group a full-map scenario removes at most one of (General sheet). */
 export const MajorRemovalGroups1822 = {
@@ -73,12 +64,7 @@ export type Setup1822 = {
     tilesRemoved: Readonly<Record<string, number>>
 }
 
-export type Scenario1822 = Setup1822 & {
-    id: ScenarioId1822
-    name: string
-    /** What the scenario is, in a line, for the player choosing it. */
-    summary: string
-}
+export type Scenario1822 = Setup1822 & ScenarioEntry1822
 
 const byPlayers = (three: number, four: number, five: number, six: number, seven: number) => ({
     3: three,
@@ -179,12 +165,8 @@ export const StandardSetup1822: Setup1822 = {
     tilesRemoved: {}
 }
 
-export const Scenarios1822: readonly Scenario1822[] = [
-    {
-        id: 'large-regional',
-        name: 'Large Regional',
-        summary:
-            'England and Wales without Scotland and the Borders; a little shorter than the whole game.',
+const ScenarioSetups: Readonly<Record<ScenarioId1822, Setup1822>> = {
+    'large-regional': {
         startingCash: LargeCash,
         bank: 12_000,
         endPrice: 500,
@@ -200,11 +182,7 @@ export const Scenarios1822: readonly Scenario1822[] = [
         overlays: [ScotlandNorthOverlay1822],
         tilesRemoved: LargeTiles
     },
-    {
-        id: 'medium-regional',
-        name: 'Medium Regional',
-        summary:
-            'The Midlands, the south and Wales, without the north and the southwest; quick, and good with fewer players.',
+    'medium-regional': {
         startingCash: MediumCash,
         bank: 12_000,
         endPrice: 500,
@@ -220,10 +198,7 @@ export const Scenarios1822: readonly Scenario1822[] = [
         overlays: [ScotlandSouthOverlay1822, SouthwestOverlay1822],
         tilesRemoved: MediumTiles
     },
-    {
-        id: 'small-regional',
-        name: 'Small Regional',
-        summary: 'As the Medium Regional without South Wales; quicker and wilder.',
+    'small-regional': {
         startingCash: SmallCash,
         bank: 9000,
         endPrice: 400,
@@ -239,10 +214,7 @@ export const Scenarios1822: readonly Scenario1822[] = [
         overlays: [ScotlandSouthOverlay1822, SouthwestOverlay1822, SouthWalesOverlay1822],
         tilesRemoved: SmallTiles
     },
-    {
-        id: 'medium-game',
-        name: 'Medium Game',
-        summary: 'The whole map with a few companies removed at random; a little shorter.',
+    'medium-game': {
         startingCash: LargeCash,
         bank: 12_000,
         endPrice: 550,
@@ -259,11 +231,7 @@ export const Scenarios1822: readonly Scenario1822[] = [
         overlays: [],
         tilesRemoved: {}
     },
-    {
-        id: 'short-game',
-        name: 'Short Game',
-        summary:
-            'The whole map with more companies removed at random; for players who know the game.',
+    'short-game': {
         startingCash: MediumCash,
         bank: 12_000,
         endPrice: 500,
@@ -280,11 +248,7 @@ export const Scenarios1822: readonly Scenario1822[] = [
         overlays: [],
         tilesRemoved: {}
     },
-    {
-        id: 'mini-game',
-        name: 'Mini Game',
-        summary:
-            'The whole map with half the minor companies removed at random; short and volatile.',
+    'mini-game': {
         startingCash: SmallCash,
         bank: 9000,
         endPrice: 450,
@@ -301,7 +265,13 @@ export const Scenarios1822: readonly Scenario1822[] = [
         overlays: [],
         tilesRemoved: {}
     }
-]
+}
+
+/** The pack's scenarios, each as its players are told of it with its setup. */
+export const Scenarios1822: readonly Scenario1822[] = ScenarioCatalog1822.map((entry) => ({
+    ...entry,
+    ...ScenarioSetups[entry.id]
+}))
 
 /** The scenario of that name, where a game plays one. */
 export function scenario1822(id: ScenarioId1822 | undefined): Scenario1822 | undefined {

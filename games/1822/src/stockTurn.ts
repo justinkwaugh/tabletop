@@ -1,4 +1,10 @@
-import { allPlayersPassed, stepAction, titleAction, type StepAction } from '@tabletop/18xx'
+import {
+    allPlayersPassed,
+    isCompleteStockRound,
+    stepAction,
+    titleAction,
+    type StepAction
+} from '@tabletop/18xx'
 import { ActionSource, assert, type HydratedAction, type MachineContext } from '@tabletop/common'
 import * as Type from 'typebox'
 import { playerLoan1822, repayPlayerLoan1822, repayableLoan1822 } from './loans.js'
@@ -64,8 +70,8 @@ export function cashDeclarationDue1822(state: HydratedState1822): string | undef
         state.machineState !== 'StockRound' ||
         state.stockRound.completed ||
         !allPlayersPassed(state) ||
-        state.bidBoxes.settledRound !== state.stockRound.number ||
-        state.cashDeclarationRound === state.stockRound.number
+        !state.bidBoxes.settled ||
+        state.cashDeclaration
     )
         return undefined
     const playerId = doubleCashPlayerId1822(state)
@@ -89,15 +95,14 @@ export class HydratedDeclareCash extends DeclareCashAction.Base {
     }
     apply(state: HydratedState1822): void {
         assert(this.isValid(state), 'No cash declaration is due')
-        state.cashDeclarationRound = state.stockRound.number
-        if (this.doubled) state.doubledCashPlayerId = this.playerId
-        else delete state.doubledCashPlayerId
+        state.cashDeclaration = { playerId: this.playerId, doubled: this.doubled }
     }
 }
 
 /**
  * Between the settling of a stock round's bids and its completion, P9's holder makes their
- * declaration (§3.1.9); the declaration lapses once the next round has begun.
+ * declaration (§3.1.9). The declaration and the tax haven's purchase are the round's alone, so
+ * both are dropped as it completes (§6.1.2).
  */
 export function declaresCash(handler: StateHandler1822): StateHandler1822 {
     const due = (context: MachineContext<HydratedState1822>) =>
@@ -117,10 +122,14 @@ export function declaresCash(handler: StateHandler1822): StateHandler1822 {
             if (declarer) context.gameState.activePlayerIds = [declarer]
             else handler.enter(context)
         },
-        onAction: (action, context) =>
-            action instanceof HydratedDeclareCash
-                ? context.gameState.machineState
-                : handler.onAction(action, context)
+        onAction: (action, context) => {
+            if (action instanceof HydratedDeclareCash) return context.gameState.machineState
+            if (isCompleteStockRound(action)) {
+                delete context.gameState.cashDeclaration
+                delete context.gameState.taxHavenBought
+            }
+            return handler.onAction(action, context)
+        }
     }
 }
 
