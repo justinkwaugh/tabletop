@@ -6,8 +6,10 @@ import { MARBLE_RADIUS, RING_OUTER_RADIUS, type BoardView } from './geometry.js'
 // and one shine over every marble. Each marble's own specks lie between its body and its shine
 // (board/marbleSpecks.ts). The light is the viewer's, so the turned view shows the same images.
 
-// Pixels per board unit: sharp at the board's full size on a phone.
-export const LOOK_PIXELS = 12
+// Pixels per board unit: the board fits at up to 2.5 pixels per unit (GameTable's maxFitScale), and
+// the readiness review allows images up to 2.5 times the size they are drawn at, so a ring is 400 px
+// across. Zoomed further in, as far as 4 pixels per unit, the pieces are a little soft.
+export const LOOK_PIXELS = 2.5 * 2.5
 
 export type LookBox = { x: number; y: number; width: number; height: number }
 
