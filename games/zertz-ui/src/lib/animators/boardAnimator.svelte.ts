@@ -69,7 +69,10 @@ export class BoardAnimator implements MoveInterrupter {
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
     seeds: MarbleSeeds = $derived.by(() => {
         const { actionCount } = this.session.gameState
-        return untrack(() => this.seedsAt(actionCount))
+        return untrack(() => {
+            this.rememberLiveActions()
+            return marbleSeedsAfter(this.session.actions.slice(0, actionCount))
+        })
     })
     flight: Flight | undefined = $state()
     // Until the state lands: your placed marble stays out of the way, and an undone one stands staged.
@@ -180,13 +183,18 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // History shows its actions only up to the step it is on, so a step forward reads the list
-    // as it was last seen live.
-    private seedsAt(actionCount: number): MarbleSeeds {
-        const { actions, isViewingHistory } = this.session
-        if (!isViewingHistory) this.liveActions = actions
-        const known = this.liveActions.length >= actionCount ? this.liveActions : actions
-        return marbleSeedsAfter(known.slice(0, actionCount))
+    private rememberLiveActions() {
+        const { actions, isViewingHistory, isExploring } = this.session
+        if (!isViewingHistory && !isExploring) this.liveActions = actions
+    }
+
+    // History shows its actions only up to the step it is on, so a jump forward reads the live
+    // game's list, as last seen, while it still begins with the actions shown.
+    private actionsAhead(): readonly GameAction[] {
+        const shown = this.session.actions
+        const live = this.liveActions
+        const continues = shown.every((action, index) => live[index]?.id === action.id)
+        return continues && live.length > shown.length ? live : shown
     }
 
     private untilLanded<T>(value: T): T {
@@ -221,8 +229,14 @@ export class BoardAnimator implements MoveInterrupter {
         // seeds come from the move itself.
         const seedsBefore = this.seeds
         const seedsDuring = new Map(seedsBefore)
+        const oneForward = forward && to.actionCount === from.actionCount + 1
         if (action !== undefined) applyToSeeds(seedsDuring, action, from.actionCount)
-        else for (const [key, seed] of this.seedsAt(to.actionCount)) seedsDuring.set(key, seed)
+        else if (oneForward && stepped !== undefined) {
+            applyToSeeds(seedsDuring, stepped, from.actionCount)
+        } else {
+            const ahead = marbleSeedsAfter(this.actionsAhead().slice(0, to.actionCount))
+            for (const [key, seed] of ahead) seedsDuring.set(key, seed)
+        }
         this.seeds = seedsDuring
         // A placement that fills an isolated group claims it, so its ring goes with the others.
         const before =
