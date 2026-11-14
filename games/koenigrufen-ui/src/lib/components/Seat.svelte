@@ -44,12 +44,13 @@
         {#if passed}<span class="badge">Passed</span>{/if}
         {#if won > 0 || state.machineState === MachineState.Playing}
             <!-- The face-down cards won and how many; an outline until the first. -->
-            <span
-                class="won"
-                title="{won} {won === 1 ? 'card' : 'cards'} won"
-                {@attach gameSession.cardPlaces.trickPile(playerId)}
-            >
-                <span class="pile" class:empty={won === 0} class:deep={won > 4}></span>
+            <span class="won" title="{won} {won === 1 ? 'card' : 'cards'} won">
+                <span
+                    class="pile"
+                    class:empty={won === 0}
+                    class:deep={won > 4}
+                    {@attach gameSession.cardPlaces.trickPile(playerId)}
+                ></span>
                 <span class="count">{won}</span>
                 <span class="sr-only">{won === 1 ? 'card' : 'cards'} won</span>
             </span>
