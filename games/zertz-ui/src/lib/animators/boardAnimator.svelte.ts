@@ -15,11 +15,11 @@ import {
     type PlaceMarble,
     type Ring
 } from '@tabletop/zertz'
-import type { ZertzGameSession } from '$lib/model/session.svelte.js'
+import type { MoveInterrupter, ZertzGameSession } from '$lib/model/session.svelte.js'
 import { inferJump } from '$lib/board/inferJump.js'
 import { ringExits, type RingExit } from '$lib/board/pullOut.js'
 import { marbleSeedsAfter, seedAt, type MarbleSeeds } from '$lib/board/marbleSeeds.js'
-import { DROP, dropMarble, scaledFromCentre } from './drop.js'
+import { DROP, dropMarble, QUICK_DROP, scaledFromCentre, type DropTiming } from './drop.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -33,10 +33,15 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 // A removed ring is pulled out of the board as the real ones are, sliding across the table a
 // ring's width, gathering speed, and fading over the latter part. One that cuts groups off first
 // slides out of its place (`first`), and they leave together.
-const PULL = { duration: 0.45, fade: 0.6, first: 0.3 }
+type PullTiming = { duration: number; first: number }
+const PULL = { duration: 0.45, first: 0.3 }
+const PULL_FADE = 0.6
+// Undo and history steps have no action, so everything they move ends by 0.2 s.
+const QUICK_PULL = { duration: 0.14, first: 0.06 }
 // Undone, it slides back in the way it went, appearing over the first part, and the marbles it
-// took settle back into their rings.
-const PUSH = { duration: 0.25, fade: 0.4, settle: 0.15 }
+// took settle back into their rings. A ring that cut groups off with it follows them in, in a
+// second leg of the same slide.
+const PUSH = { slide: 0.14, fade: 0.4, settle: 0.06 }
 // A marble taken from the board floats straight up; one taken by a jump goes quicker, so the next
 // jump of a chain can be chosen soon after it lands.
 const LIFT = { duration: 0.55, captured: 0.3, rise: -34, scale: 1.04 }
@@ -57,7 +62,7 @@ export type Staged = { color: MarbleColor; coords: AxialCoordinates; seed: numbe
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedZertzGameState, AnimationContext>
 
-export class BoardAnimator {
+export class BoardAnimator implements MoveInterrupter {
     // The rings drawn. A replay plays several actions before the visible state catches up, so
     // each animated action leaves the board as it ended until that state lands.
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
@@ -87,12 +92,36 @@ export class BoardAnimator {
     private flierShadowNode: SVGGElement | undefined
     private outlineLayer: SVGGElement | undefined
     private readonly listener = (step: Step) => this.onGameStateChange(step)
+    private playing: Timeline | undefined
+    private abandoned: HydratedZertzGameState | undefined
 
     constructor(private readonly session: ZertzGameSession) {}
 
     readonly attach: Attachment = () => {
         this.session.addGameStateChangeListener(this.listener)
-        return () => this.session.removeGameStateChangeListener(this.listener)
+        this.session.moveInterrupter = this
+        return () => {
+            this.session.removeGameStateChangeListener(this.listener)
+            if (this.session.moveInterrupter === this) this.session.moveInterrupter = undefined
+        }
+    }
+
+    interrupt() {
+        this.finishMove()
+    }
+
+    abandon() {
+        this.finishMove()
+        this.abandoned = this.session.presentingState
+    }
+
+    private finishMove() {
+        const timeline = this.playing
+        if (timeline === undefined) return
+        // Until the context plays it, a timeline sits under GSAP's global one, which must not jump.
+        const parent = timeline.parent
+        const master = parent && parent !== gsap.globalTimeline ? parent : timeline
+        master.progress(1)
     }
 
     ring(key: number): Attachment<SVGGElement> {
@@ -167,13 +196,32 @@ export class BoardAnimator {
         if (from === undefined || !ANIMATED_KINDS.has(kind)) {
             return
         }
+        const presenting = this.session.presentingState
+        if (presenting !== undefined && presenting === this.abandoned) {
+            return
+        }
+        this.abandoned = undefined
         const timeline = animationContext.actionTimeline
+        this.playing = timeline
+        const shown = this.session.gameState
+        // onHistoryAction names the action before the one a step back takes back, so a step back
+        // reads it by index.
+        const stepped =
+            action ??
+            (to.actionCount < from.actionCount
+                ? this.session.undoneAction(to)
+                : kind === 'history'
+                  ? this.session.historyAction
+                  : undefined)
+        const placement = isPlaceMarble(stepped) ? stepped : undefined
+        const forward = to.actionCount > from.actionCount
         // The seeds the board shows: an Undo has already taken its action off the list.
         const seedsBefore = this.seeds
         this.seeds = new Map([...seedsBefore, ...this.seedsAt(to.actionCount)])
         // The board as the move found it, with a placed marble already in its ring: a placement
         // that fills an isolated group claims it, and that ring goes with the others.
-        const before = isPlaceMarble(action) ? placedOn(from.board.rings, action) : from.board.rings
+        const before =
+            placement && forward ? placedOn(from.board.rings, placement) : from.board.rings
         const removedRings = before.filter((ring) => !to.board.hasRing(ring.coords))
         const { view } = this.session
         const layout = view.frame(to.setup).positions
@@ -182,7 +230,7 @@ export class BoardAnimator {
             layout,
             removedRings.map((ring) => ring.coords),
             to.board.rings.map((ring) => ring.coords),
-            isPlaceMarble(action) ? cutOffBy(action) : undefined
+            placement && forward ? cutOffBy(placement) : undefined
         )
 
         this.sliding = new Set(removedRings.map((ring) => coordinatesToNumber(ring.coords)))
@@ -190,7 +238,7 @@ export class BoardAnimator {
         let returned: Staged | undefined
         if (action === undefined) {
             // Undo takes your marble back out of the move, staged in its ring as you left it.
-            const undone = kind === 'undo' ? this.session.undoingMove : undefined
+            const undone = kind === 'undo' ? this.session.restagedMove(to) : undefined
             // It keeps the specks it had, though it stands staged before the state it was staged
             // in lands.
             if (undone !== undefined) {
@@ -198,29 +246,41 @@ export class BoardAnimator {
                 returned = { color, coords, seed: seedAt(seedsBefore, coords) }
             }
             const returning = to.board.rings.filter((ring) => !from.board.hasRing(ring.coords))
-            if (returning.length > 0) {
+            const jump = inferJump(from.board.rings, to.board.rings)
+            // A marble the step puts on a ring already standing drops in: one placed, stepping
+            // forward, or one a jump took, stepping back.
+            const appearing = to.board.rings.filter(
+                (ring) =>
+                    ring.marble !== undefined &&
+                    from.board.isVacant(ring.coords) &&
+                    !(jump !== undefined && sameCoordinates(jump.to, ring.coords))
+            )
+            if (returning.length > 0 || appearing.length > 0) {
                 this.sliding = new Set([
                     ...this.sliding,
                     ...returning.map((ring) => coordinatesToNumber(ring.coords))
                 ])
-                this.rings = [...from.board.rings, ...returning]
+                this.rings = [...withMarbles(from.board.rings, appearing), ...returning]
                 await tick()
                 const entries = ringExits(
                     view,
                     layout,
                     returning.map((ring) => ring.coords),
                     from.board.rings.map((ring) => ring.coords),
-                    undone === undefined ? undefined : cutOffBy(undone)
+                    placement && !forward ? cutOffBy(placement) : undefined
                 )
-                for (const ring of returning) this.pushIn(ring, entries, timeline)
+                // A ring that cut groups off comes back in two legs, and the groups with its first.
+                const twoLegs = [...entries.values()].some((entry) => entry.first !== undefined)
+                const leg = twoLegs ? PUSH.slide / 2 : PUSH.slide
+                for (const ring of returning) this.pushIn(ring, entries, timeline, leg)
+                for (const ring of appearing) this.drop(ring.coords, timeline, QUICK_DROP)
             }
-            const jump = inferJump(from.board.rings, to.board.rings)
             if (jump !== undefined) {
                 const seed = seedAt(seedsBefore, jump.from)
                 await this.jump(jump.from, jump.to, jump.color, seed, timeline, FALLBACK_DURATION)
             }
             for (const ring of removedRings) {
-                this.pullOut(ring.coords, exits, timeline, 0, FALLBACK_DURATION)
+                this.pullOut(ring.coords, exits, timeline, 0, QUICK_PULL)
             }
             for (const ring of from.board.rings) {
                 const vanished =
@@ -260,15 +320,18 @@ export class BoardAnimator {
                     this.lift(ring.coords, timeline, claimsAt, LIFT.duration)
                 }
                 const pulledAt = claimsAt + (claimed ? CLAIMED_RING_DELAY : 0)
-                this.pullOut(ring.coords, exits, timeline, pulledAt, PULL.duration, claimsAt)
+                this.pullOut(ring.coords, exits, timeline, pulledAt, PULL, claimsAt)
             }
         }
 
         this.fadeOutlines(timeline, action === undefined ? FALLBACK_DURATION : OUTLINE_FADE)
 
         animationContext.afterAnimations(() => {
-            this.rings = to.board.rings
+            if (this.playing === timeline) this.playing = undefined
             this.flight = undefined
+            // A switch of view has already shown another state, which this board must not cover.
+            if (this.session.gameState !== shown) return
+            this.rings = to.board.rings
             this.returned = returned
         })
     }
@@ -280,21 +343,21 @@ export class BoardAnimator {
         exits: ReadonlyMap<number, RingExit>,
         timeline: Timeline,
         at: number,
-        duration: number,
+        { duration, first: firstLeg }: PullTiming,
         startsAt = at
     ) {
         const key = coordinatesToNumber(coords)
         const exit = exits.get(key)
         if (exit === undefined) return
         const { first, out } = exit
-        const outAt = first !== undefined || exit.waits ? startsAt + PULL.first : at
-        const fade = duration * PULL.fade
+        const outAt = first !== undefined || exit.waits ? startsAt + firstLeg : at
+        const fade = duration * PULL_FADE
         for (const node of [this.ringNodes.get(key), this.ringShadowNodes.get(key)]) {
             if (node === undefined) continue
             if (first !== undefined) {
                 timeline.to(
                     node,
-                    { x: first.x, y: first.y, duration: PULL.first, ease: 'power1.inOut' },
+                    { x: first.x, y: first.y, duration: firstLeg, ease: 'power1.inOut' },
                     startsAt
                 )
             }
@@ -309,11 +372,16 @@ export class BoardAnimator {
 
     // Undone, rings slide back in the way they went: the group a ring cut off with it, then that
     // ring back into its place. Their marbles settle back in once they are home.
-    private pushIn(ring: Ring, entries: ReadonlyMap<number, RingExit>, timeline: Timeline) {
+    private pushIn(
+        ring: Ring,
+        entries: ReadonlyMap<number, RingExit>,
+        timeline: Timeline,
+        duration: number
+    ) {
         const key = coordinatesToNumber(ring.coords)
         const entry = entries.get(key)
         if (entry === undefined) return
-        const { duration, fade, settle } = PUSH
+        const { fade, settle, slide } = PUSH
         const { first, out } = entry
         const home = first ?? { x: 0, y: 0 }
         for (const node of [this.ringNodes.get(key), this.ringShadowNodes.get(key)]) {
@@ -347,7 +415,7 @@ export class BoardAnimator {
                 body,
                 { opacity: 0, y: LIFT.rise },
                 { opacity: 1, y: 0, duration: settle, ease: 'power1.in', immediateRender: true },
-                duration
+                slide
             )
         }
         if (shadow !== undefined) {
@@ -355,7 +423,7 @@ export class BoardAnimator {
                 shadow,
                 { opacity: 0 },
                 { opacity: 1, duration: settle, ease: 'power1.in', immediateRender: true },
-                duration
+                slide
             )
         }
     }
@@ -381,12 +449,12 @@ export class BoardAnimator {
     }
 
     // Says when the marble has settled.
-    private drop(coords: AxialCoordinates, timeline: Timeline): number {
+    private drop(coords: AxialCoordinates, timeline: Timeline, timing: DropTiming = DROP): number {
         const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
         const shadow = this.marbleShadowNodes.get(key)
         if (body === undefined || shadow === undefined) return 0
-        return dropMarble(timeline, body, shadow)
+        return dropMarble(timeline, body, shadow, 0, timing)
     }
 
     // The move's targets are spent, so their outlines fade for as long as the move animates.
@@ -479,6 +547,13 @@ export class BoardAnimator {
 function cutOffBy({ remove, metadata }: PlaceMarble) {
     if (remove === undefined) return undefined
     return { remove, cutOff: (metadata?.claimedOnRemoving ?? []).map((ring) => ring.coords) }
+}
+
+// The rings with the marbles `placed` names put in.
+function withMarbles(rings: Ring[], placed: Ring[]): Ring[] {
+    return rings.map(
+        (ring) => placed.find((other) => sameCoordinates(other.coords, ring.coords)) ?? ring
+    )
 }
 
 function placedOn(rings: Ring[], { coords, color }: PlaceMarble): Ring[] {

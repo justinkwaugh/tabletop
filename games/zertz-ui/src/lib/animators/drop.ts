@@ -13,6 +13,13 @@ export const DROP = {
     shadow: 0.55
 }
 
+// How long a dropped marble falls, and how it settles.
+export type DropTiming = { fall: number; wobble: readonly number[] }
+
+// Undo and history steps have no action, so a marble they bring back has landed by 0.16 s,
+// without the wobble.
+export const QUICK_DROP: DropTiming = { fall: 0.16, wobble: [] }
+
 // A staged marble taken back lifts out of its ring quickly, fading as it rises.
 const LIFT_OFF = { duration: 0.18, rise: -25, scale: 1.04 }
 
@@ -23,9 +30,9 @@ export function dropMarble(
     timeline: Timeline,
     body: SVGGElement,
     shadow: SVGGElement,
-    at = 0
+    at = 0,
+    { fall, wobble }: DropTiming = DROP
 ): number {
-    const { fall } = DROP
     scaledFromCentre(body, shadow)
     timeline.fromTo(
         body,
@@ -41,7 +48,7 @@ export function dropMarble(
         at
     )
     let time = at + fall
-    for (const height of DROP.wobble) {
+    for (const height of wobble) {
         timeline.to(body, { y: height, duration: DROP.settle, ease: 'power1.out' }, time)
         timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, time + DROP.settle)
         time += DROP.settle * 2

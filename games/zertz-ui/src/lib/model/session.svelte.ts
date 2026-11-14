@@ -50,6 +50,7 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     // The move being undone. Undo takes your marble back onto its ring, staged as you chose it,
     // and a further Undo takes it off the ring.
     undoingMove: PlaceMarble | undefined
+    historyAction: GameAction | undefined
     moveInterrupter: MoveInterrupter | undefined
 
     constructor(options: SessionOptions) {
@@ -162,6 +163,10 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     // Only a placement that removed a ring stood staged before it went in, so only it restages.
     override willUndo(action: GameAction): void {
         this.undoingMove = isPlaceMarble(action) && action.remove !== undefined ? action : undefined
+    }
+
+    override onHistoryAction(action?: GameAction): void {
+        this.historyAction = action
     }
 
     get presentingState(): HydratedZertzGameState | undefined {
