@@ -14,6 +14,14 @@
             ? directiveGoalProgress(gameSession.gameState, gameSession.myPlayerId)
             : undefined
     )
+    // "4 anomaly or survey directives", or "5 directives of any type".
+    const goalText = $derived(
+        goal === undefined
+            ? ''
+            : goal.goal.types.length > 0
+              ? `${goal.goal.count} ${goalTypes(goal.goal.types)} directives`
+              : `${goal.goal.count} directives of any type`
+    )
 </script>
 
 <div class="sh-step">
@@ -23,7 +31,7 @@
     </p>
     {#if goal}
         <p class="hint">
-            Your goal: {goal.goal.count} directives {goalTypes(goal.goal.types)}, or {DIRECTIVE_SHORTFALL_PENALTY}
+            Your goal: {goalText}, or {DIRECTIVE_SHORTFALL_PENALTY}
             VP lost for each one short. You have {goal.counted}.
         </p>
     {/if}

@@ -212,7 +212,7 @@ test('a directive is kept from those drawn at the start, and shown on the consol
     await openScenario(page, 'Campaign directive choice')
     const drawn = page.getByRole('group', { name: 'Directives drawn' }).getByRole('button')
     await expect(drawn).toHaveCount(3)
-    await expect(page.getByText(/^Your goal: \d directives/)).toBeVisible()
+    await expect(page.getByText(/^Your goal: \d+ .*directives/)).toBeVisible()
     await drawn.first().click()
     await expect(page.locator('[title="Player 1 has finished"]')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Keep directive' })).toHaveCount(0)
@@ -274,4 +274,85 @@ test('the console lists owned cards and the hand, and opens a printed card', asy
     await expect(card.getByRole('heading', { name: /Gifted Artists/ })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(card).toBeHidden()
+})
+
+test('the console shows ships as counters, folds them away, and points to one on the map', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign fleet')
+    const ships = page.locator('.console').getByRole('button', { name: /^Ships/ })
+    await expect(ships).toHaveText(/3 RE · 5 CV/)
+    const voyager = page.getByRole('button', { name: 'Voyager, at Wolf-359, crippled' })
+    await expect(voyager).toContainText('crippled')
+    await expect(
+        page.getByRole('button', { name: /^Kuiper, arriving at Vega in 2 turns/ })
+    ).toContainText('arrives in 2')
+    await ships.click()
+    await expect(voyager).toHaveCount(0)
+    await ships.click()
+    // The develop phase shows the tech chart; picking a ship turns to the map and zooms in.
+    await voyager.click()
+    const panel = page.getByRole('complementary', { name: 'Wolf-359 details' })
+    await expect(panel).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Voyager' })).toHaveClass(/pointed/)
+    await expect(voyager).toHaveAttribute('aria-pressed', 'true')
+    // Picking it again zooms back out.
+    await voyager.click()
+    await expect(panel).toHaveCount(0)
+    await expect(voyager).toHaveAttribute('aria-pressed', 'false')
+})
+
+test('a ship chosen to move while zoomed in is shown with its destinations framed', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign trading')
+    const mapWidth = () =>
+        page
+            .locator('svg[aria-label="Star map"]')
+            .evaluate((svg) => svg.getBoundingClientRect().width)
+    // The cargo phase, played in turn, ends; the Starfarers move first.
+    await expect(page.getByRole('button', { name: 'Done with cargo' })).toBeVisible()
+    while (await page.getByRole('button', { name: 'Done with cargo' }).isVisible()) {
+        await page.getByRole('button', { name: 'Done with cargo' }).click()
+        await page.waitForTimeout(300)
+    }
+    await expect(page.getByText('Choose a ship to move')).toBeVisible()
+    await expect.poll(() => page.getByRole('button', { name: 'Back to map' }).count()).toBe(0)
+    const fittedWidth = await mapWidth()
+    await page.getByRole('button', { name: 'Zoom into Sol' }).click()
+    await expect(page.getByRole('button', { name: 'Back to map' })).toBeVisible()
+    await page.locator('.sh-step .ship-tile button').first().click()
+    await expect(page.getByRole('button', { name: 'Back to map' })).toHaveCount(0)
+    const destinations = page.getByRole('button', { name: /^Move to / })
+    await expect(destinations.first()).toBeVisible()
+    // Closer than the whole map, with every destination in view.
+    await expect.poll(mapWidth).toBeGreaterThan(fittedWidth * 1.2)
+    for (const destination of await destinations.all()) {
+        await expect(destination).toBeInViewport()
+    }
+})
+
+test('a ship chosen to move frames its destinations from the whole map too', async ({ page }) => {
+    await openScenario(page, 'Campaign trading')
+    const mapWidth = () =>
+        page
+            .locator('svg[aria-label="Star map"]')
+            .evaluate((svg) => svg.getBoundingClientRect().width)
+    await expect(page.getByRole('button', { name: 'Done with cargo' })).toBeVisible()
+    while (await page.getByRole('button', { name: 'Done with cargo' }).isVisible()) {
+        await page.getByRole('button', { name: 'Done with cargo' }).click()
+        await page.waitForTimeout(300)
+    }
+    await expect(page.getByText('Choose a ship to move')).toBeVisible()
+    await expect.poll(() => page.getByRole('button', { name: 'Back to map' }).count()).toBe(0)
+    const fittedWidth = await mapWidth()
+    await page.locator('.sh-step .ship-tile button').first().click()
+    const destinations = page.getByRole('button', { name: /^Move to / })
+    await expect(destinations.first()).toBeVisible()
+    // The system it sets out from is outlined in gold.
+    await expect(page.locator('[data-system-id] .move-origin')).toHaveCount(1)
+    await expect.poll(mapWidth).toBeGreaterThan(fittedWidth * 1.2)
+    for (const destination of await destinations.all()) {
+        await expect(destination).toBeInViewport()
+    }
 })

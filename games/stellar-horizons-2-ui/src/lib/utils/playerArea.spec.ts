@@ -151,15 +151,13 @@ describe('player area', () => {
             ['alpha-centauri', 3]
         ])
         expect(view?.settlementGoal).toMatchObject({ settlements: 10, systemPopulation: 25 })
-        const centauri = view?.fleet.find((group) => group.systemId === 'alpha-centauri')
-        expect(centauri?.ships.map((entry) => entry.shipId)).toEqual([
+        // Explorers first, the smaller exploration value first, then crew vehicles.
+        expect(view?.fleet.map((entry) => entry.ship.shipId)).toEqual([
+            'starfarers-copernicus',
             'starfarers-kepler',
-            'starfarers-copernicus'
+            'starfarers-andromeda'
         ])
-        expect(view?.fleet.map((group) => group.systemId).toSorted()).toEqual([
-            'alpha-centauri',
-            'sol'
-        ])
+        expect(view?.fleet.map((entry) => entry.crewVehicle)).toEqual([false, false, true])
         const physics = view?.techs.find((progress) => progress.field === TechField.Physics)
         expect(physics?.developedThisTurn).toBe(true)
         expect(physics?.developed).toBe(

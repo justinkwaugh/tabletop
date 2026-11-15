@@ -186,6 +186,7 @@
                                 class="ship"
                                 class:selectable
                                 class:selected={gameSession.selectedShip?.shipId === ship.shipId}
+                                class:pointed={gameSession.pointedShipId === ship.shipId}
                                 disabled={!selectable}
                                 aria-label={shipDefinition(ship.shipId).name}
                                 onclick={() => choose(ship.shipId)}
@@ -414,7 +415,8 @@
         background: rgba(127, 211, 255, 0.08);
     }
 
-    .ship.selected {
+    .ship.selected,
+    .ship.pointed {
         border-color: #ffd65a;
     }
 

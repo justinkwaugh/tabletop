@@ -69,9 +69,16 @@
         gameSession.mapTargets.find((target) => target.systemId === frame.systemId)
     )
 
+    // The title zooms into the system, and zooms back out of it once it is in focus.
+    const inFocus = $derived(
+        gameSession.focusedSystemId === frame.systemId && !gameSession.focusClosing
+    )
+
     function onTitleClick(event: MouseEvent) {
         event.stopPropagation()
-        if (gameSession.focusedSystemId !== frame.systemId) {
+        if (inFocus) {
+            gameSession.leaveFocus()
+        } else {
             gameSession.focusSystem(frame.systemId)
         }
     }
@@ -213,9 +220,13 @@
         rx="8"
         role="button"
         tabindex="-1"
-        aria-label="Zoom into {systemName(frame.systemId)}"
+        aria-label="{inFocus ? 'Zoom out of' : 'Zoom into'} {systemName(frame.systemId)}"
         onclick={onTitleClick}
     ></rect>
+
+    {#if gameSession.moveOriginSystemId === frame.systemId}
+        <polygon class="move-origin" points={tileOutline(frame, 6)} pointer-events="none"></polygon>
+    {/if}
 
     {#if mapTarget}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -279,6 +290,12 @@
         paint-order: stroke;
         stroke: #10301a;
         stroke-width: 4px;
+    }
+
+    .move-origin {
+        fill: none;
+        stroke: #ffd65a;
+        stroke-width: 6px;
     }
 
     .move-target {

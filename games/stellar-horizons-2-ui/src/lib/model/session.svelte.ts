@@ -877,9 +877,39 @@ export class StellarHorizonsGameSession extends GameSession<
         this.consolePlayer = playerId
     }
 
+    // The system a ship chosen to move sets out from, outlined in gold on the map.
+    moveOriginSystemId: string | undefined = $derived(
+        this.actingPhase === TurnPhase.Movement ? this.selectedShip?.systemId : undefined
+    )
+
+    // The ship picked from a console, outlined in its system's panel while that is in focus.
+    pointedShipId: string | undefined = $state()
+
     focusSystem(systemId: string) {
         this.closeClump()
+        this.pointedShipId = undefined
         this.focus = { systemId, closing: false }
+    }
+
+    // Zooms into the ship's system (its destination while it travels) and outlines it there;
+    // picking the ship already pointed to zooms back out.
+    pointToShip(shipId: string) {
+        const ship = this.gameState.ships[shipId]
+        if (!ship) return
+        if (this.isPointedTo(shipId)) {
+            this.leaveFocus()
+            return
+        }
+        this.focusSystem(ship.systemId)
+        this.pointedShipId = shipId
+    }
+
+    isPointedTo(shipId: string): boolean {
+        return (
+            this.pointedShipId === shipId &&
+            this.focusedSystemId === this.gameState.ships[shipId]?.systemId &&
+            !this.focusClosing
+        )
     }
 
     leaveFocus() {
@@ -901,6 +931,7 @@ export class StellarHorizonsGameSession extends GameSession<
 
     finishLeavingFocus() {
         this.focus = undefined
+        this.pointedShipId = undefined
     }
 
     selectShipFromClump(shipId: string) {
@@ -914,6 +945,27 @@ export class StellarHorizonsGameSession extends GameSession<
 
     selectShip(shipId: string) {
         this.select(selectedShipId(this.selection) === shipId ? undefined : shipSelection(shipId))
+    }
+
+    // Systems the map should frame together once a zoom ends: a moving ship's system and its
+    // destinations. `serial` tells one request from the next.
+    frameRequest: { systemIds: readonly string[]; serial: number } | undefined = $state()
+    private frameSerial = 0
+
+    // Choosing a ship to move from the action panel frames the ship's system and the systems it
+    // can reach, zooming out first if the map is zoomed into a system.
+    chooseShipToMove(shipId: string) {
+        const choosing = selectedShipId(this.selection) !== shipId
+        this.selectShip(shipId)
+        const ship = this.myPlayerId
+            ? this.gameState.playerShip(this.myPlayerId, shipId)
+            : undefined
+        if (!choosing || !ship) return
+        this.frameRequest = {
+            systemIds: [ship.systemId, ...this.mapTargets.map((target) => target.systemId)],
+            serial: ++this.frameSerial
+        }
+        if (this.focusedSystemId && !this.focusClosing) this.leaveFocus()
     }
 
     // Choosing a ship from the action panel also shows where it is: the map zooms into its

@@ -441,6 +441,30 @@ function campaignBuyingCards() {
 }
 
 /**
+ * Developing in 2100 with the Starfarers' fleet of eight: explorers and crew vehicles of several
+ * sizes, mining and research ships, damaged, loaded and in transit.
+ */
+function campaignFleet() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        for (const ship of state.shipsOf(starfarers)) delete state.ships[ship.shipId]
+        placeShip(state, starfarers, 'starfarers-kepler', 'sirius')
+        placeShip(state, starfarers, 'starfarers-kuiper', 'vega', { transit: 2 })
+        placeShip(state, starfarers, 'starfarers-copernicus', 'luhman-16', { explored: true })
+        placeShip(state, starfarers, 'starfarers-andromeda', 'alpha-centauri', {
+            settlements: 1,
+            goods: ['Food']
+        })
+        placeShip(state, starfarers, 'starfarers-orion', 'barnards-star', { damage: 1 })
+        placeShip(state, starfarers, 'starfarers-polaris', 'sol', { settlements: 2 })
+        placeShip(state, starfarers, 'starfarers-voyager', 'wolf-359', { damage: 3 })
+        placeShip(state, starfarers, 'starfarers-nova', 'tau-ceti', { transit: 1 })
+    })
+    return { game, state: advanceTo(game, arranged, TurnPhase.Development) }
+}
+
+/**
  * Developing in 2100 with a late-game collection. The Starfarers own nine cards across both
  * decks and all levels and, as Engineer, hold two fleet cards and a genetic one; the Givers own
  * two.
@@ -1261,6 +1285,7 @@ write('campaign-reward-goods', 'Campaign: reward goods', campaignRewardGoods())
 write('campaign-buying-cards', 'Campaign: buying cards', campaignBuyingCards())
 write('campaign-card-levels', 'Campaign: choosing a card level', campaignCardLevels())
 write('campaign-card-collection', 'Campaign: a card collection', campaignCardCollection())
+write('campaign-fleet', 'Campaign: a fleet', campaignFleet())
 write('campaign-short-deck', 'Campaign: a short deck', campaignShortDeck())
 write('campaign-anomaly-card', 'Campaign: a card from an anomaly', campaignAnomalyCard())
 write('campaign-card-pact', 'Campaign: a pact for a card', campaignCardPact())

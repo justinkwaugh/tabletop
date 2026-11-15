@@ -13,7 +13,7 @@
         galacticRank,
         shipDefinition,
         DIRECTIVE_REDRAW_COST,
-        DIRECTIVE_SHORTFALL_PENALTY,
+        directiveDefinition,
         directiveGoalProgress,
         DirectiveStatus,
         TurnPhase,
@@ -46,17 +46,19 @@
     import TitleCard from '../titles/TitleCard.svelte'
     import CardLedger from '../cards/CardLedger.svelte'
     import { TITLE_REQUEST_WAITS } from '$lib/utils/titles.js'
-    import { directiveProgress, goalTypes, heldDirectiveIds } from '$lib/utils/directives.js'
+    import {
+        directiveProgress,
+        directiveText,
+        goalTypes,
+        heldDirectiveIds
+    } from '$lib/utils/directives.js'
     import BaseTab from './BaseTab.svelte'
-    import ShipIcon from './ShipIcon.svelte'
+    import ShipTiles from './ShipTiles.svelte'
 
     const gameSession = getGameSession()
     const playerId = $derived(gameSession.consolePlayerId)
     const view = $derived(playerId ? factionConsole(gameSession.gameState, playerId) : undefined)
     const mine = $derived(playerId !== undefined && playerId === gameSession.myPlayerId)
-    const shipCount = $derived(
-        view ? view.fleet.reduce((total, group) => total + group.ships.length, 0) : 0
-    )
     const canSpendInfluence = $derived(
         mine && gameSession.validActionTypes.includes(ActionType.SpendInfluence)
     )
@@ -76,6 +78,8 @@
     const choosingInStep = $derived(gameSession.actingPhase === TurnPhase.Directives)
     const goods = $derived(playerId ? holdings(gameSession.gameState, playerId) : [])
     let scoreOpen = $state(false)
+    // Open to begin with; kept while the console is shown.
+    let shipsOpen = $state(true)
     const player = $derived(playerId ? gameSession.gameState.getPlayerState(playerId) : undefined)
 
     const SCORE_LINES = [
@@ -161,6 +165,38 @@
                 </div>
             {/if}
 
+            <section>
+                <h4>
+                    <button
+                        type="button"
+                        class="fold"
+                        aria-expanded={shipsOpen}
+                        aria-controls="faction-ships"
+                        onclick={() => (shipsOpen = !shipsOpen)}
+                    >
+                        Ships
+                        <span class="total"
+                            >{standing.explorers} RE · {standing.crewVehicles} CV
+                            <svg
+                                class="chevron"
+                                class:open={shipsOpen}
+                                viewBox="0 0 16 16"
+                                aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg
+                            ></span
+                        >
+                    </button>
+                </h4>
+                {#if shipsOpen}
+                    <div id="faction-ships">
+                        {#if view.fleet.length > 0}
+                            <ShipTiles ships={view.fleet} />
+                        {:else}
+                            <div class="note">No ships in play</div>
+                        {/if}
+                    </div>
+                {/if}
+            </section>
+
             {#if player && playerId && usesDirectives(gameSession.gameState)}
                 {@const current = heldDirectiveIds(
                     gameSession.gameState,
@@ -175,42 +211,65 @@
                 {@const directiveGoal = directiveGoalProgress(gameSession.gameState, playerId)}
                 <section>
                     <h4>
-                        Directives <span
-                            >{plural(player.fulfilledDirectives.length, 'fulfilled', 'fulfilled')} · {directiveScore(
-                                gameSession.gameState,
-                                playerId
-                            ).points} VP</span
+                        Directives <span class="directive-tally">
+                            {#if directiveGoal}
+                                {@const slots = Math.max(
+                                    directiveGoal.goal.count,
+                                    directiveGoal.counted
+                                )}
+                                <span class="goal-type">{goalTypes(directiveGoal.goal.types)}</span>
+                                <span
+                                    class="goal-dots"
+                                    role="img"
+                                    aria-label="{directiveGoal.counted} of {directiveGoal.goal
+                                        .count} directives toward the goal"
+                                >
+                                    {#each Array.from({ length: slots }, (_, slot) => slot) as slot (slot)}
+                                        <span class="dot" class:done={slot < directiveGoal.counted}
+                                        ></span>
+                                    {/each}
+                                </span>
+                                ·
+                            {/if}
+                            {directiveScore(gameSession.gameState, playerId).points} VP</span
                         >
                     </h4>
-                    {#if directiveGoal}
-                        <div class="note">
-                            Goal: {directiveGoal.counted} of {directiveGoal.goal.count}
-                            {goalTypes(directiveGoal.goal.types)}; {DIRECTIVE_SHORTFALL_PENALTY} VP lost
-                            for each one short
+                    <div class="directive-row">
+                        <div class="current">
+                            {#each current as directiveId, index (directiveId ?? index)}
+                                <DirectiveCard
+                                    {directiveId}
+                                    wide
+                                    note={directiveId && mine
+                                        ? directiveProgress(
+                                              gameSession.gameState,
+                                              playerId,
+                                              directiveId
+                                          )
+                                        : undefined}
+                                />
+                            {/each}
                         </div>
-                    {/if}
-                    <div class="directives">
-                        {#each current as directiveId, index (directiveId ?? index)}
-                            <DirectiveCard
-                                {directiveId}
-                                note={directiveId && mine
-                                    ? directiveProgress(
-                                          gameSession.gameState,
-                                          playerId,
-                                          directiveId
-                                      )
-                                    : undefined}
-                            />
-                        {/each}
-                        {#if canRedrawDirective}
-                            <button
-                                type="button"
-                                class="spend"
-                                title="Give up this directive for two more to choose from, once a turn"
-                                onclick={() => gameSession.redrawDirective()}
-                                >Redraw · {DIRECTIVE_REDRAW_COST} IP</button
+                        <div class="directive-side">
+                            {#if canRedrawDirective}
+                                <button
+                                    type="button"
+                                    class="spend"
+                                    title="Give up this directive for two more to choose from, once a turn"
+                                    onclick={() => gameSession.redrawDirective()}
+                                    >Redraw · {DIRECTIVE_REDRAW_COST} IP</button
+                                >
+                            {/if}
+                            <span
+                                class="completed"
+                                title={player.fulfilledDirectives
+                                    .map(
+                                        (entry) =>
+                                            `${directiveText(directiveDefinition(entry.directiveId).condition)} (${entry.year})`
+                                    )
+                                    .join('\n')}>{player.fulfilledDirectives.length} completed</span
                             >
-                        {/if}
+                        </div>
                     </div>
                     {#if mine && canChooseDirective && !choosingInStep}
                         <div class="note">Keep one of the directives you drew:</div>
@@ -225,17 +284,6 @@
                     {#if mine && discarded.length > 0 && current.length === 0}
                         <div class="note">
                             Given up; two more are drawn once everyone has finished this phase
-                        </div>
-                    {/if}
-                    {#if player.fulfilledDirectives.length > 0}
-                        <div class="directives">
-                            {#each player.fulfilledDirectives as entry (entry.directiveId)}
-                                <DirectiveCard
-                                    directiveId={entry.directiveId}
-                                    size={92}
-                                    note="Fulfilled {entry.year}"
-                                />
-                            {/each}
                         </div>
                     {/if}
                 </section>
@@ -417,29 +465,6 @@
                 </section>
             {/if}
 
-            <section>
-                <h4>Ships <span>{shipCount}</span></h4>
-                {#each view.fleet as group (group.systemId)}
-                    <div class="system-ships">
-                        <span class="where">{systemName(group.systemId)}</span>
-                        <span class="ships">
-                            {#each group.ships as ship (ship.shipId)}
-                                <span class="ship">
-                                    {#if faction}<ShipIcon {ship} {faction} />{/if}
-                                    <span class="ship-name"
-                                        >{shipDefinition(ship.shipId).name}{ship.transit > 0
-                                            ? ` · ${ship.transit}`
-                                            : ''}</span
-                                    >
-                                </span>
-                            {/each}
-                        </span>
-                    </div>
-                {:else}
-                    <div class="note">No ships in play</div>
-                {/each}
-            </section>
-
             {#if standing.campaign}
                 {@const score = standing.campaign.score}
                 <section>
@@ -516,12 +541,59 @@
         margin-top: 4px;
     }
 
-    .directives {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
+    .directive-tally {
+        display: inline-flex;
+        align-items: center;
         gap: 6px;
-        margin-top: 4px;
+    }
+
+    .goal-type {
+        color: #c9d6ea;
+    }
+
+    /* One circle for each directive the faction's goal asks for, filled as they are fulfilled. */
+    .goal-dots {
+        display: inline-flex;
+        gap: 3px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        box-sizing: border-box;
+        border: 1.5px solid #f4c430;
+        border-radius: 50%;
+    }
+
+    .dot.done {
+        background: #f4c430;
+    }
+
+    .directive-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .current {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .directive-side {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .completed {
+        color: #9fb4d0;
+        font-size: 13px;
     }
 
     .escalation {
@@ -774,34 +846,10 @@
         color: #e8f1ff;
     }
 
-    .system-ships {
-        display: grid;
-        grid-template-columns: minmax(0, 92px) 1fr;
-        align-items: start;
-        gap: 6px;
-    }
-
     .where {
         padding-top: 2px;
         font-size: 12.5px;
         color: #b7c7de;
-    }
-
-    .ships {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2px 8px;
-    }
-
-    .ship {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-    }
-
-    .ship-name {
-        font-size: 12.5px;
-        color: #dbe7f5;
     }
 
     .techs {

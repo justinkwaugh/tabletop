@@ -125,6 +125,14 @@ Developing techs in 2100. Player 1 (the Starfarers) holds Scout Ships and Gifted
 - **The deal.** When everyone has finished, a Player who bought nothing discards their hand and history says so; every hand is filled again, level I only, drawn for them in initiative order. The console shows the new hand to its owner and only the backs (type and level) to others.
 - **Protected view.** With Options → Protected mode, choosing Player 2 shows Player 1's hand as backs and the decks' cards hidden; history names a drawn card only to its drawer.
 
+## Campaign fleet
+
+Developing techs in 2100. Player 1 (the Starfarers) has eight ships: the REs Kepler at Sirius, Kuiper on its way to Vega (2 turns) and Copernicus at Luhman 16, having explored; the CVs Nova on its way to Tau Ceti (1 turn), Voyager at Wolf-359 with 3 damage, Polaris at Sol carrying 2 settlements, Orion at Barnard's Star with 1 damage, and Andromeda at Alpha Centauri carrying a settlement and Food.
+
+- **The row.** The console's Ships row reads `3 RE · 5 CV` with a chevron; clicking it folds the ships away and back.
+- **The counters.** One flow: the REs by exploration value (Copernicus, Kuiper, Kepler), then the CVs by size (Andromeda, Orion, Polaris, Voyager, Nova), smallest first. Kuiper says `arrives in 2` and Nova `arrives in 1`, both in a dashed outline; Voyager and Orion say `crippled`; Copernicus `explored`.
+- **Pointing.** Clicking Voyager turns the main area from the tech chart to the star map, zooms into Wolf-359 and outlines Voyager in gold in the panel.
+
 ## Campaign card collection
 
 Developing techs in 2100 with a late-game collection. Player 1 (the Starfarers) owns nine cards: Robo Miners, Crew Focus, Engine Upgrades, Freight Haulers and Military Academy, Pioneers, Creative, Neural Interface and Aquatic Species (29 VP). As Engineer they hold two fleet cards, Scout Ships and Quantum Sensors, and Gifted Artists. The Givers own Cunning and Sensor Upgrades.

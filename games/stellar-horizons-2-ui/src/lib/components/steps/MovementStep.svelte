@@ -27,7 +27,7 @@
                 ship={shipDefinition(ship.shipId)}
                 named={false}
                 selected={selected?.shipId === ship.shipId}
-                onclick={() => gameSession.selectShip(ship.shipId)}
+                onclick={() => gameSession.chooseShipToMove(ship.shipId)}
             >
                 <CargoHold {gameState} {ship} />
             </ShipTile>

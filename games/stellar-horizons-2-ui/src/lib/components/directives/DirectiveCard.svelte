@@ -7,15 +7,18 @@
     } from '$lib/utils/directives.js'
 
     // A directive marker as printed: its type, its condition and its points; or, for a
-    // directive the viewer may not see, its back.
+    // directive the viewer may not see, its back. `wide` lays it out as a short strip, the
+    // points beside the text, filling the width it is given.
     let {
         directiveId,
         size = 116,
+        wide = false,
         note,
         onclick
     }: {
         directiveId?: string
         size?: number
+        wide?: boolean
         note?: string
         onclick?: () => void
     } = $props()
@@ -27,11 +30,13 @@
 
 {#snippet face()}
     {#if directive && type}
-        <span class="type" style:color={DIRECTIVE_TYPE_COLORS[type]}
-            >{DIRECTIVE_TYPE_LABELS[type]}</span
-        >
-        <span class="text">{text}</span>
-        {#if note}<span class="note">{note}</span>{/if}
+        <span class="body">
+            <span class="type" style:color={DIRECTIVE_TYPE_COLORS[type]}
+                >{DIRECTIVE_TYPE_LABELS[type]}</span
+            >
+            <span class="text">{text}</span>
+            {#if note}<span class="note">{note}</span>{/if}
+        </span>
         <span class="points" title="{directive.points} VP">{directive.points}</span>
     {:else}
         <span class="back-title">Directive</span>
@@ -42,6 +47,7 @@
     <button
         type="button"
         class="directive"
+        class:wide
         class:back={!directive}
         style:--size="{size}px"
         aria-label={directive ? `${text}, ${directive.points} VP` : 'Directive'}
@@ -50,6 +56,7 @@
 {:else}
     <span
         class="directive"
+        class:wide
         class:back={!directive}
         style:--size="{size}px"
         role="img"
@@ -79,6 +86,42 @@
 
     button.directive {
         cursor: pointer;
+    }
+
+    .body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .directive.wide {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        width: auto;
+        min-height: 0;
+        padding: 7px 10px;
+        text-align: left;
+    }
+
+    .wide .body {
+        flex: 1;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .wide .points {
+        position: static;
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        font-size: 13px;
+    }
+
+    .wide.back {
+        justify-content: center;
+        padding: 10px;
     }
 
     .type {

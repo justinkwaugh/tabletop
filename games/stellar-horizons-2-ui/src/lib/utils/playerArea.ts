@@ -9,6 +9,8 @@ import {
     maxShips,
     currentCenturyRow,
     isCampaign,
+    isCrewVehicle,
+    isCrippled,
     settlementVictory,
     shipDefinition,
     systemPopulation,
@@ -76,9 +78,11 @@ export interface ConsoleBase {
 }
 
 // Ships are listed under the system they are at, or are travelling to.
-export interface ConsoleShipGroup {
-    systemId: string
-    ships: ShipState[]
+// A ship as the console shows it: its counter, with what the counter does not show.
+export interface ConsoleShip {
+    ship: ShipState
+    crewVehicle: boolean
+    crippled: boolean
 }
 
 export interface FieldProgress {
@@ -95,7 +99,7 @@ export interface FactionConsoleView {
     bases: ConsoleBase[]
     anomalyIds: string[]
     settlementGoal?: SettlementVictory
-    fleet: ConsoleShipGroup[]
+    fleet: ConsoleShip[]
     techs: FieldProgress[]
     sheet?: CampaignSheet
 }
@@ -206,14 +210,25 @@ function campaignSheet(
     }
 }
 
-function fleet(state: HydratedStellarHorizonsGameState, playerId: string): ConsoleShipGroup[] {
-    const ships = state.shipsOf(playerId)
-    return state.systems
-        .map((system) => ({
-            systemId: system.systemId,
-            ships: ships
-                .filter((ship) => ship.systemId === system.systemId)
-                .toSorted((a, b) => a.transit - b.transit)
+// Robotic explorers by exploration value, then crew vehicles by size; ships of one size by
+// exploration value, then name. Smallest first throughout.
+function fleet(state: HydratedStellarHorizonsGameState, playerId: string): ConsoleShip[] {
+    const order = (entry: ConsoleShip) => {
+        const definition = shipDefinition(entry.ship.shipId)
+        return [Number(entry.crewVehicle), definition.size, definition.exploration]
+    }
+    return state
+        .shipsOf(playerId)
+        .map((ship) => ({
+            ship,
+            crewVehicle: isCrewVehicle(shipDefinition(ship.shipId)),
+            crippled: isCrippled(state, ship)
         }))
-        .filter((group) => group.ships.length > 0)
+        .toSorted((a, b) => {
+            const [first, second] = [order(a), order(b)]
+            return (
+                first.map((value, index) => value - second[index]).find(Boolean) ??
+                shipDefinition(a.ship.shipId).name.localeCompare(shipDefinition(b.ship.shipId).name)
+            )
+        })
 }

@@ -122,6 +122,17 @@
             : undefined
     })
 
+    // The rectangle around the given systems' hexes on the board, if any are on it.
+    function frameRect(systemIds: readonly string[]) {
+        const frames = layout.frames.filter((frame) => systemIds.includes(frame.systemId))
+        if (frames.length === 0) return undefined
+        const left = Math.min(...frames.map((frame) => frame.center.x - frame.width / 2))
+        const top = Math.min(...frames.map((frame) => frame.center.y - frame.height / 2))
+        const right = Math.max(...frames.map((frame) => frame.center.x + frame.width / 2))
+        const bottom = Math.max(...frames.map((frame) => frame.center.y + frame.height / 2))
+        return { x: left, y: top, width: right - left, height: bottom - top }
+    }
+
     // The view before zooming in, restored on the way out. A map shown while already zoomed
     // (after the tech chart) has no earlier view, so it fits the whole map instead.
     let restoreMapView: { wrapper: ScalingWrapper; restore: () => void } | undefined
@@ -160,11 +171,40 @@
         })
     })
 
+    // Systems to frame with no zoom to leave first: frame them at once.
+    $effect(() => {
+        const wrapper = mapWrapper
+        const request = session.frameRequest
+        if (!wrapper || !request || session.focusedSystemId) return
+        untrack(() => {
+            const framed = frameRect(request.systemIds)
+            session.frameRequest = undefined
+            if (framed) {
+                wrapper.focusRect(framed, {
+                    animate: true,
+                    duration: focusDuration,
+                    maxScale: 1.5,
+                    padding: FOCUS_PADDING
+                })
+            }
+        })
+    })
+
     $effect(() => {
         const wrapper = mapWrapper
         if (!wrapper || !session.focusClosing) return
         const timer = untrack(() => {
-            if (restoreMapView?.wrapper === wrapper) {
+            const framed = frameRect(session.frameRequest?.systemIds ?? [])
+            session.frameRequest = undefined
+            if (framed) {
+                // Leaving to show a moving ship's destinations frames them instead.
+                wrapper.focusRect(framed, {
+                    animate: true,
+                    duration: focusDuration,
+                    maxScale: 1.5,
+                    padding: FOCUS_PADDING
+                })
+            } else if (restoreMapView?.wrapper === wrapper) {
                 restoreMapView.restore()
             } else {
                 wrapper.fitToContent({ animate: true, duration: focusDuration })
@@ -191,6 +231,13 @@
     function choose(next: TableView) {
         chosenView = { phase: session.actingPhase, view: next }
     }
+
+    // A system brought into focus (a ship picked from a console, say) needs the star map.
+    $effect(() => {
+        if (session.focusedSystemId && !session.focusClosing && untrack(() => view) !== 'map') {
+            untrack(() => choose('map'))
+        }
+    })
 </script>
 
 {#snippet fullscreenControls()}

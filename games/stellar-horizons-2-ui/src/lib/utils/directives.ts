@@ -91,10 +91,10 @@ export function directiveProgress(
         : `${total.done} of ${total.needed} this turn`
 }
 
-// The faction's goal as printed: "4 anomaly or survey", or "5 of any type".
+// The type a faction's goal needs: "anomaly or survey", or "any type".
 export function goalTypes(types: readonly DirectiveType[]): string {
     return types.length === 0
-        ? 'of any type'
+        ? 'any type'
         : types.map((type) => DIRECTIVE_TYPE_LABELS[type].toLowerCase()).join(' or ')
 }
 

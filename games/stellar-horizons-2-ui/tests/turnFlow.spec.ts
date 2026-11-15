@@ -97,7 +97,9 @@ test('the phases of a decade are played one player at a time, in the order the r
     await createGame(page)
     const names = await page.evaluate(() => {
         const session = window.stellarSession
-        return session.gameState.initiativeOrder().map((playerId) => session.getPlayerName(playerId))
+        return session.gameState
+            .initiativeOrder()
+            .map((playerId) => session.getPlayerName(playerId))
     })
     const order = page.getByRole('list', { name: /Order of play this phase|Players in this phase/ })
     const entries = order.getByRole('listitem')
@@ -293,6 +295,13 @@ test('clicking a system name zooms into it with a details panel, and Back return
     await expect(panel).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(panel).toHaveCount(0)
+
+    // Clicking the title of the system in focus zooms back out.
+    await page.getByRole('button', { name: 'Zoom into Sol' }).click()
+    await expect(panel).toBeVisible()
+    await page.getByRole('button', { name: 'Zoom out of Sol' }).click()
+    await expect(panel).toHaveCount(0)
+    await expect.poll(mapWidth).toBeCloseTo(fittedWidth, 0)
 })
 
 test('a ship can be chosen from the zoomed system panel', async ({ page }) => {
@@ -397,4 +406,30 @@ test('entering the movement phase zooms back out to the whole map', async ({ pag
     await expect
         .poll(() => page.evaluate(() => window.stellarSession.focusedSystemId))
         .toBeUndefined()
+})
+
+test('choosing a ship to move while zoomed in zooms out to show its destinations', async ({
+    page
+}) => {
+    await createGame(page)
+    await buildProbeAndReachMovement(page)
+    const mapWidth = () =>
+        page
+            .locator('svg[aria-label="Star map"]')
+            .evaluate((svg) => svg.getBoundingClientRect().width)
+    const fittedWidth = await mapWidth()
+    await page.getByRole('button', { name: 'Zoom into Sol' }).click()
+    await expect(page.getByRole('button', { name: 'Back to map' })).toBeVisible()
+    await page.locator('.sh-step').getByRole('button', { name: 'Kepler' }).click()
+    await expect(page.getByRole('button', { name: 'Back to map' })).toHaveCount(0)
+    await expect
+        .poll(() => page.evaluate(() => window.stellarSession.focusedSystemId))
+        .toBeUndefined()
+    const destinations = page.getByRole('button', { name: /^Move to / })
+    await expect(destinations.first()).toBeVisible()
+    // Here Kepler reaches most of this small map, so the frame is close to the fitted view.
+    await expect.poll(mapWidth).toBeLessThan(fittedWidth * 1.5)
+    for (const destination of await destinations.all()) {
+        await expect(destination).toBeInViewport()
+    }
 })
