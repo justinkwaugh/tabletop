@@ -159,11 +159,11 @@ test('The end of round steps the round and brightens the railroad it makes avail
     const { rounds, hops, orange }: { rounds: string[]; hops: number; orange: number[] } =
         JSON.parse(seen)
     if (!onPhone()) {
-        expect(rounds).toEqual(['Round 1', 'Round 2'])
+        expect(rounds).toEqual(['Round 1, Red and Blue arrive', 'Round 2, Orange arrives'])
         expect(hops).toBeGreaterThan(2)
     }
     // Orange's entry joins unseen and brightens through the values between.
     expect(orange).toContain(0)
     expect(orange.some((opacity) => opacity > 0.3 && opacity < 0.95)).toBe(true)
-    await expect(entries.getByRole('button', { name: /^Orange: 27 left, 0 track/ })).toBeVisible()
+    await expect(entries.getByRole('button', { name: /^Orange: 27 left$/ })).toBeVisible()
 })

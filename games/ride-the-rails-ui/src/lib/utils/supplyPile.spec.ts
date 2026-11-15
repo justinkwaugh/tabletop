@@ -113,12 +113,19 @@ describe('a pile’s footprint', () => {
         }
     })
 
-    it('fits a desktop card’s 42 px and the phone rail’s 57 px', () => {
+    it('fills a desktop card’s body, 1 px clear of its head and its foot, six columns wide', () => {
+        // The 64 px card less its 1 px edges and its 14 px head is 48 px tall.
         const desktop = pileFootprint('columns')
-        expect(desktop.height * PILE_PIXELS_PER_UNIT.columns).toBeLessThanOrEqual(43)
-        expect(desktop.width * PILE_PIXELS_PER_UNIT.columns).toBeLessThanOrEqual(60)
+        const scale = PILE_PIXELS_PER_UNIT.columns
+        expect(desktop.height * scale).toBeCloseTo(48 - 2 * 1, 6)
+        // The narrowest card, 128 px less its edges and padding, holds all six columns.
+        expect(desktop.width * scale).toBeLessThanOrEqual(128 - 2 - 11)
+        // One scale for cubes and gaps alike, so the gaps grow with the cubes.
+        expect(PILE_CUBE.side * scale).toBeCloseTo(8.17, 2)
+    })
+
+    it('fits the phone rail’s 57 px', () => {
         const rail = pileFootprint('rows')
         expect(rail.width * PILE_PIXELS_PER_UNIT.rows).toBeLessThanOrEqual(57 - 2 * 3)
-        expect(PILE_CUBE.side * PILE_PIXELS_PER_UNIT.columns).toBeCloseTo(7.5, 1)
     })
 })

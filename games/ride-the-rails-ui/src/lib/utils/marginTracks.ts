@@ -1,10 +1,12 @@
 import {
     RAILROAD_INTRODUCTIONS,
+    ROUND_COUNT,
     supplyOf,
-    trackCount,
     type HydratedRideTheRailsGameState,
+    type MapId,
     type RailroadId
 } from '@tabletop/ride-the-rails'
+import { railroadStyle } from './railroadStyle.js'
 
 export type Shareholding = {
     playerId: string
@@ -14,7 +16,6 @@ export type Shareholding = {
 export type RailroadCard = {
     railroadId: RailroadId
     supply: number
-    trackCount: number
     shareholders: Shareholding[]
 }
 
@@ -33,6 +34,73 @@ export function supplyText(supply: number): string {
 
 export function romanRound(round: number): string {
     return ROMAN_NUMERALS[round - 1] ?? String(round)
+}
+
+export type RoundTicket = {
+    round: number
+    numeral: string
+    /** The railroads the round makes available, in R-1.4 order. */
+    arrivals: RailroadId[]
+    /** Its accessible name: the round, and the railroads that arrive in it. */
+    label: string
+    /** The arrivals' colours; a round with none keeps the plain light ticket. */
+    paint: TicketPaint | undefined
+}
+
+export type TicketPaint = {
+    /** One railroad's colour, or the railroads side by side, left to right in R-1.4 order. */
+    background: string
+    /** The numeral's colour: one railroad's own ink, or light ink on a split. */
+    ink: string
+    /** A dark halo round a split's numeral, so it reads on every part of the fill. */
+    halo: boolean
+}
+
+/** A ticket's fill and numeral for the railroads its round makes available (R-1.4). */
+export function ticketPaint(arrivals: readonly RailroadId[]): TicketPaint | undefined {
+    const styles = arrivals.map(railroadStyle)
+    const first = styles[0]
+    if (!first) return undefined
+    const share = 100 / styles.length
+    const background =
+        styles.length === 1
+            ? first.fill
+            : `linear-gradient(90deg, ${styles
+                  .map((style, index) => `${style.fill} ${index * share}% ${(index + 1) * share}%`)
+                  .join(', ')})`
+    // A split takes light ink with a dark halo, which reads on any pair of railroad colours.
+    return styles.length === 1
+        ? { background, ink: first.ink, halo: false }
+        : { background, ink: 'var(--rtr-ink-light)', halo: true }
+}
+
+/** "Red", "Red and Blue", "Red, Blue and Orange". */
+function listed(names: readonly string[]): string {
+    return names.length > 1
+        ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+        : names.join('')
+}
+
+// R-2.1, R-1.4: rounds I to VI, each with the railroads it makes available on the map, in their
+// colours.
+export function roundTickets(mapId: MapId): RoundTicket[] {
+    return Array.from({ length: ROUND_COUNT }, (_, index): RoundTicket => {
+        const round = index + 1
+        const arrivals = RAILROAD_INTRODUCTIONS[mapId]
+            .filter(({ availableFromRound }) => availableFromRound === round)
+            .map(({ railroadId }) => railroadId)
+        const names = arrivals.map((railroadId) => railroadStyle(railroadId).name)
+        const arriving = names.length
+            ? `, ${listed(names)} ${names.length > 1 ? 'arrive' : 'arrives'}`
+            : ''
+        return {
+            round,
+            numeral: romanRound(round),
+            arrivals,
+            label: `Round ${round}${arriving}`,
+            paint: ticketPaint(arrivals)
+        }
+    })
 }
 
 // R-2.1, R-6.1: the round the table shows; once round 6 ends the game no round is current, so
@@ -54,7 +122,6 @@ export function railroadCards(
         .map(({ railroadId }) => ({
             railroadId,
             supply: supplyOf(state, railroadId),
-            trackCount: trackCount(state.track, railroadId),
             shareholders: turnOrder
                 .map((playerId) => ({
                     playerId,

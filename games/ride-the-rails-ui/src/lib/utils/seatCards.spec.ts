@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PhaseName } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
-import { pendingGains, seatCards, seatInitials } from './seatCards.js'
+import { pendingGains, seatCards } from './seatCards.js'
 
 describe('seat cards', () => {
     const state = buildState({
@@ -72,38 +72,5 @@ describe('pending gains', () => {
             ['p1', 5],
             ['p2', 2]
         ])
-    })
-})
-
-describe('seat initials', () => {
-    it('takes one letter, or as many as tell seats that share one apart', () => {
-        const initials = seatInitials([
-            { playerId: 'a', name: 'Hattie' },
-            { playerId: 'b', name: 'ezra' },
-            { playerId: 'c', name: 'Mabel' },
-            { playerId: 'd', name: 'Max' },
-            { playerId: 'e', name: 'Hank' }
-        ])
-        expect([...initials.values()]).toEqual(['Hat', 'E', 'Mab', 'Max', 'Han'])
-    })
-
-    it('gives every seat its own mark', () => {
-        const initials = seatInitials([
-            { playerId: 'a', name: 'Anna' },
-            { playerId: 'b', name: 'Andy' },
-            { playerId: 'c', name: 'Sam' },
-            { playerId: 'd', name: ' sam ' },
-            { playerId: 'e', name: 'Ann' }
-        ])
-        expect([...initials.values()]).toEqual(['A1', 'And', 'S3', 'S4', 'A5'])
-    })
-
-    it('shows the seat number for a blank name', () => {
-        const initials = seatInitials([
-            { playerId: 'a', name: 'Ruth' },
-            { playerId: 'b', name: '   ' },
-            { playerId: 'c', name: '' }
-        ])
-        expect([...initials.values()]).toEqual(['R', '2', '3'])
     })
 })

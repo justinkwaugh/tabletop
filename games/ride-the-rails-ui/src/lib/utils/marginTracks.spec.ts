@@ -4,13 +4,23 @@ import {
     LOCOMOTIVES_PER_RAILROAD,
     PhaseName,
     RAILROAD_IDS,
+    RAILROAD_INTRODUCTIONS,
     supplyOf,
     usaCity,
     type HexId
 } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
-import { ordinal, railroadCards, romanRound, shownRoundNumber } from './marginTracks.js'
+import {
+    ordinal,
+    railroadCards,
+    romanRound,
+    roundTickets,
+    shownRoundNumber,
+    ticketPaint
+} from './marginTracks.js'
+import { contrastRatio } from '$lib/testing/colourMetrics.js'
+import { paletteNames, tokenValue } from '$lib/testing/paletteSource.js'
 
 afterEach(() => {
     disposeSessions()
@@ -49,10 +59,6 @@ describe('the railroad cards', () => {
         expect(strip[0].supply).toBe(LOCOMOTIVES_PER_RAILROAD - 3 - 2)
     })
 
-    it('counts each railroad’s track on the map', () => {
-        expect(strip.map((entry) => entry.trackCount)).toEqual([2, 0, 1])
-    })
-
     it('lists the shareholders in turn order with their shares', () => {
         expect(strip[0].shareholders).toEqual([
             { playerId: 'p1', shares: 2 },
@@ -86,8 +92,92 @@ describe('the railroad cards', () => {
 })
 
 describe('the round tickets', () => {
+    const tickets = roundTickets('map.usa')
+
     it('name rounds I to VI (R-2.1)', () => {
         expect([1, 2, 3, 4, 5, 6].map(romanRound)).toEqual(['I', 'II', 'III', 'IV', 'V', 'VI'])
+        expect(tickets.map((ticket) => ticket.round)).toEqual([1, 2, 3, 4, 5, 6])
+        expect(tickets.map((ticket) => ticket.numeral)).toEqual(['I', 'II', 'III', 'IV', 'V', 'VI'])
+    })
+
+    it('carry the railroads each round makes available, in R-1.4 order (R-1.4)', () => {
+        expect(tickets.map((ticket) => ticket.arrivals)).toEqual([
+            ['railroad.red', 'railroad.blue'],
+            ['railroad.orange'],
+            ['railroad.yellow'],
+            ['railroad.purple'],
+            ['railroad.black'],
+            []
+        ])
+    })
+
+    it('take their arrivals from the map’s introductions, every railroad once', () => {
+        const arrivals = tickets.flatMap((ticket) => ticket.arrivals)
+        expect(arrivals).toEqual(
+            RAILROAD_INTRODUCTIONS['map.usa'].map((introduction) => introduction.railroadId)
+        )
+    })
+
+    it('fill each ticket with the colour its round adds, round I split Red and Blue', () => {
+        expect(tickets.map((ticket) => ticket.paint?.background)).toEqual([
+            'linear-gradient(90deg, var(--rtr-railroad-red) 0% 50%, var(--rtr-railroad-blue) 50% 100%)',
+            'var(--rtr-railroad-orange)',
+            'var(--rtr-railroad-yellow)',
+            'var(--rtr-railroad-purple)',
+            'var(--rtr-railroad-black)',
+            undefined
+        ])
+    })
+
+    it('write each numeral in its railroad’s ink, and round I’s light with a halo', () => {
+        expect(tickets.map((ticket) => ticket.paint?.ink)).toEqual([
+            'var(--rtr-ink-light)',
+            'var(--rtr-railroad-orange-ink)',
+            'var(--rtr-railroad-yellow-ink)',
+            'var(--rtr-railroad-purple-ink)',
+            'var(--rtr-railroad-black-ink)',
+            undefined
+        ])
+        expect(tickets.map((ticket) => ticket.paint?.halo)).toEqual([
+            true,
+            false,
+            false,
+            false,
+            false,
+            undefined
+        ])
+    })
+
+    it.each(paletteNames())(
+        'reads round I’s light numeral on Red and on Blue in the %s palette',
+        (palette) => {
+            for (const fill of ['rtr-railroad-red', 'rtr-railroad-blue']) {
+                expect(
+                    contrastRatio(tokenValue(palette, 'rtr-ink-light'), tokenValue(palette, fill))
+                ).toBeGreaterThanOrEqual(4.5)
+            }
+        }
+    )
+
+    it('splits any round that adds more than one railroad the same way', () => {
+        expect(ticketPaint(['railroad.orange', 'railroad.yellow'])).toEqual({
+            background:
+                'linear-gradient(90deg, var(--rtr-railroad-orange) 0% 50%, var(--rtr-railroad-yellow) 50% 100%)',
+            ink: 'var(--rtr-ink-light)',
+            halo: true
+        })
+        expect(ticketPaint([])).toBeUndefined()
+    })
+
+    it('name each round and the railroads it makes available', () => {
+        expect(tickets.map((ticket) => ticket.label)).toEqual([
+            'Round 1, Red and Blue arrive',
+            'Round 2, Orange arrives',
+            'Round 3, Yellow arrives',
+            'Round 4, Purple arrives',
+            'Round 5, Black arrives',
+            'Round 6'
+        ])
     })
 })
 

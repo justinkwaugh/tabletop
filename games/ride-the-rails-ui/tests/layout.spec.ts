@@ -3,7 +3,7 @@ import { board, collectPageErrors, litHexes, openScenario, settled } from './hel
 
 // The contract's Desktop and Phone layouts: the board cropped to the land, one railroad card (on a
 // phone, one supply pile on the rail) per railroad available this round, piles of cubes with no
-// number, and a press that spotlights the railroad and, on a phone, opens its track and holders.
+// number, and a press that spotlights the railroad and, on a phone, opens its holders.
 collectPageErrors()
 
 const onPhone = () => test.info().project.use.isMobile === true
@@ -60,21 +60,68 @@ test('Pressing a railroad holds its spotlight; a second press lets it go', async
     expect(await page.evaluate(() => window.rtrSession.heldRailroadId)).toBeUndefined()
 })
 
-test('On a phone a pile opens its railroad’s track count and holders', async ({ page }) => {
-    test.skip(!onPhone(), 'Desktop cards show the track and holders on the card.')
+test('A desktop card shows its name and its pile alone, the cubes as large as it holds', async ({
+    page
+}) => {
+    test.skip(onPhone(), 'A phone’s rail shows the piles alone.')
+    await openScenario(page, 'Purple arrives')
+    // Ada and Ben hold Orange, and it has track on the map; the card shows neither.
+    const orangeState = await page.evaluate(() => {
+        const state = window.rtrSession.gameState
+        return {
+            held: state.turnManager.turnOrder
+                .map((playerId) => state.getPlayerState(playerId).sharesOf('railroad.orange'))
+                .reduce((sum, shares) => sum + shares, 0),
+            track: Object.values(state.track).filter((railroads) =>
+                railroads.includes('railroad.orange')
+            ).length
+        }
+    })
+    expect(orangeState.held).toBeGreaterThan(0)
+    expect(orangeState.track).toBeGreaterThan(0)
+    const orange = railroads(page).getByRole('button', { name: /^Orange: / })
+    await expect(orange).toHaveAccessibleName(/^Orange: \d+ left$/)
+    await expect(orange).toHaveText(/^\s*Orange\s*$/)
+    // The card keeps its height, and a full pile's six columns of five fill the body below the
+    // name, 1 px clear of it and of the card's foot.
+    for (const card of await railroads(page).getByRole('button').all()) {
+        const fit = await card.evaluate((element) => {
+            const edge = element.getBoundingClientRect()
+            const head = element.firstElementChild?.getBoundingClientRect()
+            const pile = element.querySelector('[data-supply-pile]')?.getBoundingClientRect()
+            const cube = element.querySelector('[data-supply-pile] rect')?.getBoundingClientRect()
+            return {
+                height: edge.height,
+                pile: pile?.height ?? 0,
+                clearOfHead: head && pile ? pile.top - head.bottom : -1,
+                clearOfFoot: pile ? edge.bottom - 1 - pile.bottom : -1,
+                clearOfSides: pile ? Math.min(pile.left - edge.left, edge.right - pile.right) : -1,
+                cube: cube?.width ?? 0
+            }
+        })
+        expect(fit.height).toBeCloseTo(64, 0)
+        expect(fit.pile).toBeCloseTo(46, 0)
+        expect(fit.clearOfHead).toBeGreaterThanOrEqual(0.5)
+        expect(fit.clearOfFoot).toBeGreaterThanOrEqual(0.5)
+        expect(fit.clearOfSides).toBeGreaterThan(5)
+        if (fit.cube) expect(fit.cube).toBeCloseTo(8.17, 1)
+    }
+})
+
+test('On a phone a pile opens its railroad’s holders', async ({ page }) => {
+    test.skip(!onPhone(), 'The desktop seat cards show the holders.')
     await openScenario(page, 'Purple arrives')
     const popover = page.getByRole('note', { name: 'Orange railroad' })
     await expect(popover).toHaveCount(0)
-    await railroads(page)
-        .getByRole('button', { name: /^Orange: / })
-        .tap()
+    // The seat cards are in a drawer off screen, so the pile's name lists the holders too.
+    const orange = railroads(page).getByRole('button', { name: /^Orange: / })
+    await expect(orange).toHaveAccessibleName(/^Orange: \d+ left, shares (?=.*Ada 1)(?=.*Ben 2)/)
+    await orange.tap()
     await expect(popover).toBeVisible()
-    await expect(popover).toContainText('track 13')
+    await expect(popover).not.toContainText('track')
     await expect(popover).toContainText(/Ada\s*1/)
     await expect(popover).toContainText(/Ben\s*2/)
-    await railroads(page)
-        .getByRole('button', { name: /^Orange: / })
-        .tap()
+    await orange.tap()
     await expect(popover).toHaveCount(0)
 })
 

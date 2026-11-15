@@ -14,8 +14,8 @@
 
 <!-- Contract, Phone layout: a rail down the board's right edge, outside the scaling, with one
      supply pile per railroad available this round (R-1.4), newest last. A press holds that
-     railroad's spotlight and opens its track count and holders beside the pile; a second press
-     closes both. -->
+     railroad's spotlight and opens its holders beside the pile (the seat cards are in a drawer
+     off screen); a second press closes both. -->
 <div class="phone-rail flex sm:hidden" role="group" aria-label="Railroads">
     {#each cards as card, index (card.railroadId)}
         {@const style = railroadStyle(card.railroadId)}
@@ -26,7 +26,11 @@
             style:opacity={card.arriving ? 0 : undefined}
             use:flights.register={card.entryKey}
         >
-            <RailroadSpotlightControl railroadId={card.railroadId} label={card.label} class="pile">
+            <RailroadSpotlightControl
+                railroadId={card.railroadId}
+                label={card.pileLabel}
+                class="pile"
+            >
                 <SupplyPile railroadId={card.railroadId} supply={card.supply} arrangement="rows" />
             </RailroadSpotlightControl>
             {#if open}
@@ -36,7 +40,6 @@
                         style:background={style.fill}
                         style:color={style.ink}>{style.name}</span
                     >
-                    <span class="track">track <b>{card.trackCount}</b></span>
                     {#each card.shareholders as holding (holding.playerId)}
                         <span class="holder">
                             <SeatDot playerId={holding.playerId} />
@@ -108,17 +111,8 @@
         font-size: 11px;
     }
 
-    .popover .track,
     .popover .holder {
         padding: 0 8px;
-    }
-
-    .track {
-        color: var(--rtr-ink-muted);
-    }
-
-    .track b {
-        color: var(--rtr-ink);
     }
 
     .holder {

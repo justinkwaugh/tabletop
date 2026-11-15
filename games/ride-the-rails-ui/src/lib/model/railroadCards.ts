@@ -13,7 +13,10 @@ export type ShownRailroadCard = RailroadCard & {
     arriving: boolean
     /** Its card or rail pile, which the end of round brightens. */
     entryKey: string
+    /** The desktop card's accessible name. */
     label: string
+    /** The phone rail pile's accessible name. */
+    pileLabel: string
 }
 
 /**
@@ -40,19 +43,27 @@ export function shownRailroadCards(session: RideTheRailsGameSession): ShownRailr
             ...shown,
             arriving: !settled.has(card.railroadId),
             entryKey: railroadEntryKey(card.railroadId),
-            label: railroadCardLabel(shown, (playerId) => session.getPlayerName(playerId))
+            label: railroadCardLabel(shown),
+            pileLabel: railroadPileLabel(shown, (playerId) => session.getPlayerName(playerId))
         }
     })
 }
 
-/** A card's accessible name: the pile shows its supply as cubes, so the name says it in words. */
-export function railroadCardLabel(
+/** A desktop card's accessible name: the pile shows its supply as cubes, so the name says it in words. */
+export function railroadCardLabel(card: RailroadCard): string {
+    return `${railroadStyle(card.railroadId).name}: ${supplyText(card.supply)}`
+}
+
+/**
+ * A phone rail pile's accessible name: its supply, and its holders, as the seat cards are in a
+ * drawer off screen there.
+ */
+export function railroadPileLabel(
     card: RailroadCard,
     nameOf: (playerId: string) => string
 ): string {
     const holders = card.shareholders
         .map((holding) => `${nameOf(holding.playerId)} ${holding.shares}`)
         .join(', ')
-    const name = railroadStyle(card.railroadId).name
-    return `${name}: ${supplyText(card.supply)}, ${card.trackCount} track${holders ? `, shares ${holders}` : ''}`
+    return `${railroadCardLabel(card)}${holders ? `, shares ${holders}` : ''}`
 }

@@ -19,12 +19,6 @@ const PAIR_GAP: Readonly<Record<PileArrangement, number>> = { columns: 3.5, rows
 /** Room round the cubes for their edge. */
 export const PILE_PAD = 0.5
 
-/** Screen pixels a pile unit: a desktop card's cube is 7.5 px, a rail's 8.6 px. */
-export const PILE_PIXELS_PER_UNIT: Readonly<Record<PileArrangement, number>> = {
-    columns: 0.82,
-    rows: 0.93
-}
-
 /** Where the `index`th column or row starts: a pitch a step, and the gap after every second. */
 function offset(index: number, pitch: number, gap: number): number {
     return index * pitch + Math.floor(index / 2) * gap
@@ -58,4 +52,19 @@ export function pileFootprint(arrangement: PileArrangement): RectangleDimensions
     const reach = (pick: (cube: Point) => number) =>
         Math.max(...cubes.map(pick)) + PILE_CUBE.side / 2 + PILE_PAD
     return { width: reach((cube) => cube.x), height: reach((cube) => cube.y) }
+}
+
+/**
+ * A desktop card's room for its pile: the 64 px card less its 1 px edges and its 14 px head, 1 px
+ * clear above and below.
+ */
+const CARD_PILE_HEIGHT = 64 - 2 * 1 - 14 - 2 * 1
+
+/**
+ * Screen pixels a pile unit, one scale for the cubes and the gaps between them. A desktop card's
+ * full pile is as tall as the card's room for it (a cube about 8.2 px); a rail's cube is 8.6 px.
+ */
+export const PILE_PIXELS_PER_UNIT: Readonly<Record<PileArrangement, number>> = {
+    columns: CARD_PILE_HEIGHT / pileFootprint('columns').height,
+    rows: 0.93
 }

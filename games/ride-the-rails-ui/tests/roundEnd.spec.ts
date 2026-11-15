@@ -35,7 +35,7 @@ async function shownRound(page: Page, round: number) {
         return
     }
     await expect(
-        page.getByRole('listitem', { name: `Round ${round}`, exact: true })
+        page.getByRole('listitem', { name: new RegExp(`^Round ${round}(,|$)`) })
     ).toHaveAttribute('aria-current', 'step')
 }
 
@@ -82,7 +82,7 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     // R-2.5.2, R-2.5.3: round 2 starts with Orange available, and phase 1 runs in reverse.
     expect(await roundNumber(page)).toBe(2)
     await shownRound(page, 2)
-    await expect(orange).toHaveAccessibleName(/^Orange: 27 left, 0 track/)
+    await expect(orange).toHaveAccessibleName(/^Orange: 27 left$/)
     expect(await activePlayerId(page)).toBe('p1')
     await expect(page.getByRole('button', { name: 'Orange, 27 left', exact: true })).toBeEnabled()
 
