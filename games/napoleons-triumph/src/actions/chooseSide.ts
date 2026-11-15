@@ -8,6 +8,11 @@ import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { legal } from '../model/legality.js'
 import { assignSides, sideChoice } from '../model/sides.js'
 
+export type ChooseSideMetadata = Type.Static<typeof ChooseSideMetadata>
+export const ChooseSideMetadata = Type.Object({
+    wonAtAuction: Type.Boolean()
+})
+
 export type ChooseSide = Type.Static<typeof ChooseSide>
 export const ChooseSide = Type.Evaluate(
     Type.Intersect([
@@ -15,6 +20,7 @@ export const ChooseSide = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.ChooseSide),
             playerId: Type.String(),
+            metadata: Type.Optional(ChooseSideMetadata),
             side: Type.Enum(Side)
         })
     ])
@@ -32,6 +38,7 @@ export class HydratedChooseSide
 {
     declare type: ActionType.ChooseSide
     declare playerId: string
+    declare metadata?: ChooseSideMetadata
     declare side: Side
 
     constructor(data: ChooseSide) {
@@ -43,6 +50,7 @@ export class HydratedChooseSide
         legal(chooserId === this.playerId, 'Another player chooses the army')
         legal(STARTING_MORALE[this.side] > handicap, 'That bid would leave the army with no morale')
         assignSides(state, this.playerId, this.side, handicap)
+        this.metadata = { wonAtAuction: state.auction !== undefined }
         state.auction = undefined
         // Each player now sees an army dealt from the same stream whichever side was chosen.
         this.revealsInfo = true

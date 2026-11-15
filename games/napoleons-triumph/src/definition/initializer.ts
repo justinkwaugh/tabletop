@@ -34,7 +34,7 @@ export class NapoleonsTriumphGameInitializer
 {
     readonly supportsStartingPositions = true
 
-    /** Position zero commands the Allies, who move first, unless it chooses an army or the armies are bid for. */
+    /** Position zero commands the Allies, who move first, unless, with no seats assigned, it chooses an army or the armies are bid for. */
     initializeGameState(
         game: Game,
         state: UninitializedGameState,
@@ -57,7 +57,9 @@ export class NapoleonsTriumphGameInitializer
                 })
         )
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
-        const sideSelection = sideSelectionOf(game.config)
+        // House ruling: at a table with assigned seats (a tournament) the seat decides the army, never a choice.
+        const sideSelection =
+            assignment === undefined ? sideSelectionOf(game.config) : SideSelection.Random
         const auction = sideSelection === SideSelection.Auction
         const napoleonsTriumphState: NapoleonsTriumphGameState = Object.assign(state, {
             players,

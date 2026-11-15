@@ -25,6 +25,11 @@ const WAITING: Record<AttackStep, string> = {
     [MachineState.Occupying]: 'to move in'
 }
 
+/** Rule 11, step 2: with nothing able to defend, the defender's one answer to the threat is to retreat. */
+export function onlyRetreatIsLeft(state: HydratedNapoleonsTriumphGameState): boolean {
+    return state.machineState === MachineState.DefenseResponse && !canDefend(state)
+}
+
 export function oddStepTakers(
     attack: Pick<Attack, 'counterAttackingUnitIds'>,
     decision: OddLossDecision
@@ -37,10 +42,7 @@ export function oddStepTakers(
 export function awaitedStep(attack: AttackState, state: HydratedNapoleonsTriumphGameState): string {
     const decision = attack.pending[0]
     if (decision?.kind !== DecisionKind.OddLoss && decision?.kind !== DecisionKind.ExcessLosses) {
-        const step = attackStep(attack)
-        return step === MachineState.DefenseResponse && !canDefend(state)
-            ? WAITING[MachineState.Retreating]
-            : WAITING[step]
+        return WAITING[onlyRetreatIsLeft(state) ? MachineState.Retreating : attackStep(attack)]
     }
     const army = ARMIES[state.sideOf(lossOwnerOf(attack, decision))].adjective
     if (decision.kind === DecisionKind.OddLoss) {

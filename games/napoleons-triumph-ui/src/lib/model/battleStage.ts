@@ -4,7 +4,6 @@ import {
     FeintEnd,
     MachineState,
     attackerLeadsInitially,
-    canDefend,
     canPressAttack,
     checkAttackDeclaration,
     checkDefenseLeaders,
@@ -75,7 +74,7 @@ import { movableCommander, retreatPlan, strengthOf, type RetreatPlan } from './r
 import type { StagedSelection } from './stagedSelection.js'
 import { copyOf } from './stateCopy.js'
 import type { Identified } from './gameOrder.js'
-import { oddStepTakers } from './battleWaiting.js'
+import { oddStepTakers, onlyRetreatIsLeft } from './battleWaiting.js'
 
 export type VisibleAttack = Omit<Attack, 'defensePlan' | 'attackPlan'> & {
     attackPlan?: { order?: ThreatOrder }
@@ -739,7 +738,8 @@ export function battleStageOf(
 ): BattleStage | undefined {
     switch (state.machineState) {
         case MachineState.DefenseResponse:
-            return !canDefend(state) || defenceSelection.value(selections.defence, 'retreating')
+            return onlyRetreatIsLeft(state) ||
+                defenceSelection.value(selections.defence, 'retreating')
                 ? retreatStage(state, selections)
                 : defenceStage(state, selections)
         case MachineState.DefenseDeclaration:
