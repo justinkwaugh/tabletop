@@ -481,16 +481,25 @@
         transform: translateY(-6px);
     }
 
-    /* R-3.2 The tray stands right of the picked card and points at it. */
+    /*
+     * R-3.2 The tray stands right of the picked card and points at it, as wide as what it holds, up
+     * to 36rem; the rest of the hand stands at the line's right end, so no card moves as the tray's
+     * contents change from step to step.
+     */
     .tray {
         position: relative;
-        flex: 0 1 36rem;
-        min-width: 14rem;
+        flex: 0 1 auto;
+        max-width: 36rem;
+    }
+
+    .tray + .hand-card {
+        margin-left: auto;
     }
 
     /* Contract, The trade picker: the board and its cards take the line's room. */
     .tray.holds-picker {
         flex: 1 1 44rem;
+        max-width: none;
     }
 
     .tray::before {
@@ -530,7 +539,12 @@
         .tray {
             order: 1;
             flex-basis: 100%;
+            max-width: none;
             margin-top: 0.5rem;
+        }
+
+        .tray + .hand-card {
+            margin-left: 0;
         }
 
         /*
