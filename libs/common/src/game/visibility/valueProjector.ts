@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
+import { escapePointerSegment } from '../../util/jsonPointer.js'
 import { SimultaneousAuctionVisibility } from '../components/auctions/simultaneous.js'
 import type { GameConfig } from '../model/gameConfig.js'
 import { visitPolicyExpression, type PolicyExpression } from './policyExpression.js'
@@ -113,10 +114,6 @@ function isObjectValue(value: unknown): value is Record<string, unknown> {
 
 function isObject(value: unknown): value is object {
     return typeof value === 'object' && value !== null
-}
-
-function escapePointerSegment(segment: string | number): string {
-    return String(segment).replaceAll('~', '~0').replaceAll('/', '~1')
 }
 
 function findPolicy<Root>(

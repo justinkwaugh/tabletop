@@ -61,6 +61,14 @@ marker treatment. They do not select a different rule model or color progression
 Classic uses through-town bars; central towns and Muted use dots. Unknown color keys require a supplied
 palette entry rather than silently receiving an unrelated fill.
 
+A path's track gauge draws in every track layer, the tile's strokes, crossing
+patches and map seam joins alike: standard track is solid ink, narrow track is
+dashed ink with its paper band only beside the dashes, so the tile shows between them (a crossing
+patch keeps its band continuous), and dual track is full-width ink with a paper
+centre line. Dashes run one and a half track widths with a one-width gap, long
+enough to read in the tile picker. Offboard spikes and port piers draw without a
+gauge.
+
 ## Family design review
 
 The [family-wide tile survey](../../research/18xx/tile-library-evidence.md) remains
@@ -69,7 +77,7 @@ same-number variants, varying token capacity, labels and staged revenue, longer
 color sequences, lanes/gauges/terminals, paired supply, and map-owned rights.
 The renderer supports T1's single-lane face vocabulary. Unsupported logical
 mechanisms must first be modeled explicitly; a drawing style cannot invent them.
-Halts, gauge/lane markings, partitions, and future labels remain later extensions.
+Halts, lane markings, partitions, and future labels remain later extensions.
 
 Colors are presentation data keyed by semantic color names, not a four-color
 upgrade algorithm. Caller-supplied layout handles different city arrangements;

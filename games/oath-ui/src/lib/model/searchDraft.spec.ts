@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
     Banner,
+    CURRENT_OATH_REVISION,
     HydratedSearchResolve,
     IMPERIAL_WARBANDS,
     MachineState,
@@ -568,8 +569,10 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
         })
         draft.keep(TENTS)
         expect(draft.otherSites).toEqual(['c2'])
-        expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
+        // Its own full site waits for a card there to discard first; the open site picked offers the play.
+        expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
         draft.setToSite('c2')
+        expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).toHaveBeenCalledWith(
             expect.objectContaining({ keptCardId: TENTS, play: SearchPlay.Site, toSiteId: 'c2' })
@@ -593,19 +596,20 @@ describe('R-5.1.4.I, R-11.10 — the site play is open when another site or a di
         expect(engineRefusal(session, sent)).toBeUndefined()
     })
 
-    it('the site play picked with nothing that opens it is judged at send: not sent, one reason, gone with the next pick', async () => {
+    it('the site play waits for a card there picked to discard first: not offered, not sent, no reason, offered with the pick', async () => {
         const { draft, sent } = await searchingWith([TENTS, TUTOR], [], {
             siteCards: SLUM_SITES,
             denizensBySite: { c1: FULL, c2: [], p1: [], h1: [] }
         })
         draft.keep(TENTS)
+        expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).not.toHaveBeenCalled()
         expect(draft.placement).toBeUndefined()
-        expect(draft.placementReason).toMatch(/capacity of 3/)
+        expect(draft.placementReason).toBeUndefined()
 
         draft.setDiscardFirst(FULL[0])
-        expect(draft.placementReason).toBeUndefined()
+        expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).toHaveBeenCalledWith(
             expect.objectContaining({ play: SearchPlay.Site, discardFirstCardId: FULL[0] })
@@ -657,14 +661,12 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
             banners: FAVOR_HELD
         })
         draft.keep(TENTS)
-        expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
-        await draft.choosePlacement({ play: SearchPlay.Site })
-        expect(sent).not.toHaveBeenCalled()
-        expect(draft.placementReason).toMatch(/c1 is at its capacity of 3/)
+        expect(draft.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
 
         // A card discarded at another site frees no room here.
         expect(draft.discardFirstOptions).toEqual(FULL)
         draft.setDiscardFirst(FULL[1])
+        expect(draft.placements.map((option) => option.play)).toContain(SearchPlay.Site)
         expect(draft.placementReason).toBeUndefined()
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).toHaveBeenCalledWith(
@@ -799,9 +801,12 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
         )
         expect(facedown).toBeDefined()
         draft.setSecondPlay(facedown?.key)
-        expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
+        // The pair is offered on the site play a pick opens; the play itself waits for the pick.
+        expect(draft.second?.key).toBe(facedown?.key)
+        expect(draft.placements).toEqual([])
 
         draft.setDiscardFirst(FULL[0])
+        expect(draft.placements.map((option) => option.play)).toEqual([SearchPlay.Site])
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -811,6 +816,128 @@ describe('R-5.1.4.I, R-11.10, Crop Rotation, New Growth — the site play is jud
             })
         )
         expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+})
+
+/**
+ * Hide choices that cannot be picked: at a full site, "To your site" waits for a card there picked to discard first.
+ * Dana is at the full Plains; the River, in the same region, holds two cards. Dana holds the People's Favor, searched
+ * with Crop Rotation, and kept Alchemist: from revision 32 each power discards one card first.
+ */
+describe('R-5.1.4.I, Crop Rotation — at a full site, "To your site" is offered once a card there is picked to discard first', () => {
+    const ALCHEMIST = 'denizen.arcane.alchemist'
+    const WOLVES = 'denizen.beast.wolves'
+    const TAVERN_SONGS = 'denizen.hearth.tavern-songs'
+    const ROWDY_PUB = 'denizen.hearth.rowdy-pub'
+    const GAMBLING_HALL = 'denizen.discord.gambling-hall'
+    const PLAINS_FULL = [WOLVES, TENTS, TAVERN_SONGS]
+    const SITES = { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+
+    async function atThePlains(plains: string[]) {
+        const searched = await searchingWith([ALCHEMIST, TUTOR], [], {
+            oathRevision: CURRENT_OATH_REVISION,
+            siteCards: SITES,
+            denizensBySite: { c1: plains, c2: [ROWDY_PUB, GAMBLING_HALL], p1: [], h1: [] },
+            banners: FAVOR_HELD,
+            ...carrying(CROP_ROTATION)
+        })
+        searched.draft.keep(ALCHEMIST)
+        return searched
+    }
+
+    const plays = (draft: Awaited<ReturnType<typeof searchingWith>>['draft']) =>
+        draft.placements.map((option) => option.play)
+
+    it('with no card picked to discard first, "To your site" is not offered', async () => {
+        const { draft } = await atThePlains(PLAINS_FULL)
+        expect(draft.toSite).toBeUndefined()
+        expect(draft.discardFirstOptions).toEqual([...PLAINS_FULL, ROWDY_PUB, GAMBLING_HALL])
+        expect(plays(draft)).toEqual([SearchPlay.Adviser, SearchPlay.Adviser, SearchPlay.Discard])
+        expect(draft.placementReason).toBeUndefined()
+    })
+
+    it('a River card picked frees no room at the Plains: still not offered', async () => {
+        const { draft } = await atThePlains(PLAINS_FULL)
+        draft.tapDiscardFirst(ROWDY_PUB)
+        expect(draft.discardFirsts).toEqual([ROWDY_PUB])
+        expect(plays(draft)).not.toContain(SearchPlay.Site)
+    })
+
+    it('Tents picked: "To your site" is offered, and the engine takes the play', async () => {
+        const { session, draft, sent } = await atThePlains(PLAINS_FULL)
+        draft.tapDiscardFirst(TENTS)
+        expect(plays(draft)).toEqual([
+            SearchPlay.Site,
+            SearchPlay.Adviser,
+            SearchPlay.Adviser,
+            SearchPlay.Discard
+        ])
+        expect(draft.siteGain).toBeDefined()
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                keptCardId: ALCHEMIST,
+                play: SearchPlay.Site,
+                discardFirstCardId: TENTS
+            })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('a River card and then Tents picked: offered', async () => {
+        const { draft } = await atThePlains(PLAINS_FULL)
+        draft.tapDiscardFirst(ROWDY_PUB)
+        draft.tapDiscardFirst(TENTS)
+        expect(draft.discardFirsts).toEqual([ROWDY_PUB, TENTS])
+        expect(plays(draft)).toContain(SearchPlay.Site)
+    })
+
+    it('Tents taken back: not offered again', async () => {
+        const { draft } = await atThePlains(PLAINS_FULL)
+        draft.tapDiscardFirst(TENTS)
+        expect(plays(draft)).toContain(SearchPlay.Site)
+        draft.tapDiscardFirst(TENTS)
+        expect(draft.discardFirsts).toEqual([])
+        expect(plays(draft)).not.toContain(SearchPlay.Site)
+    })
+
+    it('the Plains with room: "To your site" is offered at once, as before', async () => {
+        const { draft } = await atThePlains([WOLVES, TENTS])
+        expect(draft.discardFirsts).toEqual([])
+        expect(plays(draft)).toEqual([
+            SearchPlay.Site,
+            SearchPlay.Adviser,
+            SearchPlay.Adviser,
+            SearchPlay.Discard
+        ])
+    })
+
+    it('Salt the Earth ignores the capacity: "To your site" is offered at once, as before', async () => {
+        const SALT = 'denizen.discord.salt-the-earth'
+        const { session, draft, sent } = await searchingWith([SALT, TUTOR], [], {
+            oathRevision: CURRENT_OATH_REVISION,
+            siteCards: SITES,
+            denizensBySite: { c1: PLAINS_FULL, c2: [ROWDY_PUB, GAMBLING_HALL], p1: [], h1: [] },
+            banners: FAVOR_HELD,
+            ...carrying(CROP_ROTATION)
+        })
+        draft.keep(SALT)
+        expect(plays(draft)).toContain(SearchPlay.Site)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledWith(
+            expect.objectContaining({ keptCardId: SALT, play: SearchPlay.Site })
+        )
+        expect(engineRefusal(session, sent)).toBeUndefined()
+    })
+
+    it('the River picked on the map keeps its site play, judged with the reason it is refused', async () => {
+        const { draft, sent } = await atThePlains(PLAINS_FULL)
+        expect(draft.otherSites).toEqual(['c2'])
+        draft.setToSite('c2')
+        expect(plays(draft)).toContain(SearchPlay.Site)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).not.toHaveBeenCalled()
+        expect(draft.placementReason).toMatch(/c2 is at its capacity of 2/)
     })
 })
 

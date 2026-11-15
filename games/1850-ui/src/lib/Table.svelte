@@ -41,7 +41,6 @@
             operatingPrompt={titleActions}
             onFocusRoute={focusRoute}
             {privateOperationDescription}
-            {createRouteWorker}
         />
     {/snippet}
 </GameTable>

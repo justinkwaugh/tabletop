@@ -18,6 +18,9 @@ export interface GameConfigurator<C extends GameConfig = GameConfig> extends Par
         config: GameConfig,
         update: { id: string; value: string | boolean | number | null }
     ): void
+    // Whether the game form greys out an option, given what has been chosen so far, such as a
+    // count another option fixes. Options it leaves out stay enabled.
+    isOptionDisabled?(config: GameConfig, optionId: string): boolean
 }
 
 export abstract class BaseConfigurator<

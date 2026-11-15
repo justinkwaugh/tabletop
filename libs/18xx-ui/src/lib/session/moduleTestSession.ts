@@ -1,4 +1,6 @@
-import { createAction, type GameAction } from '@tabletop/common'
+import { assertExists, createAction, type GameAction } from '@tabletop/common'
+import type { TrainDepot, TrainInventory } from '@tabletop/18xx'
+import { TestCompanyId } from '@tabletop/18xx/testing'
 import type { ModuleSession } from './moduleSession.js'
 
 export function testSession<State, Rules>(
@@ -51,4 +53,16 @@ export function testSession<State, Rules>(
         }
     }
     return { session, applied }
+}
+
+/** Takes the depot's next ``definitionId`` train for the test company; returns its id. */
+export function companyTrain(
+    depot: TrainDepot,
+    inventory: TrainInventory,
+    definitionId: string
+): string {
+    const train = depot.nextTrain(inventory, definitionId)
+    assertExists(train)
+    depot.purchase(inventory, train.id, definitionId, { kind: 'company', companyId: TestCompanyId })
+    return train.id
 }

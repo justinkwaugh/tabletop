@@ -28,7 +28,7 @@
     import { historyPhaseChange, type PhaseChangePalette } from './historyPhaseChange.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import HistoryCallout from './HistoryCallout.svelte'
-    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
+    import { bankBreakCallout, descriptionCallouts } from './historyCallouts.js'
     let {
         money,
         group,
@@ -117,9 +117,7 @@
                         : undefined,
                 stockPlayerId,
                 callouts: [
-                    ...(description.certificateLimit
-                        ? [certificateLimitCallout(description.certificateLimit)]
-                        : []),
+                    ...descriptionCallouts(description),
                     ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
                 ],
                 routine: delta || bankBreak ? false : description.routine,
@@ -136,7 +134,10 @@
         })
     )
     const visible = $derived(
-        rows.filter((row) => !row.routine && (row.text || row.detail || row.order))
+        rows.filter(
+            (row) =>
+                !row.routine && (row.text || row.detail || row.detailLines?.length || row.order)
+        )
     )
 </script>
 
@@ -212,6 +213,7 @@
                         )}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
+                    {#each row.detailLines ?? [] as line, index (index)}<small>{line}</small>{/each}
                     <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}
@@ -220,7 +222,9 @@
                         />{/if}
                 </div>
             </div>
-            {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
+            {#each row.callouts as callout (`${callout.kind}:${callout.title}`)}<HistoryCallout
+                    {callout}
+                />{/each}
         {/each}
     {:else}
         {#if group.kind !== 'event'}<header
@@ -315,6 +319,7 @@
                             : (row.value ?? '')}</strong
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
+                    {#each row.detailLines ?? [] as line, index (index)}<small>{line}</small>{/each}
                     <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
                     {#if row.order}<OperatingOrderHistory
                             order={row.order}
@@ -322,7 +327,9 @@
                             {companyName}
                         />{/if}
                 </div>
-                {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
+                {#each row.callouts as callout (`${callout.kind}:${callout.title}`)}<HistoryCallout
+                        {callout}
+                    />{/each}
             {/each}
             {#if !visible.length}<div class="history-entry routine">No further actions</div>{/if}
         </div>

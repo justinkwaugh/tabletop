@@ -8,7 +8,9 @@ export function gamePlayPath(gameId: string): string {
     return `/game/${encodeURIComponent(gameId)}`
 }
 
-export function gameShareLink(game: Game): { path: string; kind: 'invite' | 'game' } | undefined {
+export type GameShareLink = { path: string; kind: 'invite' | 'game' }
+
+export function gameShareLink(game: Game): GameShareLink | undefined {
     if (
         game.deleted ||
         game.status === GameStatus.Archived ||

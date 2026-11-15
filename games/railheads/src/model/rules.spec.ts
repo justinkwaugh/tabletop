@@ -415,7 +415,7 @@ describe('Lay Track', () => {
 })
 
 describe('the end of a round', () => {
-    it('pays out, passes the Start Player token, applies obsolescence and refills the timer', () => {
+    it('pays out, applies obsolescence and refills the timer', () => {
         const table = openedTable()
         table.edit((state) => {
             state.roundTimer = 1
@@ -440,11 +440,40 @@ describe('the end of a round', () => {
         expect(state.getPlayerState('p0').cash).toBe(p0Cash + 25 + tokenIncome)
         expect(state.company(CompanyId.KPEV).revenue).toBe(25 - 6)
         expect(state.company(CompanyId.KSSE).revenue).toBe(5)
-        expect(state.turnManager.turnOrder[0]).toBe('p2')
         expect(table.active).toBe('p2')
         expect(state.round()).toBe(2)
         expect(state.roundTimer).toBe(15)
         expect(state.consolidatableSpaces()).toEqual([])
+    })
+
+    it('keeps the Start Player token and goes on clockwise from the last turn', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.roundTimer = 2
+        })
+        for (const player of ['p1', 'p2']) {
+            choose(table, ActionSpaceId.LayTrackII)
+            table.act(player, { type: ActionType.LayTrack, placements: [] })
+        }
+        const state = table.hydrated
+        expect(state.round()).toBe(2)
+        expect(table.processed.find(isEndRound)?.metadata?.startPlayerId).toBe('p3')
+        expect(table.active).toBe('p3')
+        expect(state.turnManager.turnOrder[0]).toBe('p1')
+    })
+
+    it('passes the Start Player token each round in games stored before clockwise rounds', () => {
+        const table = openedTable()
+        table.edit((state) => {
+            state.roundTimer = 2
+            state.clockwiseRounds = undefined
+        })
+        for (const player of ['p1', 'p2']) {
+            choose(table, ActionSpaceId.LayTrackII)
+            table.act(player, { type: ActionType.LayTrack, placements: [] })
+        }
+        expect(table.active).toBe('p2')
+        expect(table.hydrated.turnManager.turnOrder[0]).toBe('p2')
     })
 
     it('drops revenue by the band printed on the Revenue Track', () => {

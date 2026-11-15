@@ -17,7 +17,8 @@
     } from '$lib/model/names.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { adviserLabel, seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { seatPreviewGroup } from '$lib/model/previewGroups.js'
     import { handBacks } from '$lib/model/cardBacks.js'
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatVisions } from '$lib/model/seatGoals.js'
@@ -30,6 +31,11 @@
     let seatDetail = $derived(gameSession.seatDetail)
     let playerId = $derived(seatDetail.openPlayerId)
     let isMe = $derived(gameSession.myPlayer?.id === playerId)
+    // Rule 4 — an enlarged adviser or relic pages through this seat's cards.
+    const seatGroup = () =>
+        playerId
+            ? seatPreviewGroup(gameState.getPlayerState(playerId), gameSession.myPlayer?.id)
+            : []
 </script>
 
 {#if playerId}
@@ -152,13 +158,9 @@
                             <CardImage
                                 {cardId}
                                 width={120}
-                                label={cardName(cardId) +
-                                    (adviser.faceUp
-                                        ? ''
-                                        : adviser.shownToMe
-                                          ? ' — facedown; shown to you'
-                                          : ' — facedown; only you see it')}
+                                label={adviserLabel(adviser, cardName(cardId))}
                                 inspect
+                                group={seatGroup}
                             />
                         {:else}
                             <CardImage back={adviser.back} width={120} label="A facedown adviser" />
@@ -208,6 +210,7 @@
                                 width={110}
                                 label={cardName(relicId)}
                                 inspect
+                                group={seatGroup}
                             />
                             <figcaption>
                                 {cardName(relicId)}

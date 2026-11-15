@@ -11,11 +11,13 @@ import {
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
+import type { BidBoxes } from '../auctions/bidBoxes.js'
 import { OfferPileFields } from '../auctions/offerPileAuction.js'
 import { SelectionAuctionFields } from '../auctions/selectionAuction.js'
 import { AuctionFields } from '../auctions/waterfallAuction.js'
 import { CompanyFields, CompanyTranche, OwnershipLimitExemption } from '../company/companyState.js'
 import { PendingParFields } from '../company/pendingPar.js'
+import { PresidencyExchangeFields } from '../stock/presidency.js'
 import { TrackStep, validateTrackStep } from '../construction/trackConstruction.js'
 import { EarningsFields, validateEarningsDistribution } from '../earnings/earningsDistribution.js'
 import { EndingFields, validateFinalResults } from '../ending/finalWealth.js'
@@ -31,6 +33,7 @@ import { CorporateFinanceFields } from '../finance/corporateFinance.js'
 import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
 import { LoanFields } from '../loans/loans.js'
 import { AccessRightFields } from '../rights/accessRights.js'
+import type { TurnMarkFields } from '../operating/finishOperatingTurn.js'
 import { LocationMarkerFields } from '../map/locationMarkers.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import { validateStations } from '../map/station.js'
@@ -108,6 +111,7 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof CompanyAcquisitionOfferFields &
     typeof StockTurnPurchaseFields &
     typeof PendingParFields &
+    typeof PresidencyExchangeFields &
     typeof AuctionFields &
     typeof SelectionAuctionFields &
     typeof OfferPileFields &
@@ -116,7 +120,9 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof LoanFields &
     typeof AccessRightFields &
     typeof CorporateFinanceFields &
-    typeof CashCrisisFields & {
+    typeof CashCrisisFields &
+    typeof TurnMarkFields & {
+        bidBoxes: Type.TOptional<typeof BidBoxes>
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
     }
@@ -176,7 +182,11 @@ export function composeEighteenXXState<
 class StateHydrator<Schema extends TitleStateSchema> extends HydratableGameState<
     Schema,
     PlayerState
-> {}
+> {
+    carries(stored: Type.Static<Schema>): this is this & Type.Static<Schema> {
+        return Object.keys(stored).every((field) => Object.hasOwn(this, field))
+    }
+}
 
 export type EighteenXXStateDefinition<
     Schema extends TitleStateSchema = EighteenXXRuntimeSchema,
@@ -201,8 +211,8 @@ export function defineEighteenXXState<Schema extends TitleStateSchema>(
         hydrate(data, components) {
             const stored = read(data)
             if (!validator.Check(stored)) throw new Error(JSON.stringify(validator.Errors(stored)))
-            const core = new StateHydrator(stored, validator)
-            const state = Object.assign(core, core.dehydrate(), { turnManager: core.turnManager })
+            const state = new StateHydrator(stored, validator)
+            assert(state.carries(stored), 'The hydrated state carries every stored field')
             assert(
                 new Set(state.players.map((player) => player.playerId)).size ===
                     state.players.length,
@@ -235,8 +245,13 @@ export const validateRailwayComponents: StateValidation<EighteenXXState> = (
  * earnings until play resumes.
  */
 export function railwayStateValidation({
-    operatingInterruptions = []
-}: { operatingInterruptions?: readonly string[] } = {}): StateValidation<EighteenXXState> {
+    operatingInterruptions = [],
+    phaseDecisionStates = []
+}: {
+    operatingInterruptions?: readonly string[]
+    /** A title's states that decide what a phase change brings before its trains are discarded. */
+    phaseDecisionStates?: readonly string[]
+} = {}): StateValidation<EighteenXXState> {
     return (state, components) => {
         validateStockRound(state)
         validateOperatingSet(state)
@@ -246,7 +261,7 @@ export function railwayStateValidation({
         validateFinalResults(state)
         validateCompanyDecisions(state)
         validateRouteStep(state)
-        validatePhaseChange(state)
+        validatePhaseChange(state, phaseDecisionStates)
         validateEarningsDistribution(state, operatingInterruptions)
         validateTrainPurchaseStep(state)
         validateRailwayComponents(state, components)

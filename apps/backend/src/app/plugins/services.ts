@@ -30,7 +30,9 @@ import {
     FirestoreUserStore,
     GameService,
     ProjectedHistoryCache,
-    TitleActivityCache,
+    ActivityCache,
+    SeriesActivityScope,
+    TitleActivityScope,
     LibraryService,
     type LibraryServiceOptions,
     TitleLibrary,
@@ -56,6 +58,8 @@ import {
     DiscordOAuthClient,
     StalledGames,
     AccountModeration,
+    AbandonedSignUps,
+    ContentReports,
     STATIC_ROOT,
     TaskService,
     TiltifyApi,
@@ -99,9 +103,11 @@ declare module 'fastify' {
         tournamentStallAlerts: TournamentStallAlerts
         stalledGames: StalledGames
         accountModeration: AccountModeration
+        abandonedSignUps: AbandonedSignUps
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
+        contentReports: ContentReports | undefined
         realtimeTokenIssuer: RealtimeTokenIssuer | undefined
         charityTallyService: CharityTallyService
         charityTallyRefresher: CharityTallyRefresher | undefined
@@ -116,6 +122,8 @@ const SITE_MANIFEST_PATH =
 const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
+const BUG_REPORT_DATA_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_DATA_CHANNEL_ID']
+const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
@@ -179,7 +187,8 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     )
 
     const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore, {
-        titleActivity: new TitleActivityCache(redisService.client)
+        titleActivity: new ActivityCache(redisService.client, TitleActivityScope),
+        seriesActivity: new ActivityCache(redisService.client, SeriesActivityScope)
     })
     const gameService = new GameService(
         gameStore,
@@ -263,6 +272,12 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         'stalledGames',
         new StalledGames(gameStore, gameService, taskService, titleSupportsCalls)
     )
+    const accountDeletion = {
+        sessions: sessionService,
+        tokens: tokenService,
+        preferences: userStore,
+        subscriptions: notificationStore
+    }
     fastify.decorate(
         'accountModeration',
         new AccountModeration(
@@ -270,8 +285,13 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             gameService,
             taskService,
             new RedisPublisher(redisService),
-            titleSupportsCalls
+            titleSupportsCalls,
+            accountDeletion
         )
+    )
+    fastify.decorate(
+        'abandonedSignUps',
+        new AbandonedSignUps(userStore, gameStore, taskService, accountDeletion)
     )
     fastify.decorate(
         'tournamentStallAlerts',
@@ -336,10 +356,24 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             : undefined
     )
     fastify.decorate(
+        'contentReports',
+        MODERATION_EMAIL
+            ? new ContentReports(
+                  gameService,
+                  chatService,
+                  userService,
+                  taskService,
+                  MODERATION_EMAIL,
+                  process.env['FRONTEND_HOST'] ?? ''
+              )
+            : undefined
+    )
+    fastify.decorate(
         'bugReportService',
-        discordBotApi && BUG_REPORT_CHANNEL_ID
+        discordBotApi && BUG_REPORT_CHANNEL_ID && BUG_REPORT_DATA_CHANNEL_ID
             ? new BugReportService(gameService, userService, discordBotApi, {
                   forumChannelId: BUG_REPORT_CHANNEL_ID,
+                  dataChannelId: BUG_REPORT_DATA_CHANNEL_ID,
                   frontendHost: process.env['FRONTEND_HOST'] ?? ''
               })
             : undefined

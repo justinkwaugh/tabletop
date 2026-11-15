@@ -420,6 +420,15 @@ describe('arranging a retreat', () => {
         return { game, choosingLosses, selections: takeRetreatLosses(choosingLosses) }
     }
 
+    it('opens on the retreat with nothing chosen when no piece can defend the approach', () => {
+        const game = threatened([
+            { id: 'F-inf', side: Side.French, face: infantry(3), locale: ATTACK_FROM },
+            { id: 'A-turned', side: Side.Allied, face: infantry(2), locale: DEFEND_IN, facing: 109 }
+        ])
+        expect(game.state.machineState).toBe(MachineState.DefenseResponse)
+        expect(stageOf(game, StageKind.Retreat).kind).toBe(StageKind.Retreat)
+    })
+
     it('settles how the losses fall first, when they can fall more than one way', () => {
         const { game, choosingLosses, selections } = retreating(PLACEMENTS)
         const first = stageOf(game, StageKind.Retreat, choosingLosses)

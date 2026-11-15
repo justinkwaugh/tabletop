@@ -18,8 +18,13 @@ import {
     type TournamentGameLink,
     tournamentAccountIds,
     tournamentEntrantIndex,
+    ranksByAveragePlace,
+    tournamentFinishingPlacesConsistent,
+    tournamentFinishingWinners,
+    tournamentGameFinishingPlaces,
     tournamentTableReference,
-    type TiebreakRule
+    type TiebreakRule,
+    type TournamentFinishingPlaces
 } from '@tabletop/common'
 import { requestForKey } from './cacheRequests.js'
 import * as Value from 'typebox/value'
@@ -60,6 +65,7 @@ const TournamentLinkGame = Type.Pick(Game, [
     'result',
     'players',
     'winningPlayerIds',
+    'finalScores',
     'status',
     'progress'
 ])
@@ -153,6 +159,7 @@ export class FirestoreTournamentStore implements TournamentStore {
                                 'result',
                                 'players',
                                 'winningPlayerIds',
+                                'finalScores',
                                 'status',
                                 'progress'
                             )
@@ -183,7 +190,15 @@ export class FirestoreTournamentStore implements TournamentStore {
                                           .map((player) => {
                                               assertExists(player.userId)
                                               return player.userId
-                                          })
+                                          }),
+                                      ...(data.finalScores
+                                          ? {
+                                                finishingPlaces: tournamentGameFinishingPlaces(
+                                                    data,
+                                                    data.finalScores
+                                                )
+                                            }
+                                          : {})
                                   }
                                 : data.progress
                                   ? { progress: data.progress }
@@ -407,16 +422,9 @@ export class FirestoreTournamentStore implements TournamentStore {
                 assertExists(game.tournament, 'Game has no tournament')
                 assert(game.tournament.scheduleId === stage.scheduleId, 'Game schedule changed')
                 const reason = request.reason.trim()
-                // A winner may be named by any account of their place; credit the one seated here.
-                const seated = request.winningUserIds.map((userId) => {
-                    const place = tournamentEntrantIndex(tournament, userId)
-                    return game.players.find(
-                        (player) =>
-                            place >= 0 &&
-                            player.userId !== undefined &&
-                            tournamentEntrantIndex(tournament, player.userId) === place
-                    )?.userId
-                })
+                const seated = request.winningUserIds.map((userId) =>
+                    this.seatedAccount(tournament, game, userId)
+                )
                 const winningUserIds = seated.filter((userId) => userId !== undefined)
                 if (
                     !reason ||
@@ -427,6 +435,12 @@ export class FirestoreTournamentStore implements TournamentStore {
                     throw new TournamentError(
                         'Specify distinct players from this table and a reason'
                     )
+                const placement = ranksByAveragePlace(tournament.rules)
+                const finishingPlaces = placement
+                    ? this.correctedPlaces(tournament, game, request, winningUserIds)
+                    : undefined
+                if (!placement && request.finishingPlaces)
+                    throw new TournamentError('This tournament scores wins only')
                 const prior = stage.corrections?.findLast(
                     (correction) => correction.tableId === request.tableId
                 )
@@ -434,17 +448,24 @@ export class FirestoreTournamentStore implements TournamentStore {
                     tournament,
                     stage.standings,
                     prior ? withTournamentCredit(game, prior.winningUserIds) : game,
-                    -1
+                    {
+                        direction: -1,
+                        correctedPlaces: placement
+                            ? (prior?.finishingPlaces ?? this.gamePlaces(game))
+                            : undefined
+                    }
                 )
                 applyTournamentGameScore(
                     tournament,
                     stage.standings,
-                    withTournamentCredit(game, winningUserIds)
+                    withTournamentCredit(game, winningUserIds),
+                    { correctedPlaces: finishingPlaces }
                 )
                 stage.corrections ??= []
                 stage.corrections.push({
                     tableId: request.tableId,
                     winningUserIds,
+                    ...(finishingPlaces ? { finishingPlaces } : {}),
                     administratorId: user.id,
                     reason,
                     createdAt: now
@@ -524,8 +545,10 @@ export class FirestoreTournamentStore implements TournamentStore {
                         tournament,
                         standings,
                         correction ? withTournamentCredit(game, correction.winningUserIds) : game,
-                        1,
-                        game.finalScores
+                        {
+                            finalScores: game.finalScores,
+                            correctedPlaces: correction?.finishingPlaces
+                        }
                     )
                     finished.push(game.tournament.tableId)
                 }
@@ -544,6 +567,52 @@ export class FirestoreTournamentStore implements TournamentStore {
                 return tournament
             })
         )
+    }
+
+    // A player may be named by any account of their place; the one seated at the Game counts.
+    private seatedAccount(
+        tournament: Tournament,
+        game: Type.Static<typeof ScoringGame>,
+        userId: string
+    ): string | undefined {
+        const place = tournamentEntrantIndex(tournament, userId)
+        return game.players.find(
+            (player) =>
+                place >= 0 &&
+                player.userId !== undefined &&
+                tournamentEntrantIndex(tournament, player.userId) === place
+        )?.userId
+    }
+
+    private correctedPlaces(
+        tournament: Tournament,
+        game: Type.Static<typeof ScoringGame>,
+        request: CorrectTournamentResultRequest,
+        winningUserIds: string[]
+    ): TournamentFinishingPlaces {
+        const places: TournamentFinishingPlaces = {}
+        for (const [userId, place] of Object.entries(request.finishingPlaces ?? {})) {
+            const seated = this.seatedAccount(tournament, game, userId)
+            if (seated === undefined || places[seated] !== undefined)
+                throw new TournamentError('Place every player at this table once')
+            places[seated] = place
+        }
+        const winners = tournamentFinishingWinners(places)
+        if (
+            Object.keys(places).length !== game.players.length ||
+            !tournamentFinishingPlacesConsistent(places) ||
+            winners.length !== winningUserIds.length ||
+            winningUserIds.some((userId) => !winners.includes(userId))
+        )
+            throw new TournamentError(
+                'Place every player at this table once, with the winners first'
+            )
+        return places
+    }
+
+    private gamePlaces(game: Type.Static<typeof ScoringGame>): TournamentFinishingPlaces {
+        assertExists(game.finalScores, 'A placement game records final scores')
+        return tournamentGameFinishingPlaces(game, game.finalScores)
     }
 
     async administratorIds(): Promise<string[]> {

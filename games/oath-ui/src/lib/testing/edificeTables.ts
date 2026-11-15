@@ -5,6 +5,7 @@ import {
     CURRENT_OATH_REVISION,
     IMPERIAL_WARBANDS,
     MachineState,
+    OathRevision,
     OathType,
     PlayerStatus,
     PowerQuestionKind,
@@ -203,9 +204,17 @@ const SIX_DISPOSSESSED = [
     'denizen.order.wrestlers'
 ]
 
-/** Great Spire before the Search: its Cards row, with the Dispossessed filled or empty. */
-export function greatSpireMenuTable(empty = false): PlayedTable {
-    return tableOf(spireState(empty ? [] : SIX_DISPOSSESSED))
+/**
+ * Great Spire before the Search: its Cards row, with the Dispossessed filled or empty, in a game at
+ * `revision` (before revision 34 the Spire is still offered with the Dispossessed empty).
+ */
+export function greatSpireMenuTable(
+    empty = false,
+    revision: OathRevision = CURRENT_OATH_REVISION
+): PlayedTable {
+    const state = spireState(empty ? [] : SIX_DISPOSSESSED)
+    state.oathRevision = revision
+    return tableOf(state)
 }
 
 /**

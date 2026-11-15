@@ -253,7 +253,7 @@ describe('choices on declared modifiers', () => {
     it("Errand Boy and Observatory — a Search from another region's discard pile", () => {
         const s = board({}, { ruler: [ERRAND] })
         expect(HydratedSearch.reasonCannotSearch(s, 'ruler', SearchSource.Discard)).toMatch(
-            /cradle discard pile is empty/
+            /the Cradle discard pile is empty/
         )
         expect(
             HydratedSearch.reasonCannotSearch(s, 'ruler', SearchSource.Discard, [

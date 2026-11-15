@@ -1,15 +1,35 @@
 import {
-    rankedTiebreak,
+    formatTournamentAveragePlace,
+    formatTournamentTiebreaks,
+    ranksByAveragePlace,
     tournamentCapacity,
     type Tournament,
-    type TournamentScore
+    type TournamentRules,
+    type TournamentScore,
+    type TournamentStanding
 } from '@tabletop/common'
 import { startCountdownText } from './startCountdown'
 
-export function tournamentTiebreakText(
-    row: Pick<TournamentScore, 'completed' | 'tiebreak' | 'pointsBehind'>
+export function tournamentTiebreakTexts(
+    rows: Pick<
+        TournamentStanding,
+        'userId' | 'completed' | 'tiebreak' | 'pointsBehind' | 'shareOfWinner'
+    >[]
+): Map<string, string> {
+    const texts = formatTournamentTiebreaks(rows)
+    return new Map(rows.map((row, index) => [row.userId, texts[index] ?? '—']))
+}
+
+export function tournamentScoringText(rules: Pick<TournamentRules, 'scoring'>): string {
+    return ranksByAveragePlace(rules)
+        ? 'Ranked by average place. Ties go to whoever finished ahead more often at shared tables, then the tiebreak.'
+        : 'A win earns 1 point; joint winners split it.'
+}
+
+export function tournamentAveragePlaceText(
+    row: Pick<TournamentScore, 'completed' | 'placeTotal'>
 ): string {
-    return rankedTiebreak(row)?.toLocaleString(undefined, { maximumFractionDigits: 3 }) ?? '—'
+    return formatTournamentAveragePlace(row) ?? '—'
 }
 
 export function tournamentFormatText(format: Tournament['format']): string {

@@ -2,6 +2,7 @@ import {
     CommandKind,
     UnitType,
     canThreaten,
+    corpsHaltAlong,
     inReserve,
     isLegal,
     resolveOrder,
@@ -12,6 +13,7 @@ import {
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
     type Position,
+    type RoadHalt,
     type RoadWake
 } from '@tabletop/napoleons-triumph'
 import type { Point } from '@tabletop/common'
@@ -24,7 +26,8 @@ export enum TargetKind {
     Approach = 'Approach',
     Attack = 'Attack',
     Retreat = 'Retreat',
-    Way = 'Way'
+    Way = 'Way',
+    Stay = 'Stay'
 }
 
 type ReservePosition = Pick<Position, 'locale'>
@@ -59,6 +62,13 @@ export interface RetreatTarget {
     position: ReservePosition
 }
 
+/** Rule 10: cavalry at the end of its ride ends its move in the reserve it rode into. */
+export interface StayTarget {
+    key: string
+    kind: TargetKind.Stay
+    position: ReservePosition
+}
+
 /** A step of the way to a place already chosen, offered where its ways part. */
 export interface WayTarget {
     key: string
@@ -76,10 +86,11 @@ export interface WaySign {
 
 export type MarchTarget = ReserveTarget | ApproachTarget
 
-export type MoveTarget = MarchTarget | AttackTarget | RetreatTarget | WayTarget
+export type MoveTarget = MarchTarget | AttackTarget | RetreatTarget | WayTarget | StayTarget
 
 export enum TargetMark {
     Move = 'move',
+    Stay = 'stay',
     RoadMarch = 'road march',
     Way = 'way',
     Approach = 'approach',
@@ -88,6 +99,7 @@ export enum TargetMark {
 }
 
 const LEGEND_ORDER = [
+    TargetMark.Stay,
     TargetMark.Move,
     TargetMark.RoadMarch,
     TargetMark.Way,
@@ -108,6 +120,8 @@ export function markOf(target: MoveTarget): TargetMark {
             return TargetMark.Move
         case TargetKind.Way:
             return TargetMark.Way
+        case TargetKind.Stay:
+            return TargetMark.Stay
     }
 }
 
@@ -122,13 +136,16 @@ export function marksOn(
     return LEGEND_ORDER.filter((mark) => drawn.has(mark))
 }
 
+function isMarchTarget(target: MoveTarget): target is MarchTarget {
+    return target.kind === TargetKind.Reserve || target.kind === TargetKind.Approach
+}
+
 export function placeReachedSeveralWays(
     targets: readonly MoveTarget[],
     key: string | undefined
 ): MarchTarget | undefined {
     for (const target of targets) {
-        const isPlace = target.kind === TargetKind.Reserve || target.kind === TargetKind.Approach
-        if (isPlace && target.key === key && (target.ways?.length ?? 0) > 1) {
+        if (isMarchTarget(target) && target.key === key && (target.ways?.length ?? 0) > 1) {
             return target
         }
     }
@@ -148,6 +165,11 @@ function keyOf(kind: TargetKind, position: Position): string {
 export function reserveTarget(locale: number, ways?: Way[]): ReserveTarget {
     const position = { locale }
     return { key: keyOf(TargetKind.Reserve, position), kind: TargetKind.Reserve, position, ways }
+}
+
+export function stayTarget(locale: number): StayTarget {
+    const position = { locale }
+    return { key: keyOf(TargetKind.Stay, position), kind: TargetKind.Stay, position }
 }
 
 export function approachTarget(position: ApproachPosition, ways?: Way[]): ApproachTarget {
@@ -354,4 +376,33 @@ export function moveTargets(
     const reachedOnFoot = new Set(onFoot.map((target) => target.key))
     const byRoadOnly = marchTargets(byRoad.flat()).filter((march) => !reachedOnFoot.has(march.key))
     return [...onFoot, ...byRoadOnly]
+}
+
+/** Rule 10: where a corps of two or more units marching by road must halt, short of places one of its units could reach and the corps cannot. */
+export function corpsRoadHalts(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    order: MoveOrder,
+    corpsTargets: readonly MoveTarget[],
+    entryIds: readonly string[] = []
+): RoadHalt[] {
+    if (order.kind !== CommandKind.Corps || order.unitIds.length < 2) {
+        return []
+    }
+    const reached = new Set(corpsTargets.map((target) => target.key))
+    const lone = { ...order, unitIds: order.unitIds.slice(0, 1) }
+    const halts = moveTargets(state, playerId, lone, entryIds)
+        .filter(isMarchTarget)
+        .filter((target) => !reached.has(target.key))
+        .flatMap((target) => target.ways ?? [])
+        .flatMap(
+            (way) =>
+                corpsHaltAlong(
+                    state,
+                    playerId,
+                    { ...order, entryId: way.entryId },
+                    way.road.slice(0, -1)
+                ) ?? []
+        )
+    return firstOfEach(halts, (halt) => String(halt.locale))
 }

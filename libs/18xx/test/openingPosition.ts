@@ -65,8 +65,10 @@ function seededPosition(
     const limitedBank = position.cash.some(
         (cash) => cash.owner.kind === 'bank' && cash.amount !== 'unlimited'
     )
+    const { seriesKeeps: _seriesKeeps, ...turnManager } = position.turnManager
     return {
         ...position,
+        turnManager,
         bank: limitedBank ? { ...position.bank, unlimitedAfterExhaustion: true } : position.bank,
         companies: position.companies.map((company) => {
             const shareCount = company.shareCount ?? charters.shareCount(company.id)

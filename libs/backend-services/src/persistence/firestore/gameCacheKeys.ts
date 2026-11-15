@@ -36,6 +36,10 @@ export class GameCacheKeys {
         return `title-activity-v1-${titleId}`
     }
 
+    static seriesActivity(seriesId: string): string {
+        return `series-activity-v1-${seriesId}`
+    }
+
     static finishedGamesGeneration(userId: string, older = false): string {
         return `game-history-${older ? 'older' : 'head'}-${userId}`
     }

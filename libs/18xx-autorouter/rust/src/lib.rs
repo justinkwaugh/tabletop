@@ -2,8 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
+mod fleet;
+
 #[derive(Deserialize)]
 pub struct Problem {
+    #[serde(default)]
+    fleet: Option<fleet::Policy>,
     version: u32,
     stops: Vec<Stop>,
     arcs: Vec<Arc>,
@@ -14,8 +18,21 @@ pub struct Problem {
     hex_bonuses: Vec<i32>,
     #[serde(default)]
     longest_route_bonus_per_stop: i32,
+    /// Cities and towns a route must visit; offboards do not count.
+    #[serde(default)]
+    minimum_cities_and_towns: u32,
     budget_ms: f64,
     memory_budget_bytes: usize,
+}
+
+impl Problem {
+    fn stretch_states(&self) -> usize {
+        if self.arcs.iter().all(|arc| arc.gauge == Gauge::Standard) {
+            1
+        } else {
+            3
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -39,15 +56,70 @@ struct Arc {
     junctions: Vec<usize>,
     path: usize,
     hex: usize,
+    /// A route that follows the arc to its stop ends there; the reverse arc leaves the stop freely.
     terminal: bool,
+    /// The arc leaves its stop along terminus track, which a route runs on along only with one of
+    /// its company's stations at or before that stop.
+    #[serde(default)]
+    departs_terminal: bool,
     crossings: u32,
+    #[serde(default)]
+    gauge: Gauge,
+}
+
+#[derive(Deserialize, Clone, Copy, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+enum Gauge {
+    #[default]
+    Standard,
+    Narrow,
+    Dual,
+}
+
+/// The gauge a route runs on between two stops: that of its first standard or narrow track there,
+/// or either while all of it is dual. Indexes a train's crossing costs.
+#[derive(Clone, Copy, PartialEq)]
+enum Stretch {
+    Standard = 0,
+    Narrow = 1,
+    Either = 2,
+}
+
+impl Stretch {
+    /// The stretch of a search state, where a problem with gauges has one state per stretch gauge.
+    fn of_state(state: usize, states: usize) -> Stretch {
+        match state % states {
+            0 => Stretch::Standard,
+            1 => Stretch::Narrow,
+            _ => Stretch::Either,
+        }
+    }
+
+    fn state_index(self, states: usize) -> usize {
+        self as usize % states
+    }
+
+    /// The stretch continued along track of the gauge, unless the gauge would change between stops.
+    fn along(self, gauge: Gauge) -> Option<Stretch> {
+        match (self, gauge) {
+            (stretch, Gauge::Dual) => Some(stretch),
+            (Stretch::Narrow, Gauge::Standard) | (Stretch::Standard, Gauge::Narrow) => None,
+            (_, Gauge::Standard) => Some(Stretch::Standard),
+            (_, Gauge::Narrow) => Some(Stretch::Narrow),
+        }
+    }
 }
 
 #[derive(Deserialize, PartialEq)]
 struct Train {
+    #[serde(default)]
+    allowed_stops: Vec<bool>,
+    #[serde(default)]
+    fleet: Option<fleet::TrainPolicy>,
     id: String,
     distance: u32,
-    counts_crossings: bool,
+    /// What each hex side a connection crosses costs, by the connection's stretch gauge.
+    crossing_costs: [u32; 3],
     requires_city: bool,
     visit_costs: Vec<u32>,
     revenues: Vec<i32>,
@@ -184,6 +256,10 @@ impl Train {
     fn majors(&self, stop: &Stop) -> u32 {
         u32::from(self.major_limit.is_some() && !stop.town)
     }
+
+    fn crossing_cost(&self, connection: &Connection) -> u32 {
+        self.crossing_costs[connection.gauge as usize].saturating_mul(connection.crossings)
+    }
 }
 
 struct Connection {
@@ -194,7 +270,9 @@ struct Connection {
     hexes: Vec<usize>,
     first_terminal: bool,
     last_terminal: bool,
+    departs_terminal: bool,
     crossings: u32,
+    gauge: Stretch,
 }
 
 #[derive(Clone, Copy)]
@@ -476,6 +554,9 @@ impl Candidates {
     }
 
     fn dedup(&mut self, network: Network<'_>) {
+        if network.problem.fleet.is_some() {
+            return;
+        }
         self.dedup_by_hash(network, |candidate| candidate.resource_hash);
     }
 
@@ -534,6 +615,7 @@ struct CandidateView<'a> {
 #[derive(Serialize)]
 pub struct Solution {
     revenue: i32,
+    subsidy: i32,
     routes: Vec<Route>,
     exhaustive: bool,
     path_exhaustive: bool,
@@ -585,7 +667,7 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 6
+    if problem.version != 10
         || !problem.budget_ms.is_finite()
         || problem.budget_ms <= 0.0
         || problem.memory_budget_bytes == 0
@@ -622,7 +704,6 @@ fn validate(problem: &Problem) -> Result<(), String> {
             || arc.junctions != reverse.junctions
             || arc.path != reverse.path
             || arc.hex != reverse.hex
-            || arc.terminal != reverse.terminal
             || arc
                 .next
                 .iter()
@@ -632,7 +713,8 @@ fn validate(problem: &Problem) -> Result<(), String> {
         }
     }
     for train in &problem.trains {
-        if train.visit_costs.len() != n
+        if (!train.allowed_stops.is_empty() && train.allowed_stops.len() != n)
+            || train.visit_costs.len() != n
             || train.paying_stop_limit == Some(0)
             || train.connection_bonuses.iter().any(|bonus| {
                 bonus.from.len() != n
@@ -666,7 +748,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
     if problem.longest_route_bonus_per_stop < 0 || problem.hex_bonuses.iter().any(|&b| b < 0) {
         return Err("Negative hex bonus".into());
     }
-    Ok(())
+    fleet::validate(problem)
 }
 
 struct Compiler<'a> {
@@ -685,7 +767,7 @@ struct Compiler<'a> {
 }
 
 impl Compiler<'_> {
-    fn walk(&mut self, from: usize, arc_id: usize) {
+    fn walk(&mut self, from: usize, arc_id: usize, stretch: Stretch) {
         self.expansions += 1;
         if self.exhausted
             || (self.expansions == 1 || self.expansions.is_multiple_of(4096))
@@ -695,6 +777,9 @@ impl Compiler<'_> {
             return;
         }
         let arc = &self.problem.arcs[arc_id];
+        let Some(stretch) = stretch.along(arc.gauge) else {
+            return;
+        };
         if arc.resources.iter().any(|&r| self.used[r])
             || arc
                 .junctions
@@ -746,11 +831,13 @@ impl Compiler<'_> {
                             .collect(),
                         first_terminal: self.problem.arcs[self.walking[0]].terminal,
                         last_terminal: arc.terminal,
+                        departs_terminal: self.problem.arcs[self.walking[0]].departs_terminal,
                         crossings: self
                             .walking
                             .iter()
                             .map(|&a| self.problem.arcs[a].crossings)
                             .sum(),
+                        gauge: stretch,
                     };
                     let bytes = connection_bytes(&connection);
                     let grown = if self.connections.len() == self.connections.capacity() {
@@ -769,7 +856,7 @@ impl Compiler<'_> {
             }
         } else {
             for &next in &arc.next {
-                self.walk(from, next);
+                self.walk(from, next, stretch);
             }
         }
         self.walking.pop();
@@ -785,6 +872,8 @@ impl Compiler<'_> {
 #[derive(Clone, Copy)]
 struct RouteValue {
     cost: u32,
+    // Cities and towns visited.
+    places: u32,
     majors: u32,
     revenue: i32,
     token: bool,
@@ -803,6 +892,8 @@ struct Search<'a> {
     origins: Vec<bool>,
     destinations: Vec<bool>,
     extension_parents: Vec<usize>,
+    // Search states per arc for extensions: one for each stretch gauge where track has gauges.
+    stretch_states: usize,
     used: Vec<u64>,
     visited: Vec<bool>,
     groups: Vec<bool>,
@@ -834,6 +925,7 @@ impl Search<'_> {
     fn walk(&mut self, start: usize, node: usize, value: RouteValue) {
         let RouteValue {
             cost,
+            places,
             majors,
             revenue,
             token,
@@ -850,12 +942,15 @@ impl Search<'_> {
             return;
         }
         let stop = &self.problem.stops[node];
-        if cost > self.train.distance || self.train.major_limit.is_some_and(|limit| majors > limit)
+        if self.train.allowed_stops.get(node) == Some(&false)
+            || cost > self.train.distance
+            || self.train.major_limit.is_some_and(|limit| majors > limit)
         {
             return;
         }
         let token = token || stop.token;
         let city = city || stop.city;
+        let places = places + u32::from(stop.city || stop.town);
         if !token && self.token_distance[node] > self.train.distance - cost {
             return;
         }
@@ -863,7 +958,19 @@ impl Search<'_> {
         let bonus = self.train.first_bonus[node];
         let first_bonus = if first_bonus != 0 { first_bonus } else { bonus };
         let last_bonus = if bonus != 0 { bonus } else { last_bonus };
-        if node > start && token && stop.endpoint && (!self.train.requires_city || city) {
+        // Each route is kept from one of its ends; one that ends across a link of terminus track
+        // is walked only towards the link.
+        let across_link = self.walking.len() > 1
+            && self.walking.last().is_some_and(|&id| {
+                let arrival = &self.connections[id];
+                arrival.last_terminal && arrival.departs_terminal
+            });
+        if (node > start || across_link)
+            && token
+            && stop.endpoint
+            && (!self.train.requires_city || city)
+            && places >= self.problem.minimum_cities_and_towns
+        {
             self.record(start, node, revenue, first_bonus, last_bonus);
         }
         if !self.walking.is_empty()
@@ -891,13 +998,7 @@ impl Search<'_> {
             let next = &self.problem.stops[edge.to];
             // The step the next call would reject at once, checked first and before touching any
             // state.
-            let next_cost = cost
-                + self.train.visit_costs[edge.to]
-                + if self.train.counts_crossings {
-                    edge.crossings
-                } else {
-                    0
-                };
+            let next_cost = cost + self.train.visit_costs[edge.to] + self.train.crossing_cost(edge);
             let next_majors = majors + self.train.majors(next);
             if next_cost > self.train.distance
                 || self
@@ -912,6 +1013,7 @@ impl Search<'_> {
             if self.visited[edge.to]
                 || next.groups.iter().any(|&g| self.groups[g])
                 || edge.first_terminal && !self.walking.is_empty() && edge.paths.len() > 1
+                || edge.departs_terminal && !self.walking.is_empty() && !token
                 || edge
                     .resources
                     .iter()
@@ -935,6 +1037,7 @@ impl Search<'_> {
                 edge.to,
                 RouteValue {
                     cost: next_cost,
+                    places,
                     majors: next_majors,
                     revenue: revenue + extra,
                     token,
@@ -968,6 +1071,18 @@ impl Search<'_> {
         first_bonus: i32,
         last_bonus: i32,
     ) {
+        if !fleet::allowed_shape(
+            Network {
+                problem: self.problem,
+                connections: self.connections,
+                adjacency: self.adjacency,
+                departures: self.departures,
+            },
+            &self.walking,
+            start,
+        ) {
+            return;
+        }
         self.count += 1;
         let visits = self.walking.len() + 1;
         if !self.train.scores_payments() {
@@ -1142,54 +1257,66 @@ impl Search<'_> {
             .shrink(self.selection_bytes_per_candidate, self.memory_budget);
     }
 
+    // Extensions search arcs by the stretch gauge they leave on, as each continues only on track a
+    // route could run.
     fn shortest_extensions(&mut self, from: usize) -> Vec<Vec<usize>> {
         let problem = self.problem;
         let departures = self.departures;
         let mut queue = vec![];
         for &arc in &departures[from] {
-            if self.extends_along(arc) {
-                self.extension_parents[arc] = EXTENSION_ROOT;
-                queue.push(arc);
+            if let Some(state) = self.extension_state(arc, Stretch::Either) {
+                self.extension_parents[state] = EXTENSION_ROOT;
+                queue.push(state);
             }
         }
         let mut reached = vec![];
         let mut extensions = vec![];
         let mut head = 0;
-        while let Some(&arc_id) = queue.get(head) {
+        while let Some(&state) = queue.get(head) {
             head += 1;
+            let arc_id = state / self.stretch_states;
             let arc = &problem.arcs[arc_id];
-            let following: &[usize] = match arc.to {
-                None => &arc.next,
+            let (following, stretch): (&[usize], Stretch) = match arc.to {
+                None => (&arc.next, Stretch::of_state(state, self.stretch_states)),
                 Some(stop_id) => {
                     let stop = &problem.stops[stop_id];
                     if self.destinations[stop.hex] && !reached.contains(&stop.hex) {
-                        let extension = self.extension_to(arc_id);
+                        let extension = self.extension_to(state);
                         if is_simple_extension(problem, &extension) {
                             reached.push(stop.hex);
                             extensions.push(extension);
                         }
                     }
                     if stop.city || stop.town {
-                        &departures[stop_id]
+                        (&departures[stop_id], Stretch::Either)
                     } else {
-                        &[]
+                        (&[], Stretch::Either)
                     }
                 }
             };
             for &next in following {
-                if next != arc_id ^ 1
-                    && self.extension_parents[next] == UNREACHED
-                    && self.extends_along(next)
+                if next == arc_id ^ 1 {
+                    continue;
+                }
+                if let Some(next_state) = self.extension_state(next, stretch)
+                    && self.extension_parents[next_state] == UNREACHED
                 {
-                    self.extension_parents[next] = arc_id;
-                    queue.push(next);
+                    self.extension_parents[next_state] = state;
+                    queue.push(next_state);
                 }
             }
         }
-        for arc in queue {
-            self.extension_parents[arc] = UNREACHED;
+        for state in queue {
+            self.extension_parents[state] = UNREACHED;
         }
         extensions
+    }
+
+    // The search state for following the arc on the stretch, if an extension may follow it.
+    fn extension_state(&self, arc_id: usize, stretch: Stretch) -> Option<usize> {
+        let stretch = stretch.along(self.problem.arcs[arc_id].gauge)?;
+        self.extends_along(arc_id)
+            .then_some(arc_id * self.stretch_states + stretch.state_index(self.stretch_states))
     }
 
     fn extends_along(&self, arc_id: usize) -> bool {
@@ -1202,12 +1329,12 @@ impl Search<'_> {
                 .any(|&r| self.used[r / 64] & (1 << (r % 64)) != 0)
     }
 
-    fn extension_to(&self, arc_id: usize) -> Vec<usize> {
-        let mut extension = vec![arc_id];
-        let mut current = arc_id;
+    fn extension_to(&self, state: usize) -> Vec<usize> {
+        let mut extension = vec![state / self.stretch_states];
+        let mut current = state;
         while self.extension_parents[current] != EXTENSION_ROOT {
             current = self.extension_parents[current];
-            extension.push(current);
+            extension.push(current / self.stretch_states);
         }
         extension.reverse();
         extension
@@ -1592,6 +1719,10 @@ impl Compatibility {
         let fill = |compatible: &mut Vec<u64>, resource_candidates: &ResourceCandidates| {
             compatible.clear();
             compatible.resize(self.words - start, u64::MAX);
+            // No candidates follow, and no columns were kept for them.
+            if compatible.is_empty() {
+                return;
+            }
             for resource in resources {
                 for (bits, conflicts) in compatible
                     .iter_mut()
@@ -1853,7 +1984,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         if let Some(from) = arc.from
             && problem.stops[from].allowed
         {
-            compiler.walk(from, arc_id);
+            compiler.walk(from, arc_id, Stretch::Either);
         }
     }
     let compiled_bytes = compiler.stored_bytes;
@@ -1893,7 +2024,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         .map(|train_id| same_profile(problem, train_id))
         .collect();
     let mut profiles_left = previous_profile.iter().filter(|p| p.is_none()).count();
-    let streaming = problem.trains.len() == 2 && profiles_left == 2;
+    let streaming = problem.fleet.is_none() && problem.trains.len() == 2 && profiles_left == 2;
     let mut train_order: Vec<_> = (0..problem.trains.len()).collect();
     if streaming {
         train_order.sort_by_key(|&id| {
@@ -1902,7 +2033,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         });
     }
     let mut streamed_result = None;
-    let fleet = problem.trains.len() > 1;
+    let fleet = problem.trains.len() > 1 || problem.fleet.is_some();
     let deadline = started + problem.budget_ms;
     let path_deadline = if fleet && !streaming {
         started + problem.budget_ms * 0.75
@@ -1914,7 +2045,10 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     } else {
         problem.memory_budget_bytes / 4
     };
-    let selection_bytes_per_candidate = if streaming {
+    // A fleet's selection accounts for its own memory, from what the candidates leave.
+    let selection_bytes_per_candidate = if problem.fleet.is_some() {
+        0
+    } else if streaming {
         if problem.longest_route_bonus_per_stop == 0 {
             0
         } else {
@@ -1995,6 +2129,31 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         candidates[train_id] = Rc::new(search.candidates);
     }
     let path_finished = milliseconds();
+    if problem.fleet.is_some() {
+        let (revenue, subsidy, routes, combination_exhaustive, limited, visits, counts) =
+            fleet::solve(
+                network,
+                &candidates,
+                deadline,
+                row_budget + candidate_budget,
+            );
+        memory_limited |= limited;
+        return Ok(Solution {
+            revenue,
+            subsidy,
+            routes,
+            exhaustive: path_exhaustive && combination_exhaustive && !memory_limited,
+            path_exhaustive,
+            combination_exhaustive,
+            candidates: counts,
+            memory_limited,
+            expansions: expansions + visits,
+            connections: connections.len(),
+            compile_ms,
+            path_ms: path_finished - started - compile_ms,
+            combination_ms: milliseconds() - path_finished,
+        });
+    }
     let (mut revenue, mut routes, mut combination_exhaustive) =
         streamed_result.unwrap_or_else(|| {
             let mut selection = Selection::new(&candidates, network, deadline, row_budget);
@@ -2086,6 +2245,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     }
     Ok(Solution {
         revenue,
+        subsidy: 0,
         routes,
         exhaustive: path_exhaustive && combination_exhaustive,
         path_exhaustive,
@@ -2129,7 +2289,7 @@ impl<'a> Network<'a> {
                 .iter()
                 .any(|train| !train.interconnections.is_empty())
             {
-                self.problem.arcs.len()
+                self.problem.arcs.len() * self.problem.stretch_states()
             } else {
                 0
             }
@@ -2186,11 +2346,7 @@ impl<'a> Network<'a> {
                     continue;
                 }
                 let distance = token_distance[edge.to].saturating_add(
-                    train.visit_costs[edge.to].saturating_add(if train.counts_crossings {
-                        edge.crossings
-                    } else {
-                        0
-                    }),
+                    train.visit_costs[edge.to].saturating_add(train.crossing_cost(edge)),
                 );
                 if distance < token_distance[edge.from] {
                     token_distance[edge.from] = distance;
@@ -2213,8 +2369,9 @@ impl<'a> Network<'a> {
             extension_parents: if train.interconnections.is_empty() {
                 vec![]
             } else {
-                vec![UNREACHED; problem.arcs.len()]
+                vec![UNREACHED; problem.arcs.len() * problem.stretch_states()]
             },
+            stretch_states: problem.stretch_states(),
             used: vec![0; problem.resource_count.div_ceil(64)],
             visited: vec![false; problem.stops.len()],
             groups: vec![false; problem.group_count],
@@ -2242,6 +2399,7 @@ impl<'a> Network<'a> {
                     id,
                     RouteValue {
                         cost: train.visit_costs[id],
+                        places: 0,
                         majors: train.majors(stop),
                         revenue: 0,
                         token: false,
@@ -2271,9 +2429,11 @@ impl<'a> Network<'a> {
 fn same_profile(problem: &Problem, train_id: usize) -> Option<usize> {
     let train = &problem.trains[train_id];
     problem.trains[..train_id].iter().position(|other| {
-        other.distance == train.distance
+        other.fleet == train.fleet
+            && other.allowed_stops == train.allowed_stops
+            && other.distance == train.distance
             && other.visit_costs == train.visit_costs
-            && other.counts_crossings == train.counts_crossings
+            && other.crossing_costs == train.crossing_costs
             && other.requires_city == train.requires_city
             && other.revenues == train.revenues
             && other.first_bonus == train.first_bonus
@@ -2320,7 +2480,7 @@ mod tests {
         fn new() -> Self {
             Self {
                 problem: serde_json::from_value(serde_json::json!({
-                    "version": 6, "stops": [], "arcs": [], "trains": [],
+                    "version": 10, "stops": [], "arcs": [], "trains": [],
                     "resource_count": 130, "junction_count": 0, "group_count": 0,
                     "hex_bonuses": [], "budget_ms": 30000, "memory_budget_bytes": 65536,
                 }))
@@ -2334,7 +2494,9 @@ mod tests {
                         hexes: vec![],
                         first_terminal: false,
                         last_terminal: false,
+                        departs_terminal: false,
                         crossings: 0,
+                        gauge: Stretch::Standard,
                     })
                     .collect(),
             }

@@ -47,14 +47,16 @@ export interface PrivateRules {
     phaseEffects(state: StockState & MapStateData): PrivateEffect[]
     operationEffects(state: StockState, companyId: string): PrivateEffect[]
     description(state: StockState, privateCompanyId: string): string
-    blocking?(state: PrivateHoldings, privateCompanyId: string): boolean
+    blocking?(state: PrivateBlockState, privateCompanyId: string): boolean
 }
 export type PrivateHoldings = Pick<FinancialState, 'companies' | 'certificates'>
+/** What a private's block depends on: who holds it, and the phase, as 1861's lift in phase 3. */
+export type PrivateBlockState = PrivateHoldings & { phaseId: string }
 
 export function liftedPrivateBlocks(
     markedPrivateIds: readonly string[],
     rules: Pick<PrivateRules, 'blocking'>,
-    state: PrivateHoldings
+    state: PrivateBlockState
 ): string[] {
     if (!markedPrivateIds.length) return []
     const { blocking } = rules

@@ -132,6 +132,16 @@ export const Certificate = Type.Union([
 ])
 export type Certificate = Type.Static<typeof Certificate>
 export type Portfolio = Certificate[]
+
+/** The shares an ordinary or president's certificate holds; none for a private's or a short. */
+export function certificateShares(certificate: Certificate): number {
+    return certificate.kind === 'share' ? certificate.shares : 0
+}
+
+/** The shares a set of certificates holds together. */
+export function totalCertificateShares(certificates: readonly Certificate[]): number {
+    return certificates.reduce((total, certificate) => total + certificateShares(certificate), 0)
+}
 export type OpenShare = Extract<Certificate, { kind: 'share' }>
 export type OpenShort = Extract<Certificate, { kind: 'short' }>
 export type Treasury = { cash: Cash['amount'] | undefined; portfolio: Portfolio }

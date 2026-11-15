@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, type BoundingBox, type Point } from '@tabletop/common'
 import cavalierAtlas from '$lib/images/atlas-cavalier.webp'
 import cavalierShadows from '$lib/images/shadows-cavalier.webp'
 import planAtlas from '$lib/images/atlas-plan.webp'
@@ -48,6 +48,23 @@ export function spriteFrame(sheet: SheetName, name: string): SpriteFrame {
     const frame = SHEET_LAYOUTS[sheet].frames[name]
     assertExists(frame, `No sprite ${name} on the ${sheet} sheet`)
     return frame
+}
+
+// Where a sprite's frame lands on the board. A nested svg showing one frame reports the whole
+// sheet as its bounding box, so anything sized from the box (filters) must use this instead.
+export function spriteBox(
+    sheet: SheetName,
+    name: string,
+    anchor: Point,
+    unitsPerCell: number
+): BoundingBox {
+    const frame = spriteFrame(sheet, name)
+    return {
+        x: anchor.x + frame.x * unitsPerCell,
+        y: anchor.y + frame.y * unitsPerCell,
+        width: frame.w * unitsPerCell,
+        height: frame.h * unitsPerCell
+    }
 }
 
 const BOARD_URLS: Record<string, string> = {
