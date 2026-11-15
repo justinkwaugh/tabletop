@@ -2,7 +2,17 @@
     import { ActionCards, type ActionCardKind } from '@tabletop/feudum'
     import { assetUrl, cardAsset, cardBackAsset, printedCardAsset } from '$lib/art/assetMap.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
-    import { CardArt, CardBox, faceTier, shortName, wrapLines } from '$lib/utils/cardShape.js'
+    import {
+        CardArt,
+        CardBox,
+        faceTier,
+        PrintedCard,
+        PrintedCardPlace,
+        PrintedFrameFoot,
+        printedNameLinePath,
+        shortName,
+        wrapLines
+    } from '$lib/utils/cardShape.js'
     import { CrownPath } from '$lib/utils/pieceShapes.js'
     import CardSymbolRow from './CardSymbolRow.svelte'
     import GoodToken from './GoodToken.svelte'
@@ -50,14 +60,11 @@
         return assetUrl(card ? printedCardAsset(card.kind, printed) : cardBackAsset(printed))
     })
     /**
-     * Over the print: the number on the frame's foot, and on a compact face its short name across
-     * the foot, over the name line in the print's other languages, where the print's own name is too
-     * small to read. A standard or full face leaves the name to the print, whose top symbols a plate
-     * would cover; the accessible name carries it at every size. The print is cut at its line, the
-     * card art's proportion, so it stands whole and centred in the card with a strip either side.
+     * The print is cut at its line, the card art's proportion, so it stands whole and centred in the
+     * card with a strip either side. Over a face, the foot's name line in the print's other languages
+     * is painted out in the frame's own colour, so the print names the card once, in its title; the
+     * accessible name and tooltip carry it at every size.
      */
-    const PrintedNumber = { x: 26, y: 360, r: 17 }
-    const PrintedPlate = { x: 14, y: 318, width: 222, height: 60, font: 42, text: 145 } as const
     const Body = { x: CardArt.x + 10, right: CardArt.x + CardArt.width - 10 }
     let actionRows = $derived(card ? wrapLines(card.regularAction, 26) : [])
     let effectRows = $derived(card ? wrapLines(card.special.effect, 28) : [])
@@ -70,50 +77,20 @@
     {#if printedUrl}
         <image
             href={printedUrl}
-            x="0"
+            x={PrintedCardPlace.x}
             y="0"
-            width={CardBox.width}
+            width={PrintedCard.width * PrintedCardPlace.scale}
             height={CardBox.height}
             preserveAspectRatio="xMidYMid meet"
         ></image>
-        {#if card}
-            {#if tier === 'compact'}
-                {@const plate = PrintedPlate}
-                <rect
-                    x={plate.x}
-                    y={plate.y}
-                    width={plate.width}
-                    height={plate.height}
-                    rx="8"
-                    fill="var(--feudum-parchment)"
-                    stroke="var(--feudum-parchment-shade)"
-                    stroke-width="2"
-                ></rect>
-                <text
-                    x={plate.text}
-                    y={plate.y + plate.height / 2 + plate.font * 0.35}
-                    text-anchor="middle"
-                    font-size={plate.font}
-                    fill="var(--feudum-ink)"
-                    style:font-family="var(--feudum-font-title)">{shortName(card.printedName)}</text
-                >
-            {/if}
-            <circle
-                cx={PrintedNumber.x}
-                cy={PrintedNumber.y}
-                r={PrintedNumber.r}
-                fill={paint.fill}
-                stroke={paint.edge}
-                stroke-width="2"
-            ></circle>
-            <text
-                x={PrintedNumber.x}
-                y={PrintedNumber.y + 7}
-                text-anchor="middle"
-                font-size="19"
-                font-weight="700"
-                fill={paint.ink}>{number}</text
-            >
+        {#if card && paint.printed}
+            <g transform="translate({PrintedCardPlace.x} 0) scale({PrintedCardPlace.scale})">
+                <path
+                    d={printedNameLinePath(card.kind)}
+                    fill={PrintedFrameFoot[paint.printed]}
+                    data-name-line
+                ></path>
+            </g>
         {/if}
     {:else}
         <rect

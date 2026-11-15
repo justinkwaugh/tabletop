@@ -244,22 +244,79 @@ describe('printed action cards (R-3.1)', () => {
         }
     })
 
-    it('the compact name plate covers the print’s foot down to its other-language name line; plate and number stay on the print', () => {
-        const PrintLeft = (250 - (380 * 580) / 938) / 2
-        const NameLineFoot = 376
-        const face = cardAt({ width: 50 })
-        const circle = face.match(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"/)
-        const plate = face.match(
-            /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/
-        )
-        const [cx, cy, r] = (circle ?? []).slice(1).map(Number)
-        const [x, y, width, height] = (plate ?? []).slice(1).map(Number)
-        expect(cx - r).toBeGreaterThan(PrintLeft)
-        expect(cy + r).toBeLessThan(380)
-        expect(x).toBeGreaterThan(PrintLeft)
-        expect(x + width).toBeLessThan(250 - PrintLeft)
-        expect(y + height).toBeGreaterThanOrEqual(NameLineFoot)
-        expect(y + height).toBeLessThanOrEqual(380)
+    /**
+     * Measured on the print (580 x 938 px): the foot's name line in the print's other languages, per
+     * card, across and from its top to the print's foot, and the frame's colour round it in each
+     * printed colour. The frame's jewel dips into the line's top between 278 and 310, to 918.
+     */
+    const NameLine: Record<(typeof ActionCardKinds)[number], readonly [number, number]> = {
+        conquer: [152, 424],
+        defend: [120, 445],
+        explore: [145, 404],
+        guild: [210, 383],
+        harvest: [217, 401],
+        improve: [187, 421],
+        influence: [187, 425],
+        migrate: [165, 381],
+        move: [152, 443],
+        repeat: [101, 396],
+        tax: [186, 365]
+    }
+    const FrameFoot = {
+        [Color.Red]: '#9f302c',
+        [Color.Blue]: '#4e5992',
+        [Color.Green]: '#5c6139',
+        [Color.Purple]: '#9f548d',
+        [Color.Yellow]: '#c7b041'
+    } as const
+
+    function nameLineOf(face: string) {
+        const patch = face.match(/<path[^>]*data-name-line[^>]*>/)?.[0] ?? ''
+        const d = patch.match(/\bd="([^"]*)"/)?.[1] ?? ''
+        const numbers = [...d.matchAll(/-?[\d.]+/g)].map(([n]) => Number(n))
+        return { fill: patch.match(/\bfill="([^"]*)"/)?.[1], numbers }
+    }
+
+    it.each(ActionCardKinds)(
+        'R-3.1 the %s print’s other-language name line is painted over in the frame’s own colour, at every size and in every printed colour, the jewel left whole',
+        (kind) => {
+            const [from, to] = NameLine[kind]
+            for (const [colour, fill] of Object.entries(FrameFoot)) {
+                for (const width of [50, 120, 240]) {
+                    const face = cardAt({ kind, width, paint: { ...paint, printed: colour } })
+                    const line = nameLineOf(face)
+                    expect(line.fill, `${kind} ${colour} ${width}`).toBe(fill)
+                    const [left, top, notchLeft, notchFoot, notchRight, , right, foot] =
+                        line.numbers
+                    expect(left).toBeLessThan(from)
+                    expect(right).toBeGreaterThan(to)
+                    expect(top).toBeLessThanOrEqual(915)
+                    expect(foot).toBeGreaterThanOrEqual(938)
+                    expect(notchLeft).toBeLessThanOrEqual(278)
+                    expect(notchRight).toBeGreaterThanOrEqual(310)
+                    expect(notchFoot).toBeGreaterThanOrEqual(918)
+                    expect(face).toMatch(
+                        /<g transform="translate\(7\.51\d* 0\) scale\(0\.405\d*\)"[^>]*>\s*<path[^>]*data-name-line/
+                    )
+                }
+            }
+        }
+    )
+
+    it('R-3.1 a printed back has no name line to paint over', () => {
+        expect(cardAt({ faceShown: false })).not.toContain('data-name-line')
+    })
+
+    it('R-3.1 a printed face carries no round number badge and no short-name plate, at any size; its name stays in its accessible name and tooltip', () => {
+        for (const width of [50, 120, 240]) {
+            const face = cardAt({ width })
+            expect(face).not.toContain('<circle')
+            expect(face).not.toContain('>4<')
+            expect(face).not.toContain(`>${shortName('Influence')}<`)
+            expect(face).not.toMatch(/<rect[^>]*fill="var\(--feudum-parchment\)"/)
+            expect(face).toContain(`aria-label="Ana's Influence card"`)
+            expect(face).toContain(`<title>Ana's Influence card</title>`)
+        }
     })
 
     it('a paint in no printed colour keeps the band round the art window, and the drawn back', () => {
@@ -278,21 +335,6 @@ describe('printed action cards (R-3.1)', () => {
         expect(face).toContain(`href="/art/${cardAsset('influence')}.webp"`)
         expect(face).toContain(`fill="${paint.fill}"`)
         expect(cardAt({ faceShown: false })).not.toContain('<image')
-    })
-
-    it('Contract, sizes: compact repeats the short name; standard and full leave it to the print', () => {
-        expect(cardAt({ width: 50 })).toContain(`>${shortName('Influence')}<`)
-        for (const width of [120, 240]) {
-            const face = cardAt({ width })
-            expect(face).not.toContain('>Influence<')
-            expect(face).not.toMatch(/<rect[^>]*fill="var\(--feudum-parchment\)"/)
-            expect(face).toContain(`aria-label="Ana's Influence card"`)
-        }
-        for (const width of [50, 120, 240]) {
-            const face = cardAt({ width })
-            expect(face).toContain('>4<')
-            expect(face).not.toContain('allowance')
-        }
     })
 })
 
