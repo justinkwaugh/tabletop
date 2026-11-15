@@ -152,7 +152,10 @@ function tablePlace(table: Element | undefined, key: string): Point | undefined 
     return landing ? toBoard(frame, landing) : undefined
 }
 
-/** Where a railroad's locomotives lift from: its supply pile, on its card or the phone's rail. */
+/**
+ * Where a railroad's locomotives lift from: its supply pile, on its card, or on a phone the share
+ * button's or the build panel's pile.
+ */
 export function railroadSourcePoint(table: Element | undefined, railroadId: RailroadId): Point {
     return tablePlace(table, supplyKey(railroadId)) ?? ABOVE_THE_BOARD
 }
