@@ -43,7 +43,11 @@ export function pickScale(viewScale: number): number {
     return Math.min(LARGEST_PICK_SCALE, Math.max(1, FITTED_DESKTOP_SCALE / viewScale))
 }
 
-export type RingKind = 'lit' | 'start' | 'picked'
+/**
+ * Contract, Pick conventions: a lit hex; one lit for a start only; the picked hex; and a journey's
+ * start, a marker rather than a pick.
+ */
+export type RingKind = 'lit' | 'start' | 'picked' | 'journey-start'
 
 export type MarkTone = 'coin' | 'five' | 'gold' | 'cost'
 
@@ -55,6 +59,8 @@ export type LitHexView = {
     /** For a build, each railroad that may go there, as a ghost cube in the slot it would take. */
     ghosts: GhostCube[]
     marks: MarkView[]
+    /** For a journey's next city, each railroad that can make the link, as a chevron chip. */
+    chevrons: RailroadId[]
     /** The button's accessible name: place and effect. */
     label: string
 }
@@ -234,8 +240,9 @@ function pickedHexId(offer: BoardOffer, context: PickContext): HexId | undefined
 
 /**
  * The board offer's lit set as the pick layer draws it, in map order (the Tab order). A journey
- * being extended adds its picked start, which a press clears. A journey's lit cities show no
- * ghost cubes: their railroads' own cubes are already there.
+ * being extended adds its start, ringed as a marker, which a press clears. A journey's lit cities
+ * show no ghost cubes, their railroads' own cubes being already there; its next cities carry a
+ * chevron per railroad that can make the link.
  */
 export function litHexViews(
     offer: BoardOffer,
@@ -255,6 +262,10 @@ export function litHexViews(
                   )
                 : [],
         marks: hex.marks.map(markView),
+        chevrons:
+            context.kind === 'journey-extend'
+                ? hex.placements.map((placement) => placement.railroadId)
+                : [],
         label: litHexLabel(hex, context)
     }))
     if (context.kind !== 'journey-extend') {
@@ -262,9 +273,10 @@ export function litHexViews(
     }
     const start: LitHexView = {
         hexId: context.startHexId,
-        ring: 'picked',
+        ring: 'journey-start',
         ghosts: [],
         marks: [],
+        chevrons: [],
         label: `${placeName(context.startHexId)}: the journey's start, clear the journey`
     }
     return [...lit.filter((view) => view.hexId !== start.hexId), start].sort(

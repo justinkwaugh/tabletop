@@ -35,9 +35,9 @@ function scrim(page: Page) {
     return board(page).locator('g.scrim path')
 }
 
-/** Ring outlines by kind: the full lit ring and the fainter start ring. */
+/** Ring outlines by kind: the bright lit ring (on its dark edge) and the fainter start ring. */
 function rings(page: Page, kind: 'lit' | 'start') {
-    const stroke = kind === 'start' ? 'var(--rtr-accent-start)' : 'var(--rtr-lit-ring)'
+    const stroke = kind === 'start' ? 'var(--rtr-accent-start)' : 'var(--rtr-lit-bright)'
     return board(page).locator(`g.picks polygon[stroke="${stroke}"]`)
 }
 

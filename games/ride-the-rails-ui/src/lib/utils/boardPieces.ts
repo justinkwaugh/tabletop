@@ -127,13 +127,17 @@ export function thisTurnPlacements(
     }
 }
 
+/** Who looks at the board: the seat now deciding, or not, and whether in History View. */
+export type JourneyViewer = { isMyTurn: boolean; isViewingHistory: boolean }
+
 /**
- * The last journey stays drawn until the next action (U-7): the links of the latest player action
- * when it is a journey; the system actions it carried (end of round, skipped shares) keep it. A
- * draft holding a start hides it.
+ * The last journey (U-7): the links of the latest player action when it is a journey; the system
+ * actions it carried (end of round, skipped shares) keep it. The seat now deciding, in Live View,
+ * starts its turn on a clean board, so it is not drawn for that seat; a seat watching keeps it
+ * until the next action, and History View draws the displayed step's journey.
  */
-export function lastJourneyLinks(actions: readonly GameAction[], draftHoldsStart: boolean): Link[] {
-    if (draftHoldsStart) {
+export function lastJourneyLinks(actions: readonly GameAction[], viewer: JourneyViewer): Link[] {
+    if (viewer.isMyTurn && !viewer.isViewingHistory) {
         return []
     }
     const latest = actions.findLast((action) => action.source !== ActionSource.System)

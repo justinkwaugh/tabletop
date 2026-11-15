@@ -76,6 +76,13 @@ Round 3, Ride, Ada first. Orange and Yellow both run from Chicago to Milwaukee o
 - Des Moines to Chicago is one Orange link, "1 link · fare $2". From there only Milwaukee lights: Saint Louis would reuse a hex.
 - Chicago to Milwaukee asks which railroad: Orange pays Ada $1 more than Yellow, since she holds Orange.
 
+## Short way to washington
+
+Round 1, Ride, three seats. Red runs Baltimore, the plain south-west of it, Washington; from that plain a longer Red way passes the plain west of Washington, where Red's line on to Cincinnati leaves Washington. Ada rides first (scenario 12, a journey's shortest way).
+
+- Baltimore, then Washington: the link draws the short way, through the plain south-west of Baltimore.
+- Adding Cincinnati keeps that link as it was; the new link leaves through the plain west of Washington.
+
 ## No journey
 
 Round 2, Ride, Ada first. Round 1's journeys carried every passenger the East Coast links reach, and Orange's stub from Chicago links no city (scenario 16).

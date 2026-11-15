@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushSync } from 'svelte'
 import { assertExists } from '@tabletop/common'
 import {
@@ -215,27 +215,59 @@ describe('the last journey (U-7)', () => {
         })
     }
 
-    it('stays drawn after the journey, hides while a draft holds a start, and gives way to the next action', async () => {
+    const live = { isMyTurn: true, isViewingHistory: false }
+    const watching = { isMyTurn: false, isViewingHistory: false }
+
+    it('is not drawn for the seat now deciding, and is for a seat watching, until the next action', async () => {
         const session = await openSessionOn(riding())
-        expect(lastJourneyLinks(session.actions, false)).toEqual([])
+        expect(lastJourneyLinks(session.actions, watching)).toEqual([])
         await session.pressHex(hexOf(KANSAS_CITY))
         await session.pressHex(hexOf(SAINT_LOUIS))
         await session.rideJourney()
         await settled(session)
         const ridden = [{ railroadId: RED, hexIds: KANSAS_CITY_TO_SAINT_LOUIS }]
-        expect(lastJourneyLinks(session.actions, session.journeyDraft !== undefined)).toEqual(
-            ridden
-        )
+
+        // Ben decides next: his board starts clean; every other view keeps Ada's journey.
+        expect(lastJourneyLinks(session.actions, live)).toEqual([])
+        expect(lastJourneyLinks(session.actions, watching)).toEqual(ridden)
+        expect(session.isMyTurn).toBe(true)
+        expect(session.lastJourney).toEqual([])
+        session.setViewingAsNonActivePlayer(true)
+        flushSync()
+        expect(session.lastJourney).toEqual(ridden)
+        session.setViewingAsNonActivePlayer(false)
+        flushSync()
 
         await session.pressHex(hexOf(SAINT_LOUIS))
-        expect(session.journeyDraft?.startCityId).toBe(SAINT_LOUIS)
-        expect(lastJourneyLinks(session.actions, session.journeyDraft !== undefined)).toEqual([])
-
         await session.pressHex(hexOf(KANSAS_CITY))
         await session.rideJourney()
         await settled(session)
-        expect(lastJourneyLinks(session.actions, session.journeyDraft !== undefined)).toEqual([
+        expect(lastJourneyLinks(session.actions, watching)).toEqual([
             { railroadId: RED, hexIds: [...KANSAS_CITY_TO_SAINT_LOUIS].reverse() }
+        ])
+    })
+
+    it("shows the displayed step's journey in History View, to the deciding seat too", async () => {
+        const session = await openSessionOn(riding())
+        await session.pressHex(hexOf(KANSAS_CITY))
+        await session.pressHex(hexOf(SAINT_LOUIS))
+        await session.rideJourney()
+        await settled(session)
+        await session.pressHex(hexOf(SAINT_LOUIS))
+        await session.pressHex(hexOf(KANSAS_CITY))
+        await session.rideJourney()
+        await settled(session)
+        expect(session.lastJourney).toEqual([])
+
+        await vi.waitFor(() => expect(session.history.isDisabled()).toBe(false))
+        await session.history.goToPreviousAction()
+        await settled(session)
+        expect(session.isViewingHistory).toBe(true)
+        expect(
+            lastJourneyLinks(session.actions, { isMyTurn: true, isViewingHistory: true })
+        ).toEqual([{ railroadId: RED, hexIds: KANSAS_CITY_TO_SAINT_LOUIS }])
+        expect(session.lastJourney).toEqual([
+            { railroadId: RED, hexIds: KANSAS_CITY_TO_SAINT_LOUIS }
         ])
     })
 })

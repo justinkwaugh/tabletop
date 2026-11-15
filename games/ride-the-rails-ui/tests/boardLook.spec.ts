@@ -75,7 +75,10 @@ for (const theme of ['dark', 'light'] as const) {
         expect(await computed(page, '[data-map-board] [data-frame]', 'stroke')).toBe(CHART.frame)
         expect(await computed(page, '[data-map-board] .ground polygon', 'fill')).toBe(CHART.plain)
         expect(await computed(page, 'section.seat', 'backgroundColor')).toBe(CHART.card)
-        // A light board: well above the old dark board's mean (about 0.2).
+        // A light board: well above the old dark board's mean (about 0.2). It is measured as a
+        // seat watching sees it, with no pick open, since a pick's scrim dims the map on purpose.
+        await page.evaluate(() => window.rtrSession.setViewingAsNonActivePlayer(true))
+        await expect(board(page).locator('g.scrim path')).toHaveCount(0)
         expect(await boardLuminance(page)).toBeGreaterThan(0.6)
     })
 }

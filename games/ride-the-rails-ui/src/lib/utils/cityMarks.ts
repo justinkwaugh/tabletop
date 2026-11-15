@@ -141,6 +141,30 @@ export function bonusPill(bonus: CityBonusMark): BonusPill {
         : { text, fill: 'var(--rtr-five)', ink: 'var(--rtr-five-ink)', used: false }
 }
 
+/**
+ * A green ring round a $5 city while its bonus is to be had, just outside the hex's edge and its
+ * start band: a pointy hexagon whose inside lies on the hex edge, so it reaches 0 to 3.2 units
+ * beyond it, where neither a lit ring nor a start cue (both inside the hex) can meet it.
+ */
+export const FIVE_RING = {
+    radius: (HEX_SIZE * APOTHEM_RATIO + 3.2 / 2) / APOTHEM_RATIO,
+    width: 3.2
+} as const
+
+export type FiveRing = { points: string; width: number }
+
+/** R-4.3.2: the ring a $5 city wears until a railroad has had its bonus. */
+export function fiveRing(bonus: CityBonusMark | undefined): FiveRing | undefined {
+    if (bonus?.kind !== 'five' || bonus.taken) return undefined
+    return {
+        points: [0, 60, 120, 180, 240, 300]
+            .map((degrees) => hexagonPoint(FIVE_RING.radius, degrees))
+            .map(({ x, y }) => `${x},${y}`)
+            .join(' '),
+        width: FIVE_RING.width
+    }
+}
+
 /** R-4.1.4: an East Coast city's capacity, a "1" above its one cube. */
 export const CAPACITY_ONE = { x: 0, y: -22.4, fontSize: 16 } as const
 

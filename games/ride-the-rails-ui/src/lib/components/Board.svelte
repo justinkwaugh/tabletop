@@ -2,7 +2,6 @@
     import { usaCity } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { BOARD_HEIGHT, BOARD_WIDTH, FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
-    import { lastJourneyLinks } from '$lib/utils/boardPieces.js'
     import { BUILD_PICK, litHexViews, type PickContext } from '$lib/utils/pickMarks.js'
     import { EMPTY_STAGED_ROUTE } from '$lib/utils/routePath.js'
     import CityLabelLayer from './board/CityLabelLayer.svelte'
@@ -40,8 +39,6 @@
     const views = $derived(litHexViews(offer, gameSession.gameState.track, context))
 
     const stagedRoute = $derived(draft ?? EMPTY_STAGED_ROUTE)
-    // U-7, Coexistence and precedence: a draft holding a start hides the last journey.
-    const lastJourney = $derived(lastJourneyLinks(gameSession.actions, draft !== undefined))
 
     // The popups themselves are drawn outside the board's CSS zoom (BoardPopups).
     const choiceHexId = $derived(offer.popup?.hexId ?? gameSession.journeyPopup?.hexId)
@@ -65,9 +62,9 @@
     <StartCueLayer />
     <PassengerLayer startCityId={stagedRoute.startCityId} />
     <TrackLayer />
-    <LineLayer {lastJourney} />
+    <LineLayer lastJourney={gameSession.lastJourney} />
     <ScrimLayer {offer} spotlight={gameSession.spotlightRailroadId} />
-    <StagedRouteLayer route={stagedRoute} />
+    <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />
     <PickLayer {views} {viewScale} />
     <CityLabelLayer {viewScale} />
     <FlightLayer />

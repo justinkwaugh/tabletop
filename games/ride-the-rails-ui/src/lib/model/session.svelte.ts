@@ -18,6 +18,7 @@ import {
     shareableRailroads,
     type HexId,
     type HydratedRideTheRailsGameState,
+    type Link,
     type RailroadId,
     type RideTheRailsGameState
 } from '@tabletop/ride-the-rails'
@@ -37,6 +38,7 @@ import {
 } from './buildStage.js'
 import { hexChangedBetween } from './hexDetail.js'
 import { Flights } from '$lib/animators/flights.svelte.js'
+import { lastJourneyLinks } from '$lib/utils/boardPieces.js'
 import { hexDetailPlace } from '$lib/utils/pickMarks.js'
 import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
 import {
@@ -257,6 +259,14 @@ export class RideTheRailsGameSession extends GameSession<
 
     // R-3.3.4, R-3.3.5: what RideJourney would pay now.
     journeyPreview: JourneyPreview | undefined = $derived(this.offeredJourney.preview)
+
+    // U-7: the last journey, as this viewer's board draws it.
+    lastJourney: Link[] = $derived(
+        lastJourneyLinks(this.actions, {
+            isMyTurn: this.isMyTurn,
+            isViewingHistory: this.isViewingHistory
+        })
+    )
 
     canRideJourney = $derived(this.journeyPreview !== undefined)
 

@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { USA_CITIES } from '@tabletop/ride-the-rails'
+import { USA_CITIES, usaCity } from '@tabletop/ride-the-rails'
+import { buildState } from '@tabletop/ride-the-rails/testing'
+import { cityPieces } from './boardPieces.js'
 import { MIN_RESTING_HEX_PX } from './boardFocus.js'
 import { HEX_SIZE, HEX_WIDTH } from './boardGeometry.js'
 import {
     BONUS_PILL,
     bonusPill,
+    FIVE_RING,
+    fiveRing,
     hexagonPoint,
     PASSENGER_SCALE,
     passengerOffset,
@@ -56,6 +60,41 @@ describe('the $5 pill', () => {
         expect(center.y).toBeLessThan(0)
         expect(center.x - width / 2).toBeGreaterThan(-HEX_WIDTH / 2)
         expect(center.y - height / 2).toBeGreaterThan(-HEX_SIZE)
+    })
+})
+
+describe('the $5 ring', () => {
+    const DENVER = usaCity('city.usa.denver')
+
+    function denverBonus(track = {}) {
+        const denver = cityPieces(buildState({ track })).find((city) => city.cityId === DENVER.id)
+        return denver?.bonus
+    }
+
+    it('frames a $5 city while its bonus is to be had (R-4.3.2)', () => {
+        expect(fiveRing(denverBonus())).toEqual({
+            points: [0, 60, 120, 180, 240, 300]
+                .map((degrees) => hexagonPoint(FIVE_RING.radius, degrees))
+                .map(({ x, y }) => `${x},${y}`)
+                .join(' '),
+            width: FIVE_RING.width
+        })
+    })
+
+    it('is gone once a railroad has had the $5', () => {
+        expect(fiveRing(denverBonus({ [DENVER.hexId]: ['railroad.black'] }))).toBeUndefined()
+    })
+
+    it('never frames Chicago or a city without a bonus', () => {
+        expect(fiveRing({ kind: 'chicago', amount: 2 })).toBeUndefined()
+        expect(fiveRing(undefined)).toBeUndefined()
+    })
+
+    it('lies just outside the black band: its inside on the hex edge, 3.2 units wide', () => {
+        const apothem = Math.cos(Math.PI / 6)
+        const inside = FIVE_RING.radius * apothem - FIVE_RING.width / 2
+        expect(inside).toBeCloseTo(HEX_SIZE * apothem, 1)
+        expect(FIVE_RING.width).toBe(3.2)
     })
 })
 

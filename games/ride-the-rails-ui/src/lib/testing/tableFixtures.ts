@@ -693,6 +693,46 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
             ]
         }
     },
+    // Scenario 12, a journey's shortest way: round 1, Ride, three seats, Ada first. Red runs from
+    // Baltimore through the plain south-west of it into Washington, and on from that plain through
+    // the plain west of Washington, where Red's line to Cincinnati leaves Washington: a longer way
+    // from Baltimore to Washington that the line on to Cincinnati needs.
+    {
+        slug: 'short-way-to-washington',
+        name: 'Short way to washington',
+        recipe: {
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: RED, p3: BLUE },
+                    builds: [
+                        {
+                            playerId: 'p1',
+                            runs: [
+                                [
+                                    RED,
+                                    [
+                                        cityHexId('Baltimore'),
+                                        'hex.usa.10-54',
+                                        cityHexId('Washington'),
+                                        'hex.usa.11-53',
+                                        'hex.usa.10-52',
+                                        'hex.usa.9-51',
+                                        'hex.usa.9-49'
+                                    ]
+                                ]
+                            ]
+                        },
+                        {
+                            playerId: 'p2',
+                            runs: [[RED, ['hex.usa.8-48', cityHexId('Cincinnati')]]]
+                        }
+                    ]
+                }
+            ],
+            phase: PhaseName.Ride
+        }
+    },
     // Scenario 16: round 2, Ride. Round 1's journeys carried every passenger the links reach, and
     // Orange's stub out of Chicago links nothing, so Ada can only pass (R-3.3.1-H1).
     {

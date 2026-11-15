@@ -206,12 +206,62 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             }
         )
         expect(extending.map((view) => [view.hexId, view.ring, view.label])).toEqual([
-            [hexOf(KANSAS_CITY), 'picked', "Kansas City: the journey's start, clear the journey"],
+            [
+                hexOf(KANSAS_CITY),
+                'journey-start',
+                "Kansas City: the journey's start, clear the journey"
+            ],
             [hexOf(SAINT_LOUIS), 'picked', 'Saint Louis: link by Red or Blue']
         ])
         // A link's railroads already stand in the city, so no ghost cube is drawn.
         expect(extending.flatMap((view) => view.ghosts)).toEqual([])
         expect(litHexViews(offer, {}, { kind: 'journey-start' })[0].ghosts).toEqual([])
+    })
+
+    it("rings a journey's start in its own kind, never a pick's, whether a link popup is open or not", () => {
+        const offer: BoardOffer = {
+            ...EMPTY_BOARD_OFFER,
+            lit: [offered(hexOf(SAINT_LOUIS), [RED])]
+        }
+        const views = litHexViews(
+            offer,
+            {},
+            {
+                kind: 'journey-extend',
+                startHexId: hexOf(KANSAS_CITY),
+                choosingHexId: undefined
+            }
+        )
+        expect(views.map((view) => [view.hexId, view.ring])).toEqual([
+            [hexOf(KANSAS_CITY), 'journey-start'],
+            [hexOf(SAINT_LOUIS), 'lit']
+        ])
+    })
+
+    it('gives each next city of a journey a chevron per railroad that links it (R-3.3.2)', () => {
+        const offer: BoardOffer = {
+            ...EMPTY_BOARD_OFFER,
+            lit: [offered(hexOf(SAINT_LOUIS), [RED, BLUE]), offered(hexOf(DALLAS), [BLUE])]
+        }
+        const extending = litHexViews(
+            offer,
+            {},
+            {
+                kind: 'journey-extend',
+                startHexId: hexOf(KANSAS_CITY),
+                choosingHexId: undefined
+            }
+        )
+        expect(extending.map((view) => [view.hexId, view.chevrons])).toEqual([
+            [hexOf(KANSAS_CITY), []],
+            [hexOf(SAINT_LOUIS), [RED, BLUE]],
+            [hexOf(DALLAS), [BLUE]]
+        ])
+        // Only a journey's next cities carry chevrons: not its starts, nor a build.
+        expect(
+            litHexViews(offer, {}, { kind: 'journey-start' }).flatMap((view) => view.chevrons)
+        ).toEqual([])
+        expect(litHexViews(offer, {}).flatMap((view) => view.chevrons)).toEqual([])
     })
 })
 

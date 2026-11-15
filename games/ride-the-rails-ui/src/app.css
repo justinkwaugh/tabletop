@@ -39,10 +39,11 @@
     --rtr-accent: #d18e0f;
     --rtr-accent-fill: #e8a31733;
     --rtr-accent-start: #d18e0f80;
-    --rtr-lit-ring: #be8200;
+    --rtr-lit-fill: #ffc2332e;
+    --rtr-lit-bright: #ffb000;
     --rtr-cost: #c8506a;
     --rtr-halo: #1b1b1b;
-    --rtr-scrim: #2a272240;
+    --rtr-scrim: #2a272273;
     --rtr-coin: #e2b33c;
     --rtr-coin-ink: #2b2205;
     --rtr-five: #357f45;
@@ -108,7 +109,8 @@
     --color-rtr-accent: var(--rtr-accent);
     --color-rtr-accent-fill: var(--rtr-accent-fill);
     --color-rtr-accent-start: var(--rtr-accent-start);
-    --color-rtr-lit-ring: var(--rtr-lit-ring);
+    --color-rtr-lit-fill: var(--rtr-lit-fill);
+    --color-rtr-lit-bright: var(--rtr-lit-bright);
     --color-rtr-cost: var(--rtr-cost);
     --color-rtr-halo: var(--rtr-halo);
     --color-rtr-scrim: var(--rtr-scrim);

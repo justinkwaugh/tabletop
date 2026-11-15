@@ -1,7 +1,7 @@
 <script lang="ts">
     import { transcontinentalLine, type Link } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { polylinePoints, routeSegments } from '$lib/utils/routePath.js'
+    import { polylinePoints, routeCubeSegments } from '$lib/utils/routePath.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
 
     let { lastJourney }: { lastJourney: readonly Link[] } = $props()
@@ -15,7 +15,7 @@
             ? transcontinentalLine(gameSession.gameState.track)?.hexIds
             : undefined
     )
-    const segments = $derived(routeSegments(lastJourney))
+    const segments = $derived(routeCubeSegments(lastJourney, gameSession.gameState.track))
 </script>
 
 <g class="lines" aria-hidden="true" fill="none" stroke-linejoin="round" stroke-linecap="round">
@@ -23,7 +23,8 @@
         <polyline points={polylinePoints(claimedLine)} stroke="var(--rtr-gold)" stroke-width="3"
         ></polyline>
     {/if}
-    <!-- U-7: the last journey, thinner than a staged route, over the same dark halo. -->
+    <!-- U-7: the last journey through the cubes it rode, thinner than a staged route, over the same
+         dark halo. -->
     {#each segments as segment (segment.key)}
         <polyline points={segment.points} stroke="var(--rtr-halo)" stroke-width="7.4"></polyline>
     {/each}
