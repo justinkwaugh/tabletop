@@ -165,3 +165,24 @@ export function moneyOf(page: Page, playerId: string): Promise<number | undefine
         playerId
     )
 }
+
+/** The lit hexes whose whole box lies inside the board's frame, where the view shows it. */
+export function litInView(page: Page): Promise<string[]> {
+    return board(page).evaluate((root) => {
+        let frame: Element | null = root.parentElement
+        while (frame && getComputedStyle(frame).overflow === 'visible') {
+            frame = frame.parentElement
+        }
+        const clip = frame?.getBoundingClientRect()
+        const left = Math.max(0, clip?.left ?? 0)
+        const top = Math.max(0, clip?.top ?? 0)
+        const right = Math.min(innerWidth, clip?.right ?? innerWidth)
+        const bottom = Math.min(innerHeight, clip?.bottom ?? innerHeight)
+        return [...root.querySelectorAll('g.hits [role="button"]')].flatMap((hit) => {
+            const box = hit.getBoundingClientRect()
+            const inside =
+                box.left >= left && box.right <= right && box.top >= top && box.bottom <= bottom
+            return inside ? [hit.getAttribute('data-hex-id') ?? ''] : []
+        })
+    })
+}

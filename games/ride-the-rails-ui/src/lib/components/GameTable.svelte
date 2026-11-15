@@ -23,7 +23,11 @@
     import FullScreenControls from '$lib/components/panel/FullScreenControls.svelte'
     import BoardFocusChooser from '$lib/components/BoardFocusChooser.svelte'
     import { BoardFocusSelection } from '$lib/model/boardFocus.svelte'
-    import { BOARD_COVER_BELOW_SCALE, BOARD_MAX_SCALE } from '$lib/utils/boardFocus.js'
+    import {
+        BOARD_COVER_BELOW_SCALE,
+        BOARD_MAX_FIT_SCALE,
+        BOARD_MAX_SCALE
+    } from '$lib/utils/boardFocus.js'
     import { boardInsetTop } from '$lib/utils/phoneLayout.svelte.js'
     import { FITTED_DESKTOP_SCALE, hexBox } from '$lib/utils/boardGeometry.js'
     import { keepFocusedHexInBoard } from '$lib/utils/focusScroll.js'
@@ -118,6 +122,7 @@
                     justify="center"
                     controls="bottom-left"
                     maxScale={BOARD_MAX_SCALE}
+                    maxFitScale={BOARD_MAX_FIT_SCALE}
                     coverBelowScale={BOARD_COVER_BELOW_SCALE}
                     insetTop={boardInsetTop()}
                     renderAtViewScale

@@ -1,21 +1,35 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
-import { USA_CITIES, USA_HEXES, isEastCoastCity, type HexId } from '@tabletop/ride-the-rails'
+import {
+    USA_CITIES,
+    USA_HEXES,
+    isEastCoastCity,
+    type HexId,
+    type RailroadId
+} from '@tabletop/ride-the-rails'
 import {
     BOARD_FOCUSES,
+    BOARD_MAX_SCALE,
+    BUILD_ZOOM_MAX_HEX_PX,
+    BuildZoom,
     FOCUS_CHOOSER_BELOW_HEX_PX,
     FOCUS_CHOOSER_INSET,
     LitOffer,
     MIN_RESTING_HEX_PX,
+    buildZoomKeepsView,
+    buildZoomRequest,
     focusRequest,
     hexWidthOnScreen,
     litRevealRect,
     regionRect,
     regionScale,
     restingFocus,
+    restingScale,
     restsAtCover,
     shownBoardRect,
-    showsFocusChooser
+    showsFocusChooser,
+    type BuildLitHex,
+    type FocusRequest
 } from './boardFocus.js'
 import {
     BOARD_EXTENTS,
@@ -275,5 +289,300 @@ describe('city names on a phone’s whole map', () => {
     it('are drawn where a phone rests and at the fitted desktop scale', () => {
         expect(drawsCityLabels(focusRequest('middle', PHONE_VIEW).maxScale)).toBe(true)
         expect(drawsCityLabels(FITTED_DESKTOP_SCALE)).toBe(true)
+    })
+})
+
+/** The scale the wrapper shows a focus at: its rect contained in the view, up to its largest scale. */
+function shownScale(request: FocusRequest, view: { width: number; height: number }): number {
+    return Math.min(
+        view.width / request.rect.width,
+        view.height / request.rect.height,
+        request.maxScale
+    )
+}
+
+/** What a view of a size shows around a point, at a scale. */
+function sizedViewAround(
+    centre: { x: number; y: number },
+    view: { width: number; height: number },
+    viewScale: number
+): Box {
+    const width = view.width / viewScale
+    const height = view.height / viewScale
+    return { x: centre.x - width / 2, y: centre.y - height / 2, width, height }
+}
+
+function westmostHex(): HexId {
+    return USA_HEXES.map((hex) => hex.id).reduce((a, b) =>
+        hexCenter(a).x < hexCenter(b).x ? a : b
+    )
+}
+
+function eastmostHex(): HexId {
+    return USA_HEXES.map((hex) => hex.id).reduce((a, b) =>
+        hexCenter(a).x > hexCenter(b).x ? a : b
+    )
+}
+
+describe('the building zoom’s fit (contract, Build)', () => {
+    const eastCoast = USA_CITIES.filter(isEastCoastCity).map((city) => city.hexId)
+    // A few hexes about the map's middle, more than a hex width from every edge of the board.
+    const middle = USA_HEXES.map((hex) => hex.id)
+        .filter((hexId) => shows(viewAround(centreOf(MAP_EXTENTS), 1), hexId))
+        .slice(0, 3)
+    const restingPhone = sizedViewAround(
+        centreOf(regionRect('middle')),
+        PHONE_VIEW,
+        restingScale(PHONE_VIEW)
+    )
+
+    it('rests at the whole map where a view fits it, and on the middle third where it does not', () => {
+        expect(restingScale(DESKTOP_VIEW)).toBeCloseTo(Math.min(1, containScale(DESKTOP_VIEW)))
+        expect(restingScale(PHONE_VIEW)).toBeCloseTo(regionScale('middle', PHONE_VIEW))
+    })
+
+    it('fits the lit hexes’ box, a hex width wider on every side', () => {
+        expect(middle.length).toBe(3)
+        const boxes = middle.map(hexBox)
+        const left = Math.min(...boxes.map((box) => box.x))
+        const right = Math.max(...boxes.map((box) => box.x + box.width))
+        const top = Math.min(...boxes.map((box) => box.y))
+        const bottom = Math.max(...boxes.map((box) => box.y + box.height))
+        const request = buildZoomRequest(middle, DESKTOP_VIEW, BOARD_EXTENTS)
+        assertExists(request)
+        expect(request.rect.x).toBeCloseTo(left - HEX_WIDTH)
+        expect(request.rect.y).toBeCloseTo(top - HEX_WIDTH)
+        expect(request.rect.width).toBeCloseTo(right - left + 2 * HEX_WIDTH)
+        expect(request.rect.height).toBeCloseTo(bottom - top + 2 * HEX_WIDTH)
+    })
+
+    it('keeps the padded box inside the board at its edge', () => {
+        const request = buildZoomRequest(eastCoast, DESKTOP_VIEW, BOARD_EXTENTS)
+        assertExists(request)
+        expect(request.rect.x + request.rect.width).toBeLessThanOrEqual(BOARD_WIDTH)
+        expect(request.rect.y).toBeGreaterThanOrEqual(0)
+        expect(eastCoast.every((hexId) => shows(request.rect, hexId))).toBe(true)
+    })
+
+    it('fits nothing with nothing lit', () => {
+        expect(buildZoomRequest([], DESKTOP_VIEW, BOARD_EXTENTS)).toBeUndefined()
+    })
+
+    it('draws a single lit hex 64 px wide at most, and never past the board’s largest zoom', () => {
+        for (const view of [DESKTOP_VIEW, PHONE_VIEW, SHORT_PHONE_VIEW]) {
+            const request = buildZoomRequest([middle[0]], view, BOARD_EXTENTS)
+            assertExists(request)
+            const scale = shownScale(request, view)
+            expect(hexWidthOnScreen(scale)).toBeCloseTo(BUILD_ZOOM_MAX_HEX_PX)
+            expect(scale).toBeLessThanOrEqual(BOARD_MAX_SCALE)
+        }
+    })
+
+    it('zooms the East Coast in from the whole map on desktop', () => {
+        const request = buildZoomRequest(eastCoast, DESKTOP_VIEW, BOARD_EXTENTS)
+        assertExists(request)
+        expect(shownScale(request, DESKTOP_VIEW)).toBeGreaterThan(restingScale(DESKTOP_VIEW))
+    })
+
+    it('never zooms out below the whole map on desktop, with lit hexes coast to coast', () => {
+        const coastToCoast = [westmostHex(), eastmostHex()]
+        const request = buildZoomRequest(coastToCoast, DESKTOP_VIEW, BOARD_EXTENTS)
+        assertExists(request)
+        expect(shownScale(request, DESKTOP_VIEW)).toBeCloseTo(restingScale(DESKTOP_VIEW))
+    })
+
+    it('keeps a phone’s resting scale, a hex at least 33 px, with lit hexes coast to coast', () => {
+        const coastToCoast = [westmostHex(), eastmostHex()]
+        const request = buildZoomRequest(coastToCoast, PHONE_VIEW, restingPhone)
+        assertExists(request)
+        const scale = shownScale(request, PHONE_VIEW)
+        expect(scale).toBeCloseTo(restingScale(PHONE_VIEW))
+        expect(hexWidthOnScreen(scale)).toBeGreaterThanOrEqual(MIN_RESTING_HEX_PX)
+    })
+
+    it('centres the lit hexes nearest the view’s centre when they do not fit at the resting scale', () => {
+        const floor = restingScale(PHONE_VIEW)
+        const fromEast = sizedViewAround(centreOf(regionRect('east')), PHONE_VIEW, floor)
+        const west = westmostHex()
+        const request = buildZoomRequest([west, ...eastCoast], PHONE_VIEW, fromEast)
+        assertExists(request)
+        const target = sizedViewAround(centreOf(request.rect), PHONE_VIEW, floor)
+        expect(shows(target, west)).toBe(false)
+        expect(eastCoast.some((hexId) => shows(target, hexId))).toBe(true)
+    })
+
+    it('stays while every lit hex is inside the view, and not once one has left it', () => {
+        const request = buildZoomRequest(middle, DESKTOP_VIEW, BOARD_EXTENTS)
+        assertExists(request)
+        const shown = sizedViewAround(
+            centreOf(request.rect),
+            DESKTOP_VIEW,
+            shownScale(request, DESKTOP_VIEW)
+        )
+        expect(buildZoomKeepsView(middle, DESKTOP_VIEW, shown)).toBe(true)
+        expect(buildZoomKeepsView([...middle, eastCoast[0]], DESKTOP_VIEW, shown)).toBe(false)
+    })
+
+    it('stays on a phone while the lit hexes nearest its centre are in view, when not all can be', () => {
+        const floor = restingScale(PHONE_VIEW)
+        const lit = [westmostHex(), ...eastCoast]
+        const request = buildZoomRequest(lit, PHONE_VIEW, restingPhone)
+        assertExists(request)
+        const shown = sizedViewAround(centreOf(request.rect), PHONE_VIEW, floor)
+        expect(buildZoomKeepsView(lit, PHONE_VIEW, shown)).toBe(true)
+        const elsewhere = sizedViewAround(centreOf(regionRect('middle')), PHONE_VIEW, floor)
+        expect(buildZoomKeepsView(lit, PHONE_VIEW, elsewhere)).toBe(false)
+    })
+})
+
+describe('when the building zoom moves the view (contract, Build)', () => {
+    const NEW_YORK: HexId = 'hex.usa.6-60'
+    const PHILADELPHIA: HexId = 'hex.usa.7-57'
+    const BALTIMORE: HexId = 'hex.usa.9-56'
+    const RED: RailroadId = 'railroad.red'
+    const BLUE: RailroadId = 'railroad.blue'
+    const ORANGE: RailroadId = 'railroad.orange'
+
+    const lit = (hexId: HexId, ...railroadIds: RailroadId[]): BuildLitHex => ({
+        hexId,
+        placements: railroadIds.map((railroadId) => ({ railroadId }))
+    })
+    // Red may go to New York and Philadelphia, Blue to Philadelphia and Baltimore.
+    const offer = [lit(NEW_YORK, RED), lit(PHILADELPHIA, RED, BLUE), lit(BALTIMORE, BLUE)]
+    const all = [NEW_YORK, PHILADELPHIA, BALTIMORE]
+
+    function started(turn = 'ada') {
+        const zoom = new BuildZoom()
+        zoom.follow({ turn, lit: offer, held: undefined })
+        return zoom
+    }
+
+    it('fits every lit hex when the turn first lights them, remembering the view before', () => {
+        const zoom = new BuildZoom()
+        expect(zoom.follow({ turn: 'ada', lit: [], held: undefined })).toBeUndefined()
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: undefined })).toEqual({
+            kind: 'fit',
+            hexIds: all,
+            remember: true
+        })
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: undefined })).toBeUndefined()
+    })
+
+    it('moves nothing outside the deciding seat’s building turn', () => {
+        const zoom = new BuildZoom()
+        expect(zoom.follow({ turn: undefined, lit: offer, held: undefined })).toBeUndefined()
+        expect(zoom.follow({ turn: undefined, lit: [], held: RED })).toBeUndefined()
+    })
+
+    it('narrows to a held railroad’s lit hexes, and widens to all of them once released', () => {
+        const zoom = started()
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: BLUE })).toEqual({
+            kind: 'fit',
+            hexIds: [PHILADELPHIA, BALTIMORE],
+            remember: false
+        })
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: RED })).toEqual({
+            kind: 'fit',
+            hexIds: [NEW_YORK, PHILADELPHIA],
+            remember: false
+        })
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: undefined })).toEqual({
+            kind: 'fit',
+            hexIds: all,
+            remember: false
+        })
+    })
+
+    it('narrows the turn’s first fit to a railroad already held', () => {
+        const zoom = new BuildZoom()
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: RED })).toEqual({
+            kind: 'fit',
+            hexIds: [NEW_YORK, PHILADELPHIA],
+            remember: true
+        })
+    })
+
+    it('moves nothing for a held railroad with no lit hex this turn, nor on its release', () => {
+        const zoom = started()
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: ORANGE })).toBeUndefined()
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: undefined })).toBeUndefined()
+    })
+
+    it('keeps the next lit hexes in view after a placement rather than fitting them again', () => {
+        const zoom = started()
+        const next = [lit(PHILADELPHIA, RED, BLUE), lit(BALTIMORE, BLUE)]
+        // The offer is dark while the placement plays.
+        expect(zoom.follow({ turn: 'ada', lit: [], held: undefined })).toBeUndefined()
+        expect(zoom.follow({ turn: 'ada', lit: next, held: undefined })).toEqual({
+            kind: 'keep-in-view',
+            hexIds: [PHILADELPHIA, BALTIMORE]
+        })
+    })
+
+    it('keeps a held railroad’s next lit hexes in view, or all of them once it has none', () => {
+        const zoom = started()
+        zoom.follow({ turn: 'ada', lit: offer, held: RED })
+        const next = [lit(PHILADELPHIA, RED, BLUE), lit(BALTIMORE, BLUE)]
+        expect(zoom.follow({ turn: 'ada', lit: next, held: RED })).toEqual({
+            kind: 'keep-in-view',
+            hexIds: [PHILADELPHIA]
+        })
+        const blueOnly = [lit(BALTIMORE, BLUE)]
+        expect(zoom.follow({ turn: 'ada', lit: blueOnly, held: RED })).toEqual({
+            kind: 'keep-in-view',
+            hexIds: [BALTIMORE]
+        })
+    })
+
+    it('lets the view go once it is moved by hand, until the next held spotlight change', () => {
+        const zoom = started()
+        zoom.moveByHand()
+        const newYork = [lit(NEW_YORK, RED)]
+        expect(zoom.follow({ turn: 'ada', lit: newYork, held: undefined })).toBeUndefined()
+        expect(zoom.follow({ turn: 'ada', lit: newYork, held: RED })).toEqual({
+            kind: 'fit',
+            hexIds: [NEW_YORK],
+            remember: true
+        })
+        expect(zoom.follow({ turn: 'ada', lit: offer, held: RED })).toEqual({
+            kind: 'keep-in-view',
+            hexIds: [NEW_YORK, PHILADELPHIA]
+        })
+    })
+
+    it('returns to the view from before the zoom when the turn ends', () => {
+        const zoom = started()
+        zoom.follow({ turn: 'ada', lit: offer, held: BLUE })
+        expect(zoom.follow({ turn: undefined, lit: [], held: BLUE })).toEqual({ kind: 'restore' })
+        expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toBeUndefined()
+    })
+
+    it('leaves a view moved by hand where it is when the turn ends', () => {
+        const zoom = started()
+        zoom.moveByHand()
+        expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toBeUndefined()
+    })
+
+    it('starts again on the next turn, after a hand move in the last', () => {
+        const zoom = started('ada')
+        zoom.moveByHand()
+        zoom.follow({ turn: undefined, lit: [], held: undefined })
+        expect(zoom.follow({ turn: 'ada, round 2', lit: offer, held: undefined })).toEqual({
+            kind: 'fit',
+            hexIds: all,
+            remember: true
+        })
+    })
+
+    it('keeps the view from before the first zoom across turns that follow on one screen', () => {
+        const zoom = started('ada')
+        expect(zoom.follow({ turn: 'ben', lit: offer, held: undefined })).toEqual({
+            kind: 'fit',
+            hexIds: all,
+            remember: false
+        })
+        expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toEqual({
+            kind: 'restore'
+        })
     })
 })

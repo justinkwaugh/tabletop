@@ -1,20 +1,25 @@
 <script lang="ts">
     import type { ScalingWrapper } from '@tabletop/frontend-components'
-    import type { RectangleDimensions } from '@tabletop/common'
+    import type { BoundingBox, RectangleDimensions } from '@tabletop/common'
     import { untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
     import { prefersReducedMotion } from 'svelte/motion'
     import type { BoardFocusSelection } from '$lib/model/boardFocus.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { BOARD_EXTENTS } from '$lib/utils/boardGeometry.js'
     import {
         BOARD_FOCUSES,
+        BOARD_MAX_FIT_SCALE,
+        buildZoomKeepsView,
+        buildZoomRequest,
         focusRequest,
         litRevealRect,
         restingFocus,
         restsAtCover,
         shownBoardRect,
         showsFocusChooser,
-        type BoardFocus
+        type BoardFocus,
+        type BuildOffer
     } from '$lib/utils/boardFocus.js'
     import { boardInsetTop } from '$lib/utils/phoneLayout.svelte.js'
     import { findInTable, tableOf } from '$lib/utils/tableScope.js'
@@ -51,36 +56,96 @@
 
     function choose(focus: BoardFocus) {
         show(focus, true)
-        selection.offer.moveByHand()
+        selection.keepPlayersView()
     }
 
     // Set once the view first rests, so an offer lit before then is looked at from where it rests.
     let rested = false
 
-    // Contract, Phone layout: a new offer whose lit hexes all lie outside a cover-fit view pans the
-    // board, at its scale, to the nearest of them, unless the player has moved the view since.
-    function lookAtOffer() {
-        const hexIds = selection.offer.take()
+    // The part of the board the view shows now, read from where the board is drawn.
+    function shownNow(): BoundingBox | undefined {
         const board = findInTable(tableOf(viewport), '[data-map-board]')
-        if (!wrapper || !hexIds || !board || !restsAtCover(viewOf(viewport))) return
-        const shown = shownBoardRect(
+        if (!board) return undefined
+        return shownBoardRect(
             board.getBoundingClientRect(),
             viewport.getBoundingClientRect(),
             boardInsetTop()
         )
+    }
+
+    // Contract, Phone layout: a new Riding offer whose lit hexes all lie outside a cover-fit view
+    // pans the board, at its scale, to the nearest of them, unless the player has moved the view
+    // since. A building offer is fitted instead (lookAtBuild).
+    function lookAtOffer() {
+        const hexIds = selection.offer.take()
+        const shown = shownNow()
+        if (!wrapper || !hexIds || !shown || !restsAtCover(viewOf(viewport))) return
         const target = litRevealRect(hexIds, shown)
         if (!target) return
         selection.release()
         wrapper.revealRect(target, { animate: !prefersReducedMotion.current })
     }
 
-    // Re-runs whenever the lit hexes change; while history is shown the offer is left as it was.
+    // The building offer last seen, looked at once the view rests.
+    let buildOffer: BuildOffer = { turn: undefined, lit: [], held: undefined }
+
+    // Where the view goes back to at the end of the building turn: the focus chosen before the
+    // zoom, the whole map where the view rested on it, or else the view as it was.
+    let restoreView: ((animate: boolean) => void) | undefined
+
+    function rememberView(shownWrapper: ScalingWrapper): (animate: boolean) => void {
+        const focus = selection.current
+        if (focus) return (animate) => show(focus, animate)
+        // A focus rather than a fit, so a resize while it glides (the panel changing as the turn
+        // ends) refits the whole map instead of stopping short.
+        if (!restsAtCover(viewOf(viewport)) && shownWrapper.isZoomedOut()) {
+            return (animate) =>
+                shownWrapper.focusRect(BOARD_EXTENTS, {
+                    maxScale: BOARD_MAX_FIT_SCALE,
+                    padding: 0,
+                    animate
+                })
+        }
+        const captured = shownWrapper.captureView()
+        return (animate) => captured({ animate })
+    }
+
+    // Contract, Build: the deciding seat's view fits its building offer's lit hexes.
+    function lookAtBuild() {
+        const move = selection.build.follow(buildOffer)
+        if (!wrapper || !move) return
+        const animate = !prefersReducedMotion.current
+        if (move.kind === 'restore') {
+            restoreView?.(animate)
+            restoreView = undefined
+            return
+        }
+        if (move.kind === 'fit' && move.remember) restoreView = rememberView(wrapper)
+        const view = viewOf(viewport)
+        const shown = shownNow()
+        if (!shown) return
+        if (move.kind === 'keep-in-view' && buildZoomKeepsView(move.hexIds, view, shown)) return
+        const request = buildZoomRequest(move.hexIds, view, shown)
+        if (!request) return
+        selection.release()
+        wrapper.focusRect(request.rect, { maxScale: request.maxScale, padding: 0, animate })
+    }
+
+    // Re-runs whenever the lit hexes, the building turn or a held spotlight change; while history
+    // is shown the offer is left as it was.
     const followOffer: Attachment<HTMLElement> = () => {
-        const hexIds = gameSession.boardOffer.lit.map((hex) => hex.hexId)
+        const lit = gameSession.boardOffer.lit
+        const turn = gameSession.buildingTurn
+        const held = gameSession.heldRailroadId
         if (gameSession.isViewingHistory) return
         untrack(() => {
-            selection.offer.light(hexIds)
-            if (rested) lookAtOffer()
+            buildOffer = { turn, lit: turn === undefined ? [] : lit, held }
+            // A building offer is the zoom's alone, so the Riding pan never fights it.
+            selection.offer.light(turn === undefined ? lit.map((hex) => hex.hexId) : [])
+            if (rested) {
+                lookAtBuild()
+                lookAtOffer()
+            }
         })
     }
 
@@ -95,6 +160,7 @@
                 rested = true
                 const resting = restingFocus(size)
                 if (resting) show(resting, false)
+                lookAtBuild()
                 lookAtOffer()
             } else if (selection.current) {
                 show(selection.current, false)

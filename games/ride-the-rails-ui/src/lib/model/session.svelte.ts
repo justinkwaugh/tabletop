@@ -153,6 +153,22 @@ export class RideTheRailsGameSession extends GameSession<
         )
     })
 
+    // Contract, Build: the deciding seat's building turn, named by the action it began at, so its
+    // view's zoom tells a new turn from the next placement of the same one.
+    buildingTurn: string | undefined = $derived.by(() => {
+        const playerId = this.myPlayerId
+        const state = this.gameState
+        if (
+            playerId === undefined ||
+            state.result ||
+            state.machineState !== MachineState.Building ||
+            !isBuildingTurnOf(state, playerId)
+        ) {
+            return undefined
+        }
+        return `${playerId} from ${state.turnManager.currentTurn()?.start}`
+    })
+
     private offeredHexes: OfferedHex[] = $derived.by(() => {
         const playerId = this.myPlayerId
         return this.building && playerId ? placementOffer(this.gameState, playerId) : []
@@ -310,6 +326,11 @@ export class RideTheRailsGameSession extends GameSession<
     }
 
     spotlightRailroadId: RailroadId | undefined = $derived(this.spotlight?.railroadId)
+
+    // Contract, Build: a pressed spotlight narrows the building zoom; a hover never moves the view.
+    heldRailroadId: RailroadId | undefined = $derived(
+        this.spotlight?.held ? this.spotlight.railroadId : undefined
+    )
 
     pressRailroad(railroadId: RailroadId) {
         const releases = this.spotlight?.held && this.spotlight.railroadId === railroadId

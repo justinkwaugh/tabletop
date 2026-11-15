@@ -1,5 +1,5 @@
 import type { BoundingBox, Point, RectangleDimensions } from '@tabletop/common'
-import type { HexId } from '@tabletop/ride-the-rails'
+import type { HexId, RailroadId } from '@tabletop/ride-the-rails'
 import {
     BOARD_EXTENTS,
     BOARD_HEIGHT,
@@ -11,6 +11,12 @@ import {
 
 /** The board's largest zoom. */
 export const BOARD_MAX_SCALE = 2
+
+/** The largest scale the board rests at with its whole map fitted (the wrapper's `maxFitScale`). */
+export const BOARD_MAX_FIT_SCALE = 1
+
+/** Contract, Build: the building zoom never draws a hex wider than this on screen. */
+export const BUILD_ZOOM_MAX_HEX_PX = 64
 
 /** A view whose whole-map fit is smaller than this rests at a cover fit instead (Phone layout). */
 export const BOARD_COVER_BELOW_SCALE = 0.3
@@ -84,17 +90,12 @@ export function focusRequest(focus: BoardFocus, view: RectangleDimensions): Focu
     if (focus === 'whole-map') {
         return { rect: BOARD_EXTENTS, maxScale: BOARD_MAX_SCALE }
     }
-    // A one-unit rect at the region's centre, so the scale is exactly maxScale whatever the view.
-    const rect = regionRect(focus)
-    return {
-        rect: {
-            x: rect.x + rect.width / 2 - 0.5,
-            y: rect.y + rect.height / 2 - 0.5,
-            width: 1,
-            height: 1
-        },
-        maxScale: regionScale(focus, view)
-    }
+    return { rect: unitRectAt(centreOf(regionRect(focus))), maxScale: regionScale(focus, view) }
+}
+
+/** A one-unit rect at a point: focused, it is shown at exactly its maxScale whatever the view. */
+function unitRectAt(point: Point): BoundingBox {
+    return { x: point.x - 0.5, y: point.y - 0.5, width: 1, height: 1 }
 }
 
 /** Contract, Phone layout: where a cover-fit view rests (the middle third, hexes at least 33 px); a whole-map view keeps its fit. */
@@ -158,7 +159,24 @@ export function litRevealRect(
 ): BoundingBox | undefined {
     const boxes = hexIds.map(hexBox)
     if (boxes.length === 0 || boxes.some((box) => containsBox(shown, box))) return undefined
-    const centre = centreOf(shown)
+    const middle = centreOf(joinNearest(boxes, centreOf(shown), shown))
+    return {
+        x: middle.x - shown.width / 2,
+        y: middle.y - shown.height / 2,
+        width: shown.width,
+        height: shown.height
+    }
+}
+
+/**
+ * The box of the hexes nearest a point that fit a view's size together: they join nearest first
+ * (map order breaks a tie), each only while their bounding box still fits.
+ */
+function joinNearest(
+    boxes: readonly BoundingBox[],
+    centre: Point,
+    size: RectangleDimensions
+): BoundingBox {
     const distance = (box: BoundingBox) => {
         const point = centreOf(box)
         return Math.hypot(point.x - centre.x, point.y - centre.y)
@@ -172,15 +190,9 @@ export function litRevealRect(
     let joined = nearest
     for (const box of rest) {
         const next = unionBox(joined, box)
-        if (next.width <= shown.width && next.height <= shown.height) joined = next
+        if (next.width <= size.width && next.height <= size.height) joined = next
     }
-    const middle = centreOf(joined)
-    return {
-        x: middle.x - shown.width / 2,
-        y: middle.y - shown.height / 2,
-        width: shown.width,
-        height: shown.height
-    }
+    return joined
 }
 
 /**
@@ -210,4 +222,191 @@ export class LitOffer {
         this.owed = undefined
         return owed
     }
+}
+
+/** Contract, Build: the largest scale the building zoom reaches. */
+export const BUILD_ZOOM_MAX_SCALE = Math.min(BOARD_MAX_SCALE, BUILD_ZOOM_MAX_HEX_PX / HEX_WIDTH)
+
+/**
+ * Contract, Build: the scale a view rests at, below which the building zoom never goes: the whole
+ * map where the view fits it, and the middle third's scale where it rests at a cover fit.
+ */
+export function restingScale(view: RectangleDimensions): number {
+    return restsAtCover(view)
+        ? regionScale('middle', view)
+        : Math.min(BOARD_MAX_FIT_SCALE, containScale(BOARD_EXTENTS, view))
+}
+
+function withinBoard(box: BoundingBox): BoundingBox {
+    const x = Math.max(BOARD_EXTENTS.x, box.x)
+    const y = Math.max(BOARD_EXTENTS.y, box.y)
+    return {
+        x,
+        y,
+        width: Math.min(BOARD_EXTENTS.x + BOARD_EXTENTS.width, box.x + box.width) - x,
+        height: Math.min(BOARD_EXTENTS.y + BOARD_EXTENTS.height, box.y + box.height) - y
+    }
+}
+
+/** Contract, Build: the lit hexes' box, a hex width wider on every side, kept inside the board. */
+function buildZoomRect(hexIds: readonly HexId[]): BoundingBox | undefined {
+    const boxes = hexIds.map(hexBox)
+    if (boxes.length === 0) return undefined
+    const lit = boxes.reduce(unionBox)
+    return withinBoard({
+        x: lit.x - HEX_WIDTH,
+        y: lit.y - HEX_WIDTH,
+        width: lit.width + 2 * HEX_WIDTH,
+        height: lit.height + 2 * HEX_WIDTH
+    })
+}
+
+/**
+ * Contract, Build: the focus that fits the lit hexes into a view (below its chooser inset), at
+ * most 64 px a hex and never below the view's resting scale. Lit hexes too far apart to fit at the
+ * resting scale keep it, centred on those nearest the centre of what the view shows now, as many
+ * as fit. None with nothing lit.
+ */
+export function buildZoomRequest(
+    hexIds: readonly HexId[],
+    view: RectangleDimensions,
+    shown: BoundingBox
+): FocusRequest | undefined {
+    const rect = buildZoomRect(hexIds)
+    if (!rect) return undefined
+    const floor = restingScale(view)
+    if (containScale(rect, view) >= floor) {
+        return { rect, maxScale: Math.max(floor, BUILD_ZOOM_MAX_SCALE) }
+    }
+    const size = { width: view.width / floor, height: view.height / floor }
+    const joined = joinNearest(hexIds.map(hexBox), centreOf(shown), size)
+    return { rect: unitRectAt(centreOf(joined)), maxScale: floor }
+}
+
+/**
+ * Contract, Build: whether a view the building zoom fitted may stay for the lit hexes now: while
+ * every one of them is whole inside what it shows, or, for lit hexes too far apart to fit at the
+ * resting scale, every one of those nearest its centre that fit it together.
+ */
+export function buildZoomKeepsView(
+    hexIds: readonly HexId[],
+    view: RectangleDimensions,
+    shown: BoundingBox
+): boolean {
+    const rect = buildZoomRect(hexIds)
+    if (!rect) return true
+    const boxes = hexIds.map(hexBox)
+    if (containScale(rect, view) >= restingScale(view)) {
+        return boxes.every((box) => containsBox(shown, box))
+    }
+    return containsBox(shown, joinNearest(boxes, centreOf(shown), shown))
+}
+
+/** A lit hex of a building offer, with the railroads that may be placed there. */
+export type BuildLitHex = {
+    hexId: HexId
+    placements: readonly { railroadId: RailroadId }[]
+}
+
+/** What the building zoom follows: the deciding seat's turn, its lit hexes and a held spotlight. */
+export type BuildOffer = {
+    /** Names the deciding seat's building turn, so a new turn tells from the same one; none outside one. */
+    turn: string | undefined
+    lit: readonly BuildLitHex[]
+    /** The railroad a held spotlight names; a hover holds none. */
+    held: RailroadId | undefined
+}
+
+/**
+ * How the view moves: fit these hexes (first remembering the view, to return to at the turn's end),
+ * fit them again only if one has left the view, or return to the remembered view.
+ */
+export type BuildZoomMove =
+    | { kind: 'fit'; hexIds: readonly HexId[]; remember: boolean }
+    | { kind: 'keep-in-view'; hexIds: readonly HexId[] }
+    | { kind: 'restore' }
+
+/**
+ * Contract, Build: when the deciding seat's view zooms to its building offer. A turn's first lit
+ * hexes are fitted, narrowed to a held spotlight's railroad when it has lit hexes; each change of
+ * held spotlight fits again; a placement's next lit hexes refit only once one has left the view.
+ * Moving the view by hand lets it go until the next turn or held spotlight change, and the end of
+ * the turn returns to the view from before the zoom unless the hand has moved it since.
+ */
+export class BuildZoom {
+    private turn: string | undefined
+    private started = false
+    private byHand = false
+    private remembered = false
+    private held: RailroadId | undefined
+    /** The railroad the zoom narrows to; none for every lit hex. */
+    private narrowedTo: RailroadId | undefined
+    private litKey = ''
+
+    /** Notes the offer now, and says how the view moves for it, if at all. */
+    follow(offer: BuildOffer): BuildZoomMove | undefined {
+        if (offer.turn !== this.turn) {
+            this.turn = offer.turn
+            this.started = false
+            this.byHand = false
+            this.narrowedTo = undefined
+            this.litKey = ''
+            // A turn that follows on the same screen keeps the view from before the first zoom.
+            if (offer.turn === undefined && this.remembered) {
+                this.remembered = false
+                return { kind: 'restore' }
+            }
+        }
+        if (offer.turn === undefined || offer.lit.length === 0) return undefined
+        const litKey = offer.lit.map((hex) => hex.hexId).join(' ')
+        if (!this.started) {
+            this.started = true
+            this.held = offer.held
+            this.litKey = litKey
+            this.narrowedTo = hasLit(offer.lit, offer.held) ? offer.held : undefined
+            return this.fit(offer.lit)
+        }
+        if (offer.held !== this.held) {
+            this.held = offer.held
+            this.litKey = litKey
+            const narrowTo = hasLit(offer.lit, offer.held) ? offer.held : undefined
+            // Holding a railroad with nothing lit moves nothing; releasing one moves back.
+            if (offer.held !== undefined && narrowTo === undefined) return undefined
+            if (narrowTo === this.narrowedTo) return undefined
+            this.narrowedTo = narrowTo
+            this.byHand = false
+            return this.fit(offer.lit)
+        }
+        if (litKey === this.litKey) return undefined
+        this.litKey = litKey
+        if (this.byHand) return undefined
+        return { kind: 'keep-in-view', hexIds: this.target(offer.lit) }
+    }
+
+    /** The player moved the view: it stays where they put it, and the turn's end leaves it there. */
+    moveByHand() {
+        this.byHand = true
+        this.remembered = false
+    }
+
+    private fit(lit: readonly BuildLitHex[]): BuildZoomMove {
+        const remember = !this.remembered
+        this.remembered = true
+        return { kind: 'fit', hexIds: this.target(lit), remember }
+    }
+
+    /** The narrowed railroad's lit hexes, or every lit hex once it has none. */
+    private target(lit: readonly BuildLitHex[]): HexId[] {
+        const narrowed = this.narrowedTo
+        const hexes = hasLit(lit, narrowed) ? lit.filter((hex) => litFor(hex, narrowed)) : lit
+        return hexes.map((hex) => hex.hexId)
+    }
+}
+
+function litFor(hex: BuildLitHex, railroadId: RailroadId | undefined): boolean {
+    return hex.placements.some((placement) => placement.railroadId === railroadId)
+}
+
+function hasLit(lit: readonly BuildLitHex[], railroadId: RailroadId | undefined): boolean {
+    return railroadId !== undefined && lit.some((hex) => litFor(hex, railroadId))
 }

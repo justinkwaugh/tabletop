@@ -253,6 +253,27 @@ describe('placing a locomotive (U-2, R-3.2)', () => {
         expect(session.gameState.track[single.hexId]).toBeUndefined()
     })
 
+    it('names the deciding seat’s building turn, the same across its placements', async () => {
+        const session = await openSessionOn(redAndBlue())
+        const turn = session.buildingTurn
+        expect(turn).toBeDefined()
+        await session.pressHex(litWith(session, 1).hexId)
+        await settled(session)
+        expect(session.gameState.building?.placed).toBe(1)
+        expect(session.buildingTurn).toBe(turn)
+
+        await session.endBuilding()
+        await settled(session)
+        expect(session.buildingTurn).not.toBe(turn)
+    })
+
+    it('names no building turn for a waiting seat', async () => {
+        const session = await openSessionOn(redAndBlue())
+        session.setViewingAsNonActivePlayer(true)
+        flushSync()
+        expect(session.buildingTurn).toBeUndefined()
+    })
+
     it('ends the building turn on Done building, with no placement made (R-3.2.1)', async () => {
         const session = await openSessionOn(redAndBlue())
         const apply = spyOnApply()
@@ -390,6 +411,16 @@ describe('railroad spotlight', () => {
         expect(session.spotlightRailroadId).toBe('railroad.blue')
         session.pressRailroad('railroad.blue')
         expect(session.spotlightRailroadId).toBeUndefined()
+    })
+
+    it('holds a railroad for the building zoom only once pressed, never on a hover', async () => {
+        const session = await openSessionOn(redAndBlue())
+        session.hoverRailroad('railroad.blue')
+        expect(session.heldRailroadId).toBeUndefined()
+        session.pressRailroad('railroad.blue')
+        expect(session.heldRailroadId).toBe('railroad.blue')
+        session.pressRailroad('railroad.blue')
+        expect(session.heldRailroadId).toBeUndefined()
     })
 
     it('survives a new Game State and leaves the offer as it is', async () => {
