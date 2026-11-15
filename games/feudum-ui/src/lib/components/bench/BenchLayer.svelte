@@ -18,6 +18,13 @@
             : undefined
     )
 
+    /** R-4.6 The staged moves: in the tray on a desk, above the send in this sheet on a phone. */
+    let staged = $derived(
+        phone.phone
+            ? gameSession.actionPanel.blocks.find((block) => block.kind === 'staged')
+            : undefined
+    )
+
     /** Contract, The trade picker: in the tray on a desk, in this sheet on a phone. */
     let picker = $derived(
         gameSession.actionPanel.blocks.find((block) => block.kind === 'trade-picker')
@@ -38,6 +45,7 @@
         picker={picker ? sheetPicker : undefined}
         sheet={phone.phone}
         primary={primary?.kind === 'primary' ? primary : undefined}
+        staged={staged?.kind === 'staged' ? staged : undefined}
         state={gameSession.gameState}
         playerId={gameSession.myPlayerId ?? ''}
         {paintOf}

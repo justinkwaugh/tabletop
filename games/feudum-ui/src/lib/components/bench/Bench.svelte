@@ -5,6 +5,7 @@
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
     import PanelRow, { type RowPointer } from '$lib/components/table/PanelRow.svelte'
     import PrimaryButton from '$lib/components/panel/PrimaryButton.svelte'
+    import StagedMoves from '$lib/components/panel/StagedMoves.svelte'
     import type { ActionBlock } from '$lib/model/actionPanel.js'
     import type { BenchChoice, BenchOffer } from '$lib/model/benchOffer.js'
     import { benchViewOf } from '$lib/model/benchView.js'
@@ -24,6 +25,7 @@
         bench,
         sheet = false,
         primary,
+        staged,
         state,
         playerId,
         paintOf,
@@ -37,6 +39,8 @@
         sheet?: boolean
         /** The send, when it stands in the footer here. */
         primary?: Extract<ActionBlock, { kind: 'primary' }>
+        /** R-4.6 The staged moves, when they stand in the footer here, above the send. */
+        staged?: Extract<ActionBlock, { kind: 'staged' }>
         state: HydratedFeudumGameState
         playerId: string
         paintOf: (playerId: string) => SeatPaint
@@ -85,6 +89,11 @@
             }
             const observer = new ResizeObserver(place)
             observer.observe(surface)
+            // The board moves, not only resizes, when the action panel above it grows or shrinks.
+            const panel = node.ownerDocument.querySelector('[data-action-panel]')
+            if (panel) {
+                observer.observe(panel)
+            }
             window.addEventListener('resize', place)
             window.addEventListener('scroll', place, true)
             place()
@@ -204,6 +213,9 @@
                         <PanelRow {choice} {pointer} {onPress} />
                     {/each}
                 </span>
+            {/if}
+            {#if staged}
+                <StagedMoves block={staged} {pointer} />
             {/if}
             {#if primary}
                 <span class="ml-auto min-w-0 grow" data-bench-send>

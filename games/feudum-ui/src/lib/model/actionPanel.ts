@@ -10,6 +10,7 @@ import {
     type WritId
 } from '@tabletop/feudum'
 import type { BenchOffer } from './benchOffer.js'
+import { benchViewOf, stagedMoves, type GhostPiece } from './benchView.js'
 import { spaceTarget, type BoardTarget } from './boardOffer.js'
 import type { DiscArt, PanelChoice, TallyLine } from './cardFlows.js'
 import type { DraftArt, DraftChoice } from './deciderDraft.svelte.js'
@@ -62,6 +63,17 @@ export interface NourishPickerPawn {
     readonly paint: SeatPaint
     readonly unfed: boolean
     readonly options: readonly NourishOptionRow[]
+}
+
+/** R-4.6 One staged move in the tray: its piece, its words, and the press that takes it back. */
+export interface StagedLine {
+    readonly item: string
+    readonly piece?: GhostPiece
+    /** A Knight row's marker: its row's paint. */
+    readonly paint?: SeatPaint
+    readonly text: string
+    readonly words: string
+    readonly takeBack: ActionRow
 }
 
 export interface CardRow {
@@ -204,6 +216,12 @@ type PanelBlock =
           readonly lines: readonly TallyLine[]
           readonly note?: string
       }
+    /** R-4.6 What a push or a pull has staged on the bench, listed in the tray. */
+    | {
+          readonly kind: 'staged'
+          readonly lines: readonly StagedLine[]
+          readonly tally?: string
+      }
     | PrimaryBlock
     /**
      * Contract, The trade picker: a guild's trade read as choice cards, in the tray on a desk and in
@@ -245,6 +263,8 @@ export interface ActionPanelView {
 export type PanelSession = Pick<
     FeudumGameSession,
     | 'paintOf'
+    | 'colourPaintOf'
+    | 'gameState'
     | 'startingGoodsPanel'
     | 'startingPawnPanel'
     | 'handPanel'
@@ -796,6 +816,42 @@ function landscapesBlocks(
  * card asks stands in a tray beside it: its line, modes, follow-up rows and send, then Forfeit, last
  * and quiet (contract: Playing a card).
  */
+/** R-4.6 The bench's staged moves as the tray's lines, each with its take-back. */
+function stagedBlocks(session: PanelSession, bench: BenchOffer): ActionBlock[] {
+    const state = session.gameState
+    const moves = stagedMoves(benchViewOf(bench, state, session.myPlayerId ?? ''), bench)
+    if (!moves) {
+        return []
+    }
+    const rowPaint = (row: number): SeatPaint | undefined => {
+        const held = state.guilds.knight.rows.at(row)
+        return (
+            held &&
+            (held.playerId ? session.paintOf(held.playerId) : session.colourPaintOf(held.colour))
+        )
+    }
+    return [
+        {
+            kind: 'staged',
+            ...(moves.tally ? { tally: moves.tally } : {}),
+            lines: moves.lines.map(({ item, piece, text, words, takeBack }) => {
+                const paint = piece?.kind === 'marker' ? rowPaint(piece.row) : undefined
+                return {
+                    item,
+                    ...(piece ? { piece } : {}),
+                    ...(paint ? { paint } : {}),
+                    text,
+                    words,
+                    takeBack: {
+                        choice: { label: `Take back ${words}`, shown: 'Take back', picked: false },
+                        press: takeBack
+                    }
+                }
+            })
+        }
+    ]
+}
+
 function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnPanel']>) {
     const move = session.movePanel
     const guild = session.guildPanel
@@ -850,6 +906,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
           ]
         : [
               ...(flowLine ? [trayLine(flowLine, flowShort)] : []),
+              ...(guild?.bench ? stagedBlocks(session, guild.bench) : []),
               ...rows('replays', asTurnRows(turn.replays)),
               ...rows('modes', modeRows),
               ...turn.refusals.map((text) => line('refusal', text)),

@@ -1,5 +1,6 @@
 import {
     AlchemistCartSpaces,
+    GuildById,
     Goods,
     MarketSpaces,
     ScrollSpaces,
@@ -286,5 +287,59 @@ export function benchViewOf(
         tray: placings.flatMap(({ guild, ghosts }) =>
             guild && bench.areas.includes(guild) ? [] : ghosts
         )
+    }
+}
+
+/** R-4.6 One staged move, as the tray lists it. */
+export interface StagedMove {
+    readonly item: string
+    readonly piece?: GhostPiece
+    /** "2 sulfur · Merchant → Alchemist" */
+    readonly text: string
+    /** Its accessible name: "2 sulfur from the Merchant to the Alchemist". */
+    readonly words: string
+    readonly takeBack: () => void
+}
+
+export interface StagedMoves {
+    readonly lines: readonly StagedMove[]
+    /** "1 of 4 moved", where the step states its limit. */
+    readonly tally?: string
+}
+
+/**
+ * R-4.6 What a push or a pull has staged, from the bench's own picks: each item's count, its
+ * piece, the area it leaves and the area its ghosts land in, as the bench draws them. Nothing here
+ * reads a rule: where a thing lands is the preview's, through the ghosts.
+ */
+export function stagedMoves(view: BenchView, bench: BenchOffer): StagedMoves | undefined {
+    if (bench.staged.length === 0) {
+        return undefined
+    }
+    const from = GuildById[bench.areas[0] ?? bench.guild].name
+    const landing = (item: string) => {
+        const area = view.areas.find((one) => one.ghosts.some((ghost) => ghost.item === item))
+        const ghost =
+            area?.ghosts.find((one) => one.item === item) ??
+            view.tray.find((one) => one.item === item)
+        return { to: area ? GuildById[area.guild].name : undefined, piece: ghost?.piece }
+    }
+    const moved = bench.staged.reduce((sum, { count }) => sum + count, 0)
+    return {
+        lines: bench.staged.map(({ item, label, count, takeBack }) => {
+            const { to, piece } = landing(item)
+            const what = piece?.kind === 'good' ? `${count} ${piece.good}` : `${count} ${label}`
+            return {
+                item,
+                ...(piece ? { piece } : {}),
+                text: to && to !== from ? `${what} · ${from} → ${to}` : `${what} · ${from}`,
+                words:
+                    to && to !== from
+                        ? `${what} from the ${from} to the ${to}`
+                        : `${what} on the ${from}`,
+                takeBack
+            }
+        }),
+        ...(bench.most === undefined ? {} : { tally: `${moved} of ${bench.most} moved` })
     }
 }
