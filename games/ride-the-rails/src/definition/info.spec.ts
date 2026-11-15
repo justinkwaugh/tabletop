@@ -16,11 +16,11 @@ describe('RideTheRailsInfo', () => {
         expect(RideTheRailsInfo.configurator).toBeUndefined()
     })
 
-    it('is an alpha beta title named Ride the Rails', () => {
+    it('is a beta title named Ride the Rails', () => {
         expect(RideTheRailsInfo.metadata).toMatchObject({
             name: 'Ride the Rails',
             beta: true,
-            visibility: GameVisibility.Alpha
+            visibility: GameVisibility.Beta
         })
     })
 
