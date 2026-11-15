@@ -632,7 +632,8 @@ export function createEighteenXXRuntime<
             options.offerAuctionRules,
             options.auctionRules,
             options.selectionAuctionRules,
-            options.endingRules
+            options.endingRules,
+            options.trainRules
         ),
         ...(trainFundingRules
             ? fundingActions(

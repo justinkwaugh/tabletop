@@ -81,6 +81,11 @@ export interface WaterfallAuctionRules<State extends AuctionState = AuctionState
     firstStockPlayer?: 'after-last-actor' | 'after-last-purchase'
     award(state: State, award: AuctionAward): void
     incomePayments(state: State): CashPayment[]
+    /**
+     * The kinds of the depot trains exported after an all-pass income round, where the rules
+     * count that round as a set of operating rounds, as 18Chesapeake does (§9, §11.9).
+     */
+    incomeExports?(state: State): string[]
 }
 export type AuctionResolution =
     | { kind: 'award'; award: AuctionAward }

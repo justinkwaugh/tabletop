@@ -25,6 +25,7 @@ import {
     isDistributeEarnings,
     isBuyTrain,
     isBuyShares,
+    purchaseForfeited,
     isSellShares,
     isStartCompany,
     isFinishTrack,
@@ -661,8 +662,14 @@ function describeShared(
     }
     if (isBuyShares(action)) {
         assertExists(action.metadata, 'Recorded share purchase requires its company')
-        const { poolId } = action.metadata
+        const { poolId, removedCertificateIds = [] } = action.metadata
         const source = poolId ? ` from ${poolName(poolId)}` : ''
+        const removed = removedCertificateIds.length
+        if (purchaseForfeited(action.metadata))
+            return {
+                text: `Took no ${companyName(action.metadata.companyId)} share${source}`,
+                detail: 'The only share there was removed from the game first'
+            }
         return {
             text: `Bought ${action.metadata.shares} ${companyName(action.metadata.companyId)}${source} for ${money(action.expectedPrice)}`,
             detail:
@@ -671,7 +678,10 @@ function describeShared(
                         ? `For ${companyName(action.buyer.companyId)}`
                         : '',
                     action.metadata.presidency ? presidency(action.metadata.presidency) : '',
-                    action.metadata.coveredShortId ? 'Closed a short' : ''
+                    action.metadata.coveredShortId ? 'Closed a short' : '',
+                    removed
+                        ? `${removed === 1 ? 'Another share' : `${removed} shares`} removed from the game`
+                        : ''
                 ]
                     .filter(Boolean)
                     .join(' · ') || undefined
@@ -840,8 +850,23 @@ function describeShared(
         if (
             (action.metadata.kind === 'income' || action.metadata.kind === 'discount') &&
             action.metadata.payments?.length
-        )
-            return privateIncome(action.metadata.payments)
+        ) {
+            const exports = action.metadata.kind === 'income' ? action.metadata.exports : undefined
+            const income = privateIncome(action.metadata.payments)
+            return exports
+                ? {
+                      ...income,
+                      detail: [
+                          income.detail,
+                          `a ${exports.trains.map((train) => train.definitionId).join(', ')}-train exported`,
+                          exports.toPhaseId ? `phase ${exports.toPhaseId}` : undefined
+                      ]
+                          .filter(Boolean)
+                          .join(' · '),
+                      ...(exports.toPhaseId ? { important: true } : {})
+                  }
+                : income
+        }
         const awards = action.metadata.kind === 'award' ? [action.metadata.award] : []
         return {
             text: awards.length ? 'Auction awarded' : 'Auction continued',
