@@ -94,7 +94,10 @@ describe('ink', () => {
     it.each(Palettes)(
         'stands the passenger clear of every city ground in the %s palette',
         (palette) => {
-            const pairs = LabelGrounds.map((ground): [string, string] => ['rtr-pawn-edge', ground])
+            const pairs = LabelGrounds.map((ground): [string, string] => [
+                'rtr-passenger-edge',
+                ground
+            ])
             expect(weakPairs(palette, pairs, MinGraphicContrast)).toEqual([])
         }
     )

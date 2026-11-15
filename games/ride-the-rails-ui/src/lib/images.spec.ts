@@ -76,6 +76,13 @@ describe('image coverage', () => {
         expect(packageFile('src/lib/images/README.md')).toContain('scripts/render-cover.mjs')
     })
 
+    it('draws the cover’s passenger as the board’s meeple, read from the board’s source', () => {
+        const script = packageFile('scripts/render-cover.mjs')
+        expect(script).toContain("source('src/lib/utils/cityMarks.ts')")
+        expect(script).toMatch(/d="\$\{passenger\.path\}"/)
+        expect(script).not.toMatch(/pawn/i)
+    })
+
     it.each([
         ['BigShouldersDisplay-Bold.woff2', 'BigShouldersDisplay-OFL.txt'],
         ['RideTheRailsSerif-Bold.woff2', 'LibreBaskerville-OFL.txt']

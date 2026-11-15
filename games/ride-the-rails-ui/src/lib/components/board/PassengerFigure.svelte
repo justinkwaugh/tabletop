@@ -28,8 +28,8 @@
         {:else}
             <path
                 d={MEEPLE.path}
-                fill="var(--rtr-pawn)"
-                stroke="var(--rtr-pawn-edge)"
+                fill="var(--rtr-passenger)"
+                stroke="var(--rtr-passenger-edge)"
                 stroke-width={MEEPLE.edgeWidth}
                 stroke-linejoin="round"
             ></path>

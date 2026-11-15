@@ -1,12 +1,13 @@
 /**
  * Renders the catalog cover, src/lib/images/cover.webp, from the SVG drawn below, in the board's
  * flat chart look: a hatched sea in a navy frame, a band of cream hexes with mountain patches, a
- * grey city with its Red and Blue start band, a natural-wood passenger pawn and a $5 pill, a line
- * of flat Red cubes from the west and Blue from the east, and the title in the board's serif on a
- * cream card. Every colour is a palette token from src/app.css: the shared tokens and those of the
- * palette BOARD_LOOK picks (src/lib/utils/boardLook.ts), read from its source; a token the palette
- * does not declare stops the script. The fonts are the ones the table loads: each family named in
- * src/lib/definitions/fonts.ts, with the file GameTable.svelte gives it.
+ * grey city with its Red and Blue start band, a natural-wood passenger meeple and a $5 pill, a
+ * line of flat Red cubes from the west and Blue from the east, and the title in the board's serif
+ * on a cream card. Every colour is a palette token from src/app.css: the shared tokens and those of
+ * the palette BOARD_LOOK picks (src/lib/utils/boardLook.ts), read from its source; a token the
+ * palette does not declare stops the script. The passenger is the board's: its shape, edge, place
+ * and scale read from src/lib/utils/cityMarks.ts. The fonts are the ones the table loads: each
+ * family named in src/lib/definitions/fonts.ts, with the file GameTable.svelte gives it.
  *
  * Prerequisite: Playwright's Chromium is installed:
  *     cd games/ride-the-rails-ui && pnpm exec playwright install chromium
@@ -142,8 +143,28 @@ function trackPair(railroad, centre) {
         .join('\n')
 }
 
-const PawnPath =
-    'M-1.5 -2.68 A2.6 2.6 0 1 1 1.5 -2.68 L1.5 -2.4 L3 -2.4 L3 -.9 L1.5 -.9 C1.5 1.6 2.7 3.1 3.7 4 L4.5 4 L4.5 6.5 L-4.5 6.5 L-4.5 4 L-3.7 4 C-2.7 3.1 -1.5 1.6 -1.5 -.9 L-3 -.9 L-3 -2.4 L-1.5 -2.4 Z'
+/**
+ * The board's passenger from src/lib/utils/cityMarks.ts: the meeple's path and edge in its own
+ * units, where an ordinary city's passenger stands from the hex's centre, and its scale.
+ */
+function boardPassenger() {
+    const marks = source('src/lib/utils/cityMarks.ts')
+    const meeple =
+        /export const MEEPLE = \{\s*path:\s*((?:'[^']*'\s*\+?\s*)+),\s*edgeWidth: ([\d.]+),/.exec(
+            marks
+        )
+    const offset = /const PASSENGER_OFFSET: Point = \{ x: ([\d.-]+), y: ([\d.-]+) \}/.exec(marks)
+    const scale = /export const PASSENGER_SCALE = ([\d.]+)/.exec(marks)
+    if (!meeple || !offset || !scale) throw new Error('src/lib/utils/cityMarks.ts has no passenger')
+    return {
+        path: [...meeple[1].matchAll(/'([^']*)'/g)].map((part) => part[1]).join(''),
+        edgeWidth: Number(meeple[2]),
+        offset: { x: Number(offset[1]), y: Number(offset[2]) },
+        scale: Number(scale[1])
+    }
+}
+
+const passenger = boardPassenger()
 
 const city = hexCentre(CityRow, 0)
 const west = [hexCentre(CityRow, -3), hexCentre(CityRow, -2), hexCentre(CityRow, -1)]
@@ -166,7 +187,7 @@ const drawing = `<svg xmlns="http://www.w3.org/2000/svg" width="${Width}" height
     .cube { stroke: var(--rtr-cube-edge); stroke-width: 1.5; }
     .cube-red { fill: var(--rtr-railroad-red); }
     .cube-blue { fill: var(--rtr-railroad-blue); }
-    .pawn { fill: var(--rtr-pawn); stroke: var(--rtr-pawn-edge); stroke-width: 0.7; stroke-linejoin: round; }
+    .passenger { fill: var(--rtr-passenger); stroke: var(--rtr-passenger-edge); stroke-width: ${passenger.edgeWidth}; stroke-linejoin: round; }
     .pill { fill: var(--rtr-five); stroke: var(--rtr-ink); stroke-width: ${1.6 * Unit}; }
     .pill-ink { fill: var(--rtr-five-ink); font-family: '${serif.family}'; font-weight: 700; font-size: ${12.8 * Unit}px; text-anchor: middle; }
     .card { fill: var(--rtr-panel); stroke: var(--rtr-card-edge); stroke-width: 2; }
@@ -190,7 +211,7 @@ ${west.map((centre) => trackPair('red', centre)).join('\n')}
 ${east.map((centre) => trackPair('blue', centre)).join('\n')}
 ${cube('red', { x: city.x - 15.8 * Unit, y: city.y + 8 * Unit }, 26 * Unit)}
 ${cube('blue', { x: city.x + 15.8 * Unit, y: city.y + 8 * Unit }, 26 * Unit)}
-<path class="pawn" transform="translate(${city.x + 18.4 * Unit} ${city.y - 18.4 * Unit}) scale(${2.1 * Unit})" d="${PawnPath}"/>
+<path class="passenger" transform="translate(${city.x + passenger.offset.x * Unit} ${city.y + passenger.offset.y * Unit}) scale(${passenger.scale * Unit})" d="${passenger.path}"/>
 <g transform="translate(${city.x - 16.8 * Unit} ${city.y - 20.8 * Unit})">
     <rect class="pill" x="${-13 * Unit}" y="${-8.4 * Unit}" width="${26 * Unit}" height="${16.8 * Unit}" rx="${8.4 * Unit}"/>
     <text class="pill-ink" y="${4.5 * Unit}">$5</text>

@@ -51,8 +51,8 @@
     --rtr-coin-used: #d9d3c5;
     --rtr-coin-used-ink: #5c564b;
     --rtr-gold: #b9851f;
-    --rtr-pawn: #e2bb78;
-    --rtr-pawn-edge: #3d2a14;
+    --rtr-passenger: #e2bb78;
+    --rtr-passenger-edge: #3d2a14;
     --rtr-passenger-gone: #9a9384;
     --rtr-cube-edge: #0000008c;
     --rtr-cue-yellow: #c99a00;
@@ -121,8 +121,8 @@
     --color-rtr-coin-used: var(--rtr-coin-used);
     --color-rtr-coin-used-ink: var(--rtr-coin-used-ink);
     --color-rtr-gold: var(--rtr-gold);
-    --color-rtr-pawn: var(--rtr-pawn);
-    --color-rtr-pawn-edge: var(--rtr-pawn-edge);
+    --color-rtr-passenger: var(--rtr-passenger);
+    --color-rtr-passenger-edge: var(--rtr-passenger-edge);
     --color-rtr-passenger-gone: var(--rtr-passenger-gone);
     --color-rtr-cube-edge: var(--rtr-cube-edge);
     --color-rtr-cue-yellow: var(--rtr-cue-yellow);
