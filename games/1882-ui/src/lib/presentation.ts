@@ -8,18 +8,12 @@ import {
     ScrId,
     TitleRules1882,
     centralExchanger,
-    rebellionTrainOrdinal,
     startRestriction,
     type State1882
 } from '@tabletop/1882'
-import {
-    moneyFormat,
-    type TitleFact,
-    type TitlePresentation,
-    type UnstartedCompanies
-} from '@tabletop/18xx-ui'
+import { moneyFormat, type TitlePresentation, type UnstartedCompanies } from '@tabletop/18xx-ui'
 import { CompanyNames1882 } from './companyPresentation.js'
-import { PhaseChart1882 } from './phaseChart.js'
+import { PhaseChart1882, phaseChart1882 } from './phaseChart.js'
 import { PhaseColors1882, TrainColors1882 } from './trainPresentation.js'
 
 const money = moneyFormat(TitleRules1882.currencySymbol)
@@ -38,29 +32,16 @@ const Unstarted1882: UnstartedCompanies<State1882> = {
     }
 }
 
-/** When the North-West Rebellion comes (§3, §7.1.2). */
-function gameFacts1882(state: State1882): TitleFact[] {
-    const { definitionId, occurred } = state.rebellion
-    return [
-        {
-            label: 'Rebellion',
-            value: occurred
-                ? 'Over'
-                : `${rebellionTrainOrdinal(state) === 2 ? 'Second' : 'First'} ${definitionId}-train`
-        }
-    ]
-}
-
 export const Presentation1882: TitlePresentation<State1882> = {
     money,
     phaseChart: PhaseChart1882,
+    phaseChartFor: phaseChart1882,
     trainColors: TrainColors1882,
     phaseColors: PhaseColors1882,
     marketPoolId: MarketPoolId1882,
     ipoPoolId: IpoPoolId1882,
     companyNames: CompanyNames1882,
     unstartedCompanies: Unstarted1882,
-    gameFacts: gameFacts1882,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: { [NwrId]: 'Lay or upgrade a tile where the station moved' },
     marketZones: [

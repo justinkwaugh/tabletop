@@ -69,6 +69,9 @@ event sections, and the waterfall auctions of 1830, 1889, 1894 and 1833NE.
 - **Auction hooks typed by the title's state** (`WaterfallAuctionRules<State>`): a title's
   award and income hooks read its own fields, as 1882's award reads the Trestle Bridge's drawn
   share.
+- **Train marks in the roster** (`PhaseChartData` train `marks`, `TrainMark`): an icon, short
+  label and description beside a train in the depot and phase chart for what buying it brings,
+  as 1882's rebellion.
 - **Title operating modes in the train step**: the operating mode switch also shows in
   `BuyingTrains` when the title offers a mode there, as 1882's NWR power may be used at any time
   in the turn.
@@ -82,8 +85,9 @@ title with a train-keyed event would be the time to lift it.
 Made while implementing; the forum sources are in `rulings.md`.
 
 1. **The rebellion's train is public.** The rulebook hides the NWR card in the train stack (§3);
-   18xx.games announces the drawn train at setup. Followed: the game facts show "Rebellion: first
-   4-train" from the start. Hidden information would need a canonical/projected state for one card.
+   18xx.games announces the drawn train at setup. Followed: the depot and phase chart mark the
+   drawn train with the rebellion icon from the start, "2nd" once the SC's extra train puts the
+   card under the second. Hidden information would need a canonical/projected state for one card.
 2. **Emergency purchases buy the cheapest bank train** (§11.8), as 18xx.games. The designer's
    older answer (any legal train, 2020-05-19) predates the published rules.
 3. **A player may raise their own bid** on a private, as the family's waterfall auction and
