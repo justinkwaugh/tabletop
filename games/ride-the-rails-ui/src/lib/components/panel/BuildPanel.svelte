@@ -8,6 +8,7 @@
         placedCount,
         placedText
     } from '$lib/model/actionArea.js'
+    import { isInFullScreen } from '$lib/model/fullScreenContext.js'
     import { shownRailroadCards } from '$lib/model/railroadCards.js'
     import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
     import {
@@ -21,16 +22,20 @@
     import RailroadSpotlightControl from '../RailroadSpotlightControl.svelte'
 
     const gameSession = getGameSession()
+    // Full screen's dialog leaves the railroad cards, and so their spotlight, out of reach: there
+    // the panel is the phone's one line, with the piles, at every width.
+    const inFullScreen = isInFullScreen()
+    const oneLine = $derived(isPhoneWidth() || inFullScreen)
 
     // R-3.2.1, R-3.2.3, R-3.2.4
     const progress = $derived(buildProgress(gameSession.gameState))
     const note = $derived(progress && mountainNote(progress))
 
-    // R-3.2, R-4.1, R-4.2: on a phone, the piles of the railroads the building seat may place now,
+    // R-3.2, R-4.1, R-4.2: on one line, the piles of the railroads the building seat may place now,
     // the same set that lights the hexes; a railroad that empties or has no legal hex drops out.
     const piles = $derived.by(() => {
         const playerId = gameSession.myPlayerId
-        if (!progress || !playerId || !isPhoneWidth()) return []
+        if (!progress || !playerId || !oneLine) return []
         const buildable = buildableRailroads(gameSession.gameState, playerId)
         return shownRailroadCards(gameSession).filter((card) => buildable.includes(card.railroadId))
     })
@@ -46,8 +51,9 @@
     )
 </script>
 
-{#if progress && isPhoneWidth()}
-    <!-- Contract, Build: one line on a phone, the placed count, the piles, and the button. -->
+{#if progress && oneLine}
+    <!-- Contract, Build: one line on a phone and in full screen, the placed count, the piles, and
+         the button. -->
     <div class="flex items-center gap-2.5">
         <span class="count rtr-display" aria-hidden="true">{placedCount(progress)}</span>
         <span class="sr-only">{placedText(progress)}{note ? `, ${note}` : ''}</span>
