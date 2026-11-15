@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isPlaceLocomotive } from '../actions/placeLocomotive.js'
+import type { HexId } from '../data/hexes.js'
 import { usaCity } from '../data/usaMap.js'
 import { CURRENT_RIDE_THE_RAILS_REVISION } from '../model/gameState.js'
 import { placementTest } from '../rules/placement.js'
@@ -44,7 +45,7 @@ describe('revision 1 (R-X.3)', () => {
         ).toThrow()
     })
 
-    it('R-4.2.3-H1: lets Yellow start in Chicago and again in a westernmost city', () => {
+    it('R-4.2.3-H1: lets Yellow start once, in Chicago or a westernmost city, not in both', () => {
         const chicago = usaCity('city.usa.chicago').hexId
         const seattle = usaCity('city.usa.seattle').hexId
         const before = buildState({
@@ -52,26 +53,23 @@ describe('revision 1 (R-X.3)', () => {
             shares: { p1: { 'railroad.yellow': 1 } },
             track: { [seattle]: ['railroad.purple'] }
         })
-        const first = runAction(before, {
+        const placeYellow = (hexId: HexId) => ({
             type: ActionType.PlaceLocomotive,
             playerId: 'p1',
             railroadId: 'railroad.yellow',
-            hexId: chicago
+            hexId
         })
-        const second = runAction(hydrated(first.after), {
-            type: ActionType.PlaceLocomotive,
-            playerId: 'p1',
-            railroadId: 'railroad.yellow',
-            hexId: seattle
-        })
-        const starts = [first, second].map(({ processed: [action] }) =>
-            isPlaceLocomotive(action) ? action.metadata?.isStart : undefined
-        )
-        expect(starts).toEqual([true, true])
-        expect(second.after.yellow).toEqual({
-            westernmost: ['city.usa.seattle'],
-            startedInChicago: true,
-            westStartCityId: 'city.usa.seattle'
-        })
+        for (const [first, second] of [
+            [chicago, seattle],
+            [seattle, chicago]
+        ]) {
+            const { after, processed } = runAction(before, placeYellow(first))
+            expect(isPlaceLocomotive(processed[0]) && processed[0].metadata?.isStart).toBe(true)
+            expect(placementTest(hydrated(after), 'p1', 'railroad.yellow', second)).toEqual({
+                legal: false,
+                reason: 'not-adjacent-or-start'
+            })
+            expect(() => runAction(hydrated(after), placeYellow(second))).toThrow()
+        }
     })
 })

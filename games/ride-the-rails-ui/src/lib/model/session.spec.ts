@@ -16,6 +16,8 @@ import {
     isPlaceLocomotive,
     isTakeShare,
     legalPlacements,
+    adjacentHexIds,
+    usaCity,
     type HexId,
     type RailroadId,
     type Shares
@@ -31,6 +33,7 @@ import {
     type BuildStageValues
 } from './buildStage.js'
 import type { RideTheRailsGameSession } from './session.svelte.js'
+import { startCues } from '$lib/utils/startCues.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -159,6 +162,42 @@ describe('the board offer in Building (R-3.2, R-4.1, R-4.2)', () => {
         expect(session.hexDetailHexId).toBe(single.hexId)
         expect(session.buildHexId).toBeUndefined()
     })
+
+    it.each(['city.usa.chicago', 'city.usa.omaha'] as const)(
+        'lights and cues no Yellow start once Yellow has started in %s (R-4.2.3-H1)',
+        async (cityId) => {
+            const yellow: RailroadId = 'railroad.yellow'
+            const fixture = TABLE_FIXTURES.find((candidate) => candidate.slug === 'yellow-starts')
+            assertExists(fixture)
+            const session = await openSessionOn(tableState(fixture.recipe))
+            const yellowStarts = () =>
+                session.boardOffer.lit
+                    .filter((hex) =>
+                        hex.placements.some(
+                            (placement) => placement.railroadId === yellow && placement.isStart
+                        )
+                    )
+                    .map((hex) => hex.hexId)
+            const yellowCues = () =>
+                startCues(session.gameState).filter((cue) => cue.railroadId === yellow)
+            expect(yellowStarts()).toHaveLength(4)
+            expect(yellowCues()).toHaveLength(4)
+
+            const start = usaCity(cityId).hexId
+            await session.placeLocomotive(yellow, start)
+            await settled(session)
+            expect(session.gameState.track[start]).toContain(yellow)
+            expect(yellowStarts()).toEqual([])
+            expect(yellowCues()).toEqual([])
+            const yellowLit = session.boardOffer.lit.filter((hex) =>
+                hex.placements.some((placement) => placement.railroadId === yellow)
+            )
+            expect(yellowLit.length).toBeGreaterThan(0)
+            for (const hex of yellowLit) {
+                expect(adjacentHexIds(hex.hexId)).toContain(start)
+            }
+        }
+    )
 })
 
 describe('placing a locomotive (U-2, R-3.2)', () => {

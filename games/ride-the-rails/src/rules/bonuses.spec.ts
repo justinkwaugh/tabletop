@@ -7,8 +7,7 @@ import { PhaseName } from '../definition/phases.js'
 import type {
     HydratedRideTheRailsGameState,
     Track,
-    TranscontinentalClaim,
-    YellowState
+    TranscontinentalClaim
 } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
 import { buildState } from '../testing/fixtures.js'
@@ -30,17 +29,15 @@ const EVERY_SHARE: Shares = Object.fromEntries(RAILROAD_IDS.map((railroadId) => 
 
 type Setup = {
     track?: Track
-    yellow?: YellowState
     transcontinental?: TranscontinentalClaim
 }
 
-function building({ track = {}, yellow, transcontinental }: Setup): HydratedRideTheRailsGameState {
+function building({ track = {}, transcontinental }: Setup): HydratedRideTheRailsGameState {
     return buildState({
         round: 6,
         phase: PhaseName.Build,
         shares: { p1: EVERY_SHARE },
         track,
-        yellow,
         transcontinental
     })
 }
@@ -203,8 +200,7 @@ describe('$5 cities (R-4.3.2, R-4.3.2-H1)', () => {
             ['railroad.red', [NEW_YORK]],
             ['railroad.blue', [PHILADELPHIA]]
         )
-        const yellow = { startedInChicago: true }
-        expect(place({ track, yellow }, 'railroad.yellow', DENVER)).toEqual({
+        expect(place({ track }, 'railroad.yellow', DENVER)).toEqual({
             isStart: true,
             bonuses: []
         })

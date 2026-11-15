@@ -96,7 +96,7 @@ async function flyPlacement(
         y: slot.y,
         scale: 1
     })
-    // R-4.2, R-4.2.3-H1: the start the placement recorded, so Yellow's second start bounces too.
+    // R-4.2: the start the placement recorded.
     if (paid.isStart) {
         locomotive
             .to({ y: slot.y - 9 }, FLIGHT.bounce, FLIGHT.lands, 'power1.out')

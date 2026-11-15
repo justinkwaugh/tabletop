@@ -220,10 +220,7 @@
    "city.usa.seattle",
    "city.usa.spokane",
    "city.usa.tampa"
-  ],
-  "yellow": {
-   "startedInChicago": false
-  }
+  ]
  },
  "actions": []
 }

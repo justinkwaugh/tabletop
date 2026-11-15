@@ -90,7 +90,7 @@ Questions marked _(map)_ need the map boards before they can be settled; the res
 - **Q14 Yellow "and/or"** (R-4.2.3): may Yellow start twice, once in Chicago and once in a westernmost city?
     - _Readings:_ (a) yes: two starting placements, so Yellow may have two separate networks; (b) one start only, in either place.
     - _Sources:_ B "must start in Chicago and/or in one of the three westernmost occupied cities."
-    - _Recommendation:_ Settled: R-4.2.3-H1, provisional. (a), provisional. "And/or" names both. The second start may be made in the same building turn or any later one; the westernmost set stays the one fixed at Yellow's first placement.
+    - _Recommendation:_ Settled: R-4.2.3-H1, which takes (b): one start, in Chicago or in a westernmost city. "And/or" names the choice of where, not a second start.
 
 - **Q15 Westernmost cities** (R-4.2.3): how are "the three westernmost occupied cities" found?
     - _Readings:_ rank occupied cities (holding at least one locomotive) by how far west their hex lies: (a) the three furthest west, with every city tied with the third included; (b) ties broken by some other order (north first).

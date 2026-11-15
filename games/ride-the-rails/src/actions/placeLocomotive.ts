@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext, assertExists } from '@tab
 import { TRANSCONTINENTAL_BONUS } from '../data/bonuses.js'
 import { HexId } from '../data/hexes.js'
 import { RailroadId } from '../data/railroads.js'
-import { cityAt, CityId, isUsaHex, usaHex } from '../data/usaMap.js'
+import { CityId, isUsaHex, usaHex } from '../data/usaMap.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { placementBonuses, type BonusPayment } from '../rules/bonuses.js'
@@ -15,10 +15,7 @@ import {
     type LegalPlacement,
     type PlacementRefusal
 } from '../rules/placement.js'
-import { westernmostSet, yellowStartIn } from '../rules/startRailroad.js'
 import { railroadsIn } from '../rules/track.js'
-
-const YELLOW: RailroadId = 'railroad.yellow'
 
 export type PlaceLocomotiveRefusal = 'not-building-turn' | 'off-map' | PlacementRefusal
 
@@ -36,8 +33,7 @@ export const PaidBonus = Type.Object({
 export type PlaceLocomotiveMetadata = Type.Static<typeof PlaceLocomotiveMetadata>
 export const PlaceLocomotiveMetadata = Type.Object({
     isStart: Type.Boolean(),
-    bonuses: Type.Array(PaidBonus),
-    westernmost: Type.Optional(Type.Array(CityId))
+    bonuses: Type.Array(PaidBonus)
 })
 
 export type PlaceLocomotive = Type.Static<typeof PlaceLocomotive>
@@ -98,9 +94,6 @@ export class HydratedPlaceLocomotive
             hexId: this.hexId,
             isStart: verdict.isStart
         }
-        const westernmost = this.fixWesternmost(state)
-        this.recordYellowStart(state, placement)
-
         const bonuses = placementBonuses(
             state.mapId,
             placement,
@@ -111,36 +104,7 @@ export class HydratedPlaceLocomotive
         this.countPlacement(state)
         this.payBonuses(state, bonuses)
 
-        this.metadata = {
-            isStart: placement.isStart,
-            bonuses,
-            ...(westernmost ? { westernmost } : {})
-        }
-    }
-
-    // R-4.2.3, R-4.2.3-H1: fixed at Yellow's first placement, before its locomotive is added.
-    private fixWesternmost(state: HydratedRideTheRailsGameState) {
-        if (this.railroadId !== YELLOW || state.yellow.westernmost !== undefined) {
-            return undefined
-        }
-        const westernmost = [...westernmostSet(state)]
-        state.yellow.westernmost = westernmost
-        return westernmost
-    }
-
-    // R-4.2.3, R-4.2.3-H1: Yellow's Chicago start and its western start are used separately.
-    private recordYellowStart(state: HydratedRideTheRailsGameState, placement: LegalPlacement) {
-        if (placement.railroadId !== YELLOW || !placement.isStart) {
-            return
-        }
-        const cityId = cityAt(placement.hexId).id
-        const start = yellowStartIn(state, cityId)
-        assertExists(start, `Yellow has no start left in ${cityId}`)
-        if (start === 'chicago') {
-            state.yellow.startedInChicago = true
-        } else {
-            state.yellow.westStartCityId = cityId
-        }
+        this.metadata = { isStart: placement.isStart, bonuses }
     }
 
     // R-3.2.3, R-3.2.4

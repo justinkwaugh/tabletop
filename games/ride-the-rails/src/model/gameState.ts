@@ -25,15 +25,6 @@ export const CURRENT_RIDE_THE_RAILS_REVISION = 1
 export type Track = Type.Static<typeof Track>
 export const Track = Type.Record(HexId, Type.Array(RailroadId, { minItems: 1, uniqueItems: true }))
 
-// R-4.2.3, R-4.2.3-H1, R-4.2.3-H2: Yellow's two starts cannot be read from track. The
-// westernmost set is empty when no city held a locomotive at Yellow's first placement.
-export type YellowState = Type.Static<typeof YellowState>
-export const YellowState = Type.Object({
-    westernmost: Type.Optional(Type.Array(CityId, { uniqueItems: true })),
-    startedInChicago: Type.Boolean(),
-    westStartCityId: Type.Optional(CityId)
-})
-
 // R-4.3.3, R-4.3.3-H2: paid once.
 export type TranscontinentalClaim = Type.Static<typeof TranscontinentalClaim>
 export const TranscontinentalClaim = Type.Object({
@@ -78,7 +69,6 @@ export const RideTheRailsGameState = Type.Refine(
                 phaseManager: PhaseManager,
                 track: Track,
                 passengers: Type.Array(CityId, { uniqueItems: true }),
-                yellow: YellowState,
                 transcontinental: Type.Optional(TranscontinentalClaim),
                 building: Type.Optional(BuildingTurn)
             })
@@ -111,7 +101,6 @@ export class HydratedRideTheRailsGameState
     declare phaseManager: HydratedPhaseManager
     declare track: Track
     declare passengers: CityId[]
-    declare yellow: YellowState
     declare transcontinental?: TranscontinentalClaim
     declare building?: BuildingTurn
 

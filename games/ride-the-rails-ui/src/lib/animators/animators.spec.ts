@@ -33,7 +33,6 @@ type State = HydratedRideTheRailsGameState
 
 const RED: RailroadId = 'railroad.red'
 const PURPLE: RailroadId = 'railroad.purple'
-const YELLOW: RailroadId = 'railroad.yellow'
 const CHICAGO: HexId = 'hex.usa.5-43'
 const NEXT_TO_CHICAGO: HexId = 'hex.usa.5-41'
 const NEW_YORK = usaCity('city.usa.new-york').hexId
@@ -139,22 +138,6 @@ describe('the Placement animator (R-3.2, R-3.2.5, R-4.3)', () => {
         const flights = new Flights()
         const from = building({})
         const { action, to } = placed(from, RED, NEW_YORK)
-        const animationContext = await step(placementAnimator(flights), from, to, action)
-        expect(animationContext.actionTimeline.duration()).toBeCloseTo(
-            FLIGHT.lands + FLIGHT.bounce + FLIGHT.settle
-        )
-    })
-
-    it("lands Yellow's second start with a bounce too (R-4.2.3-H1)", async () => {
-        const flights = new Flights()
-        const from = buildState({
-            phase: PhaseName.Build,
-            shares: { p1: { [YELLOW]: 1 } },
-            track: { [CHICAGO]: [YELLOW], [SEATTLE]: [PURPLE] },
-            yellow: { westernmost: ['city.usa.seattle'], startedInChicago: true }
-        })
-        const { action, to } = placed(from, YELLOW, SEATTLE)
-        expect(isPlaceLocomotive(action) && action.metadata?.isStart).toBe(true)
         const animationContext = await step(placementAnimator(flights), from, to, action)
         expect(animationContext.actionTimeline.duration()).toBeCloseTo(
             FLIGHT.lands + FLIGHT.bounce + FLIGHT.settle

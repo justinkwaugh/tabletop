@@ -142,7 +142,7 @@ A city showing a railroad's colour is a legal start for it; Yellow is the one ex
 
 1. **Red and Blue** (round 1): start in one of the six multi-coloured East Coast cities, and not in the same city as each other.
 2. **Orange** (round 2): any of the six East Coast cities, or Chicago.
-3. **Yellow** (round 3): Chicago and/or one of the three westernmost occupied cities. The westernmost city chosen must hold exactly one locomotive before Yellow builds there; Chicago may hold any number. Which cities are westernmost is fixed at the moment the first Yellow locomotive would be placed. (Rulings: R-4.2.3-H1, R-4.2.3-H2.)
+3. **Yellow** (round 3): one start, in Chicago or in one of the three westernmost occupied cities. The westernmost city chosen must hold exactly one locomotive before Yellow builds there; Chicago may hold any number. Which cities are westernmost is read at the moment the first Yellow locomotive would be placed. Every later Yellow locomotive is adjacent to a Yellow locomotive (R-4.1.2). (Rulings: R-4.2.3-H1, R-4.2.3-H2.)
 4. **Purple** (round 4): one of the four Purple & Black western cities. Germany changes this (R-8.5).
 5. **Black** (round 5): any city that does not already hold two locomotives, or Chicago.
 

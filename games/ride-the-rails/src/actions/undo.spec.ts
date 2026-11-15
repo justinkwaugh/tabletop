@@ -18,7 +18,7 @@ const WALK_TIMEOUT = 30_000
 // Four players: the walk then holds every kind of turn, passes and finished building turns included.
 const fourPlayerWalk: Walk = walkGame(4, 11)
 // Five players: one placement there ends two building turns.
-const fivePlayerWalk: Walk = walkGame(5, 11)
+const fivePlayerWalk: Walk = walkGame(5, 13)
 
 function userAction(step: WalkStep): GameAction {
     const action = step.processed[0]

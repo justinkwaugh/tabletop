@@ -316,7 +316,7 @@ const PROPERTY_FIXTURES: Record<string, StateRecipe> = {
         },
         building: { placed: 3, usedMountain: true }
     },
-    'both Yellow starts made, Black unstarted, in round 5': {
+    'Yellow started, Black unstarted, in round 5': {
         playerCount: 4,
         round: 5,
         phase: PhaseName.Build,
@@ -325,15 +325,10 @@ const PROPERTY_FIXTURES: Record<string, StateRecipe> = {
             [NEW_YORK]: ['railroad.red'],
             [BALTIMORE]: ['railroad.blue'],
             [CHICAGO]: ['railroad.orange', 'railroad.yellow'],
-            [RENO]: ['railroad.purple', 'railroad.yellow'],
+            [NEXT_TO_CHICAGO]: ['railroad.yellow'],
+            [RENO]: ['railroad.purple'],
             'hex.usa.9-5': ['railroad.purple'],
-            'hex.usa.8-6': ['railroad.purple'],
-            'hex.usa.7-9': ['railroad.yellow']
-        },
-        yellow: {
-            westernmost: ['city.usa.san-francisco', 'city.usa.reno', 'city.usa.chicago'],
-            startedInChicago: true,
-            westStartCityId: 'city.usa.reno'
+            'hex.usa.8-6': ['railroad.purple']
         }
     },
     'one placement left before the mountain limit': {

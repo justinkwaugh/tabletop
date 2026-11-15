@@ -34,7 +34,7 @@ export const RAILROADS: readonly RailroadDefinition[] = [
 export type StartRule =
     | 'east-coast-apart'
     | 'east-coast-or-chicago'
-    | 'chicago-and-westernmost'
+    | 'chicago-or-westernmost'
     | 'west-coast'
     | 'any-city'
 
@@ -57,7 +57,7 @@ export const RAILROAD_INTRODUCTIONS: Readonly<Record<MapId, readonly RailroadInt
         {
             railroadId: 'railroad.yellow',
             availableFromRound: 3,
-            startRule: 'chicago-and-westernmost'
+            startRule: 'chicago-or-westernmost'
         },
         { railroadId: 'railroad.purple', availableFromRound: 4, startRule: 'west-coast' },
         { railroadId: 'railroad.black', availableFromRound: 5, startRule: 'any-city' }

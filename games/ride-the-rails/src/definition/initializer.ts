@@ -76,8 +76,7 @@ export class RideTheRailsGameInitializer
             phaseManager,
             track: {},
             // R-1.3.2, R-1.3-H1: a passenger on every city, kept in id order.
-            passengers: inCityIdOrder(USA_CITIES.map((city) => city.id)),
-            yellow: { startedInChicago: false }
+            passengers: inCityIdOrder(USA_CITIES.map((city) => city.id))
         })
 
         const hydrated = new HydratedRideTheRailsGameState(rideTheRailsGameState)

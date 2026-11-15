@@ -31,10 +31,6 @@ const MID_BUILDING_YELLOW_STARTED: StateRecipe = {
         'hex.usa.8-32': ['railroad.orange', 'railroad.yellow']
     },
     passengers: ['city.usa.seattle', 'city.usa.chicago', 'city.usa.boston', 'city.usa.denver'],
-    yellow: {
-        westernmost: ['city.usa.kansas-city', 'city.usa.saint-louis', 'city.usa.chicago'],
-        startedInChicago: true
-    },
     building: { placed: 2, usedMountain: true }
 }
 
@@ -58,11 +54,6 @@ const ROUND_SIX_RIDING: StateRecipe = {
         'hex.usa.6-60': ['railroad.blue']
     },
     passengers: ['city.usa.miami', 'city.usa.atlanta', 'city.usa.boise'],
-    yellow: {
-        westernmost: ['city.usa.seattle', 'city.usa.denver', 'city.usa.omaha'],
-        startedInChicago: true,
-        westStartCityId: 'city.usa.denver'
-    },
     transcontinental: { playerId: 'p3', amount: 12 }
 }
 
@@ -160,8 +151,7 @@ describe('state shape', () => {
             'phaseManager',
             'rideTheRailsRevision',
             'roundManager',
-            'track',
-            'yellow'
+            'track'
         ])
     })
 })

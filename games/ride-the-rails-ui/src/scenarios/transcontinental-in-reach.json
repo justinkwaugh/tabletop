@@ -330,9 +330,6 @@
    "city.usa.tampa",
    "city.usa.washington"
   ],
-  "yellow": {
-   "startedInChicago": false
-  },
   "building": {
    "placed": 0,
    "usedMountain": false

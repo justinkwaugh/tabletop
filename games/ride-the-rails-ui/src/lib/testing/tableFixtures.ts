@@ -19,8 +19,7 @@ import {
     type RideTheRailsGameState,
     type Shares,
     type Track,
-    type TranscontinentalClaim,
-    type YellowState
+    type TranscontinentalClaim
 } from '@tabletop/ride-the-rails'
 import {
     buildState,
@@ -135,7 +134,6 @@ export function line(names: readonly string[], options: { start?: boolean } = {}
 type Position = {
     shares: Record<string, Shares>
     track: Track
-    yellow: YellowState
     transcontinental?: TranscontinentalClaim
     money: Record<string, number>
 }
@@ -144,7 +142,6 @@ function emptyPosition(playerIds: readonly string[]): Position {
     return {
         shares: Object.fromEntries(playerIds.map((playerId) => [playerId, {}])),
         track: {},
-        yellow: { startedInChicago: false },
         money: Object.fromEntries(playerIds.map((playerId) => [playerId, 0]))
     }
 }
@@ -188,7 +185,6 @@ function playBuildingTurn(
         state = hydrated(run.after)
     }
     position.track = structuredClone(state.track)
-    position.yellow = structuredClone(state.yellow)
     if (state.transcontinental) {
         position.transcontinental = { ...state.transcontinental }
     }

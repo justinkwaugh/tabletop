@@ -334,7 +334,7 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await lineShown(true)
 })
 
-test("9. Yellow's starts: Chicago and the westernmost set, which stays fixed", async ({ page }) => {
+test("9. Yellow's starts: Chicago or the westernmost set, and only one", async ({ page }) => {
     await openScenario(page, 'Yellow starts')
     expect(await activePlayerId(page)).toBe('p1')
     const yellowStarts = async () =>
@@ -342,10 +342,12 @@ test("9. Yellow's starts: Chicago and the westernmost set, which stays fixed", a
             .filter((label) => /start Yellow/.test(label))
             .map((label) => label.split(':')[0])
             .toSorted()
+    const yellowCues = board(page).locator('[data-start-cue="railroad.yellow"]')
 
     // R-4.2.3: Chicago and the westernmost occupied cities holding exactly one locomotive.
     expect(await yellowStarts()).toEqual(['Chicago', 'Des Moines', 'Kansas City', 'Omaha'])
     expect(await ghostCubes(page, 'railroad.yellow').count()).toBeGreaterThanOrEqual(4)
+    await expect(yellowCues).toHaveCount(4)
 
     const chicago = litHexAt(page, 'hex.usa.5-43')
     await pressHex(page, chicago)
@@ -357,12 +359,36 @@ test("9. Yellow's starts: Chicago and the westernmost set, which stays fixed", a
     expect(await page.evaluate(() => window.rtrSession.gameState.track['hex.usa.5-43'])).toContain(
         'railroad.yellow'
     )
-    // Orange builds on west to Cheyenne; the western Yellow start keeps the set fixed above.
+    // R-4.2.3-H1: one start only. The western cities no longer light for Yellow, its cues are
+    // gone, and Yellow lights only next to Chicago (R-4.1.2).
+    const nextToChicago = [
+        'hex.usa.4-42',
+        'hex.usa.4-44',
+        'hex.usa.5-41',
+        'hex.usa.5-45',
+        'hex.usa.6-42',
+        'hex.usa.6-44'
+    ]
+    const yellowLit = async () =>
+        (
+            await litHexes(page).evaluateAll((hexes) =>
+                hexes
+                    .filter((hex) => /Yellow/.test(hex.getAttribute('aria-label') ?? ''))
+                    .map((hex) => hex.getAttribute('data-hex-id') ?? '')
+            )
+        ).toSorted()
+    expect(await yellowStarts()).toEqual([])
+    await expect(yellowCues).toHaveCount(0)
+    expect(await yellowLit()).not.toEqual([])
+    for (const hexId of await yellowLit()) expect(nextToChicago).toContain(hexId)
+
+    // Orange builds on west to Cheyenne, moving the westernmost cities; still no Yellow start.
     for (const hexId of ['hex.usa.5-29', 'hex.usa.5-27', 'hex.usa.5-25', 'hex.usa.5-23']) {
         await expect(litHexAt(page, hexId)).toHaveAccessibleName(/place Orange/)
         await pressHex(page, litHexAt(page, hexId))
     }
-    expect(await yellowStarts()).toEqual(['Des Moines', 'Kansas City', 'Omaha'])
+    expect(await yellowStarts()).toEqual([])
+    await expect(yellowCues).toHaveCount(0)
 })
 
 test('9. Black unstarted in round 5: nearly every city lit, start rings for Black only', async ({

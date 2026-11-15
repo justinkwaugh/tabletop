@@ -181,25 +181,7 @@ describe("this building turn's bars (R-3.2)", () => {
         assertExists(start)
         await session.placeLocomotive(RED, start.hexId)
         await settled(session)
-        expect(railroadStarts(session.actions).get(RED)).toEqual([start.hexId])
-    })
-
-    it("keeps both of Yellow's starts, Chicago and the west (R-4.2.3-H1)", async () => {
-        const yellow: RailroadId = 'railroad.yellow'
-        const chicago = usaCity(CHICAGO).hexId
-        const seattle = usaCity('city.usa.seattle').hexId
-        const session = await openSessionOn(
-            buildState({
-                phase: PhaseName.Build,
-                shares: { p1: { [yellow]: 1 } },
-                track: { [seattle]: ['railroad.purple'] }
-            })
-        )
-        await session.placeLocomotive(yellow, chicago)
-        await settled(session)
-        await session.placeLocomotive(yellow, seattle)
-        await settled(session)
-        expect(railroadStarts(session.actions).get(yellow)).toEqual([chicago, seattle])
+        expect(railroadStarts(session.actions).get(RED)).toBe(start.hexId)
     })
 })
 

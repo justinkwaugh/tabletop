@@ -58,7 +58,7 @@ describe('railroads (R-1.1, R-1.4)', () => {
             {
                 railroadId: 'railroad.yellow',
                 availableFromRound: 3,
-                startRule: 'chicago-and-westernmost'
+                startRule: 'chicago-or-westernmost'
             },
             { railroadId: 'railroad.purple', availableFromRound: 4, startRule: 'west-coast' },
             { railroadId: 'railroad.black', availableFromRound: 5, startRule: 'any-city' }

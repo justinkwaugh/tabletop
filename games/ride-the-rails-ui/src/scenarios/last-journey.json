@@ -242,15 +242,7 @@
    "city.usa.seattle",
    "city.usa.spokane",
    "city.usa.tampa"
-  ],
-  "yellow": {
-   "startedInChicago": true,
-   "westernmost": [
-    "city.usa.des-moines",
-    "city.usa.milwaukee",
-    "city.usa.chicago"
-   ]
-  }
+  ]
  },
  "actions": []
 }

@@ -26,8 +26,8 @@
             : []
     )
     const spotlitHexes: HexId[] = $derived([...new Set(spotlit.map((piece) => piece.hexId))])
-    const startHexIds: HexId[] = $derived(
-        spotlight ? (railroadStarts(gameSession.actions).get(spotlight) ?? []) : []
+    const startHexId = $derived(
+        spotlight ? railroadStarts(gameSession.actions).get(spotlight) : undefined
     )
     const colour = $derived(spotlight ? railroadStyle(spotlight).fill : 'transparent')
 </script>
@@ -47,7 +47,7 @@
                 width={piece.slot.width}
             />
         {/each}
-        {#each startHexIds as startHexId (startHexId)}
+        {#if startHexId}
             <polygon
                 points={hexPoints(startHexId)}
                 fill="none"
@@ -60,7 +60,7 @@
                 stroke={colour}
                 stroke-width="4.4"
             ></polygon>
-        {/each}
+        {/if}
     {:else if mode === 'outline'}
         {#each spotlitHexes as hexId (hexId)}
             <polygon

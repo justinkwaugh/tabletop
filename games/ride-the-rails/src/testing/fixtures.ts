@@ -23,8 +23,7 @@ import {
     type BuildingTurn,
     type RideTheRailsGameState,
     type Track,
-    type TranscontinentalClaim,
-    type YellowState
+    type TranscontinentalClaim
 } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
 import { ROUND_COUNT } from '../rules/endOfRound.js'
@@ -52,7 +51,6 @@ export type StateRecipe = {
     shares?: Record<string, Shares>
     track?: Track
     passengers?: CityId[]
-    yellow?: YellowState
     transcontinental?: TranscontinentalClaim
     building?: BuildingTurn
 }
@@ -128,7 +126,6 @@ export function buildState(recipe: StateRecipe = {}): HydratedRideTheRailsGameSt
     if (recipe.passengers) {
         state.passengers = inCityIdOrder(recipe.passengers)
     }
-    state.yellow = structuredClone(recipe.yellow ?? { startedInChicago: false })
     if (recipe.transcontinental) {
         state.transcontinental = { ...recipe.transcontinental }
     }

@@ -62,10 +62,9 @@ describe('initialization', () => {
         expect(state.phaseManager.currentPhase?.name).toBe(PhaseName.TakeShare)
     })
 
-    it('starts with an empty map, Yellow unstarted and no bonus claimed (R-1.3)', () => {
+    it('starts with an empty map and no bonus claimed (R-1.3)', () => {
         const state = freshState()
         expect(state.track).toEqual({})
-        expect(state.yellow).toEqual({ startedInChicago: false })
         expect(state.transcontinental).toBeUndefined()
         expect(state.building).toBeUndefined()
     })

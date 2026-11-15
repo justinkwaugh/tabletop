@@ -3,10 +3,10 @@ import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
 import { PhaseName } from '../definition/phases.js'
 import { USA_CITIES } from '../data/usaMap.js'
-import type { Track, YellowState } from '../model/gameState.js'
+import type { Track } from '../model/gameState.js'
 import { buildState } from '../testing/fixtures.js'
 import { placementTest, startCityIds } from './placement.js'
-import { westernmostOccupiedCities, westernmostSet, yellowStartIn } from './startRailroad.js'
+import { westernmostOccupiedCities } from './startRailroad.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -43,18 +43,17 @@ const WESTERN_TRACK: Track = {
     [NEW_YORK]: ['railroad.red']
 }
 
-function building(track: Track, yellow: YellowState = { startedInChicago: false }) {
+function building(track: Track) {
     return buildState({
         round: 6,
         phase: PhaseName.Build,
         shares: { p1: ALL_SHARES },
-        track,
-        yellow
+        track
     })
 }
 
-function verdict(track: Track, railroadId: RailroadId, hexId: HexId, yellow?: YellowState) {
-    return placementTest(building(track, yellow), 'p1', railroadId, hexId)
+function verdict(track: Track, railroadId: RailroadId, hexId: HexId) {
+    return placementTest(building(track), 'p1', railroadId, hexId)
 }
 
 const START = { legal: true, isStart: true }
@@ -173,40 +172,21 @@ describe('the westernmost set (R-4.2.3, R-4.2.3-H2)', () => {
         const track: Track = { [NEW_YORK]: ['railroad.red'], [CHICAGO]: ['railroad.orange'] }
         expect(westernmostOccupiedCities(track)).toEqual(['city.usa.chicago', 'city.usa.new-york'])
     })
-
-    it('is computed from track before Yellow’s first placement', () => {
-        expect(westernmostSet(building(WESTERN_TRACK))).toEqual(
-            westernmostOccupiedCities(WESTERN_TRACK)
-        )
-    })
-
-    it('stays the set fixed at Yellow’s first placement as track spreads west (R-4.2.3-H1)', () => {
-        const fixed: YellowState = {
-            westernmost: ['city.usa.boise', 'city.usa.pocatello', 'city.usa.salt-lake-city'],
-            startedInChicago: true
-        }
-        const track: Track = {
-            ...WESTERN_TRACK,
-            [CHICAGO]: ['railroad.orange', 'railroad.yellow'],
-            [SEATTLE]: ['railroad.purple']
-        }
-        expect(westernmostSet(building(track, fixed))).toEqual(fixed.westernmost)
-        expect(verdict(track, 'railroad.yellow', SEATTLE, fixed)).toEqual(NO_START)
-        expect(verdict(track, 'railroad.yellow', RENO, fixed)).toEqual(NO_START)
-        expect(verdict(track, 'railroad.yellow', POCATELLO, fixed)).toEqual(START)
-    })
 })
 
-describe('Yellow starts in Chicago and/or a westernmost city (R-4.2.3, R-4.2.3-H1)', () => {
-    it('starts in Chicago while its Chicago start is unused, whatever Chicago holds', () => {
+describe('Yellow starts once, in Chicago or a westernmost city (R-4.2.3, R-4.2.3-H1)', () => {
+    it('starts in Chicago, whatever Chicago holds', () => {
+        const crowded: Track = {
+            ...WESTERN_TRACK,
+            [CHICAGO]: ['railroad.orange', 'railroad.red', 'railroad.black']
+        }
         expect(verdict(WESTERN_TRACK, 'railroad.yellow', CHICAGO)).toEqual(START)
-        expect(yellowStartIn(building(WESTERN_TRACK), 'city.usa.chicago')).toBe('chicago')
+        expect(verdict(crowded, 'railroad.yellow', CHICAGO)).toEqual(START)
     })
 
     it('starts in a westernmost city holding exactly one locomotive', () => {
         expect(verdict(WESTERN_TRACK, 'railroad.yellow', RENO)).toEqual(START)
         expect(verdict(WESTERN_TRACK, 'railroad.yellow', SALT_LAKE_CITY)).toEqual(START)
-        expect(yellowStartIn(building(WESTERN_TRACK), 'city.usa.reno')).toBe('west')
     })
 
     it('cannot start in an occupied city outside the set, or an empty city', () => {
@@ -214,55 +194,23 @@ describe('Yellow starts in Chicago and/or a westernmost city (R-4.2.3, R-4.2.3-H
         expect(verdict(WESTERN_TRACK, 'railroad.yellow', SAINT_LOUIS)).toEqual(NO_START)
     })
 
-    it('makes its western start in a later turn after its Chicago start', () => {
-        const yellow: YellowState = {
-            westernmost: ['city.usa.reno', 'city.usa.boise', 'city.usa.pocatello'],
-            startedInChicago: true
-        }
+    it('has no start left once it has started in Chicago', () => {
         const track: Track = { ...WESTERN_TRACK, [CHICAGO]: ['railroad.orange', 'railroad.yellow'] }
-        expect(verdict(track, 'railroad.yellow', RENO, yellow)).toEqual(START)
+        expect(verdict(track, 'railroad.yellow', RENO)).toEqual(NO_START)
+        expect(verdict(track, 'railroad.yellow', POCATELLO)).toEqual(NO_START)
     })
 
-    it('makes its Chicago start in a later turn after its western start', () => {
-        const yellow: YellowState = {
-            westernmost: ['city.usa.reno', 'city.usa.boise', 'city.usa.pocatello'],
-            startedInChicago: false,
-            westStartCityId: 'city.usa.reno'
-        }
+    it('has no start left once it has started in a westernmost city', () => {
         const track: Track = { ...WESTERN_TRACK, [RENO]: ['railroad.purple', 'railroad.yellow'] }
-        expect(verdict(track, 'railroad.yellow', CHICAGO, yellow)).toEqual(START)
-        expect(verdict(track, 'railroad.yellow', POCATELLO, yellow)).toEqual(NO_START)
-    })
-
-    it('has no start left once both are made', () => {
-        const yellow: YellowState = {
-            westernmost: ['city.usa.reno', 'city.usa.boise', 'city.usa.pocatello'],
-            startedInChicago: true,
-            westStartCityId: 'city.usa.reno'
-        }
-        const track: Track = {
-            ...WESTERN_TRACK,
-            [RENO]: ['railroad.purple', 'railroad.yellow'],
-            [CHICAGO]: ['railroad.orange', 'railroad.yellow']
-        }
-        expect(verdict(track, 'railroad.yellow', POCATELLO, yellow)).toEqual(NO_START)
-        expect(yellowStartIn(building(track, yellow), 'city.usa.pocatello')).toBeUndefined()
+        expect(verdict(track, 'railroad.yellow', CHICAGO)).toEqual(NO_START)
+        expect(verdict(track, 'railroad.yellow', POCATELLO)).toEqual(NO_START)
     })
 })
 
 describe('a placement next to the railroad’s own track is never a start (R-4.1.2, R-4.2.3-H1)', () => {
-    it('lets Yellow build into Chicago by adjacency without using its Chicago start', () => {
-        const yellow: YellowState = {
-            westernmost: ['city.usa.reno', 'city.usa.boise', 'city.usa.pocatello'],
-            startedInChicago: false,
-            westStartCityId: 'city.usa.reno'
-        }
-        const track: Track = {
-            ...WESTERN_TRACK,
-            [RENO]: ['railroad.purple', 'railroad.yellow'],
-            [NEXT_TO_CHICAGO]: ['railroad.yellow']
-        }
-        expect(verdict(track, 'railroad.yellow', CHICAGO, yellow)).toEqual({
+    it('lets Yellow build into Chicago by adjacency, not as a start', () => {
+        const track: Track = { ...WESTERN_TRACK, [NEXT_TO_CHICAGO]: ['railroad.yellow'] }
+        expect(verdict(track, 'railroad.yellow', CHICAGO)).toEqual({
             legal: true,
             isStart: false
         })
@@ -319,6 +267,11 @@ describe('the cities a railroad may start in now (R-4.2)', () => {
         expect(
             startCityIds(building({ [LOS_ANGELES]: ['railroad.purple'] }), 'railroad.purple')
         ).toEqual([])
+        const yellowInChicago: Track = {
+            ...WESTERN_TRACK,
+            [CHICAGO]: ['railroad.orange', 'railroad.yellow']
+        }
+        expect(startCityIds(building(yellowInChicago), 'railroad.yellow')).toEqual([])
     })
 
     it('agrees with the placement test on every city', () => {
