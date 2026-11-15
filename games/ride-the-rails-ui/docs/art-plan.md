@@ -88,15 +88,40 @@ Seats take their colours from a set of their own, kept apart from the six railro
 
 ## Fonts
 
-| Family                                               | Use                                                                                                 | Licence file                                                            |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Big Shoulders Display, Bold 700, Latin subset, woff2 | The seat card's name, position and money figure, the round track's numerals, the title on the cover | `src/lib/fonts/BigShouldersDisplay-OFL.txt` (SIL Open Font License 1.1) |
-| Libre Baskerville, Bold 700, Latin subset, woff2     | The board's serif: city names, the bonus pills, the East Coast "1", the popup's pills               | `src/lib/fonts/LibreBaskerville-OFL.txt` (SIL Open Font License 1.1)    |
-| The site's own text font, not shipped by the title   | Everything else: panels, chips, the hex detail, the log, the gain and cost marks                    | none (the site's)                                                       |
+| Family                                                                       | Use                                                                                                 | Licence file                                                            |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Big Shoulders Display, Bold 700, Latin subset, woff2                         | The seat card's name, position and money figure, the round track's numerals, the title on the cover | `src/lib/fonts/BigShouldersDisplay-OFL.txt` (SIL Open Font License 1.1) |
+| Ride the Rails Serif (from Libre Baskerville), Bold 700, Latin subset, woff2 | The board's serif: city names, the bonus pills, the East Coast "1", the popup's pills               | `src/lib/fonts/LibreBaskerville-OFL.txt` (SIL Open Font License 1.1)    |
+| The site's own text font, not shipped by the title                           | Everything else: panels, chips, the hex detail, the log, the gain and cost marks                    | none (the site's)                                                       |
 
 `src/lib/fonts/BigShouldersDisplay-Bold.woff2` is instanced at weight 700 from the family's variable font and subset to Latin. It is declared under the title's own family name, "Ride the Rails Display" (`definitions/fonts.ts`), and loaded through `CustomFont` in `GameTable`; the `rtr-display` class sets it.
 
-`src/lib/fonts/LibreBaskerville-Bold.woff2` (20,948 bytes) is instanced at weight 700 from the family's variable font and subset to the same Latin set, with fontTools. It is declared as "Ride the Rails Serif" and loaded the same way; the `rtr-serif` class sets it. Its letters' advance widths are a table in `utils/boardGeometry.ts` (`SERIF_ADVANCE_EM`), so a name's room on the board is worked out from the font, never measured at run time.
+`src/lib/fonts/RideTheRailsSerif-Bold.woff2` (21,044 bytes) is a Modified Version of Libre Baskerville, instanced at weight 700 and subset to Latin, so under OFL section 3 it is renamed and does not carry the Reserved Font Name. Its source is the family's variable font, `games/preussische-ostbahn-ui/src/lib/fonts/LibreBaskerville.woff2`, whose licence is copied beside it as `LibreBaskerville-OFL.txt`. Its name table calls it "Ride the Rails Serif" (family, ID 1), "Ride the Rails Serif Bold" (full name, ID 4) and `RideTheRailsSerif-Bold` (PostScript name, ID 6, and in the unique ID, ID 3); the source has no IDs 16 or 17. It keeps the copyright (ID 0) and the licence notice and URL (IDs 13 and 14) as the source states them. It is declared as "Ride the Rails Serif" and loaded the same way; the `rtr-serif` class sets it. Its letters' advance widths are a table in `utils/boardGeometry.ts` (`SERIF_ADVANCE_EM`), so a name's room on the board is worked out from the font, never measured at run time.
+
+It is made with fontTools 4.60 (with `brotli` for WOFF2), from `games/ride-the-rails-ui`; `SOURCE_DATE_EPOCH` stamps the source's own modified date (15 October 2025) in the `head` table, so the commands give the same bytes every time:
+
+```sh
+export SOURCE_DATE_EPOCH=1760535429
+python3 -m fontTools.varLib.instancer --update-name-table -o serif-700.ttf \
+    ../preussische-ostbahn-ui/src/lib/fonts/LibreBaskerville.woff2 wght=700
+python3 - <<'EOF'
+from fontTools.ttLib import TTFont
+font = TTFont('serif-700.ttf')
+for name_id, value in {
+    1: 'Ride the Rails Serif',
+    3: '2.005;pyrs;RideTheRailsSerif-Bold',
+    4: 'Ride the Rails Serif Bold',
+    6: 'RideTheRailsSerif-Bold',
+}.items():
+    font['name'].setName(value, name_id, 3, 1, 0x409)
+font.save('serif-700-renamed.ttf')
+EOF
+python3 -m fontTools.subset serif-700-renamed.ttf \
+    --unicodes='U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' \
+    --layout-features='*' --name-IDs=0,1,2,3,4,5,6,13,14 --flavor=woff2 \
+    --output-file=src/lib/fonts/RideTheRailsSerif-Bold.woff2
+rm serif-700.ttf serif-700-renamed.ttf
+```
 
 ## Board
 

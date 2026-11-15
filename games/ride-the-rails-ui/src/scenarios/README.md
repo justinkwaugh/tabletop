@@ -19,7 +19,7 @@ Round 3, Take a share. Red's 27 locomotives are all shares and track, and Ben de
 
 Round 1, Build. Ada and Cora took Red, Ben and Dell Blue; Ada builds first (scenarios 3, 6 and 10).
 
-- The six East Coast cities light with hollow Red pips; the rest of the map dims.
+- The six East Coast cities light with a Red ghost cube in each; the rest of the map dims.
 - With four seats the limit is 5, or 4 once a mountain is used.
 - Build nothing passes the turn to Ben.
 

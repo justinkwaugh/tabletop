@@ -61,7 +61,7 @@ describe('image coverage', () => {
     it('ships no image or font file but the cover, the display font and the serif', () => {
         expect(packageFiles.filter((path) => AssetFile.test(path)).sort()).toEqual([
             'src/lib/fonts/BigShouldersDisplay-Bold.woff2',
-            'src/lib/fonts/LibreBaskerville-Bold.woff2',
+            'src/lib/fonts/RideTheRailsSerif-Bold.woff2',
             'src/lib/images/cover.webp'
         ])
     })
@@ -78,7 +78,7 @@ describe('image coverage', () => {
 
     it.each([
         ['BigShouldersDisplay-Bold.woff2', 'BigShouldersDisplay-OFL.txt'],
-        ['LibreBaskerville-Bold.woff2', 'LibreBaskerville-OFL.txt']
+        ['RideTheRailsSerif-Bold.woff2', 'LibreBaskerville-OFL.txt']
     ])('ships %s as a small WOFF2 with its SIL Open Font License', (fontFile, licenceFile) => {
         const font = readFileSync(join(packageRoot, 'src/lib/fonts', fontFile))
         expect(String.fromCharCode(...font.subarray(0, 4))).toBe('wOF2')

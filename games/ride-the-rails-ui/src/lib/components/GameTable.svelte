@@ -36,7 +36,7 @@
     import { setGameSession } from '$lib/model/sessionContext.svelte'
     import { DisplayFontFamily, SerifFontFamily } from '$lib/definitions/fonts.js'
     import BigShouldersDisplayBold from '$lib/fonts/BigShouldersDisplay-Bold.woff2'
-    import LibreBaskervilleBold from '$lib/fonts/LibreBaskerville-Bold.woff2'
+    import RideTheRailsSerifBold from '$lib/fonts/RideTheRailsSerif-Bold.woff2'
 
     let {
         gameSession
@@ -80,7 +80,7 @@
 />
 <CustomFont
     fontFamily={SerifFontFamily}
-    url={LibreBaskervilleBold}
+    url={RideTheRailsSerifBold}
     format="woff2"
     fontWeight="700"
 />
