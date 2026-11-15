@@ -1,6 +1,9 @@
 import {
     ConvertCentral,
     MoveRebellionStation,
+    CpId,
+    CprId,
+    TbId,
     TitleRules1882,
     centralHomePositions,
     centralParSpaces,
@@ -38,6 +41,12 @@ type CentralSelections = { par: string }
 type MoveSelections = { stationId: string }
 
 export class Session1882 extends BaseSession {
+    // The Canadian Pacific brings the CPR's presidency, the Trestle Bridge the share drawn at
+    // setup (§3, §7.1.4, §7.1.5).
+    override privateCompanyTokens = $derived({
+        [CpId]: this.mapView.stations[CprId],
+        [TbId]: this.mapView.stations[this.gameState.trestleShareCompanyId]
+    })
     private readonly central = new StagedSelection<CentralSelections>(['par'])
     private readonly moving = new StagedSelection<MoveSelections>(['stationId'])
     readonly stockPanels = this.titleStockPanels<'central'>([

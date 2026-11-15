@@ -1,5 +1,6 @@
 import RebellionIcon from './images/icons/NWR.svg'
 import FishIcon from './images/icons/fish.svg'
+import NeutralStationArt from './images/neutral-station.svg'
 import type { Point } from '@tabletop/common'
 import { HbId, Map1882, ScId, TbId, TileSet1882, TitleRules1882 } from '@tabletop/1882'
 import {
@@ -84,9 +85,9 @@ export const MapView1882: MapViewDefinition = {
             { label: companyId, color }
         ])
     ),
-    // Unlabelled, as the board's neutral markers (§2, §4); a plain grey disc, so it does not read as
-    // the white of an empty city circle.
-    neutralStation: { label: '', color: '#bdb6a7', solid: true },
+    // Unlabelled, as the board's neutral markers (§2, §4), striped so they stand apart from the
+    // white of an empty city circle and from every company's colour.
+    neutralStation: { label: '', color: '#6f685b', imageUrl: NeutralStationArt },
     terrainCostPrefix: TitleRules1882.currencySymbol,
     offboardNames: { fontSize: 11, color: '#4a0b0b' },
     // Names that would sit under a river cost on the hex's top side move below it, or under
