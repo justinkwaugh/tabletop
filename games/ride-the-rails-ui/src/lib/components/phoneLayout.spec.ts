@@ -16,9 +16,9 @@ describe('the phone layout', () => {
         expect(Object.keys(SOURCES).length).toBeGreaterThanOrEqual(30)
     })
 
-    it('puts the focus chooser in the board’s overlay, the same control in full screen', () => {
+    it('moves the view from the board’s overlay, so it follows the offer in full screen too', () => {
         expect(source('./GameTable.svelte')).toMatch(
-            /\{#snippet overlay\(viewport\)\}\s*<BoardFocusChooser\b/
+            /\{#snippet overlay\(viewport\)\}\s*<BoardViewFollower\b/
         )
     })
 

@@ -168,3 +168,34 @@ test('The board is drawn as large as the layout allows', async ({ page }) => {
     })
     expect(heights.board).toBeGreaterThan(heights.frame)
 })
+
+/** No control names a part of the map to show: the view moves by pinch, drag, wheel and zoom. */
+async function expectNoFocusChooser(page: Page) {
+    await expect(page.getByRole('group', { name: 'Focus the map' })).toHaveCount(0)
+    for (const name of ['Whole map', 'West', 'Middle', 'East']) {
+        await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0)
+    }
+}
+
+test('No focus chooser is drawn at any zoom, zoomed fully out included', async ({ page }) => {
+    // A small desktop window too, where the whole map draws a hex at its smallest.
+    if (!onPhone()) await page.setViewportSize({ width: 900, height: 640 })
+    await openScenario(page, 'First placement')
+    let box = await settled(page)
+    await expectNoFocusChooser(page)
+    // Presses a zoom button until the board no longer changes size: as far as it goes.
+    const zoom = async (name: string) => {
+        const button = page.getByRole('button', { name, exact: true })
+        for (let step = 0; step < 20; step++) {
+            if (onPhone()) await button.tap()
+            else await button.click()
+            const next = await settled(page)
+            await expectNoFocusChooser(page)
+            if (next.width === box.width) return
+            box = next
+        }
+        throw new Error(`${name} never reached its end.`)
+    }
+    await zoom('Zoom out')
+    await zoom('Zoom in')
+})

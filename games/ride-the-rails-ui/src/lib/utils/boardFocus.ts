@@ -27,42 +27,12 @@ export const BOARD_COVER_BELOW_SCALE = 0.3
  */
 export const MIN_RESTING_HEX_PX = 37
 
-/** Contract, Phone layout (U-8): the focus chooser shows while a hex is narrower than this. */
-export const FOCUS_CHOOSER_BELOW_HEX_PX = 28
-
-/** Screen pixels at the top of the view the focus chooser takes, kept clear when the board is fitted. */
-export const FOCUS_CHOOSER_INSET = 40
-
-export type BoardFocus = 'whole-map' | 'west' | 'middle' | 'east'
-
-export const BOARD_FOCUSES: readonly { focus: BoardFocus; label: string }[] = [
-    { focus: 'whole-map', label: 'Whole map' },
-    { focus: 'west', label: 'West' },
-    { focus: 'middle', label: 'Middle' },
-    { focus: 'east', label: 'East' }
-]
-
-type Region = Exclude<BoardFocus, 'whole-map'>
-
-const REGION_INDEX: Readonly<Record<Region, number>> = { west: 0, middle: 1, east: 2 }
-
-/** A third of the map's width, at the board's full height. */
-export function regionRect(region: Region): BoundingBox {
-    const width = MAP_EXTENTS.width / 3
-    return {
-        x: MAP_EXTENTS.x + REGION_INDEX[region] * width,
-        y: 0,
-        width,
-        height: BOARD_HEIGHT
-    }
-}
-
-export function hexWidthOnScreen(viewScale: number): number {
-    return HEX_WIDTH * viewScale
-}
-
-export function showsFocusChooser(viewScale: number): boolean {
-    return hexWidthOnScreen(viewScale) < FOCUS_CHOOSER_BELOW_HEX_PX
+/** A third of the map's width at the board's full height, about the map's middle. */
+const MIDDLE_THIRD: BoundingBox = {
+    x: MAP_EXTENTS.x + MAP_EXTENTS.width / 3,
+    y: 0,
+    width: MAP_EXTENTS.width / 3,
+    height: BOARD_HEIGHT
 }
 
 function containScale(rect: RectangleDimensions, view: RectangleDimensions): number {
@@ -74,12 +44,15 @@ export function restsAtCover(view: RectangleDimensions): boolean {
     return containScale(BOARD_EXTENTS, view) < BOARD_COVER_BELOW_SCALE
 }
 
-/** The scale a region is shown at: the third fitted, but never smaller than a resting hex nor short of the view's height. */
-export function regionScale(region: Region, view: RectangleDimensions): number {
+/**
+ * The scale a phone rests at: the middle third fitted, but never smaller than a resting hex nor
+ * short of the view's height.
+ */
+export function middleThirdScale(view: RectangleDimensions): number {
     return Math.min(
         BOARD_MAX_SCALE,
         Math.max(
-            containScale(regionRect(region), view),
+            containScale(MIDDLE_THIRD, view),
             MIN_RESTING_HEX_PX / HEX_WIDTH,
             view.height / BOARD_HEIGHT
         )
@@ -89,37 +62,27 @@ export function regionScale(region: Region, view: RectangleDimensions): number {
 /** What the wrapper's focusRect is given for a focus: a rect, and the scale it may reach. */
 export type FocusRequest = { rect: BoundingBox; maxScale: number }
 
-export function focusRequest(focus: BoardFocus, view: RectangleDimensions): FocusRequest {
-    if (focus === 'whole-map') {
-        return { rect: BOARD_EXTENTS, maxScale: BOARD_MAX_SCALE }
-    }
-    return { rect: unitRectAt(centreOf(regionRect(focus))), maxScale: regionScale(focus, view) }
-}
-
 /** A one-unit rect at a point: focused, it is shown at exactly its maxScale whatever the view. */
 function unitRectAt(point: Point): BoundingBox {
     return { x: point.x - 0.5, y: point.y - 0.5, width: 1, height: 1 }
 }
 
-/** Contract, Phone layout: where a cover-fit view rests (the middle third, hexes at least 37 px); a whole-map view keeps its fit. */
-export function restingFocus(view: RectangleDimensions): BoardFocus | undefined {
-    return restsAtCover(view) ? 'middle' : undefined
+/** Contract, Phone layout: where a cover-fit view rests, the middle third with hexes at least 37 px. */
+export function restingRequest(view: RectangleDimensions): FocusRequest {
+    return { rect: unitRectAt(centreOf(MIDDLE_THIRD)), maxScale: middleThirdScale(view) }
 }
 
 /** A box on screen, as `getBoundingClientRect` reports it. */
 export type ScreenBox = { left: number; top: number; width: number; height: number }
 
-/**
- * The part of the board a view shows, in board units: the view's box on screen below its top
- * inset, read through where the board is drawn on screen.
- */
-export function shownBoardRect(board: ScreenBox, view: ScreenBox, insetTop: number): BoundingBox {
+/** The part of the board a view shows, in board units, read through where the board is drawn. */
+export function shownBoardRect(board: ScreenBox, view: ScreenBox): BoundingBox {
     const scale = board.width / BOARD_WIDTH
     return {
         x: (view.left - board.left) / scale,
-        y: (view.top + insetTop - board.top) / scale,
+        y: (view.top - board.top) / scale,
         width: view.width / scale,
-        height: Math.max(0, view.height - insetTop) / scale
+        height: view.height / scale
     }
 }
 
@@ -243,7 +206,7 @@ export const MIN_BUILD_ZOOM_GAIN = 1.1
  */
 export function restingScale(view: RectangleDimensions): number {
     return restsAtCover(view)
-        ? regionScale('middle', view)
+        ? middleThirdScale(view)
         : Math.min(BOARD_MAX_FIT_SCALE, containScale(BOARD_EXTENTS, view))
 }
 
@@ -287,11 +250,11 @@ function buildZoomFit(rect: BoundingBox, view: RectangleDimensions): BuildZoomFi
 }
 
 /**
- * Contract, Build: the focus that fits the lit hexes into a view (below its chooser inset), at
- * most 64 px a hex and never below the view's resting scale. A view that rests on the whole map
- * stays on it unless the fit draws a hex at least MIN_BUILD_ZOOM_GAIN times as wide. On a
- * cover-fit view, lit hexes too far apart to fit at the resting scale keep it, centred on those
- * nearest the centre of what the view shows now, as many as fit. None with nothing lit.
+ * Contract, Build: the focus that fits the lit hexes into a view, at most 64 px a hex and never
+ * below the view's resting scale. A view that rests on the whole map stays on it unless the fit
+ * draws a hex at least MIN_BUILD_ZOOM_GAIN times as wide. On a cover-fit view, lit hexes too far
+ * apart to fit at the resting scale keep it, centred on those nearest the centre of what the view
+ * shows now, as many as fit. None with nothing lit.
  */
 export function buildZoomRequest(
     hexIds: readonly HexId[],

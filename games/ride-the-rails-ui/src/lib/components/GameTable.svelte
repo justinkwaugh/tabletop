@@ -24,14 +24,14 @@
     import TableFlightLayer from '$lib/components/board/TableFlightLayer.svelte'
     import TableControls from '$lib/components/panel/TableControls.svelte'
     import FullScreenControls from '$lib/components/panel/FullScreenControls.svelte'
-    import BoardFocusChooser from '$lib/components/BoardFocusChooser.svelte'
-    import { BoardFocusSelection } from '$lib/model/boardFocus.svelte'
+    import BoardViewFollower from '$lib/components/BoardViewFollower.svelte'
+    import { BoardView } from '$lib/model/boardView'
     import {
         BOARD_COVER_BELOW_SCALE,
         BOARD_MAX_FIT_SCALE,
         BOARD_MAX_SCALE
     } from '$lib/utils/boardFocus.js'
-    import { boardInsetTop, isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
+    import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
     import { FITTED_DESKTOP_SCALE, hexBox } from '$lib/utils/boardGeometry.js'
     import { keepFocusedHexInBoard } from '$lib/utils/focusScroll.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
@@ -67,7 +67,7 @@
     }
 
     let wrapper = $state<ScalingWrapper>()
-    const focus = new BoardFocusSelection()
+    const boardView = new BoardView()
     /** Screen pixels kept between a hex panned into view and the board's edge. */
     const REVEAL_PADDING = 24
 
@@ -79,7 +79,7 @@
 
     // Contract, Phone layout: a hex focused out of view is panned into it, and nothing scrolls.
     const keepFocusInBoard = keepFocusedHexInBoard((hexId) => {
-        focus.moveByHand()
+        boardView.moveByHand()
         wrapper?.revealRect(hexBox(hexId), { padding: REVEAL_PADDING })
     })
 </script>
@@ -153,14 +153,13 @@
                         maxScale={BOARD_MAX_SCALE}
                         maxFitScale={BOARD_MAX_FIT_SCALE}
                         coverBelowScale={BOARD_COVER_BELOW_SCALE}
-                        insetTop={boardInsetTop()}
                         renderAtViewScale
                         expandable
-                        onManualViewChange={() => focus.moveByHand()}
+                        onManualViewChange={() => boardView.moveByHand()}
                     >
                         <Board viewScale={wrapper?.viewScale() ?? FITTED_DESKTOP_SCALE} />
                         {#snippet overlay(viewport)}
-                            <BoardFocusChooser {wrapper} {viewport} selection={focus} />
+                            <BoardViewFollower {wrapper} {viewport} {boardView} />
                         {/snippet}
                         {#snippet toolbar()}
                             <!-- Outside the content's CSS zoom, which would shrink and misplace the

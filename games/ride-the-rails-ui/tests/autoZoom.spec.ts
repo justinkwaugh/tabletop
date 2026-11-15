@@ -26,9 +26,6 @@ const RESTING_HEX_PX = 37
 /** A hex is never drawn wider than this by the zoom (the cap, and rounding). */
 const MOST_HEX_PX = BUILD_ZOOM_MOST_HEX_PX + 0.5
 
-/** Screen pixels the phone's focus chooser keeps clear at the top of the board. */
-const FOCUS_CHOOSER_INSET_PX = 40
-
 /** Longer than a glide of the view takes to settle and redraw. */
 const VIEW_SETTLE_MS = 600
 
@@ -136,8 +133,8 @@ test('The first building turn of round 1 zooms the view to the East Coast lit he
     // Zoomed in past the whole map the desktop board would otherwise rest at.
     expect(box.width).toBeGreaterThan((await frameBox(page)).width + 1)
     // Fitted: a hex is at its largest, or the lit hexes' box, a hex wider on every side, fills the
-    // frame's width or its height below the focus chooser's inset, or (a phone, where that box is
-    // wider than the view at the resting scale) the view keeps the resting scale.
+    // frame's width or its height, or (a phone, where that box is wider than the view at the
+    // resting scale) the view keeps the resting scale.
     const lit = await litHexes(page).evaluateAll((hexes) => {
         const boxes = hexes.map((hex) => hex.getBoundingClientRect())
         return {
@@ -152,7 +149,7 @@ test('The first building turn of round 1 zooms the view to the East Coast lit he
         width >= BUILD_ZOOM_MOST_HEX_PX - 1 ||
             (onPhone() && Math.abs(width - RESTING_HEX_PX) < 0.5) ||
             fills(lit.width + 2 * width, [frame.width]) ||
-            fills(lit.height + 2 * width, [frame.height, frame.height - FOCUS_CHOOSER_INSET_PX])
+            fills(lit.height + 2 * width, [frame.height])
     ).toBe(true)
 })
 
@@ -337,44 +334,17 @@ function expectSameView(shown: ShownView, expected: ShownView) {
     expect(shown.y).toBeCloseTo(expected.y, 2)
 }
 
-test('Ride opens on a focus chosen in a building turn, and the choice holds as the view resizes', async ({
-    page
-}) => {
-    test.skip(!onPhone(), 'On desktop a hex is never drawn small enough to show the chooser.')
-    await openScenario(page, 'First placement')
-    const zoomed = await settled(page)
-    await dragBoard(page, 80, 60)
-    expect(await settled(page)).not.toEqual(zoomed)
-    // The zoom draws hexes too wide for the chooser; zoomed out, it shows again.
-    const west = page.getByRole('button', { name: 'West', exact: true })
-    for (let step = 0; step < 6 && !(await west.isVisible()); step++) {
-        await page.getByRole('button', { name: 'Zoom out', exact: true }).tap()
-        await page.waitForTimeout(300)
-    }
-    await west.tap()
-    await expect(west).toHaveAttribute('aria-pressed', 'true')
+test('A phone’s resting view keeps its place and scale as the view resizes', async ({ page }) => {
+    test.skip(!onPhone(), 'The desktop rests on the whole map, which the wrapper refits itself.')
+    await openScenario(page, 'First share')
     await page.waitForTimeout(VIEW_SETTLE_MS)
-    const chosen = await viewShown(page)
-    for (const next of ['p2', 'p3', 'p4']) {
-        await page.getByRole('button', { name: 'Build nothing', exact: true }).tap()
-        await expect.poll(() => activePlayerId(page)).toBe(next)
-        await settled(page)
-    }
-    await page.getByRole('button', { name: 'Build nothing', exact: true }).tap()
-    await expect
-        .poll(() => page.evaluate(() => window.rtrSession.gameState.machineState))
-        .toBe('Riding')
-    await settled(page)
-    await page.waitForTimeout(VIEW_SETTLE_MS)
-    // West, at its scale, so a hex is too wide for the chooser to be drawn.
-    expectSameView(await viewShown(page), chosen)
-
-    // The chooser still names West: a resize refits that choice, not another.
+    const resting = await viewShown(page)
+    expect(Math.abs(resting.hexWidth - RESTING_HEX_PX)).toBeLessThan(0.5)
     const size = page.viewportSize()
     if (!size) throw new Error('The phone project sets a viewport.')
     await page.setViewportSize({ width: size.width, height: size.height - 100 })
     await page.waitForTimeout(VIEW_SETTLE_MS)
-    expectSameView(await viewShown(page), chosen)
+    expectSameView(await viewShown(page), resting)
 })
 
 test('At 1440 × 900 the desktop view rests on the whole map when a zoom would barely gain', async ({

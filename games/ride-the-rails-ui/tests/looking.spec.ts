@@ -38,25 +38,12 @@ function isPhone(): boolean {
     return test.info().project.use.isMobile === true
 }
 
-/** Phones: the East focus, where New York and the lit hexes are on screen at a readable size. */
-async function focusEast(page: Page) {
-    if (!isPhone()) return
-    const east = page.getByRole('button', { name: 'East', exact: true })
-    for (let step = 0; step < 6 && !(await east.isVisible()); step++) {
-        await page.getByRole('button', { name: 'Zoom out', exact: true }).tap()
-        await page.waitForTimeout(300)
-    }
-    await east.tap()
-    await settled(page)
-}
-
 const NEW_YORK = 'hex.usa.6-60'
 const BOTH = 'hex.usa.10-54'
 const RED_ONLY = 'hex.usa.8-54'
 
 test('20. Hex detail during a pick: apart from the railroad popup', async ({ page }) => {
     await openScenario(page, 'Two railroads meet')
-    await focusEast(page)
     const lit = await litLabels(page)
     const before = await trackCount(page)
 
@@ -114,7 +101,6 @@ test('20. Hex detail during a pick on a phone: the card beside its hex is on scr
 }) => {
     test.skip(!isPhone(), 'Desktop shows the side panel beside the board; the test above sees it.')
     await openScenario(page, 'Two railroads meet')
-    await focusEast(page)
     await pressHex(page, hexAt(page, NEW_YORK))
     await expect(hexDetail(page, 'New York')).toBeInViewport()
     expect(await detailInSidePanel(page)).toBe(false)
