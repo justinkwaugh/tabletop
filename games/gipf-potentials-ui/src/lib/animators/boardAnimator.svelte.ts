@@ -41,6 +41,7 @@ import {
     type Lift,
     type PieceParts
 } from './drop.js'
+import { poseOf, setPose, tweenPose } from './svgPose.js'
 
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
@@ -298,7 +299,10 @@ export class BoardAnimator implements MoveInterrupter {
             if (this.playing === animationContext.actionTimeline) this.playing = undefined
             this.entering = undefined
             this.flier = undefined
-            for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
+            for (const node of touched) {
+                setPose(node, { x: 0, y: 0, scale: 1 })
+                gsap.set(node, { opacity: 1 })
+            }
             if (this.markNodes.size > 0) gsap.set([...this.markNodes], { opacity: 1 })
             // A switch of view has already shown another state, which this board must not cover.
             if (this.session.gameState !== shown) return
@@ -403,7 +407,7 @@ export class BoardAnimator implements MoveInterrupter {
         for (const coords of spots) {
             const node = this.stackNodes.get(coordinatesToNumber(coords))?.whole
             if (node === undefined) continue
-            timeline.to(node, { x: step.x, y: step.y, duration, ease: 'power2.inOut' }, at)
+            timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
             touched.push(node)
         }
     }
@@ -421,7 +425,7 @@ export class BoardAnimator implements MoveInterrupter {
         const node = this.enteringNode
         if (node === undefined) return
         const step = this.offset(dot, firstSpot)
-        timeline.to(node, { x: step.x, y: step.y, duration, ease: 'power2.inOut' }, at)
+        timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
     }
 
     private dropEntering(timeline: Timeline) {
@@ -445,17 +449,18 @@ export class BoardAnimator implements MoveInterrupter {
         const ease = 'power1.out'
         if (count >= total && nodes.body && nodes.shadow) {
             const { body, shadow } = nodes
-            touched.push(...scaledFromCentre(body, shadow))
-            timeline.to(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }, at)
+            touched.push(body, shadow)
+            timeline.add(tweenPose(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }), at)
             timeline.to(body, { opacity: 0, duration, ease: fade }, at)
-            timeline.to(shadow, { opacity: 0, scale: LIFT_OFF.shadow, duration, ease }, at)
+            timeline.to(shadow, { opacity: 0, duration, ease }, at)
+            timeline.add(tweenPose(shadow, { scale: LIFT_OFF.shadow, duration, ease }), at)
             return
         }
         for (let index = total - count; index < total; index++) {
             const disc = nodes.discs.get(index)
             if (disc === undefined) continue
             touched.push(disc)
-            timeline.to(disc, { y: rise, duration, ease }, at)
+            timeline.add(tweenPose(disc, { y: rise, duration, ease }), at)
             timeline.to(disc, { opacity: 0, duration, ease: fade }, at)
         }
         const crease = nodes.creases.get(total - count - 1)
@@ -496,13 +501,13 @@ export class BoardAnimator implements MoveInterrupter {
         if (nodes === undefined) return
         const timing = quick ? quickDrop(count) : DROP
         if (from === 0 && nodes.shadow) {
-            touched.push(...scaledFromCentre(nodes.shadow))
+            touched.push(nodes.shadow)
             dropShadow(timeline, nodes.shadow, 0, timing)
         }
         for (let index = from; index < from + count; index++) {
             const disc = nodes.discs.get(index)
             if (disc === undefined) continue
-            touched.push(...scaledFromCentre(disc))
+            touched.push(disc)
             dropDisc(timeline, disc, index - from, 0, timing)
             const crease = nodes.creases.get(index - 1)
             if (crease) {
@@ -542,23 +547,25 @@ export class BoardAnimator implements MoveInterrupter {
         const short = bounces ? Math.min(BOUNCES.short / SPACING, 0.5) / (between.length + 1) : 0
         const landing = { x: offset.x * (1 - short), y: offset.y * (1 - short) }
 
-        gsap.set(node, { x: 0, y: 0 })
-        gsap.set(body, { y: plan.startLift, opacity: 1 })
+        setPose(node, { x: 0, y: 0 })
+        setPose(body, { y: plan.startLift })
+        gsap.set(body, { opacity: 1 })
         gsap.set(shadow, { opacity: plan.startLift === 0 ? 1 : 0 })
-        timeline.to(
-            node,
-            {
-                x: landing.x,
-                y: landing.y,
+        timeline.add(
+            tweenPose(node, {
+                ...landing,
                 duration: plan.groundEnd - plan.groundStart,
                 ease: GROUND_EASE
-            },
+            }),
             plan.groundStart
         )
-        timeline.to(body, { y: plan.peak, duration: plan.peakTime, ease: RISE_EASE }, 0)
-        timeline.to(
-            body,
-            { y: plan.endLift, duration: plan.duration - plan.peakTime, ease: FALL_EASE },
+        timeline.add(tweenPose(body, { y: plan.peak, duration: plan.peakTime, ease: RISE_EASE }), 0)
+        timeline.add(
+            tweenPose(body, {
+                y: plan.endLift,
+                duration: plan.duration - plan.peakTime,
+                ease: FALL_EASE
+            }),
             plan.peakTime
         )
         if (plan.startLift === 0) {
@@ -569,9 +576,8 @@ export class BoardAnimator implements MoveInterrupter {
         }
 
         const occlude = () => {
-            const x = Number(gsap.getProperty(node, 'x'))
-            const y = Number(gsap.getProperty(node, 'y'))
-            this.occlude(start.x + x, start.y + y, Number(gsap.getProperty(body, 'y')))
+            const { x, y } = poseOf(node)
+            this.occlude(start.x + x, start.y + y, poseOf(body).y)
         }
         occlude()
         const settled = bounces ? BOUNCES.steps.reduce((sum, step) => sum + step.duration, 0) : 0
@@ -630,8 +636,8 @@ export class BoardAnimator implements MoveInterrupter {
         const pose = (u: number) => {
             const { along, lift } = skidAt(u, spaces, startLift)
             const y = offset.y * along
-            gsap.set(node, { x: offset.x * along, y })
-            gsap.set(body, { y: lift })
+            setPose(node, { x: offset.x * along, y })
+            setPose(body, { y: lift })
             const away = Math.min(1, (along * spaces) / SKID_SHADOW_CLEAR)
             gsap.set(shadow, { opacity: away * Math.max(0.35, 1 + lift / 40) })
             this.occlude(start.x + offset.x * along, start.y + y, lift)
@@ -661,16 +667,15 @@ export class BoardAnimator implements MoveInterrupter {
         let time = at
         for (const { height, duration, reach } of BOUNCES.steps) {
             const half = duration / 2
-            timeline.to(body, { y: -height, duration: half, ease: 'power1.out' }, time)
-            timeline.to(body, { y: 0, duration: half, ease: 'power1.in' }, time + half)
-            timeline.to(
-                node,
-                {
+            timeline.add(tweenPose(body, { y: -height, duration: half, ease: 'power1.out' }), time)
+            timeline.add(tweenPose(body, { y: 0, duration: half, ease: 'power1.in' }), time + half)
+            timeline.add(
+                tweenPose(node, {
                     x: from.x + (to.x - from.x) * reach,
                     y: from.y + (to.y - from.y) * reach,
                     duration,
                     ease: 'none'
-                },
+                }),
                 time
             )
             time += duration
@@ -695,7 +700,7 @@ export class BoardAnimator implements MoveInterrupter {
     ) {
         let time = at
         for (const { y, duration, ease } of BOUNCE.lift) {
-            timeline.to(body, { y: lift + y, duration, ease }, time)
+            timeline.add(tweenPose(body, { y: lift + y, duration, ease }), time)
             time += duration
         }
         this.carry(node, offset, BOUNCE.along, BOUNCE.step, timeline, at)
@@ -720,14 +725,13 @@ export class BoardAnimator implements MoveInterrupter {
     ) {
         const length = Math.hypot(offset.x, offset.y) || 1
         along.forEach((past, index) => {
-            timeline.to(
-                node,
-                {
+            timeline.add(
+                tweenPose(node, {
                     x: offset.x + (offset.x / length) * past,
                     y: offset.y + (offset.y / length) * past,
                     duration: step,
                     ease: 'sine.inOut'
-                },
+                }),
                 at + index * step
             )
         })
@@ -772,10 +776,4 @@ function spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordi
         q: from.q + (dq / steps) * (index + 1),
         r: from.r + (dr / steps) * (index + 1)
     }))
-}
-
-// Set only as a move scales them: GSAP measures each node; for every disc, a phone took 10 s.
-function scaledFromCentre(...nodes: SVGGElement[]): SVGGElement[] {
-    gsap.set(nodes, { svgOrigin: '0 0' })
-    return nodes
 }
