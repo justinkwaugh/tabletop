@@ -78,7 +78,7 @@ const PrintedRanks: Record<GuildId, Record<GuildRank, Point>> = {
 
 /** A reeve stands beside its marker, on the panel's open side of the track. */
 export function printedReeveOffset(guild: GuildId): Point {
-    return { x: West.includes(guild) ? 30 : -30, y: 0 }
+    return { x: West.includes(guild) ? 40 : -40, y: 0 }
 }
 
 /** R-1.3 The market's printed bins: one column per good, its space 4 at the top and 1 at the foot. */

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Level from './Level.svelte'
     import {
         AlchemistCartSpaces,
         AlchemistTradePrice,
@@ -83,8 +84,13 @@
         fill="var(--feudum-parchment-shade)"
         stroke="var(--feudum-ink)"
     ></rect>
-    <text x={VesselSpaceBox.x + 8} y={VesselSpaceBox.y + 16} font-size="14" fill="var(--feudum-ink)"
-        >For sale · {AlchemistTradePrice}s</text
+    <Level at={{ x: VesselSpaceBox.x + 8, y: VesselSpaceBox.y + 16 }}
+        ><text
+            x={VesselSpaceBox.x + 8}
+            y={VesselSpaceBox.y + 16}
+            font-size="14"
+            fill="var(--feudum-ink)">For sale · {AlchemistTradePrice}s</text
+        ></Level
     >
 {/if}
 {#each VesselTypes as vessel (vessel)}
@@ -125,12 +131,14 @@
                         stroke-width="1.5"
                     ></path>
                 </svg>
-                <text
-                    x={at.x + 10}
-                    y={at.y - 14}
-                    text-anchor="middle"
-                    font-size="16"
-                    fill="var(--feudum-ink)">{invention.barrel}</text
+                <Level at={{ x: at.x + 10, y: at.y - 14 }}
+                    ><text
+                        x={at.x + 10}
+                        y={at.y - 14}
+                        text-anchor="middle"
+                        font-size="16"
+                        fill="var(--feudum-ink)">{invention.barrel}</text
+                    ></Level
                 >
             {/if}
             {#each goods as good, index (index)}

@@ -134,8 +134,8 @@ test('S41 R-4.6.4 barn left, market right; ghosts, the line, the toggle; Undo; S
         areas.nth(0).boundingBox(),
         areas.nth(1).boundingBox()
     ])
-    expect(left?.width).toBe(440)
-    expect(right?.width).toBe(440)
+    expect(left?.height ?? 0).toBeGreaterThan(left?.width ?? 0)
+    expect(right?.width).toBe(left?.width)
     expect(left?.y).toBe(right?.y)
     expect((left?.x ?? 0) + (left?.width ?? 0)).toBeLessThanOrEqual(right?.x ?? 0)
 
@@ -536,4 +536,208 @@ test('S70 R-4.6.3 full screen: the bench and its popup stand inside the dialog, 
     await popupRow(page, /^\s*No/).click()
     await settled(page)
     await expect(bench(page)).toHaveCount(0)
+})
+
+/**
+ * R-1.2.3 The quarter turn the browser draws: +1 clockwise, -1 counter-clockwise. The print lies on
+ * its side with its top toward the board's nearer edge, so a west guild turns clockwise to stand
+ * upright and an east guild counter-clockwise.
+ */
+async function turnOf(turned: Locator): Promise<number> {
+    const matrix = await turned.evaluate((element) => getComputedStyle(element).transform)
+    const [a, b] = (/matrix\(([^)]*)\)/.exec(matrix)?.[1] ?? '').split(',').map(Number)
+    expect(Math.abs(a ?? 1)).toBeLessThan(1e-6)
+    return Math.round(b ?? 0)
+}
+
+const UprightTurn = {
+    alchemist: 1,
+    merchant: 1,
+    farmer: 1,
+    knight: -1,
+    noble: -1,
+    monk: -1
+} as const
+
+test('R-1.3 an enlarged guild area stands its print upright: a west guild turned clockwise, an east one counter-clockwise', async ({
+    page
+}) => {
+    await openTable(page, 'guildPick')
+    for (const [guild, turn] of Object.entries(UprightTurn)) {
+        const name = `${guild.charAt(0).toUpperCase()}${guild.slice(1)} guild`
+        await page.locator(`[data-board-surface] [data-enlarge="${name}"]`).click()
+        const turned = page.locator(`[data-enlarged-upright="${guild}"] > div`)
+        await expect(turned).toBeVisible()
+        expect(await turnOf(turned), guild).toBe(turn)
+        await page.keyboard.press('Escape')
+        await expect(turned).toHaveCount(0)
+    }
+})
+
+test('R-4.6.3 the trade picker stands an east guild upright, its rings turned with it', async ({
+    page
+}) => {
+    await openFunction(page, 'knightTrade', 'knight', /^\s*Trade/)
+    const turned = upright(page).locator('> div')
+    expect(await turnOf(turned)).toBe(UprightTurn.knight)
+    const area = await upright(page).boundingBox()
+    const rings = upright(page).locator('[data-bench-place]')
+    expect(await rings.count()).toBeGreaterThan(0)
+    for (let index = 0; index < (await rings.count()); index++) {
+        const ring = await rings.nth(index).boundingBox()
+        expect(ring && area && ring.x >= area.x - 1 && ring.y >= area.y - 1).toBe(true)
+        expect(
+            ring &&
+                area &&
+                ring.x + ring.width <= area.x + area.width + 1 &&
+                ring.y + ring.height <= area.y + area.height + 1
+        ).toBe(true)
+    }
+})
+
+test('R-4.6.2 the trade picker stands a west guild upright', async ({ page }) => {
+    await openFunction(page, 'merchantTrade', 'merchant', /^\s*Trade/)
+    expect(await turnOf(upright(page).locator('> div'))).toBe(UprightTurn.merchant)
+})
+
+/** The net turn, in degrees, the browser draws this element at: its own and every ancestor's. */
+async function netTurn(element: Locator): Promise<number> {
+    return element.evaluate((start) => {
+        let radians = 0
+        for (let node: Element | null = start; node; node = node.parentElement) {
+            if (node instanceof SVGGraphicsElement) {
+                const matrix = node.transform.baseVal.consolidate()?.matrix
+                if (matrix) {
+                    radians += Math.atan2(matrix.b, matrix.a)
+                }
+            } else {
+                const style = getComputedStyle(node)
+                if (style.transform && style.transform !== 'none') {
+                    const matrix = new DOMMatrix(style.transform)
+                    radians += Math.atan2(matrix.b, matrix.a)
+                }
+                if (style.rotate && style.rotate !== 'none') {
+                    radians += (parseFloat(style.rotate) * Math.PI) / 180
+                }
+            }
+        }
+        return (Math.round((radians * 180) / Math.PI) + 720) % 360
+    })
+}
+
+/** R-1.2.3 Every piece and every word of ours on a turned area reads upright: net turn 0. */
+async function expectLevel(scope: Locator) {
+    const pieces = scope.locator(
+        '[data-world] svg, [data-guild] text:not(svg[aria-label$="guild panel"] text), [data-bench-note], [data-bench-count]'
+    )
+    for (let index = 0; index < (await pieces.count()); index++) {
+        const piece = pieces.nth(index)
+        const name = await piece.evaluate(
+            (node) =>
+                node.closest('[data-world]')?.getAttribute('data-world') ??
+                node.getAttribute('data-bench-note') ??
+                'label'
+        )
+        expect(await netTurn(piece), name).toBe(0)
+    }
+}
+
+test('R-4.6.5 a push bench stands both areas upright, a west and an east guild, side by side in the board’s room', async ({
+    page
+}) => {
+    await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
+    const areas = bench(page).locator('[data-bench-area]')
+    await expect(areas).toHaveCount(2)
+    for (const guild of ['merchant', 'alchemist'] as const) {
+        const area = bench(page).locator(`[data-bench-area="${guild}"]`)
+        expect(await turnOf(area.locator('[data-upright-turned]')), guild).toBe(UprightTurn[guild])
+        const box = await area.locator('[data-upright-turned]').boundingBox()
+        expect(box?.height ?? 0).toBeGreaterThan(box?.width ?? 0)
+        await expectLevel(area)
+    }
+    await expect(bench(page).locator('[data-bench-area="merchant"] [data-world]')).not.toHaveCount(
+        0
+    )
+    const [left, right] = await Promise.all([
+        areas.nth(0).boundingBox(),
+        areas.nth(1).boundingBox()
+    ])
+    expect(left?.y).toBe(right?.y)
+    const holder = bench(page).locator('[data-bench-areas]')
+    const room = await holder.evaluate((node) => node.scrollHeight - node.clientHeight)
+    expect(room).toBeLessThanOrEqual(0)
+    await shot(page, 'merchant-push-upright')
+})
+
+test('R-4.7 on a turned area the reeve stands upright at the marker’s size', async ({ page }) => {
+    await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
+    const area = bench(page).locator('[data-bench-area="merchant"]')
+    const reeve = area.locator('[data-world^="reeve:"] svg').first()
+    const marker = area.locator('[data-world^="rank:"] svg').first()
+    await expect(reeve).toHaveCount(1)
+    expect(await reeve.getAttribute('width')).toBe(await marker.getAttribute('width'))
+    const disc = await reeve.locator('[data-piece-shadow]').boundingBox()
+    const hexagon = await marker.locator('[data-piece-shadow]').boundingBox()
+    expect(disc?.height ?? 0).toBeGreaterThanOrEqual((hexagon?.height ?? 0) * 0.9)
+    expect(await netTurn(area.locator('[data-world^="reeve:"] svg').first())).toBe(0)
+})
+
+test('R-4.6.4 a press on a turned bench space picks that space', async ({ page }) => {
+    await openFunction(page, 'merchantPull', 'merchant', /^\s*Pull/)
+    const places = bench(page).locator('[data-bench-area="farmer"] [data-bench-place] button')
+    expect(await places.count()).toBeGreaterThan(0)
+    for (let index = 0; index < (await places.count()); index++) {
+        const press = places.nth(index)
+        const id = await press.evaluate(
+            (node) => node.closest('[data-bench-place]')?.getAttribute('data-bench-place') ?? ''
+        )
+        const box = await press.boundingBox()
+        const hit = await page.evaluate(
+            ([x, y]) =>
+                document
+                    .elementFromPoint(x, y)
+                    ?.closest('[data-bench-place]')
+                    ?.getAttribute('data-bench-place'),
+            [(box?.x ?? 0) + (box?.width ?? 0) / 2, (box?.y ?? 0) + (box?.height ?? 0) / 2]
+        )
+        expect(hit).toBe(id)
+    }
+    await pressAll(page, 'good:iron')
+    await expect(bench(page).locator('[data-bench-area="merchant"] [data-ghost]')).toHaveCount(1)
+    await expectLevel(bench(page).locator('[data-bench-area="merchant"]'))
+})
+
+test('R-1.3 the enlarged and the picked guild areas keep their pieces upright', async ({
+    page
+}) => {
+    await openTable(page, 'merchantPush')
+    await page.locator('[data-board-surface] [data-enlarge="Merchant guild"]').click()
+    await expectLevel(page.locator('[data-enlarged-upright="merchant"]'))
+    await page.keyboard.press('Escape')
+    await openFunction(page, 'monkTrade', 'monk', /^\s*Trade/)
+    await expectLevel(upright(page))
+})
+
+test.describe('on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('R-4.6.5 the push bench’s sheet holds both upright areas whole, side by side', async ({
+        page
+    }) => {
+        await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
+        const areas = bench(page).locator('[data-bench-area]')
+        await expect(areas).toHaveCount(2)
+        const [left, right] = await Promise.all([
+            areas.nth(0).boundingBox(),
+            areas.nth(1).boundingBox()
+        ])
+        expect(left?.y).toBe(right?.y)
+        expect((right?.x ?? 0) + (right?.width ?? 0)).toBeLessThanOrEqual(390)
+        const holder = bench(page).locator('[data-bench-areas]')
+        expect(
+            await holder.evaluate((node) => node.scrollHeight - node.clientHeight)
+        ).toBeLessThanOrEqual(0)
+        await expectLevel(areas.nth(0))
+        await shot(page, 'merchant-push-phone')
+    })
 })

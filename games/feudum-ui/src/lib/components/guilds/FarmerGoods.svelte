@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Level from './Level.svelte'
     import {
         ChickenSpaces,
         FarmerBarn,
@@ -56,13 +57,15 @@
         fill="var(--feudum-parchment-shade)"
         stroke="var(--feudum-ink)"
     ></rect>
-    <text
-        x={BarnBox.x + 12}
-        y={BarnBox.y + 26}
-        font-size="18"
-        fill="var(--feudum-ink)"
-        data-barn={goodsTotal(farmer.barn)}
-        >Barn · {goodsTotal(farmer.barn)} of {FarmerBarn.capacity}</text
+    <Level at={{ x: BarnBox.x + 12, y: BarnBox.y + 26 }}
+        ><text
+            x={BarnBox.x + 12}
+            y={BarnBox.y + 26}
+            font-size="18"
+            fill="var(--feudum-ink)"
+            data-barn={goodsTotal(farmer.barn)}
+            >Barn · {goodsTotal(farmer.barn)} of {FarmerBarn.capacity}</text
+        ></Level
     >
 {/if}
 {#each goodStacks(farmer.barn) as stack (stack.good)}
@@ -127,8 +130,14 @@
 {/each}
 
 {#if !printed}
-    <text x={purse.x - 30} y={purse.y + 7} text-anchor="end" font-size="18" fill="var(--feudum-ink)"
-        >Purse</text
+    <Level at={{ x: purse.x - 30, y: purse.y + 7 }}
+        ><text
+            x={purse.x - 30}
+            y={purse.y + 7}
+            text-anchor="end"
+            font-size="18"
+            fill="var(--feudum-ink)">Purse</text
+        ></Level
     >
 {/if}
 <BoardPiece at={purse} piece="purse">
@@ -147,12 +156,14 @@
         data-purse={farmer.purse}
     />
 {:else}
-    <text
-        x={purse.x + 30}
-        y={purse.y + 8}
-        font-size="24"
-        font-weight="700"
-        fill="var(--feudum-ink)"
-        data-purse={farmer.purse}>{farmer.purse}s</text
+    <Level at={{ x: purse.x + 30, y: purse.y + 8 }}
+        ><text
+            x={purse.x + 30}
+            y={purse.y + 8}
+            font-size="24"
+            font-weight="700"
+            fill="var(--feudum-ink)"
+            data-purse={farmer.purse}>{farmer.purse}s</text
+        ></Level
     >
 {/if}

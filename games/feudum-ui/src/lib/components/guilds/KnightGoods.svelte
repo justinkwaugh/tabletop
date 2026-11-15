@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Level from './Level.svelte'
     import {
         KnightMonsterIcons,
         KnightSections,
@@ -64,12 +65,18 @@
                     stroke-width="1.5"
                 ></path>
             </svg>
-            <text
-                x={knightSectionMiddle(section.firstColumn, section.lastColumn) + 8}
-                y={KnightSectionHeaderY + 6}
-                text-anchor="middle"
-                font-size="16"
-                fill="var(--feudum-ink)">{section.section}</text
+            <Level
+                at={{
+                    x: knightSectionMiddle(section.firstColumn, section.lastColumn) + 8,
+                    y: KnightSectionHeaderY + 6
+                }}
+                ><text
+                    x={knightSectionMiddle(section.firstColumn, section.lastColumn) + 8}
+                    y={KnightSectionHeaderY + 6}
+                    text-anchor="middle"
+                    font-size="16"
+                    fill="var(--feudum-ink)">{section.section}</text
+                ></Level
             >
         </g>
     {/each}
@@ -136,12 +143,14 @@
                 x={at.x - GuildSizes.monster / 2}
                 y={at.y - GuildSizes.monster / 2 - 12}
             />
-            <text
-                x={at.x}
-                y={at.y + MonsterBox.height / 2 - 10}
-                text-anchor="middle"
-                font-size="15"
-                fill="var(--feudum-ink)">{icon.markers} markers</text
+            <Level at={{ x: at.x, y: at.y + MonsterBox.height / 2 - 10 }}
+                ><text
+                    x={at.x}
+                    y={at.y + MonsterBox.height / 2 - 10}
+                    text-anchor="middle"
+                    font-size="15"
+                    fill="var(--feudum-ink)">{icon.markers} markers</text
+                ></Level
             >
         </g>
     {/if}

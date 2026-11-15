@@ -140,7 +140,7 @@ describe('Guild areas enlarge (contract: Card preview)', () => {
         const upright = markup.match(/<div[^>]*data-enlarged-upright="monk"[^>]*>/)?.[0]
         expect(upright).toContain('width: 453.12px')
         expect(upright).toContain('height: 640px')
-        const turned = markup.match(/<div[^>]*data-enlarged-turned[^>]*>/)?.[0]
+        const turned = markup.match(/<div[^>]*data-upright-turned[^>]*>/)?.[0]
         expect(turned).toContain('width: 640px')
         expect(turned).toContain('height: 453.12px')
     })

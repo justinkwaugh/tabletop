@@ -103,8 +103,10 @@ export const BenchScenes = {
     merchantPush: {
         guild: 'merchant',
         fn: 'push',
-        arrange: (state, { seat }) => {
+        arrange: (state, { seat, other }) => {
             setMaster(state, seat, 'merchant')
+            setPawns(state, other, ['merchant'])
+            state.guilds.tracks.merchant.master = { playerId: seat, reeve: true }
             setMarket(state, FullMarket)
         }
     },

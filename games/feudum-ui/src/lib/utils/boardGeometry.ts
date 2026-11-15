@@ -630,6 +630,20 @@ export function westGuild(guild: GuildId): boolean {
 }
 
 /**
+ * R-1.2.3 The quarter turn, in degrees, that stands a guild area's print upright off the board: the
+ * print lies on its side with its top toward the board's nearer edge, so a west print turns
+ * clockwise and an east one counter-clockwise.
+ */
+export function uprightTurn(guild: GuildId): number {
+    return westGuild(guild) ? 90 : -90
+}
+
+/** R-1.2.3 That turn about the area's centre, as a CSS transform of a box centred on its holder. */
+export function uprightTransform(guild: GuildId): string {
+    return `translate(-50%, -50%) rotate(${uprightTurn(guild)}deg)`
+}
+
+/**
  * Contract, Guild standings: on a desk the six rails stand in one strip under the board, the West
  * guilds' then the East's, each in its area's order. In board units: `gap` above the strip and
  * between two rails, `divide` more between the West's and the East's. A rail's own drawing is
@@ -692,9 +706,12 @@ export interface GuildBoxRect {
 }
 
 /** Sizes in a guild area's local units. */
+/** R-4.7 A reeve stands at the influence marker's size, so its printed point reads. */
+const GuildMarkerSize = 36
+
 export const GuildSizes = {
-    marker: 36,
-    reeve: 24,
+    marker: GuildMarkerSize,
+    reeve: GuildMarkerSize,
     good: 34,
     seal: 46,
     bead: 42,
@@ -706,7 +723,7 @@ export const GuildSizes = {
 export const CrestCentre: Point = { x: 44, y: 38 }
 export const RankRadius = 28
 /** A reeve stands beside the rank's marker. */
-export const ReeveOffset: Point = { x: 20, y: 16 }
+export const ReeveOffset: Point = { x: 34, y: 18 }
 
 export function reeveOffset(guild: GuildId): Point {
     return guildPrinted(guild) ? printedReeveOffset(guild) : ReeveOffset

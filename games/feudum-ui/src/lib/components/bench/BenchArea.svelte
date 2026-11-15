@@ -2,23 +2,24 @@
     import type { Color } from '@tabletop/common'
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
     import GuildArea from '$lib/components/guilds/GuildArea.svelte'
+    import UprightArea from '$lib/components/guilds/UprightArea.svelte'
     import RoseChip from '$lib/components/pieces/RoseChip.svelte'
     import PanelRow, { type RowPointer } from '$lib/components/table/PanelRow.svelte'
     import { guildTarget } from '$lib/model/boardOffer.js'
     import type { BenchItem } from '$lib/model/benchOffer.js'
     import type { BenchAreaView, BenchBox, GhostPiece, PlacedGhost } from '$lib/model/benchView.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
-    import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
-    import { BenchAreaWidth, GuildBox, GuildSizes } from '$lib/utils/boardGeometry.js'
+    import { BenchAreaWidth, GuildBox, GuildSizes, uprightTurn } from '$lib/utils/boardGeometry.js'
     import { widenedBoxes, type Box } from '$lib/utils/benchPresses.js'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
     /**
-     * One guild area on the bench: the board's own component at the bench's fixed width. Each lit,
-     * picked or dimmed item is a press over where it stands, in percent of the area, so it follows
-     * the width; the area itself is an image, so a press can't be inside it. Ghosts draw inside it.
-     * `fit` narrows it further, so a phone's sheet holds both areas whole.
+     * One guild area on the bench: the board's own component, stood upright (R-1.2.3), its long side
+     * the bench's fixed length. Each lit, picked or dimmed item is a press over where it stands, in
+     * percent of the area, inside the turned box, so it lands on its printed space; the area itself is
+     * an image, so a press can't be inside it. Ghosts draw inside it, upright. `fit` shortens it, so
+     * the bench's room holds both areas whole, side by side.
      */
     let {
         area,
@@ -50,19 +51,21 @@
      * press reaches past its place, as far as the target asks and its pressing neighbours allow; its
      * ring stays over the row.
      */
-    const measured = new MeasuredWidth()
+    let long = $derived(Math.min(fit ?? BenchAreaWidth, BenchAreaWidth))
+    let short = $derived((long * GuildBox.height) / GuildBox.width)
+    let ghostTurn = $derived(-uprightTurn(area.guild))
+
     const reaches = $derived.by(() => {
         const rows = area.placed.filter(
             ({ item, presses }) => presses && item.id.startsWith('row:')
         )
-        const shown = measured.width
-        if (rows.length === 0 || shown === undefined) {
+        if (rows.length === 0) {
             return new Map<string, Box>()
         }
         const spans = widenedBoxes(
             rows.map(({ box }) => box),
             GuildBox,
-            (Target * GuildBox.width) / shown
+            (Target * GuildBox.width) / long
         )
         return new Map(rows.map(({ item }, at) => [item.id, spans[at]!]))
     })
@@ -86,7 +89,7 @@
 {#snippet ghost({ item, at, piece, point }: PlacedGhost)}
     {@const size = sizeOf(piece)}
     <g
-        transform="translate({point?.x ?? 0} {point?.y ?? 0})"
+        transform="translate({point?.x ?? 0} {point?.y ?? 0}) rotate({ghostTurn})"
         opacity="0.7"
         pointer-events="none"
         data-ghost={item}
@@ -119,18 +122,14 @@
     </span>
 {/snippet}
 
-<div
-    class="flex flex-col gap-1"
-    style:width="min({fit ?? BenchAreaWidth}px, {BenchAreaWidth}px, 100%)"
-    data-bench-area={area.guild}
->
-    <div class="relative" data-pick={guildTarget(area.guild)} {@attach measured.attach}>
+<div class="flex flex-col gap-1" style:width="{short}px" data-bench-area={area.guild}>
+    <UprightArea guild={area.guild} {long} data-pick={guildTarget(area.guild)}>
         <GuildArea
             guild={area.guild}
             {state}
             {paintOf}
             {colourPaintOf}
-            width={BenchAreaWidth}
+            width={long}
             over={ghosts}
         />
         {#each area.placed as { item, box, presses } (item.id)}
@@ -166,7 +165,7 @@
                 {/if}
             </div>
         {/each}
-    </div>
+    </UprightArea>
     {#if area.buttons.length > 0}
         <div class="flex flex-wrap items-center gap-1" data-rows="bench-buttons">
             {#each area.buttons as item (item.id)}
@@ -179,13 +178,6 @@
 </div>
 
 <style>
-    /* The area follows the sheet's width on a phone; the presses over it are in percent. */
-    [data-pick] > :global(svg) {
-        display: block;
-        width: 100%;
-        height: auto;
-    }
-
     .item :global([data-row]) {
         display: block;
         height: 100%;
@@ -203,6 +195,13 @@
     /* A used row refuses a second press, and it stays the brightest thing there. */
     .item[data-bench-role='picked'] :global(.opacity-50) {
         opacity: 1;
+    }
+
+    /* R-1.2.3 Our words over a turned area read upright. */
+    .item :global([data-refusal]),
+    .note,
+    .left {
+        rotate: var(--piece-turn, 0deg);
     }
 
     .item :global([data-refusal]) {
