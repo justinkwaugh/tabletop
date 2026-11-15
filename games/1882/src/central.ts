@@ -112,18 +112,6 @@ export function centralConversionReason(
     return undefined
 }
 
-/** One more of the bank's next train, if it is a 3, 4, 5 or 6 (§7.1.2). */
-function addExtraTrain(state: State1882): string | undefined {
-    const next = TrainDepot1882.nextDefinitionId(state.trainInventory)
-    if (!next || !ExtraTrainIds1882.some((id) => id === next)) return undefined
-    const id = extraTrainId(next)
-    state.trainInventory = {
-        ...state.trainInventory,
-        trains: [...state.trainInventory.trains, { id, definitionId: next, status: 'depot' }]
-    }
-    return id
-}
-
 class HydratedConvertCentral extends ConvertCentralAction.Base {
     declare type: 'ConvertCentral'
     declare playerId: string
@@ -167,7 +155,7 @@ class HydratedConvertCentral extends ConvertCentralAction.Base {
             position: { ...this.home },
             cost: 0
         })
-        const extra = addExtraTrain(state)
+        const extra = this.addExtraTrain(state)
         recordStockAction(state, this.playerId, StockRules1882.round)
         markTurnPurchase(state)
         recordTurnPurchase(state, StockRules1882, { kind: 'start', companyId: ScrId })
@@ -178,6 +166,18 @@ class HydratedConvertCentral extends ConvertCentralAction.Base {
             ...(replaced ? { replacedStationId: replaced.id } : {}),
             ...(extra ? { extraTrainId: extra } : {})
         }
+    }
+
+    /** One more of the bank's next train, if it is a 3, 4, 5 or 6 (§7.1.2). */
+    private addExtraTrain(state: State1882): string | undefined {
+        const next = TrainDepot1882.nextDefinitionId(state.trainInventory)
+        if (!next || !ExtraTrainIds1882.some((id) => id === next)) return undefined
+        const id = extraTrainId(next)
+        state.trainInventory = {
+            ...state.trainInventory,
+            trains: [...state.trainInventory.trains, { id, definitionId: next, status: 'depot' }]
+        }
+        return id
     }
 }
 

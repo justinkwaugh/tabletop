@@ -29,14 +29,7 @@ export type Rebellion1882 = Type.Static<typeof Rebellion1882>
 export const TitleFields1882 = {
     rebellion: Rebellion1882,
     /** The company whose 10% share comes with the Trestle Bridge, drawn at setup (§3). */
-    trestleShareCompanyId: Type.String(),
-    /** Where the North-West Rebellion Company moved a station, whose hex gets an extra lay (§7.1.3). */
-    rebellionMove: Type.Optional(
-        Type.Object(
-            { companyId: Type.String(), locationId: Type.String() },
-            { additionalProperties: false }
-        )
-    )
+    trestleShareCompanyId: Type.String()
 }
 
 export const State1882 = composeEighteenXXState(

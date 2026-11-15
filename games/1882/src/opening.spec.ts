@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { finiteCashOwnedBy, presidentCertificate } from '@tabletop/18xx'
 import { kit } from '../test/kit.js'
+import { Majors1882, NeutralHolders1882 } from './companies.js'
+import { createNeutralStations } from './neutralStations.js'
 import { TrainDepot1882 } from './trains.js'
 import { trestleShareId } from './opening.js'
 
@@ -16,6 +18,18 @@ describe('1882 opening', () => {
         expect(
             ['2', '3', '4', '5', '6'].map((id) => TrainDepot1882.remaining(trainInventory, id))
         ).toEqual([6, 4, 3, 2, 2])
+    })
+
+    it('gives each company its stations, and a neutral one to the holders and the supply (ruling 13)', () => {
+        expect(
+            Object.fromEntries(
+                Majors1882.map((company) => [company.id, company.stationCosts.length])
+            )
+        ).toEqual({ CN: 0, CNoR: 3, CPR: 4, GTP: 3, HBR: 3, QL: 2, SCR: 1 })
+        expect(NeutralHolders1882).toEqual(['CNoR', 'GTP', 'HBR', 'QL', 'SCR'])
+        const { neutralStations } = createNeutralStations()
+        expect(neutralStations).toHaveLength(6)
+        expect(neutralStations.filter((station) => !station.heldBy)).toHaveLength(1)
     })
 
     it('draws the rebellion train and the Trestle Bridge share at setup (§3)', () => {

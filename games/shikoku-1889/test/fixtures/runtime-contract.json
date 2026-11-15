@@ -1791,6 +1791,10 @@
       "privateTrackLay": {
         "additionalProperties": false,
         "properties": {
+          "locationId": {
+            "minLength": 1,
+            "type": "string"
+          },
           "playerId": {
             "minLength": 1,
             "type": "string"

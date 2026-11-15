@@ -56,16 +56,6 @@ export function rebellionTrainOrdinal(
     return state.trainInventory.trains.some((train) => train.id === extraId) ? 2 : 1
 }
 
-/** The yellow tiles laid in rebellion hexes, which the rebellion removes (§8). */
-function rebellionTiles(state: State1882) {
-    return RebellionLocations.flatMap((locationId) => {
-        const placement = state.tileInventory.placements[locationId]
-        return placement && tileFace1882(placement.definitionId).color === 'yellow'
-            ? [{ locationId, definitionId: placement.definitionId }]
-            : []
-    })
-}
-
 class HydratedNorthWestRebellion extends NorthWestRebellionAction.Base {
     declare type: 'NorthWestRebellion'
     declare metadata?: NorthWestRebellion['metadata']
@@ -75,12 +65,22 @@ class HydratedNorthWestRebellion extends NorthWestRebellionAction.Base {
             'The rebellion follows the purchase of its train'
         )
         // Yellow tiles go back to the supply; stations stay in their cities (§8).
-        const removed = rebellionTiles(state)
+        const removed = this.rebellionTiles(state)
         const placements = { ...state.tileInventory.placements }
         for (const { locationId } of removed) delete placements[locationId]
         state.tileInventory = { ...state.tileInventory, placements }
         state.rebellion = { ...state.rebellion, occurred: true }
         this.metadata = { removed }
+    }
+
+    /** The yellow tiles laid in rebellion hexes, which the rebellion removes (§8). */
+    private rebellionTiles(state: State1882) {
+        return RebellionLocations.flatMap((locationId) => {
+            const placement = state.tileInventory.placements[locationId]
+            return placement && tileFace1882(placement.definitionId).color === 'yellow'
+                ? [{ locationId, definitionId: placement.definitionId }]
+                : []
+        })
     }
 }
 

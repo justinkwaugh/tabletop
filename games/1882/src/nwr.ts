@@ -5,6 +5,7 @@ import {
     actsFor,
     getCompany,
     homeStationId,
+    neutralStation,
     pendingCompanyDecision,
     privateOwner,
     privatePowerUsed,
@@ -13,6 +14,7 @@ import {
     sameStationPosition,
     stepAction,
     titleAction,
+    type CompanyDecisionState,
     type PrivateTrackTerms,
     type EighteenXXMachineState,
     type Station,
@@ -68,8 +70,7 @@ export function rebellionMover(state: State1882, playerId: string): string | und
         pendingCompanyDecision(state)
     )
         return undefined
-    if (getCompany(state, NwrId).closed || privatePowerUsed(state, NwrId) || state.rebellionMove)
-        return undefined
+    if (getCompany(state, NwrId).closed || privatePowerUsed(state, NwrId)) return undefined
     const owner = privateOwner(state, NwrId)
     const companyId = EighteenXXTransferTiming.operatingCompany(state)
     return owner?.kind === 'company' &&
@@ -82,11 +83,17 @@ export function rebellionMover(state: State1882, playerId: string): string | und
 
 /**
  * The company's stations it may move: its own, outside the rebellion hexes, and its home only
- * where no neutral station shares the home hex (§7.1.3).
+ * where no neutral station shares the home hex (§7.1.3). Neutral stations are nobody's to move,
+ * the Canadian National's included.
  */
 export function movableStations(state: State1882, companyId: string): Station[] {
     return state.stations.filter((station) => {
-        if (station.status !== 'placed' || station.companyId !== companyId) return false
+        if (
+            station.status !== 'placed' ||
+            station.companyId !== companyId ||
+            neutralStation(state, station.id)
+        )
+            return false
         const { locationId } = station.position
         if (RebellionLocations.includes(locationId)) return false
         return (
@@ -123,24 +130,25 @@ export function rebellionMoveReason(
 
 /** The extra lay or upgrade in the destination hex, while it is pending (§7.1.3). */
 export function rebellionTrackTerms(
-    state: Pick<State1882, 'rebellionMove' | 'privateTrackLay'>,
+    state: Pick<CompanyDecisionState, 'privateTrackLay' | 'companies' | 'certificates'>,
     privateCompanyId: string,
     playerId: string
 ): PrivateTrackTerms | undefined {
-    const move = state.rebellionMove
     const pending = state.privateTrackLay
+    const owner = privateOwner(state, NwrId)
     if (
         privateCompanyId !== NwrId ||
-        !move ||
         pending?.privateCompanyId !== NwrId ||
-        pending.playerId !== playerId
+        pending.playerId !== playerId ||
+        !pending.locationId ||
+        owner?.kind !== 'company'
     )
         return undefined
     return {
-        companyId: move.companyId,
-        locationIds: [move.locationId],
+        companyId: owner.companyId,
+        locationIds: [pending.locationId],
         definitionIds: TileSet1882.definitions.map((definition) => definition.id),
-        payer: { kind: 'company', companyId: move.companyId },
+        payer: { kind: 'company', companyId: owner.companyId },
         connected: false
     }
 }
@@ -176,8 +184,11 @@ class HydratedMoveRebellionStation extends MoveRebellionStationAction.Base {
                 }
             return station
         })
-        state.rebellionMove = { companyId, locationId: this.position.locationId }
-        state.privateTrackLay = { privateCompanyId: NwrId, playerId: this.playerId }
+        state.privateTrackLay = {
+            privateCompanyId: NwrId,
+            playerId: this.playerId,
+            locationId: this.position.locationId
+        }
         const terms = rebellionTrackTerms(state, NwrId, this.playerId)
         assertExists(terms, 'The destination hex has its extra lay')
         const noLay = !privateTrackConstruction(state, terms, TrackRules1882).choices(

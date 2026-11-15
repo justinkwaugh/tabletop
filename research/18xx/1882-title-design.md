@@ -72,6 +72,9 @@ event sections, and the waterfall auctions of 1830, 1889, 1894 and 1833NE.
 - **Train marks in the roster** (`PhaseChartData` train `marks`, `TrainMark`): an icon, short
   label and description beside a train in the depot and phase chart for what buying it brings,
   as 1882's rebellion.
+- **A pending private lay fixed to one hex** (`PrivateTrackLay.locationId`): a power that
+  chooses the hex before the lay records it with the pending lay, which the family clears on the
+  lay or its decline, as 1882's NWR lays in the hex its station moved to.
 - **Title operating modes in the train step**: the operating mode switch also shows in
   `BuyingTrains` when the title offers a mode there, as 1882's NWR power may be used at any time
   in the turn.
@@ -84,10 +87,11 @@ title with a train-keyed event would be the time to lift it.
 
 Made while implementing; the forum sources are in `rulings.md`.
 
-1. **The rebellion's train is public.** The rulebook hides the NWR card in the train stack (§3);
-   18xx.games announces the drawn train at setup. Followed: the depot and phase chart mark the
-   drawn train with the rebellion icon from the start, "2nd" once the SC's extra train puts the
-   card under the second. Hidden information would need a canonical/projected state for one card.
+1. **The rebellion's train is public** (the owner's ruling, 2026-11-15). The rulebook hides the
+   NWR card in the train stack (§3); 18xx.games announces the drawn train at setup. Followed: the
+   depot and phase chart mark the drawn train with the rebellion icon from the start, "2nd" once
+   the SC's extra train puts the card under the second. The title therefore has no hidden
+   information and draws the train from the public PRNG.
 2. **Emergency purchases buy the cheapest bank train** (§11.8), as 18xx.games. The designer's
    older answer (any legal train, 2020-05-19) predates the published rules.
 3. **A player may raise their own bid** on a private, as the family's waterfall auction and
@@ -99,7 +103,7 @@ Made while implementing; the forum sources are in `rulings.md`.
 6. **The NWR power** may be used in the track, station, run and train steps, not while choosing
    the dividend (§7.1.3 says any time; 18xx.games also bars the dividend step).
 7. **The CN cannot use the NWR private**: neutral stations are not "its existing station markers"
-   to move (unruled; 18xx.games might offer it).
+   to move, though they are the CN's to run from (unruled; 18xx.games might offer it).
 8. **A route to the fishing exit alone obliges no train** (§11.5: the president chooses whether it
    counts), but the president may count it and raise money for a train as a company that must,
    selling shares if needed (§11.8), as 18xx.games allows. The family's
@@ -149,7 +153,10 @@ Made while implementing; the forum sources are in `rulings.md`.
 - `src/central.spec.ts`: the SC exchange (price, presidency, home, purchase used), its home on a
   neutral station, the extra train and the rebellion moving to the second train; the CN's start.
 - `src/rebellion.spec.ts`, `src/nwr.spec.ts`, `src/ending.spec.ts`: the rebellion, the NWR move
-  and extra lay, the game end, the privates' closing phases.
+  and extra lay (laid or declined), the game end, the privates' closing phases; rulings 5, 6, 7,
+  11 and 13 each have a test naming them.
+- `src/competition.spec.ts`: assigned seats for 2–6 players, and a seeded game from assigned seats
+  ending with a valid result ranked by final scores.
 - `libs/18xx/src/stations/stationPlacement.spec.ts`, `libs/18xx-ui/src/tests/sharedStations.spec.ts`:
   neutral stations in the family.
 - Harness scenarios: `src/scenarios.build.spec.ts` with `SCENARIOS=1` writes positions into

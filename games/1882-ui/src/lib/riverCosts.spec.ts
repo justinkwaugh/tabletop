@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { rotateTileEdge, rotateTileFace, type TileEdge } from '@tabletop/18xx'
-import {
-    createMapDrawing,
-    mapBorderCosts
-} from '../../../../libs/18xx-ui/src/lib/maps/mapDrawing.js'
+import { createMapDrawing, mapBorderCosts } from '@tabletop/18xx-ui'
 import { MapView1882 } from './mapView.js'
 
 describe('1882 river costs', () => {

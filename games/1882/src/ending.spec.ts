@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { placeStockMarker } from '@tabletop/18xx'
 import { edit, floatCompany, kit, opened } from '../test/kit.js'
 import { PrivateCatalog1882 } from './companies.js'
-import { EndingRules1882, MarketTopReason } from './operating.js'
+import { EndingRules1882, MarketTopReason, TransferRules1882 } from './operating.js'
 import { EndSpaceId } from './stockMarket.js'
 
 describe('1882 game end', () => {
@@ -35,5 +35,18 @@ describe('1882 private closure', () => {
         expect(closing('4')).toEqual([])
         expect(closing('5')).toEqual(['HB', 'NWR', 'TB', 'CP'])
         expect(closing('6')).toEqual(['HB', 'SC', 'NWR', 'TB', 'CP'])
+    })
+
+    it('sells player-owned privates to companies from phase 3 until they close, the SC in phase 5 too (ruling 5)', () => {
+        const game = opened(4)
+        const price = (phaseId: string, privateCompanyId: string) =>
+            TransferRules1882.priceRange({ ...game.hydrated, phaseId }, 'CNoR', {
+                kind: 'private',
+                privateCompanyId
+            })
+        expect(price('2', 'SC')).toBeUndefined()
+        expect(price('3', 'SC')).toEqual({ minimum: 25, maximum: 100 })
+        expect(price('5', 'SC')).toEqual({ minimum: 25, maximum: 100 })
+        expect(price('3', 'NWR')).toEqual({ minimum: 40, maximum: 160 })
     })
 })

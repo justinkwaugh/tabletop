@@ -1780,6 +1780,10 @@
       "privateTrackLay": {
         "additionalProperties": false,
         "properties": {
+          "locationId": {
+            "minLength": 1,
+            "type": "string"
+          },
           "playerId": {
             "minLength": 1,
             "type": "string"
@@ -2188,22 +2192,6 @@
         },
         "required": [
           "definitionId"
-        ],
-        "type": "object"
-      },
-      "rebellionMove": {
-        "additionalProperties": false,
-        "properties": {
-          "companyId": {
-            "type": "string"
-          },
-          "locationId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "companyId",
-          "locationId"
         ],
         "type": "object"
       },

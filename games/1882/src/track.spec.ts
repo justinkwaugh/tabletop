@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { finiteCashOwnedBy } from '@tabletop/18xx'
+import { TrackConstruction, finiteCashOwnedBy } from '@tabletop/18xx'
 import { edit, floatCompany, kit, opened } from '../test/kit.js'
 import { TrackRules1882 } from './track.js'
 
@@ -24,6 +24,35 @@ describe('1882 track', () => {
         const game = northernLaying()
         const before = treasury(game)
         kit.lay(game, 'E7', '18xx:8', [0, 4])
+        expect(treasury(game)).toBe(before + 20)
+    })
+
+    it('charges $20 for the second yellow tile in a rebellion hex too, which its bonus repays (BGG 34745384)', () => {
+        const game = northernLaying()
+        const before = treasury(game)
+        const layFirst = (locationId: string, definitionId: string, rotation?: number) => {
+            const choice = new TrackConstruction(game.hydrated, TrackRules1882)
+                .choices(locationId)
+                .find(
+                    (entry) =>
+                        entry.definitionId === definitionId &&
+                        (rotation === undefined || entry.rotation === rotation)
+                )
+            if (!choice) throw new Error(`No ${definitionId} in ${locationId}`)
+            game.act('LayTile', {
+                companyId: 'CNoR',
+                locationId,
+                definitionId,
+                rotation: choice.rotation,
+                nodeMapping: choice.nodeMapping,
+                expectedCost: choice.cost
+            })
+            return choice.cost
+        }
+        expect(layFirst('E7', '18xx:7', 3)).toBe(0)
+        expect(treasury(game)).toBe(before + 20)
+        // D6 is a rebellion hex as well: the second tile still costs $20, and earns $20.
+        expect(layFirst('D6', '18xx:57')).toBe(20)
         expect(treasury(game)).toBe(before + 20)
     })
 

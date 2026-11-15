@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { finiteCashOwnedBy, privatePowerUsed, privateTrackConstruction } from '@tabletop/18xx'
 import { edit, floatCompany, kit, opened } from '../test/kit.js'
-import { movableStations, rebellionDestinations } from './nwr.js'
+import { movableStations, rebellionDestinations, rebellionMover } from './nwr.js'
 import { neutralStationId } from './neutralStations.js'
 import { PrivatePowerRules1882 } from './privatePowers.js'
+import type { State1882 } from './state.js'
 import { TrackRules1882 } from './track.js'
 
 /** The Canadian Northern's first turn, owning the North-West Rebellion Company. */
@@ -36,7 +37,11 @@ describe('1882 North-West Rebellion Company', () => {
             game.state.stations.find((station) => station.id === neutralStationId())
         ).toMatchObject({ status: 'placed', position: { locationId: 'D8' } })
         // The extra lay waits on the destination hex.
-        expect(game.state.privateTrackLay).toMatchObject({ privateCompanyId: 'NWR' })
+        expect(game.state.privateTrackLay).toEqual({
+            privateCompanyId: 'NWR',
+            playerId: game.player,
+            locationId: 'C3'
+        })
         const terms = PrivatePowerRules1882.trackTerms(game.hydrated, 'NWR', game.player)
         if (!terms) throw new Error('The extra lay is on offer')
         const [lay] = privateTrackConstruction(game.hydrated, terms, TrackRules1882).choices('C3')
@@ -55,6 +60,7 @@ describe('1882 North-West Rebellion Company', () => {
             cash - lay.cost + 20
         )
         expect(privatePowerUsed(game.state, 'NWR')).toBe(true)
+        expect(game.state.privateTrackLay).toBeUndefined()
         // The ordinary lays are still the company's.
         expect(game.state.trackStep?.lays).toEqual([])
     })
@@ -80,5 +86,51 @@ describe('1882 North-West Rebellion Company', () => {
         place(neutralStationId('GTP'), 'J10', 'city-1')
         expect(movableStations(game.state, 'CNoR')).toEqual([])
         expect(game.valid()).not.toContain('MoveRebellionStation')
+    })
+
+    it('may decline the extra lay, which uses the power (§7.1.3)', () => {
+        const game = northernWithRebellion()
+        const destination = rebellionDestinations(game.state, 'CNoR').find(
+            (position) => position.locationId === 'C3'
+        )
+        game.act('MoveRebellionStation', { stationId: 'CNoR:home', position: destination })
+        game.act('DeclinePrivateTile', { privateCompanyId: 'NWR' })
+        expect(game.state.privateTrackLay).toBeUndefined()
+        expect(privatePowerUsed(game.state, 'NWR')).toBe(true)
+        expect(game.valid()).not.toContain('MoveRebellionStation')
+        expect(game.valid()).toContain('LayTile')
+    })
+
+    it('is used in the track, station, run and train steps, not while sharing out earnings (ruling 6)', () => {
+        const game = northernWithRebellion()
+        const mover = (machineState: State1882['machineState']) => {
+            const state = structuredClone(game.state)
+            state.machineState = machineState
+            return rebellionMover(state, game.player)
+        }
+        for (const step of [
+            'LayingTrack',
+            'PlacingStation',
+            'RunningTrains',
+            'BuyingTrains'
+        ] as const)
+            expect(mover(step)).toBe('CNoR')
+        expect(mover('DistributingEarnings')).toBeUndefined()
+    })
+
+    it('moves none of the Canadian National’s neutral stations (ruling 7)', () => {
+        const game = northernWithRebellion()
+        edit(game, (state) => {
+            state.stations = state.stations.map((station) =>
+                station.id === neutralStationId('GTP')
+                    ? {
+                          ...station,
+                          status: 'placed',
+                          position: { locationId: 'J10', nodeId: 'city-1', slot: 0 }
+                      }
+                    : station
+            )
+        })
+        expect(movableStations(game.state, 'CN')).toEqual([])
     })
 })
