@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { board, collectPageErrors, openScenario, settled } from './helpers.js'
+import { board, collectPageErrors, litHexes, openScenario, settled } from './helpers.js'
 
 // The contract's Desktop and Phone layouts: the board cropped to the land, one railroad card (on a
 // phone, one supply pile on the rail) per railroad available this round, piles of cubes with no
@@ -76,6 +76,26 @@ test('On a phone a pile opens its railroad’s track count and holders', async (
         .getByRole('button', { name: /^Orange: / })
         .tap()
     await expect(popover).toHaveCount(0)
+})
+
+test('Every city is named while a seat chooses, a lit one too, above the picks', async ({
+    page
+}) => {
+    await openScenario(page, 'Purple arrives')
+    await expect(litHexes(page).first()).toBeVisible()
+    const names = board(page).locator('.city-labels text')
+    await expect(names).toHaveCount(51)
+    const shown = await names.allTextContents()
+    for (const city of ['Seattle', 'San Francisco', 'Los Angeles']) expect(shown).toContain(city)
+    expect(shown.filter((name) => name === 'Portland')).toHaveLength(2)
+    // Drawn after the rings, ghost cubes and marks, so none of them covers a name.
+    const namesFollowPicks = await board(page).evaluate((svg) => {
+        const picks = svg.querySelector('.picks')
+        const labels = svg.querySelector('.city-labels')
+        if (!picks || !labels) return false
+        return (picks.compareDocumentPosition(labels) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+    })
+    expect(namesFollowPicks).toBe(true)
 })
 
 test('The board is drawn as large as the layout allows', async ({ page }) => {

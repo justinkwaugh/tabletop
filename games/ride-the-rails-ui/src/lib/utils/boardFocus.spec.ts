@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     USA_CITIES,
@@ -15,6 +15,7 @@ import {
     FOCUS_CHOOSER_BELOW_HEX_PX,
     FOCUS_CHOOSER_INSET,
     LitOffer,
+    MIN_BUILD_ZOOM_GAIN,
     MIN_RESTING_HEX_PX,
     buildZoomKeepsView,
     buildZoomRequest,
@@ -31,6 +32,8 @@ import {
     type BuildLitHex,
     type FocusRequest
 } from './boardFocus.js'
+import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
+import { TABLE_FIXTURES, tableState } from '$lib/testing/tableFixtures.js'
 import {
     BOARD_EXTENTS,
     BOARD_HEIGHT,
@@ -432,6 +435,46 @@ describe('the building zoom’s fit (contract, Build)', () => {
         expect(buildZoomKeepsView(lit, PHONE_VIEW, shown)).toBe(true)
         const elsewhere = sizedViewAround(centreOf(regionRect('middle')), PHONE_VIEW, floor)
         expect(buildZoomKeepsView(lit, PHONE_VIEW, elsewhere)).toBe(false)
+    })
+})
+
+describe('the building zoom on a view that rests on the whole map (contract, Build)', () => {
+    // The board's view at 1440 × 900 on a building turn.
+    const WIDE_VIEW = { width: 1096, height: 576 }
+    const eastCoast = USA_CITIES.filter(isEastCoastCity).map((city) => city.hexId)
+
+    afterEach(disposeSessions)
+
+    async function purpleArrivesLit(): Promise<HexId[]> {
+        const fixture = TABLE_FIXTURES.find((candidate) => candidate.slug === 'purple-arrives')
+        assertExists(fixture)
+        const session = await openSessionOn(tableState(fixture.recipe))
+        return session.boardOffer.lit.map((hex) => hex.hexId)
+    }
+
+    it('stays on the whole map when fitting the lit hexes would barely zoom in', async () => {
+        const lit = await purpleArrivesLit()
+        expect(lit.length).toBeGreaterThan(0)
+        const request = buildZoomRequest(lit, WIDE_VIEW, BOARD_EXTENTS)
+        assertExists(request)
+        expect(request.rect).toEqual(BOARD_EXTENTS)
+        expect(request.maxScale).toBeCloseTo(restingScale(WIDE_VIEW))
+        expect(shownScale(request, WIDE_VIEW)).toBeCloseTo(restingScale(WIDE_VIEW))
+    })
+
+    it('keeps the whole map while every lit hex is on it', async () => {
+        const lit = await purpleArrivesLit()
+        expect(buildZoomKeepsView(lit, WIDE_VIEW, BOARD_EXTENTS)).toBe(true)
+    })
+
+    it('still fits the six East Coast cities, a zoom worth the move', () => {
+        const request = buildZoomRequest(eastCoast, WIDE_VIEW, BOARD_EXTENTS)
+        assertExists(request)
+        expect(request.rect).not.toEqual(BOARD_EXTENTS)
+        expect(eastCoast.every((hexId) => shows(request.rect, hexId))).toBe(true)
+        expect(shownScale(request, WIDE_VIEW)).toBeGreaterThanOrEqual(
+            restingScale(WIDE_VIEW) * MIN_BUILD_ZOOM_GAIN
+        )
     })
 })
 

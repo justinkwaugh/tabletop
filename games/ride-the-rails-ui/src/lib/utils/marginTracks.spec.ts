@@ -10,7 +10,7 @@ import {
 } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
-import { ordinal, railroadCards, romanRound, roundTrack, shownRoundNumber } from './marginTracks.js'
+import { ordinal, railroadCards, romanRound, shownRoundNumber } from './marginTracks.js'
 
 afterEach(() => {
     disposeSessions()
@@ -85,26 +85,9 @@ describe('the railroad cards', () => {
     })
 })
 
-describe('the round track', () => {
-    it('shows rounds I to VI with each round’s new railroad (R-1.4)', () => {
-        const track = roundTrack(buildState({ round: 5 }))
-        expect(track.map((stop) => romanRound(stop.round))).toEqual([
-            'I',
-            'II',
-            'III',
-            'IV',
-            'V',
-            'VI'
-        ])
-        expect(track.map((stop) => stop.newRailroadIds)).toEqual([
-            ['railroad.red', 'railroad.blue'],
-            ['railroad.orange'],
-            ['railroad.yellow'],
-            ['railroad.purple'],
-            ['railroad.black'],
-            []
-        ])
-        expect(track.filter((stop) => stop.current).map((stop) => stop.round)).toEqual([5])
+describe('the round tickets', () => {
+    it('name rounds I to VI (R-2.1)', () => {
+        expect([1, 2, 3, 4, 5, 6].map(romanRound)).toEqual(['I', 'II', 'III', 'IV', 'V', 'VI'])
     })
 })
 
@@ -123,11 +106,6 @@ describe('the tracks once the game ends', () => {
         expect(state.roundManager.currentRound).toBeUndefined()
         expect(shownRoundNumber(state)).toBe(6)
         expect(railroadCards(state).map((entry) => entry.railroadId)).toEqual([...RAILROAD_IDS])
-        expect(
-            roundTrack(state)
-                .filter((stop) => stop.current)
-                .map((stop) => stop.round)
-        ).toEqual([6])
     })
 })
 

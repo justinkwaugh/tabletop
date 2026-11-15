@@ -228,6 +228,13 @@ export class LitOffer {
 export const BUILD_ZOOM_MAX_SCALE = Math.min(BOARD_MAX_SCALE, BUILD_ZOOM_MAX_HEX_PX / HEX_WIDTH)
 
 /**
+ * Contract, Build: on a view that rests on the whole map, the building zoom moves only when it
+ * draws the lit hexes at least this much larger than the rest does. A smaller gain would cut the
+ * board's edges for a hex a pixel or two wider, so the whole map stays instead.
+ */
+export const MIN_BUILD_ZOOM_GAIN = 1.1
+
+/**
  * Contract, Build: the scale a view rests at, below which the building zoom never goes: the whole
  * map where the view fits it, and the middle third's scale where it rests at a cover fit.
  */
@@ -262,10 +269,26 @@ function buildZoomRect(hexIds: readonly HexId[]): BoundingBox | undefined {
 }
 
 /**
+ * Contract, Build: how the building zoom shows a set of lit hexes in a view. `fit`: their padded
+ * box, zoomed in. `whole-map`: the view rests on the whole map and the fit would gain too little
+ * (MIN_BUILD_ZOOM_GAIN), so it stays there. `spread`: they lie too far apart to fit at the
+ * resting scale of a cover-fit view, which keeps that scale.
+ */
+type BuildZoomFit = 'fit' | 'whole-map' | 'spread'
+
+function buildZoomFit(rect: BoundingBox, view: RectangleDimensions): BuildZoomFit {
+    const floor = restingScale(view)
+    const scale = containScale(rect, view)
+    if (restsAtCover(view)) return scale >= floor ? 'fit' : 'spread'
+    return scale >= floor * MIN_BUILD_ZOOM_GAIN ? 'fit' : 'whole-map'
+}
+
+/**
  * Contract, Build: the focus that fits the lit hexes into a view (below its chooser inset), at
- * most 64 px a hex and never below the view's resting scale. Lit hexes too far apart to fit at the
- * resting scale keep it, centred on those nearest the centre of what the view shows now, as many
- * as fit. None with nothing lit.
+ * most 64 px a hex and never below the view's resting scale. A view that rests on the whole map
+ * stays on it unless the fit draws a hex at least MIN_BUILD_ZOOM_GAIN times as wide. On a
+ * cover-fit view, lit hexes too far apart to fit at the resting scale keep it, centred on those
+ * nearest the centre of what the view shows now, as many as fit. None with nothing lit.
  */
 export function buildZoomRequest(
     hexIds: readonly HexId[],
@@ -275,18 +298,24 @@ export function buildZoomRequest(
     const rect = buildZoomRect(hexIds)
     if (!rect) return undefined
     const floor = restingScale(view)
-    if (containScale(rect, view) >= floor) {
-        return { rect, maxScale: Math.max(floor, BUILD_ZOOM_MAX_SCALE) }
+    switch (buildZoomFit(rect, view)) {
+        case 'fit':
+            return { rect, maxScale: Math.max(floor, BUILD_ZOOM_MAX_SCALE) }
+        case 'whole-map':
+            return { rect: BOARD_EXTENTS, maxScale: floor }
+        case 'spread': {
+            const size = { width: view.width / floor, height: view.height / floor }
+            const joined = joinNearest(hexIds.map(hexBox), centreOf(shown), size)
+            return { rect: unitRectAt(centreOf(joined)), maxScale: floor }
+        }
     }
-    const size = { width: view.width / floor, height: view.height / floor }
-    const joined = joinNearest(hexIds.map(hexBox), centreOf(shown), size)
-    return { rect: unitRectAt(centreOf(joined)), maxScale: floor }
 }
 
 /**
- * Contract, Build: whether a view the building zoom fitted may stay for the lit hexes now: while
- * every one of them is whole inside what it shows, or, for lit hexes too far apart to fit at the
- * resting scale, every one of those nearest its centre that fit it together.
+ * Contract, Build: whether a view the building zoom moved may stay for the lit hexes now: while
+ * every one of them is whole inside what it shows (on the whole map, every lit hex is), or, for
+ * lit hexes too far apart to fit a cover-fit view at its resting scale, every one of those nearest
+ * its centre that fit it together.
  */
 export function buildZoomKeepsView(
     hexIds: readonly HexId[],
@@ -296,10 +325,10 @@ export function buildZoomKeepsView(
     const rect = buildZoomRect(hexIds)
     if (!rect) return true
     const boxes = hexIds.map(hexBox)
-    if (containScale(rect, view) >= restingScale(view)) {
-        return boxes.every((box) => containsBox(shown, box))
+    if (buildZoomFit(rect, view) === 'spread') {
+        return containsBox(shown, joinNearest(boxes, centreOf(shown), shown))
     }
-    return containsBox(shown, joinNearest(boxes, centreOf(shown), shown))
+    return boxes.every((box) => containsBox(shown, box))
 }
 
 /** A lit hex of a building offer, with the railroads that may be placed there. */

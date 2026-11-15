@@ -66,7 +66,6 @@
     .railroad-cards {
         flex-wrap: wrap;
         gap: 6px;
-        margin-bottom: 6px;
     }
 
     .slot {

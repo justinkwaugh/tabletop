@@ -38,7 +38,6 @@
               : BUILD_PICK
     )
     const views = $derived(litHexViews(offer, gameSession.gameState.track, context))
-    const litHexIds = $derived(new Set(views.map((view) => view.hexId)))
 
     const stagedRoute = $derived(draft ?? EMPTY_STAGED_ROUTE)
     // U-7, Coexistence and precedence: a draft holding a start hides the last journey.
@@ -67,10 +66,10 @@
     <PassengerLayer startCityId={stagedRoute.startCityId} />
     <TrackLayer />
     <LineLayer {lastJourney} />
-    <CityLabelLayer {viewScale} {litHexIds} />
     <ScrimLayer {offer} spotlight={gameSession.spotlightRailroadId} />
     <StagedRouteLayer route={stagedRoute} />
     <PickLayer {views} {viewScale} />
+    <CityLabelLayer {viewScale} />
     <FlightLayer />
     <HitLayer {views} />
     <PopupAnchor id={CHOICE_ANCHOR_ID} hexId={choiceHexId} />

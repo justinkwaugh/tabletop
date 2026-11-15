@@ -256,6 +256,26 @@ test('Done building at the end of the round returns the desktop view to the whol
     expect(await showsWholeMap(page)).toBe(true)
 })
 
+test('At 1440 × 900 the desktop view rests on the whole map when a zoom would barely gain', async ({
+    page
+}) => {
+    test.skip(onPhone(), 'A phone rests on its middle third, not the whole map.')
+    await page.setViewportSize({ width: 1440, height: 900 })
+    // Purple's starts lie coast to coast, so fitting them would cut the board's edges for ~2%.
+    await openScenario(page, 'Purple arrives')
+    await expect(litHexes(page).first()).toBeVisible()
+    await settled(page)
+    expect(await showsWholeMap(page)).toBe(true)
+    const deciding = await activePlayerId(page)
+    await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
+    await expect.poll(() => activePlayerId(page)).not.toBe(deciding)
+    await settled(page)
+    expect(await showsWholeMap(page)).toBe(true)
+    await openScenario(page, 'First share')
+    await settled(page)
+    expect(await showsWholeMap(page)).toBe(true)
+})
+
 test('A watching seat’s view does not zoom, not even for a held spotlight', async ({ page }) => {
     await openScenario(page, 'First placement')
     // The harness's Non-active view: Ben watches Ada build.

@@ -11,7 +11,7 @@
     const onMap = $derived(isPhoneWidth() ? [] : flights.flyers.filter(onTheMap))
 </script>
 
-<!-- Contract, Render ownership, layer 10: the flyers that stay on the map, a journey's passenger,
+<!-- Contract, Render ownership, layer 11: the flyers that stay on the map, a journey's passenger,
      the cities it reaches, and the claimed line as it is drawn. Locomotives and coins fly to and
      from the table beside the board, so they are drawn above it (TableFlightLayer), as are a
      phone's map flyers. -->

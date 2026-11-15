@@ -1,6 +1,5 @@
 import {
     RAILROAD_INTRODUCTIONS,
-    ROUND_COUNT,
     supplyOf,
     trackCount,
     type HydratedRideTheRailsGameState,
@@ -17,12 +16,6 @@ export type RailroadCard = {
     supply: number
     trackCount: number
     shareholders: Shareholding[]
-}
-
-export type RoundStop = {
-    round: number
-    current: boolean
-    newRailroadIds: RailroadId[]
 }
 
 /** "1st", "2nd", "3rd", "4th", "5th": a seat's place in turn order. */
@@ -69,20 +62,4 @@ export function railroadCards(
                 }))
                 .filter((holding) => holding.shares > 0)
         }))
-}
-
-// R-1.4, R-2.1: rounds I-VI, each with the railroads it makes available.
-export function roundTrack(state: HydratedRideTheRailsGameState): RoundStop[] {
-    const currentRound = shownRoundNumber(state)
-    const introductions = RAILROAD_INTRODUCTIONS[state.mapId]
-    return Array.from({ length: ROUND_COUNT }, (_, index) => {
-        const round = index + 1
-        return {
-            round,
-            current: round === currentRound,
-            newRailroadIds: introductions
-                .filter((introduction) => introduction.availableFromRound === round)
-                .map((introduction) => introduction.railroadId)
-        }
-    })
 }

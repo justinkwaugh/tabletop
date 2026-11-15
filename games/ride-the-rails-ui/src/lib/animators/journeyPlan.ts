@@ -50,7 +50,8 @@ function roundUnderWay(state: State): number | undefined {
     return state.roundManager.currentRound?.number
 }
 
-// R-2.5.2: the round marker's step, when the transition moves it from one round to another.
+// R-2.5.2: the step from one round to the next, which moves the current round ticket, when the
+// transition makes one.
 export function roundStep(from: State, to: State): { from: number; to: number } | undefined {
     const before = roundUnderWay(from)
     const after = roundUnderWay(to)
