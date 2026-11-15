@@ -131,7 +131,8 @@ its owner: convert it, merge it with other connected minors, or pass.
 - `src/mergers.spec.ts`: a conversion from the yellow column with the shareholders' and open
   purchases; a conversion refused outside it.
 - `src/phaseEffects.spec.ts`: a minor buying the first 8-train in its own turn is nationalised
-  with every other minor, and play goes on with the next public company.
+  with every other minor, and play goes on with the next public company; the RSR buying the
+  first 8-train buys more while it can pay, then never operates again.
 - `src/competition.spec.ts`: assigned seating for every player count and option, the private
   auction opened in seat order, and a finished game's result ranked by final scores.
 - `src/track.spec.ts`: private hexes closed until phase 3, the home hex first, the R20 second lay.
@@ -167,7 +168,9 @@ the rulebook prints no map or market, so these were checked against what it name
 10. **City and town routes.** "At least two" cities and off-board areas (§10.6) is read with the
     research engine as at least two stops, a town among them counting where the train counts it.
 11. **The RSR's trains.** When trainless it buys the cheapest train from the bank or its pool,
-    borrowing; otherwise it buys the next new train while its treasury pays (§10.10).
+    borrowing; otherwise it buys the next new train while its treasury pays (§10.10, GTG §8.13).
+    In the turn it buys the first 8-train it goes on buying 8-trains while it can pay, as GTG §8.13
+    has it buy all it can afford; it does not operate after that turn (§7.4).
 
 Further rulings (mine):
 
@@ -185,9 +188,10 @@ Compared on 2026-11-14 with the research checkout of the 18xx.games engine (`g_1
 Agreeing: 1 (majors from phase 4), 2 (RSR private bonuses), 3 (priority holder runs the RSR), 4
 (certificate limits), 5 (minor Y), 6 in effect (the engine merges first and asks for an undo when
 no one holds two shares; the director's stations come before the purchases there too), 8 (one
-round of single shares), 10 (city and town routes), 12 (the Nikolaev may be passed), 13 (a city
-with no station, from which no track reaches another stop). The merger floor of R100 and unpaid
-interest (none paid, loans repaid from cash, the rest to the RSR) agree since the owner's
+round of single shares), 10 (city and town routes), 11 (the RSR keeps buying 8-trains in the turn
+it buys the first, by the owner's choice on 2026-11-15), 12 (the Nikolaev may be passed), 13 (a
+city with no station, from which no track reaches another stop). The merger floor of R100 and
+unpaid interest (none paid, loans repaid from cash, the rest to the RSR) agree since the owner's
 decisions below.
 
 On 13, the engine walks any track from the city with full cities not blocking. A full city blocks
@@ -200,8 +204,6 @@ Differing:
 - 7: the engine breaks ties between equal cities by hex id, the highest first; here the lowest.
 - 9: the engine refuses any route that enters a hex twice; here only stops and separated city
   spaces may not be used twice (§10.1's wording).
-- 11: in the engine the RSR keeps buying 8-trains after the first while its treasury pays; here it
-  buys the first only (§7.4 "It may buy the first 8-train").
 - Merger agreement: the engine has no consent step; here every owner of a merging minor agrees
   (§12.1 "all parties to a proposed merger must agree").
 - Merger connection: the engine lets a merger grow in a chain, each minor connected to any minor

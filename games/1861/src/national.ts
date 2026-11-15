@@ -244,7 +244,7 @@ function placeRsrStation(state: HydratedState1861, locationId: string, stationId
 
 /**
  * The RSR's train when trainless: the cheapest from the bank, borrowing for it; otherwise the
- * cheapest new train while it can pay for one from its treasury (§10.10).
+ * next new train while it can pay for one from its treasury (§10.10, GTG §8.13).
  */
 function rsrTrainPurchase(
     state: TrainPurchaseState & MapStateData,
@@ -258,8 +258,8 @@ function rsrTrainPurchase(
             train.owner.companyId === companyId
     )
     if (trainless) return cheapestAffordableTrain(state, companyId, rules)
-    // It may buy the first 8-train, and nothing after it (§7.4).
-    if (!rsrOperates(state)) return undefined
+    // Having bought the first 8-train, it goes on buying 8-trains in that turn while it can pay,
+    // as it buys all it can afford (GTG §8.13); it does not operate again (§7.4).
     const definitionId = TrainDepot1861.nextDefinitionId(state.trainInventory)
     if (!definitionId) return undefined
     const train = TrainDepot1861.nextTrain(state.trainInventory, definitionId)
