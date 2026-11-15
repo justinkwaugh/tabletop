@@ -1,7 +1,6 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isTakeShare, supplyOf } from '@tabletop/ride-the-rails'
-import { STRIP_LOCOMOTIVE } from '$lib/utils/marginLayout.js'
-import { railroadSourcePoint, seatCardPoint } from './flightPlaces.js'
+import { TRAVELLING_LOCOMOTIVE_WIDTH, railroadSourcePoint, seatCardPoint } from './flightPlaces.js'
 import { shareChanges } from './flightPlan.js'
 import { sharesKey, supplyKey, type Flights } from './flights.svelte.js'
 import {
@@ -19,10 +18,9 @@ export const SHARE_FLYER_KEY = 'share'
 
 /**
  * Contract, Animation plan, Share (Patterns B and D): R-3.1, a locomotive lifts from its
- * railroad's strip entry and flies to the seat's turn-order marker; the strip's supply ticks as it
- * lifts and the seat's share count as it lands. Without an action the counts change with the state.
- * On a phone it lifts from the strip above the board and lands on the seat's card
- * (`flightPlaces`).
+ * railroad's supply pile (its card on desktop, the rail on a phone) and flies to the seat's card;
+ * the pile loses a cube as it lifts and the seat's share count ticks as it lands
+ * (`flightPlaces`). Without an action the counts change with the state.
  */
 export function shareAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -33,15 +31,15 @@ export function shareAnimator(flights: Flights): GameStateChangeListener<State> 
         if (!change) return
         flights.follow(animationContext)
 
-        const start = railroadSourcePoint(flights.table, from.mapId, change.railroadId)
-        const marker = seatCardPoint(flights.table, from.turnManager.turnOrder, change.playerId)
+        const start = railroadSourcePoint(flights.table, change.railroadId)
+        const marker = seatCardPoint(flights.table, change.playerId)
         const startPose = pose(start.x, start.y)
         const shown = await showFlyers(flights, [
             {
                 key: SHARE_FLYER_KEY,
                 kind: 'locomotive',
                 railroadId: change.railroadId,
-                width: STRIP_LOCOMOTIVE.width,
+                width: TRAVELLING_LOCOMOTIVE_WIDTH,
                 pose: startPose,
                 leavesTheMap: true
             }

@@ -1,8 +1,7 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isPlaceLocomotive, supplyOf } from '@tabletop/ride-the-rails'
 import type { LocomotivePiece } from '$lib/utils/boardPieces.js'
-import { STRIP_LOCOMOTIVE } from '$lib/utils/marginLayout.js'
-import { railroadSourcePoint, seatMoneyPoint } from './flightPlaces.js'
+import { TRAVELLING_LOCOMOTIVE_WIDTH, railroadSourcePoint, seatMoneyPoint } from './flightPlaces.js'
 import { bonusCoins, moneyAfterEach, placementChanges } from './flightPlan.js'
 import { moneyKey, supplyKey, type Flights, type Flyer } from './flights.svelte.js'
 import {
@@ -25,12 +24,11 @@ export function locomotiveFlyerKey(pieceKey: string): string {
 
 /**
  * Contract, Animation plan, Placement (Patterns B and D): a locomotive flies from its railroad's
- * strip entry to the hex and settles into its slot, a start landing with a small bounce; the
- * Chicago and $5 coins rise from the hex and fly to the seat's marker, and money ticks as each
- * lands. Without an action, new locomotives pop in and undone ones shrink away. A landed
- * locomotive stays in the flight layer until the new state is shown, so a replayed building turn
- * keeps each placement on the map as the next one flies. On a phone the locomotive lifts from the
- * strip above the board and the coins land on the seat's money (`flightPlaces`).
+ * supply pile to the hex and settles into its slot, a start landing with a small bounce; the
+ * Chicago and $5 coins rise from the hex and fly to the seat's money, and money ticks as each
+ * lands (`flightPlaces`). Without an action, new locomotives pop in and undone ones shrink away. A
+ * landed locomotive stays in the flight layer until the new state is shown, so a replayed building
+ * turn keeps each placement on the map as the next one flies.
  */
 export function placementAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -69,8 +67,8 @@ async function flyPlacement(
     paid: { playerId: string; isStart: boolean; bonuses: Parameters<typeof bonusCoins>[1] }
 ) {
     const key = locomotiveFlyerKey(piece.key)
-    const start = railroadSourcePoint(flights.table, from.mapId, piece.railroadId)
-    const startScale = STRIP_LOCOMOTIVE.width / piece.slot.width
+    const start = railroadSourcePoint(flights.table, piece.railroadId)
+    const startScale = TRAVELLING_LOCOMOTIVE_WIDTH / piece.slot.width
     const startPose = pose(start.x, start.y, startScale)
     const coins = bonusCoins(piece.hexId, paid.bonuses)
     const shown = await showFlyers(flights, [
@@ -105,7 +103,7 @@ async function flyPlacement(
             .to({ y: slot.y }, FLIGHT.settle, FLIGHT.lands + FLIGHT.bounce, 'bounce.out')
     }
 
-    const marker = seatMoneyPoint(flights.table, from.turnManager.turnOrder, paid.playerId)
+    const marker = seatMoneyPoint(flights.table, paid.playerId)
     const money = moneyAfterEach(from.getPlayerState(paid.playerId).money, coins)
     coins.forEach((coin, index) => {
         const lands = flyCoin(

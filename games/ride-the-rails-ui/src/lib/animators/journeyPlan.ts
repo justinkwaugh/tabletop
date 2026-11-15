@@ -5,7 +5,6 @@ import {
     type JourneyPayment,
     type RailroadId
 } from '@tabletop/ride-the-rails'
-import { turnOrderMarkerPoint } from '$lib/utils/marginLayout.js'
 import { JOURNEY, type State } from './motion.js'
 
 /** Contract, Animation plan: about 120 ms a hex, the whole travel capped at 2.4 s. */
@@ -44,22 +43,6 @@ export function passengerChanges(
         arriving: to.passengers.filter((cityId) => !before.has(cityId)),
         leaving: from.passengers.filter((cityId) => !after.has(cityId))
     }
-}
-
-export type MarkerSlide = { playerId: string; from: Point; to: Point }
-
-// R-2.5.1: the seats whose turn-order marker moves, from where it is shown to its new place.
-export function markerSlides(from: State, to: State): MarkerSlide[] {
-    const before = from.turnManager.turnOrder
-    const after = to.turnManager.turnOrder
-    return before
-        .filter((playerId) => after.includes(playerId))
-        .map((playerId) => ({
-            playerId,
-            from: turnOrderMarkerPoint(before, playerId),
-            to: turnOrderMarkerPoint(after, playerId)
-        }))
-        .filter((slide) => slide.from.x !== slide.to.x)
 }
 
 // The round under way; none once the game has ended (R-6.1).

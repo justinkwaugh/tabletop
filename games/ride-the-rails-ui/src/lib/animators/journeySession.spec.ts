@@ -17,7 +17,7 @@ import {
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
 import type { RideTheRailsGameSession } from '$lib/model/session.svelte.js'
-import { ROUND_MARKER_KEY } from './endOfRoundAnimator.js'
+import { ROUND_KEY } from './flights.svelte.js'
 import { passengerFlyerKey } from './journeyAnimator.js'
 import { registerFlightAnimators } from './registerFlights.js'
 
@@ -121,7 +121,17 @@ describe('a journey and the end of round in a session (R-3.3, R-2.5)', () => {
             animationContext.afterAnimations(() => order.push(`end ${action?.type}`))
         }
         session.addGameStateChangeListener(recorder)
-        const marker = vi.spyOn(flights, 'show')
+        const motion: string[] = []
+        const show = flights.show.bind(flights)
+        const tick = flights.tick.bind(flights)
+        vi.spyOn(flights, 'show').mockImplementation((flyers) => {
+            motion.push(...flyers.map((flyer) => `show ${flyer.key}`))
+            show(flyers)
+        })
+        vi.spyOn(flights, 'tick').mockImplementation((key, value) => {
+            motion.push(`tick ${key}`)
+            tick(key, value)
+        })
         await session.rideJourney()
         await settled(session)
         session.removeGameStateChangeListener(recorder)
@@ -132,10 +142,10 @@ describe('a journey and the end of round in a session (R-3.3, R-2.5)', () => {
             `start ${ActionType.EndRound}`,
             `end ${ActionType.EndRound}`
         ])
-        const shown = marker.mock.calls.flat(2).map((flyer) => flyer.key)
-        expect(shown.indexOf(ROUND_MARKER_KEY)).toBeGreaterThan(
-            shown.indexOf(passengerFlyerKey(KANSAS_CITY))
+        expect(motion.indexOf(`tick ${ROUND_KEY}`)).toBeGreaterThan(
+            motion.indexOf(`show ${passengerFlyerKey(KANSAS_CITY)}`)
         )
+        expect(motion.indexOf(`show ${passengerFlyerKey(KANSAS_CITY)}`)).toBeGreaterThanOrEqual(0)
     })
 
     it('ends the motion at once on an Undo mid-flight and puts round 1 back', async () => {

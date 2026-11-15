@@ -550,6 +550,45 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
             carried: [cityIdOf('New York'), cityIdOf('Chicago'), cityIdOf('Omaha')]
         }
     },
+    // Round 4, the first round Purple may build (R-1.4): the same first three rounds as the
+    // Transcontinental's table, then Purple's shares and no Purple track yet.
+    {
+        slug: 'purple-arrives',
+        name: 'Purple arrives',
+        recipe: {
+            playerCount: 4,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: RED, p3: BLUE, p4: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, RED_TO_CHICAGO.slice(0, 5)]] },
+                        { playerId: 'p2', runs: [[RED, RED_TO_CHICAGO.slice(5, 10)]] },
+                        { playerId: 'p3', runs: [[BLUE, BLUE_SOUTH]] },
+                        { playerId: 'p4', runs: [[RED, RED_TO_CHICAGO.slice(10, 15)]] }
+                    ],
+                    journeys: { p1: 2, p2: 3, p3: 4, p4: 5 }
+                },
+                {
+                    shares: { p1: ORANGE, p2: ORANGE, p3: RED, p4: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, ORANGE_WEST.slice(0, 5)]] },
+                        { playerId: 'p2', runs: [[ORANGE, ORANGE_WEST.slice(5, 10)]] },
+                        { playerId: 'p3', runs: [[RED, RED_TO_CHICAGO.slice(15)]] },
+                        { playerId: 'p4', runs: [[ORANGE, ORANGE_WEST.slice(10)]] }
+                    ],
+                    journeys: { p1: 2, p2: 5, p3: 4, p4: 2 }
+                },
+                {
+                    shares: { p1: RED, p2: ORANGE, p3: YELLOW, p4: BLUE },
+                    builds: [],
+                    journeys: { p1: 3, p2: 4, p3: 4, p4: 4 }
+                },
+                { shares: { p1: PURPLE, p2: PURPLE, p3: PURPLE, p4: RED }, builds: [] }
+            ],
+            phase: PhaseName.Build,
+            carried: [cityIdOf('New York'), cityIdOf('Chicago')]
+        }
+    },
     // Scenario 9: round 3 with three seats; Ada holds Orange and Yellow, and the westernmost
     // occupied cities are Omaha, Kansas City and Des Moines (R-4.2.3, R-4.2.3-H2).
     {

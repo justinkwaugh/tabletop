@@ -68,15 +68,19 @@ async function showsWholeMap(page: Page): Promise<boolean> {
     )
 }
 
-/**
- * Presses a railroad's spotlight as a player would: a seat card's share row on desktop (the
- * board's strip may be zoomed out of view), the railroad strip above the board on a phone.
- */
+/** A railroad's card above the board on desktop, or its pile on the phone's rail. */
+function railroadEntry(page: Page, name: string) {
+    return page
+        .getByRole('group', { name: 'Railroads' })
+        .getByRole('button', { name: new RegExp(`^${name}: `) })
+}
+
+/** Presses a railroad's spotlight as a player would: its card, or its pile on a phone. */
 async function pressSpotlight(page: Page, name: string) {
     if (onPhone()) {
-        await page.locator(`button[aria-label^="${name}: "][aria-label$=" track"]`).tap()
+        await railroadEntry(page, name).tap()
     } else {
-        await page.locator(`button[aria-label^="${name}: "][aria-label*=" share"]`).first().click()
+        await railroadEntry(page, name).click()
     }
 }
 
@@ -179,13 +183,11 @@ test('A held spotlight narrows the view to its railroad, and its release widens 
     expect(await hexWidth(page)).toBeCloseTo(wide, 0)
 })
 
-test('Hovering a railroad strip entry on desktop does not move the view', async ({ page }) => {
+test('Hovering a railroad card on desktop does not move the view', async ({ page }) => {
     test.skip(onPhone(), 'A phone has no pointer to hover with; a tap presses the spotlight.')
     await openScenario(page, 'Black unstarted')
     const before = await settled(page)
-    await board(page)
-        .getByRole('button', { name: /^Red: .* track/ })
-        .hover()
+    await railroadEntry(page, 'Red').hover()
     await expect
         .poll(() => page.evaluate(() => window.rtrSession.spotlightRailroadId))
         .toBe('railroad.red')
@@ -198,25 +200,29 @@ test('A hand pan holds the view across the next placement', async ({ page }) => 
     await openScenario(page, 'First placement')
     const frame = await frameBox(page)
     // The northernmost lit city, panned by hand up to the frame's top edge, so the hexes north of
-    // it that a start there lights lie out of view.
-    const north = await board(page).evaluate((root) => {
+    // it that a start there lights lie out of view. The cropped board's whole height nearly fits
+    // a phone, so there the westernmost lit city is panned to the frame's left edge instead.
+    const sideways = onPhone()
+    const edge = await board(page).evaluate((root, west) => {
         const hexes = [...root.querySelectorAll('g.hits [role="button"]')].map((hit) => ({
             hexId: hit.getAttribute('data-hex-id') ?? '',
             box: hit.getBoundingClientRect()
         }))
-        const northmost = hexes.reduce((a, b) => (a.box.top < b.box.top ? a : b))
-        return { hexId: northmost.hexId, top: northmost.box.top }
-    })
+        const reach = (hex: (typeof hexes)[number]) => (west ? hex.box.left : hex.box.top)
+        const outmost = hexes.reduce((a, b) => (reach(a) < reach(b) ? a : b))
+        return { hexId: outmost.hexId, reach: reach(outmost) }
+    }, sideways)
     await page.mouse.move(frame.left + frame.width / 2, frame.top + frame.height / 2)
-    const shift = Math.round(north.top - frame.top - 4)
+    const shift = Math.round(edge.reach - (sideways ? frame.left : frame.top) - 4)
     // Wheel steps this small pan rather than zoom.
     for (let moved = 0; moved < shift; moved += 30) {
-        await page.mouse.wheel(0, Math.min(30, shift - moved))
+        const step = Math.min(30, shift - moved)
+        await page.mouse.wheel(sideways ? step : 0, sideways ? 0 : step)
     }
     const panned = await settled(page)
-    expect(await litInView(page)).toContain(north.hexId)
+    expect(await litInView(page)).toContain(edge.hexId)
 
-    await pressHex(page, litHexAt(page, north.hexId))
+    await pressHex(page, litHexAt(page, edge.hexId))
     await expect
         .poll(() => page.evaluate(() => Object.keys(window.rtrSession.gameState.track).length))
         .toBe(1)

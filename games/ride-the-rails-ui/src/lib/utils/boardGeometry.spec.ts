@@ -15,7 +15,6 @@ import {
     BOARD_WIDTH,
     cityLabel,
     cityLabelFontSize,
-    drawsSeatInitials,
     FITTED_DESKTOP_SCALE,
     HEX_SIZE,
     HEX_WIDTH,
@@ -24,7 +23,7 @@ import {
     hexGeometry,
     LARGEST_CITY_LABEL_FONT_SIZE,
     MAP_EXTENTS,
-    MARGIN_BOXES,
+    mapLabelName,
     SERIF_ADVANCE_EM,
     stationOf
 } from './boardGeometry.js'
@@ -44,8 +43,6 @@ import {
     discBox,
     insideConvexPolygon
 } from '$lib/testing/shapeChecks.js'
-
-const PHONE_WIDTH = 375
 
 const cityLabels = USA_CITIES.map((city) => ({ city, label: cityLabel(city.id) }))
 
@@ -83,6 +80,12 @@ describe('hex positions (components.md, Coordinates)', () => {
                 }
             }
         }
+    })
+
+    it('crops the board to the land, a thin margin of 6 board units on every side', () => {
+        expect(BOARD_MARGIN).toBe(6)
+        expect(BOARD_WIDTH).toBeCloseTo(MAP_EXTENTS.width + 12, 6)
+        expect(BOARD_HEIGHT).toBeCloseTo(MAP_EXTENTS.height + 12, 6)
     })
 
     it('gives the board the map data’s extents plus the fixed margin on every side', () => {
@@ -144,6 +147,26 @@ describe('cities', () => {
         }
     })
 
+    it('labels both Portlands just "Portland" on the map, and every other city by its name', () => {
+        expect(mapLabelName('city.usa.portland-or')).toBe('Portland')
+        expect(mapLabelName('city.usa.portland-me')).toBe('Portland')
+        expect(usaCity('city.usa.portland-or').name).toBe('Portland (Oregon)')
+        for (const city of USA_CITIES.filter(
+            (other) => !other.id.startsWith('city.usa.portland')
+        )) {
+            expect(mapLabelName(city.id)).toBe(city.name)
+        }
+    })
+
+    it('sizes a map label by the name it draws', () => {
+        const portland = cityLabel('city.usa.portland-me')
+        expect(portland.box.width).toBeCloseTo(
+            [...'Portland'].reduce((sum, letter) => sum + SERIF_ADVANCE_EM[letter], 0) *
+                portland.fontSize,
+            6
+        )
+    })
+
     it('knows the serif’s width of every letter a city name uses', () => {
         const letters = new Set(USA_CITIES.flatMap((city) => [...city.name]))
         expect([...letters].filter((letter) => SERIF_ADVANCE_EM[letter] === undefined)).toEqual([])
@@ -152,8 +175,9 @@ describe('cities', () => {
     it('gives every city a label anchor on the board', () => {
         for (const { label } of cityLabels) {
             expect(Number.isFinite(label.x) && Number.isFinite(label.y)).toBe(true)
-            expect(boxInside(label.box, BOARD_EXTENTS)).toBe(true)
         }
+        const off = cityLabels.filter(({ label }) => !boxInside(label.box, BOARD_EXTENTS))
+        expect(off.map(({ city }) => city.name)).toEqual([])
     })
 
     it('keeps the fitted desktop scale’s label size the largest a label takes on the board', () => {
@@ -173,9 +197,8 @@ describe('cities', () => {
         expect(overlapping).toEqual([])
     })
 
-    it('covers no city mark, track slot or margin box with a label', () => {
+    it('covers no city mark or track slot with a label', () => {
         const obstacles = [
-            ...Object.values(MARGIN_BOXES),
             ...USA_CITIES.flatMap((city) => [
                 ...cityMarkBoxes(city.id),
                 ...trackSlots(city.hexId).map(centredBox)
@@ -185,52 +208,5 @@ describe('cities', () => {
             obstacles.some((obstacle) => boxesOverlap(label.box, obstacle))
         )
         expect(covering.map(({ city }) => city.name)).toEqual([])
-    })
-})
-
-describe('margin boxes', () => {
-    const boxes = Object.entries(MARGIN_BOXES)
-
-    it('lie inside the board', () => {
-        for (const [, box] of boxes) expect(boxInside(box, BOARD_EXTENTS)).toBe(true)
-    })
-
-    it('cover no hex', () => {
-        const covered = boxes.flatMap(([name, box]) =>
-            USA_HEXES.filter((hex) => boxesOverlap(box, hexGeometry(hex.id).boundingBox)).map(
-                (hex) => `${name}: ${hex.id}`
-            )
-        )
-        expect(covered).toEqual([])
-    })
-
-    it('overlap no other margin box', () => {
-        for (const [name, box] of boxes) {
-            for (const [otherName, other] of boxes) {
-                if (name !== otherName) expect(boxesOverlap(box, other)).toBe(false)
-            }
-        }
-    })
-
-    it('sit in the lower half of the board, the round and turn order tracks west, the railroads east', () => {
-        for (const [, box] of boxes) expect(box.y + box.height).toBeGreaterThan(BOARD_HEIGHT / 2)
-        expect(MARGIN_BOXES.roundTrack.x + MARGIN_BOXES.roundTrack.width).toBeLessThan(
-            BOARD_WIDTH / 2
-        )
-        expect(MARGIN_BOXES.turnOrder.x + MARGIN_BOXES.turnOrder.width).toBeLessThan(
-            BOARD_WIDTH / 2
-        )
-        expect(MARGIN_BOXES.railroadStrip.x).toBeGreaterThan(BOARD_WIDTH / 2)
-        expect(MARGIN_BOXES.transcontinental.x).toBeGreaterThan(BOARD_WIDTH / 2)
-    })
-})
-
-describe('seat initials', () => {
-    it('are drawn at the fitted desktop scale', () => {
-        expect(drawsSeatInitials(FITTED_DESKTOP_SCALE)).toBe(true)
-    })
-
-    it('are not drawn with the whole map fitted to a phone’s width', () => {
-        expect(drawsSeatInitials(PHONE_WIDTH / BOARD_WIDTH)).toBe(false)
     })
 })

@@ -35,3 +35,14 @@ describe('the board draws without effects', () => {
         })
     }
 })
+
+describe('the board’s layers', () => {
+    it('draws the city names above every cube and route line, so nothing covers a name', () => {
+        const board = String(BOARD_SOURCES['../Board.svelte'])
+        const names = board.indexOf('<CityLabelLayer')
+        expect(names).toBeGreaterThan(board.indexOf('<TrackLayer'))
+        expect(names).toBeGreaterThan(board.indexOf('<LineLayer'))
+        expect(names).toBeLessThan(board.indexOf('<ScrimLayer'))
+        expect(String(BOARD_SOURCES['./CityLayer.svelte'])).not.toMatch(/cityLabel\(/)
+    })
+})

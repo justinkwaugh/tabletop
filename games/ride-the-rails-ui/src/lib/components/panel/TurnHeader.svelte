@@ -1,7 +1,9 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { decidingPlayerId, roundLabels } from '$lib/model/actionArea.js'
+    import RoundTickets from './RoundTickets.svelte'
     import SeatDot from './SeatDot.svelte'
+    import TranscontinentalChip from './TranscontinentalChip.svelte'
 
     const gameSession = getGameSession()
 
@@ -40,11 +42,15 @@
             <span class="text-sm text-rtr-ink-muted sm:hidden">{labels.compact}</span>
         {/if}
     </div>
-    <button
-        type="button"
-        class="rounded-full border-2 border-rtr-pill bg-transparent px-3 py-0.5 text-sm font-semibold text-rtr-pill hover:enabled:bg-rtr-panel-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent max-sm:px-2"
-        class:invisible={!canUndo}
-        disabled={!canUndo}
-        onclick={() => gameSession.undo()}>Undo</button
-    >
+    <div class="flex shrink-0 items-center gap-3 max-sm:gap-1.5">
+        <RoundTickets />
+        <TranscontinentalChip />
+        <button
+            type="button"
+            class="rounded-full border-2 border-rtr-pill bg-transparent px-3 py-0.5 text-sm font-semibold text-rtr-pill hover:enabled:bg-rtr-panel-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent max-sm:px-2"
+            class:invisible={!canUndo}
+            disabled={!canUndo}
+            onclick={() => gameSession.undo()}>Undo</button
+        >
+    </div>
 </div>

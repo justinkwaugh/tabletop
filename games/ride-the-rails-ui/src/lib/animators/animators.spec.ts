@@ -16,7 +16,7 @@ import {
     type Track
 } from '@tabletop/ride-the-rails'
 import { buildState, hydrated, runAction } from '@tabletop/ride-the-rails/testing'
-import { STRIP_LOCOMOTIVE, stripLocomotivePoint } from '$lib/utils/marginLayout.js'
+import { ABOVE_THE_BOARD, TRAVELLING_LOCOMOTIVE_WIDTH } from './flightPlaces.js'
 import { Flights, moneyKey, sharesKey, supplyKey } from './flights.svelte.js'
 import { OUTLINE_TOTAL } from './flightPlan.js'
 import { FLIGHT, QUICK } from './motion.js'
@@ -102,7 +102,7 @@ function reduceMotion() {
 }
 
 describe('the Placement animator (R-3.2, R-3.2.5, R-4.3)', () => {
-    it('flies the locomotive from its strip entry and the Chicago coin to the seat, ticking money as it lands', async () => {
+    it('flies the locomotive from its supply pile and the Chicago coin to the seat, ticking money as it lands', async () => {
         const flights = new Flights()
         const from = building({ [NEXT_TO_CHICAGO]: [RED] })
         const { action, to } = placed(from, RED, CHICAGO)
@@ -112,11 +112,14 @@ describe('the Placement animator (R-3.2, R-3.2.5, R-4.3)', () => {
         const key = locomotiveFlyerKey(`${CHICAGO}:${RED}`)
         const locomotive = flights.flyers.find((flyer) => flyer.key === key)
         assertExists(locomotive)
-        const strip = stripLocomotivePoint(from.mapId, RED)
-        expect([locomotive.pose.x, locomotive.pose.y]).toEqual([strip.x, strip.y])
+        // With no table drawn, nothing shows the pile: it lifts from above the board.
+        expect([locomotive.pose.x, locomotive.pose.y]).toEqual([
+            ABOVE_THE_BOARD.x,
+            ABOVE_THE_BOARD.y
+        ])
         expect(
             locomotive.pose.scale * (locomotive.kind === 'locomotive' ? locomotive.width : 0)
-        ).toBeCloseTo(STRIP_LOCOMOTIVE.width)
+        ).toBeCloseTo(TRAVELLING_LOCOMOTIVE_WIDTH)
         expect(
             flights.flyers
                 .filter((flyer) => flyer.kind === 'coin')
@@ -201,16 +204,15 @@ describe('the Placement animator (R-3.2, R-3.2.5, R-4.3)', () => {
 })
 
 describe('the Share animator (R-3.1)', () => {
-    it('flies a locomotive from the strip to the seat, ticking supply as it lifts and shares as it lands', async () => {
+    it('flies a locomotive from the supply pile to the seat, ticking supply as it lifts and shares as it lands', async () => {
         const flights = new Flights()
         const from = buildState({ phase: PhaseName.TakeShare })
         const run = runAction(from, { type: ActionType.TakeShare, playerId: 'p3', railroadId: RED })
         const to = hydrated(run.after)
 
         const animationContext = await step(shareAnimator(flights), from, to, run.processed[0])
-        const strip = stripLocomotivePoint(from.mapId, RED)
         expect(flights.flyers.map((flyer) => [flyer.key, flyer.pose.x, flyer.pose.y])).toEqual([
-            [SHARE_FLYER_KEY, strip.x, strip.y]
+            [SHARE_FLYER_KEY, ABOVE_THE_BOARD.x, ABOVE_THE_BOARD.y]
         ])
         playThrough(animationContext)
         expect(flights.shown(supplyKey(RED), 27)).toBe(26)

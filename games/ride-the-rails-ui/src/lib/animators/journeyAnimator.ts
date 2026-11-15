@@ -46,10 +46,9 @@ const COIN_RISE = 24
  * Contract, Animation plan, Journey (Patterns B and D): R-3.3, the start passenger travels the
  * route through the hex centres, about 120 ms a hex and at most 2.4 s in all; each city it reaches
  * pulses its station ring once; at the end it fades. Then every dividend coin and the fare rise
- * from the end city and fly to the seats' markers together, and money ticks as they land.
- * Without an action (Undo, state-only history) or with reduced motion there is no travel: a
- * passenger taken away shrinks, one put back pops in, and money changes with the state. On a phone
- * the coins land on the seats' money (`flightPlaces`).
+ * from the end city and fly to the seats' money together (`flightPlaces`), and money ticks as
+ * they land. Without an action (Undo, state-only history) or with reduced motion there is no
+ * travel: a passenger taken away shrinks, one put back pops in, and money changes with the state.
  */
 export function journeyAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -58,7 +57,7 @@ export function journeyAnimator(flights: Flights): GameStateChangeListener<State
         if (mode === 'still') return
         if (mode === 'cinematic' && isRideJourney(action) && action.metadata) {
             flights.follow(animationContext)
-            await ride(flights, { from, to, animationContext }, action)
+            await ride(flights, { to, animationContext }, action)
             return
         }
         const { arriving, leaving } = passengerChanges(from, to)
@@ -75,7 +74,7 @@ export function journeyAnimator(flights: Flights): GameStateChangeListener<State
 // R-3.3.2 to R-3.3.6
 async function ride(
     flights: Flights,
-    { from, to, animationContext }: Pick<Step, 'to' | 'animationContext'> & { from: State },
+    { to, animationContext }: Pick<Step, 'to' | 'animationContext'>,
     action: RideJourney
 ) {
     const metadata = action.metadata
@@ -127,7 +126,6 @@ async function ride(
     }
 
     const rises = travelEnds(moves)
-    const turnOrder = from.turnManager.turnOrder
     const lands = coinLands(rises, JOURNEY)
     coins.forEach((coin, index) => {
         flyCoin(
@@ -137,7 +135,7 @@ async function ride(
                 key: coin.key,
                 start: end,
                 rise: fan[index],
-                marker: seatMoneyPoint(flights.table, turnOrder, coin.playerId),
+                marker: seatMoneyPoint(flights.table, coin.playerId),
                 rises
             },
             JOURNEY

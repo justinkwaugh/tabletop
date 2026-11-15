@@ -2,7 +2,7 @@ import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isPlaceLocomotive } from '@tabletop/ride-the-rails'
 import { hexCenter } from '$lib/utils/boardGeometry.js'
 import { claimedLine, outlineStep } from './flightPlan.js'
-import { seatMoneyPoint } from './flightPlaces.js'
+import { transcontinentalPoint } from './flightPlaces.js'
 import { moneyKey, type Flights, type Flyer } from './flights.svelte.js'
 import {
     FLIGHT,
@@ -27,9 +27,8 @@ const SETTLE_INTO_LINE = 0.2
 /**
  * Contract, Animation plan, Transcontinental (Pattern B): R-4.3.3, after the claiming placement
  * lands the line's hexes outline one after another, within 900 ms, and settle as the thin gold
- * line; then a gold coin flies to the claimant's marker and money ticks. Without an action the
- * line simply appears with the state. On a phone the coin lands on the claimant's money
- * (`flightPlaces`).
+ * line; then a gold coin flies to the Transcontinental chip in the turn line and the claimant's
+ * money ticks (`flightPlaces`). Without an action the line simply appears with the state.
  */
 export function transcontinentalAnimator(flights: Flights): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
@@ -74,7 +73,7 @@ export function transcontinentalAnimator(flights: Flights): GameStateChangeListe
                 key: TRANSCONTINENTAL_COIN_KEY,
                 start: coinFrom,
                 rise: { y: coinFrom.y - 24 },
-                marker: seatMoneyPoint(flights.table, from.turnManager.turnOrder, claim.playerId),
+                marker: transcontinentalPoint(flights.table),
                 rises: drawn + SETTLE_INTO_LINE
             },
             FLIGHT

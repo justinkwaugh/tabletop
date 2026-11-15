@@ -1,15 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
 import { collectPageErrors, litHex, openScenario, pressHex, settled } from './helpers.js'
 
-// The contract's Phone layout and Animation plan: phones leave the board's margin out, so the
-// flights lift from and land on what the phone shows (the railroad strip above the board, the seat
-// cards' shares and money), the strip's round badge steps at the end of a round, and the claimed
-// Transcontinental shows on the strip.
+// The contract's Animation plan: the board holds only the map, so the flights lift from and land
+// on what the table shows beside it (the supply piles on the railroad cards or the phone's rail,
+// the seat cards, the Transcontinental chip in the turn line), the round steps on the turn line's
+// tickets at the end of a round, and the railroad it makes available brightens in.
 collectPageErrors()
 
-test.beforeEach(() => {
-    test.skip(test.info().project.use.isMobile !== true, 'The margin shows these on wider screens.')
-})
+const onPhone = () => test.info().project.use.isMobile === true
 
 type Spot = { x: number; y: number }
 type Box = { left: number; top: number; right: number; bottom: number }
@@ -42,7 +40,7 @@ async function recordedPath(page: Page, key: string): Promise<Spot[]> {
     return all[key] ?? []
 }
 
-/** The boxes on screen of what a phone flight lifts from or lands on, by its key. */
+/** The boxes on screen of what a flight lifts from or lands on, by its key. */
 function targetBoxes(page: Page, key: string): Promise<Box[]> {
     return page.evaluate(
         (target) =>
@@ -74,19 +72,10 @@ function onOrBeside(spot: Spot, box: Box, view: { width: number; height: number 
     return spot.x >= left && spot.x <= right && spot.y >= top && spot.y <= bottom
 }
 
-test('On a phone a share lifts from the strip above the board and lands on the seat card', async ({
-    page
-}) => {
+test('A share lifts from its supply pile and lands on the seat card', async ({ page }) => {
     await openScenario(page, 'First share')
     await settled(page)
-    const red = await page.evaluate(() => {
-        const icon = [...document.querySelectorAll('[data-flight-target^="supply:"]')].find(
-            (element) => element.closest('button')?.getAttribute('aria-label')?.startsWith('Red:')
-        )
-        return icon?.getAttribute('data-flight-target') ?? ''
-    })
-    expect(red).not.toBe('')
-    const [source] = await targetBoxes(page, red)
+    const [source] = await targetBoxes(page, 'supply:railroad.red')
     const [shares] = await targetBoxes(page, 'seat:p4')
     expect(source).toBeDefined()
     expect(shares).toBeDefined()
@@ -106,12 +95,14 @@ test('On a phone a share lifts from the strip above the board and lands on the s
     expect(path.every((spot) => inView(spot, view))).toBe(true)
 })
 
-test('On a phone the Transcontinental coin lands on the money, and the strip shows the claim', async ({
+test('The Transcontinental coin flies to the chip in the turn line, which shows the claim', async ({
     page
 }) => {
     await openScenario(page, 'Transcontinental in reach')
-    const medallion = page.getByRole('img', { name: /^Transcontinental: claimed by / })
-    await expect(medallion).toHaveCount(0)
+    const chip = page.getByRole('img', { name: /^Transcontinental: / })
+    await expect(chip).toHaveAccessibleName(/^Transcontinental: unclaimed/)
+    const [medallion] = await targetBoxes(page, 'transcontinental')
+    expect(medallion).toBeDefined()
 
     await recordFlyers(page)
     await pressHex(page, litHex(page, 'Denver: place Purple, $12 Transcontinental'))
@@ -122,35 +113,36 @@ test('On a phone the Transcontinental coin lands on the money, and the strip sho
     expect(path.length).toBeGreaterThan(5)
     const last = path.at(-1) ?? { x: -1, y: -1 }
     expect(inView(last, view)).toBe(true)
-    const money = await targetBoxes(page, 'money:p1')
-    expect(money.some((box) => onOrBeside(last, box, view))).toBe(true)
+    expect(medallion && onOrBeside(last, medallion, view)).toBe(true)
 
-    await expect(medallion).toHaveAccessibleName('Transcontinental: claimed by Ada for $12')
-    await expect(medallion).toBeInViewport()
+    await expect(chip).toHaveAccessibleName('Transcontinental: claimed by Ada for $12')
+    await expect(chip).toBeInViewport()
 })
 
-test('On a phone the end of round steps the strip badge and brightens the new railroad', async ({
+test('The end of round steps the round and brightens the railroad it makes available', async ({
     page
 }) => {
     await openScenario(page, 'Round one ends')
-    const badge = page.getByLabel('Round 1', { exact: true })
-    await expect(badge).toBeVisible()
+    const entries = page.getByRole('group', { name: 'Railroads' })
+    await expect(entries.getByRole('button', { name: /^Orange: / })).toHaveCount(0)
     await pressHex(page, litHex(page, 'Washington: start a journey with its passenger'))
     await pressHex(page, litHex(page, 'Baltimore: link by Blue'))
 
-    // Each frame: the badge's round and hop, and how bright Orange's entry is.
+    // Each frame: the current ticket and its hop (desktop), and how bright Orange's entry is.
     await page.evaluate(() => {
         const seen = { rounds: new Set<string>(), hops: 0, orange: new Set<number>() }
         const watch = () => {
-            const round = document.querySelector('.phone-strip .round')
-            if (round) {
-                seen.rounds.add(round.getAttribute('aria-label') ?? '')
-                if ((round.getAttribute('style') ?? '').includes('scale(1.')) seen.hops++
+            const current = document.querySelector('[role="listitem"][aria-current="step"]')
+            if (current) seen.rounds.add(current.getAttribute('aria-label') ?? '')
+            for (const ticket of document.querySelectorAll('[role="listitem"]')) {
+                if ((ticket.getAttribute('style') ?? '').includes('scale(1.')) seen.hops++
             }
-            const orange = document
-                .querySelector('.phone-strip button[aria-label^="Orange:"]')
-                ?.closest<HTMLElement>('.slot')
-            if (orange) seen.orange.add(Number(getComputedStyle(orange).opacity))
+            for (const button of document.querySelectorAll('button[aria-label^="Orange:"]')) {
+                const slot = button.closest<HTMLElement>('[style*="opacity"], .slot')
+                if (slot && slot.getBoundingClientRect().width > 0) {
+                    seen.orange.add(Number(getComputedStyle(slot).opacity))
+                }
+            }
             Reflect.set(window, 'rtrRoundEnd', {
                 rounds: [...seen.rounds],
                 hops: seen.hops,
@@ -166,10 +158,12 @@ test('On a phone the end of round steps the strip badge and brightens the new ra
     const seen = await page.evaluate(() => JSON.stringify(Reflect.get(window, 'rtrRoundEnd')))
     const { rounds, hops, orange }: { rounds: string[]; hops: number; orange: number[] } =
         JSON.parse(seen)
-    expect(rounds).toEqual(['Round 1', 'Round 2'])
-    expect(hops).toBeGreaterThan(2)
-    // Orange's entry brightens through the values between dim and full.
-    expect(orange.some((opacity) => opacity > 0.5 && opacity < 0.95)).toBe(true)
-    await expect(page.getByLabel('Round 2', { exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: /^Orange: 27 left/ })).toBeVisible()
+    if (!onPhone()) {
+        expect(rounds).toEqual(['Round 1', 'Round 2'])
+        expect(hops).toBeGreaterThan(2)
+    }
+    // Orange's entry joins unseen and brightens through the values between.
+    expect(orange).toContain(0)
+    expect(orange.some((opacity) => opacity > 0.3 && opacity < 0.95)).toBe(true)
+    await expect(entries.getByRole('button', { name: /^Orange: 27 left, 0 track/ })).toBeVisible()
 })

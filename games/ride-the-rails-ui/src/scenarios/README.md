@@ -48,6 +48,13 @@ Round 5, Build. Purple from San Francisco waits beside Denver, where Orange's li
 
 - Denver reads "place Purple, $12 Transcontinental"; the plain hex east of it, on Orange's line, reads "$8".
 
+## Purple arrives
+
+Round 4, Build, the first round Purple may build. Ada holds Red, Orange and Purple; Purple has no track yet (scenario 25 and the railroad cards).
+
+- The railroad cards (on a phone, the supply rail) show Red, Blue, Orange, Yellow and Purple; Black is not shown.
+- Purple's four western start cities wear its dashed start cue.
+
 ## Yellow starts
 
 Round 3 with three seats, Build. Ada holds Red, Orange and Yellow; Omaha, Des Moines and Kansas City are the westernmost occupied cities with one locomotive each (scenario 9).

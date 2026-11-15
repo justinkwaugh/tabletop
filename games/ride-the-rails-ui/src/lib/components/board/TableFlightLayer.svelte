@@ -1,6 +1,12 @@
 <script lang="ts">
     import type { Flyer as FlyerShape } from '$lib/animators/flights.svelte.js'
-    import { boardIn, frameOf, frameTransform, readableBoost } from '$lib/animators/flightPlaces.js'
+    import {
+        boardIn,
+        frameOf,
+        frameTransform,
+        onTheMap,
+        readableBoost
+    } from '$lib/animators/flightPlaces.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
     import { tableOf } from '$lib/utils/tableScope.js'
@@ -8,22 +14,20 @@
 
     const flights = getGameSession().flights
 
-    /** What stays on the map: drawn only where the board shows. */
-    const ON_THE_MAP: ReadonlySet<FlyerShape['kind']> = new Set([
-        'outline',
-        'line',
-        'passenger',
-        'pulse'
-    ])
-    const CLIP_ID = 'rtr-phone-flight-clip'
+    const CLIP_ID = 'rtr-table-flight-clip'
 
-    /** Coins and a share's locomotive, drawn no smaller than they can be read. */
+    /** On a phone, coins and a share's locomotive are drawn no smaller than they can be read. */
     function readable(flyer: FlyerShape): boolean {
-        return flyer.kind === 'coin' || (flyer.kind === 'locomotive' && flyer.leavesTheMap === true)
+        return (
+            isPhoneWidth() &&
+            (flyer.kind === 'coin' || (flyer.kind === 'locomotive' && flyer.leavesTheMap === true))
+        )
     }
 
-    const onMap = $derived(flights.flyers.filter((flyer) => ON_THE_MAP.has(flyer.kind)))
-    const travelling = $derived(flights.flyers.filter((flyer) => !ON_THE_MAP.has(flyer.kind)))
+    // Wider screens draw the map's own flyers in the board (FlightLayer); phones draw them here,
+    // clipped to the board's view, so they share one frame with the rest.
+    const onMap = $derived(isPhoneWidth() ? flights.flyers.filter(onTheMap) : [])
+    const travelling = $derived(flights.flyers.filter((flyer) => !onTheMap(flyer)))
     const flying = $derived(flights.flyers.length > 0)
 
     /**
@@ -88,32 +92,31 @@
     }
 </script>
 
-<!-- Contract, Phone layout: phones show the railroad strip, the round badge and the money outside
-     the board, so the flyers are drawn above the whole table, in the board's units, and land there. -->
-{#if isPhoneWidth()}
-    <svg class="phone-flights" aria-hidden="true" pointer-events="none" {@attach followBoard}>
-        <defs>
-            <clipPath id={CLIP_ID} clipPathUnits="userSpaceOnUse">
-                <rect x="0" y="0" width="0" height="0"></rect>
-            </clipPath>
-        </defs>
-        <g clip-path="url(#{CLIP_ID})">
-            <g data-board-units>
-                {#each onMap as flyer (flyer.key)}
-                    <Flyer {flyer} />
-                {/each}
-            </g>
-        </g>
+<!-- Contract, Animation plan: the supply piles, the seat cards and the Transcontinental chip sit
+     beside the board, so the locomotives and coins that fly to and from them are drawn above the
+     whole table, in the board's units. -->
+<svg class="table-flights" aria-hidden="true" pointer-events="none" {@attach followBoard}>
+    <defs>
+        <clipPath id={CLIP_ID} clipPathUnits="userSpaceOnUse">
+            <rect x="0" y="0" width="0" height="0"></rect>
+        </clipPath>
+    </defs>
+    <g clip-path="url(#{CLIP_ID})">
         <g data-board-units>
-            {#each travelling as flyer (flyer.key)}
-                <Flyer {flyer} readable={readable(flyer)} />
+            {#each onMap as flyer (flyer.key)}
+                <Flyer {flyer} />
             {/each}
         </g>
-    </svg>
-{/if}
+    </g>
+    <g data-board-units>
+        {#each travelling as flyer (flyer.key)}
+            <Flyer {flyer} readable={readable(flyer)} />
+        {/each}
+    </g>
+</svg>
 
 <style>
-    .phone-flights {
+    .table-flights {
         position: fixed;
         inset: 0;
         width: 100%;

@@ -16,29 +16,19 @@ import {
 } from '@tabletop/ride-the-rails'
 import { buildState, engine, hydrated, runAction } from '@tabletop/ride-the-rails/testing'
 import { hexCenter, stationOf } from '$lib/utils/boardGeometry.js'
-import {
-    STRIP_VEIL_OPACITY,
-    roundTicketPoint,
-    turnOrderMarkerPoint
-} from '$lib/utils/marginLayout.js'
 import { passengerSpot } from '$lib/utils/passengerLayout.js'
-import { ROUND_MARKER_KEY, endOfRoundAnimator } from './endOfRoundAnimator.js'
+import { endOfRoundAnimator } from './endOfRoundAnimator.js'
 import {
     Flights,
-    markerKey,
+    ROUND_KEY,
     moneyKey,
     passengerKey,
-    veilKey,
+    railroadEntryKey,
+    roundTicketKey,
     type FlightTarget
 } from './flights.svelte.js'
 import { passengerFlyerKey, journeyAnimator, travelEnds } from './journeyAnimator.js'
-import {
-    hexStep,
-    journeyCoins,
-    markerSlides,
-    railroadsMadeAvailable,
-    roundStep
-} from './journeyPlan.js'
+import { hexStep, journeyCoins, railroadsMadeAvailable, roundStep } from './journeyPlan.js'
 import { END_OF_ROUND, JOURNEY, QUICK } from './motion.js'
 
 type State = HydratedRideTheRailsGameState
@@ -307,12 +297,9 @@ describe('the End of round animator (R-2.5)', () => {
         return { steps, endOfRound }
     }
 
-    it('plans the new order, the next round and the railroad it makes available', () => {
+    it('plans the next round and the railroad it makes available', () => {
         const { endOfRound } = lastJourney()
         const { from, to } = endOfRound
-        // p1 and p3 were paid; p2, now the poorest, goes first (R-2.5.1).
-        expect(to.turnManager.turnOrder).toEqual(['p2', 'p1', 'p3'])
-        expect(markerSlides(from, to).map((slide) => slide.playerId)).toEqual(['p1', 'p2'])
         expect(roundStep(from, to)).toEqual({ from: 1, to: 2 })
         expect(railroadsMadeAvailable(from, to)).toEqual(
             RAILROAD_INTRODUCTIONS[to.mapId]
@@ -322,52 +309,43 @@ describe('the End of round animator (R-2.5)', () => {
         expect(railroadsMadeAvailable(to, from)).toEqual([])
     })
 
-    it('slides the markers, steps the round marker, then brightens the new railroad, at explicit positions', async () => {
+    it('hops the next ticket and steps the round, then brightens the new railroad, at explicit positions', async () => {
         const flights = new Flights()
         const { endOfRound } = lastJourney()
         const { from, to, action } = endOfRound
         const [orange] = railroadsMadeAvailable(from, to)
         assertExists(orange)
-        const p1 = element(flights, markerKey('p1'))
-        const p3 = element(flights, markerKey('p3'))
-        const veil = element(flights, veilKey(orange), {
-            'fill-opacity': String(STRIP_VEIL_OPACITY)
-        })
-        const round = roundTicketPoint(1)
+        const ticket = element(flights, roundTicketKey(2))
+        const entry = element(flights, railroadEntryKey(orange), { style: 'opacity: 0;' })
 
         const animationContext = await step(endOfRoundAnimator(flights), from, to, action)
-        const marker = flights.flyers.find((flyer) => flyer.key === ROUND_MARKER_KEY)
-        expect(marker && [marker.pose.x, marker.pose.y]).toEqual([round.x, round.y])
-        const roundMarker = element(flights, ROUND_MARKER_KEY)
+        expect(flights.flyers).toEqual([])
         expect(animationContext.actionTimeline.duration()).toBeCloseTo(
             Math.max(
-                END_OF_ROUND.slide,
                 END_OF_ROUND.stepsAt + END_OF_ROUND.step,
                 END_OF_ROUND.brightensAt + END_OF_ROUND.brighten
             )
         )
 
-        // Halfway through its slide p1 has left its place and risen past p2; the veil is untouched.
-        animationContext.actionTimeline.seek(END_OF_ROUND.slide / 2, false)
-        expect(translation(p1)[0]).toBeGreaterThan(0)
-        expect(translation(p1)[1]).toBeCloseTo(END_OF_ROUND.slideArc)
-        expect(veil.getAttribute('fill-opacity')).toBe(String(STRIP_VEIL_OPACITY))
+        // Just before the top of its hop the ticket is up and the round has not stepped yet.
+        const top = END_OF_ROUND.stepsAt + END_OF_ROUND.step / 2
+        animationContext.actionTimeline.seek(top - 0.01, false)
+        expect(ticket.getAttribute('style')).toMatch(/translateY\(-\d/)
+        expect(flights.shown(ROUND_KEY, 1)).toBe(1)
+        expect(entry.getAttribute('style')).toBe('opacity: 0;')
+
+        animationContext.actionTimeline.seek(top + 0.01, false)
+        expect(flights.shown(ROUND_KEY, 1)).toBe(2)
 
         animationContext.actionTimeline.progress(1)
-        const step1 = turnOrderMarkerPoint(from.turnManager.turnOrder, 'p1')
-        const step2 = turnOrderMarkerPoint(to.turnManager.turnOrder, 'p1')
-        expect(translation(p1)[0]).toBeCloseTo(step2.x - step1.x)
-        expect(translation(p1)[1]).toBeCloseTo(0)
-        expect(p3.getAttribute('transform')).toBeNull()
-        const next = roundTicketPoint(2)
-        expect(translation(roundMarker)[0]).toBeCloseTo(next.x)
-        expect(Number(veil.getAttribute('fill-opacity'))).toBeCloseTo(0)
+        expect(ticket.getAttribute('style')).toBe('transform: translateY(0px) scale(1)')
+        expect(entry.getAttribute('style')).toBe('opacity: 1')
 
-        // The new state draws the markers in their places: their own attributes come back.
+        // The new state draws them as it has them: their own styles come back.
         flights.settle()
-        expect(p1.getAttribute('transform')).toBeNull()
-        expect(veil.getAttribute('fill-opacity')).toBe(String(STRIP_VEIL_OPACITY))
-        expect(flights.flyers).toEqual([])
+        expect(ticket.getAttribute('style')).toBeNull()
+        expect(entry.getAttribute('style')).toBe('opacity: 0;')
+        expect(flights.shown(ROUND_KEY, 2)).toBe(2)
     })
 
     it('reverses within 200 ms on Undo of the last journey, on the one step that carries both', async () => {
@@ -375,7 +353,7 @@ describe('the End of round animator (R-2.5)', () => {
         const { steps } = lastJourney()
         const before = steps[0].from
         const after = steps[steps.length - 1].to
-        const p1 = element(flights, markerKey('p1'))
+        const ticket = element(flights, roundTicketKey(1))
         const journey = journeyAnimator(flights)
         const endOfRound = endOfRoundAnimator(flights)
 
@@ -387,13 +365,10 @@ describe('the End of round animator (R-2.5)', () => {
 
         expect(animationContext.actionTimeline.duration()).toBeLessThanOrEqual(0.2)
         expect(animationContext.finalTimeline.duration()).toBe(0)
-        expect(flights.flyers.map((flyer) => flyer.key).sort()).toEqual(
-            [ROUND_MARKER_KEY, passengerFlyerKey(KANSAS_CITY)].sort()
-        )
+        expect(flights.flyers.map((flyer) => flyer.key)).toEqual([passengerFlyerKey(KANSAS_CITY)])
         animationContext.actionTimeline.progress(1)
-        const shown = turnOrderMarkerPoint(after.turnManager.turnOrder, 'p1')
-        const restored = turnOrderMarkerPoint(before.turnManager.turnOrder, 'p1')
-        expect(translation(p1)[0]).toBeCloseTo(restored.x - shown.x)
+        expect(flights.shown(ROUND_KEY, 2)).toBe(1)
+        expect(ticket.getAttribute('style')).toBe('transform: translateY(0px) scale(1)')
     })
 
     it('makes only the quick change with reduced motion', async () => {

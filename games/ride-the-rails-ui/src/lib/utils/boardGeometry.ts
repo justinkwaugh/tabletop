@@ -17,7 +17,8 @@ import {
 
 export const HEX_SIZE = 40
 export const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE
-export const BOARD_MARGIN = HEX_SIZE
+/** Art plan, Board: the board is cropped to the land, with a thin rim of sea for the frame. */
+export const BOARD_MARGIN = 6
 
 const HEX_DEFINITION = {
     orientation: HexOrientation.Pointy,
@@ -121,20 +122,17 @@ export function stationOf(cityId: CityId): Station {
         : { x: center.x, y: center.y - STATION_RISE, radius: STATION_RADIUS }
 }
 
-/** The board a 1280 × 900 desktop window leaves for the map beside the sidebar, under the turn header and action area. */
-export const DESKTOP_BOARD_VIEW: RectangleDimensions = { width: 940, height: 640 }
+/**
+ * The board a 1280 × 900 desktop window leaves for the map beside the sidebar, under the turn
+ * header, the action area and the railroad cards.
+ */
+export const DESKTOP_BOARD_VIEW: RectangleDimensions = { width: 940, height: 564 }
 
 export const FITTED_DESKTOP_SCALE = Math.min(
     DESKTOP_BOARD_VIEW.width / BOARD_WIDTH,
     DESKTOP_BOARD_VIEW.height / BOARD_HEIGHT,
     1
 )
-
-const SEAT_INITIALS_MIN_SCALE = 0.3
-
-export function drawsSeatInitials(viewScale: number): boolean {
-    return viewScale >= SEAT_INITIALS_MIN_SCALE
-}
 
 const CITY_LABEL_SCREEN_SIZE = 10
 
@@ -154,8 +152,10 @@ export function drawsCityLabels(viewScale: number): boolean {
 
 export type LabelSide = 'above' | 'below' | 'left' | 'right'
 
-// Every city's label sits below it but these, where the coast or a neighbour is in the way.
+// Every city's label sits below it but these, where the coast, a neighbour or the board's edge is
+// in the way.
 const CITY_LABEL_SIDES: ReadonlyMap<CityId, LabelSide> = new Map<CityId, LabelSide>([
+    ['city.usa.miami', 'right'],
     ['city.usa.portland-or', 'right'],
     ['city.usa.portland-me', 'left'],
     ['city.usa.baltimore', 'left'],
@@ -253,11 +253,19 @@ export function cityLabel(
     return labelOn(cityId, cityLabelSide(cityId), fontSize)
 }
 
+/**
+ * The name a city carries on the map: its name without the state that tells the two Portlands
+ * apart, since the map beside it already does. Text with no map beside it keeps the full name.
+ */
+export function mapLabelName(cityId: CityId): string {
+    return usaCity(cityId).name.replace(/ \([^)]*\)$/, '')
+}
+
 function labelOn(cityId: CityId, side: LabelSide, fontSize: number): CityLabel {
     const city = usaCity(cityId)
     const center = hexCenter(city.hexId)
     const station = stationOf(cityId)
-    const width = nameWidthEm(city.name) * fontSize
+    const width = nameWidthEm(mapLabelName(cityId)) * fontSize
     const height = LABEL_HEIGHT_EM * fontSize
     const boxTop = {
         above: center.y - LABEL_ABOVE_REACH - height,
@@ -280,14 +288,4 @@ function labelOn(cityId: CityId, side: LabelSide, fontSize: number): CityLabel {
         fontSize,
         box: { x: boxLeft, y: boxTop[side], width, height }
     }
-}
-
-export type MarginBox = 'roundTrack' | 'turnOrder' | 'railroadStrip' | 'transcontinental'
-
-/** Desktop only: the Pacific below the West's lower rows and the Atlantic below the East Coast. */
-export const MARGIN_BOXES: Readonly<Record<MarginBox, BoundingBox>> = {
-    roundTrack: { x: 16, y: 972, width: 520, height: 112 },
-    turnOrder: { x: 16, y: 1100, width: 520, height: 124 },
-    transcontinental: { x: 2000, y: 566, width: 246, height: 220 },
-    railroadStrip: { x: 1824, y: 800, width: 422, height: 424 }
 }

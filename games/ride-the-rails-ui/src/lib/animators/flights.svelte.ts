@@ -25,7 +25,6 @@ export type Flyer =
     | { key: string; kind: 'line'; hexIds: readonly HexId[]; pose: Pose }
     | { key: string; kind: 'passenger'; pose: Pose }
     | { key: string; kind: 'pulse'; radius: number; pose: Pose }
-    | { key: string; kind: 'round'; pose: Pose }
 
 export function moneyKey(playerId: string): string {
     return `money:${playerId}`
@@ -35,20 +34,25 @@ export function supplyKey(railroadId: RailroadId): string {
     return `supply:${railroadId}`
 }
 
-/** A seat's card, where a phone's share flight lands. */
+/** A seat's card, where a share flight lands. */
 export function seatCardKey(playerId: string): string {
     return `seat:${playerId}`
 }
 
-/** The phone strip's round badge, which steps at the end of a round. */
-export const PHONE_ROUND_KEY = 'phone-round'
+/** The Transcontinental chip in the turn line, where the claim's coin lands. */
+export const TRANSCONTINENTAL_KEY = 'transcontinental'
 
-/** The round the phone strip's badge shows, ticked ahead of the state as the badge steps. */
+/** The round the table shows, ticked ahead of the state as the end of a round steps it. */
 export const ROUND_KEY = 'round'
 
-/** A railroad's entry on the phone strip, dim until its round. */
-export function phoneEntryKey(railroadId: RailroadId): string {
-    return `phone-entry:${railroadId}`
+/** A round's ticket in the turn line, which hops as the round steps to it. */
+export function roundTicketKey(round: number): string {
+    return `round-ticket:${round}`
+}
+
+/** A railroad's card or rail pile, which brightens in when the end of a round makes it available. */
+export function railroadEntryKey(railroadId: RailroadId): string {
+    return `railroad-entry:${railroadId}`
 }
 
 export function sharesKey(playerId: string, railroadId: RailroadId): string {
@@ -58,16 +62,6 @@ export function sharesKey(playerId: string, railroadId: RailroadId): string {
 /** A city's waiting passenger, hidden on the passenger layer while a flyer draws it. */
 export function passengerKey(cityId: CityId): string {
     return `passenger:${cityId}`
-}
-
-/** A seat's turn-order marker and money, slid in place at the end of a round. */
-export function markerKey(playerId: string): string {
-    return `marker:${playerId}`
-}
-
-/** The veil that dims a railroad's strip entry until its round. */
-export function veilKey(railroadId: RailroadId): string {
-    return `veil:${railroadId}`
 }
 
 /** What the animators write on: a flyer's outer wrapper or one of the board's own elements. */
@@ -101,7 +95,7 @@ export class Flights {
     interrupted = false
 
     private readonly elements = new Map<string, FlightTarget>()
-    /** The title's table while it is drawn: where a phone flight looks for its landing. */
+    /** The title's table while it is drawn: where a flight looks for its landing. */
     table: Element | undefined = undefined
     private readonly contexts = new Set<AnimationContext>()
     /** Attributes the animators wrote on the board's own elements (Pattern A), to put back. */

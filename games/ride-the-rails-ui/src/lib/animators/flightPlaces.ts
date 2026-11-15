@@ -1,10 +1,24 @@
 import type { Point } from '@tabletop/common'
-import type { MapId, RailroadId } from '@tabletop/ride-the-rails'
+import type { RailroadId } from '@tabletop/ride-the-rails'
 import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardGeometry.js'
-import { stripLocomotivePoint, turnOrderMarkerPoint } from '$lib/utils/marginLayout.js'
-import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
 import { findInTable, viewOf } from '$lib/utils/tableScope.js'
-import { moneyKey, seatCardKey, supplyKey } from './flights.svelte.js'
+import {
+    TRANSCONTINENTAL_KEY,
+    moneyKey,
+    seatCardKey,
+    supplyKey,
+    type Flyer
+} from './flights.svelte.js'
+
+/** The flyers that never leave the map: drawn only where the board shows. */
+const MAP_FLYERS: ReadonlySet<Flyer['kind']> = new Set(['outline', 'line', 'passenger', 'pulse'])
+
+export function onTheMap(flyer: Flyer): boolean {
+    return MAP_FLYERS.has(flyer.kind)
+}
+
+/** A locomotive lifting from its supply pile, as wide as a map cube's largest slot, in board units. */
+export const TRAVELLING_LOCOMOTIVE_WIDTH = 40
 
 /** The board's own SVG, found by this attribute. */
 const BOARD_ATTRIBUTE = 'data-map-board'
@@ -101,12 +115,24 @@ export function frameOf(box: ScreenBox): BoardFrame | undefined {
 }
 
 /**
- * Contract, Phone layout: phones leave the board's margin panels out and show the railroad strip
- * above the board and the money on the seat cards and the waiting view instead. On a phone a
- * flight goes to the element marked with its key, in board units; elsewhere there is none.
+ * Where a flight lifts from when nothing on the table shows its railroad's pile (the table is not
+ * drawn): the middle of the board's top edge, where the railroad cards stand.
  */
-function phonePlace(table: Element | undefined, key: string): Point | undefined {
-    const board = isPhoneWidth() ? boardIn(table) : undefined
+export const ABOVE_THE_BOARD: Point = { x: BOARD_WIDTH / 2, y: 0 }
+
+/**
+ * Where a seat's flight lands when nothing on the table shows its card or money (the History tab
+ * is open or the side panel is folded): the board's edge beside the side panel.
+ */
+export const BESIDE_THE_SIDE_PANEL: Point = { x: 0, y: BOARD_HEIGHT / 2 }
+
+/**
+ * Contract, Animation plan: the board holds only the map, so a flight goes to the element on the
+ * table marked with its key (a railroad's pile, a seat's card or money, the Transcontinental chip),
+ * in board units; none while the board or the element is not drawn.
+ */
+function tablePlace(table: Element | undefined, key: string): Point | undefined {
+    const board = boardIn(table)
     const frame = board && frameOf(board.getBoundingClientRect())
     if (!table || !frame) return undefined
     const boxes = [...table.querySelectorAll(`[${FLIGHT_TARGET_ATTRIBUTE}="${key}"]`)]
@@ -116,29 +142,22 @@ function phonePlace(table: Element | undefined, key: string): Point | undefined 
     return landing ? toBoard(frame, landing) : undefined
 }
 
-/** Where a railroad's locomotives lift from: its strip entry, in the margin or above the board. */
-export function railroadSourcePoint(
-    table: Element | undefined,
-    mapId: MapId,
-    railroadId: RailroadId
-): Point {
-    return phonePlace(table, supplyKey(railroadId)) ?? stripLocomotivePoint(mapId, railroadId)
+/** Where a railroad's locomotives lift from: its supply pile, on its card or the phone's rail. */
+export function railroadSourcePoint(table: Element | undefined, railroadId: RailroadId): Point {
+    return tablePlace(table, supplyKey(railroadId)) ?? ABOVE_THE_BOARD
 }
 
-/** Where a seat's shares and money land: its turn-order marker, or its money on a phone. */
-export function seatMoneyPoint(
-    table: Element | undefined,
-    turnOrder: readonly string[],
-    playerId: string
-): Point {
-    return phonePlace(table, moneyKey(playerId)) ?? turnOrderMarkerPoint(turnOrder, playerId)
+/** Where a seat's coins land: its money, on its seat card or in the waiting view. */
+export function seatMoneyPoint(table: Element | undefined, playerId: string): Point {
+    return tablePlace(table, moneyKey(playerId)) ?? BESIDE_THE_SIDE_PANEL
 }
 
-/** Where a seat's new share lands: its turn-order marker, or its seat card on a phone. */
-export function seatCardPoint(
-    table: Element | undefined,
-    turnOrder: readonly string[],
-    playerId: string
-): Point {
-    return phonePlace(table, seatCardKey(playerId)) ?? turnOrderMarkerPoint(turnOrder, playerId)
+/** Where a seat's new share lands: its seat card. */
+export function seatCardPoint(table: Element | undefined, playerId: string): Point {
+    return tablePlace(table, seatCardKey(playerId)) ?? BESIDE_THE_SIDE_PANEL
+}
+
+/** Where the Transcontinental's coin lands: the chip in the turn line. */
+export function transcontinentalPoint(table: Element | undefined): Point {
+    return tablePlace(table, TRANSCONTINENTAL_KEY) ?? ABOVE_THE_BOARD
 }

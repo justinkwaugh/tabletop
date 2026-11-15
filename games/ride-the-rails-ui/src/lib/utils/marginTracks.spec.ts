@@ -10,14 +10,7 @@ import {
 } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
-import {
-    ordinal,
-    railroadStrip,
-    romanRound,
-    roundTrack,
-    shownRoundNumber,
-    turnOrderTrack
-} from './marginTracks.js'
+import { ordinal, railroadCards, romanRound, roundTrack, shownRoundNumber } from './marginTracks.js'
 
 afterEach(() => {
     disposeSessions()
@@ -27,7 +20,7 @@ const NEW_YORK: HexId = usaCity('city.usa.new-york').hexId
 const PITTSBURGH: HexId = usaCity('city.usa.pittsburgh').hexId
 const CHICAGO: HexId = usaCity('city.usa.chicago').hexId
 
-describe('the railroad strip', () => {
+describe('the railroad cards', () => {
     const state = buildState({
         playerCount: 4,
         round: 2,
@@ -43,10 +36,10 @@ describe('the railroad strip', () => {
             [CHICAGO]: ['railroad.orange']
         }
     })
-    const strip = railroadStrip(state)
+    const strip = railroadCards(state)
 
-    it('has one entry per railroad, in R-1.4 order', () => {
-        expect(strip.map((entry) => entry.railroadId)).toEqual([...RAILROAD_IDS])
+    it('has one card per railroad available this round, in R-1.4 order', () => {
+        expect(strip.map((entry) => entry.railroadId)).toEqual(RAILROAD_IDS.slice(0, 3))
     })
 
     it('shows the supply the rules count (R-1.1, R-1.1-H1)', () => {
@@ -57,7 +50,7 @@ describe('the railroad strip', () => {
     })
 
     it('counts each railroad’s track on the map', () => {
-        expect(strip.map((entry) => entry.trackCount)).toEqual([2, 0, 1, 0, 0, 0])
+        expect(strip.map((entry) => entry.trackCount)).toEqual([2, 0, 1])
     })
 
     it('lists the shareholders in turn order with their shares', () => {
@@ -66,20 +59,29 @@ describe('the railroad strip', () => {
             { playerId: 'p3', shares: 1 }
         ])
         expect(strip[1].shareholders).toEqual([{ playerId: 'p4', shares: 1 }])
-        expect(strip[3].shareholders).toEqual([])
+        expect(strip[2].shareholders).toEqual([{ playerId: 'p3', shares: 1 }])
     })
 
-    it('marks a railroad not yet available with its round (R-1.4)', () => {
-        expect(
-            strip.map((entry) => [entry.railroadId, entry.available, entry.availableFromRound])
-        ).toEqual([
-            ['railroad.red', true, 1],
-            ['railroad.blue', true, 1],
-            ['railroad.orange', true, 2],
-            ['railroad.yellow', false, 3],
-            ['railroad.purple', false, 4],
-            ['railroad.black', false, 5]
+    it('shows only the railroads available in the round (R-1.4)', () => {
+        const names = (round: number) =>
+            railroadCards(buildState({ round }), round).map((entry) => entry.railroadId)
+        expect(names(1)).toEqual(['railroad.red', 'railroad.blue'])
+        expect(names(3)).toEqual([
+            'railroad.red',
+            'railroad.blue',
+            'railroad.orange',
+            'railroad.yellow'
         ])
+        expect(names(4)).toContain('railroad.purple')
+        expect(names(4)).not.toContain('railroad.black')
+        expect(names(5)).toEqual([...RAILROAD_IDS])
+    })
+
+    it('shows the round it is given, as the end of a round steps ahead of the state', () => {
+        const roundOne = buildState({ round: 1 })
+        expect(railroadCards(roundOne, 2).map((entry) => entry.railroadId)).toEqual(
+            RAILROAD_IDS.slice(0, 3)
+        )
     })
 })
 
@@ -120,7 +122,7 @@ describe('the tracks once the game ends', () => {
         expect(state.result).toBeDefined()
         expect(state.roundManager.currentRound).toBeUndefined()
         expect(shownRoundNumber(state)).toBe(6)
-        expect(railroadStrip(state).every((entry) => entry.available)).toBe(true)
+        expect(railroadCards(state).map((entry) => entry.railroadId)).toEqual([...RAILROAD_IDS])
         expect(
             roundTrack(state)
                 .filter((stop) => stop.current)
@@ -129,21 +131,7 @@ describe('the tracks once the game ends', () => {
     })
 })
 
-describe('the turn order track', () => {
-    it('follows the turn manager and shows every seat’s money (R-2.3, R-2.5)', () => {
-        const state = buildState({
-            playerCount: 3,
-            phase: PhaseName.Ride,
-            money: { p1: 12, p2: 7, p3: 30 }
-        })
-        state.turnManager.turnOrder = ['p2', 'p3', 'p1']
-        expect(turnOrderTrack(state)).toEqual([
-            { playerId: 'p2', position: 1, money: 7 },
-            { playerId: 'p3', position: 2, money: 30 },
-            { playerId: 'p1', position: 3, money: 12 }
-        ])
-    })
-
+describe('a seat’s place', () => {
     it('names each place in turn order', () => {
         expect([1, 2, 3, 4, 5].map(ordinal)).toEqual(['1st', '2nd', '3rd', '4th', '5th'])
     })

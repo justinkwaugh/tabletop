@@ -12,10 +12,8 @@ export type Shareholding = {
     shares: number
 }
 
-export type RailroadStripEntry = {
+export type RailroadCard = {
     railroadId: RailroadId
-    availableFromRound: number
-    available: boolean
     supply: number
     trackCount: number
     shareholders: Shareholding[]
@@ -25,12 +23,6 @@ export type RoundStop = {
     round: number
     current: boolean
     newRailroadIds: RailroadId[]
-}
-
-export type TurnOrderStop = {
-    playerId: string
-    position: number
-    money: number
 }
 
 /** "1st", "2nd", "3rd", "4th", "5th": a seat's place in turn order. */
@@ -56,24 +48,27 @@ export function shownRoundNumber(state: HydratedRideTheRailsGameState): number {
     return state.roundManager.currentRound?.number ?? state.roundManager.series.at(-1)?.number ?? 1
 }
 
-// R-1.1, R-1.1-H1, R-1.4: one entry per railroad in R-1.4 order, its supply from the logic package,
-// dim until its round; shareholders in turn order.
-export function railroadStrip(state: HydratedRideTheRailsGameState): RailroadStripEntry[] {
-    const round = shownRoundNumber(state)
+// R-1.1, R-1.1-H1, R-1.4: one card per railroad available in `round` (the shown round, unless the
+// end of a round has stepped ahead of the state), in R-1.4 order, its supply from the logic
+// package; shareholders in turn order.
+export function railroadCards(
+    state: HydratedRideTheRailsGameState,
+    round: number = shownRoundNumber(state)
+): RailroadCard[] {
     const turnOrder = state.turnManager.turnOrder
-    return RAILROAD_INTRODUCTIONS[state.mapId].map(({ railroadId, availableFromRound }) => ({
-        railroadId,
-        availableFromRound,
-        available: availableFromRound <= round,
-        supply: supplyOf(state, railroadId),
-        trackCount: trackCount(state.track, railroadId),
-        shareholders: turnOrder
-            .map((playerId) => ({
-                playerId,
-                shares: state.getPlayerState(playerId).sharesOf(railroadId)
-            }))
-            .filter((holding) => holding.shares > 0)
-    }))
+    return RAILROAD_INTRODUCTIONS[state.mapId]
+        .filter(({ availableFromRound }) => availableFromRound <= round)
+        .map(({ railroadId }) => ({
+            railroadId,
+            supply: supplyOf(state, railroadId),
+            trackCount: trackCount(state.track, railroadId),
+            shareholders: turnOrder
+                .map((playerId) => ({
+                    playerId,
+                    shares: state.getPlayerState(playerId).sharesOf(railroadId)
+                }))
+                .filter((holding) => holding.shares > 0)
+        }))
 }
 
 // R-1.4, R-2.1: rounds I-VI, each with the railroads it makes available.
@@ -90,13 +85,4 @@ export function roundTrack(state: HydratedRideTheRailsGameState): RoundStop[] {
                 .map((introduction) => introduction.railroadId)
         }
     })
-}
-
-// R-2.3, R-2.5: the turn manager's order, with each seat's money.
-export function turnOrderTrack(state: HydratedRideTheRailsGameState): TurnOrderStop[] {
-    return state.turnManager.turnOrder.map((playerId, index) => ({
-        playerId,
-        position: index + 1,
-        money: state.getPlayerState(playerId).money
-    }))
 }

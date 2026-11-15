@@ -28,29 +28,32 @@ function roundNumber(page: Page): Promise<number | undefined> {
     return page.evaluate(() => window.rtrSession.gameState.roundManager.currentRound?.number)
 }
 
-/** The round the table shows: the margin's punched ticket, or the phone strip's badge. */
+/** The round the table shows: the turn line's current ticket, or its label on a phone. */
 async function shownRound(page: Page, round: number) {
     if (isPhone()) {
-        await expect(page.getByLabel(`Round ${round}`, { exact: true })).toBeVisible()
+        await expect(page.getByText(new RegExp(`^R${round} · `))).toBeVisible()
         return
     }
-    await expect(page.getByRole('img', { name: new RegExp(`^Round ${round}\\b`) })).toHaveAttribute(
-        'aria-current',
-        'step'
-    )
+    await expect(
+        page.getByRole('listitem', { name: `Round ${round}`, exact: true })
+    ).toHaveAttribute('aria-current', 'step')
 }
 
-/** The turn order track's markers, in order; phones show the seat cards' order instead. */
+/** The seat cards, in turn order, as their names and places. */
 async function shownOrder(page: Page, seats: readonly string[]) {
-    if (isPhone()) {
-        return
-    }
-    for (const [index, seat] of seats.entries()) {
-        const ordinal = ['1st', '2nd', '3rd', '4th', '5th'][index] ?? ''
-        await expect(
-            page.getByRole('img', { name: `${ordinal}: ${seat}`, exact: true })
-        ).toBeVisible()
-    }
+    const cards = page.locator('[data-flight-target^="seat:"]')
+    await expect
+        .poll(() => cards.evaluateAll((all) => all.map((card) => card.getAttribute('aria-label'))))
+        .toEqual(
+            seats.map((seat, index) => `${seat}, ${['1st', '2nd', '3rd', '4th', '5th'][index]}`)
+        )
+}
+
+/** A railroad's card on desktop, or its pile on the phone's rail. */
+function railroadEntry(page: Page, name: string) {
+    return page
+        .getByRole('group', { name: 'Railroads' })
+        .getByRole('button', { name: new RegExp(`^${name}: `) })
 }
 
 test('18. End of round: money order with the tie swapped, round II, Orange; undo reverses it', async ({
@@ -60,8 +63,10 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     expect(await activePlayerId(page)).toBe('p4')
     expect(await turnOrder(page)).toEqual(['p1', 'p2', 'p3', 'p4'])
     await shownRound(page, 1)
-    const orange = page.getByRole('button', { name: /^Orange: / })
-    await expect(orange).toHaveAccessibleName('Orange: available from round 2')
+    // R-1.4: Orange is not shown until its round.
+    const orange = railroadEntry(page, 'Orange')
+    await expect(orange).toHaveCount(0)
+    await expect(railroadEntry(page, 'Blue')).toBeVisible()
 
     // Dell rides the round's last journey, Washington to Baltimore by Blue.
     await pressHex(page, litHex(page, `Washington: ${START}`))
@@ -73,7 +78,7 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     expect(await moneyOf(page, 'p4')).toBe(4)
     expect(await moneyOf(page, 'p2')).toBe(4)
     expect(await turnOrder(page)).toEqual(['p4', 'p2', 'p3', 'p1'])
-    await shownOrder(page, ['Dell, $4', 'Ben, $4', 'Cora, $5', 'Ada, $6'])
+    await shownOrder(page, ['Dell', 'Ben', 'Cora', 'Ada'])
     // R-2.5.2, R-2.5.3: round 2 starts with Orange available, and phase 1 runs in reverse.
     expect(await roundNumber(page)).toBe(2)
     await shownRound(page, 2)
@@ -88,9 +93,9 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     expect(await activePlayerId(page)).toBe('p4')
     expect(await moneyOf(page, 'p4')).toBe(1)
     expect(await moneyOf(page, 'p2')).toBe(3)
-    await shownOrder(page, ['Ada, $6', 'Ben, $3', 'Cora, $5', 'Dell, $1'])
+    await shownOrder(page, ['Ada', 'Ben', 'Cora', 'Dell'])
     await shownRound(page, 1)
-    await expect(orange).toHaveAccessibleName('Orange: available from round 2')
+    await expect(orange).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^Ride/ })).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Choose a passenger' })).toBeVisible()
 })

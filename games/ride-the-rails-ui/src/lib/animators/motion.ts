@@ -203,14 +203,13 @@ export const JOURNEY = {
 
 /**
  * Seconds, from the start of the end of round's step. Contract, Animation plan, End of round:
- * the turn-order markers slide, the round marker steps, then the new railroad's entry brightens.
+ * the round steps to the next ticket, then the railroad made available brightens in.
  */
 export const END_OF_ROUND = {
-    slide: 0.6,
-    /** How far a marker rises or dips as it passes the others, in board units. */
-    slideArc: 14,
     stepsAt: 0.3,
     step: 0.45,
+    /** How high the next round's ticket hops as the round steps to it, in pixels. */
+    hop: 7,
     brightensAt: 0.6,
     brighten: 0.4
 }

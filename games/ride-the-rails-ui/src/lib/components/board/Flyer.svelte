@@ -2,7 +2,6 @@
     import { poseTransform, type Flyer } from '$lib/animators/flights.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexPoints } from '$lib/utils/boardGeometry.js'
-    import { ROUND_TICKET } from '$lib/utils/marginLayout.js'
     import { polylinePoints } from '$lib/utils/routePath.js'
     import CoinChip from './CoinChip.svelte'
     import RailroadPiece from './RailroadPiece.svelte'
@@ -11,9 +10,6 @@
     let { flyer, readable = false }: { flyer: Flyer; readable?: boolean } = $props()
 
     const flights = getGameSession().flights
-
-    // The round marker frames a ticket of the round track.
-    const FRAME = { width: ROUND_TICKET.width + 12, height: ROUND_TICKET.height + 12 }
 </script>
 
 <!-- The animators tween the flyer's outer wrapper; its payload is in board units, centred on the
@@ -33,17 +29,6 @@
             <PassengerFigure />
         {:else if flyer.kind === 'pulse'}
             <circle r={flyer.radius} fill="none" stroke="var(--rtr-ink)" stroke-width="3"></circle>
-        {:else if flyer.kind === 'round'}
-            <rect
-                x={-FRAME.width / 2}
-                y={-FRAME.height / 2}
-                width={FRAME.width}
-                height={FRAME.height}
-                rx="9"
-                fill="none"
-                stroke="var(--rtr-ink)"
-                stroke-width="4"
-            ></rect>
         {:else if flyer.kind === 'outline'}
             <polygon
                 points={hexPoints(flyer.hexId)}

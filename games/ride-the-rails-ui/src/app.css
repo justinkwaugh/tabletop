@@ -83,6 +83,7 @@
     --rtr-panel: #f8f3e4;
     --rtr-panel-raised: #fffdf7;
     --rtr-line: #c9bc98;
+    --rtr-rule: #e0d6c2;
     --rtr-card-edge: #b9ab86;
     --rtr-ink: #2b2418;
     --rtr-ink-muted: #6f6450;
@@ -146,6 +147,7 @@
     --color-rtr-panel: var(--rtr-panel);
     --color-rtr-panel-raised: var(--rtr-panel-raised);
     --color-rtr-line: var(--rtr-line);
+    --color-rtr-rule: var(--rtr-rule);
     --color-rtr-card-edge: var(--rtr-card-edge);
     --color-rtr-ink: var(--rtr-ink);
     --color-rtr-ink-muted: var(--rtr-ink-muted);

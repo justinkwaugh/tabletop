@@ -6,7 +6,8 @@
         HistoryControls,
         DefaultTableLayout,
         CustomFont,
-        GameSession
+        GameSession,
+        type DefaultTab
     } from '@tabletop/frontend-components'
     import type {
         HydratedRideTheRailsGameState,
@@ -14,11 +15,13 @@
     } from '@tabletop/ride-the-rails'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
-    import PhoneRailroadStrip from '$lib/components/PhoneRailroadStrip.svelte'
+    import PhoneSupplyRail from '$lib/components/PhoneSupplyRail.svelte'
+    import RailroadCards from '$lib/components/RailroadCards.svelte'
+    import SideRail from '$lib/components/SideRail.svelte'
     import Board from '$lib/components/Board.svelte'
     import BoardPopups from '$lib/components/board/BoardPopups.svelte'
     import HexDetailCard from '$lib/components/board/HexDetailCard.svelte'
-    import PhoneFlightLayer from '$lib/components/board/PhoneFlightLayer.svelte'
+    import TableFlightLayer from '$lib/components/board/TableFlightLayer.svelte'
     import TableControls from '$lib/components/panel/TableControls.svelte'
     import FullScreenControls from '$lib/components/panel/FullScreenControls.svelte'
     import BoardFocusChooser from '$lib/components/BoardFocusChooser.svelte'
@@ -28,7 +31,7 @@
         BOARD_MAX_FIT_SCALE,
         BOARD_MAX_SCALE
     } from '$lib/utils/boardFocus.js'
-    import { boardInsetTop } from '$lib/utils/phoneLayout.svelte.js'
+    import { boardInsetTop, isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
     import { FITTED_DESKTOP_SCALE, hexBox } from '$lib/utils/boardGeometry.js'
     import { keepFocusedHexInBoard } from '$lib/utils/focusScroll.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
@@ -53,6 +56,15 @@
 
     const session = untrack(() => ensureRideTheRailsGameSession(gameSession))
     setGameSession(session)
+
+    // Contract, Desktop layout: a player may fold the side panel to a rail, and the board grows.
+    let sideFolded = $state(false)
+    let sideTab: DefaultTab | undefined = $state()
+
+    function openSideAt(tab: DefaultTab) {
+        sideTab = tab
+        sideFolded = false
+    }
 
     let wrapper = $state<ScalingWrapper>()
     const focus = new BoardFocusSelection()
@@ -92,7 +104,10 @@
     data-rtr-palette={BOARD_LOOK.palette}
     {@attach session.flights.attachTable}
 >
-    <DefaultTableLayout>
+    <DefaultTableLayout bind:sideFolded>
+        {#snippet foldedSideContent()}
+            <SideRail onopen={openSideAt} />
+        {/snippet}
         {#snippet sideContent()}
             {#if sidePanelHexId}
                 {#key sidePanelHexId}
@@ -109,6 +124,7 @@
                 />
             </div>
             <DefaultTabs
+                bind:selectedTab={sideTab}
                 activeTabClass="py-1 px-3 bg-rtr-panel-raised border-2 border-rtr-line rounded-lg text-rtr-ink"
                 inactiveTabClass="py-1 px-3 rounded-lg border-2 border-transparent text-rtr-ink-muted hover:enabled:border-rtr-line"
             >
@@ -122,32 +138,41 @@
         {/snippet}
         {#snippet gameContent()}
             <div class="shrink-0"><TableControls /></div>
-            <PhoneRailroadStrip />
-            <div class="grow-0 overflow-hidden" style="flex:1;" {@attach keepFocusInBoard}>
-                <ScalingWrapper
-                    bind:this={wrapper}
-                    justify="center"
-                    controls="bottom-left"
-                    maxScale={BOARD_MAX_SCALE}
-                    maxFitScale={BOARD_MAX_FIT_SCALE}
-                    coverBelowScale={BOARD_COVER_BELOW_SCALE}
-                    insetTop={boardInsetTop()}
-                    renderAtViewScale
-                    expandable
-                    onManualViewChange={() => focus.moveByHand()}
+            <!-- One of the two at a time, so each railroad's pile and card are one flight target. -->
+            {#if !isPhoneWidth()}<RailroadCards />{/if}
+            <div class="flex min-h-0 gap-1.5" style="flex:1;">
+                <div
+                    class="min-w-0 grow-0 overflow-hidden"
+                    style="flex:1;"
+                    {@attach keepFocusInBoard}
                 >
-                    <Board viewScale={wrapper?.viewScale() ?? FITTED_DESKTOP_SCALE} />
-                    {#snippet overlay(viewport)}
-                        <BoardFocusChooser {wrapper} {viewport} selection={focus} />
-                    {/snippet}
-                    {#snippet toolbar()}
-                        <!-- Outside the content's CSS zoom, which would shrink and misplace the popups
-                             and the phone's flyers, and inside full screen's dialog. -->
-                        <BoardPopups />
-                        <FullScreenControls />
-                        <PhoneFlightLayer />
-                    {/snippet}
-                </ScalingWrapper>
+                    <ScalingWrapper
+                        bind:this={wrapper}
+                        justify="center"
+                        controls="bottom-left"
+                        maxScale={BOARD_MAX_SCALE}
+                        maxFitScale={BOARD_MAX_FIT_SCALE}
+                        coverBelowScale={BOARD_COVER_BELOW_SCALE}
+                        insetTop={boardInsetTop()}
+                        renderAtViewScale
+                        expandable
+                        onManualViewChange={() => focus.moveByHand()}
+                    >
+                        <Board viewScale={wrapper?.viewScale() ?? FITTED_DESKTOP_SCALE} />
+                        {#snippet overlay(viewport)}
+                            <BoardFocusChooser {wrapper} {viewport} selection={focus} />
+                        {/snippet}
+                        {#snippet toolbar()}
+                            <!-- Outside the content's CSS zoom, which would shrink and misplace the
+                                 popups and the flyers that leave the map, and inside full screen's
+                                 dialog. -->
+                            <BoardPopups />
+                            <FullScreenControls />
+                            <TableFlightLayer />
+                        {/snippet}
+                    </ScalingWrapper>
+                </div>
+                {#if isPhoneWidth()}<PhoneSupplyRail />{/if}
             </div>
         {/snippet}
     </DefaultTableLayout>

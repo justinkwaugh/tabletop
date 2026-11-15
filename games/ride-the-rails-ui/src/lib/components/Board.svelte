@@ -5,12 +5,12 @@
     import { lastJourneyLinks } from '$lib/utils/boardPieces.js'
     import { BUILD_PICK, litHexViews, type PickContext } from '$lib/utils/pickMarks.js'
     import { EMPTY_STAGED_ROUTE } from '$lib/utils/routePath.js'
+    import CityLabelLayer from './board/CityLabelLayer.svelte'
     import CityLayer from './board/CityLayer.svelte'
     import FlightLayer from './board/FlightLayer.svelte'
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
     import LineLayer from './board/LineLayer.svelte'
-    import MarginLayer from './board/MarginLayer.svelte'
     import PassengerLayer from './board/PassengerLayer.svelte'
     import PickLayer from './board/PickLayer.svelte'
     import PopupAnchor, { CHOICE_ANCHOR_ID, DETAIL_ANCHOR_ID } from './board/PopupAnchor.svelte'
@@ -62,13 +62,13 @@
     data-map-board
 >
     <GroundLayer />
-    <CityLayer {viewScale} {litHexIds} />
+    <CityLayer />
     <StartCueLayer />
     <PassengerLayer startCityId={stagedRoute.startCityId} />
     <TrackLayer />
     <LineLayer {lastJourney} />
+    <CityLabelLayer {viewScale} {litHexIds} />
     <ScrimLayer {offer} spotlight={gameSession.spotlightRailroadId} />
-    <MarginLayer {viewScale} />
     <StagedRouteLayer route={stagedRoute} />
     <PickLayer {views} {viewScale} />
     <FlightLayer />

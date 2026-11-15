@@ -256,21 +256,13 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await openScenario(page, 'Transcontinental in reach')
     expect(await activePlayerId(page)).toBe('p1')
     const money = (await moneyOf(page, 'p1')) ?? 0
-    // The medallion sits in the board's margin, which phones leave out; there the railroad strip
-    // shows it once claimed (Phone layout).
-    const phone = test.info().project.use.isMobile === true
-    const claimed = (text: string) =>
-        phone
-            ? expect(
-                  page.getByRole('img', { name: /^Transcontinental: claimed by / })
-              ).toHaveAccessibleName(`Transcontinental: c${text.slice(1)}`)
-            : expect(board(page).getByRole('img', { name: /^Claimed by / })).toHaveAccessibleName(
-                  text
-              )
+    // The Transcontinental's chip in the turn line names the claim, or the terms while open.
+    const chip = page.getByRole('img', { name: /^Transcontinental: / })
+    const claimed = (text: string) => expect(chip).toHaveAccessibleName(`Transcontinental: ${text}`)
     const unclaimed = () =>
-        phone
-            ? expect(page.getByRole('img', { name: /^Transcontinental: / })).toHaveCount(0)
-            : expect(board(page).getByRole('img', { name: /^Unclaimed: / })).toBeVisible()
+        expect(chip).toHaveAccessibleName(
+            'Transcontinental: unclaimed, $12 when every switch is in a city, $8 otherwise'
+        )
     const goldLine = board(page).locator('g.lines polyline[stroke="var(--rtr-gold)"]')
     await unclaimed()
     await expect(goldLine).toHaveCount(0)
@@ -281,7 +273,7 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     const flyers = await flyersDuring(page, () => pressHex(page, denver))
     expect(flyers).toContain('coin $12')
     expect(await moneyOf(page, 'p1')).toBe(money + 12)
-    await claimed('Claimed by Ada for $12')
+    await claimed('claimed by Ada for $12')
     await expect(goldLine).toHaveCount(1)
     // Paid once: no hex offers it again.
     expect((await litLabels(page)).filter((label) => label.includes('Transcontinental'))).toEqual(
@@ -292,7 +284,7 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     const another = (await litLabels(page))[0]
     expect(another).toBeDefined()
     await pressHex(page, litHex(page, another ?? ''))
-    await claimed('Claimed by Ada for $12')
+    await claimed('claimed by Ada for $12')
     await expect(goldLine).toHaveCount(1)
     expect(await moneyOf(page, 'p1')).toBeGreaterThanOrEqual(money + 12)
 
@@ -308,7 +300,7 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await expect(marks(page, '$8')).not.toHaveCount(0)
     await pressHex(page, plain)
     expect(await moneyOf(page, 'p1')).toBe(money + 8)
-    await claimed('Claimed by Ada for $8')
+    await claimed('claimed by Ada for $8')
     await expect(goldLine).toHaveCount(1)
 })
 
