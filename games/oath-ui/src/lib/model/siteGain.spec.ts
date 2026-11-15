@@ -189,7 +189,10 @@ describe('"To your site" shows the favor the Search\'s site play gains (R-5.1.4.
         })
         state.denizensBySite['c1'] = [BIRDSONG, STORYTELLER]
         state.addTokensOn(STORYTELLER, { favor: 1 })
-        expect(await searchLine(state, SALAD)).toEqual(favor(0))
+        // The River is full, so "To your site" waits for a card there picked to discard first.
+        const waiting = (await openSessionOn(tableOf(state))).search
+        waiting.keep(SALAD)
+        expect(waiting.placements.map((option) => option.play)).not.toContain(SearchPlay.Site)
         expect(
             await searchLine(state, SALAD, (draft) => draft.setDiscardFirst(STORYTELLER))
         ).toEqual(favor(1))

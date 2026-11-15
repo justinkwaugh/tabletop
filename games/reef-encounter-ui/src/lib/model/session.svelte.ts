@@ -1,4 +1,8 @@
-import { GameSession, type AnimationContext } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    undoableStagedSelection,
+    type AnimationContext
+} from '@tabletop/frontend-components'
 import type { GameAction, OffsetCoordinates } from '@tabletop/common'
 import {
     ActionType,
@@ -35,10 +39,11 @@ import {
     chooseCylinderAlga,
     chooseCylinderPayment,
     chooseFirstLarvaCube,
+    chooseOpenSeaSpace,
     choosePlacementSquare,
     chooseShrimp,
-    hasManualReefSelection,
     popReefSelection,
+    ReefStageOrder,
     startEating,
     type PolypSource,
     type ReefSelection,
@@ -46,6 +51,7 @@ import {
 } from './stagedSelection.js'
 import { PiecesAnimator } from '$lib/animators/piecesAnimator.js'
 import { tablePieces, type TablePiece } from '$lib/utils/tablePieces.js'
+import { countByColor } from '$lib/utils/actionDescription.js'
 
 const PolypSources: readonly PolypSource[] = ['supply', 'consumed']
 
@@ -63,6 +69,10 @@ export type PlacementTarget = {
     attack: boolean
     searchesBag: boolean
 }
+
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<ReefEncounterProjectedState, HydratedReefEncounterGameState>
+>[0]
 
 export class ReefEncounterGameSession extends GameSession<
     ReefEncounterProjectedState,
@@ -87,6 +97,17 @@ export class ReefEncounterGameSession extends GameSession<
 
     playerAidOpen = $state(false)
 
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                ReefStageOrder,
+                () => this.selection,
+                (selection) => (this.selection = selection)
+            )
+        )
+    }
+
     readonly possessiveName = (playerId: string): string =>
         playerId === this.myPlayer?.id ? 'your' : `${this.getPlayerName(playerId)}'s`
 
@@ -99,7 +120,6 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     private selection: ReefSelection = $state({})
-    readonly hasManualSelection = $derived(hasManualReefSelection(this.selection))
     private readonly canAct = $derived(
         this.isPlayable &&
             !this.isViewingHistory &&
@@ -109,7 +129,7 @@ export class ReefEncounterGameSession extends GameSession<
     readonly canUndo = $derived(
         this.isPlayable &&
             !this.isViewingHistory &&
-            (this.hasManualSelection || Boolean(this.undoableAction))
+            (this.hasLocalSelection || Boolean(this.undoableAction))
     )
 
     readonly isTakingTurn = $derived(
@@ -204,7 +224,8 @@ export class ReefEncounterGameSession extends GameSession<
     })
 
     readonly takeableSpaces: CoralColor[] = $derived.by(() => {
-        if (!this.canTake(ActionType.TakeOpenSeaSpace) || this.turnChoiceOpen) return []
+        if (!this.canTake(ActionType.TakeOpenSeaSpace)) return []
+        if (this.turnChoiceOpen && this.chosenOpenSeaSpace === undefined) return []
         const me = this.myPlayerId()
         return CoralColors.filter((color) => this.gameState.canTakeOpenSeaSpace(me, color))
     })
@@ -216,12 +237,23 @@ export class ReefEncounterGameSession extends GameSession<
     readonly cylinderAlga: AlgaColor | undefined = $derived(this.selection.cylinderAlga?.value)
     readonly choosingCylinder = $derived(this.cylinderPayment !== undefined)
     readonly choosingCoralToEat = $derived(this.selection.eating?.value === true)
+    // Taking a larva space ends the turn and the refill reveals the bag, so it waits for Confirm.
+    readonly chosenOpenSeaSpace: CoralColor | undefined = $derived(
+        this.selection.openSeaSpace?.value
+    )
+    readonly chosenSpacePolyps: [CoralColor, number][] = $derived.by(() => {
+        const space = this.gameState.openSea.find(
+            ({ larvaColor }) => larvaColor === this.chosenOpenSeaSpace
+        )
+        return [...countByColor(space?.polyps ?? [])]
+    })
     // An open choice takes over the table (see the visual contract).
     readonly turnChoiceOpen = $derived(
         this.placementSquare !== undefined ||
             this.shrimpIntent !== undefined ||
             this.choosingCylinder ||
-            this.choosingCoralToEat
+            this.choosingCoralToEat ||
+            this.chosenOpenSeaSpace !== undefined
     )
     readonly canIntroduceShrimp = $derived(this.canTake(ActionType.IntroduceShrimp))
     readonly shrimpsOnBareRock: ReefSquare[] = $derived(
@@ -336,23 +368,6 @@ export class ReefEncounterGameSession extends GameSession<
         await this.piecesAnimator.onGameStateChange(args)
     }
 
-    override beforeNewState() {
-        this.resetAction()
-    }
-
-    resetAction() {
-        this.selection = {}
-    }
-
-    override async undo() {
-        if (!this.canUndo || this.busy) return
-        if (this.hasManualSelection) {
-            this.selection = popReefSelection(this.selection)
-            return
-        }
-        await super.undo()
-    }
-
     async feedParrotfish(color: CoralColor) {
         await this.applyAction(
             this.createPlayerAction(
@@ -396,7 +411,17 @@ export class ReefEncounterGameSession extends GameSession<
         await this.applyPlacement(square, source)
     }
 
-    async takeOpenSeaSpace(larvaColor: CoralColor) {
+    chooseOpenSeaSpace(larvaColor: CoralColor) {
+        this.stage((selection) =>
+            selection.openSeaSpace?.value === larvaColor
+                ? popReefSelection(selection)
+                : chooseOpenSeaSpace(selection, larvaColor)
+        )
+    }
+
+    async confirmOpenSeaSpace() {
+        const larvaColor = this.chosenOpenSeaSpace
+        assertExists(larvaColor, 'Ending the turn needs a chosen larva space')
         await this.applyAction(this.createPlayerAction(TakeOpenSeaSpace, { larvaColor }))
     }
 

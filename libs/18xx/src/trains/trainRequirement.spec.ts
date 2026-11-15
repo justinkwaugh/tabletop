@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { HexOrientation } from '@tabletop/common'
 import { RailwayMap } from '../map/map.js'
 import { RailwayMapState } from '../map/mapState.js'
-import { createCityTileFace } from '../tiles/faces.js'
+import { createCityTileFace, createOffboardTileFace } from '../tiles/faces.js'
 import { TileSet } from '../tiles/inventory.js'
 import type { StationState } from '../map/station.js'
 import { hasStationRoute } from './trainRequirement.js'
@@ -55,4 +55,36 @@ it('counts a full rival city as a destination', () => {
         }))
     }
     expect(hasStationRoute(map(true), rival, 'A')).toBe(true)
+})
+
+it('leaves out offboards where routes need two cities or towns', () => {
+    const ported = new RailwayMapState(
+        new RailwayMap({
+            id: 'train-requirement-port',
+            name: 'Train requirement port',
+            orientation: HexOrientation.Flat,
+            locations: [
+                {
+                    id: '0',
+                    coordinates: { q: 0, r: 0 },
+                    buildable: true,
+                    preprintedTile: createCityTileFace('yellow', [0], 20, 1)
+                },
+                {
+                    id: '1',
+                    coordinates: { q: 0, r: 1 },
+                    buildable: false,
+                    preprintedTile: createOffboardTileFace([3], {
+                        kind: 'fixed',
+                        amount: 20
+                    })
+                }
+            ]
+        }),
+        tiles,
+        tiles.createInventory()
+    )
+    const home: StationState = { stations: [state.stations[0]], stationReservations: [] }
+    expect(hasStationRoute(ported, home, 'A')).toBe(true)
+    expect(hasStationRoute(ported, home, 'A', undefined, true)).toBe(false)
 })

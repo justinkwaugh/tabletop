@@ -91,26 +91,56 @@ describe("Erie's whole-hex home", () => {
         expect(game.state.machineState).toBe('LayingTrack')
     })
 
-    it("upgrades Buffalo to #59 with Erie's station still in its city, once per rotation", () => {
+    it("upgrades Buffalo to #59 with Erie's station in either city, for every rotation", () => {
         const game = erieOperates()
         const construction = new TrackConstruction(
             { ...game.state, phaseId: '3' },
             EighteenThirtyTrackRules
         )
         const choices = construction.choices('E11')
-        expect(choices.length).toBeGreaterThan(0)
-        expect(new Set(choices.map((choice) => choice.rotation)).size).toBe(choices.length)
-        for (const choice of choices) {
-            expect(choice.definitionId).toBe('18xx:59')
-            expect(choice.nodeMapping).toEqual({ 'city-0': 'city-0', 'city-1': 'city-1' })
-            expect(choice.movedStations).toEqual([])
-            expect(construction.stationsAfter(choice).stations).toContainEqual(
-                expect.objectContaining({
-                    id: 'ERIE:home',
-                    position: expect.objectContaining({ locationId: 'E11', nodeId: 'city-0' })
+        const rotations = [...new Set(choices.map((choice) => choice.rotation))]
+        expect(rotations.length).toBeGreaterThan(0)
+        for (const rotation of rotations) {
+            const erieCities = choices
+                .filter((choice) => choice.rotation === rotation)
+                .map((choice) => {
+                    expect(choice.definitionId).toBe('18xx:59')
+                    return construction
+                        .stationsAfter(choice)
+                        .stations.find((station) => station.id === 'ERIE:home')?.position
                 })
+            expect(erieCities).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ locationId: 'E11', nodeId: 'city-0' }),
+                    expect.objectContaining({ locationId: 'E11', nodeId: 'city-1' })
+                ])
             )
+            expect(erieCities).toHaveLength(2)
         }
+    })
+
+    it("offers each rotation once while both Buffalo cities only hold Erie's reservation", () => {
+        const { state } = erieOperates()
+        const choices = new TrackConstruction(
+            {
+                ...state,
+                phaseId: '3',
+                stations: state.stations.map((station) =>
+                    station.id === 'ERIE:home'
+                        ? { id: station.id, companyId: 'ERIE', status: 'available' }
+                        : station
+                ),
+                stationReservations: [
+                    ...state.stationReservations,
+                    { companyId: 'ERIE', locationId: 'E11', nodeId: 'city-0' },
+                    { companyId: 'ERIE', locationId: 'E11', nodeId: 'city-1' }
+                ]
+            },
+            EighteenThirtyTrackRules
+        ).choices('E11')
+        expect(choices.length).toBeGreaterThan(0)
+        const rotations = choices.map((choice) => choice.rotation)
+        expect(new Set(rotations).size).toBe(rotations.length)
     })
 })
 

@@ -152,7 +152,7 @@ Every title's UI package carries its own dev harness, even when a shared playgro
 
 Player Identity is the player ID ([player relationships](../../../docs/DESIGN.md#player-relationships)): changing player colors leaves attribution, rules, scoring, action availability, replay, and undo unchanged. Color may be a rule fact, such as the color of a player's pieces, when relationships are stored against player IDs. Record this item explicitly, reporting each rule where color stands in for a player ID.
 
-Assign untrusted-code violations to gate 1, thumbnail violations to gate 3, forbidden-construct violations to gate 4, animation violations to gates 5 or 6, changed-path violations to gate 7, UI entry weight violations to gate 9, metadata and stored-game compatibility violations to gate 10, tournament setup violations to gate 11, hidden-information violations to gate 12, State shape violations, including a State field that refers to a Player by anything but its ID, to gate 14, and UI that shows anything but the Displayed Game State to gate 15. Report their architectural impact in those gates without duplicating them in gate 8. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
+Assign untrusted-code violations to gate 1, thumbnail violations to gate 3, forbidden-construct violations to gate 4, animation violations to gates 5 or 6, changed-path violations to gate 7, UI entry weight violations to gate 9, metadata and stored-game compatibility violations to gate 10, tournament setup violations to gate 11, hidden-information violations to gate 12, State shape violations, including a State field that refers to a Player by anything but its ID, to gate 14, UI that shows anything but the Displayed Game State to gate 15, and drawing that breaks the phone rendering rules to gate 16. Report their architectural impact in those gates without duplicating them in gate 8. This gate is complete only when every applicable design verification item is recorded as passing, failing, or not applicable with a concrete reason.
 
 ### 9. Metadata-only UI entry
 
@@ -242,6 +242,19 @@ Trace every `production_hits.game_context_read` hit, and every `family_library_h
 
 A `GameContext` type reference passes on its own; judge the value it types. A family library's violation counts against every title that ships it, with the fix in the library.
 
+### 16. Phone rendering
+
+The authority is [phone rendering](../../../docs/phone-rendering.md). This gate records what the title costs an iPhone and checks how it draws; it sets no memory or repaint limit yet, so the measurements are evidence, not a pass mark.
+
+**Measure.** Start the title's harness (`pnpm --filter @tabletop/<slug>-ui exec vite dev --port <free port>`) and run `tools/webkit-probe` against it twice with `--json --repeat 3`, keeping its steps module in `/workspace/tmp/<slug>-readiness/`, outside the title:
+
+- with no scenario or steps: its `open` mark is the empty harness, the reference for the rest;
+- with `--board` set to the board's svg or box, at the heaviest position the title offers: a late-game scenario from `src/scenarios` when there is one, otherwise a game the steps module plays forward inside `quietly`. Mark the position, then `time` the interaction that changes the most of the board, such as the one that highlights every target, dims the other pieces, or opens a panel over the board, and mark after it.
+
+Record the game's memory over the empty harness, steady and peak, at the position and after the interaction, the repaint time, and the interaction's longest frame and settle time. A title that cannot be measured fails this gate.
+
+**Check how it draws.** `render_hazards` lists the title's filters, CSS filters, `feTurbulence`, masks and blends, layer promotion, SVG images, nested positioned `<svg>`s such as sprite frames, animated dashes, touch and wheel listeners added in code, `dominant-baseline`, and `slice` fitting; `family_library_render_hazards` does the same for its family UI libraries. A `render_at_view_scale` hit means the board is zoomed, so the SVG motion rule applies to the title's `gsap` hits. Open each hit and judge it, with the fades and SVG motion in gate 5's animation inventory, against the doc's drawing rules and its cross-browser rules: every effect piece-sized, every texture pre-rendered, every moving element still around it. For a new title every hit is in scope. For a released title the scope is what the change adds or alters; a violation in code the change leaves untouched is a strong recommendation. A family library's violation counts against every title that ships it, with the fix in the library.
+
 ## Report
 
 Return a self-contained Markdown report with:
@@ -250,7 +263,7 @@ Return a self-contained Markdown report with:
 2. a gate summary, one row per gate, with `PASS`, `FAIL`, or `NOT RUN` and violation count;
 3. every violation, grouped by gate, with a stable ID such as `IMG-001`, `CAST-002`, `HIDDEN-001`, or `THREAT-001`;
 4. for each violation: file and line or asset path, observed evidence, violated rule, user-visible or deployment impact, and a concrete remediation;
-5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the CSS scan's scoped-rule count, the exempt harness cast, the declared catalog visibility, the hidden-information decision, the State fields gate 14 recorded, and the reason for every passing `untrusted_code` and `game_context_read` hit;
+5. verification details for passing gates, including the searches/files examined, image/title dimensions, the UI entry's static graph files and bytes, the CSS scan's scoped-rule count, the exempt harness cast, the declared catalog visibility, the hidden-information decision, the State fields gate 14 recorded, gate 16's measurements, and the reason for every passing `untrusted_code` and `game_context_read` hit;
 6. strong recommendations in a separate non-blocking section, excluded from gate violation counts and the readiness verdict;
 7. an uncertainty section. Any unresolved uncertainty that prevents proving a gate passes makes that gate fail.
 

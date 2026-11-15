@@ -44,6 +44,7 @@ function fixture() {
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
+        sendContentReportEmail: unused,
         sendGameInvitationEmail: unused,
         sendGameEndEmail: unused
     }
@@ -198,5 +199,34 @@ describe('offensive names on public games', () => {
         await expect(
             service.updateGame({ gameId: 'game', fields: { name: OFFENSIVE }, user: owner })
         ).resolves.toMatchObject({ name: OFFENSIVE })
+    })
+})
+
+describe('an administrator renaming a game to take its name down', () => {
+    it('renames a game already in play, where the owner could not', async () => {
+        const { service, store } = fixture()
+        const started = waitingGame({ name: OFFENSIVE, status: GameStatus.Started })
+        acceptUpdates(store, started)
+
+        const renamed = await service.renameGameAsAdministrator({
+            gameId: 'game',
+            name: '  Renamed by a moderator ',
+            administrator: admin
+        })
+
+        expect(renamed.name).toBe('Renamed by a moderator')
+        expect(store.updateGame).toHaveBeenCalledWith(
+            expect.objectContaining({ fields: { name: 'Renamed by a moderator' } })
+        )
+    })
+
+    it('refuses an empty name', async () => {
+        const { service, store } = fixture()
+        acceptUpdates(store, waitingGame({ status: GameStatus.Started }))
+
+        await expect(
+            service.renameGameAsAdministrator({ gameId: 'game', name: '   ', administrator: admin })
+        ).rejects.toThrow()
+        expect(store.updateGame).not.toHaveBeenCalled()
     })
 })

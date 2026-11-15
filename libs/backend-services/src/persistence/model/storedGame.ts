@@ -10,7 +10,8 @@ export const StoredGame = Type.Evaluate(
             'deletedAt',
             'autoStartAt',
             'startedAt',
-            'finishedAt'
+            'finishedAt',
+            'turnStartedAt'
         ]),
         Type.Object({
             userIds: Type.Array(Type.String()),
@@ -21,6 +22,7 @@ export const StoredGame = Type.Evaluate(
             startedAt: Type.Optional(Type.Any()),
             finishedAt: Type.Optional(Type.Any()),
             lastActionAt: Type.Optional(Type.Any()),
+            turnStartedAt: Type.Optional(Type.Record(Type.String(), Type.Any())),
             actionChunkSize: Type.Number()
         })
     ])

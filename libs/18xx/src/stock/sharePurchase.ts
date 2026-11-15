@@ -26,6 +26,7 @@ import {
 import {
     certificateLimitAllows,
     stockCertificateCount,
+    presidencyExchangeTerms,
     purchaseOwnershipCeiling,
     type StockRules
 } from './stockRules.js'
@@ -41,7 +42,8 @@ export const SharePurchaseDetails = Type.Object(
         buyer: Owner,
         seller: Owner,
         poolId: Type.Optional(Type.String()),
-        price: Type.Integer({ minimum: 1 }),
+        /** Nothing where a certificate is taken up in exchange, as 1822's LNWR concession. */
+        price: Type.Integer({ minimum: 0 }),
         payments: Type.Array(CashPayment),
         presidency: Type.Optional(PresidencyChange),
         presidencyClaim: Type.Optional(PresidencyClaim),
@@ -146,7 +148,7 @@ export function evaluateShareTransfer(
         company.id,
         rules.presidencyCandidates(state, company.id),
         undefined,
-        rules.presidencyExchangeLargestFirst
+        presidencyExchangeTerms(rules)
     )
     if (presidency.reason) return { reason: presidency.reason }
     if (presidency.claim) applyPresidencyClaim(projected, presidency.claim)

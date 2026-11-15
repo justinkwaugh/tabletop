@@ -58,7 +58,7 @@ for (const { name, viewport, phone } of SIZES) {
     test.describe(`Fae Merchant sends the Obsidian Cage down, on a ${name}`, () => {
         test.use({ viewport })
 
-        test('the Cage opens the second step: a row per Imperial board, none placed, "Return them" disabled', async ({
+        test('the Cage opens the second step: a row per Imperial board, none placed, no "Return them" yet', async ({
             page
         }) => {
             await openTable(page, 'askFaeMerchantCage')
@@ -74,7 +74,7 @@ for (const { name, viewport, phone } of SIZES) {
                     await expect(piece(page, count, seat)).toBeEnabled()
                 }
             }
-            await expect(returnThem(page)).toBeDisabled()
+            await expect(returnThem(page)).toHaveCount(0)
             await expect(cageCard(page)).toHaveCount(0)
         })
 
@@ -124,7 +124,7 @@ for (const { name, viewport, phone } of SIZES) {
             expect((await call(page, 'tableFacts')).boardOf.ann).toEqual({ imperial: 2 })
         })
 
-        test('three Imperial boards: no row fills another, and "Return them" waits until both are placed', async ({
+        test('three Imperial boards: no row fills another, and "Return them" shows only once both are placed', async ({
             page
         }) => {
             await openTable(page, 'askFaeMerchantCageThree')
@@ -134,7 +134,7 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(piece(page, 1, 'rhys')).toHaveAttribute('aria-pressed', 'false')
             await expect(piece(page, 1, 'bea')).toHaveAttribute('aria-pressed', 'false')
             await expect(piece(page, 2, 'bea')).toBeDisabled()
-            await expect(returnThem(page)).toBeDisabled()
+            await expect(returnThem(page)).toHaveCount(0)
             await piece(page, 1, 'bea').click()
             await expect(returnThem(page)).toBeEnabled()
             await returnThem(page).click()

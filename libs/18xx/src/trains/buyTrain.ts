@@ -13,6 +13,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
+import { LoanRecord } from '../loans/loans.js'
 import {
     TrainPurchase,
     TrainPurchaseRequest,
@@ -38,7 +39,9 @@ export const BuyTrain = Type.Object(
                 {
                     ...TrainPurchaseDetails.properties,
                     companyChanges: Type.Optional(CompanyChanges),
-                    departurePayments: DeparturePayments
+                    departurePayments: DeparturePayments,
+                    /** The loans taken to pay for the train. */
+                    loans: Type.Optional(Type.Array(LoanRecord))
                 },
                 { additionalProperties: false }
             )
@@ -88,11 +91,15 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         assert(result.details, result.reason ?? 'Invalid train purchase')
         assert(result.details.price === this.expectedPrice, 'Train price has changed')
         const companies = new CompanyChangeRecorder(state)
+        const loans = this.#rules.borrowing?.allowed(state, this)
+            ? this.#rules.borrowing.loans.borrowFor(state, this.companyId, result.details.price)
+            : []
         const payments = applyTrainPurchase(state, result.details, this.#rules)
         this.metadata = {
             companyChanges: companies.changes(state),
             ...result.details,
-            ...departurePaymentsField(payments)
+            ...departurePaymentsField(payments),
+            ...(loans.length ? { loans } : {})
         }
     }
 }
@@ -109,12 +116,9 @@ export function applyTrainPurchase(
             amount: details.price
         }
     ])
-    if (details.exchangeTrainId)
-        releaseTrains(
-            state.trainInventory,
-            [details.exchangeTrainId],
-            rules.exchangedTrainDestination ?? 'market'
-        )
+    const exchangeDestination = rules.exchangedTrainDestination ?? 'market'
+    if (details.exchangeTrainId && exchangeDestination !== 'depot')
+        releaseTrains(state.trainInventory, [details.exchangeTrainId], exchangeDestination)
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
     const payments = settleTrainDepartures(state, rules, [
         { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }
@@ -123,6 +127,9 @@ export function applyTrainPurchase(
         kind: 'company',
         companyId: details.companyId
     })
+    // A certificate turned over goes back once the new train has left the depot.
+    if (details.exchangeTrainId && exchangeDestination === 'depot')
+        rules.depot.restock(state.trainInventory, details.exchangeTrainId)
     if (state.trainPurchaseStep?.companyId === details.companyId) {
         state.trainPurchaseStep.purchasedTrainIds.push(details.trainId)
         if (details.exchangeTrainId)

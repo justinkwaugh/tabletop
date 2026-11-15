@@ -1,6 +1,7 @@
 import { isValidStorageId } from '../stores/storageId.js'
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
+    deletedAccountRecord,
     accountStatusAfterCompletionCheck,
     BaseError,
     canHoldAuthenticatedSession,
@@ -31,13 +32,19 @@ import {
     UnknownStorageError
 } from '../stores/errors.js'
 
-import { UserStore, type PasswordUpdateOptions } from '../stores/userStore.js'
+import {
+    UserStore,
+    type AbandonedSignUpDeletion,
+    type PasswordUpdateOptions
+} from '../stores/userStore.js'
 import type { SiteStatsUserSource } from '../stores/siteStatsStore.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
 import { TransactionParticipant } from '../stores/transaction.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 import type { CacheWriteLocks } from '../../cache/cacheWriteScope.js'
+
+const AGE_CONFIRMATION_INTRODUCED_AT = new Date('2026-11-12T00:00:00Z')
 
 export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
     readonly users: CollectionReference<StoredUser>
@@ -217,12 +224,17 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    async createUser(user: User, password?: string): Promise<User> {
+    async createUser(
+        user: User,
+        password?: string,
+        { confirmAge = false }: { confirmAge?: boolean } = {}
+    ): Promise<User> {
         const newStoredUser = structuredClone(user) as StoredUser
 
         // Set dates
         newStoredUser.createdAt = new Date()
         newStoredUser.updatedAt = new Date()
+        if (confirmAge) newStoredUser.ageConfirmedAt = newStoredUser.createdAt
 
         // Clean username
         if (newStoredUser.username) {
@@ -280,7 +292,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 }
             }
 
-            console.log('creating: ', newStoredUser)
             transaction.create(this.users.doc(newStoredUser.id), newStoredUser)
             return newStoredUser
         }
@@ -342,7 +353,8 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         password,
         currentPassword,
         validator,
-        participant
+        participant,
+        confirmAge = false
     }: {
         userId: string
         fields: Partial<User>
@@ -350,6 +362,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         currentPassword?: string
         validator?: UpdateValidator<StoredUser>
         participant?: TransactionParticipant
+        confirmAge?: boolean
     }): Promise<[User, string[], User]> {
         const updateFields = structuredClone(fields) as Partial<StoredUser>
 
@@ -401,6 +414,9 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                         return [existingUser, [], existingUser]
                 }
             }
+            if (existingUser.status === UserStatus.Deleted) {
+                return [existingUser, [], existingUser]
+            }
 
             // If a current password was provided, check it
             if (
@@ -426,6 +442,12 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 fieldsToUpdate.emailVerified ??= false
 
                 updatedFields.push('email')
+            }
+
+            if (confirmAge && !existingUser.ageConfirmedAt) {
+                fieldsToUpdate.ageConfirmedAt = new Date()
+                updatedUser.ageConfirmedAt = fieldsToUpdate.ageConfirmedAt
+                updatedFields.push('ageConfirmedAt')
             }
 
             if (fieldsToUpdate.preferences) {
@@ -493,7 +515,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
 
             const status = accountStatusAfterCompletionCheck(
                 updatedUser.status,
-                this.satisfiesAccountCompletion(updatedUser)
+                this.satisfiesAccountCompletion(updatedUser, existingUser)
             )
             if (status !== updatedUser.status) {
                 fieldsToUpdate.status = status
@@ -656,8 +678,22 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    private satisfiesAccountCompletion(user: StoredUser): boolean {
-        return Boolean(user.cleanUsername && user.email && user.emailVerified === true)
+    private satisfiesAccountCompletion(user: StoredUser, existingUser: StoredUser): boolean {
+        return Boolean(
+            user.cleanUsername &&
+            user.email &&
+            user.emailVerified === true &&
+            (user.ageConfirmedAt || this.predatesAgeConfirmation(existingUser))
+        )
+    }
+
+    // Accounts created or activated before Age Confirmation was introduced are not asked for it.
+    private predatesAgeConfirmation(user: StoredUser): boolean {
+        return (
+            Boolean(user.activatedAt) ||
+            user.status === UserStatus.Active ||
+            (user.createdAt instanceof Date && user.createdAt < AGE_CONFIRMATION_INTRODUCED_AT)
+        )
     }
 
     private async findByUsernameIncludingPasswordHash(
@@ -696,6 +732,98 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         delete user.passwordHash
         delete user.cleanUsername
         return user
+    }
+
+    async deleteUser(
+        userId: string,
+        validate?: (existing: StoredUser) => void
+    ): Promise<[User, User]> {
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<[StoredUser, StoredUser]> => {
+            const existing = (await transaction.get(this.users.doc(userId))).data()
+            this.recordRead()
+            if (!existing) throw new NotFoundError({ type: 'User', id: userId })
+            validate?.(existing)
+
+            const now = new Date()
+            const tombstone: StoredUser = {
+                ...deletedAccountRecord(existing, now),
+                createdAt: existing.createdAt
+            }
+            this.releaseReservations(transaction, existing)
+            transaction.set(this.users.doc(userId), tombstone)
+            return [tombstone, existing]
+        }
+
+        try {
+            const [tombstone, existing] = await this.cacheService.lockWhileWriting(
+                [this.makeUserCacheKey(userId)],
+                async () => this.users.firestore.runTransaction(transactionBody)
+            )
+            return [this.sanitize(tombstone), this.sanitize(existing)]
+        } catch (error) {
+            this.handleError(error, userId)
+        }
+    }
+
+    async findIncompleteUsers(): Promise<User[]> {
+        try {
+            const snapshot = await this.users.where('status', '==', UserStatus.Incomplete).get()
+            this.recordRead(Math.max(1, snapshot.size))
+            return snapshot.docs.map((document) => this.sanitize(document.data()))
+        } catch (error) {
+            this.handleError(error, UserStatus.Incomplete)
+        }
+    }
+
+    async deleteAbandonedSignUp(
+        userId: string,
+        isAbandoned: (existing: StoredUser) => boolean
+    ): Promise<AbandonedSignUpDeletion> {
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<AbandonedSignUpDeletion> => {
+            const existing = (await transaction.get(this.users.doc(userId))).data()
+            this.recordRead()
+            if (!existing) return 'missing'
+            if (!isAbandoned(existing)) return 'kept'
+            this.releaseReservations(transaction, existing)
+            transaction.delete(this.users.doc(userId))
+            return 'deleted'
+        }
+
+        try {
+            return await this.cacheService.lockWhileWriting(
+                [this.makeUserCacheKey(userId)],
+                async () => this.users.firestore.runTransaction(transactionBody)
+            )
+        } catch (error) {
+            this.handleError(error, userId)
+        }
+    }
+
+    private releaseReservations(
+        transaction: FirebaseFirestore.Transaction,
+        existing: StoredUser
+    ): void {
+        if (existing.cleanUsername) {
+            transaction.delete(this.userUsernames.doc(existing.cleanUsername))
+        }
+        if (existing.email) transaction.delete(this.userEmails.doc(existing.email))
+        for (const externalId of existing.externalIds) {
+            transaction.delete(this.userExternalIds.doc(externalId))
+        }
+    }
+
+    async deletePreferences(userId: string): Promise<void> {
+        try {
+            await this.users.firestore.recursiveDelete(
+                this.users.doc(userId).collection('preferences')
+            )
+        } catch (error) {
+            this.handleError(error, userId)
+        }
     }
 
     async hashPassword(password: string) {
@@ -775,6 +903,7 @@ const userConverter = {
         data.updatedAt = toDate(data.updatedAt)
         data.deletedAt = toDate(data.deletedAt)
         data.activatedAt = toDate(data.activatedAt)
+        data.ageConfirmedAt = toDate(data.ageConfirmedAt)
 
         return data
     }

@@ -12,9 +12,11 @@
         type FinancialState,
         type TrainState,
         type StationState,
+        type Train,
         type TrainDepot,
         isObsoleteTrain
     } from '@tabletop/18xx'
+    import type { TrainTokens } from '../session/titlePresentation.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -27,6 +29,7 @@
         gameState,
         trainDepot,
         trainColors,
+        trainTokens,
         requiresTrain,
         appearances,
         currentCompanyId,
@@ -45,6 +48,7 @@
         gameState: Pick<FinancialState, 'cash'> & TrainState & StationState
         trainColors: Readonly<Record<string, string>>
         trainDepot: TrainDepot
+        trainTokens?: (train: Train) => TrainTokens | undefined
         requiresTrain: (companyId: string) => boolean
         appearances: Readonly<Record<string, StationAppearance>>
         currentCompanyId?: string
@@ -141,7 +145,8 @@
                     id: train.id,
                     color: trainColors[train.definitionId],
                     name: trainDepot.trainDefinition(train.definitionId).name,
-                    obsolete: isObsoleteTrain(train)
+                    obsolete: isObsoleteTrain(train),
+                    tokens: trainTokens?.(train)
                 })),
                 remainingTokens: gameState.stations.filter(
                     (station) => station.companyId === company.id && station.status === 'available'
@@ -212,6 +217,7 @@
                                         name={train.name}
                                         color={train.color}
                                         obsolete={train.obsolete}
+                                        tokens={train.tokens}
                                     />
                                 {:else}
                                     <span

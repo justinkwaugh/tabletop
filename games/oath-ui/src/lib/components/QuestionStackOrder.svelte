@@ -15,12 +15,13 @@
 </script>
 
 <QuestionForm>
-    {#snippet line()}Tap to discard; the last goes on top.{/snippet}
+    {#snippet line()}Tap to discard, bottom first.{/snippet}
     <div class="flex flex-wrap gap-2 mb-2">
         <DiscardOrderCards
             cards={draft.stackCards}
             tapped={draft.stackTapped}
             {busy}
+            underTop={draft.stackUnderTop}
             ontap={(cardId) => draft.tapStack(cardId)}
         />
     </div>

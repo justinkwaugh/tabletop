@@ -13,7 +13,10 @@ export function playMachineState(state: HydratedNapoleonsTriumphGameState): Mach
     if (state.victory !== undefined) {
         return MachineState.EndOfGame
     }
-    return state.attack ? attackStep(state.attack) : MachineState.Commanding
+    if (state.attack) {
+        return attackStep(state.attack)
+    }
+    return state.roadMarch?.stopped ? MachineState.EndingRide : MachineState.Commanding
 }
 
 export abstract class StepStateHandler implements MachineStateHandler<

@@ -28,6 +28,13 @@ export interface CreateTokenOptions<T> {
     expiresInSeconds?: number
 }
 
+const CHALLENGE_TYPES: AuthenticationChallengeClaim['type'][] = [
+    TokenType.PasswordReset,
+    TokenType.EmailVerification,
+    TokenType.EmailChange,
+    TokenType.SensitiveChange
+]
+
 export class TokenService {
     constructor(
         private readonly tokenStore: TokenStore,
@@ -111,6 +118,10 @@ export class TokenService {
 
     async cancelChallenge(identity: Pick<AuthenticationChallengeClaim, 'type' | 'userId'>) {
         await this.tokenStore.delete(this.challengeKey(identity))
+    }
+
+    async cancelAllChallenges(userId: string) {
+        await Promise.all(CHALLENGE_TYPES.map((type) => this.cancelChallenge({ type, userId })))
     }
 
     consumeChallenge(

@@ -134,6 +134,27 @@ describe('TabletopApi title activity', () => {
     })
 })
 
+describe('TabletopApi series activity', () => {
+    test('requests the activity of a series', async () => {
+        const fetch = vi.fn<typeof globalThis.fetch>()
+        fetch.mockResolvedValueOnce(
+            new Response(
+                JSON.stringify({
+                    payload: { activity: { open: [], inProgress: [], recentlyFinished: [] } }
+                })
+            )
+        )
+        vi.stubGlobal('fetch', fetch)
+        const api = new TabletopApi()
+        await expect(api.getSeriesActivity('18xx')).resolves.toEqual({
+            open: [],
+            inProgress: [],
+            recentlyFinished: []
+        })
+        expect(String(fetch.mock.calls[0][0])).toContain('/games/series-activity/18xx')
+    })
+})
+
 describe('TabletopApi undo compatibility', () => {
     test('derives the processed replay when an older host omits it', async () => {
         const game = Value.Create(Game)

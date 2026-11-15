@@ -1,21 +1,19 @@
 import { readFile } from 'node:fs/promises'
 import { beforeAll, expect, it } from 'vitest'
-import { HexOrientation, assert } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
-    RailwayMap,
-    TileSet,
-    TrainDepot,
     createCityTileFace as city,
     createTownTileFace as town,
     createTrackTileFace as track,
     createOffboardTileFace as offboard,
     createStagedTileRevenue as staged,
+    type TileEdge,
     type TileFace,
-    type TrainDistance,
-    type TrainRunningState,
-    type RouteRules
+    type TrackGauge,
+    type TrainDistance
 } from '@tabletop/18xx'
 import { Autorouter, routeProblemKey } from './autorouter.js'
+import { linePosition as position } from './testing/linePosition.js'
 import { exhaustiveRevenue } from './testing/exhaustiveRevenue.js'
 
 let router: Autorouter
@@ -23,73 +21,6 @@ beforeAll(async () => {
     const bytes = await readFile(new URL('../esm/solver.wasm', import.meta.url))
     router = await Autorouter.create(new Uint8Array(bytes).buffer)
 })
-function position(
-    faces: TileFace[],
-    distances: TrainDistance[],
-    stopGroups: Readonly<Record<number, string>> = {},
-    routeRules: Partial<RouteRules> = {}
-) {
-    const tileSet = new TileSet({ id: 'empty', entries: [] }, [])
-    const depot = new TrainDepot({
-        id: 'test',
-        trains: distances.map((distance, id) => ({
-            id: String(id),
-            name: String(id),
-            price: 0,
-            distance
-        })),
-        supply: []
-    })
-    const rules: RouteRules = {
-        map: new RailwayMap({
-            id: 'test',
-            name: 'Test',
-            orientation: HexOrientation.Flat,
-            locations: faces.map((preprintedTile, r) => ({
-                id: String(r),
-                coordinates: { q: 0, r },
-                preprintedTile,
-                buildable: true,
-                ...(stopGroups[r] ? { stopGroup: stopGroups[r] } : {})
-            }))
-        }),
-        tileSet,
-        depot,
-        requiresCity: (train) => train.distance.measure === 'cities-and-offboards',
-        revenueStage: (state) => [state.phaseId],
-        ...routeRules
-    }
-    const state: TrainRunningState = {
-        bank: { name: 'Bank' },
-        companies: [{ id: 'A', name: 'A', kind: 'major', shareCount: 10 }],
-        cash: [],
-        certificates: [],
-        certificatePools: [],
-        stations: [
-            {
-                id: 'home',
-                companyId: 'A',
-                status: 'placed',
-                position: { locationId: '0', nodeId: 'city', slot: 0 }
-            }
-        ],
-        stationReservations: [],
-        tileInventory: tileSet.createInventory(),
-        trainInventory: {
-            depotId: 'test',
-            nextTrainNumber: 1,
-            trains: distances.map((_, id) => ({
-                id: String(id),
-                definitionId: String(id),
-                status: 'owned',
-                owner: { kind: 'company', companyId: 'A' }
-            }))
-        },
-        phaseId: 'yellow',
-        routeStep: { companyId: 'A' }
-    }
-    return { state, rules }
-}
 it('counts H crossings through corridors rather than revenue centers', () => {
     const { state, rules } = position(
         [
@@ -590,4 +521,178 @@ it('adds the best value of the route’s other stops where a title asks', () => 
     expect(result.exhaustive).toBe(true)
     expect(result.result.revenue).toBe(120)
     expect(result.result.revenue).toBe(exhaustiveRevenue(state, rules, 'A'))
+})
+
+type Exit = readonly [TileEdge, TrackGauge | undefined]
+function gaugedStop(
+    kind: 'city' | 'town' | 'offboard' | 'junction',
+    revenue: number,
+    exits: readonly Exit[]
+): TileFace {
+    const nodeId = kind === 'city' ? 'city' : kind
+    return {
+        color: 'yellow',
+        labels: [],
+        nodes: [
+            kind === 'junction'
+                ? { id: nodeId, kind }
+                : kind === 'city'
+                  ? {
+                        id: nodeId,
+                        kind,
+                        stationSlots: 2,
+                        revenue: { kind: 'fixed', amount: revenue }
+                    }
+                  : { id: nodeId, kind, revenue: { kind: 'fixed', amount: revenue } }
+        ],
+        paths: exits.map(([edge, gauge], index) => ({
+            id: `exit-${index}`,
+            endpoints: [
+                { kind: 'edge', edge },
+                { kind: 'node', nodeId }
+            ],
+            ...(gauge ? { gauge } : {})
+        }))
+    }
+}
+function parallelLines(gauges: readonly (TrackGauge | undefined)[]): TileFace {
+    return {
+        color: 'yellow',
+        labels: [],
+        nodes: [],
+        paths: gauges.map((gauge, index) => ({
+            id: `line-${index}`,
+            endpoints: [
+                { kind: 'edge', edge: 3 },
+                { kind: 'edge', edge: 0 }
+            ],
+            ...(gauge ? { gauge } : {})
+        }))
+    }
+}
+const OrdinaryHex = (maximum: number): TrainDistance => ({
+    measure: 'hex-edges',
+    maximum,
+    gaugeWeights: { standard: 1, narrow: 2 }
+})
+const ReverseHex = (maximum: number): TrainDistance => ({
+    measure: 'hex-edges',
+    maximum,
+    gaugeWeights: { standard: 2, narrow: 1 }
+})
+// Any distance but never on narrow gauge, as 1849's E train (§14.3).
+const StandardOnlyHex: TrainDistance = {
+    measure: 'hex-edges',
+    maximum: 'unlimited',
+    standardGaugeOnly: true
+}
+it('keeps a standard-gauge train off narrow track, though not dual', () => {
+    const narrow = position(
+        [gaugedStop('city', 20, [[0, 'narrow']]), gaugedStop('city', 50, [[3, 'narrow']])],
+        [StandardOnlyHex]
+    )
+    expect(router.solve(narrow.state, narrow.rules, 'A').result.revenue).toBe(0)
+    const dual = position(
+        [gaugedStop('city', 20, [[0, 'dual']]), gaugedStop('city', 50, [[3, 'dual']])],
+        [StandardOnlyHex]
+    )
+    expect(router.solve(dual.state, dual.rules, 'A').result.revenue).toBe(70)
+})
+it('changes gauge only at stops and weighs each stretch by its gauge', () => {
+    const through = position(
+        [
+            gaugedStop('city', 20, [[0, 'narrow']]),
+            parallelLines(['dual']),
+            gaugedStop('city', 50, [[3, undefined]])
+        ],
+        [OrdinaryHex(8)]
+    )
+    expect(router.solve(through.state, through.rules, 'A').result.revenue).toBe(0)
+    const atTown = position(
+        [
+            gaugedStop('city', 20, [[0, 'narrow']]),
+            gaugedStop('town', 10, [
+                [3, 'dual'],
+                [0, 'dual']
+            ]),
+            gaugedStop('city', 50, [
+                [3, undefined],
+                [0, undefined]
+            ]),
+            gaugedStop('town', 10, [[3, undefined]])
+        ],
+        [OrdinaryHex(3), ReverseHex(3)]
+    )
+    const result = router.solve(atTown.state, atTown.rules, 'A')
+    expect(result.result.revenue).toBe(exhaustiveRevenue(atTown.state, atTown.rules, 'A'))
+    expect(result.result.revenue).toBe(80)
+    expect(result.result.routes[0].distance).toBe(3)
+})
+it('needs the cities and towns a title asks of a route, not counting offboards', () => {
+    const faces = [
+        gaugedStop('city', 20, [[0, undefined]]),
+        gaugedStop('offboard', 40, [[3, undefined]])
+    ]
+    const without = position(faces, [OrdinaryHex(2)])
+    expect(router.solve(without.state, without.rules, 'A').result.revenue).toBe(60)
+    const required = position(faces, [OrdinaryHex(2)], {}, { minimumCitiesAndTowns: 2 })
+    expect(router.solve(required.state, required.rules, 'A').result.revenue).toBe(0)
+    expect(exhaustiveRevenue(required.state, required.rules, 'A')).toBe(0)
+    const withTown = position(
+        [
+            faces[0],
+            gaugedStop('town', 10, [
+                [3, undefined],
+                [0, undefined]
+            ]),
+            faces[1]
+        ],
+        [OrdinaryHex(2)],
+        {},
+        { minimumCitiesAndTowns: 2 }
+    )
+    expect(router.solve(withTown.state, withTown.rules, 'A').result.revenue).toBe(70)
+})
+it('matches exhaustive route enumeration on random mixed-gauge lines', () => {
+    let seed = 1849
+    const random = () => {
+        seed = (seed + 0x6d2b79f5) | 0
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+    const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)]
+    const gauges = [undefined, 'narrow', 'dual'] as const
+    const exits = (edge: TileEdge): Exit[] =>
+        Array.from({ length: 1 + Math.floor(random() * 2) }, () => [edge, pick(gauges)])
+    for (let trial = 0; trial < 60; trial++) {
+        const middle = Array.from({ length: 2 + Math.floor(random() * 3) }, (): TileFace => {
+            const kind = pick(['line', 'line', 'city', 'town', 'junction'] as const)
+            if (kind === 'line')
+                return parallelLines(
+                    Array.from({ length: 1 + Math.floor(random() * 2) }, () => pick(gauges))
+                )
+            return gaugedStop(kind, 10 * (1 + Math.floor(random() * 5)), [...exits(3), ...exits(0)])
+        })
+        const faces = [
+            gaugedStop('city', 20, exits(0)),
+            ...middle,
+            gaugedStop(pick(['city', 'town', 'offboard'] as const), 40, exits(3))
+        ]
+        const { state, rules } = position(
+            faces,
+            [
+                OrdinaryHex(2 + Math.floor(random() * 5)),
+                ReverseHex(2 + Math.floor(random() * 5)),
+                ...(random() < 0.5 ? [StandardOnlyHex] : [])
+            ],
+            {},
+            random() < 0.5 ? { minimumCitiesAndTowns: 2 } : {}
+        )
+        const result = router.solve(state, rules, 'A')
+        expect(result.exhaustive).toBe(true)
+        expect(result.result.revenue, JSON.stringify(faces)).toBe(
+            exhaustiveRevenue(state, rules, 'A')
+        )
+    }
 })

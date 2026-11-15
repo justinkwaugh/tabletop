@@ -30,6 +30,9 @@
 
     let { overThePieces = false }: { overThePieces?: boolean } = $props()
 
+    const STAY_RING_GAP = 6
+    const STAY_RING_WIDTH = 16
+
     const gameSession = getGameSession()
 
     const targets = $derived(gameSession.targets)
@@ -42,6 +45,8 @@
     const steps = $derived(targets.filter((target) => target.kind === TargetKind.Way))
     const destination = $derived(gameSession.destination)
     const attacks = $derived(targets.filter((target) => target.kind === TargetKind.Attack))
+    const stay = $derived(targets.find((target) => target.kind === TargetKind.Stay))
+    const rideEndSprite = $derived(gameSession.rideEndSprite)
 
     const arrowScale = $derived(attackMarkerScale(gameSession.zoom))
 
@@ -142,6 +147,28 @@
         ></polygon>
     {/each}
 {:else}
+    {#if stay && rideEndSprite}
+        {@const { x, y } = rideEndSprite.centre}
+        {@const inner = rideEndSprite.radius + STAY_RING_GAP}
+        {@const outer = inner + STAY_RING_WIDTH}
+        <g
+            role="button"
+            tabindex="0"
+            aria-label="Stay in reserve"
+            class="nt-target-stay"
+            data-stay={stay.position.locale}
+            onclick={(event) => choose(event, stay)}
+            onkeydown={(event) => event.key === 'Enter' && choose(event, stay)}
+        >
+            <path
+                d="M{x - outer} {y} a{outer} {outer} 0 1 0 {outer *
+                    2} 0 a{outer} {outer} 0 1 0 {-outer * 2} 0 M{x -
+                    inner} {y} a{inner} {inner} 0 1 1 {inner * 2} 0 a{inner} {inner} 0 1 1 {-inner *
+                    2} 0Z"
+                class="nt-target-approach nt-target-stay-ring"
+            ></path>
+        </g>
+    {/if}
     {#each approaches as target (target.key)}
         <g
             role="button"
@@ -278,8 +305,17 @@
         cursor: pointer;
     }
 
-    .nt-target-approach:hover {
+    .nt-target-approach:hover,
+    .nt-target-stay:hover .nt-target-approach {
         fill: rgba(246, 222, 120, 0.85);
+    }
+
+    .nt-target-stay {
+        cursor: pointer;
+    }
+
+    .nt-target-stay-ring {
+        fill-rule: evenodd;
     }
 
     .nt-target-attack {

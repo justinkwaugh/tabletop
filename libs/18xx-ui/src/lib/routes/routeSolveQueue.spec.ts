@@ -54,6 +54,60 @@ describe('RouteSolveQueue', () => {
         await expect(answer).resolves.toEqual({ error: 'The route solver could not finish.' })
     })
 
+    it('keeps its worker from one answer to the next request', async () => {
+        const workers: FakeWorker[] = []
+        const queue = new RouteSolveQueue(() => {
+            const worker = new FakeWorker()
+            workers.push(worker)
+            return worker
+        })
+        const first = queue.solve(request)
+        workers[0].dispatchEvent(new MessageEvent('message', { data: { error: 'first' } }))
+        await expect(first).resolves.toEqual({ error: 'first' })
+        const second = queue.solve(request)
+        workers[0].dispatchEvent(new MessageEvent('message', { data: { error: 'second' } }))
+        await expect(second).resolves.toEqual({ error: 'second' })
+        expect(workers).toHaveLength(1)
+        expect(workers[0].terminated).toBe(false)
+    })
+
+    it('drops a cancelled request that was still waiting, keeping the worker', async () => {
+        const workers: FakeWorker[] = []
+        const queue = new RouteSolveQueue(() => {
+            const worker = new FakeWorker()
+            workers.push(worker)
+            return worker
+        })
+        const searching = queue.solve(request)
+        const waiting = queue.ask(request)
+        waiting.cancel()
+        await expect(waiting.answer).resolves.toEqual({
+            error: 'The route calculation was cancelled.'
+        })
+        workers[0].dispatchEvent(new MessageEvent('message', { data: { error: 'first' } }))
+        await expect(searching).resolves.toEqual({ error: 'first' })
+        expect(workers[0].asked).toBe(1)
+        expect(workers[0].terminated).toBe(false)
+    })
+
+    it('stops a search under way with its worker and answers the next on a new one', async () => {
+        const workers: FakeWorker[] = []
+        const queue = new RouteSolveQueue(() => {
+            const worker = new FakeWorker()
+            workers.push(worker)
+            return worker
+        })
+        const searching = queue.ask(request)
+        const next = queue.solve(request)
+        searching.cancel()
+        expect(workers[0].terminated).toBe(true)
+        expect(workers).toHaveLength(2)
+        workers[1].dispatchEvent(new MessageEvent('message', { data: { error: 'next' } }))
+        await expect(next).resolves.toEqual({ error: 'next' })
+        searching.cancel()
+        expect(workers[1].terminated).toBe(false)
+    })
+
     it('does not throw when warmed where no worker can start', () => {
         const queue = new RouteSolveQueue(() => {
             throw new Error('No workers here')

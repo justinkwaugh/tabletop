@@ -23,6 +23,8 @@ type BoardLayoutSpec = {
     legend: Panel
     endgame: Panel
     logo: Point
+    // England & Wales: the Tube Connection box.
+    tube?: Panel
 }
 
 export class BoardLayout {
@@ -36,6 +38,7 @@ export class BoardLayout {
     readonly legend: Panel
     readonly endgame: Panel
     readonly logo: Point
+    readonly tube?: Panel
     private readonly firstHexCenter: Point
 
     constructor(spec: BoardLayoutSpec) {
@@ -54,6 +57,7 @@ export class BoardLayout {
         this.legend = spec.legend
         this.endgame = spec.endgame
         this.logo = spec.logo
+        this.tube = spec.tube
         this.firstHexCenter = spec.firstHexCenter
     }
 
@@ -119,6 +123,34 @@ const BOARD_LAYOUTS: Record<EditionId, BoardLayout> = {
         legend: { x: 52, y: 652, width: 240, height: 184 },
         endgame: { x: 52, y: 412, width: 168, height: 204 },
         logo: { x: 1135, y: 50 }
+    }),
+    [EditionId.Switzerland]: new BoardLayout({
+        orientation: HexOrientation.Pointy,
+        stepsAcross: 30,
+        hexRadius: 30,
+        firstHexCenter: { x: 27, y: 57 },
+        legend: { x: 52, y: 52, width: 240, height: 236 },
+        endgame: { x: 48, y: 728, width: 292, height: 110 },
+        logo: { x: 1150, y: 50 }
+    }),
+    [EditionId.Denmark]: new BoardLayout({
+        orientation: HexOrientation.Flat,
+        stepsAcross: 21,
+        hexRadius: 30,
+        firstHexCenter: { x: -11, y: 46 },
+        legend: { x: 600, y: 52, width: 240, height: 236 },
+        endgame: { x: 600, y: 300, width: 240, height: 190 },
+        logo: { x: 760, y: 1010 }
+    }),
+    [EditionId.EnglandWales]: new BoardLayout({
+        orientation: HexOrientation.Flat,
+        stepsAcross: 28,
+        hexRadius: 32,
+        firstHexCenter: { x: 84, y: 25 },
+        legend: { x: 50, y: 50, width: 240, height: 196 },
+        endgame: { x: 50, y: 256, width: 240, height: 150 },
+        logo: { x: 1080, y: 50 },
+        tube: { x: 1010, y: 205, width: 150, height: 148 }
     })
 }
 

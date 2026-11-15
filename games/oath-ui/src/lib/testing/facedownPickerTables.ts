@@ -25,9 +25,13 @@ export type FacedownPower = 'dreamThief' | 'inquisitor' | 'ivoryEye'
  * (R-2.2.2: up to three); Rhys (the Chancellor) holds two facedown, a denizen Rhys let Dana peek
  * at (R-6.1, R-9.4) and a Vision (R-5.1.4.III: the Chancellor may play one as an adviser; its back
  * is public); Mara (an Exile) holds one. For Inquisitor all three pawns stand at the Plains; for
- * the Ivory Eye Dana holds the relic instead of a faceup power card.
+ * the Ivory Eye Dana holds the relic instead of a faceup power card. The faceup card stands first
+ * among Dana's advisers, or after the first facedown one with `faceupSlot` 1.
  */
-export function facedownPickerState(power: FacedownPower): HydratedOathGameState {
+export function facedownPickerState(
+    power: FacedownPower,
+    faceupSlot: 0 | 1 = 0
+): HydratedOathGameState {
     const [city, plains] = mapSlotsFor(Region.Cradle)
     const [slum, river, mountain] = mapSlotsFor(Region.Provinces)
     const [pass, wastes] = mapSlotsFor(Region.Hinterland)
@@ -45,8 +49,9 @@ export function facedownPickerState(power: FacedownPower): HydratedOathGameState
         warbandsInPersonalBank: { Dana: 11 },
         relicIds: power === 'ivoryEye' ? [IVORY_EYE] : [],
         advisers: [
+            ...DANA_OWN.slice(0, faceupSlot).map((cardId) => ({ cardId, faceUp: false })),
             ...faceup.map((cardId) => ({ cardId, faceUp: true })),
-            ...DANA_OWN.map((cardId) => ({ cardId, faceUp: false }))
+            ...DANA_OWN.slice(faceupSlot).map((cardId) => ({ cardId, faceUp: false }))
         ]
     })
     const rhys = testPlayer({
@@ -98,6 +103,6 @@ export function facedownPickerState(power: FacedownPower): HydratedOathGameState
     return state
 }
 
-export function facedownPickerTable(power: FacedownPower): PlayedTable {
-    return tableOf(facedownPickerState(power))
+export function facedownPickerTable(power: FacedownPower, faceupSlot: 0 | 1 = 0): PlayedTable {
+    return tableOf(facedownPickerState(power, faceupSlot))
 }

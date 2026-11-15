@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { MachineState } from '@tabletop/dicke-kartoffeln'
-import { CompostPileId, compostUseYear, sowingDecided, upcomingRounds } from './rounds.js'
+import {
+    CompostPileId,
+    compostByUseYear,
+    compostUseYear,
+    sowingDecided,
+    upcomingRounds
+} from './rounds.js'
 
 describe('the year track', () => {
     it('shows the round in play and the five after it, into next year', () => {
@@ -62,6 +68,26 @@ describe('compost timing', () => {
     it('spreads pile 1 next year until it rots, then the year after', () => {
         expect(compostUseYear(MachineState.TakingCompost, 2, CompostPileId.Fresh)).toBe(3)
         expect(compostUseYear(MachineState.EndingYear, 2, CompostPileId.Fresh)).toBe(4)
+    })
+
+    it('lists the worms by the year they are spread, sooner first', () => {
+        expect(compostByUseYear(MachineState.TakingCompost, 1, 6, { fresh: 2, ripe: 3 })).toEqual([
+            { year: 1, worms: 3 },
+            { year: 2, worms: 2 }
+        ])
+    })
+
+    it('adds both piles together once they are spread in the same year', () => {
+        expect(compostByUseYear(MachineState.MovingCompost, 1, 6, { fresh: 2, ripe: 0 })).toEqual([
+            { year: 2, worms: 2 }
+        ])
+    })
+
+    it('leaves worms past the last year to score at the end', () => {
+        expect(compostByUseYear(MachineState.EndingYear, 5, 6, { fresh: 2, ripe: 1 })).toEqual([
+            { year: 6, worms: 1 },
+            { year: undefined, worms: 2 }
+        ])
     })
 })
 

@@ -55,7 +55,7 @@
                         ><tr
                             >{#if auction.ownTurn}<th><span class="sr-only">Action</span></th
                                 >{/if}<th>Private</th><th class="amount">Value</th><th
-                                class="amount">Opening bid</th
+                                class="amount">Opens at</th
                             ></tr
                         ></thead
                     >

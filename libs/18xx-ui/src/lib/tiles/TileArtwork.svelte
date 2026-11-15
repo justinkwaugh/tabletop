@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { centredTextShift } from '../presentation/textBaseline.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import DividedRect from '../colors/DividedRect.svelte'
     import {
@@ -9,9 +10,15 @@
     import { assert, assertExists, type Point } from '@tabletop/common'
     import type { TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
-    import { TileRadius, type TileDrawing } from './tileDrawing.js'
+    import { labelFontSize, TileRadius, type TileDrawing } from './tileDrawing.js'
     import { spikePoints } from './tileTrackGeometry.js'
-    import { ClassicTileAppearance, type TileAppearance } from './tileAppearance.js'
+    import TrackStrokes from './TrackStrokes.svelte'
+    import { trackCasing, trackInk } from './trackGaugeStrokes.js'
+    import {
+        ClassicTileAppearance,
+        DefaultLabelFont,
+        type TileAppearance
+    } from './tileAppearance.js'
     import TileSymbol from './TileSymbol.svelte'
     import { revenueBadgeHalfWidth } from './revenueBadge.js'
     // Type for the 18xx Maker style; a browser fetches a face only when a tile uses it.
@@ -76,8 +83,10 @@
             (face.symbols ?? []).every((symbol) => symbol === 'port'),
             'Unsupported tile symbol'
         )
-        return color
+        return drawing.inkGround ? appearance.ink : color
     })
+    // A hex printed in ink prints its annotations in the paper's colour.
+    const annotationInk = $derived(drawing.inkGround ? appearance.paper : appearance.ink)
     const styleId = $derived(
         `tile-style-${appearance.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
     )
@@ -101,10 +110,12 @@
     const nodeInkFilter = $derived(appearance.roughness ? `url(#${nodeInkId})` : undefined)
     const trackInkFilter = $derived(appearance.roughness ? `url(#${trackInkId})` : undefined)
     const cityRingWidth = $derived(appearance.cityRingWidth ?? 1.1)
+    // A station space that is no stop of its own, as 1822's English Channel, has a broken ring.
+    const UncountedStopDashes = '2.4 1.8'
     const revenueCircle = $derived(
         appearance.revenueCircle ?? { radius: 8.7, ringWidth: 0.55, fontSize: 10 }
     )
-    const labelFont = $derived(appearance.labelFont ?? { size: 12, weight: 850 })
+    const labelFont = $derived(appearance.labelFont ?? DefaultLabelFont)
     /** The marker colour: the appearance's own per-colour value, else a darker tint of the tile colour. */
     const tint = $derived.by(() => {
         const explicit = appearance.markerColors?.[face.color]
@@ -127,6 +138,9 @@
         face.labels.filter(
             (label) => !appearance.labelMarkers?.[label] && !appearance.labelText?.[label]
         )
+    )
+    const textLabelSize = $derived(
+        labelFontSize(textLabels.join(' '), labelFont.size, labelFont.longSize)
     )
     const namedLabels = $derived(
         face.labels.flatMap((label) => {
@@ -232,7 +246,7 @@
         {/if}
     {/each}
     <g fill="none" stroke-linecap="butt" filter={trackInkFilter}>
-        {#each drawing.paths as path (path.id)}
+        {#each drawing.paths.filter((path) => !path.hidden) as path (path.id)}
             {#if path.pier}
                 {@const { base, tip } = path.pier}
                 {@const angle = (Math.atan2(tip.y - base.y, tip.x - base.x) * 180) / Math.PI}
@@ -262,17 +276,15 @@
                     data-offboard-spike
                 ></polygon>
             {:else}
-                <path
+                <TrackStrokes
                     d={path.d}
-                    stroke={appearance.paper}
-                    stroke-width={appearance.trackWidth + appearance.trackBorderWidth}
-                ></path>
+                    strokes={[trackCasing(appearance, appearance.trackBorderWidth)]}
+                />
             {/if}
         {/each}
-        {#each drawing.paths.filter((path) => !path.spike && !path.pier) as path (path.id)}
-            <g data-path-id={path.id}>
-                <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
-                ></path>
+        {#each drawing.paths.filter((path) => !path.spike && !path.pier && !path.hidden) as path (path.id)}
+            <g data-path-id={path.id} data-track-gauge={path.gauge}>
+                <TrackStrokes d={path.d} strokes={trackInk(appearance, path.gauge)} />
             </g>
         {/each}
         {#each drawing.crossings as crossing, index (index)}
@@ -289,13 +301,13 @@
                     ></circle>
                 </clipPath>
                 <g clip-path={`url(#${clipId})`} data-track-crossing={over.id}>
-                    <path
+                    <TrackStrokes
                         d={over.d}
-                        stroke={appearance.paper}
-                        stroke-width={appearance.trackWidth + 2 * appearance.trackBorderWidth}
-                    ></path>
-                    <path d={over.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
-                    ></path>
+                        strokes={[
+                            trackCasing(appearance, 2 * appearance.trackBorderWidth),
+                            ...trackInk(appearance, over.gauge)
+                        ]}
+                    />
                 </g>
             {/if}
         {/each}
@@ -310,22 +322,24 @@
         ></path>
     {/each}
     {@render trackOverlay?.(drawing)}
-    {#each drawing.nodes as { node, center, slots, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
+    {#each drawing.nodes as { node, center, slots, openBand, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
         <g data-node-id={node.id} filter={nodeInkFilter}>
             {#if node.kind === 'city'}
                 {#if slots.length > 1}
-                    {@const band = `M ${slots.map((point) => `${point.x},${point.y}`).join(' L ')} Z`}
+                    {@const band = openBand
+                        ? `M ${[slots[3], slots[0], slots[1], slots[2]].map((point) => `${point.x},${point.y}`).join(' L ')}`
+                        : `M ${slots.map((point) => `${point.x},${point.y}`).join(' L ')} Z`}
                     {#if appearance.cityBacking === 'paper'}
                         <path
                             d={band}
-                            fill={appearance.ink}
+                            fill={openBand ? 'none' : appearance.ink}
                             stroke={appearance.ink}
                             stroke-width={2 * citySlotRadius + 2 * cityRingWidth}
                             stroke-linejoin="round"
                         ></path>
                         <path
                             d={band}
-                            fill={appearance.paper}
+                            fill={openBand ? 'none' : appearance.paper}
                             stroke={appearance.paper}
                             stroke-width={2 * citySlotRadius}
                             stroke-linejoin="round"
@@ -333,7 +347,7 @@
                     {:else}
                         <path
                             d={band}
-                            fill={appearance.ink}
+                            fill={openBand ? 'none' : appearance.ink}
                             stroke={appearance.ink}
                             stroke-width={2 * citySlotRadius + 3}
                             stroke-linejoin="round"
@@ -349,6 +363,7 @@
                         fill={appearance.paper}
                         stroke={appearance.ink}
                         stroke-width={cityRingWidth}
+                        stroke-dasharray={node.uncounted ? UncountedStopDashes : undefined}
                     ></circle>
                 {/each}
                 {#if slots.length === 0}<circle
@@ -383,23 +398,43 @@
         </g>
     {/each}
     {@render overlays?.(drawing)}
-    <g class="annotations" text-anchor="middle" fill={appearance.ink}>
+    <g class="annotations" text-anchor="middle" fill={annotationInk}>
+        {#each drawing.printedText as text, index (index)}
+            <text
+                data-tile-printed-text
+                x={text.at.x}
+                y={text.at.y}
+                dy={centredTextShift(text.fontSize)}
+                font-size={text.fontSize}
+                font-weight={labelFont.weight}
+                font-family={labelFont.family}>{text.content}</text
+            >
+        {/each}
         {#if face.upgradeCost !== undefined}
+            {@const bare = drawing.upgradeCostText}
+            {@const size = bare ? 7 : 6.5}
             <g
                 data-tile-upgrade-cost
                 transform={`translate(${drawing.upgradeCostPosition.x} ${drawing.upgradeCostPosition.y})`}
             >
-                <rect
-                    x="-9"
-                    y="-5"
-                    width="18"
-                    height="10"
-                    rx="1"
-                    fill={appearance.paper}
-                    stroke={appearance.ink}
-                    stroke-width="0.5"
-                ></rect>
-                <text font-size="6.5" font-weight="650">{face.upgradeCost}</text>
+                {#if !bare}<rect
+                        x="-9"
+                        y="-5"
+                        width="18"
+                        height="10"
+                        rx="1"
+                        fill={appearance.paper}
+                        stroke={appearance.ink}
+                        stroke-width="0.5"
+                    ></rect>{/if}
+                <text
+                    dy={centredTextShift(size)}
+                    font-size={size}
+                    font-weight={bare ? labelFont.weight : 650}
+                    font-family={bare ? labelFont.family : undefined}
+                    fill={bare ? undefined : appearance.ink}
+                    >{bare?.prefix ?? ''}{face.upgradeCost}</text
+                >
             </g>
         {/if}
         {#if face.symbols?.includes('port')}
@@ -445,6 +480,7 @@
                                 fill={appearance.paper}
                             ></rect>
                             <text
+                                dy={centredTextShift(revenueCircle.fontSize)}
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 800}
@@ -463,10 +499,11 @@
                                 stroke-width={revenueCircle.ringWidth}
                             ></rect>
                             <text
+                                dy={centredTextShift(revenueCircle.fontSize)}
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 750}
-                                >{node.revenue.amount}</text
+                                fill={appearance.ink}>{node.revenue.amount}</text
                             >
                         {/if}
                     {:else}
@@ -490,12 +527,32 @@
                                     strokeWidth={0.5}
                                 />
                                 <text
+                                    dy={centredTextShift(9)}
                                     fill={dividedTextColor(fills)}
                                     font-size="9"
                                     font-weight="650"
                                     aria-label={`${cell.stage}: ${cell.amount}`}>{cell.text}</text
                                 >
-                                {#if cell.caption && cell.captionColor}
+                                {#if cell.caption && cell.captionAbove}
+                                    {#if cell.captionColor}<rect
+                                            data-revenue-caption-badge
+                                            x={-cell.captionWidth / 2}
+                                            y={-cell.height / 2 - 11}
+                                            width={cell.captionWidth}
+                                            height={10}
+                                            rx={1.5}
+                                            fill={cell.captionColor}
+                                        ></rect>{/if}
+                                    <text
+                                        dy={centredTextShift(7.5)}
+                                        data-revenue-caption
+                                        y={-cell.height / 2 - 6}
+                                        style:text-anchor="middle"
+                                        fill={contrastingTextColor(cell.captionColor ?? fill)}
+                                        font-size="7.5"
+                                        font-weight="700">{cell.caption}</text
+                                    >
+                                {:else if cell.caption && cell.captionColor}
                                     {@const badgeX = cell.captionAfter
                                         ? cell.width / 2 + 1.5
                                         : -cell.width / 2 - 1.5 - cell.captionWidth}
@@ -509,6 +566,7 @@
                                         fill={cell.captionColor}
                                     ></rect>
                                     <text
+                                        dy={centredTextShift(7.5)}
                                         data-revenue-caption
                                         x={badgeX + cell.captionWidth / 2}
                                         style:text-anchor="middle"
@@ -518,6 +576,7 @@
                                     >
                                 {:else if cell.caption}
                                     <text
+                                        dy={centredTextShift(7.5)}
                                         data-revenue-caption
                                         x={cell.captionAfter
                                             ? cell.width / 2 + 2.5
@@ -536,6 +595,7 @@
         {/each}
         {#if namedLabels.length}
             <text
+                dy={centredTextShift(6.5)}
                 data-tile-label-text
                 x={drawing.labelPosition.x}
                 y={drawing.labelPosition.y + 4}
@@ -549,12 +609,11 @@
         {/if}
         {#if textLabels.length}
             <text
+                dy={centredTextShift(textLabelSize)}
                 data-tile-label
                 x={drawing.labelPosition.x}
                 y={drawing.labelPosition.y}
-                font-size={textLabels.join(' ').length > 2
-                    ? (labelFont.longSize ?? labelFont.size)
-                    : labelFont.size}
+                font-size={textLabelSize}
                 font-weight={labelFont.weight}
                 font-family={labelFont.family}
                 paint-order="stroke"
@@ -572,8 +631,5 @@
     }
     .annotations {
         pointer-events: none;
-    }
-    .annotations text {
-        dominant-baseline: central;
     }
 </style>

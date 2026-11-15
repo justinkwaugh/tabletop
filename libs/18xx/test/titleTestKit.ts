@@ -63,7 +63,7 @@ export function titleTestKit<
     function table(
         count = 4,
         seed = 7,
-        config?: Record<string, boolean>,
+        config?: Record<string, boolean | string>,
         seatOrder?: (playerIds: string[]) => string[]
     ): Table<State, Hydrated> {
         const runtime = definition.runtime
@@ -444,7 +444,7 @@ export function titleTestKit<
     function prepared(
         prepare: (state: State, game: Game) => void,
         count = 4,
-        config?: Record<string, boolean>
+        config?: Record<string, boolean | string>
     ): Game {
         const game = table(count, 7, config)
         buyAllPrivates(game)

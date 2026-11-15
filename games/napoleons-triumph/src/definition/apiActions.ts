@@ -18,6 +18,7 @@ import { PlaceBid } from '../actions/placeBid.js'
 import { PressAttack } from '../actions/pressAttack.js'
 import { Regroup } from '../actions/regroup.js'
 import { Retreat } from '../actions/retreat.js'
+import { StayInReserve } from '../actions/stayInReserve.js'
 import { ThreatenAttack } from '../actions/threatenAttack.js'
 
 export const NapoleonsTriumphApiActions = {
@@ -40,5 +41,6 @@ export const NapoleonsTriumphApiActions = {
     [ActionType.Retreat]: Retreat,
     [ActionType.Occupy]: Occupy,
     [ActionType.EndTurn]: EndTurn,
-    [ActionType.AcknowledgeReveal]: AcknowledgeReveal
+    [ActionType.AcknowledgeReveal]: AcknowledgeReveal,
+    [ActionType.StayInReserve]: StayInReserve
 }

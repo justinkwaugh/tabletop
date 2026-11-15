@@ -199,8 +199,10 @@ export function validatePhaseChange(
         trackStep?: { companyId: string }
         stationStep?: { companyId: string }
         routeStep?: { companyId: string }
-    }
+    },
+    titleDecisionStates: readonly string[] = []
 ): void {
+    const decisionStates = [...PhaseDecisionStates, ...titleDecisionStates]
     assert(
         new Set(state.phaseEvents.map((event) => event.id)).size === state.phaseEvents.length,
         'Duplicate phase occurrence'
@@ -211,7 +213,7 @@ export function validatePhaseChange(
         return
     }
     assert(
-        PhaseDecisionStates.includes(state.machineState),
+        decisionStates.includes(state.machineState),
         'Pending phase change requires its decision state'
     )
     assert(
@@ -233,7 +235,8 @@ export function validatePhaseChange(
             ? state.phaseId === change.event.fromPhaseId &&
                   !state.phaseEvents.some((event) => event.id === change.event.id)
             : state.phaseId === change.event.toPhaseId &&
-                  change.discardCompanyIds.length > 0 &&
+                  (change.discardCompanyIds.length > 0 ||
+                      titleDecisionStates.includes(state.machineState)) &&
                   state.phaseEvents.some((event) => event.id === change.event.id),
         'Phase effects must match pending decisions'
     )

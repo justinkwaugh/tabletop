@@ -88,16 +88,15 @@
                 <tr><th>{target}’s shares</th><td>{money(funding.price)}</td></tr>
                 <tr><th>{buyer}’s treasury</th><td>−{money(funding.treasury)}</td></tr>
                 <tr><th>Your cash</th><td>−{money(funding.presidentCash)}</td></tr>
-                {#if funding.ownSharesPaid}
-                    <tr
-                        ><th>Paid for your {target} shares</th><td
-                            >−{money(funding.ownSharesPaid)}</td
-                        ></tr
-                    >
-                {/if}
                 <tr class="total"><th>Still to raise</th><td>{money(funding.shortfall)}</td></tr>
             </tbody>
         </table>
+        {#if funding.ownSharesPaid}
+            <p class="payout">
+                Once it is funded, {buyer} pays you {money(funding.ownSharesPaid)} for your {target}
+                shares.
+            </p>
+        {/if}
         {#if funding.sold.length}
             <p class="sold">
                 Sold {funding.sold
@@ -544,7 +543,8 @@
         color: var(--rail-text, #514536);
         font-weight: 700;
     }
-    .sold {
+    .sold,
+    .payout {
         margin: 0 0 4px;
         color: var(--rail-muted, #887969);
         font-size: 12px;

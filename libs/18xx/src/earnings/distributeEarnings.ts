@@ -34,6 +34,8 @@ export const DistributeEarnings = Type.Object(
         type: Type.Literal('DistributeEarnings'),
         companyId: Type.String(),
         choice: EarningsChoice,
+        /** The choice for the revenue decided apart from the rest, where the company decides it so. */
+        separateChoice: Type.Optional(EarningsChoice),
         metadata: Type.Optional(
             Type.Object(
                 {
@@ -64,6 +66,7 @@ export class HydratedDistributeEarnings
     declare playerId?: string
     declare companyId: string
     declare choice: EarningsChoice
+    declare separateChoice?: EarningsChoice
     declare metadata?: DistributeEarnings['metadata']
     readonly #rules: EarningsRules
     readonly #privateRules: Pick<PrivateRules, 'operationEffects'>
@@ -102,7 +105,7 @@ export class HydratedDistributeEarnings
                 distribution.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may distribute earnings'
         )
-        const result = distribution.evaluate(this.companyId, this.choice)
+        const result = distribution.evaluate(this.companyId, this.choice, this.separateChoice)
         assert(result.details, result.reason ?? 'Invalid distribution')
         applyEarningsDistribution(state, result.details)
         const chargesPaid = result.details.charges
@@ -147,6 +150,15 @@ export function applyEarningsDistribution(
     state: DistributionState,
     details: Type.Static<typeof EarningsDetails>
 ): void {
+    // A top-up leaves the treasury for the bank, which pays the whole dividend.
+    if (details.topUp)
+        settleCashPayments(state, [
+            {
+                from: { kind: 'company', companyId: details.companyId },
+                to: { kind: 'bank' },
+                amount: details.topUp
+            }
+        ])
     settleCashPayments(state, details.payments)
     if (details.marketMove)
         placeStockMarker(state.stockMarket, details.companyId, details.marketMove.toMarketSpaceId)

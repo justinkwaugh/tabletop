@@ -7,7 +7,8 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { marks, plural } from '$lib/utils/format.js'
-    import { CompostPileId, compostUseYear } from '$lib/utils/rounds.js'
+    import { compostByUseYear, type CompostDue } from '$lib/utils/rounds.js'
+    import { TOKEN_IMAGES } from '$lib/utils/tokens.js'
     import FieldBadge from './FieldBadge.svelte'
 
     let { playerState }: { playerState: HydratedDickeKartoffelnPlayerState } = $props()
@@ -24,15 +25,20 @@
             standings(gameSession.gameState.players, gameSession.setup.strictEcology)
         ).find((candidate) => candidate.playerId === playerState.playerId)
     )
-    const timed = $derived(!gameSession.gameState.result)
+    const compost: CompostDue[] = $derived(
+        gameSession.gameState.result
+            ? [{ year: undefined, worms: playerState.compostWorms() }]
+            : compostByUseYear(gameSession.shownRound, gameSession.year, gameSession.setup.years, {
+                  fresh: playerState.freshCompost,
+                  ripe: playerState.ripeCompost
+              })
+    )
 
-    function useYear(pile: CompostPileId): number {
-        return compostUseYear(gameSession.shownRound, gameSession.year, pile)
-    }
-
-    function pileNote(pile: CompostPileId): string {
-        const year = useYear(pile)
-        return year > gameSession.setup.years ? 'end' : `yr ${year}`
+    function dueTitle({ year, worms }: CompostDue): string {
+        const count = plural(worms, 'compost worm')
+        return year === undefined
+            ? `${count} scoring at the end`
+            : `${count} to spread in round 10 of year ${year}`
     }
 </script>
 
@@ -69,38 +75,42 @@
             {/each}
         </div>
         <div class="totals">
-            <span title="Worms on the fields"><b>{playerState.fieldWorms()}</b> worms</span>
+            <span title="Worms on the fields"
+                ><img src={TOKEN_IMAGES.worm} alt="Worms" /><b>{playerState.fieldWorms()}</b></span
+            >
             <span title="Sunflowers on the fields"
-                ><b>{playerState.sunflowers()}</b> sunflowers</span
+                ><img src={TOKEN_IMAGES.sunflower} alt="Sunflowers" class="sunflower" /><b
+                    >{playerState.sunflowers()}</b
+                ></span
             >
             <span class="good" title="Good fields: 3+ worms and 2+ sunflowers"
-                ><b>{playerState.goodFields()}</b> good</span
+                ><span class="field-mark" aria-label="Good fields">✓</span><b
+                    >{playerState.goodFields()}</b
+                ></span
             >
             {#if playerState.deadFields() > 0}
-                <span class="dead" title="Fields without worms"
-                    ><b>{playerState.deadFields()}</b> dead</span
+                <span class="dead" title="Dead fields: no worms left"
+                    ><span class="field-mark" aria-label="Dead fields">✕</span><b
+                        >{playerState.deadFields()}</b
+                    ></span
                 >
             {/if}
         </div>
         <div class="compost">
-            <span class="label">compost</span>
-            <span title="Compost pile 1: worms taken this year"
-                >① <b>{playerState.freshCompost}</b>{#if timed}<small>
-                        {pileNote(CompostPileId.Fresh)}</small
-                    >{/if}</span
-            >
-            <span title="Compost pile 2: worms ready to spread in round 10"
-                >② <b>{playerState.ripeCompost}</b>{#if timed}<small>
-                        {pileNote(CompostPileId.Ripe)}</small
-                    >{/if}</span
-            >
+            <span class="label">Compost:</span>
+            {#each compost as due (due.year)}
+                <span title={dueTitle(due)}
+                    >{due.year === undefined ? 'At end' : `Year ${due.year}`}: <b>{due.worms}</b
+                    ><img src={TOKEN_IMAGES.worm} alt="worms" /></span
+                >
+            {/each}
         </div>
         <div class="links">
             <button type="button" onclick={() => gameSession.showFarm(playerState.playerId)}
                 >farm</button
             >
             <button type="button" onclick={() => gameSession.showSheet(playerState.playerId)}
-                >yield sheet</button
+                >yields</button
             >
             {#if deciding}<span class="status">deciding…</span>{:else if sealed}<span class="status"
                     >plan sealed</span
@@ -204,7 +214,7 @@
     .compost {
         display: flex;
         flex-wrap: wrap;
-        align-items: baseline;
+        align-items: center;
         gap: 2px 10px;
         font-size: 15px;
     }
@@ -225,10 +235,42 @@
         color: #6e5a3e;
     }
 
-    .compost small {
-        margin-left: 3px;
-        color: #6e5a3e;
-        font-size: 12px;
+    .totals {
+        gap: 2px 16px;
+    }
+
+    .totals > span,
+    .compost > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .totals img,
+    .compost img {
+        height: 20px;
+    }
+
+    .totals img.sunflower {
+        height: 18px;
+        border-radius: 3px;
+    }
+
+    .field-mark {
+        display: inline-flex;
+        width: 18px;
+        height: 18px;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid currentColor;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .dead .field-mark {
+        border-style: dashed;
     }
 
     .links {
@@ -238,14 +280,24 @@
     }
 
     .links button {
+        min-width: 64px;
         border: 1.5px solid #6e3b1c;
-        border-radius: 999px;
-        padding: 0 10px;
-        color: #6e3b1c;
+        border-radius: 6px;
+        background: #efe3c4;
+        padding: 1px 10px;
+        color: #4a2c16;
         font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 1.5px 0 #6e3b1c;
     }
 
     .links button:hover {
-        background: rgba(110, 59, 28, 0.12);
+        background: #e4d3a8;
+    }
+
+    .links button:active {
+        box-shadow: none;
+        transform: translateY(1.5px);
     }
 </style>

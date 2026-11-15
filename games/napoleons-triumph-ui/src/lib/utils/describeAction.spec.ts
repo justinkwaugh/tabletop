@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { assertExists, type GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     CommandKind,
     FeintEnd,
     Side,
+    type ChooseSide,
     type CombatMetadata
 } from '@tabletop/napoleons-triumph'
 import {
@@ -330,6 +331,44 @@ describe('how the units shown in an attack are told', () => {
         const fight = fightsOf(game.played).get(counter.id)
         expect(describeAction(counter, game.hydrated, fight)).toMatch(
             /^The Allies counter-attack with a 2-strength cavalry unit\. /
+        )
+    })
+})
+
+describe('how the choice of army is told', () => {
+    function chosen(sideSelection: string) {
+        const game = new TestGame({ sideSelection })
+        if (sideSelection === 'Auction') {
+            const [first, second] = game.state.turnManager.turnOrder
+            game.act(ActionType.PlaceBid, first, { amount: 1 })
+            game.act(ActionType.PassBid, second)
+        }
+        const [action] = game.act(ActionType.ChooseSide, game.state.activePlayerIds[0], {
+            side: Side.French
+        })
+        return describeAction(action, game.hydrated)
+    }
+
+    it('names the auction winner as the chooser after an auction', () => {
+        expect(chosen('Auction')).toBe('The auction winner takes the French army.')
+    })
+
+    it('names the first player as the chooser when the first player chooses', () => {
+        expect(chosen('FirstPlayerChooses')).toBe('The first player takes the French army.')
+    })
+
+    it('names the auction winner for a choice recorded before choosers were told apart', () => {
+        const game = new TestGame()
+        const recorded: ChooseSide = {
+            id: 'recorded',
+            gameId: game.game.id,
+            source: ActionSource.User,
+            type: ActionType.ChooseSide,
+            playerId: 'p0',
+            side: Side.French
+        }
+        expect(describeAction(recorded, game.hydrated)).toBe(
+            'The auction winner takes the French army.'
         )
     })
 })

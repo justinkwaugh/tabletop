@@ -53,7 +53,8 @@ export type ModifierJudge = (uses: readonly ModifierUse[]) => boolean
  * play. Both in the Search's own "Cards" rows. Listed: each Search modifier in reach that can act on a Vision's play
  * or discard and that the judge accepts beside the cards in use, so one refused beside them is hidden (R-7.4-H2:
  * Bracken once the Cracked Horn is in use, and the other way round). A card that never acts on a Vision is hidden too
- * (Great Spire, Wild Cry), though the judge accepts it. Nothing starts in use.
+ * (Great Spire, Wild Cry): from revision 33 the judge refuses it, and before it the judge accepted it. Nothing starts
+ * in use.
  */
 export class AsIfSearchedRows implements ModifierRows {
     private acting?: CardPower[]

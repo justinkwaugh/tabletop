@@ -10,11 +10,13 @@
         cards,
         tapped,
         busy,
+        underTop = false,
         ontap
     }: {
         cards: string[]
         tapped: string[]
         busy: boolean
+        underTop?: boolean
         ontap: (cardId: string) => void
     } = $props()
 </script>
@@ -31,7 +33,7 @@
         >
             <CardImage {cardId} width={widthAtHeight(100, { cardId })} label={cardName(cardId)} />
             <span class="text-[10px] text-oath-heading h-3"
-                >{discardPositionLabel(cardId, tapped, cards)}</span
+                >{discardPositionLabel(cardId, tapped, cards, underTop)}</span
             >
         </button>
         <Magnifier preview={{ cardId, label: cardName(cardId) }} label={cardName(cardId)} />
