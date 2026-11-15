@@ -341,7 +341,7 @@ describe('History: where the Vision went, the cards and the toll', () => {
         expect(lines).toEqual({ rhys: line, dana: line })
     })
 
-    it('Bracken: to the bottom of the cradle discard pile (Bracken)', async () => {
+    it('Bracken: to the bottom of the Cradle discard pile (Bracken)', async () => {
         const lines = await linesFor({}, [
             {
                 ...BRACKEN_KEY,
@@ -351,13 +351,13 @@ describe('History: where the Vision went, the cards and the toll', () => {
                 ]
             }
         ])
-        const line = `${DIED} to the bottom of the cradle discard pile (Bracken); paid ann 1 favor (Forced Labor)`
+        const line = `${DIED} to the bottom of the Cradle discard pile (Bracken); paid ann 1 favor (Forced Labor)`
         expect(lines).toEqual({ rhys: line, dana: line })
     })
 
-    it('no favor: to the provinces discard pile; no favor for Forced Labor', async () => {
+    it('no favor: to the Provinces discard pile; no favor for Forced Labor', async () => {
         const lines = await linesFor({ favor: 0 })
-        const line = `${DIED} to the provinces discard pile; no favor for Forced Labor`
+        const line = `${DIED} to the Provinces discard pile; no favor for Forced Labor`
         expect(lines).toEqual({ rhys: line, dana: line })
     })
 

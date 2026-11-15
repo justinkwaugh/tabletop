@@ -9,7 +9,12 @@ import {
 import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
 import { isLayTile, type HydratedLayTile } from './layTile.js'
 import { isFinishTrack, type HydratedFinishTrack } from './finishTrack.js'
-import { TrackConstruction, type TrackRules, type ConstructionState } from './trackConstruction.js'
+import {
+    TrackConstruction,
+    type ConstructionState,
+    type TrackRequest,
+    type TrackRules
+} from './trackConstruction.js'
 
 type State = HydratedGameState & ConstructionState & OperatingState
 export class LayingTrackHandler implements MachineStateHandler<
@@ -35,8 +40,13 @@ export class LayingTrackHandler implements MachineStateHandler<
         const details = construction.evaluate(action).details
         return (
             details?.cost === action.expectedCost &&
-            (!details.consentPlayerId || details.consentPlayerId === action.playerId)
+            this.free(construction, details, action.playerId)
         )
+    }
+    /** Whether the player may make the lay without asking anyone's agreement. */
+    private free(construction: TrackConstruction, request: TrackRequest, playerId: string) {
+        const consenters = construction.consenters(request)
+        return !consenters.length || consenters.includes(playerId)
     }
     validActionsForPlayer(playerId: string, context: MachineContext<State>): string[] {
         const state = context.gameState
@@ -47,7 +57,7 @@ export class LayingTrackHandler implements MachineStateHandler<
         return this.rules.map.definition.locations.some((location) =>
             construction
                 .choices(location.id)
-                .some((choice) => !choice.consentPlayerId || choice.consentPlayerId === playerId)
+                .some((choice) => this.free(construction, choice, playerId))
         )
             ? ['LayTile', 'FinishTrack']
             : ['FinishTrack']

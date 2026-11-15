@@ -16,7 +16,9 @@
     let clock = $derived(`${bar.roll ? 'roll' : 'turn'}${bar.paused ? ' is paused' : ''}`)
 </script>
 
+<!-- `data-turn-bar`: FitBox keeps it in view while a step too tall for the minimum scale scrolls. -->
 <div
+    data-turn-bar
     class="info mb-2 rounded-lg bg-oath-surface border border-oath-frame px-3 py-1.5 text-oath-text"
 >
     <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">

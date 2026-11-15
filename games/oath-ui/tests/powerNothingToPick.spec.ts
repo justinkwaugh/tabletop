@@ -14,13 +14,12 @@ async function openTable(page: Page, name: TableFixture.TableName) {
 const CAPTAINS = 'denizen.order.captains'
 const SIEGE_ENGINES = 'denizen.order.siege-engines'
 const grid = (page: Page) => page.locator('.panel')
-const usePower = (page: Page) =>
-    grid(page).getByRole('button', { name: 'Use a power', exact: true })
+/** R-6.2 — a card's "Use", on the board or in a seat. */
+const useBadge = (page: Page, cardId: string) => page.locator(`[data-use-badge="${cardId}"]`)
 const powerRow = (page: Page, cardId: string) =>
     grid(page).locator(`[data-action-power="${cardId}"]`)
 
-// A power with nothing it can pick is left out of the Use a power list, and with nothing left
-// in it, Use a power is not offered.
+// A power with nothing it can pick wears no Use.
 for (const viewport of [
     { width: 1280, height: 900 },
     { width: 375, height: 812 }
@@ -28,29 +27,31 @@ for (const viewport of [
     test.describe(`a power with nothing to pick, at ${viewport.width} × ${viewport.height}`, () => {
         test.use({ viewport })
 
-        test('Captains with no defender at a site Dana rules is not listed; Siege Engines is', async ({
+        test('Captains with no defender at a site Dana rules wears no Use; Siege Engines does, and it opens', async ({
             page
         }) => {
             await openTable(page, 'pickerSitesNoDefender')
-            await usePower(page).click()
+            await expect(useBadge(page, CAPTAINS)).toHaveCount(0)
+            await expect(useBadge(page, SIEGE_ENGINES)).toHaveCount(1)
+            await useBadge(page, SIEGE_ENGINES).dispatchEvent('click')
             await expect(powerRow(page, SIEGE_ENGINES)).toBeVisible()
-            await expect(powerRow(page, CAPTAINS)).toHaveCount(0)
         })
 
-        test('with defenders at their sites, Captains is listed again', async ({ page }) => {
+        test('with defenders at their sites, Captains wears its Use again', async ({ page }) => {
             await openTable(page, 'pickerSites')
-            await usePower(page).click()
-            await expect(powerRow(page, SIEGE_ENGINES)).toBeVisible()
+            await expect(useBadge(page, SIEGE_ENGINES)).toHaveCount(1)
+            await expect(useBadge(page, CAPTAINS)).toHaveCount(1)
+            await useBadge(page, CAPTAINS).dispatchEvent('click')
             await expect(powerRow(page, CAPTAINS)).toBeVisible()
         })
 
-        test('Captains their one card power, with nothing to pick: no Use a power', async ({
+        test('Captains their one card power, with nothing to pick: no Use anywhere', async ({
             page
         }) => {
             await openTable(page, 'pickerCaptainsNoDefender')
             // The Act Phase grid is drawn, its six majors there.
             await expect(grid(page).locator('.majors button')).toHaveCount(6)
-            await expect(usePower(page)).toHaveCount(0)
+            await expect(page.locator('[data-use-badge]')).toHaveCount(0)
         })
     })
 }

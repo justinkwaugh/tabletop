@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { trainRouteOverlays } from './routePresentation.js'
+import { runLocationIds, trainRouteOverlays } from './routePresentation.js'
+
+describe('runLocationIds', () => {
+    it('names a route’s start and each hex of its track once', () => {
+        expect(
+            runLocationIds([
+                {
+                    start: { locationId: 'A1', nodeId: 'city' },
+                    paths: [
+                        { locationId: 'A1', pathId: 'a' },
+                        { locationId: 'B2', pathId: 'b' }
+                    ]
+                }
+            ])
+        ).toEqual(['A1', 'B2'])
+    })
+
+    it('names the station of a run on no track', () => {
+        expect(
+            runLocationIds([{ start: { locationId: 'H1', nodeId: 'city' }, paths: [] }])
+        ).toEqual(['H1'])
+    })
+})
 
 describe('trainRouteOverlays', () => {
     const paths = [{ locationId: 'G22', pathId: 'path-0' }]

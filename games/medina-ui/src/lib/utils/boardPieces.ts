@@ -17,7 +17,7 @@ export type BoardPiece = {
     key: string
     sprite: string
     anchor: Point
-    rooftop?: { key: string; sprite: string }
+    rooftop?: { key: string; sprite: string; place: string; markAt: Point }
     palaceId?: string
     place?: string
     outline?: string
@@ -34,6 +34,9 @@ const PIECE_SHAPES = {
     merchant: { variants: 2 }
 }
 const MERCHANT_SQUARE_HALF = 0.4
+export const RECENT_DOT_RADIUS = 11
+// A building and the rooftop on it marked together share the rooftop, side by side.
+const PAIRED_MARK_SHIFT = RECENT_DOT_RADIUS + 1
 const WALL_VARIANTS = 2
 const ROOFTOP_VARIANTS = 2
 
@@ -61,9 +64,49 @@ export function spacePlace(space: Point): string {
 }
 
 export function recentPlace(placement: RecentPlacement): string {
-    return 'wall' in placement
-        ? wallKey(placement.wall.side, placement.wall.position)
-        : spacePlace(placement.space)
+    if ('wall' in placement) {
+        return wallKey(placement.wall.side, placement.wall.position)
+    }
+    return 'roof' in placement ? spaceKey('roof', placement.roof) : spacePlace(placement.space)
+}
+
+export type RecentMark = {
+    key: string
+    piece: BoardPiece
+    playerId: string
+    at: Point | undefined
+    onRoof: boolean
+}
+
+// A rooftop is a place of its own, so the building under it keeps the mark of whoever placed it.
+export function recentMarks(pieces: BoardPiece[], recent: RecentPlacement[]): RecentMark[] {
+    const byPlace = new Map<string, Omit<RecentMark, 'key' | 'playerId'>>()
+    for (const piece of pieces) {
+        if (piece.place) {
+            byPlace.set(piece.place, { piece, at: piece.markAt, onRoof: false })
+        }
+        if (piece.rooftop) {
+            byPlace.set(piece.rooftop.place, { piece, at: piece.rooftop.markAt, onRoof: true })
+        }
+    }
+    const seen = new Set<string>()
+    const marks: RecentMark[] = recent.flatMap((placement) => {
+        const key = recentPlace(placement)
+        const mark = byPlace.get(key)
+        if (!mark || seen.has(key)) {
+            return []
+        }
+        seen.add(key)
+        return [{ key, playerId: placement.playerId, ...mark }]
+    })
+    return marks.map((mark) => {
+        const paired = marks.filter((other) => other.piece === mark.piece).length > 1
+        if (!paired || !mark.piece.rooftop || !mark.at) {
+            return mark
+        }
+        const shift = mark.onRoof ? PAIRED_MARK_SHIFT : -PAIRED_MARK_SHIFT
+        return { ...mark, at: { x: mark.at.x + shift, y: mark.at.y } }
+    })
 }
 
 export function buildingSprite(color: PalaceColor, space: Point): string {
@@ -126,7 +169,9 @@ export function boardPieces(
             rooftop: roofed
                 ? {
                       key: rooftopKey(palace.id),
-                      sprite: rooftopOn(rooftopSprite(roof), building.coords)
+                      sprite: rooftopOn(rooftopSprite(roof), building.coords),
+                      place: spaceKey('roof', building.coords),
+                      markAt: project(projection, world, shape.height + shape.rooftopHeight)
                   }
                 : undefined,
             place: spacePlace(building.coords),

@@ -1,8 +1,15 @@
-import { cardPreview, type CardPreview, type CardPreviewOwner } from './cardPreview.svelte.js'
+import {
+    cardPreview,
+    type CardPreview,
+    type CardPreviewOwner,
+    type PreviewGroup
+} from './cardPreview.svelte.js'
 
 export type InspectImageParams = {
     preview: CardPreview
     enabled?: boolean
+    /** The cards the enlarged card pages through. */
+    group?: PreviewGroup
 }
 
 /** Rule 4 — a click or tap on a card on the table enlarges it; it never chooses anything. */
@@ -17,7 +24,7 @@ export function inspectImage(node: HTMLElement, params: InspectImageParams) {
         if (!enabled()) return
         event.preventDefault()
         event.stopPropagation()
-        cardPreview.toggle(owner, source)
+        cardPreview.toggle(owner, source, current.group)
     }
 
     node.addEventListener('click', click)

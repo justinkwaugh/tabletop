@@ -101,5 +101,13 @@ describe('railway map', () => {
         expect(letterNumberHexCoordinates('I2', HexOrientation.Flat, 0)).toEqual({ q: 8, r: -3 })
         expect(letterNumberHexCoordinates('I2', HexOrientation.Pointy, 0)).toEqual({ q: -3, r: 8 })
         expect(() => letterNumberHexCoordinates('A2', HexOrientation.Flat, 1)).toThrow('parity')
+        expect(letterNumberHexCoordinates('B14', HexOrientation.Flat, 1, 'rows')).toEqual({
+            q: 13,
+            r: -6
+        })
+        expect(letterNumberHexCoordinates('B3', HexOrientation.Pointy, 0, 'columns')).toEqual({
+            q: -1,
+            r: 3
+        })
     })
 })

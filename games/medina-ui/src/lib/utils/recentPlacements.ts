@@ -8,19 +8,19 @@ import {
     type WallSection
 } from '@tabletop/medina'
 
-export type RecentPlacement = { playerId: string } & ({ space: Point } | { wall: WallSection })
+export type RecentPlacement = { playerId: string } & (
+    { space: Point } | { roof: Point } | { wall: WallSection }
+)
 
 export function placementOf(action: GameAction): RecentPlacement | undefined {
     const playerId = action.playerId
     if (!playerId) {
         return undefined
     }
-    if (
-        isPlaceBuilding(action) ||
-        isPlaceRooftop(action) ||
-        isPlaceStable(action) ||
-        isPlaceMerchant(action)
-    ) {
+    if (isPlaceRooftop(action)) {
+        return { playerId, roof: action.coords }
+    }
+    if (isPlaceBuilding(action) || isPlaceStable(action) || isPlaceMerchant(action)) {
         return { playerId, space: action.coords }
     }
     if (isPlaceWall(action)) {

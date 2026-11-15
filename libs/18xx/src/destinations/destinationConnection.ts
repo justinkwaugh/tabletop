@@ -3,10 +3,11 @@ import { cityIsBlocked, sameCenter, type StationState } from '../map/station.js'
 import type { RevenueCenter, RoutePath } from '../routes/route.js'
 import type { RouteNetwork } from '../routes/routeNetwork.js'
 import type { TileEndpoint, TileNode } from '../tiles/tile.js'
+import { oppositeTileEndpoint, tileEdgeKey } from '../tiles/topology.js'
 
 const endpointKey = (locationId: string, endpoint: TileEndpoint) =>
     endpoint.kind === 'edge'
-        ? `${locationId} edge ${endpoint.edge}`
+        ? `${locationId} edge ${tileEdgeKey(endpoint)}`
         : `${locationId} node ${endpoint.nodeId}`
 
 type Link = { to: string; stops: 0 | 1 }
@@ -46,14 +47,16 @@ function stopsToTarget(
             }
         }
         for (const connection of mapState.connections(locationId))
-            link(
-                endpointKey(locationId, { kind: 'edge', edge: connection.edge }),
-                endpointKey(connection.neighborLocationId, {
-                    kind: 'edge',
-                    edge: connection.neighborEdge
-                }),
-                0
-            )
+            for (const end of face.paths.flatMap((path) => path.endpoints))
+                if (end.kind === 'edge' && end.edge === connection.edge)
+                    link(
+                        endpointKey(locationId, end),
+                        endpointKey(
+                            connection.neighborLocationId,
+                            oppositeTileEndpoint(end, connection.neighborEdge)
+                        ),
+                        0
+                    )
     }
     const distance = new Map<string, number>()
     const start = endpointKey(target.locationId, { kind: 'node', nodeId: target.nodeId })

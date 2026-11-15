@@ -30,6 +30,11 @@ export interface CompanyRules {
     flotationPayments(state: FormationState, companyId: string): CashPayment[] | undefined
     onStart?(state: FormationState, details: CompanyStartDetails): void
     /**
+     * How many ordinary certificates the president may buy with the president's certificate in
+     * the start itself, as 1849's president takes up to 40% (§9.4); none unless given.
+     */
+    additionalStartCertificates?(state: FormationState, companyId: string): number
+    /**
      * The homes a company's president chooses among as they start it, for companies without a
      * fixed home; a list, even an empty one, means the start needs a home.
      */

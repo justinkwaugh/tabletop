@@ -108,7 +108,7 @@ export function constructionOperatingSteps<State extends GameState>(
             (summaries) => summaries.trains,
             [4]
         ),
-        ...(rules.loanRules
+        ...(rules.loanRules && !rules.loanRules.automatic
             ? [
                   step(
                       'loans',

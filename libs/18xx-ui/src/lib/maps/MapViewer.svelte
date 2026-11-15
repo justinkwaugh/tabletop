@@ -59,6 +59,7 @@
         {#key scene.map.definition.id}
             <ScalingWrapper
                 bind:this={wrapper}
+                renderAtViewScale
                 justify="center"
                 controls="bottom-left"
                 expandable={true}

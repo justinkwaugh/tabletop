@@ -64,8 +64,19 @@ describe('POST /sendPlayerRemovedEmail', () => {
             game,
             definition,
             url: expect.stringContaining('/game/game-1'),
-            toEmail: 'other@example.test'
+            toEmail: 'other@example.test',
+            deletedAccount: false
         })
+    })
+
+    it('says a player whose account was deleted left the site', async () => {
+        const { email } = await send({
+            game: seatedGame(GameStatus.Started, 'Deleted player 1'),
+            removed: { ...banned, status: UserStatus.Deleted }
+        })
+        expect(email).toHaveBeenCalledExactlyOnceWith(
+            expect.objectContaining({ playerName: 'Deleted player 1', deletedAccount: true })
+        )
     })
 
     it('never sends an offensive username to the other players', async () => {

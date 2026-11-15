@@ -26,6 +26,7 @@
             ? ['take a larva space on the open sea to end your turn']
             : [])
     ])
+    const chosenSpace = $derived(gameSession.chosenOpenSeaSpace)
     const cubesSearchingBag = $derived(gameSession.cubesForPolypsFromBag)
     const supplyLeft = $derived.by(() => {
         if (!placing || !me) return 0
@@ -47,7 +48,22 @@
     </svg>
 {/snippet}
 
-{#if gameSession.choosingCoralToEat}
+{#if chosenSpace}
+    <p class="prompt reef-display">End your turn</p>
+    <div class="choices">
+        <span class="icon-line">
+            <span class="sr-only">Taking the {chosenSpace} larva cube and its polyps.</span>
+            {@render cube(chosenSpace)}
+            {#each gameSession.chosenSpacePolyps as [color, count] (color)}<PolypChip
+                    {color}
+                    {count}
+                />{/each}
+        </span>
+        <ChoiceButton label="Confirm" onclick={() => gameSession.confirmOpenSeaSpace()}>
+            <span class="choice-text">Confirm</span>
+        </ChoiceButton>
+    </div>
+{:else if gameSession.choosingCoralToEat}
     <EatPrompt />
 {:else if gameSession.cylinderAlga}
     <p class="prompt reef-display">Put the {gameSession.cylinderAlga} cylinder on the open sea</p>
@@ -261,8 +277,14 @@
     .choices {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 8px;
         margin-top: 6px;
+    }
+
+    .choice-text {
+        padding-inline: 8px;
+        font-size: 14px;
     }
 
     .count {

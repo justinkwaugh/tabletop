@@ -14,7 +14,7 @@ import {
     type Commander,
     type ProjectedUnit
 } from './pieces.js'
-import { distinct, legal } from './legality.js'
+import { distinct, isLegal, legal } from './legality.js'
 import { hasUsableCommand } from './orders.js'
 
 /** Rule 11, step 1. */
@@ -107,6 +107,11 @@ export function eligibleReserveDefenders(
         .filter(
             (unit) => !unit.retreatedAfterCombat && mayDefendAgainst(unit, attack.defenseApproach)
         )
+}
+
+/** Rule 11, step 2: with nothing blocking the approach and nothing free in reserve, the defender can only retreat. */
+export function canDefend(state: HydratedNapoleonsTriumphGameState): boolean {
+    return mustDefend(state) || eligibleReserveDefenders(state).length > 0
 }
 
 /** The defence when pieces block the defense approach: all of them and no others, with no choice in it. */
@@ -250,6 +255,15 @@ export function checkDefenseLeaders(
         leaderIds.map((id) => state.unit(id)),
         attack.defenseApproach,
         attack.defendersBlocking === true
+    )
+}
+
+/** Rule 11, step 4: no defending unit may lead, and the attacker can see as much, so leading with none is no choice and gives nothing away. */
+export function leaderlessDefenseIsForced(state: HydratedNapoleonsTriumphGameState): boolean {
+    const defenders = currentAttack(state).defendingUnitIds.map((id) => state.unit(id))
+    return (
+        defenders.every((unit) => unit.shown !== undefined) &&
+        !defenders.some((unit) => isLegal(() => checkDefenseLeaders(state, [unit.id])))
     )
 }
 

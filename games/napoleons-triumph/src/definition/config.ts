@@ -9,6 +9,7 @@ import { Scenario } from '../components/timeTrack.js'
 
 export enum SideSelection {
     Random = 'Random',
+    FirstPlayerChooses = 'FirstPlayerChooses',
     Auction = 'Auction'
 }
 
@@ -37,11 +38,26 @@ export const NapoleonsTriumphGameConfigOptions: GameConfigOptions = [
         id: 'sideSelection',
         type: ConfigOptionType.List,
         name: 'Sides',
-        description: 'Deal the armies at random, or bid starting morale for the choice of army',
+        description:
+            'How the players come to command the French and the Allies. At a tournament table the seat decides the army',
         default: SideSelection.Random,
         options: [
-            { name: 'Random', value: SideSelection.Random },
-            { name: 'Morale auction', value: SideSelection.Auction }
+            {
+                name: 'Random',
+                value: SideSelection.Random,
+                description: 'The armies are dealt at random'
+            },
+            {
+                name: 'First player chooses',
+                value: SideSelection.FirstPlayerChooses,
+                description: 'A player drawn at random chooses which army to command'
+            },
+            {
+                name: 'Morale auction',
+                value: SideSelection.Auction,
+                description:
+                    'The players bid starting morale for the choice of army; the winning bid comes off that army'
+            }
         ],
         alwaysShow: true
     },
@@ -50,7 +66,7 @@ export const NapoleonsTriumphGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.Boolean,
         name: 'The Santon',
         description:
-            'The French fixed battery stands on the steep hill on their left, which gets its own rules for artillery',
+            'Use the optional Santon rules (Rule 18). The French still choose where their fixed battery sets up; if they put it on the Santon, it leads from reserve across any of its approaches',
         default: false
     }
 ]

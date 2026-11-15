@@ -1,13 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, assertExists } from '@tabletop/common'
+import { GameAction } from '@tabletop/common'
 import { STARTING_MORALE, Side } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { NapoleonsTriumphAction } from './gameAction.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { legal } from '../model/legality.js'
-import { winningBid } from '../model/moraleAuction.js'
-import { assignSides } from '../model/sides.js'
+import { assignSides, sideChoice } from '../model/sides.js'
+
+export type ChooseSideMetadata = Type.Static<typeof ChooseSideMetadata>
+export const ChooseSideMetadata = Type.Object({
+    wonAtAuction: Type.Boolean()
+})
 
 export type ChooseSide = Type.Static<typeof ChooseSide>
 export const ChooseSide = Type.Evaluate(
@@ -16,6 +20,7 @@ export const ChooseSide = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.ChooseSide),
             playerId: Type.String(),
+            metadata: Type.Optional(ChooseSideMetadata),
             side: Type.Enum(Side)
         })
     ])
@@ -33,6 +38,7 @@ export class HydratedChooseSide
 {
     declare type: ActionType.ChooseSide
     declare playerId: string
+    declare metadata?: ChooseSideMetadata
     declare side: Side
 
     constructor(data: ChooseSide) {
@@ -40,12 +46,11 @@ export class HydratedChooseSide
     }
 
     protected perform(state: HydratedNapoleonsTriumphGameState) {
-        const auction = state.auction
-        assertExists(auction, 'There is no morale auction')
-        const handicap = winningBid(auction)
-        legal(auction.winnerId === this.playerId, 'The auction winner chooses the army')
+        const { chooserId, handicap } = sideChoice(state)
+        legal(chooserId === this.playerId, 'Another player chooses the army')
         legal(STARTING_MORALE[this.side] > handicap, 'That bid would leave the army with no morale')
         assignSides(state, this.playerId, this.side, handicap)
+        this.metadata = { wonAtAuction: state.auction !== undefined }
         state.auction = undefined
         // Each player now sees an army dealt from the same stream whichever side was chosen.
         this.revealsInfo = true

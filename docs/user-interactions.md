@@ -26,6 +26,8 @@ A press records at most one Action. A UI never submits a chain of Actions for on
 
 Pressing Undo repeatedly therefore walks back through the staged selection one manual step at a time, then through committed actions. Players reverse every step through this one control, so no panel renders a `Back` or step-cancel button of its own. A toggle is a selection, not a reversal control: choosing a selected piece or target again may deselect it.
 
+A free-form draft is the exception to one step per press: a decision the player shapes by trying things, such as drawing train routes, is a single manual stage that each press replaces, so one Undo drops the whole draft rather than replaying every adjustment. Its panel may offer a reset to the suggested starting point, such as Auto returning to the best run found, which drops the stage the same way; it chooses where to start, not which step to cancel.
+
 The base `GameSession` implements this contract for every staged selection registered with it, so a title registers its selections and does not override `undo()`:
 
 ```ts

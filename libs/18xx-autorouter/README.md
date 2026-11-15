@@ -105,6 +105,11 @@ discarded immediately by streaming.
   values. A 6-train still uses ordinary offboard values during the diesel phase.
 - 1846: express visit/payment limits with a paid company station, connection
   bonuses on paid stops, and a per-stop bonus on the fleet's longest route.
+- 1862: declared shared track, company-wide stop/off-board-area payments, home-rooted
+  city connectivity, endpoint shape, train-specific stop access, N/M paid-stop
+  choices, Local hex subsidies, and required/permanent freight chains with
+  crow-flies and port bonuses. Route generation and fleet selection run in Rust;
+  TypeScript checks exact revenue and subsidy against family settlement.
 - N+s trains (`extraTowns`): at most N+s stops, of which at most N are not towns.
   Only revenue-center trains may carry extra towns.
 - Revenue policies chosen from the state and operating company, and connection
@@ -118,8 +123,22 @@ discarded immediately by streaming.
   track the route does not use; it skips one that would reuse its own track or
   revisit a junction between stops, and never tries a longer extension that would
   leave track free for another train. `exhaustive` covers this encoding only.
+- Terminus track (`TilePath.terminus`): a route that reaches a stop along it ends there and may
+  start from it freely; encoded as a terminal arc towards the stop. Parallel lanes across a hex
+  side are separate arcs, and a stop marked `uncounted` costs a train no distance.
+- Trains routed apart from the rest of the fleet, each combination checked by `RouteEvaluation`:
+    - station-run trains (`distance.stationRun`, 1822's L trains): their few runs from the
+      company's stations, one of them at a station on no track, are listed and the other trains
+      routed beside each choice that could still beat the best found;
+    - trains that share track (`sharesTrack`) are routed alone, and a train that stops only at some
+      stops (`RouteRules.stopsAt`, 1822's E trains) must be one of them: the stops it passes cost and
+      pay nothing and it may end only where it stops;
+    - attached rolling stock (`attachment`, 1822's Pullman): each distinct attachment is tried;
+    - a bonus one route of a run earns (`oncePerRun`): every train is first routed with it, and if
+      more than one route earns it each train in turn is routed as its only earner.
+      `RouteRules.runSubsidy` is reported for the run found; the search does not optimise it.
 - All: station inclusion, continuous track, no edge reversal or track/border
-  reuse within or between routes, no repeated revenue center or repeated junction
+  reuse within a route (between routes unless shared track is declared), no repeated revenue center or repeated junction
   between consecutive stops, blocked cities at endpoints only, and terminal offboards. Station reservations do not block runs.
 
 These mechanisms come from `RouteRules`, `TrainDefinition`, `RouteNetwork` and
@@ -129,9 +148,15 @@ core's exclusive stop groups, so a route visits one of them. The core's additive
 traversal/first-stop bonuses have no consumer in the current repository models and
 are not invented as title policies here.
 
-The internal wire format is version 6. It is private to this package; callers use
+The internal wire format is version 9; workers and WASM must be rebuilt together. It is private to this package; callers use
 the shared game models. Other distance, gauge, payment-selection or fleet-coupled
 rules need explicit encoding support before another title can use this solver.
+Fleet policies are optional family data, not settlement callbacks. The native
+fleet selector grows connected partial fleets, uses matching for paid stops and
+branch-and-bound coverage/chain bounds, and permits idle trains. It optimizes
+revenue plus treasury subsidy and reports both separately. Fleet policies cannot
+yet combine with required-route enumeration, legacy connection/interconnection
+bonuses or a longest-route bonus; these combinations are rejected.
 See the [design review](../../research/18xx/autorouter-design.md).
 
 ## Build and verification

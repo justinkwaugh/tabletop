@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import type { Point } from '@tabletop/common'
 import type { MedinaGameSession } from '../src/lib/model/session.svelte.js'
 
 declare global {
@@ -571,6 +572,66 @@ test('the player cards are styled', async ({ page }) => {
 
 test.describe('on a phone', () => {
     test.use({ viewport: { width: 390, height: 844 } })
+
+    test.describe('with touch', () => {
+        test.use({ hasTouch: true })
+
+        test('a tap opens a palace score; a drag never opens it and panning closes it', async ({
+            page
+        }) => {
+            await createGame(page)
+            const orange = page.getByRole('button', { name: /^Orange/ })
+            await orange.click()
+            await targets(page).first().click()
+            await expect.poll(() => piecesOnBoard(page)).toBe(1)
+            if ((await orange.getAttribute('aria-pressed')) === 'true') {
+                await orange.click()
+            }
+            const tag = page.locator('.tag')
+            const palace = page.locator('polygon.hit').first()
+            const centre = async (): Promise<Point> => {
+                const box = await palace.boundingBox()
+                if (!box) throw new Error('The palace has no box on screen')
+                return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+            }
+            // A pan coasts after the finger lifts, so wait for the palace to stop moving.
+            const settledCentre = async (): Promise<Point> => {
+                let last = await centre()
+                await expect
+                    .poll(async () => {
+                        const next = await centre()
+                        const still = next.x === last.x && next.y === last.y
+                        last = next
+                        return still
+                    })
+                    .toBe(true)
+                return last
+            }
+
+            const cdp = await page.context().newCDPSession(page)
+            const drag = async (from: Point, by: Point) => {
+                const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', points: Point[]) =>
+                    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points })
+                await touch('touchStart', [from])
+                for (let step = 1; step <= 6; step++) {
+                    await touch('touchMove', [
+                        { x: from.x + (by.x * step) / 6, y: from.y + (by.y * step) / 6 }
+                    ])
+                }
+                await touch('touchEnd', [])
+            }
+
+            await drag(await centre(), { x: -90, y: 0 })
+            await expect(tag).toHaveCount(0)
+
+            const spot = await settledCentre()
+            await page.touchscreen.tap(spot.x, spot.y)
+            await expect(tag).toContainText('Unclaimed')
+
+            await drag(await centre(), { x: 0, y: -90 })
+            await expect(tag).toHaveCount(0)
+        })
+    })
 
     test('the tiles stay upright around the rotated board, palace tiles along the top', async ({
         page

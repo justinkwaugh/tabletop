@@ -1,5 +1,5 @@
 import { assertExists } from '@tabletop/common'
-import type { MapDrawing } from './mapDrawing.js'
+import { nearlySamePoint, type MapDrawing } from './mapDrawing.js'
 
 export function mapTrackJoins(scene: MapDrawing) {
     const endpoints = scene.locations.flatMap((entry) =>
@@ -8,9 +8,12 @@ export function mapTrackJoins(scene: MapDrawing) {
             : entry.face.paths.flatMap((path) => {
                   const drawing = entry.drawing.paths.find((candidate) => candidate.id === path.id)
                   assertExists(drawing, `Missing drawn track ${path.id}`)
+                  // A track the print leaves out joins nothing, and a spike only at its base.
+                  if (drawing.hidden) return []
                   return path.endpoints.flatMap((endpoint, index) => {
                       if (endpoint.kind !== 'edge') return []
                       const point = index === 0 ? drawing.start : drawing.end
+                      if (drawing.spike && !nearlySamePoint(point, drawing.spike.base)) return []
                       return [
                           {
                               locationId: entry.location.id,
@@ -27,7 +30,7 @@ export function mapTrackJoins(scene: MapDrawing) {
             (other, otherIndex) =>
                 otherIndex < index &&
                 other.locationId !== point.locationId &&
-                Math.hypot(point.x - other.x, point.y - other.y) < 0.01
+                nearlySamePoint(point, other)
         )
     )
 }

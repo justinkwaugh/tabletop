@@ -9,9 +9,15 @@ import {
     type LeagueHeldPlace,
     type LeagueAllocatedGroup,
     type LeagueSeasonPlacement,
-    type LeagueShape
+    type LeagueShape,
+    tournamentRowRanksByPlace
 } from '@tabletop/common'
-import { compareTournamentScores, type ComparableScore } from './tournamentScoring.js'
+import {
+    compareTournamentScores,
+    tournamentPlacings,
+    type ComparableScore,
+    type TournamentTableResult
+} from './tournamentScoring.js'
 
 export interface LeagueGroupResult {
     groupId: string
@@ -20,7 +26,7 @@ export interface LeagueGroupResult {
         userId: string
         playedBy?: string
     })[]
-    tables: { entrantIds: string[]; winnerIds: string[] }[]
+    tables: TournamentTableResult[]
 }
 
 export function leagueLayout(
@@ -236,22 +242,27 @@ function groupCount(groups: LeagueGroupResult[], level: number): number {
 }
 
 function groupPlaces(group: LeagueGroupResult, draw: Map<string, number>): string[] {
-    const rows = [...group.standings].sort(compareTournamentScores)
-    const places: string[] = []
-    for (let start = 0; start < rows.length;) {
-        let end = start + 1
-        while (end < rows.length && compareTournamentScores(rows[start], rows[end]) === 0) end++
-        const tied = rows.slice(start, end).map((row) => row.userId)
-        const headToHead = headToHeadScores(group.tables, tied)
-        places.push(
-            ...tied.sort(
-                (a, b) =>
-                    entry(headToHead, b) - entry(headToHead, a) || entry(draw, a) - entry(draw, b)
-            )
-        )
-        start = end
-    }
-    return places
+    return tournamentPlacings(group.standings, group.tables).flatMap((tied) =>
+        tournamentRowRanksByPlace(tied[0])
+            ? orderByDraw(tied, draw)
+            : orderByWinsHeadToHead(group, tied, draw)
+    )
+}
+
+function orderByWinsHeadToHead(
+    group: LeagueGroupResult,
+    tied: LeagueGroupResult['standings'],
+    draw: Map<string, number>
+): string[] {
+    const headToHead = headToHeadScores(
+        group.tables,
+        tied.map((row) => row.userId)
+    )
+    return orderByDraw(tied, draw).sort((a, b) => entry(headToHead, b) - entry(headToHead, a))
+}
+
+function orderByDraw(tied: LeagueGroupResult['standings'], draw: Map<string, number>): string[] {
+    return tied.map((row) => row.userId).sort((a, b) => entry(draw, a) - entry(draw, b))
 }
 
 function headToHeadScores(

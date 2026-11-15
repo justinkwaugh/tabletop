@@ -12,6 +12,7 @@
     } from 'flowbite-svelte'
     import TournamentSelect from '../tournaments/TournamentSelect.svelte'
     import GameConfigFields from '../tournaments/GameConfigFields.svelte'
+    import CompetitionScoringField from '../tournaments/CompetitionScoringField.svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         leagueGroupSizesFor,
@@ -55,7 +56,8 @@
     const game = new CompetitionGameChoice(
         libraryService,
         initial?.rules.titleId,
-        initial?.rules.gameConfig
+        initial?.rules.gameConfig,
+        initial?.rules.scoring
     )
     let title = $derived(game.title)
     let config = $derived(game.config)
@@ -100,7 +102,7 @@
                     gamesPerEntrant,
                     concurrency,
                     gameConfig: config,
-                    scoring: 'splitWinsV1'
+                    scoring: game.scoring
                 },
                 signUp: { opensAutomatically, days: signUpDays }
             }
@@ -190,6 +192,9 @@
                     {/each}
                 </ButtonGroup>
             </div>
+        {/if}
+        {#if game.supportsPlacement}
+            <CompetitionScoringField {game} />
         {/if}
         {#if title?.info.configurator?.options.length}
             <Hr class="my-4" />

@@ -24,8 +24,10 @@ const INQUISITOR = 'denizen.arcane.inquisitor'
 const IVORY_EYE = 'relic.ivory-eye'
 
 const panel = (page: Page) => page.locator('.panel')
-const usePower = (page: Page) =>
-    panel(page).getByRole('button', { name: 'Use a power', exact: true })
+/** R-6.2, R-7.4 — a card's "Use", on the board or in a seat. */
+const useBadge = (page: Page, cardId: string) => page.locator(`[data-use-badge="${cardId}"]`)
+/** Opens what a card's Use opens; on a phone its seat sits off the screen, so the tap is sent to the badge. */
+const useCard = (page: Page, cardId: string) => useBadge(page, cardId).dispatchEvent('click')
 const power = (page: Page, cardId: string) => panel(page).locator(`[data-action-power="${cardId}"]`)
 /** The power's picks: everything beside its own card. */
 const picker = (page: Page, cardId: string) => power(page, cardId).locator(':scope > div.grow')
@@ -44,7 +46,7 @@ async function openPicker(page: Page, name: TableFixture.TableName, cardId: stri
     await page.goto('/')
     await call(page, 'open', name)
     await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('Dana')
-    await usePower(page).click()
+    await useCard(page, cardId)
     await expect(power(page, cardId)).toBeVisible()
 }
 

@@ -237,14 +237,16 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     viewedHistoryPosition: ViewedHistoryPosition | undefined = $derived.by(() => {
-        if (!this.history.inHistory || !this.myPlayer) {
+        const viewedActionCount = this.history.viewedActionCount
+        if (viewedActionCount === undefined || !this.myPlayer) {
             return undefined
         }
         return viewedHistoryPosition({
-            actionIndex: this.currentVisibleContext.state.actionCount,
+            actionIndex: viewedActionCount,
             liveActionCount: this.gameContext.state.actionCount,
             liveActions: this.gameContext.actions,
-            playerId: this.myPlayer.id
+            playerId: this.myPlayer.id,
+            replaying: this.history.replaying
         })
     })
 
