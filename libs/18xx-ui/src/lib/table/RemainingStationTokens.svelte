@@ -15,13 +15,17 @@
     const money = $derived(session.presentation.money)
     const stationCosts = $derived(!session.presentation.hideStationCosts)
     const tokens = $derived(
-        remainingStationTokens(session.gameState.stations, companyId, (stationId) =>
+        remainingStationTokens(session.gameState, companyId, (stationId) =>
             session.stations.placementCost(stationId)
         )
     )
     const remainingStations = $derived(tokens.remaining)
     const tokenGroups = $derived(tokens.groups)
     const counted = $derived(tokens.counted)
+    const appearance = (neutral: boolean) =>
+        (neutral ? session.mapView.neutralStation : undefined) ??
+        session.mapView.stations[companyId]
+    const label = (neutral: boolean) => (neutral ? 'Neutral station token' : 'Station token')
 </script>
 
 <div class="remaining-tokens" role="group" aria-label="Remaining station tokens">
@@ -30,23 +34,25 @@
             {@const cost = session.stations.placementCost(station.id)}
             <div
                 class="token-cost"
-                aria-label={stationCosts ? `Station token, ${money(cost)}` : 'Station token'}
+                aria-label={stationCosts
+                    ? `${label(station.neutral)}, ${money(cost)}`
+                    : label(station.neutral)}
             >
-                <CompanyToken appearance={session.mapView.stations[companyId]} size={20} />
+                <CompanyToken appearance={appearance(station.neutral)} size={20} />
                 {#if stationCosts}<span>{cost}</span>{/if}
             </div>
         {/each}
     {:else}
-        {#each tokenGroups as group (group.cost)}
+        {#each tokenGroups as group (`${group.neutral}:${group.cost}`)}
             <div
                 class="token-cost"
                 aria-label={stationCosts
-                    ? `${group.count} station tokens, ${money(group.cost)} each`
-                    : `${group.count} station tokens`}
+                    ? `${group.count} ${group.neutral ? 'neutral ' : ''}station tokens, ${money(group.cost)} each`
+                    : `${group.count} ${group.neutral ? 'neutral ' : ''}station tokens`}
             >
                 <div class="token-count">
                     {#if counted}<span>{group.count}</span>{/if}<CompanyToken
-                        appearance={session.mapView.stations[companyId]}
+                        appearance={appearance(group.neutral)}
                         size={20}
                     />
                 </div>

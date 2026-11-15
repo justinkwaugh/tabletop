@@ -3,6 +3,7 @@ import { HexOrientation } from '@tabletop/common'
 import { RailwayMap } from '../map/map.js'
 import { createCityTileFace } from '../tiles/faces.js'
 import { TileSet } from '../tiles/inventory.js'
+import { cityIsBlocked, placeableStations } from '../map/station.js'
 import {
     StationPlacement,
     applyStationPlacement,
@@ -147,4 +148,46 @@ it('allows explicit remote placement while preserving cost, capacity and allowan
     state.stationReservations = []
     state.stationStep!.placedStationIds.push('earlier')
     expect(new StationPlacement(state, remoteRules).choices('A:extra')).toEqual([])
+})
+
+it('places a held neutral station beside its holder’s own, one to a hex, and lets every route through', () => {
+    const { state, rules } = fixture(2)
+    state.stationReservations = []
+    state.companies.push({ id: 'N', kind: 'major', floated: true })
+    state.stations.push(
+        { id: 'N:A', companyId: 'N', status: 'available' },
+        { id: 'N:B', companyId: 'N', status: 'available' }
+    )
+    state.neutralStations = [
+        { stationId: 'N:A', heldBy: 'A' },
+        { stationId: 'N:B', heldBy: 'B' }
+    ]
+    expect(placeableStations(state, 'A').map((station) => station.id)).toEqual(['A:extra', 'N:A'])
+    expect(placeableStations(state, 'N')).toEqual([])
+    applyStationPlacement(state, {
+        companyId: 'A',
+        stationId: 'A:extra',
+        position: { locationId: '1', nodeId: 'city', slot: 0 },
+        cost: 40
+    })
+    const city = {
+        id: 'city',
+        kind: 'city' as const,
+        stationSlots: 2,
+        revenue: { kind: 'fixed' as const, amount: 30 }
+    }
+    expect(cityIsBlocked(state, 'C', '1', city)).toBe(false)
+    // The holder places it where it already has a station.
+    const [neutral, ...others] = new StationPlacement(state, rules).choices('N:A')
+    expect(others).toEqual([])
+    expect(neutral.position).toEqual({ locationId: '1', nodeId: 'city', slot: 1 })
+    applyStationPlacement(state, neutral)
+    expect(state.stations.find((station) => station.id === 'N:A')).toMatchObject({
+        companyId: 'N',
+        status: 'placed'
+    })
+    // A full city with a neutral station stays open to every route.
+    expect(cityIsBlocked(state, 'C', '1', city)).toBe(false)
+    // One neutral station to a hex.
+    expect(new StationPlacement(state, rules).openSlots('N', '1', 'city')).toEqual([])
 })

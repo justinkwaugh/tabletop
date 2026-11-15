@@ -175,9 +175,7 @@ export class MapModule {
         })
     )
     scene = $derived.by(() => this.draw(this.tileInventory))
-    tokens = $derived.by(() =>
-        stationMapTokens(this.displayState(), this.view().stations, this.view().sharedStations)
-    )
+    tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view()))
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
     /** The tiles of the supply, which the manifest lists; the board's own tiles are not among them. */
     manifestTiles = $derived.by(() => {
@@ -201,18 +199,9 @@ export class MapModule {
         this.previewTileInventory ? this.draw(this.previewTileInventory) : this.scene
     )
     displayedTokens = $derived.by(() => {
-        if (this.landedLayStations)
-            return stationMapTokens(
-                this.landedLayStations,
-                this.view().stations,
-                this.view().sharedStations
-            )
+        if (this.landedLayStations) return stationMapTokens(this.landedLayStations, this.view())
         return this.stations.preview
-            ? stationMapTokens(
-                  this.stations.displayState,
-                  this.view().stations,
-                  this.view().sharedStations
-              )
+            ? stationMapTokens(this.stations.displayState, this.view())
             : this.tokens
     })
     displayedReservations = $derived.by(() => [

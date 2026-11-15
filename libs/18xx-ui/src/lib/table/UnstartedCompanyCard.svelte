@@ -20,7 +20,7 @@
     // Two or more token groups beside the name leave no room for "Not started" beside them too.
     const crowded = $derived(
         !wide &&
-            remainingStationTokens(session.gameState.stations, company.id, (stationId) =>
+            remainingStationTokens(session.gameState, company.id, (stationId) =>
                 session.stations.placementCost(stationId)
             ).groups.length > 1
     )

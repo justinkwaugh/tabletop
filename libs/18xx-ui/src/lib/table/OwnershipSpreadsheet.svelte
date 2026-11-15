@@ -27,7 +27,8 @@
         type Company,
         type Owner,
         type PurchaseRequest,
-        isObsoleteTrain
+        isObsoleteTrain,
+        stationPlacer
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { NumberedShareNames } from './companyPresentation.js'
@@ -484,7 +485,7 @@
                     ? company.parPrice
                     : undefined,
             stations: session.gameState.stations.filter(
-                (station) => station.companyId === company.id
+                (station) => stationPlacer(session.gameState, station) === company.id
             ),
             cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
             loans:
