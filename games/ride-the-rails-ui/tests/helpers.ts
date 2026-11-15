@@ -246,3 +246,28 @@ export function litInView(page: Page): Promise<string[]> {
         })
     })
 }
+
+/**
+ * Safari 26.0 and older report the box of anything inside CSS zoom divided by the zoom, as the
+ * board's view (`renderAtViewScale`) draws it; this page does the same. The box as drawn stays on
+ * `window.rtrDrawnRect`.
+ */
+export async function reportRectsUnzoomed(page: Page) {
+    await page.addInitScript(() => {
+        const drawn = Element.prototype.getBoundingClientRect
+        Reflect.set(window, 'rtrDrawnRect', (element: Element) => drawn.call(element))
+        const zoomAbove = (element: Element) => {
+            let zoom = 1
+            for (let node: Element | null = element; node; node = node.parentElement) {
+                zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1
+            }
+            return zoom
+        }
+        Element.prototype.getBoundingClientRect = function () {
+            const box = drawn.call(this)
+            const zoom = zoomAbove(this)
+            if (zoom === 1) return box
+            return new DOMRect(box.x / zoom, box.y / zoom, box.width / zoom, box.height / zoom)
+        }
+    })
+}

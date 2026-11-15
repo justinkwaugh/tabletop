@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import { visualClientRect } from '@tabletop/frontend-components'
 import type { RailroadId } from '@tabletop/ride-the-rails'
 import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardGeometry.js'
 import { findInTable, viewOf } from '$lib/utils/tableScope.js'
@@ -103,6 +104,15 @@ export function boardIn(table: Element | undefined): Element | undefined {
     return findInTable(table, `svg[${BOARD_ATTRIBUTE}]`)
 }
 
+/**
+ * Where the board is drawn on screen. The board lies inside its view's CSS zoom, whose boxes
+ * Safari 26.0 and older report divided by the zoom, so it is measured as drawn
+ * (`docs/phone-rendering.md`, Measuring under zoom).
+ */
+export function boardBoxOf(board: Element): ScreenBox {
+    return visualClientRect(board)
+}
+
 /** The board's frame from its box on screen; none while the board is not drawn. */
 export function frameOf(box: ScreenBox): BoardFrame | undefined {
     if (box.width === 0 || box.height === 0) return undefined
@@ -133,10 +143,10 @@ export const BESIDE_THE_SIDE_PANEL: Point = { x: 0, y: BOARD_HEIGHT / 2 }
  */
 function tablePlace(table: Element | undefined, key: string): Point | undefined {
     const board = boardIn(table)
-    const frame = board && frameOf(board.getBoundingClientRect())
+    const frame = board && frameOf(boardBoxOf(board))
     if (!table || !frame) return undefined
     const boxes = [...table.querySelectorAll(`[${FLIGHT_TARGET_ATTRIBUTE}="${key}"]`)]
-        .map((element) => element.getBoundingClientRect())
+        .map((element) => visualClientRect(element))
         .filter((box) => box.width > 0 && box.height > 0)
     const landing = landingPoint(boxes, viewOf(board))
     return landing ? toBoard(frame, landing) : undefined

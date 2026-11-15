@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Flyer as FlyerShape } from '$lib/animators/flights.svelte.js'
     import {
+        boardBoxOf,
         boardIn,
         frameOf,
         frameTransform,
@@ -66,7 +67,7 @@
         const clip = svg.querySelector(`#${CLIP_ID} rect`)
         let frame = 0
         const place = () => {
-            const box = boardSvg?.getBoundingClientRect()
+            const box = boardSvg && boardBoxOf(boardSvg)
             const view = clipper?.getBoundingClientRect()
             const board = box && frameOf(box)
             if (board) {
