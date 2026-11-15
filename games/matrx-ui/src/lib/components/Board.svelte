@@ -214,15 +214,15 @@
             {/each}
         </pattern>
         <radialGradient id="matrx-board-fade">
-            <stop offset="0.7" stop-color="white"></stop>
-            <stop offset="1" stop-color="black"></stop>
+            <stop offset="0.7" class="fade-stop clear"></stop>
+            <stop offset="1" class="fade-stop"></stop>
         </radialGradient>
-        <mask id="matrx-board-table-fade">
-            <rect {...tableArea} fill="url(#matrx-board-fade)"></rect>
-        </mask>
     </defs>
 
-    <rect {...tableArea} class="fine" mask="url(#matrx-board-table-fade)"></rect>
+    <!-- The grid fades into the table under a gradient of the table's colour, not a mask: a mask
+         the size of the table doubled the board's repaint in WebKit. -->
+    <rect {...tableArea} class="fine"></rect>
+    <rect {...tableArea} fill="url(#matrx-board-fade)" class="fade"></rect>
     <polygon points={playArea} class="play-area"></polygon>
     <polygon points={centreTriangles} class="fine"></polygon>
 
@@ -564,6 +564,18 @@
     .fine {
         fill: url(#matrx-board-fine);
         pointer-events: none;
+    }
+
+    .fade {
+        pointer-events: none;
+    }
+
+    .fade-stop {
+        stop-color: var(--matrx-table);
+    }
+
+    .fade-stop.clear {
+        stop-opacity: 0;
     }
 
     .fine-line {
