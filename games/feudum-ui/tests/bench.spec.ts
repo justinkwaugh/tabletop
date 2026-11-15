@@ -625,10 +625,13 @@ async function netTurn(element: Locator): Promise<number> {
     })
 }
 
-/** R-1.2.3 Every piece and every word of ours on a turned area reads upright: net turn 0. */
+/**
+ * R-1.2.3 Every piece and every word of ours on a turned area reads upright: net turn 0. The
+ * print's words, and the drawn panel and rank lines that stand in for it, turn with the print.
+ */
 async function expectLevel(scope: Locator) {
     const pieces = scope.locator(
-        '[data-world] svg, [data-guild] text:not(svg[aria-label$="guild panel"] text), [data-bench-note], [data-bench-count]'
+        '[data-world] svg, [data-guild] text:not(svg[aria-label$="guild panel"] text, [data-print-stand-in]), [data-bench-note], [data-bench-count]'
     )
     for (let index = 0; index < (await pieces.count()); index++) {
         const piece = pieces.nth(index)

@@ -63,6 +63,7 @@
                 stroke-width="2"
             ></polygon>
             <text
+                data-print-stand-in
                 x={at.x}
                 y={at.y + RankRadius + 13}
                 text-anchor="middle"
