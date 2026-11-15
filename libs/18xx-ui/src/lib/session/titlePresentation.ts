@@ -3,6 +3,7 @@ import type { OperatingStepStatuses } from '../table/operatingStepStatuses.js'
 import type { MarketCellDimensions } from '../stock/marketTokenLayout.js'
 import type {
     EighteenXXState,
+    RailwayMap,
     StockInstructionStopReason,
     TileRotation,
     Train
@@ -121,6 +122,24 @@ export type MarketLedge = {
     edges: readonly { spaceId: string; side: 'bottom' | 'right' }[]
 }
 
+/** What the companies tab shows of companies no one has started. */
+export type UnstartedCompanies<State extends GameState = EighteenXXState> = {
+    /** Whether the company could be started in this phase. */
+    onOffer(state: State, companyId: string): boolean
+    /** Its home cities, or that its president chooses one as it starts. */
+    home(state: State, companyId: string): UnstartedCompanyHome
+}
+export type UnstartedCompanyHome = { locationIds: readonly string[] } | 'chosen'
+/** Every company no one has started, at the homes the map prints for it. */
+export function printedHomeCompanies<State extends GameState = EighteenXXState>(
+    map: RailwayMap
+): UnstartedCompanies<State> {
+    return {
+        onOffer: () => true,
+        home: (_state, companyId) => ({ locationIds: map.reservedLocationIds(companyId) })
+    }
+}
+
 /** A company statistic of the title's own, shown as a spreadsheet column. */
 export type CompanyColumn<State extends GameState = EighteenXXState> = {
     id: string
@@ -220,6 +239,11 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     startNotes?(state: State, companyId: string): readonly string[]
     /** Facts of the title's own about a player, such as a loan they owe, shown beside their cash. */
     playerFacts?(state: State, playerId: string): readonly TitleFact[]
+    /**
+     * The companies tab's switch to show companies no one has started beside the started ones,
+     * for titles where players weigh what is still to come; no switch unless given.
+     */
+    unstartedCompanies?: UnstartedCompanies<State>
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]

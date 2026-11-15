@@ -52,14 +52,22 @@ function atCertificateLimit(state: StockState, playerId: string): boolean {
 }
 
 /**
- * Minors are auctioned before phase 5, the later six from phase 3, the Nikolaev before any
- * other (§7.2, §9.2, §9.4).
+ * Whether a company no one has started is on offer in this phase: minors before phase 5, the
+ * later six from phase 3, and public companies from phase 4 (§7.2, §9.2, §12).
  */
-function auctionable(state: FormationState, companyId: string): boolean {
+export function companyOnOffer1861(state: FormationState, companyId: string): boolean {
+    const company = getCompany(state, companyId)
+    if (company.started || company.closed) return false
     const minor = minor1861(companyId)
-    if (!minor || Phases1861.isAtLeast(state.phaseId, MinorAuctionEndPhaseId)) return false
-    if (minor.available === 'phase-3' && !Phases1861.isAtLeast(state.phaseId, LaterMinorsPhaseId))
-        return false
+    if (!minor)
+        return company.kind === 'major' && Phases1861.isAtLeast(state.phaseId, MajorStartPhaseId)
+    if (Phases1861.isAtLeast(state.phaseId, MinorAuctionEndPhaseId)) return false
+    return minor.available !== 'phase-3' || Phases1861.isAtLeast(state.phaseId, LaterMinorsPhaseId)
+}
+
+/** Minors on offer are auctioned, the Nikolaev before any other (§9.4). */
+function auctionable(state: FormationState, companyId: string): boolean {
+    if (!minor1861(companyId) || !companyOnOffer1861(state, companyId)) return false
     return companyId === NikolaevId || !!getCompany(state, NikolaevId).started
 }
 

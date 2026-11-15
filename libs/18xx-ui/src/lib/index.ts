@@ -109,8 +109,11 @@ export type {
     LoanTerms,
     TitleOperatingStep,
     TitlePresentation,
-    TitleRound
+    TitleRound,
+    UnstartedCompanies,
+    UnstartedCompanyHome
 } from './session/titlePresentation.js'
+export { printedHomeCompanies } from './session/titlePresentation.js'
 export { constructionOperatingSteps } from './table/operatingStep.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { tileSymbolMarkup } from './tiles/tileSymbols.js'

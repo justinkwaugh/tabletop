@@ -82,7 +82,8 @@
     import BoardAutoZoom from './BoardAutoZoom.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
     import type { NumberedShareNames } from './companyPresentation.js'
-    import { spreadsheetCompanies } from './spreadsheetCompanies.js'
+    import { companiesOnOffer, spreadsheetCompanies } from './spreadsheetCompanies.js'
+    import UnstartedCompanyCard from './UnstartedCompanyCard.svelte'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
@@ -338,6 +339,10 @@
     const companyCardsWrap = $derived(session.preferences.values[companyCardsWrapKey])
     function toggleCompanyCardsWrap() {
         session.preferences.set({ [companyCardsWrapKey]: !companyCardsWrap }, 'family')
+    }
+    const companyCardsUnstarted = $derived(session.preferences.values.companyCardsUnstarted)
+    function toggleCompanyCardsUnstarted() {
+        session.preferences.set({ companyCardsUnstarted: !companyCardsUnstarted }, 'family')
     }
     const companyCardsWide = $derived(session.preferences.values[companyCardsWideKey])
     function toggleCompanyCardsWide() {
@@ -730,6 +735,14 @@
             displayedCompanyOrder,
             includedCompanyIds
         )
+    )
+    const unstartedPresentation = $derived(session.presentation.unstartedCompanies)
+    const companiesToStart = $derived(
+        unstartedPresentation
+            ? companiesOnOffer(gameState, session.charters, (companyId) =>
+                  unstartedPresentation.onOffer(gameState, companyId)
+              )
+            : []
     )
     setGameSession(untrack(() => session))
     const layoutPreference = new DebouncedLayout(
@@ -1476,13 +1489,29 @@
                                 onToggleWrap={toggleCompanyCardsWrap}
                                 wide={companyCardsWide}
                                 onToggleWide={toggleCompanyCardsWide}
+                                unstartedSwitch={companiesToStart.length
+                                    ? {
+                                          enabled: companyCardsUnstarted,
+                                          toggle: toggleCompanyCardsUnstarted
+                                      }
+                                    : undefined}
                             >
                                 {#each startedCompanies as company (company.id)}
                                     {@render companyCard(company, {
                                         layout: companyCardsWide ? 'wide-fill' : 'vertical',
                                         onFocusConnection: focusConnection
                                     })}
-                                {:else}<p class="widget-empty">No companies have started.</p>{/each}
+                                {:else}{#if !companyCardsUnstarted || !companiesToStart.length}<p
+                                            class="widget-empty"
+                                        >
+                                            No companies have started.
+                                        </p>{/if}{/each}
+                                {#if companyCardsUnstarted && unstartedPresentation}{#each companiesToStart as company (company.id)}<UnstartedCompanyCard
+                                            {session}
+                                            {company}
+                                            home={unstartedPresentation.home(gameState, company.id)}
+                                            wide={companyCardsWide}
+                                        />{/each}{/if}
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
                             <TileManifest

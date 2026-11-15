@@ -39,6 +39,7 @@
     import CertificateBadge from '../finance/CertificateBadge.svelte'
     import { multiShareMark } from '../finance/multiShareCertificates.js'
     import CompanyTradePopover from '../stock/CompanyTradePopover.svelte'
+    import RemainingStationTokens from './RemainingStationTokens.svelte'
     import { shareSourceName } from '../stock/purchaseSources.js'
     let {
         session,
@@ -116,18 +117,6 @@
         session.presentation.companyFacts?.(session.gameState, company.id) ?? []
     )
     const origin = $derived(session.presentation.companyOrigin?.(gameState, company.id))
-    const stations = $derived(
-        gameState.stations.filter((station) => station.companyId === company.id)
-    )
-    const remainingStations = $derived(stations.filter((station) => station.status === 'available'))
-    const tokenGroups = $derived.by(() => {
-        const counts = new Map<number, number>()
-        for (const station of remainingStations) {
-            const cost = session.stations.placementCost(station.id)
-            counts.set(cost, (counts.get(cost) ?? 0) + 1)
-        }
-        return [...counts].sort(([a], [b]) => a - b).map(([cost, count]) => ({ cost, count }))
-    })
     const investments = $derived(
         certificatesOwnedBy(gameState, owner).filter(
             (certificate) => certificate.kind === 'share' && certificate.companyId !== company.id
@@ -266,49 +255,7 @@
             </div>
         </div>
         <div class="header-summary">
-            <div class="remaining-tokens" role="group" aria-label="Remaining station tokens">
-                {#if !vertical}
-                    {#each remainingStations as station (station.id)}
-                        {@const cost = session.stations.placementCost(station.id)}
-                        <div
-                            class="token-cost"
-                            aria-label={stationCosts
-                                ? `Station token, ${money(cost)}`
-                                : 'Station token'}
-                        >
-                            <CompanyToken
-                                appearance={session.mapView.stations[company.id]}
-                                size={20}
-                            />
-                            {#if stationCosts}<span>{cost}</span>{/if}
-                        </div>
-                    {/each}
-                {:else}
-                    {#each tokenGroups as group (group.cost)}
-                        <div
-                            class="token-cost"
-                            aria-label={stationCosts
-                                ? `${group.count} station tokens, ${money(group.cost)} each`
-                                : `${group.count} station tokens`}
-                        >
-                            <div class="token-count">
-                                <span>{group.count}</span><CompanyToken
-                                    appearance={session.mapView.stations[company.id]}
-                                    size={20}
-                                />
-                            </div>
-                            {#if stationCosts}<span class="token-price">{group.cost}</span>{/if}
-                        </div>
-                    {:else}
-                        <div class="token-count exhausted" aria-label="0 station tokens remaining">
-                            <span>0</span><CompanyToken
-                                appearance={session.mapView.stations[company.id]}
-                                size={20}
-                            />
-                        </div>
-                    {/each}
-                {/if}
-            </div>
+            <RemainingStationTokens {session} companyId={company.id} {vertical} />
         </div>
     </header>
     {#if origin && 'connection' in origin && onFocusConnection}
@@ -881,36 +828,6 @@
         gap: 10px;
         margin-left: auto;
         padding-left: 6px;
-    }
-    .remaining-tokens {
-        display: flex;
-        gap: 6px;
-    }
-    .token-count {
-        display: flex;
-        align-items: center;
-        gap: 3px;
-        font-size: 16px;
-        line-height: 20px;
-    }
-    .token-price {
-        align-self: flex-end;
-        width: 20px;
-        text-align: center;
-    }
-    .token-count.exhausted {
-        opacity: 0.45;
-        filter: grayscale(1);
-    }
-    .token-cost {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        font-size: 11px;
-        line-height: 11px;
-        font-variant-numeric: tabular-nums;
-        color: var(--rail-text, #695540);
     }
     .prices {
         display: flex;

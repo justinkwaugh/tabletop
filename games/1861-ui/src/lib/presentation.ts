@@ -1,6 +1,8 @@
 import {
     LoanRules1861,
     Market1861,
+    companyOnOffer1861,
+    minor1861,
     MarketPoolId1861,
     MarketZoneColors1861,
     MinorCapColumn,
@@ -10,7 +12,12 @@ import {
     type State1861
 } from '@tabletop/1861'
 import { companyLoans, loanInterest } from '@tabletop/18xx'
-import { moneyFormat, type TitleFact, type TitlePresentation } from '@tabletop/18xx-ui'
+import {
+    moneyFormat,
+    type TitleFact,
+    type TitlePresentation,
+    type UnstartedCompanies
+} from '@tabletop/18xx-ui'
 import { CompanyNames1861 } from './companyPresentation.js'
 import { PhaseChart1861 } from './phaseChart.js'
 import { PhaseColors1861, TrainColors1861 } from './trainPresentation.js'
@@ -36,12 +43,22 @@ function companyFacts1861(state: State1861, companyId: string): TitleFact[] {
         : []
 }
 
+/** Minors have a fixed home; a public company's director chooses one as it starts (§7.2, §9.3). */
+const Unstarted1861: UnstartedCompanies<State1861> = {
+    onOffer: companyOnOffer1861,
+    home: (_state, companyId) => {
+        const minor = minor1861(companyId)
+        return minor ? { locationIds: [minor.home.locationId] } : 'chosen'
+    }
+}
+
 export const Presentation1861: TitlePresentation<State1861> = {
     money,
     phaseChart: PhaseChart1861,
     trainColors: TrainColors1861,
     phaseColors: PhaseColors1861,
     companyFacts: companyFacts1861,
+    unstartedCompanies: Unstarted1861,
     marketPoolId: MarketPoolId1861,
     poolName: (poolId) => (poolId === MarketPoolId1861 ? 'Bank pool' : 'Treasury'),
     companyNames: CompanyNames1861,
