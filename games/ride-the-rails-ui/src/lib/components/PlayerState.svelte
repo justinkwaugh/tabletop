@@ -71,10 +71,12 @@
         text-align: left;
     }
 
+    /* Drawn inside the card, inside the seat colour's bar, so the side panel, which clips what
+       overflows it, shows the whole ring. */
     .seat.acting {
         box-shadow:
-            0 0 0 3px var(--rtr-accent),
-            0 0 0 4.5px var(--rtr-halo);
+            inset 0 0 0 3px var(--rtr-accent),
+            inset 0 0 0 4.5px var(--rtr-halo);
     }
 
     header {
