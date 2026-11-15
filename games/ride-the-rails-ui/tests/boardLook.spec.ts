@@ -83,7 +83,7 @@ for (const theme of ['dark', 'light'] as const) {
     })
 }
 
-test('Every railroad piece is a flat unlettered square, every passenger a pawn or its outline', async ({
+test('Every railroad piece is a flat unlettered square, every passenger a meeple or its outline', async ({
     page
 }) => {
     await openScenario(page, 'Last journey')
@@ -94,6 +94,9 @@ test('Every railroad piece is a flat unlettered square, every passenger a pawn o
     const track = board(page).locator('g.track [data-cube]')
     await expect(track).toHaveCount(state.pieces)
     await expect(board(page).locator('g.passengers [data-passenger]')).toHaveCount(51)
+    await expect(board(page).locator('g.passengers [data-passenger-shape="meeple"]')).toHaveCount(
+        51
+    )
     await expect(board(page).locator('g.passengers [data-passenger="waiting"]')).toHaveCount(
         state.passengers
     )

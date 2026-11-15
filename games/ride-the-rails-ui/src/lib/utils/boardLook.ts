@@ -14,7 +14,7 @@ import { CHICAGO_BONUS, cityIn, usaHex, type HexId } from '@tabletop/ride-the-ra
  *   in `CityLayer.svelte` beside `BonusPill.svelte`.
  * - piece: 'wood-cube' (an isometric wooden cube with shaded faces and grain); drawn in
  *   `RailroadPiece.svelte` beside `RailroadCube.svelte`.
- * - passenger: 'token' (a person on a white disc), 'navy-pawn' (the pawn in navy); drawn in
+ * - passenger: 'token' (a person on a white disc), 'navy-meeple' (the meeple in navy); drawn in
  *   `PassengerFigure.svelte`, placed and sized from `utils/cityMarks.ts`.
  * - startCue: 'flag' (a pennant of the colour on the city), 'ghost-cube' (a faint cube in the
  *   city); drawn in `StartCueLayer.svelte`.
@@ -34,7 +34,7 @@ export const LOOK_OPTIONS = {
     /** 5. Every railroad piece, on the map and off it: a flat rounded square. */
     piece: ['flat-square'],
     /** 6. A waiting passenger, and the outline it leaves once taken. */
-    passenger: ['pawn'],
+    passenger: ['meeple'],
     /** 7. The cities a newly available railroad could start in now. */
     startCue: ['dashed-band'],
     /** 8. Which railroads may build in a lit hex. */
@@ -67,7 +67,7 @@ export const BOARD_LOOK: BoardLook = {
     hexFill: 'start-cities',
     bonus: 'pill',
     piece: 'flat-square',
-    passenger: 'pawn',
+    passenger: 'meeple',
     startCue: 'dashed-band',
     litRailroads: 'ghost-cube'
 }

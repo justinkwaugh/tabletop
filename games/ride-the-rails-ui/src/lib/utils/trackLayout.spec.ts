@@ -10,7 +10,7 @@ import {
 } from '@tabletop/ride-the-rails'
 import type { Point } from '@tabletop/common'
 import { hexCenter, hexCorners } from './boardGeometry.js'
-import { BONUS_PILL, PASSENGER_SCALE, PAWN, passengerOffset } from './cityMarks.js'
+import { BONUS_PILL, MEEPLE, PASSENGER_SCALE, passengerOffset } from './cityMarks.js'
 import { CUBE_CORNER_RATIO, CUBE_EDGE_WIDTH, CUBE_UNIT } from './cubeShape.js'
 import {
     ghostCubes,
@@ -132,11 +132,11 @@ describe('track slot shapes', () => {
         for (const city of USA_CITIES) {
             const center = hexCenter(city.hexId)
             const passenger = passengerOffset(city.id)
-            // The pawn's head, the part a cube in front of it could hide.
+            // The meeple's head, the part a cube in front of it could hide.
             const head = {
-                x: passenger.x + PAWN.head.cx * PASSENGER_SCALE,
-                y: passenger.y + PAWN.head.cy * PASSENGER_SCALE,
-                radius: PAWN.head.r * PASSENGER_SCALE
+                x: passenger.x + MEEPLE.head.cx * PASSENGER_SCALE,
+                y: passenger.y + MEEPLE.head.cy * PASSENGER_SCALE,
+                radius: MEEPLE.head.r * PASSENGER_SCALE
             }
             for (const slot of trackSlots(city.hexId)) {
                 const local = { ...slot, x: slot.x - center.x, y: slot.y - center.y }

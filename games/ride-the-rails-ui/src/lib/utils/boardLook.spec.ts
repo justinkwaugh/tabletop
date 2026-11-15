@@ -35,7 +35,7 @@ describe('the board look', () => {
             hexFill: 'start-cities',
             bonus: 'pill',
             piece: 'flat-square',
-            passenger: 'pawn',
+            passenger: 'meeple',
             startCue: 'dashed-band',
             litRailroads: 'ghost-cube'
         })

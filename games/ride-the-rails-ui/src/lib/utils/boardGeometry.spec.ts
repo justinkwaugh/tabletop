@@ -32,7 +32,7 @@ import {
     BONUS_PILL,
     CAPACITY_ONE,
     PASSENGER_SCALE,
-    PAWN_EXTENT,
+    MEEPLE_EXTENT,
     passengerOffset
 } from './cityMarks.js'
 import {
@@ -110,10 +110,10 @@ function cityMarkBoxes(cityId: CityId): BoundingBox[] {
     const passenger = passengerOffset(cityId)
     const boxes: BoundingBox[] = [
         {
-            x: center.x + passenger.x + PAWN_EXTENT.left * PASSENGER_SCALE,
-            y: center.y + passenger.y + PAWN_EXTENT.top * PASSENGER_SCALE,
-            width: (PAWN_EXTENT.right - PAWN_EXTENT.left) * PASSENGER_SCALE,
-            height: (PAWN_EXTENT.bottom - PAWN_EXTENT.top) * PASSENGER_SCALE
+            x: center.x + passenger.x + MEEPLE_EXTENT.left * PASSENGER_SCALE,
+            y: center.y + passenger.y + MEEPLE_EXTENT.top * PASSENGER_SCALE,
+            width: (MEEPLE_EXTENT.right - MEEPLE_EXTENT.left) * PASSENGER_SCALE,
+            height: (MEEPLE_EXTENT.bottom - MEEPLE_EXTENT.top) * PASSENGER_SCALE
         }
     ]
     if (city.bonus) {

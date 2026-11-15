@@ -168,7 +168,7 @@ export function fiveRing(bonus: CityBonusMark | undefined): FiveRing | undefined
 /** R-4.1.4: an East Coast city's capacity, a "1" above its one cube. */
 export const CAPACITY_ONE = { x: 0, y: -22.4, fontSize: 16 } as const
 
-// The passenger (BOARD_LOOK.passenger 'pawn').
+// The passenger (BOARD_LOOK.passenger 'meeple').
 
 /**
  * Where a city's passenger stands from the hex's centre: up and right, clear of the bonus pill;
@@ -188,21 +188,29 @@ export function passengerOffset(cityId: CityId): Point {
 export const PASSENGER_LIFT = 8
 
 /**
- * Art plan, Passenger: a pawn in its own units, centred on the origin, one flat shape: a head, a
- * collar, a flared stem and a base, in natural wood with a dark edge.
+ * Art plan, Passenger: a classic meeple in its own units, centred on the origin, one flat shape: a
+ * round head, arms out and legs apart, in natural wood with a dark edge. About the pawn it
+ * replaced in height (14.6) and at most a tenth wider (10.5 against 9.7), so it stands where the
+ * pawn stood and clears the cubes, the "1" and the bonus pill alike.
  */
-export const PAWN = {
+export const MEEPLE = {
     path:
-        'M-1.5 -2.68 A2.6 2.6 0 1 1 1.5 -2.68 L1.5 -2.4 L3 -2.4 L3 -0.9 L1.5 -0.9 ' +
-        'C1.5 1.6 2.7 3.1 3.7 4 L4.5 4 L4.5 6.5 L-4.5 6.5 L-4.5 4 L-3.7 4 ' +
-        'C-2.7 3.1 -1.5 1.6 -1.5 -0.9 L-3 -0.9 L-3 -2.4 L-1.5 -2.4 Z',
+        'M-1.3 -2.88 A2.4 2.4 0 1 1 1.3 -2.88 C2.6 -2.5 4.9 -2.3 4.9 -1 ' +
+        'C4.9 -0.1 4.3 0.3 3.4 0.3 L2.3 0.4 L3.4 5.9 C3.6 6.5 3.3 6.6 2.9 6.6 ' +
+        'L1 6.6 L0 3.6 L-1 6.6 L-2.9 6.6 C-3.3 6.6 -3.6 6.5 -3.4 5.9 L-2.3 0.4 ' +
+        'L-3.4 0.3 C-4.3 0.3 -4.9 -0.1 -4.9 -1 C-4.9 -2.3 -2.6 -2.5 -1.3 -2.88 Z',
     edgeWidth: 0.7,
-    /** The head, the part a cube in front of the pawn could hide. */
-    head: { cx: 0, cy: -4.8, r: 2.6 },
+    /** The head, the part a cube in front of the meeple could hide. */
+    head: { cx: 0, cy: -4.9, r: 2.4 },
+    /** How far each arm reaches from the middle. */
+    armReach: 4.9,
+    /** The top of the gap between the legs, and the ground the feet stand on. */
+    crotchY: 3.6,
+    footY: 6.6,
     /** A taken passenger's dashed outline. */
     goneWidth: 0.8,
     goneDash: '1.5 1.1'
 } as const
 
-/** The pawn's extent in its own units, its edge included. */
-export const PAWN_EXTENT = { left: -4.85, right: 4.85, top: -7.75, bottom: 6.85 } as const
+/** The meeple's extent in its own units, its edge included. */
+export const MEEPLE_EXTENT = { left: -5.25, right: 5.25, top: -7.65, bottom: 6.95 } as const

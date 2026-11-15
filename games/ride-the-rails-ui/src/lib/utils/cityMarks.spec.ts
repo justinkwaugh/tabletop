@@ -12,7 +12,8 @@ import {
     hexagonPoint,
     PASSENGER_SCALE,
     passengerOffset,
-    PAWN_EXTENT,
+    MEEPLE,
+    MEEPLE_EXTENT,
     PLAIN_CITY_BAND_WIDTH,
     START_BAND_WIDTH,
     startBand,
@@ -159,14 +160,40 @@ describe('the start band', () => {
     })
 })
 
+describe('the passenger, a meeple', () => {
+    // The pawn it replaces, in the same units: 9.7 wide and 14.6 tall, its edge included.
+    const PAWN_WIDTH = 9.7
+    const PAWN_HEIGHT = 14.6
+
+    it('is about the pawn’s height and no wider than the pawn plus 10%', () => {
+        const width = MEEPLE_EXTENT.right - MEEPLE_EXTENT.left
+        const height = MEEPLE_EXTENT.bottom - MEEPLE_EXTENT.top
+        expect(width).toBeLessThanOrEqual(PAWN_WIDTH * 1.1)
+        expect(Math.abs(height - PAWN_HEIGHT)).toBeLessThanOrEqual(PAWN_HEIGHT * 0.05)
+        expect(MEEPLE_EXTENT.left).toBe(-MEEPLE_EXTENT.right)
+    })
+
+    it('has a round head on top, arms out wider than the head, and two legs apart', () => {
+        const { head } = MEEPLE
+        expect(head.cy - head.r - MEEPLE.edgeWidth / 2).toBeCloseTo(MEEPLE_EXTENT.top, 5)
+        expect(MEEPLE.path).toMatch(new RegExp(`A${head.r} ${head.r} `))
+        // The arms reach out to the sides, well past the head.
+        expect(MEEPLE.armReach).toBeGreaterThan(head.r * 1.8)
+        expect(MEEPLE.armReach + MEEPLE.edgeWidth / 2).toBeCloseTo(MEEPLE_EXTENT.right, 5)
+        // Two feet on the ground, with a gap between them under the crotch.
+        expect(MEEPLE.crotchY).toBeLessThan(MEEPLE.footY)
+        expect(MEEPLE.footY + MEEPLE.edgeWidth / 2).toBeCloseTo(MEEPLE_EXTENT.bottom, 5)
+    })
+})
+
 describe('the passenger’s place', () => {
     it('stands up and right of the hex’s centre, clear of the bonus pill', () => {
         for (const city of USA_CITIES) {
             const offset = passengerOffset(city.id)
             expect(offset.x).toBeGreaterThan(0)
             expect(offset.y).toBeLessThan(0)
-            const pawnLeft = offset.x + PAWN_EXTENT.left * PASSENGER_SCALE
-            expect(pawnLeft).toBeGreaterThan(BONUS_PILL.center.x + BONUS_PILL.width / 2)
+            const meepleLeft = offset.x + MEEPLE_EXTENT.left * PASSENGER_SCALE
+            expect(meepleLeft).toBeGreaterThan(BONUS_PILL.center.x + BONUS_PILL.width / 2)
         }
     })
 
