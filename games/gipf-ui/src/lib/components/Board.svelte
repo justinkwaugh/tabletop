@@ -68,6 +68,10 @@
     })
 
     const SPOT_RADIUS = PIECE_RADIUS * 0.28
+    // Labels sit on the alphabetic baseline, shifted down by 0.35 of their 17px size to centre
+    // them: WebKit mis-scales a central baseline under the board's CSS zoom, and Safari divides em
+    // lengths by it.
+    const LABEL_SHIFT = 17 * 0.35
 
     function colorOf(playerId: string) {
         return session.gameState.getPlayerState(playerId).color
@@ -144,7 +148,9 @@
 
     {#if session.showCoordinates}
         {#each session.notation.labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+            <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
+                >{label.text}</text
+            >
         {/each}
     {/if}
 
@@ -352,9 +358,8 @@
         fill: var(--gipf-label);
         font-size: 17px;
         font-weight: 600;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.68px;
         text-anchor: middle;
-        dominant-baseline: central;
         pointer-events: none;
     }
 
