@@ -24,6 +24,7 @@ import {
     type Lift,
     type PieceParts
 } from './drop.js'
+import { setPose, tweenPose } from './svgPose.js'
 
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
@@ -111,7 +112,6 @@ export class BoardAnimator implements MoveInterrupter {
 
     private register<Key>(nodes: Map<Key, SVGGElement>, key: Key): Attachment<SVGGElement> {
         return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             nodes.set(key, node)
             return () => {
                 if (nodes.get(key) === node) nodes.delete(key)
@@ -140,7 +140,6 @@ export class BoardAnimator implements MoveInterrupter {
 
     enteringShadow(): Attachment<SVGGElement> {
         return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             this.enteringShadowNode = node
             return () => {
                 if (this.enteringShadowNode === node) this.enteringShadowNode = undefined
@@ -209,7 +208,10 @@ export class BoardAnimator implements MoveInterrupter {
         animationContext.afterAnimations(() => {
             if (this.playing === timeline) this.playing = undefined
             this.entering = undefined
-            for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
+            for (const node of touched) {
+                setPose(node, { x: 0, y: 0, scale: 1 })
+                gsap.set(node, { opacity: 1 })
+            }
             for (const node of this.markNodes) gsap.set(node, { opacity: 1 })
             // A switch of view has already shown another state, which this board must not cover.
             if (this.session.gameState !== shown) return
@@ -297,7 +299,7 @@ export class BoardAnimator implements MoveInterrupter {
         for (const coords of pieces) {
             const node = this.pieceNodes.get(coordinatesToNumber(coords))
             if (node === undefined) continue
-            timeline.to(node, { x: step.x, y: step.y, duration, ease: 'power2.inOut' }, at)
+            timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
             touched.push(node)
         }
     }
@@ -315,9 +317,10 @@ export class BoardAnimator implements MoveInterrupter {
         if (body === undefined || shadow === undefined) return
         touched.push(body, shadow)
         const ease = 'power1.out'
-        timeline.to(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }, at)
+        timeline.add(tweenPose(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }), at)
         timeline.to(body, { opacity: 0, duration, ease: fade }, at)
-        timeline.to(shadow, { opacity: 0, scale: LIFT_OFF.shadow, duration, ease }, at)
+        timeline.to(shadow, { opacity: 0, duration, ease }, at)
+        timeline.add(tweenPose(shadow, { scale: LIFT_OFF.shadow, duration, ease }), at)
     }
 
     private dropEntering(timeline: Timeline) {
@@ -340,7 +343,7 @@ export class BoardAnimator implements MoveInterrupter {
         const node = this.enteringNode
         if (node === undefined) return
         const step = this.offset(dot, firstSpot)
-        timeline.to(node, { x: step.x, y: step.y, duration, ease: 'power2.inOut' }, at)
+        timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
     }
 
     private fadeMarks(timeline: Timeline, duration: number) {
