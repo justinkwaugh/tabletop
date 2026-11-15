@@ -8,9 +8,10 @@
 
     const gameSession = getGameSession()
 
-    // R-4.3.3: the claimed line stays drawn from the claim to the game's end.
+    // R-4.3.3: once its claim has played, the claimed line is drawn only while the viewer shows
+    // it with the Transcontinental chip.
     const claimedLine = $derived(
-        gameSession.gameState.transcontinental
+        gameSession.showsTranscontinentalLine
             ? transcontinentalLine(gameSession.gameState.track)?.hexIds
             : undefined
     )

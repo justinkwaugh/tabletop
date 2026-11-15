@@ -115,8 +115,10 @@ test('The Transcontinental coin flies to the chip in the turn line, which shows 
     expect(inView(last, view)).toBe(true)
     expect(medallion && onOrBeside(last, medallion, view)).toBe(true)
 
-    await expect(chip).toHaveAccessibleName('Transcontinental: claimed by Ada for $12')
-    await expect(chip).toBeInViewport()
+    // Claimed, the chip is the button that shows the line; its description says the claim.
+    const claimed = page.getByRole('button', { name: 'Show the Transcontinental line' })
+    await expect(claimed).toHaveAccessibleDescription('Transcontinental: claimed by Ada for $12')
+    await expect(claimed).toBeInViewport()
 })
 
 test('The end of round steps the round and brightens the railroad it makes available', async ({

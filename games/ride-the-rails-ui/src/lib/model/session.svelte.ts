@@ -349,6 +349,29 @@ export class RideTheRailsGameSession extends GameSession<
         }
     }
 
+    // Contract, Turn header: this viewer's own choice to see the claimed Transcontinental line,
+    // hidden until asked for. It is kept from turn to turn and in History View.
+    private transcontinentalLineWanted = $state(false)
+
+    /** The viewer's choice, which the claim's animator reads while the shown line is still open. */
+    get wantsTranscontinentalLine(): boolean {
+        return this.transcontinentalLineWanted
+    }
+
+    /** The Transcontinental chip's toggle once the line is claimed; none while it is open. */
+    transcontinentalLineToggle: { shown: boolean } | undefined = $derived(
+        this.gameState.transcontinental ? { shown: this.transcontinentalLineWanted } : undefined
+    )
+
+    /** R-4.3.3: whether the board draws the claimed line. */
+    showsTranscontinentalLine: boolean = $derived(this.transcontinentalLineToggle?.shown === true)
+
+    toggleTranscontinentalLine() {
+        if (this.transcontinentalLineToggle) {
+            this.transcontinentalLineWanted = !this.transcontinentalLineWanted
+        }
+    }
+
     // Contract, Verification scenario 23: Undo during a flight ends the motion, then undoes.
     // A staged selection pops without waiting; only an action undo ends the flights first.
     override async undoCommittedAction() {

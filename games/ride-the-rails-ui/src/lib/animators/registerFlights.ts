@@ -11,7 +11,7 @@ export function registerFlightAnimators(session: RideTheRailsGameSession): () =>
     const listeners = [
         shareAnimator(session.flights),
         placementAnimator(session.flights),
-        transcontinentalAnimator(session.flights),
+        transcontinentalAnimator(session.flights, () => session.wantsTranscontinentalLine),
         journeyAnimator(session.flights),
         endOfRoundAnimator(session.flights)
     ]

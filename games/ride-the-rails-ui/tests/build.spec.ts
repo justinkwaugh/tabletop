@@ -256,14 +256,29 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await openScenario(page, 'Transcontinental in reach')
     expect(await activePlayerId(page)).toBe('p1')
     const money = (await moneyOf(page, 'p1')) ?? 0
-    // The Transcontinental's chip in the turn line names the claim, or the terms while open.
+    // The Transcontinental's chip in the turn line shows the terms while open. Once claimed it is
+    // a button that shows or hides the claimed line, and says the claim in its description.
     const chip = page.getByRole('img', { name: /^Transcontinental: / })
-    const claimed = (text: string) => expect(chip).toHaveAccessibleName(`Transcontinental: ${text}`)
-    const unclaimed = () =>
-        expect(chip).toHaveAccessibleName(
+    const toggle = page.getByRole('button', { name: /^(Show|Hide) the Transcontinental line$/ })
+    const claimed = async (text: string) => {
+        await expect(chip).toHaveCount(0)
+        await expect(toggle).toHaveAccessibleDescription(`Transcontinental: ${text}`)
+    }
+    const unclaimed = async () => {
+        await expect(toggle).toHaveCount(0)
+        await expect(chip).toHaveAccessibleName(
             'Transcontinental: unclaimed, $12 when every switch is in a city, $8 otherwise'
         )
+    }
     const goldLine = board(page).locator('g.lines polyline[stroke="var(--rtr-gold)"]')
+    const lineFlyer = page.locator('[data-flyer="line:transcontinental"]')
+    const lineShown = async (shown: boolean) => {
+        await expect(toggle).toHaveAttribute('aria-pressed', String(shown))
+        await expect(toggle).toHaveAccessibleName(
+            `${shown ? 'Hide' : 'Show'} the Transcontinental line`
+        )
+        await expect(goldLine).toHaveCount(shown ? 1 : 0)
+    }
     await unclaimed()
     await expect(goldLine).toHaveCount(0)
 
@@ -272,9 +287,19 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await expect(denver).toBeVisible()
     const flyers = await flyersDuring(page, () => pressHex(page, denver))
     expect(flyers).toContain('coin $12')
+    expect(flyers).toContain('line')
+    await settled(page)
     expect(await moneyOf(page, 'p1')).toBe(money + 12)
     await claimed('claimed by Ada for $12')
-    await expect(goldLine).toHaveCount(1)
+    // Once its claim has played, the line is no longer drawn; the chip turns it on and off.
+    await expect(lineFlyer).toHaveCount(0)
+    await lineShown(false)
+    await toggle.click()
+    await lineShown(true)
+    await toggle.click()
+    await lineShown(false)
+    await toggle.click()
+    await lineShown(true)
     // Paid once: no hex offers it again.
     expect((await litLabels(page)).filter((label) => label.includes('Transcontinental'))).toEqual(
         []
@@ -285,7 +310,8 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     expect(another).toBeDefined()
     await pressHex(page, litHex(page, another ?? ''))
     await claimed('claimed by Ada for $12')
-    await expect(goldLine).toHaveCount(1)
+    // The viewer's choice outlasts the turn's next placement.
+    await lineShown(true)
     expect(await moneyOf(page, 'p1')).toBeGreaterThanOrEqual(money + 12)
 
     await undo(page)
@@ -301,7 +327,8 @@ test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) 
     await pressHex(page, plain)
     expect(await moneyOf(page, 'p1')).toBe(money + 8)
     await claimed('claimed by Ada for $8')
-    await expect(goldLine).toHaveCount(1)
+    // The line stays shown: the choice is the viewer's, not the claim's.
+    await lineShown(true)
 })
 
 test("9. Yellow's starts: Chicago and the westernmost set, which stays fixed", async ({ page }) => {

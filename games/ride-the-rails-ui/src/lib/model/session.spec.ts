@@ -22,6 +22,7 @@ import {
 } from '@tabletop/ride-the-rails'
 import { buildState, type StateRecipe } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
+import { TABLE_FIXTURES, tableState } from '$lib/testing/tableFixtures.js'
 import type { OfferedHex } from './boardOffer.js'
 import {
     BuildStageOrder,
@@ -463,5 +464,81 @@ describe('the other actions', () => {
         await session.takeShare('railroad.red')
         expect(apply).not.toHaveBeenCalled()
         expect(session.gameState.machineState).toBe(MachineState.Building)
+    })
+})
+
+describe('the Transcontinental line toggle (R-4.3.3)', () => {
+    // Purple waits beside Denver, where Orange's line from Chicago ends: placing it there claims.
+    async function inReach() {
+        const fixture = TABLE_FIXTURES.find(
+            (candidate) => candidate.slug === 'transcontinental-in-reach'
+        )
+        assertExists(fixture)
+        return openSessionOn(tableState(fixture.recipe))
+    }
+
+    async function claim(session: RideTheRailsGameSession) {
+        await session.placeLocomotive('railroad.purple', DENVER)
+        await settled(session)
+        expect(session.gameState.transcontinental).toBeDefined()
+    }
+
+    it('is not offered while the line is unclaimed, and a press there changes nothing', async () => {
+        const session = await inReach()
+        expect(session.transcontinentalLineToggle).toBeUndefined()
+        session.toggleTranscontinentalLine()
+        expect(session.transcontinentalLineToggle).toBeUndefined()
+        expect(session.showsTranscontinentalLine).toBe(false)
+
+        await claim(session)
+        expect(session.transcontinentalLineToggle).toEqual({ shown: false })
+        expect(session.showsTranscontinentalLine).toBe(false)
+    })
+
+    it('starts hidden once claimed; a press shows the line and another hides it', async () => {
+        const session = await inReach()
+        await claim(session)
+        expect(session.showsTranscontinentalLine).toBe(false)
+        session.toggleTranscontinentalLine()
+        expect(session.transcontinentalLineToggle).toEqual({ shown: true })
+        expect(session.showsTranscontinentalLine).toBe(true)
+        session.toggleTranscontinentalLine()
+        expect(session.transcontinentalLineToggle).toEqual({ shown: false })
+        expect(session.showsTranscontinentalLine).toBe(false)
+    })
+
+    it('keeps the choice across new Game States and in History View', async () => {
+        const session = await inReach()
+        await claim(session)
+        session.toggleTranscontinentalLine()
+        const another = session.boardOffer.lit[0]
+        assertExists(another)
+        await session.placeLocomotive(another.placements[0].railroadId, another.hexId)
+        await settled(session)
+        expect(session.showsTranscontinentalLine).toBe(true)
+
+        // Before the claim History View offers no toggle; after it the line follows the choice.
+        await vi.waitFor(async () => {
+            await session.history.goToPreviousAction()
+            expect(session.isViewingHistory).toBe(true)
+        })
+        await settled(session)
+        expect(session.gameState.transcontinental).toBeDefined()
+        expect(session.showsTranscontinentalLine).toBe(true)
+        await vi.waitFor(async () => {
+            await session.history.goToPreviousAction()
+            expect(session.gameState.transcontinental).toBeUndefined()
+        })
+        await settled(session)
+        expect(session.transcontinentalLineToggle).toBeUndefined()
+        expect(session.showsTranscontinentalLine).toBe(false)
+        await vi.waitFor(async () => {
+            await session.history.goToNextAction()
+            expect(session.gameState.transcontinental).toBeDefined()
+        })
+        await settled(session)
+        expect(session.transcontinentalLineToggle).toEqual({ shown: true })
+        session.toggleTranscontinentalLine()
+        expect(session.showsTranscontinentalLine).toBe(false)
     })
 })

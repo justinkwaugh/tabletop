@@ -28,9 +28,14 @@ const SETTLE_INTO_LINE = 0.2
  * Contract, Animation plan, Transcontinental (Pattern B): R-4.3.3, after the claiming placement
  * lands the line's hexes outline one after another, within 900 ms, and settle as the thin gold
  * line; then a gold coin flies to the Transcontinental chip in the turn line and the claimant's
- * money ticks (`flightPlaces`). Without an action the line simply appears with the state.
+ * money ticks (`flightPlaces`). As the coin lands the line fades with it, unless the viewer has
+ * chosen to see the line (`viewerShowsLine`), when the state goes on drawing it. Without an action
+ * nothing moves: the line comes with the state only if the viewer shows it.
  */
-export function transcontinentalAnimator(flights: Flights): GameStateChangeListener<State> {
+export function transcontinentalAnimator(
+    flights: Flights,
+    viewerShowsLine: () => boolean
+): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
         if (!from || motionMode(flights, action) !== 'cinematic') return
         const line = claimedLine(from, to)
@@ -59,12 +64,12 @@ export function transcontinentalAnimator(flights: Flights): GameStateChangeListe
                 .to({ opacity: 1 }, step, OUTLINES_BEGIN + index * step, 'none')
                 .to({ opacity: 0 }, SETTLE_INTO_LINE, drawn, 'power1.in')
         })
-        new PoseTween(flights, animationContext, TRANSCONTINENTAL_LINE_KEY, pose(0, 0, 1, 0)).to(
-            { opacity: 1 },
-            SETTLE_INTO_LINE,
-            drawn,
-            'power1.out'
-        )
+        const settledLine = new PoseTween(
+            flights,
+            animationContext,
+            TRANSCONTINENTAL_LINE_KEY,
+            pose(0, 0, 1, 0)
+        ).to({ opacity: 1 }, SETTLE_INTO_LINE, drawn, 'power1.out')
 
         const lands = flyCoin(
             flights,
@@ -80,8 +85,12 @@ export function transcontinentalAnimator(flights: Flights): GameStateChangeListe
         )
         const money = to.getPlayerState(claim.playerId).money
         tickAt(animationContext, flights, moneyKey(claim.playerId), money, lands)
-        animationContext.afterAnimations(() =>
-            flights.remove([...outlines.map((outline) => outline.key), TRANSCONTINENTAL_COIN_KEY])
-        )
+        const done = [...outlines.map((outline) => outline.key), TRANSCONTINENTAL_COIN_KEY]
+        if (!viewerShowsLine()) {
+            // Fades with the coin, so the claim takes no longer.
+            settledLine.to({ opacity: 0 }, FLIGHT.fade, lands, 'power1.in')
+            done.push(TRANSCONTINENTAL_LINE_KEY)
+        }
+        animationContext.afterAnimations(() => flights.remove(done))
     }
 }

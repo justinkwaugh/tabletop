@@ -18,7 +18,7 @@ import {
 import { buildState, hydrated, runAction } from '@tabletop/ride-the-rails/testing'
 import { ABOVE_THE_BOARD, TRAVELLING_LOCOMOTIVE_WIDTH } from './flightPlaces.js'
 import { Flights, moneyKey, sharesKey, supplyKey } from './flights.svelte.js'
-import { OUTLINE_TOTAL } from './flightPlan.js'
+import { OUTLINE_TOTAL, outlineStep } from './flightPlan.js'
 import { FLIGHT, QUICK } from './motion.js'
 import { locomotiveFlyerKey, placementAnimator } from './placementAnimator.js'
 import { SHARE_FLYER_KEY, shareAnimator } from './shareAnimator.js'
@@ -266,13 +266,35 @@ describe('the Transcontinental animator (R-4.3.3)', () => {
         return { from, to, action }
     }
 
+    /** The attributes the animator writes on a flyer's wrapper, as if the flight layer drew it. */
+    function drawnAttributes(flights: Flights, key: string): Map<string, string> {
+        const attributes = new Map<string, string>()
+        flights.register(
+            {
+                getAttribute: (name) => attributes.get(name) ?? null,
+                setAttribute: (name, value) => void attributes.set(name, value),
+                removeAttribute: (name) => void attributes.delete(name)
+            },
+            key
+        )
+        return attributes
+    }
+
+    const hidden = () => false
+    const shown = () => true
+
     it('outlines the line within 900 ms after the placement lands, then flies a gold coin', async () => {
         const flights = new Flights()
         const { from, to, action } = nearlyAcross()
         const line = transcontinentalLine(to.track)?.hexIds
         assertExists(line)
 
-        const animationContext = await step(transcontinentalAnimator(flights), from, to, action)
+        const animationContext = await step(
+            transcontinentalAnimator(flights, hidden),
+            from,
+            to,
+            action
+        )
         const outlines = flights.flyers.filter((flyer) => flyer.kind === 'outline')
         expect(outlines.length).toBe(line.length)
         expect(flights.flyers.map((flyer) => flyer.key)).toContain(TRANSCONTINENTAL_LINE_KEY)
@@ -285,6 +307,45 @@ describe('the Transcontinental animator (R-4.3.3)', () => {
         )
         playThrough(animationContext)
         expect(flights.shown(moneyKey('p1'), 10)).toBe(18)
+    })
+
+    it('fades the settled line out as the coin lands while the viewer keeps it hidden', async () => {
+        const flights = new Flights()
+        const { from, to, action } = nearlyAcross()
+        const line = drawnAttributes(flights, TRANSCONTINENTAL_LINE_KEY)
+        const animationContext = await step(
+            transcontinentalAnimator(flights, hidden),
+            from,
+            to,
+            action
+        )
+        const duration = animationContext.actionTimeline.duration()
+
+        const hexes = transcontinentalLine(to.track)?.hexIds.length ?? 0
+        const drawn = OUTLINES_BEGIN + hexes * outlineStep(hexes)
+        const lands = drawn + 0.2 + FLIGHT.coinRise + FLIGHT.coinFly
+        animationContext.actionTimeline.seek(lands - 0.01, false)
+        expect(Number(line.get('opacity'))).toBe(1)
+        playThrough(animationContext)
+        expect(Number(line.get('opacity'))).toBe(0)
+        // The fade ends with the coin's, so the claim takes no longer.
+        expect(duration).toBeCloseTo(lands + FLIGHT.fade, 9)
+        animationContext.runAfterAnimations()
+        expect(flights.flyers).toEqual([])
+    })
+
+    it('keeps the settled line drawn until the state draws it while the viewer shows it', async () => {
+        const flights = new Flights()
+        const { from, to, action } = nearlyAcross()
+        const line = drawnAttributes(flights, TRANSCONTINENTAL_LINE_KEY)
+        const animationContext = await step(
+            transcontinentalAnimator(flights, shown),
+            from,
+            to,
+            action
+        )
+        playThrough(animationContext)
+        expect(Number(line.get('opacity'))).toBe(1)
         animationContext.runAfterAnimations()
         expect(flights.flyers.map((flyer) => flyer.key)).toEqual([TRANSCONTINENTAL_LINE_KEY])
     })
@@ -292,7 +353,7 @@ describe('the Transcontinental animator (R-4.3.3)', () => {
     it('shows the line with the state, without motion, when there is no action', async () => {
         const flights = new Flights()
         const { from, to } = nearlyAcross()
-        const animationContext = await step(transcontinentalAnimator(flights), from, to)
+        const animationContext = await step(transcontinentalAnimator(flights, hidden), from, to)
         expect(animationContext.actionTimeline.duration()).toBe(0)
         expect(flights.flyers).toEqual([])
     })
