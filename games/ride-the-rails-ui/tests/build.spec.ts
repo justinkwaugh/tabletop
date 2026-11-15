@@ -37,12 +37,13 @@ function scrim(page: Page) {
 
 /** Ring outlines by kind: the full lit ring and the fainter start ring. */
 function rings(page: Page, kind: 'lit' | 'start') {
-    const stroke = kind === 'start' ? 'var(--rtr-accent-start)' : 'var(--rtr-accent)'
+    const stroke = kind === 'start' ? 'var(--rtr-accent-start)' : 'var(--rtr-lit-ring)'
     return board(page).locator(`g.picks polygon[stroke="${stroke}"]`)
 }
 
-function hollowPips(page: Page) {
-    return board(page).locator('g.picks circle[fill="var(--rtr-station)"]')
+/** The ghost cubes in lit hexes, one for each railroad that may build there. */
+function ghostCubes(page: Page, railroadId: string) {
+    return board(page).locator(`g.picks [data-ghost="${railroadId}"]`)
 }
 
 function marks(page: Page, text: string) {
@@ -83,7 +84,7 @@ test('3. First placement: the East Coast lights, New York starts Red, undo', asy
 
     // R-4.2.1: Red starts in any East Coast city; nothing else lights and the rest dims.
     expect(await litLabels(page)).toEqual(EAST_COAST.map((city) => `${city}: start Red`))
-    await expect(hollowPips(page)).toHaveCount(6)
+    await expect(ghostCubes(page, 'railroad.red')).toHaveCount(6)
     await expect(scrim(page)).toHaveCount(1)
 
     const flyers = await flyersDuring(page, () =>
@@ -222,9 +223,9 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     expect(await moneyOf(page, 'p1')).toBe(money)
 
     // R-4.3.2: an empty $5 city pays $5 to an adjacent railroad; a start there pays nothing.
-    // Its coin is green while the bonus is to be had and grey once a cube has used it up.
-    const denverCoin = board(page).locator('[data-city-marks="city.usa.denver"] [data-bonus]')
-    await expect(denverCoin).toHaveAttribute('data-bonus', 'five')
+    // Its pill is green while the bonus is to be had and grey once a cube has used it up.
+    const denverPill = board(page).locator('[data-city-marks="city.usa.denver"] [data-bonus]')
+    await expect(denverPill).toHaveAttribute('data-bonus', 'five')
     const denver = litHex(page, 'Denver: place Orange or start Black, $5')
     await expect(denver).toBeVisible()
     await pressHex(page, denver)
@@ -240,15 +241,15 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     expect(await page.evaluate(() => window.rtrSession.gameState.track['hex.usa.8-22'])).toEqual([
         'railroad.black'
     ])
-    await expect(denverCoin).toHaveAttribute('data-bonus', 'used')
+    await expect(denverPill).toHaveAttribute('data-bonus', 'used')
 
     await undo(page)
-    await expect(denverCoin).toHaveAttribute('data-bonus', 'five')
+    await expect(denverPill).toHaveAttribute('data-bonus', 'five')
     await pressHex(page, litHex(page, 'Denver: place Orange or start Black, $5'))
     const orangeFlyers = await flyersDuring(page, () => orange.click())
     expect(orangeFlyers).toContain('coin $5')
     expect(await moneyOf(page, 'p1')).toBe(money + 5)
-    await expect(denverCoin).toHaveAttribute('data-bonus', 'used')
+    await expect(denverPill).toHaveAttribute('data-bonus', 'used')
 })
 
 test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) => {
@@ -322,7 +323,7 @@ test("9. Yellow's starts: Chicago and the westernmost set, which stays fixed", a
 
     // R-4.2.3: Chicago and the westernmost occupied cities holding exactly one locomotive.
     expect(await yellowStarts()).toEqual(['Chicago', 'Des Moines', 'Kansas City', 'Omaha'])
-    expect(await hollowPips(page).count()).toBeGreaterThanOrEqual(4)
+    expect(await ghostCubes(page, 'railroad.yellow').count()).toBeGreaterThanOrEqual(4)
 
     const chicago = litHexAt(page, 'hex.usa.5-43')
     await pressHex(page, chicago)

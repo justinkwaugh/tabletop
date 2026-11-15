@@ -16,7 +16,7 @@
 
 <!-- docs/game-ui-layout.md, Action area views: exactly one of these. -->
 <div
-    class="mx-2 rounded-xl border border-rtr-line bg-rtr-panel px-3 py-2 text-rtr-ink shadow-sm max-sm:mx-1 max-sm:px-2 max-sm:py-1.5"
+    class="mx-2 rounded-xl border border-rtr-card-edge bg-rtr-panel px-3 py-2 text-rtr-ink shadow-sm max-sm:mx-1 max-sm:px-2 max-sm:py-1.5"
 >
     {#if gameSession.isViewingHistory}
         <HistoryDescription />

@@ -56,11 +56,12 @@ function webpImage(data: Uint8Array): WebpImage {
     }
 }
 
-/** Art plan, Supplied assets and Cover: the title ships no image but its cover, and one font. */
+/** Art plan, Supplied assets and Cover: the title ships no image but its cover, and two fonts. */
 describe('image coverage', () => {
-    it('ships no image or font file but the cover and the display font', () => {
+    it('ships no image or font file but the cover, the display font and the serif', () => {
         expect(packageFiles.filter((path) => AssetFile.test(path)).sort()).toEqual([
             'src/lib/fonts/BigShouldersDisplay-Bold.woff2',
+            'src/lib/fonts/LibreBaskerville-Bold.woff2',
             'src/lib/images/cover.webp'
         ])
     })
@@ -75,10 +76,14 @@ describe('image coverage', () => {
         expect(packageFile('src/lib/images/README.md')).toContain('scripts/render-cover.mjs')
     })
 
-    it('ships the display font as WOFF2 with its SIL Open Font License', () => {
-        const font = readFileSync(join(packageRoot, 'src/lib/fonts/BigShouldersDisplay-Bold.woff2'))
+    it.each([
+        ['BigShouldersDisplay-Bold.woff2', 'BigShouldersDisplay-OFL.txt'],
+        ['LibreBaskerville-Bold.woff2', 'LibreBaskerville-OFL.txt']
+    ])('ships %s as a small WOFF2 with its SIL Open Font License', (fontFile, licenceFile) => {
+        const font = readFileSync(join(packageRoot, 'src/lib/fonts', fontFile))
         expect(String.fromCharCode(...font.subarray(0, 4))).toBe('wOF2')
-        expect(packageFile('src/lib/fonts/BigShouldersDisplay-OFL.txt')).toContain(
+        expect(font.byteLength).toBeLessThanOrEqual(24 * 1024)
+        expect(packageFile(`src/lib/fonts/${licenceFile}`)).toContain(
             'SIL OPEN FONT LICENSE Version 1.1'
         )
     })

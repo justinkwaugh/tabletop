@@ -1,97 +1,138 @@
 import { describe, expect, it } from 'vitest'
 import { USA_CITIES } from '@tabletop/ride-the-rails'
+import { HEX_SIZE, HEX_WIDTH } from './boardGeometry.js'
 import {
-    bonusCoin,
-    cityMarkScale,
-    COIN_RADIUS,
+    BONUS_PILL,
+    bonusPill,
+    hexagonPoint,
+    PASSENGER_SCALE,
     passengerOffset,
-    START_RING_RADIUS,
-    startRingArcs,
-    coinOffset
+    PAWN_EXTENT,
+    PLAIN_CITY_BAND_WIDTH,
+    START_BAND_WIDTH,
+    startBand,
+    startBandPaths,
+    startBandSeparators,
+    startBandSpans
 } from './cityMarks.js'
-import { stationOf } from './boardGeometry.js'
 
-describe('the $5 coin', () => {
+describe('the $5 pill', () => {
     it('is green with a white amount while the bonus is to be had', () => {
-        expect(bonusCoin({ kind: 'five', amount: 5, taken: false })).toEqual({
+        expect(bonusPill({ kind: 'five', amount: 5, taken: false })).toEqual({
             text: '$5',
             fill: 'var(--rtr-five)',
-            rim: 'var(--rtr-five-rim)',
             ink: 'var(--rtr-five-ink)',
             used: false
         })
     })
 
-    it('greys out and is struck through once a railroad has used it up (R-4.3.2)', () => {
-        expect(bonusCoin({ kind: 'five', amount: 5, taken: true })).toEqual({
+    it('greys and strikes through once a railroad has had it (R-4.3.2)', () => {
+        expect(bonusPill({ kind: 'five', amount: 5, taken: true })).toEqual({
             text: '$5',
             fill: 'var(--rtr-coin-used)',
-            rim: 'var(--rtr-coin-used-rim)',
             ink: 'var(--rtr-coin-used-ink)',
             used: true
         })
     })
 
-    it('leaves Chicago’s gold $2, paid on every placement, never used up (R-4.3.1)', () => {
-        expect(bonusCoin({ kind: 'chicago', amount: 2 })).toEqual({
+    it('shows Chicago’s $2 in gold, never used up (R-4.3.1)', () => {
+        expect(bonusPill({ kind: 'chicago', amount: 2 })).toEqual({
             text: '$2',
             fill: 'var(--rtr-coin)',
-            rim: 'var(--rtr-coin-rim)',
             ink: 'var(--rtr-coin-ink)',
             used: false
         })
     })
 
-    it('reads at the phone zoom: a coin about 14 px across where a hex is 33 px wide', () => {
-        const phoneScale = 33 / (Math.sqrt(3) * 40)
-        expect(2 * COIN_RADIUS * phoneScale).toBeGreaterThanOrEqual(13)
+    it('reads at the phone zoom: a pill about 12 px across where a hex is 33 px wide', () => {
+        const phoneScale = 33 / HEX_WIDTH
+        expect(BONUS_PILL.width * phoneScale).toBeGreaterThanOrEqual(12)
+    })
+
+    it('sits up and left of the hex’s centre, inside the hex', () => {
+        const { center, width, height } = BONUS_PILL
+        expect(center.x).toBeLessThan(0)
+        expect(center.y).toBeLessThan(0)
+        expect(center.x - width / 2).toBeGreaterThan(-HEX_WIDTH / 2)
+        expect(center.y - height / 2).toBeGreaterThan(-HEX_SIZE)
     })
 })
 
-describe('the start ring', () => {
-    it('draws one arc per start colour, each the same length, with gaps between', () => {
-        for (const count of [2, 3, 4]) {
-            const arcs = startRingArcs(count)
-            expect(arcs).toHaveLength(count)
-            for (const arc of arcs) expect(arc).toMatch(/^M[-\d. ]+A[-\d. ]+$/)
-        }
+describe('the start band', () => {
+    it('splits the band into equal spans clockwise from the top corner', () => {
+        expect(startBandSpans(1)).toEqual([{ from: 0, to: 360 }])
+        expect(startBandSpans(2)).toEqual([
+            { from: 0, to: 180 },
+            { from: 180, to: 360 }
+        ])
+        expect(startBandSpans(3)).toEqual([
+            { from: 0, to: 120 },
+            { from: 120, to: 240 },
+            { from: 240, to: 360 }
+        ])
+        expect(startBandSpans(4).map((span) => span.from)).toEqual([0, 90, 180, 270])
     })
 
-    it('draws a single start colour as a whole circle', () => {
-        expect(startRingArcs(1)).toEqual([])
-    })
-
-    it('splits two colours into a top and a bottom half', () => {
-        const [top, bottom] = startRingArcs(2).map((arc) =>
-            arc.match(/-?\d+(?:\.\d+)?/g)?.map(Number)
+    it('puts two colours’ first span on the right half and the second on the left', () => {
+        const [right, left] = startBandPaths(startBandSpans(2), START_BAND_WIDTH).map((path) =>
+            [...path.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((match) => Number(match[1]))
         )
-        // Each arc starts on the left and ends on the right, or the other way round.
-        expect(top?.[1]).toBeLessThan(0)
-        expect(bottom?.[1]).toBeGreaterThan(0)
+        expect(Math.min(...right)).toBeGreaterThanOrEqual(0)
+        expect(Math.max(...left)).toBeLessThanOrEqual(0)
     })
 
-    it('rings the station outside its disc', () => {
-        expect(START_RING_RADIUS).toBeGreaterThan(12)
+    it('runs along the hex’s edge from its top corner', () => {
+        expect(hexagonPoint(HEX_SIZE, 0)).toEqual({ x: 0, y: -HEX_SIZE })
+        expect(hexagonPoint(HEX_SIZE, 90)).toEqual({ x: 34.64, y: 0 })
+        expect(hexagonPoint(HEX_SIZE, 180)).toEqual({ x: 0, y: HEX_SIZE })
+    })
+
+    it('draws one path per colour with a separator at each split, and one ring for one colour', () => {
+        const four = startBandSpans(4)
+        expect(startBandPaths(four, START_BAND_WIDTH)).toHaveLength(4)
+        expect(startBandSeparators(four, START_BAND_WIDTH)).toHaveLength(4)
+        const one = startBandSpans(1)
+        expect(startBandPaths(one, START_BAND_WIDTH)).toHaveLength(1)
+        expect(startBandPaths(one, START_BAND_WIDTH)[0].match(/M/g)).toHaveLength(2)
+        expect(startBandSeparators(one, START_BAND_WIDTH)).toEqual([])
+    })
+
+    it('bands a city with printed start colours in those colours', () => {
+        const newYork = USA_CITIES.find((city) => city.name === 'New York')
+        expect(newYork && startBand(newYork.startColours)).toEqual({
+            railroadIds: newYork?.startColours,
+            width: START_BAND_WIDTH
+        })
+        expect(newYork?.startColours).toHaveLength(4)
+    })
+
+    it('bands a plain city, where only Black may start, in Black alone, thinner (R-4.2.5)', () => {
+        const plain = USA_CITIES.filter((city) => city.startColours.length === 0)
+        expect(plain.map((city) => city.name)).toContain('Denver')
+        for (const city of plain) {
+            expect(startBand(city.startColours)).toEqual({
+                railroadIds: ['railroad.black'],
+                width: PLAIN_CITY_BAND_WIDTH
+            })
+        }
+        expect(PLAIN_CITY_BAND_WIDTH).toBeLessThan(START_BAND_WIDTH)
     })
 })
 
-describe('city mark places', () => {
-    it('puts the coin up and left and the passenger right of an ordinary station', () => {
-        const coin = coinOffset('city.usa.denver')
-        const passenger = passengerOffset('city.usa.denver')
-        expect(coin.x).toBeLessThan(0)
-        expect(coin.y).toBeLessThan(0)
-        expect(passenger.x).toBeGreaterThan(0)
-    })
-
-    it('puts Chicago’s coin and passenger beside its station, between its rows of cubes', () => {
-        expect(coinOffset('city.usa.chicago').y).toBe(0)
-        expect(passengerOffset('city.usa.chicago').y).toBe(0)
-    })
-
-    it('scales the marks with the station', () => {
+describe('the passenger’s place', () => {
+    it('stands up and right of the hex’s centre, clear of the bonus pill', () => {
         for (const city of USA_CITIES) {
-            expect(cityMarkScale(city.id)).toBeCloseTo(stationOf(city.id).radius / 12, 6)
+            const offset = passengerOffset(city.id)
+            expect(offset.x).toBeGreaterThan(0)
+            expect(offset.y).toBeLessThan(0)
+            const pawnLeft = offset.x + PAWN_EXTENT.left * PASSENGER_SCALE
+            expect(pawnLeft).toBeGreaterThan(BONUS_PILL.center.x + BONUS_PILL.width / 2)
         }
+    })
+
+    it('stands Chicago’s higher, above its back row of cubes', () => {
+        expect(passengerOffset('city.usa.chicago').y).toBeLessThan(
+            passengerOffset('city.usa.denver').y
+        )
     })
 })

@@ -73,12 +73,11 @@ test('12. Start and extend: a passenger city, a one-railroad link, then undo bot
     await pressHex(page, litHex(page, `Des Moines: ${START}`))
     await expect(journeyStart(page, 'Des Moines')).toBeVisible()
     await routeHeading(page, 'Des Moines')
-    // R-3.3.2: the cities one link away light, with the pips of the railroads that link there.
+    // R-3.3.2: the cities one link away light; their railroads' cubes are already there, so no
+    // ghost cube is drawn.
     expect(await linkTargets(page)).toContain('Chicago')
     await expect(litHex(page, 'Chicago: link by Orange')).toBeVisible()
-    await expect(
-        board(page).locator('g.picks circle[fill="var(--rtr-railroad-orange)"]')
-    ).not.toHaveCount(0)
+    await expect(board(page).locator('g.picks [data-ghost]')).toHaveCount(0)
     await expect(stagedRoute(page)).toHaveCount(0)
 
     await pressHex(page, litHex(page, 'Chicago: link by Orange'))

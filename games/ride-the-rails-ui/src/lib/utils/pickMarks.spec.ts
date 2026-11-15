@@ -15,11 +15,12 @@ import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
 import { EMPTY_BOARD_OFFER, type BoardOffer, type OfferedHex } from '$lib/model/boardOffer.js'
 import { BOARD_EXTENTS, FITTED_DESKTOP_SCALE, hexCenter } from './boardGeometry.js'
+import { trackSlots } from './trackLayout.js'
 import {
     BOARD_OUTLINE_PATH,
     LARGEST_PICK_SCALE,
     buildChoice,
-    chipNote,
+    chipModifiers,
     hexDetailPlace,
     linkChoice,
     litHexLabel,
@@ -35,6 +36,7 @@ const RED: RailroadId = 'railroad.red'
 const BLUE: RailroadId = 'railroad.blue'
 const ORANGE: RailroadId = 'railroad.orange'
 const YELLOW: RailroadId = 'railroad.yellow'
+const PURPLE: RailroadId = 'railroad.purple'
 const BLACK: RailroadId = 'railroad.black'
 
 const CHICAGO: CityId = 'city.usa.chicago'
@@ -147,7 +149,7 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
                 track: { [NEW_YORK]: [RED], [PHILADELPHIA]: [BLUE] }
             })
         )
-        const views = litHexViews(session.boardOffer)
+        const views = litHexViews(session.boardOffer, session.gameState.track)
         expect(views.map((view) => view.hexId)).toEqual(
             session.boardOffer.lit.map((hex) => hex.hexId)
         )
@@ -159,21 +161,31 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
         assertExists(shared)
         await session.pressHex(shared.hexId)
         flushSync()
-        const picked = litHexViews(session.boardOffer).filter((view) => view.ring === 'picked')
+        const picked = litHexViews(session.boardOffer, session.gameState.track).filter(
+            (view) => view.ring === 'picked'
+        )
         expect(picked.map((view) => view.hexId)).toEqual([shared.hexId])
-        expect(picked[0].pips).toEqual([
-            { railroadId: RED, hollow: false },
-            { railroadId: BLUE, hollow: false }
-        ])
+        expect(picked[0].ghosts.map((ghost) => ghost.railroadId)).toEqual([RED, BLUE])
     })
 
-    it('gives a hex that offers only starts the fainter start ring, with hollow pips (R-4.2)', () => {
-        const views = litHexViews({
-            ...EMPTY_BOARD_OFFER,
-            lit: [offered(hexOf(DALLAS), [], [BLACK])]
-        })
+    it('gives a hex that offers only starts the fainter start ring, with its ghost cube (R-4.2)', () => {
+        const views = litHexViews(
+            { ...EMPTY_BOARD_OFFER, lit: [offered(hexOf(DALLAS), [], [BLACK])] },
+            {}
+        )
         expect(views[0].ring).toBe('start')
-        expect(views[0].pips).toEqual([{ railroadId: BLACK, hollow: true }])
+        expect(views[0].ghosts).toEqual([{ ...trackSlots(hexOf(DALLAS))[0], railroadId: BLACK }])
+    })
+
+    it('stands each railroad that may build as a ghost cube in the slot it would take', () => {
+        const hexId = hexOf(DALLAS)
+        const views = litHexViews(
+            { ...EMPTY_BOARD_OFFER, lit: [offered(hexId, [RED], [BLACK])] },
+            { [hexId]: [] }
+        )
+        expect(views[0].ghosts.map(({ railroadId, x, y }) => ({ railroadId, x, y }))).toEqual(
+            trackSlots(hexId).map(({ x, y }, index) => ({ railroadId: [RED, BLACK][index], x, y }))
+        )
     })
 
     it("names a journey's starts and links, and keeps its picked start pressable (R-3.3.1, R-3.3.2)", () => {
@@ -181,18 +193,25 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             ...EMPTY_BOARD_OFFER,
             lit: [offered(hexOf(SAINT_LOUIS), [RED, BLUE])]
         }
-        expect(litHexViews(offer, { kind: 'journey-start' })[0].label).toBe(
+        expect(litHexViews(offer, {}, { kind: 'journey-start' })[0].label).toBe(
             'Saint Louis: start a journey with its passenger'
         )
-        const extending = litHexViews(offer, {
-            kind: 'journey-extend',
-            startHexId: hexOf(KANSAS_CITY),
-            choosingHexId: hexOf(SAINT_LOUIS)
-        })
+        const extending = litHexViews(
+            offer,
+            {},
+            {
+                kind: 'journey-extend',
+                startHexId: hexOf(KANSAS_CITY),
+                choosingHexId: hexOf(SAINT_LOUIS)
+            }
+        )
         expect(extending.map((view) => [view.hexId, view.ring, view.label])).toEqual([
             [hexOf(KANSAS_CITY), 'picked', "Kansas City: the journey's start, clear the journey"],
             [hexOf(SAINT_LOUIS), 'picked', 'Saint Louis: link by Red or Blue']
         ])
+        // A link's railroads already stand in the city, so no ghost cube is drawn.
+        expect(extending.flatMap((view) => view.ghosts)).toEqual([])
+        expect(litHexViews(offer, {}, { kind: 'journey-start' })[0].ghosts).toEqual([])
     })
 })
 
@@ -233,33 +252,90 @@ describe('the scrim, the spotlight and hex detail (Contract, Coexistence and pre
     })
 })
 
-describe('the railroad popup (R-4.3.2-H1, R-3.3.2)', () => {
+describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
     const fiveDollarCity = USA_CITIES.find((city) => city.bonus === FIVE_DOLLAR_BONUS.id)
     assertExists(fiveDollarCity)
+    const blackStart = { railroadId: BLACK, isStart: true, bonuses: [], supplyLeft: 6 }
+    const redPays = {
+        railroadId: RED,
+        isStart: false,
+        bonuses: [{ bonusId: FIVE_DOLLAR_BONUS.id, amount: 5 }],
+        supplyLeft: 3
+    }
 
-    it('says a start in an empty $5 city pays nothing, and what each placement pays', () => {
-        const blackStart = { railroadId: BLACK, isStart: true, bonuses: [], supplyLeft: 6 }
-        expect(chipNote({}, fiveDollarCity.hexId, blackStart)).toEqual({
-            kind: 'start-uses-bonus',
-            amount: 5
-        })
-        const redPays = {
-            railroadId: RED,
-            isStart: false,
-            bonuses: [{ bonusId: FIVE_DOLLAR_BONUS.id, amount: 5 }],
-            supplyLeft: 3
-        }
+    it('names the popup by its place, and each button by the whole choice', () => {
         const choice = buildChoice(
             {},
-            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart] }
+            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart], lowersLimit: false }
         )
         expect(choice.title).toBe(`${fiveDollarCity.name}: which railroad?`)
-        // The visible chip shows only the railroad's name, so its detail says it is a start.
-        expect(choice.chips.map((chip) => chip.detail)).toEqual(['3 left', 'start · 6 left'])
         expect(choice.chips.map((chip) => chip.label)).toEqual([
             'Place Red, 3 left, pays $5',
             'Start Black, 6 left, pays nothing: a start uses up the $5'
         ])
+    })
+
+    it('gives a button a bonus pill only when its placement earns one', () => {
+        const choice = buildChoice(
+            {},
+            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart], lowersLimit: false }
+        )
+        expect(choice.chips.map((chip) => chip.pills)).toEqual([
+            [{ tone: 'five', text: '+$5' }],
+            []
+        ])
+    })
+
+    it('shows no pill for a start that uses up the $5 (R-4.3.2-H1)', () => {
+        const popup = { hexId: fiveDollarCity.hexId, chips: [blackStart], lowersLimit: false }
+        expect(chipModifiers({}, popup, blackStart)).toEqual({
+            bonuses: [],
+            transcontinental: undefined,
+            startUsesBonus: 5,
+            mountain: false
+        })
+        expect(buildChoice({}, popup).chips[0].pills).toEqual([])
+        // Once a railroad stands there the $5 is gone, and the start says nothing of it.
+        const taken = chipModifiers({ [fiveDollarCity.hexId]: [RED] }, popup, blackStart)
+        expect(taken.startUsesBonus).toBeUndefined()
+    })
+
+    it('says what completing the Transcontinental pays, with a gold pill (R-4.3.3)', () => {
+        const purpleCompletes = {
+            railroadId: PURPLE,
+            isStart: false,
+            bonuses: [{ bonusId: 'bonus.usa.transcontinental' as const, amount: 12 }],
+            supplyLeft: 22
+        }
+        const popup = {
+            hexId: hexOf(DALLAS),
+            chips: [purpleCompletes, { ...blackStart, isStart: false, supplyLeft: 2 }],
+            lowersLimit: false
+        }
+        const choice = buildChoice({}, popup)
+        expect(choice.chips[0].label).toBe(
+            'Place Purple, 22 left, completes the Transcontinental: pays $12'
+        )
+        expect(choice.chips[0].pills).toEqual([{ tone: 'gold', text: '+$12' }])
+        expect(choice.chips[1].pills).toEqual([])
+    })
+
+    it('marks every button when the hex lowers the turn’s limit (R-3.2.4)', () => {
+        const mountain = USA_HEXES.find((hex) => hex.terrain === 'mountain')
+        assertExists(mountain)
+        const orange = { railroadId: ORANGE, isStart: false, bonuses: [], supplyLeft: 8 }
+        const yellow = { railroadId: YELLOW, isStart: false, bonuses: [], supplyLeft: 17 }
+        const lowers = buildChoice(
+            {},
+            { hexId: mountain.id, chips: [orange, yellow], lowersLimit: true }
+        )
+        expect(lowers.chips.map((chip) => chip.mountain)).toEqual([true, true])
+        expect(lowers.chips.map((chip) => chip.label)).toEqual([
+            'Place Orange, 8 left, mountain: one fewer placement this turn',
+            'Place Yellow, 17 left, mountain: one fewer placement this turn'
+        ])
+        const already = buildChoice({}, { hexId: mountain.id, chips: [orange], lowersLimit: false })
+        expect(already.chips[0]).toMatchObject({ mountain: false, label: 'Place Orange, 8 left' })
     })
 
     it("offers each railroad of a journey's link with what the journey would pay the seat", () => {
@@ -268,12 +344,16 @@ describe('the railroad popup (R-4.3.2-H1, R-3.3.2)', () => {
             hexId: hexOf(SAINT_LOUIS),
             chips: [
                 { railroadId: RED, gain: 4 },
-                { railroadId: BLUE, gain: 2 }
+                { railroadId: BLUE, gain: 0 }
             ]
         })
         expect(choice.chips.map((chip) => chip.label)).toEqual([
             'Link by Red, you +$4',
-            'Link by Blue, you +$2'
+            'Link by Blue, you +$0'
+        ])
+        expect(choice.chips.map((chip) => chip.pills)).toEqual([
+            [{ tone: 'coin', text: '+$4' }],
+            []
         ])
     })
 })

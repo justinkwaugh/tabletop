@@ -28,14 +28,16 @@ function mountainHex(): HexId {
 }
 
 describe('the board look', () => {
-    it('picks one option for each of the six questions', () => {
+    it('picks one option for each of the eight questions', () => {
         expect(BOARD_LOOK).toEqual({
-            palette: 'paper',
-            startMark: 'ring',
-            hexFill: 'city-groups',
-            bonus: 'coin',
-            piece: 'wood-cube',
-            passenger: 'figure'
+            palette: 'chart',
+            startMark: 'band',
+            hexFill: 'start-cities',
+            bonus: 'pill',
+            piece: 'flat-square',
+            passenger: 'pawn',
+            startCue: 'dashed-band',
+            litRailroads: 'ghost-cube'
         })
     })
 
@@ -65,38 +67,32 @@ describe('the board look', () => {
 })
 
 describe('hex paint', () => {
-    it('fills plain and mountain hexes by terrain in every scheme', () => {
+    const PLAIN = { fill: 'var(--rtr-plain)', edge: 'var(--rtr-hex-edge)', edgeWidth: 0.9 }
+    const patch = (fill: string) => ({ fill, edge: 'var(--rtr-patch-edge)', edgeWidth: 1.4 })
+
+    it('fills plains on a thin grid and mountains as pale-edged patches in every scheme', () => {
         for (const scheme of LOOK_OPTIONS.hexFill) {
-            expect(hexPaint(plainHex(), scheme)).toEqual({ fill: 'var(--rtr-plain)' })
-            expect(hexPaint(mountainHex(), scheme)).toEqual({ fill: 'var(--rtr-mountain)' })
+            expect(hexPaint(plainHex(), scheme)).toEqual(PLAIN)
+            expect(hexPaint(mountainHex(), scheme)).toEqual(patch('var(--rtr-mountain)'))
         }
     })
 
     it('leaves cities as plain land in the terrain scheme', () => {
-        expect(hexPaint(hexOf('New York'), 'terrain')).toEqual({ fill: 'var(--rtr-plain)' })
+        expect(hexPaint(hexOf('New York'), 'terrain')).toEqual(PLAIN)
     })
 
-    it('lightens every city hex with a thin rim in the city tint scheme', () => {
+    it('greys every city hex alike in the city tint scheme', () => {
         for (const city of ['New York', 'Chicago', 'Denver', 'Omaha']) {
-            expect(hexPaint(hexOf(city), 'city-tint')).toEqual({
-                fill: 'var(--rtr-hex-city)',
-                rim: 'var(--rtr-hex-city-rim)',
-                rimWidth: 2.2
-            })
+            expect(hexPaint(hexOf(city), 'city-tint')).toEqual(patch('var(--rtr-hex-city)'))
         }
     })
 
-    it('tints the East Coast, West Coast, Chicago and $5 cities by group', () => {
-        const paint = (city: string) => hexPaint(hexOf(city), 'city-groups')
-        expect(paint('New York')).toMatchObject({ fill: 'var(--rtr-hex-east)', rimWidth: 3.2 })
-        expect(paint('Seattle')).toMatchObject({ fill: 'var(--rtr-hex-west)' })
-        expect(paint('Chicago')).toMatchObject({ fill: 'var(--rtr-hex-chicago)' })
-        expect(paint('Denver')).toMatchObject({ fill: 'var(--rtr-hex-five)' })
-        expect(paint('Denver').rim).toBe('var(--rtr-hex-five-rim)')
-        expect(paint('Omaha')).toEqual({
-            fill: 'var(--rtr-hex-city)',
-            rim: 'var(--rtr-hex-city-rim)',
-            rimWidth: 2.2
-        })
+    it('lightens the cities with printed starts and sets Chicago apart', () => {
+        const paint = (city: string) => hexPaint(hexOf(city), 'start-cities')
+        expect(paint('New York')).toEqual(patch('var(--rtr-hex-start-city)'))
+        expect(paint('Seattle')).toEqual(patch('var(--rtr-hex-start-city)'))
+        expect(paint('Chicago')).toEqual(patch('var(--rtr-hex-chicago)'))
+        expect(paint('Denver')).toEqual(patch('var(--rtr-hex-city)'))
+        expect(paint('Omaha')).toEqual(patch('var(--rtr-hex-city)'))
     })
 })

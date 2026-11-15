@@ -132,12 +132,11 @@ describe('the track on the map (R-4.1, U-6)', () => {
         expect(pieces).toHaveLength(3)
     })
 
-    it('draws railroads in their rule colours with monograms, never in seat colours', async () => {
+    it('draws railroads in their rule colours, never in seat colours', async () => {
         const styles = RAILROAD_IDS.map(railroadStyle)
         expect(styles.map((style) => style.fill)).toEqual(
             RAILROAD_IDS.map((id) => `var(--rtr-railroad-${id.slice('railroad.'.length)})`)
         )
-        expect(styles.map((style) => style.monogram)).toEqual(['R', 'B', 'O', 'Y', 'P', 'K'])
         const session = await openSessionOn(buildState({ playerCount: 5 }))
         const seatColours = session.gameState.players.map((player) =>
             session.colors.getPlayerUiColor(player.playerId)

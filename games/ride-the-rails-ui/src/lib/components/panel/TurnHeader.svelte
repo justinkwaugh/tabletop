@@ -42,7 +42,7 @@
     </div>
     <button
         type="button"
-        class="rounded-md border border-rtr-line bg-rtr-panel-raised px-3 py-1 text-sm font-semibold text-rtr-ink hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent max-sm:px-2 max-sm:py-0.5"
+        class="rounded-full border-2 border-rtr-pill bg-transparent px-3 py-0.5 text-sm font-semibold text-rtr-pill hover:enabled:bg-rtr-panel-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent max-sm:px-2"
         class:invisible={!canUndo}
         disabled={!canUndo}
         onclick={() => gameSession.undo()}>Undo</button

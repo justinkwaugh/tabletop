@@ -7,18 +7,12 @@
         railroadId,
         x,
         y,
-        width,
-        lettered = true
-    }: {
-        railroadId: RailroadId
-        x: number
-        y: number
-        width: number
-        /** The railroad's letter on the piece, where it is large enough to read. */
-        lettered?: boolean
-    } = $props()
+        width
+    }: { railroadId: RailroadId; x: number; y: number; width: number } = $props()
 </script>
 
 <!-- A railroad's piece in the style BOARD_LOOK.piece picks, centred on (x, y), `width` across.
-     Both styles drawn so far are cubes; another style is drawn here beside them. -->
-<RailroadCube {railroadId} {x} {y} {width} {lettered} wood={BOARD_LOOK.piece === 'wood-cube'} />
+     Another style is drawn here beside it. -->
+{#if BOARD_LOOK.piece === 'flat-square'}
+    <RailroadCube {railroadId} {x} {y} {width} />
+{/if}

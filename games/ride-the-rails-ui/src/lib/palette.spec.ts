@@ -11,7 +11,7 @@ import {
     tokenValue
 } from '$lib/testing/paletteSource.js'
 import { RideTheRailsSeatPalette } from '$lib/definitions/seatPalette.js'
-import { DisplayFontFamily } from '$lib/definitions/fonts.js'
+import { DisplayFontFamily, SerifFontFamily } from '$lib/definitions/fonts.js'
 import { BOARD_LOOK } from '$lib/utils/boardLook.js'
 
 const components = import.meta.glob<string>('./**/*.svelte', {
@@ -182,7 +182,8 @@ describe('palette', () => {
         expect(closePairs(MinColourDifference, seatColours)).toEqual([])
     })
 
-    it('sets the display face in the family the font is declared under', () => {
+    it('sets the display face and the serif in the families the fonts are declared under', () => {
         expect(appCss).toContain(`font-family: '${DisplayFontFamily}'`)
+        expect(appCss).toContain(`font-family: '${SerifFontFamily}'`)
     })
 })

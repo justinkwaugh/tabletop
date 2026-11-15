@@ -12,7 +12,7 @@
         height={box.height}
         rx="12"
         fill="var(--rtr-panel)"
-        stroke="var(--rtr-line)"
+        stroke="var(--rtr-card-edge)"
         stroke-width="2"
     ></rect>
     <text x="16" y="27" class="caption" fill="var(--rtr-ink-muted)">{caption.toUpperCase()}</text>

@@ -1,21 +1,17 @@
 import type { Point } from '@tabletop/common'
-import type { CityId } from '@tabletop/ride-the-rails'
-import { stationOf } from './boardGeometry.js'
-import { cityMarkScale, passengerOffset } from './cityMarks.js'
-
-/** A picked journey start lifts its passenger slightly, in the figure's own units. */
-const PASSENGER_LIFT = 8
+import { usaCity, type CityId } from '@tabletop/ride-the-rails'
+import { hexCenter } from './boardGeometry.js'
+import { PASSENGER_LIFT, PASSENGER_SCALE, passengerOffset } from './cityMarks.js'
 
 export type PassengerSpot = Point & { scale: number }
 
-/** Where a city's passenger stands, or stood, in board units, and the figure's scale there. */
+/** Where a city's passenger stands, or stood, in board units, and its scale there. */
 export function passengerSpot(cityId: CityId, lifted: boolean): PassengerSpot {
-    const station = stationOf(cityId)
-    const scale = cityMarkScale(cityId)
+    const center = hexCenter(usaCity(cityId).hexId)
     const offset = passengerOffset(cityId)
     return {
-        x: station.x + offset.x * scale,
-        y: station.y + (offset.y - (lifted ? PASSENGER_LIFT : 0)) * scale,
-        scale
+        x: center.x + offset.x,
+        y: center.y + offset.y - (lifted ? PASSENGER_LIFT * PASSENGER_SCALE : 0),
+        scale: PASSENGER_SCALE
     }
 }

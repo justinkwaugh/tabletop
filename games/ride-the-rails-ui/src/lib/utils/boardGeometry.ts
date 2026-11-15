@@ -105,48 +105,14 @@ export function hexPoints(hexId: HexId): string {
     return hexCorners(hexId).map(pointText).join(' ')
 }
 
-type Side = { from: Point; to: Point }
-
-function hexSides(hexId: HexId): Side[] {
-    const corners = hexCorners(hexId)
-    return corners.map((from, index) => ({ from, to: corners[(index + 1) % corners.length] }))
-}
-
-// R-4.1.2: the board is the hex set, so its coast is every hex side no other hex shares.
-function coastLoops(): Point[][] {
-    const sides = USA_HEXES.flatMap((hex) => hexSides(hex.id))
-    const sideKeys = new Set(sides.map((side) => `${pointText(side.from)}>${pointText(side.to)}`))
-    const coastSides = new Map(
-        sides
-            .filter((side) => !sideKeys.has(`${pointText(side.to)}>${pointText(side.from)}`))
-            .map((side) => [pointText(side.from), side])
-    )
-    const loops: Point[][] = []
-    while (coastSides.size > 0) {
-        const [firstKey] = coastSides.keys()
-        const loop: Point[] = []
-        let key = firstKey
-        for (let side = coastSides.get(key); side; side = coastSides.get(key)) {
-            coastSides.delete(key)
-            loop.push(side.from)
-            key = pointText(side.to)
-        }
-        loops.push(loop)
-    }
-    return loops
-}
-
-export const COAST_LOOPS: readonly (readonly Point[])[] = coastLoops()
-
-export const COAST_PATH = COAST_LOOPS.map(closedPath).join('')
-
 export type Station = Point & { radius: number }
 
 const STATION_RADIUS = 12
 const STATION_RISE = 8
 const CHICAGO_STATION_RADIUS = 10
 
-// R-4.1.4: Chicago has no capacity limit, so its station sits centred between two rows of track.
+// The point a journey's flights start from and pulse at in each city: Chicago's centre, between its
+// two rows of track, and a little above every other city's centre.
 export function stationOf(cityId: CityId): Station {
     const city = usaCity(cityId)
     const center = hexCenter(city.hexId)
@@ -192,12 +158,77 @@ export type LabelSide = 'above' | 'below' | 'left' | 'right'
 const CITY_LABEL_SIDES: ReadonlyMap<CityId, LabelSide> = new Map<CityId, LabelSide>([
     ['city.usa.portland-or', 'right'],
     ['city.usa.portland-me', 'left'],
+    ['city.usa.baltimore', 'left'],
     ['city.usa.washington', 'above'],
     ['city.usa.charleston', 'above']
 ])
 
 function cityLabelSide(cityId: CityId): LabelSide {
     return CITY_LABEL_SIDES.get(cityId) ?? 'below'
+}
+
+/**
+ * The advance of each letter the city names use in the board's serif, Libre Baskerville Bold, in
+ * em, read once from the font file: a name's room on the board is the sum of its letters.
+ */
+export const SERIF_ADVANCE_EM: Readonly<Record<string, number>> = {
+    ' ': 0.266,
+    '(': 0.343,
+    ')': 0.343,
+    A: 0.809,
+    B: 0.797,
+    C: 0.823,
+    D: 0.919,
+    E: 0.764,
+    F: 0.689,
+    G: 0.876,
+    H: 0.945,
+    J: 0.407,
+    K: 0.822,
+    L: 0.755,
+    M: 1.145,
+    N: 0.94,
+    O: 0.943,
+    P: 0.717,
+    R: 0.815,
+    S: 0.663,
+    T: 0.827,
+    V: 0.805,
+    W: 1.227,
+    Y: 0.76,
+    a: 0.574,
+    b: 0.674,
+    c: 0.564,
+    d: 0.694,
+    e: 0.585,
+    f: 0.443,
+    g: 0.61,
+    h: 0.714,
+    i: 0.361,
+    k: 0.664,
+    l: 0.355,
+    m: 1.106,
+    n: 0.727,
+    o: 0.66,
+    p: 0.697,
+    r: 0.498,
+    s: 0.466,
+    t: 0.382,
+    u: 0.709,
+    v: 0.624,
+    w: 0.891,
+    x: 0.648,
+    y: 0.646
+}
+
+/** A letter the table lacks is given the widest capital's room. */
+const WIDEST_LETTER_EM = 1.227
+
+export function nameWidthEm(name: string): number {
+    return [...name].reduce(
+        (sum, letter) => sum + (SERIF_ADVANCE_EM[letter] ?? WIDEST_LETTER_EM),
+        0
+    )
 }
 
 export type CityLabel = Point & {
@@ -207,12 +238,11 @@ export type CityLabel = Point & {
     box: BoundingBox
 }
 
-const LABEL_GAP = 3
-const LABEL_ABOVE_REACH = STATION_RISE + STATION_RADIUS + LABEL_GAP
-// A name below its city clears the cubes standing under the station (trackLayout.ts).
-const LABEL_BELOW_REACH = 26.5
+// A name above its city clears the passenger and the capacity at the top of the hex; a name below
+// clears the cubes standing low in it (cityMarks.ts, trackLayout.ts).
+const LABEL_ABOVE_REACH = 37
+const LABEL_BELOW_REACH = 35
 const LABEL_SIDE_REACH = HEX_WIDTH / 2
-const CHARACTER_WIDTH_EM = 0.6
 const LABEL_HEIGHT_EM = 1.2
 const BASELINE_EM = 0.95
 
@@ -227,7 +257,7 @@ function labelOn(cityId: CityId, side: LabelSide, fontSize: number): CityLabel {
     const city = usaCity(cityId)
     const center = hexCenter(city.hexId)
     const station = stationOf(cityId)
-    const width = city.name.length * CHARACTER_WIDTH_EM * fontSize
+    const width = nameWidthEm(city.name) * fontSize
     const height = LABEL_HEIGHT_EM * fontSize
     const boxTop = {
         above: center.y - LABEL_ABOVE_REACH - height,
@@ -258,6 +288,6 @@ export type MarginBox = 'roundTrack' | 'turnOrder' | 'railroadStrip' | 'transcon
 export const MARGIN_BOXES: Readonly<Record<MarginBox, BoundingBox>> = {
     roundTrack: { x: 16, y: 972, width: 520, height: 112 },
     turnOrder: { x: 16, y: 1100, width: 520, height: 124 },
-    transcontinental: { x: 2000, y: 560, width: 246, height: 220 },
+    transcontinental: { x: 2000, y: 566, width: 246, height: 220 },
     railroadStrip: { x: 1824, y: 800, width: 422, height: 424 }
 }

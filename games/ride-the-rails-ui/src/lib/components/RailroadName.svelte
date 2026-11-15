@@ -4,7 +4,7 @@
 
     let { railroadId }: { railroadId: RailroadId } = $props()
 
-    // U-6: a railroad is always drawn in its rule colour, with its monogram ink.
+    // U-6: a railroad is always drawn in its rule colour, its name in ink chosen by contrast.
     const style = $derived(railroadStyle(railroadId))
 </script>
 

@@ -64,9 +64,9 @@
     .seat {
         border-radius: 10px;
         overflow: hidden;
-        border: 1px solid var(--rtr-line);
+        border: 1px solid var(--rtr-card-edge);
         border-left: 6px solid var(--seat);
-        background: var(--rtr-panel-raised);
+        background: var(--rtr-panel);
         color: var(--rtr-ink);
         text-align: left;
     }

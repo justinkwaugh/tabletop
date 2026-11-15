@@ -1,20 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import type { Point } from '@tabletop/common'
+import type { BoundingBox } from '@tabletop/common'
 import {
-    adjacentHexIds,
     hexIdAt,
     isUsaHex,
     USA_CITIES,
     USA_HEXES,
-    type HexId
+    usaCity,
+    type CityId
 } from '@tabletop/ride-the-rails'
 import {
     BOARD_EXTENTS,
     BOARD_HEIGHT,
     BOARD_MARGIN,
     BOARD_WIDTH,
-    COAST_LOOPS,
-    COAST_PATH,
     cityLabel,
     cityLabelFontSize,
     drawsSeatInitials,
@@ -27,9 +25,17 @@ import {
     LARGEST_CITY_LABEL_FONT_SIZE,
     MAP_EXTENTS,
     MARGIN_BOXES,
+    SERIF_ADVANCE_EM,
     stationOf
 } from './boardGeometry.js'
 import { trackSlots } from './trackLayout.js'
+import {
+    BONUS_PILL,
+    CAPACITY_ONE,
+    PASSENGER_SCALE,
+    PAWN_EXTENT,
+    passengerOffset
+} from './cityMarks.js'
 import {
     boxCorners,
     boxesOverlap,
@@ -40,16 +46,6 @@ import {
 } from '$lib/testing/shapeChecks.js'
 
 const PHONE_WIDTH = 375
-
-function sideKey(from: Point, to: Point): string {
-    const [a, b] = [from, to].map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).sort()
-    return `${a}|${b}`
-}
-
-function sideKeysOf(hexId: HexId): string[] {
-    const corners = hexCorners(hexId)
-    return corners.map((corner, index) => sideKey(corner, corners[(index + 1) % corners.length]))
-}
 
 const cityLabels = USA_CITIES.map((city) => ({ city, label: cityLabel(city.id) }))
 
@@ -104,33 +100,39 @@ describe('hex positions (components.md, Coordinates)', () => {
     })
 })
 
-describe('the coast', () => {
-    const sideOwners = new Map<string, number>()
-    for (const hex of USA_HEXES) {
-        for (const key of sideKeysOf(hex.id)) sideOwners.set(key, (sideOwners.get(key) ?? 0) + 1)
+/** A city's bonus pill, capacity and passenger, in board units. */
+function cityMarkBoxes(cityId: CityId): BoundingBox[] {
+    const city = usaCity(cityId)
+    const center = hexCenter(city.hexId)
+    const passenger = passengerOffset(cityId)
+    const boxes: BoundingBox[] = [
+        {
+            x: center.x + passenger.x + PAWN_EXTENT.left * PASSENGER_SCALE,
+            y: center.y + passenger.y + PAWN_EXTENT.top * PASSENGER_SCALE,
+            width: (PAWN_EXTENT.right - PAWN_EXTENT.left) * PASSENGER_SCALE,
+            height: (PAWN_EXTENT.bottom - PAWN_EXTENT.top) * PASSENGER_SCALE
+        }
+    ]
+    if (city.bonus) {
+        boxes.push({
+            x: center.x + BONUS_PILL.center.x - BONUS_PILL.width / 2,
+            y: center.y + BONUS_PILL.center.y - BONUS_PILL.height / 2,
+            width: BONUS_PILL.width,
+            height: BONUS_PILL.height
+        })
     }
-    const coastSides = COAST_LOOPS.flatMap((loop) =>
-        loop.map((corner, index) => sideKey(corner, loop[(index + 1) % loop.length]))
-    )
-
-    it('runs only along hex sides that no second hex shares', () => {
-        for (const key of coastSides) expect(sideOwners.get(key)).toBe(1)
-        expect(new Set(coastSides).size).toBe(coastSides.length)
-    })
-
-    it('takes in every hex side that has no neighbour across it (R-4.1.2)', () => {
-        const unsharedSides = USA_HEXES.reduce(
-            (sum, hex) => sum + 6 - adjacentHexIds(hex.id).length,
-            0
-        )
-        expect(coastSides).toHaveLength(unsharedSides)
-    })
-
-    it('draws each loop as one closed subpath', () => {
-        expect(COAST_PATH.match(/M/g)).toHaveLength(COAST_LOOPS.length)
-        expect(COAST_PATH.match(/Z/g)).toHaveLength(COAST_LOOPS.length)
-    })
-})
+    if (city.capacity === 1) {
+        // The "1": its cap height above the baseline, and as wide as it is high.
+        const size = CAPACITY_ONE.fontSize
+        boxes.push({
+            x: center.x + CAPACITY_ONE.x - size / 3,
+            y: center.y + CAPACITY_ONE.y - size * 0.4,
+            width: (size * 2) / 3,
+            height: size * 0.75
+        })
+    }
+    return boxes
+}
 
 describe('cities', () => {
     it('gives every city a station inside its hex', () => {
@@ -140,6 +142,11 @@ describe('cities', () => {
                 expect(insideConvexPolygon(corner, corners)).toBe(true)
             }
         }
+    })
+
+    it('knows the serif’s width of every letter a city name uses', () => {
+        const letters = new Set(USA_CITIES.flatMap((city) => [...city.name]))
+        expect([...letters].filter((letter) => SERIF_ADVANCE_EM[letter] === undefined)).toEqual([])
     })
 
     it('gives every city a label anchor on the board', () => {
@@ -166,11 +173,11 @@ describe('cities', () => {
         expect(overlapping).toEqual([])
     })
 
-    it('covers no station, track slot or margin box with a label', () => {
+    it('covers no city mark, track slot or margin box with a label', () => {
         const obstacles = [
             ...Object.values(MARGIN_BOXES),
             ...USA_CITIES.flatMap((city) => [
-                discBox(stationOf(city.id)),
+                ...cityMarkBoxes(city.id),
                 ...trackSlots(city.hexId).map(centredBox)
             ])
         ]

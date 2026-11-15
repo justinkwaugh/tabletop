@@ -42,6 +42,8 @@ export type RailroadChip = OfferedPlacement & {
 export type BuildPopup = {
     hexId: HexId
     chips: RailroadChip[]
+    /** R-3.2.4: a placement here lowers the turn's limit. */
+    lowersLimit: boolean
 }
 
 export type BoardOffer = {
@@ -106,7 +108,8 @@ export function boardOffer(
                   chips: picked.placements.map((placement) => ({
                       ...placement,
                       supplyLeft: supplyOf(state, placement.railroadId)
-                  }))
+                  })),
+                  lowersLimit: picked.marks.some((mark) => mark.kind === 'placement-limit')
               }
             : undefined
     }

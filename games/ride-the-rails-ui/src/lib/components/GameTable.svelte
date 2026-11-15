@@ -34,8 +34,9 @@
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
-    import { DisplayFontFamily } from '$lib/definitions/fonts.js'
+    import { DisplayFontFamily, SerifFontFamily } from '$lib/definitions/fonts.js'
     import BigShouldersDisplayBold from '$lib/fonts/BigShouldersDisplay-Bold.woff2'
+    import LibreBaskervilleBold from '$lib/fonts/LibreBaskerville-Bold.woff2'
 
     let {
         gameSession
@@ -74,6 +75,12 @@
 <CustomFont
     fontFamily={DisplayFontFamily}
     url={BigShouldersDisplayBold}
+    format="woff2"
+    fontWeight="700"
+/>
+<CustomFont
+    fontFamily={SerifFontFamily}
+    url={LibreBaskervilleBold}
     format="woff2"
     fontWeight="700"
 />

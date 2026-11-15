@@ -27,15 +27,13 @@ function weakPairs(palette: string, pairs: readonly [string, string][], minimum:
         .map(({ pair, ratio }) => `${pair} ${ratio.toFixed(2)}:1`)
 }
 
-/** Every ground a city's name is written on: the land it may spill onto and each hex tint. */
+/** Every ground a city's name or mark is drawn on: the land it may spill onto and each city grey. */
 const LabelGrounds = [
     'rtr-plain',
     'rtr-mountain',
     'rtr-hex-city',
-    'rtr-hex-east',
-    'rtr-hex-west',
-    'rtr-hex-chicago',
-    'rtr-hex-five'
+    'rtr-hex-start-city',
+    'rtr-hex-chicago'
 ]
 
 describe('ink', () => {
@@ -45,7 +43,7 @@ describe('ink', () => {
     })
 
     it('reads the palettes the stylesheet declares', () => {
-        expect(Palettes).toContain('paper')
+        expect(Palettes).toContain('chart')
     })
 
     it.each(Palettes)(
@@ -64,25 +62,25 @@ describe('ink', () => {
         const pairs = ['rtr-table', 'rtr-panel', 'rtr-panel-raised'].flatMap(
             (ground): [string, string][] => [
                 ['rtr-ink', ground],
-                ['rtr-ink-muted', ground]
+                ['rtr-ink-muted', ground],
+                ['rtr-pill', ground]
             ]
         )
-        expect(weakPairs(palette, pairs, MinInkContrast)).toEqual([])
+        expect(
+            weakPairs(palette, [...pairs, ['rtr-pill-ink', 'rtr-pill']], MinInkContrast)
+        ).toEqual([])
     })
 
     it.each(Palettes)(
-        'writes city names and station marks with AA in the %s palette',
+        'writes city names and East Coast capacities with AA in the %s palette',
         (palette) => {
-            const pairs: [string, string][] = [
-                ...LabelGrounds.map((ground): [string, string] => ['rtr-ink', ground]),
-                ['rtr-station-ink', 'rtr-station']
-            ]
+            const pairs = LabelGrounds.map((ground): [string, string] => ['rtr-ink', ground])
             expect(weakPairs(palette, pairs, MinInkContrast)).toEqual([])
         }
     )
 
     it.each(Palettes)(
-        'writes every bonus coin with AA, a used $5 too, in the %s palette',
+        'writes every bonus pill with AA, a used $5 too, in the %s palette',
         (palette) => {
             const pairs: [string, string][] = [
                 ['rtr-coin-ink', 'rtr-coin'],
@@ -96,14 +94,21 @@ describe('ink', () => {
     it.each(Palettes)(
         'stands the passenger clear of every city ground in the %s palette',
         (palette) => {
-            const pairs = LabelGrounds.map((ground): [string, string] => ['rtr-passenger', ground])
+            const pairs = LabelGrounds.map((ground): [string, string] => ['rtr-pawn-edge', ground])
             expect(weakPairs(palette, pairs, MinGraphicContrast)).toEqual([])
         }
     )
 
     it.each(Palettes)('edges every cube clear of the land in the %s palette', (palette) => {
-        const pairs = LabelGrounds.map((ground): [string, string] => ['rtr-cube-edge', ground])
-        expect(weakPairs(palette, pairs, MinGraphicContrast)).toEqual([])
+        // The edge is black at 55%, so it is measured as laid over each ground.
+        const edge = tokenValue(palette, 'rtr-cube-edge')
+        const weak = LabelGrounds.map((ground) => {
+            const under = tokenValue(palette, ground)
+            return { ground, ratio: contrastRatio(laidOver(under, edge), under) }
+        })
+            .filter(({ ratio }) => ratio < MinGraphicContrast)
+            .map(({ ground, ratio }) => `${ground} ${ratio.toFixed(2)}:1`)
+        expect(weak).toEqual([])
     })
 
     it('lays the scrim over colours as the screen does', () => {
@@ -115,8 +120,12 @@ describe('ink', () => {
         'keeps every railroad readable under the scrim in the %s palette',
         (palette) => {
             const scrim = tokenValue(palette, 'rtr-scrim')
-            const plain = laidOver(tokenValue(palette, 'rtr-plain'), scrim)
-            const edge = laidOver(tokenValue(palette, 'rtr-cube-edge'), scrim)
+            const plainColour = tokenValue(palette, 'rtr-plain')
+            const plain = laidOver(plainColour, scrim)
+            const edge = laidOver(
+                laidOver(plainColour, tokenValue(palette, 'rtr-cube-edge')),
+                scrim
+            )
             const faint = railroadNames()
                 .map((name) => {
                     const fill = tokenValue(palette, `rtr-railroad-${name}`)

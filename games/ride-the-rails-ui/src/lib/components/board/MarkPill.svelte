@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { MarkTone } from '$lib/utils/pickMarks.js'
 
-    let { tone, text, spent = false }: { tone: MarkTone; text: string; spent?: boolean } = $props()
+    let { tone, text }: { tone: MarkTone; text: string } = $props()
 
     const FILL: Readonly<Record<MarkTone, string>> = {
         coin: 'var(--rtr-coin)',
@@ -11,15 +11,8 @@
     }
 </script>
 
-{#if spent}
-    <span
-        class="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border border-rtr-line bg-rtr-panel px-1.5 text-xs font-extrabold text-rtr-ink-muted line-through"
-        >{text}</span
-    >
-{:else}
-    <span
-        class="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border border-rtr-halo px-1.5 text-xs font-extrabold"
-        style:background-color={FILL[tone]}
-        style:color={tone === 'coin' ? 'var(--rtr-halo)' : 'var(--rtr-station)'}>{text}</span
-    >
-{/if}
+<span
+    class="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border border-rtr-halo px-1.5 text-xs font-extrabold"
+    style:background-color={FILL[tone]}
+    style:color={tone === 'coin' ? 'var(--rtr-halo)' : 'var(--rtr-white)'}>{text}</span
+>

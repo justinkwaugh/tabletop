@@ -5,21 +5,60 @@ import {
     USA_CITIES,
     USA_HEXES,
     type CityId,
-    type HexId
+    type HexId,
+    type RailroadId
 } from '@tabletop/ride-the-rails'
-import { hexCorners, stationOf } from './boardGeometry.js'
-import { CUBE_ASPECT } from './cubeShape.js'
-import { MOST_LOCOMOTIVES_IN_A_HEX, trackSlot, trackSlotLayout, trackSlots } from './trackLayout.js'
+import type { Point } from '@tabletop/common'
+import { hexCenter, hexCorners } from './boardGeometry.js'
+import { BONUS_PILL, PASSENGER_SCALE, PAWN, passengerOffset } from './cityMarks.js'
+import { CUBE_CORNER_RATIO, CUBE_EDGE_WIDTH, CUBE_UNIT } from './cubeShape.js'
 import {
-    boxCorners,
-    boxesOverlap,
-    centredBox,
-    discBox,
-    insideConvexPolygon
-} from '$lib/testing/shapeChecks.js'
+    ghostCubes,
+    MOST_LOCOMOTIVES_IN_A_HEX,
+    SHARED_GHOST_SCALE,
+    trackSlot,
+    trackSlotLayout,
+    trackSlots,
+    type TrackSlot
+} from './trackLayout.js'
+import { boxesOverlap, centredBox } from '$lib/testing/shapeChecks.js'
 
 function cityHex(cityId: CityId): HexId {
     return usaCity(cityId).hexId
+}
+
+/** The cube drawn in a slot, a rounded square, as the corners of its box in board units. */
+function cubeCorners(slot: TrackSlot): Point[] {
+    const half = slot.width / 2
+    return [-1, 1].flatMap((sx) =>
+        [-1, 1].map((sy) => ({ x: slot.x + sx * half, y: slot.y + sy * half }))
+    )
+}
+
+/**
+ * How far a slot's rounded square, its edge included, reaches past the hex's edge: the most, over
+ * the hex's sides, of its distance outside each (negative inside).
+ */
+function reachPastHex(slot: TrackSlot, hexId: HexId): number {
+    const center = hexCenter(hexId)
+    const corners = hexCorners(hexId)
+    const radius = slot.width * CUBE_CORNER_RATIO
+    const half = slot.width / 2 - radius
+    return Math.max(
+        ...corners.map((from, index) => {
+            const to = corners[(index + 1) % corners.length]
+            const length = Math.hypot(to.x - from.x, to.y - from.y)
+            let nx = (to.y - from.y) / length
+            let ny = -(to.x - from.x) / length
+            // Point the normal away from the hex's centre.
+            if ((from.x - center.x) * nx + (from.y - center.y) * ny < 0) {
+                nx = -nx
+                ny = -ny
+            }
+            const middle = (slot.x - from.x) * nx + (slot.y - from.y) * ny
+            return middle + half * (Math.abs(nx) + Math.abs(ny)) + radius + CUBE_EDGE_WIDTH / 2
+        })
+    )
 }
 
 const PLAIN_HEX = USA_HEXES.find((hex) => hex.terrain === 'plain')
@@ -60,53 +99,141 @@ describe('track slots by capacity (R-4.1.4)', () => {
 })
 
 describe('track slot shapes', () => {
-    it('keeps every slot inside its hex, clear of the other slots and of the station', () => {
+    it('keeps every cube inside its hex, Chicago’s front corners all but', () => {
         for (const hex of USA_HEXES) {
-            const corners = hexCorners(hex.id)
-            const boxes = trackSlots(hex.id).map(centredBox)
-            for (const box of boxes) {
-                for (const corner of boxCorners(box)) {
-                    expect(insideConvexPolygon(corner, corners)).toBe(true)
+            const reach = Math.max(...trackSlots(hex.id).map((slot) => reachPastHex(slot, hex.id)))
+            // Six cubes in two rows: the front row's outer corners round off just over the edge.
+            const room = trackSlotLayout(hex.id) === 'chicago' ? 2.1 : 0
+            expect(reach, hex.id).toBeLessThanOrEqual(room)
+        }
+    })
+
+    it('stands no two cubes in a row on each other; Chicago’s front row is drawn after its back', () => {
+        for (const hex of USA_HEXES) {
+            const slots = trackSlots(hex.id)
+            slots.forEach((slot, index) => {
+                for (const other of slots.slice(index + 1).filter((next) => next.y === slot.y)) {
+                    expect(boxesOverlap(centredBox(slot), centredBox(other))).toBe(false)
+                }
+                for (const later of slots.slice(index + 1)) {
+                    expect(later.y).toBeGreaterThanOrEqual(slot.y)
+                }
+            })
+        }
+    })
+
+    it('keeps a city’s cubes clear of its bonus pill and its passenger', () => {
+        const pill = {
+            x: BONUS_PILL.center.x - BONUS_PILL.width / 2,
+            y: BONUS_PILL.center.y - BONUS_PILL.height / 2,
+            width: BONUS_PILL.width,
+            height: BONUS_PILL.height
+        }
+        for (const city of USA_CITIES) {
+            const center = hexCenter(city.hexId)
+            const passenger = passengerOffset(city.id)
+            // The pawn's head, the part a cube in front of it could hide.
+            const head = {
+                x: passenger.x + PAWN.head.cx * PASSENGER_SCALE,
+                y: passenger.y + PAWN.head.cy * PASSENGER_SCALE,
+                radius: PAWN.head.r * PASSENGER_SCALE
+            }
+            for (const slot of trackSlots(city.hexId)) {
+                const local = { ...slot, x: slot.x - center.x, y: slot.y - center.y }
+                expect(boxesOverlap(centredBox(local), pill), city.name).toBe(false)
+                for (const corner of cubeCorners(local)) {
+                    expect(Math.hypot(corner.x - head.x, corner.y - head.y)).toBeGreaterThan(
+                        head.radius
+                    )
                 }
             }
-            boxes.forEach((box, index) => {
-                for (const other of boxes.slice(index + 1))
-                    expect(boxesOverlap(box, other)).toBe(false)
-            })
-            if (hex.terrain === 'city') {
-                const station = discBox(stationOf(hex.cityId))
-                for (const box of boxes) expect(boxesOverlap(box, station)).toBe(false)
-            }
         }
     })
 
-    it('keeps the cube’s proportions in every slot', () => {
+    it('makes every slot square', () => {
         for (const hex of USA_HEXES) {
-            for (const slot of trackSlots(hex.id)) {
-                expect(slot.width / slot.height).toBeCloseTo(CUBE_ASPECT, 6)
-            }
+            for (const slot of trackSlots(hex.id)) expect(slot.width).toBe(slot.height)
         }
     })
 
-    it('sizes the cubes by capacity: largest two to an open hex, one to an East Coast city, six small in Chicago', () => {
+    it('sizes the cubes by capacity: largest two to an open hex, one to an East Coast city, six in Chicago', () => {
         const widths = (hexId: HexId | undefined) =>
             hexId ? trackSlots(hexId).map((slot) => slot.width) : []
-        expect(widths(PLAIN_HEX?.id)).toEqual([28, 28])
-        expect(widths(MOUNTAIN_HEX?.id)).toEqual([28, 28])
-        expect(widths(cityHex('city.usa.denver'))).toEqual([20, 20])
-        expect(widths(cityHex('city.usa.new-york'))).toEqual([21])
-        expect(widths(cityHex('city.usa.chicago'))).toEqual([15, 15, 15, 15, 15, 15])
+        expect(widths(PLAIN_HEX?.id)).toEqual([29, 29])
+        expect(widths(MOUNTAIN_HEX?.id)).toEqual([29, 29])
+        expect(widths(cityHex('city.usa.denver'))).toEqual([26, 26])
+        expect(widths(cityHex('city.usa.new-york'))).toEqual([32])
+        expect(widths(cityHex('city.usa.chicago'))).toEqual([17, 17, 17, 17, 17, 17])
     })
 
-    it('stands an open hex’s two cubes side by side and a city’s below its station', () => {
-        const denver = cityHex('city.usa.denver')
-        const station = stationOf('city.usa.denver')
-        const [left, right] = trackSlots(denver)
-        expect(left.y).toBe(right.y)
-        expect(left.x).toBeLessThan(station.x)
-        expect(right.x).toBeGreaterThan(station.x)
-        expect(left.y - left.height / 2).toBeGreaterThanOrEqual(station.y + station.radius)
-        const [only] = trackSlots(cityHex('city.usa.new-york'))
-        expect(only.x).toBe(stationOf('city.usa.new-york').x)
+    it('places each slot from its hex’s centre', () => {
+        const offsets = (hexId: HexId | undefined) => {
+            if (!hexId) return []
+            const center = hexCenter(hexId)
+            return trackSlots(hexId).map((slot) => [
+                Math.round((slot.x - center.x) * 10) / 10,
+                Math.round((slot.y - center.y) * 10) / 10
+            ])
+        }
+        expect(offsets(PLAIN_HEX?.id)).toEqual([
+            [-16.8, 2],
+            [16.8, 2]
+        ])
+        expect(offsets(cityHex('city.usa.denver'))).toEqual([
+            [-15.8, 8],
+            [15.8, 8]
+        ])
+        expect(offsets(cityHex('city.usa.new-york'))).toEqual([[0, 6.8]])
+        expect(offsets(cityHex('city.usa.chicago'))).toEqual([
+            [-19.6, -0.4],
+            [0, -0.4],
+            [19.6, -0.4],
+            [-19.6, 18],
+            [0, 18],
+            [19.6, 18]
+        ])
+    })
+})
+
+describe('ghost cubes in a lit hex', () => {
+    const plain = PLAIN_HEX?.id ?? 'hex.usa.0-0'
+    const RED: RailroadId = 'railroad.red'
+    const BLUE: RailroadId = 'railroad.blue'
+    const BLACK: RailroadId = 'railroad.black'
+
+    it('stands one railroad in the next free slot, full size', () => {
+        expect(ghostCubes(plain, {}, [RED])).toEqual([{ ...trackSlots(plain)[0], railroadId: RED }])
+        expect(ghostCubes(plain, { [plain]: [BLACK] }, [RED])).toEqual([
+            { ...trackSlots(plain)[1], railroadId: RED }
+        ])
+    })
+
+    it('stands two railroads in the two free slots, in order', () => {
+        expect(ghostCubes(plain, {}, [RED, BLUE])).toEqual([
+            { ...trackSlots(plain)[0], railroadId: RED },
+            { ...trackSlots(plain)[1], railroadId: BLUE }
+        ])
+        const chicago = cityHex('city.usa.chicago')
+        expect(ghostCubes(chicago, { [chicago]: [BLACK, BLUE] }, [RED])).toEqual([
+            { ...trackSlots(chicago)[2], railroadId: RED }
+        ])
+    })
+
+    it('shares the one free slot when fewer are free than railroads, smaller and spread', () => {
+        const slot = trackSlots(plain)[1]
+        const [back, front] = ghostCubes(plain, { [plain]: [BLACK] }, [RED, BLUE])
+        const scale = slot.width / CUBE_UNIT
+        expect(back).toMatchObject({ railroadId: RED, width: slot.width * SHARED_GHOST_SCALE })
+        expect(front).toMatchObject({ railroadId: BLUE, height: slot.height * SHARED_GHOST_SCALE })
+        expect(back.x).toBeCloseTo(slot.x - 3.2 * scale, 6)
+        expect(back.y).toBeCloseTo(slot.y - 1.4 * scale, 6)
+        expect(front.x).toBeCloseTo(slot.x + 3.2 * scale, 6)
+        expect(front.y).toBeCloseTo(slot.y + 1.4 * scale, 6)
+        const newYork = cityHex('city.usa.new-york')
+        expect(ghostCubes(newYork, {}, [RED, BLUE, BLACK]).map((ghost) => ghost.x)).toEqual([
+            trackSlots(newYork)[0].x - 3.2 * (32 / CUBE_UNIT),
+            trackSlots(newYork)[0].x,
+            trackSlots(newYork)[0].x + 3.2 * (32 / CUBE_UNIT)
+        ])
     })
 })

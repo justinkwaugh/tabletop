@@ -36,7 +36,7 @@
             cx={station.x}
             cy={station.y}
             r="6.8"
-            fill="var(--rtr-station)"
+            fill="var(--rtr-white)"
             stroke="var(--rtr-halo)"
             stroke-width="2.8"
         ></circle>
@@ -47,7 +47,7 @@
             cy={last.y - 6}
             r="11.2"
             fill="var(--rtr-ink)"
-            stroke="var(--rtr-station)"
+            stroke="var(--rtr-white)"
             stroke-width="2"
         ></circle>
         <text

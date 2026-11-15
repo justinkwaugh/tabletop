@@ -35,27 +35,26 @@
    board on the table, so it keeps one look in the site's light and dark themes. */
 :root {
     --rtr-ink-light: #ffffff;
+    --rtr-white: #ffffff;
     --rtr-accent: #d18e0f;
     --rtr-accent-fill: #e8a31733;
     --rtr-accent-start: #d18e0f80;
+    --rtr-lit-ring: #be8200;
     --rtr-cost: #c8506a;
     --rtr-halo: #1b1b1b;
     --rtr-scrim: #2a272240;
     --rtr-coin: #e2b33c;
-    --rtr-coin-rim: #9a7316;
     --rtr-coin-ink: #2b2205;
     --rtr-five: #357f45;
-    --rtr-five-rim: #25633a;
     --rtr-five-ink: var(--rtr-ink-light);
     --rtr-coin-used: #d9d3c5;
-    --rtr-coin-used-rim: #a39c8d;
     --rtr-coin-used-ink: #5c564b;
     --rtr-gold: #b9851f;
-    --rtr-passenger: #1e3a5c;
+    --rtr-pawn: #e2bb78;
+    --rtr-pawn-edge: #3d2a14;
     --rtr-passenger-gone: #9a9384;
-    --rtr-cube-edge: #2b1d10;
-    --rtr-cube-shade: #3a1f05;
-    --rtr-cube-sheen: #ffffff;
+    --rtr-cube-edge: #0000008c;
+    --rtr-cue-yellow: #c99a00;
     --rtr-railroad-red: #c8372d;
     --rtr-railroad-blue: #2f6db5;
     --rtr-railroad-orange: #e5892a;
@@ -68,60 +67,62 @@
     --rtr-railroad-yellow-ink: var(--rtr-halo);
     --rtr-railroad-purple-ink: var(--rtr-ink-light);
     --rtr-railroad-black-ink: var(--rtr-ink-light);
+    --rtr-ghost-red: #f0c6c4;
+    --rtr-ghost-blue: #c3d3ea;
+    --rtr-ghost-orange: #fadec0;
+    --rtr-ghost-yellow: #f9e9a1;
+    --rtr-ghost-purple: #dacce6;
+    --rtr-ghost-black: #d0d0d1;
+    --rtr-ghost-yellow-line: #b08a00;
 }
 
-/* Paper: warm cream land, a soft blue sea with a pale shelf, tan mountains, a slate coast. */
-[data-rtr-palette='paper'] {
+/* Chart: cream land on a thin warm grid, a hatched grey-blue sea in a navy frame, mountains and
+   cities as whole-hex patches, serif type, navy pills. */
+[data-rtr-palette='chart'] {
     --rtr-table: #efe8d8;
-    --rtr-panel: #f9f5ec;
+    --rtr-panel: #f8f3e4;
     --rtr-panel-raised: #fffdf7;
-    --rtr-line: #d9cfb8;
-    --rtr-ink: #2a2722;
-    --rtr-ink-muted: #6e665a;
-    --rtr-sea: #cfe3ea;
-    --rtr-sea-shelf: #e2eef1;
-    --rtr-coast: #54808f;
-    --rtr-plain: #f5edd8;
-    --rtr-mountain: #e0cba3;
-    --rtr-mountain-ink: #8c6d45;
-    --rtr-hex-edge: #dacba8;
-    --rtr-hex-city: #fffcf3;
-    --rtr-hex-city-rim: #bfa77a;
-    --rtr-hex-east: #f4d8cf;
-    --rtr-hex-east-rim: #a9503b;
-    --rtr-hex-west: #e8dcf0;
-    --rtr-hex-west-rim: #6e43a0;
-    --rtr-hex-chicago: #f9e1bf;
-    --rtr-hex-chicago-rim: #b86c12;
-    --rtr-hex-five: #dcebcf;
-    --rtr-hex-five-rim: #3f7f48;
-    --rtr-station: #ffffff;
-    --rtr-station-ink: #2b2b2b;
+    --rtr-line: #c9bc98;
+    --rtr-card-edge: #b9ab86;
+    --rtr-ink: #2b2418;
+    --rtr-ink-muted: #6f6450;
+    --rtr-pill: #1f3a5f;
+    --rtr-pill-ink: #f6f1e2;
+    --rtr-sea: #c4d3d6;
+    --rtr-sea-line: #aec1c5;
+    --rtr-frame: #0f1a2c;
+    --rtr-plain: #f7f3e7;
+    --rtr-hex-edge: #b5ab95;
+    --rtr-patch-edge: #f8f4ea;
+    --rtr-mountain: #e0c9b2;
+    --rtr-mountain-ink: #7b4a2d;
+    --rtr-hex-city: #c4c6c6;
+    --rtr-hex-start-city: #cfd1d1;
+    --rtr-hex-chicago: #a9c0c4;
 }
 
 @theme inline {
     --color-rtr-ink-light: var(--rtr-ink-light);
+    --color-rtr-white: var(--rtr-white);
     --color-rtr-accent: var(--rtr-accent);
     --color-rtr-accent-fill: var(--rtr-accent-fill);
     --color-rtr-accent-start: var(--rtr-accent-start);
+    --color-rtr-lit-ring: var(--rtr-lit-ring);
     --color-rtr-cost: var(--rtr-cost);
     --color-rtr-halo: var(--rtr-halo);
     --color-rtr-scrim: var(--rtr-scrim);
     --color-rtr-coin: var(--rtr-coin);
-    --color-rtr-coin-rim: var(--rtr-coin-rim);
     --color-rtr-coin-ink: var(--rtr-coin-ink);
     --color-rtr-five: var(--rtr-five);
-    --color-rtr-five-rim: var(--rtr-five-rim);
     --color-rtr-five-ink: var(--rtr-five-ink);
     --color-rtr-coin-used: var(--rtr-coin-used);
-    --color-rtr-coin-used-rim: var(--rtr-coin-used-rim);
     --color-rtr-coin-used-ink: var(--rtr-coin-used-ink);
     --color-rtr-gold: var(--rtr-gold);
-    --color-rtr-passenger: var(--rtr-passenger);
+    --color-rtr-pawn: var(--rtr-pawn);
+    --color-rtr-pawn-edge: var(--rtr-pawn-edge);
     --color-rtr-passenger-gone: var(--rtr-passenger-gone);
     --color-rtr-cube-edge: var(--rtr-cube-edge);
-    --color-rtr-cube-shade: var(--rtr-cube-shade);
-    --color-rtr-cube-sheen: var(--rtr-cube-sheen);
+    --color-rtr-cue-yellow: var(--rtr-cue-yellow);
     --color-rtr-railroad-red: var(--rtr-railroad-red);
     --color-rtr-railroad-blue: var(--rtr-railroad-blue);
     --color-rtr-railroad-orange: var(--rtr-railroad-orange);
@@ -134,35 +135,42 @@
     --color-rtr-railroad-yellow-ink: var(--rtr-railroad-yellow-ink);
     --color-rtr-railroad-purple-ink: var(--rtr-railroad-purple-ink);
     --color-rtr-railroad-black-ink: var(--rtr-railroad-black-ink);
+    --color-rtr-ghost-red: var(--rtr-ghost-red);
+    --color-rtr-ghost-blue: var(--rtr-ghost-blue);
+    --color-rtr-ghost-orange: var(--rtr-ghost-orange);
+    --color-rtr-ghost-yellow: var(--rtr-ghost-yellow);
+    --color-rtr-ghost-purple: var(--rtr-ghost-purple);
+    --color-rtr-ghost-black: var(--rtr-ghost-black);
+    --color-rtr-ghost-yellow-line: var(--rtr-ghost-yellow-line);
     --color-rtr-table: var(--rtr-table);
     --color-rtr-panel: var(--rtr-panel);
     --color-rtr-panel-raised: var(--rtr-panel-raised);
     --color-rtr-line: var(--rtr-line);
+    --color-rtr-card-edge: var(--rtr-card-edge);
     --color-rtr-ink: var(--rtr-ink);
     --color-rtr-ink-muted: var(--rtr-ink-muted);
+    --color-rtr-pill: var(--rtr-pill);
+    --color-rtr-pill-ink: var(--rtr-pill-ink);
     --color-rtr-sea: var(--rtr-sea);
-    --color-rtr-sea-shelf: var(--rtr-sea-shelf);
-    --color-rtr-coast: var(--rtr-coast);
+    --color-rtr-sea-line: var(--rtr-sea-line);
+    --color-rtr-frame: var(--rtr-frame);
     --color-rtr-plain: var(--rtr-plain);
+    --color-rtr-hex-edge: var(--rtr-hex-edge);
+    --color-rtr-patch-edge: var(--rtr-patch-edge);
     --color-rtr-mountain: var(--rtr-mountain);
     --color-rtr-mountain-ink: var(--rtr-mountain-ink);
-    --color-rtr-hex-edge: var(--rtr-hex-edge);
     --color-rtr-hex-city: var(--rtr-hex-city);
-    --color-rtr-hex-city-rim: var(--rtr-hex-city-rim);
-    --color-rtr-hex-east: var(--rtr-hex-east);
-    --color-rtr-hex-east-rim: var(--rtr-hex-east-rim);
-    --color-rtr-hex-west: var(--rtr-hex-west);
-    --color-rtr-hex-west-rim: var(--rtr-hex-west-rim);
+    --color-rtr-hex-start-city: var(--rtr-hex-start-city);
     --color-rtr-hex-chicago: var(--rtr-hex-chicago);
-    --color-rtr-hex-chicago-rim: var(--rtr-hex-chicago-rim);
-    --color-rtr-hex-five: var(--rtr-hex-five);
-    --color-rtr-hex-five-rim: var(--rtr-hex-five-rim);
-    --color-rtr-station: var(--rtr-station);
-    --color-rtr-station-ink: var(--rtr-station-ink);
 }
 
 .rtr-display {
     font-family: 'Ride the Rails Display', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+}
+
+.rtr-serif {
+    font-family: 'Ride the Rails Serif', Georgia, serif;
     font-weight: 700;
 }
 

@@ -70,7 +70,7 @@ test("1. Round 1: the seat card counts the share as the share's locomotive lands
     await expect(card).toContainText('No shares')
 
     // Each frame of the motion: whether the share's locomotive is still drawn, and the text of
-    // Dell's rows (a row is Red's monogram and its count).
+    // Dell's rows (a row is Red's cube and its count).
     await card.evaluate((element) => {
         const frames: string[] = []
         Reflect.set(window, 'rtrFrames', frames)
@@ -93,7 +93,7 @@ test("1. Round 1: the seat card counts the share as the share's locomotive lands
     // share as the locomotive lands on it, while the locomotive fades, and keeps it afterwards.
     const flying = frames.filter((frame) => frame.startsWith('flying'))
     expect(flying.at(0)).toBe('flying: No shares')
-    expect(flying.at(-1)).toBe('flying: R ×1')
-    expect(frames.at(-1)).toBe('still: R ×1')
+    expect(flying.at(-1)).toBe('flying: ×1')
+    expect(frames.at(-1)).toBe('still: ×1')
     await expect(card.getByRole('button', { name: 'Red: 1 share' })).toBeVisible()
 })

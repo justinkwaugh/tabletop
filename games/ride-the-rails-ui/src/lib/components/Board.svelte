@@ -16,18 +16,12 @@
     import PopupAnchor, { CHOICE_ANCHOR_ID, DETAIL_ANCHOR_ID } from './board/PopupAnchor.svelte'
     import ScrimLayer from './board/ScrimLayer.svelte'
     import StagedRouteLayer from './board/StagedRouteLayer.svelte'
+    import StartCueLayer from './board/StartCueLayer.svelte'
     import TrackLayer from './board/TrackLayer.svelte'
-    import CubeShading from './board/CubeShading.svelte'
-    import { provideCubeShading } from '$lib/utils/cubeShape.js'
 
     let { viewScale = FITTED_DESKTOP_SCALE }: { viewScale?: number } = $props()
 
     const gameSession = getGameSession()
-
-    // Every cube on the board shares one set of gradients, under an id of this board's own.
-    const uid = $props.id()
-    const cubeShadingPrefix = `rtr-cube-${uid}`
-    provideCubeShading(cubeShadingPrefix)
 
     const offer = $derived(gameSession.boardOffer)
     const draft = $derived(gameSession.journeyDraft)
@@ -43,7 +37,7 @@
               ? { kind: 'journey-start' }
               : BUILD_PICK
     )
-    const views = $derived(litHexViews(offer, context))
+    const views = $derived(litHexViews(offer, gameSession.gameState.track, context))
     const litHexIds = $derived(new Set(views.map((view) => view.hexId)))
 
     const stagedRoute = $derived(draft ?? EMPTY_STAGED_ROUTE)
@@ -67,11 +61,11 @@
     aria-label="Map of the USA"
     data-map-board
 >
-    <CubeShading prefix={cubeShadingPrefix} />
     <GroundLayer />
     <CityLayer {viewScale} {litHexIds} />
+    <StartCueLayer />
     <PassengerLayer startCityId={stagedRoute.startCityId} />
-    <TrackLayer {viewScale} />
+    <TrackLayer />
     <LineLayer {lastJourney} />
     <ScrimLayer {offer} spotlight={gameSession.spotlightRailroadId} />
     <MarginLayer {viewScale} />

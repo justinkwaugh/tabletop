@@ -10,7 +10,7 @@
 <div class="mt-2 flex flex-wrap gap-2">
     <button
         type="button"
-        class="rounded-lg border border-rtr-line bg-rtr-panel-raised px-3 py-1.5 text-sm font-semibold hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent disabled:opacity-50"
+        class="rounded-full border-2 border-rtr-pill bg-rtr-pill px-3.5 py-1 text-sm font-semibold text-rtr-pill-ink hover:enabled:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent disabled:opacity-50"
         disabled={!gameSession.canPassJourney}
         onclick={() => gameSession.passJourney()}>Pass</button
     >

@@ -30,13 +30,14 @@ import {
     pointText
 } from './boardGeometry.js'
 import { railroadNames, railroadStyle } from './railroadStyle.js'
+import { ghostCubes, type GhostCube } from './trackLayout.js'
 
-/** The most rings, pips and marks grow on the board when the view is zoomed out. */
+/** The most rings and marks grow on the board when the view is zoomed out. */
 export const LARGEST_PICK_SCALE = 2
 
 /**
- * Rings, pips and marks grow with the board as the view zooms in, so monograms become readable,
- * and below the fitted desktop scale keep that scale's screen size, up to twice their board size.
+ * Rings and marks grow with the board as the view zooms in, and below the fitted desktop scale
+ * keep that scale's screen size, up to twice their board size.
  */
 export function pickScale(viewScale: number): number {
     return Math.min(LARGEST_PICK_SCALE, Math.max(1, FITTED_DESKTOP_SCALE / viewScale))
@@ -48,12 +49,11 @@ export type MarkTone = 'coin' | 'five' | 'gold' | 'cost'
 
 export type MarkView = { tone: MarkTone; text: string; spoken: string }
 
-export type PipView = { railroadId: RailroadId; hollow: boolean }
-
 export type LitHexView = {
     hexId: HexId
     ring: RingKind
-    pips: PipView[]
+    /** For a build, each railroad that may go there, as a ghost cube in the slot it would take. */
+    ghosts: GhostCube[]
     marks: MarkView[]
     /** The button's accessible name: place and effect. */
     label: string
@@ -234,17 +234,26 @@ function pickedHexId(offer: BoardOffer, context: PickContext): HexId | undefined
 
 /**
  * The board offer's lit set as the pick layer draws it, in map order (the Tab order). A journey
- * being extended adds its picked start, which a press clears.
+ * being extended adds its picked start, which a press clears. A journey's lit cities show no
+ * ghost cubes: their railroads' own cubes are already there.
  */
-export function litHexViews(offer: BoardOffer, context: PickContext = BUILD_PICK): LitHexView[] {
+export function litHexViews(
+    offer: BoardOffer,
+    track: Track,
+    context: PickContext = BUILD_PICK
+): LitHexView[] {
     const picked = pickedHexId(offer, context)
     const lit = offer.lit.map((hex): LitHexView => ({
         hexId: hex.hexId,
         ring: picked === hex.hexId ? 'picked' : hex.startOnly ? 'start' : 'lit',
-        pips: hex.placements.map((placement) => ({
-            railroadId: placement.railroadId,
-            hollow: placement.isStart
-        })),
+        ghosts:
+            context.kind === 'build'
+                ? ghostCubes(
+                      hex.hexId,
+                      track,
+                      hex.placements.map((placement) => placement.railroadId)
+                  )
+                : [],
         marks: hex.marks.map(markView),
         label: litHexLabel(hex, context)
     }))
@@ -254,7 +263,7 @@ export function litHexViews(offer: BoardOffer, context: PickContext = BUILD_PICK
     const start: LitHexView = {
         hexId: context.startHexId,
         ring: 'picked',
-        pips: [],
+        ghosts: [],
         marks: [],
         label: `${placeName(context.startHexId)}: the journey's start, clear the journey`
     }
@@ -309,59 +318,81 @@ export function hexDetailPlace(offer: BoardOffer, onPhone: boolean): HexDetailPl
     return offer.scrim && !onPhone ? 'side-panel' : 'beside'
 }
 
-export type ChipNote =
-    | { kind: 'pays'; amounts: MarkView[] }
-    | { kind: 'start-uses-bonus'; amount: number }
-    | { kind: 'gain'; amount: number }
-    | { kind: 'none' }
+/** A pill on a choice button: what that placement or link pays. */
+export type ChipPill = { tone: MarkTone; text: string }
 
-// R-4.3.2-H1: a start in an empty $5 city uses the bonus up and pays nothing.
-export function chipNote(track: Track, hexId: HexId, chip: RailroadChip): ChipNote {
-    if (chip.bonuses.length > 0) {
-        return {
-            kind: 'pays',
-            amounts: chip.bonuses.map((bonus) =>
-                markView({ kind: 'bonus', bonusId: bonus.bonusId, amount: bonus.amount })
-            )
-        }
-    }
-    if (
+export type ChipModifiers = {
+    /** Each bonus the placement pays (R-4.3.1, R-4.3.2), the Transcontinental apart. */
+    bonuses: MarkView[]
+    /** R-4.3.3: what completing the Transcontinental pays, if this placement does. */
+    transcontinental: number | undefined
+    /** R-4.3.2-H1: a start in an empty $5 city uses the bonus up and pays nothing. */
+    startUsesBonus: number | undefined
+    /** R-3.2.4: the hex is the turn's first mountain, so the limit drops by one. */
+    mountain: boolean
+}
+
+const TRANSCONTINENTAL_ID = 'bonus.usa.transcontinental'
+
+// R-4.3, R-3.2.4: what the engine pays for this placement, and whether it lowers the limit.
+export function chipModifiers(track: Track, popup: BuildPopup, chip: RailroadChip): ChipModifiers {
+    const bonuses = chip.bonuses.filter((bonus) => bonus.bonusId !== TRANSCONTINENTAL_ID)
+    const transcontinental = chip.bonuses.find((bonus) => bonus.bonusId === TRANSCONTINENTAL_ID)
+    const usesBonus =
+        chip.bonuses.length === 0 &&
         chip.isStart &&
-        cityIn(hexId)?.bonus === FIVE_DOLLAR_BONUS.id &&
-        railroadsIn(track, hexId).length === 0
-    ) {
-        return { kind: 'start-uses-bonus', amount: FIVE_DOLLAR_BONUS.amount }
+        cityIn(popup.hexId)?.bonus === FIVE_DOLLAR_BONUS.id &&
+        railroadsIn(track, popup.hexId).length === 0
+    return {
+        bonuses: bonuses.map((bonus) =>
+            markView({ kind: 'bonus', bonusId: bonus.bonusId, amount: bonus.amount })
+        ),
+        transcontinental: transcontinental?.amount,
+        startUsesBonus: usesBonus ? FIVE_DOLLAR_BONUS.amount : undefined,
+        mountain: popup.lowersLimit
     }
-    return { kind: 'none' }
 }
 
 export type ChoiceChip = {
     railroadId: RailroadId
-    /** The chip's accessible name. */
+    /** The button's accessible name: the whole choice in words. */
     label: string
-    /** Supply left, and whether it starts the railroad. */
-    detail: string | undefined
-    note: ChipNote
+    /** A pill only for what the placement earns. */
+    pills: ChipPill[]
+    /** A mountain mark: the placement lowers the turn's limit. */
+    mountain: boolean
 }
 
-/** The railroad popup beside a picked hex: one chip per railroad that can act there. */
+/** The railroad popup beside a picked hex: one button per railroad that can act there. */
 export type RailroadChoice = {
     hexId: HexId
+    /** The popup's accessible name; nothing in it is written out. */
     title: string
     chips: ChoiceChip[]
 }
 
-function noteText(note: ChipNote): string {
-    switch (note.kind) {
-        case 'pays':
-            return `, pays ${note.amounts.map((mark) => mark.spoken).join(' and ')}`
-        case 'start-uses-bonus':
-            return `, pays nothing: a start uses up the $${note.amount}`
-        case 'gain':
-            return `, you +$${note.amount}`
-        case 'none':
-            return ''
-    }
+function modifierText(modifiers: ChipModifiers): string {
+    const pays =
+        modifiers.bonuses.length > 0
+            ? `, pays ${modifiers.bonuses.map((mark) => mark.spoken).join(' and ')}`
+            : modifiers.startUsesBonus !== undefined
+              ? `, pays nothing: a start uses up the $${modifiers.startUsesBonus}`
+              : ''
+    const mountain = modifiers.mountain ? ', mountain: one fewer placement this turn' : ''
+    const line =
+        modifiers.transcontinental !== undefined
+            ? `, completes the Transcontinental: pays $${modifiers.transcontinental}`
+            : ''
+    return `${pays}${mountain}${line}`
+}
+
+function chipPills(modifiers: ChipModifiers): ChipPill[] {
+    return [
+        ...modifiers.bonuses.map((mark) => ({ tone: mark.tone, text: `+${mark.text}` })),
+        ...(modifiers.transcontinental !== undefined
+            ? [{ tone: 'gold' as const, text: `+$${modifiers.transcontinental}` }]
+            : [])
+    ]
 }
 
 // R-3.2, R-4.2, R-4.3: each railroad's locomotive, supply left and what its placement pays.
@@ -370,14 +401,13 @@ export function buildChoice(track: Track, popup: BuildPopup): RailroadChoice {
         hexId: popup.hexId,
         title: `${placeName(popup.hexId)}: which railroad?`,
         chips: popup.chips.map((chip) => {
-            const note = chipNote(track, popup.hexId, chip)
-            const supply = `${chip.supplyLeft} left`
+            const modifiers = chipModifiers(track, popup, chip)
             return {
                 railroadId: chip.railroadId,
-                // The label opens with "Start" already; the visible name does not.
-                label: `${chipLabel(chip)}, ${supply}${noteText(note)}`,
-                detail: chip.isStart ? `start · ${supply}` : supply,
-                note
+                // The label opens with "Start" already; nothing is written on the button.
+                label: `${chipLabel(chip)}, ${chip.supplyLeft} left${modifierText(modifiers)}`,
+                pills: chipPills(modifiers),
+                mountain: modifiers.mountain
             }
         })
     }
@@ -388,15 +418,12 @@ export function linkChoice(popup: JourneyPopup): RailroadChoice {
     return {
         hexId: popup.hexId,
         title: `${placeName(popup.hexId)}: which railroad?`,
-        chips: popup.chips.map((chip) => {
-            const note: ChipNote = { kind: 'gain', amount: chip.gain }
-            return {
-                railroadId: chip.railroadId,
-                label: `Link by ${railroadStyle(chip.railroadId).name}${noteText(note)}`,
-                detail: undefined,
-                note
-            }
-        })
+        chips: popup.chips.map((chip) => ({
+            railroadId: chip.railroadId,
+            label: `Link by ${railroadStyle(chip.railroadId).name}, you +$${chip.gain}`,
+            pills: chip.gain > 0 ? [{ tone: 'coin' as const, text: `+$${chip.gain}` }] : [],
+            mountain: false
+        }))
     }
 }
 

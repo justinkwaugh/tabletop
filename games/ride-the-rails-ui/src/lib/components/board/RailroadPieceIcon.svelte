@@ -1,24 +1,20 @@
 <script lang="ts">
     import type { RailroadId } from '@tabletop/ride-the-rails'
-    import { CUBE_ICON_VIEW_BOX, CUBE_UNITS, provideCubeShading } from '$lib/utils/cubeShape.js'
-    import CubeShading from './CubeShading.svelte'
+    import { CUBE_EDGE_WIDTH } from '$lib/utils/cubeShape.js'
     import RailroadPiece from './RailroadPiece.svelte'
 
+    /** `size`: the cube's width in px; the icon leaves room round it for its edge. */
     let { railroadId, size = 20 }: { railroadId: RailroadId; size?: number } = $props()
 
-    // Each icon is its own SVG, so it carries its own gradients under an id of its own.
-    const uid = $props.id()
-    const prefix = `rtr-cube-${uid}`
-    provideCubeShading(prefix)
+    const box = $derived(size + 2 * CUBE_EDGE_WIDTH)
 </script>
 
 <svg
     class="inline-block shrink-0 align-middle"
-    width={size}
-    height={size}
-    viewBox={CUBE_ICON_VIEW_BOX}
+    width={box}
+    height={box}
+    viewBox="{-box / 2} {-box / 2} {box} {box}"
     aria-hidden="true"
 >
-    <CubeShading {prefix} />
-    <RailroadPiece {railroadId} x={0} y={0} width={CUBE_UNITS.width} />
+    <RailroadPiece {railroadId} x={0} y={0} width={size} />
 </svg>

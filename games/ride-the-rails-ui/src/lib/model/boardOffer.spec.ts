@@ -264,8 +264,17 @@ describe('the board offer', () => {
             chips: [
                 { railroadId: 'railroad.red', isStart: false, bonuses: [], supplyLeft: 25 },
                 { railroadId: 'railroad.blue', isStart: false, bonuses: [], supplyLeft: 25 }
-            ]
+            ],
+            lowersLimit: false
         })
+    })
+
+    it('says when the picked hex lowers the turn’s limit, from its mountain mark (R-3.2.4)', () => {
+        const mountain = {
+            ...shared,
+            marks: [{ kind: 'placement-limit' as const, change: -1 }]
+        }
+        expect(boardOffer(state, [mountain], mountain.hexId).popup?.lowersLimit).toBe(true)
     })
 
     it('opens no popup on a hex only one railroad may enter', () => {

@@ -4,8 +4,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
     import { tableOf } from '$lib/utils/tableScope.js'
-    import { provideCubeShading } from '$lib/utils/cubeShape.js'
-    import CubeShading from './CubeShading.svelte'
     import Flyer from './Flyer.svelte'
 
     const flights = getGameSession().flights
@@ -18,11 +16,6 @@
         'pulse'
     ])
     const CLIP_ID = 'rtr-phone-flight-clip'
-
-    // The flyers' cubes are drawn outside the board's SVG, so this SVG carries their gradients.
-    const uid = $props.id()
-    const cubeShadingPrefix = `rtr-cube-${uid}`
-    provideCubeShading(cubeShadingPrefix)
 
     /** Coins and a share's locomotive, drawn no smaller than they can be read. */
     function readable(flyer: FlyerShape): boolean {
@@ -99,7 +92,6 @@
      the board, so the flyers are drawn above the whole table, in the board's units, and land there. -->
 {#if isPhoneWidth()}
     <svg class="phone-flights" aria-hidden="true" pointer-events="none" {@attach followBoard}>
-        <CubeShading prefix={cubeShadingPrefix} />
         <defs>
             <clipPath id={CLIP_ID} clipPathUnits="userSpaceOnUse">
                 <rect x="0" y="0" width="0" height="0"></rect>

@@ -1,25 +1,19 @@
 import { assertExists } from '@tabletop/common'
 import { RAILROADS, type RailroadId } from '@tabletop/ride-the-rails'
 
+/** Art plan, Ghost cube: a pale square of the railroad's colour and its dashed edge. */
+export type GhostPaint = { fill: string; line: string }
+
 export type RailroadStyle = {
     railroadId: RailroadId
     name: string
-    monogram: string
     /** The rule colour (R-1.1) as the art plan's token, never a seat colour (U-6). */
     fill: string
-    /** The letter's ink on the railroad's colour, chosen by contrast. */
+    /** Text on the railroad's colour, chosen by contrast. */
     ink: string
-    /** The monogram on a hollow (start) pip, on the station's white: the rule colour, but dark for Yellow. */
-    hollowInk: string
-}
-
-const MONOGRAMS: Readonly<Record<RailroadId, string>> = {
-    'railroad.red': 'R',
-    'railroad.blue': 'B',
-    'railroad.orange': 'O',
-    'railroad.yellow': 'Y',
-    'railroad.purple': 'P',
-    'railroad.black': 'K'
+    ghost: GhostPaint
+    /** A dashed start cue on a grey city hex: the rule colour, darker for Yellow. */
+    cue: string
 }
 
 function tokenName(railroadId: RailroadId): string {
@@ -30,16 +24,18 @@ export function railroadStyle(railroadId: RailroadId): RailroadStyle {
     const railroad = RAILROADS.find((candidate) => candidate.id === railroadId)
     assertExists(railroad, `No railroad ${railroadId}`)
     const token = tokenName(railroadId)
+    const fill = `var(--rtr-railroad-${token})`
     return {
         railroadId,
         name: railroad.printedName,
-        monogram: MONOGRAMS[railroadId],
-        fill: `var(--rtr-railroad-${token})`,
+        fill,
         ink: `var(--rtr-railroad-${token}-ink)`,
-        hollowInk:
-            railroadId === 'railroad.yellow'
-                ? 'var(--rtr-station-ink)'
-                : `var(--rtr-railroad-${token})`
+        ghost: {
+            fill: `var(--rtr-ghost-${token})`,
+            // Yellow's own colour would barely show on its pale square.
+            line: railroadId === 'railroad.yellow' ? 'var(--rtr-ghost-yellow-line)' : fill
+        },
+        cue: railroadId === 'railroad.yellow' ? 'var(--rtr-cue-yellow)' : fill
     }
 }
 

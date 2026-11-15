@@ -1,10 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { locomotivePieces, thisTurnPlacements } from '$lib/utils/boardPieces.js'
-    import { cubeLettered } from '$lib/utils/cubeShape.js'
     import RailroadPiece from './RailroadPiece.svelte'
-
-    let { viewScale }: { viewScale: number } = $props()
 
     const gameSession = getGameSession()
 
@@ -32,7 +29,6 @@
             x={piece.slot.x}
             y={piece.slot.y}
             width={piece.slot.width}
-            lettered={cubeLettered(piece.slot.width, viewScale)}
         />
     {/each}
     {#each thisTurn?.locomotives ?? [] as piece (piece.key)}
