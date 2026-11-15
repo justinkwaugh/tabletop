@@ -741,3 +741,39 @@ test.describe('on a phone', () => {
         await shot(page, 'merchant-push-phone')
     })
 })
+
+test('R-4.6 a push lists its staged moves in the tray, each with its take-back', async ({
+    page
+}) => {
+    await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
+    await pressAll(page, 'good:sulfur', 'good:sulfur', 'good:iron')
+    const staged = panel(page).locator('[data-card-tray] [data-staged]')
+    await expect(staged.locator('[data-staged-line]')).toHaveCount(2)
+    await expect(staged.locator('[data-staged-line]').first()).toContainText(
+        '2 sulfur · Merchant → Alchemist'
+    )
+    await expect(staged.locator('[data-staged-tally]')).toHaveText('3 of 4 moved')
+    await expect(primary(page)).toHaveText('Move 3 goods')
+    await shot(page, 'push-staged')
+    await staged
+        .getByRole('button', { name: 'Take back 2 sulfur from the Merchant to the Alchemist' })
+        .click()
+    await settled(page)
+    await expect(staged.locator('[data-staged-line]')).toHaveCount(1)
+    await expect(bench(page).locator('[data-bench-area="alchemist"] [data-ghost]')).toHaveCount(1)
+})
+
+test.describe('the staged moves on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('R-4.6 the push’s staged moves stand in the sheet above the send', async ({ page }) => {
+        await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
+        await pressAll(page, 'good:sulfur', 'good:iron')
+        const staged = bench(page).locator('[data-bench-footer] [data-staged]')
+        await expect(staged.locator('[data-staged-line]')).toHaveCount(2)
+        const lines = await staged.boundingBox()
+        const send = await bench(page).locator('[data-bench-send]').boundingBox()
+        expect((lines?.y ?? 0) + (lines?.height ?? 0)).toBeLessThanOrEqual((send?.y ?? 0) + 1)
+        await shot(page, 'push-staged-phone')
+    })
+})

@@ -17,6 +17,7 @@ import {
     type SpaceId
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ActionBlock } from './actionPanel.js'
 import {
     blockOf,
     cardRows,
@@ -921,6 +922,87 @@ async function explored(arrange?: (state: HydratedFeudumGameState, seat: string)
     await sendNamed(table.session, /^Explore/)
     return table
 }
+
+describe('R-4.6 the staged moves of a guild function, in the tray', () => {
+    async function pushing() {
+        const table = await atGuild((state, { seat }) => {
+            setMaster(state, seat, 'merchant')
+            setMarket(state, { saltpeter: 3, sulfur: 3, iron: 1, wood: 3, food: 3 })
+        })
+        const { session } = table
+        await pressCard(session.actionPanel, 'guild')
+        if (session.guild.value('guild') !== 'merchant') {
+            await pressTarget(session, guildTarget('merchant'))
+        }
+        await pressPopup(session, /^Push/)
+        return session
+    }
+
+    async function pressBench(session: FeudumGameSession, id: string) {
+        const item = session.guildPanel?.bench?.items.find((row) => row.id === id)
+        assertExists(item, `The bench holds ${id}`)
+        await session.pressTurnChoice(item)
+        flushSync()
+    }
+
+    const staged = (session: FeudumGameSession) =>
+        session.actionPanel.blocks.find(
+            (block): block is Extract<ActionBlock, { kind: 'staged' }> => block.kind === 'staged'
+        )
+
+    it('each staged move is a line: the good as its piece with its count, where it goes, and the running count against the limit', async () => {
+        const session = await pushing()
+        expect(staged(session)).toBeUndefined()
+
+        await pressBench(session, 'good:sulfur')
+        await pressBench(session, 'good:sulfur')
+        await pressBench(session, 'good:iron')
+
+        const block = staged(session)
+        assertExists(block, 'The tray lists the staged moves')
+        expect(block.tally).toBe('3 of 4 moved')
+        expect(block.lines.map(({ text, words, piece }) => ({ text, words, piece }))).toEqual([
+            {
+                text: '2 sulfur · Merchant → Alchemist',
+                words: '2 sulfur from the Merchant to the Alchemist',
+                piece: { kind: 'good', good: 'sulfur' }
+            },
+            {
+                text: '1 iron · Merchant → Alchemist',
+                words: '1 iron from the Merchant to the Alchemist',
+                piece: { kind: 'good', good: 'iron' }
+            }
+        ])
+        expect(block.lines.map(({ takeBack }) => takeBack.choice.label)).toEqual([
+            'Take back 2 sulfur from the Merchant to the Alchemist',
+            'Take back 1 iron from the Merchant to the Alchemist'
+        ])
+        expect(primaryNamed(session.actionPanel, /^Move/).label).toBe('Move 3 goods')
+    })
+
+    it('a line’s take-back removes only that move; Undo takes the take-back back', async () => {
+        const session = await pushing()
+        await pressBench(session, 'good:sulfur')
+        await pressBench(session, 'good:iron')
+        await pressBench(session, 'good:sulfur')
+
+        const sulfur = staged(session)?.lines[0]
+        assertExists(sulfur, 'The sulfur line')
+        await pressRow(sulfur.takeBack)
+
+        const block = staged(session)
+        expect(block?.lines.map(({ text }) => text)).toEqual(['1 iron · Merchant → Alchemist'])
+        expect(block?.tally).toBe('1 of 4 moved')
+        expect(primaryNamed(session.actionPanel, /^Move/).label).toBe('Move 1 good')
+
+        await session.undo()
+        flushSync()
+        expect(staged(session)?.lines.map(({ text }) => text)).toEqual([
+            '2 sulfur · Merchant → Alchemist',
+            '1 iron · Merchant → Alchemist'
+        ])
+    })
+})
 
 describe('Explore, Harvest, Tax, Repeat, Defend', () => {
     it('S18 R-4.4.1 writ faces, one pick, the keep button, the Shovels & Swords button; no Undo', async () => {

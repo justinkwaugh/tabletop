@@ -15,6 +15,7 @@
     import PouchChoice from './PouchChoice.svelte'
     import PrimaryButton from './PrimaryButton.svelte'
     import RowChoice from './RowChoice.svelte'
+    import StagedMoves from './StagedMoves.svelte'
     import TradePickerLayer from '$lib/components/bench/TradePickerLayer.svelte'
     import WritBacks from './WritBacks.svelte'
     import WritChoice from './WritChoice.svelte'
@@ -222,6 +223,11 @@
         <!-- Contract, The trade picker: a phone's stands in the bench's sheet instead. -->
         {#if !layout.phone}
             <TradePickerLayer {block} />
+        {/if}
+    {:else if block.kind === 'staged'}
+        <!-- R-4.6 A phone's stands in the bench's sheet, above the send. -->
+        {#if !layout.phone}
+            <StagedMoves {block} {pointer} />
         {/if}
     {:else if block.kind === 'nourish-picker'}
         <NourishPicker {block} {pointer} />

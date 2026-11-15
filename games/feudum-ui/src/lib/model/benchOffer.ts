@@ -127,6 +127,17 @@ export interface BenchGhost {
     readonly count?: number
 }
 
+/**
+ * R-4.6 One kind of thing the seat has staged to move, in the order first pressed: its item, how
+ * many, and the press that takes them all back (one staged press, so Undo restores them).
+ */
+export interface BenchStagedPick {
+    readonly item: string
+    readonly label: string
+    readonly count: number
+    readonly takeBack: () => void
+}
+
 export interface BenchResult {
     /** Points and writs, or the price, with the warning a send that can't be undone carries. */
     readonly line: string
@@ -160,6 +171,10 @@ export interface BenchOffer {
     readonly params: GuildFunctionParams
     readonly preview?: BenchPreview
     readonly refused?: string
+    /** R-4.6-H5 The step's limit, where it states one: "Move up to 4". */
+    readonly most?: number
+    /** What a push or a pull has staged to move from its first area. */
+    readonly staged: readonly BenchStagedPick[]
 }
 
 const VesselSpace = 'vessel-space'
@@ -262,6 +277,8 @@ interface Candidate {
 interface BenchRow {
     /** R-4.6-H5 "Move up to 3". */
     readonly line?: (seat: BenchSeat) => string
+    /** That limit, where it is a number the logic states. */
+    readonly most?: number
     readonly candidates?: (
         seat: BenchSeat,
         stages: BenchStages,
@@ -336,12 +353,12 @@ function moveName(stages: BenchStages): string {
     return `Move ${plural(goodsOf(stages).length, 'good')}`
 }
 
-const upTo = (verb: string, most: number) => () => `${verb} up to ${most}`
+const upTo = (verb: string, most: number) => ({ line: () => `${verb} up to ${most}`, most })
 
 /** R-4.6.1 Barn to market: Farmer push, Merchant pull. */
 function barnToMarket(most: number, counts: 'sets' | 'shows'): BenchRow {
     return {
-        line: upTo('Move', most),
+        ...upTo('Move', most),
         candidates: (seat, stages) => barnGoods(seat, stages, 0),
         name: moveName,
         counts,
@@ -353,7 +370,7 @@ function barnToMarket(most: number, counts: 'sets' | 'shows'): BenchRow {
 /** R-4.6.4, R-4.6.5 Market to carts: Merchant push, Alchemist pull. */
 function marketToCarts(most: number, area: number): BenchRow {
     return {
-        line: upTo('Move', most),
+        ...upTo('Move', most),
         candidates: (seat, stages) => marketGoods(seat, stages, area),
         name: moveName,
         ghosts: (stages, { details }) =>
@@ -421,7 +438,7 @@ function rowLabel(seat: BenchSeat, row: number): string {
 /** R-4.6.4, R-4.6.5 Rows on one side, empty scrolls on the other: Knight push, Noble pull. */
 function rowsToScrolls(most: number, counts: 'sets' | 'shows', fixed: boolean): BenchRow {
     return {
-        line: upTo('Move', most),
+        ...upTo('Move', most),
         candidates: (seat) => {
             const { knightRows, scrollSpaces } = rowsToScrollsOffer(seat.state, most)
             const { rows } = seat.state.guilds.knight
@@ -485,7 +502,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
     },
     merchant: {
         trade: {
-            line: upTo('Buy', MerchantTradeGoods),
+            ...upTo('Buy', MerchantTradeGoods),
             candidates: ({ state, playerId }, stages, source) => {
                 const offers = merchantTradeOffers(state, playerId)
                 return goodCandidates(marketHolds(state), stages, 0, (good) => {
@@ -524,7 +541,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
         },
         pull: marketToCarts(AlchemistPullGoods, 1),
         push: {
-            line: upTo('Invent', AlchemistPushInventions),
+            ...upTo('Invent', AlchemistPushInventions),
             candidates: (seat, stages) => inventionCandidates(seat, stages, 0),
             dimsOnRefusal: true,
             name: (stages) => `Invent ${picksOf(stages, 'invention').length}`,
@@ -998,6 +1015,43 @@ function isTradeOf(source: BenchSource, guildId: GuildId): boolean {
     return source.guildId === guildId && source.fn === 'trade'
 }
 
+/**
+ * R-4.6 A push's or a pull's picks from its first area, grouped by item in the order first pressed.
+ * Taking one back drops all its picks, and a row's scroll with it, since a row and its scroll pair
+ * by their order.
+ */
+function stagedPicks(
+    candidates: readonly Candidate[],
+    stages: BenchStages,
+    presser: BenchPresser
+): readonly BenchStagedPick[] {
+    const moving = new Map(
+        candidates
+            .filter(({ area }) => area === 0)
+            .map((candidate) => [candidateId(candidate.pick), candidate])
+    )
+    const order = [...new Set(stages.picks.map(candidateId))].filter((item) => moving.has(item))
+    return order.map((item) => ({
+        item,
+        label: moving.get(item)?.label ?? item,
+        count: stages.picks.filter((pick) => candidateId(pick) === item).length,
+        takeBack: () => {
+            const rows = picksOf(stages, 'row').map(candidateId)
+            const dropped = new Set(rows.flatMap((row, index) => (row === item ? [index] : [])))
+            let scroll = -1
+            presser.picks(
+                stages.picks.filter((pick) => {
+                    if (pick.kind === 'scroll') {
+                        scroll += 1
+                        return !dropped.has(scroll)
+                    }
+                    return candidateId(pick) !== item
+                })
+            )
+        }
+    }))
+}
+
 /** R-4.6.1 Everything the bench shows, read off the preview. Pure. */
 export function benchOffer(
     seat: BenchSeat,
@@ -1017,15 +1071,16 @@ export function benchOffer(
     const refused = preview?.refused ?? (preview ? undefined : source.reasonOf(params))
     const ready = row.ready?.(stages) ?? true
     const completes = preview !== undefined && !refused && ready && !step.popup && !step.map
+    const candidates = row.candidates?.(seat, stages, source) ?? []
     const items = step.collapsed
         ? []
         : isTradeOf(source, 'knight')
           ? knightItems(seat, stages, presser)
           : isTradeOf(source, 'monk')
             ? beadItems(preview)
-            : (row.candidates?.(seat, stages, source) ?? []).map((candidate) =>
-                  benchItem(row, source, stages, candidate, presser)
-              )
+            : candidates.map((candidate) => benchItem(row, source, stages, candidate, presser))
+    const staged =
+        source.fn === 'trade' || row.pickOne ? [] : stagedPicks(candidates, stages, presser)
     const line = row.line?.(seat)
     const result = resultOf(seat, source, row, stages, preview)
     const count = countChoices(row, stages, preview, presser)
@@ -1057,7 +1112,9 @@ export function benchOffer(
         completes,
         params,
         ...(preview ? { preview } : {}),
-        ...(refused ? { refused } : {})
+        ...(refused ? { refused } : {}),
+        ...(row.most === undefined ? {} : { most: row.most }),
+        staged
     }
 }
 
