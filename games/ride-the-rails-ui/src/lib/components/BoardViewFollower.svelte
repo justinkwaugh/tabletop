@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ScalingWrapper } from '@tabletop/frontend-components'
+    import { visualClientRect, type ScalingWrapper } from '@tabletop/frontend-components'
     import type { BoundingBox, RectangleDimensions } from '@tabletop/common'
     import { untrack } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
@@ -46,11 +46,13 @@
     // Set once the view first rests, so an offer lit before then is looked at from where it rests.
     let rested = false
 
-    // The part of the board the view shows now, read from where the board is drawn.
+    // The part of the board the view shows now, read from where the board is drawn. The board lies
+    // inside the view's CSS zoom, so it is measured as drawn (`docs/phone-rendering.md`, Measuring
+    // under zoom).
     function shownNow(): BoundingBox | undefined {
         const board = findInTable(tableOf(viewport), '[data-map-board]')
         if (!board) return undefined
-        return shownBoardRect(board.getBoundingClientRect(), viewport.getBoundingClientRect())
+        return shownBoardRect(visualClientRect(board), viewport.getBoundingClientRect())
     }
 
     // Contract, Phone layout: a new Riding offer whose lit hexes all lie outside a cover-fit view
