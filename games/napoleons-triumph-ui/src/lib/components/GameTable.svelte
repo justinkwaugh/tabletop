@@ -8,7 +8,9 @@
         GameChat,
         HistoryControls,
         DefaultTabs,
-        saveToDevice
+        saveToDevice,
+        visualClientRect,
+        type DefaultTab
     } from '@tabletop/frontend-components'
     import { assert, type Point } from '@tabletop/common'
     import { onMount, tick, untrack } from 'svelte'
@@ -23,9 +25,11 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import BattlePanel from '$lib/components/BattlePanel.svelte'
     import SetupPanel from '$lib/components/SetupPanel.svelte'
-    import AuctionPanel from '$lib/components/AuctionPanel.svelte'
+    import ArmyChoicePanel from '$lib/components/ArmyChoicePanel.svelte'
     import ArmiesPanel from '$lib/components/ArmiesPanel.svelte'
     import History from '$lib/components/History.svelte'
+    import SideRail from '$lib/components/SideRail.svelte'
+    import { HISTORY_CONTROL_INK } from '$lib/components/historyControlInk.js'
     import { NapoleonsTriumphGameSession } from '$lib/model/session.svelte'
     import type { GroupSprite, PieceGroup } from '$lib/utils/pieceLayout.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
@@ -33,7 +37,14 @@
     import MoveReplay from '$lib/components/MoveReplay.svelte'
     import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
     import { blockCorners } from '$lib/utils/blockShape.js'
-    import { boundsOf, focusWhereSeen, viewFor, type Focus } from '$lib/utils/boardView.js'
+    import {
+        boundsOf,
+        centredInBand,
+        focusWhereSeen,
+        viewFor,
+        type Focus,
+        type SeenBand
+    } from '$lib/utils/boardView.js'
     import { boardPicture, boardPictureName, picturedLayers } from '$lib/utils/boardPicture.js'
     import boardArt from '$lib/images/board.webp'
     import setupMarks from '$lib/images/setup-marks.webp'
@@ -54,12 +65,20 @@
     })
     setGameSession(session)
 
+    let sideFolded = $state(false)
+    let sideTab: DefaultTab | undefined = $state()
+
+    function openSideAt(tab: DefaultTab) {
+        sideTab = tab
+        sideFolded = false
+    }
+
     let wrapper: ScalingWrapper | undefined = $state()
     let boardHost: HTMLElement | undefined = $state()
     let table: HTMLElement | undefined = $state()
     let ordersDrawerHeight = $state(0)
     const boardCovered = $derived(
-        session.isCommanding && session.selectedGroup ? ordersDrawerHeight : 0
+        session.showsOrders && session.selectedGroup ? ordersDrawerHeight : 0
     )
 
     const MAP_MENU_ROOM = 96
@@ -105,16 +124,14 @@
         return locales.flatMap((locale) => LOCALE_GEOMETRY[locale]?.outline ?? [])
     }
 
-    const LOCATE_FOCUS = { maxScale: 0.85, padding: 28 }
-
-    function showOnMap(locale: number) {
-        if (!wrapper) return
-        const surroundings = [locale, ...session.gameState.map.adjacentLocales(locale)]
-        wrapper.focusRect(boundsOf(outlines(surroundings), session.boardRotation), {
-            animate: true,
-            ...LOCATE_FOCUS
-        })
+    function scrollBoardIntoView() {
         boardHost?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    }
+
+    async function bringLocatedOnScreen(locale: number) {
+        await tick()
+        scrollBoardIntoView()
+        panIfOutOfView(boardHost?.querySelector(`[data-located-locale="${locale}"]`), locale, true)
     }
 
     const UNCOVERED_PADDING = 60
@@ -144,7 +161,7 @@
     // The orders sheet hangs over the top of the board, so pieces picked up beneath it are brought out from under it at the zoom the board already has.
     function uncover(sprite: GroupSprite, sheet: Element, animate: boolean) {
         const pieces = boardHost?.querySelector(`[data-group="${CSS.escape(sprite.group.key)}"]`)
-        if (pieces && pieces.getBoundingClientRect().top < sheet.getBoundingClientRect().bottom) {
+        if (pieces && visualClientRect(pieces).top < sheet.getBoundingClientRect().bottom) {
             panAtThisZoom(sprite.blocks.flatMap(blockCorners), animate)
         }
     }
@@ -197,21 +214,44 @@
         }
     }
 
+    // The orders sheet hangs over the top of the board, and on a phone the board can run below the fold.
+    function seenBand(host: DOMRect): SeenBand {
+        const sheet =
+            boardCovered > 0
+                ? table?.querySelector('.nt-orders-sheet')?.getBoundingClientRect()
+                : undefined
+        const top = Math.max(host.top, sheet?.bottom ?? host.top, 0)
+        const bottom = Math.min(host.bottom, window.innerHeight)
+        return { height: host.height, top: top - host.top, bottom: bottom - host.top }
+    }
+
+    function panIfOutOfView(shape: Element | null | undefined, locale: number, animate: boolean) {
+        if (!shape || !boardHost) return
+        const at = visualClientRect(shape)
+        const host = boardHost.getBoundingClientRect()
+        const band = seenBand(host)
+        const inView =
+            at.left >= host.left &&
+            at.right <= host.right &&
+            at.top >= host.top + band.top &&
+            at.bottom <= host.top + band.bottom
+        if (!inView) {
+            const rect = boundsOf(outlines([locale]), session.boardRotation)
+            wrapper?.focusRect(centredInBand(rect, band, session.zoom), {
+                animate,
+                maxScale: session.zoom,
+                padding: UNCOVERED_PADDING
+            })
+        }
+    }
+
     function panToOpenCorpsIfOutOfView(animate: boolean) {
         const open = session.setupLocales.find((entry) => entry.open)
         const shape =
             open &&
             boardHost?.querySelector(`[data-setup-locale="${CSS.escape(open.commanderId)}"]`)
-        if (!open || !shape || !boardHost) return
-        const at = shape.getBoundingClientRect()
-        const view = boardHost.getBoundingClientRect()
-        const inView =
-            at.left >= view.left &&
-            at.right <= view.right &&
-            at.top >= view.top &&
-            at.bottom <= view.bottom
-        if (!inView) {
-            panAtThisZoom(outlines([open.locale]), animate)
+        if (open) {
+            panIfOutOfView(shape, open.locale, animate)
         }
     }
 
@@ -319,11 +359,13 @@
         session.addGameStateChangeListener(followGame)
         const stopListening = session.onPickUp(() => void showPickedUp(true))
         const stopFollowingSeats = session.onSeatOpened(() => void showOpenSeat(true))
+        const stopLocating = session.onLocaleLocated((locale) => void bringLocatedOnScreen(locale))
         const stopReadingZoom = session.readZoomFrom(() => wrapper?.viewScale())
         return () => {
             session.removeGameStateChangeListener(followGame)
             stopListening()
             stopFollowingSeats()
+            stopLocating()
             stopReadingZoom()
         }
     })
@@ -348,30 +390,29 @@
     class:nt-french-ways={session.mySide === Side.French}
     bind:this={table}
 >
-    <DefaultTableLayout topPadding={0} horizontalPadding={0}>
+    <DefaultTableLayout topPadding={0} horizontalPadding={0} bind:sideFolded>
         {#snippet mobileControlsContent()}
-            <HistoryControls
-                enabledColor="text-[#2b2620]"
-                disabledColor="text-[#b9b3a4]"
-                borderClass="border-[#2b2620] border-b-2"
-            />
+            <HistoryControls {...HISTORY_CONTROL_INK} borderClass="border-[#2b2620] border-b-2" />
+        {/snippet}
+        {#snippet foldedSideContent()}
+            <SideRail onopen={openSideAt} />
         {/snippet}
         {#snippet sideContent()}
             <div class="nt-side">
                 <div class="max-sm:hidden">
                     <HistoryControls
-                        enabledColor="text-[#2b2620]"
-                        disabledColor="text-[#b9b3a4]"
+                        {...HISTORY_CONTROL_INK}
                         borderClass="rounded-lg border-2 border-[#2b2620]"
                     />
                 </div>
                 <DefaultTabs
+                    bind:selectedTab={sideTab}
                     playersTitle="Armies"
                     activeTabClass="py-1 px-2 bg-[#2b2620] border-2 border-transparent rounded-lg text-[#f1ecdc]"
                     inactiveTabClass="text-[#2b2620] py-1 px-2 rounded-lg border-2 border-transparent hover:border-[#2b2620]"
                 >
                     {#snippet playersPanel()}
-                        <ArmiesPanel onlocate={showOnMap} />
+                        <ArmiesPanel />
                     {/snippet}
                     {#snippet history()}
                         <History />
@@ -405,8 +446,10 @@
                                         <ActionPanel bind:ordersDrawerHeight />
                                     </div>
                                 {/if}
-                            {:else if session.isAuction}
-                                <AuctionPanel />
+                            {:else if session.gameState.result}
+                                <ActionPanel bind:ordersDrawerHeight />
+                            {:else if session.isChoosingArmies}
+                                <ArmyChoicePanel />
                             {:else if session.isDeploying}
                                 <SetupPanel />
                             {:else}
@@ -465,6 +508,9 @@
         --nt-closed-line: rgba(43, 38, 32, 0.3);
         --nt-aimed-fill: rgba(43, 38, 32, 0.1);
         --nt-aimed-line: #2b2620;
+        --side-fold-tab-color: var(--nt-ink);
+        --side-fold-tab-bg: color-mix(in srgb, var(--nt-ink) 12%, var(--nt-ground));
+        --side-fold-tab-hover-bg: color-mix(in srgb, var(--nt-ink) 22%, var(--nt-ground));
     }
 
     .nt-table.nt-french-ways {
@@ -497,7 +543,7 @@
         flex-direction: column;
         min-height: 0;
         overflow-y: auto;
-        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
 
     .nt-board-host {
@@ -540,15 +586,15 @@
     }
 
     .nt-table :global(.nt-plain-button) {
-        border: 1px solid var(--nt-ink);
+        border: 1px solid var(--nt-button-edge, var(--nt-ink));
         border-radius: 3px;
         padding: 0.15rem 0.65rem;
-        color: var(--nt-ink);
-        background: transparent;
+        color: var(--nt-button-ink, var(--nt-ink));
+        background: var(--nt-button-ground, transparent);
     }
 
     .nt-table :global(.nt-plain-button:hover:not(:disabled):not([aria-pressed='true'])) {
-        background: var(--nt-hover);
+        background: var(--nt-button-hover, var(--nt-hover));
     }
 
     .nt-table :global(.nt-plain-button[aria-pressed='true']) {

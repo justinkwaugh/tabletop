@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
-import { portfolioWealth, type ValuationRules } from '../ending/finalWealth.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
+import { PlayerNetWorth, playerNetWorth, roundEnd, type RoundEnd } from '../ending/roundEnd.js'
 import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
 
 export const OperatingRoundIdentity = Type.Object(
@@ -15,7 +16,7 @@ export const OperatingRoundSnapshot = Type.Object(
     {
         ...OperatingRoundIdentity.properties,
         complete: Type.Boolean(),
-        playerNetWorth: Type.Record(Type.String(), Type.Number()),
+        playerNetWorth: PlayerNetWorth,
         companyIds: Type.Array(Type.String())
     },
     { additionalProperties: false }
@@ -32,17 +33,19 @@ export function operatingRoundSnapshot(
         number: set.number,
         roundNumber: set.roundNumber,
         complete: !nextOperatingCompany(state),
-        playerNetWorth: Object.fromEntries(
-            state.players.map(({ playerId }) => [
-                playerId,
-                portfolioWealth(state, { kind: 'player', playerId }, rules).reduce(
-                    (sum, item) => sum + item.value,
-                    0
-                )
-            ])
-        ),
+        playerNetWorth: playerNetWorth(state, rules),
         companyIds: state.companies
             .filter((company) => set.companyOrder.includes(company.id))
             .map((company) => company.id)
     }
+}
+
+/** The operating round's end, recorded by an Action that ends its last company's turn. */
+export function operatingRoundEnd(
+    state: OperatingState,
+    rules: ValuationRules
+): RoundEnd | undefined {
+    return state.operatingSet && !nextOperatingCompany(state)
+        ? roundEnd(state, rules, 'operating')
+        : undefined
 }

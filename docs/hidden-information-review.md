@@ -117,15 +117,15 @@ This exceeds the repository's Operational Compatibility guarantee, which promise
 
 ## Current coverage and limits
 
-| Scenario family | Evidence | Remaining limit |
-| --- | --- | --- |
-| Required hidden scalars, bags, nested private hands | Derived hydration schemas, strict canonical gates, permanent private-hand flow | Additional replacement shapes and deeply composed schemas need their own conformance coverage |
-| Hidden Actions, mixed cascades, secret shuffles | Sentinel, guarded attempts, patched cascade followed by public replay | Titles must explicitly register visibility; protected randomness alone is not confidential delivery |
-| Owner-known legal discovery | Owner policy, Common methods, actual browser GameSession play and fallback | Arbitrary custom/team/knowledge policy execution is not generally supported |
-| Sealed simultaneous submissions and Undo | Fresh Fish engine/client tests and hosted checks | Actual old/new artifact rollout |
-| Private observation and retained knowledge | Card-knowledge fixtures preserve represented knowledge | Title-owned lifecycle and entitlement rules; no universal memory model |
-| Load, sync, notifications, History, privileged views | Backend, client, Chromium, and local hosted Fresh Fish checks | Mixed-publication verification and deferred projection ETags |
-| Fork and Exploration | Canonical reconstruction/service tests, hosted historical Fork, hypothetical population and saved-branch browser tests | Population hooks for additional titles; historical reconstruction may explicitly fail |
+| Scenario family                                      | Evidence                                                                                                               | Remaining limit                                                                                     |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Required hidden scalars, bags, nested private hands  | Derived hydration schemas, strict canonical gates, permanent private-hand flow                                         | Additional replacement shapes and deeply composed schemas need their own conformance coverage       |
+| Hidden Actions, mixed cascades, secret shuffles      | Sentinel, guarded attempts, patched cascade followed by public replay                                                  | Titles must explicitly register visibility; protected randomness alone is not confidential delivery |
+| Owner-known legal discovery                          | Owner policy, Common methods, actual browser GameSession play and fallback                                             | Arbitrary custom/team/knowledge policy execution is not generally supported                         |
+| Sealed simultaneous submissions and Undo             | Fresh Fish engine/client tests and hosted checks                                                                       | Actual old/new artifact rollout                                                                     |
+| Private observation and retained knowledge           | Card-knowledge fixtures preserve represented knowledge                                                                 | Title-owned lifecycle and entitlement rules; no universal memory model                              |
+| Load, sync, notifications, History, privileged views | Backend, client, Chromium, and local hosted Fresh Fish checks                                                          | Mixed-publication verification and deferred projection ETags                                        |
+| Fork and Exploration                                 | Canonical reconstruction/service tests, hosted historical Fork, hypothetical population and saved-branch browser tests | Population hooks for additional titles; historical reconstruction may explicitly fail               |
 
 The [scenario catalog](hidden-information-scenarios.md) is a title-adoption checklist. It does not establish that complete Hearts, Rummy, Go Fish, or War implementations are deployed.
 

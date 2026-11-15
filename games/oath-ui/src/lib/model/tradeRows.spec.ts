@@ -11,7 +11,14 @@ import {
     type PowerChoice,
     reliquarySlotId
 } from '@tabletop/oath'
-import { testPlayer, testState } from '@tabletop/oath/testing'
+import {
+    DANA,
+    HALL_OF_DEBATE,
+    WOLVES,
+    edificeTable,
+    testPlayer,
+    testState
+} from '@tabletop/oath/testing'
 import { tradeRows } from './tradeRows.js'
 
 const BINDERS = 'denizen.hearth.book-binders'
@@ -109,7 +116,9 @@ describe('the trades at your site (R-5.3.2)', () => {
         const state = site({
             advisers: [{ cardId: SIGNAL, faceUp: true }]
         })
-        const declared = [{ cardId: SIGNAL, powerIndex: powerIndexOf(SIGNAL, PowerTiming.Modifier) }]
+        const declared = [
+            { cardId: SIGNAL, powerIndex: powerIndexOf(SIGNAL, PowerTiming.Modifier) }
+        ]
         const binders = tradeRows(state, 'p1', declared).find((row) => row.cardId === BINDERS)
         // Secret Signal: "If you gain only one favor, gain one more favor."
         expect(binders?.choices[0]).toMatchObject({ option: TradeOption.ForFavor, gain: 2 })
@@ -168,7 +177,10 @@ describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () =>
         site(
             {
                 status: PlayerStatus.Chancellor,
-                advisers: [...HEARTH_ADVISERS, ...advisers].map((cardId) => ({ cardId, faceUp: true }))
+                advisers: [...HEARTH_ADVISERS, ...advisers].map((cardId) => ({
+                    cardId,
+                    faceUp: true
+                }))
             },
             {
                 chancellorPlayerId: 'p1',
@@ -180,10 +192,14 @@ describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () =>
             others
         )
     const secretsAtBinders = (rows: ReturnType<typeof tradeRows>) =>
-        rows.find((row) => row.cardId === BINDERS)?.choices.find((c) => c.option === TradeOption.ForSecrets)
+        rows
+            .find((row) => row.cardId === BINDERS)
+            ?.choices.find((c) => c.option === TradeOption.ForSecrets)
 
     it('counts none for a Vow of Poverty holder, whom Careless gives nothing', () => {
-        expect(secretsAtBinders(tradeRows(withAdvisers([POVERTY]), 'p1', []))).toMatchObject({ sideFavor: 0 })
+        expect(secretsAtBinders(tradeRows(withAdvisers([POVERTY]), 'p1', []))).toMatchObject({
+            sideFavor: 0
+        })
     })
 
     // Master of Disguise — the Trade acts with the other player's advisers, and so does the count.
@@ -220,6 +236,23 @@ describe('Careless (R-6.6.2.a): a Trade for secrets also gains one favor', () =>
             sideFavor: 2
         })
         const bankOfOne = withAdvisers([SIGNAL], { favorBank: banks({ [Suit.Hearth]: 1 }) })
-        expect(secretsAtBinders(tradeRows(bankOfOne, 'p1', declared))).toMatchObject({ sideFavor: 1 })
+        expect(secretsAtBinders(tradeRows(bankOfOne, 'p1', declared))).toMatchObject({
+            sideFavor: 1
+        })
+    })
+})
+
+describe('an edifice in the Trade rows (R-2.9, R-5.3.2)', () => {
+    it('an intact edifice is listed as a denizen is, by its suit', () => {
+        const rows = tradeRows(edificeTable(), DANA, [])
+        expect(rows.map((row) => [row.cardId, row.suit])).toEqual([
+            [HALL_OF_DEBATE, Suit.Hearth],
+            [WOLVES, Suit.Beast]
+        ])
+    })
+
+    it('a ruin is never listed: it has no suit', () => {
+        const rows = tradeRows(edificeTable({}, {}, { ruined: true }), DANA, [])
+        expect(rows.map((row) => row.cardId)).toEqual([WOLVES])
     })
 })

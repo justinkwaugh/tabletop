@@ -41,8 +41,24 @@ function board(
     const adv = (ids: string[] = []) => ids.map((cardId) => ({ cardId, faceUp: true }))
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: 'att', color: Color.Blue, siteId: 'c1', supply: 5, warbandsOnBoard: { att: 3 }, advisers: adv(advisers.att), ...(holding.att ?? { favor: 4, secrets: 3 }) }),
-            testPlayer({ playerId: 'def', color: Color.Red, siteId: 'c1', supply: 5, warbandsOnBoard: { def: 4 }, advisers: adv(advisers.def), ...(holding.def ?? { favor: 4, secrets: 3 }) })
+            testPlayer({
+                playerId: 'att',
+                color: Color.Blue,
+                siteId: 'c1',
+                supply: 5,
+                warbandsOnBoard: { att: 3 },
+                advisers: adv(advisers.att),
+                ...(holding.att ?? { favor: 4, secrets: 3 })
+            }),
+            testPlayer({
+                playerId: 'def',
+                color: Color.Red,
+                siteId: 'c1',
+                supply: 5,
+                warbandsOnBoard: { def: 4 },
+                advisers: adv(advisers.def),
+                ...(holding.def ?? { favor: 4, secrets: 3 })
+            })
         ]),
         {
             oathRevision,
@@ -75,29 +91,54 @@ const campaign = (plans: string[], over: Record<string, unknown> = {}) =>
 describe('R-7.1.2 — a side’s battle-plan costs are paid in order from one holding (revision 3)', () => {
     it('two plans of a favor each, with one favor held, are refused with the total', () => {
         const s = board(atRevision, { att: [ZEALOTS, SLANDER] }, { att: { favor: 1, secrets: 3 } })
-        expect(reason(s, [ZEALOTS, SLANDER])).toBe('your battle plans cost 2 favor in all, you hold 1')
+        expect(reason(s, [ZEALOTS, SLANDER])).toBe(
+            'your battle plans cost 2 favor in all, you hold 1'
+        )
         expect(reason(s, [ZEALOTS])).toBeUndefined()
     })
 
     it('Gleaming Armor: its secret is added to each plan, so two free plans with one secret are refused', () => {
-        const s = board(atRevision, { att: [SCOUTS, OUTRIDERS], def: [ARMOR] }, { att: { favor: 4, secrets: 1 } })
-        expect(reason(s, [SCOUTS, OUTRIDERS])).toBe('your battle plans cost 2 secrets in all, you hold 1')
+        const s = board(
+            atRevision,
+            { att: [SCOUTS, OUTRIDERS], def: [ARMOR] },
+            { att: { favor: 4, secrets: 1 } }
+        )
+        expect(reason(s, [SCOUTS, OUTRIDERS])).toBe(
+            'your battle plans cost 2 secrets in all, you hold 1'
+        )
         expect(reason(s, [SCOUTS])).toBeUndefined()
     })
 
     it('Insect Swarm: its burned favor is added to each plan', () => {
-        const s = board(atRevision, { att: [SCOUTS, OUTRIDERS], def: [SWARM] }, { att: { favor: 1, secrets: 3 } })
-        expect(reason(s, [SCOUTS, OUTRIDERS])).toBe('your battle plans cost 2 favor in all, you hold 1')
+        const s = board(
+            atRevision,
+            { att: [SCOUTS, OUTRIDERS], def: [SWARM] },
+            { att: { favor: 1, secrets: 3 } }
+        )
+        expect(reason(s, [SCOUTS, OUTRIDERS])).toBe(
+            'your battle plans cost 2 favor in all, you hold 1'
+        )
     })
 
     it('The Hidden Place: the secret flipped to target there is not there to pay a plan', () => {
-        const s = board(atRevision, { att: [FIRE_TALKERS] }, { att: { favor: 4, secrets: 1 } }, 'site.the-hidden-place')
-        expect(reason(s, [FIRE_TALKERS], { flipSecret: true })).toBe('your battle plans cost 2 secrets in all, you hold 1')
+        const s = board(
+            atRevision,
+            { att: [FIRE_TALKERS] },
+            { att: { favor: 4, secrets: 1 } },
+            'site.the-hidden-place'
+        )
+        expect(reason(s, [FIRE_TALKERS], { flipSecret: true })).toBe(
+            'your battle plans cost 2 secrets in all, you hold 1'
+        )
         expect(reason(s, [], { flipSecret: true })).toBeUndefined()
     })
 
     it('plans in two resources pass when each is held', () => {
-        const s = board(atRevision, { att: [ZEALOTS, FIRE_TALKERS] }, { att: { favor: 1, secrets: 1 } })
+        const s = board(
+            atRevision,
+            { att: [ZEALOTS, FIRE_TALKERS] },
+            { att: { favor: 1, secrets: 1 } }
+        )
         expect(reason(s, [ZEALOTS, FIRE_TALKERS])).toBeUndefined()
         campaign([ZEALOTS, FIRE_TALKERS]).apply(s)
         expect(s.getPlayerState('att').favor).toBe(0)
@@ -105,7 +146,11 @@ describe('R-7.1.2 — a side’s battle-plan costs are paid in order from one ho
     })
 
     it('Vow of Renewal: a burn its payer takes straight back pays the next plan too', () => {
-        const s = board(atRevision, { att: [VOW, SECOND_WIND, CRACKED_SAGE] }, { att: { favor: 1, secrets: 2 } })
+        const s = board(
+            atRevision,
+            { att: [VOW, SECOND_WIND, CRACKED_SAGE] },
+            { att: { favor: 1, secrets: 2 } }
+        )
         expect(reason(s, [SECOND_WIND, CRACKED_SAGE])).toBeUndefined()
         campaign([SECOND_WIND, CRACKED_SAGE]).apply(s)
         expect(s.getPlayerState('att').favor).toBe(1)
@@ -113,24 +158,45 @@ describe('R-7.1.2 — a side’s battle-plan costs are paid in order from one ho
     })
 
     it('Vow of Renewal returns a burn, not a placed favor: the plan placed before a burn still counts', () => {
-        const s = board(atRevision, { att: [VOW, ZEALOTS, SECOND_WIND] }, { att: { favor: 1, secrets: 2 } })
-        expect(reason(s, [ZEALOTS, SECOND_WIND])).toBe('your battle plans cost 2 favor in all, you hold 1')
+        const s = board(
+            atRevision,
+            { att: [VOW, ZEALOTS, SECOND_WIND] },
+            { att: { favor: 1, secrets: 2 } }
+        )
+        expect(reason(s, [ZEALOTS, SECOND_WIND])).toBe(
+            'your battle plans cost 2 favor in all, you hold 1'
+        )
         expect(reason(s, [SECOND_WIND, ZEALOTS])).toBeUndefined()
     })
 
     it('another player’s Vow of Renewal takes the burn away: the payer needs a favor for each', () => {
-        const s = board(atRevision, { att: [SECOND_WIND, CRACKED_SAGE], def: [VOW] }, { att: { favor: 1, secrets: 2 } })
-        expect(reason(s, [SECOND_WIND, CRACKED_SAGE])).toBe('your battle plans cost 2 favor in all, you hold 1')
+        const s = board(
+            atRevision,
+            { att: [SECOND_WIND, CRACKED_SAGE], def: [VOW] },
+            { att: { favor: 1, secrets: 2 } }
+        )
+        expect(reason(s, [SECOND_WIND, CRACKED_SAGE])).toBe(
+            'your battle plans cost 2 favor in all, you hold 1'
+        )
     })
 
     it('the defender pays out of turn: Gleaming Armor’s secret goes facedown and still counts', () => {
-        const s = board(atRevision, { att: [ARMOR], def: [PROVISIONS, SHIELD_WALL] }, { def: { favor: 2, secrets: 1 } })
-        campaign([]).apply(s)
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'def', [battlePlanUse(PROVISIONS), battlePlanUse(SHIELD_WALL)])).toBe(
-            'your battle plans cost 2 secrets in all, you hold 1'
+        const s = board(
+            atRevision,
+            { att: [ARMOR], def: [PROVISIONS, SHIELD_WALL] },
+            { def: { favor: 2, secrets: 1 } }
         )
+        campaign([]).apply(s)
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, 'def', [
+                battlePlanUse(PROVISIONS),
+                battlePlanUse(SHIELD_WALL)
+            ])
+        ).toBe('your battle plans cost 2 secrets in all, you hold 1')
         const hearth = s.favorBank[Suit.Hearth]
-        new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'def', plans: [battlePlanUse(PROVISIONS)] })).apply(s)
+        new HydratedCampaignDefend(
+            buildAction(CampaignDefend, { playerId: 'def', plans: [battlePlanUse(PROVISIONS)] })
+        ).apply(s)
         expect(s.getPlayerState('def').secrets).toBe(0)
         expect(s.getPlayerState('def').secretsFacedown).toBe(1)
         expect(s.getPlayerState('def').favor).toBe(1)
@@ -138,13 +204,22 @@ describe('R-7.1.2 — a side’s battle-plan costs are paid in order from one ho
     })
 
     it('the defender: two plans of a favor each, with one favor held, are refused', () => {
-        const s = board(atRevision, { def: [PROVISIONS, SHIELD_WALL] }, { def: { favor: 1, secrets: 0 } })
+        const s = board(
+            atRevision,
+            { def: [PROVISIONS, SHIELD_WALL] },
+            { def: { favor: 1, secrets: 0 } }
+        )
         campaign([]).apply(s)
         expect(ongoingCampaign(s).pendingDefenderPlans?.queue).toEqual(['def'])
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'def', [battlePlanUse(PROVISIONS), battlePlanUse(SHIELD_WALL)])).toBe(
-            'your battle plans cost 2 favor in all, you hold 1'
-        )
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'def', [battlePlanUse(PROVISIONS)])).toBeUndefined()
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, 'def', [
+                battlePlanUse(PROVISIONS),
+                battlePlanUse(SHIELD_WALL)
+            ])
+        ).toBe('your battle plans cost 2 favor in all, you hold 1')
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, 'def', [battlePlanUse(PROVISIONS)])
+        ).toBeUndefined()
     })
 })
 
@@ -152,11 +227,17 @@ describe('R-X.4 — before revision 3 each plan is checked alone, as recorded', 
     it('two plans of a favor each with one favor are accepted, and the second payment throws', () => {
         const s = board(before, { att: [ZEALOTS, SLANDER] }, { att: { favor: 1, secrets: 3 } })
         expect(reason(s, [ZEALOTS, SLANDER])).toBeUndefined()
-        expect(() => campaign([ZEALOTS, SLANDER]).apply(s)).toThrow('Cannot pay power cost: costs 1 favor, player has 0')
+        expect(() => campaign([ZEALOTS, SLANDER]).apply(s)).toThrow(
+            'Cannot pay power cost: costs 1 favor, player has 0'
+        )
     })
 
     it('replay: Gleaming Armor on two free plans with one secret leaves the attacker at -1 secrets', () => {
-        const s = board(before, { att: [SCOUTS, OUTRIDERS], def: [ARMOR] }, { att: { favor: 4, secrets: 1 } })
+        const s = board(
+            before,
+            { att: [SCOUTS, OUTRIDERS], def: [ARMOR] },
+            { att: { favor: 4, secrets: 1 } }
+        )
         expect(reason(s, [SCOUTS, OUTRIDERS])).toBeUndefined()
         campaign([SCOUTS, OUTRIDERS]).apply(s)
         expect(s.getPlayerState('att').secrets).toBe(-1)
@@ -170,8 +251,23 @@ describe('R-5.5.3.a — an ally answering pays its plans from its own holding', 
     function allied(citizen: { favor: number; advisers: string[] }) {
         const s = testState(
             [
-                testPlayer({ playerId: 'att', color: Color.Red, status: PlayerStatus.Exile, siteId: 'h1', supply: 5, favor: 3, warbandsOnBoard: { att: 5 } }),
-                testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 } }),
+                testPlayer({
+                    playerId: 'att',
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'h1',
+                    supply: 5,
+                    favor: 3,
+                    warbandsOnBoard: { att: 5 }
+                }),
+                testPlayer({
+                    playerId: 'chan',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h1',
+                    favor: 4,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+                }),
                 testPlayer({
                     playerId: 'cit',
                     color: Color.Blue,
@@ -182,11 +278,20 @@ describe('R-5.5.3.a — an ally answering pays its plans from its own holding', 
                     advisers: citizen.advisers.map((cardId) => ({ cardId, faceUp: true }))
                 })
             ],
-            { oathRevision: atRevision, chancellorPlayerId: 'chan', warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 3 } } }
+            {
+                oathRevision: atRevision,
+                chancellorPlayerId: 'chan',
+                warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 3 } }
+            }
         )
         openTurn(s, 'att')
         new HydratedCampaign(
-            buildAction(Campaign, { playerId: 'att', defender: { kind: 'player', playerId: 'chan' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], attackDice: 2 })
+            buildAction(Campaign, {
+                playerId: 'att',
+                defender: { kind: 'player', playerId: 'chan' },
+                targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }],
+                attackDice: 2
+            })
         ).apply(s)
         joinDefence(s, 'cit', 'chan')
         return s
@@ -195,22 +300,41 @@ describe('R-5.5.3.a — an ally answering pays its plans from its own holding', 
     it('the Citizen’s two plans of a favor each, with one favor, are refused; one alone is accepted', () => {
         const s = allied({ favor: 1, advisers: [PROVISIONS, SHIELD_WALL] })
         expect(HydratedCampaignDefend.answeringPlayerId(s)).toBe('cit')
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'cit', [battlePlanUse(PROVISIONS), battlePlanUse(SHIELD_WALL)])).toBe(
-            'your battle plans cost 2 favor in all, you hold 1'
-        )
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, 'cit', [battlePlanUse(PROVISIONS)])).toBeUndefined()
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, 'cit', [
+                battlePlanUse(PROVISIONS),
+                battlePlanUse(SHIELD_WALL)
+            ])
+        ).toBe('your battle plans cost 2 favor in all, you hold 1')
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, 'cit', [battlePlanUse(PROVISIONS)])
+        ).toBeUndefined()
     })
 })
 
 describe('R-X.4 — a Campaign recorded before revision 3 replays unchanged', () => {
     it('Gleaming Armor on two free plans with one secret: recorded at minus one, replayed the same', () => {
-        const start = board(before, { att: [SCOUTS, OUTRIDERS], def: [ARMOR] }, { att: { favor: 4, secrets: 1 } }).dehydrate()
+        const start = board(
+            before,
+            { att: [SCOUTS, OUTRIDERS], def: [ARMOR] },
+            { att: { favor: 4, secrets: 1 } }
+        ).dehydrate()
         const game = testGame(['att', 'def', 'chancellor'])
-        const recorded = engine.runNext(buildAction(Campaign, { playerId: 'att', ...choice([SCOUTS, OUTRIDERS]) }), structuredClone(start), game)
+        const recorded = engine.runNext(
+            buildAction(Campaign, { playerId: 'att', ...choice([SCOUTS, OUTRIDERS]) }),
+            structuredClone(start),
+            game
+        )
         expect(recorded.updatedState.players.find((p) => p.playerId === 'att')?.secrets).toBe(-1)
 
         let replayed = structuredClone(start)
-        for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of recorded.processedActions)
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         expect(replayed).toEqual(recorded.updatedState)
     })
 })

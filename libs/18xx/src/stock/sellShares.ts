@@ -1,22 +1,29 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
+import { recordStockRoundSale } from './stockRound.js'
 import { recordStockAction } from './stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
 import { Owner, sameOwner } from '../finance/finance.js'
-import { ShareSale, ShareSaleDetails, evaluateShareSale, applyShareSale } from './shareSale.js'
+import {
+    ShareSale,
+    ShareSaleDetails,
+    evaluateShareSale,
+    applyShareSale,
+    saleBlockAfter
+} from './shareSale.js'
 import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 
 export const SellShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SellShares'),
         seller: Owner,
         sales: Type.Array(ShareSale, { minItems: 1, maxItems: 1 }),
@@ -63,13 +70,9 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
                 (block) =>
                     block.companyId === sale.companyId && sameOwner(block.seller, this.seller)
             )
-            const shares = (previous?.shares ?? 0) + sale.shares
-            const terms = this.#rules.saleTerms(state, sale.companyId, shares, this.seller)
-            assert(typeof terms !== 'string', 'A legal sale requires sale terms')
+            const block = saleBlockAfter(state, this.#rules.saleTerms, this.seller, sale, previous)
             if (previous) {
-                previous.shares = shares
-                previous.movement = terms.movement
-                previous.direction = terms.direction
+                Object.assign(previous, block)
                 saleBlockId = previous.id
             } else {
                 saleBlockId = this.id
@@ -77,17 +80,14 @@ export class HydratedSellShares extends HydratableAction<typeof SellShares> impl
                     id: this.id,
                     companyId: sale.companyId,
                     seller: this.seller,
-                    shares,
-                    price: sale.price,
-                    movement: terms.movement,
-                    direction: terms.direction
+                    ...block
                 })
             }
         }
         applyShareSale(state, result.details)
         this.#rules.afterSale?.(state, result.details)
         for (const sale of result.details.sales) {
-            state.stockRound.sales.push({ owner: this.seller, companyId: sale.companyId })
+            recordStockRoundSale(state.stockRound, this.seller, sale.companyId)
             if (!state.stockRound.turn.companiesSold.includes(sale.companyId))
                 state.stockRound.turn.companiesSold.push(sale.companyId)
         }

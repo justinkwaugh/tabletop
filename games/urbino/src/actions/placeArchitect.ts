@@ -15,7 +15,7 @@ export const PlaceArchitect = Type.Evaluate(
             type: Type.Literal(ActionType.PlaceArchitect),
             playerId: Type.String(),
             position: Type.Number(),
-            metadata: Type.Optional(PlaceArchitectMetadata),
+            metadata: Type.Optional(PlaceArchitectMetadata)
         })
     ])
 )

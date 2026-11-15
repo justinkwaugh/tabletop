@@ -2,21 +2,28 @@ import { EighteenSeventeenMap, EighteenSeventeenTileSet } from '@tabletop/1817'
 import { towardTileEdge, type MapViewDefinition } from '@tabletop/18xx-ui'
 
 export const EighteenSeventeenMapView: MapViewDefinition = {
-    // Fitted at TOP's market scale to keep every drawn market cell and the depot 12 map units
-    // clear of every hex: the one-row market runs below the map, and the depot sits in the
-    // map's empty lower-right corner above it.
+    // The market's tall cells span the map's width 16 units above its top row, as in 1846, and
+    // the depot nestles in the notch below New York's row, both 12 map units clear of every hex.
     boardAreas: {
-        market: { x: -240, y: 762, width: 1753, height: 70 },
-        depot: { x: 800, y: 562, width: 381, height: 187 }
+        market: { x: -26, y: -244, width: 1308, height: 178 },
+        depot: { x: 922, y: 438, width: 381, height: 187 }
     },
     map: EighteenSeventeenMap,
     tileSet: EighteenSeventeenTileSet,
     locationMarkerNames: { mine: 'Mine', bridge: 'Bridge', ranch: 'Ranch' },
     layouts: {
+        // Cleveland's two stations sit level and a little low, clear of its row of revenues.
+        // Positions are given before the pointy tile's 30° turn.
+        D9: { slotRowTurns: { city: -30 }, nodePositions: { city: { x: 2.5, y: 4.3 } } },
         E22: {
-            nodePositions: { 'city-0': towardTileEdge(0, 18), 'city-1': towardTileEdge(3, 18) }
+            nodePositions: { 'city-0': towardTileEdge(0, 18), 'city-1': towardTileEdge(3, 18) },
+            // Given before the pointy tile's 30° turn: each city's revenue beside it, the upper
+            // on the right with NY below it, which leaves the northwest corner for the lake.
+            revenuePositions: { 'city-0': { x: -25.7, y: 19.5 }, 'city-1': { x: 25.6, y: -21.7 } },
+            labelPosition: { x: 28.8, y: 1.9 }
         }
     },
+    terrainPositions: { C8: { x: 0, y: -31 }, E22: { x: -26, y: -21 } },
     stations: {
         AS: { color: '#ee3e80', label: 'A&S' },
         AA: { color: '#904098', label: 'A&A' },

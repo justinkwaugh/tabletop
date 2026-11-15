@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
     ActionSource,
+    createCallGameAction,
     createPatch,
     type Game,
     type GameAction,
@@ -95,13 +96,22 @@ function submission(before: State, optimisticState: State, revealing = false) {
     }
 }
 
-function reconciliationOf(f: ReturnType<typeof submission>) {
+// The fakes carry only what each scenario touches, so they are cast to the full collaborators once.
+function reconciliationWith(context: unknown, remote?: unknown) {
     return new GameReconciliation(
-        f.context as unknown as Context,
-        f.remote as unknown as ConstructorParameters<
+        context as Context,
+        remote as ConstructorParameters<
             typeof GameReconciliation<State, HydratedGameState<State> & State>
         >[1]
     )
+}
+
+function gameAt(updatedAt: Date): Game {
+    return { id: 'game', updatedAt } as Game
+}
+
+function reconciliationOf(f: ReturnType<typeof submission>) {
+    return reconciliationWith(f.context, f.remote)
 }
 
 describe('GameReconciliation.acceptSubmission', () => {
@@ -114,7 +124,7 @@ describe('GameReconciliation.acceptSubmission', () => {
             effect: 'Accelerate',
             actionCount: 1
         })
-        const reconciliation = new GameReconciliation(context as unknown as Context)
+        const reconciliation = reconciliationWith(context)
 
         reconciliation.acceptSubmission('activate', response, optimistic)
 
@@ -130,7 +140,7 @@ describe('GameReconciliation.acceptSubmission', () => {
             cubes: [undefined, null],
             actionCount: 1
         })
-        const reconciliation = new GameReconciliation(context as unknown as Context)
+        const reconciliation = reconciliationWith(context)
 
         reconciliation.acceptSubmission('activate', response, optimistic)
 
@@ -167,7 +177,7 @@ describe('GameReconciliation.acceptSubmission', () => {
 function afterUndo() {
     const placedAt = new Date('2026-10-14T21:00:00.000Z')
     const undoneAt = new Date('2026-10-14T21:00:01.000Z')
-    const game = { id: 'game', updatedAt: undoneAt } as Game
+    const game = gameAt(undoneAt)
     const context = {
         state: stateWith({ actionCount: 0 }),
         game,
@@ -217,12 +227,7 @@ function afterUndo() {
         handling: ServerActionHandling.ApplyProcessed,
         game: { ...game, updatedAt }
     })
-    const reconciliation = new GameReconciliation(
-        context as unknown as Context,
-        remote as unknown as ConstructorParameters<
-            typeof GameReconciliation<State, HydratedGameState<State> & State>
-        >[1]
-    )
+    const reconciliation = reconciliationWith(context, remote)
     // An earlier Undo's push: the game as it stood with the placement still in it.
     const replacement = (updatedAt: Date) => ({
         kind: 'replacement' as const,
@@ -274,6 +279,86 @@ describe('GameReconciliation server updates', () => {
     })
 })
 
+describe('GameReconciliation delivery of a called game', () => {
+    function delivery() {
+        const game = gameAt(new Date('2026-10-25T12:00:00.000Z'))
+        const executed: GameAction[] = []
+        const context = {
+            state: stateWith({ actionCount: 3 }),
+            game,
+            historyStartIndex: 0,
+            hasAction: () => false,
+            applyActionResults: vi.fn(),
+            updateGame: vi.fn(),
+            engine: {
+                executeAction: ({ action, state }: { action: GameAction; state: State }) => {
+                    executed.push(action)
+                    return {
+                        processedActions: [action],
+                        updatedState: { ...state, actionCount: state.actionCount + 1 }
+                    }
+                }
+            }
+        }
+        const remote = {
+            isPaused: () => false,
+            recover: vi.fn(),
+            acceptsPerspective: () => true,
+            present: vi.fn((_request: TransitionRequest, write: () => void) => write())
+        }
+        const reconciliation = reconciliationWith(context, remote)
+        const call: GameAction = {
+            ...createCallGameAction({
+                gameId: 'game',
+                index: 3,
+                ballot: {
+                    initiatorPlayerId: 'p1',
+                    declaredWinnerId: 'p2',
+                    approvingPlayerIds: ['p1'],
+                    decliningPlayerIds: []
+                },
+                players: ['p1', 'p2']
+            }),
+            id: 'call'
+        }
+        const cascaded: GameAction = {
+            id: 'cascade',
+            gameId: 'game',
+            type: 'Score',
+            source: ActionSource.System,
+            index: 3
+        }
+        return { context, reconciliation, executed, call, cascaded, game }
+    }
+
+    it('executes a pushed call, which no User Action of the client will cascade', async () => {
+        const { context, reconciliation, executed, call, game } = delivery()
+
+        await reconciliation.enqueue({
+            kind: 'actions',
+            actions: [call],
+            handling: ServerActionHandling.Execute,
+            game
+        })
+
+        expect(executed.map((action) => action.id)).toEqual(['call'])
+        expect(context.applyActionResults).toHaveBeenCalledOnce()
+    })
+
+    it('still leaves other System Actions to the cascade that produces them', async () => {
+        const { reconciliation, executed, cascaded, game } = delivery()
+
+        await reconciliation.enqueue({
+            kind: 'actions',
+            actions: [cascaded],
+            handling: ServerActionHandling.Execute,
+            game
+        })
+
+        expect(executed).toEqual([])
+    })
+})
+
 // The player undid an action; the client already shows the result, and the server's push of the
 // Undo to the same player replays exactly that history.
 class FakeContext {
@@ -316,7 +401,7 @@ class FakeContext {
 }
 
 function afterOwnUndo(replayedRank: number) {
-    const game = { id: 'game', updatedAt: new Date('2026-10-14T21:00:01.000Z') } as Game
+    const game = gameAt(new Date('2026-10-14T21:00:01.000Z'))
     const kept: GameAction = {
         id: 'kept',
         gameId: 'game',
@@ -331,7 +416,7 @@ function afterOwnUndo(replayedRank: number) {
     }
     const shown = { ...stateWith({ actionCount: 1 }), rank: 0 } as State
     const context = new FakeContext(shown, [kept], game, engine)
-    const reconciliation = new GameReconciliation(context as unknown as Context)
+    const reconciliation = reconciliationWith(context)
     return { context, reconciliation, replay: { startIndex: 0, actions: [kept] }, game }
 }
 

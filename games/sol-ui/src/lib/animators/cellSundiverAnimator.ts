@@ -34,10 +34,7 @@ import { gsap } from 'gsap'
 import { offsetFromCenter } from '$lib/utils/boardGeometry.js'
 import type { AnimationContext } from '@tabletop/frontend-components'
 import { getFlightDuration, getFlightPaths } from '$lib/utils/flight.js'
-import {
-    CHAIN_MOMENTUM_STAGGER,
-    CHAIN_SUNDIVER_RETURN_DELAY
-} from '$lib/utils/animationsUtils.js'
+import { CHAIN_MOMENTUM_STAGGER, CHAIN_SUNDIVER_RETURN_DELAY } from '$lib/utils/animationsUtils.js'
 
 type SetQuantityCallback = (quantity: number) => void
 
@@ -360,10 +357,7 @@ export class CellSundiverAnimator extends StateAnimator<
                     action.playerId,
                     fromCell
                 )
-                const toLocation = this.gameSession.locationForDiverInCell(
-                    action.playerId,
-                    toCell
-                )
+                const toLocation = this.gameSession.locationForDiverInCell(action.playerId, toCell)
 
                 if (fromLocation && toLocation && !samePoint(fromLocation, toLocation)) {
                     const leaveStart = 0.5
@@ -434,17 +428,12 @@ export class CellSundiverAnimator extends StateAnimator<
             return
         }
 
-        const isTargetCell = procreatedCoords.some((coords) =>
-            sameCoordinates(coords, this.coords)
-        )
+        const isTargetCell = procreatedCoords.some((coords) => sameCoordinates(coords, this.coords))
         if (!isTargetCell) {
             return
         }
 
-        const numBefore = fromState.board.sundiversForPlayerAt(
-            action.playerId,
-            this.coords
-        ).length
+        const numBefore = fromState.board.sundiversForPlayerAt(action.playerId, this.coords).length
 
         const scaleUp = 1.4
         const scaleUpDuration = 0.2
@@ -870,10 +859,7 @@ export class CellSundiverAnimator extends StateAnimator<
             return
         }
 
-        const numBefore = fromState.board.sundiversForPlayerAt(
-            action.playerId,
-            this.coords
-        ).length
+        const numBefore = fromState.board.sundiversForPlayerAt(action.playerId, this.coords).length
         const numAfter = toState.board.sundiversForPlayerAt(action.playerId, this.coords).length
         if (numBefore === numAfter) {
             return

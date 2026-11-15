@@ -78,7 +78,7 @@ The stable history identity assigned to a generated System Action. It belongs to
 An Action attributed to a particular Player, regardless of whether its origin is User or System.
 
 **Out-of-Turn Action**:
-A User Action whose registered schema requires the literal `outOfTurn: true`, accepted from any seated Player whether or not they are active, with validity left to its Machine State Handler. Unless it is a Sequenced Out-of-Turn Action, it is a standing declaration whose later consequences arrive as System Actions.
+A User Action whose registered schema requires the literal `outOfTurn: true`, accepted from any seated Player whether or not they are active, with validity left to its Machine State Handler. Unless it is a Sequenced Out-of-Turn Action, it is a standing declaration whose later consequences arrive as System Actions; one the machine acts on in its own cascade is undone like any other User Action.
 _Avoid_: Background Action, Programmed Action
 
 **Sequenced Out-of-Turn Action**:
@@ -86,7 +86,7 @@ An Out-of-Turn Action, also marked `sequenced: true`, whose immediate consequenc
 _Avoid_: Interrupt, Restricted Action
 
 **Supersedable Action**:
-A User Action whose registered schema requires the literal `supersedable: true`. A later Action of the same type by the same Player may name it in `supersedesActionId`; the host or Local Game reverses the named Action and re-executes the Actions after it, honouring the replacement only when every later Action replays unchanged, which proves no later Action depended on it. An unnamed Action of a supersedable type is rejected while such an Action stands at the tail.
+A User Action whose registered schema requires the literal `supersedable: true`. A later Action of the same type by the same Player may name it in `supersedesActionId`, and when the schema also requires a `supersessionScope` literal naming one of its fields, only an Action with the same value in that field, such as the same company; the host or Local Game reverses the named Action and re-executes the Actions after it, honouring the replacement only when every later Action replays unchanged, which proves no later Action depended on it. An unnamed Action of a supersedable type is rejected while such an Action, in the same scope, stands at the tail.
 _Avoid_: Replaceable Action, Amendment
 
 **Simultaneous Action Group**:
@@ -105,3 +105,8 @@ Deterministic entropy consumed by a Game Title to produce rule-relevant values. 
 
 **Deterministic Execution**:
 The guarantee that the same initial Game State and ordered Processed Actions produce the same resulting Game State and System Action cascade in every Game Runtime.
+
+## Auctions
+
+**Passable Bidding**:
+Bidding on one lot in which each Player, in seat order after the high bidder, raises or passes. A pass withdraws the Player for the rest of the bidding, and the last bidder left wins. Opened without a bid, it starts with the first Player in seat order and the lot goes unsold if everyone passes.

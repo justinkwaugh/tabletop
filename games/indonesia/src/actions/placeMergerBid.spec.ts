@@ -96,7 +96,12 @@ describe('HydratedPlaceMergerBid', () => {
         )
         expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
         const [deedA, deedB] = riceDeeds
-        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+        if (
+            !deedA ||
+            !deedB ||
+            deedA.type !== CompanyType.Production ||
+            deedB.type !== CompanyType.Production
+        ) {
             return
         }
 

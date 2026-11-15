@@ -20,11 +20,11 @@ These one-way movements make a small assignment model possible. Revisit that mod
 
 ## Three distinct representations
 
-| Representation | Contents and purpose |
-| --- | --- |
-| Canonical state | Actual piles, hands, bids, and deck; authoritative rules execution |
-| Current player projection | Public counts/results, that player's hand and bid, and any active inspection snapshot |
-| Permitted history | Public events plus that player's private inspection and acquisition records, through the selected source position |
+| Representation            | Contents and purpose                                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Canonical state           | Actual piles, hands, bids, and deck; authoritative rules execution                                                |
+| Current player projection | Public counts/results, that player's hand and bid, and any active inspection snapshot                             |
+| Permitted history         | Public events plus that player's private inspection and acquisition records, through the selected source position |
 
 Do not project the actual current pile to someone merely because they inspected it earlier. A later opponent's hidden removal would then reveal which card disappeared. Keep the old observation immutable; it is a fact about the time of inspection, not a live view of the pile.
 
@@ -160,7 +160,6 @@ Public plays disclose the visible card face; identical-copy IDs no longer exist 
 The Lowenherz suite passes 326 tests; the shared visibility/canonical-boundary suite passes 96. Logic and UI builds pass, and the UI check reports zero errors with six existing warnings. Separate hosted accounts verified owner/opponent/spectator state, durable private inspection history, refresh, taking, Undo restoration, ordinary hypothetical Exploration, and admin Host View Exploration. Browser interaction checks also cover duplicate-card spotlighting, disabled pending choices, history, resizing, inspection reload, and duplicate treasure selection.
 
 The private-money follow-up passes 341 Löwenherz tests and the Logic type check, UI build, and UI check (zero errors, six existing warnings). A local browser smoke check verified hidden balances and disabled Exploration in hotseat, protected player, spectator, and Host View, with no browser errors. This follow-up has not been deployed.
-
 
 ## Configuration compatibility
 

@@ -21,8 +21,8 @@
 </script>
 
 <svg
-    width={width}
-    height={height}
+    {width}
+    {height}
     viewBox={`${-VIEWBOX_PADDING} ${-VIEWBOX_PADDING} ${MEEPLE_VIEWBOX_WIDTH + VIEWBOX_PADDING * 2} ${MEEPLE_VIEWBOX_HEIGHT + VIEWBOX_PADDING * 2}`}
     aria-hidden="true"
 >

@@ -35,7 +35,7 @@
             value={money(
                 EighteenSeventeenMarket.companySpace(gameState.stockMarket, companyId).price
             )}
-            facts={companyRoundFacts(gameState, companyId, money)}
+            facts={companyRoundFacts(gameState, companyId, money, (id) => session.companyName(id))}
             {actions}
         />
     </div>
@@ -60,17 +60,17 @@
         margin: 6px 0 0;
         color: var(--rail-muted, #887969);
     }
-    :global(.round-panel p) {
+    .round-panel :global(p) {
         margin: 4px 0;
     }
-    :global(.round-panel .cards) {
+    .round-panel :global(.cards) {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 8px;
         margin-top: 6px;
     }
-    :global(.round-panel h3) {
+    .round-panel :global(h3) {
         margin: 10px 0 4px;
         font-size: 12px;
         font-weight: 400;

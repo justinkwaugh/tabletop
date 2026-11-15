@@ -56,11 +56,13 @@ describe('splitQuantifiedPlannedDeliveryRow', () => {
             requiredQuantity: 2
         })
 
-        expect(rows.map((row) => ({
-            key: row.key,
-            required: row.required,
-            requiredQuantity: row.requiredQuantity
-        }))).toEqual([
+        expect(
+            rows.map((row) => ({
+                key: row.key,
+                required: row.required,
+                requiredQuantity: row.requiredQuantity
+            }))
+        ).toEqual([
             {
                 key: 'zone-1|city-a|ship-1|S01:unit:0',
                 required: true,

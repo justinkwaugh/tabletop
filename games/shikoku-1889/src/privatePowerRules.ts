@@ -14,12 +14,14 @@ export const Shikoku1889PrivatePowerRules: PrivatePowerRules = {
         )
             return undefined
         const pending = state.privateTrackLay
-        if (pending)
+        if (pending) {
+            const layer = privateOwner(state, privateCompanyId)
             return pending.privateCompanyId === privateCompanyId &&
                 pending.playerId === playerId &&
-                privateCompanyId === 'ER'
+                privateCompanyId === 'ER' &&
+                layer?.kind === 'company'
                 ? {
-                      companyId: pending.companyId,
+                      companyId: layer.companyId,
                       locationIds: ['C4'],
                       definitionIds: ['12', '13', '14', '15', '205', '206'].map(
                           (id) => `18xx:${id}`
@@ -28,6 +30,7 @@ export const Shikoku1889PrivatePowerRules: PrivatePowerRules = {
                       connected: false
                   }
                 : undefined
+        }
         const owner = privateOwner(state, privateCompanyId)
         if (privateCompanyId !== 'MF' || owner?.kind !== 'player' || owner.playerId !== playerId)
             return undefined

@@ -1,18 +1,13 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    ActionSource,
-    PlayerAction,
-    GameAction,
-    HydratableAction,
-    Visibility
-} from '@tabletop/common'
+import { ActionSource, GameAction, HydratableAction, Visibility } from '@tabletop/common'
+import { RoundEnd, roundEnd, type ValuationRules, EighteenXXPlayerAction } from '@tabletop/18xx'
 import { Purchase, type HydratedEighteenFortySixState } from './state.js'
 import { chooseCard, passFinalCompany, settleDistribution } from './distribution.js'
 
 export const ChooseDraftCard = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ChooseDraftCard'),
         source: Type.Literal(ActionSource.User),
         cardId: Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor }),
@@ -22,7 +17,7 @@ export const ChooseDraftCard = Type.Object(
 )
 export const PassFinalCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PassFinalCompany'),
         source: Type.Literal(ActionSource.User),
         revealsInfo: Type.Literal(true)
@@ -38,7 +33,8 @@ export const RevealDraft = Type.Object(
         metadata: Type.Optional(
             Type.Object(
                 {
-                    purchases: Type.Array(Purchase)
+                    purchases: Type.Array(Purchase),
+                    roundEnd: Type.Optional(RoundEnd)
                 },
                 { additionalProperties: false }
             )
@@ -70,11 +66,13 @@ export class PassAction extends HydratableAction<typeof PassFinalCompany> {
 }
 export class RevealAction extends HydratableAction<typeof RevealDraft> {
     declare metadata?: Type.Static<typeof RevealDraft>['metadata']
-    constructor(data: Type.Static<typeof RevealDraft>) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: Type.Static<typeof RevealDraft>, valuationRules: ValuationRules) {
         super(data, RevealValidator)
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedEighteenFortySixState): void {
-        settleDistribution(state)
-        this.metadata = { purchases: structuredClone(state.purchases) }
+        const purchases = settleDistribution(state)
+        this.metadata = { purchases, roundEnd: roundEnd(state, this.#valuationRules, 'opening') }
     }
 }

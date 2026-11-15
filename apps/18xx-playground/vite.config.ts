@@ -8,14 +8,24 @@ import type { Plugin } from 'vite'
 const restartOnWorkspaceDistRebuild: Plugin = {
     name: 'restart-on-workspace-dist-rebuild',
     configureServer(server) {
-        const roots = ['libs', 'games'].map((group) => fileURLToPath(new URL(`../../${group}/`, import.meta.url)))
+        const roots = ['libs', 'games'].map((group) =>
+            fileURLToPath(new URL(`../../${group}/`, import.meta.url))
+        )
         for (const root of roots) server.watcher.add(`${root}*/dist/**`)
         let timer: ReturnType<typeof setTimeout> | undefined
         const onChange = (file: string) => {
-            if (!roots.some((root) => file.startsWith(root) && file.slice(root.length).split('/')[1] === 'dist')) return
+            if (
+                !roots.some(
+                    (root) =>
+                        file.startsWith(root) && file.slice(root.length).split('/')[1] === 'dist'
+                )
+            )
+                return
             clearTimeout(timer)
             timer = setTimeout(() => {
-                server.config.logger.info('workspace dist rebuilt, restarting dev server', { timestamp: true })
+                server.config.logger.info('workspace dist rebuilt, restarting dev server', {
+                    timestamp: true
+                })
                 server.restart()
             }, 1500)
         }

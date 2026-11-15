@@ -1,12 +1,14 @@
 import {
     GameEngine,
     GameResult,
+    PlayerVoteKind,
     assert,
     assertExists,
     belongsToSpan,
     createBranch,
     executeBranchAction,
     executeCommonAction,
+    reportGameProgress,
     restingSpan,
     sameBranchExecution,
     sameHistoryPosition,
@@ -59,6 +61,7 @@ export interface CommonSubmission {
 
 export function fillGameUpdatesAfterActions({
     definition,
+    existingGame,
     existingState,
     newState,
     gameUpdates,
@@ -66,6 +69,7 @@ export function fillGameUpdatesAfterActions({
     settlement
 }: {
     definition: GameDefinition
+    existingGame: Game
     existingState: GameState
     newState: GameState
     gameUpdates: Partial<Game>
@@ -73,8 +77,12 @@ export function fillGameUpdatesAfterActions({
     settlement: SpanSettlement | undefined
 }): void {
     gameUpdates.activePlayerIds = newState.activePlayerIds
+    gameUpdates.progress = reportGameProgress(definition.runtime, newState)
     if (lastActionPlayerId !== undefined) {
         gameUpdates.lastActionPlayerId = lastActionPlayerId
+    }
+    if (newState.result && existingGame.vote?.kind === PlayerVoteKind.Call) {
+        gameUpdates.vote = undefined
     }
     if (
         !existingState.result &&
@@ -279,6 +287,7 @@ async function closeOnMainLine({
                 assertBranchesUnmoved(gameId, span, existingBranches, expected)
                 fillGameUpdatesAfterActions({
                     definition,
+                    existingGame,
                     existingState,
                     newState,
                     gameUpdates,
@@ -410,6 +419,7 @@ export async function submitCommonAction({
                 relatedActions.push(...raced)
                 fillGameUpdatesAfterActions({
                     definition,
+                    existingGame,
                     existingState,
                     newState,
                     gameUpdates,

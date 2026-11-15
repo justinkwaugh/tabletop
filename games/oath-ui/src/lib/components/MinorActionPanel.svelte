@@ -8,6 +8,7 @@
     import FacedownAdviserPlay from '$lib/components/FacedownAdviserPlay.svelte'
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import PeekMenu from '$lib/components/PeekMenu.svelte'
+    import ResolveTribunal from '$lib/components/ResolveTribunal.svelte'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import FavorTo from '$lib/components/FavorTo.svelte'
     import MenuRow from '$lib/components/MenuRow.svelte'
@@ -17,7 +18,7 @@
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    // R-6.1, R-6.3, R-6.5, R-6.7, R-6.8, R-9.4; R-6.6 is `CitizenshipPanel` and `ConsentPanel`.
+    // R-6.1, R-6.3, R-6.5, R-6.7, R-6.8, R-9.4, R-7.6.3-H1; R-6.6 is `CitizenshipPanel` and `ConsentPanel`.
     let { action }: { action: ActionType } = $props()
 
     let gameSession = getGameSession()
@@ -73,6 +74,8 @@
         <PeekMenu />
     {:else if action === ActionType.LetPeek}
         <LetPeekPicker />
+    {:else if action === ActionType.LeaveDealUnconfirmed}
+        <ResolveTribunal />
     {:else if action === ActionType.MoveWarbands}
         {#if moves.length === 0}
             <p class="text-xs text-oath-text-muted">No warbands you may move.</p>

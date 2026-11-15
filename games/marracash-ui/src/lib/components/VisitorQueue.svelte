@@ -18,7 +18,7 @@
     onDestroy(() => queueAnimator.unregister())
 
     let queue = $derived(gameSession.gameState.queue)
-    let firstVisitorId = $derived(frontTaken(gameSession.shownActions))
+    let firstVisitorId = $derived(frontTaken(gameSession.actions))
     let labels = $derived(queueRunnerLabels(queue.length))
     let layout = $derived(queueLayout(queue.length, labels[1]))
     let choices: QueuePawnChoice[] = $derived(

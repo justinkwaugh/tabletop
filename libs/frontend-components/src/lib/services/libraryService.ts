@@ -1,5 +1,5 @@
-import { type GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
-import { type User, type GameState, type HydratedGameState } from '@tabletop/common'
+import type { GameUiDefinition } from '$lib/definition/gameUiDefinition.js'
+import type { User, GameState, HydratedGameState } from '@tabletop/common'
 
 export type LibraryService = {
     titlesById: Record<string, GameUiDefinition<GameState, HydratedGameState>>

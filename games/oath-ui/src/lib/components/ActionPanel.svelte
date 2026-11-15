@@ -5,6 +5,7 @@
     import SearchPanel from '$lib/components/SearchPanel.svelte'
     import CampaignPanel from '$lib/components/CampaignPanel.svelte'
     import CampaignBattlePanel from '$lib/components/CampaignBattlePanel.svelte'
+    import WentHomeLine from '$lib/components/WentHomeLine.svelte'
     import CampaignDice from '$lib/components/CampaignDice.svelte'
     import CampaignPlansPanel from '$lib/components/CampaignPlansPanel.svelte'
     import AttackPlansPanel from '$lib/components/AttackPlansPanel.svelte'
@@ -27,9 +28,11 @@
     import RestPanel from '$lib/components/RestPanel.svelte'
     import EndOfRoundPanel from '$lib/components/EndOfRoundPanel.svelte'
     import WaitingOn from '$lib/components/WaitingOn.svelte'
+    import ChroniclePanel from '$lib/components/ChroniclePanel.svelte'
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { cardNameInPlay } from '$lib/model/names.js'
     import {
         MINOR_TARGETED_ACTIONS,
         MODIFIABLE_ACTIONS,
@@ -50,6 +53,8 @@
     const layout = new PhoneLayout()
     let travelOnMap = $derived(chosen === ActionType.Travel && gameSession.travelRows.length > 0)
     let travelWaysOpen = $derived(travelOnMap ? gameSession.travelWaysOpen : undefined)
+    // A card's "Use" opened Use a power on that card: the bar names the card.
+    let powerCard = $derived(gameSession.actionPowers.card)
 
     // R-5.5.5 to R-5.5.7 — the attacker's steps after the roll, and the defending side's losses.
     const BATTLE_STEPS: ReadonlySet<string> = new Set([
@@ -71,13 +76,17 @@
     {:else}
         <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
             <span class="text-sm"
-                >{travelOnMap ? TRAVEL_ON_THE_MAP_PROMPT : actionName(action)}</span
+                >{travelOnMap
+                    ? TRAVEL_ON_THE_MAP_PROMPT
+                    : action === ActionType.UseActionPower && powerCard
+                      ? cardNameInPlay(gameState, powerCard)
+                      : actionName(action)}</span
             >
         </div>
     {/if}
 
-    {#if MODIFIABLE_ACTIONS.has(action)}
-        <ModifierPicker {action} />
+    {#if MODIFIABLE_ACTIONS.has(action) && action === gameSession.selection.action}
+        <ModifierPicker rows={gameSession.modifiers} />
     {/if}
 
     {#if MINOR_TARGETED_ACTIONS.has(action)}
@@ -159,6 +168,10 @@
     {:else if gameState.machineState === MachineState.EndOfRound}
         <EndOfRoundPanel />
     {:else if !isMyTurn}
+        <!-- R-5.5.6 — another seat reads where the defence went above whose turn it is. -->
+        {#if gameState.machineState === MachineState.CampaignVictory}
+            <WentHomeLine />
+        {/if}
         <WaitingOn />
     {:else if BATTLE_STEPS.has(gameState.machineState)}
         <CampaignBattlePanel />
@@ -174,6 +187,9 @@
         {/if}
     {:else if gameState.machineState === MachineState.RestPhase}
         <RestPanel />
+    {:else if gameState.machineState === MachineState.Chronicle}
+        <!-- R-8 — only a seat the step waits on reaches this; the rest read "Waiting on" above. -->
+        <ChroniclePanel />
     {:else if !inActPhase}
         <p class="text-sm text-oath-text-muted">
             Nothing to choose here — no panel is wired for {gameState.machineState}.

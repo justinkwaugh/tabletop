@@ -110,7 +110,8 @@ describe('1817’s history', () => {
     const names = {
         companyName: (id: string) => id,
         playerName: (id: string) => id,
-        bankName: 'Bank'
+        bankName: 'Bank',
+        poolName: (poolId: string) => poolId
     }
     const money = moneyFormat('$')
     const base = { gameId: 'game', source: ActionSource.User, playerId: 'blair' }

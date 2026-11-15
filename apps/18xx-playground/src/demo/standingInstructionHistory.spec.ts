@@ -1,11 +1,27 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { Definition as Shikoku, Shikoku1889Market } from '@tabletop/shikoku-1889'
-import { isFinishStockTurn, type SetStockInstruction } from '@tabletop/18xx'
+import { isFinishStockTurn, type EighteenXXState, type SetStockInstruction } from '@tabletop/18xx'
 import { historyDescription } from '../../../../libs/18xx-ui/src/lib/table/historyDescription.js'
 import { historyGroups } from '../../../../libs/18xx-ui/src/lib/table/historyGroups.js'
 import { historyRounds } from '../../../../libs/18xx-ui/src/lib/table/historyRounds.js'
 import { example } from './stockTestUtils.js'
+
+function describedIn1889(action: GameAction, state: EighteenXXState) {
+    return historyDescription(
+        action,
+        state,
+        Shikoku1889Market,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        (poolId) => poolId
+    )
+}
 
 it('keeps standing instructions out of the history and shows the automatic pass like any pass', () => {
     const run = example(Shikoku)
@@ -50,7 +66,7 @@ it('keeps standing instructions out of the history and shows the automatic pass 
     const groups = rounds.flatMap((round) => historyGroups(round.entries, false))
     expect(groups.map((group) => group.kind)).toEqual(['passes'])
     for (const action of actions.slice(1)) {
-        const text = JSON.stringify(historyDescription(action, state, Shikoku1889Market))
+        const text = JSON.stringify(describedIn1889(action, state))
         expect(text).not.toMatch(/automatic|instruction/i)
     }
 })
@@ -89,7 +105,7 @@ it('lists an automatic purchase exactly like a purchase made by hand', () => {
     expect(
         entries.map((entry) => (entry.kind === 'action' ? entry.action.type : entry.kind))
     ).toEqual(['FinishStockTurn', 'BuyShares'])
-    const purchase = historyDescription(actions[1], result.updatedState, Shikoku1889Market)
+    const purchase = describedIn1889(actions[1], result.updatedState)
     expect(purchase.text).toMatch(/^Bought 1 IR/)
     expect(JSON.stringify(purchase)).not.toMatch(/automatic|instruction/i)
 })

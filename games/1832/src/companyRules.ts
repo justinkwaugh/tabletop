@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import {
     fullCapitalizationCompanyRules,
@@ -12,6 +13,7 @@ const FloatPercent = 60
 export const EighteenThirtyTwoCompanyRules: CompanyRules = {
     ...fullCapitalizationCompanyRules({
         market: EighteenThirtyTwoMarket,
+        charters: EighteenThirtyTwoCharters,
         ipoPoolId: IpoPoolId,
         parSpaceColor: 'pink',
         floatPercent: FloatPercent
@@ -21,6 +23,7 @@ export const EighteenThirtyTwoCompanyRules: CompanyRules = {
     flotationPayments: (state, companyId) =>
         sharesStillToFloat(
             state,
+            EighteenThirtyTwoCharters,
             companyId,
             FloatPercent,
             (certificate) => certificate.poolId === IpoPoolId

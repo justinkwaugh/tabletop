@@ -9,9 +9,7 @@
     const triggerId = `acting-player-${nanoid()}`
     let dropdownOpen = $state(false)
 
-    let actingPlayer = $derived(
-        $activePlayers.find((player) => player.id === $myPlayer?.id)
-    )
+    let actingPlayer = $derived($activePlayers.find((player) => player.id === $myPlayer?.id))
     let otherActivePlayers = $derived(
         $activePlayers.filter((player) => player.id !== actingPlayer?.id)
     )

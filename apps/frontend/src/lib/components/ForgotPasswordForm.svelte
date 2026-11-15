@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Alert, Button, Input, Label } from 'flowbite-svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
+    import { challengeExpiryText } from '$lib/utils/challengeExpiry'
     import { getAppContext, trim } from '@tabletop/frontend-components'
 
     let { onback }: { onback: () => void } = $props()
@@ -8,6 +9,7 @@
     const id = $props.id()
     let email = $state('')
     let sent = $state(false)
+    let expiresAt: Date | undefined = $state(undefined)
     let submitting = $state(false)
     let failed = $state(false)
 
@@ -17,7 +19,7 @@
         submitting = true
         failed = false
         try {
-            await api.sendPasswordResetEmail(email.trim())
+            expiresAt = await api.sendPasswordResetEmail(email.trim())
             sent = true
         } catch {
             failed = true
@@ -32,6 +34,7 @@
         <p class="font-medium text-lg mb-2">Check your email</p>
         <p class="text-gray-600 dark:text-gray-300">
             If that email is associated with an account, we’ve sent a password reset link.
+            {#if expiresAt}{challengeExpiryText(expiresAt)}{/if}
         </p>
     </div>
     <div class="flex flex-wrap items-center justify-between gap-4 mt-8">

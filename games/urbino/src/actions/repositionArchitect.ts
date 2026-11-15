@@ -16,8 +16,8 @@ export const RepositionArchitect = Type.Evaluate(
             type: Type.Literal(ActionType.RepositionArchitect),
             playerId: Type.String(),
             architectIndex: Type.Number(), // 0 or 1
-            position: Type.Number(),       // target square (0-80)
-            metadata: Type.Optional(RepositionArchitectMetadata),
+            position: Type.Number(), // target square (0-80)
+            metadata: Type.Optional(RepositionArchitectMetadata)
         })
     ])
 )
@@ -54,12 +54,26 @@ export class HydratedRepositionArchitect
     isValid(state: HydratedUrbinoGameState): boolean {
         if (state.hasRepositionedThisTurn) return false
         if (this.architectIndex !== 0 && this.architectIndex !== 1) return false
-        if (!isValidRepositionTarget(state.board, state.architects, this.architectIndex, this.position)) return false
+        if (
+            !isValidRepositionTarget(
+                state.board,
+                state.architects,
+                this.architectIndex,
+                this.position
+            )
+        )
+            return false
         const player = state.players.find((p) => p.playerId === this.playerId)
         if (!player) return false
         const newArchitects = [...state.architects]
         newArchitects[this.architectIndex] = this.position
-        return hasAnyValidPlacement(state.board, newArchitects, this.playerId, player.remainingBuildings, state.monumentsVariant)
+        return hasAnyValidPlacement(
+            state.board,
+            newArchitects,
+            this.playerId,
+            player.remainingBuildings,
+            state.monumentsVariant
+        )
     }
 
     static canReposition(state: HydratedUrbinoGameState): boolean {

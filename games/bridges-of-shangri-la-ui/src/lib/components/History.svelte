@@ -100,7 +100,9 @@
                             {#if action.playerId}
                                 <PlayerName playerId={action.playerId} />
                             {/if}
-                            {getDescriptionForAction(action)}
+                            {getDescriptionForAction(action, (playerId) =>
+                                gameSession.getPlayerName(playerId)
+                            )}
                         </p>
                     </TimelineItem>
                 </div>

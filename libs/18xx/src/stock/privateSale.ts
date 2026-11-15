@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -114,7 +114,7 @@ export function privateCharter(state: StockState, privateCompanyId: string) {
 
 export const OfferPrivatePurchase = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('OfferPrivatePurchase'),
         privateCompanyId: Type.String(),
         price: Type.Integer({ minimum: 1 })

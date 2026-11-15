@@ -94,7 +94,10 @@ export class ScoreMarkerAnimator extends StateAnimator<
             if (!toMarker) {
                 continue
             }
-            if (fromMarker.point.x === toMarker.point.x && fromMarker.point.y === toMarker.point.y) {
+            if (
+                fromMarker.point.x === toMarker.point.x &&
+                fromMarker.point.y === toMarker.point.y
+            ) {
                 continue
             }
 
@@ -108,7 +111,10 @@ export class ScoreMarkerAnimator extends StateAnimator<
                 this.bringToFront(element)
             }
 
-            element.setAttribute('transform', `translate(${fromMarker.point.x} ${fromMarker.point.y})`)
+            element.setAttribute(
+                'transform',
+                `translate(${fromMarker.point.x} ${fromMarker.point.y})`
+            )
 
             animationContext.actionTimeline.to(
                 element,
@@ -146,10 +152,7 @@ export function animateScoreMarker(
 
     return {
         update(next) {
-            if (
-                next.animator === currentAnimator &&
-                next.markerKey === currentMarkerKey
-            ) {
+            if (next.animator === currentAnimator && next.markerKey === currentMarkerKey) {
                 return
             }
 

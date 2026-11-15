@@ -56,7 +56,12 @@ function buildState(overrides: Partial<LowenherzGameState> = {}): HydratedLowenh
         currentActionCard: card,
         decisions: [],
         resolvedSlots: [],
-        negotiation: { slot: 1, playerIds: ['p1', 'p2'], offer: undefined, lastProposedBy: undefined },
+        negotiation: {
+            slot: 1,
+            playerIds: ['p1', 'p2'],
+            offer: undefined,
+            lastProposedBy: undefined
+        },
         politicsCardPileA: [],
         politicsCardPileB: [],
         ...overrides

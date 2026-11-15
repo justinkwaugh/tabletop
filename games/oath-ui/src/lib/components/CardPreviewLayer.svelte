@@ -1,14 +1,27 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
     import { PlayerName } from '@tabletop/frontend-components'
-    import { siteHolding, siteReference } from '@tabletop/oath'
+    import { edificeName, siteHolding, siteReference } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CardWarbands from '$lib/components/CardWarbands.svelte'
     import SiteSentence from '$lib/components/SiteSentence.svelte'
     import { cardAspect } from '$lib/images/cardShape.js'
-    import { cardPreview } from '$lib/model/cardPreview.svelte.js'
-    import { previewSourceWidth, previewWidth } from '$lib/model/previewSize.js'
-    import { cardName, plural } from '$lib/model/names.js'
+    import { cardSideImage } from '$lib/images/cardImages.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { siteRowCards } from '$lib/model/siteRow.js'
+    import {
+        cardPreview,
+        type CardPreview,
+        type PreviewGroupCard
+    } from '$lib/model/cardPreview.svelte.js'
+    import {
+        SIDE_CARD_GAP,
+        SIDE_CARD_SCALE,
+        pagedScale,
+        previewSourceWidth,
+        previewWidth
+    } from '$lib/model/previewSize.js'
+    import { banditsDoing, cardNameInPlay, plural } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { pawnImage, siteBanditsImage, warbandImage } from '$lib/images/pieceImages.js'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
@@ -39,7 +52,8 @@
         }))
         const cardId = gameState.siteCardAt(slotId)
         const tokens = cardId ? gameState.tokensOn(cardId) : { favor: 0, secrets: 0 }
-        const denizens = (gameState.denizensBySite[slotId] ?? []).map(cardName)
+        // R-2.9 — an edifice is named with the denizens, by its face-up side.
+        const denizens = siteRowCards(gameState, slotId).map((id) => cardNameInPlay(gameState, id))
         const relics = gameState.relicSlotsAt(slotId).length
         return { ...onSite, pawns, tokens, denizens, relics }
     })
@@ -57,6 +71,30 @@
         const rulerIds = siteHolding(gameState, cardId) ? cardRulerIds(gameState, cardId) : []
         if (!hasWarbands && rulerIds.length === 0) return undefined
         return { cardId, hasWarbands, rulerIds }
+    })
+
+    // R-2.9 — both sides of an edifice are public: the other one is drawn small beside the card
+    // (under its boxes on a phone), and a ruin says what its missing suit means.
+    const OTHER_SIDE_WIDTH = 150
+    const OTHER_SIDE_WIDTH_PHONE = 96
+    const layout = new PhoneLayout()
+
+    let edifice = $derived.by(() => {
+        const cardId = preview?.cardId
+        if (!cardId || preview?.back !== undefined || preview?.slotId) return undefined
+        const gameState = gameSession.gameState
+        if (!gameState.isEdifice(cardId)) return undefined
+        const ruined = gameState.isRuined(cardId)
+        const otherWidth = layout.narrow ? OTHER_SIDE_WIDTH_PHONE : OTHER_SIDE_WIDTH
+        return {
+            ruined,
+            other: {
+                src: cardSideImage(cardId, !ruined),
+                name: edificeName(cardId, !ruined),
+                width: otherWidth,
+                height: Math.round(otherWidth / cardAspect({ cardId }))
+            }
+        }
     })
 
     const measureArea: Attachment<HTMLElement> = (node) => {
@@ -81,18 +119,108 @@
         return () => observer.disconnect()
     }
 
-    let width = $derived.by(() => {
-        if (!preview) return 0
-        const aspect = preview.aspect ?? cardAspect(preview)
+    // Today's enlarged size for a card, alone on the screen.
+    function fullWidth(card: CardPreview): number {
         return previewWidth(
             { width: areaWidth, height: areaHeight },
-            aspect,
-            previewSourceWidth(preview)
+            card.aspect ?? cardAspect(card),
+            previewSourceWidth(card)
         )
+    }
+
+    // Rule 4 — a card of a group pages to the cards either side. On a desktop they stand beside it,
+    // three across, all shrunk together where the row would not fit; on a phone a 48 px strip each
+    // side of the card pages, and the card is drawn 96 px narrower to leave them room.
+    const STRIP_WIDTH = 48
+    const SWIPE_DISTANCE = 40
+    let sides = $derived(cardPreview.sides)
+
+    let paged = $derived.by(() => {
+        if (!preview || !sides || layout.narrow) return undefined
+        const beside = edifice?.other.src ? SIDE_CARD_GAP + OTHER_SIDE_WIDTH : 0
+        const previous = sides.previous ? fullWidth(sides.previous) : undefined
+        const next = sides.next ? fullWidth(sides.next) : undefined
+        const scale = pagedScale(
+            areaWidth,
+            fullWidth(preview),
+            beside,
+            [previous, next].filter((side) => side !== undefined)
+        )
+        const sized = (side: number | undefined) =>
+            side === undefined ? undefined : Math.round(side * SIDE_CARD_SCALE * scale)
+        const otherGap = beside > 0 ? Math.round(SIDE_CARD_GAP * scale) : 0
+        const otherWidth = beside > 0 ? Math.round(OTHER_SIDE_WIDTH * scale) : 0
+        return {
+            scale,
+            previous: sized(previous),
+            next: sized(next),
+            otherGap,
+            otherWidth,
+            // The card and its other side are centred together.
+            besideWidth: beside > 0 ? otherGap + otherWidth : 0
+        }
     })
+
+    let width = $derived.by(() => {
+        if (!preview) return 0
+        const alone = fullWidth(preview)
+        if (paged) return Math.round(alone * paged.scale)
+        if (sides && layout.narrow) return Math.min(alone, areaWidth - 2 * STRIP_WIDTH)
+        return alone
+    })
+
+    let otherSize = $derived.by(() => {
+        if (!edifice) return undefined
+        if (!paged) return edifice.other
+        const otherWidth = paged.otherWidth
+        return { width: otherWidth, height: Math.round(otherWidth / cardAspect(preview ?? {})) }
+    })
+
+    // A sideways swipe pages; the click it ends in neither closes the card nor pages again.
+    let swipeFrom: { x: number; y: number } | undefined
+    let swiped = false
+
+    function swipeStart(event: PointerEvent) {
+        swipeFrom = { x: event.clientX, y: event.clientY }
+        swiped = false
+    }
+
+    function swipeEnd(event: PointerEvent) {
+        const from = swipeFrom
+        swipeFrom = undefined
+        if (!from || !sides) return
+        const dx = event.clientX - from.x
+        const dy = event.clientY - from.y
+        if (Math.abs(dx) < SWIPE_DISTANCE || Math.abs(dx) <= Math.abs(dy)) return
+        swiped = true
+        cardPreview.page(dx < 0 ? 1 : -1)
+    }
+
+    function endedSwipe(): boolean {
+        const was = swiped
+        swiped = false
+        return was
+    }
+
+    function pageTo(event: MouseEvent, step: -1 | 1) {
+        event.preventDefault()
+        event.stopPropagation()
+        if (endedSwipe()) return
+        cardPreview.page(step)
+    }
 
     // The boxes under the card can outgrow what the card leaves; the whole stack shrinks to fit.
     let stackScale = $derived(stackHeight > areaHeight ? areaHeight / stackHeight : 1)
+    // Three across, the card and its other side are centred together, so the stack moves left by
+    // half of what stands beside the card.
+    let stackTransform = $derived.by(() => {
+        const shift = paged ? (paged.besideWidth / 2) * stackScale : 0
+        const parts = [
+            shift > 0 ? `translateX(${-shift}px)` : '',
+            stackScale < 1 ? `scale(${stackScale})` : ''
+        ].filter((part) => part !== '')
+        return parts.length > 0 ? parts.join(' ') : 'none'
+    })
 </script>
 
 <!-- Each ruler is their colour chip; a long line wraps between chips, never inside one. -->
@@ -104,6 +232,40 @@
     >
 {/snippet}
 
+<!-- Rule 4 — the previous or next card of the group, at 60% and dimmed; a press shows it. -->
+{#snippet sideCard(card: PreviewGroupCard, cardWidth: number, step: -1 | 1)}
+    <button
+        type="button"
+        class="card-preview__side"
+        style={step < 0
+            ? `right: calc(100% + ${SIDE_CARD_GAP}px);`
+            : `left: calc(100% + ${(paged?.besideWidth ?? 0) + SIDE_CARD_GAP}px);`}
+        aria-label="{step < 0 ? 'Previous' : 'Next'} card: {card.label}"
+        onclick={(event) => pageTo(event, step)}
+        onkeydown={(event) => event.stopPropagation()}
+    >
+        <CardImage cardId={card.cardId} label={card.label} width={cardWidth} />
+    </button>
+{/snippet}
+
+<!-- On a phone, a strip each side of the card with a gold chevron. -->
+{#snippet strip(step: -1 | 1)}
+    <button
+        type="button"
+        class="card-preview__strip"
+        class:card-preview__strip--next={step > 0}
+        aria-label={step < 0 ? 'Previous card' : 'Next card'}
+        onclick={(event) => pageTo(event, step)}
+        onkeydown={(event) => event.stopPropagation()}
+    >
+        <span class="card-preview__mark">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d={step < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'}></path>
+            </svg>
+        </span>
+    </button>
+{/snippet}
+
 {#if preview}
     <!-- Rule 4 — over a backdrop that takes the next press, so the press that closes it does nothing else. -->
     <div
@@ -111,13 +273,18 @@
         role="button"
         tabindex="0"
         aria-label="Close the enlarged card"
+        class:card-preview--paged={sides !== undefined}
         onpointerdown={(event) => {
             event.preventDefault()
             event.stopPropagation()
+            swipeStart(event)
         }}
+        onpointerup={swipeEnd}
+        onpointercancel={() => (swipeFrom = undefined)}
         onclick={(event) => {
             event.preventDefault()
             event.stopPropagation()
+            if (endedSwipe()) return
             cardPreview.dismiss()
         }}
         onkeydown={(event) => {
@@ -129,22 +296,52 @@
                 <div
                     class="card-preview__stack"
                     {@attach measureStack}
-                    style="transform:{stackScale < 1 ? `scale(${stackScale})` : 'none'};"
+                    style="transform:{stackTransform};"
                 >
-                    <div class="card-preview__frame">
-                        {#if preview.imageSrc}
-                            <img
-                                src={preview.imageSrc}
-                                alt={preview.label ?? ''}
-                                style="width:{width}px; height:auto; border-radius:8px;"
-                            />
-                        {:else}
-                            <CardImage
-                                cardId={preview.cardId}
-                                back={preview.back}
-                                label={preview.label}
-                                {width}
-                            />
+                    {#snippet otherSide(phone: boolean)}
+                        {#if edifice?.other.src && otherSize}
+                            <figure
+                                class="card-preview__other"
+                                class:card-preview__other--beside={!phone}
+                                style:left={!phone && paged
+                                    ? `calc(100% + ${paged.otherGap}px)`
+                                    : undefined}
+                                data-other-side
+                            >
+                                <figcaption>Other side</figcaption>
+                                <img
+                                    src={edifice.other.src}
+                                    alt={edifice.other.name}
+                                    style="width:{otherSize.width}px; height:{otherSize.height}px;"
+                                />
+                            </figure>
+                        {/if}
+                    {/snippet}
+                    <div class="card-preview__card">
+                        <div class="card-preview__frame">
+                            {#if preview.imageSrc}
+                                <img
+                                    src={preview.imageSrc}
+                                    alt={preview.label ?? ''}
+                                    style="width:{width}px; height:auto; border-radius:8px;"
+                                />
+                            {:else}
+                                <CardImage
+                                    cardId={preview.cardId}
+                                    back={preview.back}
+                                    label={preview.label}
+                                    {width}
+                                />
+                            {/if}
+                        </div>
+                        {#if !layout.narrow}{@render otherSide(false)}{/if}
+                        {#if paged && sides}
+                            {#if sides.previous && paged.previous}
+                                {@render sideCard(sides.previous, paged.previous, -1)}
+                            {/if}
+                            {#if sides.next && paged.next}
+                                {@render sideCard(sides.next, paged.next, 1)}
+                            {/if}
                         {/if}
                     </div>
                     {#if preview.badge}
@@ -183,12 +380,11 @@
                                         alt=""
                                     />
                                     {#if pieces.rule.banditsHolderId === undefined}
-                                        bandits rule here
+                                        {banditsDoing(pieces.banditCount, 'rule')} here
                                     {:else}
                                         <!-- R-7.6.5 — "your warbands": the holder alone, while every Imperial player may rule. -->
-                                        bandits serve <PlayerName
-                                            playerId={pieces.rule.banditsHolderId}
-                                        /> here
+                                        {banditsDoing(pieces.banditCount, 'serve')}
+                                        <PlayerName playerId={pieces.rule.banditsHolderId} /> here
                                     {/if}
                                 </span>
                             {:else}
@@ -232,6 +428,12 @@
                             {/if}
                         </div>
                     {/if}
+                    {#if edifice?.ruined}
+                        <div class="card-preview__pieces" style="width:{width}px;">
+                            <span class="piece">No suit; can’t be used to Muster or Trade.</span>
+                        </div>
+                    {/if}
+                    {#if layout.narrow}{@render otherSide(true)}{/if}
                     {#if sentence}
                         <div class="card-preview__pieces" style="width:{width}px;">
                             <SiteSentence {sentence} />
@@ -254,6 +456,10 @@
                     {/if}
                 </div>
             {/if}
+            {#if layout.narrow && sides}
+                {#if sides.previous}{@render strip(-1)}{/if}
+                {#if sides.next}{@render strip(1)}{/if}
+            {/if}
         </div>
     </div>
 {/if}
@@ -269,7 +475,12 @@
         cursor: pointer;
     }
 
+    .card-preview--paged {
+        touch-action: pan-y pinch-zoom;
+    }
+
     .card-preview__area {
+        position: relative;
         width: 100%;
         height: 100%;
         display: flex;
@@ -327,6 +538,100 @@
 
     .ruler {
         white-space: nowrap;
+    }
+
+    .card-preview__card {
+        position: relative;
+    }
+
+    /* Beside the card on a desktop, its foot on the card's foot, out of the stack's flow so the
+       boxes stay under the card. */
+    .card-preview__other {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        line-height: 1.2;
+    }
+    .card-preview__other--beside {
+        position: absolute;
+        width: max-content;
+        left: calc(100% + 16px);
+        bottom: 0;
+    }
+    .card-preview__other figcaption {
+        color: var(--oath-text-muted);
+        font-size: 13px;
+    }
+    .card-preview__other img {
+        max-width: none;
+        border-radius: 5px;
+        box-shadow: 0 0 0 1px var(--oath-frame);
+    }
+
+    /* Rule 4 — a side card stands 16 px off the card, centred on it, dimmed. */
+    .card-preview__side {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: block;
+        padding: 0;
+        border: 0;
+        background: none;
+        border-radius: 8px;
+        overflow: hidden;
+        line-height: 0;
+        cursor: pointer;
+        box-shadow:
+            0 0 0 1px var(--oath-control-hover),
+            0 12px 30px rgba(0, 0, 0, 0.55);
+    }
+    .card-preview__side :global(img) {
+        display: block;
+        max-width: none;
+        border-radius: 0;
+        box-shadow: none;
+        filter: brightness(0.55);
+    }
+
+    /* On a phone, the full height of the screen beside the card, its chevron in the middle. */
+    .card-preview__strip {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 48px;
+        height: 100%;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+    }
+    .card-preview__strip--next {
+        left: auto;
+        right: 0;
+    }
+    .card-preview__mark {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(28, 25, 23, 0.88);
+        border: 1.5px solid var(--oath-accent);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+    .card-preview__mark path {
+        fill: none;
+        stroke: var(--oath-accent);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
     }
 
     .card-preview__frame {

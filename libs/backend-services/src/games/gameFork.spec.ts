@@ -249,9 +249,11 @@ function createService(source: ReturnType<typeof createSource>) {
     const tasks: TaskService = {
         createPushTask: unused,
         sendVerificationEmail: unused,
+        sendEmailChangeVerificationEmail: unused,
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
+        sendContentReportEmail: unused,
         sendGameInvitationEmail: unused,
         sendGameEndEmail: unused
     }
@@ -390,6 +392,22 @@ describe('Hosted Fork service', () => {
             expect(notifications.sendNotification).toHaveBeenCalledOnce()
         }
     )
+
+    it('does not write a public fork under an offensive name', async () => {
+        const source = createSource()
+        source.game.isPublic = true
+        const { service, writes } = createService(source)
+        await expect(
+            service.forkGame({
+                definition: Definition,
+                gameId: source.game.id,
+                actionIndex: 0,
+                name: 'Fuck this game',
+                owner
+            })
+        ).rejects.toMatchObject({ name: 'GameNameNotAllowedError' })
+        expect(writes).not.toHaveBeenCalled()
+    })
 
     it('does not write or announce a fork when reconstruction fails', async () => {
         const source = createSource()

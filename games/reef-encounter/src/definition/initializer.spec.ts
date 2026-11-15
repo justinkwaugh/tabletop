@@ -75,10 +75,10 @@ describe('setup', () => {
         expect(startTestGame(2, { advanced: true }).state.advanced).toBe(true)
     })
 
-    it('waits for the start player to feed their parrotfish', () => {
+    it('waits for every player to feed their parrotfish', () => {
         const state = startTestGame(3).state
         expect(state.machineState).toBe(MachineState.ChoosingParrotfishPolyp)
-        expect(state.activePlayerIds).toEqual([state.turnManager.turnOrder[0]])
+        expect(state.activePlayerIds).toEqual(state.turnManager.turnOrder)
     })
 
     it('sets up the same game from the same seed', () => {

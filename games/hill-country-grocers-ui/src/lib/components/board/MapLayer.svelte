@@ -125,7 +125,7 @@
             r={DOT_RADIUS}
             fill={TIER_FILL[place.tier]}
             class="dot"
-        />
+        ></circle>
         {#each Array.from({ length: place.capacity }, (_, index) => index) as slot (slot)}
             <Development
                 x={place.slotX(slot)}
@@ -156,11 +156,13 @@
             class="target"
             role="button"
             tabindex="0"
-            aria-label="Place a store in {place.city ? place.city.name : `hex ${place.coords.q},${place.coords.r}`}"
+            aria-label="Place a store in {place.city
+                ? place.city.name
+                : `hex ${place.coords.q},${place.coords.r}`}"
             onclick={() => gameSession.clickHex(place.coords)}
             onkeydown={(event) => onKey(event, () => gameSession.clickHex(place.coords))}
         >
-            <polygon points={hexPoints(place.center, HEX_RADIUS - 4)} class="ring" />
+            <polygon points={hexPoints(place.center, HEX_RADIUS - 4)} class="ring"></polygon>
             <rect
                 x={place.center.x - PRICE_WIDTH / 2}
                 y={place.center.y + PRICE_Y - PRICE_HEIGHT / 2}
@@ -168,7 +170,7 @@
                 height={PRICE_HEIGHT}
                 rx="4"
                 class="price-tag"
-            />
+            ></rect>
             <text x={place.center.x} y={place.center.y + PRICE_Y} class="price"
                 >${gameSession.placementCost(place.coords)}</text
             >
@@ -195,17 +197,12 @@
                 height="32"
                 rx="10"
                 class="ring"
-            />
+            ></rect>
         </g>
     {/if}
 {/each}
 
 <style>
-
-
-
-
-
     .name {
         font-family: 'Libre Baskerville', Georgia, serif;
         font-size: 15px;
@@ -226,8 +223,6 @@
         stroke: #1a1512;
         stroke-width: 2.5;
     }
-
-
 
     .target {
         cursor: pointer;

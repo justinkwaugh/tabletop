@@ -1,4 +1,5 @@
 <script lang="ts">
+    import CertificateCount from '../stock/CertificateCount.svelte'
     import './playerTint.css'
     import { flip } from 'svelte/animate'
     import { prefersReducedMotion } from 'svelte/motion'
@@ -8,25 +9,23 @@
         getCompany,
         isBankrupt,
         playersWithBankruptLast,
-        type Owner,
-        type ValuationRules
+        type Owner
     } from '@tabletop/18xx'
     import { auctionLotDetail, auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
     import { numberedSharesOwned } from './numberedShares.js'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import PresidentBadge from '../finance/PresidentBadge.svelte'
-    import { ownerPortfolio } from '../finance/ownerPortfolio.js'
+    import PresidentName from '../finance/PresidentName.svelte'
+    import CertificateBadge from '../finance/CertificateBadge.svelte'
+    import { multiShareMark } from '../finance/multiShareCertificates.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
         session,
-        companyNames = {},
-        valuationRules,
         auctionLotDescription,
         numberedShareNames = {},
         numberedShareLocation,
@@ -36,9 +35,7 @@
         onShowCompanyCard,
         portfolioCompanyIds = []
     }: {
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         session: EighteenXXSessionView
-        valuationRules: ValuationRules
         auctionLotDescription?: (id: string) => string
         numberedShareNames?: NumberedShareNames
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
@@ -65,11 +62,10 @@
             playerId,
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
+            reserved: session.reservedCash(playerId),
             certs: session.playerCertificates(playerId),
-            ...ownerPortfolio(
-                session.gameState,
+            ...session.portfolio(
                 { kind: 'player', playerId },
-                valuationRules,
                 !!session.presentation.minorsAsPrivates
             )
         })),
@@ -85,8 +81,9 @@
                 controller: controller ? session.getPlayerName(controller.playerId) : undefined,
                 bankrupt: false,
                 liquidity: undefined,
+                reserved: 0,
                 certs: undefined,
-                ...ownerPortfolio(session.gameState, { kind: 'company', companyId }, valuationRules)
+                ...session.portfolio({ kind: 'company', companyId })
             }
         })
     ])
@@ -176,11 +173,17 @@
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 </script>
 
+{#snippet holdings(text: string | undefined)}
+    {#if text}<small class="private-holdings">{text}</small>{/if}
+{/snippet}
+
 <div class="players" aria-label="Players">
     {#each players as player, index (player.id)}
         <article
             class:compact
-            animate:flip={{ duration: prefersReducedMotion.current ? 0 : 180 }}
+            animate:flip={{
+                duration: session.restoredSilently || prefersReducedMotion.current ? 0 : 180
+            }}
             aria-label={`${player.name} portfolio`}
             data-player-id={player.playerId}
             class:active={player.playerId !== undefined &&
@@ -201,13 +204,19 @@
                         ></span>{/if}{#if player.description}<PrivateDescription
                             {money}
                             phaseColors={session.presentation.phaseColors}
-                            token={player.owner.kind === 'company'
-                                ? session.privateCompanyTokens[player.owner.companyId]
+                            tokens={player.owner.kind === 'company'
+                                ? session.privateCardTokens[player.owner.companyId]
                                 : undefined}
                             imageUrl={session.publishedCardImage(
                                 player.owner.kind === 'company' ? player.owner.companyId : undefined
                             )}
-                            name={player.name}
+                            plate={session.publishedCardPlate(
+                                player.owner.kind === 'company' ? player.owner.companyId : undefined
+                            )}
+                            shortName={player.name}
+                            fullName={player.owner.kind === 'company'
+                                ? session.companyFullName(player.owner.companyId)
+                                : player.name}
                             description={player.description}
                         />{:else}<span>{player.name}</span>{/if}
                 </h3>
@@ -273,6 +282,12 @@
                 <dl>
                     <dt>Cash</dt>
                     <dd>{money(player.cash)}</dd>
+                    {#if player.reserved}<dd
+                            class="reserved"
+                            title="The cash the player’s bids hold back"
+                        >
+                            {money(player.reserved)} reserved
+                        </dd>{/if}
                 </dl>
                 {#if player.liquidity !== undefined}<span class="stat-divider" aria-hidden="true"
                     ></span>
@@ -290,14 +305,49 @@
                 {#if player.certs}<span class="stat-divider" aria-hidden="true"></span>
                     <dl title="Certificates counted toward the title’s certificate limit">
                         <dt>Certs</dt>
-                        <dd>{player.certs.count}/{player.certs.limit}</dd>
+                        <dd>
+                            <CertificateCount
+                                count={player.certs.count}
+                                limit={player.certs.limit}
+                            />
+                        </dd>
                     </dl>{/if}
                 <span class="stat-divider" aria-hidden="true"></span>
                 <dl>
                     <dt>Net worth</dt>
                     <dd>{money(player.netWorth)}</dd>
                 </dl>
+                {#each player.playerId ? (session.presentation.playerFacts?.(session.gameState, player.playerId) ?? []) : [] as fact (fact.label)}
+                    <span class="stat-divider" aria-hidden="true"></span>
+                    <dl>
+                        <dt>{fact.label}</dt>
+                        <dd>{fact.value}</dd>
+                    </dl>
+                {/each}
             </div>
+            {#if player.playerId && session.bidBoxes.available}
+                {@const bids = session.bidBoxes.playerBids(player.playerId)}
+                {#if bids.length}
+                    <section class="auction-lot" aria-label={`${player.name} bids`}>
+                        <h4>
+                            Bids · {session.bidBoxes.tokensFree(player.playerId)} of
+                            {session.bidBoxes.tokens(player.playerId)} tokens free
+                        </h4>
+                        <table>
+                            <tbody>
+                                {#each bids as bid (bid.lotId)}
+                                    <tr class:outbid={!bid.leading}>
+                                        <th scope="row">{session.companyName(bid.lotId)}</th>
+                                        <td class="amount"
+                                            >{money(bid.amount)}{bid.leading ? '' : ' outbid'}</td
+                                        >
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    </section>
+                {/if}
+            {/if}
             {#if player.playerId && playerAuctionLots?.byPlayer.has(player.playerId)}
                 {@const heading = playerAuctionLots.kind === 'bids' ? 'Bids' : 'Auction lot'}
                 <section class="auction-lot" aria-label={`${player.name} ${heading.toLowerCase()}`}>
@@ -312,13 +362,15 @@
                                         {#if description}<PrivateDescription
                                                 {money}
                                                 phaseColors={session.presentation.phaseColors}
-                                                token={lot.token}
+                                                tokens={lot.cardTokens}
                                                 imageUrl={session.publishedCardImage(lot.id)}
-                                                name={lot.name}
+                                                plate={session.publishedCardPlate(lot.id)}
+                                                shortName={session.lotName(lot)}
+                                                fullName={lot.name}
                                                 {description}
                                                 value={lot.price}
-                                                income={lot.company?.privateRevenue}
-                                            />{:else}{lot.name}{/if}
+                                                income={lot.company?.revenue}
+                                            />{:else}{session.lotName(lot)}{/if}
                                     </th>
                                     <td class="amount">{money(amount)}</td>
                                 </tr>
@@ -337,6 +389,12 @@
                         >
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
                                 {@const numbered = numberedShares(player.owner, entry.company.id)}
+                                {@const mark = multiShareMark(
+                                    session.presentation,
+                                    session.gameState,
+                                    entry.company.id,
+                                    player.owner
+                                )}
                                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                                 <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
                                 <div
@@ -362,12 +420,16 @@
                                                 class="company-focus"
                                                 title={session.companyName(entry.company.id)}
                                                 {...companyButton(entry.company.id)}
-                                                >{companyNames[entry.company.id]?.initials ??
-                                                    entry.company.id}</button
+                                                >{session.companyInitials(entry.company.id)}</button
                                             >
                                             {#if entry.president}<span
-                                                    class="compact-president"
+                                                    class="compact-mark"
                                                     aria-label="President">P</span
+                                                >{/if}
+                                            {#if mark}<span
+                                                    class="compact-mark"
+                                                    title={mark.title}
+                                                    aria-label={mark.name}>{mark.label}</span
                                                 >{/if}
                                         </span>
                                         <span class="holding-amount"
@@ -395,6 +457,12 @@
                     {:else if player.ownership.length}
                         <table class="ownership" aria-label={`${player.name} company ownership`}>
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
+                                {@const mark = multiShareMark(
+                                    session.presentation,
+                                    session.gameState,
+                                    entry.company.id,
+                                    player.owner
+                                )}
                                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
                                 <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
                                 <tbody
@@ -425,8 +493,14 @@
                                             ><button
                                                 class="company-focus"
                                                 {...companyButton(entry.company.id)}
-                                                >{session.companyName(entry.company.id)}</button
-                                            >{#if entry.president}<PresidentBadge />{/if}</th
+                                                ><PresidentName
+                                                    name={session.companyName(entry.company.id)}
+                                                    president={entry.president}
+                                                />{#if mark}<CertificateBadge
+                                                        label={mark.label}
+                                                        title={mark.title}
+                                                    />{/if}</button
+                                            ></th
                                         >
                                         <td class="amount">{percent.format(entry.percentage)}%</td>
                                     </tr>
@@ -471,15 +545,19 @@
                                         ><PrivateDescription
                                             {money}
                                             phaseColors={session.presentation.phaseColors}
-                                            token={session.privateCompanyTokens[entry.company.id]}
+                                            tokens={session.privateCardTokens[entry.company.id]}
                                             imageUrl={session.publishedCardImage(entry.company.id)}
-                                            name={session.companyName(entry.company.id)}
+                                            plate={session.publishedCardPlate(entry.company.id)}
+                                            shortName={session.companyName(entry.company.id)}
+                                            fullName={session.companyFullName(entry.company.id)}
                                             value={entry.value}
                                             income={entry.income}
                                             description={session.privates.companies.find(
                                                 (company) => company.id === entry.company.id
                                             )?.description ?? ''}
-                                        />{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
+                                        />{#if player.draftedCompanyIds.includes(entry.company.id)}<span
+                                                class="drafted">Drafted</span
+                                            >{/if}{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
                                                 class="private-power"
                                                 ><PrivateExchangeButton {session} {option} /></span
                                             >{/each}{#each session.privateActions
@@ -487,7 +565,12 @@
                                             .filter((power) => power.playerId === player.playerId) as power (power.privateCompanyId)}<span
                                                 class="private-power"
                                                 ><PrivateTrackPowerButton {session} {power} /></span
-                                            >{/each}</th
+                                            >{/each}{@render holdings(
+                                            session.presentation.privateHoldings?.(
+                                                session.gameState,
+                                                entry.company.id
+                                            )
+                                        )}</th
                                     >
                                     <td class="amount"
                                         >{#if entry.income !== 0}{money(
@@ -507,6 +590,19 @@
 </div>
 
 <style>
+    /* A line under the cash, the card's first column, that runs on to the right rather than
+       widening its column. */
+    .stats dd.reserved {
+        display: flex;
+        justify-content: flex-start;
+        width: 0;
+        min-width: 100%;
+        line-height: 12px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--rail-muted, #887664);
+        white-space: nowrap;
+    }
     .header-controls {
         display: flex;
         align-items: center;
@@ -574,10 +670,10 @@
         gap: 1px;
     }
     .compact-company-label > button,
-    .compact-president {
+    .compact-mark {
         text-box: trim-both cap alphabetic;
     }
-    .compact-president {
+    .compact-mark {
         color: var(--rail-muted, #a79888);
         font-size: 9px;
         font-weight: 700;
@@ -651,6 +747,12 @@
     .controller {
         color: var(--rail-muted, #887664);
         font-size: 10px;
+    }
+    .drafted {
+        margin-left: 6px;
+        color: var(--rail-muted, #887664);
+        font-size: 10px;
+        font-weight: 400;
     }
     .turn-position {
         display: flex;
@@ -806,6 +908,9 @@
     .president .amount {
         font-weight: 700;
     }
+    .auction-lot tr.outbid {
+        color: var(--rail-muted, #887664);
+    }
     .auction-lot + section,
     .privates {
         border-top: 1px solid var(--rail-border, #e3d9cd);
@@ -836,6 +941,13 @@
     }
     .privates tr {
         cursor: pointer;
+    }
+    .private-holdings {
+        display: block;
+        color: var(--rail-muted, #817565);
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 14px;
     }
     .private-power {
         margin-left: 6px;

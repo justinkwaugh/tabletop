@@ -6,7 +6,10 @@ import { HydratedTrade, TradeOption, Trade } from '../actions/trade.js'
 import { HydratedMuster, Muster } from '../actions/muster.js'
 import { HydratedRecover, RecoverTargetKind, Recover } from '../actions/recover.js'
 import { HydratedUseRestPower, UseRestPower } from '../actions/useRestPower.js'
-import { HydratedCampaignResolveVictory, CampaignResolveVictory } from '../actions/campaignResolveVictory.js'
+import {
+    HydratedCampaignResolveVictory,
+    CampaignResolveVictory
+} from '../actions/campaignResolveVictory.js'
 import { CampaignTargetKind } from '../model/campaign.js'
 import { Banner, PlayerStatus, Suit } from '../model/oathEnums.js'
 import { powersWithTiming, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
@@ -45,8 +48,29 @@ function board(
 ) {
     const s = testState(
         [
-            testPlayer({ playerId: KIN, color: Color.Red, siteId: 'c1', favor: 0, secrets: 2, supply: 6, advisers: [faceup(VOW)], warbandsOnBoard: { [KIN]: 2 }, warbandsInPersonalBank: { [KIN]: 8 }, ...over[KIN] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [FOE]: 2 }, warbandsInPersonalBank: { [FOE]: 8 }, ...over[FOE] })
+            testPlayer({
+                playerId: KIN,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 0,
+                secrets: 2,
+                supply: 6,
+                advisers: [faceup(VOW)],
+                warbandsOnBoard: { [KIN]: 2 },
+                warbandsInPersonalBank: { [KIN]: 8 },
+                ...over[KIN]
+            }),
+            testPlayer({
+                playerId: FOE,
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                warbandsOnBoard: { [FOE]: 2 },
+                warbandsInPersonalBank: { [FOE]: 8 },
+                ...over[FOE]
+            })
         ],
         {
             denizensBySite: { c1: [WRESTLERS], c2: [] },
@@ -64,10 +88,22 @@ type Board = ReturnType<typeof board>
 const nomadBank = (s: Board) => s.favorBank[Suit.Nomad]
 const boardFavor = (s: Board, playerId: string) => s.getPlayerState(playerId).favor
 
-function searchPlay(s: Board, cardId: string, play: SearchPlay, faceUp: boolean | undefined, playerId = KIN) {
+function searchPlay(
+    s: Board,
+    cardId: string,
+    play: SearchPlay,
+    faceUp: boolean | undefined,
+    playerId = KIN
+) {
     s.getPlayerState(playerId).handIds = [cardId, FILLER]
     return new HydratedSearchResolve(
-        buildAction(SearchResolve, { playerId, keptCardId: cardId, discardOrder: [FILLER], play, faceUp })
+        buildAction(SearchResolve, {
+            playerId,
+            keptCardId: cardId,
+            discardOrder: [FILLER],
+            play,
+            faceUp
+        })
     )
 }
 function trade(option: TradeOption, playerId = KIN) {
@@ -78,7 +114,7 @@ function muster(playerId = KIN) {
 }
 
 describe('Vow of Kinship — the record', () => {
-    it('is registered: a continuous power that keeps its holder\'s favor in the nomad bank', () => {
+    it("is registered: a continuous power that keeps its holder's favor in the nomad bank", () => {
         const power = powersWithTiming(VOW, PowerTiming.Continuous)[0]
         expect(hasEffect(power)).toBe(true)
         expect(continuousHooksOf(board(), KIN).map((h) => h.keepsFavorInBank)).toEqual([Suit.Nomad])
@@ -91,7 +127,7 @@ describe('Vow of Kinship — the record', () => {
 })
 
 describe('"Move all of your favor to the nomad bank."', () => {
-    it('played faceup as an adviser, the board\'s favor goes to the nomad bank and nobody else\'s moves', () => {
+    it("played faceup as an adviser, the board's favor goes to the nomad bank and nobody else's moves", () => {
         const s = board({ [KIN]: { advisers: [], favor: 5 } })
         expectFavorConserved(s, () => searchPlay(s, VOW, SearchPlay.Adviser, true).apply(s))
         expect(boardFavor(s, KIN)).toBe(0)
@@ -105,7 +141,11 @@ describe('"Move all of your favor to the nomad bank."', () => {
         expect(nomadBank(s)).toBe(3)
         expectFavorConserved(s, () =>
             new HydratedPlayFacedownAdviser(
-                buildAction(PlayFacedownAdviser, { playerId: KIN, cardId: VOW, play: SearchPlay.Adviser })
+                buildAction(PlayFacedownAdviser, {
+                    playerId: KIN,
+                    cardId: VOW,
+                    play: SearchPlay.Adviser
+                })
             ).apply(s)
         )
         expect(boardFavor(s, KIN)).toBe(0)
@@ -123,7 +163,7 @@ describe('"Move all of your favor to the nomad bank."', () => {
 })
 
 describe('"Any favor you gain or take is put in the nomad bank."', () => {
-    it('a gain (R-10.10): Trade\'s favor leaves the order bank for the nomad bank', () => {
+    it("a gain (R-10.10): Trade's favor leaves the order bank for the nomad bank", () => {
         const s = board()
         expectFavorConserved(s, () => trade(TradeOption.ForFavor).apply(s))
         expect(s.favorBank[Suit.Order]).toBe(2)
@@ -138,7 +178,7 @@ describe('"Any favor you gain or take is put in the nomad bank."', () => {
         expect(boardFavor(s, KIN)).toBe(0)
     })
 
-    it('a take (R-10.26): Charming Friend\'s favor leaves their board for the nomad bank', () => {
+    it("a take (R-10.26): Charming Friend's favor leaves their board for the nomad bank", () => {
         const s = board({ [KIN]: { advisers: [faceup(VOW), faceup(FRIEND)] } })
         expectFavorConserved(s, () => actionPowerUse(KIN, FRIEND, [player(FOE)]).apply(s))
         expect(boardFavor(s, FOE)).toBe(3)
@@ -163,7 +203,7 @@ describe('"Any favor you gain or take is put in the nomad bank."', () => {
 })
 
 describe('"You can use favor in the nomad bank as if it is on your board."', () => {
-    it('the whole nomad bank is the holder\'s to use', () => {
+    it("the whole nomad bank is the holder's to use", () => {
         const s = board({}, { favorBank: { ...board().favorBank, [Suit.Nomad]: 7 } })
         expect(usableFavor(s, KIN)).toBe(7)
     })
@@ -183,7 +223,7 @@ describe('"You can use favor in the nomad bank as if it is on your board."', () 
         expect(s.tokensOn(WRESTLERS).favor).toBe(2)
     })
 
-    it('a placed cost (R-7.1.2): Elders\' two favor come from the bank', () => {
+    it("a placed cost (R-7.1.2): Elders' two favor come from the bank", () => {
         const s = board({ [KIN]: { advisers: [faceup(VOW), faceup(ELDERS)] } })
         expectFavorConserved(s, () => actionPowerUse(KIN, ELDERS).apply(s))
         expect(nomadBank(s)).toBe(1)
@@ -199,7 +239,7 @@ describe('"You can use favor in the nomad bank as if it is on your board."', () 
         expect(s.favorSupply).toBe(20)
     })
 
-    it('Recover (R-5.4.2) pays for the People\'s Favor out of the bank', () => {
+    it("Recover (R-5.4.2) pays for the People's Favor out of the bank", () => {
         const s = board()
         expect(s.banners[Banner.PeoplesFavor].value).toBe(1)
         expectFavorConserved(s, () =>
@@ -226,7 +266,10 @@ describe('"You can use favor in the nomad bank as if it is on your board."', () 
 
     it('is refused by what the bank holds: one favor cannot pay Elders, none cannot Muster', () => {
         const banks = board().favorBank
-        const one = board({ [KIN]: { advisers: [faceup(VOW), faceup(ELDERS)] } }, { favorBank: { ...banks, [Suit.Nomad]: 1 } })
+        const one = board(
+            { [KIN]: { advisers: [faceup(VOW), faceup(ELDERS)] } },
+            { favorBank: { ...banks, [Suit.Nomad]: 1 } }
+        )
         const elders = powersWithTiming(ELDERS, PowerTiming.Action)[0]
         expect(reasonCannotPayPowerCost(one, KIN, elders)).toBe('costs 2 favor, player has 1')
         expect(() => actionPowerUse(KIN, ELDERS).apply(one)).toThrow(/costs 2 favor, player has 1/)
@@ -236,7 +279,7 @@ describe('"You can use favor in the nomad bank as if it is on your board."', () 
     })
 })
 
-describe('it is not favor on the holder\'s board', () => {
+describe("it is not favor on the holder's board", () => {
     it('a Take finds an empty board: Charming Friend takes nothing from the holder', () => {
         const s = board({ [FOE]: { advisers: [faceup(FRIEND)] } }, {}, FOE)
         expectFavorConserved(s, () => actionPowerUse(FOE, FRIEND, [player(KIN)]).apply(s))
@@ -244,7 +287,7 @@ describe('it is not favor on the holder\'s board', () => {
         expect(nomadBank(s)).toBe(3)
     })
 
-    it('Royal Tax, played by the site\'s ruler, takes nothing from the holder standing there', () => {
+    it("Royal Tax, played by the site's ruler, takes nothing from the holder standing there", () => {
         const s = board({}, { warbandsBySite: { c1: { [FOE]: 2 } } }, FOE)
         expectFavorConserved(s, () => searchPlay(s, TAX, SearchPlay.Site, undefined, FOE).apply(s))
         expect(s.denizensBySite['c1']).toContain(TAX)
@@ -256,9 +299,30 @@ describe('it is not favor on the holder\'s board', () => {
     it('R-5.5.7.III burns half of an empty board', () => {
         const s = testState(
             [
-                testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'c1', warbandsOnBoard: { [FOE]: 4 }, warbandsInPersonalBank: { [FOE]: 8 } }),
-                testPlayer({ playerId: KIN, color: Color.Red, siteId: 'c1', favor: 0, advisers: [faceup(VOW)], warbandsOnBoard: { [KIN]: 3 }, warbandsInPersonalBank: { [KIN]: 11 } }),
-                testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 } })
+                testPlayer({
+                    playerId: FOE,
+                    color: Color.Blue,
+                    siteId: 'c1',
+                    warbandsOnBoard: { [FOE]: 4 },
+                    warbandsInPersonalBank: { [FOE]: 8 }
+                }),
+                testPlayer({
+                    playerId: KIN,
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 0,
+                    advisers: [faceup(VOW)],
+                    warbandsOnBoard: { [KIN]: 3 },
+                    warbandsInPersonalBank: { [KIN]: 11 }
+                }),
+                testPlayer({
+                    playerId: 'chan',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h1',
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 }
+                })
             ],
             {
                 chancellorPlayerId: 'chan',
@@ -295,7 +359,12 @@ describe('it is not favor on the holder\'s board', () => {
         const powerIndex = powerIndexOf(POVERTY, PowerTiming.Rest)
         expectFavorConserved(s, () =>
             new HydratedUseRestPower(
-                buildAction(UseRestPower, { playerId: KIN, cardId: POVERTY, powerIndex, choices: [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Order }] })
+                buildAction(UseRestPower, {
+                    playerId: KIN,
+                    cardId: POVERTY,
+                    powerIndex,
+                    choices: [{ kind: PowerChoiceKind.FavorBank, suit: Suit.Order }]
+                })
             ).apply(s)
         )
         expect(s.favorBank[Suit.Order]).toBe(1)
@@ -313,7 +382,12 @@ describe('"you" is the holder alone (R-10.28), and only while the vow is in play
     it('an Imperial ally of the holder cannot use it either', () => {
         const s = board(
             {
-                [KIN]: { status: PlayerStatus.Chancellor, owner: IMPERIAL_WARBANDS, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 } },
+                [KIN]: {
+                    status: PlayerStatus.Chancellor,
+                    owner: IMPERIAL_WARBANDS,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                    warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }
+                },
                 [FOE]: { status: PlayerStatus.Citizen, favor: 0 }
             },
             { chancellorPlayerId: KIN, warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 } } },

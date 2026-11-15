@@ -89,6 +89,15 @@
         touch-action: manipulation;
     }
 
+    /* iOS Safari zooms the page when a focused control's text is under 16px. */
+    @supports (-webkit-touch-callout: none) {
+        input,
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+    }
+
     .dark input.auth-input:autofill {
         /* Browser autofill colors override background-color. */
         box-shadow:

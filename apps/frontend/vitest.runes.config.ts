@@ -1,11 +1,13 @@
 import { fileURLToPath } from 'node:url'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { defineProject } from 'vitest/config'
+import { projectRoot } from '@tabletop/vitest-config'
 
 // Rune effects only run when compiled for the client, so these specs run apart from the node-mode suite.
 // Uses the plain Svelte plugin rather than sveltekit(), which resets Vite's root to the working
 // directory and so breaks this project when Vitest runs from the repo root.
 export default defineProject({
+    root: projectRoot(import.meta.url),
     plugins: [svelte({ hot: false })],
     resolve: {
         conditions: ['browser'],

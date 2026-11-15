@@ -6,6 +6,7 @@ import { HydratedMuster, isMuster } from '../actions/muster.js'
 import { HydratedTrade, isTrade } from '../actions/trade.js'
 import { HydratedSearch, isSearch } from '../actions/search.js'
 import { HydratedSearchResolve, isSearchResolve } from '../actions/searchResolve.js'
+import { HydratedSearchSwap, isSearchSwap } from '../actions/searchSwap.js'
 import { HydratedRecover, isRecover } from '../actions/recover.js'
 import { HydratedCampaign, isCampaign } from '../actions/campaign.js'
 import { HydratedCampaignSacrifice, isCampaignSacrifice } from '../actions/campaignSacrifice.js'
@@ -51,6 +52,53 @@ import {
 } from '../actions/resolveCitizenshipOffer.js'
 import { HydratedExileCitizen, isExileCitizen } from '../actions/exileCitizen.js'
 import { HydratedSelfExile, isSelfExile } from '../actions/selfExile.js'
+import { HydratedClaimDealKept, isClaimDealKept } from '../actions/claimDealKept.js'
+import {
+    HydratedLeaveDealUnconfirmed,
+    isLeaveDealUnconfirmed
+} from '../actions/leaveDealUnconfirmed.js'
+import { HydratedChooseOath, isChooseOath } from '../actions/chooseOath.js'
+import {
+    HydratedOfferChronicleCitizenship,
+    isOfferChronicleCitizenship
+} from '../actions/offerChronicleCitizenship.js'
+import {
+    HydratedAnswerChronicleCitizenship,
+    isAnswerChronicleCitizenship
+} from '../actions/answerChronicleCitizenship.js'
+import {
+    HydratedBuildOrRepairEdifice,
+    isBuildOrRepairEdifice
+} from '../actions/buildOrRepairEdifice.js'
+import {
+    HydratedChooseChronicleSuit,
+    isChooseChronicleSuit
+} from '../actions/chooseChronicleSuit.js'
+import { HydratedChooseHealStack, isChooseHealStack } from '../actions/chooseHealStack.js'
+import {
+    HydratedWriteChronicleStory,
+    isWriteChronicleStory
+} from '../actions/writeChronicleStory.js'
+import { HydratedSkipChronicleStory, isSkipChronicleStory } from '../actions/skipChronicleStory.js'
+import { HydratedChronicleStart, isChronicleStart } from '../actions/chronicleStart.js'
+import { HydratedChronicleForcedVow, isChronicleForcedVow } from '../actions/chronicleForcedVow.js'
+import {
+    HydratedChronicleFlipCitizens,
+    isChronicleFlipCitizens
+} from '../actions/chronicleFlipCitizens.js'
+import { HydratedChronicleMap, isChronicleMap } from '../actions/chronicleMap.js'
+import {
+    HydratedChronicleSettleSuit,
+    isChronicleSettleSuit
+} from '../actions/chronicleSettleSuit.js'
+import { HydratedChronicleAddCards, isChronicleAddCards } from '../actions/chronicleAddCards.js'
+import { HydratedChronicleHeal, isChronicleHeal } from '../actions/chronicleHeal.js'
+import {
+    HydratedChronicleDispossess,
+    isChronicleDispossess
+} from '../actions/chronicleDispossess.js'
+import { HydratedChronicleRelics, isChronicleRelics } from '../actions/chronicleRelics.js'
+import { HydratedChronicleRebuild, isChronicleRebuild } from '../actions/chronicleRebuild.js'
 
 export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOathGameState> {
     hydrateAction(data: GameAction): HydratedAction {
@@ -72,6 +120,9 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isSearchResolve(data): {
                 return new HydratedSearchResolve(data)
+            }
+            case isSearchSwap(data): {
+                return new HydratedSearchSwap(data)
             }
             case isRecover(data): {
                 return new HydratedRecover(data)
@@ -153,6 +204,66 @@ export class OathHydrator implements GameHydrator<OathProjectedState, HydratedOa
             }
             case isSelfExile(data): {
                 return new HydratedSelfExile(data)
+            }
+            case isClaimDealKept(data): {
+                return new HydratedClaimDealKept(data)
+            }
+            case isLeaveDealUnconfirmed(data): {
+                return new HydratedLeaveDealUnconfirmed(data)
+            }
+            case isChooseOath(data): {
+                return new HydratedChooseOath(data)
+            }
+            case isOfferChronicleCitizenship(data): {
+                return new HydratedOfferChronicleCitizenship(data)
+            }
+            case isAnswerChronicleCitizenship(data): {
+                return new HydratedAnswerChronicleCitizenship(data)
+            }
+            case isBuildOrRepairEdifice(data): {
+                return new HydratedBuildOrRepairEdifice(data)
+            }
+            case isChooseChronicleSuit(data): {
+                return new HydratedChooseChronicleSuit(data)
+            }
+            case isChooseHealStack(data): {
+                return new HydratedChooseHealStack(data)
+            }
+            case isWriteChronicleStory(data): {
+                return new HydratedWriteChronicleStory(data)
+            }
+            case isSkipChronicleStory(data): {
+                return new HydratedSkipChronicleStory(data)
+            }
+            case isChronicleStart(data): {
+                return new HydratedChronicleStart(data)
+            }
+            case isChronicleForcedVow(data): {
+                return new HydratedChronicleForcedVow(data)
+            }
+            case isChronicleFlipCitizens(data): {
+                return new HydratedChronicleFlipCitizens(data)
+            }
+            case isChronicleMap(data): {
+                return new HydratedChronicleMap(data)
+            }
+            case isChronicleSettleSuit(data): {
+                return new HydratedChronicleSettleSuit(data)
+            }
+            case isChronicleAddCards(data): {
+                return new HydratedChronicleAddCards(data)
+            }
+            case isChronicleHeal(data): {
+                return new HydratedChronicleHeal(data)
+            }
+            case isChronicleDispossess(data): {
+                return new HydratedChronicleDispossess(data)
+            }
+            case isChronicleRelics(data): {
+                return new HydratedChronicleRelics(data)
+            }
+            case isChronicleRebuild(data): {
+                return new HydratedChronicleRebuild(data)
             }
 
             default: {

@@ -9,6 +9,7 @@ import { HydratedDeclareDefense, isDeclareDefense } from '../actions/declareDefe
 import { HydratedDeclareFeint, isDeclareFeint } from '../actions/declareFeint.js'
 import { HydratedDeployArmy, isDeployArmy } from '../actions/deployArmy.js'
 import { HydratedLeadDefense, isLeadDefense } from '../actions/leadDefense.js'
+import { HydratedAcknowledgeReveal, isAcknowledgeReveal } from '../actions/acknowledgeReveal.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedOccupy, isOccupy } from '../actions/occupy.js'
@@ -17,6 +18,7 @@ import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 import { HydratedPressAttack, isPressAttack } from '../actions/pressAttack.js'
 import { HydratedRegroup, isRegroup } from '../actions/regroup.js'
 import { HydratedRetreat, isRetreat } from '../actions/retreat.js'
+import { HydratedStayInReserve, isStayInReserve } from '../actions/stayInReserve.js'
 import { HydratedThreatenAttack, isThreatenAttack } from '../actions/threatenAttack.js'
 import {
     HydratedNapoleonsTriumphGameState,
@@ -67,6 +69,10 @@ export class NapoleonsTriumphHydrator implements GameHydrator<
                 return new HydratedOccupy(data)
             case isEndTurn(data):
                 return new HydratedEndTurn(data)
+            case isAcknowledgeReveal(data):
+                return new HydratedAcknowledgeReveal(data)
+            case isStayInReserve(data):
+                return new HydratedStayInReserve(data)
             default:
                 throw new Error(`Unknown action type ${data.type}`)
         }

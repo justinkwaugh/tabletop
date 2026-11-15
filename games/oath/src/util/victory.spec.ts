@@ -40,8 +40,12 @@ describe('the end die is rolled only in rounds five to seven (R-3.3)', () => {
     })
 
     it('does not roll before the fifth round even with the Empire holding it', () => {
-        expect(endDieIsRolled(statusTable({ round: 4, oathkeeperPlayerId: CHANCELLOR }))).toBe(false)
-        expect(endDieIsRolled(statusTable({ round: 8, oathkeeperPlayerId: CHANCELLOR }))).toBe(false)
+        expect(endDieIsRolled(statusTable({ round: 4, oathkeeperPlayerId: CHANCELLOR }))).toBe(
+            false
+        )
+        expect(endDieIsRolled(statusTable({ round: 8, oathkeeperPlayerId: CHANCELLOR }))).toBe(
+            false
+        )
     })
 })
 
@@ -131,7 +135,11 @@ describe('the War Exhaustion Win is strict precedence (R-3.4)', () => {
     })
 
     it('R-3.4.2 needs the Usurper SIDE, not merely the title', () => {
-        const state = statusTable({ round: 8, oathkeeperPlayerId: EXILE, oathkeeperIsUsurper: false })
+        const state = statusTable({
+            round: 8,
+            oathkeeperPlayerId: EXILE,
+            oathkeeperIsUsurper: false
+        })
         expect(warExhaustionWinner(state).rule).toBe('R-3.4.4')
     })
 

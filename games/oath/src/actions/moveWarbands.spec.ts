@@ -165,7 +165,12 @@ describe('A Citizen needs the Chancellor’s permission (R-6.5.a)', () => {
 
     it('a consent the mover writes into their own action is never read', () => {
         const state = citizenAndChancellor()
-        const sent = buildAction(MoveWarbands, { playerId: 'cit', move: SITE_TO_BOARD, owner: IMPERIAL_WARBANDS, count: 1 })
+        const sent = buildAction(MoveWarbands, {
+            playerId: 'cit',
+            move: SITE_TO_BOARD,
+            owner: IMPERIAL_WARBANDS,
+            count: 1
+        })
         const forged = { ...sent, consent: { playerId: 'chan', granted: true } }
         new HydratedMoveWarbands(forged).apply(state)
         expect(state.pendingConsent?.askedPlayerId).toBe('chan')
@@ -238,9 +243,9 @@ describe('Imperial give and take (R-6.5.b)', () => {
         const state = citizenAndChancellor()
         move('cit', giveToChan, IMPERIAL_WARBANDS, 1).apply(state)
         expect(state.pendingConsent?.askedPlayerId).toBe('chan')
-        expect(() => move('chan', take, IMPERIAL_WARBANDS, 1).apply(citizenAndChancellor())).toThrow(
-            /cannot give warbands to or take them from yourself/
-        )
+        expect(() =>
+            move('chan', take, IMPERIAL_WARBANDS, 1).apply(citizenAndChancellor())
+        ).toThrow(/cannot give warbands to or take them from yourself/)
     })
 
     it('asks in BOTH directions', () => {

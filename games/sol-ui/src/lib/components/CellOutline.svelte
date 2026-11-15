@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { coordinatesToNumber, OffsetCoordinates, sameCoordinates } from '@tabletop/common'
     import {
         dimensionsForSpace,

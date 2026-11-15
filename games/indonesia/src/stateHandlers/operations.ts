@@ -11,10 +11,7 @@ import {
     ChooseOperatingCompany,
     isChooseOperatingCompany
 } from '../actions/chooseOperatingCompany.js'
-import {
-    HydratedRemoveCompanyDeed,
-    isRemoveCompanyDeed
-} from '../actions/removeCompanyDeed.js'
+import { HydratedRemoveCompanyDeed, isRemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import { CompanyType } from '../definition/companyType.js'
@@ -129,8 +126,11 @@ export class OperationsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedIndonesiaGameState>,
         playerId: string
     ): boolean {
-        return context.getPendingActions().some(
-            (pendingAction) => isChooseOperatingCompany(pendingAction) && pendingAction.playerId === playerId
-        )
+        return context
+            .getPendingActions()
+            .some(
+                (pendingAction) =>
+                    isChooseOperatingCompany(pendingAction) && pendingAction.playerId === playerId
+            )
     }
 }

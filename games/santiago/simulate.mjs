@@ -3,12 +3,7 @@
 // Reports state transitions, errors, and final scores.
 
 import { GameEngine } from './node_modules/@tabletop/common/esm/index.js'
-import {
-    SantiagoRuntime,
-    ActionType,
-    MachineState,
-    SquareType,
-} from './esm/index.js'
+import { SantiagoRuntime, ActionType, MachineState, SquareType } from './esm/index.js'
 import { validCanalPlacements, validNeutralTilePlacements } from './esm/util/placement.js'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -16,7 +11,9 @@ import { validCanalPlacements, validNeutralTilePlacements } from './esm/util/pla
 const playerIds = ['p1', 'p2', 'p3', 'p4']
 const playerNames = { p1: 'Dave', p2: 'Tom', p3: 'Steven', p4: 'Will' }
 
-function name(id) { return playerNames[id] ?? id }
+function name(id) {
+    return playerNames[id] ?? id
+}
 
 function makeGame() {
     return {
@@ -28,20 +25,20 @@ function makeGame() {
         ownerId: 'p1',
         name: 'Sim Game',
         hotseat: true,
-        players: playerIds.map(id => ({
+        players: playerIds.map((id) => ({
             id,
             name: playerNames[id],
-            isBot: false,
+            isBot: false
         })),
         config: {},
         winningPlayerIds: [],
         createdAt: new Date(),
-        startedAt: null,
+        startedAt: null
     }
 }
 
 function getPlayer(state, id) {
-    return state.players.find(p => p.playerId === id)
+    return state.players.find((p) => p.playerId === id)
 }
 
 function firstEmptySquare(state) {
@@ -61,7 +58,7 @@ function buildAction(type, playerId, state) {
         source: 'user',
         type,
         playerId,
-        index: state.actionCount,
+        index: state.actionCount
     }
 
     switch (type) {
@@ -69,11 +66,16 @@ function buildAction(type, playerId, state) {
             const player = getPlayer(state, playerId)
             const money = player?.money ?? 0
             // Find taken non-zero bids
-            const taken = new Set(state.players.filter(p => p.bid != null && p.bid > 0).map(p => p.bid))
+            const taken = new Set(
+                state.players.filter((p) => p.bid != null && p.bid > 0).map((p) => p.bid)
+            )
             // Try bids 1..money in order; fall back to 0
             let amount = 0
             for (let b = 1; b <= money; b++) {
-                if (!taken.has(b)) { amount = b; break }
+                if (!taken.has(b)) {
+                    amount = b
+                    break
+                }
             }
             return { ...base, amount }
         }
@@ -89,7 +91,8 @@ function buildAction(type, playerId, state) {
 
         case ActionType.PlaceNeutralTile: {
             const placements = validNeutralTilePlacements(state.board)
-            if (!placements.length) throw new Error(`${name(playerId)}: no valid neutral tile placement`)
+            if (!placements.length)
+                throw new Error(`${name(playerId)}: no valid neutral tile placement`)
             return { ...base, col: placements[0].col, row: placements[0].row }
         }
 
@@ -100,9 +103,12 @@ function buildAction(type, playerId, state) {
             const segs = validCanalPlacements(state.board)
             // Avoid re-proposing a segment we already have a proposal on
             const proposed = new Set(
-                (state.canalProposals ?? []).map(p => `${p.segment.orientation},${p.segment.col},${p.segment.row}`)
+                (state.canalProposals ?? []).map(
+                    (p) => `${p.segment.orientation},${p.segment.col},${p.segment.row}`
+                )
             )
-            const seg = segs.find(s => !proposed.has(`${s.orientation},${s.col},${s.row}`)) ?? segs[0]
+            const seg =
+                segs.find((s) => !proposed.has(`${s.orientation},${s.col},${s.row}`)) ?? segs[0]
             if (!seg) return { ...base, type: ActionType.Pass }
             return { ...base, segment: seg, amount: 1 }
         }
@@ -146,7 +152,9 @@ let actionCount = 0
 let lastPhase = null
 let errors = []
 
-console.log(`\nStarting Santiago simulation — ${playerIds.length} players, ${Math.floor(45 / Math.max(4, playerIds.length))} rounds\n`)
+console.log(
+    `\nStarting Santiago simulation — ${playerIds.length} players, ${Math.floor(45 / Math.max(4, playerIds.length))} rounds\n`
+)
 
 while (state.machineState !== MachineState.EndOfGame) {
     if (actionCount > 2000) {

@@ -1,10 +1,12 @@
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
+import { Suit, TOTAL_FAVOR } from '../model/oathEnums.js'
 import type { PowerChoice, PowerChoiceKind } from '../model/powerChoice.js'
 import { cardPower, powerIndexOf, PowerTiming, type CardPower } from '../data/cardPowers.js'
-import { usableFavor } from './favor.js'
+import { favorHomeBankOf, usableFavor } from './favor.js'
 import { reasonPersistentForbidsGivingSecrets } from './persistent.js'
 import { secretsNeeded } from './powerCost.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 // "Action: Give [secret] to a player whose pawn is at your site to take [favor][favor] from them,
 //  or give [favor][favor] for [secret], any number of times." Cost: place 1 secret.
@@ -60,6 +62,225 @@ export function witchsBargainBounds(
     return {
         secrets: silenced ? 0 : Math.max(0, Math.min(secretsLeft, Math.floor(them.favor / 2))),
         pairs: Math.max(0, Math.min(pairsLeft, them.secrets)),
+        silenced
+    }
+}
+
+/**
+ * From revision 32 each exchange uses what the user holds at that moment (Law 9.1: no unwritten
+ * limit), so a token taken in one exchange may be given in a later one: the entries are steps in
+ * order, and a player may come again after another. Each step makes one exchange at least, each
+ * moving two favor: twice the favor in the game is more steps than any reachable result needs.
+ */
+export const BARGAIN_MAX_STEPS = 2 * TOTAL_FAVOR
+
+/** One step: with one player, the secrets given first, then the pairs of favor. */
+export type BargainStep = Pick<BargainEntry, 'playerId' | 'secretsGiven' | 'pairsGiven'>
+
+/** One seat's favor: on their board, and the bank Vow of Kinship keeps it in (`favorHomeBankOf`). */
+type FavorHeld = { board: number; home?: Suit }
+
+/**
+ * What the steps work with, in counts read from public holdings: every seat's secrets (the user's
+ * after the cost) and favor, and the banks. Each step moves them as `bargainWith` moves the state.
+ */
+interface BargainCounts {
+    secrets: Map<string, number>
+    favor: Map<string, FavorHeld>
+    banks: Record<Suit, number>
+    /**
+     * From revision 33 (Law 9.3: "gain or take as many as possible"): a step takes what the other
+     * player holds, down to 0, and still gives its secrets or favor. Before it, a step that would
+     * take more than they hold is refused.
+     */
+    asManyAsHeld: boolean
+}
+
+function countsOf(state: HydratedOathGameState, playerId: string, power: CardPower): BargainCounts {
+    return {
+        secrets: new Map(
+            state.players.map((p) => [
+                p.playerId,
+                p.playerId === playerId ? secretsToGiveAfterCost(state, playerId, power) : p.secrets
+            ])
+        ),
+        favor: new Map(
+            state.players.map((p) => [
+                p.playerId,
+                { board: p.favor, home: favorHomeBankOf(state, p.playerId) }
+            ])
+        ),
+        banks: { ...state.favorBank },
+        asManyAsHeld: isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+    }
+}
+
+function secretsOf(c: BargainCounts, playerId: string): number {
+    const held = c.secrets.get(playerId)
+    assertExists(held, `${playerId} has no seat`)
+    return held
+}
+
+function favorOf(c: BargainCounts, playerId: string): FavorHeld {
+    const held = c.favor.get(playerId)
+    assertExists(held, `${playerId} has no seat`)
+    return held
+}
+
+/** As `usableFavor`: the board, and the bank Vow of Kinship lets its holder use. */
+function usableOf(c: BargainCounts, playerId: string): number {
+    const { board, home } = favorOf(c, playerId)
+    return board + (home ? c.banks[home] : 0)
+}
+
+/** As `receiveFavor`: into the bank under Vow of Kinship, else onto the board. */
+function receive(c: BargainCounts, playerId: string, count: number): void {
+    const held = favorOf(c, playerId)
+    if (held.home) c.banks[held.home] += count
+    else held.board += count
+}
+
+/** As `spendFavor`: from the board first, then the bank. */
+function spend(c: BargainCounts, playerId: string, count: number): void {
+    const held = favorOf(c, playerId)
+    const fromBoard = Math.min(count, held.board)
+    held.board -= fromBoard
+    if (held.home) c.banks[held.home] -= count - fromBoard
+}
+
+function moveSecrets(c: BargainCounts, fromId: string, toId: string, count: number): void {
+    c.secrets.set(fromId, secretsOf(c, fromId) - count)
+    c.secrets.set(toId, secretsOf(c, toId) + count)
+}
+
+/**
+ * One step on the counts, as `bargainWith` makes it on the state: why it cannot be made with what
+ * is held then, or undefined once it is made. Their last secret can be taken (its Q&A: "Yup!"),
+ * and the favor taken comes off their board alone (`removeFavorFromBoard`). From revision 33 it
+ * takes as many as they hold then (`asManyAsHeld`); what the user gives is held to what they hold.
+ */
+function reasonStepCannot(
+    c: BargainCounts,
+    playerId: string,
+    step: BargainStep,
+    first: boolean,
+    silenced: string | undefined
+): string | undefined {
+    const { playerId: themId, secretsGiven: give, pairsGiven: pairs } = step
+    if (give > 0) {
+        if (silenced) return silenced
+        const mine = secretsOf(c, playerId)
+        if (mine < give)
+            return `you have ${mine} secrets to give${first ? ' after the cost' : ''}, not ${give}`
+        const theirs = favorOf(c, themId)
+        if (!c.asManyAsHeld && theirs.board < 2 * give)
+            return `${themId} has ${theirs.board} favor, not the ${2 * give} you would take`
+        const taken = Math.min(2 * give, theirs.board)
+        moveSecrets(c, playerId, themId, give)
+        theirs.board -= taken
+        receive(c, playerId, taken)
+    }
+    if (pairs > 0) {
+        const usable = usableOf(c, playerId)
+        if (usable < 2 * pairs) return `you have ${usable} favor to give, not ${2 * pairs}`
+        const theirs = secretsOf(c, themId)
+        if (!c.asManyAsHeld && theirs < pairs)
+            return `${themId} has ${theirs} secrets, not the ${pairs} you would take`
+        spend(c, playerId, 2 * pairs)
+        receive(c, themId, 2 * pairs)
+        moveSecrets(c, themId, playerId, Math.min(pairs, theirs))
+    }
+    return undefined
+}
+
+/** The steps in order on the counts: why the first that cannot be made cannot, naming it. */
+function reasonStepsCannot(
+    c: BargainCounts,
+    playerId: string,
+    steps: readonly BargainStep[],
+    silenced: string | undefined
+): string | undefined {
+    for (const [i, step] of steps.entries()) {
+        const reason = reasonStepCannot(c, playerId, step, i === 0, silenced)
+        if (reason !== undefined) return i === 0 ? reason : `at step ${i + 1}, ${reason}`
+    }
+    return undefined
+}
+
+/**
+ * From revision 32: whether the steps can be made in order, each on what the steps before it
+ * leave, beginning with what the user holds after the cost. Vow of Silence bars a step giving a
+ * secret, as before.
+ */
+export function reasonCannotBargainInOrder(
+    state: HydratedOathGameState,
+    playerId: string,
+    steps: readonly BargainStep[],
+    power: CardPower = witchsBargainPower()
+): string | undefined {
+    return reasonStepsCannot(
+        countsOf(state, playerId, power),
+        playerId,
+        steps,
+        reasonPersistentForbidsGivingSecrets(state, playerId)
+    )
+}
+
+export interface WitchsBargainStepBounds {
+    /** The user's secrets at this step; before the first, the one the cost places too, never given. */
+    secretsHeld: number
+    /**
+     * Secrets this step may give, two of their favor taken for each (from revision 33 as many as
+     * they hold, down to 0): none under Vow of Silence.
+     */
+    secrets: number
+    /** The favor the user may give in this step, once its own secrets are given. */
+    favorHeld: number
+    /**
+     * Pairs of favor this step may give, one of their secrets taken for each (from revision 33 as
+     * many as they hold, down to 0).
+     */
+    pairs: number
+    silenced: boolean
+}
+
+/**
+ * From revision 32, the open step with `withId` after the steps `before`, its pairs read once its
+ * `secretsGiven` are given. Read-only: `reasonCannotBargainInOrder` is the rule, and this agrees.
+ */
+export function witchsBargainStepBounds(
+    state: HydratedOathGameState,
+    playerId: string,
+    before: readonly BargainStep[],
+    withId: string,
+    secretsGiven = 0
+): WitchsBargainStepBounds {
+    const silencedBy = reasonPersistentForbidsGivingSecrets(state, playerId)
+    const silenced = silencedBy !== undefined
+    const c = countsOf(state, playerId, witchsBargainPower())
+    if (reasonStepsCannot(c, playerId, before, silencedBy) !== undefined)
+        return { secretsHeld: 0, secrets: 0, favorHeld: 0, pairs: 0, silenced }
+    const mine = secretsOf(c, playerId)
+    const cost = before.length === 0 ? state.getPlayerState(playerId).secrets - mine : 0
+    // From revision 33 what the other player holds bounds what is taken, not what is given.
+    const secrets = silenced
+        ? 0
+        : c.asManyAsHeld
+          ? mine
+          : Math.min(mine, Math.floor(favorOf(c, withId).board / 2))
+    const give = Math.min(secretsGiven, secrets)
+    if (give > 0) {
+        const step = { playerId: withId, secretsGiven: give, pairsGiven: 0 }
+        reasonStepCannot(c, playerId, step, false, silencedBy)
+    }
+    const favorHeld = usableOf(c, playerId)
+    return {
+        secretsHeld: mine + cost,
+        secrets,
+        favorHeld,
+        pairs: c.asManyAsHeld
+            ? Math.floor(favorHeld / 2)
+            : Math.min(Math.floor(favorHeld / 2), secretsOf(c, withId)),
         silenced
     }
 }

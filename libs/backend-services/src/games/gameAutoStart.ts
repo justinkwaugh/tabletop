@@ -1,4 +1,4 @@
-import { findPlayerForUserId, GameStatus, type Game } from '@tabletop/common'
+import { GameStatus, type Game } from '@tabletop/common'
 import { Type, type Static } from 'typebox'
 import type { TaskService } from '../tasks/taskService.js'
 
@@ -13,12 +13,8 @@ export const GameAutoStartTask = Type.Object(
 )
 export type GameAutoStartTask = Static<typeof GameAutoStartTask>
 
-function startsAutomatically(game: Game): boolean {
-    return game.isPublic || !findPlayerForUserId(game, game.ownerId)
-}
-
-function isReadyAutoStartingGame(game: Game): boolean {
-    return game.status === GameStatus.WaitingToStart && startsAutomatically(game)
+function isReady(game: Game): boolean {
+    return game.status === GameStatus.WaitingToStart
 }
 
 export function gameAutoStartChange(
@@ -26,8 +22,8 @@ export function gameAutoStartChange(
     updatedGame: Game,
     now: number
 ): Pick<Game, 'autoStartAt'> | undefined {
-    if (isReadyAutoStartingGame(updatedGame)) {
-        return isReadyAutoStartingGame(existingGame)
+    if (isReady(updatedGame)) {
+        return isReady(existingGame)
             ? undefined
             : { autoStartAt: new Date(now + GAME_AUTO_START_DELAY_MS) }
     }

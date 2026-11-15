@@ -103,16 +103,13 @@ describe('HydratedStartCompany.canStartCompany', () => {
             return
         }
 
-        const candidateArea = state
-            .board
-            .areasForRegion(productionDeed.region)
-            .find((area) => {
-                if (area.type !== AreaType.EmptyLand) {
-                    return false
-                }
-                const node = state.board.getNodeForArea(area)
-                return node.neighbors[IndonesiaNeighborDirection.Land].length > 0
-            })
+        const candidateArea = state.board.areasForRegion(productionDeed.region).find((area) => {
+            if (area.type !== AreaType.EmptyLand) {
+                return false
+            }
+            const node = state.board.getNodeForArea(area)
+            return node.neighbors[IndonesiaNeighborDirection.Land].length > 0
+        })
 
         expect(candidateArea).toBeDefined()
         if (!candidateArea) {
@@ -146,16 +143,13 @@ describe('HydratedStartCompany.canStartCompany', () => {
             return
         }
 
-        const candidateArea = state
-            .board
-            .areasForRegion(productionDeed.region)
-            .find((area) => {
-                if (area.type !== AreaType.EmptyLand) {
-                    return false
-                }
-                const node = state.board.getNodeForArea(area)
-                return node.neighbors[IndonesiaNeighborDirection.Land].length > 0
-            })
+        const candidateArea = state.board.areasForRegion(productionDeed.region).find((area) => {
+            if (area.type !== AreaType.EmptyLand) {
+                return false
+            }
+            const node = state.board.getNodeForArea(area)
+            return node.neighbors[IndonesiaNeighborDirection.Land].length > 0
+        })
 
         expect(candidateArea).toBeDefined()
         if (!candidateArea) {
@@ -192,8 +186,11 @@ describe('HydratedStartCompany.canStartCompany', () => {
             return
         }
 
-        const validAreaId = HydratedStartCompany.validAreaIds(state, playerId, productionDeed.id)
-            .next().value
+        const validAreaId = HydratedStartCompany.validAreaIds(
+            state,
+            playerId,
+            productionDeed.id
+        ).next().value
         expect(validAreaId).toBeDefined()
         if (!validAreaId) {
             return
@@ -253,7 +250,9 @@ describe('HydratedStartCompany.canStartCompany', () => {
         state.activePlayerIds = [playerId]
         state.getPlayerState(playerId).research.slots = 3
 
-        const shippingDeeds = state.availableDeeds.filter((deed) => deed.type === CompanyType.Shipping)
+        const shippingDeeds = state.availableDeeds.filter(
+            (deed) => deed.type === CompanyType.Shipping
+        )
         expect(shippingDeeds.length).toBeGreaterThanOrEqual(3)
         const context = new MachineContext({
             gameConfig: {},

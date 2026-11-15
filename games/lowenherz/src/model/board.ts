@@ -107,7 +107,11 @@ export function isOnBoard(col: number, row: number): boolean {
     return col >= 0 && col < BOARD_COLS && row >= 0 && row < BOARD_ROWS
 }
 
-export function getSquare(board: LowenherzBoard, col: number, row: number): BoardSquare | undefined {
+export function getSquare(
+    board: LowenherzBoard,
+    col: number,
+    row: number
+): BoardSquare | undefined {
     return board.squares[row]?.[col]
 }
 

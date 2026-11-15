@@ -1,9 +1,5 @@
 import type { AxialCoordinates, Point } from '../coordinates.js'
-import {
-    isCircleDimensions,
-    isEllipseDimensions,
-    isRectangleDimensions
-} from '../dimensions.js'
+import { isCircleDimensions, isEllipseDimensions, isRectangleDimensions } from '../dimensions.js'
 import type {
     CircleDimensions,
     EllipseDimensions,

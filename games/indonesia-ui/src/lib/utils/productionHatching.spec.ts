@@ -50,7 +50,10 @@ function buildGameState(args: {
             }
             return { id }
         },
-        neighborsOf(node: { id: string }, direction: IndonesiaNeighborDirection): Array<{ id: string }> {
+        neighborsOf(
+            node: { id: string },
+            direction: IndonesiaNeighborDirection
+        ): Array<{ id: string }> {
             if (direction !== IndonesiaNeighborDirection.Land) {
                 return []
             }

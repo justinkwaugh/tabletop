@@ -46,17 +46,57 @@ interface Table {
  * their own on the map). The Empire's warbands alone hold c1 (Captains is there) and c2 (Wolves, a
  * beast card, is there), so `cit` rules both only as an Imperial player.
  */
-function table({ oathRevision, citizenAdvisers = [], secondCitizen = false, chancellorAt = 'h1', empireAtC2 = 2 }: Table) {
+function table({
+    oathRevision,
+    citizenAdvisers = [],
+    secondCitizen = false,
+    chancellorAt = 'h1',
+    empireAtC2 = 2
+}: Table) {
     const s = testState(
         [
-            testPlayer({ playerId: 'cit', color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', supply: 5, favor: 4, secrets: 3, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, advisers: citizenAdvisers.map((cardId) => ({ cardId, faceUp: true })) }),
-            testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: chancellorAt, supply: 5, favor: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 } }),
-            ...(secondCitizen ? [testPlayer({ playerId: 'cit2', color: Color.Green, status: PlayerStatus.Citizen, siteId: 'h1', supply: 5, favor: 2, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } })] : [])
+            testPlayer({
+                playerId: 'cit',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: 'c1',
+                supply: 5,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                advisers: citizenAdvisers.map((cardId) => ({ cardId, faceUp: true }))
+            }),
+            testPlayer({
+                playerId: 'chan',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: chancellorAt,
+                supply: 5,
+                favor: 4,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }
+            }),
+            ...(secondCitizen
+                ? [
+                      testPlayer({
+                          playerId: 'cit2',
+                          color: Color.Green,
+                          status: PlayerStatus.Citizen,
+                          siteId: 'h1',
+                          supply: 5,
+                          favor: 2,
+                          warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+                      })
+                  ]
+                : [])
         ],
         {
             oathRevision,
             denizensBySite: { c1: [CAPTAINS], c2: [WOLVES], p1: [], h1: [] },
-            warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 1 }, c2: { [IMPERIAL_WARBANDS]: empireAtC2 } }
+            warbandsBySite: {
+                c1: { [IMPERIAL_WARBANDS]: 1 },
+                c2: { [IMPERIAL_WARBANDS]: empireAtC2 }
+            }
         }
     )
     openTurn(s, 'cit')
@@ -64,9 +104,19 @@ function table({ oathRevision, citizenAdvisers = [], secondCitizen = false, chan
 }
 
 const useCaptains = () =>
-    buildAction(UseActionPower, { playerId: 'cit', cardId: CAPTAINS, powerIndex: powerIndexOf(CAPTAINS, PowerTiming.Action), choices: [site('c2')] })
+    buildAction(UseActionPower, {
+        playerId: 'cit',
+        cardId: CAPTAINS,
+        powerIndex: powerIndexOf(CAPTAINS, PowerTiming.Action),
+        choices: [site('c2')]
+    })
 const useWildAllies = () =>
-    buildAction(UseActionPower, { playerId: 'cit', cardId: WILD_ALLIES, powerIndex: powerIndexOf(WILD_ALLIES, PowerTiming.Action), choices: [site('c2')] })
+    buildAction(UseActionPower, {
+        playerId: 'cit',
+        cardId: WILD_ALLIES,
+        powerIndex: powerIndexOf(WILD_ALLIES, PowerTiming.Action),
+        choices: [site('c2')]
+    })
 
 /** The card is used; the next action is the Campaign from c2. */
 function actingFromC2(s: HydratedOathGameState, card: 'captains' | 'wild allies') {
@@ -78,16 +128,47 @@ function actingFromC2(s: HydratedOathGameState, card: 'captains' | 'wild allies'
 const againstChancellor: CampaignDefender = { kind: 'player', playerId: 'chan' }
 const againstCitizen: CampaignDefender = { kind: 'player', playerId: 'cit2' }
 const target = (siteId: string) => [{ kind: CampaignTargetKind.Site as const, siteId }]
-const fromSite = (siteId: string): LossSource => ({ at: { kind: 'site', siteId }, owner: IMPERIAL_WARBANDS })
+const fromSite = (siteId: string): LossSource => ({
+    at: { kind: 'site', siteId },
+    owner: IMPERIAL_WARBANDS
+})
 
-const campaign = (defender: CampaignDefender, attackDice: number, targetSiteId = 'c2', plans: string[] = [], skullLossOrder?: LossSource[]) =>
-    buildAction(Campaign, { playerId: 'cit', defender, targets: target(targetSiteId), attackDice, plans: plans.map(battlePlanUse), skullLossOrder })
+const campaign = (
+    defender: CampaignDefender,
+    attackDice: number,
+    targetSiteId = 'c2',
+    plans: string[] = [],
+    skullLossOrder?: LossSource[]
+) =>
+    buildAction(Campaign, {
+        playerId: 'cit',
+        defender,
+        targets: target(targetSiteId),
+        attackDice,
+        plans: plans.map(battlePlanUse),
+        skullLossOrder
+    })
 
 /** R-5.5.2 — a target at "your site": c2 once Captains or Wild Allies names it, c1 (the pawn's) otherwise. */
-const reason = (s: HydratedOathGameState, defender: CampaignDefender, attackDice: number, skullLossOrder?: LossSource[], targetSiteId = 'c2') =>
-    HydratedCampaign.reasonCannotCampaign(s, 'cit', { defender, targets: target(targetSiteId), attackDice, skullLossOrder })
+const reason = (
+    s: HydratedOathGameState,
+    defender: CampaignDefender,
+    attackDice: number,
+    skullLossOrder?: LossSource[],
+    targetSiteId = 'c2'
+) =>
+    HydratedCampaign.reasonCannotCampaign(s, 'cit', {
+        defender,
+        targets: target(targetSiteId),
+        attackDice,
+        skullLossOrder
+    })
 
-const partiesAgainst = (s: HydratedOathGameState, defender: CampaignDefender, targetSiteId = 'c2'): CampaignParties =>
+const partiesAgainst = (
+    s: HydratedOathGameState,
+    defender: CampaignDefender,
+    targetSiteId = 'c2'
+): CampaignParties =>
     HydratedCampaign.partiesFor(s, 'cit', { defender, targets: target(targetSiteId) })
 
 const placeKey = (group: Pick<WarbandGroup, 'at' | 'owner'>) =>
@@ -121,9 +202,15 @@ describe("Captains' Q&A — a Citizen attacking the Chancellor or a Citizen stil
         const running = ongoingCampaign(s)
         expect(running.forceSiteIds).toEqual(['c2'])
         expect(running.defendingForce).toEqual([])
-        expect(HydratedCampaignSacrifice.attackerForce(s, running)).toContainEqual({ at: { kind: 'site', siteId: 'c2' }, owner: IMPERIAL_WARBANDS, count: 2 })
+        expect(HydratedCampaignSacrifice.attackerForce(s, running)).toContainEqual({
+            at: { kind: 'site', siteId: 'c2' },
+            owner: IMPERIAL_WARBANDS,
+            count: 2
+        })
 
-        expect(killFromAttackingForce(s, running, 1, [fromSite('c2')])).toEqual([{ at: { kind: 'site', siteId: 'c2' }, owner: IMPERIAL_WARBANDS, count: 1 }])
+        expect(killFromAttackingForce(s, running, 1, [fromSite('c2')])).toEqual([
+            { at: { kind: 'site', siteId: 'c2' }, owner: IMPERIAL_WARBANDS, count: 1 }
+        ])
         expect(warbandsAt(s, 'c2')[IMPERIAL_WARBANDS]).toBe(1)
         expect(s.getPlayerState('cit').warbandsOnBoard[IMPERIAL_WARBANDS]).toBe(3)
     })
@@ -131,13 +218,31 @@ describe("Captains' Q&A — a Citizen attacking the Chancellor or a Citizen stil
     it("with the Chancellor's pawn there too: the defending force is the Chancellor's board alone", () => {
         const s = actingFromC2(table({ oathRevision: atRevision, chancellorAt: 'c2' }), 'captains')
         const targets = [...target('c2'), { kind: CampaignTargetKind.PawnAndFavor as const }]
-        expect(HydratedCampaign.reasonCannotCampaign(s, 'cit', { defender: againstChancellor, targets, attackDice: 6 })).toMatch(/at most 5 attack dice/)
-        new HydratedCampaign(buildAction(Campaign, { playerId: 'cit', defender: againstChancellor, targets, attackDice: 0 })).apply(s)
-        expect(ongoingCampaign(s).defendingForce).toEqual([{ at: { kind: 'board', playerId: 'chan' }, owner: IMPERIAL_WARBANDS, count: 4 }])
+        expect(
+            HydratedCampaign.reasonCannotCampaign(s, 'cit', {
+                defender: againstChancellor,
+                targets,
+                attackDice: 6
+            })
+        ).toMatch(/at most 5 attack dice/)
+        new HydratedCampaign(
+            buildAction(Campaign, {
+                playerId: 'cit',
+                defender: againstChancellor,
+                targets,
+                attackDice: 0
+            })
+        ).apply(s)
+        expect(ongoingCampaign(s).defendingForce).toEqual([
+            { at: { kind: 'board', playerId: 'chan' }, owner: IMPERIAL_WARBANDS, count: 4 }
+        ])
     })
 
     it('Encirclement counts them: 3 on the board and 3 at c2 against no defending warband, so it adds two dice', () => {
-        const s = actingFromC2(table({ oathRevision: atRevision, citizenAdvisers: [ENCIRCLEMENT], empireAtC2: 3 }), 'captains')
+        const s = actingFromC2(
+            table({ oathRevision: atRevision, citizenAdvisers: [ENCIRCLEMENT], empireAtC2: 3 }),
+            'captains'
+        )
         new HydratedCampaign(campaign(againstChancellor, 3, 'c2', [ENCIRCLEMENT])).apply(s)
         expect(ongoingCampaign(s).attackPool).toBe(5)
     })
@@ -149,7 +254,10 @@ describe('Wild Allies follows Captains: the same words, so the same answer (revi
         ['another Citizen', againstCitizen, true]
     ] as const) {
         it(`against ${name}: the 2 at c2 are in the force`, () => {
-            const s = actingFromC2(table({ oathRevision: atRevision, citizenAdvisers: [WILD_ALLIES], secondCitizen }), 'wild allies')
+            const s = actingFromC2(
+                table({ oathRevision: atRevision, citizenAdvisers: [WILD_ALLIES], secondCitizen }),
+                'wild allies'
+            )
             expect(reason(s, defender, 6)).toMatch(/at most 5 attack dice/)
             expect(reason(s, defender, 5, [fromSite('c2')])).toBeUndefined()
         })
@@ -165,7 +273,10 @@ describe("Vow of Union's Q&A — a Citizen attacking the Chancellor adds no purp
     })
 
     it('Vow of Union with Captains: the Captains site counts, as its Q&A rules; the other Vow site does not', () => {
-        const s = actingFromC2(table({ oathRevision: atRevision, citizenAdvisers: [VOW_OF_UNION] }), 'captains')
+        const s = actingFromC2(
+            table({ oathRevision: atRevision, citizenAdvisers: [VOW_OF_UNION] }),
+            'captains'
+        )
         expect(partiesAgainst(s, againstChancellor).forceSiteIds).toEqual(['c2', 'c1'])
         expect(reason(s, againstChancellor, 6)).toMatch(/at most 5 attack dice/)
         expect(reason(s, againstChancellor, 5, [fromSite('c2')])).toBeUndefined()
@@ -176,19 +287,60 @@ describe("Vow of Union's Q&A — a Citizen attacking the Chancellor adds no purp
 describe('R-5.5.2 — the dice cap and the loss sources read one force', () => {
     it('both seams name the same places and owners, and the cap is that force', () => {
         const cases: [string, HydratedOathGameState, CampaignDefender, string[]][] = [
-            ['Captains', actingFromC2(table({ oathRevision: atRevision }), 'captains'), againstChancellor, ['site:c2/imperial']],
-            ['Captains, against a Citizen', actingFromC2(table({ oathRevision: atRevision, secondCitizen: true }), 'captains'), againstCitizen, ['site:c2/imperial']],
-            ['Wild Allies', actingFromC2(table({ oathRevision: atRevision, citizenAdvisers: [WILD_ALLIES] }), 'wild allies'), againstChancellor, ['site:c2/imperial']],
-            ['Vow of Union with Captains', actingFromC2(table({ oathRevision: atRevision, citizenAdvisers: [VOW_OF_UNION] }), 'captains'), againstChancellor, ['site:c2/imperial']],
-            ['Vow of Union', table({ oathRevision: atRevision, citizenAdvisers: [VOW_OF_UNION] }), againstChancellor, []],
-            ['Captains at revision 4', actingFromC2(table({ oathRevision: before }), 'captains'), againstChancellor, ['site:c2/imperial']]
+            [
+                'Captains',
+                actingFromC2(table({ oathRevision: atRevision }), 'captains'),
+                againstChancellor,
+                ['site:c2/imperial']
+            ],
+            [
+                'Captains, against a Citizen',
+                actingFromC2(table({ oathRevision: atRevision, secondCitizen: true }), 'captains'),
+                againstCitizen,
+                ['site:c2/imperial']
+            ],
+            [
+                'Wild Allies',
+                actingFromC2(
+                    table({ oathRevision: atRevision, citizenAdvisers: [WILD_ALLIES] }),
+                    'wild allies'
+                ),
+                againstChancellor,
+                ['site:c2/imperial']
+            ],
+            [
+                'Vow of Union with Captains',
+                actingFromC2(
+                    table({ oathRevision: atRevision, citizenAdvisers: [VOW_OF_UNION] }),
+                    'captains'
+                ),
+                againstChancellor,
+                ['site:c2/imperial']
+            ],
+            [
+                'Vow of Union',
+                table({ oathRevision: atRevision, citizenAdvisers: [VOW_OF_UNION] }),
+                againstChancellor,
+                []
+            ],
+            [
+                'Captains at revision 4',
+                actingFromC2(table({ oathRevision: before }), 'captains'),
+                againstChancellor,
+                ['site:c2/imperial']
+            ]
         ]
         for (const [name, s, defender, sites] of cases) {
             const parties = partiesAgainst(s, defender)
             const { force, sources } = seams(s, parties)
             expect(force, name).toEqual(sources)
-            expect(force.filter((key) => key.startsWith('site:')), name).toEqual(sites)
-            expect(HydratedCampaign.maxAttackDice(s, parties), name).toBe(forceTotal(collectAttackingForce(s, parties)))
+            expect(
+                force.filter((key) => key.startsWith('site:')),
+                name
+            ).toEqual(sites)
+            expect(HydratedCampaign.maxAttackDice(s, parties), name).toBe(
+                forceTotal(collectAttackingForce(s, parties))
+            )
         }
     })
 })
@@ -198,7 +350,10 @@ describe('R-X.4 — before revision 5 the Captains site already counted', () => 
         const captains = actingFromC2(table({ oathRevision: before }), 'captains')
         expect(reason(captains, againstChancellor, 6)).toMatch(/at most 5 attack dice/)
         expect(reason(captains, againstChancellor, 5, [fromSite('c2')])).toBeUndefined()
-        const wildAllies = actingFromC2(table({ oathRevision: before, citizenAdvisers: [WILD_ALLIES] }), 'wild allies')
+        const wildAllies = actingFromC2(
+            table({ oathRevision: before, citizenAdvisers: [WILD_ALLIES] }),
+            'wild allies'
+        )
         expect(reason(wildAllies, againstChancellor, 5)).toBeUndefined()
         const vow = table({ oathRevision: before, citizenAdvisers: [VOW_OF_UNION] })
         expect(reason(vow, againstChancellor, 6, undefined, 'c1')).toBeUndefined()
@@ -207,17 +362,28 @@ describe('R-X.4 — before revision 5 the Captains site already counted', () => 
     it('a targeted Captains site still defends with the warbands its force counts', () => {
         const s = actingFromC2(table({ oathRevision: before }), 'captains')
         new HydratedCampaign(campaign(againstChancellor, 0, 'c2')).apply(s)
-        expect(ongoingCampaign(s).defendingForce).toEqual([{ at: { kind: 'site', siteId: 'c2' }, owner: IMPERIAL_WARBANDS, count: 2 }])
+        expect(ongoingCampaign(s).defendingForce).toEqual([
+            { at: { kind: 'site', siteId: 'c2' }, owner: IMPERIAL_WARBANDS, count: 2 }
+        ])
     })
 
     function recordAndReplay(oathRevision: number) {
         const initial = table({ oathRevision }).dehydrate()
         const game = testGame(['cit', 'chan'])
         const captains = engine.runNext(useCaptains(), structuredClone(initial), game)
-        const recorded = engine.runNext(campaign(againstChancellor, 5, 'c2', [], [fromSite('c2')]), structuredClone(captains.updatedState), game)
+        const recorded = engine.runNext(
+            campaign(againstChancellor, 5, 'c2', [], [fromSite('c2')]),
+            structuredClone(captains.updatedState),
+            game
+        )
         let replayed = structuredClone(initial)
         for (const action of [...captains.processedActions, ...recorded.processedActions]) {
-            replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         }
         expect(replayed).toEqual(recorded.updatedState)
         return recorded.updatedState
@@ -225,7 +391,10 @@ describe('R-X.4 — before revision 5 the Captains site already counted', () => 
 
     it('a Citizen’s Captains Campaign of 5 dice against the Chancellor is accepted and replays at revision 4 and at revision 5', () => {
         for (const oathRevision of [before, atRevision]) {
-            expect(recordAndReplay(oathRevision).campaign?.attackerPlayerId, `revision ${oathRevision}`).toBe('cit')
+            expect(
+                recordAndReplay(oathRevision).campaign?.attackerPlayerId,
+                `revision ${oathRevision}`
+            ).toBe('cit')
         }
     })
 })

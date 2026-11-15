@@ -5,11 +5,13 @@ import {
     GameAction,
     HydratableAction,
     MachineContext,
-    OffsetCoordinates
+    OffsetCoordinates,
+    sameCoordinates
 } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { gateKey, SolarGate } from '../components/solarGate.js'
+import { CENTER_COORDS } from '../components/gameBoard.js'
 import { EffectType } from '../components/effects.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
@@ -225,6 +227,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         for (const cell of state.board) {
+            if (HydratedFly.isMovableJuggernautStation(state, playerId, cell.station)) {
+                return true
+            }
+
             const sundiversInCell = state.board.sundiversForPlayerAt(playerId, cell.coords)
             if (
                 state.activeEffect === EffectType.Hyperdrive &&
@@ -240,11 +246,38 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         return false
     }
 
+    static isMovableJuggernautStation(
+        state: HydratedSolGameState,
+        playerId: string,
+        station?: Station
+    ): boolean {
+        if (
+            !station ||
+            state.activeEffect !== EffectType.Juggernaut ||
+            station.playerId !== playerId
+        ) {
+            return false
+        }
+        const flownStationId = state.effectTracking?.flownStationId
+        return flownStationId === undefined || flownStationId === station.id
+    }
+
+    static numMovingPieces(flyOrHurl: Fly | Hurl): number {
+        return flyOrHurl.stationId ? 1 : flyOrHurl.sundiverIds.length
+    }
+
     static isValidFlight(
         state: HydratedSolGameState,
         flyOrHurl: Fly | Hurl
     ): OffsetCoordinates[] | undefined {
         const playerState = state.getPlayerState(flyOrHurl.playerId)
+
+        if (
+            flyOrHurl.type === ActionType.Fly &&
+            sameCoordinates(flyOrHurl.destination, CENTER_COORDS)
+        ) {
+            return
+        }
 
         if (
             flyOrHurl.passage &&
@@ -253,8 +286,22 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             return
         }
 
+        if (flyOrHurl.stationId !== undefined) {
+            const station = state.board.cellAt(flyOrHurl.start).station
+            if (
+                station?.id !== flyOrHurl.stationId ||
+                !HydratedFly.isMovableJuggernautStation(state, flyOrHurl.playerId, station)
+            ) {
+                return
+            }
+        }
+
         if (flyOrHurl.teleport) {
-            if (playerState.movementPoints < 3 || flyOrHurl.sundiverIds.length > 1) {
+            if (
+                state.activeEffect !== EffectType.Teleport ||
+                playerState.movementPoints < 3 ||
+                flyOrHurl.sundiverIds.length > 1
+            ) {
                 return
             }
             return [flyOrHurl.start, flyOrHurl.destination]
@@ -276,15 +323,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             return
         }
 
-        if (state.activeEffect === EffectType.Juggernaut && flyOrHurl.stationId) {
-            if (
-                state.effectTracking?.flownStationId &&
-                state.effectTracking?.flownStationId !== flyOrHurl.stationId
-            ) {
-                return
-            }
-        }
-
         if (
             !HydratedFly.isValidFlightDestination({
                 state,
@@ -294,7 +332,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
                 destination: flyOrHurl.destination,
                 cluster: flyOrHurl.cluster,
                 juggernaut: flyOrHurl.stationId !== undefined,
-                catapult: flyOrHurl.catapult
+                catapult: flyOrHurl.catapult,
+                hurling: flyOrHurl.type === ActionType.Hurl
             })
         ) {
             return
@@ -303,8 +342,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         if (state.activeEffect === EffectType.Puncture) {
             return [flyOrHurl.start, flyOrHurl.destination]
         }
-
-        const numMovingPieces = flyOrHurl.stationId ? 1 : flyOrHurl.sundiverIds.length
 
         const illegalCoordinates: OffsetCoordinates[] = []
 
@@ -321,7 +358,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             start: flyOrHurl.start,
             destination: flyOrHurl.destination,
             range:
-                playerState.movementPoints / numMovingPieces +
+                playerState.movementPoints / HydratedFly.numMovingPieces(flyOrHurl) +
                 (flyOrHurl.catapult && flyOrHurl.gates && flyOrHurl.gates.length > 0 ? 1 : 0),
             requiredGates: flyOrHurl.gates,
             portal: state.activeEffect === EffectType.Portal,
@@ -339,7 +376,8 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         destination,
         cluster = false,
         juggernaut = false,
-        catapult = false
+        catapult = false,
+        hurling = false
     }: {
         state: HydratedSolGameState
         playerId: string
@@ -349,6 +387,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         cluster?: boolean
         juggernaut?: boolean
         catapult?: boolean
+        hurling?: boolean
     }): boolean {
         const playerState = state.getPlayerState(playerId)
 
@@ -356,8 +395,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             return this.isValidPuncture({ state, playerId, numSundivers, start, destination })
         }
 
-        // Check to see if destination can hold the pieces
-        if (juggernaut && !state.board.canAddStationToCell(destination)) {
+        if (juggernaut && !hurling && !state.board.canAddStationToCell(destination)) {
             return false
         } else if (
             !juggernaut &&

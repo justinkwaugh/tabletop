@@ -1,14 +1,45 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GameSession } from '@tabletop/frontend-components'
-import { Color, assert } from '@tabletop/common'
-import { ActionType, Banner, LetPeekSubjectKind, MachineState, PowerChoiceKind, SearchPlay, isLetPeek, isPlayFacedownAdviser, type LetPeekSubject } from '@tabletop/oath'
-import { FIXTURE_SITE_CAPACITY, openTurn, required, testPlayer, testState } from '@tabletop/oath/testing'
-import { disposeSessions, openSessionOn, searchingTable, setupTable, tableOf } from '$lib/testing/sessionHarness.js'
+import { Color, assert, type Visibility } from '@tabletop/common'
+import {
+    ActionType,
+    Banner,
+    HydratedOathGameState,
+    IMPERIAL_WARBANDS,
+    LetPeekSubjectKind,
+    MachineState,
+    OathRevision,
+    OathVisibility,
+    PlayerStatus,
+    PowerChoiceKind,
+    SearchPlay,
+    isLetPeek,
+    isPlayFacedownAdviser,
+    playMapChanges,
+    type LegalChoice,
+    type LetPeekSubject
+} from '@tabletop/oath'
+import {
+    FIXTURE_SITE_CAPACITY,
+    openTurn,
+    required,
+    served,
+    testPlayer,
+    testState
+} from '@tabletop/oath/testing'
+import {
+    disposeSessions,
+    openSessionOn,
+    searchingTable,
+    setupTable,
+    tableOf
+} from '$lib/testing/sessionHarness.js'
 import { emptyPicks } from './powerChoices.js'
+import { whenPlayedChoices } from './whenPlayed.js'
 
 // docs/user-interactions.md — Undo unwinds manual picks before any sent action, and nothing is offered from history.
-function openSession() {
-    return openSessionOn(searchingTable())
+async function openSession() {
+    return await openSessionOn(searchingTable())
 }
 
 afterEach(() => {
@@ -17,15 +48,15 @@ afterEach(() => {
 })
 
 describe('OathGameSession — Undo and the history gate', () => {
-    it('opens on the Search the chancellor drew, with nothing picked', () => {
-        const session = openSession()
+    it('opens on the Search the chancellor drew, with nothing picked', async () => {
+        const session = await openSession()
         expect(session.gameState.machineState).toBe(MachineState.Searching)
         expect(session.search.drawn).toHaveLength(3)
         expect(session.hasManualDraft).toBe(false)
     })
 
     it('Undo with a Search pick on screen steps back through it instead of undoing the Search', async () => {
-        const session = openSession()
+        const session = await openSession()
         const historyUndo = vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
         const [first] = session.search.drawn
         session.search.keep(first)
@@ -40,7 +71,7 @@ describe('OathGameSession — Undo and the history gate', () => {
     })
 
     it('Undo unwinds one pick at a time: the placement, then the kept card', async () => {
-        const session = openSession()
+        const session = await openSession()
         const [first] = session.search.drawn
         session.search.keep(first)
         void session.search.choosePlacement({ play: SearchPlay.Discard })
@@ -56,7 +87,7 @@ describe('OathGameSession — Undo and the history gate', () => {
     })
 
     it('a pick in the action grid is a draft too, and Undo returns to the grid', async () => {
-        const session = openSession()
+        const session = await openSession()
         const historyUndo = vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
         session.chooseAction(ActionType.Travel)
         expect(session.hasManualDraft).toBe(true)
@@ -65,17 +96,17 @@ describe('OathGameSession — Undo and the history gate', () => {
         expect(historyUndo).not.toHaveBeenCalled()
     })
 
-    it('a new visible state ends every draft before it is published', () => {
-        const session = openSession()
+    it('a new visible state ends every draft before it is published', async () => {
+        const session = await openSession()
         const [first] = session.search.drawn
         session.search.keep(first)
-        session.beforeNewState()
+        session.beforeNewState({ kind: 'other-action', actions: [], intent: 'silent' })
         expect(session.search.kept).toBeUndefined()
         expect(session.hasManualDraft).toBe(false)
     })
 
-    it('while the visible state is updating, a draft reads as empty and comes back if nothing replaced it', () => {
-        const session = openSession()
+    it('while the visible state is updating, a draft reads as empty and comes back if nothing replaced it', async () => {
+        const session = await openSession()
         const [first] = session.search.drawn
         session.search.keep(first)
         session.updatingVisibleState = true
@@ -85,8 +116,8 @@ describe('OathGameSession — Undo and the history gate', () => {
         expect(session.search.kept).toBe(first)
     })
 
-    it('while an action is being sent, every draft reads as empty and the staged action offers nothing', () => {
-        const session = openSession()
+    it('while an action is being sent, every draft reads as empty and the staged action offers nothing', async () => {
+        const session = await openSession()
         const [first] = session.search.drawn
         session.search.keep(first)
         session.processingActions = true
@@ -97,11 +128,14 @@ describe('OathGameSession — Undo and the history gate', () => {
     })
 
     it('with only the auto-staged Setup action left, Undo reverses the last Processed Action', async () => {
-        const session = openSessionOn(setupTable())
+        const session = await openSessionOn(setupTable())
         const historyUndo = vi.spyOn(GameSession.prototype, 'undo').mockResolvedValue()
         // R-1.23 — the Chancellor's only start is taken for them, so the adviser is the first pick.
         expect(session.setup.siteId).toBeDefined()
-        const [adviser] = required(session.myPlayerState?.handIds, 'the hand of the seat on the clock')
+        const [adviser] = required(
+            session.myPlayerState?.handIds,
+            'the hand of the seat on the clock'
+        )
         await session.setup.chooseAdviser(adviser)
         expect(session.selection.sourceOf('action')).toBe('auto')
 
@@ -115,7 +149,7 @@ describe('OathGameSession — Undo and the history gate', () => {
     })
 
     it('offers nothing and sends nothing while history is on screen', async () => {
-        const session = openSession()
+        const session = await openSession()
         const [first] = session.search.drawn
         vi.spyOn(session, 'isViewingHistory', 'get').mockReturnValue(true)
         expect(session.liveSeatId).toBeUndefined()
@@ -129,21 +163,30 @@ describe('OathGameSession — Undo and the history gate', () => {
 describe('R-6.1, R-7.3.3 — turning a facedown adviser faceup asks its When Played choices', () => {
     const SALAD_DAYS = 'denizen.hearth.salad-days'
 
-    function flipping() {
+    async function flipping() {
         const state = testState(
-            [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: SALAD_DAYS, faceUp: false }] })],
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: SALAD_DAYS, faceUp: false }]
+                })
+            ],
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
         return { session, sent }
     }
 
     it('Salad Days turned faceup starts with no bank picked, waits for three different banks, then sends them', async () => {
-        const { session, sent } = flipping()
-        const faceup = session.facedownAdviserOptions[0].placements.find((p) => p.play === SearchPlay.Adviser)
+        const { session, sent } = await flipping()
+        const faceup = session.facedownAdviserOptions[0].placements.find(
+            (p) => p.play === SearchPlay.Adviser
+        )
         expect(faceup).toBeDefined()
 
         await session.chooseAdviserPlay(SALAD_DAYS, SearchPlay.Adviser)
@@ -163,12 +206,14 @@ describe('R-6.1, R-7.3.3 — turning a facedown adviser faceup asks its When Pla
         await session.confirmAdviserPlay()
         const action = sent.mock.calls[0][0]
         assert(isPlayFacedownAdviser(action), 'the flip is sent')
-        const banks = (action.choices ?? []).map((c) => (c.kind === PowerChoiceKind.FavorBank ? c.suit : undefined))
+        const banks = (action.choices ?? []).map((c) =>
+            c.kind === PowerChoiceKind.FavorBank ? c.suit : undefined
+        )
         expect(new Set(banks).size).toBe(3)
     })
 
     it('a play that shows no card is sent at once', async () => {
-        const { session, sent } = flipping()
+        const { session, sent } = await flipping()
         await session.chooseAdviserPlay(SALAD_DAYS, SearchPlay.Discard)
         expect(sent).toHaveBeenCalledOnce()
     })
@@ -178,9 +223,19 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
     it('stages the site play, offers the region’s sites and a card to discard there, and sends them', async () => {
         const ERRAND_BOY = 'denizen.beast.errand-boy'
         const WAYSIDE_INN = 'denizen.hearth.wayside-inn'
-        const full = Array.from({ length: FIXTURE_SITE_CAPACITY - 1 }, (_, i) => `denizen.order.filler-${i}`)
+        const full = Array.from(
+            { length: FIXTURE_SITE_CAPACITY - 1 },
+            (_, i) => `denizen.order.filler-${i}`
+        )
         const state = testState(
-            [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: ERRAND_BOY, faceUp: false }] })],
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: ERRAND_BOY, faceUp: false }]
+                })
+            ],
             {
                 machineState: MachineState.ActPhase,
                 denizensBySite: { c1: [], c2: [WAYSIDE_INN, ...full], p1: [] },
@@ -191,7 +246,7 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
             }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
 
@@ -214,10 +269,23 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
 
     it('at their own full site, the site play opens once a card there is picked to discard first, and is sent with it', async () => {
         const ERRAND_BOY = 'denizen.beast.errand-boy'
-        const here = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
-        const there = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.elsewhere-${i}`)
+        const here = Array.from(
+            { length: FIXTURE_SITE_CAPACITY },
+            (_, i) => `denizen.order.filler-${i}`
+        )
+        const there = Array.from(
+            { length: FIXTURE_SITE_CAPACITY },
+            (_, i) => `denizen.order.elsewhere-${i}`
+        )
         const state = testState(
-            [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: ERRAND_BOY, faceUp: false }] })],
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: ERRAND_BOY, faceUp: false }]
+                })
+            ],
             {
                 machineState: MachineState.ActPhase,
                 denizensBySite: { c1: here, c2: there, p1: [] },
@@ -228,7 +296,7 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
             }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
 
@@ -247,8 +315,101 @@ describe("R-6.1, R-5.1.4.I — the People's Favor's holder plays a facedown advi
     })
 })
 
+describe("R-6.1, R-5.1.4.I — Great Herd turned faceup to a site is not offered the card the People's Favor discards first", () => {
+    const GREAT_HERD = 'denizen.nomad.great-herd'
+    const TENTS = 'denizen.nomad.tents'
+    const ORACLE = 'denizen.nomad.oracle'
+
+    async function flippingHerd() {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: GREAT_HERD, faceUp: false }]
+                })
+            ],
+            {
+                machineState: MachineState.ActPhase,
+                denizensBySite: { c1: [], c2: [TENTS], p1: [], h1: [ORACLE] },
+                banners: {
+                    [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: 'me' },
+                    [Banner.DarkestSecret]: { value: 1 }
+                }
+            }
+        )
+        openTurn(state, 'me')
+        const session = await openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+        return { state, session, sent }
+    }
+
+    const cardsOf = (choices: readonly LegalChoice[]) =>
+        choices.flatMap((legal) =>
+            legal.options.flatMap((option) =>
+                option.kind === PowerChoiceKind.Card ? [option.cardId] : []
+            )
+        )
+    const targets = (session: Awaited<ReturnType<typeof flippingHerd>>['session']) =>
+        cardsOf(session.adviserPlayChoices)
+
+    it("on the player's own view, the play's map changes and the targets are the server's", async () => {
+        const { state } = await flippingHerd()
+        const me: Visibility.Perspective = { kind: 'player', playerId: 'me' }
+        const own = OathVisibility.state.guardForExecution(
+            new HydratedOathGameState(served(state, me)),
+            me
+        )
+        for (const view of [state, own]) {
+            const mapChanges = playMapChanges(view, 'me', GREAT_HERD, SearchPlay.Site, {
+                discardFirstCardId: TENTS
+            })
+            expect(mapChanges.leaving).toEqual([TENTS])
+            expect(
+                cardsOf(
+                    whenPlayedChoices(view, 'me', GREAT_HERD, SearchPlay.Site, true, mapChanges)
+                )
+            ).toEqual([ORACLE])
+        }
+    })
+
+    it('with Tents discarded first, only the Oracle is offered, and the play is sent with it', async () => {
+        const { session, sent } = await flippingHerd()
+        await session.chooseAdviserPlay(GREAT_HERD, SearchPlay.Site)
+        expect(targets(session)).toEqual([TENTS, ORACLE])
+        expect(session.adviserDiscardFirstOptions).toContain(TENTS)
+
+        session.setAdviserDiscardFirst(TENTS)
+        expect(targets(session)).toEqual([ORACLE])
+        session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.discardFirstCardId).toBe(TENTS)
+        expect(action.choices).toEqual([{ kind: PowerChoiceKind.Card, cardId: ORACLE }])
+    })
+
+    it('a pick of Tents made before Tents is picked to go first is dropped with it', async () => {
+        const { session } = await flippingHerd()
+        await session.chooseAdviserPlay(GREAT_HERD, SearchPlay.Site)
+        session.setAdviserPlayPicks({
+            ...emptyPicks(),
+            option: { 0: targets(session).indexOf(TENTS) }
+        })
+        expect(session.adviserPlayPicks.option).toEqual({ 0: 0 })
+
+        session.setAdviserDiscardFirst(TENTS)
+        expect(session.adviserPlayPicks).toEqual(emptyPicks())
+        expect(targets(session)).toEqual([ORACLE])
+    })
+})
+
 describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', () => {
-    it('waits for the take, then sends it with the play', async () => {
+    /** The facedown Conspiracy opened for its take: ann, at this seat's site, holds a relic. */
+    async function openTake() {
         const state = testState(
             [
                 testPlayer({
@@ -273,15 +434,20 @@ describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', 
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
         session.chooseAdviser('vision.conspiracy')
-
         await session.chooseAdviserPlay('vision.conspiracy', SearchPlay.Conspiracy)
+        return { session, sent }
+    }
+
+    it('waits for the take, then sends it with the play', async () => {
+        const { session, sent } = await openTake()
         expect(sent).not.toHaveBeenCalled()
         expect(session.adviserConspiracyTargets).toEqual(['ann'])
         session.setAdviserConspiracyPick({ targetPlayerId: 'ann', prizeIndex: 0 })
+        expect(session.adviserPlayComplete).toBe(true)
         await session.confirmAdviserPlay()
         const action = sent.mock.calls[0][0]
         assert(isPlayFacedownAdviser(action), 'the flip is sent')
@@ -289,6 +455,25 @@ describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup offers its take', 
             targetPlayerId: 'ann',
             take: { kind: 'relic', cardId: 'relic.cup-of-plenty' }
         })
+    })
+
+    it('Play is ready with nobody picked, not with a player alone, and again once the player is dropped', async () => {
+        const { session, sent } = await openTake()
+        expect(session.adviserPlayComplete).toBe(true)
+
+        session.setAdviserConspiracyPick({ targetPlayerId: 'ann' })
+        expect(session.adviserPlayComplete).toBe(false)
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        expect(sent).not.toHaveBeenCalled()
+
+        session.setAdviserConspiracyPick({})
+        expect(session.adviserPlayComplete).toBe(true)
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the flip is sent')
+        expect(action.play).toBe(SearchPlay.Conspiracy)
+        expect(action.conspiracy).toBeUndefined()
     })
 })
 
@@ -318,7 +503,7 @@ describe('R-6.1, R-5.1.4.IV — turning the Conspiracy faceup with no one to tak
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
         session.chooseAdviser('vision.conspiracy')
@@ -366,7 +551,7 @@ describe('R-6.1, R-7.6.4 — turning a limiter faceup at the limit discards firs
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.PlayFacedownAdviser)
         session.chooseAdviser(SILVER)
@@ -385,21 +570,31 @@ describe('R-6.1, R-7.6.4 — turning a limiter faceup at the limit discards firs
 /** Visual contract, "Coexistence" — one let-peek picker; in this seat's Act Phase it is the staged action. */
 describe('the let-peek picker beside a staged Act Phase action', () => {
     const TUTOR = 'denizen.arcane.tutor'
-    function table(turnPlayerId: string) {
+    async function table(turnPlayerId: string) {
         const state = testState(
             [
-                testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: TUTOR, faceUp: false }] }),
-                testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1', advisers: [{ cardId: 'denizen.beast.wolves', faceUp: false }] })
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: TUTOR, faceUp: false }]
+                }),
+                testPlayer({
+                    playerId: 'ann',
+                    color: Color.Blue,
+                    siteId: 'c1',
+                    advisers: [{ cardId: 'denizen.beast.wolves', faceUp: false }]
+                })
             ],
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, turnPlayerId)
         state.activePlayerIds = [turnPlayerId]
-        return openSessionOn(tableOf(state))
+        return await openSessionOn(tableOf(state))
     }
 
-    it('in your Act Phase, the seat card stages Let another peek in place of the staged action, and a second press leaves it', () => {
-        const session = table('me')
+    it('in your Act Phase, the seat card stages Let another peek in place of the staged action, and a second press leaves it', async () => {
+        const session = await table('me')
         session.chooseAction(ActionType.Travel)
         expect(session.letPeekIsStaged).toBe(true)
 
@@ -412,15 +607,15 @@ describe('the let-peek picker beside a staged Act Phase action', () => {
         expect(session.letPeekOpen).toBe(false)
     })
 
-    it('choosing another action from the grid closes the picker', () => {
-        const session = table('me')
+    it('choosing another action from the grid closes the picker', async () => {
+        const session = await table('me')
         session.toggleLetPeek()
         session.chooseAction(ActionType.Travel)
         expect(session.letPeekOpen).toBe(false)
     })
 
     it('in your Act Phase, Undo closes the picker, as it puts down any staged action', async () => {
-        const session = table('me')
+        const session = await table('me')
         session.toggleLetPeek()
         expect(session.hasManualDraft).toBe(true)
         await session.undo()
@@ -434,13 +629,18 @@ describe('R-6.1, R-9.4 — letting another player peek', () => {
         const TUTOR = 'denizen.arcane.tutor'
         const state = testState(
             [
-                testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: TUTOR, faceUp: false }] }),
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: TUTOR, faceUp: false }]
+                }),
                 testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1' })
             ],
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         session.selection.set('action', ActionType.LetPeek)
         const subject: LetPeekSubject = { kind: LetPeekSubjectKind.Adviser, cardId: TUTOR }
@@ -456,13 +656,18 @@ describe('R-6.1, R-9.4 — letting another player peek', () => {
         const TUTOR = 'denizen.arcane.tutor'
         const state = testState(
             [
-                testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', advisers: [{ cardId: TUTOR, faceUp: false }] }),
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: TUTOR, faceUp: false }]
+                }),
                 testPlayer({ playerId: 'ann', color: Color.Blue, siteId: 'c1' })
             ],
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, 'me')
-        const session = openSessionOn(tableOf(state))
+        const session = await openSessionOn(tableOf(state))
         const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
         expect(session.selection.action).toBeUndefined()
         expect(session.canLetPeek).toBe(true)
@@ -470,7 +675,7 @@ describe('R-6.1, R-9.4 — letting another player peek', () => {
 
         session.toggleLetPeek()
         expect(session.letPeekOpen).toBe(true)
-        session.beforeNewState()
+        session.beforeNewState({ kind: 'other-action', actions: [], intent: 'silent' })
         expect(session.letPeekOpen).toBe(false)
 
         session.toggleLetPeek()
@@ -486,7 +691,7 @@ describe('R-6.1, R-9.4 — letting another player peek', () => {
 describe('R-6.1, R-9.4 — the card the Show menu shows', () => {
     const TUTOR = 'denizen.arcane.tutor'
     const WOLVES = 'denizen.beast.wolves'
-    function table(myAdvisers: string[]) {
+    async function table(myAdvisers: string[]) {
         const state = testState(
             [
                 testPlayer({
@@ -500,11 +705,11 @@ describe('R-6.1, R-9.4 — the card the Show menu shows', () => {
             { machineState: MachineState.ActPhase }
         )
         openTurn(state, 'me')
-        return openSessionOn(tableOf(state))
+        return await openSessionOn(tableOf(state))
     }
 
     it('in your Act Phase, two cards start unpicked; a tap picks one, a tap on another moves it, and Undo takes it back before the menu', async () => {
-        const session = table([TUTOR, WOLVES])
+        const session = await table([TUTOR, WOLVES])
         session.toggleLetPeek()
         expect(session.letPeekPicked).toBeUndefined()
 
@@ -521,11 +726,75 @@ describe('R-6.1, R-9.4 — the card the Show menu shows', () => {
     })
 
     it('one card to show starts picked and stores nothing, so Undo closes the menu', async () => {
-        const session = table([TUTOR])
+        const session = await table([TUTOR])
         session.toggleLetPeek()
         expect(session.letPeekPicked).toBe(TUTOR)
         await session.undo()
         expect(session.letPeekOpen).toBe(false)
         expect(session.hasManualDraft).toBe(false)
+    })
+})
+
+describe('R-6.1, R-7.3.3 — Bewitch turned faceup to a site counts the secret Book of Records gains first', () => {
+    const BEWITCH = 'denizen.arcane.bewitch'
+    const BOOK = 'relic.book-of-records'
+
+    /** The seat, an Exile with 2 secrets, holds Bewitch facedown and Book of Records; the Chancellor holds 2. */
+    async function flippingBewitch(oathRevision: OathRevision) {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1',
+                    secrets: 2,
+                    relicIds: [BOOK],
+                    advisers: [{ cardId: BEWITCH, faceUp: false }]
+                }),
+                testPlayer({
+                    playerId: 'ann',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h1',
+                    secrets: 2,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+                })
+            ],
+            {
+                machineState: MachineState.ActPhase,
+                oathRevision,
+                chancellorPlayerId: 'ann',
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] }
+            }
+        )
+        openTurn(state, 'me')
+        const session = await openSessionOn(tableOf(state))
+        const sent = vi.spyOn(session, 'applyAction').mockResolvedValue()
+        session.selection.set('action', ActionType.PlayFacedownAdviser)
+        return { session, sent }
+    }
+
+    it('from revision 16, the play waits for the yes, which the engine accepts, and is sent with it', async () => {
+        const { session, sent } = await flippingBewitch(OathRevision.EngineFixes12)
+        await session.chooseAdviserPlay(BEWITCH, SearchPlay.Site)
+        expect(sent).not.toHaveBeenCalled()
+        expect(session.adviserPlayChoices.map((legal) => legal.options)).toEqual([
+            [{ kind: PowerChoiceKind.Yes }]
+        ])
+        session.setAdviserPlayPicks({ ...emptyPicks(), option: { 0: 0 } })
+        expect(session.adviserPlayReason).toBeUndefined()
+        await session.confirmAdviserPlay()
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.choices).toEqual([{ kind: PowerChoiceKind.Yes }])
+    })
+
+    it('before revision 16, nothing is asked: the play is sent at once, with no choice', async () => {
+        const { session, sent } = await flippingBewitch(OathRevision.EngineFixes11)
+        await session.chooseAdviserPlay(BEWITCH, SearchPlay.Site)
+        const action = sent.mock.calls[0][0]
+        assert(isPlayFacedownAdviser(action), 'the play is sent')
+        expect(action.choices ?? []).toEqual([])
     })
 })

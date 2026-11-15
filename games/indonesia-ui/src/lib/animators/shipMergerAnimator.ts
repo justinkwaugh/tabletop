@@ -74,7 +74,10 @@ export class ShipMergerAnimator {
         if (!from || !action) {
             return
         }
-        if (!isMergeCompanies(action) || action.metadata?.proposal.companyType !== CompanyType.Shipping) {
+        if (
+            !isMergeCompanies(action) ||
+            action.metadata?.proposal.companyType !== CompanyType.Shipping
+        ) {
             return
         }
 

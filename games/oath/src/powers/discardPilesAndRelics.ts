@@ -1,6 +1,7 @@
 import { bannerHolder } from '../util/oathkeeper.js'
 import { Banner } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
+import { regionName } from '../data/mapSlots.js'
 import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
 import {
     one,
@@ -9,7 +10,13 @@ import {
     relicSlotChoicesAtYourSite,
     reliquarySlotChoices
 } from '../util/powerChoice.js'
-import { becomeCitizenByPower, exileRefusal, visionDeposits } from '../util/citizenship.js'
+import {
+    becameImperialWords,
+    becomeCitizenByPower,
+    citizenOnYes,
+    exileRefusal,
+    visionDeposits
+} from '../util/citizenship.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { giveBanner } from '../util/seize.js'
@@ -109,7 +116,7 @@ registerEffect(
             const region = regionOfPawn(ctx.state, ctx.playerId)
             if (ctx.reveal?.kind === 'peek') seeDiscardPile(ctx.state, ctx.playerId, region, seen)
             return {
-                summary: `Tavern Songs: peeked at the top ${seen.length} cards of the ${region} discard pile`,
+                summary: `Tavern Songs: peeked at the top ${seen.length} cards of the ${regionName(region)} discard pile`,
                 peeked: seen
             }
         }
@@ -132,7 +139,7 @@ registerEffect(
             if (ctx.reveal?.kind === 'peek')
                 seeDiscardPile(ctx.state, ctx.playerId, pick.region, seen)
             return {
-                summary: `Scryer: peeked at the ${pick.region} discard pile (${seen.length} cards)`,
+                summary: `Scryer: peeked at the ${regionName(pick.region)} discard pile (${seen.length} cards)`,
                 peeked: seen
             }
         }
@@ -179,7 +186,7 @@ registerEffect('denizen.nomad.convoys', powerIndexOf('denizen.nomad.convoys', Po
         delete backs[pick.region]
         ctx.state.discardTopBackType = backs
         return {
-            summary: `Convoys: moved the ${pick.region} discard pile (${moved} cards) onto the ${to} pile`,
+            summary: `Convoys: moved the ${regionName(pick.region)} discard pile (${moved} cards) onto the ${regionName(to)} pile`,
             mergePiles: { from: pick.region, to }
         }
     }
@@ -189,6 +196,8 @@ registerEffect('denizen.nomad.convoys', powerIndexOf('denizen.nomad.convoys', Po
 registerEffect('denizen.nomad.oracle', powerIndexOf('denizen.nomad.oracle', PowerTiming.Action), {
     choices: [],
     tollOccasion: { kind: 'asIfSearched' },
+    // Its Q&A: the Cracked Horn may take the Vision discarded ("Yes!"); R-6.1: "Restrictions and modifiers apply".
+    playsAsIfSearched: true,
     hidden: () => ({ kind: 'worldDeckVision' }),
     resolve: (ctx) => {
         if (ctx.reveal?.kind !== 'vision')
@@ -254,6 +263,7 @@ function citizenshipWithRelic(
                 return `${name}: name the Reliquary relic to take`
             return condition(ctx.state, ctx.playerId)
         },
+        statusAfter: citizenOnYes,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
                 return { summary: `${name}: stayed an Exile` }
@@ -262,7 +272,7 @@ function citizenshipWithRelic(
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             const relic = takeReliquaryRelic(ctx, slot.slotId)
             return {
-                summary: `${name}: became a Citizen (${c.replacedCount} warbands became Imperial), took ${relic.relicCardId ?? 'a Reliquary relic'}${takeNotes(relic.notes)}; Supply refreshed, Act Phase over`,
+                summary: `${name}: became a Citizen (${becameImperialWords(c)}), took ${relic.relicCardId ?? 'a Reliquary relic'}${takeNotes(relic.notes)}; Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }

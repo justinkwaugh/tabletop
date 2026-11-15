@@ -106,6 +106,21 @@ describe('tile topology', () => {
         expect(city.nodes[0]).toMatchObject({ kind: 'city', stationSlots: 2 })
     })
 
+    it('accepts narrow and dual gauge paths beside standard track', () => {
+        const [path] = StandardTileCatalog.get('18xx:7').face.paths
+        const face = parseTileFace({
+            ...StandardTileCatalog.get('18xx:7').face,
+            paths: [{ ...path, gauge: 'narrow' }]
+        })
+        expect(face.paths[0].gauge).toBe('narrow')
+        expect(
+            parseTileFace({
+                ...StandardTileCatalog.get('18xx:7').face,
+                paths: [{ ...path, gauge: 'dual' }]
+            }).paths[0].gauge
+        ).toBe('dual')
+    })
+
     it('supports unnumbered preprinted tiles, separate cities, and title-owned revenue stages', () => {
         const printed: TileFace = {
             color: 'gray',
@@ -227,7 +242,7 @@ describe('tile topology', () => {
                 }
             ]
         },
-        { paths: [{ ...StandardTileCatalog.get('18xx:7').face.paths[0], gauge: 'dual' }] },
+        { paths: [{ ...StandardTileCatalog.get('18xx:7').face.paths[0], gauge: 'broad' }] },
         { supply: 5 }
     ])('rejects invalid or unsupported topology: %j', (changes) => {
         expect(() =>

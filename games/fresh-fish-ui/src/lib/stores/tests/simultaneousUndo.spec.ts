@@ -18,7 +18,12 @@ import {
     createHarnessAppContext,
     type GameUiDefinition
 } from '@tabletop/frontend-components'
-import { ActionType, FreshFishRuntime, type FreshFishGameState } from '@tabletop/fresh-fish'
+import {
+    ActionType,
+    FreshFishRuntime,
+    FreshFishVisibility,
+    type FreshFishGameState
+} from '@tabletop/fresh-fish'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { FreshFishUiRuntime } from '../../definition/gameUiRuntime.js'
 import { UiDefinition } from '../../index.js'
@@ -113,7 +118,7 @@ function projectUndoResult(
         currentState: host.state,
         actions: undoResult.actionReplay.actions,
         startIndex: undoResult.actionReplay.startIndex,
-        visibility: FreshFishRuntime.visibility,
+        visibility: FreshFishVisibility,
         perspective,
         replay: { game: host.game, runtime: FreshFishRuntime }
     })

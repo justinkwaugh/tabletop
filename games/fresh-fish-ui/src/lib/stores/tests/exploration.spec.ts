@@ -15,6 +15,8 @@ import {
     diskAction,
     drawStall,
     explorationClient,
+    freshFishExploration,
+    populateExploration,
     project,
     settleExploration
 } from './exploration.fixture.js'
@@ -32,7 +34,7 @@ describe('hypothetical exploration', () => {
             delete host.game.protectedInformation
             host.state.systemVersion = version
             delete host.state.protectedPrng
-            const populate = vi.spyOn(FreshFishRuntime.exploration, 'createFromProjectedState')
+            const populate = vi.spyOn(freshFishExploration, 'createFromProjectedState')
             const client = explorationClient(host)
             try {
                 expect(client.session.gameState?.tileBag.items).toEqual(host.state.tileBag.items)
@@ -91,9 +93,9 @@ describe('hypothetical exploration', () => {
         const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
             ...FreshFishUiRuntime,
             exploration: {
-                createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState,
+                createFromCanonicalState: freshFishExploration.createFromCanonicalState,
                 createFromProjectedState(input) {
-                    const state = FreshFishRuntime.exploration.createFromProjectedState(input)
+                    const state = populateExploration(input)
                     Reflect.deleteProperty(state, 'board')
                     return state
                 }
@@ -114,7 +116,7 @@ describe('hypothetical exploration', () => {
         drawStall(host)
         const populate = () => {
             const history = project(host, PLAYER_B_PERSPECTIVE)
-            return FreshFishRuntime.exploration.createFromProjectedState({
+            return populateExploration({
                 game: host.game,
                 state: history.currentState,
                 actions: history.actions,
@@ -139,7 +141,7 @@ describe('hypothetical exploration', () => {
         host.apply(createBid('a', PLAYER_A_ID, 8))
         host.apply(createBid('b', PLAYER_B_ID, 3))
         const history = project(host, PLAYER_B_PERSPECTIVE)
-        const state = FreshFishRuntime.exploration.createFromProjectedState({
+        const state = populateExploration({
             game: host.game,
             state: history.currentState,
             actions: history.actions,
@@ -170,7 +172,7 @@ describe('hypothetical exploration', () => {
         )
         const state = project(host, PLAYER_B_PERSPECTIVE).currentState
         state.tileBag.remaining = 0
-        const result = FreshFishRuntime.exploration.createFromProjectedState({
+        const result = populateExploration({
             game: host.game,
             state,
             actions,
@@ -180,7 +182,7 @@ describe('hypothetical exploration', () => {
         expect(result.tileBag).toEqual({ items: [], remaining: 0 })
         expect(result.finalStalls).toEqual(state.finalStalls)
         expect(() =>
-            FreshFishRuntime.exploration.createFromProjectedState({
+            populateExploration({
                 game: host.game,
                 state,
                 actions: actions.slice(1),
@@ -258,7 +260,7 @@ describe('hypothetical exploration', () => {
         const runtime = {
             ...FreshFishUiRuntime,
             exploration: {
-                createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState
+                createFromCanonicalState: freshFishExploration.createFromCanonicalState
             },
             initializer: {
                 initializeGame: initializer.initializeGame.bind(initializer),

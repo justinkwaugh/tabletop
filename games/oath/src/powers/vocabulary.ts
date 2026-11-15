@@ -1,10 +1,12 @@
 import { assert, assertExists } from '@tabletop/common'
 import { isLockedFor } from '../util/locked.js'
+import { reasonModifierInUse } from '../util/modifiers.js'
 import { effectiveSiteCapacity } from '../util/capacity.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { Banner, Region, Suit } from '../model/oathEnums.js'
+import { Banner, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import type { WarbandGroup } from '../model/campaign.js'
 import type { PileDeposit } from '../model/hidden.js'
+import type { PlayMapChanges } from './registry.js'
 import { discardCards } from '../util/discard.js'
 import { discardFromPlayInChosenOrder } from '../util/orderedDiscard.js'
 import {
@@ -12,10 +14,9 @@ import {
     addWarbandsToSite,
     killWarbands,
     removeWarbandsFrom,
-    boardOwnersOwnFirst,
+    boardGroupToKill,
     boardWarbandGroups
 } from '../util/force.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { warbandsAt, warbandsFreeToLeave } from '../util/rule.js'
 import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
 import { burnFromBanner } from '../util/seize.js'
@@ -35,8 +36,12 @@ export {
 export { denizensOnMap } from '../util/access.js'
 export { rollDefenseShields } from '../data/dice.js'
 
-export function cardSuitIsOneOf(cardId: string, suits: readonly Suit[]): boolean {
-    const suit = suitOf(cardId)
+export function cardSuitIsOneOf(
+    state: HydratedOathGameState,
+    cardId: string,
+    suits: readonly Suit[]
+): boolean {
+    const suit = state.suitInPlay(cardId)
     return suit !== undefined && suits.includes(suit)
 }
 
@@ -45,7 +50,7 @@ export function siteHasCardOfSuit(
     siteId: string,
     suit: Suit
 ): boolean {
-    return state.denizensAt(siteId).some((id) => suitOf(id) === suit)
+    return state.denizensAt(siteId).some((id) => state.suitInPlay(id) === suit)
 }
 
 export function faceupSitesWithCardOfSuit(state: HydratedOathGameState, suit: Suit): string[] {
@@ -60,7 +65,7 @@ export function hasFaceupAdviserOfSuit(
     return state
         .getPlayerState(playerId)
         .faceupAdviserIds()
-        .some((cardId) => suitOf(cardId) === suit)
+        .some((cardId) => state.suitInPlay(cardId) === suit)
 }
 
 /** R-10.10 — secrets are not component-limited (R-9.3), so this never falls short. */
@@ -135,13 +140,11 @@ export function killWarbandsOnBoard(
     playerId: string,
     count: number
 ): { owner?: WarbandOwner; killed: number } {
-    const board = state.getPlayerState(playerId).warbandsOnBoard
-    const owner = boardOwnersOwnFirst(state, playerId).find((o) => countOf(board, o) > 0)
-    if (!owner) return { killed: 0 }
-    const killed = Math.min(count, countOf(board, owner))
-    removeWarbandsFrom(state, { kind: 'board', playerId }, owner, killed)
-    killWarbands(state, owner, killed)
-    return { owner, killed }
+    const group = boardGroupToKill(state, playerId, count)
+    if (!group) return { killed: 0 }
+    removeWarbandsFrom(state, group.at, group.owner, group.count)
+    killWarbands(state, group.owner, group.count)
+    return { owner: group.owner, killed: group.count }
 }
 
 /** R-10.13 — largest owner's group first. */
@@ -150,21 +153,39 @@ export function killWarbandsAtSite(
     siteId: string,
     count: number
 ): WarbandCounts {
+    const killed = warbandsKilledFrom(warbandsAt(state, siteId), count)
+    for (const [owner, n] of warbandEntries(killed)) {
+        removeWarbandsFrom(state, { kind: 'site', siteId }, owner, n)
+        killWarbands(state, owner, n)
+    }
+    return killed
+}
+
+/** R-10.13 — the warbands `count` kills among `present`, largest owner's group first (`killWarbandsAtSite`). */
+export function warbandsKilledFrom(present: WarbandCounts, count: number): WarbandCounts {
     const killed: WarbandCounts = {}
     let left = count
-    const present = { ...warbandsAt(state, siteId) }
+    const standing = { ...present }
     while (left > 0) {
-        const [owner, n] = warbandEntries(present).sort((a, b) => b[1] - a[1])[0] ?? []
+        const [owner, n] = warbandEntries(standing).sort((a, b) => b[1] - a[1])[0] ?? []
         if (!owner || !n) break
         const take = Math.min(left, n)
-        removeWarbandsFrom(state, { kind: 'site', siteId }, owner, take)
-        killWarbands(state, owner, take)
         adjustCount(killed, owner, take)
-        present[owner] = n - take
-        if (present[owner] === 0) delete present[owner]
+        standing[owner] = n - take
+        if (standing[owner] === 0) delete standing[owner]
         left -= take
     }
     return killed
+}
+
+/** R-10.13 — the warbands left at a site once `killed` are gone, `state` unchanged. */
+export function warbandsLeftAfterKills(
+    present: WarbandCounts,
+    killed: WarbandCounts
+): WarbandCounts {
+    const left = { ...present }
+    for (const [owner, n] of warbandEntries(killed)) adjustCount(left, owner, -n)
+    return left
 }
 
 /** R-10.5 — the caller detaches the card from its zone. */
@@ -209,6 +230,21 @@ export function denizensAtYourSite(state: HydratedOathGameState, playerId: strin
     return state.denizensAt(pawnSiteId(state, playerId))
 }
 
+/**
+ * "This site" on a card played to a site: the site holding it, which the People's Favor or New Growth may make
+ * another than its player's (R-5.1.4.I). Before revision 16 (R-X.4), its player's own site.
+ */
+export function siteOfPlayedCard(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string
+): string {
+    const holding = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        ? siteHolding(state, cardId)
+        : undefined
+    return holding ?? pawnSiteId(state, playerId)
+}
+
 export function faceupSitesInYourRegion(state: HydratedOathGameState, playerId: string): string[] {
     const region = regionOfPawn(state, playerId)
     return state.faceupSiteIds().filter((s) => state.regionOf(s) === region)
@@ -222,15 +258,53 @@ export function discardDenizensAtSites(
     matches: (cardId: string) => boolean,
     sourceCardId: string
 ): DiscardedDenizens {
-    const discarded = siteIds.flatMap((siteId) =>
-        state
-            .denizensAt(siteId)
-            .filter((id) => matches(id) && !isLockedFor(state, actingPlayerId, id))
-    )
+    const discarded = denizensToDiscardAtSites(state, actingPlayerId, siteIds, matches)
     return {
         discarded,
         pileDeposits: discardFromPlayInChosenOrder(state, actingPlayerId, discarded, sourceCardId)
     }
+}
+
+/**
+ * R-10.5, R-7.2.2 — the denizens `discardDenizensAtSites` takes: those that match and are not locked where they
+ * stand. R-7.4.3, R-9.2 — nor a modifier the Search or R-6.1 play under way uses (from revision 31, when it records
+ * them): its "cannot" outweighs the discard's "must". Given a play's `mapChanges`, on the map that play leaves,
+ * read from the state before the play or after it.
+ */
+export function denizensToDiscardAtSites(
+    state: HydratedOathGameState,
+    actingPlayerId: string,
+    siteIds: readonly string[],
+    matches: (cardId: string) => boolean,
+    mapChanges?: PlayMapChanges
+): string[] {
+    return siteIds.flatMap((siteId) =>
+        denizensAfterPlay(state, siteId, mapChanges).filter(
+            (id) =>
+                matches(id) &&
+                !isLockedFor(state, actingPlayerId, id, siteId) &&
+                reasonModifierInUse(state, id) === undefined
+        )
+    )
+}
+
+/**
+ * R-5.1.4 — the denizens at a site once one play is made: without the cards it discards first, and with the card it
+ * puts there. Before the play that card is at no site yet; after it, it stands there already.
+ */
+export function denizensAfterPlay(
+    state: HydratedOathGameState,
+    siteId: string,
+    mapChanges: PlayMapChanges | undefined
+): string[] {
+    const staying = state
+        .denizensAt(siteId)
+        .filter((id) => !(mapChanges?.leaving ?? []).includes(id))
+    const arriving =
+        mapChanges?.siteId === siteId
+            ? mapChanges.arriving.filter((id) => siteHolding(state, id) === undefined)
+            : []
+    return [...staying, ...arriving]
 }
 
 export interface DiscardedDenizens {
@@ -238,16 +312,16 @@ export interface DiscardedDenizens {
     pileDeposits: PileDeposit[]
 }
 
-/** R-7.1.3 */
+/** R-7.1.3 — what picks of these banks yield from the counts the banks hold. */
 export function favorObtainableFromPicks(
-    state: HydratedOathGameState,
+    favorBank: Readonly<Record<Suit, number>>,
     suits: readonly Suit[]
 ): number {
     const wanted = new Map<Suit, number>()
     for (const suit of suits) wanted.set(suit, (wanted.get(suit) ?? 0) + 1)
     let obtainable = 0
     for (const [suit, count] of wanted) {
-        obtainable += Math.min(count, state.favorBank[suit])
+        obtainable += Math.min(count, favorBank[suit])
     }
     return obtainable
 }
@@ -258,7 +332,7 @@ export function ruledCardsOfSuit(
     playerId: string,
     suit: Suit
 ): string[] {
-    return ruledFaceupCardIds(state, playerId).filter((id) => suitOf(id) === suit)
+    return ruledFaceupCardIds(state, playerId).filter((id) => state.suitInPlay(id) === suit)
 }
 
 export function moveFavorBetweenBanks(
@@ -275,20 +349,20 @@ export function moveFavorBetweenBanks(
 
 /**
  * R-10.25 — a 1:1 swap leaves capacity unchanged; the caller's domain refuses a locked target (R-7.2.2).
- * From revision 10, two cards at one site swap to the same place, so nothing moves.
+ * From revision 10, two cards at one site swap to the same place, so nothing moves. Says whether they moved.
  */
 export function swapPlayedCardWithSiteCard(
     state: HydratedOathGameState,
     playerId: string,
     playedCardId: string,
     siteCardId: string
-): void {
+): boolean {
     const targetSite = siteHolding(state, siteCardId)
     assertExists(targetSite, `${siteCardId} is a denizen at a site`)
     const player = state.getPlayerState(playerId)
     const playedAtSite = siteHolding(state, playedCardId)
     if (playedAtSite === targetSite && isAtLeastOathRevision(state, OathRevision.EngineFixes6)) {
-        return
+        return false
     }
     if (playedAtSite) {
         state.denizensBySite[playedAtSite] = state.denizensBySite[playedAtSite].map((id) =>
@@ -304,6 +378,7 @@ export function swapPlayedCardWithSiteCard(
     state.denizensBySite[targetSite] = state.denizensBySite[targetSite].map((id) =>
         id === siteCardId ? playedCardId : id
     )
+    return true
 }
 
 export function moveWarbandsBoardToSite(
@@ -319,6 +394,63 @@ export function moveWarbandsBoardToSite(
     removeWarbandsFrom(state, { kind: 'board', playerId }, owner, moved)
     addWarbandsToSite(state, siteId, owner, moved)
     return moved
+}
+
+/**
+ * R-6.5 — the state a run of `playerId`'s warband moves is checked on: the warbands at sites and on
+ * their board are copied and every other read goes to `state`, so the check reads nothing their own
+ * view lacks (a whole-state copy reads host-only and hidden values). Other writes are refused.
+ */
+export function warbandMovesOverlay(
+    state: HydratedOathGameState,
+    playerId: string
+): HydratedOathGameState {
+    const mover = state.getPlayerState(playerId)
+    const board = withOverrides(mover, { warbandsOnBoard: { ...mover.warbandsOnBoard } })
+    const warbandsBySite: Record<string, WarbandCounts> = Object.fromEntries(
+        Object.entries(state.warbandsBySite).map(([siteId, counts]) => [siteId, { ...counts }])
+    )
+    return withOverrides(state, {
+        players: state.players.map((player) => (player.playerId === playerId ? board : player)),
+        warbandsBySite
+    })
+}
+
+/**
+ * R-7.3.3-H3 — the state a check made before a play reads, with the warbands at the sites that play changes as it
+ * leaves them (`PlayMapChanges.warbandsBySite`): every other read goes to `state`, and writes are refused.
+ */
+export function siteWarbandsOverlay(
+    state: HydratedOathGameState,
+    changed: Readonly<Record<string, WarbandCounts>>
+): HydratedOathGameState {
+    return withOverrides(state, { warbandsBySite: { ...state.warbandsBySite, ...changed } })
+}
+
+/**
+ * R-7.3.3-H3 — the state a check made before a play reads, with `playerId`'s status as that play leaves it
+ * (`PlayMapChanges.status`), so who is whose enemy is read on it (R-10.12): every other read goes to `state`, and
+ * writes are refused.
+ */
+export function playerStatusOverlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    status: PlayerStatus
+): HydratedOathGameState {
+    const player = withOverrides(state.getPlayerState(playerId), { status })
+    return withOverrides(state, {
+        players: state.players.map((other) => (other.playerId === playerId ? player : other))
+    })
+}
+
+function withOverrides<T extends object>(target: T, overrides: Partial<T>): T {
+    return new Proxy(target, {
+        get: (from, property, receiver) =>
+            Object.hasOwn(overrides, property)
+                ? Reflect.get(overrides, property)
+                : Reflect.get(from, property, receiver),
+        set: () => false
+    })
 }
 
 /** R-6.5 — never the last warband at the site, which keeps rule of the site stable. */

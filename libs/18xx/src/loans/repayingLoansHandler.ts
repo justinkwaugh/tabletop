@@ -73,7 +73,7 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
             )
         if (!isTakeLoan(action) && !isRepayLoan(action) && !isFinishOperatingTurn(action))
             return false
-        if (action.companyId !== companyId) return false
+        if (action.companyId !== companyId || action.playerId === undefined) return false
         if (isFinishOperatingTurn(action) && action.source === ActionSource.System)
             return this.onlyFinishing(state, action.playerId)
         return (

@@ -1,5 +1,6 @@
+import { FreshFishInfo } from './info.js'
 import { FreshFishGameExploration } from './gameExploration.js'
-import { type GameRuntime, Visibility } from '@tabletop/common'
+import { defineGame, type GameRuntime, Visibility } from '@tabletop/common'
 import {
     FreshFishGameStateValidator,
     FreshFishGameState,
@@ -8,14 +9,19 @@ import {
 } from '../model/gameState.js'
 import { FreshFishHydrator } from './hydrator.js'
 import { FreshFishGameInitializer } from './gameInitializer.js'
-import { FreshFishStateLogger } from '../util/stateLogger.js'
 import { FreshFishActionSchemas } from './actionSchemas.js'
 import { FreshFishApiActions } from './apiActions.js'
 import { FreshFishStateHandlers } from './stateHandlers.js'
 import { FreshFishColors } from './colors.js'
 import { FreshFishScoring } from './scoring.js'
+import { FreshFishProgression } from './progression.js'
 
-export const FreshFishRuntime = {
+export const FreshFishVisibility = {
+    state: Visibility.createProjector(FreshFishGameState),
+    actions: Visibility.createActionProjector(FreshFishActionSchemas)
+}
+
+const runtime = {
     randomnessVersion: 1,
     initializer: new FreshFishGameInitializer(),
     exploration: new FreshFishGameExploration(),
@@ -24,10 +30,14 @@ export const FreshFishRuntime = {
     stateHandlers: FreshFishStateHandlers,
     apiActions: FreshFishApiActions,
     playerColors: FreshFishColors,
-    stateLogger: new FreshFishStateLogger(),
     scoring: new FreshFishScoring(),
-    visibility: {
-        state: Visibility.createProjector(FreshFishGameState),
-        actions: Visibility.createActionProjector(FreshFishActionSchemas)
-    }
-} satisfies GameRuntime<FreshFishProjectedState, HydratedFreshFishGameState>
+    progression: new FreshFishProgression(),
+    visibility: FreshFishVisibility
+} satisfies Omit<GameRuntime<FreshFishProjectedState, HydratedFreshFishGameState>, 'configuration'>
+
+export const Definition = defineGame<FreshFishProjectedState, HydratedFreshFishGameState>({
+    info: FreshFishInfo,
+    runtime
+})
+
+export const FreshFishRuntime = Definition.runtime

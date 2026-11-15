@@ -130,6 +130,14 @@ export default [
             ]
         }
     },
+    {
+        files: [...tsFiles, '**/*.svelte'],
+        rules: {
+            // `import { type X }` compiles to `import {}` under verbatimModuleSyntax, which still
+            // loads the module and can pull it into a game's up-front bundle.
+            '@typescript-eslint/no-import-type-side-effects': 'error'
+        }
+    },
     ...(untypedTsFiles.length > 0
         ? scopeTo(untypedTsFiles, [
               tsPlugin.configs['flat/disable-type-checked'],

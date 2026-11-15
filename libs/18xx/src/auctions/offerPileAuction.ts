@@ -6,6 +6,7 @@ import {
     assert,
     assertExists
 } from '@tabletop/common'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 import type { StockState } from '../stock/stockState.js'
 import { AuctionAward, type AuctionLot } from './waterfallAuction.js'
@@ -47,13 +48,14 @@ export interface OfferPileAuctionRules {
     increment: number
     autoOfferSingleLot?: boolean
     award(state: OfferAuctionState, award: AuctionAward): void
-    payIncome(state: OfferAuctionState): void
+    incomePayments(state: OfferAuctionState): CashPayment[]
     firstStockOrder(state: OfferAuctionState): string[]
 }
 export type OfferAuctionResolution =
-    | { kind: 'award'; award: AuctionAward }
-    | { kind: 'income' }
-    | { kind: 'complete' }
+    { kind: 'award'; award: AuctionAward } | { kind: 'income' } | { kind: 'complete' }
+export type ResolvedOfferAuction =
+    | Exclude<OfferAuctionResolution, { kind: 'income' }>
+    | { kind: 'income'; payments: CashPayment[] }
 export class OfferAuction {
     constructor(
         private readonly state: OfferAuctionState,
@@ -189,16 +191,17 @@ export class OfferAuction {
             ? { kind: 'award', award: { lotId: bidding.lotId, playerId, price } }
             : { kind: 'income' }
     }
-    resolve(): OfferAuctionResolution {
+    resolve(): ResolvedOfferAuction {
         const resolution = this.resolution()
         assertExists(resolution, 'No auction consequence pending')
         if (resolution.kind === 'income') {
-            const before = this.state.players.reduce((sum, p) => sum + this.cash(p.playerId), 0)
-            this.rules.payIncome(this.state)
-            this.auction.stalled =
-                this.state.players.reduce((sum, p) => sum + this.cash(p.playerId), 0) === before
+            const payments = this.rules.incomePayments(this.state)
+            settleCashPayments(this.state, payments)
+            this.auction.stalled = !payments.length
             this.auction.incomePayments++
-        } else if (resolution.kind === 'award') {
+            return { kind: 'income', payments }
+        }
+        if (resolution.kind === 'award') {
             this.rules.award(this.state, resolution.award)
             this.auction.awards.push(resolution.award)
             const pile = this.auction.piles.find(

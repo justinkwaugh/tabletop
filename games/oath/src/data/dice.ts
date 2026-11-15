@@ -52,6 +52,14 @@ export function attackFromFaces(faces: readonly RolledAttackFace[]): {
 
 /** R-5.5.4.a — doublings stack exponentially and apply to shields only, never warbands. */
 export function defenseShieldsFromFaces(faces: readonly RolledDefenseFace[]): number {
+    return defenseFromFaces(faces).shields
+}
+
+/** R-5.5.4.a — the shields after the doublings, and how many doubling faces there were. */
+export function defenseFromFaces(faces: readonly RolledDefenseFace[]): {
+    shields: number
+    doublings: number
+} {
     let shields = 0
     let doublings = 0
 
@@ -62,7 +70,7 @@ export function defenseShieldsFromFaces(faces: readonly RolledDefenseFace[]): nu
         }
     }
 
-    return shields * 2 ** doublings
+    return { shields: shields * 2 ** doublings, doublings }
 }
 
 /** Rolled from the protected stream in `apply()`, never in the hidden-info resolver. */

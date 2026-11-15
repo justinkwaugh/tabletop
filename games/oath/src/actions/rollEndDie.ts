@@ -11,14 +11,22 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { rollEndDie } from '../data/dice.js'
-import { endDieIsRolled, endDieThreshold, stableRegimeWinner } from '../util/victory.js'
+import { endDieIsRolled, endDieThreshold } from '../util/victory.js'
+import { OpenDealsDropped, PowerQuestionKind } from '../model/question.js'
+import { endDieStepMatters, settleEndDie } from '../util/endDie.js'
+import { endDieAdjuster } from '../util/persistent.js'
+import { askQuestion } from '../util/questions.js'
 
 export type RollEndDieMetadata = Type.Static<typeof RollEndDieMetadata>
 export const RollEndDieMetadata = Type.Object({
     roll: Type.Number(),
     round: Type.Number(),
     threshold: Type.Number(),
-    wonBy: Type.Optional(Type.String())
+    wonBy: Type.Optional(Type.String()),
+    /** R-7.6.3-H1 — the Tribunal deals still open when this roll ended the game, now dropped. */
+    openDealsDropped: Type.Optional(OpenDealsDropped),
+    /** Squalid District — its ruler, asked to raise, lower or leave the roll before it is read. */
+    adjustedBy: Type.Optional(Type.String())
 })
 
 export type RollEndDie = Type.Static<typeof RollEndDie>
@@ -66,14 +74,21 @@ export class HydratedRollEndDie extends HydratableAction<typeof RollEndDie> impl
         // R-X.3: the PRNG advanced, so this action is not undoable.
         this.revealsInfo = true
 
-        const outcome = stableRegimeWinner(state, roll)
-        if (outcome) {
-            state.winningPlayerIds = [outcome.winnerPlayerId]
-            this.metadata = { roll, round, threshold, wonBy: outcome.rule }
+        // Squalid District — its ruler may raise or lower the roll, after it is rolled (its Q&A),
+        // so their answer reads it. They are asked only when one step changes whether the game
+        // ends; any other roll stands, read at once as with no Squalid District.
+        const adjuster = endDieStepMatters(roll, threshold) ? endDieAdjuster(state) : undefined
+        if (adjuster) {
+            askQuestion(state, this.playerId, {
+                kind: PowerQuestionKind.AdjustEndDie,
+                cardId: adjuster.cardId,
+                askedPlayerId: adjuster.playerId,
+                roll
+            })
+            this.metadata = { roll, round, threshold, adjustedBy: adjuster.playerId }
             return
         }
-        state.round += 1
-        this.metadata = { roll, round, threshold }
+        this.metadata = { roll, round, threshold, ...settleEndDie(state, roll) }
     }
 
     static reasonCannotRoll(state: HydratedOathGameState, playerId: string): string | undefined {

@@ -8,6 +8,7 @@ import { ConsentRequestKind, type ConsentRequest } from '../model/consent.js'
 import { CampaignBattleMetadata, HydratedCampaign } from './campaign.js'
 import { HydratedMoveWarbands } from './moveWarbands.js'
 import { usableBattlePlans } from '../util/battlePlans.js'
+import { campaignStepRevealsInfo } from '../util/campaignRoll.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 
 export type AnswerConsentMetadata = Type.Static<typeof AnswerConsentMetadata>
@@ -102,8 +103,9 @@ export class HydratedAnswerConsent
                 throw Error('A Citizenship offer is answered by ResolveCitizenshipOffer')
         }
 
-        // R-X.3 — the muster rolls, or commits to the roll the defending side's plans precede.
-        this.revealsInfo = battle !== undefined
+        // R-X.3 — the muster rolls, or commits to the roll the defending side's plans precede;
+        // R-5.5.5.b-H1 — unless a plan decided the Campaign.
+        this.revealsInfo = battle !== undefined && campaignStepRevealsInfo(state)
         this.metadata = {
             kind: request.kind,
             granted: this.granted,

@@ -5,7 +5,7 @@ import {
     createSeparateCitiesTileFace
 } from '../tiles/faces.js'
 import { tileUpgradeMappings, preservesPath } from './trackUpgrade.js'
-import type { TileFace } from '../tiles/tile.js'
+import type { TileEdge, TileFace, TilePath } from '../tiles/tile.js'
 it('preserves independent tracks, not merely their exits', () => {
     const before = createTrackTileFace('yellow', [
         [0, 3],
@@ -57,16 +57,51 @@ it('maps renamed cities and preserves distinct cities unless they merge', () => 
     }
     expect(tileUpgradeMappings(city, after)).toEqual([{ city: 'new' }])
 })
-it('keeps the order of cities that have no track', () => {
+it('maps cities that have no track to either new city', () => {
     const cities = (color: string, first: readonly (0 | 2)[], second: readonly (0 | 2)[]) =>
         createSeparateCitiesTileFace(color, [
             { edges: first, revenue: 0, stationSlots: 1 },
             { edges: second, revenue: 0, stationSlots: 1 }
         ])
     expect(tileUpgradeMappings(cities('yellow', [], []), cities('green', [0], [2]))).toEqual([
-        { 'city-0': 'city-0', 'city-1': 'city-1' }
+        { 'city-0': 'city-0', 'city-1': 'city-1' },
+        { 'city-0': 'city-1', 'city-1': 'city-0' }
     ])
     expect(tileUpgradeMappings(cities('yellow', [0], []), cities('green', [2], [0]))).toEqual([
         { 'city-0': 'city-1', 'city-1': 'city-0' }
+    ])
+})
+
+it('lets a terminal inside a tile join a city while the new tile keeps a terminal', () => {
+    const stops = (
+        color: string,
+        cityEdges: readonly TileEdge[],
+        terminal: TileEdge
+    ): TileFace => ({
+        color,
+        labels: [],
+        nodes: [
+            { id: 'city', kind: 'city', stationSlots: 1, revenue: { kind: 'fixed', amount: 10 } },
+            { id: 'terminal', kind: 'offboard', revenue: { kind: 'fixed', amount: 10 } }
+        ],
+        paths: [
+            ...cityEdges.map((edge) => ({
+                id: `city-edge-${edge}`,
+                endpoints: [
+                    { kind: 'edge', edge },
+                    { kind: 'node', nodeId: 'city' }
+                ] satisfies TilePath['endpoints']
+            })),
+            {
+                id: 'terminal-track',
+                endpoints: [
+                    { kind: 'edge', edge: terminal },
+                    { kind: 'node', nodeId: 'terminal' }
+                ]
+            }
+        ]
+    })
+    expect(tileUpgradeMappings(stops('yellow', [1], 0), stops('green', [0, 1], 2))).toEqual([
+        { city: 'city', terminal: 'city' }
     ])
 })

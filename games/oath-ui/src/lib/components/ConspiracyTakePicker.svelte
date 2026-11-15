@@ -2,7 +2,7 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import CardChoiceRow from '$lib/components/CardChoiceRow.svelte'
     import { cardChoices } from '$lib/model/cardChoice.js'
-    import { type ConspiracyPick, type TakePrizeOption } from '$lib/model/conspiracyTake.js'
+    import type { ConspiracyPick, TakePrizeOption } from '$lib/model/conspiracyTake.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-5.1.4.IV — burn one secret to take a relic or banner from a player at your site.

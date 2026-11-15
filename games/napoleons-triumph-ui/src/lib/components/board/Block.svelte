@@ -2,7 +2,8 @@
     import type { Face } from '@tabletop/napoleons-triumph'
     import UnitFace from '$lib/components/UnitFace.svelte'
     import type { RoleMark } from '$lib/model/roleMark.js'
-    import { washedOut, type ArmyColors } from '$lib/utils/armyColors.js'
+    import { ghostly, washedOut, type ArmyColors } from '$lib/utils/armyColors.js'
+    import { uprightAngle } from '$lib/utils/boardView.js'
     import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
     import { BLOCK_SYMBOL_HEIGHT, BLOCK_SYMBOL_WIDTH, faceWidth } from '$lib/utils/faceLayout.js'
 
@@ -16,7 +17,10 @@
         moved = false,
         seen = false,
         fixed = false,
-        roleMark
+        ghost = false,
+        struck = false,
+        roleMark,
+        viewRotation
     }: {
         x: number
         y: number
@@ -29,7 +33,11 @@
         seen?: boolean
         /** The battery that never moves (rule 6, step 9), as both players know. */
         fixed?: boolean
+        ghost?: boolean
+        struck?: boolean
         roleMark?: RoleMark
+        /** How the board is turned on screen, so the letter of the mark reads upright on a block turned over. */
+        viewRotation?: number
     } = $props()
 
     const ROLE_MARK_AT = BLOCK_LENGTH / 2 - 10
@@ -45,10 +53,15 @@
     const FIXED_MARK_HALF_HEIGHT = 5.5
     const FIXED_ROLE_MARK_AT = BLOCK_LENGTH / 2 - FIXED_MARK_FROM_END - FIXED_MARK_DEPTH - 12
     const EDGE = 3
+    const GHOST_STROKE = 1.6
     // Workaround: stacked blocks leave slivers between them, so each takes taps a little beyond its edges.
     const HIT_MARGIN = 2
 
-    const paint = $derived(dimmed ? washedOut(colors) : colors)
+    const paint = $derived(ghost ? ghostly(colors) : dimmed ? washedOut(colors) : colors)
+
+    const letterTurned = $derived(
+        viewRotation !== undefined && uprightAngle(angle, viewRotation) !== angle
+    )
 
     function roleMarkAt(mark: RoleMark): number {
         if (fixed) {
@@ -66,22 +79,36 @@
         height={BLOCK_THICKNESS + HIT_MARGIN * 2}
         fill="transparent"
     ></rect>
-    <rect
-        x={-BLOCK_LENGTH / 2}
-        y={-BLOCK_THICKNESS / 2}
-        width={BLOCK_LENGTH}
-        height={BLOCK_THICKNESS}
-        rx="1.5"
-        fill={paint.shade}
-    ></rect>
-    <rect
-        x={-BLOCK_LENGTH / 2}
-        y={-BLOCK_THICKNESS / 2}
-        width={BLOCK_LENGTH}
-        height={BLOCK_THICKNESS - EDGE}
-        rx="1.5"
-        fill={paint.block}
-    ></rect>
+    {#if ghost}
+        <rect
+            x={-BLOCK_LENGTH / 2 + GHOST_STROKE / 2}
+            y={-BLOCK_THICKNESS / 2 + GHOST_STROKE / 2}
+            width={BLOCK_LENGTH - GHOST_STROKE}
+            height={BLOCK_THICKNESS - EDGE - GHOST_STROKE}
+            rx="1.5"
+            fill={paint.block}
+            stroke={paint.shade}
+            stroke-width={GHOST_STROKE}
+            stroke-dasharray="5 3"
+        ></rect>
+    {:else}
+        <rect
+            x={-BLOCK_LENGTH / 2}
+            y={-BLOCK_THICKNESS / 2}
+            width={BLOCK_LENGTH}
+            height={BLOCK_THICKNESS}
+            rx="1.5"
+            fill={paint.shade}
+        ></rect>
+        <rect
+            x={-BLOCK_LENGTH / 2}
+            y={-BLOCK_THICKNESS / 2}
+            width={BLOCK_LENGTH}
+            height={BLOCK_THICKNESS - EDGE}
+            rx="1.5"
+            fill={paint.block}
+        ></rect>
+    {/if}
     {#if fixed}
         <g transform="translate(0 {-EDGE / 2})" data-fixed-battery>
             <title>The fixed battery: it never moves</title>
@@ -111,6 +138,7 @@
             {#if roleMark.letter}
                 <text
                     y={roleMark.heavy ? 4.6 : 4}
+                    transform={letterTurned ? 'rotate(180)' : undefined}
                     font-size={roleMark.heavy ? 13 : 11}
                     font-weight="700"
                     text-anchor="middle"
@@ -136,6 +164,18 @@
             ></path>
             <circle r="2" fill={paint.ink}></circle>
         </g>
+    {/if}
+    {#if struck}
+        <line
+            x1={-BLOCK_LENGTH / 2 + EDGE}
+            y1={BLOCK_THICKNESS / 2 - EDGE}
+            x2={BLOCK_LENGTH / 2 - EDGE}
+            y2={-BLOCK_THICKNESS / 2 + EDGE}
+            stroke={paint.ink}
+            stroke-width="1.6"
+            stroke-linecap="round"
+            data-struck
+        ></line>
     {/if}
     {#if moved}
         <circle cx={MOVED_DOT_AT} cy={-EDGE / 2} r="3.2" fill={paint.ink} opacity="0.85"></circle>

@@ -5,6 +5,7 @@ import type { StationState } from './station.js'
 import { TileInventory, type TilePlacement, type TileSet } from '../tiles/inventory.js'
 import type { TileEdge, TileFace, TileRotation } from '../tiles/tile.js'
 import { rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
+import { withTrackStops } from '../tiles/trackStops.js'
 
 export const MapFields = { tileInventory: TileInventory }
 export type MapStateData = StationState & LocationMarkerState & { tileInventory: TileInventory }
@@ -31,13 +32,23 @@ export class RailwayMapState {
             tileSet.definitions.map((definition) => [definition.id, definition])
         )
         for (const locationId of Object.keys(parsed.placements)) map.location(locationId)
+        const board = new Map(
+            tileSet.boardTiles(parsed).map((tile): [string, TilePlacement] => [
+                map.location(tile.locationId).id,
+                {
+                    pieceId: `${tileSet.manifest.id}/board/${tile.locationId}`,
+                    definitionId: tile.definitionId,
+                    rotation: tile.rotation
+                }
+            ])
+        )
         for (const location of map.definition.locations) {
-            const placement = parsed.placements[location.id]
+            const placement = parsed.placements[location.id] ?? board.get(location.id)
             if (placement) {
                 const definition = definitions.get(placement.definitionId)
                 assertExists(definition, 'Placed map tile requires a definition')
                 this.tiles.set(location.id, {
-                    face: definition.face,
+                    face: withTrackStops(definition.face, placement.trackStops, placement.rotation),
                     rotation: placement.rotation,
                     placement
                 })
@@ -75,13 +86,13 @@ export class RailwayMapState {
         }
         return connections
     }
-    validateStations(state: StationState): void {
+    validateStations(state: StationState, sharesFullCities = false): void {
         for (const station of state.stations) {
             if (station.status !== 'placed') continue
             const { locationId, nodeId, slot } = station.position
             const node = this.tile(locationId).face.nodes.find((node) => node.id === nodeId)
             assert(
-                node?.kind === 'city' && slot < node.stationSlots,
+                node?.kind === 'city' && slot < node.stationSlots + (sharesFullCities ? 1 : 0),
                 'Station requires an existing city slot'
             )
         }

@@ -1,21 +1,20 @@
 <script lang="ts">
+    import { nextTabIndex } from '$lib/utils/tabNavigation'
     import AdminUsersTab from '$lib/components/admin/AdminUsersTab.svelte'
     import AdminGamesTab from '$lib/components/admin/AdminGamesTab.svelte'
+    import AdminStatsTab from '$lib/components/admin/AdminStatsTab.svelte'
 
-    type AdminTab = 'users' | 'games'
+    type AdminTab = 'users' | 'games' | 'stats'
     const tabs: { id: AdminTab; label: string }[] = [
         { id: 'users', label: 'Users' },
-        { id: 'games', label: 'Games' }
+        { id: 'games', label: 'Games' },
+        { id: 'stats', label: 'Stats' }
     ]
     let tab = $state<AdminTab>('users')
 
     function moveTab(event: KeyboardEvent, index: number) {
-        let next: number
-        if (event.key === 'ArrowRight') next = (index + 1) % tabs.length
-        else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length
-        else if (event.key === 'Home') next = 0
-        else if (event.key === 'End') next = tabs.length - 1
-        else return
+        const next = nextTabIndex(event.key, index, tabs.length)
+        if (next === undefined) return
         event.preventDefault()
         tab = tabs[next].id
         document.getElementById(`admin-tab-${tab}`)?.focus()
@@ -49,8 +48,10 @@
     <div id="admin-panel" role="tabpanel" aria-labelledby={`admin-tab-${tab}`} class="pt-5">
         {#if tab === 'users'}
             <AdminUsersTab />
-        {:else}
+        {:else if tab === 'games'}
             <AdminGamesTab />
+        {:else}
+            <AdminStatsTab />
         {/if}
     </div>
 </main>

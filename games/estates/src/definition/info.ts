@@ -6,6 +6,8 @@ export const EstatesInfo: GameInfo = {
     id: 'estates',
     metadata: {
         name: 'The Estates',
+        bggId: 249381,
+        hasScores: true,
         designer: 'Klaus Zoch',
         description:
             'The estates is a highly interactive auction game in which you act as investors vying to build profitable buildings.',

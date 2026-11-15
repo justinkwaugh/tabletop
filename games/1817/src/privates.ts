@@ -1,10 +1,10 @@
-import { PrivateCatalog, type PrivateDefinition } from '@tabletop/18xx'
+import { PrivateCatalog, placeReference as place, type PrivateDefinition } from '@tabletop/18xx'
 import { EighteenSeventeenPhases } from './trains.js'
 
-const cityTile = (city: string, locationId: string) =>
-    `The owning company may lay the special yellow tile X00 on ${city} (${locationId}) without a connection, as one of its lays. The power is lost if another company builds there first.`
+const cityTile = (locationId: string) =>
+    `The owning company may lay the special yellow tile X00 on ${place(locationId)} without a connection, as one of its lays. The power is lost if another company builds there first.`
 const mineHexes = 'a mountain hex beside a city or offboard, without its $15 terrain cost'
-const bridgeCities = 'Louisville, Cincinnati or Charleston'
+const bridgeCities = `${place('H3')}, ${place('G6')} or ${place('H9')}`
 
 // Privates pay nothing to players and never close by phase; a company acquires them only when
 // its founding president contributes them, or through a merger or acquisition.
@@ -31,7 +31,7 @@ const privates: readonly Omit<PrivateDefinition, 'revenue' | 'closure'>[] = [
         id: 'PSM',
         name: 'Pittsburgh Steel Mill',
         faceValue: 40,
-        description: cityTile('Pittsburgh', 'F13')
+        description: cityTile('F13')
     },
     {
         id: 'CM',
@@ -111,9 +111,9 @@ const volatilityPrivates: readonly Omit<PrivateDefinition, 'revenue' | 'closure'
         id: 'P16',
         name: 'Buffalo Rail Center',
         faceValue: 40,
-        description: cityTile('Buffalo', 'C14')
+        description: cityTile('C14')
     },
-    { id: 'P17', name: 'Toledo Industry', faceValue: 40, description: cityTile('Toledo', 'D7') },
+    { id: 'P17', name: 'Toledo Industry', faceValue: 40, description: cityTile('D7') },
     {
         id: 'P18',
         name: 'Express Track',
@@ -147,7 +147,7 @@ const volatilityPrivates: readonly Omit<PrivateDefinition, 'revenue' | 'closure'
         id: 'P24',
         name: 'Indianapolis Market',
         faceValue: 40,
-        description: cityTile('Indianapolis', 'F3')
+        description: cityTile('F3')
     }
 ]
 

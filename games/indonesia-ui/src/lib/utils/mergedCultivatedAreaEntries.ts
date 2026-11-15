@@ -77,7 +77,11 @@ export function mergedCultivatedAreaEntriesForAction(args: {
     const entries: MergedCultivatedAreaEntry[] = []
 
     for (const toArea of Object.values(to.board.areas) as unknown[]) {
-        if (!isCultivatedAreaLike(toArea) || toArea.companyId !== mergedCompany.id || toArea.good !== Good.SiapSaji) {
+        if (
+            !isCultivatedAreaLike(toArea) ||
+            toArea.companyId !== mergedCompany.id ||
+            toArea.good !== Good.SiapSaji
+        ) {
             continue
         }
 

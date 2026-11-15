@@ -1,7 +1,6 @@
 import type { TrancheState } from '@tabletop/18xx'
 import { getCompany, type CompanyState } from '@tabletop/18xx'
 import { assert, type PlayerState } from '@tabletop/common'
-import { TheOldPrincePrivates } from '../index.js'
 export function prepareTheOldPrincePrivates(
     state: CompanyState & TrancheState,
     players: readonly PlayerState[]
@@ -18,10 +17,7 @@ export function prepareTheOldPrincePrivates(
         ['MLC', 0],
         ['SLC', 1]
     ] as const) {
-        const definition = TheOldPrincePrivates.find((privateCompany) => privateCompany.id === id)
-        assert(definition, 'Missing private definition')
-        const { revenue } = definition
-        state.companies.push({ id, kind: 'private', privateRevenue: revenue })
+        state.companies.push({ id, kind: 'private' })
         state.certificates.push({
             id: `${id}:charter`,
             companyId: id,

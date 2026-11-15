@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists, ActionSource } from '@tabletop/common'
 import { finiteCashOwnedBy, trainsOwnedBy, TrainPurchase } from '@tabletop/18xx'
-import { stockGame, start } from './testSupport.js'
+import { stockGame, start } from '../test/testSupport.js'
 import { TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 
 function buyingGame() {

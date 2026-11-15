@@ -1,0 +1,994 @@
+{
+ "game": {
+  "id": "scenario-big-battle-at-the-retreat",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "napoleons-triumph",
+  "deleted": false,
+  "name": "Big battle at the retreat",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p0",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p1",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p0"
+  ],
+  "createdAt": "2026-10-29T03:29:40.517Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-29T03:29:40.517Z",
+  "protectedInformation": true
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "-UVv1QBRkbSxsUDpHdE6H",
+  "gameId": "scenario-big-battle-at-the-retreat",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 36
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 140
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p0"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 6,
+  "actionChecksum": -1377001314,
+  "players": [
+   {
+    "playerId": "p0",
+    "color": "red",
+    "morale": 24,
+    "moraleLost": 3,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {},
+    "side": "Allied",
+    "armyDisplay": [
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 1
+     },
+     {
+      "type": "Infantry",
+      "strength": 1
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Artillery",
+      "strength": 1
+     }
+    ]
+   },
+   {
+    "playerId": "p1",
+    "color": "blue",
+    "morale": 23,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 1,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {},
+    "side": "French",
+    "armyDisplay": [
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Cavalry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     }
+    ]
+   }
+  ],
+  "machineState": "Retreating",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p0",
+    "p1"
+   ],
+   "turnCounts": {
+    "p0": 1,
+    "p1": 0
+   }
+  },
+  "rounds": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 1
+    }
+   ]
+  },
+  "scenario": "December2",
+  "santon": false,
+  "units": [
+   {
+    "id": "F01",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "st-hilaire",
+    "position": {
+     "locale": 93,
+     "approach": 326
+    },
+    "movesThisTurn": 1,
+    "shown": {
+     "type": "Infantry",
+     "strength": 2
+    }
+   },
+   {
+    "id": "F02",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "st-hilaire",
+    "position": {
+     "locale": 93,
+     "approach": 326
+    },
+    "movesThisTurn": 1,
+    "shown": {
+     "type": "Infantry",
+     "strength": 3
+    }
+   },
+   {
+    "id": "F03",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "st-hilaire",
+    "position": {
+     "locale": 93
+    },
+    "movesThisTurn": 1
+   },
+   {
+    "id": "F04",
+    "playerId": "p1",
+    "face": {
+     "type": "Cavalry",
+     "strength": 2
+    },
+    "commanderId": "st-hilaire",
+    "position": {
+     "locale": 93
+    },
+    "movesThisTurn": 1
+   },
+   {
+    "id": "F05",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "vandamme",
+    "position": {
+     "locale": 93
+    }
+   },
+   {
+    "id": "A03",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "langeron",
+    "position": {
+     "locale": 94,
+     "approach": 328
+    }
+   },
+   {
+    "id": "A04",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 1
+    },
+    "commanderId": "langeron",
+    "position": {
+     "locale": 94,
+     "approach": 328
+    }
+   },
+   {
+    "id": "A05",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 1
+    },
+    "commanderId": "prebyshevsky",
+    "position": {
+     "locale": 94
+    }
+   },
+   {
+    "id": "A06",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "prebyshevsky",
+    "position": {
+     "locale": 94
+    }
+   },
+   {
+    "id": "A07",
+    "playerId": "p0",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "commanderId": "prebyshevsky",
+    "position": {
+     "locale": 94
+    }
+   }
+  ],
+  "commanders": [
+   {
+    "id": "bernadotte",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "bessieres",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "davout",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "lannes",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "legrand",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "murat",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "st-hilaire",
+    "playerId": "p1",
+    "position": {
+     "locale": 93,
+     "approach": 326
+    },
+    "commandsThisTurn": 1
+   },
+   {
+    "id": "vandamme",
+    "playerId": "p1",
+    "position": {
+     "locale": 93
+    }
+   },
+   {
+    "id": "bagration",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "constantine",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "dokhturov",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kienmayer",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kollowrath",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "langeron",
+    "playerId": "p0",
+    "position": {
+     "locale": 94,
+     "approach": 328
+    }
+   },
+   {
+    "id": "liechtenstein",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "miloradovich",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "prebyshevsky",
+    "playerId": "p0",
+    "position": {
+     "locale": 94,
+     "approach": 327
+    },
+    "defendedApproach": 327
+   }
+  ],
+  "frenchReinforcementsEntered": false,
+  "limits": {
+   "closedApproaches": [],
+   "bombardedApproaches": [],
+   "stormedLocales": [
+    94
+   ],
+   "marchedLocales": []
+  },
+  "attack": {
+   "attackerId": "p1",
+   "defenderId": "p0",
+   "attackApproach": 326,
+   "defenseApproach": 327,
+   "defendingUnitIds": [
+    "A01",
+    "A02"
+   ],
+   "defendingCommanderIds": [
+    "prebyshevsky"
+   ],
+   "defenseLeaderIds": [
+    "A01"
+   ],
+   "orders": [
+    {
+     "kind": "Corps",
+     "commanderId": "st-hilaire",
+     "unitIds": [
+      "F01",
+      "F02",
+      "F03",
+      "F04"
+     ]
+    }
+   ],
+   "attackingUnitIds": [
+    "F01",
+    "F02",
+    "F03",
+    "F04"
+   ],
+   "attackingCommanderIds": [
+    "st-hilaire"
+   ],
+   "attackLeaderIds": [
+    "F01",
+    "F02"
+   ],
+   "counterAttackingUnitIds": [],
+   "attackerStepsLost": 1,
+   "defenderStepsLost": 3,
+   "pending": [],
+   "defendersBlocking": true,
+   "wide": true,
+   "artilleryLed": false,
+   "initialResult": 3,
+   "finalResult": 3,
+   "attackerWon": true,
+   "lossesSettled": true
+  }
+ },
+ "actions": [
+  {
+   "id": "action-0",
+   "gameId": "scenario-big-battle-at-the-retreat",
+   "source": "user",
+   "playerId": "p1",
+   "type": "ThreatenAttack",
+   "approach": 326,
+   "createdAt": "2026-10-29T03:29:40.525Z",
+   "index": 0,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "p1"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "Commanding"
+    },
+    {
+     "op": "remove",
+     "path": "/attack"
+    }
+   ]
+  },
+  {
+   "id": "cets1nPj2H8lIrzdoFSL6",
+   "gameId": "scenario-big-battle-at-the-retreat",
+   "source": "system",
+   "type": "DeclareDefense",
+   "playerId": "p0",
+   "unitIds": [
+    "A01",
+    "A02"
+   ],
+   "commanderIds": [
+    "prebyshevsky"
+   ],
+   "createdAt": "2026-10-29T03:29:40.525Z",
+   "index": 1,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "p0"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1641676005
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "DefenseResponse"
+    },
+    {
+     "op": "remove",
+     "path": "/units/5/defendedApproach"
+    },
+    {
+     "op": "remove",
+     "path": "/units/6/defendedApproach"
+    },
+    {
+     "op": "remove",
+     "path": "/commanders/16/defendedApproach"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/defendingUnitIds/1"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/defendingUnitIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/defendingCommanderIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/defendersBlocking"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/awaits"
+    }
+   ]
+  },
+  {
+   "id": "action-1",
+   "gameId": "scenario-big-battle-at-the-retreat",
+   "source": "user",
+   "playerId": "p1",
+   "type": "PressAttack",
+   "createdAt": "2026-10-29T03:29:40.527Z",
+   "index": 2,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "p1"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 2
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -2009285551
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "FeintDecision"
+    },
+    {
+     "op": "replace",
+     "path": "/attack/awaits",
+     "value": "Feint"
+    }
+   ]
+  },
+  {
+   "id": "action-2",
+   "gameId": "scenario-big-battle-at-the-retreat",
+   "source": "user",
+   "playerId": "p0",
+   "type": "LeadDefense",
+   "leaderIds": [
+    "A01"
+   ],
+   "createdAt": "2026-10-29T03:29:40.528Z",
+   "revealsInfo": true,
+   "index": 3,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "p0"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 3
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 726235210
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "DefenseDeclaration"
+    },
+    {
+     "op": "remove",
+     "path": "/units/5/shown"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/defenseLeaderIds/0"
+    },
+    {
+     "op": "add",
+     "path": "/attack/awaits",
+     "value": "Leaders"
+    }
+   ]
+  },
+  {
+   "id": "action-3",
+   "gameId": "scenario-big-battle-at-the-retreat",
+   "source": "user",
+   "playerId": "p1",
+   "type": "DeclareAttack",
+   "orders": [
+    {
+     "kind": "Corps",
+     "commanderId": "st-hilaire",
+     "unitIds": [
+      "F01",
+      "F02",
+      "F03",
+      "F04"
+     ]
+    }
+   ],
+   "wide": true,
+   "leaderIds": [
+    "F01",
+    "F02"
+   ],
+   "createdAt": "2026-10-29T03:29:40.528Z",
+   "metadata": {
+    "losses": [],
+    "penalties": [],
+    "initialResult": 3,
+    "account": [
+     {
+      "kind": "AttackLeaders",
+      "value": 6,
+      "faces": [
+       {
+        "type": "Infantry",
+        "strength": 3
+       },
+       {
+        "type": "Infantry",
+        "strength": 3
+       }
+      ]
+     },
+     {
+      "kind": "InfantryAgainstBlockers",
+      "value": -1
+     },
+     {
+      "kind": "DefenseLeaders",
+      "value": -2,
+      "faces": [
+       {
+        "type": "Infantry",
+        "strength": 2
+       }
+      ]
+     }
+    ]
+   },
+   "index": 4,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "p1"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 4
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1107182743
+    },
+    {
+     "op": "replace",
+     "path": "/players/1/corpsCommandsUsed",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "AttackDeclaration"
+    },
+    {
+     "op": "remove",
+     "path": "/units/0/movesThisTurn"
+    },
+    {
+     "op": "remove",
+     "path": "/units/0/shown"
+    },
+    {
+     "op": "remove",
+     "path": "/units/1/movesThisTurn"
+    },
+    {
+     "op": "remove",
+     "path": "/units/1/shown"
+    },
+    {
+     "op": "remove",
+     "path": "/units/2/movesThisTurn"
+    },
+    {
+     "op": "remove",
+     "path": "/units/3/movesThisTurn"
+    },
+    {
+     "op": "remove",
+     "path": "/commanders/6/commandsThisTurn"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/orders/0"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackingUnitIds/3"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackingUnitIds/2"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackingUnitIds/1"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackingUnitIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackingCommanderIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackLeaderIds/1"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackLeaderIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/wide"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/artilleryLed"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/initialResult"
+    }
+   ]
+  },
+  {
+   "id": "action-4",
+   "gameId": "scenario-big-battle-at-the-retreat",
+   "source": "user",
+   "playerId": "p0",
+   "type": "CounterAttack",
+   "unitIds": [],
+   "createdAt": "2026-10-29T03:29:40.530Z",
+   "metadata": {
+    "losses": [
+     {
+      "unitId": "F01",
+      "steps": 1,
+      "eliminated": false,
+      "face": {
+       "type": "Infantry",
+       "strength": 3
+      }
+     },
+     {
+      "unitId": "A01",
+      "steps": 2,
+      "eliminated": true,
+      "face": {
+       "type": "Infantry",
+       "strength": 2
+      }
+     },
+     {
+      "unitId": "A02",
+      "steps": 1,
+      "eliminated": true,
+      "face": {
+       "type": "Infantry",
+       "strength": 1
+      }
+     }
+    ],
+    "penalties": [],
+    "initialResult": 3,
+    "account": [
+     {
+      "kind": "CounterAttack",
+      "value": 0,
+      "faces": []
+     }
+    ],
+    "finalResult": 3,
+    "attackerWon": true,
+    "loserId": "p0",
+    "moraleLost": 3
+   },
+   "index": 5,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 5
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 655285773
+    },
+    {
+     "op": "replace",
+     "path": "/players/0/morale",
+     "value": 27
+    },
+    {
+     "op": "replace",
+     "path": "/players/0/moraleLost",
+     "value": 0
+    },
+    {
+     "op": "add",
+     "path": "/players/0/armyDisplay/2",
+     "value": {
+      "type": "Infantry",
+      "strength": 2
+     }
+    },
+    {
+     "op": "add",
+     "path": "/players/0/armyDisplay/3",
+     "value": {
+      "type": "Infantry",
+      "strength": 1
+     }
+    },
+    {
+     "op": "replace",
+     "path": "/players/1/armyDisplay/0/strength",
+     "value": 3
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "CounterAttackDecision"
+    },
+    {
+     "op": "replace",
+     "path": "/units/0/face/strength",
+     "value": 3
+    },
+    {
+     "op": "replace",
+     "path": "/units/0/shown/strength",
+     "value": 3
+    },
+    {
+     "op": "add",
+     "path": "/units/5",
+     "value": {
+      "id": "A01",
+      "playerId": "p0",
+      "face": {
+       "type": "Infantry",
+       "strength": 2
+      },
+      "commanderId": "prebyshevsky",
+      "position": {
+       "locale": 94,
+       "approach": 327
+      },
+      "defendedApproach": 327,
+      "shown": {
+       "type": "Infantry",
+       "strength": 2
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/units/6",
+     "value": {
+      "id": "A02",
+      "playerId": "p0",
+      "face": {
+       "type": "Infantry",
+       "strength": 1
+      },
+      "commanderId": "prebyshevsky",
+      "position": {
+       "locale": 94,
+       "approach": 327
+      },
+      "defendedApproach": 327
+     }
+    },
+    {
+     "op": "remove",
+     "path": "/limits/stormedLocales/0"
+    },
+    {
+     "op": "replace",
+     "path": "/attack/attackerStepsLost",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/attack/defenderStepsLost",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/attack/finalResult"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/attackerWon"
+    },
+    {
+     "op": "remove",
+     "path": "/attack/lossesSettled"
+    }
+   ]
+  }
+ ]
+}

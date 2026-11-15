@@ -17,12 +17,16 @@ test('a hotseat game opens on the Chancellor setup and hands the turn on', async
     await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
     const cards = page.locator('.panel').getByRole('button')
     await cards.first().click()
-    await expect(page.getByText('Tap to discard; the last goes on top.', { exact: true })).toBeVisible()
+    await expect(
+        page.getByText('Tap to discard; the last goes on top.', { exact: true })
+    ).toBeVisible()
     await page.getByRole('button', { name: /Undo/ }).click()
     await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
 
     await cards.first().click()
     await cards.first().click()
-    await expect(page.getByText('Pick a start site and a card to keep.', { exact: true })).toBeVisible()
+    await expect(
+        page.getByText('Pick a start site and a card to keep.', { exact: true })
+    ).toBeVisible()
     expect(errors).toEqual([])
 })

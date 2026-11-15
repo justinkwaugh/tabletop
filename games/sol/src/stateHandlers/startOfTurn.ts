@@ -33,8 +33,14 @@ type StartOfTurnAction =
     | HydratedPass
     | HydratedDeconstruct
 
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is StartOfTurnAction {
+export class StartOfTurnStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSolGameState>
+    ): action is StartOfTurnAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.Pass ||
@@ -46,7 +52,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const gameState = context.gameState
         const validActions = [ActionType.Pass]
 
@@ -125,7 +134,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         playerState.movementPoints = playerState.movement
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: StartOfTurnAction,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         switch (true) {
             case isDeconstruct(action): {
                 const state = context.gameState

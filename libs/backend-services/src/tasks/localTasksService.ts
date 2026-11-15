@@ -3,6 +3,7 @@ import { CreatePushTaskOptions } from './taskService.js'
 
 export class LocalTaskService extends BaseTaskService {
     private readonly timers = new Set<ReturnType<typeof setTimeout>>()
+    private readonly uniqueNames = new Set<string>()
     private closed = false
 
     constructor(private readonly host: string) {
@@ -17,6 +18,10 @@ export class LocalTaskService extends BaseTaskService {
 
     async createPushTask<T>(options: CreatePushTaskOptions<T>): Promise<void> {
         if (this.closed) throw new Error('Local task service is closed')
+        if (options.uniqueName) {
+            if (this.uniqueNames.has(options.uniqueName)) return
+            this.uniqueNames.add(options.uniqueName)
+        }
         this.schedule(options, Math.max(0, options.inSeconds ?? 0) * 1000)
     }
 

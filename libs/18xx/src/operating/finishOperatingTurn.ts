@@ -1,30 +1,49 @@
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
+import { actionMayOperate, inReceivership } from '../finance/receivership.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
     type HydratedGameState,
     type GameAction
 } from '@tabletop/common'
-import { controllingOwner } from '../finance/finance.js'
 import type { DistributionState } from '../earnings/earningsDistribution.js'
 import type { ConstructionState } from '../construction/trackConstruction.js'
 import type { StationPlacementState } from '../stations/stationPlacement.js'
-import type { TrainRules } from '../trains/trainPurchase.js'
-import { trainsOwnedBy } from '../trains/train.js'
+import { ownsRequiredTrain, type TrainRules } from '../trains/trainPurchase.js'
 import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
 import type { LoanState } from '../loans/loans.js'
+
+/**
+ * What a title marks as done in the operating turn, such as 1849's station token bought (§14.1),
+ * cleared as the turn ends; optional, for the titles that mark any.
+ */
+export const TurnMarkFields = {
+    turnMarks: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true }))
+}
+export type TurnMarkState = Type.Static<Type.TObject<typeof TurnMarkFields>>
+
+/** Whether the operating turn has the title's mark. */
+export function hasTurnMark(state: TurnMarkState, mark: string): boolean {
+    return !!state.turnMarks?.includes(mark)
+}
+
+/** Marks the operating turn, until it ends. */
+export function markTurn(state: TurnMarkState, mark: string): void {
+    if (!hasTurnMark(state, mark)) state.turnMarks = [...(state.turnMarks ?? []), mark]
+}
 
 export type OperatingTurnState = OperatingState &
     DistributionState &
     ConstructionState &
     StationPlacementState &
-    Pick<LoanState, 'loanStep'>
+    Pick<LoanState, 'loanStep' | 'turnLoans'> &
+    TurnMarkState
 export function finishOperatingTurnReason(
     state: OperatingTurnState,
     rules: TrainRules,
@@ -38,15 +57,16 @@ export function finishOperatingTurnReason(
     )
         return 'This company is not finishing its operating turn.'
     if (
-        !trainsOwnedBy(state, { kind: 'company', companyId }).length &&
-        rules.requiresTrain(state, companyId)
+        !ownsRequiredTrain(state, rules, companyId) &&
+        rules.requiresTrain(state, companyId) &&
+        !inReceivership(state, companyId)
     )
         return 'This company must buy a train before finishing its operating turn.'
     return undefined
 }
 export const FinishOperatingTurn = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         type: Type.Literal('FinishOperatingTurn'),
         companyId: Type.String(),
         metadata: Type.Optional(OperatingRoundSnapshot)
@@ -68,7 +88,7 @@ export class HydratedFinishOperatingTurn
     declare type: 'FinishOperatingTurn'
     declare metadata?: OperatingRoundSnapshot
     declare companyId: string
-    declare playerId: string
+    declare playerId?: string
     readonly #rules: TrainRules
     readonly #valuationRules: ValuationRules
     constructor(data: FinishOperatingTurn, rules: TrainRules, valuationRules: ValuationRules) {
@@ -79,8 +99,7 @@ export class HydratedFinishOperatingTurn
     apply(state: HydratedGameState & OperatingTurnState): void {
         assert(
             (this.source === ActionSource.User || this.source === ActionSource.System) &&
-                state.activePlayerIds.includes(this.playerId) &&
-                controllingOwner(state, this.companyId)?.playerId === this.playerId,
+                actionMayOperate(state, this, this.companyId),
             'Only the operating company’s controlling owner may finish its turn'
         )
         const reason = finishOperatingTurnReason(state, this.#rules, this.companyId)
@@ -91,6 +110,14 @@ export class HydratedFinishOperatingTurn
     }
 }
 
+/** Ends the turn of a company that cannot finish it itself, having lost its president. */
+export function abandonOperatingTurn(
+    state: HydratedGameState & OperatingTurnState,
+    companyId: string
+): void {
+    endOperatingTurn(state, companyId)
+    delete state.trainPurchaseStep
+}
 /** Completes the company's turn and clears its steps, leaving its train purchases to the caller. */
 export function endOperatingTurn(
     state: HydratedGameState & OperatingTurnState,
@@ -104,4 +131,6 @@ export function endOperatingTurn(
     delete state.routeStep
     delete state.earningsDistribution
     delete state.loanStep
+    delete state.turnLoans
+    delete state.turnMarks
 }

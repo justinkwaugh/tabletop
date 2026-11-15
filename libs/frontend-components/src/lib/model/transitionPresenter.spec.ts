@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createAction, GameEngine, type GameAction } from '@tabletop/common'
+import { assertExists, createAction, GameEngine, type GameAction } from '@tabletop/common'
 import {
     createPrivateHandGame,
     runtime,
@@ -55,13 +55,23 @@ function fixture() {
     const animations = new HeldAnimations()
     const published: HydratedPrivateHandState[] = []
     const transitions: PresentedTransition[] = []
+    const publishedActions: GameAction[][] = []
+    const loadedHistory: GameAction[][] = []
     const pendingLog: boolean[] = []
     const errors: unknown[] = []
     const steps: TransitionStep<HydratedPrivateHandState, AnimationTimeline>[] = []
     const output = {
-        publish: (state: HydratedPrivateHandState, transition: PresentedTransition) => {
+        publish: (
+            state: HydratedPrivateHandState,
+            transition: PresentedTransition,
+            actions: GameAction[]
+        ) => {
             published.push(state)
             transitions.push(transition)
+            publishedActions.push(actions)
+        },
+        publishActions: (actions: GameAction[]) => {
+            loadedHistory.push(actions)
         },
         setPending: (pending: boolean) => {
             pendingLog.push(pending)
@@ -103,6 +113,8 @@ function fixture() {
         context,
         published,
         transitions,
+        publishedActions,
+        loadedHistory,
         pendingLog,
         errors,
         steps,
@@ -127,8 +139,59 @@ describe('TransitionPresenter', () => {
         expect(f.steps[0].from).toBeUndefined()
         expect(f.steps[0].kind).toBe('initial')
         expect(f.published).toHaveLength(1)
-        expect(f.transitions[0]).toEqual({ kind: 'initial', actions: [] })
+        expect(f.transitions[0]).toEqual({ kind: 'initial', actions: [], intent: 'actions' })
         expect(f.pendingLog).toEqual([true, false])
+    })
+
+    it('publishes the actions that led to each state, read when the change was made', async () => {
+        const f = fixture()
+        await f.start()
+        expect(f.publishedActions).toEqual([[]])
+
+        f.presenter.present({ kind: 'own-action' }, () => f.play('p1', 'r1'))
+        const played = f.context.actions.at(-1)
+        assertExists(played, 'The play was recorded')
+        // The context appends in place while the play is still animating
+        f.context.actions.push({ ...structuredClone(played), id: 'later', index: 1 })
+        await f.animations.release()
+
+        expect(f.published.at(-1)?.actionCount).toBe(1)
+        expect(f.publishedActions.at(-1)?.map((action) => action.id)).toEqual([played.id])
+    })
+
+    // A hosted game opens with only its latest actions; the earlier ones are loaded afterwards
+    function partialHistory(f: ReturnType<typeof fixture>) {
+        f.play('p1', 'r1')
+        f.play('p2', 'r2')
+        const full = [...f.context.actions]
+        f.context.actions = full.slice(1)
+        return full
+    }
+
+    it('adds earlier history to the shown actions without presenting the unchanged state', async () => {
+        const f = fixture()
+        const full = partialHistory(f)
+        await f.start()
+        expect(f.publishedActions.at(-1)?.map((action) => action.id)).toEqual([full[1].id])
+
+        f.context.actions = full
+        f.presenter.historyLoaded()
+
+        expect(f.loadedHistory.at(-1)?.map((action) => action.id)).toEqual(full.map((a) => a.id))
+        expect(f.published).toHaveLength(1)
+    })
+
+    it('adds history loaded during an animation to the state it then shows', async () => {
+        const f = fixture()
+        const full = partialHistory(f)
+        await f.start()
+
+        f.presenter.present({ kind: 'own-action' }, () => f.draw('p1'))
+        f.context.actions = [full[0], ...f.context.actions]
+        f.presenter.historyLoaded()
+        await f.animations.release()
+
+        expect(f.publishedActions.at(-1)?.map((action) => action.index)).toEqual([0, 1, 2])
     })
 
     it('animates the actions between the displayed and the new state in order', async () => {
@@ -262,7 +325,7 @@ describe('TransitionPresenter', () => {
         f.presenter.publishNow('view-switch', () => f.play('p2', 'r2'))
         expect(f.published).toHaveLength(2)
         expect(f.published[1].actionCount).toBe(2)
-        expect(f.transitions[1]).toEqual({ kind: 'view-switch', actions: [] })
+        expect(f.transitions[1]).toEqual({ kind: 'view-switch', actions: [], intent: 'silent' })
         await f.animations.release()
         await f.presenter.settled()
         expect(f.published).toHaveLength(2)
@@ -286,9 +349,9 @@ describe('TransitionPresenter', () => {
         await f.start()
         let failures = 1
         const publish = f.output.publish
-        f.output.publish = (state, transition) => {
+        f.output.publish = (state, transition, actions) => {
             if (failures-- > 0) throw new Error('hook failed')
-            publish(state, transition)
+            publish(state, transition, actions)
         }
         f.presenter.present({ kind: 'own-action' }, () => f.play('p1', 'r1'))
         await f.animations.release()
@@ -308,10 +371,13 @@ describe('TransitionPresenter', () => {
         await f.animations.release()
         expect(f.steps.at(-1)?.action).toBeUndefined()
         expect(f.steps.at(-1)?.kind).toBe('undo')
+        expect(f.transitions.at(-1)?.intent).toBe('state')
         f.presenter.present({ kind: 'view-switch' }, () => f.play('p2', 'r2'))
         await f.presenter.settled()
         expect(f.steps).toHaveLength(2)
         expect(f.published.at(-1)?.actionCount).toBe(2)
+        // No listener saw the silent change, and its publication says so.
+        expect(f.transitions.at(-1)?.intent).toBe('silent')
         f.presenter.present({ kind: 'own-action' }, () => f.draw('p1'))
         await f.animations.release()
         expect(f.steps.at(-1)?.action?.type).toBe('draw')

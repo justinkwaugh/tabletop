@@ -10,22 +10,28 @@ import { Placement } from '../components/gameBoard.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 
 type StartOfTurnAction =
-    | HydratedPlaceMaster
-    | HydratedBeginJourney
-    | HydratedRecruitStudents
-    | HydratedPass
+    HydratedPlaceMaster | HydratedBeginJourney | HydratedRecruitStudents | HydratedPass
 
 // Transition from StartOfTurn(PlaceMaster) -> StartOfTurn
 //                 StartOfTurn(RecruitStudents) -> RecruitingStudents
 //                 StartOfTurn(BeginJourney) -> StartOfTurn | EndOfGame
 //                 StartOfTurn(Pass) -> StartOfTurn
-export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedBridgesGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedBridgesGameState>): action is StartOfTurnAction {
+export class StartOfTurnStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedBridgesGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedBridgesGameState>
+    ): action is StartOfTurnAction {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context) || isPass(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedBridgesGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedBridgesGameState>
+    ): ActionType[] {
         const actions = [
             ActionType.PlaceMaster,
             ActionType.RecruitStudents,
@@ -45,7 +51,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<StartOfTurnA
         gameState.activePlayerIds = [nextPlayerId]
     }
 
-    onAction(action: StartOfTurnAction, context: MachineContext<HydratedBridgesGameState>): MachineState {
+    onAction(
+        action: StartOfTurnAction,
+        context: MachineContext<HydratedBridgesGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {

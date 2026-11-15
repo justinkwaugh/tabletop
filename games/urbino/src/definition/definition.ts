@@ -5,5 +5,5 @@ import { UrbinoRuntime } from './runtime.js'
 
 export const Definition = <GameDefinition<UrbinoGameState, HydratedUrbinoGameState>>{
     info: UrbinoInfo,
-    runtime: UrbinoRuntime,
+    runtime: UrbinoRuntime
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Numeral from './Numeral.svelte'
+    import { deckShadow } from '$lib/model/deckShade.js'
 
     const gameSession = getGameSession()
 
@@ -68,7 +69,7 @@
         <span
             class="{anyMineGain
                 ? 'mt-2'
-                : ''} text-[13px] font-semibold uppercase tracking-wide text-black/60"
+                : 'mt-0.5'} text-[13px] font-semibold uppercase tracking-wide text-black/60"
         >
             Points
         </span>
@@ -78,18 +79,21 @@
         <div class="flex items-center gap-1.5">
             <span
                 class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums"
-                title="Cards left in politics pile A"
+                style:box-shadow={deckShadow('A')}
+                title="Cards left in the left politics deck"
             >
                 <Numeral value={pileACount} />
             </span>
             <span
-                class="px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums"
-                title="Cards left in politics pile B"
+                class="ml-1 px-2 py-0.5 rounded-md bg-black/10 font-bold tabular-nums"
+                style:box-shadow={deckShadow('B')}
+                title="Cards left in the right politics deck"
             >
                 <Numeral value={pileBCount} />
             </span>
         </div>
-        <span class="text-[13px] font-semibold uppercase tracking-wide text-black/60">Politics</span
+        <span class="mt-0.5 text-[13px] font-semibold uppercase tracking-wide text-black/60"
+            >Politics</span
         >
     </div>
 </div>

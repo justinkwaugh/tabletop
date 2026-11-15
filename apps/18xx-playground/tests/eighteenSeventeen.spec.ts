@@ -17,7 +17,7 @@ test('1817 opens with a selection auction and starts companies by auction', asyn
         await lots.getByRole('button', { name: 'Pass', exact: true }).click()
 
     await page.getByRole('button', { name: 'Auction', exact: true }).click()
-    await page.getByRole('button', { name: 'Auction Alton & Southern Railway' }).click()
+    await page.getByRole('button', { name: 'Auction Alton & Southern' }).click()
     const city = page.locator('[data-map-location="B5"]').filter({ visible: true }).first()
     await expect(city).toBeVisible()
     await city.click()
@@ -32,8 +32,52 @@ test('1817 opens with a selection auction and starts companies by auction', asyn
     await expect(page.getByRole('button', { name: 'Auction', exact: true })).toBeVisible()
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
-        'formed Alton & Southern Railway with 2 shares'
+        'formed A&S with 2 shares'
     )
+})
+
+test('1817 auction bids can be typed', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1817')
+    await page.getByLabel('Position', { exact: true }).selectOption('opening')
+    const lots = page.getByRole('region', { name: 'Private auction' })
+    await lots.getByRole('button', { name: 'Auction Minor Coal Mine' }).click()
+    await lots.getByRole('spinbutton', { name: 'Bid amount' }).fill('100')
+    await lots.getByRole('button', { name: 'Bid', exact: true }).click()
+    const bidding = page.getByRole('article', { name: 'Current auction' })
+    await expect(bidding).toContainText('High bid $100')
+    const raise = bidding.getByRole('spinbutton', { name: 'Bid amount' })
+    await raise.fill('103')
+    await expect(bidding.getByRole('button', { name: 'Bid', exact: true })).toBeDisabled()
+    await raise.fill('125')
+    await expect(bidding.getByRole('button', { name: 'Bid', exact: true })).toBeEnabled()
+    // A cleared field must not bid the amount it last held.
+    await raise.fill('')
+    await expect(bidding.getByRole('button', { name: 'Bid', exact: true })).toBeDisabled()
+    await raise.fill('125')
+    await raise.press('Enter')
+    await expect(bidding).toContainText('High bid $125')
+    for (let pass = 0; pass < 2; pass++)
+        await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
+    for (let pass = 0; pass < 3; pass++)
+        await lots.getByRole('button', { name: 'Pass', exact: true }).click()
+
+    await page.getByRole('button', { name: 'Auction', exact: true }).click()
+    await page.getByRole('button', { name: 'Auction Alton & Southern' }).click()
+    await page.locator('[data-map-location="B5"]').filter({ visible: true }).first().click()
+    const opening = page.getByLabel('Auction a company')
+    await opening.getByRole('spinbutton', { name: 'Bid amount' }).fill('250')
+    await opening.getByRole('button', { name: 'Bid', exact: true }).click()
+    const auction = page.getByRole('article', { name: 'Company auction' })
+    await expect(auction).toContainText('High bid $250')
+    const companyRaise = auction.getByRole('spinbutton', { name: 'Bid amount' })
+    // Below the minimum the auction keeps its minimum as the bid, so the field must not bid.
+    await companyRaise.fill('10')
+    await expect(companyRaise).toHaveValue('10')
+    await expect(auction.getByRole('button', { name: 'Bid', exact: true })).toBeDisabled()
+    await companyRaise.fill('300')
+    await auction.getByRole('button', { name: 'Bid', exact: true }).click()
+    await expect(auction).toContainText('High bid $300')
 })
 
 test('1817 Volatility auctions its privates from the bottom tier of a pyramid', async ({
@@ -54,8 +98,18 @@ test('1817 Volatility auctions its privates from the bottom tier of a pyramid', 
     await bottom.nth(1).click()
     await lots.getByRole('button', { name: 'Bid', exact: true }).click()
     const bidding = page.getByRole('article', { name: 'Current auction' })
-    for (let pass = 0; pass < 2; pass++)
-        await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
+    // The pyramid stays in view while the nominated lot is bid on.
+    const biddingTier = bidding
+        .getByRole('group', { name: 'Lot tiers' })
+        .getByRole('group', { name: 'Tier 6', exact: true })
+    await expect(biddingTier.locator('.slot')).toHaveCount(6)
+    await expect(biddingTier.locator('.slot[aria-current="true"]')).toHaveCount(1)
+    await expect(biddingTier.getByRole('button', { name: /^Auction / })).toHaveCount(0)
+    await expect(bidding).toContainText(/High bid \$\d+/)
+    await expect(bidding).not.toContainText('Passed')
+    await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
+    await expect(bidding).toContainText('Passed')
+    await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
     await expect(page.getByRole('article', { name: 'Current auction' })).toHaveCount(0)
     await expect(bottom).toHaveCount(4)
     await page.getByRole('tab', { name: 'History', exact: true }).click()
@@ -124,21 +178,19 @@ test('1817 presidents act for a company in place of their stock turn', async ({ 
     await page.getByLabel('Game', { exact: true }).selectOption('1817')
     await page.getByLabel('Position', { exact: true }).selectOption('trading')
     await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
-    await page.getByRole('button', { name: 'Act for a company', exact: true }).click()
+    await page.getByRole('button', { name: 'Company action', exact: true }).click()
     const corporate = page.getByRole('region', { name: 'Corporate actions' })
-    await corporate
-        .getByRole('button', { name: 'Take a loan for Boston and Albany Railroad' })
-        .click()
-    await expect(corporate).toContainText('Acting for Boston and Albany Railroad')
+    await corporate.getByRole('button', { name: 'Take a loan for Boston and Albany' }).click()
+    await expect(corporate).toContainText('Acting for Boston and Albany')
     await expect(corporate).toContainText('Loans 1/5')
     await expect(corporate).toContainText(/\$110 · \d+ in the market/)
     await corporate
-        .getByRole('button', { name: 'Buy back a Boston and Albany Railroad share for $110' })
+        .getByRole('button', { name: 'Buy back a Boston and Albany share for $110' })
         .click()
     await expect(page.getByRole('region', { name: 'Corporate actions' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
-        'bought back 1 Boston and Albany Railroad share'
+        'bought back 1 B&A share'
     )
 })
 
@@ -150,12 +202,10 @@ test('1817 players short a company in their stock turn', async ({ page }) => {
         await page.getByRole('button', { name: 'Pass', exact: true }).first().click()
     await page.getByRole('button', { name: 'Short', exact: true }).click()
     const shorting = page.getByRole('region', { name: 'Short selling' })
-    await shorting.getByRole('button', { name: 'Short Boston and Albany Railroad ($120)' }).click()
+    await shorting.getByRole('button', { name: 'Short Boston and Albany ($120)' }).click()
     await expect(page.getByRole('region', { name: 'Short selling' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'History', exact: true }).click()
-    await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
-        'shorted Boston and Albany Railroad'
-    )
+    await expect(page.getByRole('list', { name: 'Action history' })).toContainText('shorted B&A')
 })
 
 test('1817 companies convert in the merger round after an operating round', async ({ page }) => {
@@ -178,7 +228,7 @@ test('1817 companies convert in the merger round after an operating round', asyn
             .click()
     }
     await expect(page.getByLabel('Game phase')).toContainText(/Merger round.* 1\.1/)
-    await expect(merger).toContainText('Boston and Albany Railroad')
+    await expect(merger).toContainText('Boston and Albany')
     await merger.getByRole('button', { name: 'Pass', exact: true }).click()
     await merger.getByRole('button', { name: 'Convert to 5 shares' }).click()
     await expect(merger).toContainText('3 treasury shares at $60')
@@ -221,20 +271,18 @@ test('1817 companies are sold in the acquisition round after the merger round', 
 
     const sale = page.getByRole('region', { name: 'Acquisition round' })
     await expect(page.getByLabel('Game phase')).toContainText(/Acquisition round.* 1\.1/)
-    await expect(sale).toContainText('Pittsburgh and Lake Erie Railroad')
+    await expect(sale).toContainText('Pittsburgh and Lake Erie')
     await sale.getByRole('button', { name: 'Offer for sale' }).click()
     await expect(sale).toContainText('no bids yet')
-    await expect(sale).toContainText('Paid by Boston and Albany Railroad')
+    await expect(sale).toContainText('Paid by Boston and Albany')
     await sale.getByRole('button', { name: 'Bid', exact: true }).click()
-    await expect(sale).toContainText('Bought Pittsburgh and Lake Erie Railroad for $120')
+    await expect(sale).toContainText('Bought Pittsburgh and Lake Erie for $120')
     await sale.getByRole('button', { name: 'Finish' }).click()
     await expect(page.getByRole('region', { name: 'Acquisition round' })).toHaveCount(0)
 
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     const history = page.getByRole('list', { name: 'Action history' })
-    await expect(history.getByRole('listitem', { name: 'AR 1.1' })).toContainText(
-        'acquired Pittsburgh and Lake Erie Railroad'
-    )
+    await expect(history.getByRole('listitem', { name: 'AR 1.1' })).toContainText('acquired PLE')
     await expect(history).toContainText('holders received $60 a share')
 })
 
@@ -250,7 +298,7 @@ test('1817 companies use their private powers in their operating turn', async ({
     )
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
-        'marked G6 with Union Bridge'
+        'marked Cincinnati with Union Bridge'
     )
 })
 
@@ -268,7 +316,14 @@ test('1817 shows shorts, company sizes and loans, the interest rate and market z
     await expect(sheet.getByRole('cell', { name: '-1 short' })).toHaveCount(2)
     await expect(sheet.getByRole('rowheader', { name: 'Size' })).toBeVisible()
     await expect(sheet.getByRole('rowheader', { name: 'Loans' })).toBeVisible()
-    await page.getByRole('tab', { name: 'Market', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Pane options for Table views pane 5', exact: true })
+        .click()
+    await page
+        .locator('.widget-menu:popover-open')
+        .getByRole('button', { name: 'Market', exact: true })
+        .click()
+    await expect(page.getByRole('tabpanel', { name: 'Market', exact: true })).toBeVisible()
     const zones = page.getByRole('definition').filter({ hasText: 'acquisition round' })
     await expect(zones).toHaveCount(2)
     await expect(

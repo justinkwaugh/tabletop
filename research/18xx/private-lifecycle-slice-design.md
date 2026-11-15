@@ -33,7 +33,8 @@ exchanges, recurring powers, and formation-by-exchange need explicit later
 procedures instead of increasingly general effect records.
 
 ExchangePrivate is a player Action. Evaluation projects the exchange and presidency
-on copied finances. The application closes the private, transfers the share,
+on copied finances. A closed private also releases the station reservations it
+held (added 2026-10-19 for 1846's C&WI). The application closes the private, transfers the share,
 settles presidency, and records any allowed ownership exemption. It never spends
 cash or consumes the ordinary purchase. TOP records an additional stock action,
 invalidating that owner's retained pass; Dôgo leaves pass history and the ordinary

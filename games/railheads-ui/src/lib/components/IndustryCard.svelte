@@ -2,6 +2,7 @@
     import type { Industry } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { INDUSTRY_STYLE } from '$lib/utils/companyStyle.js'
+    import { editionStyle } from '$lib/utils/editionStyle.js'
     import IndustryToken from './IndustryToken.svelte'
 
     let { industry }: { industry: Industry } = $props()
@@ -21,6 +22,7 @@
     const reached = $derived(state.industrySitesReached(industry))
     const sites = $derived(state.edition.industrySiteCount(industry))
     const perSite = $derived(state.edition.definition.industryBonusPerSite)
+    const bonusName = $derived(editionStyle(state.editionId).industryBonusName)
 </script>
 
 {#snippet pile(count: number, label: string, title: string)}
@@ -71,7 +73,7 @@
             </div>
             <div
                 class="entry"
-                title="Game-end Industry Bonus if the game ended now: ${perSite} for each {style.name} site with a disc on it, shared among the tokens held, rounded up"
+                title="Game-end {bonusName} if the game ended now: ${perSite} for each {style.name} site with a disc on it, shared among the tokens held, rounded up"
             >
                 <span>End bonus / token</span><span class="money"
                     >${state.industryBonusPerToken(industry)}</span

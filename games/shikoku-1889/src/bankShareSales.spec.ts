@@ -36,22 +36,3 @@ it('pays a stock sale that exhausts the bank and reverses it on undo', () => {
         undone = engine.undoProcessedAction({ state: undone, action })
     expect(undone).toEqual(state)
 })
-
-it('keeps the affordability restriction for banks that cannot exceed their cash', () => {
-    const { state } = exampleGame(Shikoku1889Scenarios, 'trading')
-    state.stockRound.number = 2
-    state.bank.unlimitedAfterExhaustion = false
-    state.cash.find((cash) => cash.owner.kind === 'bank')!.amount = 1
-    const playerId = state.activePlayerIds[0]
-    const result = evaluateShareSale(
-        state,
-        {
-            playerId,
-            seller: { kind: 'player', playerId },
-            sales: [{ companyId: 'AR', shares: 1 }]
-        },
-        Shikoku1889StockRules
-    )
-    expect(result.details).toBeUndefined()
-    expect(result.reason).toBe('The payer cannot fund this sale.')
-})

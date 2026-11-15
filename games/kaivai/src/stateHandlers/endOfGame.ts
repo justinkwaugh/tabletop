@@ -7,11 +7,20 @@ import {
 import { HydratedKaivaiGameState } from '../model/gameState.js'
 
 // Terminal state
-export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction, HydratedKaivaiGameState> {
-    isValidAction(_action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): boolean {
+export class EndOfGameStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedKaivaiGameState
+> {
+    isValidAction(
+        _action: HydratedAction,
+        _context: MachineContext<HydratedKaivaiGameState>
+    ): boolean {
         return false
     }
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedKaivaiGameState>): string[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedKaivaiGameState>
+    ): string[] {
         return []
     }
     enter(context: MachineContext<HydratedKaivaiGameState>): void {

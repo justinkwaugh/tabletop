@@ -7,6 +7,7 @@ import {
     type OfferAuctionLot,
     type BidOnAuctionLot,
     type PassAuction,
+    type ResolveAuction,
     type AuctionAward,
     type AuctionLot,
     type EighteenXXState
@@ -30,6 +31,7 @@ export type AuctionHistoryCard = {
     id: string
     offer: OfferAuctionLot
     events: (BidOnAuctionLot | PassAuction)[]
+    income: ResolveAuction[]
     resolution?: GameAction
     award?: AuctionAward
 }
@@ -44,13 +46,14 @@ export function auctionHistory(
     let current: AuctionHistoryCard | undefined
     for (const action of actions) {
         if (isOfferAuctionLot(action)) {
-            current = { kind: 'auction', id: action.id, offer: action, events: [] }
+            current = { kind: 'auction', id: action.id, offer: action, events: [], income: [] }
             entries.push(current)
         } else if (current && isBidOnAuctionLot(action) && action.lotId === current.offer.lotId) {
             current.events.push(action)
         } else if (current && isPassAuction(action)) {
             current.events.push(action)
         } else if (current && isResolveAuction(action)) {
+            if (action.metadata?.kind === 'income') current.income.push(action)
             current.resolution = action
             current.award = awards.find((award) => award.lotId === current?.offer.lotId)
         } else if (action.source === ActionSource.User) {

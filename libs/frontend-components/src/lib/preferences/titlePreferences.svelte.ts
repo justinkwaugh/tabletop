@@ -87,7 +87,7 @@ export class TitlePreferences<T extends Type.TObject> {
             this.response = { data, etag: '' }
             return Promise.resolve(false)
         }
-        const completion = new Promise<boolean>(resolve => this.completions.set(change, resolve))
+        const completion = new Promise<boolean>((resolve) => this.completions.set(change, resolve))
         this.pending = [...this.pending, change]
         void this.flush()
         return completion
@@ -122,7 +122,8 @@ export class TitlePreferences<T extends Type.TObject> {
             if (!this.userId || !this.api.getTitlePreferences) return
             const response = await this.api.getTitlePreferences(this.titleId, this.userId)
             resolvePreferences(this.definition, response.data)
-            if (this.isCurrent(generation) && sequence === this.loadSequence) this.response = response
+            if (this.isCurrent(generation) && sequence === this.loadSequence)
+                this.response = response
         } finally {
             if (this.isCurrent(generation) && sequence === this.loadSequence) this.ready = true
         }

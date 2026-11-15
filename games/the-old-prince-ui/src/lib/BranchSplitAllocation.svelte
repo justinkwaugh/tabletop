@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { isObsoleteTrain } from '@tabletop/18xx'
     import { TheOldPrinceMap } from '@tabletop/the-old-prince'
     import { CompanyToken, TrainBadge } from '@tabletop/18xx-ui'
     import { TheOldPrinceTrainColors } from './trainPresentation.js'
@@ -15,6 +16,9 @@
 </script>
 
 {#if preview && allocation}
+    {#if session.splitMovableStations.length}<p class="map-hint">
+            Click a station on the map to move it to the other company.
+        </p>{/if}
     <div class="allocation" aria-label="Split asset allocation">
         {#each [false, true] as branch (branch)}
             {@const companyId = branch ? preview.request.branchId : preview.request.parentId}
@@ -79,6 +83,7 @@
                                         name={session.trainDepot.trainDefinition(train.definitionId)
                                             .name}
                                         color={TheOldPrinceTrainColors[train.definitionId]}
+                                        obsolete={isObsoleteTrain(train)}
                                     />
                                 </div>
                             {:else}<span class="empty">None</span>{/each}
@@ -144,6 +149,7 @@
                 max={preview.parentCash}
                 step="1"
                 value={allocation.cash}
+                style:--filled={`${preview.parentCash ? (allocation.cash / preview.parentCash) * 100 : 0}%`}
                 disabled={!session.canPreviewSplit || preview.parentCash === 0}
                 oninput={(event) => session.setSplitCash(event.currentTarget.valueAsNumber)}
             />
@@ -286,12 +292,65 @@
         letter-spacing: 0.07em;
         font-size: 9px;
     }
+    /* Drawn by hand: native tracks vanish against the dark rail in some browsers. */
     input[type='range'] {
         display: block;
         width: 100%;
+        height: 22px;
         margin: 0;
-        accent-color: var(--rail-text, #695543);
+        background: transparent;
+        appearance: none;
         cursor: pointer;
+    }
+    input[type='range']:disabled {
+        opacity: 0.35;
+        cursor: default;
+    }
+    /* WebKit has no progress part, so the filled share is a hard colour stop. */
+    input[type='range']::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 3px;
+        background: linear-gradient(
+            to right,
+            var(--rail-text, #695543) var(--filled),
+            var(--rail-muted, #95816a) var(--filled)
+        );
+    }
+    input[type='range']::-moz-range-track {
+        height: 6px;
+        border-radius: 3px;
+        background: var(--rail-muted, #95816a);
+    }
+    input[type='range']::-moz-range-progress {
+        height: 6px;
+        border-radius: 3px;
+        background: var(--rail-text, #695543);
+    }
+    input[type='range']::-webkit-slider-thumb {
+        width: 16px;
+        height: 16px;
+        margin-top: -5px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--rail-text, #695543);
+        appearance: none;
+    }
+    input[type='range']::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--rail-text, #695543);
+    }
+    input[type='range']:focus-visible {
+        outline: 2px solid #a87948;
+        outline-offset: 2px;
+    }
+    .map-hint {
+        margin: 12px 0 0;
+        text-align: center;
+        font-size: 11px;
+        color: var(--rail-muted, #897866);
     }
     .reason {
         text-align: center;

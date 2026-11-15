@@ -1,4 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+const returnToCurrent = (page: Page) =>
+    page.getByRole('button', { name: 'Return to current game', exact: true })
 
 test('round interstitials jump across their full surface and return to the current game', async ({
     page
@@ -38,7 +41,7 @@ test('round interstitials jump across their full surface and return to the curre
         const jumpBounds = await jump.boundingBox()
         expect(jumpBounds?.width).toBeCloseTo(bounds.width, 0)
         await jump.click({ position: { x: bounds.width - 12, y: 12 } })
-        await expect(page.getByRole('status')).toHaveText('VIEWING HISTORY')
+        await expect(returnToCurrent(page).first()).toBeVisible()
         await expect(round.locator('ol')).toHaveText(contents, { useInnerText: true })
         for (const id of laterRoundIds)
             await expect(history.locator(`.round-section[data-round-id="${id}"]`)).toHaveCount(0)
@@ -47,8 +50,7 @@ test('round interstitials jump across their full surface and return to the curre
             .getByRole('button', { name: 'Return to current game', exact: true })
         await expect(returnButton).toHaveCount(1)
         await returnButton.click()
-        await expect(page.locator('.history-strip')).toHaveCount(0)
-        await expect(returnButton).toHaveCount(0)
+        await expect(returnToCurrent(page)).toHaveCount(0)
         await expect(
             page.getByRole('heading', { name: 'Player 2 wins', exact: true })
         ).toBeVisible()
@@ -83,16 +85,16 @@ test('company headers retain the full operation and exclude the following compan
             .locator('header')
             .getByRole('button', { name: /^Jump to / })
             .click()
-        await expect(page.locator('.history-strip')).toBeVisible()
+        await expect(returnToCurrent(page).first()).toBeVisible()
         await expect(companies).toHaveCount(1)
         await expect(companies.first()).toHaveAttribute('aria-label', name!)
         await expect(companies.first().locator('.events')).toHaveText(contents, {
             useInnerText: true
         })
-        await companies
+        const returnButton = companies
             .first()
             .getByRole('button', { name: 'Return to current game', exact: true })
-            .click()
-        await expect(page.locator('.history-strip')).toHaveCount(0)
+        await returnButton.click()
+        await expect(returnToCurrent(page)).toHaveCount(0)
     }
 })

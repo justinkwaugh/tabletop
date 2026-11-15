@@ -5,6 +5,8 @@
         getTreasury,
         privateOwner,
         controllingOwner,
+        currentPrivateRevenue,
+        type CompanyCharters,
         type TitleNames
     } from '@tabletop/18xx'
     import { assertExists, type Player, type PlayerState } from '@tabletop/common'
@@ -21,6 +23,7 @@
     let {
         gameState,
         names,
+        charters,
         players,
         playerStates,
         certificateDetail,
@@ -30,6 +33,7 @@
     }: {
         gameState: FinancialState
         names: TitleNames
+        charters: CompanyCharters
         players: readonly Player[]
         playerStates: readonly PlayerState[]
         certificateDetail?: Snippet<[Certificate]>
@@ -61,6 +65,7 @@
             {#each playerStates as player (player.playerId)}
                 {@const owner = { kind: 'player', playerId: player.playerId } as const}
                 <Portfolio
+                    {charters}
                     {names}
                     {gameState}
                     {owner}
@@ -82,6 +87,7 @@
                     company.kind === 'private' ? privateOwner(gameState, company.id) : undefined}
                 <div class="company" data-company-id={company.id}>
                     <Portfolio
+                        {charters}
                         {names}
                         {gameState}
                         owner={{ kind: 'company', companyId: company.id }}
@@ -124,8 +130,9 @@
                             ? ownerName(controllingPlayer)
                             : 'None'}
                     </p>
-                    {#if company.privateRevenue !== undefined}<p class="authority">
-                            Private income: {company.privateRevenue} per operating round
+                    {#if company.kind === 'private'}<p class="authority">
+                            Private income: {currentPrivateRevenue(gameState, charters, company.id)} per
+                            operating round
                         </p>{/if}
                 </div>
             {/each}
@@ -135,6 +142,7 @@
         <h2>Bank</h2>
         <div class="portfolios">
             <Portfolio
+                {charters}
                 {names}
                 {gameState}
                 owner={{ kind: 'bank' }}

@@ -10,10 +10,7 @@ import {
     assertExists
 } from '@tabletop/common'
 import { ContainerGameState, HydratedContainerGameState } from '../model/gameState.js'
-import {
-    ContainerPlayerState,
-    HydratedContainerPlayerState
-} from '../model/playerState.js'
+import { ContainerPlayerState, HydratedContainerPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { ContainerPlayerColors } from './colors.js'
 import {
@@ -30,10 +27,7 @@ export class ContainerGameInitializer
     extends BaseGameInitializer<ContainerGameState, HydratedContainerGameState>
     implements GameInitializer<ContainerGameState, HydratedContainerGameState>
 {
-    initializeGameState(
-        game: Game,
-        state: UninitializedGameState
-    ): HydratedContainerGameState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedContainerGameState {
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
 

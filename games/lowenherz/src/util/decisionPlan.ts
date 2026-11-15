@@ -32,7 +32,10 @@ export function rotateToStart(turnOrder: readonly string[], firstPlayerId: strin
 
 // Decision-card placement progress is derived from how many have been committed so far
 // this round, the same pattern used for castle-setup placement.
-export function currentDecisionPlayer(plan: string[], totalDecisionsMade: number): string | undefined {
+export function currentDecisionPlayer(
+    plan: string[],
+    totalDecisionsMade: number
+): string | undefined {
     return plan[totalDecisionsMade]
 }
 

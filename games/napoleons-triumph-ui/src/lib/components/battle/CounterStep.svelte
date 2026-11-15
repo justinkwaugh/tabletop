@@ -28,6 +28,7 @@
 </div>
 {#if !folded}
     <Force
+        byCorps
         units={stage.candidates}
         selected={stage.counterAttackers}
         roles={stage.roles}

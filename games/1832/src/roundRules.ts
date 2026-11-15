@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { EighteenThirtyTwoMarket } from './stockMarket.js'
 import {
     allSharesHeld,
@@ -25,6 +26,7 @@ export const EighteenThirtyTwoStockRoundRules: StockRoundRules = {
 }
 
 export const EighteenThirtyTwoOperatingRules: OperatingRules = {
+    charters: EighteenThirtyTwoCharters,
     roundCount: (state) => EighteenThirtyTwoPhases.phase(state.phaseId).operatingRounds,
     companyOrder: (state) => floatedCompaniesInMarketOrder(EighteenThirtyTwoMarket, state)
 }

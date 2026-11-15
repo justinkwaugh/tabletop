@@ -1,5 +1,5 @@
 <script lang="ts">
-import { isCube, isRoof, MachineState } from '@tabletop/estates'
+    import { isCube, isRoof, MachineState } from '@tabletop/estates'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
     import { Button } from 'flowbite-svelte'
     import { fade } from 'svelte/transition'

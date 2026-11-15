@@ -1,6 +1,7 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import type { WarbandGroup } from '@tabletop/oath'
+    import SeatChip from '$lib/components/SeatChip.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
     import { warbandFigure } from '$lib/images/pieceImages.js'
     import { tappedCount } from '$lib/model/exchangeTerms.js'
@@ -12,6 +13,7 @@
     // chip ("to ..." where the warbands go there). A tap on the Nth piece sets N, a tap on the count
     // sets 0; a row never goes past `ceilingAt`. With `per` 2 the pieces go in pairs (Blood Pact),
     // the row's buttons counting pairs while `counts`, `ceilingAt` and `onpick` stay in warbands.
+    // With `playerOf` each row starts with its player's chip, by name, and names the place in words.
     let {
         groups,
         order = groups.map((_, index) => index),
@@ -21,7 +23,8 @@
         tone,
         per = 1,
         toward = false,
-        ownerWord = new Set(groups.map((group) => group.owner)).size > 1,
+        playerOf,
+        ownerWord = !playerOf && new Set(groups.map((group) => group.owner)).size > 1,
         lead
     }: {
         groups: readonly WarbandGroup[]
@@ -35,7 +38,9 @@
         per?: 1 | 2
         /** The rows name where the warbands go, not where they stand. */
         toward?: boolean
-        /** A row names its owner; by default when the groups mix owners (a battle's force). */
+        /** Whose warbands a row holds: the row starts with their chip (a battle's defence losses). */
+        playerOf?: (group: WarbandGroup) => string | undefined
+        /** A row names its owner; by default when the groups mix owners and no chip names them. */
         ownerWord?: boolean
         /** A power's words, beside the pieces in the place's stead, where its text names the place. */
         lead?: string
@@ -68,9 +73,14 @@
         {@const group = groups[index]}
         {@const count = counts[index] ?? 0}
         {@const owner = ownerWord ? `${gameSession.warbandOwnerName(group.owner)} ` : ''}
+        {@const playerId = playerOf?.(group)}
         <span>
             {#if lead !== undefined}
                 {lead}
+            {:else if playerId !== undefined}
+                <!-- The player's name, the viewer's too: the words say "your board". -->
+                <SeatChip {playerId} />
+                {owner}{whereText(group)}
             {:else if group.at.kind === 'board' && !isMine(group.at.playerId)}
                 {owner}{onBoard}
                 <PlayerName playerId={group.at.playerId} possessive /> board

@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type GameAction
@@ -14,7 +13,8 @@ import {
     controllingOwner,
     nextOperatingCompany,
     privateOwningCompany,
-    type CompanyDecisionState
+    type CompanyDecisionState,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { MeatPackingLocations, PortSymbols } from './map.js'
 import type { HydratedEighteenFortySixState } from './state.js'
@@ -97,7 +97,7 @@ export function revenueMarkerChoices(state: MarkerState, playerId: string) {
 
 export const AssignRevenueMarker = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('AssignRevenueMarker'),
         privateCompanyId: RevenuePrivateId,
         locationId: Type.Optional(RevenueCenter.properties.locationId),

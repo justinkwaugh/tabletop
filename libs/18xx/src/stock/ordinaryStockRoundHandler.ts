@@ -1,3 +1,4 @@
+import type { MapStateData } from '../map/mapState.js'
 import {
     CompleteStockRound,
     isCompleteStockRound,
@@ -25,7 +26,7 @@ import { evaluateShareSale, hasLegalShareSale, mustSellShares } from './shareSal
 import type { StockRules } from './stockRules.js'
 import type { FormationState } from '../company/companyState.js'
 
-type State = HydratedGameState & FormationState
+type State = HydratedGameState & FormationState & MapStateData
 type Action =
     | HydratedBuyShares
     | HydratedSellShares
@@ -95,20 +96,31 @@ export class OrdinaryStockRoundHandler implements MachineStateHandler<Action, St
                 state.companies.some(
                     (company) =>
                         !company.started &&
-                        this.companyRules.startMarketSpaces(state, company.id).some(
-                            (marketSpaceId) =>
-                                evaluateCompanyStart(
-                                    state,
-                                    {
-                                        playerId,
-                                        buyer,
-                                        companyId: company.id,
+                        this.companyRules
+                            .startMarketSpaces(state, company.id)
+                            .some((marketSpaceId) =>
+                                (
+                                    this.companyRules.startHomes?.(
+                                        state,
+                                        company.id,
                                         marketSpaceId
-                                    },
-                                    this.rules,
-                                    this.companyRules
-                                ).details
-                        )
+                                    ) ?? [undefined]
+                                ).some(
+                                    (home) =>
+                                        evaluateCompanyStart(
+                                            state,
+                                            {
+                                                playerId,
+                                                buyer,
+                                                companyId: company.id,
+                                                marketSpaceId,
+                                                ...(home ? { home } : {})
+                                            },
+                                            this.rules,
+                                            this.companyRules
+                                        ).details
+                                )
+                            )
                 )
             )
         )

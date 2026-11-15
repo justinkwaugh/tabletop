@@ -1,5 +1,5 @@
 import {
-    ActionSource,
+    isCascadedSystemAction,
     assertExists,
     findLastIndex,
     GameSyncStatus,
@@ -310,7 +310,7 @@ export class GameReconciliation<T extends GameState, U extends HydratedGameState
             if (this.context.hasAction(action.id)) {
                 continue
             }
-            if (handling === ServerActionHandling.Execute && action.source !== ActionSource.User)
+            if (handling === ServerActionHandling.Execute && isCascadedSystemAction(action))
                 continue
             if (action.index === undefined || action.index < this.context.historyStartIndex) {
                 throw new Error('Server update predates the local checkpoint')

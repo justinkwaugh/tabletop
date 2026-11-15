@@ -2,7 +2,11 @@
     import type { Point } from '@tabletop/common'
     import { ARCHITECT_HEIGHT, SQUARE_SIZE, shadowOffset } from '$lib/board/geometry.js'
 
-    let { center, selected, selectable }: { center: Point; selected: boolean; selectable: boolean } = $props()
+    let {
+        center,
+        selected,
+        selectable
+    }: { center: Point; selected: boolean; selectable: boolean } = $props()
 
     const shadow = shadowOffset(ARCHITECT_HEIGHT / 2)
     const bodyRadius = 0.36 * SQUARE_SIZE
@@ -20,12 +24,19 @@
         fill="#3b2410"
         opacity="0.3"
         filter="url(#urbino-soft-shadow)"
-    />
+    ></ellipse>
     {#if selected}
-        <circle r={ringRadius} fill="none" stroke="#f2c14e" stroke-width="3.5" filter="url(#urbino-glow)" />
+        <circle
+            r={ringRadius}
+            fill="none"
+            stroke="#f2c14e"
+            stroke-width="3.5"
+            filter="url(#urbino-glow)"
+        ></circle>
     {:else if selectable}
-        <circle r={ringRadius} fill="none" stroke="#b8860b" stroke-width="2" stroke-dasharray="4 4" />
+        <circle r={ringRadius} fill="none" stroke="#b8860b" stroke-width="2" stroke-dasharray="4 4"
+        ></circle>
     {/if}
-    <circle r={bodyRadius} fill="url(#urbino-pawn-body)" stroke="#6e0d0d" />
-    <circle r={headRadius} fill="url(#urbino-pawn-head)" />
+    <circle r={bodyRadius} fill="url(#urbino-pawn-body)" stroke="#6e0d0d"></circle>
+    <circle r={headRadius} fill="url(#urbino-pawn-head)"></circle>
 </g>

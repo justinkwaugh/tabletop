@@ -155,8 +155,12 @@
     const outlineRy = $derived((height / COMPANY_DEED_VIEWBOX_HEIGHT) * COMPANY_DEED_VIEWBOX_RY)
     const resolvedOutlineColor = $derived(outlineColor ?? deedStyle.outlineColor)
     const resolvedTextColor = $derived(textColor ?? deedStyle.textColor)
-    const textXLocal = $derived(iconXLocal + width * (textLayout?.textXRatio ?? deedStyle.textXRatio))
-    const textYLocal = $derived(iconYLocal + height * (textLayout?.textYRatio ?? deedStyle.textYRatio))
+    const textXLocal = $derived(
+        iconXLocal + width * (textLayout?.textXRatio ?? deedStyle.textXRatio)
+    )
+    const textYLocal = $derived(
+        iconYLocal + height * (textLayout?.textYRatio ?? deedStyle.textYRatio)
+    )
     const textSize = $derived(height * (textLayout?.textSizeRatio ?? 0.23))
     const textLines = $derived.by(() => {
         if (textLayout?.lines && textLayout.lines.length > 0) {

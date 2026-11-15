@@ -1,15 +1,16 @@
 <script lang="ts">
     import DraftCard from './DraftCard.svelte'
+    import DraftLineup from './DraftLineup.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const draft = $derived(session.gameState.draft)
     const money = $derived(session.presentation.money)
     const finalOffer = $derived(
-        draft.kind === 'public' && draft.stage === 'buying' && !!draft.finalOffer
+        draft?.kind === 'public' && draft.stage === 'buying' && !!draft.finalOffer
     )
 </script>
 
-<section class="draft" aria-label="Opening company purchases">
+<section class="draft midwest-panel centered-panel" aria-label="Opening company purchases">
     <header class="draft-heading">
         <h2>
             {session.gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(', ')} · buy
@@ -21,6 +22,7 @@
             is mandatory.
         </p>
     </header>
+    <DraftLineup {session} />
     <div class="draft-cards">
         {#each session.openingCompanies as choice (choice.companyId)}
             <DraftCard {session} cardId={choice.companyId} price={choice.expectedPrice}>

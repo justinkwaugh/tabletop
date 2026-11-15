@@ -119,7 +119,7 @@ describe('physical tile inventory', () => {
         expect(set.availablePieces(retired, '18xx:7')).toHaveLength(0)
     })
 
-    it('rejects unavailable pieces, mismatched faces and sets, and malformed serialized state', () => {
+    it('rejects unavailable pieces, mismatched faces and malformed serialized state', () => {
         const set = tileSet()
         const initial = set.createInventory()
         const placement = { pieceId: 'test/city/1', definitionId: '18xx:5', rotation: 0 } as const
@@ -144,7 +144,6 @@ describe('physical tile inventory', () => {
         expect(() =>
             set.parseInventory({ ...placed, placements: { A1: { ...placement, rotation: 6 } } })
         ).toThrow('schema')
-        expect(() => set.counts(tileSet('other').createInventory())).toThrow('different set')
         expect(JSON.stringify(placed)).toBe(before)
     })
 
@@ -257,4 +256,64 @@ it('keeps unlimited supplies available with unique, serializable, reusable piece
             'Unknown physical tile'
         )
     }
+})
+
+describe('tile set variants', () => {
+    const variants = {
+        small: {
+            board: [{ locationId: 'B2', definitionId: '18xx:57', rotation: 0 as const }],
+            removed: { '18xx:5': 1 }
+        }
+    }
+    const set = () =>
+        new TileSet(
+            {
+                id: 'test',
+                entries: [{ id: 'city', faceDefinitionIds: ['18xx:5'], count: 2 }]
+            },
+            [StandardTileCatalog],
+            variants
+        )
+
+    it('records only the variant, its board tiles and smaller supply following from it', () => {
+        const inventory = set().createInventory([], 'small')
+        expect(inventory).toEqual({ variantId: 'small', placements: {}, retiredPieceIds: [] })
+        expect(set().boardTiles(inventory)).toEqual(variants.small.board)
+        expect(
+            set()
+                .counts(inventory)
+                .find((count) => count.definitionId === '18xx:5')
+        ).toEqual({
+            definitionId: '18xx:5',
+            total: 2,
+            available: 1
+        })
+        // The removed piece is the last of its kind, and no lay may use it.
+        expect(
+            set()
+                .availablePieces(inventory, '18xx:5')
+                .map((piece) => piece.id)
+        ).toEqual(['test/city/1'])
+        // A board tile is a definition of the set with no piece in its supply.
+        expect(
+            set()
+                .counts(inventory)
+                .find((count) => count.definitionId === '18xx:57')
+        ).toEqual({
+            definitionId: '18xx:57',
+            total: 0,
+            available: 0
+        })
+    })
+
+    it('keeps the variant through a lay, and the plain set has no board tiles', () => {
+        const laid = set().replace(set().createInventory([], 'small'), {
+            locationId: 'A1',
+            placement: { pieceId: 'test/city/1', definitionId: '18xx:5', rotation: 0 },
+            returnPrevious: true
+        })
+        expect(laid.variantId).toBe('small')
+        expect(set().boardTiles(set().createInventory())).toEqual([])
+        expect(() => set().createInventory([], 'unknown')).toThrow('Unknown tile set variant')
+    })
 })

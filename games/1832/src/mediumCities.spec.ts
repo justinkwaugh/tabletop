@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TrackConstruction } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
+import { laidTiles } from '@tabletop/18xx/testing'
 import {
     EighteenThirtyTwoTileSet,
     EighteenThirtyTwoTrackRules,
@@ -17,14 +18,15 @@ const ToAugusta = [
 
 function augusta(phaseId: string, lays: { locationId: string; color: string }[] = []) {
     const { state } = exampleGame(EighteenThirtyTwoScenarios, 'construction', 3)
+    const tileInventory = EighteenThirtyTwoTileSet.createInventory(ToAugusta)
     return new TrackConstruction(
         {
             ...state,
             phaseId,
-            tileInventory: EighteenThirtyTwoTileSet.createInventory(ToAugusta),
+            tileInventory,
             trackStep: {
                 companyId: 'CG',
-                lays: lays.map((lay) => ({ ...lay, cost: 0 })),
+                lays: laidTiles(tileInventory, EighteenThirtyTwoTileSet, lays),
                 completed: false
             }
         },
@@ -45,7 +47,7 @@ describe('medium cities', () => {
 
     it('make the yellow city the turn’s one upgrade', () => {
         expect(upgrades(augusta('3', [{ locationId: 'R25', color: 'yellow' }]))).toEqual(new Set())
-        const promoted = (lays: { locationId: string; color: string; cost: number }[]) =>
+        const promoted = (lays: { locationId: string; definitionId: string }[]) =>
             new TrackConstruction(
                 {
                     ...exampleGame(EighteenThirtyTwoScenarios, 'construction', 3).state,
@@ -59,7 +61,7 @@ describe('medium cities', () => {
                 EighteenThirtyTwoTrackRules
             )
         expect(promoted([]).choices('R25').length).toBeGreaterThan(0)
-        expect(promoted([{ locationId: 'S26', color: 'yellow', cost: 0 }]).choices('R25')).toEqual(
+        expect(promoted([{ locationId: 'S26', definitionId: '18xx:57' }]).choices('R25')).toEqual(
             []
         )
     })

@@ -31,7 +31,8 @@ const MIN_CARDS_PER_ROW = 4
 // approximation of how much of the viewport this row actually gets.
 export function responsiveCardWidth(availableWidth: number): number {
     if (availableWidth <= 0) return CARD_W
-    const idealForMinPerRow = (availableWidth - (MIN_CARDS_PER_ROW - 1) * CARD_GAP) / MIN_CARDS_PER_ROW
+    const idealForMinPerRow =
+        (availableWidth - (MIN_CARDS_PER_ROW - 1) * CARD_GAP) / MIN_CARDS_PER_ROW
     return Math.max(MIN_CARD_W, Math.min(CARD_W, idealForMinPerRow))
 }
 
@@ -39,7 +40,11 @@ export function responsiveCardWidth(availableWidth: number): number {
 // width - a plain flex-wrap left it up to the browser, which packs each row as full as it can
 // before wrapping (5 cards at 4-per-row read as 4 then 1, not 3 and 2). Falls back to
 // "everything fits" before the real width is known.
-export function cardsPerRow(availableWidth: number, totalCount: number, cardWidth: number = CARD_W): number {
+export function cardsPerRow(
+    availableWidth: number,
+    totalCount: number,
+    cardWidth: number = CARD_W
+): number {
     return availableWidth > 0
         ? Math.max(1, Math.floor((availableWidth + CARD_GAP) / (cardWidth + CARD_GAP)))
         : totalCount
@@ -47,7 +52,11 @@ export function cardsPerRow(availableWidth: number, totalCount: number, cardWidt
 
 // Splits a pile into as many rows as it actually needs (per cardsPerRow above), sized as evenly
 // as possible rather than greedily - 5 cards needing 2 rows come out 3/2, not 4/1.
-export function rowSizes(totalCount: number, availableWidth: number, cardWidth: number = CARD_W): number[] {
+export function rowSizes(
+    totalCount: number,
+    availableWidth: number,
+    cardWidth: number = CARD_W
+): number[] {
     if (totalCount <= 0) return []
     const perRow = cardsPerRow(availableWidth, totalCount, cardWidth)
     const rowCount = Math.max(1, Math.ceil(totalCount / perRow))
@@ -79,8 +88,7 @@ export function chooserDeckCenter(
 }
 
 export type PileSlot<TCard> =
-    | { kind: 'deck'; card: TCard }
-    | { kind: 'card'; card: TCard; index: number }
+    { kind: 'deck'; card: TCard } | { kind: 'card'; card: TCard; index: number }
 
 // One shared pile layout for PoliticsPileReveal's real (post-deal) row and its deal animator's
 // transient one - both need the exact same slot positions, or the handoff between them jumps.

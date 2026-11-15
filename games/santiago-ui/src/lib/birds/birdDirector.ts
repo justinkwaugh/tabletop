@@ -1,6 +1,15 @@
 import type { BoundingBox, RandomFunction } from '@tabletop/common'
 import type { BoardSquare, Intersection } from '@tabletop/santiago'
-import { BORDER_X, BORDER_Y, CELL_H, CELL_W, COL_STARTS, H, ROW_STARTS, W } from '$lib/utils/boardGeometry.js'
+import {
+    BORDER_X,
+    BORDER_Y,
+    CELL_H,
+    CELL_W,
+    COL_STARTS,
+    H,
+    ROW_STARTS,
+    W
+} from '$lib/utils/boardGeometry.js'
 import {
     adjacentCandidates,
     isCandidateField,
@@ -154,9 +163,7 @@ export class BirdDirector {
 
     private tryVisit(): boolean {
         const suppressed =
-            this.host.isViewingHistory ||
-            this.env.isHidden() ||
-            this.env.prefersReducedMotion()
+            this.host.isViewingHistory || this.env.isHidden() || this.env.prefersReducedMotion()
         const squares = this.host.gameState.board.squares
         const targets = suppressed ? [] : plantedFields(squares)
         if (targets.length === 0) {

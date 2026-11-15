@@ -9,7 +9,7 @@
     } from '$lib/model/battleStage.js'
     import { lossMark } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { advancePrompt } from '$lib/utils/advancePrompt.js'
+    import { advancePrompt, notNamedToDefend } from '$lib/utils/advancePrompt.js'
     import UnitTile from '$lib/components/UnitTile.svelte'
     import Force from './Force.svelte'
     import CommanderChip from './CommanderChip.svelte'
@@ -28,9 +28,9 @@
 {#if stage.kind === StageKind.OddLoss}
     <div class="nt-battle-prompt">
         {#if folded}
-            The loss is odd. Tap the enemy leading unit on the map that takes the extra step.
+            The loss is odd. Tap the enemy {stage.takers} unit on the map that takes the extra step.
         {:else}
-            The loss is odd. Choose which enemy leading unit takes the extra step.
+            The loss is odd. Choose which enemy {stage.takers} unit takes the extra step.
         {/if}
     </div>
     {#if !folded}
@@ -104,10 +104,12 @@
                 playerId={stage.units[0].playerId}
                 label={commander.mustGo
                     ? `${name} goes forward with his last unit`
-                    : `Send ${name} forward with them`}
+                    : commander.named
+                      ? `Send ${name} forward with them`
+                      : notNamedToDefend(commander.commanderId)}
                 marker={commander.goes ? 'advances' : 'stays'}
                 chosen={commander.goes}
-                onclick={commander.mustGo
+                onclick={commander.mustGo || !commander.named
                     ? undefined
                     : () =>
                           gameSession.sendCommanderForward(commander.commanderId, !commander.goes)}

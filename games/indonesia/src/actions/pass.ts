@@ -69,7 +69,11 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         return HydratedPass.canPass(state, this.playerId, this.reason)
     }
 
-    static canPass(state: HydratedIndonesiaGameState, playerId: string, reason?: PassReason): boolean {
+    static canPass(
+        state: HydratedIndonesiaGameState,
+        playerId: string,
+        reason?: PassReason
+    ): boolean {
         if (state.machineState === MachineState.NewEra) {
             return (
                 (reason === undefined || reason === PassReason.CannotPlaceCity) &&
@@ -86,10 +90,7 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
         }
 
         if (state.machineState === MachineState.Mergers) {
-            if (
-                reason !== undefined &&
-                reason !== PassReason.DeclineMergerAnnouncement
-            ) {
+            if (reason !== undefined && reason !== PassReason.DeclineMergerAnnouncement) {
                 return false
             }
             if (state.activeMergerProposal || state.pendingSiapSajiReduction) {
@@ -108,7 +109,9 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
                 return false
             }
 
-            const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+            const operatingCompany = state.companies.find(
+                (company) => company.id === operatingCompanyId
+            )
             if (!operatingCompany || operatingCompany.owner !== playerId) {
                 return false
             }

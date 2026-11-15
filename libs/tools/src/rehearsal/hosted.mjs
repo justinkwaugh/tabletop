@@ -89,7 +89,7 @@ export async function runHosted(rehearsal, replay, options) {
             await page.goto(`${options.site}/login/username`)
             await page.locator('input[name=username]').fill(account.username)
             await page.locator('input[name=password]').fill(account.password)
-            await page.getByRole('button', { name: 'Submit', exact: true }).click()
+            await page.locator('form').getByRole('button', { name: 'Sign in', exact: true }).click()
             await page.waitForURL(/library|dashboard/)
             await bind(page)
             pages.push(page)

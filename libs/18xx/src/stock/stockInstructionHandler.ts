@@ -9,7 +9,15 @@ import * as Value from 'typebox/value'
 import { BuyShares, isBuyShares } from './buyShares.js'
 import { FinishStockTurn, isFinishStockTurn } from './finishStockTurn.js'
 import { isSetStockInstruction, stockInstructionProblem } from './setStockInstruction.js'
+import {
+    isSetStockInstructionStops,
+    stockInstructionStopsProblem
+} from './setStockInstructionStops.js'
 import { StopStockInstruction, isStopStockInstruction } from './stopStockInstruction.js'
+import {
+    isStockInstructionAction,
+    isStockInstructionDeclaration
+} from './stockInstructionActions.js'
 import { standingStockInstructionFor, type StandingStockInstruction } from './stockInstruction.js'
 import {
     evaluateStockInstruction,
@@ -64,11 +72,17 @@ export class StockInstructionHandler<
         return false
     }
 
+    private declarationProblem(action: HydratedAction, state: State): string | undefined {
+        if (isSetStockInstruction(action)) return stockInstructionProblem(state, action)
+        if (isSetStockInstructionStops(action)) return stockInstructionStopsProblem(state, action)
+        return undefined
+    }
+
     isValidAction(action: HydratedAction, context: MachineContext<State>): boolean {
-        if (isSetStockInstruction(action))
+        if (isStockInstructionDeclaration(action))
             return (
                 action.source === ActionSource.User &&
-                stockInstructionProblem(context.gameState, action) === undefined
+                this.declarationProblem(action, context.gameState) === undefined
             )
         if (action.source === ActionSource.System) {
             const evaluation = this.evaluate(context)
@@ -86,6 +100,8 @@ export class StockInstructionHandler<
             undefined
         )
             actions.push('SetStockInstruction')
+        if (stockInstructionStopsProblem(state, { playerId }) === undefined)
+            actions.push('SetStockInstructionStops')
         return actions
     }
 
@@ -121,8 +137,7 @@ export class StockInstructionHandler<
     }
 
     onAction(action: HydratedAction, context: MachineContext<State>): string {
-        if (isSetStockInstruction(action) || isStopStockInstruction(action))
-            return context.gameState.machineState
+        if (isStockInstructionAction(action)) return context.gameState.machineState
         return this.handler.onAction(action, context)
     }
 }

@@ -7,14 +7,13 @@ import {
     type SaleKind,
     type SaleTerms
 } from './state.js'
+import { PassableBidding, isValidBidStep } from '@tabletop/common'
 import {
-    PassableBidding,
     companyLoans,
     controllingOwner,
     finiteCashOwnedBy,
     getCompany,
-    loansRemaining,
-    validBidStep
+    loansRemaining
 } from '@tabletop/18xx'
 import { corporationShareCount } from './corporations.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -171,7 +170,7 @@ export function bidRejection(
     if (new PassableBidding(sale.bidding).currentBidderId !== playerId)
         return 'It is not this player’s bid.'
     const minimum = minimumBid(state, sale)
-    if (!validBidStep(amount, minimum, AcquisitionIncrement))
+    if (!isValidBidStep(amount, minimum, AcquisitionIncrement))
         return `Bid at least ${minimum}, in steps of ${AcquisitionIncrement}.`
     if (controllingOwner(state, sale.companyId)?.playerId === playerId && amount !== minimum)
         return 'A company’s own president may bid only the minimum.'

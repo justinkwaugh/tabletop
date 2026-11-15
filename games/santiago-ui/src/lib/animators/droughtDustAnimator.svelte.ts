@@ -1,7 +1,14 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
 import { isFieldSquare } from '@tabletop/santiago'
-import { BORDER_X, BORDER_Y, CELL_H, CELL_W, COL_STARTS, ROW_STARTS } from '$lib/utils/boardGeometry.js'
+import {
+    BORDER_X,
+    BORDER_Y,
+    CELL_H,
+    CELL_W,
+    COL_STARTS,
+    ROW_STARTS
+} from '$lib/utils/boardGeometry.js'
 import { intersectionKey } from '$lib/utils/canalGeometry.js'
 import { StateAnimator, type StateChange } from './stateAnimator.js'
 
@@ -56,7 +63,12 @@ export class DroughtDustAnimator extends StateAnimator {
         to.board.squares.forEach((column, col) =>
             column.forEach((square, row) => {
                 const before = from.board.squares[col][row]
-                if (isFieldSquare(square) && square.dried && isFieldSquare(before) && !before.dried) {
+                if (
+                    isFieldSquare(square) &&
+                    square.dried &&
+                    isFieldSquare(before) &&
+                    !before.dried
+                ) {
                     dried.push({ col, row })
                 }
             })
@@ -77,10 +89,14 @@ export class DroughtDustAnimator extends StateAnimator {
                 fieldIndex * FIELD_STAGGER
             )
         })
-        timeline.call(() => {
-            this.gameSession.boardPreview.showSquares(to.board.squares)
-            this.flipping = []
-        }, [], flipEnd(dried.length - 1))
+        timeline.call(
+            () => {
+                this.gameSession.boardPreview.showSquares(to.board.squares)
+                this.flipping = []
+            },
+            [],
+            flipEnd(dried.length - 1)
+        )
         animationContext.actionTimeline.add(timeline, 0)
     }
 

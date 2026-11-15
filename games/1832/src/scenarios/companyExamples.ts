@@ -58,7 +58,6 @@ function addUnstartedMajors(state: CompanyState): void {
         state.companies.push({
             id: major.id,
             kind: 'major',
-            shareCount: 10,
             started: false,
             funded: false,
             floated: false,
@@ -191,4 +190,21 @@ export function createEighteenThirtyTwoCompanyExample(
                 }
     }
     return state
+}
+
+/**
+ * Adds, unstarted, the railroads a prepared position leaves out, so all ten count toward the
+ * certificate limit (Table 2).
+ */
+export function addUnstartedRailroads(state: CompanyState): void {
+    for (const id of Object.keys(EighteenThirtyTwoMajors))
+        if (!state.companies.some((company) => company.id === id))
+            state.companies.push({
+                id,
+                kind: 'major',
+                started: false,
+                funded: false,
+                floated: false,
+                operated: false
+            })
 }

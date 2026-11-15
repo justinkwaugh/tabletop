@@ -107,10 +107,7 @@ export type SlotRouting = {
     bandKind?: 'border' | 'knight'
     bandCount?: number
     placementSkippedReason?:
-        | 'regionCap'
-        | 'noKnightsInStock'
-        | 'noLegalWallSpots'
-        | 'noPoliticsCardsLeft'
+        'regionCap' | 'noKnightsInStock' | 'noLegalWallSpots' | 'noPoliticsCardsLeft'
 }
 
 // Called right after a slot's contest is settled (money bag payout, solo win,

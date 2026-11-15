@@ -42,7 +42,9 @@ describe('uprightChips', () => {
 
     it('decides by the longest word shown: short words stay beside a column too narrow for “Citizenship”', () => {
         const row = 290
-        expect(uprightChips({ row, majors: MAJORS, label: LABEL, word: WORD }, 7).beside).toBe(false)
+        expect(uprightChips({ row, majors: MAJORS, label: LABEL, word: WORD }, 7).beside).toBe(
+            false
+        )
         expect(uprightChips({ row, majors: MAJORS, label: 72, word: 67 }, 3).beside).toBe(true)
     })
 

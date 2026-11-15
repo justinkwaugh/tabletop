@@ -79,7 +79,47 @@ test('all backend deployments configure HTTP child health probes and disable aff
         }
         assert.ok(command.args.includes('--no-session-affinity'))
         assert.ok(command.args.includes('--no-traffic'))
+        const readiness = command.args[command.args.indexOf('--readiness-probe') + 1]
+        assert.match(readiness, /failureThreshold=3/)
+        assert.match(readiness, service === 'tasks' ? /periodSeconds=30/ : /periodSeconds=5,/)
     }
+})
+
+test('custom gcloud deployments receive the required runtime environment', () => {
+    const config = {
+        backend: { deployCommand: ['gcloud', 'run', 'deploy', 'backend', '--image', 'image'] }
+    }
+    for (const service of ['backend', 'tasks']) {
+        const command = deployBackendCommand('/tmp', config, {
+            service,
+            envVars: {
+                SITE_MANIFEST_GCS_URI: 'gs://test-static/config/site-manifest.json',
+                BACKEND_VERSION: '1.50.0'
+            }
+        })
+        const index = command.args.indexOf('--update-env-vars')
+        assert.ok(index >= 0)
+        assert.equal(
+            command.args[index + 1],
+            'SITE_MANIFEST_GCS_URI=gs://test-static/config/site-manifest.json,BACKEND_VERSION=1.50.0'
+        )
+    }
+})
+
+test('custom commands cannot silently discard required runtime environment', () => {
+    assert.throws(
+        () =>
+            deployBackendCommand(
+                '/tmp',
+                {
+                    backend: { deployCommand: ['custom-deploy'] }
+                },
+                {
+                    envVars: { SITE_MANIFEST_GCS_URI: 'gs://test-static/config/site-manifest.json' }
+                }
+            ),
+        /Environment overrides require gcloud deploy command/
+    )
 })
 
 test('backend list is read-only; rollback plans both services, honors tasks-only, verifies traffic', async () => {

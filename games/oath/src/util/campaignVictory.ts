@@ -2,16 +2,19 @@ import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import type { PileDeposit } from '../model/hidden.js'
+import type { HeldForHospital } from '../model/campaign.js'
 import { HydratedCampaignSacrifice } from '../actions/campaignSacrifice.js'
 import { phaseAfterActPhaseAction } from '../stateHandlers/handlerSupport.js'
 import { burnHalfTheirFavor } from './burn.js'
-import { concludeCampaign } from './campaignEnd.js'
+import { concludeCampaign, hospitalPlacedRecord } from './campaignEnd.js'
 import { isCampaignOutOfTurn } from './sneakAttack.js'
 
 export interface VictoryConclusion {
     notes: string[]
     /** R-5.5.8, R-9.4 */
     pileDeposits: PileDeposit[]
+    /** Hospital — the warbands placed on its site at the end. */
+    hospitalPlaced: HeldForHospital[]
     /** Martial Culture */
     endsActPhase: boolean
     /** Sneak Attack — where the interrupted turn resumes. */
@@ -34,6 +37,7 @@ export function concludeVictory(state: HydratedOathGameState): VictoryConclusion
     return {
         notes: [...victoryPlans.notes, ...conclusion.notes],
         pileDeposits: [...victoryPlans.pileDeposits, ...conclusion.pileDeposits],
+        hospitalPlaced: conclusion.hospitalPlaced,
         endsActPhase,
         resumeMachineState: conclusion.resumeMachineState
     }
@@ -42,6 +46,8 @@ export function concludeVictory(state: HydratedOathGameState): VictoryConclusion
 export interface BanishedVictory {
     triggered?: string[]
     pileDeposits?: PileDeposit[]
+    /** Hospital — the warbands placed on its site at the end. */
+    hospitalPlaced?: HeldForHospital[]
     /** Where the turn goes once the questions are answered: where the Campaign's end leaves it. */
     resumeMachineState?: MachineState
 }
@@ -69,6 +75,7 @@ export function settleBanishedVictory(state: HydratedOathGameState): BanishedVic
     return {
         triggered: triggered.length > 0 ? triggered : undefined,
         pileDeposits: done.pileDeposits.length > 0 ? done.pileDeposits : undefined,
+        hospitalPlaced: hospitalPlacedRecord(done.hospitalPlaced),
         resumeMachineState: resume
     }
 }

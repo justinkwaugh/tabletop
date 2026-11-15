@@ -39,7 +39,7 @@ function table() {
 }
 
 describe('a seat’s warbands (R-6.6.3)', () => {
-    it('an Imperial seat counts the Empire\'s warbands, drawn from the one Imperial bank', () => {
+    it("an Imperial seat counts the Empire's warbands, drawn from the one Imperial bank", () => {
         const state = table()
         expect(seatWarbands(state, CIT)).toEqual({
             owner: IMPERIAL_WARBANDS,

@@ -31,15 +31,15 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-15T01:24:01.754Z",
+  "createdAt": "2026-10-16T19:06:20.624Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-15T01:24:01.754Z",
+  "startedAt": "2026-10-16T19:06:20.624Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "SKjvh1z-7aANTGOxUG_Ig",
+  "id": "K6qGId4liGMcGPpIlDNtb",
   "gameId": "scenario-bag-searches",
   "seed": 3367980177,
   "prng": {
@@ -370,6 +370,7 @@
   },
   "bonusPolypsInBag": false,
   "colorsMissingFromBag": [],
+  "bonusSpacesRefillAtTurnEnd": true,
   "advanced": false,
   "algaSupply": {
    "blue": 5,

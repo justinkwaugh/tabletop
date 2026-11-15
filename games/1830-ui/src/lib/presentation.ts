@@ -1,15 +1,17 @@
-import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import { EighteenThirtyMap, EighteenThirtyTitleRules } from '@tabletop/1830'
+import { moneyFormat, printedHomeCompanies, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTrainColors } from './trainPresentation.js'
 
 export const EighteenThirtyPresentation: TitlePresentation = {
-    money: moneyFormat('$'),
-    trainShortLabels: { D: 'D' },
+    unstartedCompanies: printedHomeCompanies(EighteenThirtyMap),
+    money: moneyFormat(EighteenThirtyTitleRules.currencySymbol),
     phaseChart: EighteenThirtyPhaseChart,
     trainColors: EighteenThirtyTrainColors,
     phaseColors: EighteenThirtyTrainColors,
     marketPoolId: 'open-market',
+    ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyCompanyNames,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: {

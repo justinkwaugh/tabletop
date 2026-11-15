@@ -11,9 +11,18 @@ describe('buildPlacementPlan', () => {
         expect(plan.every((slot) => slot.owner === slot.playerId)).toBe(true)
         // Round-robin: p1,p2,p3,p4 repeated 3 times
         expect(plan.map((s) => s.playerId)).toEqual([
-            'p1', 'p2', 'p3', 'p4',
-            'p1', 'p2', 'p3', 'p4',
-            'p1', 'p2', 'p3', 'p4'
+            'p1',
+            'p2',
+            'p3',
+            'p4',
+            'p1',
+            'p2',
+            'p3',
+            'p4',
+            'p1',
+            'p2',
+            'p3',
+            'p4'
         ])
     })
 

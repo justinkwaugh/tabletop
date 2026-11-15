@@ -35,7 +35,7 @@ export function isLightColor(hex: string): boolean {
 }
 
 export const GOODS_PAINT = {
-    fish: { body: '#5aa845', tail: '#4b9139' },
+    fish: { body: '#b8c7d3', tail: '#8ea4b6' },
     cheese: { front: '#efb238', top: '#f6cd6e', holes: '#b9761c' },
     gelato: { scoop: '#dc84cc', cup: '#efe6d0' },
     soda: { cup: '#38b4aa', lid: '#2a8f87', straw: '#e0609a' }

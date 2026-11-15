@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Snippet } from 'svelte'
+    import type { Snippet } from 'svelte'
     import { Floater } from '@tabletop/frontend-components'
 
     let {

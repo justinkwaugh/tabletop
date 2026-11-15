@@ -4,6 +4,8 @@ export enum ActionType {
     Trade = 'trade',
     Search = 'search',
     SearchResolve = 'searchResolve',
+    /** Great Spire — after the draw and before the discard (R-5.1.2, R-5.1.3). */
+    SearchSwap = 'searchSwap',
     Recover = 'recover',
     Campaign = 'campaign',
     /** R-5.5.3 — after the Citizens asked to join the defence have answered. */
@@ -40,6 +42,10 @@ export enum ActionType {
     ExileCitizen = 'exileCitizen',
     /** R-6.8 */
     SelfExile = 'selfExile',
+    /** R-7.6.3-H1 — a party to an open Tribunal deal asks the other to confirm it was kept. */
+    ClaimDealKept = 'claimDealKept',
+    /** R-7.6.3-H1 — a party to an open Tribunal deal closes it unconfirmed, asking no one. */
+    LeaveDealUnconfirmed = 'leaveDealUnconfirmed',
 
     /** R-4.1 */
     ResolveWake = 'resolveWake',
@@ -57,5 +63,43 @@ export enum ActionType {
     TransferOathkeeper = 'transferOathkeeper',
 
     /** R-1.23.1–R-1.23.3 */
-    SetupChoice = 'setupChoice'
+    SetupChoice = 'setupChoice',
+
+    /** R-8.1 — the winner vows the next game's Oath. */
+    ChooseOath = 'chooseOath',
+    /** R-8.2 — an Exile winner's offers, made together. */
+    OfferChronicleCitizenship = 'offerChronicleCitizenship',
+    /** R-8.2, R-X.1 — each offered Exile's own answer. */
+    AnswerChronicleCitizenship = 'answerChronicleCitizenship',
+    /** R-8.3.1 */
+    BuildOrRepairEdifice = 'buildOrRepairEdifice',
+    /** R-8.4 — among the tied suits. */
+    ChooseChronicleSuit = 'chooseChronicleSuit',
+    /** R-8.4.a-H1 — among the tied Dispossessed stacks. */
+    ChooseHealStack = 'chooseHealStack',
+    /** The winner's story, written once into the record. */
+    WriteChronicleStory = 'writeChronicleStory',
+    SkipChronicleStory = 'skipChronicleStory',
+
+    // R-8 — what the rules settle alone, each step a System Action of its own.
+    /** The Chronicle begins: the winner and how they won. */
+    ChronicleStart = 'chronicleStart',
+    /** R-8.1 — a win with a Vision alone vows that Vision's Oath. */
+    ChronicleForcedVow = 'chronicleForcedVow',
+    /** R-8.2 — an Exile winner flips every Citizen board, the box's too. */
+    ChronicleFlipCitizens = 'chronicleFlipCitizens',
+    /** R-8.3.2 to R-8.3.5 */
+    ChronicleMap = 'chronicleMap',
+    /** R-8.4 — one suit leads the winner's advisers. */
+    ChronicleSettleSuit = 'chronicleSettleSuit',
+    /** R-8.4, R-8.4.a */
+    ChronicleAddCards = 'chronicleAddCards',
+    /** R-8.4.a-H1 — the draw from the stack the winner chose. */
+    ChronicleHeal = 'chronicleHeal',
+    /** R-8.5 */
+    ChronicleDispossess = 'chronicleDispossess',
+    /** R-8.6 */
+    ChronicleRelics = 'chronicleRelics',
+    /** R-8.7, R-8.8 */
+    ChronicleRebuild = 'chronicleRebuild'
 }

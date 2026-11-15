@@ -57,7 +57,7 @@
     {session}
     lot={{
         ...lot,
-        income: lot.company?.privateRevenue,
+        income: lot.company?.revenue,
         description: lotInfo(lot.id).description
     }}
     summary={bidding.auction.highBid === undefined
@@ -71,6 +71,7 @@
           ]}
     {amount}
     increment={model.rules.increment}
+    ownTurn={session.offers.ownTurn}
     {canBid}
     canPass={session.offers.canAct}
     onChange={changeBid}

@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
@@ -12,9 +8,10 @@ import { finishOperatingCompany } from './operationsFlow.js'
 
 type ShippingOperationsAction = HydratedExpand | HydratedPass
 
-export class ShippingOperationsStateHandler
-    implements MachineStateHandler<ShippingOperationsAction, HydratedIndonesiaGameState>
-{
+export class ShippingOperationsStateHandler implements MachineStateHandler<
+    ShippingOperationsAction,
+    HydratedIndonesiaGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
@@ -46,7 +43,9 @@ export class ShippingOperationsStateHandler
             return
         }
 
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        const operatingCompany = state.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
         if (!operatingCompany) {
             return
         }
@@ -88,11 +87,13 @@ export class ShippingOperationsStateHandler
         context: MachineContext<HydratedIndonesiaGameState>,
         playerId: string
     ): boolean {
-        return context.getPendingActions().some(
-            (pendingAction) =>
-                isPass(pendingAction) &&
-                pendingAction.playerId === playerId &&
-                pendingAction.reason === PassReason.NoValidOperation
-        )
+        return context
+            .getPendingActions()
+            .some(
+                (pendingAction) =>
+                    isPass(pendingAction) &&
+                    pendingAction.playerId === playerId &&
+                    pendingAction.reason === PassReason.NoValidOperation
+            )
     }
 }

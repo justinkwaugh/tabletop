@@ -36,9 +36,11 @@ function fixture() {
     const tasks: TaskService = {
         createPushTask: unused,
         sendVerificationEmail: unused,
+        sendEmailChangeVerificationEmail: unused,
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
+        sendContentReportEmail: unused,
         sendGameInvitationEmail: unused,
         sendGameEndEmail: unused
     }
@@ -51,6 +53,7 @@ function fixture() {
         unregisterNotificationSubscription: unused,
         sendNotification: vi.fn(async () => {})
     }
+    vi.spyOn(UserService.prototype, 'getUser').mockResolvedValue(undefined)
     const service = new GameService(
         store,
         UserService.prototype,

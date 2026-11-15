@@ -15,20 +15,27 @@
     const conditions = $derived(endConditions(gameSession.gameState))
     const summary = $derived(
         `Game ends immediately when ${conditions
-            .map((condition) => `${condition.label} (${condition.reached.length}/${condition.needed})`)
+            .map(
+                (condition) =>
+                    `${condition.label} (${condition.reached.length}/${condition.needed})`
+            )
             .join(' or ')}, then a final dividend is paid.`
     )
 </script>
 
-<g transform="translate({ROUND_HEADER_RECT.x + MARKER_X} {ROUND_HEADER_RECT.y})" role="img" aria-label={summary}>
+<g
+    transform="translate({ROUND_HEADER_RECT.x + MARKER_X} {ROUND_HEADER_RECT.y})"
+    role="img"
+    aria-label={summary}
+>
     <title>{summary}</title>
-    <line x1="-14" y1="18" x2="-14" y2="76" class="divider" />
+    <line x1="-14" y1="18" x2="-14" y2="76" class="divider"></line>
     <text x="0" y="22" class="caption">Game End</text>
     {#each conditions as condition, index (condition.label)}
         <g transform="translate(0 {FIRST_ROW_Y + index * ROW_STEP})">
             {#if index === 0}
                 <g transform="translate(0 -11)">
-                    <rect width="32" height="22" rx="3" class="share-icon" />
+                    <rect width="32" height="22" rx="3" class="share-icon"></rect>
                     <text x="16" y="14.8" class="share-text">SHR</text>
                 </g>
             {:else}
@@ -48,7 +55,7 @@
                     r="8"
                     class="pip"
                     fill={reachedId ? COMPANY_STYLE[reachedId].fill : 'rgba(253, 248, 236, 0.9)'}
-                />
+                ></circle>
             {/each}
         </g>
     {/each}

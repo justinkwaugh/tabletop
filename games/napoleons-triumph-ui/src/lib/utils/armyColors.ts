@@ -30,3 +30,12 @@ export function washedOut(colors: ArmyColors): ArmyColors {
     const block = mix(colors.block, WASH, WASH_AMOUNT)
     return { block, shade: shadeOf(block), ink: mix(colors.ink, block, INK_WASH_AMOUNT) }
 }
+
+const GHOST_GROUND = '#f9f6ee'
+const GHOST_GROUND_AMOUNT = 0.82
+
+// Deliberate: solid paint like the dimming, so the map never shows through a ghost.
+export function ghostly(colors: ArmyColors): ArmyColors {
+    const block = mix(colors.block, GHOST_GROUND, GHOST_GROUND_AMOUNT)
+    return { block, shade: colors.block, ink: colors.block }
+}

@@ -53,7 +53,7 @@
     role="img"
     aria-label="Legend: maximum stores per hex and developments per city"
 >
-    <rect width={LEGEND_RECT.width} height={LEGEND_RECT.height} rx="7" class="panel" />
+    <rect width={LEGEND_RECT.width} height={LEGEND_RECT.height} rx="7" class="panel"></rect>
     <text x={PAD_X} y="21" class="title">Legend</text>
     <text x={STORE_X - 13} y="21" class="max">max</text>
     <Store
@@ -64,16 +64,23 @@
         tint={COMPANY_STYLE[CompanyId.Verbena].tint}
     />
     <Development x={DEVELOPMENT_X} y={HEADER_Y} size={16} />
-    <line x1={PAD_X} y1={HEADER_Y + 12} x2={LEGEND_RECT.width - PAD_X} y2={HEADER_Y + 12} class="rule" />
+    <line
+        x1={PAD_X}
+        y1={HEADER_Y + 12}
+        x2={LEGEND_RECT.width - PAD_X}
+        y2={HEADER_Y + 12}
+        class="rule"
+    ></line>
     {#each ROWS as row, index (row.key)}
         {#if row.tier}
-            <circle cx={ICON_X} cy={rowY(index) - 4} r="5.5" fill={TIER_FILL[row.tier]} class="dot" />
+            <circle cx={ICON_X} cy={rowY(index) - 4} r="5.5" fill={TIER_FILL[row.tier]} class="dot"
+            ></circle>
         {:else}
             <polygon
                 points={hexPoints({ x: ICON_X, y: rowY(index) - 4 }, 7)}
                 fill={MEADOW_TINTS[0]}
                 class="meadow"
-            />
+            ></polygon>
         {/if}
         <text x={LABEL_X} y={rowY(index)} class="label">{row.label}</text>
         <text x={STORE_X} y={rowY(index)} class="value" class:unlimited={row.stores === '∞'}

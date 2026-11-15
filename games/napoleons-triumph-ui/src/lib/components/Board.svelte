@@ -10,8 +10,11 @@
     import TargetLayer from './board/TargetLayer.svelte'
     import ApproachPlates from './board/ApproachPlates.svelte'
     import ApproachBars from './board/ApproachBars.svelte'
+    import LocaleNumbers from './board/LocaleNumbers.svelte'
+    import LocatedLocale from './board/LocatedLocale.svelte'
     import ApproachSymbols from './board/ApproachSymbols.svelte'
     import CapacityTags from './board/CapacityTags.svelte'
+    import StarTags from './board/StarTags.svelte'
     import GunTags from './board/GunTags.svelte'
     import BattleMarker from './board/BattleMarker.svelte'
     import TrackMarkers from './board/TrackMarkers.svelte'
@@ -28,6 +31,8 @@
     let artLoaded = $state(false)
 
     const size = $derived(viewSize(gameSession.boardRotation))
+
+    const unitsVisibility = $derived(gameSession.unitsHidden ? 'hidden' : undefined)
 </script>
 
 <div class="relative select-none" style="width: {size.width}px; height: {size.height}px;">
@@ -75,21 +80,29 @@
             </defs>
             <g data-in-picture><ArmyDisplays /></g>
             <ApproachBars />
-            <g data-in-picture>
-                <TrackMarkers />
-                <HeldApproaches approaches={gameSession.heldApproaches} />
+            <LocaleNumbers />
+            <g data-in-picture><TrackMarkers /></g>
+            <g visibility={unitsVisibility}>
+                <g data-in-picture>
+                    <HeldApproaches approaches={gameSession.heldApproaches} />
+                </g>
             </g>
             <SetupLocales />
             <ClosedReserves />
             <AimLocales />
             <TargetLayer />
-            <g data-in-picture><PiecesLayer /></g>
-            <g data-in-picture><ApproachPlates /></g>
-            <g data-in-picture><GunTags /></g>
+            <!-- Deliberate: hiding the units wraps the pictured layers, so a saved picture still shows them. -->
+            <g visibility={unitsVisibility}>
+                <g data-in-picture><PiecesLayer /></g>
+                <g data-in-picture><ApproachPlates /></g>
+                <g data-in-picture><GunTags /></g>
+            </g>
+            <LocatedLocale />
             <MovementTrails />
             <ApproachSymbols />
             <CapacityTags />
-            <g data-in-picture><FlagLayer /></g>
+            <StarTags />
+            <g visibility={unitsVisibility}><g data-in-picture><FlagLayer /></g></g>
             <TargetLayer overThePieces />
             <BattleMarker />
         </svg>

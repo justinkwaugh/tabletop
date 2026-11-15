@@ -31,8 +31,9 @@
     {:else if machineState === MachineState.PlacingBonusCube}
         <p class="prompt">
             You bought a <CompanyBadge companyId={CompanyId.Streamside} /> share: place one of its stores
-            on a highlighted hex, paying its costs from the treasury (${state.company(CompanyId.Streamside)
-                .treasury}).
+            on a highlighted hex, paying its costs from the treasury (${state.company(
+                CompanyId.Streamside
+            ).treasury}).
         </p>
         <div class="row">
             <button type="button" class="secondary" onclick={() => gameSession.skipBonusCube()}
@@ -61,8 +62,8 @@
                 {#if gameSession.chosenHexes.length === 0}
                     choose up to {gameSession.maxCubes} hexes.
                 {:else if gameSession.hexTargets.length > 0}
-                    {remainingCubes === 1 ? 'one more store' : `${remainingCubes} more stores`} possible, or build
-                    now.
+                    {remainingCubes === 1 ? 'one more store' : `${remainingCubes} more stores`} possible,
+                    or build now.
                 {:else}
                     no further store can be placed.
                 {/if}
@@ -71,8 +72,8 @@
                 <div class="row">
                     <button type="button" class="primary" onclick={() => gameSession.confirmBuild()}
                         >Build {gameSession.chosenHexes.length}
-                        {gameSession.chosenHexes.length === 1 ? 'store' : 'stores'} · ${gameSession.chosenCost
-                            .total}</button
+                        {gameSession.chosenHexes.length === 1 ? 'store' : 'stores'} · ${gameSession
+                            .chosenCost.total}</button
                     >
                 </div>
             {/if}
@@ -81,14 +82,19 @@
     {:else if machineState === MachineState.DevelopingTowns}
         {#if gameSession.developCity}
             <p class="prompt">
-                <CompanyBadge companyId={CompanyId.Balcones} /> can only pay {gameSession.payeesDue === 1
+                <CompanyBadge companyId={CompanyId.Balcones} /> can only pay {gameSession.payeesDue ===
+                1
                     ? 'one grocer'
-                    : `${gameSession.payeesDue} grocers`} in {gameSession.cityName(gameSession.developCity)}.
-                Choose who gets $1:
+                    : `${gameSession.payeesDue} grocers`} in {gameSession.cityName(
+                    gameSession.developCity
+                )}. Choose who gets $1:
             </p>
             <div class="row">
                 {#each gameSession.payeeOptions as companyId (companyId)}
-                    <button type="button" class="secondary" onclick={() => gameSession.choosePayee(companyId)}
+                    <button
+                        type="button"
+                        class="secondary"
+                        onclick={() => gameSession.choosePayee(companyId)}
                         ><CompanyBadge {companyId} /></button
                     >
                 {/each}
@@ -104,8 +110,10 @@
                 {/if}
             </p>
             <div class="row">
-                <button type="button" class="secondary" onclick={() => gameSession.takeDevelopmentCash()}
-                    >Take $1</button
+                <button
+                    type="button"
+                    class="secondary"
+                    onclick={() => gameSession.takeDevelopmentCash()}>Take $1</button
                 >
             </div>
         {/if}

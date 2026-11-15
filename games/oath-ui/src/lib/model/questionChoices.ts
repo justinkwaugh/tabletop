@@ -4,19 +4,23 @@ import {
     PowerQuestionKind,
     SearchPlay,
     type HydratedOathGameState,
+    type ModifierUse,
     type QuestionAnswer
 } from '@tabletop/oath'
 import { adviserRowText, cardName } from './names.js'
 import { adviserBack } from './cardBacks.js'
 
+/** False Prophet's answer; `modifiers`, the Search cards declared on the play (from revision 32). */
 export function playVisionAnswer(
     play: SearchPlay,
-    discardedAdviserCardId?: string
+    discardedAdviserCardId?: string,
+    modifiers: readonly ModifierUse[] = []
 ): QuestionAnswer {
     return {
         kind: PowerQuestionKind.PlayOrDiscardVision,
         play,
-        ...(discardedAdviserCardId !== undefined ? { discardedAdviserCardId } : {})
+        ...(discardedAdviserCardId !== undefined ? { discardedAdviserCardId } : {}),
+        ...(modifiers.length > 0 ? { modifiers: [...modifiers] } : {})
     }
 }
 
@@ -43,18 +47,32 @@ export function stackOrderAnswer(
         : { kind: PowerQuestionKind.OrderDrawnCards, order }
 }
 
-// R-5.1.4.II — at the adviser limit a Vision goes facedown only over a discarded adviser.
+// R-7.6.4 — after a swap, the advisers discarded down to the limit, in the order they go down.
+export function adviserDiscardsAnswer(discardedAdviserCardIds: readonly string[]): QuestionAnswer {
+    return {
+        kind: PowerQuestionKind.DiscardAdvisers,
+        discardedAdviserCardIds: [...discardedAdviserCardIds]
+    }
+}
+
+// R-5.1.4.II — at the adviser limit a Vision goes facedown only over a discarded adviser; never a card in use
+// (R-7.4.3-H1).
 export function advisersToDiscardForVision(
     state: HydratedOathGameState,
-    playerId: string
+    playerId: string,
+    modifiers: readonly ModifierUse[] = []
 ): string[] {
     const reasonFor = (answer: QuestionAnswer) =>
         HydratedAnswerQuestion.reasonCannotAnswer(state, playerId, answer)
-    if (reasonFor(playVisionAnswer(SearchPlay.Adviser)) === undefined) return []
+    if (reasonFor(playVisionAnswer(SearchPlay.Adviser, undefined, modifiers)) === undefined)
+        return []
     return state
         .getPlayerState(playerId)
         .knownAdviserIds()
-        .filter((cardId) => reasonFor(playVisionAnswer(SearchPlay.Adviser, cardId)) === undefined)
+        .filter(
+            (cardId) =>
+                reasonFor(playVisionAnswer(SearchPlay.Adviser, cardId, modifiers)) === undefined
+        )
 }
 
 // R-5.1.4.II — at the adviser limit the Conspiracy goes facedown only over a discarded adviser.

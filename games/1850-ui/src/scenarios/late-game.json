@@ -1,0 +1,2024 @@
+{
+ "game": {
+  "id": "scenario-late-game",
+  "isPublic": false,
+  "status": "waitingForPlayers",
+  "typeId": "1850",
+  "deleted": false,
+  "name": "Late game",
+  "ownerId": "user",
+  "players": [
+   {
+    "id": "4311",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "1761",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "2122",
+    "name": "Player 3",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": true,
+  "winningPlayerIds": [],
+  "seed": 106,
+  "activePlayerIds": [
+   "4311"
+  ],
+  "createdAt": "2026-10-01T00:00:00.000Z",
+  "storage": "local",
+  "category": "standard"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "Qi62RU1mKHjDW9hLqlvf3",
+  "gameId": "scenario-late-game",
+  "seed": 2971533081,
+  "prng": {
+   "seed": 2971533081,
+   "invocations": 12076
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "0b9a6b5b992d0427796fc45d9db8633c0499adf6358871af529b989248fcefa6",
+   "invocations": 0
+  },
+  "masterSeed": "6f5c6d193f979ef4b4ed42cbd9159c51",
+  "activePlayerIds": [
+   "4311"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "4311",
+    "color": "blue"
+   },
+   {
+    "playerId": "1761",
+    "color": "red"
+   },
+   {
+    "playerId": "2122",
+    "color": "green"
+   }
+  ],
+  "phaseEvents": [
+   {
+    "id": "phase:1850/3/7",
+    "trainId": "1850/3/7",
+    "definitionId": "3",
+    "fromPhaseId": "2",
+    "toPhaseId": "3"
+   },
+   {
+    "id": "phase:1850/4/13",
+    "trainId": "1850/4/13",
+    "definitionId": "4",
+    "fromPhaseId": "3",
+    "toPhaseId": "4"
+   },
+   {
+    "id": "phase:1850/5/17",
+    "trainId": "1850/5/17",
+    "definitionId": "5",
+    "fromPhaseId": "4",
+    "toPhaseId": "5"
+   },
+   {
+    "id": "phase:1850/6/20",
+    "trainId": "1850/6/20",
+    "definitionId": "6",
+    "fromPhaseId": "5",
+    "toPhaseId": "6"
+   },
+   {
+    "id": "phase:1850/8/23",
+    "trainId": "1850/8/23",
+    "definitionId": "8",
+    "fromPhaseId": "6",
+    "toPhaseId": "8"
+   },
+   {
+    "id": "phase:1850/10/26",
+    "trainId": "1850/10/26",
+    "definitionId": "10",
+    "fromPhaseId": "8",
+    "toPhaseId": "10"
+   }
+  ],
+  "usedPrivatePowerIds": [],
+  "machineState": "LayingTrack",
+  "stockRound": {
+   "number": 7,
+   "completed": true,
+   "passedPlayerIds": [
+    "1761",
+    "2122",
+    "4311"
+   ],
+   "turn": {
+    "acted": false,
+    "bought": false,
+    "soldBeforeBuying": false,
+    "companiesSold": []
+   },
+   "sales": [
+    {
+     "owner": {
+      "kind": "player",
+      "playerId": "1761"
+     },
+     "companyId": "MP"
+    },
+    {
+     "owner": {
+      "kind": "player",
+      "playerId": "2122"
+     },
+     "companyId": "CBQ"
+    },
+    {
+     "owner": {
+      "kind": "player",
+      "playerId": "4311"
+     },
+     "companyId": "CBQ"
+    },
+    {
+     "owner": {
+      "kind": "player",
+      "playerId": "4311"
+     },
+     "companyId": "MILW"
+    }
+   ],
+   "companyPurchases": []
+  },
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "4311",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "1761",
+    "2122",
+    "4311"
+   ],
+   "turnCounts": {
+    "1761": 74,
+    "2122": 75,
+    "4311": 75
+   }
+  },
+  "stockMarket": {
+   "stacks": [
+    {
+     "spaceId": "1:3",
+     "companyIds": [
+      "MP"
+     ]
+    },
+    {
+     "spaceId": "5:8",
+     "companyIds": [
+      "UP"
+     ]
+    },
+    {
+     "spaceId": "0:14",
+     "companyIds": [
+      "RI"
+     ]
+    },
+    {
+     "spaceId": "2:13",
+     "companyIds": [
+      "NP"
+     ]
+    },
+    {
+     "spaceId": "3:12",
+     "companyIds": [
+      "CBQ"
+     ]
+    },
+    {
+     "spaceId": "3:10",
+     "companyIds": [
+      "MKT"
+     ]
+    },
+    {
+     "spaceId": "1:8",
+     "companyIds": [
+      "GN",
+      "SOO"
+     ]
+    },
+    {
+     "spaceId": "1:6",
+     "companyIds": [
+      "MILW"
+     ]
+    }
+   ]
+  },
+  "bank": {},
+  "companies": [
+   {
+    "id": "CBQ",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 90,
+    "president": {
+     "kind": "player",
+     "playerId": "1761"
+    },
+    "lastRunRevenue": 310
+   },
+   {
+    "id": "MILW",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 100,
+    "president": {
+     "kind": "player",
+     "playerId": "2122"
+    },
+    "lastRunRevenue": 0
+   },
+   {
+    "id": "RI",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 90,
+    "president": {
+     "kind": "player",
+     "playerId": "1761"
+    },
+    "lastRunRevenue": 260
+   },
+   {
+    "id": "GN",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 90,
+    "president": {
+     "kind": "player",
+     "playerId": "2122"
+    },
+    "lastRunRevenue": 280
+   },
+   {
+    "id": "MKT",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 76,
+    "president": {
+     "kind": "player",
+     "playerId": "4311"
+    },
+    "lastRunRevenue": 380
+   },
+   {
+    "id": "MP",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 100,
+    "president": {
+     "kind": "player",
+     "playerId": "1761"
+    },
+    "lastRunRevenue": 260
+   },
+   {
+    "id": "NP",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 90,
+    "president": {
+     "kind": "player",
+     "playerId": "2122"
+    },
+    "lastRunRevenue": 290
+   },
+   {
+    "id": "SOO",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 100,
+    "president": {
+     "kind": "player",
+     "playerId": "4311"
+    },
+    "lastRunRevenue": 190
+   },
+   {
+    "id": "UP",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 76,
+    "president": {
+     "kind": "player",
+     "playerId": "4311"
+    },
+    "lastRunRevenue": 420
+   },
+   {
+    "id": "GRSC",
+    "kind": "private",
+    "closed": true
+   },
+   {
+    "id": "CM",
+    "kind": "private",
+    "privateRevenue": 0,
+    "closed": true
+   },
+   {
+    "id": "MRBC",
+    "kind": "private",
+    "closed": true
+   },
+   {
+    "id": "GBCC",
+    "kind": "private",
+    "privateRevenue": 0,
+    "closed": true
+   },
+   {
+    "id": "MMC",
+    "kind": "private",
+    "closed": true
+   },
+   {
+    "id": "WLGC",
+    "kind": "private",
+    "privateRevenue": 0,
+    "closed": true
+   },
+   {
+    "id": "MMR",
+    "kind": "private",
+    "closed": true
+   }
+  ],
+  "cash": [
+   {
+    "owner": {
+     "kind": "bank"
+    },
+    "amount": 8192
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    },
+    "amount": 359
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    },
+    "amount": 1247
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    },
+    "amount": 794
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CBQ"
+    },
+    "amount": 98
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "MILW"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "RI"
+    },
+    "amount": 214
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "GN"
+    },
+    "amount": 140
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "MKT"
+    },
+    "amount": 284
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "MP"
+    },
+    "amount": 510
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "NP"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "SOO"
+    },
+    "amount": 150
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "UP"
+    },
+    "amount": 12
+   }
+  ],
+  "certificatePools": [
+   {
+    "id": "initial-offering",
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "open-market",
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "certificates": [
+   {
+    "id": "CBQ:president",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "CBQ:share:1",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "CBQ"
+    }
+   },
+   {
+    "id": "CBQ:share:2",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "CBQ"
+    }
+   },
+   {
+    "id": "CBQ:share:3",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "CBQ:share:4",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "CBQ:share:5",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "CBQ"
+    }
+   },
+   {
+    "id": "CBQ:share:6",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "CBQ:share:7",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "CBQ:share:8",
+    "companyId": "CBQ",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "open-market"
+   },
+   {
+    "id": "MILW:president",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "MILW:share:1",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "MILW:share:2",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "MILW:share:3",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "MILW:share:4",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "MILW:share:5",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "open-market"
+   },
+   {
+    "id": "MILW:share:6",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MILW:share:7",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MILW:share:8",
+    "companyId": "MILW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "RI:president",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "RI:share:1",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "RI"
+    }
+   },
+   {
+    "id": "RI:share:2",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "RI"
+    }
+   },
+   {
+    "id": "RI:share:3",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "RI:share:4",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "RI:share:5",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "RI:share:6",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "RI:share:7",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "RI:share:8",
+    "companyId": "RI",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "GN:president",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "GN:share:1",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "GN:share:2",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "GN:share:3",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "GN:share:4",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "GN:share:5",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GN:share:6",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GN:share:7",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GN:share:8",
+    "companyId": "GN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MKT:president",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "MKT:share:1",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "MKT"
+    }
+   },
+   {
+    "id": "MKT:share:2",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "MKT"
+    }
+   },
+   {
+    "id": "MKT:share:3",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "MKT:share:4",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "MKT:share:5",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "MKT"
+    }
+   },
+   {
+    "id": "MKT:share:6",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "MKT"
+    }
+   },
+   {
+    "id": "MKT:share:7",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "MKT:share:8",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "MP:president",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "MP:share:1",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "open-market"
+   },
+   {
+    "id": "MP:share:2",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "MP:share:3",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "MP:share:4",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "MP:share:5",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MP:share:6",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MP:share:7",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MP:share:8",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "NP:president",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "NP:share:1",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "NP"
+    }
+   },
+   {
+    "id": "NP:share:2",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "NP"
+    }
+   },
+   {
+    "id": "NP:share:3",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "NP"
+    }
+   },
+   {
+    "id": "NP:share:4",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "NP:share:5",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "NP:share:6",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "NP:share:7",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "NP"
+    }
+   },
+   {
+    "id": "NP:share:8",
+    "companyId": "NP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "SOO:president",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "SOO:share:1",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "SOO"
+    }
+   },
+   {
+    "id": "SOO:share:2",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "SOO:share:3",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "SOO:share:4",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "SOO:share:5",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "SOO:share:6",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SOO:share:7",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SOO:share:8",
+    "companyId": "SOO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "UP:president",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "UP:share:1",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "UP"
+    }
+   },
+   {
+    "id": "UP:share:2",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "UP"
+    }
+   },
+   {
+    "id": "UP:share:3",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "1761"
+    }
+   },
+   {
+    "id": "UP:share:4",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "company",
+     "companyId": "UP"
+    }
+   },
+   {
+    "id": "UP:share:5",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "UP:share:6",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "2122"
+    }
+   },
+   {
+    "id": "UP:share:7",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   },
+   {
+    "id": "UP:share:8",
+    "companyId": "UP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4311"
+    }
+   }
+  ],
+  "stations": [
+   {
+    "id": "CBQ:home",
+    "companyId": "CBQ",
+    "status": "placed",
+    "position": {
+     "locationId": "I18",
+     "nodeId": "city",
+     "slot": 1
+    }
+   },
+   {
+    "id": "CBQ:station:1",
+    "companyId": "CBQ",
+    "status": "available"
+   },
+   {
+    "id": "CBQ:station:2",
+    "companyId": "CBQ",
+    "status": "available"
+   },
+   {
+    "id": "CBQ:station:3",
+    "companyId": "CBQ",
+    "status": "available"
+   },
+   {
+    "id": "MILW:home",
+    "companyId": "MILW",
+    "status": "placed",
+    "position": {
+     "locationId": "G18",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "MILW:station:1",
+    "companyId": "MILW",
+    "status": "placed",
+    "position": {
+     "locationId": "B11",
+     "nodeId": "city",
+     "slot": 1
+    }
+   },
+   {
+    "id": "MILW:station:2",
+    "companyId": "MILW",
+    "status": "available"
+   },
+   {
+    "id": "RI:home",
+    "companyId": "RI",
+    "status": "placed",
+    "position": {
+     "locationId": "H11",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "RI:station:1",
+    "companyId": "RI",
+    "status": "placed",
+    "position": {
+     "locationId": "I18",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "RI:station:2",
+    "companyId": "RI",
+    "status": "available"
+   },
+   {
+    "id": "RI:station:3",
+    "companyId": "RI",
+    "status": "available"
+   },
+   {
+    "id": "GN:home",
+    "companyId": "GN",
+    "status": "placed",
+    "position": {
+     "locationId": "D9",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "GN:station:1",
+    "companyId": "GN",
+    "status": "placed",
+    "position": {
+     "locationId": "B5",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "GN:station:2",
+    "companyId": "GN",
+    "status": "placed",
+    "position": {
+     "locationId": "G18",
+     "nodeId": "city",
+     "slot": 2
+    }
+   },
+   {
+    "id": "MKT:home",
+    "companyId": "MKT",
+    "status": "placed",
+    "position": {
+     "locationId": "K6",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "MKT:station:1",
+    "companyId": "MKT",
+    "status": "placed",
+    "position": {
+     "locationId": "K4",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "MKT:station:2",
+    "companyId": "MKT",
+    "status": "available"
+   },
+   {
+    "id": "MP:home",
+    "companyId": "MP",
+    "status": "placed",
+    "position": {
+     "locationId": "L13",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "MP:station:1",
+    "companyId": "MP",
+    "status": "placed",
+    "position": {
+     "locationId": "I18",
+     "nodeId": "city",
+     "slot": 2
+    }
+   },
+   {
+    "id": "MP:station:2",
+    "companyId": "MP",
+    "status": "available"
+   },
+   {
+    "id": "NP:home",
+    "companyId": "NP",
+    "status": "placed",
+    "position": {
+     "locationId": "B11",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "NP:station:1",
+    "companyId": "NP",
+    "status": "placed",
+    "position": {
+     "locationId": "D9",
+     "nodeId": "city",
+     "slot": 1
+    }
+   },
+   {
+    "id": "NP:station:2",
+    "companyId": "NP",
+    "status": "placed",
+    "position": {
+     "locationId": "G18",
+     "nodeId": "city",
+     "slot": 1
+    }
+   },
+   {
+    "id": "SOO:home",
+    "companyId": "SOO",
+    "status": "placed",
+    "position": {
+     "locationId": "F13",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "SOO:station:1",
+    "companyId": "SOO",
+    "status": "placed",
+    "position": {
+     "locationId": "H11",
+     "nodeId": "city",
+     "slot": 1
+    }
+   },
+   {
+    "id": "SOO:station:2",
+    "companyId": "SOO",
+    "status": "available"
+   },
+   {
+    "id": "UP:home",
+    "companyId": "UP",
+    "status": "placed",
+    "position": {
+     "locationId": "I4",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "UP:station:1",
+    "companyId": "UP",
+    "status": "placed",
+    "position": {
+     "locationId": "K6",
+     "nodeId": "city",
+     "slot": 1
+    }
+   },
+   {
+    "id": "UP:station:2",
+    "companyId": "UP",
+    "status": "placed",
+    "position": {
+     "locationId": "I18",
+     "nodeId": "city",
+     "slot": 3
+    }
+   }
+  ],
+  "stationReservations": [],
+  "tileInventory": {
+   "placements": {
+    "H13": {
+     "pieceId": "1850:standard/9/1",
+     "definitionId": "18xx:9",
+     "rotation": 1
+    },
+    "H15": {
+     "pieceId": "1850:standard/9/2",
+     "definitionId": "18xx:9",
+     "rotation": 1
+    },
+    "B11": {
+     "pieceId": "1850:standard/63/1",
+     "definitionId": "18xx:63",
+     "rotation": 0
+    },
+    "B9": {
+     "pieceId": "1850:standard/7/1",
+     "definitionId": "18xx:7",
+     "rotation": 3
+    },
+    "K6": {
+     "pieceId": "1850:standard/135/2",
+     "definitionId": "1850:135",
+     "rotation": 2
+    },
+    "K4": {
+     "pieceId": "1850:standard/63/4",
+     "definitionId": "18xx:63",
+     "rotation": 0
+    },
+    "H17": {
+     "pieceId": "1850:standard/144/1",
+     "definitionId": "18xx:144",
+     "rotation": 1
+    },
+    "A8": {
+     "pieceId": "1850:standard/9/3",
+     "definitionId": "18xx:9",
+     "rotation": 1
+    },
+    "L3": {
+     "pieceId": "1850:standard/9/4",
+     "definitionId": "18xx:9",
+     "rotation": 0
+    },
+    "A6": {
+     "pieceId": "1850:standard/8/1",
+     "definitionId": "18xx:8",
+     "rotation": 4
+    },
+    "I18": {
+     "pieceId": "1850:standard/131/1",
+     "definitionId": "1850:131",
+     "rotation": 0
+    },
+    "J7": {
+     "pieceId": "1850:standard/8/2",
+     "definitionId": "18xx:8",
+     "rotation": 4
+    },
+    "I16": {
+     "pieceId": "1850:standard/58/2",
+     "definitionId": "18xx:58",
+     "rotation": 4
+    },
+    "J15": {
+     "pieceId": "1850:standard/9/5",
+     "definitionId": "18xx:9",
+     "rotation": 0
+    },
+    "D9": {
+     "pieceId": "1850:standard/138/1",
+     "definitionId": "1850:138",
+     "rotation": 0
+    },
+    "C10": {
+     "pieceId": "1850:standard/9/6",
+     "definitionId": "18xx:9",
+     "rotation": 0
+    },
+    "B5": {
+     "pieceId": "1850:standard/63/2",
+     "definitionId": "18xx:63",
+     "rotation": 0
+    },
+    "I4": {
+     "pieceId": "1850:standard/15/1",
+     "definitionId": "18xx:15",
+     "rotation": 2
+    },
+    "J5": {
+     "pieceId": "1850:standard/9/7",
+     "definitionId": "18xx:9",
+     "rotation": 2
+    },
+    "K14": {
+     "pieceId": "1850:standard/63/3",
+     "definitionId": "18xx:63",
+     "rotation": 0
+    },
+    "H3": {
+     "pieceId": "1850:standard/9/8",
+     "definitionId": "18xx:9",
+     "rotation": 2
+    },
+    "K16": {
+     "pieceId": "1850:standard/47/1",
+     "definitionId": "18xx:47",
+     "rotation": 0
+    },
+    "A4": {
+     "pieceId": "1850:standard/8/3",
+     "definitionId": "18xx:8",
+     "rotation": 5
+    },
+    "K18": {
+     "pieceId": "1850:standard/9/10",
+     "definitionId": "18xx:9",
+     "rotation": 1
+    },
+    "J9": {
+     "pieceId": "1850:standard/9/11",
+     "definitionId": "18xx:9",
+     "rotation": 1
+    },
+    "G2": {
+     "pieceId": "1850:standard/9/12",
+     "definitionId": "18xx:9",
+     "rotation": 2
+    },
+    "C8": {
+     "pieceId": "1850:standard/8/4",
+     "definitionId": "18xx:8",
+     "rotation": 5
+    },
+    "J19": {
+     "pieceId": "1850:standard/9/13",
+     "definitionId": "18xx:9",
+     "rotation": 2
+    },
+    "J11": {
+     "pieceId": "1850:standard/55/1",
+     "definitionId": "18xx:55",
+     "rotation": 0
+    },
+    "C12": {
+     "pieceId": "1850:standard/27/1",
+     "definitionId": "18xx:27",
+     "rotation": 5
+    },
+    "D13": {
+     "pieceId": "1850:standard/4/1",
+     "definitionId": "18xx:4",
+     "rotation": 2
+    },
+    "L13": {
+     "pieceId": "1850:standard/138/2",
+     "definitionId": "1850:138",
+     "rotation": 0
+    },
+    "E14": {
+     "pieceId": "1850:standard/9/15",
+     "definitionId": "18xx:9",
+     "rotation": 2
+    },
+    "G16": {
+     "pieceId": "1850:standard/6/1",
+     "definitionId": "18xx:6",
+     "rotation": 2
+    },
+    "F15": {
+     "pieceId": "1850:standard/142/1",
+     "definitionId": "18xx:142",
+     "rotation": 2
+    },
+    "F13": {
+     "pieceId": "1850:standard/57/1",
+     "definitionId": "18xx:57",
+     "rotation": 1
+    },
+    "F11": {
+     "pieceId": "1850:standard/8/5",
+     "definitionId": "18xx:8",
+     "rotation": 4
+    },
+    "J13": {
+     "pieceId": "1850:standard/40/1",
+     "definitionId": "18xx:40",
+     "rotation": 1
+    },
+    "G18": {
+     "pieceId": "1850:standard/134/1",
+     "definitionId": "1850:134",
+     "rotation": 0
+    },
+    "J17": {
+     "pieceId": "1850:standard/9/16",
+     "definitionId": "18xx:9",
+     "rotation": 0
+    },
+    "D11": {
+     "pieceId": "1850:standard/8/7",
+     "definitionId": "18xx:8",
+     "rotation": 1
+    },
+    "C6": {
+     "pieceId": "1850:standard/8/8",
+     "definitionId": "18xx:8",
+     "rotation": 2
+    },
+    "G10": {
+     "pieceId": "1850:standard/4/2",
+     "definitionId": "18xx:4",
+     "rotation": 0
+    },
+    "I6": {
+     "pieceId": "1850:standard/8/9",
+     "definitionId": "18xx:8",
+     "rotation": 1
+    },
+    "L15": {
+     "pieceId": "1850:standard/8/10",
+     "definitionId": "18xx:8",
+     "rotation": 1
+    },
+    "H11": {
+     "pieceId": "1850:standard/14/1",
+     "definitionId": "18xx:14",
+     "rotation": 0
+    },
+    "I14": {
+     "pieceId": "1850:standard/8/6",
+     "definitionId": "18xx:8",
+     "rotation": 0
+    },
+    "H9": {
+     "pieceId": "1850:standard/5/1",
+     "definitionId": "18xx:5",
+     "rotation": 3
+    }
+   },
+   "retiredPieceIds": []
+  },
+  "trainInventory": {
+   "trains": [
+    {
+     "id": "1850/5/17",
+     "definitionId": "5",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "RI"
+     }
+    },
+    {
+     "id": "1850/5/18",
+     "definitionId": "5",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "MP"
+     }
+    },
+    {
+     "id": "1850/5/19",
+     "definitionId": "5",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "NP"
+     }
+    },
+    {
+     "id": "1850/6/20",
+     "definitionId": "6",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "SOO"
+     }
+    },
+    {
+     "id": "1850/6/21",
+     "definitionId": "6",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "NP"
+     }
+    },
+    {
+     "id": "1850/6/22",
+     "definitionId": "6",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "CBQ"
+     }
+    },
+    {
+     "id": "1850/8/23",
+     "definitionId": "8",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "MKT"
+     }
+    },
+    {
+     "id": "1850/8/24",
+     "definitionId": "8",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "GN"
+     }
+    },
+    {
+     "id": "1850/8/25",
+     "definitionId": "8",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "UP"
+     }
+    },
+    {
+     "id": "1850/10/26",
+     "definitionId": "10",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "MILW"
+     }
+    },
+    {
+     "id": "1850/10/27",
+     "definitionId": "10",
+     "status": "depot"
+    }
+   ],
+   "nextTrainNumber": 28
+  },
+  "phaseId": "10",
+  "variants": {},
+  "edgeTokens": [
+   "MKT",
+   "NP",
+   "GN",
+   "UP",
+   "MILW"
+  ],
+  "mesabiRights": [
+   "NP",
+   "GN",
+   "MILW"
+  ],
+  "landGrant": {
+   "lays": 0,
+   "usedAnywhere": false
+  },
+  "openingAuction": {
+   "remainingLotIds": [],
+   "reservations": [],
+   "nextPlayerId": "1761",
+   "passedPlayerIds": [],
+   "discount": 0,
+   "awards": [
+    {
+     "playerId": "4311",
+     "lotId": "GRSC",
+     "price": 20
+    },
+    {
+     "lotId": "CM",
+     "playerId": "1761",
+     "price": 45
+    },
+    {
+     "lotId": "MRBC",
+     "playerId": "4311",
+     "price": 45
+    },
+    {
+     "lotId": "GBCC",
+     "playerId": "2122",
+     "price": 55
+    },
+    {
+     "lotId": "MMC",
+     "playerId": "2122",
+     "price": 85
+    },
+    {
+     "lotId": "WLGC",
+     "playerId": "4311",
+     "price": 95
+    },
+    {
+     "lotId": "MMR",
+     "playerId": "1761",
+     "price": 165
+    }
+   ],
+   "completed": true
+  },
+  "operatingSet": {
+   "number": 7,
+   "roundNumber": 1,
+   "roundCount": 3,
+   "companyOrder": [
+    "RI",
+    "NP",
+    "CBQ",
+    "MKT",
+    "GN",
+    "SOO",
+    "MILW",
+    "UP",
+    "MP"
+   ],
+   "completedCompanyIds": [
+    "RI",
+    "NP",
+    "CBQ",
+    "MKT",
+    "GN",
+    "SOO",
+    "MILW"
+   ],
+   "privateIncomePaid": true,
+   "completed": false
+  },
+  "trackStep": {
+   "companyId": "UP",
+   "lays": [],
+   "completed": false
+  }
+ },
+ "actions": []
+}

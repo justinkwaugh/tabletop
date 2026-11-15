@@ -6,6 +6,8 @@ export const SantiagoInfo: GameInfo = {
     id: 'santiago',
     metadata: {
         name: 'Santiago',
+        bggId: 8125,
+        hasScores: true,
         designer: 'Claudia Hely & Roman Pelek',
         description:
             'Santiago is a bidding and placement game in which players compete to irrigate their plantations. ' +

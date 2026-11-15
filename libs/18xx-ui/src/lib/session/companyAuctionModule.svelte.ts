@@ -6,10 +6,12 @@ import {
     FormCompany,
     canBeAuctioned,
     PassCompanyAuction,
+    stationReservation,
     type CompanyAuctionState,
     type CompanyFormationChoice,
     type EighteenXXTitleRules,
-    type HomePosition
+    type HomePosition,
+    type StationReservation
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
@@ -51,14 +53,26 @@ export class CompanyAuctionModule {
     canForm = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('FormCompany')
     )
-    companies = $derived.by(() =>
-        this.canOpen ? this.session.state.companies.filter(canBeAuctioned) : []
-    )
+    // Only the companies the title offers a home now, as 1861 offers only its minors (§9.2).
+    companies = $derived.by(() => {
+        const model = this.model
+        if (!this.canOpen || !model) return []
+        return this.session.state.companies.filter(
+            (company) =>
+                canBeAuctioned(company) &&
+                model.terms.homes(this.session.state, company.id).length > 0
+        )
+    })
     selectedCompanyId = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('companyId') : undefined
     )
     selectedHome = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('home') : undefined
+    )
+    chosenHome = $derived.by((): StationReservation | undefined =>
+        this.selectedCompanyId && this.selectedHome
+            ? stationReservation(this.selectedCompanyId, this.selectedHome)
+            : undefined
     )
     openingAmount = $derived.by(() => {
         const model = this.model
@@ -131,6 +145,18 @@ export class CompanyAuctionModule {
     selectCompany(companyId: string) {
         assert(this.canOpen, 'Company auctions are unavailable')
         this.opening.choose('companyId', companyId)
+        // A company with one possible home, as 1861's minors, takes it without a choice.
+        const homes = this.model?.terms.homes(this.session.state, companyId) ?? []
+        if (homes.length === 1)
+            this.opening.choose(
+                'home',
+                { locationId: homes[0].locationId, nodeId: homes[0].nodeId },
+                'auto'
+            )
+    }
+    toggleCompany(companyId: string) {
+        if (this.selectedCompanyId === companyId) this.clearOpening()
+        else this.selectCompany(companyId)
     }
     chooseHome(home: HomePosition) {
         const model = this.model
@@ -147,10 +173,6 @@ export class CompanyAuctionModule {
     clearOpening() {
         this.opening.clear()
         this.openingBid.clear()
-    }
-    backFromOpeningBid() {
-        this.openingBid.clear()
-        this.opening.back()
     }
     setOpeningBid(amount: number) {
         assert(this.canOpen && this.selectedHome, 'Choose a home first')

@@ -26,7 +26,7 @@
     overflow="visible"
     {...svgProps}
 >
-    <rect x="1.2" y="1.2" width="13.6" height="13.6" rx="1.8" fill={fill} stroke={borderColor} />
+    <rect x="1.2" y="1.2" width="13.6" height="13.6" rx="1.8" {fill} stroke={borderColor}></rect>
     <line
         x1="2.1"
         y1="2.1"
@@ -35,7 +35,7 @@
         stroke={topLeftEdgeColor}
         stroke-width="1.3"
         stroke-linecap="round"
-    />
+    ></line>
     <line
         x1="2.1"
         y1="2.1"
@@ -44,7 +44,7 @@
         stroke={topLeftEdgeColor}
         stroke-width="1.3"
         stroke-linecap="round"
-    />
+    ></line>
     <line
         x1="2.8"
         y1="13.9"
@@ -53,7 +53,7 @@
         stroke={bottomRightEdgeColor}
         stroke-width="1.3"
         stroke-linecap="round"
-    />
+    ></line>
     <line
         x1="13.9"
         y1="2.8"
@@ -62,5 +62,5 @@
         stroke={bottomRightEdgeColor}
         stroke-width="1.3"
         stroke-linecap="round"
-    />
+    ></line>
 </svg>

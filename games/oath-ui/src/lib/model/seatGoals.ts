@@ -32,13 +32,11 @@ export function seatGoals(state: HydratedOathGameState, playerId: string): SeatG
     const met = visionsMetBy(state, playerId)
     return seatVisions(state, playerId)
         .filter((vision) => vision.shared || seat.status === PlayerStatus.Exile)
-        .map(
-            ({ visionId, shared }): SeatGoal => ({
-                kind: 'vision',
-                key: visionId,
-                visionId,
-                shared,
-                met: shared ? met.includes(visionId) : meetsRevealedVisionGoal(state, playerId)
-            })
-        )
+        .map(({ visionId, shared }): SeatGoal => ({
+            kind: 'vision',
+            key: visionId,
+            visionId,
+            shared,
+            met: shared ? met.includes(visionId) : meetsRevealedVisionGoal(state, playerId)
+        }))
 }

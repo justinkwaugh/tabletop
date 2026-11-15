@@ -1,8 +1,11 @@
 import {
+    describeIgnoredBackendAdminSettings,
     fetchBackendManifest,
     invalidateBackendManifestCache,
+    resolveBackendAdminCredentials,
     type BackendReplacement
 } from './backend.js'
+import { manifestPublicationSignature } from '@tabletop/games-config'
 import {
     backupManifestCommand,
     dedupeCommandSpecs,
@@ -97,20 +100,32 @@ export type PreparedManifestPublication = {
     invalidateBackend: () => Promise<void>
 }
 
-export const invalidateBackendManifest = (context: PublishContext) =>
+export const invalidateBackendManifest = (
+    context: PublishContext,
+    expectedManifest?: SiteManifest
+) =>
     runStep(
         context,
         { label: 'invalidate-manifest', logPath: '/tmp/manifest-invalidate.log' },
-        async () =>
+        async () => {
+            const ignored = describeIgnoredBackendAdminSettings(context.deployConfig.backendAdmin)
+            if (ignored) context.log(`invalidate-manifest: ${ignored}`)
             context.log(
                 `invalidate-manifest: ${describeReplacement(
-                    await invalidateBackendManifestCache(context.deployConfig)
+                    await invalidateBackendManifestCache(context.deployConfig, {
+                        expectedPublication: manifestPublicationSignature(
+                            expectedManifest ?? (await fetchBucketManifest(context.deployConfig))
+                        )
+                    })
                 )}`
             )
+        }
     )
 
 const describeReplacement = (replacement: BackendReplacement | undefined) => {
     switch (replacement) {
+        case 'activated':
+            return 'the backend activated the selected title logic'
         case 'none':
             return 'no backend replacement was needed'
         case 'superseded':
@@ -140,16 +155,16 @@ export const prepareManifestPublication = async (
     const deploy = deployManifestCommand(manifestPath, context.deployConfig)
     await runDirectoryPlaceholders(context, [backup, deploy])
     await runSpec(context, backup)
+    let published: SiteManifest | undefined
     return {
         before,
         write: async (change) => {
-            await writeManifest(
-                manifestPath,
-                change(await fetchBucketManifest(context.deployConfig))
-            )
+            const next = change(await fetchBucketManifest(context.deployConfig))
+            await writeManifest(manifestPath, next)
             await runSpec(context, deploy)
+            published = next
         },
-        invalidateBackend: () => invalidateBackendManifest(context)
+        invalidateBackend: () => invalidateBackendManifest(context, published)
     }
 }
 
@@ -163,17 +178,25 @@ export const publishManifest = async (
     await publication.invalidateBackend()
 }
 
-export const assertDeployConfig = (deployConfig: DeployConfig): string => {
+export const assertArtifactBucket = (deployConfig: DeployConfig): string => {
     if (!deployConfig.gcsBucket) {
         throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
     }
+    return deployConfig.gcsBucket
+}
+
+// Every publication ends by invalidating the backend's manifest cache, so it refuses to start
+// unless that call can be made and signed in; artifact-only work needs just the bucket.
+export const assertDeployConfig = (deployConfig: DeployConfig): string => {
+    const bucket = assertArtifactBucket(deployConfig)
     if (!deployConfig.backendAdmin?.url && !deployConfig.backendManifestUrl) {
         throw new Error(
             'Missing backend admin URL for manifest invalidation ' +
                 '(set TABLETOP_BACKEND_ADMIN_URL or deploy config)'
         )
     }
-    return deployConfig.gcsBucket
+    resolveBackendAdminCredentials(deployConfig.backendAdmin)
+    return bucket
 }
 
 // A version's artifact is immutable, but a deploy can fail after uploading it. Because the
@@ -247,8 +270,8 @@ const servesArtifacts = (serving: ServingLookup, artifacts: PublishedArtifact[])
 
 export type ServingSettle = { timeoutMs: number; intervalMs: number }
 
-// The backend swaps in new game logic by replacing its server process, which can take
-// minutes on a throttled instance, so the served logic version lags the manifest.
+// The backend activates new logic inside its worker on the next request each instance sees;
+// instances that have not yet taken a request report the previous logic until they do.
 const DEFAULT_SERVING_SETTLE: ServingSettle = { timeoutMs: 5 * 60_000, intervalMs: 5_000 }
 
 export const pollUntil = async <Value>(
@@ -290,7 +313,7 @@ const awaitServing = async (
         throw new Error(
             `Deploy finished but the backend still serves ${describeServing(serving)}; ` +
                 'check /tmp/manifest-deploy.log, /tmp/manifest-invalidate.log and the backend ' +
-                'logs for a failed process replacement'
+                'logs for a failed title activation or process replacement'
         )
     }
     return serving

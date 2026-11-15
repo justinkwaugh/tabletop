@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -21,7 +21,7 @@ import {
 
 export const LayTile = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...TrackRequest.properties,
         type: Type.Literal('LayTile'),
         expectedCost: Type.Integer({ minimum: 0 }),
@@ -63,9 +63,10 @@ export class HydratedLayTile extends HydratableAction<typeof LayTile> implements
         assert(result.details, result.reason ?? 'Invalid track lay')
         const details = result.details
         assert(details.cost === this.expectedCost, 'Construction cost has changed')
+        const consenters = construction.consenters(this)
         assert(
-            !details.consentPlayerId || details.consentPlayerId === this.playerId,
-            'Track requires the private owner’s consent'
+            !consenters.length || consenters.includes(this.playerId),
+            'This track requires another player’s agreement'
         )
         this.metadata = applyTrackLay(
             state,
@@ -82,27 +83,40 @@ export function applyTrackLay(
     rules: TrackRules,
     details: TrackLayDetails,
     payer: Owner,
-    countsAsOrdinaryLay: boolean
+    countsAsOrdinaryLay: boolean,
+    privateCompanyId?: string
 ): TrackLayDetails {
     const construction = new TrackConstruction(state, rules, payer)
     const inventory = construction.inventoryAfter(details)
-    const { stations, stationReservations } = construction.stationsAfter(details)
+    const { stations, stationReservations, hexReservations } = construction.stationsAfter(details)
+    const loans =
+        payer.kind === 'company' && details.cost
+            ? (rules.borrowing?.borrowFor(state, payer.companyId, details.cost) ?? [])
+            : []
     if (details.cost)
         settleCashPayments(state, [{ from: payer, to: { kind: 'bank' }, amount: details.cost }])
     state.tileInventory = inventory
     state.stations = stations
     state.stationReservations = stationReservations
+    if (hexReservations) state.hexReservations = hexReservations
     if (countsAsOrdinaryLay) {
         assert(state.trackStep, 'An ordinary lay requires a track step')
-        const color = rules.tileSet.definitions.find((tile) => tile.id === details.definitionId)!
-            .face.color
-        state.trackStep.lays.push({ locationId: details.locationId, color, cost: details.cost })
-    }
+        state.trackStep.lays.push({
+            locationId: details.locationId,
+            definitionId: details.definitionId
+        })
+    } else if (privateCompanyId && state.trackStep?.companyId === details.companyId)
+        (state.trackStep.extraLays ??= []).push({
+            locationId: details.locationId,
+            definitionId: details.definitionId,
+            privateCompanyId
+        })
+    const borrowed = loans.length ? { ...details, loans } : details
     const effects = rules.afterLay?.(state, details, payer)
-    if (!effects) return details
+    if (!effects) return borrowed
     settleCashPayments(state, effects.payments)
     for (const privateId of effects.closedPrivateIds) closePrivate(state, privateId)
     return effects.payments.length || effects.closedPrivateIds.length
-        ? { ...details, effects }
-        : details
+        ? { ...borrowed, effects }
+        : borrowed
 }

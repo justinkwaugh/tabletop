@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { MapDrawing, MapRoute } from './mapDrawing.js'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
-    import { drawMapRoutes } from './routeDrawing.js'
+    import { ExtensionDash, drawMapRoutes } from './routeDrawing.js'
+    import { spikePoints } from '../tiles/tileTrackGeometry.js'
 
     let {
         scene,
@@ -10,6 +11,16 @@
     }: { scene: MapDrawing; routes: readonly MapRoute[]; appearance: TileAppearance } = $props()
     const maskId = $props.id()
     const locations = $derived(drawMapRoutes(scene, routes))
+    const choosing = $derived(routes.some((route) => route.chosen))
+    const RouteWidth = 6.5
+    const RouteEdgeWidth = 9
+    const RouteLayers = ['edge', 'fill'] as const
+    // An interconnection extension runs a dashed white line down its band.
+    const ExtensionLineWidth = 1.6
+    // Routes other than the one being drawn stay in view behind it, greyed rather than made
+    // translucent, so the board needs no offscreen layer (docs/phone-rendering.md).
+    const faded = (color: string) => `color-mix(in srgb, ${color} 45%, #a7a29a)`
+    const StartWidth = 3
 </script>
 
 <g data-map-layer="routes" pointer-events="none" aria-hidden="true">
@@ -55,21 +66,65 @@
         </mask>
     </defs>
     <g mask={`url(#${maskId})`} fill="none" stroke-linecap="round" stroke-linejoin="round">
-        {#each [9, 6.5] as width (width)}
-            {#each locations as location (location.id)}
-                <g transform={`translate(${location.center.x} ${location.center.y})`}>
-                    {#each location.paths as path (path.id)}
-                        <path
-                            data-map-route={width === 6.5 ? path.routeId : undefined}
-                            d={path.d}
-                            stroke={width === 9
-                                ? `color-mix(in srgb, ${path.color} 55%, black)`
-                                : path.color}
-                            stroke-width={width}
-                        ></path>
+        {#each [false, true] as chosen (chosen)}
+            <g>
+                {#each RouteLayers as layer (layer)}
+                    {#each locations as location (location.id)}
+                        <g transform={`translate(${location.center.x} ${location.center.y})`}>
+                            {#each location.paths.filter((path) => path.chosen === chosen) as path (path.id)}
+                                {@const edge = layer === 'edge'}
+                                {@const width = path.width ?? RouteWidth}
+                                {@const color =
+                                    choosing && !chosen ? faded(path.color) : path.color}
+                                {@const stroke = edge
+                                    ? `color-mix(in srgb, ${color} 55%, black)`
+                                    : color}
+                                {#if path.spike}
+                                    <polygon
+                                        data-map-route={edge ? undefined : path.routeId}
+                                        points={spikePoints(path.spike, width)}
+                                        fill={stroke}
+                                        stroke={edge ? stroke : 'none'}
+                                        stroke-width={RouteEdgeWidth - RouteWidth}
+                                    ></polygon>
+                                {:else}
+                                    <path
+                                        data-map-route={edge ? undefined : path.routeId}
+                                        d={path.d}
+                                        {stroke}
+                                        stroke-width={edge
+                                            ? width + RouteEdgeWidth - RouteWidth
+                                            : width}
+                                    ></path>
+                                    {#if path.extension && !edge}
+                                        <path
+                                            data-map-route-extension={path.routeId}
+                                            d={path.d}
+                                            stroke="white"
+                                            stroke-width={ExtensionLineWidth}
+                                            stroke-dasharray={`${ExtensionDash.drawn} ${ExtensionDash.gap}`}
+                                            stroke-dashoffset={path.dashOffset}
+                                            stroke-linecap="butt"
+                                        ></path>
+                                    {/if}
+                                {/if}
+                            {/each}
+                        </g>
                     {/each}
-                </g>
-            {/each}
+                {/each}
+            </g>
         {/each}
     </g>
+    {#each locations as location (location.id)}
+        {#each location.starts as start (start.id)}
+            <path
+                data-map-route-start={start.id}
+                transform={`translate(${location.center.x} ${location.center.y})`}
+                d={start.d}
+                fill="none"
+                stroke={start.color}
+                stroke-width={StartWidth}
+            ></path>
+        {/each}
+    {/each}
 </g>

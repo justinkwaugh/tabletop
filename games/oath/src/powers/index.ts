@@ -21,6 +21,7 @@ import './ruleRelics.js'
 import './cardWarbands.js'
 import './campaignEndCards.js'
 import './pilgrimage.js'
+import './edificePowers.js'
 
 export * from './registry.js'
 export * from './vocabulary.js'

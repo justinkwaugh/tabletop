@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
+    import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as EstatesGameSession
 </script>

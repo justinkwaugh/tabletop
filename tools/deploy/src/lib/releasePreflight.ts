@@ -3,6 +3,11 @@ import { fetchFrontendServingVersion, FRONTEND_PACKAGE } from './frontendPublish
 import { checkHostingMatchesManifest, type HostingCheck } from './hostingPublish.js'
 import { fetchServingVersions, findGameEntry, gameReleaseTag } from './gamePublish.js'
 import {
+    fetchRealtimeServingVersion,
+    REALTIME_PACKAGE,
+    resolveRealtimeTarget
+} from './realtimePublish.js'
+import {
     changedFilesSince,
     commitsSince,
     commitThatSetVersion,
@@ -18,8 +23,10 @@ import {
     getBackendPackagePath,
     getFrontendPackagePath,
     getGamePackagePaths,
+    getRealtimePackagePath,
     readGamePackageVersions,
-    readPackageVersion
+    readPackageVersion,
+    realtimeReleaseTag
 } from './versions.js'
 import { workspaceSourceDirs } from './workspace.js'
 
@@ -74,7 +81,13 @@ export type BackendPreflightReport = PreflightBase & {
     releaseNeeded: 'backend' | 'none'
 }
 
-export type PreflightReport = GamePreflightReport | FrontendPreflightReport | BackendPreflightReport
+export type RealtimePreflightReport = PreflightBase & {
+    realtime: ArtifactPreflight
+    releaseNeeded: 'realtime' | 'none'
+}
+
+export type PreflightReport =
+    GamePreflightReport | FrontendPreflightReport | BackendPreflightReport | RealtimePreflightReport
 
 const resolveBaseline = async (
     repoRoot: string,
@@ -248,6 +261,33 @@ export const runBackendPreflight = async (
         artifacts: [backend],
         backend,
         releaseNeeded: backend.changed ? 'backend' : 'none'
+    }
+}
+
+export const runRealtimePreflight = async (
+    context: PublishContext
+): Promise<RealtimePreflightReport> => {
+    const target = resolveRealtimeTarget(context.deployConfig)
+    const packageJsonPath = getRealtimePackagePath(context.repoRoot)
+    const localVersion = await readPackageVersion(packageJsonPath)
+    const serving = await fetchRealtimeServingVersion(context)
+    const source = `relay stats on ${target.instance}`
+    const realtime = await artifactPreflight(context.repoRoot, {
+        kind: 'realtime',
+        packageName: REALTIME_PACKAGE,
+        packageJsonPath,
+        tag: realtimeReleaseTag(localVersion),
+        localVersion,
+        servingVersion: servingVersion(serving, 'realtime'),
+        excludePackages: []
+    })
+    return {
+        target: 'realtime',
+        workingTreeClean: await isWorkingTreeClean(context.repoRoot),
+        serving: 'error' in serving ? { source, error: serving.error } : { source },
+        artifacts: [realtime],
+        realtime,
+        releaseNeeded: realtime.changed ? 'realtime' : 'none'
     }
 }
 

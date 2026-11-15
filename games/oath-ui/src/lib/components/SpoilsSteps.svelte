@@ -1,6 +1,7 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import { CardKind, type WarbandOwner } from '@tabletop/oath'
+    import CageWarbandRows from '$lib/components/CageWarbandRows.svelte'
     import Magnifier from '$lib/components/Magnifier.svelte'
     import MenuCount from '$lib/components/MenuCount.svelte'
     import SpoilsOption from '$lib/components/SpoilsOption.svelte'
@@ -10,13 +11,16 @@
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import { warbandFigure } from '$lib/images/pieceImages.js'
     import { favorToken } from '$lib/images/tileImages.js'
+    import type { RelicRow } from '$lib/model/battleDrafts.js'
+    import { cageQuestion } from '$lib/model/cagePlacement.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { cardName, plural, siteName } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { spoilsSummary } from '$lib/model/spoils.js'
 
-    // R-5.5.7 — the spoils one step at a time: the warbands on the sites taken, the relics, the
-    // defeated pawn (picked on the map), then the favor, whose two buttons send. A step's options
+    // R-5.5.7 — the spoils one step at a time: the warbands on the sites taken, the relics (and the
+    // Obsidian Cage's purple warbands when it went down), the defeated pawn (picked on the map),
+    // then the favor, whose two buttons send. A step's options
     // share their widest one's width and are 44 px tall on a phone; none has a tooltip or a hover look.
     let gameSession = getGameSession()
     let gameState = $derived(gameSession.gameState)
@@ -40,9 +44,10 @@
         return `Place ${plural(n, 'warband')} at ${siteName(gameState, siteId)}${whose}`
     }
 
-    // R-9.4 — a relic the attacker has not seen is drawn by its back, with no magnifier.
-    function relicPicture(slotId: string): { src: string; cardId?: string; label: string } {
-        const known = gameSession.knownRelicAt(slotId)
+    // R-9.4 — a relic the attacker has not seen is drawn by its back, with no magnifier; one from
+    // the defender's board was faceup there.
+    function relicPicture(row: RelicRow): { src: string; cardId?: string; label: string } {
+        const known = row.kind === 'held' ? row.cardId : gameSession.knownRelicAt(row.slotId)
         const src = known ? cardImage(known) : undefined
         return known && src
             ? { src, cardId: known, label: cardName(known) }
@@ -111,9 +116,9 @@
     </div>
 {:else if spoils.step === 'relics'}
     <div class="flex flex-col gap-1.5" role="list" aria-label="Relics taken">
-        {#each spoils.relicTargets as slotId (slotId)}
-            {@const relic = relicPicture(slotId)}
-            {@const choice = spoils.relicChoice(slotId)}
+        {#each spoils.relicRows as row (row.key)}
+            {@const relic = relicPicture(row)}
+            {@const choice = spoils.relicChoice(row.key)}
             <div
                 role="listitem"
                 class="flex w-fit max-w-full items-center gap-x-3.5 gap-y-2 rounded-md bg-oath-surface-raised px-2 py-1.5
@@ -128,21 +133,31 @@
                         pressed={choice === 'keep'}
                         width={relicWidth}
                         disabled={busy}
-                        onclick={() => spoils.setRelic(slotId, false)}>Keep it</SpoilsOption
+                        onclick={() => spoils.setRelic(row.key, false)}>Keep it</SpoilsOption
                     >
                     <SpoilsOption
                         pressed={choice === 'bottom'}
                         width={relicWidth}
                         disabled={busy}
-                        onclick={() => spoils.setRelic(slotId, true)}
+                        onclick={() => spoils.setRelic(row.key, true)}
                         >Bottom of the relic deck</SpoilsOption
                     >
                 </span>
             </div>
         {/each}
     </div>
+{:else if spoils.step === 'cage'}
+    <!-- R-10.13-H1 — a step of its own, Fae Merchant's Cage rows: the question alone. -->
+    <p class="mb-2 text-base">{cageQuestion(spoils.cageWarbands)}</p>
+    <CageWarbandRows
+        boards={spoils.cageBoards}
+        total={spoils.cageWarbands}
+        counts={spoils.cageCounts}
+        ceilingAt={(row) => spoils.cageCeilingAt(row)}
+        onpick={(row, count) => spoils.setCageCount(row, count)}
+    />
 {:else if spoils.step === 'pawn' && defenderId !== undefined}
-    <!-- R-5.5.7.III — the sites she may be sent to are lit on the map; R-11.7, or the Wood's ruler picks. -->
+    <!-- R-5.5.7.III — the sites they may be sent to are lit on the map; R-11.7, or the Wood's ruler picks. -->
     {#if spoils.woodRuler === undefined}
         <p class="mb-1.5 text-sm">
             Tap a lit site to banish <PlayerName playerId={defenderId} possessive /> pawn there.
@@ -183,7 +198,7 @@
     <button
         type="button"
         class="mt-2 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-               border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+               border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold send"
         disabled={busy}
         onclick={() => spoils.next()}
     >
@@ -201,7 +216,7 @@
             <button
                 type="button"
                 class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                       border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                       border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold send"
                 style:min-width="{sendWidth.widest}px"
                 disabled={busy}
                 onclick={() => spoils.takeSpoils(false)}
@@ -213,7 +228,7 @@
                 <button
                     type="button"
                     class="burn shrink-0 rounded border border-oath-danger/60 bg-oath-danger-soft text-oath-text disabled:opacity-40
-                           px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                           px-3 py-1.5 text-sm font-semibold send"
                     style:min-width="{sendWidth.widest}px"
                     disabled={busy}
                     onclick={() => spoils.takeSpoils(true)}
@@ -228,6 +243,14 @@
 {/if}
 
 <style>
+    /* 44 px on a phone, on the screen: `FitBox` scales a step taller than its share of the screen
+       down, so the step's own buttons start that much taller (`--fit-scale`). An upright phone
+       never scales (`--fit-scale` 1, so 44 px); a phone this narrow held sideways still does. */
+    @media (max-width: 639.98px) {
+        .send {
+            min-height: calc(2.75rem / var(--fit-scale, 1));
+        }
+    }
     /* The burnt favor: the token as the text draws it, scorched. */
     .burn :global(img) {
         filter: sepia(1) saturate(4) hue-rotate(-30deg) brightness(0.7) contrast(1.3);

@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, assertExists, MachineContext } from '@tabletop/common'
+import {
+    type HydratedAction,
+    type MachineStateHandler,
+    assertExists,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedSolGameState } from '../model/gameState.js'
@@ -7,7 +12,10 @@ import { ActivatingStateHandler } from './activating.js'
 
 // Transition from Metamorphosizing(Metamorphosize) -> DrawingCards | StartOfTurn
 
-export class MetamorphosizingStateHandler implements MachineStateHandler<HydratedMetamorphosize, HydratedSolGameState> {
+export class MetamorphosizingStateHandler implements MachineStateHandler<
+    HydratedMetamorphosize,
+    HydratedSolGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedSolGameState>
@@ -16,13 +24,19 @@ export class MetamorphosizingStateHandler implements MachineStateHandler<Hydrate
         return isMetamorphosize(action)
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         return [ActionType.Metamorphosize]
     }
 
     enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: HydratedMetamorphosize, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: HydratedMetamorphosize,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {

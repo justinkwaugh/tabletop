@@ -7,6 +7,7 @@ import {
     GameStorage,
     assertExists,
     createAction,
+    type ExplorationPopulation,
     type GameState,
     type HydratedGameState,
     Visibility
@@ -21,7 +22,9 @@ import {
 } from '@tabletop/frontend-components'
 import {
     FreshFishGameStateValidator,
+    type FreshFishProjectedState,
     FreshFishRuntime,
+    FreshFishVisibility,
     HydratedPlaceDisk,
     PlaceDisk,
     DrawTile,
@@ -39,6 +42,24 @@ import {
 } from './simultaneousAuction.js'
 
 const masterSeed = '0123456789abcdef0123456789abcdef'
+
+export const freshFishExploration = definedExploration()
+
+function definedExploration() {
+    const exploration = FreshFishRuntime.exploration
+    assertExists(exploration, 'Expected Fresh Fish Exploration')
+    return exploration
+}
+
+export function populateExploration(
+    input: ExplorationPopulation<FreshFishProjectedState>
+): FreshFishProjectedState {
+    assertExists(
+        freshFishExploration.createFromProjectedState,
+        'Expected projected Exploration population'
+    )
+    return freshFishExploration.createFromProjectedState(input)
+}
 
 const definition: GameUiDefinition<GameState, HydratedGameState> = {
     info: UiDefinition.info,
@@ -148,7 +169,7 @@ export function project(host: CanonicalHost, perspective?: Visibility.Perspectiv
     return Visibility.projectActionHistory({
         currentState: host.state,
         actions: host.actions,
-        visibility: FreshFishRuntime.visibility,
+        visibility: FreshFishVisibility,
         perspective,
         replay: { game: host.game, runtime: FreshFishRuntime }
     })
@@ -396,9 +417,9 @@ export async function runFailedHistoryExploration() {
     const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
         ...FreshFishUiRuntime,
         exploration: {
-            createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState,
+            createFromCanonicalState: freshFishExploration.createFromCanonicalState,
             createFromProjectedState(input) {
-                const state = FreshFishRuntime.exploration.createFromProjectedState(input)
+                const state = populateExploration(input)
                 Reflect.deleteProperty(state, 'board')
                 return state
             }
@@ -443,7 +464,7 @@ export async function runPrivilegedExploration() {
     const client = explorationClient(host, PLAYER_B_PERSPECTIVE, {
         ...FreshFishUiRuntime,
         exploration: {
-            createFromCanonicalState: FreshFishRuntime.exploration.createFromCanonicalState
+            createFromCanonicalState: freshFishExploration.createFromCanonicalState
         },
         initializer: {
             initializeGame: initializer.initializeGame.bind(initializer),

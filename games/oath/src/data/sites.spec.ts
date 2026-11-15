@@ -64,9 +64,7 @@ describe('site cards (R-1.1, R-2.8)', () => {
     })
 
     it('records the one printed-name / established-id disagreement, and only one', () => {
-        expect(NAME_ID_MISMATCHES).toEqual([
-            { id: 'site.great-slums', printedName: 'Great Slum' }
-        ])
+        expect(NAME_ID_MISMATCHES).toEqual([{ id: 'site.great-slums', printedName: 'Great Slum' }])
         expect(siteRecord('site.great-slums')?.name).toBe('Great Slum')
     })
 
@@ -162,7 +160,6 @@ describe('site cards (R-1.1, R-2.8)', () => {
             ])
         )
     })
-
 })
 
 describe('relic cards (R-1.8, R-1.17, R-1.18, R-2.4)', () => {
@@ -210,9 +207,7 @@ describe('relic cards (R-1.8, R-1.17, R-1.18, R-2.4)', () => {
 
     it('R-2.4.1 / R-2.8.4 — no relic carries a Recover cost; the site prints it', () => {
         for (const rec of RELIC_RECORDS) {
-            expect(rec, `${rec.id} must not carry a recoverCost`).not.toHaveProperty(
-                'recoverCost'
-            )
+            expect(rec, `${rec.id} must not carry a recoverCost`).not.toHaveProperty('recoverCost')
         }
         for (const id of ALL_RELIC_IDS) {
             expect(cardDefinition(id)?.recoverCost).toBeUndefined()
@@ -237,5 +232,4 @@ describe('relic cards (R-1.8, R-1.17, R-1.18, R-2.4)', () => {
             )
         }
     })
-
 })

@@ -7,14 +7,18 @@ import { routeAfterSlotResolved } from '../util/resolutionHelpers.js'
 
 type NegotiatingAction = HydratedNegotiationMove
 
-export class NegotiatingStateHandler
-    implements MachineStateHandler<NegotiatingAction, HydratedLowenherzGameState>
-{
+export class NegotiatingStateHandler implements MachineStateHandler<
+    NegotiatingAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>
     ): action is NegotiatingAction {
-        return action instanceof HydratedNegotiationMove && action.isValidNegotiationMove(context.gameState)
+        return (
+            action instanceof HydratedNegotiationMove &&
+            action.isValidNegotiationMove(context.gameState)
+        )
     }
 
     validActionsForPlayer(

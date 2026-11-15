@@ -32,22 +32,22 @@ Full output: `finance-test-run.txt` (191 passed / 14 failed; six failed / eight 
 
 Exact failing cases:
 
-| # | File / current failure line | Test | Stale assumption / observed result |
-|---|---|---|---|
-| 1 | `companyFormation.spec.ts:75` | `starts the-old-prince without prematurely funding or floating it` | Expected only StartCompany; got automatic FinishStockTurn too. |
-| 2 | `companyFormation.spec.ts:118` | `floats the-old-prince through a recorded system action, with exact replay and Undo` | Expected BuyShares, FloatCompany only; got FinishStockTurn too. |
-| 3 | `companyFormation.spec.ts:274` | `preserves a forced PEIR ownership excess without allowing further ordinary purchases` | Follow-up checks the former actor; now rejects “It is not this player’s turn.” before ownership-limit evaluation. |
-| 4 | `earnings.spec.ts:238` | `completes every ordinary operating round for 'ML' and resumes the preserved stock order` | Counts explicit FinishOperatingTurn commands, not processed automatic completions; expects six and sees four. |
-| 5 | `gameEnding.spec.ts:89` | `records the first TOP diesel once and preserves its final-set target through later actions` | Expects BuyingTrains and then manually finishes it; purchase already progressed to next company’s LayingTrack. |
-| 6 | `openingAuction.spec.ts:238` | `starts and floats a company from the real first stock round, placing its home for free` | Manually finishes casey’s already auto-finished start turn; casey is no longer active. |
-| 7 | `sharePurchase.spec.ts:95` | `settles 'the-old-prince' 'ML:share:5' for 'player' and round-trips history` | Expects Alex active / one action; Blair is active after auto-finish. |
-| 8 | `sharePurchase.spec.ts:95` | `settles 'the-old-prince' 'ML:share:7' for 'player' and round-trips history` | Same. |
-| 9 | `sharePurchase.spec.ts:95` | `settles 'the-old-prince' 'ML:share:5' for 'company' and round-trips history` | Same. |
-| 10 | `sharePurchase.spec.ts:95` | `settles 'the-old-prince' 'ML:share:7' for 'company' and round-trips history` | Same. |
-| 11 | `shareSale.spec.ts:128` | `supports a presidency change on purchase in 'the-old-prince'` | Undoes only BuyShares from the final cascade state, leaving auto-finish turn state. |
-| 12 | `shareSale.spec.ts:182` | `preserves the chosen TOP arrival order ML then So beneath existing markers` | Supplies two companies in one SellShares action; current schema allows one. |
-| 13 | `shareSale.spec.ts:182` | `preserves the chosen TOP arrival order So then ML beneath existing markers` | Same. |
-| 14 | `shareSale.spec.ts:283` | `enforces each title’s sale/purchase sequence and one sale block per company` | After TOP buy, expects “after this purchase”; actor has auto-finished so receives not-your-turn. |
+| #   | File / current failure line    | Test                                                                                         | Stale assumption / observed result                                                                                |
+| --- | ------------------------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1   | `companyFormation.spec.ts:75`  | `starts the-old-prince without prematurely funding or floating it`                           | Expected only StartCompany; got automatic FinishStockTurn too.                                                    |
+| 2   | `companyFormation.spec.ts:118` | `floats the-old-prince through a recorded system action, with exact replay and Undo`         | Expected BuyShares, FloatCompany only; got FinishStockTurn too.                                                   |
+| 3   | `companyFormation.spec.ts:274` | `preserves a forced PEIR ownership excess without allowing further ordinary purchases`       | Follow-up checks the former actor; now rejects “It is not this player’s turn.” before ownership-limit evaluation. |
+| 4   | `earnings.spec.ts:238`         | `completes every ordinary operating round for 'ML' and resumes the preserved stock order`    | Counts explicit FinishOperatingTurn commands, not processed automatic completions; expects six and sees four.     |
+| 5   | `gameEnding.spec.ts:89`        | `records the first TOP diesel once and preserves its final-set target through later actions` | Expects BuyingTrains and then manually finishes it; purchase already progressed to next company’s LayingTrack.    |
+| 6   | `openingAuction.spec.ts:238`   | `starts and floats a company from the real first stock round, placing its home for free`     | Manually finishes casey’s already auto-finished start turn; casey is no longer active.                            |
+| 7   | `sharePurchase.spec.ts:95`     | `settles 'the-old-prince' 'ML:share:5' for 'player' and round-trips history`                 | Expects Alex active / one action; Blair is active after auto-finish.                                              |
+| 8   | `sharePurchase.spec.ts:95`     | `settles 'the-old-prince' 'ML:share:7' for 'player' and round-trips history`                 | Same.                                                                                                             |
+| 9   | `sharePurchase.spec.ts:95`     | `settles 'the-old-prince' 'ML:share:5' for 'company' and round-trips history`                | Same.                                                                                                             |
+| 10  | `sharePurchase.spec.ts:95`     | `settles 'the-old-prince' 'ML:share:7' for 'company' and round-trips history`                | Same.                                                                                                             |
+| 11  | `shareSale.spec.ts:128`        | `supports a presidency change on purchase in 'the-old-prince'`                               | Undoes only BuyShares from the final cascade state, leaving auto-finish turn state.                               |
+| 12  | `shareSale.spec.ts:182`        | `preserves the chosen TOP arrival order ML then So beneath existing markers`                 | Supplies two companies in one SellShares action; current schema allows one.                                       |
+| 13  | `shareSale.spec.ts:182`        | `preserves the chosen TOP arrival order So then ML beneath existing markers`                 | Same.                                                                                                             |
+| 14  | `shareSale.spec.ts:283`        | `enforces each title’s sale/purchase sequence and one sale block per company`                | After TOP buy, expects “after this purchase”; actor has auto-finished so receives not-your-turn.                  |
 
 **Recommended fix:** Update existing scenarios to inspect and replay/undo the entire returned action batch; issue a manual finish only when still available; test converging sale order using separate legal company actions. Preserve financial assertions and verify the intended complete flow, rather than weakening tests to accept either result. Rerun the complete finance suite afterward.
 

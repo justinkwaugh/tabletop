@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import { ActionType, CommandKind, commanderDefinition } from '@tabletop/napoleons-triumph'
     import { corpsName, standingGroupName } from '$lib/utils/groupNames.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -6,6 +7,7 @@
     import type { Snippet } from 'svelte'
     import { marksOn, type TargetMark } from '$lib/model/targets.js'
     import { WayStepKind } from '$lib/model/ways.js'
+    import { marchHaltNote } from '$lib/utils/roadHalts.js'
     import { commandsLeft } from '$lib/utils/commandsLeft.js'
     import CommandSwitch from './CommandSwitch.svelte'
     import RideSwitch from './RideSwitch.svelte'
@@ -19,19 +21,17 @@
     const group = $derived(gameSession.selectedGroup)
     const picked = $derived(gameSession.pickedUnitIds)
     const options = $derived(gameSession.commandOptions)
+    const choices = $derived(gameSession.commandChoices)
     const kind = $derived(gameSession.commandKind)
     const reinforcements = $derived(gameSession.reinforcements)
 
     const ridingOn = $derived(gameSession.ridingOn)
+    const endingRide = $derived(gameSession.isEndingRide)
     const rideChoice = $derived(gameSession.rideChoice)
     const stepsOfTheWay = $derived(gameSession.stepsOfTheWay)
     const together = $derived(gameSession.wholeCorpsChosen)
-    const unitAlone = $derived(
-        !together && picked.length === 1
-            ? group?.units.find((unit) => unit.id === picked[0])
-            : undefined
-    )
-    const attachTo = $derived(unitAlone ? gameSession.attachOptions(unitAlone) : [])
+    const unitAlone = $derived(gameSession.unitAlone)
+    const attaching = $derived(gameSession.attaching)
     const aimedLocale = $derived(gameSession.aimedLocale)
     const threatBeingDeclared = $derived(gameSession.threatBeingDeclared)
     const threatSentence = $derived.by(() => {
@@ -51,7 +51,10 @@
             return undefined
         }
         const name = group.commander ? corpsName(group.commander.id) : 'Detached units'
-        return ridingOn ? `${name}, riding on` : name
+        if (!ridingOn) {
+            return name
+        }
+        return endingRide ? `${name}, at the end of its ride` : `${name}, riding on`
     })
 
     const stillToCommand = $derived(
@@ -61,11 +64,16 @@
     )
 
     const problem = $derived.by(() => {
+        if (attaching) {
+            return undefined
+        }
         if (options.length === 0 && !ridingOn) {
             return 'No command can move these units now.'
         }
         return gameSession.targets.length === 0 ? 'These units have nowhere to go.' : undefined
     })
+
+    const haltNote = $derived(marchHaltNote(gameSession.gameState.map, gameSession.roadHalts))
 
     const wayToChoose = $derived.by(() => {
         if (stepsOfTheWay.length === 0) {
@@ -75,6 +83,22 @@
             ? 'More than one road comes on there. Tap the one to come on by: this turn the pieces go on only by roads that join it.'
             : 'More than one road leads there. Tap the locale to march through: a corps closes the reserves it marches into to other units this turn.'
     })
+
+    // Rule 11: a threat starts from the enemy's locale, and nothing on the board marks the ones that can be aimed at until one is tapped.
+    const mayAim = $derived(gameSession.aimableLocales.length > 0)
+
+    const idlePrompt = $derived(
+        `Choose ${mayAim ? 'a corps, unit, or enemy locale' : 'a corps or unit'} on the map${reinforcements.length > 0 ? ', bring on' : ''}`
+    )
+
+    const howToAim = $derived.by(() => {
+        const stuck = options.length === 0 && !ridingOn
+        const onAnotherStep = wayToChoose !== undefined || attaching || stuck
+        return !onAnotherStep && mayAim ? 'Tap an enemy locale to threaten an attack.' : undefined
+    })
+
+    // The anchor stands as tall as the idle line last stood, however it wrapped, so choosing never resizes the board.
+    let idleLineHeight = $state(18)
 
     const aside = $derived.by(() => {
         if (!group || ridingOn) {
@@ -86,8 +110,16 @@
         if (together && picked.length > 1) {
             return 'Tap units to send only some.'
         }
-        return kind === CommandKind.Corps && picked.length < group.units.length
-            ? 'The units left out stay behind, detached.'
+        // Players lost track of the commander when units were left out, so the line says where he goes whatever the command.
+        if (!group.commander || picked.length === group.units.length) {
+            return undefined
+        }
+        const name = commanderDefinition(group.commander.id).name
+        if (kind === CommandKind.Corps) {
+            return `${name} goes along; the units left out stay behind, detached.`
+        }
+        return kind === CommandKind.Detach || kind === CommandKind.Unit
+            ? `${name} stays behind with the units left out.`
             : undefined
     })
 </script>
@@ -117,7 +149,7 @@
 {/snippet}
 
 {#snippet drawer(sheet: Snippet, note: Snippet, marks: TargetMark[] | undefined)}
-    <div class="nt-orders-anchor">
+    <div class="nt-orders-anchor" style:height="{idleLineHeight}px">
         <div class="nt-orders-drawer" bind:clientHeight={drawerHeight}>
             <div class="nt-orders-sheet">
                 {@render sheet()}
@@ -136,7 +168,7 @@
 {/snippet}
 
 {#snippet guardSheet()}
-    <span>{threatSentence}</span>
+    <span><PlaceText text={threatSentence ?? ''} /></span>
     <span>To announce a Guard Attack, choose the Guard unit to show:</span>
     <div class="nt-orders-row">
         <div class="nt-orders-actions nt-orders-guards">
@@ -151,7 +183,7 @@
                         label="Show this Guard unit: {standsWith}"
                         onclick={() => gameSession.toggleGuardUnit(unitId)}
                     />
-                    <span class="nt-orders-small-text">{standsWith}</span>
+                    <span class="nt-orders-small-text"><PlaceText text={standsWith} /></span>
                 </div>
             {/each}
         </div>
@@ -181,8 +213,9 @@
 
 {#snippet aimNote()}
     <span
-        >Tap an arrow to threaten an attack across that approach. The attacking pieces are named
-        next.</span
+        >Tap an arrow to threaten an attack across that approach. {group
+            ? 'The pieces you chose will join the attack where they can.'
+            : 'You choose the attacking pieces next.'}</span
     >
 {/snippet}
 
@@ -219,21 +252,23 @@
                         onchoose={(ride) => gameSession.chooseRide(ride)}
                     />
                 {/if}
-                {#if options.length > 0}
+                {#if choices.length > 0}
                     <span class="nt-orders-faint">Command</span>
                 {/if}
                 <CommandSwitch
-                    {options}
-                    chosen={gameSession.order?.kind}
-                    onchoose={(command) => gameSession.chooseCommand(command)}
+                    options={choices}
+                    chosen={gameSession.commandInForce}
+                    onchoose={(choice) => gameSession.chooseCommand(choice)}
                 />
-                {#if unitAlone}
-                    {#each attachTo as commander (commander.id)}
+                {#if attaching && unitAlone}
+                    {#each gameSession.attachTo as commander (commander.id)}
+                        {@const name = commanderDefinition(commander.id).name}
                         <button
                             type="button"
-                            class="nt-plain-button nt-orders-small"
+                            class="nt-plain-button"
+                            aria-label="Attach to {name}"
                             onclick={() => gameSession.attach(commander.id, unitAlone.id)}
-                            >Attach to {commanderDefinition(commander.id).name}</button
+                            >to {name}</button
                         >
                     {/each}
                 {/if}
@@ -250,26 +285,33 @@
         <span>{wayToChoose}</span>
     {:else if problem}
         <span>{problem}</span>
+    {:else if ridingOn && endingRide}
+        <span
+            >The cavalry can ride no farther. Choose where it ends its move: tap the yellow ring to
+            leave it in reserve, or a yellow approach its road crosses to block it.</span
+        >
     {:else if ridingOn}
         <span
             >The cavalry may ride on along its road, or threaten again. Any other command ends this
-            move.</span
+            move, leaving it in reserve.</span
         >
     {:else if aside}
         <span>{aside}</span>
+    {/if}
+    {#if haltNote && !wayToChoose && !problem}
+        <span>{haltNote}</span>
+    {/if}
+    {#if howToAim}
+        <span>{howToAim}</span>
     {/if}
 {/snippet}
 
 <div class="nt-orders" role={title ? 'group' : undefined} aria-label={title}>
     <div class="nt-orders-lead">
         {#if title}
-            <span class="nt-orders-name">{title}</span>
+            <span class="nt-orders-name"><PlaceText text={title} /></span>
         {:else}
-            <span
-                >Choose a corps or unit on the map{reinforcements.length > 0
-                    ? ', bring on'
-                    : ''}</span
-            >
+            <span>{idlePrompt}</span>
             {@render turnActions(true)}
         {/if}
     </div>
@@ -284,7 +326,7 @@
             problem ? undefined : marksOn(gameSession.targets, gameSession.closedReserves)
         )}
     {:else}
-        <div class="nt-orders-note nt-orders-rest">
+        <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}
@@ -336,7 +378,6 @@
 
     .nt-orders-anchor {
         position: relative;
-        height: 18px;
     }
 
     .nt-orders-drawer {

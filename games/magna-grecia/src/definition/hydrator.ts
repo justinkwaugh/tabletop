@@ -1,8 +1,5 @@
 import type { GameAction, GameHydrator, HydratedAction } from '@tabletop/common'
-import {
-    HydratedMagnaGreciaGameState,
-    type MagnaGreciaProjectedState
-} from '../model/gameState.js'
+import { HydratedMagnaGreciaGameState, type MagnaGreciaProjectedState } from '../model/gameState.js'
 import { HydratedBuildMarket, isBuildMarket } from '../actions/buildMarket.js'
 import { HydratedEndTurn, isEndTurn } from '../actions/endTurn.js'
 import { HydratedPlaceCity, isPlaceCity } from '../actions/placeCity.js'

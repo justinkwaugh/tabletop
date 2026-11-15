@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { GameAction } from '@tabletop/common'
+    import { isCallGameAction, type GameAction } from '@tabletop/common'
     import {
         isBuildMarket,
         isEndTurn,
@@ -9,7 +9,7 @@
         isSellMarket,
         type OracleChange
     } from '@tabletop/magna-grecia'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import { plural, resupplyText } from '$lib/utils/historyTurns.js'
 
     let { action, justify = 'start' }: { action: GameAction; justify?: 'start' | 'center' } =
@@ -54,7 +54,16 @@
     {:else if isSellMarket(action)}
         <span>sold a market for {plural(action.metadata?.value ?? 0, 'point')}</span>
     {:else if isEndTurn(action)}
-        <span>ended their turn</span>
+        <span
+            >ended <PlayerName
+                playerId={action.playerId}
+                possessive={true}
+                plainSelfPossessive={true}
+                possessivePlayerId={action.playerId}
+            /> turn</span
+        >
+    {:else if isCallGameAction(action)}
+        <span><CalledGameDescription {action} /></span>
     {:else}
         <span>{action.type}</span>
     {/if}

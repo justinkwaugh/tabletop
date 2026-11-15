@@ -1,7 +1,11 @@
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
     import MagnifierGlass from '$lib/components/MagnifierGlass.svelte'
-    import { cardPreview, type CardPreview } from '$lib/model/cardPreview.svelte.js'
+    import {
+        cardPreview,
+        type CardPreview,
+        type PreviewGroup
+    } from '$lib/model/cardPreview.svelte.js'
 
     // Rule 4 — a card in a panel carries a magnifier in its corner, which enlarges it. A small
     // card's glass is small and straddles its top-left corner, so it covers little of the card
@@ -10,8 +14,15 @@
     let {
         preview,
         label,
-        size = 'large'
-    }: { preview: CardPreview; label: string; size?: Size } = $props()
+        size = 'large',
+        group
+    }: {
+        preview: CardPreview
+        label: string
+        size?: Size
+        /** The cards the enlarged card pages through. */
+        group?: PreviewGroup
+    } = $props()
 
     const SIZES: Record<Size, { place: string; glass: number }> = {
         small: { place: '-left-1.5 -top-1.5 h-[18px] w-[18px]', glass: 10 },
@@ -32,7 +43,7 @@
     {@attach releaseOnUnmount}
     onclick={(event) => {
         event.stopPropagation()
-        cardPreview.toggle(owner, () => preview)
+        cardPreview.toggle(owner, () => preview, group)
     }}
 >
     <MagnifierGlass size={SIZES[size].glass} />

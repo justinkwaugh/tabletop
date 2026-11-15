@@ -1,4 +1,4 @@
-import type { Point } from '@tabletop/common'
+import type { Point, RectangleDimensions } from '@tabletop/common'
 
 export interface OrientedBox {
     centre: Point
@@ -10,9 +10,13 @@ export interface OrientedBox {
 
 const SAMPLE_STEP = 8
 
-/** A square standing level on the board, for what is drawn upright in every board view: the board only turns by quarter turns. */
+/** A box standing level on the board, for what is drawn upright in every board view: the board only turns by quarter turns. */
+export function levelBoxAround(centre: Point, size: RectangleDimensions): OrientedBox {
+    return { centre, along: { x: 1, y: 0 }, halfLength: size.width / 2, halfWidth: size.height / 2 }
+}
+
 export function squareAround(centre: Point, half: number): OrientedBox {
-    return { centre, along: { x: 1, y: 0 }, halfLength: half, halfWidth: half }
+    return levelBoxAround(centre, { width: half * 2, height: half * 2 })
 }
 
 function pointAt(box: OrientedBox, ahead: number, aside: number): Point {

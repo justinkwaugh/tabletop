@@ -84,6 +84,7 @@ export const GameState = Type.Object({
     machineState: Type.String(),
     turnManager: TurnManager,
     result: Type.Optional(Type.Enum(GameResult)),
+    canContinue: Type.Optional(Type.Boolean()),
     winningPlayerIds: Type.Array(Type.String()),
     explorationState: Type.Optional(ExplorationState),
     startingPositionRandom: Type.Optional(Type.Array(StartingPositionRandomState)),
@@ -128,6 +129,7 @@ export abstract class HydratableGameState<T extends Type.TSchema, P extends Play
     declare machineState: string
     declare turnManager: HydratedTurnManager
     declare result?: GameResult
+    declare canContinue?: boolean
     declare winningPlayerIds: string[]
     declare startingPositionRandom?: StartingPositionRandomState[]
     declare parallelSpan?: ParallelSpanState

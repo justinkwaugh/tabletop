@@ -39,18 +39,27 @@ export class BribePopAnimator extends StateAnimator {
         if (!from) return
         const before = canalProposals(from)
         const added = canalProposals(to).filter(
-            (p) => !before.some((old) => old.playerId === p.playerId && isSameSegment(old.segment, p.segment))
+            (p) =>
+                !before.some(
+                    (old) => old.playerId === p.playerId && isSameSegment(old.segment, p.segment)
+                )
         )
         if (added.length === 0) return
 
         this.proposals = canalProposals(to)
         await tick()
-        const nodes = added.flatMap((p) => this.pills.get(bribePillKey(p.segment, p.playerId)) ?? [])
+        const nodes = added.flatMap(
+            (p) => this.pills.get(bribePillKey(p.segment, p.playerId)) ?? []
+        )
         if (nodes.length === 0) return
         gsap.set(nodes, { scale: 0, transformOrigin: '50% 50%' })
         animationContext.actionTimeline.to(
             nodes,
-            { scale: 1, duration: action ? POP : FALLBACK_DURATION, ease: action ? 'back.out(2.2)' : 'power1.out' },
+            {
+                scale: 1,
+                duration: action ? POP : FALLBACK_DURATION,
+                ease: action ? 'back.out(2.2)' : 'power1.out'
+            },
             0
         )
     }

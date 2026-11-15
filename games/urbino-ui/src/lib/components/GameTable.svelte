@@ -48,7 +48,12 @@
 </script>
 
 <CustomFont fontFamily="Urbino Cinzel" url={CinzelLatin} format="woff2" fontWeight="400 900" />
-<CustomFont fontFamily="Urbino Garamond" url={EBGaramondLatin} format="woff2" fontWeight="400 800" />
+<CustomFont
+    fontFamily="Urbino Garamond"
+    url={EBGaramondLatin}
+    format="woff2"
+    fontWeight="400 800"
+/>
 <CustomFont
     fontFamily="Urbino Garamond"
     url={EBGaramondItalicLatin}
@@ -137,7 +142,9 @@
                 >
                     <div class="flex flex-col items-center gap-1 px-2 pt-1 pb-2">
                         <Board />
-                        <p class="urbino-display text-[20px] tracking-[0.18em] text-(--cream-quiet)">
+                        <p
+                            class="urbino-display text-[20px] tracking-[0.18em] text-(--cream-quiet)"
+                        >
                             Urbino · Dieter Stein
                         </p>
                     </div>

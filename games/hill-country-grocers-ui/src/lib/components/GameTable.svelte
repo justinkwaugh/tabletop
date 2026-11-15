@@ -24,8 +24,7 @@
     import CourierPrimeFont from '$lib/fonts/CourierPrime-Regular.woff2'
     import CourierPrimeBoldFont from '$lib/fonts/CourierPrime-Bold.woff2'
 
-    let { gameSession }: { gameSession: GameSession<HcgGameState, HydratedHcgGameState> } =
-        $props()
+    let { gameSession }: { gameSession: GameSession<HcgGameState, HydratedHcgGameState> } = $props()
     assert(gameSession instanceof HcgGameSession, 'Hill Country Grocers needs its own session')
     setGameSession(gameSession)
 
@@ -69,12 +68,7 @@
     fontStyle="italic"
 />
 <CustomFont fontFamily="Courier Prime" url={CourierPrimeFont} format="woff2" fontWeight="400" />
-<CustomFont
-    fontFamily="Courier Prime"
-    url={CourierPrimeBoldFont}
-    format="woff2"
-    fontWeight="700"
-/>
+<CustomFont fontFamily="Courier Prime" url={CourierPrimeBoldFont} format="woff2" fontWeight="700" />
 
 <div class="bg-[#efe2c2]">
     <DefaultTableLayout>
@@ -120,7 +114,12 @@
                 {@render turnControls()}
             </div>
             <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
-                <ScalingWrapper justify="center" controls="bottom-left" renderAtViewScale expandable>
+                <ScalingWrapper
+                    justify="center"
+                    controls="bottom-left"
+                    renderAtViewScale
+                    expandable
+                >
                     <Board />
                     {#snippet toolbar()}
                         <!-- Full screen is a modal dialog, so the turn controls must come inside it. -->

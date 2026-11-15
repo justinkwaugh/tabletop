@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ReserveBidAuction, cashOwnedBy, getCompany } from '@tabletop/18xx'
+import { ReserveBidAuction, cashOwnedBy, getCompany, shareSaleValue } from '@tabletop/18xx'
 import { exampleGame, playExample } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoAuctionRules,
@@ -54,6 +54,18 @@ describe('the opening', () => {
         expect(central.parPrice).toBe(90)
         expect(central.president).toEqual({ kind: 'player', playerId: buyers.P7 })
         expect(play.state.machineState).toBe('StockRound')
+    })
+
+    it('values P7’s CoG certificate at nothing until its par is set', () => {
+        const play = playExample(EighteenThirtyTwoScenarios, 'opening', 3)
+        const buyers = buyOpeningPrivates(play)
+        expect(
+            shareSaleValue(
+                play.state,
+                { kind: 'player', playerId: buyers.P7 },
+                EighteenThirtyTwoStockRules
+            )
+        ).toBe(0)
     })
 
     it('runs the privates and lowers P1 by $5 when everyone passes before buying', () => {

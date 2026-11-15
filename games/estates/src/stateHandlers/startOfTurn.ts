@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedEstatesGameState } from '../model/gameState.js'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
@@ -15,9 +11,10 @@ type StartOfTurnAction = HydratedDrawRoof | HydratedStartAuction | HydratedEmbez
 // Transition from StartOfTurn(DrawRoof) -> Auctioning
 //                 StartOfTurn(StartAuction) -> Auctioning
 
-export class StartOfTurnStateHandler
-    implements MachineStateHandler<StartOfTurnAction, HydratedEstatesGameState>
-{
+export class StartOfTurnStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedEstatesGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedEstatesGameState>

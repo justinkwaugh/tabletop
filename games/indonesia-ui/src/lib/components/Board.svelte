@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
     import { onMount } from 'svelte'
     import { StartCompanyAnimator } from '$lib/animators/startCompanyAnimator.js'
     import boardImg from '$lib/images/indo_map_sm.jpg'
@@ -17,16 +18,17 @@
     import BoardDebugOverlay from '$lib/components/BoardDebugOverlay.svelte'
     import EraCrossMark from '$lib/components/EraCrossMark.svelte'
     import type { CityDemandViewMode } from '$lib/model/cityDemandView.js'
+    import { ProductionZoneMarkers } from '$lib/model/productionZoneMarkers.svelte.js'
+    import { setProductionZoneMarkersContext } from '$lib/model/productionZoneMarkersContext.svelte.js'
     import { setStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { MachineState } from '@tabletop/indonesia'
 
-    const BOARD_WIDTH = 2646
-    const BOARD_HEIGHT = 1280
     const DEBUG_GEOMETRY_STORAGE_KEY = 'indonesia-debug-geometry'
 
     const gameSession = getGameSession()
     setStartCompanyAnimatorContext(new StartCompanyAnimator(gameSession))
+    setProductionZoneMarkersContext(new ProductionZoneMarkers(gameSession))
     let debugOverlayActive = $state(false)
     let debugOverlayEnabled = $state(false)
     let hoveredTurnOrderPlayerId = $state<string | null>(null)
@@ -63,7 +65,7 @@
     const eraComplete = $derived.by(() => gameSession.gameState.shouldStartNewEra())
 
     onMount(() => {
-        if (typeof window === 'undefined') {
+        if (!gameSession.isDeveloperHarness) {
             return
         }
 
@@ -155,9 +157,9 @@
                 <BoardActionAreasLayer />
                 <BoardCitiesLayer demandViewMode={cityDemandViewMode} />
                 <BoardTurnOrderLayer
-                    selectedPlayerId={
-                        gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
-                    }
+                    selectedPlayerId={gameSession.researchSelectionEnabled
+                        ? gameSession.selectedResearchPlayerId
+                        : null}
                     selectable={gameSession.researchSelectionEnabled}
                     onHoverPlayer={(playerId) => {
                         hoveredTurnOrderPlayerId = playerId
@@ -167,16 +169,20 @@
                     }}
                 />
                 <BoardResearchLayer
-                    selectedPlayerId={
-                        gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
-                    }
+                    selectedPlayerId={gameSession.researchSelectionEnabled
+                        ? gameSession.selectedResearchPlayerId
+                        : null}
                     currentPlayerId={gameSession.currentResearchPlayerId}
                     hoveredPlayerId={hoveredTurnOrderPlayerId}
                 />
             {/if}
         </svg>
         {#if debugOverlayEnabled}
-            <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} bind:active={debugOverlayActive} />
+            <BoardDebugOverlay
+                width={BOARD_WIDTH}
+                height={BOARD_HEIGHT}
+                bind:active={debugOverlayActive}
+            />
         {/if}
     </div>
     <AvailableDeedsRow />

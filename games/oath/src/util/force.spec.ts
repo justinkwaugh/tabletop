@@ -55,7 +55,7 @@ function table(overrides = {}) {
 }
 
 describe('Kill (R-10.13)', () => {
-    it('returns a warband to its owner\'s bank, whatever colour that player now shows', () => {
+    it("returns a warband to its owner's bank, whatever colour that player now shows", () => {
         const state = testState([
             testPlayer({ playerId: 'p1', color: Color.Red }),
             testPlayer({ playerId: 'p2', color: Color.Blue })
@@ -85,9 +85,7 @@ describe('Kill (R-10.13)', () => {
             killWarbands(state, IMPERIAL_WARBANDS, 2)
         })
         expect(state.getPlayerState(CHANCELLOR).warbandsInPersonalBank[IMPERIAL_WARBANDS]).toBe(21)
-        expect(
-            state.getPlayerState(CITIZEN).warbandsInPersonalBank[IMPERIAL_WARBANDS] ?? 0
-        ).toBe(0)
+        expect(state.getPlayerState(CITIZEN).warbandsInPersonalBank[IMPERIAL_WARBANDS] ?? 0).toBe(0)
     })
 
     it('does not remove the warband from wherever it was -- callers do that', () => {
@@ -104,7 +102,9 @@ describe('Kill (R-10.13)', () => {
 
     it('refuses an owner who is no player, since every warband in play belongs to one', () => {
         const state = table()
-        expect(() => killWarbands(state, 'nobody', 1)).toThrow('Player state for player nobody not found')
+        expect(() => killWarbands(state, 'nobody', 1)).toThrow(
+            'Player state for player nobody not found'
+        )
     })
 })
 
@@ -123,12 +123,12 @@ describe('moving warbands between locations', () => {
 
     it('refuses to take more than are there', () => {
         const state = table()
-        expect(() =>
-            removeWarbandsFrom(state, { kind: 'site', siteId: 'c1' }, EXILE, 3)
-        ).toThrow(/only 2/)
+        expect(() => removeWarbandsFrom(state, { kind: 'site', siteId: 'c1' }, EXILE, 3)).toThrow(
+            /only 2/
+        )
     })
 
-    it('adds to a board, creating the owner\'s entry if needed', () => {
+    it("adds to a board, creating the owner's entry if needed", () => {
         const state = table()
         addWarbandsToBoard(state, CITIZEN, CITIZEN, 2)
         expect(state.getPlayerState(CITIZEN).warbandsOnBoard[CITIZEN]).toBe(2)
@@ -141,9 +141,9 @@ describe('moving warbands between locations', () => {
         expect(state.warbandsOnCard('relic.obsidian-cage')).toEqual({ [CITIZEN]: 3 })
         removeWarbandsFromCard(state, 'relic.obsidian-cage', CITIZEN, 2)
         expect(state.warbandsOnCard('relic.obsidian-cage')).toEqual({ [CITIZEN]: 1 })
-        expect(() =>
-            removeWarbandsFromCard(state, 'relic.obsidian-cage', CITIZEN, 2)
-        ).toThrow(/only 1 on it/)
+        expect(() => removeWarbandsFromCard(state, 'relic.obsidian-cage', CITIZEN, 2)).toThrow(
+            /only 1 on it/
+        )
         expect(() => removeWarbandsFromCard(state, 'vision.faith', CITIZEN, 1)).toThrow(
             /only 0 on it/
         )
@@ -193,7 +193,13 @@ describe('validating a chosen selection against a force (R-5.5.6, R-5.5.6.a)', (
     it('rejects a location that is not in the force at all', () => {
         expect(
             selectionExceedsForce(
-                [{ at: { kind: 'board', playerId: CHANCELLOR }, owner: IMPERIAL_WARBANDS, count: 1 }],
+                [
+                    {
+                        at: { kind: 'board', playerId: CHANCELLOR },
+                        owner: IMPERIAL_WARBANDS,
+                        count: 1
+                    }
+                ],
                 force
             )
         ).toMatch(/not in the/)

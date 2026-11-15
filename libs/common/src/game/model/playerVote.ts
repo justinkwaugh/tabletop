@@ -1,8 +1,16 @@
 import * as Type from 'typebox'
+import { CallBallot } from './gameCall.js'
 import type { Player } from './player.js'
 
 export enum PlayerVoteKind {
-    Undo = 'undo'
+    Undo = 'undo',
+    Call = 'call'
+}
+
+export enum PlayerVoteOutcome {
+    Open = 'open',
+    Passed = 'passed',
+    Failed = 'failed'
 }
 
 export type UndoVote = Type.Static<typeof UndoVote>
@@ -15,8 +23,16 @@ export const UndoVote = Type.Object({
     approvingPlayerIds: Type.Array(Type.String())
 })
 
+export type CallVote = Type.Static<typeof CallVote>
+export const CallVote = Type.Evaluate(
+    Type.Intersect([
+        Type.Object({ id: Type.String(), kind: Type.Literal(PlayerVoteKind.Call) }),
+        CallBallot
+    ])
+)
+
 export type PlayerVote = Type.Static<typeof PlayerVote>
-export const PlayerVote = UndoVote
+export const PlayerVote = Type.Union([UndoVote, CallVote])
 
 export type UndoVotePreview = Type.Static<typeof UndoVotePreview>
 export const UndoVotePreview = Type.Object({
@@ -26,13 +42,39 @@ export const UndoVotePreview = Type.Object({
     ownUndoReaches: Type.Boolean()
 })
 
+type VotingPlayer = Pick<Player, 'id' | 'userId'>
+
 export function votingPlayers<T extends Pick<Player, 'userId'>>(players: readonly T[]): T[] {
     return players.filter((player) => player.userId !== undefined)
 }
 
-export function isPlayerVoteApproved(
-    vote: Pick<PlayerVote, 'approvingPlayerIds'>,
-    players: readonly Pick<Player, 'id' | 'userId'>[]
-): boolean {
-    return votingPlayers(players).every((player) => vote.approvingPlayerIds.includes(player.id))
+export function isTwoPlayerGame(players: readonly unknown[]): boolean {
+    return players.length === 2
+}
+
+export function requiredCallApprovals(players: readonly VotingPlayer[]): number {
+    return isTwoPlayerGame(players) ? 1 : Math.floor(votingPlayers(players).length / 2) + 1
+}
+
+export function playerVoteOutcome(
+    vote: PlayerVote,
+    players: readonly VotingPlayer[]
+): PlayerVoteOutcome {
+    const voters = votingPlayers(players)
+    const approvals = voters.filter((player) => vote.approvingPlayerIds.includes(player.id))
+    if (vote.kind === PlayerVoteKind.Undo) {
+        return approvals.length === voters.length
+            ? PlayerVoteOutcome.Passed
+            : PlayerVoteOutcome.Open
+    }
+    const required = requiredCallApprovals(players)
+    if (approvals.length >= required) return PlayerVoteOutcome.Passed
+    const undecided = voters.filter(
+        (player) =>
+            !vote.approvingPlayerIds.includes(player.id) &&
+            !vote.decliningPlayerIds.includes(player.id)
+    )
+    return approvals.length + undecided.length < required
+        ? PlayerVoteOutcome.Failed
+        : PlayerVoteOutcome.Open
 }

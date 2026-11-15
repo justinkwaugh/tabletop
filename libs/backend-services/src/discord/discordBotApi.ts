@@ -3,7 +3,7 @@ const API_ENDPOINT = 'https://discord.com/api/v10'
 export type DiscordFile = {
     filename: string
     contentType: string
-    content: string
+    content: string | Uint8Array<ArrayBuffer>
 }
 
 export class DiscordBotApi {
@@ -19,6 +19,18 @@ export class DiscordBotApi {
             headers: { ...this.headers(), 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         })
+    }
+
+    async patch(path: string, body: unknown): Promise<Response> {
+        return await fetch(`${API_ENDPOINT}${path}`, {
+            method: 'PATCH',
+            headers: { ...this.headers(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+    }
+
+    async delete(path: string): Promise<Response> {
+        return await fetch(`${API_ENDPOINT}${path}`, { method: 'DELETE', headers: this.headers() })
     }
 
     // Discord takes files as multipart parts named files[n], with the JSON body in payload_json.

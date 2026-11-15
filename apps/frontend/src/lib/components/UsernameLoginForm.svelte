@@ -3,6 +3,7 @@
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import AuthLink from '$lib/components/AuthLink.svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
+    import { isAccountUnavailable } from '$lib/utils/accountErrors'
     import { getAppContext, trim, type Credentials } from '@tabletop/frontend-components'
 
     let {
@@ -20,6 +21,7 @@
     let username = $state('')
     let password = $state('')
     let loginFailed = $state(false)
+    let unavailableMessage = $state<string>()
     let submitting = $state(false)
 
     async function submit(event: SubmitEvent) {
@@ -27,6 +29,7 @@
         if (submitting) return
         submitting = true
         loginFailed = false
+        unavailableMessage = undefined
 
         try {
             const credentials: Credentials = {
@@ -35,14 +38,21 @@
             }
             const user = await api.login(credentials)
             await authorizationService.onLogin(user)
-        } catch {
-            loginFailed = true
+        } catch (error) {
+            if (isAccountUnavailable(error)) {
+                unavailableMessage = error.message
+            } else {
+                loginFailed = true
+            }
         } finally {
             submitting = false
         }
     }
 </script>
 
+{#if unavailableMessage}
+    <Alert color="red" class="mb-4" role="alert">{unavailableMessage}</Alert>
+{/if}
 {#if loginFailed}
     <Alert color="red" class="mb-4" role="alert">
         Unable to sign in. Please check your username and password and try again.

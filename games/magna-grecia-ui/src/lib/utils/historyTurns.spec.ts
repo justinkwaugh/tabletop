@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType } from '@tabletop/magna-grecia'
-import { historyEntry, historyLines, historyRounds, resupplyText } from './historyTurns.js'
+import { historyEntry, historyLines, historyRounds, resupplyText, winVerb } from './historyTurns.js'
 
 let next = 0
 function action(type: ActionType, playerId: string, fields: object = {}): GameAction {
@@ -127,5 +127,14 @@ describe('history lines', () => {
         ])
         expect(lines[0].actions).toEqual(actions.slice(0, 2))
         expect(lines[0].entry.oracleChanges).toEqual([turned])
+    })
+})
+
+describe('the win verb', () => {
+    it('agrees with the winners, the viewer as You', () => {
+        expect(winVerb(['p2'], 'p1')).toBe('wins')
+        expect(winVerb(['p2'], undefined)).toBe('wins')
+        expect(winVerb(['p1'], 'p1')).toBe('win')
+        expect(winVerb(['p1', 'p2'], 'p3')).toBe('win')
     })
 })

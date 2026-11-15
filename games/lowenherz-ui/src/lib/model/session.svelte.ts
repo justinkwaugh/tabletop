@@ -1,6 +1,16 @@
 import { Color, type GameAction, type Point } from '@tabletop/common'
 import { allianceWalls } from '$lib/model/allianceGeometry.js'
 import { expansionActionsFor, openExpansionActionIdFor } from '$lib/model/expansionRun.js'
+import { powerPointHistory, type PlayerScoreHistory } from '$lib/model/scoreHistory.js'
+import {
+    isKnownTake,
+    otherPlayerCardDecks,
+    politicsCardPiles,
+    recordedTakes,
+    type PoliticsCardSource,
+    type PoliticsPile,
+    type RecordedTake
+} from '$lib/model/politicsCardPiles.js'
 import { GameSession } from '@tabletop/frontend-components'
 import type { StateChange } from '$lib/animators/stateAnimator.js'
 import {
@@ -111,6 +121,17 @@ export class LowenherzGameSession extends GameSession<
         )
     }
 
+    powerPointHistory: PlayerScoreHistory[] | undefined = $derived.by(() => {
+        const actions = this.actions
+        if (
+            this.gameState.machineState !== MachineState.EndOfGame ||
+            !this.hasCompleteHistory ||
+            actions.length !== this.gameState.actionCount
+        )
+            return undefined
+        return powerPointHistory(this.gameState.dehydrate(), actions)
+    })
+
     // True while the published state came from a silent-swap restoration, which publishes
     // without calling any state-change listener; local layout settling stays still for it.
     restoredSilently = $state(true)
@@ -168,8 +189,8 @@ export class LowenherzGameSession extends GameSession<
     // An effect used to assign these from the offer on every tick and clear them when the
     // negotiation ended. Deriving them means there is nothing to clear: no negotiation, no draft.
     private negotiationDraft:
-        | { key: string; proposerId: string | undefined; amount: number }
-        | undefined = $state(undefined)
+        { key: string; proposerId: string | undefined; amount: number } | undefined =
+        $state(undefined)
 
     private get negotiationKey(): string | undefined {
         const negotiation = this.displayNegotiation
@@ -1655,6 +1676,41 @@ export class LowenherzGameSession extends GameSession<
     // point of them being private).
     viewingMyPoliticsCards: boolean = $state(false)
 
+    private politicsTakes: RecordedTake[] | undefined = $derived.by(() =>
+        this.hasCompleteHistory
+            ? recordedTakes(this.actions.slice(0, this.gameState.actionCount))
+            : undefined
+    )
+
+    // Your own hand matched to your own takes, card by card. Only when every one of your takes
+    // shows its card: exploring as another player, their takes' cards are hidden from you.
+    private myExactCardPiles: Map<PoliticsCard, PoliticsPile> | undefined = $derived.by(() => {
+        const myId = this.myPlayer?.id
+        const myTakes = this.politicsTakes?.filter((take) => take.playerId === myId)
+        if (!myId || !myTakes?.every(isKnownTake)) return undefined
+        return politicsCardPiles(this.myPoliticsCards, myTakes)
+    })
+
+    // Which deck a card in a player's hand came from, as far as this viewer can tell: exactly for
+    // your own cards, and from the decks of their takes otherwise (see otherPlayerCardDecks).
+    politicsCardSource(
+        playerId: string,
+        card: PoliticsCard | undefined,
+        index: number,
+        faceVisible: boolean
+    ): PoliticsCardSource | undefined {
+        if (playerId === this.myPlayer?.id && card && this.myExactCardPiles) {
+            return this.myExactCardPiles.get(card)
+        }
+        if (!this.politicsTakes) return undefined
+        const handCount = this.gameState.getPlayerState(playerId).politicsCardCount
+        if (handCount === undefined) return undefined
+        const takePiles = this.politicsTakes
+            .filter((take) => take.playerId === playerId)
+            .map((take) => take.pile)
+        return otherPlayerCardDecks(handCount, takePiles, faceVisible, !this.isExploring)?.[index]
+    }
+
     get myPoliticsCards(): PoliticsCard[] {
         return this.myPlayer
             ? this.gameState.getPlayerState(this.myPlayer.id).getPoliticsCards()
@@ -2157,8 +2213,10 @@ export class LowenherzGameSession extends GameSession<
                 break
             case PoliticsCardType.Treasure:
                 if (card.value === undefined) break
-                if (this.selectedTreasureCard?.value === card.value) this.selectTreasureCard(undefined)
-                if (this.armedDuelTreasureValues.includes(card.value)) this.unarmDuelTreasure(card.value)
+                if (this.selectedTreasureCard?.value === card.value)
+                    this.selectTreasureCard(undefined)
+                if (this.armedDuelTreasureValues.includes(card.value))
+                    this.unarmDuelTreasure(card.value)
                 break
         }
     }
@@ -2254,7 +2312,9 @@ export class LowenherzGameSession extends GameSession<
         if (money >= ALLIANCE_CANCELLATION_COST) return { ducats: ALLIANCE_CANCELLATION_COST }
         const affordable = this.myTreasureCards
             .map((card) => card.value)
-            .filter((value): value is number => value !== undefined && withTreasure(value) !== undefined)
+            .filter(
+                (value): value is number => value !== undefined && withTreasure(value) !== undefined
+            )
         return affordable.length === 1 ? withTreasure(affordable[0]) : undefined
     }
 
@@ -2267,7 +2327,8 @@ export class LowenherzGameSession extends GameSession<
         const payment = this.allianceBreakingPayment
         if (!payment) return
 
-        const treasure = payment.treasureValue === undefined ? {} : { treasureValue: payment.treasureValue }
+        const treasure =
+            payment.treasureValue === undefined ? {} : { treasureValue: payment.treasureValue }
         const action = this.createPlayerAction(CancelAlliance, { allianceId, ...treasure })
 
         const invalidReason = cancelAllianceReason(
@@ -2326,7 +2387,8 @@ export class LowenherzGameSession extends GameSession<
                 // meant every single player always picked slot 1, so border actions
                 // in the middle/bottom band were never chosen at all.
                 const decisionSlots = [1, 2, 3] as const
-                const preferred = decisionSlots[this.gameState.decisions.length % decisionSlots.length]
+                const preferred =
+                    decisionSlots[this.gameState.decisions.length % decisionSlots.length]
                 const slot = usedSlots.has(preferred)
                     ? decisionSlots.find((s) => !usedSlots.has(s))
                     : preferred

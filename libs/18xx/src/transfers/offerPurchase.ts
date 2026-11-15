@@ -1,9 +1,10 @@
+import type { StationState } from '../map/station.js'
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -38,14 +39,24 @@ import {
 const PurchaseMetadataFields = {
     accepted: Type.Boolean(),
     trainDefinitionId: Type.Optional(Type.String()),
+    /** The offered station's city, recorded so history can name it after the station moves. */
+    stationLocationId: Type.Optional(Type.String()),
     companyChanges: Type.Optional(CompanyChanges),
     departurePayments: DeparturePayments
 }
-/** The offered train's kind, recorded so history can name it after the train leaves play. */
+/**
+ * The offered train's kind or station's city, recorded so history can name them after the
+ * train leaves play or the station is replaced.
+ */
 function offeredTrain(
-    state: Pick<TrainState, 'trainInventory'>,
-    asset: { kind: string; trainId?: string }
-): { trainDefinitionId?: string } {
+    state: Pick<TrainState, 'trainInventory'> & Pick<StationState, 'stations'>,
+    asset: { kind: string; trainId?: string; stationId?: string }
+): { trainDefinitionId?: string; stationLocationId?: string } {
+    if (asset.kind === 'station') {
+        const station = state.stations.find((entry) => entry.id === asset.stationId)
+        assert(station?.status === 'placed', 'An offered station is placed')
+        return { stationLocationId: station.position.locationId }
+    }
     if (asset.kind !== 'train') return {}
     const train = state.trainInventory.trains.find((entry) => entry.id === asset.trainId)
     assertExists(train, 'An offered train is in play')
@@ -53,7 +64,7 @@ function offeredTrain(
 }
 export const OfferPurchase = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...PurchaseOfferRequest.properties,
         type: Type.Literal('OfferPurchase'),
         metadata: Type.Optional(
@@ -140,7 +151,7 @@ export class HydratedOfferPurchase
 }
 export const RespondToPurchaseOffer = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('RespondToPurchaseOffer'),
         offerId: Type.String(),
         accept: Type.Boolean(),

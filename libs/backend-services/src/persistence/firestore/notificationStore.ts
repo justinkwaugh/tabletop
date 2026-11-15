@@ -10,6 +10,8 @@ import { AlreadyExistsError, UnknownStorageError } from '../stores/errors.js'
 import { BaseError } from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
 import { NotificationStore } from '../stores/notificationStore.js'
+import type { SiteStatsSubscriptionSource } from '../stores/siteStatsStore.js'
+import type { TransportType } from '../../notifications/transports/notificationTransport.js'
 import { StoredPushTopic } from '../model/storedPushTopic.js'
 import { PushClient } from '../../notifications/pushClient.js'
 import { PushTopic } from '../../notifications/pushTopic.js'
@@ -17,8 +19,9 @@ import { NotificationSubscription } from '../../notifications/subscriptions/noti
 import { StoredSubscription } from '../model/storedSubscription.js'
 import { NotificationSubscriptionIdentifier } from '../../notifications/subscriptions/notificationSubscriptionIdentifier.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
+import { RegistrationLimitExceededError } from '../../notifications/notificationErrors.js'
 
-export class FirestoreNotificationStore implements NotificationStore {
+export class FirestoreNotificationStore implements NotificationStore, SiteStatsSubscriptionSource {
     readonly notificationSubscriptions: CollectionReference
     readonly pushTopics: CollectionReference
 
@@ -56,10 +59,12 @@ export class FirestoreNotificationStore implements NotificationStore {
 
     async upsertNotificationSubscription({
         subscription,
-        topic
+        topic,
+        registrationLimit
     }: {
         subscription: NotificationSubscription
         topic: string
+        registrationLimit?: number
     }): Promise<void> {
         const subscriptionId = this.docIdForSubscription(subscription)
 
@@ -80,6 +85,17 @@ export class FirestoreNotificationStore implements NotificationStore {
                 }
 
                 if (!existingTopic.clients.find((client) => client.id === subscriptionId)) {
+                    if (
+                        registrationLimit !== undefined &&
+                        this.countClientsOfTransport(existingTopic, subscription.transport) >=
+                            registrationLimit
+                    ) {
+                        throw new RegistrationLimitExceededError({
+                            transport: subscription.transport,
+                            topic,
+                            limit: registrationLimit
+                        })
+                    }
                     topicToUpdate = existingTopic
 
                     const newClient: PushClient = {
@@ -130,7 +146,6 @@ export class FirestoreNotificationStore implements NotificationStore {
             })
         } catch (error) {
             this.handleError(error, subscriptionId, 'StoredSubscription | PushTopic')
-            throw Error('unreachable')
         }
     }
 
@@ -173,8 +188,11 @@ export class FirestoreNotificationStore implements NotificationStore {
             })
         } catch (error) {
             this.handleError(error, subscriptionId, 'NotificationSubscription | PushTopic')
-            throw Error('unreachable')
         }
+    }
+
+    private countClientsOfTransport(pushTopic: StoredPushTopic, transport: TransportType): number {
+        return pushTopic.clients.filter((client) => client.type === transport).length
     }
 
     private docIdForSubscription(identifier: NotificationSubscriptionIdentifier): string {
@@ -191,11 +209,23 @@ export class FirestoreNotificationStore implements NotificationStore {
             return storedTopic.clients
         } catch (error) {
             this.handleError(error, topic, 'PushTopic')
-            throw Error('unreachable')
         }
     }
 
-    private handleError(error: unknown, id: string, type: string) {
+    async countSubscriptionsWithTransport(transport: TransportType): Promise<number> {
+        try {
+            const snapshot = await this.notificationSubscriptions
+                .where('transport', '==', transport)
+                .count()
+                .get()
+            this.recordRead('notificationSubscriptions')
+            return snapshot.data().count
+        } catch (error) {
+            this.handleError(error, transport, 'NotificationSubscription')
+        }
+    }
+
+    private handleError(error: unknown, id: string, type: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

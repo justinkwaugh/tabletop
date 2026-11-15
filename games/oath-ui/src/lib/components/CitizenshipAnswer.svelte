@@ -1,5 +1,6 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
+    import AnswerButtons from '$lib/components/AnswerButtons.svelte'
     import { CardKind, type CitizenshipTerms } from '@tabletop/oath'
     import CardImage from '$lib/components/CardImage.svelte'
     import CitizenshipConversion from '$lib/components/CitizenshipConversion.svelte'
@@ -99,37 +100,9 @@
 {/if}
 
 <!-- R1: Accept shows once as many pieces are picked as the Empire covers. -->
-<div class="answers gap-2">
-    {#if consent.picksComplete}
-        <button
-            class="rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
-                   border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold"
-            disabled={busy || !!blockedBecause}
-            onclick={() => consent.answer(true)}
-        >
-            Accept
-        </button>
-    {/if}
-    <button
-        class="rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40
-               px-3 py-1.5 text-sm font-semibold"
-        disabled={busy}
-        onclick={() => consent.answer(false)}
-    >
-        Refuse
-    </button>
-</div>
-
-<style>
-    /* The answers are as wide as the longer label at every width, 44 px tall on a phone. */
-    .answers {
-        display: inline-grid;
-        grid-auto-flow: column;
-        grid-auto-columns: 1fr;
-    }
-    @media (max-width: 639px) {
-        .answers button {
-            min-height: 44px;
-        }
-    }
-</style>
+<AnswerButtons
+    acceptShown={consent.picksComplete}
+    acceptBlocked={!!blockedBecause}
+    {busy}
+    onanswer={(accept) => consent.answer(accept)}
+/>

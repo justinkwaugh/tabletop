@@ -15,7 +15,7 @@ test('the round index scrolls history to a round without changing the game posit
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('finished')
     await expect(page.getByRole('heading', { name: 'Player 2 wins', exact: true })).toBeVisible({
         timeout: 30000

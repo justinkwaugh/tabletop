@@ -192,7 +192,9 @@ describe('the end die (R-3.3)', () => {
     })
 
     it('is deterministic for a given seed, so a replay ends the same game', () => {
-        expect(rollEndDie(endState(4242).getProtectedPrng())).toBe(rollEndDie(endState(4242).getProtectedPrng()))
+        expect(rollEndDie(endState(4242).getProtectedPrng())).toBe(
+            rollEndDie(endState(4242).getProtectedPrng())
+        )
     })
 
     it('reaches every face', () => {

@@ -68,7 +68,11 @@ function clockHandStepDelta(from: BuildingType, to: BuildingType): number {
         : -counterClockwiseDistance * STEP_DEGREES
 }
 
-export class ClockHandAnimator extends StateAnimator<BusGameState, HydratedBusGameState, BusGameSession> {
+export class ClockHandAnimator extends StateAnimator<
+    BusGameState,
+    HydratedBusGameState,
+    BusGameSession
+> {
     constructor(
         gameSession: BusGameSession,
         private geometry: ClockHandGeometry
@@ -167,7 +171,11 @@ export class ClockHandAnimator extends StateAnimator<BusGameState, HydratedBusGa
                         this.setRotation(rotation.angle)
                     }
                 },
-                startAt + toHalfDuration + wiggleOneDuration + wiggleTwoDuration + wiggleThreeDuration
+                startAt +
+                    toHalfDuration +
+                    wiggleOneDuration +
+                    wiggleTwoDuration +
+                    wiggleThreeDuration
             )
 
             animationContext.afterAnimations(() => {

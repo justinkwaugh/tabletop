@@ -1,4 +1,5 @@
 import type { Attachment } from 'svelte/attachments'
+import { on } from 'svelte/events'
 import type { Banner, Region } from '@tabletop/oath'
 
 export type MenuPointerTarget =
@@ -32,21 +33,22 @@ class MenuPointerState {
 
 export const menuPointer = new MenuPointerState()
 
+// Listened to with Svelte's `on`, as an `onfocusout` attribute is: a focused row that leaves the page gets
+// its `focusout` while Svelte is still removing it, and `on` runs the handler outside that update.
 export function pointsAt(target: MenuPointerTarget | undefined): Attachment<EventTarget> {
     return (node) => {
         if (!target) return
         const point = () => menuPointer.point(target)
         const leave = () => menuPointer.leave(target)
-        node.addEventListener('pointerenter', point)
-        node.addEventListener('pointerleave', leave)
-        node.addEventListener('focusin', point)
-        node.addEventListener('focusout', leave)
+        const listeners = [
+            on(node, 'pointerenter', point),
+            on(node, 'pointerleave', leave),
+            on(node, 'focusin', point),
+            on(node, 'focusout', leave)
+        ]
         return () => {
             leave()
-            node.removeEventListener('pointerenter', point)
-            node.removeEventListener('pointerleave', leave)
-            node.removeEventListener('focusin', point)
-            node.removeEventListener('focusout', leave)
+            for (const off of listeners) off()
         }
     }
 }

@@ -91,51 +91,69 @@ export class HydratedHurl extends HydratableAction<typeof Hurl> implements Hurl 
 
         HydratedFly.handleFlightEffects(state, this, path)
 
-        // These pieces are gone for good
+        const piecesHurled = HydratedFly.numMovingPieces(this)
+
         if (this.stationId) {
             const station = state.board.removeStationAt(this.start)
-            state.activeEffect = undefined
+            assertExists(station, 'Cannot find juggernaut station')
+            assert(station.id === this.stationId, 'Invalid juggernaut station')
             this.metadata.juggernaut = station
+            state.activeEffect = undefined
+            playerState.movement = state.calculatePlayerMovement(this.playerId)
         } else {
             state.board.removeSundiversAt(this.sundiverIds, this.start)
         }
 
-        if (this.stationId) {
-            playerState.movement = state.calculatePlayerMovement(this.playerId)
-        }
-
-        playerState.momentum += this.sundiverIds.length * 2
-        this.metadata.momentumGained += this.sundiverIds.length * 2
+        playerState.momentum += piecesHurled * 2
+        this.metadata.momentumGained += piecesHurled * 2
 
         state.hurled = true
-        state.cardsToDraw += this.sundiverIds.length
+        state.cardsToDraw += piecesHurled
     }
 
     static canHurl(state: HydratedSolGameState, playerId: string): boolean {
-        const playerState = state.getPlayerState(playerId)
         for (const cell of state.board) {
-            if (state.board.sundiversForPlayer(playerId, cell).length === 0) {
-                continue
-            }
+            const hasSundivers = state.board.sundiversForPlayer(playerId, cell).length > 0
 
-            if (state.activeEffect === EffectType.Teleport) {
+            if (hasSundivers && state.activeEffect === EffectType.Teleport) {
                 return true
             }
 
             // This still needs work because of effects like catapult
+            if (hasSundivers && HydratedHurl.canReachCenter(state, playerId, cell.coords)) {
+                return true
+            }
+
             if (
-                state.board.pathToDestination({
-                    start: cell.coords,
-                    destination: CENTER_COORDS,
-                    range: playerState.movementPoints,
-                    portal: state.activeEffect === EffectType.Portal,
-                    transcend: state.activeEffect === EffectType.Transcend
-                })
+                HydratedFly.isMovableJuggernautStation(state, playerId, cell.station) &&
+                HydratedHurl.canReachCenter(
+                    state,
+                    playerId,
+                    cell.coords,
+                    state.board.getFiveDiverCoords(playerId)
+                )
             ) {
                 return true
             }
         }
         return false
+    }
+
+    private static canReachCenter(
+        state: HydratedSolGameState,
+        playerId: string,
+        start: OffsetCoordinates,
+        illegalCoordinates?: OffsetCoordinates[]
+    ): boolean {
+        const path = state.board.pathToDestination({
+            start,
+            destination: CENTER_COORDS,
+            range: state.getPlayerState(playerId).movementPoints,
+            portal: state.activeEffect === EffectType.Portal,
+            transcend: state.activeEffect === EffectType.Transcend,
+            illegalCoordinates
+        })
+        return path !== undefined
     }
 
     static isValidHurl(state: HydratedSolGameState, hurl: Hurl): OffsetCoordinates[] | undefined {

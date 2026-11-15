@@ -3,10 +3,14 @@ import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { assert, assertExists } from '@tabletop/common'
 import {
+    certificatesOwnedBy,
+    placeReference,
     type PrivateRules,
     type PrivateEffect,
-    type FinancialState
+    type FinancialState,
+    type StockState
 } from '@tabletop/18xx'
+import type { TheOldPrinceState } from './state.js'
 import { TheOldPrincePhases } from './trains.js'
 import { TheOldPrincePrivateCatalog } from './privates.js'
 const ShortlineExchanges: Record<string, number> = { MC: 6, SB: 7, VR: 8 }
@@ -14,6 +18,25 @@ function shortlineExchange(state: FinancialState, id: string) {
     return ShortlineExchanges[id]
         ? `${theOldPrinceRole(state, 'shortline')}:share:${ShortlineExchanges[id]}`
         : undefined
+}
+type UnionBankState = FinancialState & Pick<TheOldPrinceState, 'unionBankDrawnCompanyId'>
+export function unionBankStartingCompanyIds(state: UnionBankState): string[] {
+    const mainline = theOldPrinceRole(state, 'mainline')
+    // Older games did not record the draw; the railway Union Bank holds a share of stands in for it.
+    const drawn =
+        state.unionBankDrawnCompanyId ??
+        certificatesOwnedBy(state, { kind: 'company', companyId: 'UB' }).find(
+            (certificate) => certificate.kind === 'share' && certificate.companyId !== mainline
+        )?.companyId
+    return drawn ? [mainline, drawn] : [mainline]
+}
+function unionBankIntro(state: UnionBankState) {
+    const [mainline, drawn] = unionBankStartingCompanyIds(state).map((companyId) =>
+        TheOldPrinceNames.company(companyId)
+    )
+    return drawn
+        ? `**Includes one share each of ${mainline} and ${drawn}.**\n\n`
+        : `**Includes one share of ${mainline}.**\n\n`
 }
 export const TheOldPrincePrivateRules: PrivateRules = {
     exchangeTerms(state, privateCompanyId) {
@@ -111,13 +134,13 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             .filter((company) => company.id === id && !company.closed)
             .map((company) => ({ kind: 'close', privateCompanyId: company.id }))
     },
-    description(state, id) {
+    description(state: StockState & UnionBankState, id) {
         if (ShortlineExchanges[id]) {
             const company = TheOldPrinceNames.company(theOldPrinceRole(state, 'shortline'))
             return (
                 `**Includes one reserved share of ${company}.**\n\n` +
                 (id === 'VR'
-                    ? 'The owner’s permission is required to build on N18 while this private is open.\n\n'
+                    ? `The owner’s permission is required to build on ${placeReference('N18')} while this private is open.\n\n`
                     : '') +
                 'Exchange for a reserved Shortline share during your stock turn, in addition to selling and buying. Cancels your pass. Ownership limit exemption applies.\n\nForced exchange at 4+.'
             )
@@ -132,6 +155,8 @@ export const TheOldPrincePrivateRules: PrivateRules = {
             )
             return `**Includes the president's cert for ${company}.**\n\nCloses when its railway first operates, or at 4+.`
         }
-        return TheOldPrincePrivateCatalog.definition(id).description ?? 'Closes at 4+.'
-    }
+        const description = TheOldPrincePrivateCatalog.definition(id).description ?? 'Closes at 4+.'
+        return id === 'UB' ? unionBankIntro(state) + description : description
+    },
+    blocking: TheOldPrincePrivateCatalog.blocking.bind(TheOldPrincePrivateCatalog)
 }

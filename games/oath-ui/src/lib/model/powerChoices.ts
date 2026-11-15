@@ -9,8 +9,13 @@ import {
     type WarbandGroup
 } from '@tabletop/oath'
 import { bargainChoices, type BargainPick } from './bargainPicks.js'
-import { exchangeComplete, noExchangePicks, type ExchangePicks } from './exchangeTerms.js'
-import type { MovePick } from './powerMoves.js'
+import {
+    exchangeComplete,
+    exchangePicked,
+    noExchangePicks,
+    type ExchangePicks
+} from './exchangeTerms.js'
+import { isPowerMoves, type MovePick } from './powerMoves.js'
 
 export type PowerChoicePicks = {
     option: Record<number, number>
@@ -29,21 +34,32 @@ export function emptyPicks(): PowerChoicePicks {
     return { option: {}, count: {}, terms: {}, several: {}, warbands: {}, bargain: {}, moves: [] }
 }
 
+export const NO_OPTION = -1
+
 /**
- * Anything picked at all: Undo past the last pick leaves the picks. A row of pieces tapped back to
- * none keeps its entry at 0, which is no pick.
+ * Anything picked at all: Undo past the last pick leaves the picks. A pick taken back keeps its
+ * entry with nothing in it, which is no pick: a row of pieces or a count at 0, an option at none,
+ * an emptied list or bargain, or terms that move nothing.
  */
 export function hasPicks(picks: PowerChoicePicks): boolean {
     return (
         picks.moves.length > 0 ||
         Object.values(picks.warbands).some((count) => count > 0) ||
-        [picks.option, picks.count, picks.terms, picks.several, picks.bargain].some(
-            (record) => Object.keys(record).length > 0
-        )
+        Object.values(picks.count).some((count) => count > 0) ||
+        Object.values(picks.option).some((option) => option !== NO_OPTION) ||
+        Object.values(picks.several).some((picked) => picked.length > 0) ||
+        Object.values(picks.bargain).some((picked) => picked.length > 0) ||
+        Object.values(picks.terms).some(exchangePicked)
     )
 }
 
-export const NO_OPTION = -1
+/**
+ * Every pick the power offers may be left empty, and none is made yet (the Ivory Eye before its
+ * first tap): there is nothing to judge, so a refusal waits for a pick.
+ */
+export function awaitsFirstPick(choices: readonly LegalChoice[], picks: PowerChoicePicks): boolean {
+    return choices.length > 0 && choices.every((legal) => legal.spec.min === 0) && !hasPicks(picks)
+}
 
 /**
  * R-7.1.2 — in a game created before revision 7, an open count (Witch's Bargain) stops at what the
@@ -143,7 +159,8 @@ export function warbandGrids(choices: readonly LegalChoice[]): WarbandGrid[] {
     let index = 0
     while (index < choices.length) {
         const legal = choices[index]
-        if (legal.spec.kind !== PowerChoiceKind.Warbands) {
+        // A place picked whole is one tap per place (Wrestlers), not a row of pieces.
+        if (legal.spec.kind !== PowerChoiceKind.Warbands || legal.spec.byPlace) {
             index += 1
             continue
         }
@@ -153,6 +170,7 @@ export function warbandGrids(choices: readonly LegalChoice[]): WarbandGrid[] {
                 specs.length + index < choices.length &&
                 choices[index + specs.length].spec.kind === PowerChoiceKind.Warbands &&
                 !allowsSeveral(choices[index + specs.length]) &&
+                !choices[index + specs.length].spec.byPlace &&
                 sameDomain(legal, choices[index + specs.length])
             ) {
                 specs.push(index + specs.length)
@@ -259,10 +277,84 @@ export function isMay(legal: LegalChoice | undefined): boolean {
     return legal?.spec.kind === PowerChoiceKind.Yes && legal.spec.min === 0 && !isOr(legal)
 }
 
+/**
+ * A choice the card may skip, with nothing offered now, has nothing to pick and draws no row: a
+ * "may" the card does not offer, or an optional pick with an empty offer (Ivory Eye's facedown
+ * relic when none is at a site) while another of the power's choices offers something. A choice
+ * the power needs keeps its row, which says none is legal; an "or" always draws its answers.
+ */
+export function offersNothing(choices: readonly LegalChoice[], index: number): boolean {
+    const legal = choices[index]
+    if (!legal || legal.options.length > 0 || legal.spec.min > 0 || isOr(legal)) return false
+    return isMay(legal) || choices.some((other) => other.options.length > 0)
+}
+
 /** The "may" a later spec is part of (Royal Ambitions' relic is taken only with its yes). */
 export function mayOf(choices: readonly LegalChoice[], index: number): number | undefined {
     for (let at = index - 1; at >= 0; at -= 1) if (isMay(choices[at])) return at
     return undefined
+}
+
+/** A choice with no option offered now; an "or" always offers its answers. */
+function offersNoOption(legal: LegalChoice): boolean {
+    return legal.options.length === 0 && !isOr(legal)
+}
+
+/**
+ * A power whose picks can never be made now, so its list leaves it out: a choice it needs offers
+ * nothing (Captains with no site that has a defender), or, for a power that needs a move, no From
+ * is offered (Messenger with no warband it can move). Warning Signals' moves are all a "may", so
+ * with nothing to move it is used moving nothing. A choice asked only while it has an option, or
+ * only with a "may" on, is not needed.
+ */
+export function picksCannotBeMade(choices: readonly LegalChoice[]): boolean {
+    if (isPowerMoves(choices)) {
+        const first = choices[0]
+        return first !== undefined && offersNoOption(first) && first.spec.min > 0
+    }
+    return choices.some(
+        (legal, index) =>
+            offersNoOption(legal) &&
+            legal.spec.min > 0 &&
+            !legal.spec.askedIfAny &&
+            mayOf(choices, index) === undefined
+    )
+}
+
+/**
+ * A power that asks for choices and offers nothing in any of them (Ivory Eye with nothing
+ * facedown): the one use left is with no picks, which the engine judges.
+ */
+export function offersNoPick(choices: readonly LegalChoice[]): boolean {
+    return choices.length > 0 && choices.every(offersNoOption)
+}
+
+/** The kinds a single pick names one thing by: a pick with one option offered is that option. */
+const ONE_THING_KINDS: ReadonlySet<PowerChoiceKind> = new Set([
+    PowerChoiceKind.Player,
+    PowerChoiceKind.Card,
+    PowerChoiceKind.Site,
+    PowerChoiceKind.Region,
+    PowerChoiceKind.RelicSlot,
+    PowerChoiceKind.FacedownAdviser
+])
+
+/**
+ * A power that asks for choices and leaves the player none to make: each choice offers nothing,
+ * or is a required single pick with one option, which the picker starts on (Dream Thief with
+ * one facedown adviser in the game, offered for both its picks). Its one use is with the picks
+ * `emptyPicks` reads as, which the engine judges.
+ */
+export function leavesNoPick(choices: readonly LegalChoice[]): boolean {
+    if (choices.length === 0 || isPowerMoves(choices)) return false
+    return choices.every(
+        (legal) =>
+            offersNoOption(legal) ||
+            (legal.spec.min > 0 &&
+                !allowsSeveral(legal) &&
+                legal.options.length === 1 &&
+                ONE_THING_KINDS.has(legal.spec.kind))
+    )
 }
 
 function mayOn(choices: readonly LegalChoice[], index: number, picks: PowerChoicePicks): boolean {
@@ -473,6 +565,18 @@ export function withOptionPick(
     return { ...picks, option: { ...picks.option, [index]: pick }, terms }
 }
 
+/**
+ * A count whose options name each legal count (Fallen Spire's 1 to 5, read from public counts):
+ * those counts, picked from a row of tokens; a generic count (one open option) has none.
+ */
+export function countedOptions(legal: LegalChoice): number[] | undefined {
+    if (legal.spec.kind !== PowerChoiceKind.Count) return undefined
+    const counts = legal.options.flatMap((option) =>
+        option.kind === PowerChoiceKind.Count && option.n > 0 ? [option.n] : []
+    )
+    return counts.length > 0 ? counts : undefined
+}
+
 export function withCount(picks: PowerChoicePicks, index: number, count: number): PowerChoicePicks {
     return { ...picks, count: { ...picks.count, [index]: Math.max(0, count) } }
 }
@@ -498,6 +602,9 @@ export function picksComplete(choices: readonly LegalChoice[], picks: PowerChoic
         if (run && !run.distinct) {
             return index !== run.specs[0] || runSuits(run, choices, picks).length === run.total
         }
+        // A count of named options waits until one of them is picked: it starts empty.
+        const counts = countedOptions(legal)
+        if (counts) return counts.includes(picks.count[index] ?? 0)
         // An "or" waits for one of its answers; a may's own pick waits only while the may is on.
         if (isOr(legal)) return optionIndexOf(legal, index, picks) !== NO_OPTION
         if (mayOf(choices, index) !== undefined) {
@@ -538,6 +645,13 @@ export function powerChoicesFrom(
             return
         }
         if (!asked(choices, index, picks)) return
+        // A count of named options sends the count tapped, once it is one of them.
+        const counts = countedOptions(legal)
+        if (counts) {
+            const n = picks.count[index] ?? 0
+            if (counts.includes(n)) out.push({ kind: PowerChoiceKind.Count, n })
+            return
+        }
         if (allowsSeveral(legal)) {
             for (const optionIndex of picks.several[index] ?? []) {
                 const option = legal.options[optionIndex]
@@ -560,4 +674,35 @@ export function powerChoicesFrom(
         }
     })
     return out
+}
+
+/**
+ * R-7.1.3 — choices read on their picks, and the picks as they read back. A spec whose options follow the picks
+ * before it (`readsEarlier`: Assassin's card, one of the player picked) offers what those picks leave, as `reread`
+ * reads the choices on them. Its pick names an option of `shown`, the choices it was made on, and is kept only while
+ * that option is still offered.
+ */
+export function choicesOnPicks(
+    choices: readonly LegalChoice[],
+    picks: PowerChoicePicks,
+    reread: (earlier: PowerChoice[]) => readonly LegalChoice[],
+    shown?: readonly LegalChoice[]
+): { choices: LegalChoice[]; picks: PowerChoicePicks } {
+    if (!choices.some((legal) => legal.spec.readsEarlier)) return { choices: [...choices], picks }
+    let kept = picks
+    const read = choices.reduce<LegalChoice[]>((read, legal, spec) => {
+        if (!legal.spec.readsEarlier) return [...read, legal]
+        const again = reread(powerChoicesFrom(read, kept))[spec]
+        const pick = kept.option[spec]
+        if (shown && pick !== undefined) {
+            const named = JSON.stringify(shown[spec].options[pick])
+            const index = again.options.findIndex((option) => JSON.stringify(option) === named)
+            const option = Object.fromEntries(
+                Object.entries(kept.option).filter(([key]) => Number(key) !== spec)
+            )
+            kept = { ...kept, option: index < 0 ? option : { ...option, [spec]: index } }
+        }
+        return [...read, again]
+    }, [])
+    return { choices: read, picks: kept }
 }

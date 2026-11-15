@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { type FloatCompany } from '@tabletop/18xx'
+import type { FloatCompany } from '@tabletop/18xx'
 import { historyCompanyChanges } from './historyCompanyChanges.js'
 
 it('uses recorded company effects even when reversal data is absent or replaced', () => {

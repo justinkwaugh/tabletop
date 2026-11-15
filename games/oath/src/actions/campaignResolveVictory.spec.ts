@@ -137,7 +137,7 @@ describe('taking rule of targeted sites (R-5.5.7.I)', () => {
         ).toThrow(/at least 0|must be >= 0/)
     })
 
-    it('leaves no site holding two players\' warbands', () => {
+    it("leaves no site holding two players' warbands", () => {
         const state = won()
         resolve({ placements: [{ siteId: 'c1', owner: ATTACKER, count: 3 }] }).apply(state)
         expectOneWarbandOwnerPerSite(state)
@@ -183,7 +183,10 @@ describe('taking targeted relics and banners (R-5.5.7.II)', () => {
 
     it('seizes a targeted banner, burning two and flipping the Mob side', () => {
         const state = won({
-            targets: [siteTarget('c1'), { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }]
+            targets: [
+                siteTarget('c1'),
+                { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }
+            ]
         })
         state.banners[Banner.PeoplesFavor] = { holderPlayerId: DEFENDER, value: 5, mobSide: false }
 
@@ -199,7 +202,10 @@ describe('taking targeted relics and banners (R-5.5.7.II)', () => {
 
     it('never takes a banner below one favor (R-2.5.3)', () => {
         const state = won({
-            targets: [siteTarget('c1'), { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }]
+            targets: [
+                siteTarget('c1'),
+                { kind: CampaignTargetKind.Banner, banner: Banner.PeoplesFavor }
+            ]
         })
         state.banners[Banner.PeoplesFavor] = { holderPlayerId: DEFENDER, value: 2, mobSide: false }
 
@@ -209,7 +215,10 @@ describe('taking targeted relics and banners (R-5.5.7.II)', () => {
 
     it('burns secrets, not favor, from the Darkest Secret', () => {
         const state = won({
-            targets: [siteTarget('c1'), { kind: CampaignTargetKind.Banner, banner: Banner.DarkestSecret }]
+            targets: [
+                siteTarget('c1'),
+                { kind: CampaignTargetKind.Banner, banner: Banner.DarkestSecret }
+            ]
         })
         state.banners[Banner.DarkestSecret] = { holderPlayerId: DEFENDER, value: 4 }
 
@@ -260,9 +269,7 @@ describe('banishing the pawn and burning favor (R-5.5.7.III)', () => {
 
     it('refuses to burn favor when the pawn was not targeted', () => {
         const state = won()
-        expect(() => resolve({ burnFavor: true }).apply(state)).toThrow(
-            /did not target their pawn/
-        )
+        expect(() => resolve({ burnFavor: true }).apply(state)).toThrow(/did not target their pawn/)
     })
 
     it('refuses a destination that is not on the map', () => {
@@ -274,25 +281,55 @@ describe('banishing the pawn and burning favor (R-5.5.7.III)', () => {
 
     it('refuses to banish a pawn to the site it already occupies', () => {
         const state = won({ targets: [siteTarget('c1'), pawnAndFavor] })
-        expect(() => resolve({ banishToSiteId: 'c1' }).apply(state)).toThrow(
-            /already occupies/
-        )
+        expect(() => resolve({ banishToSiteId: 'c1' }).apply(state)).toThrow(/already occupies/)
     })
 
     it('"a site they are able to travel to": the Narrow Pass binds the banished pawn too', () => {
-        const state = won({ targets: [siteTarget('c1'), pawnAndFavor] }, { siteCards: { c1: 'site.plains', p1: 'site.narrow-pass', p2: 'site.river' } })
-        expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, { placements: [], burnFavor: false, banishToSiteId: 'p2' })).toMatch(/must travel to p1/)
-        expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, { placements: [], burnFavor: false, banishToSiteId: 'p1' })).toBeUndefined()
+        const state = won(
+            { targets: [siteTarget('c1'), pawnAndFavor] },
+            { siteCards: { c1: 'site.plains', p1: 'site.narrow-pass', p2: 'site.river' } }
+        )
+        expect(
+            HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, {
+                placements: [],
+                burnFavor: false,
+                banishToSiteId: 'p2'
+            })
+        ).toMatch(/must travel to p1/)
+        expect(
+            HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, {
+                placements: [],
+                burnFavor: false,
+                banishToSiteId: 'p1'
+            })
+        ).toBeUndefined()
     })
 
     it('"a site they are able to travel to": Vow of Union keeps the pawn at a site its holder rules', () => {
-        const state = won({ targets: [pawnAndFavor] }, { siteCards: { c1: 'site.plains', p1: 'site.river' }, warbandsBySite: { c1: { [DEFENDER]: 1 }, p1: {} } })
-        state.getPlayerState(DEFENDER).setAdvisers([{ cardId: 'denizen.beast.vow-of-union', faceUp: true }])
-        expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, { placements: [], burnFavor: false, banishToSiteId: 'p1' })).toMatch(/Vow of Union/)
+        const state = won(
+            { targets: [pawnAndFavor] },
+            {
+                siteCards: { c1: 'site.plains', p1: 'site.river' },
+                warbandsBySite: { c1: { [DEFENDER]: 1 }, p1: {} }
+            }
+        )
+        state
+            .getPlayerState(DEFENDER)
+            .setAdvisers([{ cardId: 'denizen.beast.vow-of-union', faceUp: true }])
+        expect(
+            HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, {
+                placements: [],
+                burnFavor: false,
+                banishToSiteId: 'p1'
+            })
+        ).toMatch(/Vow of Union/)
     })
 
     it('a banish is travel: the after-travel powers fire at the destination (Boiling Lake)', () => {
-        const state = won({ targets: [siteTarget('c1'), pawnAndFavor] }, { denizensBySite: { c1: [], p1: ['denizen.discord.boiling-lake'] } })
+        const state = won(
+            { targets: [siteTarget('c1'), pawnAndFavor] },
+            { denizensBySite: { c1: [], p1: ['denizen.discord.boiling-lake'] } }
+        )
         const action = resolve({ banishToSiteId: 'p1' })
         action.apply(state)
         expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(1)
@@ -300,10 +337,27 @@ describe('banishing the pawn and burning favor (R-5.5.7.III)', () => {
     })
 
     it('R-11.7 — from a Shrouded Wood an enemy rules, that ruler chooses where the pawn goes', () => {
-        const state = won({ targets: [siteTarget('c1'), pawnAndFavor] }, { siteCards: { c1: 'site.shrouded-wood', p1: 'site.river' }, warbandsBySite: { c1: { [ATTACKER]: 1 }, p1: {} } })
-        expect(HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, { placements: [], burnFavor: false, banishToSiteId: 'p1' })).toMatch(/Shrouded Wood's ruler chooses/)
+        const state = won(
+            { targets: [siteTarget('c1'), pawnAndFavor] },
+            {
+                siteCards: { c1: 'site.shrouded-wood', p1: 'site.river' },
+                warbandsBySite: { c1: { [ATTACKER]: 1 }, p1: {} }
+            }
+        )
+        expect(
+            HydratedCampaignResolveVictory.reasonCannotResolveVictory(state, ATTACKER, {
+                placements: [],
+                burnFavor: false,
+                banishToSiteId: 'p1'
+            })
+        ).toMatch(/Shrouded Wood's ruler chooses/)
         resolve({ banish: true }).apply(state)
-        expect(state.pendingQuestions?.queue[0]).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, askedPlayerId: ATTACKER, travelerPlayerId: DEFENDER, fromSiteId: 'c1' })
+        expect(state.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            askedPlayerId: ATTACKER,
+            travelerPlayerId: DEFENDER,
+            fromSiteId: 'c1'
+        })
     })
 })
 

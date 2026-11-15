@@ -30,9 +30,11 @@
         routeOverlayReady = true
     })
 
-    const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(() => {
-        return new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
-    })
+    const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
+        () => {
+            return new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
+        }
+    )
 
     const cityAreaByCityId: Map<string, string> = $derived.by(() => {
         return new Map(gameSession.gameState.board.cities.map((city) => [city.id, city.area]))
@@ -108,7 +110,10 @@
             let selectedPoint = companyMarkerPoints[0]
             if (previousPoint) {
                 for (const markerPoint of companyMarkerPoints) {
-                    if (pointDistance(markerPoint, previousPoint) < pointDistance(selectedPoint, previousPoint)) {
+                    if (
+                        pointDistance(markerPoint, previousPoint) <
+                        pointDistance(selectedPoint, previousPoint)
+                    ) {
                         selectedPoint = markerPoint
                     }
                 }
@@ -264,53 +269,56 @@
     })
     const visibleDeliveryRoute = $derived(hoveredDeliveryRoute ?? visibleHistoryDeliveryRoute)
 
-    const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(() => {
-        if (!routeOverlayReady || !visibleDeliveryRoute) {
-            return []
-        }
-
-        const company = companyById.get(visibleDeliveryRoute.shippingCompanyId)
-        if (!company) {
-            return []
-        }
-
-        const cityAreaId = cityAreaByCityId.get(visibleDeliveryRoute.cityId)
-        if (!cityAreaId) {
-            return []
-        }
-
-        const routePath = buildDeliveryShippingRoutePath({
-            cultivatedAreaId:
-                visibleDeliveryRoute.cultivatedAreaId ??
-                cultivatedAreaIdsByZoneId.get(visibleDeliveryRoute.zoneId)?.[0] ??
-                visibleDeliveryRoute.zoneId,
-            cultivatedZoneAreaIds:
-                (visibleDeliveryRoute.cultivatedAreaId
-                    ? cultivatedZoneAreaIdsByCultivatedAreaId.get(
-                          visibleDeliveryRoute.cultivatedAreaId
-                      )
-                    : undefined) ?? cultivatedAreaIdsByZoneId.get(visibleDeliveryRoute.zoneId),
-            firstSeaWaypointCandidates: firstShipWaypointCandidatesForRoute(visibleDeliveryRoute),
-            seaWaypointOverridesByAreaId: seaWaypointOverridesForRoute(visibleDeliveryRoute),
-            blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
-                visibleDeliveryRoute.shippingCompanyId
-            ),
-            seaAreaIds: visibleDeliveryRoute.seaAreaIds,
-            cityAreaId
-        })
-        if (!routePath) {
-            return []
-        }
-
-        return [
-            {
-                routeKey: visibleDeliveryRoute.routeKey,
-                path: routePath,
-                color: gameSession.colors.getPlayerUiColor(company.owner),
-                hovered: true
+    const deliveryShippingRouteOverlays: readonly DeliveryShippingRouteOverlay[] = $derived.by(
+        () => {
+            if (!routeOverlayReady || !visibleDeliveryRoute) {
+                return []
             }
-        ]
-    })
+
+            const company = companyById.get(visibleDeliveryRoute.shippingCompanyId)
+            if (!company) {
+                return []
+            }
+
+            const cityAreaId = cityAreaByCityId.get(visibleDeliveryRoute.cityId)
+            if (!cityAreaId) {
+                return []
+            }
+
+            const routePath = buildDeliveryShippingRoutePath({
+                cultivatedAreaId:
+                    visibleDeliveryRoute.cultivatedAreaId ??
+                    cultivatedAreaIdsByZoneId.get(visibleDeliveryRoute.zoneId)?.[0] ??
+                    visibleDeliveryRoute.zoneId,
+                cultivatedZoneAreaIds:
+                    (visibleDeliveryRoute.cultivatedAreaId
+                        ? cultivatedZoneAreaIdsByCultivatedAreaId.get(
+                              visibleDeliveryRoute.cultivatedAreaId
+                          )
+                        : undefined) ?? cultivatedAreaIdsByZoneId.get(visibleDeliveryRoute.zoneId),
+                firstSeaWaypointCandidates:
+                    firstShipWaypointCandidatesForRoute(visibleDeliveryRoute),
+                seaWaypointOverridesByAreaId: seaWaypointOverridesForRoute(visibleDeliveryRoute),
+                blockedShipPoints: blockedShipPointsByShippingCompanyId.get(
+                    visibleDeliveryRoute.shippingCompanyId
+                ),
+                seaAreaIds: visibleDeliveryRoute.seaAreaIds,
+                cityAreaId
+            })
+            if (!routePath) {
+                return []
+            }
+
+            return [
+                {
+                    routeKey: visibleDeliveryRoute.routeKey,
+                    path: routePath,
+                    color: gameSession.colors.getPlayerUiColor(company.owner),
+                    hovered: true
+                }
+            ]
+        }
+    )
 
     const BASE_ROUTE_WIDTH = 7.65
     const HOVER_ROUTE_WIDTH = 10.35
@@ -325,12 +333,14 @@
                 d={route.path}
                 fill="none"
                 stroke="rgba(255, 251, 240, 0.9)"
-                stroke-width={route.hovered ? HOVER_ROUTE_UNDERLAY_WIDTH : BASE_ROUTE_UNDERLAY_WIDTH}
+                stroke-width={route.hovered
+                    ? HOVER_ROUTE_UNDERLAY_WIDTH
+                    : BASE_ROUTE_UNDERLAY_WIDTH}
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-dasharray={route.hovered ? '20 14' : '16 14'}
                 opacity={route.hovered ? 0.85 : 0.6}
-            />
+            ></path>
             <path
                 d={route.path}
                 fill="none"
@@ -340,7 +350,7 @@
                 stroke-linejoin="round"
                 stroke-dasharray={route.hovered ? '20 14' : '16 14'}
                 opacity={route.hovered ? 1 : 0.82}
-            />
+            ></path>
         {/each}
     </g>
 {/if}

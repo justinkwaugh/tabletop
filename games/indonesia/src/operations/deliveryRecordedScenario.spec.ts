@@ -72,7 +72,20 @@ const PRODUCTION_COMPANIES: ProductionCompanyInput[] = [
         id: 'J',
         good: Good.SiapSaji,
         owner: 'W',
-        areaIds: ['C01', 'C02', 'C05', 'C04', 'C07', 'C06', 'E12', 'E06', 'E08', 'E09', 'E07', 'E11']
+        areaIds: [
+            'C01',
+            'C02',
+            'C05',
+            'C04',
+            'C07',
+            'C06',
+            'E12',
+            'E06',
+            'E08',
+            'E09',
+            'E07',
+            'E11'
+        ]
     },
     {
         id: 'K',
@@ -188,7 +201,10 @@ function createScenarioState(): HydratedIndonesiaGameState {
     const cultivatedOwnerByAreaId = new Map<string, string>()
     for (const company of PRODUCTION_COMPANIES) {
         for (const areaId of company.areaIds) {
-            assert(!cityAreaIds.has(areaId), `${areaId} cannot be both city and cultivated in scenario`)
+            assert(
+                !cityAreaIds.has(areaId),
+                `${areaId} cannot be both city and cultivated in scenario`
+            )
             const existingOwner = cultivatedOwnerByAreaId.get(areaId)
             assert(
                 existingOwner === undefined,
@@ -306,5 +322,4 @@ describe('Recorded Scenario Delivery Solver', () => {
             }
         })
     })
-
 })

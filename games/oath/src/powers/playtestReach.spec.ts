@@ -24,30 +24,66 @@ describe('the playtest deck is in reach by every route', () => {
             it(name, () => {
                 expect(hasEffect(power), 'built').toBe(true)
                 for (const route of routesFor(cardId)) {
-                    const s = reachTable(cardId, route, MachineState.ActPhase, power.timing === PowerTiming.BattlePlan || power.timing === PowerTiming.Persistent)
+                    const s = reachTable(
+                        cardId,
+                        route,
+                        MachineState.ActPhase,
+                        power.timing === PowerTiming.BattlePlan ||
+                            power.timing === PowerTiming.Persistent
+                    )
                     switch (power.timing) {
                         case PowerTiming.Modifier: {
                             const action = power.modifiesAction
                             assertExists(action, 'a Modifier power names the action it modifies')
-                            const list = [...usableModifiers(s, 'me', action), ...mandatoryModifiers(s, 'me', action).map((m) => m.power)]
-                            expect(listed(cardId, list), `${route}: listed for ${action}`).toBe(true)
+                            const list = [
+                                ...usableModifiers(s, 'me', action),
+                                ...mandatoryModifiers(s, 'me', action).map((m) => m.power)
+                            ]
+                            expect(listed(cardId, list), `${route}: listed for ${action}`).toBe(
+                                true
+                            )
                             break
                         }
                         case PowerTiming.Action:
-                            expect(listed(cardId, legalPowers(s, 'me', PowerTiming.Action)), `${route}: offered as an Action power`).toBe(true)
+                            expect(
+                                listed(cardId, legalPowers(s, 'me', PowerTiming.Action)),
+                                `${route}: offered as an Action power`
+                            ).toBe(true)
                             break
                         case PowerTiming.Rest: {
                             const r = reachTable(cardId, route, MachineState.RestPhase)
-                            expect(listed(cardId, HydratedUseRestPower.legalRestPowers(r, 'me')), `${route}: offered as a Rest power`).toBe(true)
+                            expect(
+                                listed(cardId, HydratedUseRestPower.legalRestPowers(r, 'me')),
+                                `${route}: offered as a Rest power`
+                            ).toBe(true)
                             break
                         }
                         case PowerTiming.BattlePlan: {
-                            const side = power.battlePlanSide === BattlePlanSide.Defender ? BattlePlanSide.Defender : BattlePlanSide.Attacker
-                            expect(listed(cardId, usableBattlePlans(s, 'me', side, partiesSuspendingNobody(s, 'me'))), `${route}: offered as a battle plan`).toBe(true)
+                            const side =
+                                power.battlePlanSide === BattlePlanSide.Defender
+                                    ? BattlePlanSide.Defender
+                                    : BattlePlanSide.Attacker
+                            expect(
+                                listed(
+                                    cardId,
+                                    usableBattlePlans(
+                                        s,
+                                        'me',
+                                        side,
+                                        partiesSuspendingNobody(s, 'me')
+                                    )
+                                ),
+                                `${route}: offered as a battle plan`
+                            ).toBe(true)
                             break
                         }
                         case PowerTiming.Persistent:
-                            expect(persistentsInPlay(s).some((p) => p.ctx.cardId === cardId && p.ctx.ownerIds.includes('me')), `${route}: in play for me`).toBe(true)
+                            expect(
+                                persistentsInPlay(s).some(
+                                    (p) => p.ctx.cardId === cardId && p.ctx.ownerIds.includes('me')
+                                ),
+                                `${route}: in play for me`
+                            ).toBe(true)
                             break
                         default:
                             break
@@ -55,11 +91,30 @@ describe('the playtest deck is in reach by every route', () => {
                 }
                 const foreign = reachTable(cardId, 'foreign')
                 if (power.timing === PowerTiming.Modifier) {
-                    assertExists(power.modifiesAction, 'a Modifier power names the action it modifies')
-                    expect(listed(cardId, usableModifiers(foreign, 'me', power.modifiesAction))).toBe(false)
+                    assertExists(
+                        power.modifiesAction,
+                        'a Modifier power names the action it modifies'
+                    )
+                    expect(
+                        listed(cardId, usableModifiers(foreign, 'me', power.modifiesAction))
+                    ).toBe(false)
                 }
-                if (power.timing === PowerTiming.Action) expect(listed(cardId, legalPowers(foreign, 'me', PowerTiming.Action))).toBe(false)
-                if (power.timing === PowerTiming.BattlePlan) expect(listed(cardId, usableBattlePlans(foreign, 'me', BattlePlanSide.Attacker, partiesSuspendingNobody(foreign, 'me')))).toBe(false)
+                if (power.timing === PowerTiming.Action)
+                    expect(listed(cardId, legalPowers(foreign, 'me', PowerTiming.Action))).toBe(
+                        false
+                    )
+                if (power.timing === PowerTiming.BattlePlan)
+                    expect(
+                        listed(
+                            cardId,
+                            usableBattlePlans(
+                                foreign,
+                                'me',
+                                BattlePlanSide.Attacker,
+                                partiesSuspendingNobody(foreign, 'me')
+                            )
+                        )
+                    ).toBe(false)
             })
         }
     }

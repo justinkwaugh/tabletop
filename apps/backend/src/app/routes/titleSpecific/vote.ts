@@ -1,6 +1,8 @@
+import type { TitleResolver } from '../../lib/titleDefinition.js'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { GameDefinition } from '@tabletop/common'
+import { GameClientCapability } from '@tabletop/common'
+import { publishedUiSupports } from '../../lib/publishedUi.js'
 
 type UndoVoteTarget = Static<typeof UndoVoteTarget>
 const UndoVoteTarget = Type.Object(
@@ -21,6 +23,15 @@ const UndoVoteOpening = Type.Object(
     { additionalProperties: false }
 )
 
+type CallRequest = Static<typeof CallRequest>
+const CallRequest = Type.Object(
+    {
+        gameId: Type.String(),
+        declaredWinnerId: Type.Optional(Type.String())
+    },
+    { additionalProperties: false }
+)
+
 type VoteReference = Static<typeof VoteReference>
 const VoteReference = Type.Object(
     {
@@ -30,13 +41,14 @@ const VoteReference = Type.Object(
     { additionalProperties: false }
 )
 
-export default async function (definition: GameDefinition, fastify: FastifyInstance) {
+export default async function (title: TitleResolver, fastify: FastifyInstance) {
     const onRequest = fastify.auth([fastify.verifyUser], { relation: 'and' })
 
     fastify.post<{ Body: UndoVoteTarget }>(
         '/vote/undo/preview',
         { schema: { body: UndoVoteTarget }, onRequest },
         async function (request) {
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for undo vote preview')
             }
@@ -53,6 +65,7 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
         '/vote/undo/open',
         { schema: { body: UndoVoteOpening }, onRequest },
         async function (request) {
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for opening an undo vote')
             }
@@ -65,10 +78,34 @@ export default async function (definition: GameDefinition, fastify: FastifyInsta
         }
     )
 
+    fastify.post<{ Body: CallRequest }>(
+        '/vote/call',
+        { schema: { body: CallRequest }, onRequest },
+        async function (request) {
+            const definition = title(request)
+            if (!request.user) {
+                throw Error('No user found for calling a game')
+            }
+            const publishedUiSupportsCalls = await publishedUiSupports(
+                fastify,
+                definition.info.id,
+                GameClientCapability.CalledGames
+            )
+            const game = await fastify.gameService.requestCall({
+                user: request.user,
+                definition,
+                publishedUiSupportsCalls,
+                ...request.body
+            })
+            return { status: 'ok', payload: { game } }
+        }
+    )
+
     fastify.post<{ Body: VoteReference }>(
         '/vote/approve',
         { schema: { body: VoteReference }, onRequest },
         async function (request) {
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for approving a vote')
             }

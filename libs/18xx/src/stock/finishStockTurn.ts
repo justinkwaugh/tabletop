@@ -1,22 +1,22 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { allPlayersPassed } from './stockRoundRules.js'
 import { clearTurnPurchases } from './turnPurchases.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
-import { type StockRules } from './stockRules.js'
+import type { StockRules } from './stockRules.js'
 import type { StockState } from './stockState.js'
 import { mustSellShares } from './shareSale.js'
 
 export const FinishStockTurn = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('FinishStockTurn'),
         metadata: Type.Optional(
             Type.Object({ passed: Type.Boolean() }, { additionalProperties: false })
@@ -62,7 +62,15 @@ export class HydratedFinishStockTurn
         state.turnManager.endTurn(state.actionCount)
         clearTurnPurchases(state)
         if (!allPlayersPassed(state)) {
-            state.activePlayerIds = [state.turnManager.startNextTurn(state.actionCount + 1)]
+            const winnerId = state.stockRound.turn.auctionWinnerId
+            state.activePlayerIds = [
+                winnerId
+                    ? state.turnManager.startTurn(
+                          state.turnManager.nextPlayer(winnerId),
+                          state.actionCount + 1
+                      ).playerId
+                    : state.turnManager.startNextTurn(state.actionCount + 1)
+            ]
             state.stockRound.turn = {
                 acted: false,
                 bought: false,

@@ -85,9 +85,9 @@ export const OathPlayerState = Type.Object({
 
     /** R-4.2.a — leftmost is full. */
     supply: Type.Number(),
-    /** R-4.3.4 refunds Supply not spent, which the marker alone cannot say. */
+    /** R-4.3.4's ledger, read for the saving only before revision 24 (R-X.4); kept at every revision. */
     supplySpentThisTurn: Type.Number(),
-    /** R-4.3.4's baseline: a mid-turn refresh (R-6.6.2, R-6.7, R-6.8) moves the marker without un-spending. */
+    /** R-4.3.4's ledger baseline, read only before revision 24 (R-X.4); kept at every revision. */
     supplyAtTurnStart: Type.Number(),
 
     favor: Type.Number(),
@@ -158,8 +158,12 @@ export const OathPlayerState = Type.Object({
     restPowersUsedThisTurn: Type.Array(Type.String(), { maxItems: 16 }),
     /** Knights Errant, Hunting Party — the action index at which a Campaign costs no Supply. */
     freeCampaignAtAction: Type.Optional(Type.Number()),
+    /** From revision 27 — the card whose grant set `freeCampaignAtAction`. */
+    freeCampaignGrantedBy: Type.Optional(Type.String()),
     /** Second Wind — the action index at which a Travel costs no Supply. */
     freeTravelAtAction: Type.Optional(Type.Number()),
+    /** From revision 27 — the card whose grant set `freeTravelAtAction`. */
+    freeTravelGrantedBy: Type.Optional(Type.String()),
     campaignAsIf: Type.Optional(CampaignAsIf)
 })
 
@@ -183,7 +187,9 @@ export class HydratedOathPlayerState
     declare secrets: number
     declare secretsFacedown: number
     declare freeCampaignAtAction?: number
+    declare freeCampaignGrantedBy?: string
     declare freeTravelAtAction?: number
+    declare freeTravelGrantedBy?: string
     declare campaignAsIf?: CampaignAsIf
     declare warbandsOnBoard: WarbandCounts
     declare warbandsInPersonalBank: WarbandCounts

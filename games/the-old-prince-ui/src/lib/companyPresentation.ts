@@ -1,20 +1,32 @@
-import type { CompanyNameVariants } from '@tabletop/18xx-ui'
+import { companyNameVariants } from '@tabletop/18xx-ui'
+import { TheOldPrinceNames } from '@tabletop/the-old-prince'
 
-export const TheOldPrinceCompanyNames: Readonly<Record<string, CompanyNameVariants>> = {
-    UB: { short: 'Bank', initials: 'UB' },
-    'branch:CB': { short: 'BR:CB', initials: 'CB' },
-    'branch:SB': { short: 'BR:SB', initials: 'SB' },
-    'branch:MB': { short: 'BR:MB', initials: 'MB' },
-    'branch:BB': { short: 'BR:BB', initials: 'BB' },
-    'branch:WB': { short: 'BR:WB', initials: 'WB' },
-    'branch:HRB': { short: 'BR:HRB', initials: 'HRB' },
-    ML: { short: 'Charlottetown', initials: 'C' },
-    C: { short: 'Char', initials: 'C' },
-    So: { short: 'Souris', initials: 'SO' },
-    PEIR: { short: 'PEIR', initials: 'PEIR', history: 'PEIR', card: 'PEIR' },
-    A: { short: 'Alberton', initials: 'A' },
-    MS: { short: 'Mt Stewart', initials: 'MS' },
-    MR: { short: 'Murray R', initials: 'MR' },
-    S: { short: 'Summerside', initials: 'S' },
-    Gt: { short: 'Georgetown', initials: 'GT' }
-}
+export const TheOldPrinceCompanyNames = companyNameVariants(TheOldPrinceNames, {
+    So: { initials: 'SO' },
+    A: { initials: 'A' },
+    MS: { initials: 'MS' },
+    MR: { initials: 'MR' },
+    S: { initials: 'S' },
+    Gt: { initials: 'GT' },
+    C: { initials: 'C' },
+    ML: { initials: 'C' },
+    PEIR: { initials: 'PEIR', short: 'PEIR' },
+    'branch:CB': { initials: 'CB' },
+    'branch:SB': { initials: 'SB' },
+    'branch:MB': { initials: 'MB' },
+    'branch:BB': { initials: 'BB' },
+    'branch:WB': { initials: 'WB' },
+    'branch:HRB': { initials: 'HRB' },
+    MC: { initials: 'MC' },
+    VR: { initials: 'VR' },
+    IB: { initials: 'IB' },
+    RA: { initials: 'RA' },
+    RF: { initials: 'RF' },
+    SB: { initials: 'SB' },
+    HS: { initials: 'HS' },
+    MLC: { initials: 'MLC' },
+    SBC: { initials: 'SBC' },
+    SLC: { initials: 'SLC' },
+    UB: { initials: 'UB' },
+    KM: { initials: 'KM' }
+})

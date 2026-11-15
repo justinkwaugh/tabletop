@@ -2,7 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import type { AuctionLot } from '../auctions/waterfallAuction.js'
 import { privateOwner, type FinancialState } from '../finance/finance.js'
 import type { PhaseTable } from '../phases/phaseTable.js'
-import type { PrivateEffect } from './privateRules.js'
+import type { PrivateEffect, PrivateHoldings } from './privateRules.js'
 
 export type PrivateDefinition = {
     id: string
@@ -10,7 +10,13 @@ export type PrivateDefinition = {
     faceValue: number
     revenue: number
     description?: string
-    closure?: 'never' | { survivesWhilePlayerOwned: { revenue: number } }
+    /**
+     * Whether the private outlives the catalogue's closing phase: never closes, stays open while a
+     * player owns it, or closes at a later phase of its own, as 1882's Saskatchewan Central
+     * (§7.1.2).
+     */
+    closure?:
+        'never' | { survivesWhilePlayerOwned: { revenue: number } } | { closurePhaseId: string }
     blocks?: { locationIds: readonly string[]; until: 'company-owned' | 'closed' }
     sale?: 'never' | { minimum: number; maximum: number }
 }
@@ -58,22 +64,33 @@ export class PrivateCatalog {
         return this.open(state).flatMap(({ company, definition }): PrivateEffect[] => {
             const { closure } = definition
             if (closure === 'never') return []
+            if (closure && 'closurePhaseId' in closure)
+                return this.phases.isAtLeast(state.phaseId, closure.closurePhaseId)
+                    ? [{ kind: 'close', privateCompanyId: company.id }]
+                    : []
             if (closure && privateOwner(state, company.id)?.kind === 'player') {
                 const { revenue } = closure.survivesWhilePlayerOwned
-                return company.privateRevenue === revenue
+                return (company.privateRevenue ?? definition.revenue) === revenue
                     ? []
                     : [{ kind: 'income', privateCompanyId: company.id, revenue }]
             }
             return [{ kind: 'close', privateCompanyId: company.id }]
         })
     }
-    blockedBy(state: FinancialState, locationId: string): PrivateDefinition | undefined {
-        return this.open(state).find(
-            ({ company, definition }) =>
+    blockedBy(state: PrivateHoldings, locationId: string): PrivateDefinition | undefined {
+        return this.privates.find(
+            (definition) =>
                 definition.blocks?.locationIds.includes(locationId) &&
-                (definition.blocks.until === 'closed' ||
-                    privateOwner(state, company.id)?.kind !== 'company')
-        )?.definition
+                this.blocking(state, definition.id)
+        )
+    }
+    blocking(state: PrivateHoldings, privateCompanyId: string): boolean {
+        const { blocks } = this.definition(privateCompanyId)
+        const company = state.companies.find((company) => company.id === privateCompanyId)
+        if (!blocks || company?.kind !== 'private' || company.closed) return false
+        return (
+            blocks.until === 'closed' || privateOwner(state, privateCompanyId)?.kind !== 'company'
+        )
     }
     private open(state: FinancialState) {
         return state.companies.flatMap((company) => {

@@ -1,10 +1,10 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import type { StationRules } from '../stations/stationPlacement.js'
 import { homeStationPending } from '../stations/chooseHomeStation.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type HydratedAction,
@@ -28,7 +28,7 @@ import { HydratedLayPrivateTile } from './layPrivateTile.js'
 import type { CompanyDecisionState } from './companyDecision.js'
 export const ContinueOperatingRound = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ContinueOperatingRound'),
         companyId: Type.String()
     },

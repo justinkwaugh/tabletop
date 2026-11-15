@@ -3,6 +3,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBidControl from '../auctions/AuctionBidControl.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import PlaceLink from '../places/PlaceLink.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -11,9 +12,6 @@
     const companyId = $derived(auction.selectedCompanyId)
     const home = $derived(auction.selectedHome)
     const amount = $derived(auction.openingAmount)
-    const homeName = $derived(
-        home ? (session.mapView.map.location(home.locationId).name ?? home.locationId) : undefined
-    )
     const allowed = (value: number) => auction.canOpen && !auction.openingReason(value)
 </script>
 
@@ -26,7 +24,7 @@
                 aria-label={`Auction ${session.companyName(company.id)}`}
                 aria-pressed={companyId === company.id}
                 data-auction-company={company.id}
-                onclick={() => auction.selectCompany(company.id)}
+                onclick={() => auction.toggleCompany(company.id)}
             >
                 <CompanyToken appearance={session.mapView.stations[company.id]} size={38} />
             </button>
@@ -36,8 +34,8 @@
         <div class="turn">
             <p>
                 <strong>{session.companyName(companyId)}</strong>
-                {#if homeName}· Home {homeName}{:else}· Choose a highlighted city on the map for its
-                    home{/if}
+                {#if home}· Home <PlaceLink locationId={home.locationId} />{:else}· Choose a
+                    highlighted city on the map for its home{/if}
             </p>
             {#if home && amount !== undefined}
                 <AuctionBidControl
@@ -47,11 +45,8 @@
                     canBid={allowed(amount)}
                     canDecrease={allowed(amount - terms.increment)}
                     canIncrease={allowed(amount + terms.increment)}
-                    canPass={auction.canOpen}
-                    passLabel="Back"
                     onChange={(value) => auction.setOpeningBid(value)}
                     onBid={() => auction.open()}
-                    onPass={() => auction.backFromOpeningBid()}
                 />
             {/if}
         </div>

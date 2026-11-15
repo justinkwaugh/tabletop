@@ -1,14 +1,17 @@
 import { assertExists, type MachineContext } from '@tabletop/common'
 import { Advance } from '../actions/advance.js'
 import { DeclareDefense } from '../actions/declareDefense.js'
+import { LeadDefense } from '../actions/leadDefense.js'
 import { ActionType } from '../definition/actions.js'
 import { DecisionKind } from '../model/attack.js'
 import { forcedAdvance, nextDecision } from '../model/attackDecisions.js'
 import { currentAttack } from '../model/attackState.js'
 import {
+    canDefend,
     canPressAttack,
-    eligibleReserveDefenders,
     forcedDefense,
+    forcedDefendingCommanders,
+    leaderlessDefenseIsForced,
     mustDefend
 } from '../model/attackThreat.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
@@ -26,7 +29,7 @@ export class DefenseResponseStateHandler extends StepStateHandler {
     protected readonly actions: AllowedAction[] = [
         {
             type: ActionType.DeclareDefense,
-            allowed: (state) => mustDefend(state) || eligibleReserveDefenders(state).length > 0
+            allowed: canDefend
         },
         { type: ActionType.Retreat, allowed: (state) => !mustDefend(state) }
     ]
@@ -41,7 +44,8 @@ export class DefenseResponseStateHandler extends StepStateHandler {
         if (unitIds) {
             context.addSystemAction(DeclareDefense, {
                 playerId: defender(context.gameState),
-                unitIds
+                unitIds,
+                commanderIds: forcedDefendingCommanders(context.gameState)
             })
         }
     }
@@ -60,6 +64,16 @@ export class DefenseDeclarationStateHandler extends StepStateHandler {
     protected readonly actions: AllowedAction[] = [{ type: ActionType.LeadDefense }]
 
     protected actor = defender
+
+    override enter(context: MachineContext<HydratedNapoleonsTriumphGameState>) {
+        super.enter(context)
+        if (leaderlessDefenseIsForced(context.gameState)) {
+            context.addSystemAction(LeadDefense, {
+                playerId: defender(context.gameState),
+                leaderIds: []
+            })
+        }
+    }
 }
 
 export class AttackDeclarationStateHandler extends StepStateHandler {

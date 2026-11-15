@@ -83,6 +83,8 @@ mechanism below, plus the six implemented titles.
 1. **1846 uses shared state composition.** Replace its hand-written schema and hydrated
    class with `composeEighteenXXState` and `defineEighteenXXState`, keeping its own
    runtime, handlers and visibility projector, and add its runtime-contract snapshot.
+   (Superseded on 2026-10-19: 1846 now runs on the shared runtime; see
+   [title-owned state](title-state-design.md).)
    Later changes then land once for all titles. The family validation splits into
    `validateRailwayComponents` (map stations, depot, stations, market, finances), which
    every title runs, and the operating-sequence checks of `validateRailwayState`. 1846
@@ -97,7 +99,7 @@ mechanism below, plus the six implemented titles.
    `StockMarketChart` (its spaces, colours and move graph), carried on `StockRules.market`
    and in `TitleComponents`, so hydration validates the stacks against it. Chart methods
    read spaces, moves, company positions and market order and validate a placement;
-   `placeStockMarker` and `restoreStockMarker` stay chart-free for recorded moves whose
+   `placeStockMarker` stays chart-free for recorded moves whose
    spaces the chart already produced. Family helpers that need prices or order take the
    chart; the UI reads it from the session (`stockMarketChart`), title UIs from their
    title. Movement remains the chart's graph, which title rules may bypass (1832's sale
@@ -206,11 +208,14 @@ worth their cost for now:
 The 2026-10-10 audit of all six titles' States also found these, left for now:
 
 - **Finished opening-auction records** (`offerAuction`, `openingAuction`,
-  `selectionAuction`; 1846's `draft` and `purchases`), 0.4–0.9 KB kept for the rest of
+  `selectionAuction`; 1846's `draft` and `purchases`, since removed, see below), 0.4–0.9 KB kept for the rest of
   the game. Deleting the record at completion is the right model, but `completed` is
   read in about sixty places, and the history panel reads TOP's awards and tells an offer
   auction apart from the finished record in current State. It needs `completed` removed
   as a flag and auction history built from `ResolveAuction` metadata.
+  The same change takes the `awards` list these auctions grow during play (deferred
+  2026-10-19): the auction rules read only whether anything was awarded, which the lots
+  left already say, and the auction panels' "Awarded" lists would read award metadata.
 - **The pool's owner repeated on pooled certificates** (0.02–1.2 KB, TOP the most).
   `certificate.owner` is read in about 150 places across 63 files; making it optional
   or deriving it from the pool touches all of them.
@@ -218,8 +223,8 @@ The 2026-10-10 audit of all six titles' States also found these, left for now:
   without piece ids** (1.2–3.3 KB), and **zero cash rows**. Each changes a shared
   component's interface for a small saving.
 - **TOP's ownership-limit exemptions that no longer apply** (0.6 KB), and stale setup
-  records: `companyStarts`, 1817's `seedMoney`, 1846's `independentAcquisitions` and
-  `removedCorporationIds` (the UI reads the last to draw the removed corporations'
+  records: `companyStarts`, 1817's `seedMoney`, 1846's `independentAcquisitions` (since made
+  turn-scoped, see below) and `removedCorporationIds` (the UI reads the last to draw the removed corporations'
   blocking tokens).
 - **Step records kept after their step** (`routeStep.result` mid-turn,
   `earningsDistribution`): history and the UI read the latest result from State.
@@ -232,16 +237,162 @@ The 2026-10-10 audit of all six titles' States also found these, left for now:
   stays: no title implements it yet, it is optional and never written, so it costs
   nothing in State.
 
-## Not a change
+## Second pass (2026-10-19)
 
-`turnManager.series` stays. It is the index of the game's turns. Round and phase managers
-recording their own starts and ends are wanted later for the same reason, and 18xx's
-`operatingSet` and `phaseEvents` are candidates to be written through them.
+The readiness review of 1830, the first title to face the State-shape gate whole, found
+the remaining definition data and dead records below. Each was fixed in the family
+library and all six titles. Every recorded game of every title replays to the same States
+apart from these fields (the 1832 and 1817 recordings as far as they replay on main, where
+they already stop early), and TOP's and 1889's seeded-setup digests, which put the removed
+fields back before hashing, are unchanged.
 
-Reviewed again on 2026-10-10 and left alone by the owner's decision. It is the largest
-single field left: 8–23 KB, 28–40% of a finished game's State. For reference, the same
-turns as compact tuples would be 1.6–5.2 KB, and pruned to the current round about
-0.2–0.3 KB.
+- **Company charters.** A company's printed share count and a private's printed revenue
+  come from the title's `CompanyCharters` (on its stock, operating and transfer rules).
+  State records `shareCount` only where play sizes a company (1817's formation,
+  conversion and reset) and `privateRevenue` only where play changes an income (a
+  private that survives closure while a player owns it, such as 1889's Uno–Takamatsu
+  ferry); `companyShareCount` and `currentPrivateRevenue` read either. A closed private
+  earns nothing without a stored 0. Evidence: 1832's Systems are chartered at twenty
+  shares; sizes chosen or changed in play (1817, 1856's CGR, resets in 1849, 1858 and
+  18EU) are what State records; income changes come from closure and title powers, not
+  from setup.
+- **Company kind stays.** It says which of a company's fields apply (a private's
+  revenue and charter certificate, a share company's par, president and shares), and the
+  ownership queries read it everywhere; a closed private keeps no other trace of being a
+  private. Owner decision, 2026-10-19.
+- **The bank breaks the same way everywhere.** Every limited bank pays on once it runs
+  out and records `broken`, as the research engine's `Bank#check_cash` does for every
+  title; the stored `unlimitedAfterExhaustion` opt-in is gone.
+- **Route bonuses name their source by id** (`sourceIds`: a private, `east-west`, a
+  revenue token's kind); each title names them through `TitleNames.routeBonus`.
+- **Track lays record the tile laid, not its colour or cost.** `laidTileFace` reads the
+  colour from the tile's definition; the board would not do, since an 1846 private may
+  upgrade a hex the company laid this turn. The cost is in the Action's metadata.
+- **Inventories keep no constant ids.** The tile inventory no longer records its set; the
+  train inventory records `depotId` only for a supply variant chosen at setup (1846's
+  two-player depot), and the tile inventory `variantId` likewise (1822's scenarios), from which
+  the variant's board tiles and the pieces it plays without follow (`TileSetVariant`).
+- **Sale records hold the least fact.** A stock round records each (owner, company) sale
+  once; train funding records sales only for titles that sell in blocks, without the
+  share count. `stockRound.companyPurchases` stays: TOP's Union Bank rule reads it.
+
+TOP's stored games may hold the removed fields. A lay's `color` and `cost`, the tile
+inventory's `tileSetId` and a funding sale's `shares` stay in the schema as optional
+`never`, so old States and their undo patches load without a migration; they can go at a
+later TOP major once those games have finished. A lay stored without its tile reads the
+board, which is right for TOP. `shareCount`, `privateRevenue` and `depotId` stay live
+fields: an old TOP State's stored values equal its charters and depot, so they read as
+play-recorded values with the same meaning. States written by this logic lack fields the
+previous TOP logic requires, so a TOP release of it is a Logic major.
+
+## 1846 before its first release (2026-10-20)
+
+The readiness review of 1846 reported these; 1846 has no stored games, so its own shapes
+change freely.
+
+- **The finished opening leaves State.** The hidden draft and the two-player opening delete
+  `draft` and `purchases` when they end; the reveal's `RevealDraft` metadata and the
+  two-player purchases' metadata already record what was bought. The finished public stage
+  `complete` is gone: an absent draft means the opening is over.
+- **The acquired independent's train bar is turn-scoped.** `independentAcquisitions` kept
+  every purchase with its set and round for the rest of the game. It is now
+  `acquiredTrainIds`, the trains bought with an independent in the current turn (§6.93: they
+  cannot run in the round of purchase, and the buyer does not operate again that round),
+  cleared when the next operating turn, operating round or stock round starts.
+- **A funding sale record is strict.** `trainFunding.sales[]` rejects unknown fields; every
+  stored record holds only declared ones.
+
+## 1832 before its first release (2026-10-20)
+
+The readiness review of 1832 reported these; 1832 has no stored games, so its own shapes
+change freely.
+
+- **Merger proposers take turns through the turn manager.** `mergerPhase.playerIds` and
+  `index` copied the turn order and counted through it by position. Each proposer now has a
+  turn in the series, in priority order; a partner's answer falls within the proposer's
+  turn, which ends when they pass or have nothing left to propose.
+- **Price protection keeps only what it reads.** It returns to its machine state and
+  re-derives who acts (the stock round's turn, the merger phase's next decision or the
+  operating company's operators) instead of storing a copy of `activePlayerIds`, records
+  only `lastProtectorId`, and a protectable sale drops its unread `fromStackIndex`.
+- **Turn and round records clear when they end.** The WVCF purchase (`coalTokenBought`)
+  and the Key West placement (`keyWestPlaced`) clear as the next operating turn or round
+  starts, as 1846's acquired-train bar does. Redemption refusals clear as the stock turn
+  finishes; `redemptions` and `lockedProceeds` hold counts and amounts for the current stock
+  round and clear as it completes; `mergerPhaseHeld` clears as the operating set begins; a
+  returned station leaves `returnedStationIds` once placed again. Revenue tokens no longer
+  record the round they were placed in.
+- **Expired tokens and private records leave at the phase change.** 1832's
+  `PhaseRules.changes` removes the Port and Cotton tokens at phase 6 and the Key West token
+  at 8, recording them in the phase Action, and clears `londonCompanyId` and `miamiRun` at
+  phase 5, when the privates close and Miami pays in full.
+- **`mergers` is replaced by what the rules read**: `takeoverBuyerIds` (a company bought in
+  a takeover closes, so only buyers can be barred from another) and `keyWestCompanyId`, the
+  holder of the FEC's Key West right once the FEC has merged away. History reads the merger
+  Actions' outcomes.
+- **The 60% excess is derived.** 1832's ownership limit for a player is the larger of the
+  zone's limit and what they hold, so a protected or merged excess is kept until they sell
+  but cannot grow; 1832 no longer composes `ownershipLimitExemptions`.
+
+Still open, for the owner: **`companies[].president`** repeats the president certificate's
+owner. Receivership deletes it while the certificate is in the market, and presidency
+changes write both. Deriving it from the certificate touches every reader across the family
+and changes stored TOP, 1889 and 1830 States; keeping it needs a recorded reason here.
+
+## Turn series
+
+`turnManager.series` was left alone at first, as the index of the game's turns. Round and
+phase managers recording their own starts and ends are wanted later for the same reason, and
+18xx's `operatingSet` and `phaseEvents` are candidates to be written through them. It was
+reviewed again on 2026-10-10 and left alone by the owner's decision, as the largest single
+field left: 8–23 KB, 28–40% of a finished game's State. For reference, the same turns as
+compact tuples would be 1.6–5.2 KB, and pruned to the current round about 0.2–0.3 KB.
+
+On 2026-11-13 the owner asked for it to be trimmed. A new 18xx game starts its turn manager
+with `seriesKeeps: 'latest'`, set in `EighteenXXInitializer`: the series then forgets every
+finished turn but each Player's latest. The turn manager answers the current turn, the last
+player and when a Player last had a turn as before.
+
+The family and its twelve titles read only the open turn from the series and, through
+`startNextTurn`, the last player. What a rule looks back for, such as priority, who has
+passed, or what a Player sold this round, is its own State fact in every title, as
+`docs/DESIGN.md` asks ("the least past fact a rule still consults"). The researched titles not
+yet implemented were not surveyed for this change. The limit is intended: a title whose rule
+needs an older turn records that fact itself.
+
+- **Given up.** A new game's State is no longer the index of its turns. A history panel
+  grouping by turn would take turn boundaries from the Actions.
+- **New games only.** History Navigation replays recorded Actions with the current logic, and
+  their undo patches address the series by position, so the setting cannot change during a
+  game. Games recorded before it keep every turn.
+- **Undo patches.** A forgotten turn moves into the undo patch of the Action that forgot it:
+  one operation when the turns beside it are unchanged, the rewritten turns when one Player
+  takes turns in a row. That holds since `createPatch` pairs the elements two lists share; the
+  diff before it paired them by position and rewrote the whole series whenever its head left,
+  which grew the action records by 11% on 1830's recorded game. The host builds the stored
+  patches, so the backend takes the new diff before a title takes the setting. No UI Artifact
+  has to be republished for it: an artifact's own `createPatch` builds only its local
+  previews, and either diff's patches apply everywhere.
+- **Release.** Each title takes it with a Logic major: older Logic drops the field it does not
+  know and keeps every turn, and the undo patches recorded since would miss.
+
+Each title's recorded finished game, replayed from its recorded opening with every turn kept
+and with the latest only, compact JSON in KB. The State is written with every Action, so its
+mean over the game is what a write carries.
+
+| Replayed                    | TOP  | 1889 | 1830 | 1846 | 1817 | 1850 | 1870 |
+| --------------------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| Final State, every turn     | 53.7 | 31.6 | 36.6 | 26.8 | 61.4 | 44.3 | 53.7 |
+| Final State, latest only    | 37.9 | 21.9 | 23.6 | 18.7 | 39.0 | 28.4 | 35.4 |
+| Mean State, every turn      | 39.8 | 21.6 | 25.1 | 19.9 | 40.1 | 30.2 | 35.1 |
+| Mean State, latest only     | 31.0 | 16.4 | 18.0 | 15.8 | 28.2 | 21.4 | 24.8 |
+| Action records, every turn  | 1195 | 720  | 1159 | 699  | 2251 | 1409 | 1743 |
+| Action records, latest only | 1225 | 739  | 1184 | 715  | 2295 | 1440 | 1778 |
+
+With the diff that paired by position, the same records with every turn kept were 1272, 769,
+1223, 735, 2452, 1526 and 1878 KB.
+
+1832's recorded game stops replaying at its 198th action on main and is left out.
 
 ## Verification
 

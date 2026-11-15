@@ -24,11 +24,37 @@ const atRevision = OathRevision.EngineFixes2
 const before = OathRevision.CardFixes1
 
 /** The attacker campaigns from c1 against the defender, whose pawn, board of four and one warband at c1 make a force of five. */
-function table(oathRevision: number, seed: number, attacker: Record<string, unknown>, defender: Record<string, unknown>) {
+function table(
+    oathRevision: number,
+    seed: number,
+    attacker: Record<string, unknown>,
+    defender: Record<string, unknown>
+) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 5, favor: 4, secrets: 3, warbandsOnBoard: { [ATTACKER]: 5 }, warbandsInPersonalBank: { [ATTACKER]: 7 }, ...attacker }),
-            testPlayer({ playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', favor: 6, secrets: 3, warbandsOnBoard: { [DEFENDER]: 4 }, warbandsInPersonalBank: { [DEFENDER]: 6 }, ...defender })
+            testPlayer({
+                playerId: ATTACKER,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 5,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [ATTACKER]: 5 },
+                warbandsInPersonalBank: { [ATTACKER]: 7 },
+                ...attacker
+            }),
+            testPlayer({
+                playerId: DEFENDER,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                favor: 6,
+                secrets: 3,
+                warbandsOnBoard: { [DEFENDER]: 4 },
+                warbandsInPersonalBank: { [DEFENDER]: 6 },
+                ...defender
+            })
         ]),
         {
             oathRevision,
@@ -44,20 +70,34 @@ function table(oathRevision: number, seed: number, attacker: Record<string, unkn
 const faceup = (cardId: string) => ({ advisers: [{ cardId, faceUp: true }] })
 
 /** The attacker's Sticky Fire against the defender's Billowing Fog. */
-const fireOnFog = (oathRevision: number, seed: number) => table(oathRevision, seed, { relicIds: [FIRE] }, faceup(FOG))
+const fireOnFog = (oathRevision: number, seed: number) =>
+    table(oathRevision, seed, { relicIds: [FIRE] }, faceup(FOG))
 /** The attacker's Traveling Doctor against the defender's Sticky Fire. */
-const fireOnDoctor = (oathRevision: number, seed: number) => table(oathRevision, seed, { ...faceup(DOCTOR), warbandsOnBoard: { [ATTACKER]: 2 } }, { relicIds: [FIRE] })
+const fireOnDoctor = (oathRevision: number, seed: number) =>
+    table(
+        oathRevision,
+        seed,
+        { ...faceup(DOCTOR), warbandsOnBoard: { [ATTACKER]: 2 } },
+        { relicIds: [FIRE] }
+    )
 
 const fireAttack = () => campaign({ plans: [battlePlanUse(FIRE)], attackDice: 5 })
 const doctorAttack = () => campaign({ plans: [battlePlanUse(DOCTOR)], attackDice: 1 })
 
 function inPlay(s: HydratedOathGameState, playerId: string): number {
-    const onSites = Object.values(s.warbandsBySite).reduce((n, counts) => n + (counts[playerId] ?? 0), 0)
+    const onSites = Object.values(s.warbandsBySite).reduce(
+        (n, counts) => n + (counts[playerId] ?? 0),
+        0
+    )
     return onSites + (s.getPlayerState(playerId).warbandsOnBoard[playerId] ?? 0)
 }
 
 /** The dice come from the seeded PRNG, so a test searches seeds for the outcome it needs. */
-function seedWhere(attackerWins: boolean, build: (seed: number) => HydratedOathGameState, act: (s: HydratedOathGameState) => void): number {
+function seedWhere(
+    attackerWins: boolean,
+    build: (seed: number) => HydratedOathGameState,
+    act: (s: HydratedOathGameState) => void
+): number {
     for (let seed = 1; seed < 80; seed++) {
         const s = build(seed)
         act(s)
@@ -66,14 +106,22 @@ function seedWhere(attackerWins: boolean, build: (seed: number) => HydratedOathG
     throw new Error('no seed gave that outcome')
 }
 
-const fogSeed = seedWhere(true, (seed) => fireOnFog(atRevision, seed), (s) => {
-    fireAttack().apply(s)
-    defend([battlePlanUse(FOG)]).apply(s)
-})
-const doctorSeed = seedWhere(false, (seed) => fireOnDoctor(atRevision, seed), (s) => {
-    doctorAttack().apply(s)
-    defend([battlePlanUse(FIRE)]).apply(s)
-})
+const fogSeed = seedWhere(
+    true,
+    (seed) => fireOnFog(atRevision, seed),
+    (s) => {
+        fireAttack().apply(s)
+        defend([battlePlanUse(FOG)]).apply(s)
+    }
+)
+const doctorSeed = seedWhere(
+    false,
+    (seed) => fireOnDoctor(atRevision, seed),
+    (s) => {
+        doctorAttack().apply(s)
+        defend([battlePlanUse(FIRE)]).apply(s)
+    }
+)
 
 function fogBattle(oathRevision: number) {
     const s = fireOnFog(oathRevision, fogSeed)
@@ -100,7 +148,9 @@ describe('Billowing Fog and Traveling Doctor ignore Sticky Fire (R-9.2, revision
         expect(inPlay(s, DEFENDER)).toBe(5)
         expect(s.getPlayerState(DEFENDER).favor).toBe(7)
         expect(s.getPlayerState(ATTACKER).favor).toBe(3)
-        expect(victory?.metadata?.triggered).toContain('Sticky Fire: its kill was ignored; attacker gave defender 1 favor')
+        expect(victory?.metadata?.triggered).toContain(
+            'Sticky Fire: its kill was ignored; attacker gave defender 1 favor'
+        )
     })
 
     it('Traveling Doctor: the defeated attacker loses no warband, and the defender’s Sticky Fire still gives its favor', () => {
@@ -113,7 +163,9 @@ describe('Billowing Fog and Traveling Doctor ignore Sticky Fire (R-9.2, revision
         expect(sacrifice.metadata?.defeatKilled).toBe(0)
         expect(inPlay(s, ATTACKER)).toBe(force)
         expect(s.getPlayerState(ATTACKER).favor).toBe(5)
-        expect(sacrifice.metadata?.planNotes).toContain('Sticky Fire: its kill was ignored; defender gave attacker 1 favor')
+        expect(sacrifice.metadata?.planNotes).toContain(
+            'Sticky Fire: its kill was ignored; defender gave attacker 1 favor'
+        )
     })
 })
 
@@ -124,7 +176,9 @@ describe('R-X.4 — before revision 5, Sticky Fire takes effect over Billowing F
         expect(sacrifice.metadata?.defeatKilled).toBe(5)
         expect(inPlay(s, DEFENDER)).toBe(0)
         expect(s.getPlayerState(DEFENDER).favor).toBe(7)
-        expect(victory?.metadata?.triggered).toContain('Sticky Fire: the enemy force was killed entirely; attacker gave defender 1 favor')
+        expect(victory?.metadata?.triggered).toContain(
+            'Sticky Fire: the enemy force was killed entirely; attacker gave defender 1 favor'
+        )
     })
 
     it('Traveling Doctor: the whole attacking force is killed', () => {
@@ -136,7 +190,11 @@ describe('R-X.4 — before revision 5, Sticky Fire takes effect over Billowing F
         expect(inPlay(s, ATTACKER)).toBe(0)
     })
 
-    function playThrough(start: OathProjectedState, game: ReturnType<typeof testGame>, actions: ((state: OathProjectedState) => GameAction)[]) {
+    function playThrough(
+        start: OathProjectedState,
+        game: ReturnType<typeof testGame>,
+        actions: ((state: OathProjectedState) => GameAction)[]
+    ) {
         let state = structuredClone(start)
         const processed: GameAction[] = []
         for (const next of actions) {
@@ -148,21 +206,46 @@ describe('R-X.4 — before revision 5, Sticky Fire takes effect over Billowing F
     }
 
     const sacrificeStep = (state: OathProjectedState) =>
-        buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(state), 0) })
+        buildAction(CampaignSacrifice, {
+            playerId: ATTACKER,
+            sacrifice: 0,
+            defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(
+                new HydratedOathGameState(state),
+                0
+            )
+        })
 
     it('a Campaign recorded with Sticky Fire over Billowing Fog replays unchanged, the force killed', () => {
         const game = testGame([ATTACKER, DEFENDER])
         const start = fireOnFog(before, fogSeed).dehydrate()
         const recorded = playThrough(start, game, [
-            () => buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'player', playerId: DEFENDER }, targets: [siteTarget('c1')], attackDice: 5, plans: [battlePlanUse(FIRE)] }),
+            () =>
+                buildAction(Campaign, {
+                    playerId: ATTACKER,
+                    defender: { kind: 'player', playerId: DEFENDER },
+                    targets: [siteTarget('c1')],
+                    attackDice: 5,
+                    plans: [battlePlanUse(FIRE)]
+                }),
             () => buildAction(CampaignDefend, { playerId: DEFENDER, plans: [battlePlanUse(FOG)] }),
             sacrificeStep,
-            () => buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false })
+            () =>
+                buildAction(CampaignResolveVictory, {
+                    playerId: ATTACKER,
+                    placements: [],
+                    burnFavor: false
+                })
         ])
         expect(inPlay(new HydratedOathGameState(recorded.state), DEFENDER)).toBe(0)
 
         let replayed = structuredClone(start)
-        for (const action of recorded.processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of recorded.processed)
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         expect(replayed).toEqual(recorded.state)
     })
 
@@ -170,14 +253,27 @@ describe('R-X.4 — before revision 5, Sticky Fire takes effect over Billowing F
         const game = testGame([ATTACKER, DEFENDER])
         const start = fireOnDoctor(before, doctorSeed).dehydrate()
         const recorded = playThrough(start, game, [
-            () => buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'player', playerId: DEFENDER }, targets: [siteTarget('c1')], attackDice: 1, plans: [battlePlanUse(DOCTOR)] }),
+            () =>
+                buildAction(Campaign, {
+                    playerId: ATTACKER,
+                    defender: { kind: 'player', playerId: DEFENDER },
+                    targets: [siteTarget('c1')],
+                    attackDice: 1,
+                    plans: [battlePlanUse(DOCTOR)]
+                }),
             () => buildAction(CampaignDefend, { playerId: DEFENDER, plans: [battlePlanUse(FIRE)] }),
             sacrificeStep
         ])
         expect(inPlay(new HydratedOathGameState(recorded.state), ATTACKER)).toBe(0)
 
         let replayed = structuredClone(start)
-        for (const action of recorded.processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of recorded.processed)
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         expect(replayed).toEqual(recorded.state)
     })
 })

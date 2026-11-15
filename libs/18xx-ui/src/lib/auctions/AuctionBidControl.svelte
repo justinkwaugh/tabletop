@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { MoneyFormat } from '../presentation/money.js'
+    import { currencyAffixes, type MoneyFormat } from '../presentation/money.js'
     let {
         money,
         amount,
@@ -7,8 +7,8 @@
         canBid,
         canDecrease,
         canIncrease,
-        canPass,
-        passLabel = 'Pass',
+        canPass = false,
+        inline = false,
         onChange,
         onBid,
         onPass
@@ -19,30 +19,66 @@
         canBid: boolean
         canDecrease: boolean
         canIncrease: boolean
-        canPass: boolean
-        passLabel?: string
+        canPass?: boolean
+        inline?: boolean
         onChange: (amount: number) => void
         onBid: () => void
-        onPass: () => void
+        onPass?: () => void
     } = $props()
+    const currency = $derived(currencyAffixes(money))
+    let typedText = $state<string>()
+    // Bid sends `amount`, which the caller may not have taken from the field (a blank field, or
+    // a typed value it replaces with its minimum), so the field has to read that amount.
+    const bidReady = $derived(
+        canBid && (typedText === undefined || (typedText !== '' && Number(typedText) === amount))
+    )
+    function type(field: HTMLInputElement) {
+        typedText = field.value
+        if (Number.isFinite(field.valueAsNumber)) onChange(field.valueAsNumber)
+    }
+    function step(value: number) {
+        typedText = undefined
+        onChange(value)
+    }
+    function bid() {
+        typedText = undefined
+        onBid()
+    }
+    function pass() {
+        typedText = undefined
+        onPass?.()
+    }
 </script>
 
-<div class="controls">
+<div class="controls" class:inline>
     <div class="amount-control" role="group" aria-label="Bid amount">
         <button
             aria-label="Decrease bid"
             disabled={!canDecrease}
-            onclick={() => onChange(amount - increment)}>−</button
+            onclick={() => step(amount - increment)}>−</button
         >
-        <output aria-label="Bid amount">{money(amount)}</output>
+        <label class="amount"
+            >{currency.before}<input
+                type="number"
+                inputmode="numeric"
+                aria-label="Bid amount"
+                step={increment}
+                value={typedText ?? amount}
+                oninput={(event) => type(event.currentTarget)}
+                onkeydown={(event) => {
+                    if (event.key === 'Enter' && bidReady) bid()
+                }}
+            />{currency.after}</label
+        >
         <button
             aria-label="Increase bid"
             disabled={!canIncrease}
-            onclick={() => onChange(amount + increment)}>+</button
+            onclick={() => step(amount + increment)}>+</button
         >
     </div>
-    <button class="bid action-button" disabled={!canBid} onclick={onBid}>Bid</button>
-    <button class="pass action-button" disabled={!canPass} onclick={onPass}>{passLabel}</button>
+    <button class="bid action-button" disabled={!bidReady} onclick={bid}>Bid</button>
+    {#if onPass}<button class="pass action-button" disabled={!canPass} onclick={pass}>Pass</button
+        >{/if}
 </div>
 
 <style>
@@ -50,6 +86,27 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+    }
+    .controls.inline {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .controls.inline button {
+        height: 28px;
+        padding: 0 12px;
+    }
+    .controls.inline .amount-control button {
+        width: 28px;
+        padding: 0;
+        font-size: 17px;
+    }
+    .controls.inline .amount {
+        min-width: 58px;
+        font-size: 14px;
+    }
+    .bid:last-child {
+        grid-column: 1 / -1;
     }
     .amount-control {
         grid-column: 1 / -1;
@@ -78,13 +135,39 @@
         width: 32px;
         font-size: 19px;
     }
-    output {
+    .amount {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         min-width: 68px;
         padding: 0 6px;
-        text-align: center;
         font-size: 15px;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
+        cursor: text;
+    }
+    input {
+        width: 5ch;
+        min-width: 0;
+        padding: 2px 0;
+        border: 0;
+        border-bottom: 1px dashed var(--rail-border, #c7b8a6);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: center;
+        appearance: textfield;
+        -moz-appearance: textfield;
+    }
+    input::-webkit-inner-spin-button,
+    input::-webkit-outer-spin-button {
+        appearance: none;
+        margin: 0;
+    }
+    input:focus-visible {
+        outline: 2px solid #a87948;
+        outline-offset: 1px;
     }
     .bid {
         background: var(--rail-solid, #695540);

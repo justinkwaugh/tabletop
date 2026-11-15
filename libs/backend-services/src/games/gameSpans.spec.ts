@@ -78,9 +78,11 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             const tasks: TaskService = {
                 createPushTask: unused,
                 sendVerificationEmail: unused,
+                sendEmailChangeVerificationEmail: unused,
                 sendPasswordResetEmail: unused,
                 sendAuthVerificationEmail: unused,
                 sendAccountChangeNotificationEmail: unused,
+                sendContentReportEmail: unused,
                 sendGameInvitationEmail: unused,
                 sendGameEndEmail: unused
             }
@@ -1696,9 +1698,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                     await propose('p2', 'p3', 'o2')
                     await act('p2', 'withdraw', 'w2', { offerId: 'o2' })
                     await act('p2', 'drop', 'd2', { itemId: 'start-p2' })
-                    await expect(undo('w2', user('p2'))).rejects.toBeInstanceOf(
-                        DisallowedUndoError
-                    )
+                    await expect(undo('w2', user('p2'))).rejects.toBeInstanceOf(DisallowedUndoError)
                     expect((await spanState()).offers).toEqual({})
                     expect((await mainLine()).actionCount).toBe(3)
                     expect(await branchCounts()).toEqual({ p1: 1, p2: 2, p3: 1 })

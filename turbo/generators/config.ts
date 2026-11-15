@@ -6,7 +6,9 @@ const templatesRoot = path.resolve(process.cwd(), 'turbo', 'generators', 'templa
 const templatePath = (...segments: string[]): string => path.join(templatesRoot, ...segments)
 
 const parseEnumMembers = (source: string, enumName: string): string[] => {
-    const enumMatch = source.match(new RegExp(`export\\s+enum\\s+${enumName}\\s*\\{([\\s\\S]*?)\\}`, 'm'))
+    const enumMatch = source.match(
+        new RegExp(`export\\s+enum\\s+${enumName}\\s*\\{([\\s\\S]*?)\\}`, 'm')
+    )
     if (!enumMatch) return []
 
     const members: string[] = []
@@ -40,7 +42,10 @@ const toCamelCase = (value: string): string => {
             .filter(Boolean)
             .map((part) => part.toLowerCase())
         if (parts.length === 0) return ''
-        return `${parts[0]}${parts.slice(1).map((part) => part[0].toUpperCase() + part.slice(1)).join('')}`
+        return `${parts[0]}${parts
+            .slice(1)
+            .map((part) => part[0].toUpperCase() + part.slice(1))
+            .join('')}`
     }
 
     return `${value[0].toLowerCase()}${value.slice(1)}`
@@ -87,7 +92,14 @@ const getActionChoices = async (answers?: Record<string, unknown>): Promise<stri
     const game = typeof answers?.game === 'string' ? answers.game : ''
     if (!game) return []
 
-    const actionsPath = path.resolve(process.cwd(), 'games', game, 'src', 'definition', 'actions.ts')
+    const actionsPath = path.resolve(
+        process.cwd(),
+        'games',
+        game,
+        'src',
+        'definition',
+        'actions.ts'
+    )
     const source = await readFile(actionsPath, 'utf8')
     return parseEnumMembers(source, 'ActionType')
 }
@@ -177,7 +189,8 @@ const updateStateHandlerWithActions = (
     file: string,
     data: Record<string, unknown>
 ): string => {
-    const renderString = (plop as { renderString?: (template: string, data: unknown) => string }).renderString
+    const renderString = (plop as { renderString?: (template: string, data: unknown) => string })
+        .renderString
     const render = (template: string, extra: Record<string, unknown>) =>
         typeof renderString === 'function' ? renderString(template, extra) : template
     const stateName = render('{{properCase state}}', data)
@@ -186,10 +199,13 @@ const updateStateHandlerWithActions = (
         : typeof data.action === 'string'
           ? [data.action]
           : []
-    const actions = actionList.filter((action) => typeof action === 'string' && action !== '__none__')
+    const actions = actionList.filter(
+        (action) => typeof action === 'string' && action !== '__none__'
+    )
     const newline = file.includes('\r\n') ? '\r\n' : '\n'
 
-    const actionAnchor = 'Leave this comment if you want the template to generate code for valid actions'
+    const actionAnchor =
+        'Leave this comment if you want the template to generate code for valid actions'
 
     const updateMethodBlock = (
         content: string,
@@ -242,7 +258,8 @@ const updateStateHandlerWithActions = (
             return `${content.slice(0, insertPos)}${importLine}${newline}${content.slice(insertPos)}`
         }
 
-        const actionTypeImportRegex = /import { ActionType } from '\.\.\/definition\/actions\.js'\s*\r?\n/
+        const actionTypeImportRegex =
+            /import { ActionType } from '\.\.\/definition\/actions\.js'\s*\r?\n/
         const actionTypeMatch = actionTypeImportRegex.exec(content)
         if (actionTypeMatch) {
             const insertPos = actionTypeMatch.index + actionTypeMatch[0].length
@@ -252,7 +269,11 @@ const updateStateHandlerWithActions = (
         return `${importLine}${newline}${content}`
     }
 
-    const ensureUnionType = (content: string, stateTypeName: string, hydratedName: string): string => {
+    const ensureUnionType = (
+        content: string,
+        stateTypeName: string,
+        hydratedName: string
+    ): string => {
         const fullTypeName = `${stateTypeName}Action`
         const typeRegex = new RegExp(
             `type\\s+${fullTypeName}\\s*=\\s*([^\\n;]+(?:\\n\\s*\\|\\s*[^\\n;]+)*)`,
@@ -313,7 +334,7 @@ const updateStateHandlerWithActions = (
             if (block.includes(canCheck)) return block
 
             const indentMatch = block.match(/^\s*const validActions/m)
-            const indent = indentMatch ? indentMatch[0].match(/^\s*/)?.[0] ?? '' : ''
+            const indent = indentMatch ? (indentMatch[0].match(/^\s*/)?.[0] ?? '') : ''
             const innerIndent = `${indent}    `
             const insertBlock = [
                 `${indent}if (Hydrated${actionName}.can${actionName}(gameState, playerId)) {`,
@@ -479,7 +500,8 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 type: 'append',
                 path: 'games/{{kebabCase game}}/src/definition/apiActions.ts',
                 pattern: /import { ActionType } from '\.\/actions\.js'[ \t]*\n/,
-                template: "import { {{properCase action}} } from '../actions/{{camelCase action}}.js'"
+                template:
+                    "import { {{properCase action}} } from '../actions/{{camelCase action}}.js'"
             },
             {
                 type: 'append',
@@ -491,11 +513,14 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 type: 'modify',
                 path: 'games/{{kebabCase game}}/src/index.ts',
                 transform: (file, data) => {
-                    const renderString = (plop as { renderString?: (template: string, data: unknown) => string })
-                        .renderString
+                    const renderString = (
+                        plop as { renderString?: (template: string, data: unknown) => string }
+                    ).renderString
                     const exportTemplate = "export * from './actions/{{camelCase action}}.js'"
                     const exportLine =
-                        typeof renderString === 'function' ? renderString(exportTemplate, data) : exportTemplate
+                        typeof renderString === 'function'
+                            ? renderString(exportTemplate, data)
+                            : exportTemplate
 
                     if (file.includes(exportLine)) {
                         return file
@@ -547,7 +572,11 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
 
                     const existingHandlers = await getStateHandlerFileChoices(answers)
                     const stateFile = toCamelCase(input)
-                    if (existingHandlers.some((name) => normalizeToken(name) === normalizeToken(stateFile))) {
+                    if (
+                        existingHandlers.some(
+                            (name) => normalizeToken(name) === normalizeToken(stateFile)
+                        )
+                    ) {
                         return 'State handler already exists for this game.'
                     }
 
@@ -560,7 +589,11 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                 message: 'Choose an action for this state:',
                 choices: async (answers?: Record<string, unknown>) => {
                     const choices = await getActionChoices(answers)
-                    return [{ name: '<No Action>', value: '__none__' }, ...choices, { name: '<New Action>', value: '__new__' }]
+                    return [
+                        { name: '<No Action>', value: '__none__' },
+                        ...choices,
+                        { name: '<New Action>', value: '__new__' }
+                    ]
                 }
             },
             {
@@ -585,7 +618,10 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
         actions: (data) => {
             const answers = data as Record<string, unknown>
             const selectedAction = answers.action
-            const resolvedAction = selectedAction === '__new__' ? (answers.newAction as string | undefined) : selectedAction
+            const resolvedAction =
+                selectedAction === '__new__'
+                    ? (answers.newAction as string | undefined)
+                    : selectedAction
             const hasAction = typeof resolvedAction === 'string' && resolvedAction !== '__none__'
 
             if (hasAction) {
@@ -611,7 +647,8 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                         type: 'append',
                         path: 'games/{{kebabCase game}}/src/definition/apiActions.ts',
                         pattern: /import { ActionType } from '\.\/actions\.js'[ \t]*\n/,
-                        template: "import { {{properCase action}} } from '../actions/{{camelCase action}}.js'"
+                        template:
+                            "import { {{properCase action}} } from '../actions/{{camelCase action}}.js'"
                     },
                     {
                         type: 'append',
@@ -623,18 +660,25 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                         type: 'modify',
                         path: 'games/{{kebabCase game}}/src/index.ts',
                         transform: (file, actionData) => {
-                            const renderString = (plop as { renderString?: (template: string, data: unknown) => string })
-                                .renderString
-                            const exportTemplate = "export * from './actions/{{camelCase action}}.js'"
+                            const renderString = (
+                                plop as {
+                                    renderString?: (template: string, data: unknown) => string
+                                }
+                            ).renderString
+                            const exportTemplate =
+                                "export * from './actions/{{camelCase action}}.js'"
                             const exportLine =
-                                typeof renderString === 'function' ? renderString(exportTemplate, actionData) : exportTemplate
+                                typeof renderString === 'function'
+                                    ? renderString(exportTemplate, actionData)
+                                    : exportTemplate
 
                             if (file.includes(exportLine)) {
                                 return file
                             }
 
                             const newline = file.includes('\r\n') ? '\r\n' : '\n'
-                            const actionExportRegex = /export \* from '\.\/actions\/[^']+\.js'[ \t]*\r?\n/g
+                            const actionExportRegex =
+                                /export \* from '\.\/actions\/[^']+\.js'[ \t]*\r?\n/g
                             let lastMatch: RegExpExecArray | null = null
                             let match: RegExpExecArray | null = null
 
@@ -670,10 +714,13 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                     type: 'modify',
                     path: 'games/{{kebabCase game}}/src/definition/stateHandlers.ts',
                     transform: (file, actionData) => {
-                        const renderString = (plop as { renderString?: (template: string, data: unknown) => string })
-                            .renderString
+                        const renderString = (
+                            plop as { renderString?: (template: string, data: unknown) => string }
+                        ).renderString
                         const render = (template: string) =>
-                            typeof renderString === 'function' ? renderString(template, actionData) : template
+                            typeof renderString === 'function'
+                                ? renderString(template, actionData)
+                                : template
                         const stateName = render('{{properCase state}}')
                         const stateFile = render('{{camelCase state}}')
                         const importLine = `import { ${stateName}StateHandler } from '../stateHandlers/${stateFile}.js'`
@@ -698,7 +745,8 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                                     /import type { [^}]+GameState } from '\.\.\/model\/gameState\.js'\s*\r?\n/
                                 const gameStateMatch = gameStateImportRegex.exec(nextFile)
                                 if (gameStateMatch) {
-                                    const insertPos = gameStateMatch.index + gameStateMatch[0].length
+                                    const insertPos =
+                                        gameStateMatch.index + gameStateMatch[0].length
                                     nextFile = `${nextFile.slice(0, insertPos)}${importLine}${newline}${nextFile.slice(insertPos)}`
                                 } else {
                                     nextFile = `${importLine}${newline}${nextFile}`
@@ -743,7 +791,11 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
                     type: 'modify',
                     path: 'games/{{kebabCase game}}/src/stateHandlers/{{camelCase state}}.ts',
                     transform: (file, actionData) =>
-                        updateStateHandlerWithActions(plop, file, actionData as Record<string, unknown>)
+                        updateStateHandlerWithActions(
+                            plop,
+                            file,
+                            actionData as Record<string, unknown>
+                        )
                 })
             }
 
@@ -792,7 +844,8 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
             {
                 type: 'modify',
                 path: 'games/{{kebabCase game}}/src/stateHandlers/{{camelCase state}}.ts',
-                transform: (file, data) => updateStateHandlerWithActions(plop, file, data as Record<string, unknown>)
+                transform: (file, data) =>
+                    updateStateHandlerWithActions(plop, file, data as Record<string, unknown>)
             }
         ]
     })

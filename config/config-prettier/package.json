@@ -1,0 +1,15 @@
+{
+    "name": "@tabletop/prettier-config",
+    "version": "0.0.0",
+    "type": "module",
+    "exports": "./index.js",
+    "dependencies": {
+        "prettier-plugin-svelte": "^3.4.1"
+    },
+    "peerDependencies": {
+        "prettier": "^3.8.0"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}

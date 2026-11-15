@@ -65,10 +65,15 @@
 
 <g>
     {#each cityReferenceCards as card (card.cardId)}
-        {@const cityIconX = card.x + (BOARD_CITY_REFERENCE_CARD_WIDTH - BOARD_CITY_REFERENCE_CARD_CITY_ICON_SIZE) / 2}
+        {@const cityIconX =
+            card.x +
+            (BOARD_CITY_REFERENCE_CARD_WIDTH - BOARD_CITY_REFERENCE_CARD_CITY_ICON_SIZE) / 2}
         {@const cityIconY = card.y + BOARD_CITY_REFERENCE_CARD_CITY_ICON_TOP_INSET}
         {@const labelX = card.x + BOARD_CITY_REFERENCE_CARD_WIDTH / 2}
-        {@const labelY = card.y + BOARD_CITY_REFERENCE_CARD_HEIGHT - BOARD_CITY_REFERENCE_CARD_LABEL_BOTTOM_INSET}
+        {@const labelY =
+            card.y +
+            BOARD_CITY_REFERENCE_CARD_HEIGHT -
+            BOARD_CITY_REFERENCE_CARD_LABEL_BOTTOM_INSET}
         <rect
             x={card.x + BOARD_CITY_REFERENCE_CARD_SHADOW_OFFSET_X}
             y={card.y + BOARD_CITY_REFERENCE_CARD_SHADOW_OFFSET_Y}
@@ -77,7 +82,7 @@
             rx={BOARD_CITY_REFERENCE_CARD_RADIUS}
             fill="rgba(94, 63, 39, 0.16)"
             pointer-events="none"
-        />
+        ></rect>
         <rect
             x={card.x}
             y={card.y}
@@ -88,7 +93,7 @@
             stroke="rgba(94, 63, 39, 0.32)"
             stroke-width="1.5"
             pointer-events="none"
-        />
+        ></rect>
         <image
             href={cityImage}
             x={cityIconX}
@@ -97,7 +102,7 @@
             height={BOARD_CITY_REFERENCE_CARD_CITY_ICON_SIZE}
             preserveAspectRatio="xMidYMid meet"
             pointer-events="none"
-        />
+        ></image>
         <text
             x={labelX}
             y={labelY}
@@ -135,6 +140,6 @@
             onblur={() => {
                 gameSession.setHoveredPlayerCityReferenceCard(undefined)
             }}
-        />
+        ></rect>
     {/each}
 </g>

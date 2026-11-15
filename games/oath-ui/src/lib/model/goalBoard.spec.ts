@@ -17,15 +17,28 @@ type Table = {
 function table(oathType: OathType, over: Table = {}) {
     const state = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', revealedVisionId: 'vision.conquest' }),
-            testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1' }),
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                revealedVisionId: 'vision.conquest'
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            }),
             testPlayer({
                 playerId: 'bo',
                 color: Color.Yellow,
                 siteId: 'h1',
                 relicIds: over.boRelics ?? [],
                 ...(over.citizen
-                    ? { status: PlayerStatus.Citizen, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0, bo: 14 } }
+                    ? {
+                          status: PlayerStatus.Citizen,
+                          warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0, bo: 14 }
+                      }
                     : {})
             })
         ],
@@ -36,7 +49,12 @@ function table(oathType: OathType, over: Table = {}) {
             oathkeeperIsUsurper: over.usurper,
             visionsDrawn: 3,
             banners: testBanners(over.banners ?? {}),
-            warbandsBySite: { c1: { me: 1 }, c2: { me: 1 }, p1: { [IMPERIAL_WARBANDS]: 1 }, p2: { [IMPERIAL_WARBANDS]: 1 } },
+            warbandsBySite: {
+                c1: { me: 1 },
+                c2: { me: 1 },
+                p1: { [IMPERIAL_WARBANDS]: 1 },
+                p2: { [IMPERIAL_WARBANDS]: 1 }
+            },
             ...over.state
         }
     )
@@ -61,13 +79,20 @@ describe('the goal board', () => {
 
     it('R-3.2-H1 — a counted Vision rings its own seat, and a tie is not met', () => {
         const [vision] = goalBoard(table(OathType.Supremacy)).visions
-        expect(vision).toMatchObject({ playerId: 'me', visionId: 'vision.conquest', shared: false, met: false })
+        expect(vision).toMatchObject({
+            playerId: 'me',
+            visionId: 'vision.conquest',
+            shared: false,
+            met: false
+        })
         expect(vision.kind).toBe(GoalKind.Sites)
         expect(vision.standing).toMatchObject({ shape: 'count', ringedId: 'me' })
     })
 
     it('R-3.1 — the title held on its Usurper side says so', () => {
-        expect(goalBoard(table(OathType.Supremacy, { holder: 'me', usurper: true })).oath).toMatchObject({
+        expect(
+            goalBoard(table(OathType.Supremacy, { holder: 'me', usurper: true })).oath
+        ).toMatchObject({
             holderId: 'me',
             usurper: true
         })
@@ -75,20 +100,35 @@ describe('the goal board', () => {
 
     it('R-2.11 — a banner Oath is a holder goal: the banner’s holder, or nobody', () => {
         expect(goalBoard(table(OathType.Protection)).oath.kind).toBe(GoalKind.RelicsAndBanners)
-        const people = goalBoard(table(OathType.ThePeople, { banners: { [Banner.PeoplesFavor]: 'ann' } })).oath
-        expect(people).toMatchObject({ kind: GoalKind.PeoplesFavor, standing: { shape: 'holder', holderId: 'ann' } })
+        const people = goalBoard(
+            table(OathType.ThePeople, { banners: { [Banner.PeoplesFavor]: 'ann' } })
+        ).oath
+        expect(people).toMatchObject({
+            kind: GoalKind.PeoplesFavor,
+            standing: { shape: 'holder', holderId: 'ann' }
+        })
         const devotion = goalBoard(table(OathType.Devotion)).oath
-        expect(devotion).toMatchObject({ kind: GoalKind.DarkestSecret, standing: { shape: 'holder' } })
+        expect(devotion).toMatchObject({
+            kind: GoalKind.DarkestSecret,
+            standing: { shape: 'holder' }
+        })
         expect(devotion.standing).toEqual({ shape: 'holder', holderId: undefined })
     })
 
     it('R-3.3.1 — the Successor appears only with a Citizen, compared with the Imperial players alone', () => {
         expect(goalBoard(table(OathType.Supremacy)).successors).toEqual([])
         const [successor] = goalBoard(table(OathType.Supremacy, { citizen: true })).successors
-        expect(successor).toMatchObject({ citizenId: 'bo', met: false, kind: GoalKind.RelicsAndBanners })
+        expect(successor).toMatchObject({
+            citizenId: 'bo',
+            met: false,
+            kind: GoalKind.RelicsAndBanners
+        })
         expect(successor.standing).toMatchObject({ shape: 'count', ringedId: 'bo' })
         if (successor.standing.shape !== 'count') throw Error('a count')
-        expect(successor.standing.counts.map((count) => count.playerId).sort()).toEqual(['ann', 'bo'])
+        expect(successor.standing.counts.map((count) => count.playerId).sort()).toEqual([
+            'ann',
+            'bo'
+        ])
     })
 
     it('R-3.3.1 — each Oath’s Successor symbol names what the engine’s Successor goal reads', () => {
@@ -98,12 +138,16 @@ describe('the goal board', () => {
             met: true,
             kind: SUCCESSOR_KINDS[OathType.Supremacy]
         })
-        expect(successor(OathType.ThePeople, { banners: { [Banner.DarkestSecret]: 'bo' } })).toMatchObject({
+        expect(
+            successor(OathType.ThePeople, { banners: { [Banner.DarkestSecret]: 'bo' } })
+        ).toMatchObject({
             met: true,
             kind: GoalKind.DarkestSecret,
             standing: { shape: 'holder', holderId: 'bo' }
         })
-        expect(successor(OathType.Protection, { banners: { [Banner.PeoplesFavor]: 'bo' } })).toMatchObject({
+        expect(
+            successor(OathType.Protection, { banners: { [Banner.PeoplesFavor]: 'bo' } })
+        ).toMatchObject({
             met: true,
             kind: GoalKind.PeoplesFavor,
             standing: { shape: 'holder', holderId: 'bo' }
@@ -124,7 +168,10 @@ describe('the goal board', () => {
     })
 
     it('the next win leads the board', () => {
-        expect(goalBoard(table(OathType.Supremacy)).next).toMatchObject({ when: 'endDie', playerId: 'ann' })
+        expect(goalBoard(table(OathType.Supremacy)).next).toMatchObject({
+            when: 'endDie',
+            playerId: 'ann'
+        })
     })
 
     it('a disc’s tooltip says the count or the thing held in words', () => {

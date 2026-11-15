@@ -29,5 +29,5 @@ export enum MachineState {
     // (state.politicsTakingPlayerId) and picking one card from it.
     TakingPoliticsCard = 'TakingPoliticsCard',
     // The King is Dead card was drawn - the game is over.
-    EndOfGame = 'EndOfGame',
+    EndOfGame = 'EndOfGame'
 }

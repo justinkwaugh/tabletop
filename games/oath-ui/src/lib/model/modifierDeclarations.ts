@@ -2,8 +2,11 @@ import {
     ActionType,
     HydratedSearch,
     PowerChoiceKind,
+    cardPowers,
+    disguisedAs,
     isFreeGain,
     offeredChoices,
+    reasonUsesDisagree,
     usableModifiers,
     type CardPower,
     type LegalChoice,
@@ -24,6 +27,7 @@ import type { ModifierDeclaration } from './oathSelection.svelte.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
 import { isHospitality } from './travelRows.js'
 import type { OathGameSession } from './session.svelte.js'
+import type { ModifierRows } from './modifierRows.js'
 import {
     CARD_ACTIONS,
     actionCardUses,
@@ -47,7 +51,7 @@ function cardAction(action: ActionType | undefined): CardAction | undefined {
     return CARD_ACTIONS.find((a) => a === action)
 }
 
-/** The entry without the powers list's mark, its other fields kept. */
+/** The entry without the mark of the card whose "Use" opened the action, its other fields kept. */
 function unopened(m: ModifierDeclaration): ModifierDeclaration {
     return {
         use: m.use,
@@ -58,14 +62,81 @@ function unopened(m: ModifierDeclaration): ModifierDeclaration {
 }
 
 /** R-7.4 — the modifiers usable with the staged action, and the choices each one's text opens. */
-export class ModifierDeclarations {
+export class ModifierDeclarations implements ModifierRows {
     constructor(private readonly session: OathGameSession) {}
 
+    /**
+     * R-7.4 — the cards usable beside the cards in use: Small Friends' site and Master of
+     * Disguise's player change what is in reach. While a card in use still waits for its pick,
+     * only the cards usable whatever is picked are offered.
+     */
     get options(): CardPower[] {
         const playerId = this.session.liveSeatId
         const action = this.session.selection.action
         if (!playerId || !action) return []
-        return usableModifiers(this.session.gameState, playerId, action)
+        const state = this.session.gameState
+        const staged = this.staged
+        const usable = this.usableBeside(playerId, action, staged)
+        return staged.reduce((kept, use) => {
+            const power = usable.find((p) => samePowerUse(p, use))
+            if (!power || this.picksInMenu(power)) return kept
+            if (picksComplete(this.choicesOf(power), this.picksOf(use))) return kept
+            const others = staged.filter((m) => !samePowerUse(m, use))
+            const each = soleDeclarations(state, playerId, power).map((way) =>
+                this.usableBeside(playerId, action, [...others, way])
+            )
+            return kept.filter((p) => each.every((list) => list.some((q) => samePowerUse(q, p))))
+        }, usable)
+    }
+
+    /**
+     * R-7.4-H2 — the cards usable beside `uses`, less each card not among them whose every way
+     * of being declared answers a question differently from a card that stays in use beside it
+     * (Bracken and the Cracked Horn). A card naming the pile puts down another that does
+     * (`declare`), so that one is not asked.
+     */
+    private usableBeside(
+        playerId: string,
+        action: ActionType,
+        uses: readonly ModifierUse[]
+    ): CardPower[] {
+        const state = this.session.gameState
+        const usable = usableModifiers(state, playerId, action, uses)
+        if (uses.length === 0) return usable
+        const namesPile = (p: CardPower) => this.drawPileChoice(p) !== undefined
+        return usable.filter((power) => {
+            if (uses.some((use) => samePowerUse(use, power))) return true
+            const kept = namesPile(power)
+                ? uses.filter((use) => !usable.some((p) => samePowerUse(p, use) && namesPile(p)))
+                : uses
+            if (kept.length === 0) return true
+            return soleDeclarations(state, playerId, power).some(
+                (way) => reasonUsesDisagree(state, playerId, [...kept, way]) === undefined
+            )
+        })
+    }
+
+    /** The cards in use, each with the choices its picks make, before they are judged. */
+    private get staged(): ModifierUse[] {
+        const playerId = this.session.liveSeatId
+        if (!playerId) return []
+        return this.session.selection.modifiers.flatMap(({ use, picks, down }) => {
+            const power = cardPowers(use.cardId)[use.powerIndex]
+            if (down || !power) return []
+            const legal = offeredChoices(this.session.gameState, playerId, power)
+            if (legal.length === 0) return [use]
+            return [{ ...use, choices: powerChoicesFrom(legal, picks ?? emptyPicks()) }]
+        })
+    }
+
+    /** Master of Disguise — the player a listed card is lent by: their faceup adviser. */
+    lenderOf(power: CardPower): string | undefined {
+        const action = this.session.selection.action
+        if (!action) return undefined
+        const lender = disguisedAs(action, this.declared)
+        if (lender === undefined) return undefined
+        const advisers = this.session.gameState.getPlayerState(lender).faceupAdviserIds()
+        return advisers.includes(power.cardId) ? lender : undefined
     }
 
     /**
@@ -105,18 +176,8 @@ export class ModifierDeclarations {
     }
 
     get declared(): ModifierUse[] {
-        const playerId = this.session.liveSeatId
-        const action = this.session.selection.action
-        if (!playerId || !action) return []
-        const usable = usableModifiers(this.session.gameState, playerId, action)
-        return this.session.selection.modifiers.flatMap(({ use, picks, down }) => {
-            if (down) return []
-            const power = usable.find((p) => samePowerUse(p, use))
-            if (!power) return []
-            const legal = offeredChoices(this.session.gameState, playerId, power)
-            if (legal.length === 0) return [use]
-            return [{ ...use, choices: powerChoicesFrom(legal, picks ?? emptyPicks()) }]
-        })
+        const usable = this.options
+        return this.staged.filter((use) => usable.some((p) => samePowerUse(p, use)))
     }
 
     /**
@@ -147,8 +208,8 @@ export class ModifierDeclarations {
     }
 
     /**
-     * R-7.4 — the powers list opens an action with its card, or a pair's two cards, in use. Both
-     * of a pair are marked opened, so Undo takes them back to the powers together.
+     * R-7.4 — a card's "Use" opens an action with the card, or a pair's two cards, in use. Both
+     * of a pair are marked opened, so Undo takes them back to the grid together.
      */
     open(uses: readonly PowerUseKey[]): void {
         assert(uses.length > 0, 'An action is opened with a card in use')
@@ -206,7 +267,7 @@ export class ModifierDeclarations {
     }
 
     /**
-     * R-7.4 — of the powers list's entries that make the action possible (a card, or a pair), one
+     * R-7.4 — of the cards and pairs whose "Use" makes the action possible, one
      * stays in use whatever is tapped: the card is one of an entry in use, and no such entry
      * would be in use without it. A pair keeps both its cards.
      */
@@ -226,7 +287,7 @@ export class ModifierDeclarations {
         )
     }
 
-    /** An action entered from the powers list stays so while a card is in use, whichever card. */
+    /** An action a card's "Use" opened stays so while a card is in use, whichever card. */
     private keepingRoute(
         staged: readonly ModifierDeclaration[],
         next: ModifierDeclaration[]
@@ -296,7 +357,7 @@ export class ModifierDeclarations {
         const action = this.session.selection.action
         if (!playerId || !action) return []
         const state = this.session.gameState
-        const usable = usableModifiers(state, playerId, action)
+        const usable = this.options
         const declared = this.declared
         for (const entry of this.session.selection.modifiers) {
             if (entry.down) continue

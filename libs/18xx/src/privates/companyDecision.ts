@@ -12,8 +12,16 @@ import {
     isCompanyPurchaseOffer
 } from '../transfers/purchaseOffer.js'
 const Id = Type.String({ minLength: 1 })
+// The private's owning company makes the lay; playerId is the seller who chooses it.
 export const PrivateTrackLay = Type.Object(
-    { privateCompanyId: Id, companyId: Id, playerId: Id },
+    {
+        privateCompanyId: Id,
+        playerId: Id,
+        /** The one hex the lay is confined to, where a power fixed it before the lay. */
+        locationId: Type.Optional(Id),
+        /** The rest of a power's lays laid together, which the player may not decline. */
+        required: Type.Optional(Type.Literal(true))
+    },
     { additionalProperties: false }
 )
 export type PrivateTrackLay = Type.Static<typeof PrivateTrackLay>

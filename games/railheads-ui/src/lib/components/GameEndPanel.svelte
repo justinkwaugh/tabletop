@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
+    import { CalledGameEnding, PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
@@ -13,28 +13,32 @@
 </script>
 
 <div class="end">
-    <h1>
-        {#if winners.length > 1}
-            <span>The richest investors are</span>
-        {:else}
-            <span>The richest investor is</span>
-        {/if}
-        {#each winners as winnerId, index (winnerId)}
-            {#if index > 0}<span>and</span>{/if}
-            <PlayerName
-                playerId={winnerId}
-                capitalization={winnerId === gameSession.myPlayerId ? 'none' : 'capitalize'}
-            />
-        {/each}
-    </h1>
-    <ol class="ranking">
-        {#each rows as row (row.playerId)}
-            <li class:winner={winners.includes(row.playerId)}>
-                <PlayerName playerId={row.playerId} />
-                <strong>${row.cash}</strong>
-            </li>
-        {/each}
-    </ol>
+    {#if gameSession.gameCall}
+        <CalledGameEnding class="text-lg" />
+    {:else}
+        <h1>
+            {#if winners.length > 1}
+                <span>The richest investors are</span>
+            {:else}
+                <span>The richest investor is</span>
+            {/if}
+            {#each winners as winnerId, index (winnerId)}
+                {#if index > 0}<span>and</span>{/if}
+                <PlayerName
+                    playerId={winnerId}
+                    capitalization={winnerId === gameSession.myPlayerId ? 'none' : 'capitalize'}
+                />
+            {/each}
+        </h1>
+        <ol class="ranking">
+            {#each rows as row (row.playerId)}
+                <li class:winner={winners.includes(row.playerId)}>
+                    <PlayerName playerId={row.playerId} />
+                    <strong>${row.cash}</strong>
+                </li>
+            {/each}
+        </ol>
+    {/if}
 </div>
 
 <style>

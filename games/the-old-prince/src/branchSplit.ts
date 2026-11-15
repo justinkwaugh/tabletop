@@ -1,6 +1,8 @@
+import { TheOldPrinceCharters } from './charters.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import { assert, type GameState } from '@tabletop/common'
 import {
+    companyShareCount,
     homeStationId,
     cashOwnedBy,
     getCompany,
@@ -17,6 +19,8 @@ import {
     sameOwner,
     sharesOwned,
     trainsOwnedBy,
+    treasuryPool,
+    treasuryPoolId,
     type Owner,
     type Portfolio,
     type Station,
@@ -85,7 +89,7 @@ export class TheOldPrinceBranchSplit {
         if (
             !parent ||
             parent.kind !== 'major' ||
-            parent.shareCount !== 10 ||
+            companyShareCount(this.state, TheOldPrinceCharters, parent.id) !== 10 ||
             parent.closed ||
             !parent.started ||
             !parent.floated
@@ -106,7 +110,11 @@ export class TheOldPrinceBranchSplit {
     }
     parents(playerId: string) {
         return this.state.companies
-            .filter((company) => company.shareCount === 10 && company.started)
+            .filter(
+                (company) =>
+                    companyShareCount(this.state, TheOldPrinceCharters, company.id) === 10 &&
+                    company.started
+            )
             .map((company) => ({ company, reason: this.parentReason(playerId, company.id) }))
     }
     branches() {
@@ -175,7 +183,7 @@ export class TheOldPrinceBranchSplit {
                 certificateTransfers.push({
                     certificateId,
                     owner: treasury,
-                    poolId: `treasury:${parentId}`
+                    poolId: treasuryPoolId(parentId)
                 })
             const receivesPresident = sameOwner(owner, player)
             const received = certificatesForShares(
@@ -345,11 +353,8 @@ export class TheOldPrinceBranchSplit {
         const childOwner: Owner = { kind: 'company', companyId: child.id }
         const tranche = availableTheOldPrinceTranche(state)
         assert(tranche, 'A split requires an available tranche')
-        if (!state.certificatePools.some((pool) => pool.id === `treasury:${parent.id}`))
-            state.certificatePools.push({
-                id: `treasury:${parent.id}`,
-                owner: treasury
-            })
+        if (!state.certificatePools.some((pool) => pool.id === treasuryPoolId(parent.id)))
+            state.certificatePools.push(treasuryPool(parent.id))
         settleCashPayments(state, details.payments)
         for (const transfer of details.certificateTransfers) {
             const certificate = state.certificates.find(

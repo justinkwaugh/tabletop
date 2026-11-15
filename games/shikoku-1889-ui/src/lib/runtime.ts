@@ -12,6 +12,7 @@ import { Definition } from '@tabletop/shikoku-1889'
 import { Shikoku1889MapView } from './mapView.js'
 import { Shikoku1889Presentation } from './presentation.js'
 import Table from './Table.svelte'
+import { createRouteWorker } from './routeWorker.js'
 
 export const UiRuntime: GameUIRuntime<Shikoku1889State, HydratedShikoku1889State> = {
     ...Definition.runtime,
@@ -19,7 +20,8 @@ export const UiRuntime: GameUIRuntime<Shikoku1889State, HydratedShikoku1889State
     sessionClass: createEighteenXXSessionClass(
         Shikoku1889TitleRules,
         Shikoku1889MapView,
-        Shikoku1889Presentation
+        Shikoku1889Presentation,
+        createRouteWorker
     ),
     colorizer: new DefaultColorizer()
 }

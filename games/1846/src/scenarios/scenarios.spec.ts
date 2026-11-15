@@ -34,10 +34,7 @@ it.each([2, 3, 4, 5])(
     'stock scenarios offer a purchase on a fresh turn with %s players',
     (count) => {
         const { state } = exampleGame(Scenarios1846, 'trading', count, 1889)
-        const choices = stockChoices(
-            hydrateEighteenFortySixState(state),
-            state.activePlayerIds[0]
-        )
+        const choices = stockChoices(hydrateEighteenFortySixState(state), state.activePlayerIds[0])
         expect(choices.buys.length).toBeGreaterThan(0)
         expect(choices.starts.length).toBeGreaterThan(0)
     }

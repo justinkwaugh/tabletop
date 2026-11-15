@@ -1,4 +1,7 @@
-import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import {
+    gameClientCapabilities,
+    type GameUiDefinition
+} from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { SantiagoInfo } from '@tabletop/santiago'
 import type { SantiagoProjectedState, HydratedSantiagoGameState } from '@tabletop/santiago'
 import coverImg from '$lib/images/santiago-cover.jpg'
@@ -6,7 +9,8 @@ import coverImg from '$lib/images/santiago-cover.jpg'
 export const UiDefinition: GameUiDefinition<SantiagoProjectedState, HydratedSantiagoGameState> = {
     info: {
         ...SantiagoInfo,
-        thumbnailUrl: coverImg
+        thumbnailUrl: coverImg,
+        clientCapabilities: gameClientCapabilities()
     },
     runtime: async () => {
         return (await import('./definition/gameUiRuntime.js')).SantiagoUiRuntime

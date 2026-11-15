@@ -10,7 +10,10 @@ for (const scenario of [
     'runPrivateHandHostView',
     'runPrivateHandProtectedFallback',
     'runCorrectionDuringAnimation',
-    'runRejectionDuringAnimation'
+    'runRejectionDuringAnimation',
+    'runLocalSelectionLifetime',
+    'runLocalSelectionKeptByTitle',
+    'runLocalSelectionOwnAction'
 ] as const) {
     test(scenario, async ({ page }) => {
         await page.goto('/session-test.html')

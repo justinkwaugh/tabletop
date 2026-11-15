@@ -8,6 +8,7 @@ import {
     type SavedWorkspace,
     type WorkspaceTab
 } from '@tabletop/frontend-components'
+import { assertExists } from '@tabletop/common'
 
 const sidebar = ['Players', 'History', 'Chat']
 export function initialTableLayout(tabs: readonly WorkspaceTab[]): InitialWorkspace {
@@ -65,6 +66,58 @@ export function restoreTableWorkspace(value: unknown, tabs: readonly WorkspaceTa
             ? ['Game info', ...saved.sidebar]
             : ['rows', 25, ['Game info'], saved.sidebar]
     return saveTableWorkspace({ ...saved, sidebar: [], main: ['cols', 20, left, saved.main] })
+}
+
+export interface TabbedTableLayout {
+    tabs: WorkspaceTab[]
+    sidebarAccepts: string[]
+    initial: InitialWorkspace
+}
+
+export function tabbedTableLayout(title: {
+    board: boolean
+    chat: boolean
+    gameInformation: boolean
+}): TabbedTableLayout {
+    const sidebarTabs = sidebar.filter((id) => id !== 'Chat' || title.chat)
+    const optional = [
+        'Player Aid',
+        'Depot',
+        'Stats',
+        ...(title.gameInformation ? ['Game info'] : [])
+    ]
+    const tabs: WorkspaceTab[] = [
+        { id: 'Map', label: title.board ? 'Board' : 'Map', closable: false },
+        { id: 'Market', label: 'Market', ...(title.board ? { optional: true } : {}) },
+        { id: 'Spreadsheet', label: 'Spreadsheet', shortLabel: 'Sheet' },
+        { id: 'Companies', label: 'Companies' },
+        { id: 'Tiles', label: 'Tiles' },
+        ...sidebarTabs.map((id) => ({ id, label: id })),
+        ...optional.map((id) => ({ id, label: id, optional: true }))
+    ]
+    return {
+        tabs,
+        sidebarAccepts: tabs.filter((tab) => tab.id !== 'Map').map((tab) => tab.id),
+        initial: {
+            main: tabs
+                .filter((tab) => !tab.optional && !sidebarTabs.includes(tab.id))
+                .map((tab) => tab.id),
+            sidebar: sidebarTabs
+        }
+    }
+}
+
+export function firstTabbedView(savedLayout: unknown, layout: TabbedTableLayout): string {
+    const { root } = restoreWorkspaceTabs(
+        savedLayout,
+        layout.tabs,
+        layout.sidebarAccepts,
+        undefined,
+        layout.initial
+    )
+    const first = workspaceLayout(root).panes[0].pane.tabs[0]
+    assertExists(first, 'The tabbed view pane always holds Map, which cannot close')
+    return first
 }
 
 export function defaultTableView(

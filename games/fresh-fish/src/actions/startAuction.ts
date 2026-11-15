@@ -6,7 +6,8 @@ import {
     HydratableAction,
     TieResolutionStrategy,
     range,
-    MachineContext
+    MachineContext,
+    assertExists
 } from '@tabletop/common'
 
 import { HydratedFreshFishGameState } from '../model/gameState.js'
@@ -14,7 +15,7 @@ import { Compile } from 'typebox/compile'
 import { isStallTile } from '../components/tiles.js'
 import { ActionType } from '../definition/actions.js'
 import { GoodsType } from '../definition/goodsType.js'
-import { FreshFishGameConfig } from '../definition/gameConfig.js'
+import { auctioneerWinsTie } from '../definition/gameConfig.js'
 
 export type StartAuction = Type.Static<typeof StartAuction>
 export const StartAuction = Type.Evaluate(
@@ -59,8 +60,10 @@ export class HydratedStartAuction
 
         const auctioneerIndex = turnOrder.findIndex((playerId) => playerId === this.playerId)
 
-        const config = context?.gameConfig as FreshFishGameConfig
-        const firstInOrderIndex = config?.auctioneerWinsTie ? auctioneerIndex : auctioneerIndex + 1
+        assertExists(context, 'Starting an auction needs the game configuration')
+        const firstInOrderIndex = auctioneerWinsTie(context.gameConfig)
+            ? auctioneerIndex
+            : auctioneerIndex + 1
         const biddingOrder = range(firstInOrderIndex, turnOrder.length).map(
             (index) => doubledTurnOrder[index]
         )

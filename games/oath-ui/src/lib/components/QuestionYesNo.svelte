@@ -7,12 +7,21 @@
     let {
         yes,
         no,
-        cost
+        cost,
+        dot = true,
+        yesLabel,
+        noConsequence
     }: {
         yes: string
         no: string
         /** What the yes pays, in gold after its word ("1 secret"). */
         cost?: string
+        /** A dot between the word and its cost ("Travel · flip 1 secret"), or none ("Give 1 favor"). */
+        dot?: boolean
+        /** The yes read aloud, where "<yes>, paying <cost>" does not say it ("Travel and flip 1 secret"). */
+        yesLabel?: string
+        /** What the no brings beyond its word, in rose after a dot ("Refuse · Ann takes it"). */
+        noConsequence?: string
     } = $props()
 
     let gameSession = getGameSession()
@@ -28,19 +37,28 @@
         <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
     </p>
 {/if}
-<div class="flex flex-wrap gap-2">
+<div class="flex flex-wrap gap-2" data-answer-row>
     {#if draft.acceptComplete && !refused}
         <AnswerButton
             primary
             {width}
             disabled={busy}
-            label={cost ? `${yes}, paying ${cost}` : undefined}
+            label={yesLabel ?? (cost ? `${yes}, paying ${cost}` : undefined)}
             onclick={() => draft.accept()}
         >
-            {yes}{#if cost}<span aria-hidden="true">·</span><span class="text-oath-accent"
-                    ><TokenText text={cost} /></span
+            {yes}{#if cost}{#if dot}<span aria-hidden="true">·</span>{/if}<span
+                    class="text-oath-accent"><TokenText text={cost} /></span
                 >{/if}
         </AnswerButton>
     {/if}
-    <AnswerButton {width} disabled={busy} onclick={() => draft.decline()}>{no}</AnswerButton>
+    <AnswerButton
+        {width}
+        disabled={busy}
+        label={noConsequence ? `${no}, ${noConsequence}` : undefined}
+        onclick={() => draft.decline()}
+    >
+        {no}{#if noConsequence}<span class="text-oath-text-muted" aria-hidden="true">·</span><span
+                class="font-semibold text-oath-danger">{noConsequence}</span
+            >{/if}
+    </AnswerButton>
 </div>

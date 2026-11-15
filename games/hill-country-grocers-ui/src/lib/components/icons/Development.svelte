@@ -20,15 +20,9 @@
 
 <g transform="translate({x} {y})">
     {#if built}
-        <rect
-            x={left + 0.8}
-            y={top + 1.2}
-            {width}
-            height={size}
-            rx={size * 0.08}
-            class="shadow"
-        />
-        <rect x={left} y={top} {width} height={size} rx={size * 0.08} class="body" />
+        <rect x={left + 0.8} y={top + 1.2} {width} height={size} rx={size * 0.08} class="shadow"
+        ></rect>
+        <rect x={left} y={top} {width} height={size} rx={size * 0.08} class="body"></rect>
         <rect
             x={left - size * 0.04}
             y={top - size * 0.04}
@@ -36,7 +30,7 @@
             height={size * 0.1}
             rx={size * 0.04}
             class="roof"
-        />
+        ></rect>
         {#each windows as pane (pane.index)}
             <rect
                 x={pane.x}
@@ -45,15 +39,15 @@
                 height={size * 0.12}
                 rx={size * 0.02}
                 class="window"
-            />
+            ></rect>
         {/each}
         <path
-            d="M {-width * 0.14} {-top} V {-top - size * 0.16} a {width * 0.14} {width * 0.14} 0 0 1 {width *
-                0.28} 0 V {-top} Z"
+            d="M {-width * 0.14} {-top} V {-top - size * 0.16} a {width * 0.14} {width *
+                0.14} 0 0 1 {width * 0.28} 0 V {-top} Z"
             class="door"
-        />
+        ></path>
     {:else}
-        <rect x={left} y={top} {width} height={size} rx={size * 0.08} class="slot" />
+        <rect x={left} y={top} {width} height={size} rx={size * 0.08} class="slot"></rect>
     {/if}
 </g>
 

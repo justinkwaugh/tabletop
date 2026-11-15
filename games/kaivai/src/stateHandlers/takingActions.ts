@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedKaivaiGameState } from '../model/gameState.js'
@@ -35,8 +31,14 @@ type TakingActionsAction =
     | HydratedMove
     | HydratedPass
 
-export class TakingActionsStateHandler implements MachineStateHandler<TakingActionsAction, HydratedKaivaiGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is TakingActionsAction {
+export class TakingActionsStateHandler implements MachineStateHandler<
+    TakingActionsAction,
+    HydratedKaivaiGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedKaivaiGameState>
+    ): action is TakingActionsAction {
         if (!action.playerId) return false
         return (
             action.type === ActionType.Build ||
@@ -50,7 +52,10 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): ActionType[] {
         const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 
@@ -195,7 +200,10 @@ export class TakingActionsStateHandler implements MachineStateHandler<TakingActi
         }
     }
 
-    onAction(action: TakingActionsAction, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+    onAction(
+        action: TakingActionsAction,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): MachineState {
         const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 

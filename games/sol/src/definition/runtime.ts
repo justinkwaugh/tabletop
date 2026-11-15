@@ -14,6 +14,7 @@ import { SolStateHandlers } from './stateHandlers.js'
 import { SolColors } from './colors.js'
 import { SolActionSchemas } from './actionSchemas.js'
 import { SolScoring } from './scoring.js'
+import { SolProgression } from './progression.js'
 
 export const SolRuntime = {
     randomnessVersion: 1,
@@ -26,6 +27,7 @@ export const SolRuntime = {
     playerColors: SolColors,
     stateLogger: new DefaultStateLogger(),
     scoring: new SolScoring(),
+    progression: new SolProgression(),
     visibility: {
         state: Visibility.createProjector(SolGameState),
         actions: Visibility.createActionProjector(SolActionSchemas)

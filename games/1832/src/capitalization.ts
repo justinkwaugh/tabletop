@@ -1,3 +1,4 @@
+import { EighteenThirtyTwoCharters } from './charters.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
@@ -10,9 +11,10 @@ import {
 } from '@tabletop/common'
 import {
     CashPayment,
-    SystemActionFirstHandler,
+    companyShareCount,
     getCompany,
     settleCashPayments,
+    SystemActionFirstHandler,
     type CompanyState
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoStateHandler } from './state.js'
@@ -57,11 +59,12 @@ export class HydratedCapitalizeCompany
         )
         const company = getCompany(state, this.companyId)
         assertExists(company.parPrice, 'A floated company has a par price')
-        assertExists(company.shareCount, 'A floated company has a share count')
+        const shareCount = companyShareCount(state, EighteenThirtyTwoCharters, this.companyId)
+        assertExists(shareCount, 'A floated company has a share count')
         const payment: CashPayment = {
             from: { kind: 'bank' },
             to: { kind: 'company', companyId: this.companyId },
-            amount: company.parPrice * company.shareCount
+            amount: company.parPrice * shareCount
         }
         settleCashPayments(state, [payment])
         company.funded = true

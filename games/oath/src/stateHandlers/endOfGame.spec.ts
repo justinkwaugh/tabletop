@@ -36,8 +36,10 @@ describe('the game-end cycle (R-3.4 at round 8, through GameEngine.run)', () => 
     it('accepts no further play: a post-game action is rejected', () => {
         const game = testGame(['p1', 'p2'])
         const state = playToEnd()
-        expect(() =>
-            engine.runNext(buildAction(Travel, { playerId: 'p1', siteId: 'c2' }), state, game).updatedState
+        expect(
+            () =>
+                engine.runNext(buildAction(Travel, { playerId: 'p1', siteId: 'c2' }), state, game)
+                    .updatedState
         ).toThrow()
     })
 

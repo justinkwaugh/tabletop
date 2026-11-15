@@ -14,6 +14,7 @@ import {
 } from './stationPlacement.js'
 import { isPlaceStation, type HydratedPlaceStation } from './placeStation.js'
 import { FinishStations, isFinishStations, type HydratedFinishStations } from './finishStations.js'
+import { actionMayOperate, automaticStepCredit } from '../finance/receivership.js'
 type State = HydratedGameState & OperatingState & StationPlacementState
 export class PlacingStationHandler implements MachineStateHandler<
     HydratedPlaceStation | HydratedFinishStations,
@@ -32,9 +33,8 @@ export class PlacingStationHandler implements MachineStateHandler<
                     isFinishStations(action) &&
                     this.mustFinish(state)
                 )) ||
-            !action.playerId ||
-            !state.activePlayerIds.includes(action.playerId) ||
-            (!isPlaceStation(action) && !isFinishStations(action))
+            (!isPlaceStation(action) && !isFinishStations(action)) ||
+            !actionMayOperate(state, action, action.companyId)
         )
             return false
         const placement = new StationPlacement(state, this.rules)
@@ -90,7 +90,7 @@ export class PlacingStationHandler implements MachineStateHandler<
             const step = state.stationStep!
             context.addSystemAction(FinishStations, {
                 companyId: step.companyId,
-                playerId: state.activePlayerIds[0]
+                ...automaticStepCredit(state, step.companyId)
             })
         }
     }

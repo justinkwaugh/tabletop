@@ -22,20 +22,20 @@ These fixes implement the existing slice-6 requirement to exercise notification 
 
 ## Compatibility matrix
 
-| Combination or transition | Evidence and behavior | Remaining limit |
-| --- | --- | --- |
-| Current Game Client with current transport | Projected replay, legacy replay, authoritative submission, optimistic acceptance, Undo, and recovery suites pass | These conformance fixtures are not historical deployed artifacts |
-| New Game UI with older injected Site Frontend API | Missing Host View capability is tested; ordinary loading retains the original interface | Reload the Site Frontend before using Host View |
-| Older Game UI with newer Site Frontend | Added capability is optional and ignored by older code; existing result fields remain available | A UI predating projection needs a major-version reload and a compatible current Publication |
-| New API with an older canonical backend response | Host View accepts the existing canonical response without a Perspective field; Undo derives replay from legacy fields | Does not promise new runtime compatibility with arbitrary older title logic |
-| Host request receiving a Player/spectator projection | API rejects it before publishing a Host Context | Older APIs must first adopt the capability |
-| Host/ordinary reload with a notification arriving after its snapshot | Both browser cases recover the latest primary state with the correct bag visibility | Actual old/new artifact publication remains an operational release check |
-| Busy legacy and projected Undo | Browser cases cover processing and pending presentation, with surrounding deliveries | Legacy manifests still require referenced Action records or recovery |
-| Exploration with primary discontinuity | Browser case preserves the sample and returns to current projected play | Hosted Fork is a separate operation |
-| Stored v1/v2 state | Existing seeded initialization tests plus new auctions without `submitted` or `protectedPrng` cover projection, last bid, resolution, and canonical/projected Undo | No retroactive privacy guarantee; not a blanket promise for arbitrary historical schemas |
-| New title with no visibility declaration | Existing engine tests create systemVersion 3 independently of visibility | Protected randomness alone does not make canonical delivery private |
-| Older saved Exploration without a checkpoint | Existing legacy loading and forward-play tests remain passing | Reading new checkpointed branches with older clients is not established |
-| Current saved Exploration | History, save/load, cascade-boundary creation and exact History return, inherited Undo barriers, and simulated Undo remain covered | Per-title population is still required for ordinary projected Exploration |
+| Combination or transition                                            | Evidence and behavior                                                                                                                                              | Remaining limit                                                                             |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Current Game Client with current transport                           | Projected replay, legacy replay, authoritative submission, optimistic acceptance, Undo, and recovery suites pass                                                   | These conformance fixtures are not historical deployed artifacts                            |
+| New Game UI with older injected Site Frontend API                    | Missing Host View capability is tested; ordinary loading retains the original interface                                                                            | Reload the Site Frontend before using Host View                                             |
+| Older Game UI with newer Site Frontend                               | Added capability is optional and ignored by older code; existing result fields remain available                                                                    | A UI predating projection needs a major-version reload and a compatible current Publication |
+| New API with an older canonical backend response                     | Host View accepts the existing canonical response without a Perspective field; Undo derives replay from legacy fields                                              | Does not promise new runtime compatibility with arbitrary older title logic                 |
+| Host request receiving a Player/spectator projection                 | API rejects it before publishing a Host Context                                                                                                                    | Older APIs must first adopt the capability                                                  |
+| Host/ordinary reload with a notification arriving after its snapshot | Both browser cases recover the latest primary state with the correct bag visibility                                                                                | Actual old/new artifact publication remains an operational release check                    |
+| Busy legacy and projected Undo                                       | Browser cases cover processing and pending presentation, with surrounding deliveries                                                                               | Legacy manifests still require referenced Action records or recovery                        |
+| Exploration with primary discontinuity                               | Browser case preserves the sample and returns to current projected play                                                                                            | Hosted Fork is a separate operation                                                         |
+| Stored v1/v2 state                                                   | Existing seeded initialization tests plus new auctions without `submitted` or `protectedPrng` cover projection, last bid, resolution, and canonical/projected Undo | No retroactive privacy guarantee; not a blanket promise for arbitrary historical schemas    |
+| New title with no visibility declaration                             | Existing engine tests create systemVersion 3 independently of visibility                                                                                           | Protected randomness alone does not make canonical delivery private                         |
+| Older saved Exploration without a checkpoint                         | Existing legacy loading and forward-play tests remain passing                                                                                                      | Reading new checkpointed branches with older clients is not established                     |
+| Current saved Exploration                                            | History, save/load, cascade-boundary creation and exact History return, inherited Undo barriers, and simulated Undo remain covered                                 | Per-title population is still required for ordinary projected Exploration                   |
 
 ## Publication and rollback
 
@@ -93,7 +93,7 @@ Fresh Fish Logic 4 / UI 6, Sol Logic 6 / UI 7, and Löwenherz Logic 3 / UI 3 ado
 
 Old v1/v2 and existing numeric v3 saves keep their stored generators and remain playable with the updated runtimes. A lobby created before adoption has no private seed document; starting it generates a fresh master seed and persists its derived public seed. It has no gameplay state to migrate. Forks bypass initialization and preserve their saved cursors. Older Logic Artifacts cannot read new ChaCha20 saves, so rollback after new games start requires a forward-compatible fix, not selecting an old artifact.
 
-The crypto dependencies require Node 20.19 or newer; the production Node 22 image satisfies that floor. Deployment and mixed-publication rollout verification remain release work.
+The crypto dependencies require Node 20.19 or newer; the production Node 24 image satisfies that floor. Deployment and mixed-publication rollout verification remain release work.
 
 ## Backend-only deployment and older runtime interfaces (2026-09-06)
 
@@ -128,7 +128,6 @@ Membership changes now select and modify players from the transaction's current 
 Verification: 83 backend-service tests passed, including new stale-read, concurrent public/private join, decline, final-slot, notification, cache invalidation, and lock-conflict regressions. The real Firestore/Redis concurrent-join reproduction preserved all players. A three-account hosted Fresh Fish run completed public lobby creation, joins, start and play, followed by fork creation, joins, start and independent play; all three fork clients received projected state and the source state remained unchanged. This closes the join-to-start and hosted Fork restart gaps above. The runner was stopped and the temporary manifest restored. These fixes change no API or artifact contract and require only the backend deployment; they do not reconstruct player associations already overwritten by the old code.
 
 The subsequent [cache/store coherence audit](./cache-coherence-audit.md) found broader protocol and dependency failures that the lobby regressions did not cover. The [correctness work](./cache-coherence-correctness-plan.md) repairs the existing cache protocol, transaction dependencies, Game data snapshots and manifest refreshes. Key-format changes and further deployment/recovery verification are deferred by user decision; the documented operating assumptions remain applicable.
-
 
 ## Config-based visibility policies
 

@@ -4,7 +4,6 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -19,11 +18,13 @@ import {
     finiteCashOwnedBy,
     isTakeLoan,
     recordStockAction,
-    settleCashPayments
+    settleCashPayments,
+    treasuryPoolId,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { inClosingZone } from './marketZones.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
-import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRoundRules, MarketPoolId } from './roundRules.js'
 import { EighteenSeventeenStockRules } from './stockRules.js'
 
 export function buyBackCertificateIds(state: EighteenSeventeenState, companyId: string): string[] {
@@ -128,7 +129,7 @@ export function corporateActionOptions(
 
 export const BuyBackShares = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BuyBackShares'),
         companyId: Type.String(),
         certificateIds: Type.Array(Type.String(), { minItems: 1 }),

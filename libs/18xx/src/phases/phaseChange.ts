@@ -57,12 +57,22 @@ export const PhaseFields = {
 }
 export type PhaseState = Type.Static<Type.TObject<typeof PhaseFields>> & { phaseId: string }
 export type PhaseChangeState = StockState & TrainState & PhaseState & MapStateData
+/**
+ * A title's own changes as a phase begins, such as closing its minor companies or removing its
+ * markers, recorded in the phase Action under the title's schema.
+ */
+export interface PhaseChanges<Changes extends Type.TObject = Type.TObject> {
+    schema: Changes
+    /** Runs once the new phase is current, before its trains rust and its private effects apply. */
+    apply(state: PhaseChangeState, event: PhaseOccurrence): Type.Static<Changes>
+}
 export interface PhaseRules {
     activePlayers?(state: PhaseChangeState, companyId: string): string[]
     rustTiming(state: TrainPurchaseState, train: Train): 'immediate' | 'after-operation' | undefined
     /** Companies in discard order, starting from the operating company when there is one. */
     discardOrder(state: PhaseChangeState, companyId: string | undefined): string[]
     discardDestination: TrainDestination
+    changes?: PhaseChanges
 }
 export function marketDiscardOrder(
     market: StockMarketChart,
@@ -99,11 +109,13 @@ export function preparePhaseChange(
         discardCompanyIds: []
     }
 }
+export type PhaseAdvance = { event: PhaseEvent; changes?: Type.Static<Type.TObject> }
+/** Begins the pending phase: the title's changes, then train rusting and the discards it forces. */
 export function advancePhase(
     state: PhaseChangeState,
     rules: PhaseRules,
     trainRules: TrainRules
-): PhaseEvent {
+): PhaseAdvance {
     const change = state.phaseChange
     assertExists(change, 'No pending phase change')
     assert(
@@ -112,6 +124,7 @@ export function advancePhase(
         'This phase occurrence was already applied'
     )
     state.phaseId = change.event.toPhaseId
+    const changes = rules.changes?.apply(state, change.event)
     const event: PhaseEvent = {
         ...change.event,
         privateEffects: [],
@@ -151,7 +164,7 @@ export function advancePhase(
                 trainsCountingForLimit(state, trainRules, companyId).length >
                 trainRules.trainLimit(state, companyId)
         )
-    return event
+    return changes === undefined ? { event } : { event, changes }
 }
 export function phaseDecisionPlayers(
     state: PhaseChangeState,
@@ -186,8 +199,10 @@ export function validatePhaseChange(
         trackStep?: { companyId: string }
         stationStep?: { companyId: string }
         routeStep?: { companyId: string }
-    }
+    },
+    titleDecisionStates: readonly string[] = []
 ): void {
+    const decisionStates = [...PhaseDecisionStates, ...titleDecisionStates]
     assert(
         new Set(state.phaseEvents.map((event) => event.id)).size === state.phaseEvents.length,
         'Duplicate phase occurrence'
@@ -198,7 +213,7 @@ export function validatePhaseChange(
         return
     }
     assert(
-        PhaseDecisionStates.includes(state.machineState),
+        decisionStates.includes(state.machineState),
         'Pending phase change requires its decision state'
     )
     assert(
@@ -220,7 +235,8 @@ export function validatePhaseChange(
             ? state.phaseId === change.event.fromPhaseId &&
                   !state.phaseEvents.some((event) => event.id === change.event.id)
             : state.phaseId === change.event.toPhaseId &&
-                  change.discardCompanyIds.length > 0 &&
+                  (change.discardCompanyIds.length > 0 ||
+                      titleDecisionStates.includes(state.machineState)) &&
                   state.phaseEvents.some((event) => event.id === change.event.id),
         'Phase effects must match pending decisions'
     )

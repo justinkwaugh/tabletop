@@ -12,6 +12,10 @@ export function currentAttack(state: HydratedNapoleonsTriumphGameState): AttackS
     return state.attack
 }
 
+export function isNamedDefender(attack: AttackState, commanderId: string): boolean {
+    return attack.defendingCommanderIds.includes(commanderId)
+}
+
 /** Rule 11: how far the attack procedure has come, read from what has been declared and resolved. */
 export function attackStep(attack: AttackState): AttackStep {
     if (attack.retreatBeforeCombat) {

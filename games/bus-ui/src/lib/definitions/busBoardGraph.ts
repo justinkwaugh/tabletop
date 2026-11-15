@@ -1,4 +1,4 @@
-import { type BuildingSiteId, type BusNodeId } from '@tabletop/bus'
+import type { BuildingSiteId, BusNodeId } from '@tabletop/bus'
 import type { Point } from '@tabletop/common'
 
 export const BUS_BOARD_NODE_POINTS: Record<BusNodeId, Point> = {

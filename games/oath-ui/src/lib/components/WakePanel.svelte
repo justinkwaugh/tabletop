@@ -94,9 +94,14 @@
                             {@render choice('Place a favor', 'Place favor', () =>
                                 wake.chooseKind('place')
                             )}
-                        {:else}
+                        {:else if option === 'return'}
                             {@render choice('Return a favor', 'Return favor', () =>
                                 wake.chooseKind('return')
+                            )}
+                        {:else}
+                            <!-- Vow of Kinship's Q&A: its bank's favor may be placed, never forced. -->
+                            {@render choice('Place no favor', 'Place none', () =>
+                                wake.chooseKind('none')
                             )}
                         {/if}
                     {/each}

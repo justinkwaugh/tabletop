@@ -77,6 +77,10 @@ export function plural(count: number, noun: string, nouns = `${noun}s`): string 
     return `${count} ${count === 1 ? noun : nouns}`
 }
 
+export function winVerb(winnerIds: string[], myPlayerId: string | undefined): string {
+    return winnerIds.length > 1 || winnerIds.includes(myPlayerId ?? '') ? 'win' : 'wins'
+}
+
 export function resupplyText(roads: number, cities: number): string {
     const parts = [
         roads > 0 ? plural(roads, 'road') : undefined,

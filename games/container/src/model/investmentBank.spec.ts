@@ -126,10 +126,7 @@ describe('Investment Bank', () => {
         }
 
         const player = state.players[0]
-        bank.personalHarbors[player.playerId] = [
-            ContainerColor.Blue,
-            ContainerColor.Red
-        ]
+        bank.personalHarbors[player.playerId] = [ContainerColor.Blue, ContainerColor.Red]
         player.ship.location = { type: 'open_sea' }
 
         const action = new HydratedSailShip({
@@ -144,5 +141,45 @@ describe('Investment Bank', () => {
         expect(player.ship.location.type).toBe('investment_bank')
         expect(player.ship.cargo).toEqual([ContainerColor.Blue, ContainerColor.Red])
         expect(bank.personalHarbors[player.playerId]).toEqual([])
+    })
+
+    it('deals a money deposit to the brokers in order, one coin each', () => {
+        const state = createTestGameState()
+        const bank = state.investmentBank
+        expect(bank).toBeDefined()
+        if (!bank) {
+            return
+        }
+
+        bank.brokers = [
+            { containers: [], money: 1 },
+            { containers: [], money: 0 },
+            { containers: [], money: 2 }
+        ]
+
+        state.depositToInvestmentBank(7)
+
+        expect(bank.brokers.map((broker) => broker.money)).toEqual([4, 2, 4])
+    })
+
+    it('deposits an amount far larger than any game reaches without dealing each coin', () => {
+        const state = createTestGameState()
+        const bank = state.investmentBank
+        expect(bank).toBeDefined()
+        if (!bank) {
+            return
+        }
+
+        bank.brokers = [
+            { containers: [], money: 0 },
+            { containers: [], money: 0 },
+            { containers: [], money: 0 }
+        ]
+
+        state.depositToInvestmentBank(3_000_000_000_001)
+
+        expect(bank.brokers.map((broker) => broker.money)).toEqual([
+            1_000_000_000_001, 1_000_000_000_000, 1_000_000_000_000
+        ])
     })
 })

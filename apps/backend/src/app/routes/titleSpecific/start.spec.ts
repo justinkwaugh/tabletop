@@ -74,7 +74,7 @@ async function createServer() {
     const startGame = vi.fn(async () => startedGame)
     Reflect.set(server, 'gameService', { startGame })
 
-    await server.register(startGameRoute.bind(undefined, definition))
+    await server.register(startGameRoute.bind(undefined, () => definition))
     return { server, startGame, startedGame }
 }
 

@@ -50,6 +50,10 @@ _Avoid_: Endpoint registration, subscription topic
 A mechanism capable of carrying a supported notification contract. A transport-specific address, subscription object, identifier, or API endpoint is an implementation detail.
 _Avoid_: Delivery endpoint, API endpoint
 
+**Supported Push Service**:
+A Web Push service operated by a supported browser vendor. A Web Push Topic Registration names a Supported Push Service over HTTPS on the default port without credentials; any other destination is refused at registration and purged when Dispatch reaches it. Dispatch connects only to publicly routable addresses, within a bounded time.
+_Avoid_: Push endpoint allowlist
+
 **Realtime Connection**:
 A temporary delivery relationship that may hold multiple Topic Registrations. Its registrations end with the connection and are authorized again on reconnect.
 

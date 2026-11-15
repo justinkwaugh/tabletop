@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createOrdinaryShareCertificates, type FinancialState } from '@tabletop/18xx'
-import { companyOwnership } from './companyOwnership.js'
+import { companyOwnership, holdsReceiverPresidentCertificate } from './companyOwnership.js'
 
 describe('company ownership', () => {
     it('keeps share quantities, corporate owners and certificate pools distinct', () => {
@@ -66,5 +66,46 @@ describe('company ownership', () => {
             { owner: formerOwner, shares: 0, certificateNumbers: [] }
         ])
         expect(companyOwnership(state, 'N')).toHaveLength(1)
+    })
+})
+
+describe('a pool holding the president’s certificate of a company in receivership', () => {
+    const bank = { kind: 'bank' } as const
+    const state = (started: boolean, president?: { kind: 'player'; playerId: string }) =>
+        ({
+            bank: {},
+            companies: [{ id: 'A', kind: 'major', started, ...(president ? { president } : {}) }],
+            cash: [],
+            certificatePools: [{ id: 'market', owner: bank }],
+            certificates: [
+                {
+                    id: 'A:president',
+                    kind: 'share',
+                    companyId: 'A',
+                    shares: 2,
+                    president: true,
+                    owner: bank,
+                    poolId: 'market'
+                }
+            ]
+        }) satisfies FinancialState
+
+    it('is the pool it lies in once a started company has no president', () => {
+        expect(holdsReceiverPresidentCertificate(state(true), 'A', 'market')).toBe(true)
+        expect(holdsReceiverPresidentCertificate(state(true), 'A', 'other')).toBe(false)
+    })
+
+    it('is none before the company starts, when its certificate merely awaits a buyer', () => {
+        expect(holdsReceiverPresidentCertificate(state(false), 'A', 'market')).toBe(false)
+    })
+
+    it('is none while the company has a president', () => {
+        expect(
+            holdsReceiverPresidentCertificate(
+                state(true, { kind: 'player', playerId: 'p1' }),
+                'A',
+                'market'
+            )
+        ).toBe(false)
     })
 })

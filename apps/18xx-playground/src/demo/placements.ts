@@ -1,5 +1,5 @@
 import { assertExists } from '@tabletop/common'
-import { type TileFace, type TileRotation, type TileSet } from '@tabletop/18xx'
+import type { TileFace, TileRotation, TileSet } from '@tabletop/18xx'
 import { TheOldPrinceTileSet, TheOldPrincePreprintedTiles } from '@tabletop/the-old-prince'
 import { Shikoku1889TileSet, Shikoku1889PreprintedTiles } from '@tabletop/shikoku-1889'
 

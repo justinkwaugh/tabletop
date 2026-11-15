@@ -38,6 +38,7 @@
         position?: ScenarioPosition | 'finished'
         playerCount?: number
     } = $props()
+    const ExampleMasterSeed = '00000000000000000000000000000002'
     const app = untrack(() =>
         createHarnessAppContext(
             definition as unknown as GameUiDefinition<GameState, HydratedGameState>
@@ -125,27 +126,31 @@
                 loaded = await app.gameService.loadGame(completed.game.id)
             }
             if (!loaded) {
-                const created = await app.gameService.createGame({
-                    id: nanoid(),
-                    typeId: definition.info.id,
-                    name: exampleName,
-                    ownerId: owner.id,
-                    storage: GameStorage.Local,
-                    hotseat: true,
-                    players: (players
-                        ? ['Alex', 'Blair', 'Casey', 'Drew', 'Elliot', 'Fran'].slice(0, players)
-                        : ['privates', 'private-events', 'transfers', 'powers'].includes(scenario)
-                          ? ['Alex', 'Blair', 'Casey', 'Drew']
-                          : ['Alex', 'Blair', 'Casey']
-                    ).map((name) => ({
+                const created = await app.gameService.createGame(
+                    {
                         id: nanoid(),
-                        name,
-                        isHuman: true,
-                        status: PlayerStatus.Joined
-                    })),
-                    config: { examplePosition: scenario },
-                    seed: 1889
-                })
+                        typeId: definition.info.id,
+                        name: exampleName,
+                        ownerId: owner.id,
+                        storage: GameStorage.Local,
+                        hotseat: true,
+                        players: (players
+                            ? ['Alex', 'Blair', 'Casey', 'Drew', 'Elliot', 'Fran'].slice(0, players)
+                            : ['privates', 'private-events', 'transfers', 'powers'].includes(
+                                    scenario
+                                )
+                              ? ['Alex', 'Blair', 'Casey', 'Drew']
+                              : ['Alex', 'Blair', 'Casey']
+                        ).map((name) => ({
+                            id: nanoid(),
+                            name,
+                            isHuman: true,
+                            status: PlayerStatus.Joined
+                        })),
+                        config: { examplePosition: scenario }
+                    },
+                    { masterSeed: ExampleMasterSeed }
+                )
                 loaded = await app.gameService.loadGame(created.id)
             }
             const { game, actions } = loaded

@@ -11,6 +11,7 @@ import { MagnaGreciaGameExploration } from './exploration.js'
 import { MagnaGreciaHydrator } from './hydrator.js'
 import { MagnaGreciaGameInitializer } from './initializer.js'
 import { MagnaGreciaScoring } from './scoring.js'
+import { MagnaGreciaProgression } from './progression.js'
 import { MagnaGreciaStateHandlers } from './stateHandlers.js'
 
 export const MagnaGreciaRuntime = {
@@ -23,6 +24,7 @@ export const MagnaGreciaRuntime = {
     apiActions: MagnaGreciaApiActions,
     playerColors: MagnaGreciaColors,
     scoring: new MagnaGreciaScoring(),
+    progression: new MagnaGreciaProgression(),
     stateLogger: new DefaultStateLogger(),
     visibility: {
         state: Visibility.createProjector(MagnaGreciaGameState),

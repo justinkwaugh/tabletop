@@ -1,6 +1,18 @@
 import * as Type from 'typebox'
 import { Owner } from '../finance/finance.js'
 
+/** What a company's first sale block fixes for later sales that extend it. */
+export const SaleBlockTerms = Type.Object(
+    {
+        shares: Type.Integer({ minimum: 1 }),
+        price: Type.Integer({ minimum: 1 }),
+        movement: Type.Integer({ minimum: 0 }),
+        direction: Type.String()
+    },
+    { additionalProperties: false }
+)
+export type SaleBlockTerms = Type.Static<typeof SaleBlockTerms>
+
 export const StockTurn = Type.Object(
     {
         acted: Type.Boolean(),
@@ -8,6 +20,8 @@ export const StockTurn = Type.Object(
         soldBeforeBuying: Type.Boolean(),
         companiesSold: Type.Array(Type.String()),
         shorted: Type.Optional(Type.Literal(true)),
+        /** Who won the company the turn auctioned, where the next turn follows them (1861 §9.2). */
+        auctionWinnerId: Type.Optional(Type.String()),
         corporateAction: Type.Optional(
             Type.Object(
                 { companyId: Type.String(), boughtBack: Type.Optional(Type.Literal(true)) },
@@ -21,10 +35,7 @@ export const StockTurn = Type.Object(
                         id: Type.String(),
                         companyId: Type.String(),
                         seller: Owner,
-                        shares: Type.Integer({ minimum: 1 }),
-                        price: Type.Integer({ minimum: 1 }),
-                        movement: Type.Integer({ minimum: 0 }),
-                        direction: Type.String()
+                        ...SaleBlockTerms.properties
                     },
                     { additionalProperties: false }
                 )

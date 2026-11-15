@@ -3,13 +3,14 @@
     import {
         ScalingWrapper,
         HistoryControls,
-        DefaultTabs,
         GameChat,
         DefaultTableLayout,
         GameSession
     } from '@tabletop/frontend-components'
 
     import History from '$lib/components/History.svelte'
+    import OathTabs from '$lib/components/OathTabs.svelte'
+    import ChronicleTab from '$lib/components/ChronicleTab.svelte'
     import InformationPanel from '$lib/components/InformationPanel.svelte'
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
@@ -17,6 +18,7 @@
     import Board from '$lib/components/Board.svelte'
     import CardPreviewLayer from '$lib/components/CardPreviewLayer.svelte'
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
+    import SeatUseTag from '$lib/components/SeatUseTag.svelte'
     import GoalsLayer from '$lib/components/GoalsLayer.svelte'
     import SinceLastTurn from '$lib/components/SinceLastTurn.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
@@ -135,8 +137,17 @@
     // Rule 7 — Escape closes the topmost layer only: the enlarged card, the open goals or seat, then
     // the "Since your last turn" card (never from a text field, as clearing it is remembered); with
     // none open it is left to the board's wrapper, which leaves full screen.
+    // Rule 4 — ← and → page an enlarged card of a group, never from a text field; at an end they do
+    // nothing, and the History does not step under it.
     const closesTopLayer: Attachment = () => {
         const escape = (event: KeyboardEvent) => {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                if (!cardPreview.sides || typedInTextField(event)) return
+                cardPreview.page(event.key === 'ArrowLeft' ? -1 : 1)
+                event.preventDefault()
+                event.stopPropagation()
+                return
+            }
             if (event.key !== 'Escape') return
             if (cardPreview.open) cardPreview.dismiss()
             else if (oath.goalsView.open) oath.goalsView.close()
@@ -164,6 +175,10 @@
 </script>
 
 <svelte:window bind:innerHeight={windowHeight} />
+
+{#snippet chronicleTab()}
+    <ChronicleTab />
+{/snippet}
 
 {#snippet panel()}
     {#if gameSession.gameState.result}
@@ -193,7 +208,10 @@
                     borderClass="border-b border-oath-divider"
                 />
             </div>
-            <DefaultTabs
+            <!-- The platform's three tabs, and the chronicle's record once it holds an entry. -->
+            <OathTabs
+                chronicle={chronicleTab}
+                chronicleShown={(oath.gameState.chronicleRecord?.length ?? 0) > 0}
                 activeTabClass="py-1 px-3 bg-oath-accent-soft border-2 border-oath-frame rounded-lg text-oath-text font-semibold"
                 inactiveTabClass="py-1 px-3 border-2 border-transparent rounded-lg text-oath-text-muted hover:text-oath-text hover:border-oath-frame"
             >
@@ -215,11 +233,12 @@
                         borderColor="border-oath-frame"
                     />
                 {/snippet}
-            </DefaultTabs>
+            </OathTabs>
         {/snippet}
         {#snippet gameContent()}
-            <!-- The panel is capped at a fraction of the column so the map keeps
-                 its scale; `FitBox` scales a step that outgrows it (no page scroll). -->
+            <!-- The panel is capped at a fraction of the column so the map keeps its scale;
+                 `FitBox` scales a step that outgrows it, never below 0.75, where it scrolls inside
+                 its share, as it does at full size on an upright phone (no page scroll either way). -->
             {#if !expanded}
                 <FitBox fraction={0.4}>
                     {@render panel()}
@@ -275,6 +294,7 @@
          fixed layers and scale or clip them with it. -->
     <SeatDetailLayer />
     {#if !expanded}
+        <SeatUseTag />
         <GoalsLayer />
         <CardPreviewLayer onZoomSite={focusSite} />
     {/if}

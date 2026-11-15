@@ -5,10 +5,13 @@
 
 <script lang="ts">
     import { onMount } from 'svelte'
+    import { toast } from 'svelte-sonner'
     import { isLibraryLoaded, markLibraryLoaded } from '$lib/stores/libraryLoaded.svelte'
     import { getAppContext } from '@tabletop/frontend-components'
+    import { signInWithGoogle, type GoogleSignInMode } from '$lib/utils/googleSignIn'
 
-    let { mode = 'login' }: { mode: 'link' | 'login' } = $props()
+    let { mode = 'login', oncomplete }: { mode: GoogleSignInMode; oncomplete?: () => void } =
+        $props()
 
     let { authorizationService, api } = getAppContext()
 
@@ -18,22 +21,21 @@
     let initialized = $state(false)
     let buttonElement: HTMLDivElement | undefined = $state()
     let buttonWidth = $state(0)
-    const targetWidth = $derived(mode === 'login' ? Math.min(400, Math.floor(buttonWidth)) : 100)
+    const targetWidth = $derived(mode === 'link' ? 100 : Math.min(400, Math.floor(buttonWidth)))
     async function setupGoogleSignin() {
         if (initialized) {
             return
         }
         initialized = true
-        const handleCredentialResponse = async (response: any) => {
-            if (response.credential) {
-                if (mode === 'login') {
-                    const user = await api.loginGoogle(response.credential)
-                    await authorizationService.onLogin(user)
-                } else if (mode === 'link') {
-                    const user = await api.linkGoogle(response.credential)
-                    authorizationService.setSessionUser(user)
-                }
-            }
+        const handleCredentialResponse = (response: google.accounts.id.CredentialResponse) => {
+            void signInWithGoogle({
+                credential: response.credential,
+                mode,
+                api,
+                session: authorizationService,
+                oncomplete,
+                report: toast.error
+            })
         }
 
         google.accounts.id.initialize({
@@ -50,8 +52,9 @@
             google.accounts.id.renderButton(buttonElement, {
                 type: 'standard',
                 theme: 'outline',
-                size: mode === 'login' ? 'large' : 'medium',
-                text: mode === 'login' ? 'signin_with' : 'signin',
+                size: mode === 'link' ? 'medium' : 'large',
+                text:
+                    mode === 'login' ? 'signin_with' : mode === 'link' ? 'signin' : 'continue_with',
                 shape: 'pill',
                 logo_alignment: 'left',
                 width: targetWidth

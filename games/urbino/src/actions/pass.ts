@@ -15,7 +15,7 @@ export const Pass = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Pass),
             playerId: Type.String(),
-            metadata: Type.Optional(PassMetadata),
+            metadata: Type.Optional(PassMetadata)
         })
     ])
 )
@@ -51,9 +51,24 @@ export class HydratedPass extends HydratableAction<typeof Pass> implements Pass 
     static canPass(state: HydratedUrbinoGameState, playerId: string): boolean {
         const player = state.getPlayerState(playerId)
         const buildings = player.remainingBuildings
-        if (hasAnyValidPlacement(state.board, state.architects, playerId, buildings, state.monumentsVariant)) return false
+        if (
+            hasAnyValidPlacement(
+                state.board,
+                state.architects,
+                playerId,
+                buildings,
+                state.monumentsVariant
+            )
+        )
+            return false
         if (!state.hasRepositionedThisTurn) {
-            return !hasAnyValidPlacementAfterReposition(state.board, state.architects, playerId, buildings, state.monumentsVariant)
+            return !hasAnyValidPlacementAfterReposition(
+                state.board,
+                state.architects,
+                playerId,
+                buildings,
+                state.monumentsVariant
+            )
         }
         return true
     }

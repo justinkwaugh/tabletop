@@ -26,10 +26,14 @@ export function isImperialPlayer(
     playerId: string,
     scope?: ImperialScope
 ): boolean {
-    const player = state.getPlayerState(playerId)
-    if (player.status === PlayerStatus.Chancellor) return true
-    if (player.status !== PlayerStatus.Citizen) return false
-    return !scope?.nonImperialPlayerIds?.includes(playerId)
+    const { status } = state.getPlayerState(playerId)
+    if (!isImperialStatus(status)) return false
+    return status === PlayerStatus.Chancellor || !scope?.nonImperialPlayerIds?.includes(playerId)
+}
+
+/** R-10.12 — the Chancellor and the Citizens. */
+export function isImperialStatus(status: PlayerStatus): boolean {
+    return status === PlayerStatus.Chancellor || status === PlayerStatus.Citizen
 }
 
 /** R-1.8, R-1.9 — the Chancellor's warbands are the Empire's; every other player's are their own. */

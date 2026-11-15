@@ -17,7 +17,7 @@ import { santonBatteryPresent, validateAttackLeaders } from './leaders.js'
 import { endRoadMarch, relocate, requireRoom } from './movement.js'
 import { expendOrder, movingCommander } from './orders.js'
 import { faceOf, samePosition, type Position, type ProjectedUnit } from './pieces.js'
-import { legal } from './legality.js'
+import { distinct, legal } from './legality.js'
 
 function recordAttackers(
     attack: AttackState,
@@ -115,10 +115,7 @@ export function checkAttackDeclaration(
         declaration.leaderIds.every((id) => orders.units.some((unit) => unit.id === id)),
         'Leading units are attacking pieces'
     )
-    legal(
-        new Set(declaration.leaderIds).size === declaration.leaderIds.length,
-        'A leading unit is named once'
-    )
+    legal(distinct(declaration.leaderIds), 'A leading unit is named once')
     const leaders = declaration.leaderIds.map((id) => state.unit(id))
     validateAttackLeaders(state, leaders, {
         attackApproach: attack.attackApproach,

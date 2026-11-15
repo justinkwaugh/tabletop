@@ -10,7 +10,7 @@ import {
     getCompany,
     StationPlacement
 } from '@tabletop/18xx'
-import { stockGame } from './testSupport.js'
+import { stockGame } from '../test/testSupport.js'
 import { TransferRules1846, canRunAcquiredTrain } from './acquisitions.js'
 import { TrainDepot1846, TrainRules1846 } from './trains.js'
 import { RouteRules1846 } from './routes.js'
@@ -131,8 +131,11 @@ describe('1846 corporate acquisitions', () => {
         for (const action of actions.toReversed())
             replay = table.engine.undoProcessedAction({ state: replay, action })
         expect(replay).toEqual(before)
-        assertExists(table.state.operatingSet)
-        table.state.operatingSet.roundNumber++
+        table.act('FinishTrack', { companyId: 'NYC' })
+        expect(table.state.machineState).toBe('BuyingTrains')
+        expect(table.state.acquiredTrainIds).toEqual(['MS:2'])
+        table.act('FinishOperatingTurn', { companyId: 'NYC' })
+        expect(table.state.acquiredTrainIds).toBeUndefined()
         expect(canRunAcquiredTrain(table.hydrated, train)).toBe(true)
     })
     it('suspends the buyer for an external seller and resumes unchanged after refusal', () => {

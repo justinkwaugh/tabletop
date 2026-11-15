@@ -5,7 +5,6 @@ import { FIXTURE_SITE_CAPACITY, testPlayer, testState } from '@tabletop/oath/tes
 import { adviserOtherSites, adviserPlacements } from './adviserPlacements.js'
 import { IMPERIAL_WARBANDS } from '@tabletop/oath'
 
-
 const UNRESTRICTED = 'denizen.beast.errand-boy'
 const SITE_ONLY = 'denizen.discord.boiling-lake'
 const ADVISER_ONLY = 'denizen.order.vow-of-obedience'
@@ -72,10 +71,20 @@ describe('R-6.1 — where a facedown adviser may go', () => {
 
 describe("R-6.1, R-5.1.4.I — a full site does not close the site play to the People's Favor's holder", () => {
     it('offers the site play when another site in the region has room; without the banner it stays refused', () => {
-        const full = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+        const full = Array.from(
+            { length: FIXTURE_SITE_CAPACITY },
+            (_, i) => `denizen.order.filler-${i}`
+        )
         const at = (holder: string) =>
             testState(
-                [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', advisers: [{ cardId: UNRESTRICTED, faceUp: false }] })],
+                [
+                    testPlayer({
+                        playerId: 'p1',
+                        color: Color.Red,
+                        siteId: 'c1',
+                        advisers: [{ cardId: UNRESTRICTED, faceUp: false }]
+                    })
+                ],
                 {
                     denizensBySite: { c1: full, c2: [], p1: [] },
                     banners: {
@@ -96,15 +105,24 @@ describe('R-6.1, contract rule 2 — a placement the engine refuses is not offer
         const plays = adviserPlacements(state, 'p1', SITE_ONLY).map((option) => option.play)
         expect(plays).toEqual([SearchPlay.Site, SearchPlay.Discard])
 
-        const full = Array.from({ length: FIXTURE_SITE_CAPACITY }, (_, i) => `denizen.order.filler-${i}`)
+        const full = Array.from(
+            { length: FIXTURE_SITE_CAPACITY },
+            (_, i) => `denizen.order.filler-${i}`
+        )
         const crowded = testState(
-            [testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', advisers: [{ cardId: UNRESTRICTED, faceUp: false }] })],
+            [
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    advisers: [{ cardId: UNRESTRICTED, faceUp: false }]
+                })
+            ],
             { denizensBySite: { c1: full, c2: [], p1: [] } }
         )
-        expect(adviserPlacements(crowded, 'p1', UNRESTRICTED).map((option) => option.play)).toEqual([
-            SearchPlay.Adviser,
-            SearchPlay.Discard
-        ])
+        expect(adviserPlacements(crowded, 'p1', UNRESTRICTED).map((option) => option.play)).toEqual(
+            [SearchPlay.Adviser, SearchPlay.Discard]
+        )
     })
 
     it('drops the placements no player is reaching for', () => {

@@ -12,30 +12,30 @@ test('layout edits debounce, recover on immediate reload, and restore split perc
     await expect(page.getByRole('button', { name: 'Layout unsaved', exact: true })).toBeVisible()
     expect(await storedFamilyPreference(page, 'paneLayout')).toBeFalsy()
     await page.reload()
-    await expect(divider).toHaveAttribute('aria-valuenow', '46')
+    await expect(divider).toHaveAttribute('aria-valuenow', '44')
     await expect
         .poll(() => storedFamilyPreference(page, 'paneLayout'), { timeout: 10000 })
         .toMatchObject({
             v: 1,
             main: [
                 'cols',
-                20,
-                ['rows', 25, ['Game info'], ['Players', 'History', 'Chat']],
+                18,
+                ['Players'],
                 [
                     'rows',
-                    46,
-                    ['Actions'],
-                    ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']
+                    44,
+                    ['cols', 55, ['cols', 38, ['History', 'Chat'], ['Actions']], ['Spreadsheet']],
+                    ['cols', 49, ['Board', 'Tiles'], ['Companies']]
                 ]
             ]
         })
     const saved = await storedFamilyPreference(page, 'paneLayout')
-    await page.getByRole('tab', { name: 'Market', exact: true }).click()
+    await page.getByRole('tab', { name: 'Tiles', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Layout unsaved', exact: true })).toHaveCount(0)
     await page.setViewportSize({ width: 900, height: 900 })
     await expect(page.getByRole('tab', { name: 'Actions', exact: true })).toHaveCount(0)
     await page.setViewportSize({ width: 1400, height: 900 })
-    await expect(divider).toHaveAttribute('aria-valuenow', '46')
+    await expect(divider).toHaveAttribute('aria-valuenow', '44')
     expect(await storedFamilyPreference(page, 'paneLayout')).toEqual(saved)
 })
 
@@ -45,7 +45,7 @@ test('restores tab transfers and sanitizes unknown tabs without overwriting futu
     await page.goto('/table')
     await page
         .getByRole('tab', { name: 'History', exact: true })
-        .dragTo(page.getByRole('tab', { name: 'Map', exact: true }))
+        .dragTo(page.getByRole('tab', { name: 'Board', exact: true }))
     await page.getByRole('button', { name: 'Layout unsaved', exact: true }).click()
     await expect
         .poll(() => storedFamilyPreference(page, 'paneLayout'))
@@ -53,20 +53,20 @@ test('restores tab transfers and sanitizes unknown tabs without overwriting futu
             sidebar: [],
             main: [
                 'cols',
-                20,
-                ['rows', 25, ['Game info'], ['Players', 'Chat']],
+                18,
+                ['Players'],
                 [
                     'rows',
-                    50,
-                    ['Actions'],
-                    ['History', 'Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid']
+                    48,
+                    ['cols', 55, ['cols', 38, ['Chat'], ['Actions']], ['Spreadsheet']],
+                    ['cols', 49, ['History', 'Board', 'Tiles'], ['Companies']]
                 ]
             ]
         })
     await page.reload()
     await expect(
         page
-            .getByRole('tablist', { name: 'Table views tabs 4' })
+            .getByRole('tablist', { name: 'Table views tabs 5' })
             .getByRole('tab', { name: 'History', exact: true })
     ).toBeVisible()
     await page.evaluate(() => {
@@ -97,7 +97,7 @@ test('restores tab transfers and sanitizes unknown tabs without overwriting futu
         localStorage.setItem(key, JSON.stringify(record))
     })
     await page.reload()
-    await expect(page.getByRole('tab', { name: 'Map', exact: true })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Board', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Layout unsaved', exact: true })).toHaveCount(0)
     expect(await storedFamilyPreference(page, 'paneLayout')).toEqual({ v: 99, future: 'keep me' })
 })
@@ -107,39 +107,39 @@ test('swap exchanges whole panes, preserves mounted content and saves the result
 }) => {
     await page.goto('/table')
     const actions = page.getByRole('tabpanel', { name: 'Actions', exact: true })
-    const map = page.getByRole('tabpanel', { name: 'Map', exact: true })
-    await map.evaluate((element) => (element.dataset.mountCheck = 'preserved'))
+    const board = page.getByRole('tabpanel', { name: 'Board', exact: true })
+    await board.evaluate((element) => (element.dataset.mountCheck = 'preserved'))
     const divider = page.getByRole('separator', { name: 'Resize horizontal split' }).last()
     await divider.focus()
     await page.keyboard.press('Home')
     await page.getByRole('button', { name: 'Swap sides of horizontal split' }).last().click()
     await expect(divider).toHaveAttribute('aria-valuenow', '95')
-    const mapBounds = await map.boundingBox()
+    const boardBounds = await board.boundingBox()
     const actionBounds = await actions.boundingBox()
-    if (!mapBounds || !actionBounds) throw new Error('Both panes must be visible')
-    expect(mapBounds.y).toBeLessThan(actionBounds.y)
-    await expect(map).toHaveAttribute('data-mount-check', 'preserved')
+    if (!boardBounds || !actionBounds) throw new Error('Both panes must be visible')
+    expect(boardBounds.y).toBeLessThan(actionBounds.y)
+    await expect(board).toHaveAttribute('data-mount-check', 'preserved')
     await page.getByRole('button', { name: 'Layout unsaved', exact: true }).click()
     await expect
         .poll(() => storedFamilyPreference(page, 'paneLayout'))
         .toMatchObject({
             main: [
                 'cols',
-                20,
-                ['rows', 25, ['Game info'], ['Players', 'History', 'Chat']],
+                18,
+                ['Players'],
                 [
                     'rows',
                     95,
-                    ['Map', 'Market', 'Spreadsheet', 'Companies', 'Tiles', 'Player Aid'],
-                    ['Actions']
+                    ['cols', 49, ['Board', 'Tiles'], ['Companies']],
+                    ['cols', 55, ['cols', 38, ['History', 'Chat'], ['Actions']], ['Spreadsheet']]
                 ]
             ]
         })
     await page.reload()
     await expect(
         page
-            .getByRole('tablist', { name: 'Table views tabs 3' })
-            .getByRole('tab', { name: 'Map', exact: true })
+            .getByRole('tablist', { name: 'Table views tabs 2' })
+            .getByRole('tab', { name: 'Board', exact: true })
     ).toBeVisible()
     await expect(divider).toHaveAttribute('aria-valuenow', '95')
 })

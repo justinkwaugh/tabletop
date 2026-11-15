@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { MarketLedge, MarketZone } from '../session/titlePresentation.js'
-    import { marketColors } from './marketColors.js'
+    import { marketSpaceColor } from './marketColors.js'
 
     let { zones, ledge }: { zones: readonly MarketZone[]; ledge?: MarketLedge } = $props()
 </script>
@@ -12,7 +12,7 @@
                 <span
                     class="swatch"
                     aria-hidden="true"
-                    style:background={marketColors[zone.color] ?? zone.color}
+                    style:background={marketSpaceColor(zone.color, zone)}
                 ></span>{zone.name}
             </dt>
             <dd>{zone.description}</dd>

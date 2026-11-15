@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { isObsoleteTrain } from '@tabletop/18xx'
     import { TrainBadge, TileArtwork } from '@tabletop/18xx-ui'
     import { assertExists } from '@tabletop/common'
     import RoundPanel from './RoundPanel.svelte'
@@ -94,6 +95,7 @@
                         >Discard <TrainBadge
                             name={session.trainDepot.trainDefinition(train.definitionId).name}
                             color={session.presentation.trainColors[train.definitionId]}
+                            obsolete={isObsoleteTrain(train)}
                         /></button
                     >
                 {/each}

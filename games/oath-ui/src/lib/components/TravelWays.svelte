@@ -1,6 +1,6 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import { CardKind } from '@tabletop/oath'
+    import { CardKind, secretsFlipped } from '@tabletop/oath'
     import { CARD_ASPECT } from '$lib/images/cardShape.js'
     import { cardBack, cardImage } from '$lib/images/cardImages.js'
     import { favorTokenImage, secretTokenImage } from '$lib/images/tileImages.js'
@@ -24,10 +24,12 @@
 </script>
 
 <!-- Rule G: the whole cost is gold. Supply keeps its word; a way that pays in tokens reads its
-     number and their symbols ("0 + [secret]"), and a toll its favor and its payee's chip
-     ("2 Supply + 1 [favor] to <chip>"); the card that asks for it is named in the History. -->
+     number and their symbols ("0 + [secret]", "0 + [secret][secret]" for two flips), and a toll its
+     favor and its payee's chip ("2 Supply + 1 [favor] to <chip>"); the card that asks for it is named
+     in the History. -->
 {#snippet cost(way: TravelChoice)}
-    {@const tokens = way.tolls.length > 0 || way.flipSecret}
+    {@const secrets = secretsFlipped(way.flipSecret)}
+    {@const tokens = way.tolls.length > 0 || secrets > 0}
     {@const toll = tollFavor(way)}
     <span class="inline-flex items-center gap-1 whitespace-nowrap">
         {tokens && way.cost === 0 ? '0' : `${way.cost} Supply`}
@@ -44,9 +46,13 @@
             <img class="ways__token" src={favorTokenImage()} alt="favor" />
             <span>burned</span>
         {/if}
-        {#if way.flipSecret}
+        {#if secrets > 0}
             <span>+</span>
-            <img class="ways__token" src={secretTokenImage()} alt="secret" />
+            <span class="inline-flex items-center">
+                {#each { length: secrets }, index (index)}
+                    <img class="ways__token" src={secretTokenImage()} alt="secret" />
+                {/each}
+            </span>
         {/if}
         {#if way.hospitality}
             <!-- Hospitality's gain after the cost, in the text colour: "· +1 [favor] [suit]". -->
@@ -80,7 +86,7 @@
                     type="button"
                     class="rounded-md border border-oath-frame bg-oath-surface px-2.5 py-1.5 text-[15px]
                            font-bold text-oath-accent hover:border-oath-accent hover:bg-oath-accent-soft
-                           disabled:opacity-40"
+                           disabled:opacity-40 max-sm:min-h-11"
                     disabled={busy}
                     aria-label={travelSpoken(row, way, nameOf)}
                     onclick={() => gameSession.travelTo(row.slotId, way)}

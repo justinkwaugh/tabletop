@@ -18,12 +18,15 @@ import {
     FieldPath,
     DocumentData,
     type DocumentSnapshot,
+    type FirestoreDataConverter,
     type ReadOnlyTransactionOptions,
     type ReadWriteTransactionOptions
 } from '@google-cloud/firestore'
 import {
-    GameCreationOptions,
+    GameContinuation,
     MasterSeed,
+    turnStartsAfter,
+    ActionSource,
     GameAction,
     Game,
     GameState,
@@ -40,13 +43,23 @@ import {
     getGameStatusesForCategory,
     GameStorage,
     Tournament,
+    tournamentEntrantIndex,
+    tournamentSeatAccounts,
+    tournamentTableSettled,
+    type TournamentGameReference,
     UserStatus,
     assert,
     assertExists,
     type GameHistoryPage,
     type GameHistoryCursor,
     type UserGameStats,
+    type TimeWindow,
+    type TitleActivity,
+    type SeriesActivity,
     summarizeUserGames,
+    sameGameProgress,
+    playersWithDeletedAccount,
+    playersWithRenamedSeat,
     Branch,
     type UnmergedBranch
 } from '@tabletop/common'
@@ -58,7 +71,6 @@ import {
 } from '../stores/errors.js'
 import { StoredAction } from '../model/storedAction.js'
 import { StoredGame } from '../model/storedGame.js'
-import { StoredState } from '../model/storedState.js'
 import { StoredBranch } from '../model/storedBranch.js'
 import { isFirestoreError } from './errors.js'
 import { UpdateValidationResult, UpdateValidator } from '../stores/validator.js'
@@ -70,6 +82,7 @@ import {
     UnmergedBranchWrites,
     GameStore,
     GameData,
+    GameInitialization,
     GameDataReader,
     UndoActionWindow
 } from '../stores/gameStore.js'
@@ -81,7 +94,13 @@ import {
 import { GameCacheKeys } from './gameCacheKeys.js'
 import { gameChatBookmarks } from './gameChatDocuments.js'
 import { nanoid } from 'nanoid'
-import { ActionChunk, StoredActionChunk } from '../model/storedActionChunk.js'
+import { ActionChunk } from '../model/storedActionChunk.js'
+import {
+    GAME_STORAGE_ENCODING,
+    storedActions,
+    storedState,
+    type StoredJsonEncoding
+} from './storedJson.js'
 import * as Value from 'typebox/value'
 import {
     assertUndoActionStorageSupported,
@@ -92,10 +111,24 @@ import {
     assertOrdinaryGame,
     assertTournamentUndoAllowed,
     tournamentGameId,
-    TournamentGameError
+    TournamentEntrantUnavailableError,
+    TournamentGameError,
+    type TournamentSeatHandover,
+    type TournamentTableRelease
 } from '../../games/tournamentGames.js'
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
+import type {
+    GameTimestampField,
+    PlayActions,
+    SiteStatsGameSource
+} from '../stores/siteStatsStore.js'
 import { gameAutoStartChange } from '../../games/gameAutoStart.js'
+import {
+    ActivityUnavailableError,
+    type ActivityCache,
+    type ActivityScope,
+    type ActivitySource
+} from '../../games/activityCache.js'
 import {
     StoredTournamentSchedule,
     loadTournamentSchedule
@@ -108,21 +141,41 @@ const STATE_CACHE_SECONDS = 7 * 24 * 60 * 60
 const HISTORY_PAGE_CACHE_SECONDS = 24 * 60 * 60
 const GAME_STATS_CACHE_SECONDS = 7 * 24 * 60 * 60
 const BRANCH_CACHE_SECONDS = STATE_CACHE_SECONDS
+const LEGACY_EARLIER_ACTIONS = 20
 
-export class FirestoreGameStore implements GameStore {
+export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
     readonly games: CollectionReference<Game>
     private readonly tournamentCacheKeys: TournamentCacheKeys
+    private readonly stateConverter: FirestoreDataConverter<GameState>
+    private readonly actionChunkConverter: FirestoreDataConverter<ActionChunk>
+    // Without them, as in most specs, no Game Title's or Series' activity is listed or maintained.
+    private readonly titleActivity: ActivityCache | undefined
+    private readonly seriesActivity: ActivityCache | undefined
 
     constructor(
         private readonly cacheService: RedisCacheService,
         private firestore: Firestore,
-        tournamentCachePrefix = 'tournaments:v1'
+        {
+            tournamentCachePrefix = 'tournaments:v1',
+            encoding = GAME_STORAGE_ENCODING,
+            titleActivity,
+            seriesActivity
+        }: {
+            tournamentCachePrefix?: string
+            encoding?: StoredJsonEncoding
+            titleActivity?: ActivityCache
+            seriesActivity?: ActivityCache
+        } = {}
     ) {
         this.games = firestore.collection('games').withConverter(gameConverter)
+        this.titleActivity = titleActivity
+        this.seriesActivity = seriesActivity
         this.tournamentCacheKeys = new TournamentCacheKeys(tournamentCachePrefix)
+        this.stateConverter = stateConverter(encoding)
+        this.actionChunkConverter = actionChunkConverter(encoding)
     }
 
-    async createGame(game: Game, options?: GameCreationOptions): Promise<Game> {
+    async createGame(game: Game, initialization?: GameInitialization): Promise<Game> {
         const date = new Date()
         const storedGame = {
             ...structuredClone(game),
@@ -130,6 +183,7 @@ export class FirestoreGameStore implements GameStore {
             createdAt: date,
             updatedAt: date
         }
+        this.recordTurnStarts(undefined, storedGame, date)
         const state = storedGame.state
         delete storedGame.state
         const tournamentKeys = this.tournamentCacheKeys
@@ -144,11 +198,15 @@ export class FirestoreGameStore implements GameStore {
                 : [])
         ]
         try {
-            return await this.writeGame(game.id, cacheKeys, async (locks) =>
+            const created = await this.writeGame(game.id, cacheKeys, async (locks) =>
                 this.runTransaction(async (transaction) => {
                     if (game.tournament) {
+                        const tournament = await this.readTournament(
+                            transaction,
+                            game.tournament.tournamentId
+                        )
                         assert(
-                            game.id === tournamentGameId(game.tournament),
+                            game.id === tournamentGameId(tournament, game.tournament),
                             'Tournament game identity does not match its table'
                         )
                         const existing = (
@@ -159,10 +217,6 @@ export class FirestoreGameStore implements GameStore {
                                 Value.Equal(existing.tournament, game.tournament),
                                 'Game identity belongs to a different tournament table'
                             )
-                            const tournament = await this.readTournament(
-                                transaction,
-                                game.tournament.tournamentId
-                            )
                             await this.recordTournamentGame(
                                 transaction,
                                 locks,
@@ -172,7 +226,7 @@ export class FirestoreGameStore implements GameStore {
                             )
                             return existing
                         }
-                        const tournament = await this.validateTournamentGame(transaction, game)
+                        await this.validateTournamentGame(transaction, game, tournament)
                         assertExists(state, 'Tournament game must be initialized before creation')
                         assert(
                             game.status === GameStatus.Started && state.gameId === game.id,
@@ -189,19 +243,25 @@ export class FirestoreGameStore implements GameStore {
                     transaction.create(this.games.doc(game.id), structuredClone(storedGame))
                     if (state)
                         transaction.create(this.getStateCollection(game.id).doc(game.id), state)
-                    if (options?.masterSeed !== undefined) {
-                        Value.Assert(MasterSeed, options.masterSeed)
+                    if (initialization?.masterSeed !== undefined) {
+                        Value.Assert(MasterSeed, initialization.masterSeed)
                         transaction.create(
                             this.games.doc(game.id).collection('private').doc('initialization'),
-                            { masterSeed: options.masterSeed }
+                            { masterSeed: initialization.masterSeed }
                         )
+                    }
+                    if (initialization?.continuation !== undefined) {
+                        transaction.create(this.getContinuationDocument(game.id), {
+                            data: JSON.stringify(initialization.continuation)
+                        })
                     }
                     return state ? { ...storedGame, state } : storedGame
                 })
             )
+            this.recordActivity(undefined, created)
+            return created
         } catch (error) {
             this.handleError(error, game.id)
-            throw Error('unreachable')
         }
     }
 
@@ -227,17 +287,11 @@ export class FirestoreGameStore implements GameStore {
         const stage = tournament.stages.find((stage) => stage.id === reference.stageId)
         assert(stage?.scheduleId === reference.scheduleId, 'Tournament schedule changed')
         const dispatch = (stage.dispatch ??= { reserved: [], active: [], finished: [] })
-        if (
-            dispatch.active.includes(reference.tableId) ||
-            dispatch.finished.includes(reference.tableId)
-        )
-            return
+        if (tournamentTableSettled(dispatch, reference.tableId)) return
         dispatch.reserved = dispatch.reserved.filter((id) => id !== reference.tableId)
-        if (
-            game.status === GameStatus.Finished &&
-            game.result &&
-            game.result !== GameResult.Abandoned
-        )
+        if (game.status === GameStatus.Finished && game.result === GameResult.Abandoned)
+            (dispatch.voided ??= []).push(reference.tableId)
+        else if (game.status === GameStatus.Finished && game.result)
             dispatch.finished.push(reference.tableId)
         else dispatch.active.push(reference.tableId)
         if (!dispatch.reserved.length) delete tournament.schedulingError
@@ -256,10 +310,13 @@ export class FirestoreGameStore implements GameStore {
         })
     }
 
-    private async validateTournamentGame(transaction: Transaction, game: Game) {
+    private async validateTournamentGame(
+        transaction: Transaction,
+        game: Game,
+        tournament: Tournament
+    ) {
         const reference = game.tournament
         assertExists(reference, 'Tournament reference is required')
-        const tournament = await this.readTournament(transaction, reference.tournamentId)
         const stage = tournament.stages.find((stage) => stage.id === reference.stageId)
         if (
             (tournament.status !== 'locked' && tournament.status !== 'inProgress') ||
@@ -293,6 +350,11 @@ export class FirestoreGameStore implements GameStore {
             'Schedule changed before game creation'
         )
         assert(
+            reference.attempt === stage.dispatch?.attempts?.[reference.tableId],
+            'Game belongs to another attempt at this table'
+        )
+        const seated = tournamentSeatAccounts(tournament, table.entrantIds)
+        assert(
             game.typeId === tournament.rules.titleId &&
                 game.ownerId === tournament.organizerId &&
                 Value.Equal(game.config, tournament.rules.gameConfig),
@@ -302,7 +364,7 @@ export class FirestoreGameStore implements GameStore {
             game.players.length === tournament.rules.tableSize &&
                 Value.Equal(
                     game.players.map((player) => player.userId),
-                    table.entrantIds
+                    seated
                 ),
             'Game players do not match assigned positions'
         )
@@ -319,13 +381,10 @@ export class FirestoreGameStore implements GameStore {
             'Tournament players must already be joined'
         )
         const accounts = await transaction.getAll(
-            ...table.entrantIds.map((id) => this.firestore.collection('users').doc(id))
+            ...seated.map((id) => this.firestore.collection('users').doc(id))
         )
         if (accounts.some((account) => account.data()?.status !== UserStatus.Active))
-            throw new TournamentGameError(
-                'All assigned tournament players must have active accounts.'
-            )
-        return tournament
+            throw new TournamentEntrantUnavailableError()
     }
 
     async getMasterSeed(gameId: string): Promise<string | undefined> {
@@ -340,14 +399,28 @@ export class FirestoreGameStore implements GameStore {
         return seed
     }
 
+    async getContinuation(gameId: string): Promise<GameContinuation | undefined> {
+        const snapshot = await this.getContinuationDocument(gameId).get()
+        if (!snapshot.exists) return undefined
+        const data: unknown = snapshot.get('data')
+        assert(typeof data === 'string', 'Stored continuation is malformed')
+        const continuation: unknown = JSON.parse(data)
+        Value.Assert(GameContinuation, continuation)
+        return continuation
+    }
+
+    private getContinuationDocument(gameId: string): DocumentReference {
+        return this.games.doc(gameId).collection('private').doc('continuation')
+    }
+
     async deleteGame(game: Game, authorize?: (existingGame: Game) => void): Promise<void> {
         const gameId = game.id
 
         try {
-            await this.cacheService.lockWhileWriting(
+            const deleted = await this.cacheService.lockWhileWriting(
                 [...GameCacheKeys.gameWrite(gameId), ...GameCacheKeys.chatWrite(gameId)],
                 async (locks) => {
-                    await this.runTransaction(async (transaction) => {
+                    const existing = await this.runTransaction(async (transaction) => {
                         const existingGame: Game | undefined = (
                             await this.readDocument(this.games.doc(gameId), transaction)
                         ).data()
@@ -358,6 +431,7 @@ export class FirestoreGameStore implements GameStore {
                         }
                         await this.protectChangedLists(locks, existingGame, undefined)
                         transaction.delete(this.games.doc(gameId))
+                        return existingGame
                     })
                     const bookmarks = await gameChatBookmarks(this.games.firestore, gameId)
                         .select()
@@ -369,11 +443,12 @@ export class FirestoreGameStore implements GameStore {
                     }
                     await this.protectStoredBranches(locks, gameId)
                     await this.games.firestore.recursiveDelete(this.games.doc(gameId))
+                    return existing
                 }
             )
+            this.recordActivity(deleted, undefined)
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -408,7 +483,7 @@ export class FirestoreGameStore implements GameStore {
         this.addActionsToChunks(storedActions, chunks, storedGame.actionChunkSize)
 
         try {
-            return await this.writeGame(
+            const written = await this.writeGame(
                 gameId,
                 [
                     ...GameCacheKeys.gameWrite(gameId),
@@ -444,9 +519,10 @@ export class FirestoreGameStore implements GameStore {
                         return { storedGame, storedGameState: stateToUpdate, storedActions }
                     })
             )
+            this.recordActivity(undefined, written.storedGame)
+            return written
         } catch (error) {
             this.handleError(error, game.id)
-            throw Error('unreachable')
         }
     }
 
@@ -485,6 +561,7 @@ export class FirestoreGameStore implements GameStore {
                         return { updatedGame: existingGame, updatedFields: [], existingGame }
                 }
             }
+            this.recordTurnStarts(existingGame, fieldsToUpdate, new Date())
 
             const updatedFields = Object.keys(fieldsToUpdate)
             let stateToUpdate: GameState | undefined
@@ -554,12 +631,12 @@ export class FirestoreGameStore implements GameStore {
                 async (locks) =>
                     this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
+            if (updatedFields.length) this.recordActivity(existingGame, updatedGame)
 
             return [updatedGame, updatedFields, existingGame]
         } catch (error) {
             console.log(error)
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -612,7 +689,6 @@ export class FirestoreGameStore implements GameStore {
             })
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -629,7 +705,6 @@ export class FirestoreGameStore implements GameStore {
                 return game
             } catch (error) {
                 this.handleError(error, gameId)
-                throw Error('unreachable')
             }
         }
 
@@ -659,7 +734,6 @@ export class FirestoreGameStore implements GameStore {
                 return querySnapshot.map((doc) => doc.data()) as Game[]
             } catch (error) {
                 this.handleError(error, ids.join(','))
-                throw Error('unreachable')
             }
         }
 
@@ -810,7 +884,6 @@ export class FirestoreGameStore implements GameStore {
             return games
         } catch (error) {
             this.handleError(error, user.id)
-            throw Error('unreachable')
         }
     }
 
@@ -845,7 +918,6 @@ export class FirestoreGameStore implements GameStore {
             return games
         } catch (error) {
             this.handleError(error, titleId)
-            throw Error('unreachable')
         }
     }
 
@@ -861,22 +933,217 @@ export class FirestoreGameStore implements GameStore {
             return games
         } catch (error) {
             this.handleError(error, titleId)
-            throw Error('unreachable')
         }
     }
 
+    async findTitleActivity(titleId: string): Promise<TitleActivity> {
+        if (!this.titleActivity) throw new ActivityUnavailableError(titleId)
+        const { inProgress, recentlyFinished } = await this.titleActivity.read(
+            titleId,
+            this.activitySource(this.titleActivity.scope)
+        )
+        return { inProgress, recentlyFinished }
+    }
+
+    async findSeriesActivity(seriesId: string): Promise<SeriesActivity> {
+        if (!this.seriesActivity) throw new ActivityUnavailableError(seriesId)
+        return this.seriesActivity.read(seriesId, this.activitySource(this.seriesActivity.scope))
+    }
+
+    private activitySource({ name: label, gameField }: ActivityScope): ActivitySource {
+        const publicGames = (value: string, status: GameStatus) =>
+            this.games
+                .where(gameField, '==', value)
+                .where('isPublic', '==', true)
+                .where('status', '==', status)
+        return {
+            findOpenCandidates: (value) =>
+                this.readGames(publicGames(value, GameStatus.WaitingForPlayers), `${label}Open`),
+            findInProgressCandidates: (value) =>
+                this.readGames(publicGames(value, GameStatus.Started), `${label}InProgress`),
+            findFinishedCandidates: (value, after, limit) => {
+                let query = publicGames(value, GameStatus.Finished)
+                    .orderBy('finishedAt', 'desc')
+                    .orderBy(FieldPath.documentId(), 'desc')
+                if (after) {
+                    assertExists(after.finishedAt, 'Finished games require a completion timestamp')
+                    query = query.startAfter(after.finishedAt, after.id)
+                }
+                return this.readGames(query.limit(limit), `${label}Finished`)
+            }
+        }
+    }
+
+    async findTitleGames(
+        titleId: string,
+        afterGameId: string | undefined,
+        limit: number
+    ): Promise<Game[]> {
+        return this.readPageById(
+            this.games.where('typeId', '==', titleId),
+            afterGameId,
+            limit,
+            'titleGames'
+        )
+    }
+
+    private readPageById(
+        query: Query<Game>,
+        afterGameId: string | undefined,
+        limit: number,
+        label: string
+    ): Promise<Game[]> {
+        let page = query.orderBy(FieldPath.documentId())
+        if (afterGameId) page = page.startAfter(afterGameId)
+        return this.readGames(page.limit(limit), label)
+    }
+
+    async hasGamesForUser(userId: string): Promise<boolean> {
+        const snapshot = await this.readQuery(
+            this.games.where('userIds', 'array-contains', userId).limit(1)
+        )
+        this.recordRead('game')
+        return !snapshot.empty
+    }
+
+    // Every Game in play: a Game nobody has moved in has no lastActionAt to query a range on.
+    async findStartedGames(): Promise<Game[]> {
+        return this.readGames(this.games.where('status', '==', GameStatus.Started), 'started')
+    }
+
     async findFinishedGames(afterGameId: string | undefined, limit: number): Promise<Game[]> {
-        let query = this.games
-            .where('status', '==', GameStatus.Finished)
-            .orderBy(FieldPath.documentId())
-        if (afterGameId) query = query.startAfter(afterGameId)
+        return this.readPageById(
+            this.games.where('status', '==', GameStatus.Finished),
+            afterGameId,
+            limit,
+            afterGameId ?? 'finished'
+        )
+    }
+
+    async findGamesWithTimestampIn(field: GameTimestampField, window: TimeWindow): Promise<Game[]> {
+        return this.readGames(
+            this.games.where(field, '>=', window.start).where(field, '<', window.end),
+            field
+        )
+    }
+
+    async findGamesInPlayDuring(window: TimeWindow): Promise<Game[]> {
+        return this.readGames(
+            this.games
+                .where('lastActionAt', '>=', window.start)
+                .where('startedAt', '<', window.end),
+            'inPlay'
+        )
+    }
+
+    async findEarliestGameCreatedAt(): Promise<Date | undefined> {
+        const [earliest] = await this.readGames(
+            this.games.orderBy('createdAt').limit(1),
+            'earliest'
+        )
+        return earliest?.createdAt
+    }
+
+    async countGamesWithStatus(status: GameStatus): Promise<number> {
+        return this.countQuery(this.games.where('status', '==', status), status)
+    }
+
+    async countStartedGamesQuietSince(lastActionBefore: Date): Promise<number> {
+        return this.countQuery(
+            this.games
+                .where('status', '==', GameStatus.Started)
+                .where('lastActionAt', '<', lastActionBefore),
+            'quiet'
+        )
+    }
+
+    async findPlayActionsDuring(game: Game, window: TimeWindow): Promise<PlayActions> {
+        const actionChunkSize: unknown = Reflect.get(game, 'actionChunkSize')
+        assert(typeof actionChunkSize === 'number', 'Stored games record their action chunk size')
         try {
-            const snapshot = await this.readQuery(query.limit(limit))
+            return actionChunkSize
+                ? await this.findChunkedPlayActions(game.id, actionChunkSize, window.start)
+                : await this.findLegacyPlayActions(game.id, window)
+        } catch (error) {
+            this.handleError(error, game.id)
+        }
+    }
+
+    private async findChunkedPlayActions(
+        gameId: string,
+        actionChunkSize: number,
+        start: Date
+    ): Promise<PlayActions> {
+        const collection = this.getActionChunkCollection(gameId)
+        const snapshot = await this.readQuery(collection.where('updatedAt', '>=', start))
+        this.recordRead('actionChunk', Math.max(1, snapshot.size))
+        const chunks = snapshot.docs
+            .map((document) => this.convertActionChunk(document.data()))
+            .sort((a, b) => a.startIndex - b.startIndex)
+        let actions = chunks.flatMap((chunk) => chunk.actions)
+        let firstChunk = chunks.length ? Math.floor(chunks[0].startIndex / actionChunkSize) : 0
+        while (firstChunk > 0 && this.lacksTurnStartBefore(actions, start)) {
+            firstChunk -= 1
+            const [earlier] = await this.getActionChunksById({
+                actionChunkCollection: collection,
+                chunkIds: [this.chunkIdForChunkNumber(firstChunk, gameId)]
+            })
+            assertExists(earlier, `Action chunk ${firstChunk} of game ${gameId} is missing`)
+            actions = [...earlier.actions, ...actions]
+        }
+        return { actions, includesFirstAction: actions[0]?.index === 0 }
+    }
+
+    private async findLegacyPlayActions(gameId: string, window: TimeWindow): Promise<PlayActions> {
+        const collection = this.getActionCollection(gameId)
+        const during = await this.readQuery(
+            collection.where('createdAt', '>=', window.start).where('createdAt', '<', window.end)
+        )
+        const actions = during.docs
+            .map((document) => this.convertGameAction(document.data()))
+            .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+        const firstIndex = actions[0]?.index ?? 0
+        const earlier = await this.readQuery(
+            collection
+                .where('index', '<', firstIndex)
+                .orderBy('index', 'desc')
+                .limit(LEGACY_EARLIER_ACTIONS)
+        )
+        this.recordRead('action', Math.max(1, during.size) + Math.max(1, earlier.size))
+        const earlierActions = earlier.docs
+            .map((document) => this.convertGameAction(document.data()))
+            .reverse()
+        return {
+            actions: [...earlierActions, ...actions],
+            includesFirstAction: earlier.size < LEGACY_EARLIER_ACTIONS
+        }
+    }
+
+    private lacksTurnStartBefore(actions: GameAction[], start: Date): boolean {
+        const firstDuring = actions.findIndex(
+            (action) => action.createdAt !== undefined && action.createdAt >= start
+        )
+        if (firstDuring === -1) return false
+        return !actions.slice(0, firstDuring).some((action) => action.source === ActionSource.User)
+    }
+
+    private async readGames(query: Query<Game>, label: string): Promise<Game[]> {
+        try {
+            const snapshot = await this.readQuery(query)
             this.recordRead('game', Math.max(1, snapshot.size))
             return snapshot.docs.map((document) => this.normalizeGame(document.data()))
         } catch (error) {
-            this.handleError(error, afterGameId ?? 'finished')
-            throw Error('unreachable')
+            this.handleError(error, label)
+        }
+    }
+
+    private async countQuery(query: Query<Game>, label: string): Promise<number> {
+        try {
+            const snapshot = await query.count().get()
+            this.recordRead('gameCount')
+            return snapshot.data().count
+        } catch (error) {
+            this.handleError(error, label)
         }
     }
 
@@ -885,7 +1152,6 @@ export class FirestoreGameStore implements GameStore {
             return await this.getGameState(gameId)
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -898,8 +1164,27 @@ export class FirestoreGameStore implements GameStore {
         finishedAt: Date
         finalScores: Record<string, number>
     }): Promise<boolean> {
+        return this.updateGameFieldsIf(gameId, (existing) =>
+            existing.status === GameStatus.Finished &&
+            existing.finalScores === undefined &&
+            existing.finishedAt?.getTime() === finishedAt.getTime()
+                ? { finalScores }
+                : undefined
+        )
+    }
+
+    async recordGameSeries(gameId: string, series: string): Promise<boolean> {
+        return this.updateGameFieldsIf(gameId, (existing) =>
+            existing.series === series ? undefined : { series }
+        )
+    }
+
+    private async updateGameFieldsIf(
+        gameId: string,
+        fieldsFor: (existing: Game) => Pick<Partial<Game>, 'finalScores' | 'series'> | undefined
+    ): Promise<boolean> {
         try {
-            return await this.cacheService.lockWhileWriting(
+            const updated = await this.cacheService.lockWhileWriting(
                 [GameCacheKeys.game(gameId), GameCacheKeys.revision(gameId)],
                 async (locks) =>
                     this.runTransaction(async (transaction) => {
@@ -907,23 +1192,19 @@ export class FirestoreGameStore implements GameStore {
                             await this.readDocument(this.games.doc(gameId), transaction)
                         ).data()
                         this.recordRead('game')
-                        if (
-                            existingGame?.status !== GameStatus.Finished ||
-                            existingGame.finalScores !== undefined ||
-                            existingGame.finishedAt?.getTime() !== finishedAt.getTime()
-                        )
-                            return false
-                        await this.protectChangedLists(locks, existingGame, {
-                            ...existingGame,
-                            finalScores
-                        })
-                        transaction.update(this.games.doc(gameId), { finalScores })
-                        return true
+                        const fields = existingGame && fieldsFor(existingGame)
+                        if (!existingGame || !fields) return undefined
+                        const updatedGame = { ...existingGame, ...fields }
+                        await this.protectChangedLists(locks, existingGame, updatedGame)
+                        transaction.update(this.games.doc(gameId), fields)
+                        return { existingGame, updatedGame }
                     })
             )
+            if (!updated) return false
+            this.recordActivity(updated.existingGame, updated.updatedGame)
+            return true
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -964,7 +1245,6 @@ export class FirestoreGameStore implements GameStore {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1006,7 +1286,6 @@ export class FirestoreGameStore implements GameStore {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1043,6 +1322,7 @@ export class FirestoreGameStore implements GameStore {
             updatedGame: Game
             relatedActions: GameAction[]
             priorState: GameState
+            existingGame: Game
         }> => {
             const storedActions = actions.map((action) => structuredClone(action)) as StoredAction[]
 
@@ -1082,7 +1362,8 @@ export class FirestoreGameStore implements GameStore {
                             storedActions: [],
                             updatedGame: existingGame,
                             relatedActions,
-                            priorState: existingState
+                            priorState: existingState,
+                            existingGame
                         }
                 }
             }
@@ -1109,12 +1390,14 @@ export class FirestoreGameStore implements GameStore {
             const updatedGame = structuredClone(existingGame)
             gameUpdates.updatedAt = updateDate
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            this.recordTurnStarts(existingGame, gameUpdates, updateDate)
 
             if (existingState.result !== state.result) {
                 if (state.result) {
                     gameUpdates.status = GameStatus.Finished
                     gameUpdates.finishedAt = new Date()
                     gameUpdates.result = state.result
+                    gameUpdates.canContinue = state.canContinue
                     gameUpdates.winningPlayerIds = state.winningPlayerIds
                     gameUpdates.everFinished = true
                 } else {
@@ -1126,7 +1409,15 @@ export class FirestoreGameStore implements GameStore {
             updatedGame.state = state
             if (!existingState.result && state.result && existingGame.tournament) {
                 validateGameResult(state)
-                if (state.result !== GameResult.Abandoned)
+                if (state.result === GameResult.Abandoned)
+                    await this.releaseTournamentTable(
+                        transaction,
+                        locks,
+                        existingGame.tournament,
+                        'void',
+                        updateDate.getTime()
+                    )
+                else
                     await this.finishTournamentTable(
                         transaction,
                         locks,
@@ -1165,11 +1456,17 @@ export class FirestoreGameStore implements GameStore {
             transaction.set(stateCollection.doc(gameId), state)
             applyBranchWrites()
 
-            return { storedActions, updatedGame, relatedActions, priorState: existingState }
+            return {
+                storedActions,
+                updatedGame,
+                relatedActions,
+                priorState: existingState,
+                existingGame
+            }
         }
 
         try {
-            return await this.writeGame(
+            const { existingGame, ...added } = await this.writeGame(
                 gameId,
                 [
                     ...GameCacheKeys.gameWrite(gameId),
@@ -1178,9 +1475,10 @@ export class FirestoreGameStore implements GameStore {
                 async (locks) =>
                     this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
+            if (added.storedActions.length) this.recordActivity(existingGame, added.updatedGame)
+            return added
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1192,17 +1490,217 @@ export class FirestoreGameStore implements GameStore {
     ): Promise<void> {
         const reference = game.tournament
         assertExists(reference, 'Tournament reference is required')
-        const ref = this.firestore.collection('tournaments').doc(reference.tournamentId)
+        await this.updateTournamentTable(transaction, locks, reference, now, (data, stage) => {
+            const dispatch = stage.dispatch
+            assertExists(dispatch, 'Finished table has no dispatch')
+            const removed = game.players.some(
+                (player) =>
+                    player.userId &&
+                    data.entrants[tournamentEntrantIndex(data, player.userId)]?.withdrawn
+            )
+            if (removed) {
+                // A withdrawn player's Game never counts, even if it was finished afterwards.
+                ;(dispatch.voided ??= []).push(reference.tableId)
+                return
+            }
+            stage.standings ??= createTournamentStandings(data)
+            applyTournamentGameScore(data, stage.standings, game, { finalScores: game.finalScores })
+            dispatch.finished.push(reference.tableId)
+        })
+    }
+
+    /**
+     * Ends a Tournament Game that will never count, with an Abandoned result and no winners, and
+     * either voids its Table or returns the Table to dispatch for a fresh attempt.
+     */
+    async voidTournamentGame(gameId: string, outcome: TournamentTableRelease): Promise<Game> {
+        const found = await this.findGameById(gameId, false)
+        assertExists(found?.tournament, 'Tournament game not found')
+        const reference = found.tournament
+        try {
+            const voided: { game: Game; updated?: Game } = await this.writeGame(
+                gameId,
+                [
+                    ...GameCacheKeys.gameWrite(gameId),
+                    this.tournamentCacheKeys.key('event', reference.tournamentId),
+                    this.tournamentCacheKeys.key('games', reference.tournamentId)
+                ],
+                async (locks) =>
+                    this.runTransaction(async (transaction) => {
+                        const [game, state] = await this.readGameAndState(gameId, transaction)
+                        assertExists(game, 'Tournament game not found')
+                        assertExists(state, 'Tournament game state not found')
+                        if (game.status !== GameStatus.Started) return { game }
+                        const now = new Date()
+                        const updates: Partial<Game> = {
+                            status: GameStatus.Finished,
+                            result: GameResult.Abandoned,
+                            winningPlayerIds: [],
+                            activePlayerIds: [],
+                            finishedAt: now,
+                            updatedAt: now
+                        }
+                        this.recordTurnStarts(game, updates, now)
+                        const updated = { ...structuredClone(game), ...updates }
+                        await this.releaseTournamentTable(
+                            transaction,
+                            locks,
+                            reference,
+                            outcome,
+                            now.getTime()
+                        )
+                        await this.protectChangedLists(locks, game, updated)
+                        transaction.update(
+                            this.games.doc(gameId),
+                            this.createGameUpdateDocument(updates, updated)
+                        )
+                        transaction.set(this.getStateCollection(gameId).doc(gameId), {
+                            ...state,
+                            result: GameResult.Abandoned,
+                            winningPlayerIds: [],
+                            activePlayerIds: []
+                        })
+                        return { game, updated }
+                    })
+            )
+            if (!voided.updated) return voided.game
+            this.recordActivity(voided.game, voided.updated)
+            return voided.updated
+        } catch (error) {
+            this.handleError(error, gameId)
+        }
+    }
+
+    async renamePlayer({
+        gameId,
+        userId,
+        name
+    }: {
+        gameId: string
+        userId: string
+        name: string
+    }): Promise<Game> {
+        return this.rewriteSeats(gameId, (game) =>
+            playersWithRenamedSeat(game.players, userId, name)
+        )
+    }
+
+    async anonymizePlayer({ gameId, userId }: { gameId: string; userId: string }): Promise<Game> {
+        return this.rewriteSeats(gameId, (game) => playersWithDeletedAccount(game.players, userId))
+    }
+
+    /** Seats a Substitute's account in place of any earlier account of their place. */
+    async replaceTournamentSeat({
+        gameId,
+        fromUserIds,
+        toUserId,
+        toName
+    }: TournamentSeatHandover): Promise<Game> {
+        return this.rewriteSeats(gameId, (game) => {
+            assertExists(game.tournament, 'Tournament game not found')
+            if (game.players.some((player) => player.userId === toUserId)) return undefined
+            const players = game.players.map((player) =>
+                player.userId && fromUserIds.includes(player.userId)
+                    ? { ...player, userId: toUserId, name: toName }
+                    : player
+            )
+            assert(
+                players.some((player) => player.userId === toUserId),
+                'The replaced place has no seat in this game'
+            )
+            return players
+        })
+    }
+
+    private async rewriteSeats(
+        gameId: string,
+        rewrite: (game: Game) => Game['players'] | undefined
+    ): Promise<Game> {
+        const found = await this.findGameById(gameId, false)
+        assertExists(found, 'Game not found')
+        const cacheKeys = [
+            ...GameCacheKeys.gameWrite(gameId),
+            // Game links list the accounts seated at each Game.
+            ...(found.tournament
+                ? [this.tournamentCacheKeys.key('games', found.tournament.tournamentId)]
+                : [])
+        ]
+        try {
+            const rewritten: { game: Game; updated?: Game } = await this.writeGame(
+                gameId,
+                cacheKeys,
+                async (locks) =>
+                    this.runTransaction(async (transaction) => {
+                        const game = (
+                            await this.readDocument(this.games.doc(gameId), transaction)
+                        ).data()
+                        assertExists(game, 'Game not found')
+                        const players = rewrite(game)
+                        if (!players) return { game }
+                        const updates: Partial<Game> = { players, updatedAt: new Date() }
+                        const updated = { ...structuredClone(game), ...updates }
+                        await this.protectChangedLists(locks, game, updated)
+                        transaction.update(
+                            this.games.doc(gameId),
+                            this.createGameUpdateDocument(updates, updated)
+                        )
+                        return { game, updated }
+                    })
+            )
+            if (!rewritten.updated) return rewritten.game
+            this.recordActivity(rewritten.game, rewritten.updated)
+            return rewritten.updated
+        } catch (error) {
+            this.handleError(error, gameId)
+        }
+    }
+
+    private async releaseTournamentTable(
+        transaction: Transaction,
+        locks: CacheWriteLocks,
+        reference: TournamentGameReference,
+        outcome: TournamentTableRelease,
+        now: number
+    ): Promise<void> {
+        await this.updateTournamentTable(transaction, locks, reference, now, (_data, stage) => {
+            const dispatch = stage.dispatch
+            assertExists(dispatch, 'Released table has no dispatch')
+            if (outcome === 'void') (dispatch.voided ??= []).push(reference.tableId)
+            else
+                dispatch.attempts = {
+                    ...dispatch.attempts,
+                    [reference.tableId]: (reference.attempt ?? 1) + 1
+                }
+        })
+    }
+
+    /**
+     * Settles the Table of a Game that has ended, in the same transaction: takes it out of
+     * dispatch, applies the outcome, finishes the Tournament when nothing is left and wakes
+     * dispatch otherwise. A Table already settled, or a Game from an earlier attempt, is ignored.
+     */
+    private async updateTournamentTable(
+        transaction: Transaction,
+        locks: CacheWriteLocks,
+        reference: TournamentGameReference,
+        now: number,
+        settle: (tournament: Tournament, stage: Tournament['stages'][number]) => void
+    ): Promise<void> {
         const data = await this.readTournament(transaction, reference.tournamentId)
         const stage = data.stages.find((stage) => stage.id === reference.stageId)
         assert(stage?.scheduleId === reference.scheduleId, 'Tournament schedule changed')
-        if (!stage.dispatch || stage.dispatch.finished.includes(reference.tableId)) return
+        const dispatch = stage.dispatch
+        if (
+            !dispatch ||
+            reference.attempt !== dispatch.attempts?.[reference.tableId] ||
+            dispatch.finished.includes(reference.tableId) ||
+            dispatch.voided?.includes(reference.tableId)
+        )
+            return
         const listKeys = this.tournamentCacheKeys.lists(data)
-        stage.standings ??= createTournamentStandings(data)
-        applyTournamentGameScore(data, stage.standings, game, 1, game.finalScores)
-        stage.dispatch.active = stage.dispatch.active.filter((id) => id !== reference.tableId)
-        stage.dispatch.reserved = stage.dispatch.reserved.filter((id) => id !== reference.tableId)
-        stage.dispatch.finished.push(reference.tableId)
+        dispatch.active = dispatch.active.filter((id) => id !== reference.tableId)
+        dispatch.reserved = dispatch.reserved.filter((id) => id !== reference.tableId)
+        settle(data, stage)
         finalizeTournament(data, now)
         data.revision++
         data.updatedAt = now
@@ -1212,7 +1710,7 @@ export class FirestoreGameStore implements GameStore {
             ...listKeys,
             ...this.tournamentCacheKeys.lists(data)
         ])
-        transaction.update(ref, {
+        transaction.update(this.firestore.collection('tournaments').doc(data.id), {
             stages: data.stages,
             revision: data.revision,
             updatedAt: now,
@@ -1392,6 +1890,7 @@ export class FirestoreGameStore implements GameStore {
             updatedGame: Game
             redoneActions: GameAction[]
             priorState: GameState
+            existingGame: Game
         }> => {
             const [storedGame, existingState] = await this.readGameAndState(gameId, transaction)
             const existingGame = storedGame as StoredGame
@@ -1445,7 +1944,8 @@ export class FirestoreGameStore implements GameStore {
                             undoneActions: [],
                             updatedGame: existingGame,
                             redoneActions: [],
-                            priorState: existingState
+                            priorState: existingState,
+                            existingGame
                         }
                 }
             }
@@ -1460,6 +1960,7 @@ export class FirestoreGameStore implements GameStore {
             const updatedGame = structuredClone(existingGame) as Game
             gameUpdates.updatedAt = new Date()
             gameUpdates.lastActionAt = gameUpdates.updatedAt
+            this.recordTurnStarts(existingGame, gameUpdates, gameUpdates.updatedAt)
 
             if (existingState.result !== state.result && !state.result) {
                 Object.assign(gameUpdates, this.reopenedGameFields())
@@ -1497,12 +1998,13 @@ export class FirestoreGameStore implements GameStore {
                 undoneActions: existingActions,
                 updatedGame,
                 redoneActions,
-                priorState: existingState
+                priorState: existingState,
+                existingGame
             }
         }
 
         try {
-            return await this.writeGame(
+            const { existingGame, ...undone } = await this.writeGame(
                 gameId,
                 [
                     ...GameCacheKeys.gameWrite(gameId),
@@ -1511,9 +2013,10 @@ export class FirestoreGameStore implements GameStore {
                 async (locks) =>
                     this.runTransaction((transaction) => transactionBody(transaction, locks))
             )
+            if (undone.undoneActions.length) this.recordActivity(existingGame, undone.updatedGame)
+            return undone
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1536,7 +2039,6 @@ export class FirestoreGameStore implements GameStore {
                 return actions
             } catch (error) {
                 this.handleError(error, game.id)
-                throw Error('unreachable')
             }
         } else {
             const actionCollection = this.getActionCollection(game.id)
@@ -1546,7 +2048,6 @@ export class FirestoreGameStore implements GameStore {
                 return querySnapshot.docs.map((doc) => doc.data()) as GameAction[]
             } catch (error) {
                 this.handleError(error, game.id)
-                throw Error('unreachable')
             }
         }
     }
@@ -1579,7 +2080,6 @@ export class FirestoreGameStore implements GameStore {
             )
         } catch (error) {
             this.handleError(error, game.id)
-            throw Error('unreachable')
         }
     }
 
@@ -1800,7 +2300,6 @@ export class FirestoreGameStore implements GameStore {
                 )
             } catch (error) {
                 this.handleError(error, storedGame.id)
-                throw Error('unreachable')
             }
         } else {
             const actionCollection = this.getActionCollection(storedGame.id)
@@ -1819,7 +2318,6 @@ export class FirestoreGameStore implements GameStore {
                 return results
             } catch (error) {
                 this.handleError(error, storedGame.id)
-                throw Error('unreachable')
             }
         }
     }
@@ -1862,7 +2360,6 @@ export class FirestoreGameStore implements GameStore {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -1917,7 +2414,6 @@ export class FirestoreGameStore implements GameStore {
             )
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -2025,7 +2521,7 @@ export class FirestoreGameStore implements GameStore {
             .collection('games')
             .doc(gameId)
             .collection('actionChunks')
-            .withConverter(actionChunkConverter)
+            .withConverter(this.actionChunkConverter)
     }
 
     private getBranchCollection(gameId: string): CollectionReference {
@@ -2036,7 +2532,7 @@ export class FirestoreGameStore implements GameStore {
         return this.getBranchCollection(gameId)
             .doc(playerId)
             .collection('actionChunks')
-            .withConverter(actionChunkConverter)
+            .withConverter(this.actionChunkConverter)
     }
 
     private async readBranches(
@@ -2242,10 +2738,10 @@ export class FirestoreGameStore implements GameStore {
             .collection('games')
             .doc(gameId)
             .collection('states')
-            .withConverter(stateConverter)
+            .withConverter(this.stateConverter)
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error
@@ -2283,7 +2779,16 @@ export class FirestoreGameStore implements GameStore {
         after: Game | undefined
     ): Promise<void> {
         const keys = GameCacheKeys.changedLists(before, after)
+        const tournamentId = after?.tournament?.tournamentId
+        if (tournamentId && !sameGameProgress(before?.progress, after?.progress))
+            keys.push(this.tournamentCacheKeys.key('games', tournamentId))
         if (keys.length) await locks.addKeys(keys)
+    }
+
+    // Discovery lists may lag a committed write; updating them never delays or fails the write.
+    private recordActivity(before: Game | undefined, after: Game | undefined): void {
+        void this.titleActivity?.applyChange(before, after)
+        void this.seriesActivity?.applyChange(before, after)
     }
 
     private reopenedGameFields(): Partial<Game> {
@@ -2291,10 +2796,17 @@ export class FirestoreGameStore implements GameStore {
             status: GameStatus.Started,
             finishedAt: undefined,
             result: undefined,
+            canContinue: undefined,
             winningPlayerIds: [],
             finalScores: undefined,
+            call: undefined,
             everFinished: true
         }
+    }
+
+    private recordTurnStarts(existingGame: Game | undefined, updates: Partial<Game>, at: Date) {
+        if (updates.activePlayerIds === undefined) return
+        updates.turnStartedAt = turnStartsAfter(existingGame, updates.activePlayerIds, at)
     }
 
     private createGameUpdateDocument(fields: Partial<Game>, updatedGame: Game): DocumentData {
@@ -2314,6 +2826,11 @@ export class FirestoreGameStore implements GameStore {
         }
         return result
     }
+}
+
+function storedDate(value: unknown): Date {
+    assert(value instanceof Timestamp, 'A stored game time must be a Firestore Timestamp')
+    return value.toDate()
 }
 
 const gameConverter = {
@@ -2348,9 +2865,14 @@ const gameConverter = {
         data.autoStartAt = data.autoStartAt ? (data.autoStartAt as Timestamp).toDate() : undefined
         data.startedAt = data.startedAt ? (data.startedAt as Timestamp).toDate() : undefined
         data.finishedAt = data.finishedAt ? (data.finishedAt as Timestamp).toDate() : undefined
-        data.lastActionAt = data.lastActionAt
-            ? (data.lastActionAt as Timestamp).toDate()
-            : undefined
+        data.lastActionAt = data.lastActionAt ? storedDate(data.lastActionAt) : undefined
+        if (data.turnStartedAt)
+            data.turnStartedAt = Object.fromEntries(
+                Object.entries(data.turnStartedAt).map(([playerId, startedAt]) => [
+                    playerId,
+                    storedDate(startedAt)
+                ])
+            )
 
         // Default this for older records
         data.storage = GameStorage.Remote
@@ -2360,16 +2882,14 @@ const gameConverter = {
     }
 }
 
-const stateConverter = {
-    toFirestore(gameState: GameState): PartialWithFieldValue<StoredState> {
-        return { data: JSON.stringify(gameState) }
+const stateConverter = (encoding: StoredJsonEncoding): FirestoreDataConverter<GameState> => ({
+    toFirestore(gameState: GameState): DocumentData {
+        return storedState.encode(gameState, encoding)
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): GameState {
-        const docData = snapshot.data() as StoredState
-        const state = JSON.parse(docData.data) as GameState
-        return migrateFromSeedToPrng(state)
+        return migrateFromSeedToPrng(storedState.decode(snapshot.data()))
     }
-}
+})
 
 const migrateFromSeedToPrng = (state: GameState): GameState => {
     if (!state.prng) {
@@ -2399,25 +2919,28 @@ const actionConverter = {
     }
 }
 
-const actionChunkConverter = {
-    toFirestore(chunk: ActionChunk): PartialWithFieldValue<StoredActionChunk> {
-        const docData = structuredClone(chunk) as unknown as StoredActionChunk
-        docData.actionsData = JSON.stringify(chunk.actions)
-        docData.actionIds = chunk.actions.map((action) => action.id)
-
-        delete docData.actions
-        return docData
+const actionChunkConverter = (
+    encoding: StoredJsonEncoding
+): FirestoreDataConverter<ActionChunk> => ({
+    toFirestore(chunk: ActionChunk): DocumentData {
+        const { actions, ...fields } = chunk
+        return {
+            ...structuredClone(fields),
+            ...storedActions.encode(actions, encoding),
+            actionIds: actions.map((action) => action.id)
+        }
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): ActionChunk {
-        const data = snapshot.data() as Partial<StoredActionChunk>
-        if (typeof data.actionsData == 'string') {
-            data.actions = JSON.parse(data.actionsData)
+        const document = snapshot.data()
+        const { id, gameId, startIndex, endIndex, createdAt, updatedAt } = document
+        return {
+            id,
+            gameId,
+            startIndex,
+            endIndex,
+            createdAt: createdAt?.toDate(),
+            updatedAt: updatedAt?.toDate(),
+            actions: storedActions.decode(document)
         }
-        delete data.actionsData
-        delete data.actionIds
-
-        data.createdAt = data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined
-        data.updatedAt = data.updatedAt ? (data.updatedAt as Timestamp).toDate() : undefined
-        return data as ActionChunk
     }
-}
+})

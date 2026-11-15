@@ -26,7 +26,11 @@
         {:else if state.result}
             <div in:fade={{ duration: 200 }} out:fade={{ duration: 120 }}>END OF GAME</div>
         {:else}
-            <div in:fade={{ duration: 200 }} out:fade={{ duration: 120 }} class="flex items-center gap-2.5">
+            <div
+                in:fade={{ duration: 200 }}
+                out:fade={{ duration: 120 }}
+                class="flex items-center gap-2.5"
+            >
                 {#if activePlayerId}
                     <PieceIcon
                         buildingType={BuildingType.Tower}

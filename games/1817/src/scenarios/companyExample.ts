@@ -8,6 +8,7 @@ import {
     homeStationId,
     issueShareCertificates,
     presidentCertificate,
+    treasuryPoolId,
     type CompanyState,
     type MapStateData,
     type Owner,
@@ -19,8 +20,7 @@ import {
     BasePrivateIds,
     EighteenSeventeenTrainDepot,
     MarketPoolId,
-    createEighteenSeventeenPosition,
-    treasuryPoolId
+    createEighteenSeventeenPosition
 } from '../index.js'
 
 const PlayerCash = [300, 250, 280, 200]

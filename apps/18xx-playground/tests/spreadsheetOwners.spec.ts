@@ -88,7 +88,7 @@ test('TOP lists PEIR last with player-held share numbers and no market value', a
     await expect(
         sheet
             .getByRole('row')
-            .filter({ has: page.getByRole('rowheader', { name: 'Prince Edward Island Railway' }) })
+            .filter({ has: page.getByRole('rowheader', { name: 'PEIR', exact: true }) })
             .getByRole('cell')
             .nth(2)
     ).toHaveText('2P (3,5)')

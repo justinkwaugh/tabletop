@@ -21,12 +21,11 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
     const offering = { owner: bank, poolId: 'initial-offering' }
     const market = { owner: bank, poolId: 'open-market' }
     return {
-        bank: { unlimitedAfterExhaustion: true },
+        bank: {},
         companies: [
             {
                 id: Shikoku1889Majors.AR.id,
                 kind: 'major',
-                shareCount: 10,
                 parPrice: 65,
                 started: true,
                 funded: true,
@@ -37,7 +36,6 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
             {
                 id: Shikoku1889Majors.IR.id,
                 kind: 'major',
-                shareCount: 10,
                 parPrice: 70,
                 started: true,
                 funded: true,
@@ -48,8 +46,7 @@ export function createShikoku1889FinanceExample(players: readonly PlayerState[])
             ...Shikoku1889Privates.filter((company) => ['MF', 'ER'].includes(company.id)).map(
                 (company) => ({
                     id: company.id,
-                    kind: 'private',
-                    privateRevenue: company.revenue
+                    kind: 'private'
                 })
             )
         ],

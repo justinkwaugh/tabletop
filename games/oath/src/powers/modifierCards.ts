@@ -1,7 +1,7 @@
 import { assert, assertExists } from '@tabletop/common'
 import { Suit, CardKind } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { kindOf, suitOf } from '../data/cardRegistry.js'
+import { kindOf } from '../data/cardRegistry.js'
 import { warbandsOnBoardOf } from '../util/force.js'
 import { gainSupply } from '../util/rest.js'
 import { totalWarbandsAt } from '../util/rule.js'
@@ -18,6 +18,7 @@ import {
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { CARELESS, hasTrait, reasonTradeForSecretsGainsNoFavor } from '../util/reliquaryTraits.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
 function player(ctx: EffectContext) {
     return ctx.state.getPlayerState(ctx.playerId)
@@ -86,7 +87,12 @@ registerModifier(
                     : `you are travelling neither to nor from ${here}, where Portal sits`
             },
             spendsNoSupply: spendNoSupply,
-            ignoresSitePowers: true
+            ignoresSitePowers: true,
+            // R-11.7-H4 — travelling from its own site: the Shrouded Wood there picks nothing.
+            ignoresOriginShroudedWood: (ctx) => {
+                const here = siteHolding(ctx.state, 'denizen.arcane.portal')
+                return here !== undefined && here === player(ctx).siteId
+            }
         }
     }
 )
@@ -146,7 +152,7 @@ registerModifier(
         freeGain: true,
         hooks: {
             condition: (ctx) =>
-                suitOf(ctx.particulars?.cardId ?? '') === Suit.Beast
+                ctx.state.suitInPlay(ctx.particulars?.cardId ?? '') === Suit.Beast
                     ? undefined
                     : `${ctx.particulars?.cardId} is not a beast card`,
             spendsNoSupply: spendNoSupply
@@ -163,7 +169,7 @@ registerModifier(
         freeGain: true,
         hooks: {
             condition: (ctx) => {
-                const suit = suitOf(ctx.particulars?.cardId ?? '')
+                const suit = ctx.state.suitInPlay(ctx.particulars?.cardId ?? '')
                 if (!suit) return `${ctx.particulars?.cardId} has no favor bank`
                 const mine = ctx.state.favorBank[suit]
                 const others = Object.entries(ctx.state.favorBank)
@@ -214,7 +220,7 @@ registerModifier(
         freeGain: true,
         hooks: {
             condition: (ctx) => {
-                const suit = suitOf(ctx.particulars?.cardId ?? '')
+                const suit = ctx.state.suitInPlay(ctx.particulars?.cardId ?? '')
                 return suit === Suit.Beast || suit === Suit.Nomad
                     ? undefined
                     : `${ctx.particulars?.cardId} is neither a beast nor a nomad card`
@@ -259,9 +265,15 @@ registerModifier(
                 if (withheld) return { summary: `Secret Signal: ${withheld}` }
                 const cardId = ctx.particulars.cardId
                 assertExists(cardId, 'A Trade names the card it is made with')
-                const suit = suitOf(cardId)
+                const suit = ctx.state.suitInPlay(cardId)
                 assertExists(suit, 'A Trade is made with a card of a suit')
-                const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 1)
+                const gained = gainFavorFromBank(
+                    ctx.state,
+                    ctx.playerId,
+                    suit,
+                    1,
+                    ctx.particulars.advisersOf
+                )
                 return {
                     summary:
                         gained > 0
@@ -287,7 +299,11 @@ registerModifier(
                 }
                 if (ctx.particulars?.tradeOption !== 'forSecrets')
                     return 'you are not trading for secrets'
-                const beast = hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, Suit.Beast)
+                // R-7.4-H1 — from revision 23, the advisers the Trade acts with (Master of Disguise).
+                const holder = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes19)
+                    ? (ctx.particulars.advisersOf ?? ctx.playerId)
+                    : ctx.playerId
+                const beast = hasFaceupAdviserOfSuit(ctx.state, holder, Suit.Beast)
                 return beast ? undefined : 'you have no beast adviser'
             },
             tradeSecrets: (base) => base + 1
@@ -314,6 +330,7 @@ function playedCardIds(ctx: EffectContext): string[] {
 // R-5.1 — this and Wild Cry apply at the play, a Search's or a facedown adviser's (R-6.1).
 // "If you play a denizen card that was not a facedown adviser, gain favor from
 // the hearth bank." A Search plays from the hand, so every played denizen qualifies.
+const WELCOMING_PARTY_BANK = Suit.Hearth
 registerModifier(
     'denizen.hearth.welcoming-party',
     powerIndexOf('denizen.hearth.welcoming-party', PowerTiming.Modifier),
@@ -324,10 +341,11 @@ registerModifier(
                 ctx.particulars?.facedownAdviserPlay === true
                     ? 'the card played is a facedown adviser'
                     : undefined,
+            playFavorFrom: WELCOMING_PARTY_BANK,
             after: (ctx) => {
                 if (!playedCardIds(ctx).some((id) => kindOf(id) === CardKind.Denizen))
                     return undefined
-                const gained = gainFavorFromBank(ctx.state, ctx.playerId, Suit.Hearth, 1)
+                const gained = gainFavorFromBank(ctx.state, ctx.playerId, WELCOMING_PARTY_BANK, 1)
                 return { summary: `Welcoming Party: gained ${gained} favor from the hearth bank` }
             }
         }
@@ -335,14 +353,17 @@ registerModifier(
 )
 
 // "If you play a beast card, gain 1 Supply and 2 warbands."
+const WILD_CRY_SUIT = Suit.Beast
 registerModifier(
     'denizen.beast.wild-cry',
     powerIndexOf('denizen.beast.wild-cry', PowerTiming.Modifier),
     {
         freeGain: true,
         hooks: {
+            playedSuitGains: WILD_CRY_SUIT,
             after: (ctx) => {
-                if (!playedCardIds(ctx).some((id) => suitOf(id) === Suit.Beast)) return undefined
+                if (!playedCardIds(ctx).some((id) => ctx.state.suitInPlay(id) === WILD_CRY_SUIT))
+                    return undefined
                 const supply = gainSupply(ctx.state, ctx.playerId, 1)
                 const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)
                 const words =

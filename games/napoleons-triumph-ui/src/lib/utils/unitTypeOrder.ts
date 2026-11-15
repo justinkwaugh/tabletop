@@ -13,8 +13,28 @@ export function byFaceRank(a: Face, b: Face): number {
 
 /** Units in the order their owner reads them, which is possible only while every face among them is known; otherwise as given. */
 export function inReadingOrder(units: readonly ProjectedUnit[]): ProjectedUnit[] {
-    const ranked = units.flatMap((unit) => (unit.face ? [{ unit, face: unit.face }] : []))
-    return ranked.length === units.length
-        ? ranked.toSorted((a, b) => byFaceRank(a.face, b.face)).map((entry) => entry.unit)
+    return units.every((unit) => unit.face)
+        ? seenFacesFirst(units, (unit) => unit.face)
         : [...units]
+}
+
+/** The face-down units follow as given, so their order tells nothing. */
+export function seenFacesFirst(
+    units: readonly ProjectedUnit[],
+    faceOf: (unit: ProjectedUnit) => Face | undefined
+): ProjectedUnit[] {
+    const seen: { unit: ProjectedUnit; face: Face }[] = []
+    const unseen: ProjectedUnit[] = []
+    for (const unit of units) {
+        const face = faceOf(unit)
+        if (face) {
+            seen.push({ unit, face })
+        } else {
+            unseen.push(unit)
+        }
+    }
+    return [
+        ...seen.toSorted((a, b) => byFaceRank(a.face, b.face)).map((entry) => entry.unit),
+        ...unseen
+    ]
 }

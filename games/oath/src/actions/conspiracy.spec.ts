@@ -359,7 +359,7 @@ describe('the Seize helper in isolation (R-2.5.3)', () => {
     })
 })
 
-describe('R-5.1.4.IV — the Conspiracy match ignores the target\'s facedown advisers', () => {
+describe("R-5.1.4.IV — the Conspiracy match ignores the target's facedown advisers", () => {
     const HEARTH = 'denizen.hearth.ballot-box'
     const ORDER = 'denizen.order.wrestlers'
 

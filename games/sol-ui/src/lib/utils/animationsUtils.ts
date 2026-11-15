@@ -86,10 +86,7 @@ export function getGateCrossingTimes({
             const segmentLength = segmentLengths[index]
             const distanceToGate =
                 segmentLength > 0
-                    ? Math.min(
-                          segmentLength,
-                          Math.max(0, getDistance(startPoint, gateLocation))
-                      )
+                    ? Math.min(segmentLength, Math.max(0, getDistance(startPoint, gateLocation)))
                     : 0
             const distanceAlongPath = cumulativeLengths[index] + distanceToGate
             const progress = distanceAlongPath / totalLength

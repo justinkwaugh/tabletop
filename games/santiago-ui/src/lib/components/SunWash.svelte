@@ -10,7 +10,11 @@
 </script>
 
 <!-- The land mood animator sets the mood layers' opacity. -->
-<div class="light sun-wash" aria-hidden="true" style="{layerStyle}; opacity: {0.7 * SUNLIGHT}"></div>
+<div
+    class="light sun-wash"
+    aria-hidden="true"
+    style="{layerStyle}; opacity: {0.7 * SUNLIGHT}"
+></div>
 <div
     class="light lush"
     aria-hidden="true"

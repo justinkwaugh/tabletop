@@ -102,11 +102,13 @@ describe('HydratedPlaceCastle', () => {
 
         const onHill = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 5, castleRow: 5
+            castleCol: 5,
+            castleRow: 5
         })
         const onVillage = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 6, castleRow: 5
+            castleCol: 6,
+            castleRow: 5
         })
 
         expect(onHill.isValidPlaceCastle(state)).toBe(false)
@@ -124,21 +126,24 @@ describe('HydratedPlaceCastle', () => {
         // Four empty squares between (distance 5)
         const fourBetween = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 7 // distance = 5
+            castleCol: 2,
+            castleRow: 7 // distance = 5
         })
         expect(fourBetween.isValidPlaceCastle(state)).toBe(false)
 
         // Five empty squares between (distance 6) - the pre-correction reading of the rule
         const fiveBetween = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 8 // distance = 6
+            castleCol: 2,
+            castleRow: 8 // distance = 6
         })
         expect(fiveBetween.isValidPlaceCastle(state)).toBe(false)
 
         // Six empty squares between (distance 7) is legal
         const sixBetween = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 9
+            castleCol: 2,
+            castleRow: 9
         })
         expect(sixBetween.isValidPlaceCastle(state)).toBe(true)
     })
@@ -154,7 +159,8 @@ describe('HydratedPlaceCastle', () => {
 
         const fiveBetween = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 2, castleRow: 8
+            castleCol: 2,
+            castleRow: 8
         })
         expect(fiveBetween.isValidPlaceCastle(state)).toBe(true)
     })
@@ -163,7 +169,8 @@ describe('HydratedPlaceCastle', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
         const action = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 5, castleRow: 5
+            castleCol: 5,
+            castleRow: 5
         })
 
         action.apply(state)
@@ -177,7 +184,9 @@ describe('HydratedPlaceCastle', () => {
     it('describeCastleSquareProblem reports the specific rejection reason', () => {
         // p2 is not up next in a fresh 4-player game.
         const freshState = buildState(['p1', 'p2', 'p3', 'p4'])
-        expect(HydratedPlaceCastle.describeCastleSquareProblem(freshState, 'p2', 5, 5)).toBe('notYourTurn')
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(freshState, 'p2', 5, 5)).toBe(
+            'notYourTurn'
+        )
 
         // Single-player turn order so it's always p1's turn regardless of how many
         // castles are already on the board - isolates the other 3 reasons from the
@@ -188,7 +197,9 @@ describe('HydratedPlaceCastle', () => {
         // p1 already has a castle at (2,2)
         state.board.squares[2][2].castleOwner = 'p1'
 
-        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 3, 3)).toBe('wrongTerrain')
+        expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 3, 3)).toBe(
+            'wrongTerrain'
+        )
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 4, 4)).toBe('occupied')
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 2, 7)).toBe('tooClose') // distance 5
         expect(HydratedPlaceCastle.describeCastleSquareProblem(state, 'p1', 2, 8)).toBe('tooClose') // distance 6
@@ -248,7 +259,8 @@ describe('HydratedPlaceCastle', () => {
 
         const action = makePlaceCastle({
             playerId: 'p1',
-            castleCol: 8, castleRow: 8
+            castleCol: 8,
+            castleRow: 8
         })
 
         expect(action.isValidPlaceCastle(state)).toBe(true)
@@ -264,7 +276,9 @@ describe('HydratedPlaceCastle.requiredCastleGap', () => {
         const state = buildState(['p1', 'p2', 'p3', 'p4'])
         state.board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
 
-        expect(HydratedPlaceCastle.requiredCastleGap(state, 'p1')).toBe(RULEBOOK_CASTLE_MIN_DISTANCE)
+        expect(HydratedPlaceCastle.requiredCastleGap(state, 'p1')).toBe(
+            RULEBOOK_CASTLE_MIN_DISTANCE
+        )
     })
 
     it('relaxes to the best the board offers when nothing can clear the rulebook distance', () => {
@@ -308,12 +322,18 @@ describe('currentPlacementOwner', () => {
 
         // 2p plan: 4 own laps (p1, p2 each lap), then 2 neutral laps.
         const expected = [
-            'p1', 'p2',
-            'p1', 'p2',
-            'p1', 'p2',
-            'p1', 'p2',
-            NEUTRAL_OWNER, NEUTRAL_OWNER,
-            NEUTRAL_OWNER, NEUTRAL_OWNER
+            'p1',
+            'p2',
+            'p1',
+            'p2',
+            'p1',
+            'p2',
+            'p1',
+            'p2',
+            NEUTRAL_OWNER,
+            NEUTRAL_OWNER,
+            NEUTRAL_OWNER,
+            NEUTRAL_OWNER
         ]
 
         for (const [index, owner] of expected.entries()) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CompanyToken, marketColors } from '@tabletop/18xx-ui'
+    import { CompanyToken, marketSpaceColor, marketZone } from '@tabletop/18xx-ui'
     import BranchSplitAllocation from './BranchSplitAllocation.svelte'
     import { getCompany } from '@tabletop/18xx'
     import type { TheOldPrinceSession } from './session.svelte.js'
@@ -85,9 +85,11 @@
                 {/each}
             {:else if !selection.marketSpaceId}
                 {#each session.splitModel.prices() as price (price.id)}
+                    {@const zone = marketZone(session.presentation.marketZones, price.color)}
                     <button
                         class="price-choice"
-                        style:background={marketColors[price.color] ?? price.color}
+                        class:recessed={zone?.fill?.kind === 'recessed'}
+                        style:background={marketSpaceColor(price.color, zone)}
                         aria-label={`Start branch at ${price.price}`}
                         data-split-price={price.id}
                         disabled={!session.canPreviewSplit}
@@ -222,6 +224,9 @@
         font-weight: 600;
         border-color: var(--rail-shadow, #66574740);
         color: #39352f;
+    }
+    .price-choice.recessed {
+        color: var(--rail-text, #39352f);
     }
     .price-choice:hover:not(:disabled) {
         filter: brightness(0.96);

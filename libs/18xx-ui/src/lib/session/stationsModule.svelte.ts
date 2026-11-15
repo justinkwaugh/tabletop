@@ -9,11 +9,16 @@ import {
     pendingHomeChoice,
     StationPlacement,
     applyStationPlacement,
+    reservationFulfilled,
+    hexReservationFulfilled,
+    neutralStation,
+    placeableStations,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type HomePosition,
     type StationPosition,
-    type StationRequest
+    type StationRequest,
+    type StationState
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
@@ -54,12 +59,26 @@ export class StationsModule<State extends StationsState> {
                 (type) => type === 'FinishStations' || type === 'PlaceStation'
             )
     )
-    available = $derived.by(() =>
-        this.session.state.stations.filter(
-            (station) =>
-                station.companyId === this.session.state.stationStep?.companyId &&
-                station.status === 'available'
-        )
+    available = $derived.by(() => {
+        const companyId = this.session.state.stationStep?.companyId
+        return companyId ? placeableStations(this.session.state, companyId) : []
+    })
+    /**
+     * A neutral station the company holds and may place, offered beside its own stations, which
+     * stay the automatic choice (1882 §11.4).
+     */
+    neutralChoice = $derived.by(() =>
+        this.canPlace && this.session.validActionTypes.includes('PlaceStation')
+            ? this.available.find(
+                  (station) =>
+                      !!neutralStation(this.session.state, station.id) &&
+                      this.model.choices(station.id).length > 0
+              )
+            : undefined
+    )
+    /** Whether the neutral station is the one chosen to place. */
+    neutralSelected = $derived.by(
+        () => !!this.neutralChoice && this.selection.stationId?.value === this.neutralChoice.id
     )
     selection = $derived.by((): StationSelection => {
         if (!this.session.selectionsVisible || !this.active()) return {}
@@ -70,7 +89,10 @@ export class StationsModule<State extends StationsState> {
             !this.session.validActionTypes.includes('PlaceStation')
         )
             return {}
-        const cheapestPlaceable = [...this.available]
+        const own = this.available.filter(
+            (station) => !neutralStation(this.session.state, station.id)
+        )
+        const cheapestPlaceable = [...(own.length ? own : this.available)]
             .sort((left, right) => this.placementCost(left.id) - this.placementCost(right.id))
             .find((token) => this.model.choices(token.id).length > 0)
         return cheapestPlaceable ? automaticStation(cheapestPlaceable.id) : {}
@@ -88,6 +110,28 @@ export class StationsModule<State extends StationsState> {
             ? this.model.evaluate(this.selection.placement.value).details
             : undefined
     )
+    /** Reservations no placed station answers yet, which still hold a space. */
+    openReservations(state: StationState) {
+        const rules = this.session.rules.stationRules
+        const open = state.stationReservations.filter(
+            (reservation) => !reservationFulfilled(state, reservation, rules)
+        )
+        if (!state.hexReservations?.length) return open
+        const placement = new StationPlacement({ ...this.session.state, ...state }, rules)
+        const shownInOpenCity = state.hexReservations.flatMap((reservation) => {
+            if (hexReservationFulfilled(state, reservation)) return []
+            const node = placement.mapState
+                .tile(reservation.locationId)
+                .face.nodes.find(
+                    (node) =>
+                        node.kind === 'city' &&
+                        placement.openSlots(reservation.companyId, reservation.locationId, node.id)
+                            .length
+                )
+            return node ? [{ ...reservation, nodeId: node.id }] : []
+        })
+        return [...open, ...shownInOpenCity]
+    }
     displayState = $derived.by((): State => {
         if (!this.preview) return this.session.state
         const state: State = {

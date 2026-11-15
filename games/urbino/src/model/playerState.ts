@@ -11,7 +11,7 @@ export const UrbinoPlayerState = Type.Evaluate(
             houses: Type.Number(),
             palaces: Type.Number(),
             towers: Type.Number(),
-            score: Type.Number(),
+            score: Type.Number()
         })
     ])
 )

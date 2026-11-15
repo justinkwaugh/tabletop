@@ -79,7 +79,12 @@
     fontWeight="400 700"
     fontStyle="italic"
 />
-<CustomFont fontFamily="Railheads Alegreya" url={AlegreyaBoldFont} format="woff2" fontWeight="700" />
+<CustomFont
+    fontFamily="Railheads Alegreya"
+    url={AlegreyaBoldFont}
+    format="woff2"
+    fontWeight="700"
+/>
 
 <div class="bg-[#e6e2c3]">
     <DefaultTableLayout>

@@ -5,17 +5,20 @@ import type { GameState, HydratedGameState, UninitializedGameState } from '../mo
 import * as Value from 'typebox/value'
 import type { GameDefinition } from './gameDefinition.js'
 import { assertExists } from '../../util/assertions.js'
+import type { GameContinuation } from '../engine/gameContinuation.js'
 
 export interface GameInitializer<
     T extends GameState = GameState,
     U extends HydratedGameState<T> = HydratedGameState<T>
 > {
     readonly supportsStartingPositions?: boolean
+    readonly supportsContinuation?: boolean
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game
     initializeGameState(
         game: Game,
         state: UninitializedGameState,
-        assignment?: StartingPositionAssignment
+        assignment?: StartingPositionAssignment,
+        continuation?: GameContinuation<T>
     ): U
 }
 
@@ -26,7 +29,8 @@ export abstract class BaseGameInitializer<
     abstract initializeGameState(
         game: Game,
         state: UninitializedGameState,
-        assignment?: StartingPositionAssignment
+        assignment?: StartingPositionAssignment,
+        continuation?: GameContinuation<T>
     ): U
 
     initializeGame(game: Partial<Game>, definition: GameDefinition<T, U>): Game {

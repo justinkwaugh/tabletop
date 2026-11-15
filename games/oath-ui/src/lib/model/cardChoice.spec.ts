@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { CardKind, PowerChoiceKind, Region } from '@tabletop/oath'
-import { powerChoiceCard, powerChoiceCards, toggleSingle, togglePick, type CardResolvers } from './cardChoice.js'
+import {
+    powerChoiceCard,
+    powerChoiceCards,
+    toggleSingle,
+    togglePick,
+    type CardResolvers
+} from './cardChoice.js'
 
 const resolve: CardResolvers = {
     knownRelicAt: (slotId) => (slotId === 'c1.relic.0' ? 'relic.map' : undefined),
@@ -31,23 +37,59 @@ describe('a card row: tap to pick, tap again to untap', () => {
 
 describe('a power choice drawn as cards', () => {
     it('a card by its face, a relic by its face when known and a back when not, a facedown adviser by a back', () => {
-        expect(powerChoiceCard({ kind: PowerChoiceKind.Card, cardId: 'denizen.nomad.tents' }, '0', resolve)).toMatchObject({ cardId: 'denizen.nomad.tents' })
-        expect(powerChoiceCard({ kind: PowerChoiceKind.RelicSlot, slotId: 'c1.relic.0' }, '0', resolve)).toMatchObject({ cardId: 'relic.map' })
-        expect(powerChoiceCard({ kind: PowerChoiceKind.RelicSlot, slotId: 'p1.relic.0' }, '0', resolve)).toEqual({ key: '0', back: CardKind.Relic, label: 'relic p1.relic.0' })
-        expect(powerChoiceCard({ kind: PowerChoiceKind.FacedownAdviser, playerId: 'ann', index: 1 }, '0', resolve)).toEqual({ key: '0', back: CardKind.Denizen, label: "ann's facedown adviser 2" })
-        expect(powerChoiceCard({ kind: PowerChoiceKind.FacedownAdviser, playerId: 'ann', index: 2 }, '0', resolve)).toEqual({ key: '0', back: CardKind.Vision, label: "ann's facedown adviser 3" })
+        expect(
+            powerChoiceCard(
+                { kind: PowerChoiceKind.Card, cardId: 'denizen.nomad.tents' },
+                '0',
+                resolve
+            )
+        ).toMatchObject({ cardId: 'denizen.nomad.tents' })
+        expect(
+            powerChoiceCard({ kind: PowerChoiceKind.RelicSlot, slotId: 'c1.relic.0' }, '0', resolve)
+        ).toMatchObject({ cardId: 'relic.map' })
+        expect(
+            powerChoiceCard({ kind: PowerChoiceKind.RelicSlot, slotId: 'p1.relic.0' }, '0', resolve)
+        ).toEqual({ key: '0', back: CardKind.Relic, label: 'relic p1.relic.0' })
+        expect(
+            powerChoiceCard(
+                { kind: PowerChoiceKind.FacedownAdviser, playerId: 'ann', index: 1 },
+                '0',
+                resolve
+            )
+        ).toEqual({ key: '0', back: CardKind.Denizen, label: "ann's facedown adviser 2" })
+        expect(
+            powerChoiceCard(
+                { kind: PowerChoiceKind.FacedownAdviser, playerId: 'ann', index: 2 },
+                '0',
+                resolve
+            )
+        ).toEqual({ key: '0', back: CardKind.Vision, label: "ann's facedown adviser 3" })
     })
 
     it('warbands at a site by the site card, captioned with the group; on a board they are no card', () => {
-        const atSite = { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'site', siteId: 'c1' }, owner: 'ann', count: 2 } } as const
-        expect(powerChoiceCard(atSite, '0', resolve)).toMatchObject({ cardId: 'site.plains', caption: "2 ann's" })
-        const onBoard = { kind: PowerChoiceKind.Warbands, group: { at: { kind: 'board', playerId: 'ann' }, owner: 'ann', count: 2 } } as const
+        const atSite = {
+            kind: PowerChoiceKind.Warbands,
+            group: { at: { kind: 'site', siteId: 'c1' }, owner: 'ann', count: 2 }
+        } as const
+        expect(powerChoiceCard(atSite, '0', resolve)).toMatchObject({
+            cardId: 'site.plains',
+            caption: "2 ann's"
+        })
+        const onBoard = {
+            kind: PowerChoiceKind.Warbands,
+            group: { at: { kind: 'board', playerId: 'ann' }, owner: 'ann', count: 2 }
+        } as const
         expect(powerChoiceCard(onBoard, '0', resolve)).toBeUndefined()
     })
 
     it('a row is all cards or none: a region among cards keeps the list control', () => {
         const card = { kind: PowerChoiceKind.Card, cardId: 'denizen.nomad.tents' } as const
         expect(powerChoiceCards([card, card], resolve)?.map((c) => c.key)).toEqual(['0', '1'])
-        expect(powerChoiceCards([card, { kind: PowerChoiceKind.Region, region: Region.Cradle }], resolve)).toBeUndefined()
+        expect(
+            powerChoiceCards(
+                [card, { kind: PowerChoiceKind.Region, region: Region.Cradle }],
+                resolve
+            )
+        ).toBeUndefined()
     })
 })

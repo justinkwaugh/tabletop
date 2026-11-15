@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
+import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import type { HydratedIndonesiaGameState } from '../model/gameState.js'
 
@@ -27,5 +27,5 @@ export const IndonesiaStateHandlers: Record<
     [MachineState.Operations]: new OperationsStateHandler(),
     [MachineState.CityGrowth]: new CityGrowthStateHandler(),
     [MachineState.ShippingOperations]: new ShippingOperationsStateHandler(),
-    [MachineState.ProductionOperations]: new ProductionOperationsStateHandler(),
+    [MachineState.ProductionOperations]: new ProductionOperationsStateHandler()
 }

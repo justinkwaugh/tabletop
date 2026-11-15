@@ -1,4 +1,4 @@
-import type { Tournament, TournamentListQuery } from '@tabletop/common'
+import { tournamentAccountIds, type Tournament, type TournamentListQuery } from '@tabletop/common'
 
 export class TournamentCacheKeys {
     constructor(private readonly prefix = 'tournaments:v1') {}
@@ -13,7 +13,9 @@ export class TournamentCacheKeys {
 
     lists(tournament: Tournament | undefined): string[] {
         if (!tournament) return []
-        const keys = tournament.entrants.map((entrant) => this.listFamily('mine', entrant.userId))
+        const keys = tournamentAccountIds(tournament).map((userId) =>
+            this.listFamily('mine', userId)
+        )
         const status = tournament.status
         if (status === 'draft' || status === 'open' || status === 'finished')
             keys.push(this.listFamily(status))

@@ -93,9 +93,7 @@ describe('Peek at a Relic (R-6.3)', () => {
         serverPeek(state, vault, 'p1', siteTarget('slot-1'))
 
         state.getPlayerState('p1').siteId = 'h3'
-        expect(
-            HydratedPeek.reasonCannotPeek(state, 'p1', siteTarget('slot-1'))
-        ).toBeUndefined()
+        expect(HydratedPeek.reasonCannotPeek(state, 'p1', siteTarget('slot-1'))).toBeUndefined()
 
         expect(HydratedPeek.reasonCannotPeek(state, 'p1', siteTarget('slot-2'))).toMatch(
             /not at your site/
@@ -131,13 +129,13 @@ describe('Peek at a Relic (R-6.3)', () => {
     })
 })
 
-describe('The Reliquary is the Scepter holder\'s to know (R-6.4-H1)', () => {
+describe("The Reliquary is the Scepter holder's to know (R-6.4-H1)", () => {
     function taught(state: HydratedOathGameState, vault: OathVault) {
         state.vault = vault
         return teachReliquaryToScepterHolder(state)
     }
 
-    it('no Peek targets the Reliquary, even for the Scepter\'s holder', () => {
+    it("no Peek targets the Reliquary, even for the Scepter's holder", () => {
         const { state } = board({ relicIds: [GRAND_SCEPTER_ID] })
         expect(HydratedPeek.legalTargets(state, 'p1')).toEqual([siteTarget('slot-1')])
     })
@@ -150,7 +148,7 @@ describe('The Reliquary is the Scepter holder\'s to know (R-6.4-H1)', () => {
         expect(taught(state, vault)).toBe(false)
     })
 
-    it('is the Scepter\'s, not the Chancellor\'s seat\'s', () => {
+    it("is the Scepter's, not the Chancellor's seat's", () => {
         const { state, vault } = board({ relicIds: [GRAND_SCEPTER_ID] })
         expect(state.getPlayerState('p1').status).toBe('exile')
         taught(state, vault)

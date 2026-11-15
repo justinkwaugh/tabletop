@@ -35,7 +35,11 @@ export const RESEARCH_TRACK_CELLS: readonly ResearchTrackCell[] = RESEARCH_ROW_B
     ({ row, top, bottom }) => {
         const cells: ResearchTrackCell[] = []
 
-        for (let columnIndex = 0; columnIndex < RESEARCH_COLUMN_BOUNDS.length - 1; columnIndex += 1) {
+        for (
+            let columnIndex = 0;
+            columnIndex < RESEARCH_COLUMN_BOUNDS.length - 1;
+            columnIndex += 1
+        ) {
             const left = RESEARCH_COLUMN_BOUNDS[columnIndex]
             const right = RESEARCH_COLUMN_BOUNDS[columnIndex + 1]
             const width = right - left

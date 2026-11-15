@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, createCallGameAction, type GameAction } from '@tabletop/common'
 import { ActionSpace, ActionType, AuctionKind, CompanyId } from '@tabletop/hill-country-grocers'
 import { historyEntries } from './history.js'
 
@@ -52,5 +52,23 @@ describe('history entries', () => {
         expect(entries.map((entry) => entry.kind)).toEqual(['turn', 'dividend', 'turn'])
         expect(entries[0].kind === 'turn' && entries[0].actions).toHaveLength(3)
         expect(entries[2]).toMatchObject({ playerId: 'p2', space: ActionSpace.DevelopTowns })
+    })
+
+    it('closes the open turn with a called game entry of its own', () => {
+        const entries = historyEntries([
+            action(ActionType.ChooseAction, { space: ActionSpace.AuctionShare }),
+            action(ActionType.OpenAuction, { companyId: CompanyId.Verbena, amount: 1 }),
+            createCallGameAction({
+                gameId: 'g',
+                ballot: {
+                    initiatorPlayerId: 'p1',
+                    approvingPlayerIds: ['p1', 'p2'],
+                    decliningPlayerIds: []
+                },
+                players: ['p1', 'p2', 'p3']
+            })
+        ])
+        expect(entries.map((entry) => entry.kind)).toEqual(['turn', 'call'])
+        expect(entries[0].kind === 'turn' && entries[0].actions).toHaveLength(2)
     })
 })

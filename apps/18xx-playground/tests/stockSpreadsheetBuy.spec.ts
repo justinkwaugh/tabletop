@@ -70,14 +70,15 @@ test('TOP offers a Union Bank purchase with the owner contribution', async ({ pa
 
     const spreadsheet = page.getByRole('table', { name: 'Company share ownership' })
     const bankShare = spreadsheet
-        .getByRole('row', { name: /^Union Bank/ })
+        .getByRole('row')
+        .filter({ has: page.locator('th[title="Union Bank"]') })
         .getByRole('cell')
         .first()
     await spreadsheet.getByRole('button', { name: 'Buy Charlottetown from Market' }).click()
 
     const confirmation = page.getByRole('dialog', { name: 'Confirm share trade' })
     const bankBuy = confirmation.locator('[data-purchase-buyer="company:UB"]')
-    await expect(bankBuy).toHaveText('As Bank + $52')
+    await expect(bankBuy).toHaveText('As Union Bank + $52')
     const noBottom = await confirmation
         .getByRole('button', { name: 'No' })
         .evaluate((button) => button.getBoundingClientRect().bottom)

@@ -97,6 +97,19 @@
             onclick={() => gameSession.setCapacitiesShown(!gameSession.capacitiesShown)}
             >Locale capacities</button
         >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.localeNumbersShown}
+            onclick={() => (gameSession.localeNumbersShown = !gameSession.localeNumbersShown)}
+            >Locale numbers</button
+        >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.unitsHidden}
+            onclick={() => (gameSession.unitsHidden = !gameSession.unitsHidden)}>Hide units</button
+        >
     </div>
 </div>
 

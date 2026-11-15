@@ -97,6 +97,11 @@ or boolean switches in this slice.
 
 ## Title policies
 
+Family funding is a selectable feature: a title that funds trains its own way, as
+1846 does with its personal emergency funding and receivership, supplies no
+`trainFundingRules`, and the runtime then builds neither the funding and bankruptcy
+states nor their Actions; the title's `FundingTrain` is a title state.
+
 1889 permits the cheapest available depot or Open Market train when the president
 must contribute, never another company's train with personal funds. No emergency
 sale may transfer a presidency. Ordinary Market capacity applies. The first-SR

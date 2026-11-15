@@ -7,7 +7,7 @@ import {
     buildLogFilter,
     formatLogEntry,
     parseCount,
-    parseJsonOr,
+    parseStoredJsonOr,
     parseTime,
     parseWhere,
     permissionHint,
@@ -82,23 +82,32 @@ function fail(message) {
     process.exit(1)
 }
 
+// google-auth-library 10+ warns on every keyFilename option, so the key is loaded once into a client.
 async function googleAuth(credentialFile) {
-    const { GoogleAuth } = await import('google-auth-library')
+    const { JWT } = await import('google-auth-library')
+    const key = JSON.parse(readFileSync(credentialFile, 'utf8'))
     // Cloud Run rejects the cloud-platform.read-only scope; read-only is enforced by the viewer roles instead.
-    return new GoogleAuth({
-        keyFilename: credentialFile,
+    return new JWT({
+        email: key.client_email,
+        key: key.private_key,
         scopes: ['https://www.googleapis.com/auth/cloud-platform']
     })
 }
 
 async function firestoreClient(config) {
     const { Firestore } = await import('@google-cloud/firestore')
-    return new Firestore({ projectId: config.project, keyFilename: config.credentialFile })
+    return new Firestore({
+        projectId: config.project,
+        authClient: await googleAuth(config.credentialFile)
+    })
 }
 
 async function tasksClient(config) {
     const { CloudTasksClient } = await import('@google-cloud/tasks')
-    return new CloudTasksClient({ projectId: config.project, keyFilename: config.credentialFile })
+    return new CloudTasksClient({
+        projectId: config.project,
+        authClient: await googleAuth(config.credentialFile)
+    })
 }
 
 function resolveServices(config, name) {
@@ -286,7 +295,7 @@ async function latestChunkedActions(gameRef, count, chunkSize) {
         .limit(Math.ceil(count / chunkSize) + 1)
         .get()
     return chunks.docs
-        .flatMap((doc) => parseJsonOr(doc.data().actionsData ?? '[]', []))
+        .flatMap((doc) => parseStoredJsonOr(doc.data().actionsData, doc.data().actionsZstd, []))
         .sort((a, b) => (b.index ?? 0) - (a.index ?? 0))
         .slice(0, count)
 }
@@ -302,7 +311,7 @@ function summarizeAction(action) {
 }
 
 function summarizeState(doc) {
-    const state = parseJsonOr(doc.data().data ?? '', {})
+    const state = parseStoredJsonOr(doc.data().data, doc.data().dataZstd, {})
     const summary = { docId: doc.id }
     for (const field of STATE_SUMMARY_FIELDS) summary[field] = state[field]
     return summary

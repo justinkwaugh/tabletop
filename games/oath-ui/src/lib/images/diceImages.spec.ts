@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ATTACK_DIE_FACES, DEFENSE_DIE_FACES, END_DIE_FACES } from '@tabletop/oath'
-import {
-    attackFaceImage,
-    defenseFaceImage,
-    diceImageKeys,
-    endDieImage
-} from './diceImages.js'
+import { attackFaceImage, defenseFaceImage, diceImageKeys, endDieImage } from './diceImages.js'
 
 /** Every face the engine's dice can roll has the picture the component prints. */
 describe('dice face coverage', () => {

@@ -111,7 +111,8 @@ export class Bird {
                 if (flock.leaving) this.reactionDelay -= dt
                 if (this.reactionDelay <= 0) this.depart(flock)
                 else if (!flock.lands) {
-                    if (distance(this.pos, this.target) < HOVER_RETARGET_RADIUS) this.hoverOver(flock)
+                    if (distance(this.pos, this.target) < HOVER_RETARGET_RADIUS)
+                        this.hoverOver(flock)
                 } else if (distance(this.pos, this.target) < LANDED_RADIUS) this.land()
                 break
             case 'landed':
@@ -194,7 +195,8 @@ export class Bird {
             y: this.vel.y + (desired.y - this.vel.y) * blend
         }
         this.pos = { x: this.pos.x + this.vel.x * dt, y: this.pos.y + this.vel.y * dt }
-        if (Math.hypot(this.vel.x, this.vel.y) > 1) this.heading = Math.atan2(this.vel.y, this.vel.x)
+        if (Math.hypot(this.vel.x, this.vel.y) > 1)
+            this.heading = Math.atan2(this.vel.y, this.vel.x)
         this.flapPhase += dt * FLAP_RATE
         this.meanderPhase += dt * this.meanderRate
     }
@@ -344,7 +346,8 @@ export class Flock {
         if (this.leaving) return
         this.leaving = true
         for (const bird of this.birds) {
-            if (bird.reactionDelay === Infinity) bird.reactionDelay = between(this.random, 0.15, 0.6)
+            if (bird.reactionDelay === Infinity)
+                bird.reactionDelay = between(this.random, 0.15, 0.6)
         }
     }
 

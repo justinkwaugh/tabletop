@@ -111,3 +111,36 @@ tests pass. All 13 desktop/mobile finance and formation browser checks pass, as 
 package builds, Svelte checks, and the viewer production build. Screens were inspected
 at 1280px and 390px for starting-price confirmation, flotation preview and resulting
 company status. Full round progression and train handling remain as scoped above.
+
+## Tranche wait display (2026-10-18)
+
+A TOP player asked to see which companies hold back the next tranche. The shared
+`CompanyTranche` model gains one query, `nextCompanyTranche`: the first tranche with
+room, plus every company in the full tranches before it that the title's completion
+predicate does not yet accept. Availability derives from it (no waiting companies),
+so the release rule and the display read the same single walk. It replaced
+`availableCompanyTranche`, whose only caller was TOP.
+
+Surveyed: `company-availability` assignments in `data/title-traits.json`
+(13 `ordered-release` titles) and the tranche notes in
+`18xx-shared-engine-design.md` and `18xx-game-variation-catalog.md`.
+
+- Capacity-limited ordered tranches with a per-company "operated or sold out" test:
+  only TOP (`g_1871`) uses the source's shared tranches package. The sold-out
+  definition is title policy, so it stays in the predicate; TOP counts reserved
+  Exchange shares and Union Bank holdings as sold.
+- Group release with a different condition per group (1862 USA/Canada: privates
+  sold, then IPO sold out, then floated) fits by letting the predicate look up each
+  company's group; the walk does not assume one condition.
+- Layer release (1825, 1860, and 18 Carolinas' fixed north/south pairs that open
+  as IPO shares sell out), stacks (1868 Wyoming), predecessor chains (1835,
+  1847 AE) and offer lists (1862, Stockholm Tramways) are roster or chain schemes,
+  not capacity tranches. As this design already records, they compose availability
+  rules without this model.
+- A company can stop counting as complete after a later tranche fills (shares sold
+  back before it operates). The walk collects waiting companies across every full
+  tranche, so the locked tranche and all its blockers are still named.
+
+Presentation stays title-owned: TOP's tranche chart shows the Mainline/Shortline
+tranche on the Board view only and marks waiting companies with a key. Verified by
+`companyTranches.spec.ts` in the family library and in TOP.

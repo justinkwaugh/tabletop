@@ -1,11 +1,27 @@
-import { BaseError } from '@tabletop/common'
+import { BaseError, UserStatus } from '@tabletop/common'
 
 enum UserServiceError {
+    AccountUnavailable = 'AccountUnavailableError',
     InvalidPassword = 'InvalidPasswordError',
-    InvalidToken = 'InvalidTokenError',
     EmailVerification = 'EmailVerificationError',
-    UnauthenticatedUpdate = 'UnauthenticatedUpdateError',
-    InvalidTimeZone = 'InvalidTimeZoneError'
+    InvalidTimeZone = 'InvalidTimeZoneError',
+    UsernameNotAllowed = 'UsernameNotAllowedError',
+    AccountModeration = 'AccountModerationError'
+}
+
+export class AccountUnavailableError extends BaseError {
+    readonly statusCode = 401
+
+    constructor(status: UserStatus) {
+        super({
+            name: UserServiceError.AccountUnavailable,
+            message:
+                status === UserStatus.Inactive
+                    ? 'This account has been banned.'
+                    : 'This account is no longer available.',
+            metadata: { status }
+        })
+    }
 }
 
 export class InvalidPasswordError extends BaseError {
@@ -13,15 +29,6 @@ export class InvalidPasswordError extends BaseError {
         super({
             name: UserServiceError.InvalidPassword,
             message: 'Password must be at least 12 characters'
-        })
-    }
-}
-
-export class InvalidTokenError extends BaseError {
-    constructor() {
-        super({
-            name: UserServiceError.InvalidToken,
-            message: 'Invalid or expired token'
         })
     }
 }
@@ -35,13 +42,11 @@ export class EmailVerificationError extends BaseError {
     }
 }
 
-export class UnauthenticatedUpdateError extends BaseError {
-    constructor(field: string) {
-        super({
-            name: UserServiceError.UnauthenticatedUpdate,
-            message: `Current password required to update ${field}`,
-            metadata: { field }
-        })
+export class EmailChangeError extends BaseError {
+    readonly statusCode = 400
+
+    constructor(message: string) {
+        super({ name: 'EmailChangeError', message })
     }
 }
 
@@ -52,5 +57,24 @@ export class InvalidTimeZoneError extends BaseError {
             message: `Unknown time zone ${timeZone}`,
             metadata: { timeZone }
         })
+    }
+}
+
+export class UsernameNotAllowedError extends BaseError {
+    readonly statusCode = 400
+
+    constructor() {
+        super({
+            name: UserServiceError.UsernameNotAllowed,
+            message: 'That username is not allowed. Please choose a different one.'
+        })
+    }
+}
+
+export class AccountModerationError extends BaseError {
+    readonly statusCode = 400
+
+    constructor(message: string) {
+        super({ name: UserServiceError.AccountModeration, message })
     }
 }

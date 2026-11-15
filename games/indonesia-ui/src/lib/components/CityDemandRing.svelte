@@ -55,8 +55,7 @@
         }
 
         const r3Diff = rOuter * rOuter * rOuter - rInner * rInner * rInner
-        const centroidAlongBisector =
-            (4 * r3Diff * Math.sin(theta / 2)) / (3 * r2Diff * theta)
+        const centroidAlongBisector = (4 * r3Diff * Math.sin(theta / 2)) / (3 * r2Diff * theta)
 
         return Math.max(0, Math.min(rOuter - 0.8, centroidAlongBisector))
     }
@@ -142,8 +141,8 @@
                 opacity="1"
             ></circle>
             <text
-                x={x}
-                y={y}
+                {x}
+                {y}
                 fill={DEMAND_STYLE_BY_GOOD[only.good].text}
                 stroke="#ffffff"
                 stroke-width="1.2"
@@ -231,5 +230,4 @@
             ></line>
         {/each}
     {/if}
-
 </g>

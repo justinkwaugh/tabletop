@@ -100,12 +100,18 @@ describe('HydratedPlaceSetupKnight', () => {
 
         // diagonal, and two away
         expect(
-            makePlaceSetupKnight({ playerId: 'p1', knightCol: 6, knightRow: 4 })
-                .isValidPlaceSetupKnight(state)
+            makePlaceSetupKnight({
+                playerId: 'p1',
+                knightCol: 6,
+                knightRow: 4
+            }).isValidPlaceSetupKnight(state)
         ).toBe(false)
         expect(
-            makePlaceSetupKnight({ playerId: 'p1', knightCol: 5, knightRow: 3 })
-                .isValidPlaceSetupKnight(state)
+            makePlaceSetupKnight({
+                playerId: 'p1',
+                knightCol: 5,
+                knightRow: 3
+            }).isValidPlaceSetupKnight(state)
         ).toBe(false)
     })
 
@@ -114,8 +120,11 @@ describe('HydratedPlaceSetupKnight', () => {
         state.board.squares[4][5].type = SquareType.Forest
 
         expect(
-            makePlaceSetupKnight({ playerId: 'p1', knightCol: 5, knightRow: 4 })
-                .isValidPlaceSetupKnight(state)
+            makePlaceSetupKnight({
+                playerId: 'p1',
+                knightCol: 5,
+                knightRow: 4
+            }).isValidPlaceSetupKnight(state)
         ).toBe(false)
     })
 
@@ -124,12 +133,18 @@ describe('HydratedPlaceSetupKnight', () => {
         state.board.squares[4][5] = { type: SquareType.Blank, knightOwner: 'p2' }
 
         expect(
-            makePlaceSetupKnight({ playerId: 'p1', knightCol: 5, knightRow: 5 })
-                .isValidPlaceSetupKnight(state)
+            makePlaceSetupKnight({
+                playerId: 'p1',
+                knightCol: 5,
+                knightRow: 5
+            }).isValidPlaceSetupKnight(state)
         ).toBe(false)
         expect(
-            makePlaceSetupKnight({ playerId: 'p1', knightCol: 5, knightRow: 4 })
-                .isValidPlaceSetupKnight(state)
+            makePlaceSetupKnight({
+                playerId: 'p1',
+                knightCol: 5,
+                knightRow: 4
+            }).isValidPlaceSetupKnight(state)
         ).toBe(false)
     })
 
@@ -137,8 +152,11 @@ describe('HydratedPlaceSetupKnight', () => {
         const state = stateWithPendingCastle()
 
         expect(
-            makePlaceSetupKnight({ playerId: 'p2', knightCol: 5, knightRow: 4 })
-                .isValidPlaceSetupKnight(state)
+            makePlaceSetupKnight({
+                playerId: 'p2',
+                knightCol: 5,
+                knightRow: 4
+            }).isValidPlaceSetupKnight(state)
         ).toBe(false)
         expect(HydratedPlaceSetupKnight.canPlaceSetupKnight(state, 'p2')).toBe(false)
         expect(HydratedPlaceSetupKnight.canPlaceSetupKnight(state, 'p1')).toBe(true)
@@ -149,8 +167,11 @@ describe('HydratedPlaceSetupKnight', () => {
         expect(state.pendingSetupCastle).toBeUndefined()
 
         expect(
-            makePlaceSetupKnight({ playerId: 'p1', knightCol: 5, knightRow: 4 })
-                .isValidPlaceSetupKnight(state)
+            makePlaceSetupKnight({
+                playerId: 'p1',
+                knightCol: 5,
+                knightRow: 4
+            }).isValidPlaceSetupKnight(state)
         ).toBe(false)
     })
 

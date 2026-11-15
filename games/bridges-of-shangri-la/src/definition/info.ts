@@ -5,6 +5,8 @@ export const BridgesInfo: GameInfo = {
     id: 'bridges',
     metadata: {
         name: 'The Bridges of Shangri-La',
+        bggId: 8190,
+        hasScores: true,
         designer: 'Leo Colovini',
         description:
             'The Bridges of Shangri-La is a simple yet highly interactive strategy game in which players send their intellectual and spiritual masters and students to the villages high in the mountains. As the game progresses, the students make journeys from village to village spreading their influence, but every journey is a one way trip.  The connecting bridges collapse upon use, leaving the villages ultimately isolated.',

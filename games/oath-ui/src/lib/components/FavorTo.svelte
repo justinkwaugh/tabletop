@@ -18,5 +18,6 @@
             height={token.height}
             alt="favor"
         /></span
-    > to <PlayerName {playerId} /></span
+    >
+    to <PlayerName {playerId} /></span
 >

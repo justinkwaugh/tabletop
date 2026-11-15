@@ -6,12 +6,14 @@ import {
     TheOldPrinceEarningsRules,
     TheOldPrinceTrainRules,
     peirShares,
-    TheOldPrinceMarket
+    TheOldPrinceMarket,
+    TheOldPrinceCharters
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
     Shikoku1889EarningsRules,
-    Shikoku1889TrainRules
+    Shikoku1889TrainRules,
+    Shikoku1889Charters
 } from '@tabletop/shikoku-1889'
 import {
     EarningsDistribution,
@@ -22,7 +24,8 @@ import {
     finishOperatingTurnReason,
     createOrdinaryShareCertificates,
     type EighteenXXState,
-    type EarningsChoice
+    type EarningsChoice,
+    currentPrivateRevenue
 } from '@tabletop/18xx'
 import { example } from './stockTestUtils.js'
 const Titles = [
@@ -217,7 +220,11 @@ it.each(Titles)(
         const expectedTurns = state.operatingSet!.companyOrder.length * rounds
         const privateId = definition === Top ? 'KM' : 'ER',
             recipient = definition === Top ? 'PEIR' : 'IR',
-            privateRevenue = getCompany(state, privateId).privateRevenue!
+            privateRevenue = currentPrivateRevenue(
+                state,
+                definition === Top ? TheOldPrinceCharters : Shikoku1889Charters,
+                privateId
+            )
         const initialCash = cashOwnedBy(state, { kind: 'company', companyId: recipient })
         const seen: string[] = []
         for (

@@ -54,7 +54,8 @@ export class ActionBarAnimator extends StateAnimator {
         this.focusBeforePreview = undefined
         if (!control) return
         void tick().then(() => {
-            const focusWasDropped = document.activeElement === null || document.activeElement === document.body
+            const focusWasDropped =
+                document.activeElement === null || document.activeElement === document.body
             if (control.isConnected && focusWasDropped) control.focus({ preventScroll: true })
         })
     }
@@ -78,7 +79,11 @@ export class ActionBarAnimator extends StateAnimator {
         // the bar moves on.
         const closing =
             action && isPlaceBid(action) && action.playerId && next.kind !== 'bidding'
-                ? closingBidsView(shown, { playerId: action.playerId, amount: action.amount }, to.canalOverseerId)
+                ? closingBidsView(
+                      shown,
+                      { playerId: action.playerId, amount: action.amount },
+                      to.canalOverseerId
+                  )
                 : undefined
         const stages = closing ? [closing, next] : [next]
         const timeline = action ? animationContext.finalTimeline : animationContext.actionTimeline
@@ -98,7 +103,8 @@ export class ActionBarAnimator extends StateAnimator {
                 const fadesIn = !!action && view.kind !== before.kind
                 timeline.call(
                     () => {
-                        if (transition === this.clearedTransitions) this.swapTo(bar, view, lockedHeight, fadesIn)
+                        if (transition === this.clearedTransitions)
+                            this.swapTo(bar, view, lockedHeight, fadesIn)
                     },
                     [],
                     at
@@ -107,7 +113,12 @@ export class ActionBarAnimator extends StateAnimator {
                     timeline.fromTo(
                         overseerTag,
                         { clipPath: 'inset(0% 100% 0% 0%)' },
-                        { clipPath: 'inset(0% 0% 0% 0%)', duration: OVERSEER_WIPE, ease: 'power2.out', immediateRender: false },
+                        {
+                            clipPath: 'inset(0% 0% 0% 0%)',
+                            duration: OVERSEER_WIPE,
+                            ease: 'power2.out',
+                            immediateRender: false
+                        },
                         at
                     )
                     timeline.set(overseerTag, { clearProps: 'clipPath' }, at + OVERSEER_WIPE)
@@ -116,11 +127,21 @@ export class ActionBarAnimator extends StateAnimator {
                     timeline.fromTo(
                         bar,
                         { height: heightBefore },
-                        { height: heightAfter, duration: resize, ease: 'power2.inOut', immediateRender: false },
+                        {
+                            height: heightAfter,
+                            duration: resize,
+                            ease: 'power2.inOut',
+                            immediateRender: false
+                        },
                         at
                     )
                     timeline.set(bar, { clearProps: 'height,overflow' }, at + resize)
-                    if (fadesIn) timeline.to(bar, { opacity: 1, duration: FADE, ease: 'power1.out' }, at + resize)
+                    if (fadesIn)
+                        timeline.to(
+                            bar,
+                            { opacity: 1, duration: FADE, ease: 'power1.out' },
+                            at + resize
+                        )
                 }
             }
             at += holds ? CLOSING_BIDS_HOLD : 0
@@ -129,12 +150,18 @@ export class ActionBarAnimator extends StateAnimator {
         })
     }
 
-    private swapTo(bar: HTMLElement, next: ActionBarView, lockedHeight: number | undefined, fadesIn: boolean) {
+    private swapTo(
+        bar: HTMLElement,
+        next: ActionBarView,
+        lockedHeight: number | undefined,
+        fadesIn: boolean
+    ) {
         if (lockedHeight !== undefined) {
             gsap.set(bar, { height: lockedHeight, overflow: 'hidden', opacity: fadesIn ? 0 : 1 })
         }
         const focused = document.activeElement
-        if (focused instanceof HTMLElement && bar.contains(focused)) this.focusBeforePreview = focused
+        if (focused instanceof HTMLElement && bar.contains(focused))
+            this.focusBeforePreview = focused
         flushSync(() => {
             this.preview = next
             this.previewInert = true

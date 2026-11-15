@@ -22,7 +22,8 @@ describe('player board cut coverage', () => {
     })
 
     it('no cut is orphaned — every file names one of the eleven seats', () => {
-        const seatKey = (s: PlayerStatus, c: string | undefined) => (s === PlayerStatus.Chancellor ? 'chancellor' : `${s}.${c}`)
+        const seatKey = (s: PlayerStatus, c: string | undefined) =>
+            s === PlayerStatus.Chancellor ? 'chancellor' : `${s}.${c}`
         const keys = new Set(seats.flatMap(([s, c]) => [`title.${s}`, `avatar.${seatKey(s, c)}`]))
         expect(boardImageKeys().filter((k) => !keys.has(k))).toEqual([])
     })

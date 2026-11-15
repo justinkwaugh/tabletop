@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -19,7 +19,7 @@ import {
 import type { PrivateRules, PrivateState } from './privateRules.js'
 export const ExchangePrivate = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ExchangePrivate'),
         privateCompanyId: Type.String(),
         certificateId: Type.String(),

@@ -6,6 +6,7 @@
         playerId,
         playerName,
         selection,
+        ownTurn,
         disabled,
         onChoose,
         onBidChange,
@@ -20,6 +21,7 @@
         playerId?: string
         playerName: (id: string) => string
         selection?: OfferAuctionSelection
+        ownTurn: boolean
         disabled: boolean
         onChoose: (id: string) => void
         onBidChange: (amount: number) => void
@@ -45,9 +47,9 @@
 <section aria-label="Opening auction">
     <h2>Opening auction</h2>
     <p>
-        Auctioneer: <strong>{playerName(model.auction.auctioneerId)}</strong> · {playerName(
-            model.playerId
-        )}’s turn
+        Auctioneer: <strong>{playerName(model.auction.auctioneerId)}</strong
+        >{#if !model.auction.stalled}
+            · {playerName(model.playerId)}’s turn{/if}
     </p>
     {#if playerId}<p>Cash: {model.cash(playerId)}</p>{/if}
     {#if model.auction.stalled}<p role="status">
@@ -72,7 +74,7 @@
                             'No bid'}{participant.passed ? ' · Passed' : ''}
                     </li>{/each}
             </ul>
-            {#if !selection}<button
+            {#if ownTurn && !selection}<button
                     onclick={() => onChoose(bidding.lotId)}
                     disabled={disabled ||
                         !playerId ||
@@ -91,7 +93,7 @@
                     )!}
                     <div class="lot">
                         <span>{lot.name} · {lot.price}</span>
-                        {#if !bidding && pile.playerId === model.auction.auctioneerId}<button
+                        {#if ownTurn && !bidding && pile.playerId === model.auction.auctioneerId}<button
                                 onclick={() => onChoose(lotId)}
                                 disabled={disabled || !!selection}>Offer {lot.name}</button
                             >{/if}

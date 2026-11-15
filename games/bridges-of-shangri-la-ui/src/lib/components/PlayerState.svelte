@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Player } from '@tabletop/common'
+    import type { Player } from '@tabletop/common'
     import { BridgesPlayerState, MasterType } from '@tabletop/bridges-of-shangri-la'
     import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'

@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import {
     ActionSource,
     GameAction,
     HydratableAction,
-    PlayerAction,
     assert,
     type HydratedGameState
 } from '@tabletop/common'
@@ -12,7 +12,11 @@ import type { TrackRules } from '../construction/trackConstruction.js'
 import { getCompany, privateOwner } from '../finance/finance.js'
 import type { CompanyDecisionState } from './companyDecision.js'
 import { privatePowerUsed } from './companyDecision.js'
-import { privateTrackConstruction, type PrivatePowerRules } from './privatePowers.js'
+import {
+    privateTrackConstruction,
+    togetherLaysOpen,
+    type PrivatePowerRules
+} from './privatePowers.js'
 
 export const PrivatePowerRequestDropReason = Type.Union([
     Type.Literal('no-legal-use'),
@@ -23,7 +27,7 @@ export type PrivatePowerRequestDropReason = Type.Static<typeof PrivatePowerReque
 
 export const SetPrivatePowerRequest = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('SetPrivatePowerRequest'),
         outOfTurn: Type.Literal(true),
         supersedable: Type.Literal(true),
@@ -99,7 +103,10 @@ export function hasLegalPrivateTrackUse(
     const terms = rules.trackTerms(state, privateCompanyId, playerId)
     if (!terms) return false
     const construction = privateTrackConstruction(state, terms, track)
-    return terms.locationIds.some((id) => construction.choices(id).length > 0)
+    return (
+        togetherLaysOpen(state, terms, construction) &&
+        terms.locationIds.some((id) => construction.choices(id).length > 0)
+    )
 }
 
 export function privatePowerRequestDropReason(

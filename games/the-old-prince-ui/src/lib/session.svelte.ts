@@ -1,12 +1,17 @@
 import { getCompany } from '@tabletop/18xx'
-import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
-import { type GameSession } from '@tabletop/frontend-components'
+import { createEighteenXXSessionClass, type MapLocationChoice } from '@tabletop/18xx-ui'
+import type { GameSession } from '@tabletop/frontend-components'
 import type { HydratedTheOldPrinceState, TheOldPrinceState } from '@tabletop/the-old-prince'
-import { TheOldPrinceTitleRules, theOldPrinceRole } from '@tabletop/the-old-prince'
+import {
+    TheOldPrinceTitleRules,
+    theOldPrinceRole,
+    unionBankStartingCompanyIds
+} from '@tabletop/the-old-prince'
 import StraightTile from './images/tokens/straight-tile.svg'
 import UnknownToken from './images/tokens/unknown.svg'
 import { TheOldPrinceMapView } from './mapView.js'
 import { TheOldPrincePresentation } from './presentation.js'
+import { createRouteWorker } from './routeWorker.js'
 
 import { assert } from '@tabletop/common'
 import {
@@ -30,7 +35,8 @@ import {
 const BaseSession = createEighteenXXSessionClass(
     TheOldPrinceTitleRules,
     TheOldPrinceMapView,
-    TheOldPrincePresentation
+    TheOldPrincePresentation,
+    createRouteWorker
 )
 
 export class TheOldPrinceSession extends BaseSession {
@@ -44,6 +50,11 @@ export class TheOldPrinceSession extends BaseSession {
         RF: this.mapView.stations[theOldPrinceRole(this.gameState, 'mainline')],
         MLC: this.mapView.stations[theOldPrinceRole(this.gameState, 'mainline')],
         SLC: this.mapView.stations[theOldPrinceRole(this.gameState, 'shortline')]
+    })
+    protected override titlePrivateCardTokens = $derived({
+        UB: unionBankStartingCompanyIds(this.gameState).map(
+            (companyId) => this.mapView.stations[companyId]
+        )
     })
     private splitStages: BranchSplitSelection = $state({})
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
@@ -74,21 +85,17 @@ export class TheOldPrinceSession extends BaseSession {
             !this.gameState.stockRound.turn.bought &&
             this.validActionTypes.includes('SplitCompany')
     )
-    override get additionalStockMenuCount() {
-        return this.canPreviewSplit &&
-            this.myPlayer &&
-            this.splitModel.branches().length &&
+    get splitMenuAvailable() {
+        return (
+            this.canPreviewSplit &&
+            !!this.myPlayer &&
+            this.splitModel.branches().length > 0 &&
             this.splitModel.parents(this.myPlayer.id).some((parent) => !parent.reason)
-            ? 1
-            : 0
+        )
     }
-    splitSelection = $derived.by((): BranchSplitSelection => {
-        if (!this.canPreviewSplit) return {}
-        if (this.splitStages.action) return this.splitStages
-        return this.additionalStockMenuCount === 1 && !this.stock.availableMenus.length
-            ? { action: { value: true, source: 'auto' as const } }
-            : {}
-    })
+    splitSelection = $derived.by((): BranchSplitSelection =>
+        this.canPreviewSplit ? this.splitStages : {}
+    )
     splitInProgress = $derived(!!this.splitSelection.action)
     splitPreview = $derived.by(() => {
         const request = this.myPlayer
@@ -104,6 +111,40 @@ export class TheOldPrinceSession extends BaseSession {
             : undefined
     })
     latestSplit = $derived(this.actions.filter(isSplitCompany).at(-1))
+    /** The parent's stations that can move between parent and branch. */
+    splitMovableStations = $derived(
+        this.splitSelection.allocation
+            ? (this.splitPreview?.details?.stations ?? [])
+                  .filter((entry) => !entry.protectedHome)
+                  .map((entry) => entry.station)
+            : []
+    )
+    override get mapLocationChoice(): MapLocationChoice | undefined {
+        const stations = this.splitMovableStations
+        if (!stations.length) return super.mapLocationChoice
+        return {
+            locationIds: stations.map((station) => station.position.locationId),
+            choose: (locationId) => {
+                const station = stations.find(
+                    (candidate) => candidate.position.locationId === locationId
+                )
+                assert(station, 'Choose a transferable station')
+                this.transferSplitStation(station.id)
+            }
+        }
+    }
+    protected override get mapDisplayState() {
+        const state = super.mapDisplayState
+        const branchId = this.splitPreview?.details?.request.branchId
+        const stationIds = this.splitSelection.allocation?.value.stationIds
+        if (!branchId || !stationIds?.length) return state
+        return {
+            ...state,
+            stations: state.stations.map((station) =>
+                stationIds.includes(station.id) ? { ...station, companyId: branchId } : station
+            )
+        }
+    }
     setSplitAllocation(allocation: BranchSplitAllocation) {
         assert(this.canPreviewSplit && this.splitSelection.allocation, 'Choose a split price first')
         this.splitStages = chooseSplitAllocation(this.splitStages, allocation)

@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { ActionSource, PlayerAction, HydratableAction, assert } from '@tabletop/common'
-import { privateOwner, type FinancialState } from '@tabletop/18xx'
+import { ActionSource, HydratableAction, assert } from '@tabletop/common'
+import { privateOwner, type FinancialState, EighteenXXPlayerAction } from '@tabletop/18xx'
 import { PortSymbols } from './map.js'
 import type { HydratedEighteenFortySixState } from './state.js'
 
@@ -31,7 +31,7 @@ export function steamboatCompanies(state: FinancialState): string[] {
 }
 export const AssignSteamboat = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('AssignSteamboat'),
         source: Type.Literal(ActionSource.User),
         assignment: Type.Optional(SteamboatAssignment),

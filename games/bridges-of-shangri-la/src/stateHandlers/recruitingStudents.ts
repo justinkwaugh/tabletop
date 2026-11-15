@@ -11,13 +11,22 @@ type StartOfTurnAction = HydratedRecruitStudents | HydratedPass
 
 // Transition from RecruitStudents(PlaceMaster) -> StartOfTurn
 //                 RecruitStudents(Pass) -> StartOfTurn
-export class RecruitingStudentsStateHandler implements MachineStateHandler<StartOfTurnAction, HydratedBridgesGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedBridgesGameState>): action is StartOfTurnAction {
+export class RecruitingStudentsStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedBridgesGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedBridgesGameState>
+    ): action is StartOfTurnAction {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedBridgesGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedBridgesGameState>
+    ): ActionType[] {
         return Object.values(ActionType).filter((actionType) =>
             this.isValidActionType(actionType, playerId, context)
         )
@@ -25,7 +34,10 @@ export class RecruitingStudentsStateHandler implements MachineStateHandler<Start
 
     enter(_context: MachineContext<HydratedBridgesGameState>) {}
 
-    onAction(action: StartOfTurnAction, context: MachineContext<HydratedBridgesGameState>): MachineState {
+    onAction(
+        action: StartOfTurnAction,
+        context: MachineContext<HydratedBridgesGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {

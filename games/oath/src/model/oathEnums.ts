@@ -47,7 +47,9 @@ export enum CardKind {
     Denizen = 'denizen',
     Vision = 'vision',
     Relic = 'relic',
-    Site = 'site'
+    Site = 'site',
+    /** R-2.9 */
+    Edifice = 'edifice'
 }
 
 export enum RecoverTargetKind {

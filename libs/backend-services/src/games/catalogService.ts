@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { readFile } from 'node:fs/promises'
-import { GameCatalogEntry } from '@tabletop/common'
+import { GameCatalogEntry, type GameClientCapability } from '@tabletop/common'
 import type { SiteManifest } from '@tabletop/games-config'
 import * as Value from 'typebox/value'
 
@@ -23,6 +23,14 @@ export class CatalogService {
             this.catalog = undefined
         }
         return catalog
+    }
+
+    async supportsCapability(
+        publication: Publication,
+        capability: GameClientCapability
+    ): Promise<boolean> {
+        const entry = await this.getEntry(publication)
+        return entry.clientCapabilities?.includes(capability) ?? false
     }
 
     private async loadCatalog(manifest: SiteManifest): Promise<GameCatalogEntry[]> {

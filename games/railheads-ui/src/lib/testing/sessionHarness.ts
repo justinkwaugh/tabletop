@@ -28,6 +28,7 @@ import {
     MachineState,
     PassBid,
     PlaceBid,
+    PlaceSealedBid,
     RailheadsRuntime,
     type RailheadsProjectedState
 } from '@tabletop/railheads'
@@ -112,7 +113,27 @@ const INITIAL_BUYERS: Record<CompanyId, string> = {
     [CompanyId.GBSE]: 'p2',
     [CompanyId.KSSE]: 'p3',
     [CompanyId.KWSE]: 'p1',
-    [CompanyId.KBSB]: 'p1'
+    [CompanyId.KBSB]: 'p1',
+    [CompanyId.NYC]: 'p1',
+    [CompanyId.ERIE]: 'p2',
+    [CompanyId.IC]: 'p3',
+    [CompanyId.BO]: 'p1',
+    [CompanyId.PRR]: 'p1',
+    [CompanyId.SNB]: 'p1',
+    [CompanyId.AB]: 'p2',
+    [CompanyId.PB]: 'p3',
+    [CompanyId.RHB]: 'p1',
+    [CompanyId.MOB]: 'p1',
+    [CompanyId.SFJ]: 'p1',
+    [CompanyId.AAAJ]: 'p2',
+    [CompanyId.AHB]: 'p3',
+    [CompanyId.JFJ]: 'p1',
+    [CompanyId.DSJ]: 'p1',
+    [CompanyId.LMS]: 'p1',
+    [CompanyId.LNER]: 'p2',
+    [CompanyId.SR]: 'p3',
+    [CompanyId.GWR]: 'p1',
+    [CompanyId.UERL]: 'p1'
 }
 
 function initialStep(table: PlayedTable): GameAction {
@@ -152,6 +173,10 @@ export function invest(table: PlayedTable, industry: Industry): PlayedTable {
     return played(table, [
         createAction(InvestInIndustry, { ...envelope(table, onTheClock(table)), industry })
     ])
+}
+
+export function sealedBid(table: PlayedTable, playerId: string, amount: number): PlayedTable {
+    return played(table, [createAction(PlaceSealedBid, { ...envelope(table, playerId), amount })])
 }
 
 export function layNothing(table: PlayedTable): PlayedTable {

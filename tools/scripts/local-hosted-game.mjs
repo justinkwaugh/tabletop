@@ -373,6 +373,8 @@ const runApplications = async (backendPort, frontendPort, game, infrastructure) 
     const applicationEnvironment = {
         ...commandEnvironment,
         FIRESTORE_EMULATOR_HOST: `${firestore.host}:${firestore.port}`,
+        // Never on Google Cloud, so skip google-auth-library's 3 s metadata server probe.
+        METADATA_SERVER_DETECTION: 'none',
         HOST: '0.0.0.0',
         PORT: String(backendPort),
         LOCAL_HOSTED_FRONTEND_PORT: String(frontendPort),

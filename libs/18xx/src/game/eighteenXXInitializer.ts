@@ -7,6 +7,7 @@ import {
     Color,
     HydratedTurnManager,
     Prng,
+    assert,
     validateStartingPositionAssignment
 } from '@tabletop/common'
 import type * as Type from 'typebox'
@@ -32,6 +33,7 @@ export type EighteenXXInitializerRules<
     | 'state'
     | 'phases'
     | 'createOpening'
+    | 'startingCash'
     | 'trackRules'
     | 'stationRules'
     | 'routeRules'
@@ -51,7 +53,8 @@ export class EighteenXXInitializer<
         Color.Yellow,
         Color.Purple,
         Color.Orange,
-        Color.Pink
+        Color.Pink,
+        Color.Brown
     ]
     readonly supportsStartingPositions = true
     constructor(protected readonly rules: EighteenXXInitializerRules<Schema, State>) {
@@ -74,6 +77,20 @@ export class EighteenXXInitializer<
             config: game.config,
             startingPositions
         })
+        const startingCash = this.rules.startingCash({
+            playerCount: players.length,
+            config: game.config
+        })
+        for (const { playerId } of players)
+            assert(
+                opening.position.cash.some(
+                    ({ owner, amount }) =>
+                        owner.kind === 'player' &&
+                        owner.playerId === playerId &&
+                        amount === startingCash
+                ),
+                'The opening gives every player the title’s starting cash'
+            )
         const initialized = this.createInitialState(game, state, {
             stockRoundNumber: 1,
             position: opening.position,
@@ -110,6 +127,9 @@ export class EighteenXXInitializer<
                     ...('usedPrivatePowerIds' in this.rules.state.schema.properties
                         ? { usedPrivatePowerIds: [] }
                         : {}),
+                    ...('accessRights' in this.rules.state.schema.properties
+                        ? { accessRights: [] }
+                        : {}),
                     machineState: 'StockRound',
                     stockRound: createStockRound(parts.stockRoundNumber),
                     turnManager: new HydratedTurnManager({
@@ -117,7 +137,8 @@ export class EighteenXXInitializer<
                         turnOrder: seatOrder,
                         turnCounts: Object.fromEntries(
                             players.map((player) => [player.playerId, 0])
-                        )
+                        ),
+                        seriesKeeps: 'latest'
                     }),
                     ...parts.position,
                     ...parts.titleState

@@ -2,17 +2,11 @@ import { assert } from '@tabletop/common'
 import { isProductionCompany } from '../components/company.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
-import {
-    isIndonesiaNodeId,
-    type IndonesiaNodeId
-} from '../utils/indonesiaNodes.js'
+import { isIndonesiaNodeId, type IndonesiaNodeId } from '../utils/indonesiaNodes.js'
 import { buildDeliveryProblem } from './deliveryProblemBuilder.js'
 import type { DeliveryProblem } from './deliveryPlan.js'
 import { solveDeliveryProblem } from './deliverySolver.js'
-import type {
-    AtomicDeliveryCandidate,
-    DeliveryOperationContext
-} from './deliveryCandidateTypes.js'
+import type { AtomicDeliveryCandidate, DeliveryOperationContext } from './deliveryCandidateTypes.js'
 
 export function buildResidualDeliveryProblem(
     state: HydratedIndonesiaGameState,
@@ -92,8 +86,7 @@ export function buildResidualDeliveryProblem(
             )
             const seaLanes = shippingNetwork.seaLanes.filter(
                 (seaLane) =>
-                    seaAreaIdSet.has(seaLane.fromSeaAreaId) &&
-                    seaAreaIdSet.has(seaLane.toSeaAreaId)
+                    seaAreaIdSet.has(seaLane.fromSeaAreaId) && seaAreaIdSet.has(seaLane.toSeaAreaId)
             )
 
             return {
@@ -146,7 +139,9 @@ export function buildDeliveryOperationContext(
     }
 
     const residual = buildResidualDeliveryProblem(state, operatingCompanyId)
-    const zoneById = new Map(residual.problem.zoneSupplies.map((zoneSupply) => [zoneSupply.zoneId, zoneSupply]))
+    const zoneById = new Map(
+        residual.problem.zoneSupplies.map((zoneSupply) => [zoneSupply.zoneId, zoneSupply])
+    )
     const zoneIdByCultivatedAreaId = new Map<IndonesiaNodeId, string>()
     for (const zoneSupply of residual.problem.zoneSupplies) {
         for (const cultivatedAreaId of zoneSupply.areaIds) {
@@ -157,7 +152,10 @@ export function buildDeliveryOperationContext(
         residual.problem.cityDemands.map((cityDemand) => [cityDemand.cityId, cityDemand])
     )
     const shippingNetworkById = new Map(
-        residual.problem.shippingCompanyNetworks.map((network) => [network.shippingCompanyId, network])
+        residual.problem.shippingCompanyNetworks.map((network) => [
+            network.shippingCompanyId,
+            network
+        ])
     )
 
     return {
@@ -284,8 +282,7 @@ export function isSafeAtomicDeliveryCandidate(
     context: DeliveryOperationContext,
     candidate: AtomicDeliveryCandidate
 ): boolean {
-    const remainingRequiredAfterCandidate =
-        context.originalTarget - (context.shippedSoFar + 1)
+    const remainingRequiredAfterCandidate = context.originalTarget - (context.shippedSoFar + 1)
     if (remainingRequiredAfterCandidate <= 0) {
         return true
     }

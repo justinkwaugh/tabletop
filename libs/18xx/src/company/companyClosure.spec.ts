@@ -69,6 +69,7 @@ it('closes a share company, its owned privates and its holdings', () => {
         retiredCertificateIds: ['A:president', 'P:charter'],
         removedStationIds: ['A:home'],
         removedTrainIds: ['t1'],
+        trainRelease: { destination: 'market', definitionIds: ['2'] },
         removedReservations: [{ companyId: 'A', locationId: 'X2', nodeId: 'city-0' }],
         removedMarketSpaceId: '0:0'
     })

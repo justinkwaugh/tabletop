@@ -11,7 +11,7 @@
     let { size } = useThrelte()
 
     let canPlace = $derived(
-        gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
+        gameSession.canTakeTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
     )
 
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())
@@ -101,10 +101,10 @@
                         <button
                             tabindex="-1"
                             onclick={() => chooseCube(cube, { row, col })}
-                            class="flex justify-center items-center text-[#EEEEEE] rounded-sm w-6 h-6 font-bold text-xl select-none {cube
-                                ? gameSession.colors.getBgColor(
+                            class="flex justify-center items-center rounded-sm w-6 h-6 font-bold text-xl select-none {cube
+                                ? `${gameSession.hasDarkCubeNumber(cube.company) ? 'text-[#222222]' : 'text-[#EEEEEE]'} ${gameSession.colors.getBgColor(
                                       gameSession.getCompanyColor(cube.company)
-                                  )
+                                  )}`
                                 : 'bg-transparent'} {canPlace &&
                             !placeableCubes.find((c) => sameCoordinates(c, { row, col }))
                                 ? 'opacity-30 cursor-default'

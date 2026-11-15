@@ -9,7 +9,7 @@ import {
     type TrackRequest,
     type TrackLayDetails
 } from '@tabletop/18xx'
-import { stockGame, start } from './testSupport.js'
+import { stockGame, start } from '../test/testSupport.js'
 import { PrivateConstruction, type ConstructionPrivateId } from './privateConstruction.js'
 import { chicagoPrivateStation } from './privateStation.js'
 import { EighteenFortySixTileSet } from './tiles.js'
@@ -196,6 +196,18 @@ describe('1846 private construction', () => {
         expect(lay.cost).toBe(0)
         build(table, 'LSL', [request(lay)])
         expect(construction(table, 'LSL').choices([])).toEqual([])
+    })
+    it('keeps an ordinary upgrade after LSL upgrades the hex the company laid yellow this turn', () => {
+        const table = major()
+        acquire(table, 'LSL')
+        place(table, 'D14', '18xx:5')
+        table.state.trackStep?.lays.push({ locationId: 'D14', definitionId: '18xx:5' })
+        table.state.phaseId = 'II'
+        const lay = construction(table, 'LSL').choices([])[0]
+        assertExists(lay)
+        build(table, 'LSL', [request(lay)])
+        expect(table.state.tileInventory.placements.D14?.definitionId).toBe(lay.definitionId)
+        expect(TrackRules1846.allowance(table.hydrated, 'green')).toEqual({ cost: 0 })
     })
     it('uses powers after routes without changing the recorded run or completed construction', () => {
         const table = major()

@@ -1,6 +1,6 @@
+import type { TitleResolver } from '../../lib/titleDefinition.js'
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { GameDefinition } from '@tabletop/common'
 
 type GameForkRequest = Static<typeof GameForkRequest>
 const GameForkRequest = Type.Object({
@@ -9,14 +9,17 @@ const GameForkRequest = Type.Object({
     name: Type.Optional(Type.String())
 })
 
-export default async function (definition: GameDefinition, fastify: FastifyInstance) {
+export default async function (title: TitleResolver, fastify: FastifyInstance) {
     fastify.post<{ Body: GameForkRequest }>(
         '/fork',
         {
             schema: { body: GameForkRequest },
-            onRequest: fastify.auth([fastify.verifyUser], { relation: 'and' })
+            onRequest: fastify.auth([fastify.verifyActiveUser, fastify.verifyRoleUser], {
+                relation: 'and'
+            })
         },
         async function (request, _reply) {
+            const definition = title(request)
             if (!request.user) {
                 throw Error('No user found for create request')
             }

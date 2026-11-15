@@ -3,25 +3,33 @@ import { escapeRegExp, nameSeats, seatParts, type SeatPart, type Seats } from '$
 
 /**
  * R-10.13 — whose warbands a counted phrase names: "Imperial", a seat by name, the viewer's
- * ("your"), the actor's ("their own"), or no one, which leaves them the row's.
+ * ("your"), the actor's ("their own"), those a seat holds as its own (on its board, or lost by
+ * it), or no one, which leaves them the row's.
  */
 export type WarbandWhose =
     | { kind: 'imperial' }
     | { kind: 'seat'; name: string }
     | { kind: 'viewer' }
     | { kind: 'actor' }
+    | { kind: 'held'; name: string }
     | { kind: 'row' }
 
-/** A run of panel text: words, a seat, a favor, secret or warband token with its count, or a suit's symbol. */
+/**
+ * A run of panel text: words, a seat, a favor, secret or warband token with its count, or a suit's
+ * or the skull's symbol.
+ */
 export type TextPart =
     | SeatPart
     | { kind: 'favor'; count?: number }
     | { kind: 'secret'; count?: number }
     | { kind: 'suit'; suit: Suit; bank: boolean }
     | { kind: 'warband'; count: number; whose: WarbandWhose; words: string }
+    | { kind: 'skull'; words: string }
 
 export interface TokenOptions {
     warbands?: boolean
+    /** "skull" and "skulls" as the skull's symbol: only the rows that ask for it. */
+    skulls?: boolean
     /** Text naming seats by id: each seat apart for its chip, a counted warband's owner in its token's words. */
     seats?: { names: Seats; viewerId: string | undefined }
 }
@@ -38,11 +46,20 @@ const ALTERNATIVES = [
     String.raw`(?<!people['’]s )\b(?:(?<favorCount>\d+|an?|one) )?favor\b`,
     String.raw`(?<!darkest )\b(?:(?<secretCount>\d+|an?|one) )?secrets?\b`
 ]
-const WARBANDS = String.raw`\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<imperial>Imperial )|(?<viewer>of your (?:own )?)|(?<actor>of their own )|of (?<seat>[^,;:—]+?)['’]s )?(?<warbandNoun>warbands?)\b`
+const WARBANDS = String.raw`(?<=(?:(?<![\w-])(?<loser>[^\s,;:—]+) lost )?)\b(?<warbandCount>\d+|an?|one) (?<warbandWhose>(?<imperial>Imperial )|(?<viewer>of your (?:own )?)|(?<actor>of their own )|of (?<seat>[^,;:—]+?)['’]s )?(?<warbandNoun>warbands?)\b(?=(?: on (?<board>your|[^\s,;:—]+?['’]s) board)?)`
 
-const PATTERN = new RegExp(ALTERNATIVES.join('|'), 'gi')
+const SKULLS = String.raw`\b(?<skull>skulls?)\b`
+
 const COUNTED_WARBANDS = new RegExp(WARBANDS, 'gi')
-const PATTERN_WITH_WARBANDS = new RegExp([WARBANDS, ...ALTERNATIVES].join('|'), 'gi')
+
+function patternOf(options: TokenOptions): RegExp {
+    const alternatives = [
+        ...(options.warbands ? [WARBANDS] : []),
+        ...ALTERNATIVES,
+        ...(options.skulls ? [SKULLS] : [])
+    ]
+    return new RegExp(alternatives.join('|'), 'gi')
+}
 
 const CARD_NAMES = [
     ...cardDefinitions().map((card) => card.name),
@@ -64,7 +81,7 @@ function suitNamed(name: string): Suit {
 /** Panel text with favor, secrets and suits as their tokens and symbols, the rest as words. */
 export function tokenParts(text: string, options: TokenOptions = {}): TextPart[] {
     const { seats } = options
-    const pattern = options.warbands ? PATTERN_WITH_WARBANDS : PATTERN
+    const pattern = patternOf(options)
     const owned = seats && options.warbands ? ownersInWords(text, seats.names) : text
     const runs = owned
         .split(CARD_NAME)
@@ -93,6 +110,8 @@ function warbandWhose(groups: Record<string, string | undefined>): WarbandWhose 
     if (groups.viewer) return { kind: 'viewer' }
     if (groups.actor) return { kind: 'actor' }
     if (groups.seat) return { kind: 'seat', name: groups.seat }
+    const holder = groups.board?.replace(/['’]s$/, '') ?? groups.loser
+    if (holder) return { kind: 'held', name: holder }
     return { kind: 'row' }
 }
 
@@ -103,7 +122,7 @@ function tokenRun(text: string, pattern: RegExp): TextPart[] {
         const at = match.index ?? 0
         if (at > from) parts.push({ kind: 'text', text: text.slice(from, at) })
         const groups = match.groups ?? {}
-        const { bankSuit, cardSuit, favorCount, secretCount, warbandCount } = groups
+        const { bankSuit, cardSuit, favorCount, secretCount, warbandCount, skull } = groups
         if (warbandCount) {
             const count = countOf(warbandCount) ?? 1
             const whose = warbandWhose(groups)
@@ -117,6 +136,7 @@ function tokenRun(text: string, pattern: RegExp): TextPart[] {
             })
         } else if (bankSuit) parts.push({ kind: 'suit', suit: suitNamed(bankSuit), bank: true })
         else if (cardSuit) parts.push({ kind: 'suit', suit: suitNamed(cardSuit), bank: false })
+        else if (skull) parts.push({ kind: 'skull', words: skull })
         else if (/favor$/i.test(match[0])) parts.push({ kind: 'favor', count: countOf(favorCount) })
         else parts.push({ kind: 'secret', count: countOf(secretCount) })
         from = at + match[0].length

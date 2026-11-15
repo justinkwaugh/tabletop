@@ -10,9 +10,10 @@ import { hasEveryCastleEnclosed } from '../util/resolutionHelpers.js'
 
 type PlacingWallsAction = HydratedPlaceWall | HydratedPass | HydratedCancelAlliance
 
-export class PlacingWallsStateHandler
-    implements MachineStateHandler<PlacingWallsAction, HydratedLowenherzGameState>
-{
+export class PlacingWallsStateHandler implements MachineStateHandler<
+    PlacingWallsAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>
@@ -45,7 +46,9 @@ export class PlacingWallsStateHandler
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const gameState = context.gameState
-        gameState.activePlayerIds = gameState.wallPlacingPlayerId ? [gameState.wallPlacingPlayerId] : []
+        gameState.activePlayerIds = gameState.wallPlacingPlayerId
+            ? [gameState.wallPlacingPlayerId]
+            : []
     }
 
     onAction(

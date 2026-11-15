@@ -1,11 +1,13 @@
-import { requireEighteenThirtyTwoState } from './state.js'
+import { EighteenThirtyTwoCharters } from './charters.js'
 import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
-import { CoalFieldsPrivateId, grantCoalRightsToBuyer } from './coalFields.js'
+import { CoalAccess } from './coalAccess.js'
+import { CoalFieldsPrivateId } from './coalFields.js'
 import { EighteenThirtyTwoPrivateCatalog } from './privates.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 
 export const EighteenThirtyTwoTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
+    charters: EighteenThirtyTwoCharters,
     // Companies buy trains from one another for at least $1 (§10.5). From phase 3 until privates
     // close they buy players' privates for half to double face value; the coal fields alone may be
     // bought in phase 2, for up to face value (§12.1).
@@ -27,6 +29,6 @@ export const EighteenThirtyTwoTransferRules: TransferRules = {
     },
     afterPurchase(state, offer) {
         if (offer.asset.kind === 'private' && offer.asset.privateCompanyId === CoalFieldsPrivateId)
-            grantCoalRightsToBuyer(requireEighteenThirtyTwoState(state), offer.buyer.companyId)
+            CoalAccess.grant(state, offer.buyer.companyId)
     }
 }

@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedContainerGameState } from '../model/gameState.js'
@@ -39,13 +35,8 @@ const FREE_ACTIONS = new Set<ActionType>([
     ActionType.SelectSeizedContainer
 ])
 
-export class TakingActionsStateHandler
-    implements MachineStateHandler<TakingActionsAction>
-{
-    isValidAction(
-        action: HydratedAction,
-        context: MachineContext
-    ): action is TakingActionsAction {
+export class TakingActionsStateHandler implements MachineStateHandler<TakingActionsAction> {
+    isValidAction(action: HydratedAction, context: MachineContext): action is TakingActionsAction {
         const state = context.gameState as HydratedContainerGameState
         if (!action.playerId) {
             return false
@@ -55,7 +46,10 @@ export class TakingActionsStateHandler
             if (action.type === ActionType.SelectSeizedContainer) {
                 return action.playerId === state.seizure.chooserId
             }
-            return action.type === ActionType.TakeLoan && HydratedTakeLoan.canTake(state, action.playerId)
+            return (
+                action.type === ActionType.TakeLoan &&
+                HydratedTakeLoan.canTake(state, action.playerId)
+            )
         }
 
         if (!FREE_ACTIONS.has(action.type as ActionType) && state.actionsRemaining <= 0) {

@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import { copyFinances } from '../finance/finance.js'
 import type { GameState } from '@tabletop/common'
 import type { StockCompanyState } from '../company/companyState.js'
@@ -11,9 +12,8 @@ export type StockState = StockCompanyState &
         bankruptPlayerIds?: string[]
     }
 
-export function copyStockState(state: StockState): StockState {
+export function stockStateCopies(state: StockState) {
     return {
-        ...state,
         ...copyFinances(state),
         stockMarket: {
             stacks: state.stockMarket.stacks.map((stack) => ({
@@ -22,4 +22,8 @@ export function copyStockState(state: StockState): StockState {
             }))
         }
     }
+}
+
+export function copyStockState(state: StockState): StockState {
+    return stateWith(state, stockStateCopies(state))
 }

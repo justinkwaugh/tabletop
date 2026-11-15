@@ -1,17 +1,21 @@
-import { ActionSource, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    isCallGameAction,
+    isCascadedSystemAction,
+    type GameAction
+} from '@tabletop/common'
 import {
     isBuyShares,
+    isEndGame,
     isFloatCompany,
     isFinishTrack,
     isFinishStations,
     isFinishOperatingTurn,
     isFinishStockTurn,
-    isSetStockInstruction,
-    isStopStockInstruction,
     isSetPrivatePowerRequest,
     isDropPrivatePowerRequest,
-    type BuyShares,
-    type FloatCompany
+    isStockInstructionAction,
+    isRunInstructionAction
 } from '@tabletop/18xx'
 
 export function isHistoryBookkeeping(action: GameAction): boolean {
@@ -20,11 +24,15 @@ export function isHistoryBookkeeping(action: GameAction): boolean {
         isFinishStations(action) ||
         isFinishOperatingTurn(action) ||
         (isFinishStockTurn(action) && action.metadata?.passed === false) ||
-        isSetStockInstruction(action) ||
-        isStopStockInstruction(action) ||
+        isStockInstructionAction(action) ||
+        isRunInstructionAction(action) ||
         isSetPrivatePowerRequest(action) ||
         isDropPrivatePowerRequest(action)
     )
+}
+
+export function isGameEndAction(action: GameAction): boolean {
+    return isEndGame(action) || isCallGameAction(action)
 }
 
 export function isAutomaticStockDecision(action: GameAction): boolean {
@@ -35,7 +43,7 @@ export function isAutomaticStockDecision(action: GameAction): boolean {
 }
 
 function isGeneratedConsequence(action: GameAction): boolean {
-    return action.source === ActionSource.System && !isAutomaticStockDecision(action)
+    return isCascadedSystemAction(action) && !isAutomaticStockDecision(action)
 }
 
 export function shouldContinueHistoryStep(action: GameAction, next?: GameAction): boolean {
@@ -43,21 +51,4 @@ export function shouldContinueHistoryStep(action: GameAction, next?: GameAction)
     if (next && isFloatCompany(action))
         return next.source === ActionSource.System && !isFinishStockTurn(next)
     return isHistoryBookkeeping(action) || isGeneratedConsequence(action)
-}
-
-export function purchaseWithFlotation(
-    actions: readonly GameAction[]
-): { purchase: BuyShares; flotation: FloatCompany } | undefined {
-    let flotation: FloatCompany | undefined
-    for (let index = actions.length - 1; index >= 0; index--) {
-        const action = actions[index]
-        if (isFloatCompany(action)) flotation = action
-        if (isGeneratedConsequence(action) || isHistoryBookkeeping(action)) continue
-        return flotation &&
-            isBuyShares(action) &&
-            action.metadata?.companyId === flotation.companyId
-            ? { purchase: action, flotation }
-            : undefined
-    }
-    return undefined
 }

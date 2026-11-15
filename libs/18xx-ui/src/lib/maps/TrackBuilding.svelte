@@ -3,6 +3,8 @@
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import { trackConsentDecline } from '../session/trackConsentNotice.js'
     import Tile from '../tiles/Tile.svelte'
+    import CompanyTreasuryLine from '../finance/CompanyTreasuryLine.svelte'
+    import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
         session,
@@ -14,6 +16,8 @@
     const turn = $derived(session.gameState.trackStep)
     const selection = $derived(session.track.selection)
     const preview = $derived(session.track.preview)
+    const askable = $derived(session.track.consentersToAsk)
+    const borrowable = $derived(session.track.borrowable)
 </script>
 
 {#if turn && session.gameState.machineState === 'LayingTrack' && !session.gameState.trackConsent}
@@ -24,6 +28,19 @@
                     .metadata?.request.details.locationId}.
             </p>
         {/if}
+        {#if askable.length > 1}
+            <div class="ask" role="group" aria-label="Whom to ask for permission">
+                <span>This track needs one of them to agree:</span>
+                {#each askable as playerId (playerId)}
+                    <button
+                        class="action-button inline-action"
+                        disabled={!session.track.canBuild}
+                        onclick={() => session.track.confirm(playerId)}
+                        >Ask {session.getPlayerName(playerId)}</button
+                    >
+                {/each}
+            </div>
+        {/if}
         {#if mapControls}
             <header class="map-prompt">
                 <span>Choose a tile space or</span>
@@ -33,6 +50,7 @@
                     disabled={!session.track.canBuild || !!selection.locationId}>skip</button
                 >
             </header>
+            <CompanyTreasuryLine {session} companyId={turn.companyId} {borrowable} />
         {:else}
             <header>
                 <strong>{session.companyName(turn.companyId)} · Track</strong>
@@ -43,7 +61,7 @@
                             kind: 'company',
                             companyId: turn.companyId
                         })
-                    )}</span
+                    )}{#if borrowable > 0}, can borrow {money(borrowable)} more{/if}</span
                 >
                 <span>{turn.lays.length} placed</span>
                 {#if showUndo}<button
@@ -100,6 +118,7 @@
                                 face={tile.face}
                                 printedNumber={tile.printedNumber}
                                 appearance={session.tileAppearance}
+                                layout={placedTileLayout(session.mapView.layouts, tile.id)}
                                 size={80}
                                 orientation={session.mapView.map.definition.orientation}
                             />
@@ -130,10 +149,7 @@
                     <button
                         onclick={() => session.track.confirm()}
                         disabled={!session.track.canBuild}
-                        >{preview.consentPlayerId &&
-                        preview.consentPlayerId !== session.myPlayer?.id
-                            ? 'Request track permission'
-                            : 'Confirm track'}</button
+                        >{askable.length ? 'Request track permission' : 'Confirm track'}</button
                     >
                 {:else}<p>Choose a rotation to preview.</p>{/if}
             {/if}
@@ -168,6 +184,14 @@
     .map-prompt {
         justify-content: center;
         margin-bottom: 0;
+    }
+    .ask {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px 8px;
+        margin-bottom: 8px;
     }
     section {
         margin: 12px 0;

@@ -1,4 +1,11 @@
-import type { MapViewDefinition, StationAppearance, SymbolPosition } from './stationPresentation.js'
+import { DefaultTerrainIcons, type TerrainIconName } from './terrainIcons.js'
+import { bonusArrowBounds, drawBonusArrow, type DrawnBonusArrow } from './bonusArrows.js'
+import type {
+    MapViewDefinition,
+    OffboardNameStyle,
+    StationAppearance,
+    SymbolPosition
+} from './stationPresentation.js'
 import {
     assert,
     assertExists,
@@ -16,6 +23,7 @@ import {
     rotateTileEdge,
     rotateTileFace,
     RailwayMapState,
+    type RevenueCenter,
     type RoutePath,
     type StationPosition,
     type StationReservation,
@@ -26,15 +34,18 @@ import {
     type TileRotation,
     type TileSet,
     type TileInventory,
-    type LocationMarker
+    type LocationMarker,
+    type Station
 } from '@tabletop/18xx'
 import {
     createTileDrawing,
+    type TileLayout,
     DefaultCitySlotRadius,
+    TileRadius,
     type TileDrawing,
     type TileDrawnPath
 } from '../tiles/tileDrawing.js'
-import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
+import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import type { TileSymbolName } from '../tiles/tileSymbols.js'
 import { tilePathPoint } from '../tiles/tileTrackGeometry.js'
 
@@ -49,9 +60,66 @@ export type MapRoute = {
     id: string
     color: string
     segments: readonly RoutePath[]
+    /** Track the route runs on past its counted stops for an interconnection, drawn dashed. */
+    extension?: readonly RoutePath[]
+    /** The printed bonus arrows paying the route, outlined in its colour. */
+    bonusArrowIds?: readonly string[]
+    /** The route being drawn: shown over the others, which fade. */
+    chosen?: true
+    /** Where a route that has no track yet starts, marked in its colour. */
+    start?: RevenueCenter
 }
-export function routeLocationIds(routes: readonly MapRoute[]): string[] {
-    return [...new Set(routes.flatMap((route) => route.segments.map((path) => path.locationId)))]
+
+/** Every piece of track a route draws: its own and its extension's. */
+export function mapRouteTrack(route: MapRoute): readonly RoutePath[] {
+    return [...route.segments, ...(route.extension ?? [])]
+}
+export function routeLocationIds(
+    routes: readonly MapRoute[],
+    {
+        map,
+        joinedEdges = {},
+        splitHexes = {}
+    }: Pick<MapViewDefinition, 'map' | 'joinedEdges' | 'splitHexes'>
+): string[] {
+    const sideOf = (locationId: string, edges: readonly TileEdge[]): readonly TileEdge[] => {
+        const side = splitHexes[locationId]
+        if (!side) return TileEdges
+        return TileEdges.filter((edge) =>
+            edges.some((reached) => side.includes(reached) === side.includes(edge))
+        )
+    }
+    const pending = routes.flatMap((route) => [
+        ...(route.start ? [{ locationId: route.start.locationId, edges: TileEdges }] : []),
+        ...mapRouteTrack(route).map(({ locationId, pathId }) => {
+            if (!splitHexes[locationId]) return { locationId, edges: TileEdges }
+            const path = map
+                .location(locationId)
+                .preprintedTile.paths.find((candidate) => candidate.id === pathId)
+            assertExists(path, `A split hex's route runs on its printed track: ${pathId}`)
+            const edges = path.endpoints.flatMap((endpoint) =>
+                endpoint.kind === 'edge' ? [endpoint.edge] : []
+            )
+            return { locationId, edges: sideOf(locationId, edges) }
+        })
+    ])
+    const reached = new Map<string, Set<TileEdge>>()
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+        const { locationId, edges } = next
+        const known = reached.get(locationId) ?? new Set<TileEdge>()
+        reached.set(locationId, known)
+        const fresh = edges.filter((edge) => !known.has(edge))
+        fresh.forEach((edge) => known.add(edge))
+        for (const edge of fresh.filter((edge) => joinedEdges[locationId]?.includes(edge))) {
+            const neighborId = map.neighbor(locationId, edge)?.id
+            if (neighborId)
+                pending.push({
+                    locationId: neighborId,
+                    edges: sideOf(neighborId, [rotateTileEdge(edge, 3)])
+                })
+        }
+    }
+    return [...reached.keys()]
 }
 /**
  * A presentation-only relocation of an untiled hex, for boards whose print rearranges cells.
@@ -64,48 +132,96 @@ export type MapPlacement = {
     hidden?: boolean
 }
 
+/** A line the board prints on a hex, in the hex's own coordinates. */
+export type PrintedLine = {
+    d: string
+    color: string
+    width: number
+    /** Points along the line, which marks placed in its hex keep clear of. */
+    points?: readonly Point[]
+}
+
 export type MapMarkerArt =
     | { imageUrl: string }
-    | { tileSymbol: TileSymbolName }
+    /** A symbol on a disc, low in the hex or ``at`` a point from its centre, on any tile laid there. */
+    | { tileSymbol: TileSymbolName; at?: Point }
     /** Not drawn, where the location's name or artwork already says it. */
     | { hidden: true }
-    /** Two linked circles after the marker's label, below the hex's centre or ``above`` it. */
-    | { localLine: true; above?: true }
+    /**
+     * Two linked circles after the marker's label, low in the hex or ``above`` its stops and name,
+     * and on any tile laid there when ``onTile``, for a marker that outlasts the print.
+     */
+    | { localLine: true; above?: true; onTile?: true }
+    /** The same, ``at`` a point from the hex's centre where the print is too busy for either. */
+    | { localLine: true; at: Point }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
-    /** A ring around the hex's towns, as a medium city is printed. */
+    /** The marker's label under an unbuilt hex's terrain cost, such as a lower cost it prints. */
+    | { terrainNote: true }
+    /** The marker's label as a printed note across an unbuilt hex's lower half, such as a reservation. */
+    | { notice: true }
+    /**
+     * The marker's label, or its own ``lines``, at a point from the hex's centre, clear of its
+     * track; ``offHex`` when that point is on the table beside the hex, not on the hex's colour.
+     */
+    | { note: { at: Point; fontSize: number; lines?: readonly string[]; offHex?: true } }
+    /** A ring around the hex's towns, drawn as dots, as a medium city is printed. */
     | { townRing: true }
     /**
      * The marker's label as a badge beneath the hex's revenue, such as a route bonus; arrows
      * point the badge both ways, as for an east–west bonus.
      */
     | { revenueBadge: true; arrows?: true }
-    /** The marker's symbol, once per count, at revenue size beneath the hex's revenue. */
+    /** The marker's label boxed where the hex's revenue stands, for a value no number states. */
+    | { revenueBox: true }
+    /**
+     * The marker's symbol, once per count, at revenue size in the clear corner farthest from the
+     * hex's revenue, unless the tile prints it.
+     */
     | { revenueSymbol: TileSymbolName }
     /**
-     * A marker placed during play: the hex is outlined in the colour, with a badge on its top
-     * corner showing the owning company's token and the marker's icon.
+     * A value in front of the hex's staged values, boxed as if printed there, with a caption
+     * above it, such as a value that holds only until an event.
      */
-    | {
-          placed: {
-              color: string
-              companyId: string
-              icon: { tileSymbol: TileSymbolName } | { imageUrl: string }
-          }
-      }
+    | { revenueLead: { amount: number; caption: string } }
+    /**
+     * A token placed during play, drawn whole: in the clear corner farthest from the hex's
+     * revenue, in its centre, or over a symbol the hex shows, in place of every copy of it (in a
+     * corner where it shows none).
+     */
+    | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab; outline?: string } }
+    | { stationOutline: { stationId: string; color: string } }
+
+/**
+ * Where a token goes: a clear corner, the centre, over a symbol, at a point, or at the clear spot
+ * nearest a point, such as the side of the hex the board prints it on, which a laid tile's track
+ * may push it from.
+ */
+export type TokenPlacement =
+    'corner' | 'centre' | { covers: TileSymbolName } | { at: Point } | { near: Point }
+/** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
+export type TokenTab = { label: string; caption: string; fill?: string; left?: true }
 
 export type RevenueAnnotation = { markerId: string; label: string; x: number; y: number } & (
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
+    | { kind: 'box'; width: number; height: number }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
+    | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab; outline?: string }
+    | { kind: 'caption'; caption: string }
 )
 type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
+type RevenueCaption = Extract<RevenueAnnotation, { kind: 'caption' }>
 const RevenueRadius = 8.7
+const TokenRadius = 10.5
+export const TokenTabReach = 18
 // Between a station circle and the baseline of the name curved over it.
 const NameArcGap = 2.2
 const NameArcCapHeight = 4.6
 const TrackHalfWidth = 4.6
 // A revenue with a badge beneath it rises to leave a gap between them.
 const BadgeLift = 3
+const LocalLineHalfHeight = 3.5
+const LocalLineClearance = 3
 
 export type MapDrawnLocation = {
     location: MapLocation
@@ -115,9 +231,13 @@ export type MapDrawnLocation = {
     placed: boolean
     /** True for a presentation placement that hides the hex entirely. */
     hidden: boolean
+    /** A board tile marks the hex as taking no part in this game. */
+    outOfPlay: boolean
     markerArt: Readonly<Record<string, MapMarkerArt>>
     /** Whether the hex's towns are ringed, as a medium city is printed. */
     townRing: boolean
+    /** Lines printed on the hex until a tile covers it, such as a river. */
+    printedLines: readonly PrintedLine[]
     drawing: TileDrawing
     borders: readonly {
         start: Point
@@ -135,19 +255,38 @@ export type MapDrawnLocation = {
     nameBaseline: Point
     /** The name's lines where it prints straight. */
     nameRows: readonly string[]
+    /** An offboard's own type for its name, where the view sets one. */
+    nameStyle?: OffboardNameStyle
     /**
      * True where the title places a city or town's name itself rather than across the top. An
      * offboard's name is never curved, so it keeps the plain style wherever it is placed.
      */
     namePlaced: boolean
     /**
-     * The circle a lone city's name follows, where the style curves names: centred over the top,
-     * or under the foot when ``below``, turned ``rotation`` degrees clockwise off any track and
-     * spanning ``span`` radians. ``radius`` is the text's baseline.
+     * The circles curved names follow, where the style curves them: a lone city's name, or each
+     * city's own name. Each is centred over the top of its city, or under the foot when
+     * ``below``, turned ``rotation`` degrees clockwise off any track and spanning ``span``
+     * radians. ``radius`` is the text's baseline.
      */
-    nameArc?: { center: Point; radius: number; rotation: number; span: number; below: boolean }
-    /** Height of the printed terrain cost row: centred below the hex's stops, or mid-hex. */
-    terrainY: number
+    nameArcs: readonly NameArc[]
+    /** Centre of the printed terrain cost row: below the hex's stops, or mid-hex. */
+    terrainPosition: Point
+    /** Whether the terrain cost stands under its symbols rather than after them. */
+    terrainCostBelow?: true
+    /** Whether the location's terrain cost is drawn: on the printed hex, or kept on a laid tile. */
+    terrainShown: boolean
+    /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
+    localLineAboveY?: number
+    /** Where an ``onTile`` local line stands once a tile is laid, clear of that tile. */
+    localLineOnTile?: Point
+}
+export type NameArc = {
+    text: string
+    center: Point
+    radius: number
+    rotation: number
+    span: number
+    below: boolean
 }
 type HexSegment = { start: Point; end: Point }
 export type BoardArtwork = {
@@ -188,6 +327,12 @@ export function viewportRect(viewport: MapViewport, rect: BoundingBox): Bounding
     }
 }
 
+/** Share of the viewport's area the hexes span; above 1 where artwork crops the map. */
+export function mapShareOfViewport(scene: MapDrawing, viewport: MapViewport) {
+    const { bounds } = scene
+    return (bounds.width * bounds.height) / (viewport.bounds.width * viewport.bounds.height)
+}
+
 function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
     const x = Math.min(first.x, second.x)
     const y = Math.min(first.y, second.y)
@@ -199,12 +344,35 @@ function enclosingBounds(first: BoundingBox, second: BoundingBox): BoundingBox {
     }
 }
 
+/**
+ * The laid tiles beside a location, which cover what it prints past its sides onto the board
+ * there, as the spikes from 1822's London.
+ */
+export function laidNeighbors(
+    scene: Pick<MapDrawing, 'map' | 'locations'>,
+    entry: MapDrawnLocation
+): MapDrawnLocation[] {
+    const neighborIds = TileEdges.flatMap(
+        (edge) => scene.map.neighbor(entry.location.id, edge)?.id ?? []
+    )
+    return scene.locations.filter(
+        (other) => other.placed && neighborIds.includes(other.location.id)
+    )
+}
+
 export type MapDrawing = {
     map: RailwayMap
     locations: readonly MapDrawnLocation[]
+    bonusArrows: readonly DrawnBonusArrow[]
     bounds: BoundingBox
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix: string
+    /** The icon each terrain kind draws. */
+    terrainIcons: Readonly<Record<string, TerrainIconName>>
+    /** Hexside border widths by kind, where the view sets one. */
+    borderWidths: Readonly<Record<string, number>>
+    printedReservations: NonNullable<MapViewDefinition['printedReservations']>
+    sharedStations: NonNullable<MapViewDefinition['sharedStations']>
 }
 
 function remapFaceEdges(face: TileFace, edges: Readonly<Record<number, number>>): TileFace {
@@ -238,8 +406,20 @@ export function privateMarkerLabel(
     kind: string,
     locationId: string
 ): string {
-    const location = view.map.location(locationId)
-    return `${locationMarkerName(view, kind).toLowerCase()} on ${location.name ?? location.id}`
+    return `${locationMarkerName(view, kind).toLowerCase()} on ${view.map.placeName(locationId)}`
+}
+
+/** The cities holding more stations than they have spaces, as `locationId nodeId`. */
+export function overfullCityKeys(
+    stations: readonly Station[],
+    mapState: Pick<RailwayMapState, 'tile'>
+): string[] {
+    return stations.flatMap((station) => {
+        if (station.status !== 'placed' || !station.position.slot) return []
+        const { locationId, nodeId, slot } = station.position
+        const node = mapState.tile(locationId).face.nodes.find((entry) => entry.id === nodeId)
+        return node?.kind === 'city' && slot >= node.stationSlots ? [`${locationId} ${nodeId}`] : []
+    })
 }
 
 export function createMapDrawing(
@@ -248,38 +428,84 @@ export function createMapDrawing(
         tileSet: TileSet
         inventory: TileInventory
         markers?: readonly Pick<LocationMarker, 'kind' | 'locationId'>[]
+        liftedPrivateBlocks?: readonly string[]
+        overfullCities?: readonly string[]
     },
     {
         layouts = {},
-        markerArt = {},
+        markerArt: sharedMarkerArt = {},
+        locationMarkerArt = {},
+        printedLines = {},
         placements = {},
         joinedEdges = {},
+        joinedTileEdges = {},
+        drawnLast = [],
+        splitHexes = {},
         locationMarkerNames = {},
         hideLocationNames,
+        boardTiles = {},
+        labelsReplaceNames,
         drawingStyle,
         revenueStageLabels,
+        revenueStageCaptions,
+        revenueStageCaptionColors,
+        revenueStack,
         terrainCostPrefix = '',
+        terrainIcons = DefaultTerrainIcons,
+        borderWidths = {},
+        printedReservations = [],
+        sharedStations = {},
         namePositions = {},
+        cityNames = {},
         namesBelow = [],
+        nameTurns = {},
         symbolPositions = {},
         nameLines = {},
-        terrainHeights = {}
+        offboardNames,
+        nameStyles = {},
+        sharedCityLayouts = {},
+        terrainPositions = {},
+        terrainCostsBelow = [],
+        terrainKeptOnTiles = false,
+        bonusArrows = []
     }: Pick<
         MapViewDefinition,
         | 'layouts'
         | 'markerArt'
+        | 'locationMarkerArt'
+        | 'printedLines'
         | 'placements'
         | 'joinedEdges'
+        | 'splitHexes'
+        | 'joinedTileEdges'
+        | 'drawnLast'
         | 'locationMarkerNames'
         | 'hideLocationNames'
+        | 'boardTiles'
+        | 'labelsReplaceNames'
         | 'drawingStyle'
         | 'revenueStageLabels'
+        | 'revenueStageCaptions'
+        | 'revenueStageCaptionColors'
+        | 'revenueStack'
         | 'terrainCostPrefix'
+        | 'terrainIcons'
+        | 'borderWidths'
+        | 'printedReservations'
+        | 'sharedStations'
         | 'namePositions'
+        | 'cityNames'
         | 'namesBelow'
+        | 'nameTurns'
         | 'symbolPositions'
         | 'nameLines'
-        | 'terrainHeights'
+        | 'offboardNames'
+        | 'nameStyles'
+        | 'sharedCityLayouts'
+        | 'terrainPositions'
+        | 'terrainCostsBelow'
+        | 'terrainKeptOnTiles'
+        | 'bonusArrows'
     > = {}
 ): MapDrawing {
     const mapState = supply ? new RailwayMapState(map, supply.tileSet, supply.inventory) : undefined
@@ -290,21 +516,51 @@ export function createMapDrawing(
                 const name = locationMarkerName({ locationMarkerNames }, marker.kind)
                 return { id: marker.kind, label: name, description: name }
             })
-    const locations = map.definition.locations.map((printed): MapDrawnLocation => {
+    const liftedPrivateBlocks = supply?.liftedPrivateBlocks ?? []
+    const blockLifted = (marker: NonNullable<MapLocation['markers']>[number]) =>
+        !!marker.privateCompanyId && liftedPrivateBlocks.includes(marker.privateCompanyId)
+    const drawingOrder = [
+        ...map.definition.locations.filter((location) => !drawnLast.includes(location.id)),
+        ...map.definition.locations.filter((location) => drawnLast.includes(location.id))
+    ]
+    const locations = drawingOrder.map((printed): MapDrawnLocation => {
+        const markerArt = { ...sharedMarkerArt, ...locationMarkerArt[printed.id] }
         const placed = placedMarkers(printed.id)
-        const location = placed.length
-            ? { ...printed, markers: [...(printed.markers ?? []), ...placed] }
-            : printed
-        const tile = mapState?.tile(location.id)
+        const marked =
+            placed.length || printed.markers?.some(blockLifted)
+                ? {
+                      ...printed,
+                      markers: [
+                          ...(printed.markers ?? []).filter((marker) => !blockLifted(marker)),
+                          ...placed
+                      ]
+                  }
+                : printed
+        const tile = mapState?.tile(marked.id)
         const placement = tile?.placement
+        const boardTile = placement ? boardTiles[placement.definitionId] : undefined
+        const tileName = boardTile?.name
+        const location = tileName ? { ...marked, name: tileName } : marked
+        const outOfPlay = !!boardTile?.outOfPlay
         const relocation = placement ? undefined : placements[location.id]
-        const face = relocation?.edges
-            ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
-            : (tile?.face ?? location.preprintedTile)
+        const leads = revenueLeads(location.markers ?? [], markerArt)
+        const printedFace = withRevenueLeads(
+            relocation?.edges
+                ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
+                : (tile?.face ?? location.preprintedTile),
+            leads
+        )
+        const sharedCityIds = printedFace.nodes
+            .map((node) => node.id)
+            .filter((id) => supply?.overfullCities?.includes(`${location.id} ${id}`))
+        const face = withSharedCities(printedFace, sharedCityIds)
         const rotation = tile?.rotation ?? 0
-        const layout = placement
-            ? (layouts[placement.definitionId] ?? StandardTileLayouts[placement.definitionId])
-            : layouts[location.id]
+        const layout = withSharedCityLayouts(
+            placement ? placedTileLayout(layouts, placement.definitionId) : layouts[location.id],
+            sharedCityIds.map(
+                (id) => sharedCityLayouts[placement ? placement.definitionId : location.id]?.[id]
+            )
+        )
         const separatedTowns =
             face.nodes.length > 1 &&
             face.paths.length === 0 &&
@@ -324,43 +580,79 @@ export function createMapDrawing(
         const nameShown =
             hideLocationNames !== true &&
             !hideLocationNames?.includes(location.id) &&
-            !placement &&
+            !(labelsReplaceNames && face.labels.length) &&
+            (!placement || !!tileName) &&
             !!location.name
+        const nameStyle =
+            nameStyles[location.id] ??
+            (face.nodes.length &&
+            (face.color === 'red' || face.nodes.every((node) => node.kind === 'offboard'))
+                ? offboardNames
+                : undefined)
+        const nameScale = (nameStyle?.fontSize ?? NameFontSize) / NameFontSize
         const nameBaseline = namePositions[location.id] ?? { x: 0, y: -35 }
-        const nameRows = nameLines[location.id] ?? splitName(location.name ?? '')
+        const nameRows = nameLines[location.id] ?? splitName(location.name ?? '', 18 / nameScale)
+        const townRing = (location.markers ?? []).some((marker) => {
+            const art = markerArt[marker.id]
+            return !!art && 'townRing' in art
+        })
+        // A ringed town stays the printed dot on the tiles laid over it.
+        const locationStyle = townRing ? { ...drawingStyle, townDots: true } : drawingStyle
+        let unannotatedDrawing: TileDrawing | undefined
+        const stopDrawing = () =>
+            (unannotatedDrawing ??= createTileDrawing(
+                face,
+                map.definition.orientation,
+                rotation,
+                tileLayout,
+                locationStyle
+            ))
+        const terrainRowOf = (tileDrawing: TileDrawing): Point =>
+            terrainPositions[location.id] ?? {
+                x: 0,
+                y: terrainY(tileDrawing, face, map.definition.orientation)
+            }
         const [loneNode, ...otherNodes] = face.nodes
-        const nameArc =
-            nameShown &&
-            location.name &&
-            drawingStyle?.cityNameArcs &&
-            !namePositions[location.id] &&
-            loneNode?.kind === 'city' &&
-            loneNode.stationSlots === 1 &&
-            !otherNodes.length
-                ? arcAroundCity(
-                      location.name,
-                      (drawingStyle.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
-                      namesBelow.includes(location.id),
-                      createTileDrawing(
-                          face,
-                          map.definition.orientation,
-                          rotation,
-                          tileLayout,
-                          drawingStyle
-                      ).paths,
-                      symbolPoints(symbolPositions[location.id])
-                  )
-                : undefined
-        // Points along the name's outer edge, which annotations keep clear of.
-        const nameArcPoints = nameArc
-            ? [-1, -0.5, 0, 0.5, 1].map((share) => {
-                  const angle =
-                      (((nameArc.below ? 90 : -90) + nameArc.rotation) * Math.PI) / 180 +
-                      (share * nameArc.span) / 2
-                  const reach = nameArc.radius + (nameArc.below ? -2 : 3)
-                  return { x: Math.cos(angle) * reach, y: Math.sin(angle) * reach }
-              })
-            : []
+        const ownCityNames = cityNames[location.id]
+        const arcAround = (text: string, center: Point, obstacles: readonly Point[] = []) =>
+            arcAroundCity({
+                name: text,
+                clearance: (drawingStyle?.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
+                below: namesBelow.includes(location.id),
+                fixedTurn: nameTurns[location.id],
+                paths: stopDrawing().paths,
+                symbols: symbolPoints(symbolPositions[location.id]),
+                center,
+                obstacles
+            })
+        const nameArcs =
+            !nameShown ||
+            !location.name ||
+            !drawingStyle?.cityNameArcs ||
+            namePositions[location.id]
+                ? []
+                : ownCityNames
+                  ? cityNameArcs(stopDrawing(), ownCityNames, arcAround)
+                  : loneNode?.kind === 'city' && loneNode.stationSlots === 1 && !otherNodes.length
+                    ? [arcAround(location.name, stopDrawing().nodes[0].center)]
+                    : []
+        const curvedName = nameArcs.length > 0
+        const nameArcPoints = nameArcs.flatMap((arc) =>
+            [-0.5, -0.25, 0, 0.25, 0.5].map((share) =>
+                pointOnArc(arc, share, arc.radius + (arc.below ? -2 : 3))
+            )
+        )
+        const localLineAboveY = (location.markers ?? []).some((marker) => {
+            const art = markerArt[marker.id]
+            return !!art && 'localLine' in art && 'above' in art
+        })
+            ? aboveStops(
+                  stopDrawing(),
+                  !placement && location.terrain ? terrainRowOf(stopDrawing()).y : undefined,
+                  nameArcs,
+                  nameShown && !curvedName ? { baseline: nameBaseline, rows: nameRows } : undefined
+              )
+            : undefined
         const printedDrawing = createTileDrawing(
             face,
             map.definition.orientation,
@@ -370,11 +662,13 @@ export function createMapDrawing(
                 annotationExclusions: [
                     ...(tileLayout.annotationExclusions ?? []),
                     ...nameArcPoints,
-                    ...(nameShown && !nameArc
-                        ? [-18, 0, 18].map((x) => ({
-                              x: nameBaseline.x + x,
-                              y: nameBaseline.y - 3
-                          }))
+                    ...(nameShown && !curvedName
+                        ? nameRows.flatMap((_, row) =>
+                              [-18, 0, 18].map((x) => ({
+                                  x: nameBaseline.x + x * nameScale,
+                                  y: nameBaseline.y + (row * NameLineHeight - 3) * nameScale
+                              }))
+                          )
                         : []),
                     ...(!placement && location.terrain
                         ? face.nodes.length
@@ -386,10 +680,19 @@ export function createMapDrawing(
                         : []),
                     ...((location.markers ?? []).some((marker) => !markerArt[marker.id])
                         ? [{ x: 0, y: 36 }]
+                        : []),
+                    ...(!placement && noticeShown(location.markers ?? [], markerArt)
+                        ? [-18, 0, 18].map((x) => ({ x, y: NoticeY }))
                         : [])
                 ]
             },
-            { ...drawingStyle, revenueStageLabels }
+            {
+                ...locationStyle,
+                revenueStageLabels,
+                revenueStageCaptions,
+                revenueStageCaptionColors,
+                revenueStack
+            }
         )
         const markers = location.markers ?? []
         const lifted = markers.some((marker) => {
@@ -399,7 +702,7 @@ export function createMapDrawing(
             ? liftRevenue(printedDrawing, BadgeLift)
             : printedDrawing
         const geometry = calculateHexGeometry(
-            { orientation: map.definition.orientation, dimensions: { radius: 50 } },
+            { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
             relocation?.at ?? location.coordinates
         )
         const segment = (edge: TileEdge): HexSegment => {
@@ -419,18 +722,54 @@ export function createMapDrawing(
             border,
             ...segment(border.edge)
         }))
-        const joined = joinedEdges[location.id] ?? []
+        const joined = [
+            ...(joinedEdges[location.id] ?? []),
+            ...(placement ? (joinedTileEdges[placement.definitionId] ?? []) : [])
+        ]
         const { drawing, badges } = centreRevenue(
             lifted,
             revenueBadges(lifted, markers, markerArt),
             !placement && tileLayout.revenueAlign === 'middle'
         )
-        const terrainRow =
-            terrainHeights[location.id] ?? terrainY(drawing, face, map.definition.orientation)
+        const captions = revenueCaptions(drawing, leads)
         const hexVertices = geometry.vertices.map((point) => ({
             x: point.x - geometry.center.x,
             y: point.y - geometry.center.y
         }))
+        const terrainShown = !!location.terrain && (!placement || terrainKeptOnTiles)
+        // A laid tile keeps the cost in its own clear space, clear of its stops, values and label.
+        const laidTerrain =
+            placement && terrainShown && location.terrain
+                ? clearTerrainSpot(
+                      hexSpace(drawing, hexVertices, [
+                          // Marks keep clear of a smaller disc, but the cost must clear the
+                          // tokens that fill each space as drawn.
+                          ...drawing.nodes.flatMap(({ node, center, slots, slotRadius }) =>
+                              node.kind !== 'city'
+                                  ? []
+                                  : slots.length
+                                    ? slots.map((slot) => disc(slot, slotRadius))
+                                    : [disc(center, slotRadius)]
+                          ),
+                          ...captions.map((caption) =>
+                              box(
+                                  caption,
+                                  (caption.caption.length * CaptionCharacterWidth) / 2,
+                                  CaptionFontSize / 2
+                              )
+                          ),
+                          ...(face.labels.length
+                              ? [box(drawing.labelPosition, face.labels.join(' ').length * 4.5, 7)]
+                              : [])
+                      ]),
+                      location.terrain,
+                      terrainCostPrefix
+                  )
+                : undefined
+        const terrainRow = laidTerrain?.row ?? terrainRowOf(drawing)
+        const terrainCostBelow =
+            (laidTerrain ? laidTerrain.costBelow : terrainCostsBelow.includes(location.id)) ||
+            undefined
         const divides = (edge: TileEdge) =>
             isOffboard(location) && isOffboard(map.neighbor(location.id, edge))
         return {
@@ -439,35 +778,48 @@ export function createMapDrawing(
             face,
             rotation,
             placed: !!placement,
-            hidden: !!relocation?.hidden,
+            hidden: !!relocation?.hidden || outOfPlay,
+            outOfPlay,
             drawing,
             markerArt,
-            townRing: markers.some((marker) => {
-                const art = markerArt[marker.id]
-                return !!art && 'townRing' in art
-            }),
-            borders,
-            outline: TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(
-                segment
-            ),
+            townRing,
+            printedLines: printedLines[location.id] ?? [],
+            borders: outOfPlay ? [] : borders,
+            outline: outOfPlay
+                ? []
+                : TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(segment),
             joints: joined.map(segment),
             nameShown,
             nameBaseline,
             nameRows,
+            ...(nameStyle ? { nameStyle } : {}),
             namePlaced:
                 !!namePositions[location.id] &&
                 !face.nodes.some((node) => node.kind === 'offboard'),
-            nameArc,
-            terrainY: terrainRow,
+            nameArcs,
+            terrainPosition: terrainRow,
+            ...(terrainCostBelow ? { terrainCostBelow } : {}),
+            terrainShown,
+            localLineAboveY,
+            ...(placement && markers.some((marker) => hasOnTileLine(markerArt[marker.id]))
+                ? { localLineOnTile: clearLocalLinePoint(hexSpace(drawing, hexVertices, [])) }
+                : {}),
             revenueAnnotations: [
                 ...badges,
-                ...revenueSymbols(
+                ...revenueBoxes(drawing, markers, markerArt),
+                ...captions,
+                ...clearSpaceMarks(
                     drawing,
                     markers,
                     markerArt,
                     hexVertices,
                     symbolPositions[location.id],
+                    !!placement,
+                    face.symbols ?? [],
                     [
+                        ...(placement ? [] : (printedLines[location.id] ?? [])).flatMap((line) =>
+                            (line.points ?? []).map((point) => disc(point, line.width / 2))
+                        ),
                         ...badges.map((badge) =>
                             box(
                                 badge,
@@ -475,19 +827,44 @@ export function createMapDrawing(
                                 badge.height / 2
                             )
                         ),
+                        ...captions.map((caption) =>
+                            box(
+                                caption,
+                                (caption.caption.length * CaptionCharacterWidth) / 2,
+                                CaptionFontSize / 2
+                            )
+                        ),
                         ...(face.labels.length
                             ? [box(drawing.labelPosition, face.labels.join(' ').length * 4.5, 7)]
                             : []),
-                        ...(nameArc
+                        ...(curvedName
                             ? nameArcPoints.map((point) => disc(point, 3))
                             : nameShown && location.name
-                              ? [nameBox(nameRows, nameBaseline)]
+                              ? [nameBox(nameRows, nameBaseline, nameScale)]
                               : []),
-                        ...(!placement && location.terrain
-                            ? [disc({ x: 0, y: terrainRow }, 10)]
+                        ...(terrainShown && location.terrain
+                            ? [
+                                  terrainBox(
+                                      location.terrain,
+                                      terrainCostPrefix,
+                                      terrainRow,
+                                      terrainCostBelow
+                                  )
+                              ]
+                            : []),
+                        ...(!placement &&
+                        location.terrain &&
+                        markers.some((marker) => {
+                            const art = markerArt[marker.id]
+                            return !!art && 'terrainNote' in art
+                        })
+                            ? [box({ x: terrainRow.x, y: terrainRow.y + TerrainNoteDrop }, 16, 4)]
                             : []),
                         ...(markers.some((marker) => !markerArt[marker.id])
                             ? [box({ x: 0, y: 36 }, 24, 4)]
+                            : []),
+                        ...(!placement && noticeShown(markers, markerArt)
+                            ? [box({ x: 0, y: NoticeY }, 26, NoticeFontSize / 2 + 1)]
                             : []),
                         ...(!placement &&
                         markers.some((marker) => {
@@ -499,31 +876,71 @@ export function createMapDrawing(
                     ]
                 )
             ],
-            divisions: TileEdges.filter((edge) => !joined.includes(edge) && divides(edge)).map(
-                segment
-            )
+            divisions: [
+                ...TileEdges.filter((edge) => !joined.includes(edge) && divides(edge)).map(segment),
+                ...splitLine(splitHexes[location.id], segment)
+            ]
         }
     })
-    const vertices = locations.flatMap(
-        ({ location }) =>
-            calculateHexGeometry(
-                { orientation: map.definition.orientation, dimensions: { radius: 50 } },
-                location.coordinates
-            ).vertices
-    )
+    const vertices = locations
+        .filter((entry) => !entry.outOfPlay)
+        .flatMap(
+            ({ location }) =>
+                calculateHexGeometry(
+                    { orientation: map.definition.orientation, dimensions: { radius: TileRadius } },
+                    location.coordinates
+                ).vertices
+        )
     const x = Math.min(...vertices.map((point) => point.x)) - 26
     const y = Math.min(...vertices.map((point) => point.y)) - 26
+    const drawnArrows = bonusArrows.map(drawBonusArrow)
     return {
         map,
         locations,
+        bonusArrows: drawnArrows,
         terrainCostPrefix,
-        bounds: {
+        terrainIcons,
+        borderWidths,
+        printedReservations,
+        sharedStations,
+        bounds: drawnArrows.map(bonusArrowBounds).reduce(enclosingBounds, {
             x,
             y,
             width: Math.max(...vertices.map((point) => point.x)) - x + 26,
             height: Math.max(...vertices.map((point) => point.y)) - y + 26
-        }
+        })
     }
+}
+
+function withSharedCities(face: TileFace, cityIds: readonly string[]): TileFace {
+    if (!cityIds.length) return face
+    return {
+        ...face,
+        nodes: face.nodes.map((node) =>
+            node.kind === 'city' && cityIds.includes(node.id)
+                ? { ...node, stationSlots: node.stationSlots + 1 }
+                : node
+        )
+    }
+}
+
+function withSharedCityLayouts(
+    layout: TileLayout | undefined,
+    shared: readonly (TileLayout | undefined)[]
+): TileLayout | undefined {
+    return shared.reduce<TileLayout | undefined>(
+        (merged, cityLayout) =>
+            cityLayout
+                ? {
+                      ...merged,
+                      ...cityLayout,
+                      nodePositions: { ...merged?.nodePositions, ...cityLayout.nodePositions },
+                      slotRowTurns: { ...merged?.slotRowTurns, ...cityLayout.slotRowTurns },
+                      slotSpacing: { ...merged?.slotSpacing, ...cityLayout.slotSpacing }
+                  }
+                : merged,
+        layout
+    )
 }
 
 function liftRevenue(drawing: TileDrawing, lift: number): TileDrawing {
@@ -566,6 +983,101 @@ function centreRevenue(
         drawing: liftRevenue(drawing, -shift),
         badges: badges.map((badge) => ({ ...badge, y: badge.y + shift }))
     }
+}
+
+type RevenueLead = { markerId: string; label: string; amount: number; caption: string }
+
+function revenueLeads(
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): RevenueLead[] {
+    return markers.flatMap((marker) => {
+        const art = markerArt[marker.id]
+        return art && 'revenueLead' in art
+            ? [{ markerId: marker.id, label: marker.label, ...art.revenueLead }]
+            : []
+    })
+}
+
+// A lead is drawn as one more staged value, keyed by its marker, so it shares the printed
+// values' layout.
+function withRevenueLeads(face: TileFace, leads: readonly RevenueLead[]): TileFace {
+    if (!leads.length) return face
+    const values = leads.map(({ markerId, amount }) => ({ stage: markerId, amount }))
+    return {
+        ...face,
+        nodes: face.nodes.map((node) =>
+            node.kind !== 'junction' && node.revenue.kind === 'staged'
+                ? {
+                      ...node,
+                      revenue: { ...node.revenue, values: [...values, ...node.revenue.values] }
+                  }
+                : node
+        )
+    }
+}
+
+export const CaptionFontSize = 5
+export const TerrainNoteDrop = 12
+/** How far a cost standing under its terrain symbols drops below them. */
+export const TerrainCostDrop = 11
+export const NoticeFontSize = 9
+export const NoticeY = 24
+
+function noticeShown(
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): boolean {
+    return markers.some((marker) => {
+        const art = markerArt[marker.id]
+        return !!art && 'notice' in art
+    })
+}
+const CaptionCharacterWidth = 3.4
+// From the top of a lead's box to the middle of its caption.
+const CaptionRise = 3
+
+function revenueCaptions(drawing: TileDrawing, leads: readonly RevenueLead[]): RevenueCaption[] {
+    const cells = drawing.nodes.flatMap(({ revenueCells }) => revenueCells)
+    return leads.flatMap(({ markerId, label, caption }) => {
+        const cell = cells.find((candidate) => candidate.stage === markerId)
+        return cell
+            ? [
+                  {
+                      kind: 'caption' as const,
+                      markerId,
+                      label,
+                      caption,
+                      x: cell.x,
+                      y: cell.y - cell.height / 2 - CaptionRise
+                  }
+              ]
+            : []
+    })
+}
+
+function revenueBoxes(
+    drawing: TileDrawing,
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): RevenueAnnotation[] {
+    const stop = drawing.nodes.find(({ node }) => node.kind !== 'junction')
+    if (!stop) return []
+    return markers.flatMap((marker) => {
+        const art = markerArt[marker.id]
+        return art && 'revenueBox' in art
+            ? [
+                  {
+                      kind: 'box' as const,
+                      markerId: marker.id,
+                      label: marker.label,
+                      ...stop.revenuePosition,
+                      width: marker.label.length * 4.6 + 6,
+                      height: 13
+                  }
+              ]
+            : []
+    })
 }
 
 // Badges stack beneath the first shown revenue, centred on it.
@@ -622,18 +1134,41 @@ const disc = (point: Point, radius: number): Obstacle => ({
     halfHeight: 0,
     radius
 })
-function clearance(point: Point, obstacle: Obstacle): number {
+/** How far a point, or a box of these half sizes about it, stands clear of the obstacle. */
+function clearance(point: Point, obstacle: Obstacle, halfWidth = 0, halfHeight = 0): number {
     return (
         Math.hypot(
-            Math.max(Math.abs(point.x - obstacle.x) - obstacle.halfWidth, 0),
-            Math.max(Math.abs(point.y - obstacle.y) - obstacle.halfHeight, 0)
+            Math.max(Math.abs(point.x - obstacle.x) - obstacle.halfWidth - halfWidth, 0),
+            Math.max(Math.abs(point.y - obstacle.y) - obstacle.halfHeight - halfHeight, 0)
         ) - obstacle.radius
     )
 }
 
+/** The widths of a terrain row's icons and of the cost printed after them. */
+export function terrainRowWidths(kindCount: number, cost: string) {
+    return { icons: kindCount * 19, cost: cost.length * 6.5 }
+}
+
+// Measured at the undiscounted cost, the widest the row prints.
+function terrainBox(
+    terrain: NonNullable<MapLocation['terrain']>,
+    costPrefix: string,
+    row: Point,
+    costBelow = false
+): Obstacle {
+    const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
+    return costBelow
+        ? box(
+              { x: row.x, y: row.y + TerrainCostDrop / 2 },
+              Math.max(widths.icons, widths.cost) / 2,
+              6 + TerrainCostDrop / 2
+          )
+        : box(row, (widths.icons + widths.cost) / 2, 6)
+}
+
 // Long names split at the space nearest their middle.
-function splitName(name: string): string[] {
-    if (name.length <= 18) return [name]
+function splitName(name: string, longest: number): string[] {
+    if (name.length <= longest) return [name]
     const breaks = [...name.matchAll(/\s+/g)].map((match) => match.index)
     if (!breaks.length) return [name]
     const split = breaks.reduce((best, index) =>
@@ -642,18 +1177,20 @@ function splitName(name: string): string[] {
     return [name.slice(0, split), name.slice(split).trimStart()]
 }
 
-// Names print in small type, a line beneath the baseline per row.
-function nameBox(rows: readonly string[], baseline: Point): Obstacle {
+// Names print in small type, a line beneath the baseline per row, with room for descenders.
+const NameFontSize = 5
+const NameLineHeight = 6
+function nameBox(rows: readonly string[], baseline: Point, scale = 1): Obstacle {
     const lines = rows.length
     const longest = Math.max(...rows.map((row) => row.length))
     return box(
-        { x: baseline.x, y: baseline.y - 1.5 + (lines - 1) * 3 },
-        longest * 1.6 + 2,
-        3.5 + (lines - 1) * 3
+        { x: baseline.x, y: baseline.y + (-1.4 + (lines - 1) * 3) * scale },
+        (longest * 1.6 + 2) * scale,
+        (2.6 + (lines - 1) * 3) * scale
     )
 }
 
-// Symbols sit in a row in the clear space nearest the revenue, wholly inside the hex.
+// Symbols sit in a row in the clear corner farthest from the revenue, wholly inside the hex.
 type LocationSymbolPositions = SymbolPosition | Readonly<Record<string, SymbolPosition>>
 function isSymbolPosition(position: LocationSymbolPositions): position is SymbolPosition {
     return 'x' in position || Array.isArray(position)
@@ -664,24 +1201,37 @@ function symbolPoints(position: LocationSymbolPositions | undefined): readonly P
     return 'x' in position ? [position] : position
 }
 
-function revenueSymbols(
+/** The hex's free space: what marks must keep clear of, and how far a point is from its edge. */
+type HexSpace = {
+    obstacles: Obstacle[]
+    track: readonly Obstacle[]
+    vertices: readonly Point[]
+    inset(point: Point): number
+}
+
+function hexSpace(
     drawing: TileDrawing,
-    markers: NonNullable<MapLocation['markers']>,
-    markerArt: Readonly<Record<string, MapMarkerArt>>,
     vertices: readonly Point[],
-    positions: LocationSymbolPositions | undefined,
     printed: readonly Obstacle[]
-): RevenueAnnotation[] {
-    const shown = drawing.nodes.find(
-        ({ node, revenueHidden }) => node.kind !== 'junction' && !revenueHidden
-    )
-    // A city printed at zero shows no revenue to avoid.
-    const printedRevenue =
-        shown?.node.kind !== 'junction' &&
-        !(shown?.node.revenue.kind === 'fixed' && shown.node.revenue.amount === 0)
-    const obstacles: Obstacle[] = [
-        ...printed,
-        ...drawing.paths.flatMap((path) =>
+): HexSpace {
+    const edges = vertices.map((a, index) => [a, vertices[(index + 1) % vertices.length]] as const)
+    return {
+        obstacles: [
+            ...printed,
+            ...drawing.nodes.flatMap(({ node, center, slots }) =>
+                node.kind === 'city'
+                    ? slots.map((slot) => disc(slot, 10.5))
+                    : node.kind === 'town'
+                      ? [disc(center, 5)]
+                      : []
+            ),
+            ...drawnRevenues(drawing).flatMap((shown) =>
+                shown.revenueCells.length
+                    ? shown.revenueCells.map((cell) => box(cell, cell.width / 2, cell.height / 2))
+                    : [disc(shown.revenuePosition, RevenueRadius)]
+            )
+        ],
+        track: drawing.paths.flatMap((path) =>
             Array.from({ length: 21 }, (_, index) => {
                 const t = index / 20
                 const point = path.spike
@@ -693,69 +1243,106 @@ function revenueSymbols(
                 return disc(point, 3.5)
             })
         ),
-        ...drawing.nodes.flatMap(({ node, center, slots }) =>
-            node.kind === 'city'
-                ? slots.map((slot) => disc(slot, 10.5))
-                : node.kind === 'town'
-                  ? [disc(center, 5)]
-                  : []
-        ),
-        ...(shown && printedRevenue
-            ? shown.revenueCells.length
-                ? shown.revenueCells.map((cell) => box(cell, cell.width / 2, cell.height / 2))
-                : [disc(shown.revenuePosition, RevenueRadius)]
-            : [])
-    ]
-    const edges = vertices.map((a, index) => [a, vertices[(index + 1) % vertices.length]] as const)
-    const inset = (point: Point) =>
-        Math.min(
-            ...edges.map(
-                ([a, b]) =>
-                    Math.abs((b.x - a.x) * (a.y - point.y) - (a.x - point.x) * (b.y - a.y)) /
-                    Math.hypot(b.x - a.x, b.y - a.y)
+        vertices,
+        inset: (point) =>
+            Math.min(
+                ...edges.map(
+                    ([a, b]) =>
+                        Math.abs((b.x - a.x) * (a.y - point.y) - (a.x - point.x) * (b.y - a.y)) /
+                        Math.hypot(b.x - a.x, b.y - a.y)
+                )
             )
-        )
-    const anchor = shown?.revenuePosition ?? { x: 0, y: 0 }
-    const symbols: RevenueAnnotation[] = []
+    }
+}
+
+// A city printed at zero shows no revenue.
+function drawnRevenues(drawing: TileDrawing) {
+    return drawing.nodes.filter(
+        ({ node, revenueHidden }) =>
+            node.kind !== 'junction' &&
+            !revenueHidden &&
+            !(node.revenue.kind === 'fixed' && node.revenue.amount === 0)
+    )
+}
+
+function clearSpaceMarks(
+    drawing: TileDrawing,
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>,
+    vertices: readonly Point[],
+    positions: LocationSymbolPositions | undefined,
+    tileLaid: boolean,
+    printedSymbols: readonly string[],
+    printed: readonly Obstacle[]
+): RevenueAnnotation[] {
+    const space = hexSpace(drawing, vertices, printed)
+    const anchor = drawing.nodes.find(
+        ({ node, revenueHidden }) => node.kind !== 'junction' && !revenueHidden
+    )?.revenuePosition ?? { x: 0, y: 0 }
+    const drawn = drawnRevenues(drawing).map(({ revenuePosition }) => revenuePosition)
+    const revenues = drawn.length ? drawn : [anchor]
+    const symbols = revenueSymbols(
+        space,
+        markers,
+        markerArt,
+        positions,
+        tileLaid,
+        printedSymbols,
+        revenues
+    )
+    const tokens = placedTokens(
+        space,
+        markers,
+        markerArt,
+        [...printedSymbols.map((symbol) => ({ symbol, ...drawing.symbolPosition })), ...symbols],
+        revenues
+    )
+    const covered = markers.flatMap((marker) => coveredSymbol(markerArt[marker.id]) ?? [])
+    return [...symbols.filter((symbol) => !covered.includes(symbol.symbol)), ...tokens]
+}
+
+function coveredSymbol(art: MapMarkerArt | undefined): TileSymbolName | undefined {
+    return art &&
+        'token' in art &&
+        typeof art.token.place === 'object' &&
+        'covers' in art.token.place
+        ? art.token.place.covers
+        : undefined
+}
+
+function revenueSymbols(
+    space: HexSpace,
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>,
+    positions: LocationSymbolPositions | undefined,
+    tileLaid: boolean,
+    printedSymbols: readonly string[],
+    revenues: readonly Point[]
+): Extract<RevenueAnnotation, { kind: 'symbol' }>[] {
+    const symbols: Extract<RevenueAnnotation, { kind: 'symbol' }>[] = []
     for (const marker of markers) {
         const art = markerArt[marker.id]
-        if (!art || !('revenueSymbol' in art)) continue
+        // A tile that prints the symbol already shows it.
+        if (!art || !('revenueSymbol' in art) || printedSymbols.includes(art.revenueSymbol))
+            continue
         // Positions are for every symbol in the location, or by marker.
         const fixed = positions && !isSymbolPosition(positions) ? positions[marker.id] : positions
         const count = marker.count ?? 1
-        const step = RevenueRadius * 2 + 1
-        const row = (x: number, y: number) =>
+        // A symbol a token may cover keeps room for the token, so it does not move when one lands.
+        const room = coveringTokenArt(markerArt, art.revenueSymbol) ? TokenRadius : RevenueRadius
+        const row = (at: Point) =>
             Array.from({ length: count }, (_, index) => ({
-                x: x + (index - (count - 1) / 2) * step,
-                y
+                x: at.x + (index - (count - 1) / 2) * (room * 2 + 1),
+                y: at.y
             }))
-        let best: { points: Point[]; score: number; distance: number } | undefined = fixed
-            ? {
-                  points: 'x' in fixed ? row(fixed.x, fixed.y) : fixed.slice(0, count),
-                  score: Infinity,
-                  distance: 0
-              }
-            : undefined
-        if (!fixed)
-            for (let x = -40; x <= 40; x += 2)
-                for (let y = -40; y <= 40; y += 2) {
-                    const points = row(x, y)
-                    if (points.some((point) => inset(point) < RevenueRadius + 1.5)) continue
-                    const score = Math.min(
-                        ...points.flatMap((point) =>
-                            obstacles.map((obstacle) => clearance(point, obstacle) - RevenueRadius)
-                        )
-                    )
-                    const distance = Math.hypot(x - anchor.x, y - anchor.y)
-                    const better = !best
-                        ? true
-                        : score >= 2.5 && best.score >= 2.5
-                          ? distance < best.distance
-                          : score > best.score
-                    if (better) best = { points, score, distance }
-                }
-        if (!best) continue
-        for (const point of best.points) {
+        const fixedPoints = fixed && ('x' in fixed ? row(fixed) : fixed.slice(0, count))
+        // Positions are fitted to the printed hex; a laid tile's stops or revenues may cover them.
+        const points =
+            fixedPoints &&
+            (!tileLaid || fixedPoints.every((point) => isClearPoint(space, point, room)))
+                ? fixedPoints
+                : cornerRowOrSplit(space, row, count, room, revenues)
+        for (const point of points) {
             symbols.push({
                 kind: 'symbol',
                 markerId: marker.id,
@@ -764,14 +1351,298 @@ function revenueSymbols(
                 ...point,
                 radius: RevenueRadius
             })
-            obstacles.push(disc(point, RevenueRadius))
+            space.obstacles.push(disc(point, room))
         }
     }
     return symbols
 }
 
+function cornerRowOrSplit(
+    space: HexSpace,
+    row: (at: Point) => Point[],
+    count: number,
+    room: number,
+    revenues: readonly Point[]
+): Point[] {
+    const together = cornerSpot(space, row, room, revenues)
+    if (count === 1 || (together && isClearSpot(together))) return together?.points ?? []
+    const apart: Point[] = []
+    for (let index = 0; index < count; index++) {
+        const spot = cornerSpot(space, (at) => [at], room, revenues)
+        if (!spot) continue
+        apart.push(spot.points[0])
+        space.obstacles.push(disc(spot.points[0], room))
+    }
+    return apart
+}
+
+function coveringTokenArt(markerArt: Readonly<Record<string, MapMarkerArt>>, symbol: string) {
+    return Object.values(markerArt).some((art) => coveredSymbol(art) === symbol)
+}
+
+function placedTokens(
+    space: HexSpace,
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>,
+    shownSymbols: readonly (Point & { symbol: string })[],
+    revenues: readonly Point[]
+): Extract<RevenueAnnotation, { kind: 'token' }>[] {
+    const tokens: Extract<RevenueAnnotation, { kind: 'token' }>[] = []
+    for (const marker of markers) {
+        const art = markerArt[marker.id]
+        if (!art || !('token' in art)) continue
+        const { place, imageUrl, tab, outline } = art.token
+        // A tab's room is kept as a second token's beside the first, on its right where clear.
+        const row =
+            (side: 1 | -1) =>
+            (at: Point): Point[] =>
+                tab ? [at, { x: at.x + side * TokenTabReach, y: at.y }] : [at]
+        const pinned = typeof place === 'object' && 'at' in place ? place.at : undefined
+        const covered =
+            typeof place === 'object' && 'covers' in place
+                ? shownSymbols.find(({ symbol }) => symbol === place.covers)
+                : undefined
+        const preferred = typeof place === 'object' && 'near' in place ? place.near : undefined
+        const near = preferred
+            ? searchSpot(
+                  space,
+                  row(1),
+                  TokenRadius,
+                  (at) => distanceBetween(at, preferred),
+                  TokenEdgeGap
+              )?.points[0]
+            : undefined
+        const right = cornerSpot(space, row(1), TokenRadius, revenues, TokenEdgeGap)
+        const left =
+            tab && !(right && isClearSpot(right))
+                ? cornerSpot(space, row(-1), TokenRadius, revenues, TokenEdgeGap)
+                : undefined
+        const side: 1 | -1 = !near && left && isClearSpot(left) ? -1 : 1
+        const point =
+            pinned ??
+            near ??
+            (place === 'centre'
+                ? { x: 0, y: 0 }
+                : covered
+                  ? { x: covered.x, y: covered.y }
+                  : (side === 1 ? right : left)?.points[0])
+        if (!point) continue
+        tokens.push({
+            kind: 'token',
+            markerId: marker.id,
+            label: marker.label,
+            imageUrl,
+            ...point,
+            radius: TokenRadius,
+            ...(tab ? { tab: side === 1 ? tab : { ...tab, left: true as const } } : {}),
+            ...(outline ? { outline } : {})
+        })
+        for (const at of row(side)(point)) space.obstacles.push(disc(at, TokenRadius))
+    }
+    return tokens
+}
+
+// The clear corner farthest from the revenues, so a mark there is not read as one of them.
+function cornerSpot(
+    space: HexSpace,
+    row: (at: Point) => Point[],
+    radius: number,
+    revenues: readonly Point[],
+    edgeGap = EdgeGap
+): Spot | undefined {
+    const farness = (corner: Point) =>
+        Math.min(...revenues.map((revenue) => distanceBetween(corner, revenue)))
+    const corners = [...space.vertices].sort((a, b) => farness(b) - farness(a))
+    for (const corner of corners) {
+        const spot = searchSpot(space, row, radius, (at) => distanceBetween(at, corner), edgeGap)
+        if (spot && isClearSpot(spot) && spot.distance <= CornerReach) return spot
+    }
+    return searchSpot(
+        space,
+        row,
+        radius,
+        (at) => Math.min(...corners.map((corner) => distanceBetween(at, corner))),
+        edgeGap
+    )
+}
+
+type Spot = { points: Point[]; clearance: number; trackClearance: number; distance: number }
+const SpotGap = 2.5
+// How far a mark keeps inside the hex's edge; a whole token, outlined, keeps further.
+const EdgeGap = 1.5
+const TokenEdgeGap = 4
+// Beyond this a mark reads as in the middle of the hex rather than in a corner.
+const CornerReach = 20
+const distanceBetween = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
+
+function searchSpot(
+    space: HexSpace,
+    row: (at: Point) => Point[],
+    radius: number,
+    distance: (at: Point) => number,
+    edgeGap = EdgeGap
+): Spot | undefined {
+    let best: Spot | undefined
+    for (let x = -40; x <= 40; x += 2)
+        for (let y = -40; y <= 40; y += 2) {
+            const points = row({ x, y })
+            if (points.some((point) => space.inset(point) < radius + edgeGap)) continue
+            const spare = (among: readonly Obstacle[]) =>
+                Math.min(
+                    ...points.flatMap((point) =>
+                        among.map((obstacle) => clearance(point, obstacle) - radius)
+                    )
+                )
+            const spot = {
+                points,
+                clearance: spare(space.obstacles),
+                trackClearance: spare(space.track),
+                distance: distance({ x, y })
+            }
+            if (!best || betterSpot(spot, best)) best = spot
+        }
+    return best
+}
+
+function hasOnTileLine(art: MapMarkerArt | undefined): boolean {
+    return !!art && 'localLine' in art && 'onTile' in art
+}
+
+const OnTileTag = { halfWidth: 17, halfHeight: 4.5 }
+const OnTileTagHome = { x: 0, y: 34 }
+
+function insideHex({ x, y }: Point, vertices: readonly Point[]): boolean {
+    return vertices.every((a, index) => {
+        const b = vertices[(index + 1) % vertices.length]
+        return (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x) >= 0
+    })
+}
+
+/** The open space nearest the bottom of the hex, or that spot itself on a tile with none. */
+function clearLocalLinePoint(space: HexSpace): Point {
+    const { halfWidth, halfHeight } = OnTileTag
+    const fits = ({ x, y }: Point) =>
+        [-halfWidth, -halfWidth / 2, 0, halfWidth / 2, halfWidth].every((across) =>
+            [-halfHeight, 0, halfHeight].every((down) => {
+                const point = { x: x + across, y: y + down }
+                return (
+                    insideHex(point, space.vertices) &&
+                    space.inset(point) >= 1.5 &&
+                    isClearPoint(space, point, 4.5) &&
+                    space.track.every((disc) => clearance(point, disc) >= 2)
+                )
+            })
+        )
+    let best: Point | undefined
+    for (let y = -38; y <= 38; y += 1)
+        for (let x = -28; x <= 28; x += 1) {
+            const point = { x, y }
+            if (
+                fits(point) &&
+                (!best ||
+                    distanceBetween(point, OnTileTagHome) < distanceBetween(best, OnTileTagHome))
+            )
+                best = point
+        }
+    return best ?? OnTileTagHome
+}
+
+// A laid tile's terrain cost stands nearest the foot of the hex, in a row where one fits, else
+// with its cost under its symbols. Symbols reach 9 above the row's line and 5 below it; the cost
+// prints to 4 below it, or a drop lower when under them.
+const LaidTerrainHome = { x: 0, y: 30 }
+// Clear by these gaps where the tile has room, else only not overlapping.
+const LaidTerrainGaps = [2, 0]
+const TerrainTop = 9
+const TerrainFoot = 5
+function clearTerrainSpot(
+    space: HexSpace,
+    terrain: NonNullable<MapLocation['terrain']>,
+    costPrefix: string
+): { row: Point; costBelow: boolean } {
+    const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
+    // The row's line is where the symbols stand; each layout's box reaches unevenly about it.
+    const shape = (halfWidth: number, foot: number, costBelow: boolean) => ({
+        halfWidth,
+        halfHeight: (TerrainTop + foot) / 2,
+        drop: (foot - TerrainTop) / 2,
+        costBelow
+    })
+    const shapes = [
+        shape((widths.icons + widths.cost) / 2, TerrainFoot, false),
+        shape(Math.max(widths.icons, widths.cost) / 2, 4 + TerrainCostDrop, true)
+    ]
+    const obstacles = [...space.obstacles, ...space.track]
+    const fits = (
+        line: Point,
+        { halfWidth, halfHeight, drop }: (typeof shapes)[number],
+        gap: number
+    ) => {
+        const centre = { x: line.x, y: line.y + drop }
+        return (
+            [-1, 1].every((sideX) =>
+                [-1, 1].every((sideY) => {
+                    const corner = {
+                        x: centre.x + sideX * halfWidth,
+                        y: centre.y + sideY * halfHeight
+                    }
+                    return insideHex(corner, space.vertices) && space.inset(corner) >= 1.5
+                })
+            ) &&
+            obstacles.every((obstacle) => clearance(centre, obstacle, halfWidth, halfHeight) >= gap)
+        )
+    }
+    // A crowded tile may have no clear spot at all, so a touching one beats covering a mark.
+    for (const gap of LaidTerrainGaps)
+        for (const line of laidTerrainLines())
+            for (const candidate of shapes)
+                if (fits(line, candidate, gap)) return { row: line, costBelow: candidate.costBelow }
+    return { row: LaidTerrainHome, costBelow: false }
+}
+
+// The row's line every two units across the hex, nearest the foot first; made on first use.
+let terrainLinesByNearness: readonly Point[] | undefined
+function laidTerrainLines(): readonly Point[] {
+    terrainLinesByNearness ??= Array.from({ length: 49 * 45 }, (_, index) => ({
+        x: (index % 49) * 2 - 48,
+        y: Math.floor(index / 49) * 2 - 44
+    })).sort((a, b) => distanceBetween(a, LaidTerrainHome) - distanceBetween(b, LaidTerrainHome))
+    return terrainLinesByNearness
+}
+
+function isClearPoint(space: HexSpace, point: Point, radius: number): boolean {
+    return space.obstacles.every((obstacle) => clearance(point, obstacle) >= radius)
+}
+
+function isClearSpot(spot: Spot): boolean {
+    return spot.clearance >= SpotGap && spot.trackClearance >= SpotGap
+}
+function fit(spot: Spot): number {
+    if (isClearSpot(spot)) return 2
+    return spot.clearance >= 0 && spot.trackClearance >= 0 ? 1 : 0
+}
+// The nearest clear spot wins, then the roomiest that only touches; in a crowded hex, a spot
+// that covers only track beats one that covers a station, revenue or label.
+function betterSpot(spot: Spot, best: Spot): boolean {
+    if (fit(spot) !== fit(best)) return fit(spot) > fit(best)
+    if (fit(spot) === 2) return spot.distance < best.distance
+    if (fit(spot) === 1)
+        return (
+            Math.min(spot.clearance, spot.trackClearance) >
+            Math.min(best.clearance, best.trackClearance)
+        )
+    const spared = Math.min(spot.clearance, SpotGap)
+    const bestSpared = Math.min(best.clearance, SpotGap)
+    if (spared !== bestSpared) return spared > bestSpared
+    return spot.trackClearance > best.trackClearance
+}
+
+function stopNodes(drawing: TileDrawing) {
+    return drawing.nodes.filter(({ node }) => node.kind === 'city' || node.kind === 'town')
+}
+
 function terrainY(drawing: TileDrawing, face: TileFace, orientation: HexOrientation): number {
-    const stops = drawing.nodes.filter(({ node }) => node.kind === 'city' || node.kind === 'town')
+    const stops = stopNodes(drawing)
     if (!stops.length) return face.paths.length ? 19 : 0
     const bottom = Math.max(
         ...stops.flatMap(({ node, center, slots, slotRadius, dotRadius }) =>
@@ -787,14 +1658,93 @@ function terrainY(drawing: TileDrawing, face: TileFace, orientation: HexOrientat
     return (bottom + boundary) / 2
 }
 
+function aboveStops(
+    drawing: TileDrawing,
+    terrainRow: number | undefined,
+    nameArcs: readonly NameArc[],
+    straightName: { baseline: Point; rows: readonly string[] } | undefined
+): number {
+    const stops = stopNodes(drawing)
+    const tops = [
+        ...stops.flatMap(({ node, center, slots, slotRadius, dotRadius }) =>
+            node.kind === 'city' && slots.length
+                ? slots.map((slot) => slot.y - slotRadius)
+                : [center.y - dotRadius]
+        ),
+        ...(!stops.length && terrainRow !== undefined ? [terrainRow - 6] : []),
+        ...nameArcs
+            .filter((arc) => !arc.below)
+            .map((arc) => arc.center.y - arc.radius - NameArcCapHeight)
+    ]
+    if (!tops.length) return 0
+    const y = Math.min(...tops) - LocalLineClearance - LocalLineHalfHeight
+    if (!straightName || straightName.baseline.y > y) return y
+    const nameFoot = straightName.baseline.y + (straightName.rows.length - 1) * 6 + 1.5
+    return Math.max(y, nameFoot + LocalLineClearance + LocalLineHalfHeight)
+}
+
+function cityNameArcs(
+    drawing: TileDrawing,
+    names: Readonly<Record<string, string>>,
+    arcAround: (text: string, center: Point, obstacles: readonly Point[]) => NameArc
+): NameArc[] {
+    const stops = stopNodes(drawing)
+    return stops
+        .filter(({ node }) => names[node.id])
+        .reduce<NameArc[]>((arcs, { node, center }) => {
+            const otherStops = stops
+                .filter((stop) => stop.node.id !== node.id)
+                .flatMap(({ center, slots, slotRadius, dotRadius }) =>
+                    slots.length
+                        ? slots.flatMap((slot) => ring(slot, slotRadius))
+                        : ring(center, dotRadius)
+                )
+            return [
+                ...arcs,
+                arcAround(names[node.id], center, [...otherStops, ...arcs.flatMap(nameArcBand)])
+            ]
+        }, [])
+}
+
+function ring(center: Point, radius: number): Point[] {
+    return Array.from({ length: 16 }, (_, index) => {
+        const angle = (index / 16) * Math.PI * 2
+        return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius }
+    })
+}
+
+function pointOnArc(arc: NameArc, share: number, reach: number): Point {
+    const angle = (((arc.below ? 90 : -90) + arc.rotation) * Math.PI) / 180 + share * arc.span
+    return { x: arc.center.x + Math.cos(angle) * reach, y: arc.center.y + Math.sin(angle) * reach }
+}
+
+function nameArcBand(arc: NameArc): Point[] {
+    const inner = arc.below ? arc.radius - NameArcCapHeight : arc.radius
+    return Array.from({ length: 11 }, (_, index) => index / 10 - 0.5).flatMap((share) =>
+        [inner, inner + NameArcCapHeight].map((reach) => pointOnArc(arc, share, reach))
+    )
+}
+
 // The name centres over the top of the city, turning the least it can to stay off the track.
-function arcAroundCity(
-    name: string,
-    clearance: number,
-    below: boolean,
-    paths: readonly TileDrawnPath[],
+function arcAroundCity({
+    name,
+    clearance,
+    below,
+    fixedTurn,
+    paths,
+    symbols,
+    center,
+    obstacles
+}: {
+    name: string
+    clearance: number
+    below: boolean
+    fixedTurn: number | undefined
+    paths: readonly TileDrawnPath[]
     symbols: readonly Point[]
-): NonNullable<MapDrawnLocation['nameArc']> {
+    center: Point
+    obstacles: readonly Point[]
+}): NameArc {
     // Under the city the letters stand inside their baseline, so the baseline moves out by their height.
     const radius = below ? clearance + NameArcCapHeight : clearance
     const span = Math.min((Math.PI * 4) / 3, (name.length * 4) / radius)
@@ -821,7 +1771,8 @@ function arcAroundCity(
     )
     const crossings = (rotation: number) => {
         const middle = (((below ? 90 : -90) + rotation) * Math.PI) / 180
-        return [...track, ...covered].filter((point) => {
+        return [...track, ...covered, ...obstacles].filter(({ x, y }) => {
+            const point = { x: x - center.x, y: y - center.y }
             const reach = Math.hypot(point.x, point.y)
             const inner = below ? radius - NameArcCapHeight : radius
             if (reach < inner - 4.5 || reach > inner + 10) return false
@@ -834,8 +1785,36 @@ function arcAroundCity(
     const turns = Array.from({ length: 37 }, (_, index) =>
         index % 2 ? ((index + 1) / 2) * 5 : (-index / 2) * 5
     )
-    const rotation = turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
-    return { center: { x: 0, y: 0 }, radius, rotation, span, below }
+    const rotation =
+        fixedTurn ?? turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
+    return { text: name, center, radius, rotation, span, below }
+}
+
+/** The line between a split hex's two sides, from corner to corner where the sides meet. */
+function splitLine(
+    side: readonly TileEdge[] | undefined,
+    segment: (edge: TileEdge) => HexSegment
+): HexSegment[] {
+    if (!side) return []
+    const corners = TileEdges.flatMap((edge) => {
+        const next = rotateTileEdge(edge, 1)
+        if (side.includes(edge) === side.includes(next)) return []
+        const { start, end } = segment(edge)
+        const shared = segment(next)
+        return [
+            [start, end].find((point) =>
+                [shared.start, shared.end].some((other) => nearlySamePoint(point, other))
+            )
+        ]
+    })
+    const [start, end] = corners
+    assert(corners.length === 2 && start && end, 'A split hex has two contiguous sides')
+    return [{ start, end }]
+}
+
+/** Whether two drawn points coincide, allowing for rounding in their geometry. */
+export function nearlySamePoint(first: Point, second: Point): boolean {
+    return Math.hypot(first.x - second.x, first.y - second.y) < 0.01
 }
 
 function isOffboard(location: MapLocation | undefined): boolean {
@@ -843,6 +1822,28 @@ function isOffboard(location: MapLocation | undefined): boolean {
 }
 
 export type MapBorderCost = { key: string; x: number; y: number; amount: number; kind: string }
+
+/** Where a hex's local line stands, from the hex's centre. */
+const BorderDashesPerEdge = 3
+const BorderDashShare = 0.46
+
+/**
+ * A dashed border's pattern along one hex side, centred so the hex on either side of it draws
+ * the same dashes, whichever way round it draws the side.
+ */
+export function borderDash(start: Point, end: Point): { array: string; offset: number } {
+    const period = Math.hypot(end.x - start.x, end.y - start.y) / BorderDashesPerEdge
+    const dash = period * BorderDashShare
+    return { array: `${dash} ${period - dash}`, offset: -(period - dash) / 2 }
+}
+
+export function localLinePosition(
+    art: MapMarkerArt | undefined,
+    aboveY: number | undefined
+): Point {
+    if (art && 'localLine' in art && 'at' in art) return art.at
+    return { x: 4, y: art && 'above' in art && aboveY !== undefined ? aboveY : 32 }
+}
 
 /**
  * Each costed border's cost, once per shared edge, at the middle of that edge, until track meets
@@ -871,6 +1872,20 @@ export function mapBorderCosts(scene: MapDrawing): MapBorderCost[] {
     return [...costs.values()]
 }
 
+/**
+ * Where a station stands in its city: its space, or beside the last one when a title lets a
+ * second station share it, as 1894's returned stations may. No other slot has a place.
+ */
+export function stationSlotPoint(
+    node: { center: Point; slots: readonly Point[]; slotRadius: number },
+    slot: number
+): Point | undefined {
+    const point = node.slots[slot]
+    if (point || slot !== node.slots.length) return point
+    const last = node.slots.at(-1) ?? node.center
+    return { x: last.x + node.slotRadius * 1.5, y: last.y }
+}
+
 export function mapSelectionPoint(scene: MapDrawing, selection: MapSelection): Point {
     const entry = scene.locations.find((entry) => entry.location.id === selection.locationId)
     assertExists(entry, 'Selection requires a map location')
@@ -883,7 +1898,7 @@ export function mapSelectionPoint(scene: MapDrawing, selection: MapSelection): P
     }
     const node = entry.drawing.nodes.find((node) => node.node.id === selection.nodeId)
     assertExists(node, 'Selection requires a map node')
-    const point = selection.kind === 'slot' ? node.slots[selection.slot] : node.center
+    const point = selection.kind === 'slot' ? stationSlotPoint(node, selection.slot) : node.center
     assertExists(point, 'Selection requires a station slot')
     return { x: entry.center.x + point.x, y: entry.center.y + point.y }
 }
@@ -912,7 +1927,14 @@ export function assertMapOverlays(
         )
     }
     for (const route of routes)
-        for (const segment of route.segments) mapSelectionPoint(scene, { kind: 'path', ...segment })
+        for (const segment of mapRouteTrack(route))
+            mapSelectionPoint(scene, { kind: 'path', ...segment })
+}
+
+export function isMapRouteValid(scene: MapDrawing, route: MapRoute): boolean {
+    return mapRouteTrack(route).every((segment) =>
+        isMapSelectionValid(scene, { kind: 'path', ...segment })
+    )
 }
 
 export function isMapSelectionValid(scene: MapDrawing, selection: MapSelection): boolean {

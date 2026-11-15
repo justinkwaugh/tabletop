@@ -11,8 +11,14 @@ import { suitOf } from '../data/cardRegistry.js'
 import { required } from '../testing/required.js'
 
 const CAPTAINS = required(cardPower('denizen.order.captains', 0), 'denizen.order.captains power 0')
-const ALCHEMIST = required(cardPower('denizen.arcane.alchemist', 0), 'denizen.arcane.alchemist power 0')
-const WAR_TORTOISE = required(cardPower('denizen.beast.war-tortoise', 0), 'denizen.beast.war-tortoise power 0')
+const ALCHEMIST = required(
+    cardPower('denizen.arcane.alchemist', 0),
+    'denizen.arcane.alchemist power 0'
+)
+const WAR_TORTOISE = required(
+    cardPower('denizen.beast.war-tortoise', 0),
+    'denizen.beast.war-tortoise power 0'
+)
 const LONGBOWS = required(cardPower('denizen.order.longbows', 0), 'denizen.order.longbows power 0')
 const TUTOR = required(cardPower('denizen.arcane.tutor', 0), 'denizen.arcane.tutor power 0')
 const CAGE_ACTION = required(cardPower('relic.obsidian-cage', 1), 'relic.obsidian-cage power 1')
@@ -223,7 +229,9 @@ describe('R-7.1.2.a — paying outside your turn', () => {
     /** R-7.1.2.a — a relic shows no suit, so no bank can take its out-of-turn favor. */
     it('has no answer for a card with no suit, and says so', () => {
         const state = board({ favor: 4, secrets: 4 }, false)
-        expect(() => payPowerCost(state, 'p1', { ...TUTOR, cardId: 'relic.brass-horse' })).toThrow(/shows no suit/)
+        expect(() => payPowerCost(state, 'p1', { ...TUTOR, cardId: 'relic.brass-horse' })).toThrow(
+            /shows no suit/
+        )
     })
 })
 
@@ -239,12 +247,16 @@ describe('R-7.1.2 — the cost checker and the payer agree', () => {
     }
 
     function board() {
-        const state = testState(
-            [
-                testPlayer({ playerId: 'p1', siteId: 'c1' }),
-                testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c1', favor: 2, relicIds: [RELIC] })
-            ]
-        )
+        const state = testState([
+            testPlayer({ playerId: 'p1', siteId: 'c1' }),
+            testPlayer({
+                playerId: 'p2',
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 2,
+                relicIds: [RELIC]
+            })
+        ])
         openTurn(state, 'p1')
         return state
     }
@@ -253,9 +265,7 @@ describe('R-7.1.2 — the cost checker and the payer agree', () => {
         const state = board()
         // R-7.1.2.a — out of turn the favor goes to a suit bank; a relic has no suit.
         expect(suitOf(RELIC)).toBeUndefined()
-        expect(reasonCannotPayPowerCost(state, 'p2', relicPower)).toMatch(
-            /no matching favor bank/
-        )
+        expect(reasonCannotPayPowerCost(state, 'p2', relicPower)).toMatch(/no matching favor bank/)
     })
 
     it('whatever the checker approves, the payer can pay', () => {

@@ -116,7 +116,6 @@
             {
                 "id": "So",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -125,7 +124,6 @@
             {
                 "id": "A",
                 "kind": "major",
-                "shareCount": 10,
                 "started": true,
                 "floated": false,
                 "funded": false,
@@ -136,7 +134,6 @@
             {
                 "id": "MS",
                 "kind": "major",
-                "shareCount": 10,
                 "started": true,
                 "floated": true,
                 "funded": true,
@@ -147,7 +144,6 @@
             {
                 "id": "MR",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -156,7 +152,6 @@
             {
                 "id": "S",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -165,7 +160,6 @@
             {
                 "id": "Gt",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -174,7 +168,6 @@
             {
                 "id": "C",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -186,63 +179,51 @@
             },
             {
                 "id": "MC",
-                "kind": "private",
-                "privateRevenue": 5
+                "kind": "private"
             },
             {
                 "id": "VR",
-                "kind": "private",
-                "privateRevenue": 5
+                "kind": "private"
             },
             {
                 "id": "RA",
-                "kind": "private",
-                "privateRevenue": 10
+                "kind": "private"
             },
             {
                 "id": "RF",
-                "kind": "private",
-                "privateRevenue": 15
+                "kind": "private"
             },
             {
                 "id": "SB",
-                "kind": "private",
-                "privateRevenue": 15
+                "kind": "private"
             },
             {
                 "id": "HS",
-                "kind": "private",
-                "privateRevenue": 20
+                "kind": "private"
             },
             {
                 "id": "MLC",
-                "kind": "private",
-                "privateRevenue": 20
+                "kind": "private"
             },
             {
                 "id": "SBC",
-                "kind": "private",
-                "privateRevenue": 30
+                "kind": "private"
             },
             {
                 "id": "SLC",
-                "kind": "private",
-                "privateRevenue": 30
+                "kind": "private"
             },
             {
                 "id": "UB",
-                "kind": "private",
-                "privateRevenue": 0
+                "kind": "private"
             },
             {
                 "id": "KM",
-                "kind": "private",
-                "privateRevenue": 80
+                "kind": "private"
             },
             {
                 "id": "branch:CB",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -251,7 +232,6 @@
             {
                 "id": "branch:SB",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -260,7 +240,6 @@
             {
                 "id": "branch:MB",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -269,7 +248,6 @@
             {
                 "id": "branch:BB",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -278,7 +256,6 @@
             {
                 "id": "branch:WB",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -287,7 +264,6 @@
             {
                 "id": "branch:HRB",
                 "kind": "major",
-                "shareCount": 10,
                 "started": false,
                 "floated": false,
                 "funded": false,
@@ -2255,12 +2231,10 @@
             }
         ],
         "tileInventory": {
-            "tileSetId": "the-old-prince:prototype",
             "placements": {},
             "retiredPieceIds": []
         },
         "trainInventory": {
-            "depotId": "the-old-prince",
             "trains": [
                 {
                     "id": "the-old-prince/2H/1",
@@ -3313,14 +3287,6 @@
             "source": "user",
             "type": "FinishStockTurn",
             "playerId": "3574"
-        },
-        {
-            "id": "recorded:151",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "FinishTrack",
-            "playerId": "12729",
-            "companyId": "MS"
         },
         {
             "id": "recorded:153",
@@ -7388,29 +7354,6 @@
             "expectedPrice": 500
         },
         {
-            "id": "recorded:566",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "12729",
-            "owner": {
-                "kind": "player",
-                "playerId": "12729"
-            },
-            "amount": 90
-        },
-        {
-            "id": "recorded:567",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
-            "playerId": "12729",
-            "companyId": "C",
-            "trainId": "the-old-prince/7/27",
-            "definitionId": "7",
-            "expectedPrice": 500
-        },
-        {
             "id": "recorded:570",
             "gameId": "top-finished",
             "source": "user",
@@ -9091,29 +9034,6 @@
             "expectedPrice": 600
         },
         {
-            "id": "recorded:703",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "3574",
-            "owner": {
-                "kind": "player",
-                "playerId": "3574"
-            },
-            "amount": 100
-        },
-        {
-            "id": "recorded:704",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
-            "playerId": "3574",
-            "companyId": "Gt",
-            "trainId": "the-old-prince/D/30",
-            "definitionId": "D",
-            "expectedPrice": 600
-        },
-        {
             "id": "recorded:708",
             "gameId": "top-finished",
             "source": "user",
@@ -9141,29 +9061,6 @@
             "gameId": "top-finished",
             "source": "user",
             "type": "FundTrain",
-            "playerId": "12729",
-            "companyId": "MS",
-            "trainId": "the-old-prince/D/31",
-            "definitionId": "D",
-            "expectedPrice": 600
-        },
-        {
-            "id": "recorded:714",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "12729",
-            "owner": {
-                "kind": "player",
-                "playerId": "12729"
-            },
-            "amount": 275
-        },
-        {
-            "id": "recorded:715",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
             "playerId": "12729",
             "companyId": "MS",
             "trainId": "the-old-prince/D/31",
@@ -9214,14 +9111,6 @@
             "expectedPrice": 600
         },
         {
-            "id": "recorded:724",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "IssueTreasuryShares",
-            "playerId": "13748",
-            "expectedProceeds": 89
-        },
-        {
             "id": "recorded:726",
             "gameId": "top-finished",
             "source": "user",
@@ -9234,29 +9123,6 @@
             "companyId": "MR",
             "shares": 2,
             "expectedProceeds": 158
-        },
-        {
-            "id": "recorded:727",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "13748",
-            "owner": {
-                "kind": "player",
-                "playerId": "13748"
-            },
-            "amount": 400
-        },
-        {
-            "id": "recorded:728",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
-            "playerId": "13748",
-            "companyId": "S",
-            "trainId": "the-old-prince/D/32",
-            "definitionId": "D",
-            "expectedPrice": 600
         },
         {
             "id": "recorded:731",

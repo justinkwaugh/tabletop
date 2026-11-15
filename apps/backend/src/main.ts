@@ -38,7 +38,7 @@ health.on('error', (error) => {
     void shutdown(1)
 })
 try {
-    health.listen({ port: 8081, host: '0.0.0.0' })
+    health.listen({ port: Number(process.env['BACKEND_HEALTH_PORT'] ?? 8081), host: '0.0.0.0' })
     await supervisor.start()
     if (!closing) {
         // Not 'localhost', which can resolve to ::1 alone while the frontend proxy dials IPv4.

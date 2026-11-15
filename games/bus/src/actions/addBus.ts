@@ -41,7 +41,6 @@ export class HydratedAddBus extends HydratableAction<typeof AddBus> implements A
             throw Error('Invalid AddBus action')
         }
 
-        console.log('Applying AddBus action for player', this.playerId)
         const playerState = state.getPlayerState(this.playerId)
         playerState.buses += 1
 

@@ -1,19 +1,16 @@
 import { pendingBlockingStations, type HydratedEighteenFortySixState } from '@tabletop/1846'
+import { placedRevenueMarkers, revenueMarkerKind } from './revenueTokens.js'
 
 export function mapState1846<
     State extends Pick<HydratedEighteenFortySixState, 'revenueMarkers' | 'steamboat'> &
         Parameters<typeof pendingBlockingStations>[0]
 >(state: State) {
-    const revenueMarkers = [
-        ...state.revenueMarkers,
-        ...(state.steamboat ? [{ ...state.steamboat, privateCompanyId: 'SC' }] : [])
-    ]
     return {
         ...state,
         locationMarkers: [
-            ...revenueMarkers.map((marker) => ({
+            ...placedRevenueMarkers(state).map((marker) => ({
                 locationId: marker.locationId,
-                kind: `${marker.companyId}:${marker.privateCompanyId}`
+                kind: revenueMarkerKind(marker.companyId, marker.privateCompanyId)
             })),
             ...pendingBlockingStations(state).map((station) => ({
                 locationId: station.locationId,

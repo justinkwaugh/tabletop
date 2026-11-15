@@ -1,0 +1,16 @@
+{
+    "name": "@tabletop/webkit-probe",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "tabletop-webkit-probe": "./src/cli.mjs"
+    },
+    "scripts": {
+        "start": "node src/cli.mjs",
+        "test": "node --test scripts/*.test.mjs"
+    },
+    "dependencies": {
+        "@playwright/test": "^1.42.1"
+    }
+}

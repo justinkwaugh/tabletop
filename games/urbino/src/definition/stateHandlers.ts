@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineStateHandler } from '@tabletop/common'
+import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import type { HydratedUrbinoGameState } from '../model/gameState.js'
 import { PlacingArchitectsStateHandler } from '../stateHandlers/placingArchitects.js'
@@ -13,5 +13,5 @@ export const UrbinoStateHandlers: Record<
     [MachineState.PlacingArchitects]: new PlacingArchitectsStateHandler(),
     [MachineState.ChoosingFirstPlayer]: new ChoosingFirstPlayerStateHandler(),
     [MachineState.TakingTurn]: new TakingTurnStateHandler(),
-    [MachineState.EndOfGame]: new EndOfGameStateHandler(),
+    [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

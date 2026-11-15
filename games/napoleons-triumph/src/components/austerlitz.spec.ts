@@ -86,6 +86,13 @@ describe('the Austerlitz map, as checked against the public map file', () => {
         expect(AUSTERLITZ.traceRoad({ locale: 51 }, [38, 52, 61])).toHaveLength(0)
     })
 
+    it('reaches nowhere along a road path longer than the main road reach', () => {
+        const backAndForth = Array.from({ length: 600_000 }, (_, step) =>
+            step % 2 === 0 ? 38 : 51
+        )
+        expect(AUSTERLITZ.traceRoad({ locale: 51 }, backAndForth)).toHaveLength(0)
+    })
+
     it('keeps apart two roads of a locale that join only beyond its border', () => {
         // Pratze Berg: the road from Liechtenstein's locale and the road cutting its corner from 94 meet in 121.
         expect(AUSTERLITZ.traceRoad({ locale: 123 }, [106, 94])).toHaveLength(0)

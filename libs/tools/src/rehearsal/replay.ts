@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { isDeepStrictEqual } from 'node:util'
 import jsonpatch from 'fast-json-patch'
 import {
-    ActionSource,
+    isCascadedSystemAction,
     GameEngine,
     GameStatus,
     PlayerStatus,
@@ -173,7 +173,7 @@ export function runReplay(rehearsal: Rehearsal, variant?: string) {
         game = prepared.game
         engine.validateCanonicalState(initialState)
     }
-    const inputs = actions.filter((action) => action.source === ActionSource.User)
+    const inputs = actions.filter((action) => !isCascadedSystemAction(action))
     const failures: RehearsalFailure[] = []
     const steps: ReplayStep[] = []
     let state = structuredClone(initialState)

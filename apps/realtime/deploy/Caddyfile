@@ -1,0 +1,11 @@
+events.boardtogether.games {
+	@relay path /stream /stream/* /health
+	handle @relay {
+		reverse_proxy 127.0.0.1:8090 {
+			flush_interval -1
+		}
+	}
+	handle {
+		respond 404
+	}
+}

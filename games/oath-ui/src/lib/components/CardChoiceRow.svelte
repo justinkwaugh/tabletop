@@ -4,6 +4,7 @@
     import Magnifier from '$lib/components/Magnifier.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import type { CardChoice } from '$lib/model/cardChoice.js'
+    import type { PreviewGroup } from '$lib/model/cardPreview.svelte.js'
 
     let {
         choices,
@@ -12,6 +13,8 @@
         busy = false,
         height = 90,
         discard = false,
+        magnifyBacks = true,
+        paged = false,
         under
     }: {
         choices: readonly CardChoice[]
@@ -21,8 +24,19 @@
         height?: number
         /** The picked card is discarded, so it rings red, as a Search's displaced adviser does. */
         discard?: boolean
+        /** A back carries a magnifier too; off where a back shows nothing more enlarged (a facedown adviser). */
+        magnifyBacks?: boolean
+        /** Rule 4 — an enlarged card pages through the row's faceup cards, in their order (a dealt hand). */
+        paged?: boolean
         under?: Snippet<[CardChoice]>
     } = $props()
+
+    const group: PreviewGroup = () =>
+        choices.flatMap((choice) =>
+            choice.cardId !== undefined && choice.back === undefined
+                ? [{ cardId: choice.cardId, label: choice.label }]
+                : []
+        )
 </script>
 
 <div class="flex flex-wrap gap-2">
@@ -45,10 +59,13 @@
                     label={choice.label}
                 />
             </button>
-            <Magnifier
-                preview={{ cardId: choice.cardId, back: choice.back, label: choice.label }}
-                label={choice.label}
-            />
+            {#if magnifyBacks || choice.cardId !== undefined}
+                <Magnifier
+                    preview={{ cardId: choice.cardId, back: choice.back, label: choice.label }}
+                    label={choice.label}
+                    group={paged ? group : undefined}
+                />
+            {/if}
             {#if choice.caption}
                 <span
                     class="max-w-[7rem] text-center text-[10px] leading-tight text-oath-text-muted"

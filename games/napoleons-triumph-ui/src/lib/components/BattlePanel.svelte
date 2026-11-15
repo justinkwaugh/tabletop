@@ -1,15 +1,11 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
-    import {
-        MachineState,
-        UnitType,
-        attackStep,
-        type AttackStep,
-        type ProjectedUnit
-    } from '@tabletop/napoleons-triumph'
+    import { UnitType, type ProjectedUnit } from '@tabletop/napoleons-triumph'
     import { anyLoss } from '$lib/model/attackLosses.js'
     import { endingOf } from '$lib/model/concludedBattle.js'
     import { StageKind } from '$lib/model/battleSelection.js'
+    import { awaitedStep } from '$lib/model/battleWaiting.js'
     import { resultsSoFar, rolesBeforeTheCounterAttack } from '$lib/model/battleStage.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { printedSideOf } from '$lib/utils/approachSymbols.js'
@@ -40,17 +36,6 @@
         [UnitType.Artillery]: 'artillery'
     }
 
-    const WAITING: Record<AttackStep, string> = {
-        [MachineState.DefenseResponse]: 'to defend or retreat',
-        [MachineState.FeintDecision]: 'to press the attack or call it a feint',
-        [MachineState.DefenseDeclaration]: 'to name the leading units of the defence',
-        [MachineState.AttackDeclaration]: 'to declare the attack',
-        [MachineState.CounterAttackDecision]: 'to counter-attack or hold',
-        [MachineState.ResolvingAttack]: 'to settle the outcome',
-        [MachineState.Retreating]: 'to retreat',
-        [MachineState.Occupying]: 'to move in'
-    }
-
     function terrain(defenseApproachId: number): string {
         const approach = game.map.approach(defenseApproachId)
         return [
@@ -65,7 +50,7 @@
     }
 
     function unitsOf(ids: string[]): ProjectedUnit[] {
-        return ids.flatMap((id) => game.findUnit(id) ?? concluded?.unitsLastSeen.get(id) ?? [])
+        return ids.flatMap((id) => gameSession.unitsAsTheyEnteredTheShownAttack.get(id) ?? [])
     }
 </script>
 
@@ -82,9 +67,11 @@
         <div class="nt-battle-head">
             <div class="nt-battle-heading">
                 <div class="nt-battle-title">
-                    {attack.guardAttack ? 'Guard Attack' : 'Attack'} from
-                    {game.map.label(game.map.approach(attack.attackApproach).locale)} into
-                    {game.map.label(game.map.approach(attack.defenseApproach).locale)}
+                    <PlaceText
+                        text="{attack.guardAttack ? 'Guard Attack' : 'Attack'} from {game.map.label(
+                            game.map.approach(attack.attackApproach).locale
+                        )} into {game.map.label(game.map.approach(attack.defenseApproach).locale)}"
+                    />
                     {#if !folded}
                         <span class="nt-battle-faint">· {terrain(attack.defenseApproach)}</span>
                         {#if printedSide}
@@ -151,9 +138,11 @@
         {#if concluded}
             <div class="nt-battle-prompt nt-battle-ending">
                 <span class="nt-battle-over">The attack is over.</span>
-                {endingOf(concluded, game.sideOf(concluded.attack.attackerId), (locale) =>
-                    game.map.label(locale)
-                )}
+                <PlaceText
+                    text={endingOf(concluded, game.sideOf(concluded.attack.attackerId), (locale) =>
+                        game.map.label(locale)
+                    )}
+                />
             </div>
             {#if gameSession.isCommanding}
                 <div class="nt-battle-continue">
@@ -169,10 +158,10 @@
                 </div>
             {/if}
         {:else if !stage}
-            {#if gameSession.attack}
+            {#if gameSession.attack && !game.result}
                 <div class="nt-battle-prompt">
                     Waiting for <PlayerName playerId={game.activePlayerIds[0]} />
-                    {WAITING[attackStep(gameSession.attack)]}.
+                    {awaitedStep(gameSession.attack, game)}.
                 </div>
             {/if}
         {:else}

@@ -114,7 +114,7 @@ describe('HydratedCancelAlliance', () => {
         })
     })
 
-    it('tops up a Treasure card worth less than the cost from the player\'s ducats', () => {
+    it("tops up a Treasure card worth less than the cost from the player's ducats", () => {
         const state = buildState()
         state.getPlayerState('p1').politicsCards = [treasure(8)]
         state.getPlayerState('p1').money = 2
@@ -148,7 +148,10 @@ describe('HydratedCancelAlliance', () => {
     it('can be cancelled by the OTHER participant instead, at their own turn', () => {
         const state = buildState({
             activePlayerIds: ['p2'],
-            decisions: [{ playerId: 'p1', slot: 1 }, { playerId: 'p1', slot: 2 }]
+            decisions: [
+                { playerId: 'p1', slot: 1 },
+                { playerId: 'p1', slot: 2 }
+            ]
         })
         const action = makeCancelAlliance('p2')
 
@@ -163,7 +166,10 @@ describe('HydratedCancelAlliance', () => {
     it("rejects cancellation while it isn't the player's turn to act at all", () => {
         const state = buildState({
             activePlayerIds: ['p2'],
-            decisions: [{ playerId: 'p1', slot: 1 }, { playerId: 'p1', slot: 2 }]
+            decisions: [
+                { playerId: 'p1', slot: 1 },
+                { playerId: 'p1', slot: 2 }
+            ]
         })
         // p1 is a participant and can afford it, but p2 is the one acting - and the
         // platform (GameEngine.isPlayerAllowed) wouldn't accept an action from a
@@ -183,7 +189,11 @@ describe('HydratedCancelAlliance', () => {
             activePlayerIds: ['p1'],
             knightsRemaining: 2,
             knightPlacingPlayerId: 'p1',
-            decisions: [{ playerId: 'p1', slot: 1 }, { playerId: 'p1', slot: 2 }, { playerId: 'p2', slot: 3 }],
+            decisions: [
+                { playerId: 'p1', slot: 1 },
+                { playerId: 'p1', slot: 2 },
+                { playerId: 'p2', slot: 3 }
+            ],
             resolvedSlots: [{ slot: 1, winnerPlayerId: 'p1' }]
         })
         const action = makeCancelAlliance('p1')
@@ -201,9 +211,30 @@ describe('HydratedCancelAlliance', () => {
     it("rejects cancellation from a player who isn't one of the two alliance participants", () => {
         const state = buildState({
             players: [
-                { playerId: 'p1', color: Color.Pink, money: 12, powerPoints: 0, knightsInStock: 5, politicsCards: [] },
-                { playerId: 'p2', color: Color.Yellow, money: 12, powerPoints: 0, knightsInStock: 5, politicsCards: [] },
-                { playerId: 'p3', color: Color.Purple, money: 12, powerPoints: 0, knightsInStock: 5, politicsCards: [] }
+                {
+                    playerId: 'p1',
+                    color: Color.Pink,
+                    money: 12,
+                    powerPoints: 0,
+                    knightsInStock: 5,
+                    politicsCards: []
+                },
+                {
+                    playerId: 'p2',
+                    color: Color.Yellow,
+                    money: 12,
+                    powerPoints: 0,
+                    knightsInStock: 5,
+                    politicsCards: []
+                },
+                {
+                    playerId: 'p3',
+                    color: Color.Purple,
+                    money: 12,
+                    powerPoints: 0,
+                    knightsInStock: 5,
+                    politicsCards: []
+                }
             ],
             turnManager: { series: [], turnOrder: ['p1', 'p2', 'p3'], turnCounts: {} },
             activePlayerIds: ['p3']

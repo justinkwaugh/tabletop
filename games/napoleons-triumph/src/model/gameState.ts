@@ -34,6 +34,7 @@ import { Scenario, roundDefinition, type RoundDefinition } from '../components/t
 import {
     Attack,
     MoralePenaltyKind,
+    RevealedRide,
     RoadMarch,
     type LossEntry,
     type MoralePenalty
@@ -84,6 +85,7 @@ export const NapoleonsTriumphGameState = Type.Object({
     limits: TurnLimits,
     attack: Type.Optional(Attack),
     roadMarch: Type.Optional(RoadMarch),
+    revealedRide: Type.Optional(RevealedRide),
     auction: Type.Optional(SimpleAuction),
     victory: Type.Optional(Type.Enum(VictoryKind))
 })
@@ -127,6 +129,7 @@ export class HydratedNapoleonsTriumphGameState
     declare limits: TurnLimits
     declare attack?: NapoleonsTriumphProjectedState['attack']
     declare roadMarch?: RoadMarch
+    declare revealedRide?: RevealedRide
     declare auction?: HydratedSimpleAuction
     declare victory?: VictoryKind
 
@@ -140,6 +143,10 @@ export class HydratedNapoleonsTriumphGameState
 
     get map(): BattleMap {
         return AUSTERLITZ
+    }
+
+    get roundInProgress(): boolean {
+        return this.rounds.currentRound !== undefined
     }
 
     get round(): number {
@@ -257,8 +264,8 @@ export class HydratedNapoleonsTriumphGameState
     }
 
     /** Enemy corps of two or more units in a locale (rule 10, road movement). */
-    hasLargeCorps(locale: LocaleId, playerId: string): boolean {
-        return this.commandersIn(locale, playerId).some(
+    largeCorpsCommander(locale: LocaleId, playerId: string): Commander | undefined {
+        return this.commandersIn(locale, playerId).find(
             (commander) => this.corpsUnits(commander.id).length >= 2
         )
     }

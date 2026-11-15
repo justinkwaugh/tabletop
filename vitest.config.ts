@@ -11,6 +11,7 @@ export default defineConfig({
             'games/*/vitest.config.ts',
             'libs/*/vitest.config.ts',
             'libs/18xx-ui/vitest.runes.config.ts',
+            'libs/frontend-components/vitest.runes.config.ts',
             'apps/frontend/vitest.runes.config.ts'
         ]
     }

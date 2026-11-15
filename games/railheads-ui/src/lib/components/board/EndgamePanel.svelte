@@ -1,64 +1,130 @@
 <script lang="ts">
-    import { CompanyId, HexKind } from '@tabletop/railheads'
+    import { CompanyId, EditionId, HexKind, STATE_SUBSIDIES } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { ENDGAME_RECT, hexPoints } from '$lib/utils/boardLayout.js'
-    import { COMPANY_STYLE, HEX_FILL } from '$lib/utils/companyStyle.js'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
+    import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
+    import { editionStyle } from '$lib/utils/editionStyle.js'
 
     const gameSession = getGameSession()
 
     const DISC_RX = 9
     const DISC_RY = 6
     const DISC_THICKNESS = 4
+    const SUBSIDY_ROW = 12.5
+    const SUBSIDY_ROWS = 6
 
+    const editionId = $derived(gameSession.gameState.editionId)
+    const layout = $derived(boardLayout(editionId))
+    const panel = $derived(layout.endgame)
+    const style = $derived(editionStyle(editionId))
     const definition = $derived(gameSession.gameState.edition.definition)
     const perSite = $derived(definition.industryBonusPerSite)
     const stack = [CompanyId.KPEV, CompanyId.KSSE, CompanyId.GBSE]
+    const subsidies = STATE_SUBSIDIES.map((perShare, states) => ({ states, perShare })).slice(1)
+    const industryTop = $derived(
+        editionId === EditionId.Midwest || editionId === EditionId.Denmark ? panel.height - 70 : 98
+    )
+    const SWISS_SUBSIDIES = [
+        { country: 'France', one: '$6', more: '$9' },
+        { country: 'Germany', one: '$6', more: '$9' },
+        { country: 'Austria', one: '$4', more: '$8' },
+        { country: 'Italy', one: '×1', more: '×2' }
+    ]
+    const treasury = $derived(gameSession.gameState.stateTreasury ?? 0)
+    const bondsHeld = $derived(gameSession.gameState.bondsHeld())
 </script>
 
 <g
-    transform="translate({ENDGAME_RECT.x} {ENDGAME_RECT.y})"
+    transform="translate({panel.x} {panel.y})"
     aria-label="Game-end bonuses, paid after the final payout"
 >
     <title>Paid after the final payout of round {definition.rounds}</title>
-    <rect width={ENDGAME_RECT.width} height={ENDGAME_RECT.height} rx="8" class="sheet" />
-    <text x={ENDGAME_RECT.width / 2} y="18" class="title">Game End Bonus</text>
+    <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
+    <text x={panel.width / 2} y="18" class="title">Game End Bonus</text>
 
-    <text x="10" y="40" class="subtitle">Railroad · per share</text>
-    <polygon
-        points={hexPoints({ x: 26, y: 68 }, 18)}
-        fill={HEX_FILL[HexKind.Town]}
-        stroke="#1d1d1b"
-        stroke-width="1.5"
-    />
-    {#each stack as companyId, index (companyId)}
-        {@const y = 74 - index * 6}
-        {@const style = COMPANY_STYLE[companyId]}
-        <path
-            d="M {26 - DISC_RX} {y} L {26 - DISC_RX} {y +
-                DISC_THICKNESS} A {DISC_RX} {DISC_RY} 0 0 0 {26 + DISC_RX} {y +
-                DISC_THICKNESS} L {26 + DISC_RX} {y} Z"
-            fill={style.edge}
-            stroke={style.edge}
-        />
-        <ellipse cx="26" cy={y} rx={DISC_RX} ry={DISC_RY} fill={style.fill} stroke={style.edge} />
-    {/each}
-    <text x="52" y="58" class="body">Top disc earns</text>
-    <text x="52" y="71" class="body">$1 a share per</text>
-    <text x="52" y="84" class="body">disc beneath</text>
+    {#if editionId === EditionId.Midwest}
+        <text x="10" y="40" class="subtitle">{style.endBonusName} · per share</text>
+        {#each subsidies as row, index (row.states)}
+            {@const x = Math.floor(index / SUBSIDY_ROWS) * (panel.width / 2)}
+            {@const y = 58 + (index % SUBSIDY_ROWS) * SUBSIDY_ROW}
+            <text x={x + 26} {y} class="amount">{row.states}</text>
+            <text x={x + 30} {y} class="body leader">{row.states === 1 ? 'state' : 'states'}</text>
+            <text x={x + panel.width / 2 - 8} {y} class="amount">${row.perShare}</text>
+        {/each}
+    {:else if editionId === EditionId.Switzerland}
+        <text x="10" y="34" class="subtitle">{style.endBonusName} · per share</text>
+        <text x="108" y="45" class="amount">1 site</text>
+        <text x="146" y="45" class="amount">more</text>
+        {#each SWISS_SUBSIDIES as row, index (row.country)}
+            {@const y = 56 + index * 11}
+            <text x="12" {y} class="body">{row.country}</text>
+            <text x="108" {y} class="amount">{row.one}</text>
+            <text x="146" {y} class="amount">{row.more}</text>
+        {/each}
+        <text x="12" y="104" class="body">None over the Loan Limit</text>
+        <line x1="168" x2="168" y1="28" y2={panel.height - 8} class="rule"></line>
+        <text x="176" y="34" class="subtitle">Credit Suisse</text>
+        <text x="176" y="48" class="body">per share: +1 per</text>
+        <text x="176" y="61" class="body">two loans, every</text>
+        <text x="176" y="74" class="body">company</text>
+        <text x="176" y="92" class="subtitle">Tunnel tolls</text>
+        <text x="176" y="104" class="body">$2 per ★</text>
+    {:else if editionId === EditionId.EnglandWales}
+        <text x="10" y="40" class="subtitle">{style.endBonusShort} · per share</text>
+        <text x="14" y="56" class="body">$1 per town, city and site</text>
+        <text x="14" y="69" class="body">outside the designated region;</text>
+        <text x="14" y="82" class="body">not London, not the Underground</text>
+    {:else if editionId === EditionId.Denmark}
+        <text x="10" y="40" class="subtitle">{style.endBonusName} · per bond</text>
+        <text x="14" y="56" class="body">State Treasury ÷ bonds held</text>
+        <text x="14" y="72" class="body">Now ${treasury} ÷ {bondsHeld}</text>
+        <text x="10" y="96" class="subtitle">Bridge toll chits · $2 per ★</text>
+    {:else}
+        <text x="10" y="40" class="subtitle">Railroad · per share</text>
+        <polygon
+            points={layout.hexPoints({ x: 26, y: 68 }, 18)}
+            fill={style.hexFill[HexKind.Town]}
+            stroke="#1d1d1b"
+            stroke-width="1.5"
+        ></polygon>
+        {#each stack as companyId, index (companyId)}
+            {@const y = 74 - index * 6}
+            {@const company = COMPANY_STYLE[companyId]}
+            <path
+                d="M {26 - DISC_RX} {y} L {26 - DISC_RX} {y +
+                    DISC_THICKNESS} A {DISC_RX} {DISC_RY} 0 0 0 {26 + DISC_RX} {y +
+                    DISC_THICKNESS} L {26 + DISC_RX} {y} Z"
+                fill={company.edge}
+                stroke={company.edge}
+            ></path>
+            <ellipse
+                cx="26"
+                cy={y}
+                rx={DISC_RX}
+                ry={DISC_RY}
+                fill={company.fill}
+                stroke={company.edge}
+            ></ellipse>
+        {/each}
+        <text x="52" y="58" class="body">Top disc earns</text>
+        <text x="52" y="71" class="body">$1 a share per</text>
+        <text x="52" y="84" class="body">disc beneath</text>
+    {/if}
 
-    <line x1="10" x2={ENDGAME_RECT.width - 10} y1="98" y2="98" class="rule" />
-
-    <text x="10" y="116" class="subtitle">Industry · per token</text>
-    <polygon
-        points={hexPoints({ x: 26, y: 142 }, 18)}
-        fill={HEX_FILL[HexKind.Industry]}
-        stroke="#1d1d1b"
-        stroke-width="1.5"
-    />
-    <text x="26" y="147" class="plus">${perSite}</text>
-    <text x="52" y="132" class="body">${perSite} per site</text>
-    <text x="52" y="145" class="body">reached, split</text>
-    <text x="52" y="158" class="body">across tokens</text>
+    {#if perSite > 0}<g transform="translate(0 {industryTop})">
+            <line x1="10" x2={panel.width - 10} y1="0" y2="0" class="rule"></line>
+            <text x="10" y="18" class="subtitle">Industry · per token</text>
+            <polygon
+                points={layout.hexPoints({ x: 26, y: 44 }, 18)}
+                fill={style.hexFill[HexKind.Industry]}
+                stroke="#1d1d1b"
+                stroke-width="1.5"
+            ></polygon>
+            <text x="26" y="49" class="plus">${perSite}</text>
+            <text x="52" y="34" class="body">${perSite} per site</text>
+            <text x="52" y="47" class="body">reached, split</text>
+            <text x="52" y="60" class="body">across tokens</text>
+        </g>{/if}
 </g>
 
 <style>
@@ -92,6 +158,19 @@
         fill: #26300f;
         font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 11px;
+    }
+
+    .leader {
+        font-size: 8px;
+        fill: #6d6a45;
+    }
+
+    .amount {
+        fill: #26300f;
+        font-family: 'Railheads Baskerville', Georgia, serif;
+        font-size: 11px;
+        font-weight: 700;
+        text-anchor: end;
     }
 
     .plus {

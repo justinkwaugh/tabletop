@@ -1,6 +1,6 @@
 import type { Face, ProjectedUnit } from '@tabletop/napoleons-triumph'
 import { BattleRole } from './battleStage.js'
-import { roleMarkOf, type RoleMark } from './roleMark.js'
+import { lossMark, roleMarkOf, type RoleMark } from './roleMark.js'
 
 /** How a unit is drawn for one viewer: the face they may see, the mark on their own unit that the enemy has seen, and the mark of the fixed battery. */
 export interface UnitLook {
@@ -27,11 +27,12 @@ export interface BlockMarkContext {
     selectedGroupKey?: string
     pickedUnitIds: readonly string[]
     riderIds: readonly string[]
+    /** The steps each unit lost in the attack that has just ended, while it is shown. */
+    stepsLost: Readonly<Record<string, number>>
 }
 
 function carriesMovedMark(unit: ProjectedUnit, context: BlockMarkContext): boolean {
     return (
-        !context.fighting &&
         !context.viewingHistory &&
         unit.playerId === context.viewerId &&
         unit.movesThisTurn !== undefined
@@ -60,14 +61,16 @@ export function blockMarkOf(
     const role = context.roles[unit.id]
     const leftOut =
         groupKey === context.selectedGroupKey && !context.pickedUnitIds.includes(unit.id)
-    const defendedEarlier = carriesEarlierDefenceMark(unit, eligible, role)
+    const lost = role === undefined ? lossMark(context.stepsLost[unit.id] ?? 0) : undefined
+    const defendedEarlier = !lost && carriesEarlierDefenceMark(unit, eligible, role)
     const lettered = defendedEarlier ? BattleRole.Defends : role
     return {
         pickable: eligible && !context.settling,
         role,
-        roleMark: lettered === undefined ? undefined : roleMarkOf(lettered),
+        roleMark: lost ?? (lettered === undefined ? undefined : roleMarkOf(lettered)),
         dimmed: leftOut || (context.fighting && !eligible && role === undefined),
-        moved: !defendedEarlier && carriesMovedMark(unit, context)
+        // A letter or a loss on the block takes the place of the moved dot, which stands beside it.
+        moved: lettered === undefined && !lost && carriesMovedMark(unit, context)
     }
 }
 

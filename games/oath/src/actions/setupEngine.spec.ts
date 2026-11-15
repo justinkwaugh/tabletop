@@ -14,7 +14,7 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { Region, TOTAL_FAVOR } from '../model/oathEnums.js'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
-import { type OathVault } from '../model/vault.js'
+import type { OathVault } from '../model/vault.js'
 import { TOP_CRADLE_SLOT } from '../data/mapSlots.js'
 import { expectFullFavorComplement } from '../testing/census.js'
 import { expectOneWarbandOwnerPerSite, warbandCensus } from '../testing/census.js'
@@ -22,6 +22,7 @@ import { CHANCELLOR_WARBANDS, EXILE_WARBANDS } from '../util/setup.js'
 import { SetupVariant } from '../model/oathEnums.js'
 import { testGame } from '../testing/game.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
+import { writeChronicleThrough } from '../testing/chronicle.js'
 
 const MASTER_SEED = '00000000000000000000000000000004'
 const PLAYERS = ['p1', 'p2', 'p3']
@@ -29,7 +30,10 @@ const PLAYERS = ['p1', 'p2', 'p3']
 /** Starts through the engine rather than the initializer, so the first state's `enter()` runs. */
 function startGame() {
     // Pinned to the random deck because MASTER_SEED's deal depends on the deck variant.
-    const game = testGame(PLAYERS, { status: GameStatus.WaitingToStart, config: { setupVariant: SetupVariant.Randomized } })
+    const game = testGame(PLAYERS, {
+        status: GameStatus.WaitingToStart,
+        config: { setupVariant: SetupVariant.Randomized }
+    })
     const { startedGame, initialState } = engine.startGame(game, { masterSeed: MASTER_SEED })
 
     const vault = vaultOf(initialState)
@@ -66,13 +70,17 @@ function walkSetup({
     for (const playerId of current.turnManager.turnOrder) {
         const hydrated = new HydratedOathGameState(current)
         const hand = hydrated.getPlayerState(playerId).knownHand()
-        current = engine.runNext(buildAction(SetupChoice, {
-            playerId,
-            // R-1.23.1 — only the Chancellor is bound to the top Cradle site.
-            siteId: playerId === chancellorId ? TOP_CRADLE_SLOT : hydrated.faceupSiteIds()[1],
-            adviserCardId: hand[0],
-            discardOrder: [hand[1], hand[2]]
-        }), current, game).updatedState
+        current = engine.runNext(
+            buildAction(SetupChoice, {
+                playerId,
+                // R-1.23.1 — only the Chancellor is bound to the top Cradle site.
+                siteId: playerId === chancellorId ? TOP_CRADLE_SLOT : hydrated.faceupSiteIds()[1],
+                adviserCardId: hand[0],
+                discardOrder: [hand[1], hand[2]]
+            }),
+            current,
+            game
+        ).updatedState
     }
 
     return { game, state: current, vault, chancellorId }
@@ -104,6 +112,15 @@ describe('setup through GameEngine.run() (R-1.19–R-1.23.3)', () => {
             ActionType.SetupChoice
         ])
         expect(engine.getValidActionTypesForPlayer(game, state, exile)).toEqual([])
+    })
+
+    it('R-2.9 — a first game holds no edifice: no ruin key and no edifice id, before or after setup', () => {
+        const before = startGame().state
+        const after = runSetup().state
+        for (const state of [before, after]) {
+            expect('ruinedEdificeIds' in state).toBe(false)
+            expect(JSON.stringify(state)).not.toContain('edifice.')
+        }
     })
 
     it('R-1.23 — every pawn is placed and the machine hands over to the Wake Phase', () => {
@@ -177,12 +194,16 @@ describe('setup through GameEngine.run() (R-1.19–R-1.23.3)', () => {
         expect(state.machineState).toBe(MachineState.ActPhase)
 
         const deckBefore = vaultOf(state).worldDeck.length
-        const result = engine.runNext(buildAction(Search, {
-            playerId: chancellorId,
-            drawFrom: SearchSource.WorldDeck,
-            // R-X.3 — a world deck draw takes cards out of the vault.
-            revealsInfo: true
-        }), state, game)
+        const result = engine.runNext(
+            buildAction(Search, {
+                playerId: chancellorId,
+                drawFrom: SearchSource.WorldDeck,
+                // R-X.3 — a world deck draw takes cards out of the vault.
+                revealsInfo: true
+            }),
+            state,
+            game
+        )
         const after = new HydratedOathGameState(result.updatedState)
 
         expect(vaultOf(result.updatedState).worldDeck.length).toBeLessThan(deckBefore)
@@ -251,46 +272,66 @@ function playFullGame(seed: number) {
     const order = state.turnManager.turnOrder
     let searched = false
 
-    for (let round = 1; round <= 8 && !state.result; round++) {
+    for (let round = 1; round <= 8 && state.winningPlayerIds.length === 0; round++) {
         for (const playerId of order) {
-            if (state.result) break
+            if (state.winningPlayerIds.length > 0) break
             expect(state.activePlayerIds).toEqual([playerId])
 
             state = wake(game, state, vault, playerId)
 
             // R-4.2 — one real Search, so the game is played rather than passed.
             if (!searched && playerId === chancellorId) {
-                state = engine.runNext(buildAction(Search, {
-                    playerId,
-                    drawFrom: SearchSource.WorldDeck,
-                    revealsInfo: true
-                }), state, game).updatedState
+                state = engine.runNext(
+                    buildAction(Search, {
+                        playerId,
+                        drawFrom: SearchSource.WorldDeck,
+                        revealsInfo: true
+                    }),
+                    state,
+                    game
+                ).updatedState
                 const hand = new HydratedOathGameState(state).getPlayerState(playerId).knownHand()
                 expect(hand.length).toBeGreaterThan(0)
-                state = engine.runNext(buildAction(SearchResolve, {
-                    playerId,
-                    keptCardId: hand[0],
-                    discardOrder: hand.slice(1),
-                    play: SearchPlay.Discard,
-                    index: state.actionCount
-                }), state, game).updatedState
+                state = engine.runNext(
+                    buildAction(SearchResolve, {
+                        playerId,
+                        keptCardId: hand[0],
+                        discardOrder: hand.slice(1),
+                        play: SearchPlay.Discard,
+                        index: state.actionCount
+                    }),
+                    state,
+                    game
+                ).updatedState
                 searched = true
             }
 
             // R-4.2 allows a turn of zero actions, then R-4.3's Rest.
-            state = engine.runNext(buildAction(EndActPhase, {
-                playerId
-            }), state, game).updatedState
+            state = engine.runNext(
+                buildAction(EndActPhase, {
+                    playerId
+                }),
+                state,
+                game
+            ).updatedState
             // R-4.3.5 — the Rest waits on the seat only for a Rest power, none of which is held here.
             expect(state.machineState).not.toBe(MachineState.RestPhase)
             // R-3.3 — the round's last Rest leaves the end die to the Chancellor.
             if (state.machineState === MachineState.EndOfRound) {
                 expect(state.activePlayerIds).toEqual([chancellorId])
-                state = engine.runNext(buildAction(RollEndDie, { playerId: chancellorId }), state, game).updatedState
+                state = engine.runNext(
+                    buildAction(RollEndDie, { playerId: chancellorId }),
+                    state,
+                    game
+                ).updatedState
             }
         }
     }
 
+    // R-8 — the chronicle is written before the result.
+    if (state.machineState === MachineState.Chronicle) {
+        state = writeChronicleThrough(game, state).final
+    }
     return { state, chancellorId, warbandsBefore }
 }
 

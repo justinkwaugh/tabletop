@@ -5,7 +5,7 @@ export const PLAYER_COLORS = [
     '#ef4444', // red-500
     '#22c55e', // green-500
     '#a855f7', // purple-500
-    '#f97316', // orange-500
+    '#f97316' // orange-500
 ]
 
 export function playerColorHex(playerIndex: number): string {

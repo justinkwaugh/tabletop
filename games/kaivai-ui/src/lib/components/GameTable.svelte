@@ -23,8 +23,9 @@
     import KaivaiFont from '$lib/fonts/stacatto222bt.woff'
     import { setGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
-    let { gameSession }: { gameSession: GameSession<KaivaiProjectedState, HydratedKaivaiGameState> } =
-        $props()
+    let {
+        gameSession
+    }: { gameSession: GameSession<KaivaiProjectedState, HydratedKaivaiGameState> } = $props()
 
     // svelte-ignore state_referenced_locally
     setGameSession(gameSession as KaivaiGameSession)

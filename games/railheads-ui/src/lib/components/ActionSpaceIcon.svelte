@@ -1,8 +1,10 @@
 <script lang="ts">
-    import { ActionSpaceId, CompanyId, HexKind, INDUSTRIES } from '@tabletop/railheads'
-    import { hexPoints } from '$lib/utils/boardLayout.js'
-    import { COMPANY_STYLE, HEX_FILL, INDUSTRY_STYLE } from '$lib/utils/companyStyle.js'
+    import { ActionSpaceId, HexKind, INDUSTRIES, type CompanyId } from '@tabletop/railheads'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
+    import { COMPANY_STYLE, INDUSTRY_STYLE } from '$lib/utils/companyStyle.js'
     import { cubeFaces, type CubeSize } from '$lib/utils/cubeFaces.js'
+    import { editionStyle } from '$lib/utils/editionStyle.js'
     import IndustryMark from './board/IndustryMark.svelte'
 
     let { space, size = 36 }: { space: ActionSpaceId; size?: number } = $props()
@@ -13,7 +15,11 @@
     const DISC_RY = 5
     const DISC_THICKNESS = 4
     const CUBE: CubeSize = { halfWidth: 6, halfDepth: 4.3, height: 5 }
-    const SHARE_STACK = [CompanyId.KPEV, CompanyId.KSSE, CompanyId.GBSE]
+    const gameSession = getGameSession()
+
+    const editionId = $derived(gameSession.gameState.editionId)
+    const style = $derived(editionStyle(editionId))
+    const layout = $derived(boardLayout(editionId))
     const SLOTS = [
         { x: 16, y: 17 },
         { x: 32, y: 17 },
@@ -21,23 +27,26 @@
         { x: 32, y: 30 }
     ]
 
-    const pieces: Piece[] = $derived(trackPieces(space))
+    const pieces: Piece[] = $derived(trackPieces(space, style.trackIconCompanies))
 
-    function trackPieces(space: ActionSpaceId): Piece[] {
+    function trackPieces(
+        space: ActionSpaceId,
+        [first, second]: readonly [CompanyId, CompanyId]
+    ): Piece[] {
         switch (space) {
             case ActionSpaceId.LayTrackII:
                 return SLOTS.map((slot, index) => ({
                     ...slot,
-                    companyId: index < 2 ? CompanyId.GBSE : CompanyId.KBSB
+                    companyId: index < 2 ? first : second
                 }))
             case ActionSpaceId.LayTrackI:
                 return SLOTS.map((slot, index) => ({
                     ...slot,
-                    companyId: CompanyId.GBSE,
+                    companyId: first,
                     cube: index === SLOTS.length - 1
                 }))
             default:
-                return SLOTS.map((slot) => ({ ...slot, companyId: CompanyId.GBSE }))
+                return SLOTS.map((slot) => ({ ...slot, companyId: first }))
         }
     }
 
@@ -48,17 +57,17 @@
 
 <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
     {#if space === ActionSpaceId.IssueShare}
-        {#each SHARE_STACK as companyId, index (companyId)}
-            {@const style = COMPANY_STYLE[companyId]}
+        {#each style.shareIconCompanies as companyId, index (companyId)}
+            {@const company = COMPANY_STYLE[companyId]}
             <g transform="translate({4 + index * 4} {8 + index * 8})">
                 <rect
                     width="32"
                     height="16"
                     rx="1.5"
-                    fill={style.fill}
+                    fill={company.fill}
                     stroke="#1d140b"
                     stroke-width="1"
-                />
+                ></rect>
                 <rect
                     x="2"
                     y="2"
@@ -68,10 +77,11 @@
                     stroke="#ffffff"
                     stroke-opacity="0.65"
                     stroke-width="0.9"
-                />
+                ></rect>
             </g>
         {/each}
-        <path d="M17 29h14M19 33h10" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M17 29h14M19 33h10" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"
+        ></path>
     {:else if space === ActionSpaceId.IndustryInvestment}
         {#each INDUSTRIES as industry, index (industry)}
             <g transform="translate({13 + (index % 2) * 22} {13 + Math.floor(index / 2) * 22})">
@@ -84,37 +94,32 @@
                     fill="#ece6b8"
                     stroke={INDUSTRY_STYLE[industry].ring}
                     stroke-width="2.2"
-                />
+                ></rect>
                 <IndustryMark {industry} scale={0.55} />
             </g>
         {/each}
     {:else}
         <polygon
-            points={hexPoints({ x: 24, y: 24 }, 23)}
-            fill={HEX_FILL[HexKind.Countryside]}
+            points={layout.hexPoints({ x: 24, y: 24 }, 23)}
+            fill={style.hexFill[HexKind.Countryside]}
             stroke="#1d1d1b"
             stroke-width="1.5"
-        />
+        ></polygon>
         {#each pieces as piece (`${piece.x},${piece.y}`)}
-            {@const style = COMPANY_STYLE[piece.companyId]}
+            {@const company = COMPANY_STYLE[piece.companyId]}
             {#if piece.cube}
                 {@const faces = cubeFaces({ x: piece.x, y: piece.y - 1 }, CUBE)}
-                <g stroke={style.edge} stroke-width="1" stroke-linejoin="round">
-                    <path d={faces.left} fill={style.edge} />
-                    <path d={faces.right} fill={style.edge} />
-                    <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none" />
-                    <path d={faces.top} fill={style.fill} />
+                <g stroke={company.edge} stroke-width="1" stroke-linejoin="round">
+                    <path d={faces.left} fill={company.edge}></path>
+                    <path d={faces.right} fill={company.edge}></path>
+                    <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none"></path>
+                    <path d={faces.top} fill={company.fill}></path>
                 </g>
             {:else}
-                <g stroke={style.edge} stroke-width="1">
-                    <path d={discBody(piece.x, piece.y)} fill={style.edge} />
-                    <ellipse
-                        cx={piece.x}
-                        cy={piece.y}
-                        rx={DISC_RX}
-                        ry={DISC_RY}
-                        fill={style.fill}
-                    />
+                <g stroke={company.edge} stroke-width="1">
+                    <path d={discBody(piece.x, piece.y)} fill={company.edge}></path>
+                    <ellipse cx={piece.x} cy={piece.y} rx={DISC_RX} ry={DISC_RY} fill={company.fill}
+                    ></ellipse>
                 </g>
             {/if}
         {/each}

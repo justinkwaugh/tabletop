@@ -1,3 +1,4 @@
+import { EighteenThirtyCharters } from './charters.js'
 import { EighteenThirtyMarket } from './stockMarket.js'
 import type { EighteenThirtyState } from './state.js'
 import { EighteenThirtyStockRoundRules } from './roundRules.js'
@@ -12,6 +13,7 @@ import {
 
 export const EighteenThirtyShareTrading = ipoMarketTrading({
     market: EighteenThirtyMarket,
+    charters: EighteenThirtyCharters,
     ipoPoolId: 'initial-offering',
     marketPoolId: 'open-market',
     marketLimit: 50
@@ -31,6 +33,7 @@ export const EighteenThirtyStockRules: StockRules = {
     },
     ...marketZoneHoldingLimits({
         market: EighteenThirtyMarket,
+        charters: EighteenThirtyCharters,
         certificateFreeColors: ['yellow', 'orange', 'brown'],
         ownershipFreeColors: ['orange', 'brown'],
         ownershipPercent: 60

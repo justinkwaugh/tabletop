@@ -74,7 +74,6 @@ while drafting or showing a committed operating result. Map inspection remains
 available for selections that are not valid next paths. Itemized revenues and
 whole-set errors use the same evaluator as the action. Controls remain disposable.
 
-
 ## Enumeration measurement
 
 A deterministic prepared TOP phase-D board contains 34 placed tiles reached by
@@ -103,7 +102,6 @@ checks passed again after adding direct map clicks and fixing draft serializatio
 map selections carry presentation fields, so RouteEditor stores only canonical
 location/node/path IDs. Both titles now confirm routes selected on the map or
 through controls. The TOP draft and route overlays were inspected visually.
-
 
 ## Operation naming
 

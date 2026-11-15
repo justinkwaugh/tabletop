@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
     ConsentRequestKind,
+    HydratedOathGameState,
     MachineState,
     PlayerStatus,
     PowerQuestionKind,
@@ -9,6 +10,7 @@ import {
 } from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { turnBarOf } from './turnBar.js'
+import { gameOneAt, gameTwoAt } from '$lib/testing/chronicleTables.js'
 
 const herald: PowerQuestion = {
     kind: PowerQuestionKind.PickFavorBank,
@@ -80,6 +82,38 @@ describe('turnBarOf', () => {
 
     it('reads "Game over" once the game has ended', () => {
         expect(turnBarOf(board({ machineState: MachineState.EndOfGame })).phase).toBe('Game over')
+    })
+
+    it('reads "Chronicle", naming no one, while the won game’s chronicle is written (R-8)', () => {
+        expect(turnBarOf(board({ machineState: MachineState.Chronicle }))).toEqual({
+            playerId: undefined,
+            roll: false,
+            paused: false,
+            phase: 'Chronicle'
+        })
+    })
+
+    it('reads "Chronicle" in every step that waits, and "Game over" at the result', () => {
+        const waiting = [
+            gameOneAt('vow'),
+            gameOneAt('offer'),
+            gameOneAt('answer'),
+            gameOneAt('story'),
+            gameTwoAt('build'),
+            gameTwoAt('suit'),
+            gameTwoAt('heal')
+        ]
+        for (const table of waiting) {
+            const state = new HydratedOathGameState(table.state)
+            expect(turnBarOf(state), state.chronicle?.step).toEqual({
+                playerId: undefined,
+                roll: false,
+                paused: false,
+                phase: 'Chronicle'
+            })
+        }
+        const ended = new HydratedOathGameState(gameOneAt('result').state)
+        expect(turnBarOf(ended).phase).toBe('Game over')
     })
 
     it('names the turn, not the seat the engine waits on, in every step of the Act Phase', () => {
@@ -158,7 +192,11 @@ describe('turnBarOf', () => {
     it('names whose turn is paused while a Campaign runs out of turn, with that turn’s phase', () => {
         const state = board({
             machineState: MachineState.CampaignSacrifice,
-            heldTurn: { queue: [], askingPlayerId: 'turn', resumeMachineState: MachineState.ActPhase }
+            heldTurn: {
+                queue: [],
+                askingPlayerId: 'turn',
+                resumeMachineState: MachineState.ActPhase
+            }
         })
         expect(turnBarOf(state)).toEqual({
             playerId: 'turn',
@@ -170,7 +208,11 @@ describe('turnBarOf', () => {
         const askedInIt = board({
             machineState: MachineState.PowerQuestion,
             pendingQuestions: questionAsked(MachineState.CampaignSacrifice),
-            heldTurn: { queue: [], askingPlayerId: 'turn', resumeMachineState: MachineState.RestPhase }
+            heldTurn: {
+                queue: [],
+                askingPlayerId: 'turn',
+                resumeMachineState: MachineState.RestPhase
+            }
         })
         expect(turnBarOf(askedInIt)).toMatchObject({ paused: true, phase: 'Rest Phase' })
     })

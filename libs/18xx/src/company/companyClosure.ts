@@ -7,15 +7,17 @@ import {
     removeCertificates,
     type FinancialState
 } from '../finance/finance.js'
-import { StationReservation, type StationState } from '../map/station.js'
+import { StationAccess, StationReservation, type StationState } from '../map/station.js'
 import { closePrivate, privateOwningCompany } from '../privates/privateCompany.js'
 import { companyMarketSpaceId, removeStockMarker, type StockMarket } from '../stock/stockMarket.js'
-import {
-    trainsOwnedBy,
-    releaseTrains,
-    type TrainDestination,
-    type TrainState
-} from '../trains/train.js'
+import { trainsOwnedBy, releaseTrains, TrainDestination, type TrainState } from '../trains/train.js'
+import { resetCompany, type CompanyResetTerms } from './companyReset.js'
+
+/**
+ * A closed company's charter goes back to the bank to be started again, as in 1849 §11, rather
+ * than leaving play: its certificates return as the terms say, and its flags are cleared.
+ */
+export type CompanyRestart = CompanyResetTerms & { poolId: string; shareCount: number }
 
 export const CompanyClosure = Type.Object(
     {
@@ -25,9 +27,19 @@ export const CompanyClosure = Type.Object(
         retiredCertificateIds: Type.Array(Type.String()),
         closedPrivateIds: Type.Array(Type.String()),
         removedReservations: Type.Array(StationReservation),
+        removedStationAccess: Type.Optional(Type.Array(StationAccess)),
         removedStationIds: Type.Array(Type.String()),
         removedTrainIds: Type.Array(Type.String()),
-        removedMarketSpaceId: Type.Optional(Type.String())
+        /** Where the removed trains went, and their types in `removedTrainIds` order. */
+        trainRelease: Type.Optional(
+            Type.Object(
+                { destination: TrainDestination, definitionIds: Type.Array(Type.String()) },
+                { additionalProperties: false }
+            )
+        ),
+        removedMarketSpaceId: Type.Optional(Type.String()),
+        /** The company's certificates, back in the bank for a restart rather than retired. */
+        returnedCertificateIds: Type.Optional(Type.Array(Type.String()))
     },
     { additionalProperties: false }
 )
@@ -43,7 +55,8 @@ type ClosureState = FinancialState & StationState & TrainState & { stockMarket: 
 export function closeShareCompany(
     state: ClosureState,
     companyId: string,
-    trainDestination: TrainDestination
+    trainDestination: TrainDestination,
+    restart?: CompanyRestart
 ): CompanyClosure {
     const company = getCompany(state, companyId)
     const owner = { kind: 'company' as const, companyId }
@@ -58,14 +71,23 @@ export function closeShareCompany(
     const retiredCertificateIds = state.certificates
         .filter(
             (certificate) =>
-                certificate.companyId === companyId ||
+                (!restart && certificate.companyId === companyId) ||
                 closedPrivateIds.includes(certificate.companyId)
         )
         .map((certificate) => certificate.id)
+    const returnedCertificateIds = restart
+        ? state.certificates
+              .filter((certificate) => certificate.companyId === companyId)
+              .map((certificate) => certificate.id)
+        : []
     const removedStationIds = state.stations
         .filter((station) => station.companyId === companyId && station.status !== 'removed')
         .map((station) => station.id)
-    const removedTrainIds = trainsOwnedBy(state, owner).map((train) => train.id)
+    const removedStationAccess = structuredClone(
+        (state.stationAccess ?? []).filter((access) => access.companyId === companyId)
+    )
+    const removedTrains = trainsOwnedBy(state, owner)
+    const removedTrainIds = removedTrains.map((train) => train.id)
     const details: CompanyClosure = {
         companyId,
         ...(company.president ? { president: structuredClone(company.president) } : {}),
@@ -74,30 +96,43 @@ export function closeShareCompany(
         retiredCertificateIds,
         removedStationIds,
         removedTrainIds,
+        trainRelease: {
+            destination: trainDestination,
+            definitionIds: removedTrains.map((train) => train.definitionId)
+        },
         removedReservations: structuredClone(
             state.stationReservations.filter((reservation) => reservation.companyId === companyId)
         ),
+        ...(removedStationAccess.length ? { removedStationAccess } : {}),
         ...(company.kind === 'major'
             ? { removedMarketSpaceId: companyMarketSpaceId(state.stockMarket, companyId) }
-            : {})
+            : {}),
+        ...(restart ? { returnedCertificateIds } : {})
     }
     settleCashPayments(state, payments)
     for (const id of closedPrivateIds) closePrivate(state, id)
-    company.closed = true
-    delete company.president
-    removeCertificates(
-        state,
-        state.certificates
-            .filter((certificate) => certificate.companyId === companyId)
-            .map((certificate) => certificate.id)
-    )
+    if (!restart) {
+        company.closed = true
+        delete company.president
+        removeCertificates(
+            state,
+            state.certificates
+                .filter((certificate) => certificate.companyId === companyId)
+                .map((certificate) => certificate.id)
+        )
+    }
     state.stations = state.stations.map((station) =>
         station.companyId === companyId ? { id: station.id, companyId, status: 'removed' } : station
     )
     state.stationReservations = state.stationReservations.filter(
         (reservation) => reservation.companyId !== companyId
     )
+    if (removedStationAccess.length)
+        state.stationAccess = state.stationAccess?.filter(
+            (access) => access.companyId !== companyId
+        )
     releaseTrains(state.trainInventory, removedTrainIds, trainDestination)
     if (company.kind === 'major') removeStockMarker(state.stockMarket, companyId)
+    if (restart) resetCompany(state, companyId, restart.shareCount, restart)
     return details
 }

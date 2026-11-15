@@ -10,9 +10,10 @@ import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'
 //  - Lowest bidder becomes canal overseer; ties at zero broken by clockwise turn order
 //  - Planting order = descending bid; ties at zero plant in clockwise turn order
 //  - Each player pays their bid to the bank
-export class BiddingStateHandler
-    implements MachineStateHandler<HydratedPlaceBid, HydratedSantiagoGameState>
-{
+export class BiddingStateHandler implements MachineStateHandler<
+    HydratedPlaceBid,
+    HydratedSantiagoGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedSantiagoGameState>
@@ -83,7 +84,10 @@ export class BiddingStateHandler
             const ba = a.bid ?? 0
             const bb = b.bid ?? 0
             if (bb !== ba) return bb - ba
-            if (ba === 0) return state.biddingOrder.indexOf(b.playerId) - state.biddingOrder.indexOf(a.playerId)
+            if (ba === 0)
+                return (
+                    state.biddingOrder.indexOf(b.playerId) - state.biddingOrder.indexOf(a.playerId)
+                )
             return state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId)
         })
         state.plantersOrder = sorted.map((p) => p.playerId)
@@ -92,7 +96,10 @@ export class BiddingStateHandler
         const minBid = Math.min(...state.players.map((p) => p.bid ?? 0))
         const lowestBidders = state.players
             .filter((p) => (p.bid ?? 0) === minBid)
-            .sort((a, b) => state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId))
+            .sort(
+                (a, b) =>
+                    state.biddingOrder.indexOf(a.playerId) - state.biddingOrder.indexOf(b.playerId)
+            )
         state.canalOverseerId = lowestBidders[0]?.playerId
         state.overseerBidZero = minBid === 0
         // Bids are intentionally left set so they remain visible during PlantingPhase

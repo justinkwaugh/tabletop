@@ -34,5 +34,5 @@ export const LowenherzApiActions = {
     [ActionType.TakePoliticsCard]: TakePoliticsCard,
     [ActionType.PlayRenegadeCard]: PlayRenegadeCard,
     [ActionType.PlayAllianceCard]: PlayAllianceCard,
-    [ActionType.CancelAlliance]: CancelAlliance,
+    [ActionType.CancelAlliance]: CancelAlliance
 }

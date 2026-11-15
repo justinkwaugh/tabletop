@@ -56,7 +56,14 @@ export const AUSTERLITZ_SPEC: MapSpec = {
         { id: 50, capacity: 12 },
         { id: 51, capacity: 16, stars: [Star.Blue] },
         { id: 52, capacity: 4, name: 'Bellowitz' },
-        { id: 53, capacity: 20, name: 'Zuran Berg', hill: true, stars: [Star.Blue], setup: 'bessieres' },
+        {
+            id: 53,
+            capacity: 20,
+            name: 'Zuran Berg',
+            hill: true,
+            stars: [Star.Blue],
+            setup: 'bessieres'
+        },
         { id: 54, capacity: 2, name: 'Santon', hill: true },
         { id: 55, capacity: 20 },
         { id: 56, capacity: 12 },
@@ -109,13 +116,27 @@ export const AUSTERLITZ_SPEC: MapSpec = {
         { id: 103, capacity: 4 },
         { id: 104, capacity: 4, name: 'Kobelnitz' },
         { id: 105, capacity: 20 },
-        { id: 106, capacity: 12, name: 'Pratze Berg', hill: true, stars: [Star.Black], setup: 'langeron' },
+        {
+            id: 106,
+            capacity: 12,
+            name: 'Pratze Berg',
+            hill: true,
+            stars: [Star.Black],
+            setup: 'langeron'
+        },
         { id: 107, capacity: 4, name: 'Pratze' },
         { id: 108, capacity: 9, stars: [Star.Black], setup: 'prebyshevsky' },
         { id: 109, capacity: 6 },
         { id: 110, capacity: 9 },
         { id: 111, capacity: 9 },
-        { id: 112, capacity: 9, name: 'Krenowitz Berg', hill: true, stars: [Star.Red, Star.Black], setup: 'kollowrath' },
+        {
+            id: 112,
+            capacity: 9,
+            name: 'Krenowitz Berg',
+            hill: true,
+            stars: [Star.Red, Star.Black],
+            setup: 'kollowrath'
+        },
         { id: 113, capacity: 6, stars: [Star.Red] },
         { id: 114, capacity: 9 },
         { id: 115, capacity: 12, stars: [Star.Red, Star.Green, Star.Black] },
@@ -124,7 +145,14 @@ export const AUSTERLITZ_SPEC: MapSpec = {
         { id: 118, capacity: 20, stars: [Star.Blue] },
         { id: 119, capacity: 9 },
         { id: 120, capacity: 12 },
-        { id: 121, capacity: 9, name: 'Pratze Berg', hill: true, stars: [Star.Black], setup: 'dokhturov' },
+        {
+            id: 121,
+            capacity: 9,
+            name: 'Pratze Berg',
+            hill: true,
+            stars: [Star.Black],
+            setup: 'dokhturov'
+        },
         { id: 122, capacity: 4 },
         { id: 123, capacity: 6, setup: 'liechtenstein' },
         { id: 124, capacity: 6 },
@@ -171,7 +199,7 @@ export const AUSTERLITZ_SPEC: MapSpec = {
         { id: 167, capacity: 6 },
         { id: 168, capacity: 6 },
         { id: 169, capacity: 12 },
-        { id: 170, capacity: 9 },
+        { id: 170, capacity: 9 }
     ],
     borders: [
         { a: 1, b: 23, aSymbols: 'CA', bSymbols: 'AO' },
@@ -466,7 +494,7 @@ export const AUSTERLITZ_SPEC: MapSpec = {
         { a: 18, b: 19, impassable: true },
         { a: 21, b: 22, impassable: true },
         { a: 58, b: 78, impassable: true },
-        { a: 92, b: 103, impassable: true },
+        { a: 92, b: 103, impassable: true }
     ],
     roads: [
         [1, 0, 23, 0, 0],
@@ -749,7 +777,7 @@ export const AUSTERLITZ_SPEC: MapSpec = {
         [161, 1, 169, 0, 0],
         [162, 0, 163, 0, 0],
         [163, 0, 170, 0, 0],
-        [168, 0, 169, 0, 0],
+        [168, 0, 169, 0, 0]
     ],
     entries: [
         ['F1', Side.French, 1, 0, 0],
@@ -771,6 +799,6 @@ export const AUSTERLITZ_SPEC: MapSpec = {
         ['A17', Side.Allied, 87, 0, 1],
         ['A18', Side.Allied, 128, 0, 0],
         ['A19', Side.Allied, 129, 0, 0],
-        ['F20', Side.French, 139, 0, 0],
+        ['F20', Side.French, 139, 0, 0]
     ]
 }

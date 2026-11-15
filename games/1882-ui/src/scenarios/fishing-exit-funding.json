@@ -1,0 +1,1388 @@
+{
+ "game": {
+  "id": "scenario-1882-fishing-exit-funding",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "1882",
+  "deleted": false,
+  "name": "fishing exit funding",
+  "ownerId": "p1",
+  "players": [
+   {
+    "id": "p1",
+    "userId": "p1",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p2",
+    "userId": "p2",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p3",
+    "userId": "p3",
+    "name": "Player 3",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p4",
+    "userId": "p4",
+    "name": "Player 4",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 1450899060,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-11-15T17:18:49.847Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-15T17:18:49.847Z",
+  "progress": {
+   "fraction": 0,
+   "label": "Phase 2 · Bank $7,200"
+  }
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "5DV16QNHU8AbwHMCenD-_",
+  "gameId": "scenario-1882-fishing-exit-funding",
+  "seed": 1450899060,
+  "prng": {
+   "seed": 1450899060,
+   "invocations": 528
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "c51fea25316d2d62cca19a9091e47220ab7c1dee7e4ba4284e84dc5d08b789b7",
+   "invocations": 0
+  },
+  "masterSeed": "00000000000000000000000000000007",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p1",
+    "color": "blue"
+   },
+   {
+    "playerId": "p2",
+    "color": "red"
+   },
+   {
+    "playerId": "p3",
+    "color": "green"
+   },
+   {
+    "playerId": "p4",
+    "color": "yellow"
+   }
+  ],
+  "phaseEvents": [],
+  "usedPrivatePowerIds": [],
+  "machineState": "BuyingTrains",
+  "stockRound": {
+   "number": 1,
+   "completed": true,
+   "passedPlayerIds": [
+    "p2",
+    "p3",
+    "p4",
+    "p1"
+   ],
+   "turn": {
+    "acted": false,
+    "bought": false,
+    "soldBeforeBuying": false,
+    "companiesSold": []
+   },
+   "sales": [],
+   "companyPurchases": []
+  },
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p2",
+    "p3",
+    "p4",
+    "p1"
+   ],
+   "turnCounts": {
+    "p1": 5,
+    "p2": 4,
+    "p3": 4,
+    "p4": 5
+   },
+   "seriesKeeps": "latest"
+  },
+  "stockMarket": {
+   "stacks": [
+    {
+     "spaceId": "2:3",
+     "companyIds": [
+      "CPR"
+     ]
+    },
+    {
+     "spaceId": "5:2",
+     "companyIds": [
+      "CNoR"
+     ]
+    }
+   ]
+  },
+  "bank": {},
+  "companies": [
+   {
+    "id": "CN",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "CNoR",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 67,
+    "president": {
+     "kind": "player",
+     "playerId": "p1"
+    },
+    "lastRunRevenue": 0
+   },
+   {
+    "id": "CPR",
+    "kind": "major",
+    "started": true,
+    "floated": false,
+    "funded": false,
+    "operated": false,
+    "parPrice": 82,
+    "president": {
+     "kind": "player",
+     "playerId": "p4"
+    }
+   },
+   {
+    "id": "GTP",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "HBR",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "QL",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "SCR",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "HB",
+    "kind": "private"
+   },
+   {
+    "id": "SC",
+    "kind": "private"
+   },
+   {
+    "id": "NWR",
+    "kind": "private"
+   },
+   {
+    "id": "TB",
+    "kind": "private"
+   },
+   {
+    "id": "CP",
+    "kind": "private"
+   }
+  ],
+  "cash": [
+   {
+    "owner": {
+     "kind": "bank"
+    },
+    "amount": 7347
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "p1"
+    },
+    "amount": 142
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "p2"
+    },
+    "amount": 385
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "p3"
+    },
+    "amount": 176
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "p4"
+    },
+    "amount": 280
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CN"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CNoR"
+    },
+    "amount": 50
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CPR"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "GTP"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "HBR"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "QL"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "SCR"
+    },
+    "amount": 0
+   }
+  ],
+  "certificatePools": [
+   {
+    "id": "initial-offering",
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "open-market",
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "certificates": [
+   {
+    "id": "CN:president",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:1",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:2",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:3",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:4",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:5",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:6",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:7",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CN:share:8",
+    "companyId": "CN",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CNoR:president",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "p1"
+    }
+   },
+   {
+    "id": "CNoR:share:1",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "p3"
+    }
+   },
+   {
+    "id": "CNoR:share:2",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "p1"
+    }
+   },
+   {
+    "id": "CNoR:share:3",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "p3"
+    }
+   },
+   {
+    "id": "CNoR:share:4",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "p1"
+    }
+   },
+   {
+    "id": "CNoR:share:5",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CNoR:share:6",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CNoR:share:7",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CNoR:share:8",
+    "companyId": "CNoR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:president",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "p4"
+    }
+   },
+   {
+    "id": "CPR:share:1",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:2",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:3",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:4",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:5",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:6",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:7",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CPR:share:8",
+    "companyId": "CPR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:president",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:1",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:2",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:3",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:4",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:5",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:6",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:7",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GTP:share:8",
+    "companyId": "GTP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:president",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:share:1",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "p3"
+    }
+   },
+   {
+    "id": "HBR:share:2",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:share:3",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:share:4",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:share:5",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:share:6",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:share:7",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HBR:share:8",
+    "companyId": "HBR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:president",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:1",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:2",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:3",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:4",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:5",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:6",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:7",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "QL:share:8",
+    "companyId": "QL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:president",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:1",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:2",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:3",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:4",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:5",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:6",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:7",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SCR:share:8",
+    "companyId": "SCR",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "HB:charter",
+    "companyId": "HB",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "p4"
+    }
+   },
+   {
+    "id": "SC:charter",
+    "companyId": "SC",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "p1"
+    }
+   },
+   {
+    "id": "NWR:charter",
+    "companyId": "NWR",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "p2"
+    }
+   },
+   {
+    "id": "TB:charter",
+    "companyId": "TB",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "p3"
+    }
+   },
+   {
+    "id": "CP:charter",
+    "companyId": "CP",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "p4"
+    }
+   }
+  ],
+  "stations": [
+   {
+    "id": "CNoR:home",
+    "companyId": "CNoR",
+    "status": "placed",
+    "position": {
+     "locationId": "D8",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "CNoR:station:1",
+    "companyId": "CNoR",
+    "status": "placed",
+    "position": {
+     "locationId": "D6",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "CNoR:station:2",
+    "companyId": "CNoR",
+    "status": "available"
+   },
+   {
+    "id": "CPR:home",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "CPR:station:1",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "CPR:station:2",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "CPR:station:3",
+    "companyId": "CPR",
+    "status": "available"
+   },
+   {
+    "id": "GTP:home",
+    "companyId": "GTP",
+    "status": "available"
+   },
+   {
+    "id": "GTP:station:1",
+    "companyId": "GTP",
+    "status": "available"
+   },
+   {
+    "id": "GTP:station:2",
+    "companyId": "GTP",
+    "status": "available"
+   },
+   {
+    "id": "HBR:home",
+    "companyId": "HBR",
+    "status": "available"
+   },
+   {
+    "id": "HBR:station:1",
+    "companyId": "HBR",
+    "status": "available"
+   },
+   {
+    "id": "HBR:station:2",
+    "companyId": "HBR",
+    "status": "available"
+   },
+   {
+    "id": "QL:home",
+    "companyId": "QL",
+    "status": "available"
+   },
+   {
+    "id": "QL:station:1",
+    "companyId": "QL",
+    "status": "available"
+   },
+   {
+    "id": "SCR:home",
+    "companyId": "SCR",
+    "status": "available"
+   },
+   {
+    "id": "CN:neutral:CNoR",
+    "companyId": "CN",
+    "status": "available"
+   },
+   {
+    "id": "CN:neutral:GTP",
+    "companyId": "CN",
+    "status": "available"
+   },
+   {
+    "id": "CN:neutral:HBR",
+    "companyId": "CN",
+    "status": "available"
+   },
+   {
+    "id": "CN:neutral:QL",
+    "companyId": "CN",
+    "status": "available"
+   },
+   {
+    "id": "CN:neutral:SCR",
+    "companyId": "CN",
+    "status": "available"
+   },
+   {
+    "id": "CN:neutral:supply",
+    "companyId": "CN",
+    "status": "available"
+   }
+  ],
+  "neutralStations": [
+   {
+    "stationId": "CN:neutral:CNoR",
+    "heldBy": "CNoR"
+   },
+   {
+    "stationId": "CN:neutral:GTP",
+    "heldBy": "GTP"
+   },
+   {
+    "stationId": "CN:neutral:HBR",
+    "heldBy": "HBR"
+   },
+   {
+    "stationId": "CN:neutral:QL",
+    "heldBy": "QL"
+   },
+   {
+    "stationId": "CN:neutral:SCR",
+    "heldBy": "SCR"
+   },
+   {
+    "stationId": "CN:neutral:supply"
+   }
+  ],
+  "stationReservations": [
+   {
+    "companyId": "GTP",
+    "nodeId": "city",
+    "locationId": "L8"
+   },
+   {
+    "companyId": "HBR",
+    "nodeId": "city",
+    "locationId": "G11"
+   },
+   {
+    "companyId": "CPR",
+    "nodeId": "city",
+    "locationId": "I5"
+   }
+  ],
+  "hexReservations": [
+   {
+    "companyId": "QL",
+    "locationId": "J10"
+   }
+  ],
+  "tileInventory": {
+   "placements": {
+    "D6": {
+     "pieceId": "1882:standard/57/1",
+     "definitionId": "18xx:57",
+     "rotation": 0
+    }
+   },
+   "retiredPieceIds": []
+  },
+  "trainInventory": {
+   "trains": [
+    {
+     "id": "1882/2/1",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1882/2/2",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1882/2/3",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1882/2/4",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1882/2/5",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1882/2/6",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1882/3/7",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1882/3/8",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1882/3/9",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1882/3/10",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1882/4/12",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1882/4/13",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1882/4/14",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1882/5/16",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1882/5/17",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1882/6/19",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1882/6/20",
+     "definitionId": "6",
+     "status": "depot"
+    }
+   ],
+   "nextTrainNumber": 22
+  },
+  "phaseId": "2",
+  "rebellion": {
+   "definitionId": "6"
+  },
+  "trestleShareCompanyId": "HBR",
+  "openingAuction": {
+   "remainingLotIds": [],
+   "reservations": [],
+   "nextPlayerId": "p1",
+   "passedPlayerIds": [],
+   "discount": 0,
+   "awards": [
+    {
+     "playerId": "p4",
+     "lotId": "HB",
+     "price": 20
+    },
+    {
+     "playerId": "p1",
+     "lotId": "SC",
+     "price": 50
+    },
+    {
+     "playerId": "p2",
+     "lotId": "NWR",
+     "price": 80
+    },
+    {
+     "playerId": "p3",
+     "lotId": "TB",
+     "price": 140
+    },
+    {
+     "playerId": "p4",
+     "lotId": "CP",
+     "price": 180
+    }
+   ],
+   "completed": true,
+   "lastPurchaserId": "p4"
+  },
+  "operatingSet": {
+   "number": 1,
+   "roundNumber": 1,
+   "roundCount": 1,
+   "companyOrder": [
+    "CNoR"
+   ],
+   "completedCompanyIds": [],
+   "privateIncomePaid": true,
+   "completed": false
+  },
+  "trackStep": {
+   "companyId": "CNoR",
+   "lays": [],
+   "completed": true
+  },
+  "stationStep": {
+   "companyId": "CNoR",
+   "placedStationIds": [],
+   "completed": true
+  },
+  "routeStep": {
+   "companyId": "CNoR",
+   "result": {
+    "companyId": "CNoR",
+    "routes": [],
+    "revenue": 0
+   }
+  },
+  "earningsDistribution": {
+   "companyId": "CNoR",
+   "choice": "withhold",
+   "revenue": 0,
+   "retained": 0,
+   "dividendPerShare": 0,
+   "bonusPerShare": 0,
+   "bankAdjustment": 0,
+   "payments": [],
+   "marketMove": {
+    "companyId": "CNoR",
+    "fromMarketSpaceId": "5:3",
+    "toMarketSpaceId": "5:2"
+   }
+  },
+  "trainPurchaseStep": {
+   "companyId": "CNoR",
+   "purchasedTrainIds": []
+  }
+ },
+ "actions": []
+}

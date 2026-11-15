@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { aggregateActions } from '$lib/utils/actionAggregator.js'
     import ActionDescription from './ActionDescription.svelte'

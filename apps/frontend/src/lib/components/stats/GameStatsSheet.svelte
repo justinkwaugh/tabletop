@@ -1,6 +1,5 @@
 <script lang="ts">
     import { evenOddsWinRate } from '@tabletop/common'
-    import { createTimeAgo } from '@tabletop/frontend-components'
     import {
         countOf,
         formatAverage,
@@ -11,18 +10,18 @@
         type GameStatsScope,
         type MonthIndex
     } from '$lib/utils/gameStats'
+    import { timeSince } from '$lib/utils/clock.svelte'
     import MonthlyGamesChart from './MonthlyGamesChart.svelte'
     import OutcomeStrip from './OutcomeStrip.svelte'
     import WinRateMeter from './WinRateMeter.svelte'
 
     let { scope, months }: { scope: GameStatsScope; months: MonthIndex[] } = $props()
 
-    const timeAgo = createTimeAgo()
     const summary = $derived(scope.summary)
     const facts = $derived([
         countOf(summary.opponentCount, 'opponent'),
         `first finished ${monthName(localMonth(summary.firstFinishedAt), 'long')}`,
-        `last finished ${timeAgo.format(summary.lastFinishedAt)}`,
+        `last finished ${timeSince(new Date(summary.lastFinishedAt))}`,
         summary.averageDays < 1
             ? 'under a day per game on average'
             : `${countOf(Math.round(summary.averageDays), 'day')} per game on average`,

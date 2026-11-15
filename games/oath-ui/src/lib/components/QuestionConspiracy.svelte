@@ -90,7 +90,7 @@
                 <TokenText text={gameSession.humanizeReason(refused) ?? ''} />
             </p>
         {:else if draft.conspiracyStepComplete}
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2" data-answer-row>
                 <AnswerButton
                     primary
                     width={confirmWidth}

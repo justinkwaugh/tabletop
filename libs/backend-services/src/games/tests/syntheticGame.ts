@@ -145,8 +145,15 @@ class NoteAction extends HydratableAction<typeof Note> {
     constructor(action: Note) {
         super(action, NoteValidator)
     }
-    apply(state: SyntheticState) {
+    apply(state: SyntheticState, context?: MachineContext) {
         state.notes = { ...state.notes, [this.playerId]: this.text }
+        if (
+            this.text === 'acts now' ||
+            (this.text === 'acts on empty board' && !state.board.length)
+        ) {
+            assertExists(context, 'A declaration that acts needs its cascade')
+            context.addSystemAction(OpenAuction, {})
+        }
     }
 }
 
@@ -224,13 +231,15 @@ export const SyntheticRuntime = {
             validActionsForPlayer() {
                 return ['step', 'draw', 'bid', 'note', 'tally']
             },
-            isValidAction(action: GameAction) {
+            isValidAction(action: GameAction, context: MachineContext<SyntheticState>) {
                 return (
                     StepValidator.Check(action) ||
                     DrawValidator.Check(action) ||
                     OpenAuctionValidator.Check(action) ||
                     BidValidator.Check(action) ||
-                    (NoteValidator.Check(action) && action.text !== 'invalid') ||
+                    (NoteValidator.Check(action) &&
+                        action.text !== 'invalid' &&
+                        (action.text !== 'needs board' || context.gameState.board.length > 0)) ||
                     TallyValidator.Check(action)
                 )
             },

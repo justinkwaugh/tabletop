@@ -9,16 +9,23 @@ import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
 import { accessibleCardIds } from './access.js'
 import { boardWarbandGroups } from './force.js'
 import { describeWarbands } from './warbands.js'
-import { choiceSpecsFor, effectFor } from '../powers/registry.js'
+import { choiceSpecsFor, effectFor, type PlayMapChanges } from '../powers/registry.js'
 import { isAtLeastOathRevision, type OathRevision } from './revision.js'
 
 export { PowerChoice, PowerChoiceKind }
 
-/** A `warbands` option carries the group's maximum; the player picks how many. */
+/**
+ * A `warbands` option carries the group's maximum; the player picks how many. `earlier` is the
+ * choices taken before this one (none when absent), which a spec marked `readsEarlier` narrows
+ * its options by. For a When Played power, `mapChanges` is its play (R-5.1.4, R-7.3.3): where the card is played
+ * and what the play takes off the map first, on the state before the play.
+ */
 export type ChoiceDomain = (
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    earlier?: readonly PowerChoice[],
+    mapChanges?: PlayMapChanges
 ) => PowerChoice[]
 
 /** R-7.1.3 — `min: 0` is the "may". */
@@ -29,6 +36,16 @@ export interface ChoiceSpec {
     domain?: ChoiceDomain
     /** Its domain is read on the state the earlier choices leave: `EffectDefinition.stateAfter`. */
     sequential?: true
+    /**
+     * Its domain reads the choices taken before it (`ChoiceDomain`'s `earlier`), so its options
+     * follow those picks: Assassin's card is one of the picked player's advisers.
+     */
+    readsEarlier?: true
+    /**
+     * Its choices are steps in order, so an option may be named again, though never twice in a
+     * row (Witch's Bargain from revision 32: each exchange uses what the user holds then).
+     */
+    inOrder?: true
     what?: string
     allows?: ExchangeAllowance
     /** R-X.4 — asked only in a game created at this revision or later. */
@@ -43,6 +60,17 @@ export interface ChoiceSpec {
     /** Warbands: the count goes in multiples of it (Blood Pact's "an even number"). */
     step?: number
     /**
+     * Warbands: each option is a place and the one warband the power takes from it (Wrestlers'
+     * sacrifice), so a place is picked whole. Read only by `offeredChoices`' callers.
+     */
+    byPlace?: true
+    /**
+     * Asked only while its domain offers an option: with none there is nothing to name, and the
+     * power is used all the same, its effect finding nothing (Wrestlers with no warband in the
+     * force, R-10.22).
+     */
+    askedIfAny?: true
+    /**
      * Yes: the card's "or". No Yes is its first branch and a Yes its second, so neither is the
      * default (R-7.1.3). Read only by `offeredChoices`' callers.
      */
@@ -53,7 +81,11 @@ export interface ChoiceSpec {
      * Read only by `offeredChoices`: a choice sent is judged by the domain and the effect, as
      * without it.
      */
-    offered?: (state: HydratedOathGameState, playerId: string) => boolean
+    offered?: (
+        state: HydratedOathGameState,
+        playerId: string,
+        mapChanges?: PlayMapChanges
+    ) => boolean
     /**
      * FavorBank: each spec of the run names one favor; the run names `total` favor from
      * `sources`, as the effect's own check (R-7.1.3) reads it. Read only by `offeredChoices`.
@@ -223,29 +255,34 @@ export function legalChoices(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    earlier: readonly PowerChoice[] = []
+    earlier: readonly PowerChoice[] = [],
+    mapChanges?: PlayMapChanges
 ): LegalChoice[] {
     const specs = choiceSpecsAt(state, power)
     const readingFor = readingStates(state, playerId, power, specs, earlier)
     return specs.map((spec) => ({
         spec,
-        options: domainOf(spec)(readingFor(spec), playerId, power)
+        options: domainOf(spec)(readingFor(spec), playerId, power, earlier, mapChanges)
     }))
 }
 
 /**
  * R-7.1.3 — the choices a menu offers: `legalChoices`, less a yes the card rules out now
  * (`ChoiceSpec.offered`) and a bank a favor run cannot name (`ChoiceSpec.favorTotal`, with the
- * run's total). It judges nothing: the doorway reads the domains alone.
+ * run's total). It judges nothing: the doorway reads the domains alone. For a When Played power, `mapChanges` is
+ * the play's (R-7.3.3): what it does to the map and gains before the power, which a card's condition may read.
+ * `earlier` is the picks made so far, which a `readsEarlier` spec's options follow.
  */
 export function offeredChoices(
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    mapChanges?: PlayMapChanges,
+    earlier: readonly PowerChoice[] = []
 ): LegalChoice[] {
-    return legalChoices(state, playerId, power).map((legal) => {
+    return legalChoices(state, playerId, power, earlier, mapChanges).map((legal) => {
         const { offered, favorTotal } = legal.spec
-        if (offered && !offered(state, playerId)) return { ...legal, options: [] }
+        if (offered && !offered(state, playerId, mapChanges)) return { ...legal, options: [] }
         if (!favorTotal) return legal
         const { sources, total } = favorTotal(state, playerId)
         return {
@@ -288,12 +325,16 @@ function keyOf(choice: PowerChoice): string {
     }
 }
 
-/** R-7.1.3, R-X.1 — matched to specs by kind, in declaration order. */
+/**
+ * R-7.1.3, R-X.1 — matched to specs by kind, in declaration order. A When Played power's domains read its play's
+ * `mapChanges`.
+ */
 export function reasonChoicesInvalid(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    choices: readonly PowerChoice[] | undefined
+    choices: readonly PowerChoice[] | undefined,
+    mapChanges?: PlayMapChanges
 ): string | undefined {
     const specs = choiceSpecsAt(state, power)
     const all = choices ?? []
@@ -326,17 +367,16 @@ export function reasonChoicesInvalid(
         let options: Map<string, PowerChoice> | undefined
         const optionsOf = () =>
             (options ??= new Map(
-                domainOf(spec)(readingOf(spec, earlier), playerId, power).map((option) => [
-                    keyOf(option),
-                    option
-                ])
+                domainOf(spec)(readingOf(spec, earlier), playerId, power, earlier, mapChanges).map(
+                    (option) => [keyOf(option), option]
+                )
             ))
         let offeredLater: Set<string> | undefined
         const offeredLaterOf = () =>
             (offeredLater ??= new Set(
                 later.flatMap((l) =>
-                    domainOf(l)(readingOf(l, earlier), playerId, power).map((option) =>
-                        keyOf(option)
+                    domainOf(l)(readingOf(l, earlier), playerId, power, earlier, mapChanges).map(
+                        (option) => keyOf(option)
                     )
                 )
             ))
@@ -349,10 +389,11 @@ export function reasonChoicesInvalid(
             given.shift()
         }
 
-        if (taken.length < spec.min) {
+        const least = spec.askedIfAny && optionsOf().size === 0 ? 0 : spec.min
+        if (taken.length < least) {
             return taken.length === 0
                 ? `no choice was made for ${describe(spec)}`
-                : `${taken.length} given where at least ${spec.min} of ${describe(spec)} were wanted`
+                : `${taken.length} given where at least ${least} of ${describe(spec)} were wanted`
         }
         // A surplus may belong to a later spec of the same kind.
         if (given.length > 0 && given[0].kind === spec.kind && !laterSameKind) {
@@ -360,13 +401,18 @@ export function reasonChoicesInvalid(
         }
 
         const seen = new Set<string>()
+        let previous: string | undefined
         for (const choice of taken) {
             const key = keyOf(choice)
             const option = optionsOf().get(key)
             if (!option) {
                 return `${describe(choice)} is not among the options for ${describe(spec)}`
             }
-            if (seen.has(key)) {
+            if (spec.inOrder && key === previous) {
+                return `${describe(choice)} was chosen twice in a row for ${describe(spec)}`
+            }
+            previous = key
+            if (!spec.inOrder && seen.has(key)) {
                 return `${describe(choice)} was chosen twice for ${describe(spec)}`
             }
             seen.add(key)

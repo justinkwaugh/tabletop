@@ -121,7 +121,7 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
             return "It isn't your turn to place a wall."
         }
         if (!state.wallsRemaining || state.wallsRemaining <= 0) {
-            return "You have no walls left to place this turn."
+            return 'You have no walls left to place this turn.'
         }
 
         if (!isOnBoard(this.col1, this.row1) || !isOnBoard(this.col2, this.row2)) {
@@ -161,7 +161,7 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
             (region) => region.squareKeys.includes(key1) && region.squareKeys.includes(key2)
         )
         if (alreadyInSameRegion) {
-            return "Those two squares are already inside the same completed region."
+            return 'Those two squares are already inside the same completed region.'
         }
 
         return undefined

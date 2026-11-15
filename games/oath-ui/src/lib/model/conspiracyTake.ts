@@ -170,3 +170,20 @@ export function conspiracyPlayOf(
             : conspiracyPrizes(state, playerId, target)[pick.prizeIndex]?.prize
     return prize ? { targetPlayerId: target, take: prize } : undefined
 }
+
+/**
+ * The take is picked whole: nobody (no take, R-5.1.4.IV's "may"), or a player and a prize. A
+ * player picked with no prize is a take begun, not a decline.
+ */
+export function conspiracyPickComplete(
+    state: HydratedOathGameState,
+    playerId: string,
+    pick: ConspiracyPick
+): boolean {
+    const target = pick.targetPlayerId
+    return (
+        target === undefined ||
+        !conspiracyTargets(state, playerId).includes(target) ||
+        conspiracyPlayOf(state, playerId, pick) !== undefined
+    )
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Side } from '../components/pieces.js'
-import { TestGame } from '../testing/harness.js'
+import { MachineState } from '../definition/states.js'
+import { TestGame, playOut } from '../testing/harness.js'
 import { artilleryMayFire, artilleryReadyRound, restingArtillery } from './attackOrders.js'
 
 const FLAT = { from: 72, to: 74 }
@@ -92,5 +93,20 @@ describe('the round artillery may lead again from an approach it fired across', 
                 { attackApproach: downhill, playerId: undefined, ready: round + 1 }
             ])
         )
+    })
+
+    it('leaves no guns resting once the day is over', () => {
+        const game = underway()
+        const approach = approachOf(game, FLAT)
+        const french = game.playerOf(Side.French)
+        playOut(game)
+        const lastRoundPlayed = (game.hydrated.rounds.series.at(-1)?.number ?? 0) - 1
+        game.arrange((state) => {
+            state.getPlayerState(french).artilleryFire = { [String(approach)]: lastRoundPlayed }
+        })
+        expect(game.state.machineState).toBe(MachineState.EndOfGame)
+        expect(game.hydrated.roundInProgress).toBe(false)
+        expect(restingArtillery(game.hydrated)).toEqual([])
+        expect(artilleryReadyRound(game.hydrated, french, approach)).toBeUndefined()
     })
 })

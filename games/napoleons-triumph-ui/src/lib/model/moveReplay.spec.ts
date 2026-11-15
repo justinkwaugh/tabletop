@@ -8,12 +8,19 @@ import {
     type MoveOrder
 } from '@tabletop/napoleons-triumph'
 import {
+    RIDDEN_IN,
     TestGame,
     arrangeBattlefield,
     cavalry,
-    infantry
+    infantry,
+    waitOffMap
 } from '@tabletop/napoleons-triumph/testing'
-import { APPROACH_GEOMETRY, BOARD_HEIGHT, BOARD_WIDTH } from '$lib/map/boardGeometry.js'
+import {
+    APPROACH_GEOMETRY,
+    BOARD_HEIGHT,
+    BOARD_WIDTH,
+    LOCALE_GEOMETRY
+} from '$lib/map/boardGeometry.js'
 import { coveredBy } from '$lib/utils/blockShape.js'
 import { BoardView, toView, viewRotation } from '$lib/utils/boardView.js'
 import { layoutPieces } from '$lib/utils/pieceLayout.js'
@@ -166,6 +173,61 @@ describe('what the history can replay', () => {
         expect(idsOf(moved.left)).toEqual(['F-inf'])
         expect(moved.arrows).toHaveLength(1)
         expect(moved.attackMark).toBeUndefined()
+    })
+
+    it('is cavalry taking a locale by road, with its arrow along the road through the locale it attacked from', () => {
+        const recorded = deployed()
+        arrangeBattlefield(recorded.game, [
+            { id: 'A-cav', side: Side.Allied, face: cavalry(2), locale: 74 },
+            { id: 'F-inf', side: Side.French, face: infantry(2), locale: 72 }
+        ])
+        recorded.actions.length = 0
+        const rider = { kind: CommandKind.Unit, unitIds: ['A-cav'] }
+        recorded.act(ActionType.ThreatenAttack, Side.Allied, {
+            approach: recorded.game.hydrated.map.approachBetween(73, 72).id,
+            plan: rider
+        })
+        recorded.act(ActionType.Retreat, Side.French, {
+            losses: { 'F-inf': 1 },
+            destinations: { 'F-inf': 83 },
+            kept: {}
+        })
+        const occupation = recorded.act(ActionType.Occupy, Side.Allied, {
+            orders: [{ ...rider, road: [73] }]
+        })
+        const [arrow] = moveReplayScene(recorded.replay(occupation), NORTH).arrows
+        expect(arrow.shaft).toContainEqual(LOCALE_GEOMETRY[73].anchor)
+    })
+
+    it('is reinforcement cavalry taking a locale by road, with its arrow from the edge of the field', () => {
+        const { entry, taken, corps } = RIDDEN_IN
+        const recorded = deployed()
+        recorded.act(ActionType.EndTurn, Side.Allied)
+        arrangeBattlefield(recorded.game, [
+            { id: 'A-screen', side: Side.Allied, face: cavalry(1), locale: taken }
+        ])
+        waitOffMap(recorded.game, corps.commanderId, [{ id: 'F-off', face: cavalry(2) }])
+        recorded.actions.length = 0
+        const { map } = recorded.game.hydrated
+        const mainRoad = map
+            .entries(Side.French)
+            .find((candidate) => candidate.locale === entry && candidate.main)
+        assertExists(mainRoad, 'Expected a main road onto the field')
+        recorded.act(ActionType.ThreatenAttack, Side.French, {
+            approach: map.approachBetween(entry, taken).id
+        })
+        recorded.act(ActionType.Retreat, Side.Allied, {
+            losses: {},
+            destinations: { 'A-screen': 39 },
+            kept: {}
+        })
+        const occupation = recorded.act(ActionType.Occupy, Side.French, {
+            orders: [{ ...corps, entryId: mainRoad.id, road: [entry] }]
+        })
+        const scene = moveReplayScene(recorded.replay(occupation), NORTH)
+        expect(scene.left).toEqual([])
+        expect(scene.arrows).toHaveLength(1)
+        expect(scene.arrows[0].shaft).toContainEqual(LOCALE_GEOMETRY[entry].anchor)
     })
 
     function standsAgainstAThreat(defenders: string[]) {

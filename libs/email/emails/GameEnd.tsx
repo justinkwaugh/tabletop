@@ -1,5 +1,5 @@
 import { Section, Text } from '@react-email/components'
-import { GameResult } from '@tabletop/common'
+import { GameCallKind, GameResult, STALLED_GAME_END_DAYS } from '@tabletop/common'
 import type { ReactNode } from 'react'
 import {
     ButtonFallback,
@@ -15,16 +15,20 @@ interface GameEndProps {
     title: string
     gameName: string
     winners: string[]
+    callKind?: GameCallKind
     url?: string
 }
 
-export const GameEnd = ({ result, title, gameName, winners, url = `` }: GameEndProps) => {
+export const GameEnd = ({ result, title, gameName, winners, callKind, url = `` }: GameEndProps) => {
     const winnerNames = formatNames(winners, 'Someone')
     let previewText: string
     let resultText: ReactNode
     if (result === GameResult.Draw) {
         previewText = `Your ${title} game ${gameName} has ended in a draw.`
         resultText = `${winnerNames} tied`
+    } else if (callKind === GameCallKind.Stalled) {
+        previewText = `Your ${title} game ${gameName} ended with no move in ${STALLED_GAME_END_DAYS} days.`
+        resultText = `Nobody moved for ${STALLED_GAME_END_DAYS} days, so the game ended with no winner`
     } else if (result === GameResult.Abandoned) {
         previewText = `Your ${title} game ${gameName} was abandoned.`
         resultText = 'The game was abandoned'

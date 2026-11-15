@@ -67,7 +67,9 @@ describe('IndonesiaGraph', () => {
         ).toEqual(['S14'])
 
         const expectedS01SeaNeighbors = sorted(
-            INDONESIA_NODES.find((node) => node.id === 'S01')!.neighbors[IndonesiaNeighborDirection.Sea]
+            INDONESIA_NODES.find((node) => node.id === 'S01')!.neighbors[
+                IndonesiaNeighborDirection.Sea
+            ]
         )
         expect(
             sorted(

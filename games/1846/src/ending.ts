@@ -5,6 +5,8 @@ import { ValuationRules1846 } from './operating.js'
 export const EndingRules1846: EndingRules = {
     ...ValuationRules1846,
     trigger(state) {
+        if (state.turnManager.turnOrder.length === 1)
+            return { reason: 'All other players bankrupt' }
         if (state.companies.every((company) => company.closed))
             return { reason: 'All companies closed' }
         const bankEnding = bankExhaustionAtSetEnd(state)

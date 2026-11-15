@@ -16,6 +16,8 @@ import {
     PowerChoiceKind,
     availableImperialWarbands,
     availablePeoplesFavorOptions,
+    peoplesFavorStepCount,
+    peoplesFavorStepIsOptional,
     availableSitePowerTakes,
     banksWithLeastFavor,
     canUseSitePower,
@@ -26,7 +28,9 @@ import {
     requiredFavorSteps,
     usableFavor,
     type CitizenshipTerms,
+    type LegalChoice,
     type LegalPowerUse,
+    type ModifierUse,
     type OpportunityTake,
     type PowerChoice,
     type PowerUseKey,
@@ -51,13 +55,17 @@ import {
     type PiecePlace
 } from './citizenshipAnswer.js'
 import {
+    choicesOnPicks,
     emptyPicks,
     favorBankSuits,
     hasPicks,
+    leavesNoPick,
+    picksCannotBeMade,
     picksComplete,
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
+import { offersNoBargain } from './bargainPicks.js'
 import { samePowerUse } from './powerUse.js'
 import { pickerWords } from './powerPickerWords.js'
 import {
@@ -76,7 +84,7 @@ import {
     type MovePick,
     type PowerMoves
 } from './powerMoves.js'
-import { addableCount, tappedCount } from './exchangeTerms.js'
+import { addableCount, noExchangePicks, promiseEdited, tappedCount } from './exchangeTerms.js'
 import {
     StagedFlow,
     TapHistoryDraft,
@@ -85,10 +93,11 @@ import {
 } from './stagedFlow.svelte.js'
 import type { OathGameSession } from './session.svelte.js'
 import { restBankChoice, restRows, type RestRow } from './restRows.js'
+import { AsIfSearchedRows, type DeclaredModifier } from './modifierRows.js'
 import { suitName } from './names.js'
 
 /** The panel drafts with one step: Undo clears the draft, and the derived default returns. */
-abstract class OneStepDraft<V> implements PanelDraft {
+export abstract class OneStepDraft<V> implements PanelDraft {
     private flow = new StagedFlow<{ draft: V }>(['draft'])
 
     constructor(protected readonly session: OathGameSession) {}
@@ -115,11 +124,13 @@ abstract class OneStepDraft<V> implements PanelDraft {
 }
 
 export type FavorStepKind = 'place' | 'return'
+/** Vow of Kinship's Q&A — a place only its bank would pay may be left: "none" (R-10.10-H1). */
+export type FavorStepAnswer = FavorStepKind | 'none'
 type SiteTake = OpportunityTake | 'nothing'
 type WakeValueByStage = {
-    firstKind: FavorStepKind
+    firstKind: FavorStepAnswer
     firstBank: Suit
-    secondKind: FavorStepKind
+    secondKind: FavorStepAnswer
     secondBank: Suit
     siteTake: SiteTake
 }
@@ -136,16 +147,16 @@ const FAVOR_STEP_STAGES = [
 
 /** The one Wake choice on screen: a People's Favor step, the bank of its return, or the site's take. */
 export type WakeQuestion =
-    | { kind: 'favorStep'; index: number; options: FavorStepKind[] }
+    | { kind: 'favorStep'; index: number; options: FavorStepAnswer[] }
     | { kind: 'returnBank'; index: number; banks: Suit[]; counts: Record<Suit, number> }
     | { kind: 'siteTake'; takes: OpportunityTake[] }
 
 type FavorStepView = {
-    options: FavorStepKind[]
+    options: FavorStepAnswer[]
     leastBanks: Suit[]
     /** Each bank's favor as the steps before this one leave it: what `leastBanks` is judged on. */
     bankCounts: Record<Suit, number>
-    kind?: FavorStepKind
+    kind?: FavorStepAnswer
     step?: WakeFavorStep
 }
 
@@ -171,14 +182,16 @@ export class WakeDraft implements PanelDraft {
             : undefined
     }
 
-    // R-4.1.1 is mandatory for the holder alone; `requiredFavorSteps` counts the steps the
-    // holder is able to take (R-9.2.a) without asking who holds it.
+    // R-4.1.1 is for the holder alone: the steps they could take. `requiredFavorSteps` counts those
+    // they must (R-9.2.a); a place the Vow of Kinship's bank would pay may also be taken.
     get stepCount(): number {
         const playerId = this.playerId
-        return playerId !== undefined &&
-            bannerHolder(this.session.gameState, Banner.PeoplesFavor) === playerId
-            ? requiredFavorSteps(this.session.gameState, playerId)
-            : 0
+        const state = this.session.gameState
+        if (playerId === undefined || bannerHolder(state, Banner.PeoplesFavor) !== playerId)
+            return 0
+        return usableFavor(state, playerId) > 0
+            ? peoplesFavorStepCount(state)
+            : requiredFavorSteps(state, playerId)
     }
 
     private stagesOf(index: number) {
@@ -195,8 +208,11 @@ export class WakeDraft implements PanelDraft {
         const rehearsal = new HydratedOathGameState(this.session.gameState.dehydrate())
         const views: FavorStepView[] = []
         for (const index of range(0, this.stepCount)) {
-            const options = availablePeoplesFavorOptions(rehearsal, playerId)
-            if (options.length === 0) break
+            const able = availablePeoplesFavorOptions(rehearsal, playerId)
+            if (able.length === 0) break
+            const options: FavorStepAnswer[] = peoplesFavorStepIsOptional(rehearsal, playerId)
+                ? [...able, 'none']
+                : able
             const leastBanks = banksWithLeastFavor(rehearsal)
             const bankCounts = { ...rehearsal.favorBank }
             const stages = this.stagesOf(index)
@@ -221,6 +237,7 @@ export class WakeDraft implements PanelDraft {
                       ? { kind, toSuit: bank }
                       : undefined
             views.push({ options, leastBanks, bankCounts, kind, step })
+            // A step left leaves the banner as it was, so nothing more is asked.
             if (!step) break
             applyPeoplesFavorStep(rehearsal, playerId, step)
         }
@@ -252,7 +269,7 @@ export class WakeDraft implements PanelDraft {
 
     get question(): WakeQuestion | undefined {
         const steps = this.steps
-        const open = steps.findIndex((view) => view.step === undefined)
+        const open = steps.findIndex((view) => view.step === undefined && view.kind !== 'none')
         const view = steps[open]
         if (view) {
             return view.kind === 'return'
@@ -303,7 +320,7 @@ export class WakeDraft implements PanelDraft {
         )
     }
 
-    async chooseKind(kind: FavorStepKind): Promise<void> {
+    async chooseKind(kind: FavorStepAnswer): Promise<void> {
         const question = this.question
         if (question?.kind !== 'favorStep' || !question.options.includes(kind)) return
         this.flow.set(this.stagesOf(question.index).kind, kind)
@@ -456,12 +473,79 @@ const PALANQUIN = 'denizen.order.palanquin'
 type PicksByPower = Record<string, PowerChoicePicks>
 
 /**
+ * The panel's picks: each power's own, and the cards in use on the row of a power whose use declares Search
+ * modifiers (Oracle, R-7.4), both keyed by the power.
+ */
+type ActionPowerPicks = { picks: PicksByPower; modifiers: Record<string, DeclaredModifier[]> }
+
+/**
+ * R-6.2, R-7.3.2 — the "Action:" powers Use a power lists: each the engine allows, with the
+ * choices its card offers now (a bank the run cannot name is not one), less one with nothing it
+ * can pick. That is one whose picks can never be made, Witch's Bargain with no one to exchange
+ * with, or one leaving the player no pick to make whose one use the engine refuses (Ivory Eye
+ * with nothing facedown; Dream Thief with one facedown adviser in the game, which it would swap
+ * with itself): no use of it can be sent.
+ */
+export function listedActionPowers(
+    state: HydratedOathGameState,
+    playerId: string
+): LegalPowerUse[] {
+    return HydratedUseActionPower.legalActionPowers(state, playerId).flatMap((use) => {
+        const printed = cardPower(use.cardId, use.powerIndex)
+        assertExists(printed, `${use.cardId} prints no power ${use.powerIndex}`)
+        const choices = offeredChoices(state, playerId, printed)
+        if (picksCannotBeMade(choices) || offersNoBargain(state, playerId, choices)) return []
+        if (
+            leavesNoPick(choices) &&
+            HydratedUseActionPower.reasonCannotUse(
+                state,
+                playerId,
+                use.cardId,
+                use.powerIndex,
+                powerChoicesFrom(choices, emptyPicks())
+            ) !== undefined
+        ) {
+            return []
+        }
+        return [{ ...use, choices }]
+    })
+}
+
+/** R-7.1.3 — a listed power's choices read on its picks, and the picks as they read back (`choicesOnPicks`). */
+function readOnPicks(
+    state: HydratedOathGameState,
+    playerId: string,
+    listed: LegalPowerUse,
+    picks: PowerChoicePicks,
+    shown?: readonly LegalChoice[]
+): { power: LegalPowerUse; picks: PowerChoicePicks } {
+    if (!listed.choices.some((legal) => legal.spec.readsEarlier)) return { power: listed, picks }
+    const printed = cardPower(listed.cardId, listed.powerIndex)
+    assertExists(printed, `${listed.cardId} prints no power ${listed.powerIndex}`)
+    const read = choicesOnPicks(
+        listed.choices,
+        picks,
+        (earlier) => offeredChoices(state, playerId, printed, undefined, earlier),
+        shown
+    )
+    return { power: { ...listed, choices: read.choices }, picks: read.picks }
+}
+
+/**
+ * R-6.2 — the cards whose power Use a power lists, each once, in its order: in the seat's Act
+ * Phase each carries a "Use" badge where it lies.
+ */
+export function cardsWithListedPower(state: HydratedOathGameState, playerId: string): string[] {
+    return [...new Set(listedActionPowers(state, playerId).map((use) => use.cardId))]
+}
+
+/**
  * R-6.2, R-7.3.2 — the choices each "Action:" power's text opens. The draft keeps the picks after
  * each tap, so Undo takes back one pick at a time.
  */
-export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
+export class ActionPowersDraft extends TapHistoryDraft<ActionPowerPicks> {
     constructor(private readonly session: OathGameSession) {
-        super({})
+        super({ picks: {}, modifiers: {} })
     }
 
     private get playerId(): string | undefined {
@@ -470,20 +554,50 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
             : undefined
     }
 
-    /** Each power with the choices its card offers now (a bank the run cannot name is not one). */
+    /** The card whose "Use" badge opened the panel, which then lists its powers alone. */
+    get card(): string | undefined {
+        return this.playerId ? this.session.selection.value('powerCard') : undefined
+    }
+
+    /** The powers the panel lists, each with the choices its card offers now, read on its picks. */
     get powers(): LegalPowerUse[] {
         const playerId = this.playerId
         if (!playerId) return []
         const state = this.session.gameState
-        return HydratedUseActionPower.legalActionPowers(state, playerId).map((use) => {
-            const printed = cardPower(use.cardId, use.powerIndex)
-            assertExists(printed, `${use.cardId} prints no power ${use.powerIndex}`)
-            return { ...use, choices: offeredChoices(state, playerId, printed) }
-        })
+        const listed = listedActionPowers(state, playerId)
+        const card = this.card
+        return (card === undefined ? listed : listed.filter((power) => power.cardId === card)).map(
+            (power) => readOnPicks(state, playerId, power, this.storedOf(power)).power
+        )
     }
 
     private storedOf(use: PowerUseKey): PowerChoicePicks {
-        return this.current[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+        return this.current.picks[powerKey(use.cardId, use.powerIndex)] ?? emptyPicks()
+    }
+
+    /**
+     * R-6.1, R-7.4 — the "Cards" rows on the row of a power whose use declares the Search modifiers
+     * acting on its play "as if you searched" (Oracle, from revision 31); none on any other power.
+     */
+    modifierRows(power: LegalPowerUse): AsIfSearchedRows | undefined {
+        const playerId = this.playerId
+        if (!playerId || !AsIfSearchedRows.offered(this.session.gameState, power)) return undefined
+        const key = powerKey(power.cardId, power.powerIndex)
+        return AsIfSearchedRows.forPower(
+            this.session.gameState,
+            playerId,
+            { cardId: power.cardId, powerIndex: power.powerIndex, choices: this.choicesFor(power) },
+            this.current.modifiers[key] ?? [],
+            (declared) =>
+                this.tap({
+                    ...this.current,
+                    modifiers: { ...this.current.modifiers, [key]: declared }
+                })
+        )
+    }
+
+    private modifiersFor(power: LegalPowerUse): ModifierUse[] {
+        return this.modifierRows(power)?.uses ?? []
     }
 
     /** A power whose site is picked on the lit map: its rows, and its picks as they read back. */
@@ -505,11 +619,24 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
         return (power && this.sitesOf(power)?.picks) ?? this.storedOf(use)
     }
 
+    // A pick whose options follow an earlier one is kept only while the option it named is offered.
     setPicks(use: PowerUseKey, picks: PowerChoicePicks): void {
-        if (!this.powers.some((p) => samePowerUse(p, use))) {
+        const playerId = this.playerId
+        const power = this.powers.find((p) => samePowerUse(p, use))
+        if (!playerId || !power) {
             return
         }
-        this.tap({ ...this.current, [powerKey(use.cardId, use.powerIndex)]: picks })
+        const kept = readOnPicks(
+            this.session.gameState,
+            playerId,
+            power,
+            picks,
+            power.choices
+        ).picks
+        this.tap({
+            ...this.current,
+            picks: { ...this.current.picks, [powerKey(use.cardId, use.powerIndex)]: kept }
+        })
     }
 
     /** The row a power's site spec draws, when it is picked on the map. */
@@ -549,13 +676,13 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
         ) {
             return
         }
-        const next = { ...this.current }
+        const next = { ...this.current.picks }
         for (const { power, rows } of open) {
             const before = this.picksOf(power)
             const after = withMapTap(power, rows, before, siteId)
             if (after !== before) next[powerKey(power.cardId, power.powerIndex)] = after
         }
-        this.tap(next)
+        this.tap({ ...this.current, picks: next })
     }
 
     /** Messenger's moves, one at a time, each read on the state the moves before it leave. */
@@ -571,11 +698,17 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
         this.setPicks(use, { ...this.storedOf(use), moves })
     }
 
-    /** "Use" waits until every choice the power opens has its picks. */
+    /**
+     * "Use" waits until every choice the power opens has its picks, and each card in use on its
+     * row has its own (Bracken's pile and side, on Oracle's).
+     */
     picksComplete(power: LegalPowerUse): boolean {
         const moves = this.movesOf(power)
         if (moves) return powerMovesComplete(moves)
-        return picksComplete(power.choices, this.picksOf(power))
+        return (
+            picksComplete(power.choices, this.picksOf(power)) &&
+            (this.modifierRows(power)?.complete ?? true)
+        )
     }
 
     choicesFor(power: LegalPowerUse): PowerChoice[] {
@@ -611,22 +744,64 @@ export class ActionPowersDraft extends TapHistoryDraft<PicksByPower> {
             playerId,
             power.cardId,
             power.powerIndex,
-            this.choicesFor(power)
+            this.choicesFor(power),
+            this.modifiersFor(power)
         )
     }
 
     async use(power: LegalPowerUse): Promise<void> {
         if (!this.playerId) return
-        await this.session.useActionPower(power.cardId, power.powerIndex, this.choicesFor(power))
+        await this.session.useActionPower(
+            power.cardId,
+            power.powerIndex,
+            this.choicesFor(power),
+            this.modifiersFor(power)
+        )
     }
 
     /**
      * Undo takes back the last tap, of any power in the panel: a pick, a move's From, count or To,
      * or a site on the map, and the picks are as they were before it.
      */
-    protected isBare(picks: PicksByPower): boolean {
-        return !Object.values(picks).some(hasPicks)
+    protected isBare(value: ActionPowerPicks): boolean {
+        return (
+            !Object.values(value.picks).some(hasPicks) &&
+            !Object.values(value.modifiers).some((declared) => declared.length > 0)
+        )
     }
+
+    /** R-7.6.3-H1 — the one promise box, of one power's exchange, whose text is all `to` changes. */
+    protected textEdited(
+        fromValue: ActionPowerPicks,
+        toValue: ActionPowerPicks
+    ): string | undefined {
+        if (!sameJson(fromValue.modifiers, toValue.modifiers)) return undefined
+        const from = fromValue.picks
+        const to = toValue.picks
+        const [key, ...more] = changedKeys(from, to)
+        if (key === undefined || more.length > 0) return undefined
+        const before = from[key] ?? emptyPicks()
+        const after = to[key] ?? emptyPicks()
+        if (!sameJson({ ...before, terms: {} }, { ...after, terms: {} })) return undefined
+        const [spec, ...others] = changedKeys(before.terms, after.terms)
+        if (spec === undefined || others.length > 0) return undefined
+        const side = promiseEdited(
+            before.terms[Number(spec)] ?? noExchangePicks(),
+            after.terms[Number(spec)] ?? noExchangePicks()
+        )
+        return side && `${key} ${spec} ${side}`
+    }
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+    return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** The keys whose values differ between two records. */
+function changedKeys<T>(from: Record<string, T>, to: Record<string, T>): string[] {
+    return [...new Set([...Object.keys(from), ...Object.keys(to)])].filter(
+        (key) => !sameJson(from[key], to[key])
+    )
 }
 
 type OfferTerms = {

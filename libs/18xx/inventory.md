@@ -48,10 +48,10 @@ paired-face, and two not-applicable records; these categories overlap.
 | Asset                   | Variation considered                                                                                  | T3 decision                                                                                                                                                                                                     |
 | ----------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Catalog and manifest    | Same numbers may differ by title; identical definitions have independent counts.                      | Qualified definition IDs; title-owned manifests; standard and beginner sets are separate.                                                                                                                       |
-| Physical inventory      | Paired tiles in 18Cuba and other paired-face profiles; finite, unlimited, and conditional supply.     | Implement finite and unlimited single/paired pieces. Do not simulate unlimited stock with an arbitrary large count.                                                                                                           |
+| Physical inventory      | Paired tiles in 18Cuba and other paired-face profiles; finite, unlimited, and conditional supply.     | Implement finite and unlimited single/paired pieces. Do not simulate unlimited stock with an arbitrary large count.                                                                                             |
 | Replacement             | Ordinary returns, destroyed/removed track in 1849 and 18FL, persistent stations and map rights.       | Explicit return/retire choice; immutable exchange result; leave rule and map consequences to callers.                                                                                                           |
 | Stops and artwork       | Separate towns, junction towns, labeled cities, ports, face-dependent costs.                          | Explicit node identity; derive separate through-town positions from their own tracks; junction towns are round dots. Port symbols and upgrade costs are face data, independent of map-owned terrain and rights. |
-| Viewer and map examples | Definitions versus available pieces, same-number variants, paired alternatives, and preprinted tiles. | Optional caller-supplied counts; no inventory mutation from browsing. Preprinted tiles and replacement stages are inspection fixtures, not a game-screen design.                                                   |
+| Viewer and map examples | Definitions versus available pieces, same-number variants, paired alternatives, and preprinted tiles. | Optional caller-supplied counts; no inventory mutation from browsing. Preprinted tiles and replacement stages are inspection fixtures, not a game-screen design.                                                |
 
 Tile #437 carries a port symbol. #438 and #439 each carry a cost of 80 to upgrade
 that face; #492 does not. This cost must not become a permanent location charge.
@@ -64,11 +64,11 @@ remain outside this slice.
 
 ## Verified title coverage
 
-| Set                    | Definitions | Physical pieces |
-| ---------------------- | ----------: | --------------: |
+| Set                   | Definitions |        Physical pieces |
+| --------------------- | ----------: | ---------------------: |
 | TOP current prototype |          62 | Mixed finite/unlimited |
-| Shikoku 1889 standard  |          40 |              63 |
-| Shikoku 1889 beginner  |          40 |              71 |
+| Shikoku 1889 standard |          40 |                     63 |
+| Shikoku 1889 beginner |          40 |                     71 |
 
 The shared catalog now has 65 definitions, including the earlier junction
 specimen #81. TOP adds all sixteen PEI definitions and four yellow labeled city curves. The two actual title sets

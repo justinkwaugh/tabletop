@@ -225,28 +225,45 @@ describe('the set-up table', () => {
         ).toBe(state.map.passableApproachesOf(home).length - 1)
     })
 
-    it('starts with the fixed battery holding the Santon when the Santon rule is in use, with nothing to place or turn', () => {
+    it('offers the Santon to the fixed battery when the Santon rule is in use, where it stays in reserve', () => {
         const { state, playerId, setup } = frenchToSetUp({ santon: true })
-        const step: SetupStep = { setup, open: FIXED_BATTERY }
-        const table = setupTable(state, playerId, step)
+        const open = setupTable(state, playerId, { setup, open: FIXED_BATTERY })
+        expect(open.fixedBattery?.unitId).toBeUndefined()
+        const battery = nextOf(open, UnitType.Artillery, 1)
+        const held: SetupStep = { setup, open: FIXED_BATTERY, heldUnitId: battery }
+        const posts = setupTargets(state, playerId, held).map((target) => target.position.locale)
+        expect(posts).toContain(SANTON_LOCALE)
+        expect(posts).toContain(setupLocaleOf(state.map, 'lannes').id)
 
+        const onTheSanton = withFixedBatteryPosted(setup, battery, { locale: SANTON_LOCALE })
+        const step: SetupStep = { setup: onTheSanton, open: FIXED_BATTERY }
+        const table = setupTable(state, playerId, step)
         expect(table.fixedBattery).toEqual({
-            unitId: setup.fixedBatteryId,
+            unitId: battery,
             position: { locale: SANTON_LOCALE },
             open: true,
             holdsTheSanton: true
         })
-        expect(table.unassigned).toBe(35)
-        expect(stackOf(table, UnitType.Artillery, 1).count).toBe(2)
-        expect(table.stacks.some((stack) => stack.offered)).toBe(false)
-        expect(table.detached).toMatchObject({ unitIds: [], room: MAX_FRENCH_DETACHMENTS - 1 })
-        expect(table.corps.map((seat) => seat.stillNeeded)).toEqual(
-            setupTable(frenchToSetUp().state, playerId, {
-                setup: frenchToSetUp().setup,
-                open: FIXED_BATTERY
-            }).corps.map((seat) => seat.stillNeeded)
-        )
+        expect(table.detached?.room).toBe(MAX_FRENCH_DETACHMENTS - 1)
         expect(setupTargets(state, playerId, step)).toEqual([])
+    })
+
+    it('has the fixed battery block an approach elsewhere when the Santon rule is in use', () => {
+        const { state, playerId, setup } = frenchToSetUp({ santon: true })
+        const battery = nextOf(
+            setupTable(state, playerId, { setup, open: FIXED_BATTERY }),
+            UnitType.Artillery,
+            1
+        )
+        const home = setupLocaleOf(state.map, 'lannes').id
+        const step: SetupStep = {
+            setup: withFixedBatteryPosted(setup, battery, { locale: home }),
+            open: FIXED_BATTERY
+        }
+        expect(setupTable(state, playerId, step).fixedBattery?.holdsTheSanton).toBe(false)
+        const targets = setupTargets(state, playerId, step)
+        expect(targets.length).toBeGreaterThan(0)
+        expect(targets.every((target) => target.kind === TargetKind.Approach)).toBe(true)
     })
 
     it('marks on the map the units of the open seat: a corps, every detached unit, or just the one in hand', () => {

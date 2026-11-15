@@ -1,87 +1,122 @@
 <script lang="ts">
     import type { Snippet } from 'svelte'
+    import { chainSidewaysScroll, wheelDeltaUnit } from '@tabletop/frontend-components'
+    import ViewSwitch from './ViewSwitch.svelte'
 
     let {
         children,
-        paned,
-        itemCount
+        wrap,
+        onToggleWrap,
+        wide,
+        onToggleWide,
+        unstartedSwitch
     }: {
         children: Snippet
-        paned: boolean
-        itemCount: number
+        wrap: boolean
+        onToggleWrap: () => void
+        wide: boolean
+        onToggleWide: () => void
+        /** Whether companies no one has started are shown too, where there are any to show. */
+        unstartedSwitch?: { enabled: boolean; toggle: () => void }
     } = $props()
-    let columns = $derived(Math.max(1, itemCount))
 
-    function observeCards(viewport: HTMLElement, wrap: boolean, count: number) {
-        const element = viewport.firstElementChild
-        if (!(element instanceof HTMLElement)) return
-        const grid = element
-        const cards = [...grid.children].filter(
-            (child): child is HTMLElement => child instanceof HTMLElement
-        )
-        function measure() {
-            columns = Math.max(1, count)
-            if (!wrap || !cards.length || !viewport.clientHeight) return
-            const style = getComputedStyle(grid)
-            const gap = parseFloat(style.gap)
-            const width =
-                viewport.clientWidth -
-                parseFloat(style.paddingLeft) -
-                parseFloat(style.paddingRight)
-            const height =
-                viewport.clientHeight -
-                parseFloat(style.paddingTop) -
-                parseFloat(style.paddingBottom)
-            const minimumColumns = Math.max(
-                1,
-                Math.floor((width + gap) / (cards[0].offsetWidth + gap))
-            )
-            for (let candidate = minimumColumns; candidate < count; candidate++) {
-                let requiredHeight = 0
-                for (let start = 0; start < count; start += candidate) {
-                    requiredHeight += Math.max(
-                        ...cards.slice(start, start + candidate).map((card) => card.offsetHeight)
-                    )
-                    if (start > 0) requiredHeight += gap
-                }
-                if (requiredHeight <= height) {
-                    columns = candidate
-                    break
-                }
-            }
+    function scrollRowOnWheel(row: HTMLElement) {
+        function onWheel(event: WheelEvent) {
+            if (wrap || event.shiftKey || event.ctrlKey) return
+            if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return
+            const distance = event.deltaY * wheelDeltaUnit(event, row.clientWidth)
+            const endScrollLeft = row.scrollWidth - row.clientWidth
+            const atEnd =
+                distance < 0 ? row.scrollLeft <= 0 : Math.ceil(row.scrollLeft) >= endScrollLeft
+            if (atEnd) return
+            event.preventDefault()
+            row.scrollLeft += distance
         }
-        const observer = new ResizeObserver(measure)
-        observer.observe(viewport)
-        for (const card of cards) observer.observe(card)
-        measure()
-        return () => observer.disconnect()
+        row.addEventListener('wheel', onWheel, { passive: false })
+        return () => row.removeEventListener('wheel', onWheel)
     }
 </script>
 
-<div class="company-card-viewport" {@attach (node) => observeCards(node, paned, itemCount)}>
+<div class="company-card-layout">
+    <div class="company-card-tools">
+        {#if unstartedSwitch}<ViewSwitch
+                small
+                enabled={unstartedSwitch.enabled}
+                onToggle={unstartedSwitch.toggle}
+                label="Unstarted"
+                title={unstartedSwitch.enabled
+                    ? 'Companies not yet started are shown, greyed. Click to hide them.'
+                    : 'Only started companies are shown. Click to show the rest, greyed.'}
+            />{/if}
+        <ViewSwitch
+            small
+            enabled={wide}
+            onToggle={onToggleWide}
+            label="Wide"
+            title={wide
+                ? 'Cards show their details side by side. Click for narrow cards.'
+                : 'Cards are narrow. Click to show their details side by side.'}
+        />
+        <ViewSwitch
+            small
+            enabled={wrap}
+            onToggle={onToggleWrap}
+            label="Wrap"
+            title={wrap
+                ? 'Cards wrap onto new rows. Click to keep them in one row.'
+                : 'Cards stay in one row. Click to wrap them onto new rows.'}
+        />
+    </div>
     <div
         class="company-cards"
-        aria-label="Started companies"
-        style:grid-template-columns={`repeat(${columns}, max-content)`}
+        class:wrap
+        class:wide
+        aria-label={unstartedSwitch?.enabled ? 'Companies' : 'Started companies'}
+        {@attach scrollRowOnWheel}
+        {@attach chainSidewaysScroll}
     >
         {@render children()}
     </div>
 </div>
 
 <style>
-    .company-card-viewport {
+    .company-card-layout {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
         height: 100%;
+        min-height: 0;
+    }
+    .company-card-tools {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 6px 10px 0;
+    }
+    .company-cards {
+        display: flex;
+        align-items: flex-start;
+        align-content: flex-start;
+        gap: 10px;
+        padding: 10px;
+        box-sizing: border-box;
         min-height: 0;
         overflow: auto;
     }
-    .company-cards {
+    .company-cards > :global(*) {
+        flex: none;
+    }
+    .company-cards.wrap {
+        flex-wrap: wrap;
+    }
+    .company-cards.wide {
         display: grid;
-        align-items: start;
-        justify-content: start;
-        gap: 10px;
-        padding: 10px;
-        width: max-content;
-        min-width: 100%;
-        box-sizing: border-box;
+        grid-auto-rows: max-content;
+    }
+    .company-cards.wide.wrap {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    }
+    .company-cards.wide:not(.wrap) {
+        grid-auto-flow: column;
+        grid-auto-columns: min(100%, 400px);
     }
 </style>

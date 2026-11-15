@@ -4,10 +4,10 @@ import {
     hasManualStagedSelection,
     popHighestManualStagedSelection,
     setStagedSelectionValue,
+    type LocalSelection,
     type StagedSelectionSource,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
-import type { LocalSelection } from './localSelections.js'
 
 type StageKey<Stages> = Extract<keyof Stages, string>
 export type UndoMode = 'clear-selection' | 'pop-stage'

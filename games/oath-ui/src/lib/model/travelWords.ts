@@ -1,3 +1,4 @@
+import { secretsFlipped } from '@tabletop/oath'
 import { cardName, suitName } from './names.js'
 import type { TravelChoice, TravelRow } from './travelRows.js'
 
@@ -18,7 +19,9 @@ export function travelSpoken(
     way.tolls.forEach((cardId, index) => {
         parts.push(`give 1 favor to ${payee(way.favorTo[index], nameOf)} (${cardName(cardId)})`)
     })
-    if (way.flipSecret) parts.push('flip a secret facedown')
+    const secrets = secretsFlipped(way.flipSecret)
+    if (secrets === 1) parts.push('flip a secret facedown')
+    if (secrets > 1) parts.push(`flip ${secrets} secrets facedown`)
     if (way.hospitality) parts.push(`gain 1 favor from the ${suitName(way.hospitality)} bank`)
     return `Travel to ${destinationName(row)}: ${parts.join(', ')}`
 }

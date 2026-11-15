@@ -2,7 +2,7 @@
     import type { Player } from '@tabletop/common'
     import type { BridgesPlayerState } from '@tabletop/bridges-of-shangri-la'
     import PlayerState from '$lib/components/PlayerState.svelte'
-import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
+    import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as BridgesGameSession
@@ -20,8 +20,8 @@ import type { BridgesGameSession } from '$lib/model/BridgesGameSession.svelte'
         const playersAndStatesById = new Map(
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
-        return gameSession.gameState.turnManager.turnOrder.map(
-            (playerId) => playersAndStatesById.get(playerId)!
+        return gameSession.gameState.turnManager.turnOrder.map((playerId) =>
+            playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
     })
     function getPlayerForState(playerState: BridgesPlayerState) {

@@ -14,10 +14,11 @@ import {
     type StockRules
 } from './stockRules.js'
 import type { StockState } from './stockState.js'
-import type {
-    StandingStockInstruction,
-    StockInstruction,
-    StockInstructionStopReason
+import {
+    withIgnoredStops,
+    type StandingStockInstruction,
+    type StockInstruction,
+    type StockInstructionStopReason
 } from './stockInstruction.js'
 import { stockPositionChange } from './stockInstructionSnapshot.js'
 
@@ -49,7 +50,9 @@ export function evaluateStockInstruction(
         return canPass ? { kind: 'pass' } : stop({ code: 'cannot-finish' })
     const company = getCompany(state, instruction.companyId)
     const owner: Owner = { kind: 'player', playerId }
-    const followUp = instruction.thenPass ? { kind: 'pass' as const } : undefined
+    const followUp = instruction.thenPass
+        ? withIgnoredStops({ kind: 'pass' }, instruction.ignoredStops ?? [])
+        : undefined
     if (instruction.until.kind === 'floated' && company.floated)
         return stop({ code: 'goal-met', companyId: company.id }, followUp)
     if (
@@ -89,9 +92,10 @@ export function evaluateStockInstruction(
     if (preferred) return 'reason' in preferred ? stop(preferred.reason) : purchase(preferred)
     const fallback = evaluated
         .flatMap((offer) => ('reason' in offer ? [] : [offer]))
-        .reduce<
-            PurchaseOffer | undefined
-        >((best, offer) => (best && best.price <= offer.price ? best : offer), undefined)
+        .reduce<PurchaseOffer | undefined>(
+            (best, offer) => (best && best.price <= offer.price ? best : offer),
+            undefined
+        )
     if (fallback) return purchase(fallback)
     const failure = evaluated[0]
     return stop('reason' in failure ? failure.reason : { code: 'no-shares', companyId: company.id })

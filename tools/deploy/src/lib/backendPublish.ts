@@ -4,6 +4,7 @@ import {
     buildBackendCommand,
     buildBackendImageContextCommand,
     deployBackendCommand,
+    manifestObjectUrl,
     promoteBackendCommand,
     revisionSuffixForVersion,
     submitBackendImageCommand
@@ -144,6 +145,7 @@ const buildAndDeploy = async (
                     allowTraffic: serveTraffic,
                     revisionSuffix,
                     envVars: {
+                        SITE_MANIFEST_GCS_URI: manifestObjectUrl(context.deployConfig),
                         BACKEND_VERSION: artifact.version,
                         GIT_SHA: sha,
                         BUILD_TIME: new Date().toISOString()

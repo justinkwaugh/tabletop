@@ -31,15 +31,15 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-15T01:24:01.615Z",
+  "createdAt": "2026-10-16T19:06:20.493Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-15T01:24:01.615Z",
+  "startedAt": "2026-10-16T19:06:20.493Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "G_312dCzafYgKXQ8_6-Ro",
+  "id": "y2NPMK0YUlOy0tdEA0LI3",
   "gameId": "scenario-coral-ready-to-eat",
   "seed": 3367980177,
   "prng": {
@@ -407,6 +407,7 @@
   },
   "bonusPolypsInBag": false,
   "colorsMissingFromBag": [],
+  "bonusSpacesRefillAtTurnEnd": true,
   "advanced": false,
   "algaSupply": {
    "blue": 5,

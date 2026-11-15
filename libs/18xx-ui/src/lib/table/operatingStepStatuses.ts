@@ -1,5 +1,6 @@
 import { ActionSource, type GameAction } from '@tabletop/common'
 import {
+    isCorporateFinance,
     isFinishTrack,
     isFinishStations,
     isPayInterest,
@@ -25,7 +26,11 @@ export function operatingStepStatuses(
     const interest = current.findLast(isPayInterest)
     const distribution = gameState.earningsDistribution
     const purchased = gameState.trainPurchaseStep?.purchasedTrainIds.length ?? 0
+    const transactions = current.filter(isCorporateFinance)
     return {
+        finance: transactions.length
+            ? `${transactions[0].operation === 'issue' ? 'Issued' : 'Redeemed'} ${transactions.reduce((total, action) => total + action.shares, 0)}`
+            : undefined,
         track: gameState.trackStep?.lays.length
             ? `${gameState.trackStep.lays.length} laid`
             : gameState.trackStep?.completed && track?.companyId === gameState.trackStep.companyId
@@ -57,7 +62,8 @@ export function operatingStepStatuses(
             : undefined,
         trains: purchased ? `${purchased} bought` : undefined,
         loans: interest?.metadata
-            ? interest.metadata.default
+            ? // A president raising it for the company, as 1849's, pays the interest in full.
+              interest.metadata.default && !interest.metadata.default.companyDebt
                 ? 'Defaulted'
                 : `Paid ${money(interest.metadata.interest)}`
             : undefined

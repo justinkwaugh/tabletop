@@ -14,6 +14,7 @@ import { LowenherzStateHandlers } from './stateHandlers.js'
 import { LowenherzActionSchemas } from './actionSchemas.js'
 import { LowenherzColors } from './colors.js'
 import { LowenherzScoring } from './scoring.js'
+import { LowenherzProgression } from './progression.js'
 
 import { normalizeLowenherzState } from '../util/normalizePoliticsCards.js'
 
@@ -32,6 +33,7 @@ export const Definition = defineGame<LowenherzProjectedState, HydratedLowenherzG
         playerColors: LowenherzColors,
         stateLogger: new DefaultStateLogger(),
         scoring: new LowenherzScoring(),
+        progression: new LowenherzProgression(),
         visibility: {
             state: {
                 schema: stateProjector.schema,

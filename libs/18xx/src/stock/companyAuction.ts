@@ -1,13 +1,23 @@
 import * as Type from 'typebox'
-import { assert, assertExists, SimpleAuction } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    PassableBidding,
+    SimpleAuction,
+    isValidBidStep
+} from '@tabletop/common'
 import { getCompany, presidentCertificate, type Company } from '../finance/finance.js'
-import { StationPosition, homeStationId } from '../map/station.js'
+import {
+    StationPosition,
+    homeStationId,
+    stationReservation,
+    type StationReservation
+} from '../map/station.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { HomePosition } from '../stations/stationPlacement.js'
 import { applyStationPlacement } from '../stations/stationPlacement.js'
 import { startCompanyAtPar } from '../company/companyStart.js'
 import type { FormationState } from '../company/companyState.js'
-import { PassableBidding, validBidStep } from '../auctions/passableBidding.js'
 import { markTurnPurchase } from './sharePurchase.js'
 import { recordStockAction } from './stockRoundRules.js'
 import { recordTurnPurchase } from './turnPurchases.js'
@@ -59,10 +69,22 @@ export interface CompanyAuctionRules {
     formationReason(state: CompanyAuctionState, formation: CompanyFormation): string | undefined
     /** Settles the bid and the title's formation terms once the company has its president. */
     form(state: CompanyAuctionState, formation: CompanyFormation): void
+    /**
+     * The turn records the winner, for the title's next turn to follow them rather than the
+     * player who opened the auction (1861 §9.2).
+     */
+    nextTurnFollowsWinner?(state: CompanyAuctionState): boolean
 }
 
 export function canBeAuctioned(company: Company): boolean {
     return company.kind !== 'private' && !company.started && !company.closed
+}
+
+export function companyAuctionHomeReservation(
+    state: Pick<CompanyAuctionState, 'companyAuction'>
+): StationReservation | undefined {
+    const auction = state.companyAuction
+    return auction ? stationReservation(auction.companyId, auction.home) : undefined
 }
 
 export class CompanyAuctionModel {
@@ -247,6 +269,8 @@ export class CompanyAuctionModel {
             cost: 0
         })
         this.terms.form(this.state, formation)
+        if (this.terms.nextTurnFollowsWinner?.(this.state))
+            this.state.stockRound.turn.auctionWinnerId = playerId
         delete this.state.companyAuction
         this.state.activePlayerIds = [auction.openerId]
         const parPrice = getCompany(this.state, companyId).parPrice
@@ -270,7 +294,7 @@ export class CompanyAuctionModel {
 
     private affords(playerId: string, amount: number): boolean {
         return (
-            validBidStep(amount, this.minimumBid, this.terms.increment) &&
+            isValidBidStep(amount, this.minimumBid, this.terms.increment) &&
             amount <= this.terms.maximumBid(this.state, playerId) &&
             this.terms.formable(this.state, playerId, amount)
         )

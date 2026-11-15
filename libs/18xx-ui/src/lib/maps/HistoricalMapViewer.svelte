@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     import type { MoneyFormat } from '../presentation/money.js'
     import { onMount } from 'svelte'
     import { ScalingWrapper } from '@tabletop/frontend-components'
@@ -19,7 +20,7 @@
         artwork?: BoardArtwork
         preview: HistoricalMap
         appearance: TileAppearance
-        revenueStageColors?: Readonly<Record<string, string>>
+        revenueStageColors?: RevenueStageColors
         onclose: () => void
     } = $props()
     let dialog: HTMLDialogElement
@@ -61,6 +62,7 @@
         <ScalingWrapper
             maxScale={2}
             bind:this={wrapper}
+            renderAtViewScale
             justify="center"
             controls="bottom-left"
             overpan="both"
@@ -72,7 +74,7 @@
                 reservations={preview.reservations}
                 stationAppearances={preview.stationAppearances}
                 routes={preview.routes}
-                selection={preview.selection}
+                outlinedLocationIds={preview.outlinedLocationIds}
                 maskUnavailableLocations={preview.kind === 'run'}
                 highlightedLocationIds={preview.locations}
                 {appearance}

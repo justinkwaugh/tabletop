@@ -13,13 +13,22 @@ import { onActivateEffect } from './postActionHelper.js'
 
 type ChoosingCardAction = HydratedChooseCard | HydratedActivateEffect | HydratedPass
 
-export class ChoosingCardStateHandler implements MachineStateHandler<ChoosingCardAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is ChoosingCardAction {
+export class ChoosingCardStateHandler implements MachineStateHandler<
+    ChoosingCardAction,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSolGameState>
+    ): action is ChoosingCardAction {
         if (!action.playerId) return false
         return isChooseCard(action) || isPass(action) || isActivateEffect(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const gameState = context.gameState
         const validActions = [ActionType.Pass, ActionType.ChooseCard]
 
@@ -32,7 +41,10 @@ export class ChoosingCardStateHandler implements MachineStateHandler<ChoosingCar
 
     enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: ChoosingCardAction, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: ChoosingCardAction,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         if (isActivateEffect(action)) {
             return onActivateEffect(action, context)
         }

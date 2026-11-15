@@ -1,5 +1,5 @@
 import {
-    ActionSource,
+    isCascadedSystemAction,
     assert,
     assertExists,
     findPlayerForUserId,
@@ -61,6 +61,24 @@ export interface UndoResultsRepresentation {
     readonly unmergedBranch?: UnmergedBranch
 }
 
+export function historyProjection({
+    game,
+    hostView = false,
+    visibility: registeredVisibility,
+    user
+}: {
+    game: Game
+    hostView?: boolean
+    visibility?: Visibility.GameVisibility<GameState>
+    user: User
+}):
+    | { visibility: Visibility.GameVisibility<GameState>; perspective: Visibility.Perspective }
+    | undefined {
+    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
+    if (hostView || game.hotseat || visibility === undefined) return undefined
+    return { visibility, perspective: derivePerspective({ game, user }) }
+}
+
 export function createGameRepresentationEtag({
     canonicalEtag,
     game,
@@ -76,12 +94,10 @@ export function createGameRepresentationEtag({
     branchPosition?: ActionHistoryPosition
     user: User
 }): string {
-    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
-    if (hostView || game.hotseat || visibility === undefined) {
-        return canonicalEtag
-    }
+    const projection = historyProjection({ game, hostView, visibility: registeredVisibility, user })
+    if (projection === undefined) return canonicalEtag
 
-    const perspective = derivePerspective({ game, user })
+    const { perspective } = projection
     const perspectiveKey =
         perspective.kind === 'player' ? `player:${perspective.playerId}` : 'spectator'
     return createHash('sha256')
@@ -180,7 +196,8 @@ export function createGameRepresentation({
     includeActions = true,
     runtime,
     visibility: registeredVisibility,
-    user
+    user,
+    projectedPrefix = []
 }: {
     game: Game
     actions: GameAction[]
@@ -189,17 +206,18 @@ export function createGameRepresentation({
     runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     user: User
+    projectedPrefix?: readonly GameAction[]
 }): GameRepresentation {
     const historyStatus = includeActions ? {} : { historyComplete: false }
-    const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.state !== undefined && runtime !== undefined) {
         new GameEngine(runtime).validateCanonicalState(game.state)
     }
-    if (hostView || game.hotseat || visibility === undefined) {
+    const projection = historyProjection({ game, hostView, visibility: registeredVisibility, user })
+    if (projection === undefined) {
         return { game, actions, perspective: undefined, ...historyStatus }
     }
 
-    const perspective = derivePerspective({ game, user })
+    const { visibility, perspective } = projection
     if (game.state === undefined) {
         assert(
             actions.length === 0,
@@ -208,11 +226,12 @@ export function createGameRepresentation({
         return { game: structuredClone(game), actions: [], perspective, ...historyStatus }
     }
 
+    const prefix = includeActions ? projectedPrefix : []
     const history = Visibility.projectActionHistory({
         game: game,
         currentState: game.state,
-        startIndex: includeActions ? 0 : game.state.actionCount,
-        actions,
+        startIndex: includeActions ? prefix.length : game.state.actionCount,
+        actions: actions.slice(prefix.length),
         visibility,
         perspective,
         replay: createActionReplayContext(game, runtime)
@@ -222,7 +241,7 @@ export function createGameRepresentation({
 
     return {
         game: projectedGame,
-        actions: [...history.actions],
+        actions: [...prefix, ...history.actions],
         perspective,
         ...historyStatus
     }
@@ -486,7 +505,7 @@ function createLegacyCompatibleReplay(actionReplay: ProcessedActionReplay): Cano
         startIndex: actionReplay.startIndex,
         actions: actionReplay.actions,
         userActions: actionReplay.actions
-            .filter((action) => action.source === ActionSource.User)
+            .filter((action) => !isCascadedSystemAction(action))
             .map((action) => {
                 const legacyAction = structuredClone(action)
                 delete legacyAction.undoPatch

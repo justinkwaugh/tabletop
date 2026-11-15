@@ -1,7 +1,7 @@
 # Run the container with `docker run -p 3000:3000 -t backend`.
 
 # Build/deps stage (pruned context).
-FROM docker.io/node:22-bookworm AS builder
+FROM docker.io/node:24-trixie AS builder
 
 ENV HOST=0.0.0.0
 WORKDIR /app
@@ -29,7 +29,7 @@ RUN pnpm deploy --legacy --filter=@tabletop/backend --prod /app/deploy
 RUN if [ -f /app/apps/backend/.env.prod ]; then cp /app/apps/backend/.env.prod /app/deploy/.env; fi
 
 # Runtime stage (distroless).
-FROM gcr.io/distroless/nodejs22-debian12
+FROM gcr.io/distroless/nodejs24-debian13
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0

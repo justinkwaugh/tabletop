@@ -1,30 +1,45 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { recordStockAction } from '../stock/stockRoundRules.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
 import { Owner } from '../finance/finance.js'
-import { applySharePurchase } from '../stock/sharePurchase.js'
+import { applySharePurchase, applyShareTransfer } from '../stock/sharePurchase.js'
 import { recordTurnPurchase } from '../stock/turnPurchases.js'
-import { CompanyStartDetails, evaluateCompanyStart, startCompanyAtPar } from './companyStart.js'
+import {
+    CompanyStartDetails,
+    evaluateCompanyStart,
+    claimStartHome,
+    placeStartHome,
+    startCompanyAtPar
+} from './companyStart.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
+import type { MapStateData } from '../map/mapState.js'
 
 export const StartCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('StartCompany'),
         buyer: Owner,
         companyId: Type.String(),
         marketSpaceId: Type.String(),
-        expectedPrice: Type.Integer({ minimum: 1 }),
+        expectedPrice: Type.Integer({ minimum: 0 }),
+        home: Type.Optional(
+            Type.Object(
+                { locationId: Type.String(), nodeId: Type.String() },
+                { additionalProperties: false }
+            )
+        ),
+        /** Ordinary certificates the president buys with the start, where the title allows. */
+        additionalCertificateIds: Type.Optional(Type.Array(Type.String(), { uniqueItems: true })),
         metadata: Type.Optional(CompanyStartDetails)
     },
     { additionalProperties: false }
@@ -47,6 +62,8 @@ export class HydratedStartCompany
     declare companyId: string
     declare marketSpaceId: string
     declare expectedPrice: number
+    declare home?: StartCompany['home']
+    declare additionalCertificateIds?: string[]
     declare metadata?: CompanyStartDetails
     readonly #stockRules: StockRules
     readonly #companyRules: CompanyRules
@@ -55,7 +72,7 @@ export class HydratedStartCompany
         this.#stockRules = stockRules
         this.#companyRules = companyRules
     }
-    apply(state: HydratedGameState & FormationState): void {
+    apply(state: HydratedGameState & FormationState & MapStateData): void {
         assert(this.source === ActionSource.User, 'Starting a company requires a player action')
         const result = evaluateCompanyStart(state, this, this.#stockRules, this.#companyRules)
         assert(result.details, result.reason ?? 'Invalid company start')
@@ -71,6 +88,13 @@ export class HydratedStartCompany
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)
+        for (const purchase of result.details.additionalPurchases ?? [])
+            applyShareTransfer(state, purchase)
+        const { home, homeClaim } = result.details
+        if (home) {
+            if (homeClaim) claimStartHome(state, home, homeClaim)
+            else placeStartHome(state, home)
+        }
         this.#companyRules.onStart?.(state, result.details)
         this.metadata = result.details
     }

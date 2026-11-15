@@ -71,7 +71,6 @@ $0 dividends and a $100 → $90 stock move with treasury unchanged at $300. Undo
 removed the earnings result, restored $100 stock and reopened construction. No
 positive-route browser scenario, mobile or physical-board presentation is claimed.
 
-
 Review fix: completed earnings presentation reads DistributeEarnings metadata from
 the visible user-action cascade, preserving the result through automatic closure.
 A shared action-prefix selector is used by both route and earnings history readers;

@@ -23,8 +23,7 @@
 <div class="slip" class:acting>
     <div class="receipt" style:--player={color}>
         <div class="header">
-            <span class="name">{gameSession.getPlayerName(playerId)}</span
-            >
+            <span class="name">{gameSession.getPlayerName(playerId)}</span>
             <span class="cash" title="Personal money">CASH ${playerState.cash}</span>
         </div>
         <div class="double-rule"></div>
@@ -36,17 +35,15 @@
                     {/each}
                 </span>
                 <span class="leader"></span>
-                <span class="amount">${line.amount}</span>
+                <span class="amount">+${line.amount}</span>
             </div>
         {:else}
             <div class="none">No shares yet</div>
         {/each}
         <div class="tear"></div>
-        <div
-            class="total"
-            title="What this player's shares would pay if dividends were paid now"
-        >
-            <span>TOTAL DIV <strong>${dividend}</strong></span>
+        <div class="total" title="What this player's shares would pay if dividends were paid now">
+            <span>NEXT PAYOUT</span>
+            <span class="amount">+${dividend}</span>
         </div>
     </div>
 </div>
@@ -101,7 +98,6 @@
         text-transform: uppercase;
     }
 
-
     .cash {
         flex: none;
         font-size: 16px;
@@ -132,7 +128,6 @@
         transform: translateY(4px);
     }
 
-
     .amount {
         min-width: 30px;
         font-size: 16px;
@@ -153,16 +148,10 @@
 
     .total {
         display: flex;
-        align-items: flex-end;
+        align-items: baseline;
         justify-content: flex-end;
+        gap: 5px;
         margin-top: 1px;
         font-size: 16px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
     }
-
-    .total strong {
-        letter-spacing: 0;
-    }
-
 </style>

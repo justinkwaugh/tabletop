@@ -65,7 +65,7 @@
             </p>
         {/if}
         <!-- One width for the two, the wider one's; one per line when they do not fit. The confirm is the primary. -->
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2" data-answer-row>
             {#if draft.plansComplete && !useRefusedBecause}
                 <button
                     class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40

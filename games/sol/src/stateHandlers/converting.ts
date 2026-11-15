@@ -15,14 +15,23 @@ import { HydratedInvade, isInvade } from '../actions/invade.js'
 
 type ConvertingAction = HydratedConvert | HydratedPass | HydratedActivateEffect | HydratedInvade
 
-export class ConvertingStateHandler implements MachineStateHandler<ConvertingAction, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is ConvertingAction {
+export class ConvertingStateHandler implements MachineStateHandler<
+    ConvertingAction,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSolGameState>
+    ): action is ConvertingAction {
         if (!action.playerId) return false
 
         return isPass(action) || isConvert(action) || isActivateEffect(action) || isInvade(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const gameState = context.gameState
 
         const validActions = [ActionType.Pass]
@@ -47,7 +56,10 @@ export class ConvertingStateHandler implements MachineStateHandler<ConvertingAct
 
     enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: ConvertingAction, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: ConvertingAction,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         switch (true) {

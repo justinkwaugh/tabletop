@@ -114,10 +114,10 @@ export class SantiagoGameInitializer
         random: RandomFunction
     ): SantiagoBoard {
         const squares: EmptySquare[][] = Array.from({ length: 8 }, () =>
-            Array.from(
-                { length: 6 },
-                (): EmptySquare => ({ type: SquareType.Empty, hasPalmTree: false })
-            )
+            Array.from({ length: 6 }, (): EmptySquare => ({
+                type: SquareType.Empty,
+                hasPalmTree: false
+            }))
         )
 
         if (palmTrees) {

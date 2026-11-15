@@ -87,7 +87,11 @@ export function deriveActiveAreaInteraction(
         }
     }
 
-    if (input.myPlayerId && input.shippingExpandValidAreaIds.length > 0 && input.playerOutlineColor) {
+    if (
+        input.myPlayerId &&
+        input.shippingExpandValidAreaIds.length > 0 &&
+        input.playerOutlineColor
+    ) {
         return {
             action: 'expand',
             validAreaIds: input.shippingExpandValidAreaIds,
@@ -97,7 +101,11 @@ export function deriveActiveAreaInteraction(
         }
     }
 
-    if (input.myPlayerId && input.productionExpandValidAreaIds.length > 0 && input.playerOutlineColor) {
+    if (
+        input.myPlayerId &&
+        input.productionExpandValidAreaIds.length > 0 &&
+        input.playerOutlineColor
+    ) {
         return {
             action: 'expand',
             validAreaIds: input.productionExpandValidAreaIds,

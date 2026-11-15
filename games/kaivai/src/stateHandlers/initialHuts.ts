@@ -6,13 +6,22 @@ import { HydratedBuild, isBuild } from '../actions/build.js'
 import { PhaseName } from '../definition/phases.js'
 
 // Transition from InitialHuts(Build) -> InitialHuts | PlacingGod
-export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuild, HydratedKaivaiGameState> {
-    isValidAction(action: HydratedAction, context: MachineContext<HydratedKaivaiGameState>): action is HydratedBuild {
+export class InitialHutsStateHandler implements MachineStateHandler<
+    HydratedBuild,
+    HydratedKaivaiGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): action is HydratedBuild {
         if (!action.playerId) return false
         return this.isValidActionType(action.type, action.playerId, context)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): ActionType[] {
         if (this.isValidActionType(ActionType.Build, playerId, context)) {
             return [ActionType.Build]
         } else {
@@ -35,7 +44,10 @@ export class InitialHutsStateHandler implements MachineStateHandler<HydratedBuil
         }
     }
 
-    onAction(action: HydratedBuild, context: MachineContext<HydratedKaivaiGameState>): MachineState {
+    onAction(
+        action: HydratedBuild,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): MachineState {
         const gameState = context.gameState
         const playerState = gameState.getPlayerState(action.playerId)
 

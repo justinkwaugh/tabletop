@@ -20,6 +20,13 @@ export type HiddenRequest =
     | { kind: 'siteFlip'; siteId: string }
     /** Pilgrimage — these cards go into the Dispossessed, it is shuffled, and as many are drawn. */
     | { kind: 'dispossessedExchange'; cardIds: string[] }
+    /** Great Spire — these drawn denizens swap places with as many random cards from the Dispossessed. */
+    | { kind: 'dispossessedSwap'; cardIds: string[] }
+    /**
+     * Fallen Spire — up to `count` denizens from the top of the pile, Visions skipped, swap places with
+     * random cards from the Dispossessed, unseen.
+     */
+    | { kind: 'discardPileSwap'; region: Region; count: number }
 
 export type HiddenReveal = Type.Static<typeof HiddenReveal>
 export const HiddenReveal = Type.Union([
@@ -43,7 +50,9 @@ export const HiddenReveal = Type.Union([
         topCardBackType: Type.Optional(Type.Enum(CardKind)),
         worldDeckExhausted: Type.Boolean()
     }),
-    Type.Object({ kind: Type.Literal('site'), siteCardId: Type.Optional(Type.String()) })
+    Type.Object({ kind: Type.Literal('site'), siteCardId: Type.Optional(Type.String()) }),
+    /** Fallen Spire — how many cards swapped places; nobody sees which (R-9.4). */
+    Type.Object({ kind: Type.Literal('swapped'), count: Type.Number() })
 ])
 
 /** R-9.4 — last id on top; `commitHiddenOutputs` replays them into the vault. */
@@ -54,6 +63,8 @@ export const PileDeposit = Type.Object({
         policy: Visibility.Policy.Actor
     }),
     bottom: Type.Optional(Type.Boolean()),
+    /** Land Warden — under this many cards on top of the pile, which went down after these (R-7.3.3). */
+    beneath: Type.Optional(Type.Number()),
     /** The table knows which cards these are, but not their order (Pilgrimage from an empty Dispossessed). */
     shownAsSet: Type.Optional(Type.Literal(true))
 })

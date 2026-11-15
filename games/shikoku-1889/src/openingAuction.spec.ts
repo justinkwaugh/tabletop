@@ -198,6 +198,10 @@ it('discounts the first lot to a free award, then pays private income on later a
     expect(run.model.playerId).toBe(next)
     expect(cashOwnedBy(run.state, { kind: 'player', playerId: first })).toBe(425)
     expect(run.model.auction.awards).toHaveLength(1)
+    expect(run.history.at(-1)?.metadata).toEqual({
+        kind: 'income',
+        payments: [{ from: { kind: 'bank' }, to: { kind: 'player', playerId: first }, amount: 5 }]
+    })
 })
 it('replays and undoes user actions and automatic cascades exactly without serializing rule dependencies', () => {
     const run = opening()

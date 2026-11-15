@@ -1,6 +1,9 @@
 <script lang="ts">
     import { BUS_EDGE_IDS, BuildingSites, type BusNodeId } from '@tabletop/bus'
-    import { BUS_BOARD_NODE_POINTS, BUS_BUILDING_SITE_POINTS } from '$lib/definitions/busBoardGraph.js'
+    import {
+        BUS_BOARD_NODE_POINTS,
+        BUS_BUILDING_SITE_POINTS
+    } from '$lib/definitions/busBoardGraph.js'
 
     const BOARD_WIDTH = 1839
     const BOARD_HEIGHT = 1300
@@ -91,7 +94,20 @@
             id: 'yellow',
             color: YELLOW_LINE_COLOR,
             // Crosses blue line and shares the N22-N24 edge with blue.
-            nodeIds: ['N02', 'N08', 'N10', 'N15', 'N23', 'N20', 'N24', 'N22', 'N30', 'N24', 'N31', 'N34']
+            nodeIds: [
+                'N02',
+                'N08',
+                'N10',
+                'N15',
+                'N23',
+                'N20',
+                'N24',
+                'N22',
+                'N30',
+                'N24',
+                'N31',
+                'N34'
+            ]
         },
         {
             id: 'red',
@@ -108,9 +124,9 @@
         }))
         .sort((left, right) => left.id.localeCompare(right.id))
 
-    const nodeDebugPoints = (Object.entries(BUS_BOARD_NODE_POINTS) as [BusNodeId, { x: number; y: number }][]).sort(
-        ([leftId], [rightId]) => leftId.localeCompare(rightId)
-    )
+    const nodeDebugPoints = (
+        Object.entries(BUS_BOARD_NODE_POINTS) as [BusNodeId, { x: number; y: number }][]
+    ).sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
 
     function edgeKey(from: BusNodeId, to: BusNodeId): string {
         return from < to ? `${from}:${to}` : `${to}:${from}`
@@ -221,7 +237,9 @@
     const BLUE_PARALLEL_EDGE = ['N14', 'N17'] as const satisfies readonly [BusNodeId, BusNodeId]
     const YELLOW_PARALLEL_EDGE = ['N10', 'N15'] as const satisfies readonly [BusNodeId, BusNodeId]
 
-    const { routeRenderLayers }: {
+    const {
+        routeRenderLayers
+    }: {
         routeRenderLayers: RouteRenderLayer[]
     } = (() => {
         const routeOrderById = new Map(routeDefinitions.map((route, index) => [route.id, index]))
@@ -363,7 +381,11 @@
             )
         }
 
-        function anchorAtNodeWithOffset(nodeId: BusNodeId, otherId: BusNodeId, offset: number): Vector {
+        function anchorAtNodeWithOffset(
+            nodeId: BusNodeId,
+            otherId: BusNodeId,
+            offset: number
+        ): Vector {
             return anchorAtNodeWithOffsetAndRadius(nodeId, otherId, offset, NODE_JOIN_RADIUS)
         }
 
@@ -382,7 +404,11 @@
             return add(add(nodePoint, scale(normal, offset)), scale(outwardDirection, joinRadius))
         }
 
-        function terminalAnchorAtNode(nodeId: BusNodeId, otherId: BusNodeId, routeId: string): Vector {
+        function terminalAnchorAtNode(
+            nodeId: BusNodeId,
+            otherId: BusNodeId,
+            routeId: string
+        ): Vector {
             const edge = edgeKey(nodeId, otherId)
             return anchorAtNodeWithOffsetAndRadius(
                 nodeId,
@@ -421,11 +447,26 @@
             const headBaseCenter = subtract(tip, scale(outward, TERMINAL_ARROW_HEAD_LENGTH))
             const neckCenter = subtract(headBaseCenter, scale(outward, TERMINAL_ARROW_NECK_SETBACK))
             const tailCenter = subtract(neckCenter, scale(outward, TERMINAL_ARROW_TAIL_LENGTH))
-            const headLeft = add(headBaseCenter, scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH))
-            const headRight = subtract(headBaseCenter, scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH))
-            const neckLeft = add(neckCenter, scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH))
-            const neckRight = subtract(neckCenter, scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH))
-            const tailLeft = add(tailCenter, scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH))
+            const headLeft = add(
+                headBaseCenter,
+                scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH)
+            )
+            const headRight = subtract(
+                headBaseCenter,
+                scale(perpendicularOutward, TERMINAL_ARROW_HEAD_HALF_WIDTH)
+            )
+            const neckLeft = add(
+                neckCenter,
+                scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH)
+            )
+            const neckRight = subtract(
+                neckCenter,
+                scale(perpendicularOutward, TERMINAL_ARROW_NECK_HALF_WIDTH)
+            )
+            const tailLeft = add(
+                tailCenter,
+                scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH)
+            )
             const tailRight = subtract(
                 tailCenter,
                 scale(perpendicularOutward, TERMINAL_ARROW_TAIL_HALF_WIDTH)
@@ -545,7 +586,7 @@
                 stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
                 stroke-linecap="round"
                 stroke-linejoin="round"
-            />
+            ></line>
         {/each}
 
         {#each layer.connectors as connector (`${connector.key}:outline`)}
@@ -556,7 +597,7 @@
                 stroke-linecap="butt"
                 stroke-linejoin="round"
                 fill="none"
-            />
+            ></path>
         {/each}
 
         {#each layer.segments as segment (`${segment.key}:fill`)}
@@ -569,7 +610,7 @@
                 stroke-width={ROUTE_STROKE_WIDTH}
                 stroke-linecap="round"
                 stroke-linejoin="round"
-            />
+            ></line>
         {/each}
 
         {#each layer.connectors as connector (`${connector.key}:fill`)}
@@ -580,11 +621,11 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 fill="none"
-            />
+            ></path>
         {/each}
 
         {#each layer.terminalArrows as arrow (arrow.key)}
-            <path d={arrow.d} fill="#ffffff" />
+            <path d={arrow.d} fill="#ffffff"></path>
         {/each}
     {/each}
 
@@ -599,7 +640,7 @@
             stroke-width="1"
             stroke-linecap="round"
             opacity="0.95"
-        />
+        ></line>
         <circle
             cx={site.point.x}
             cy={site.point.y}
@@ -607,7 +648,7 @@
             fill="rgba(15, 23, 42, 0.75)"
             stroke={BUILDING_SITE_DEBUG_COLOR}
             stroke-width="1.2"
-        />
+        ></circle>
         <text
             x={site.point.x + 8}
             y={site.point.y - 8}
@@ -627,7 +668,7 @@
             fill={NODE_DEBUG_BADGE_FILL}
             stroke={NODE_DEBUG_BADGE_STROKE}
             stroke-width="2"
-        />
+        ></circle>
         <text
             x={point.x}
             y={point.y + 0.5}
@@ -638,5 +679,4 @@
             dominant-baseline="middle">{nodeId}</text
         >
     {/each}
-
 </svg>

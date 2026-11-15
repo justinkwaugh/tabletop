@@ -5,6 +5,9 @@ test('search preserves variants, rotation and style are local, and paths can be 
 }) => {
     await page.goto('/')
     const viewer = page.getByRole('region', { name: 'Tile library', exact: true })
+    const inspectButtons = viewer.getByRole('button', { name: /^Inspect / })
+    await expect(inspectButtons.first()).toBeVisible()
+    const fullLibrary = await inspectButtons.count()
     await viewer.getByLabel('Find a tile').fill('611')
     await expect(viewer.getByRole('button', { name: /^Inspect 611/ })).toHaveCount(2)
     await viewer.getByRole('button', { name: 'Inspect 611, 1832', exact: true }).click()
@@ -25,7 +28,7 @@ test('search preserves variants, rotation and style are local, and paths can be 
     await viewer.getByLabel('Find a tile').fill('no such tile')
     await expect(detail).toContainText('No matching tiles')
     await viewer.getByRole('button', { name: 'Clear filters' }).click()
-    await expect(viewer.getByRole('button', { name: /^Inspect / })).toHaveCount(88)
+    await expect(inspectButtons).toHaveCount(fullLibrary)
 })
 
 test('title collections show independent full inventories and beginner extras', async ({

@@ -86,6 +86,18 @@ describe('DiscordService webhook events', () => {
         service = new DiscordService(notificationService, userService, discordTransport)
     })
 
+    it('does not subscribe or welcome a banned user who adds the bot', async () => {
+        vi.spyOn(userService, 'getUserByExternalId').mockResolvedValue({
+            ...linkedUser,
+            status: UserStatus.Inactive
+        })
+
+        await service.handleWebhookEvent(authorizedEvent(ApplicationIntegrationType.UserInstall))
+
+        expect(notificationService.registerNotificationSubscription).not.toHaveBeenCalled()
+        expect(discordTransport.sendMessage).not.toHaveBeenCalled()
+    })
+
     it('subscribes a linked user as soon as they add the bot to their account', async () => {
         await service.handleWebhookEvent(authorizedEvent(ApplicationIntegrationType.UserInstall))
 

@@ -7,13 +7,22 @@ import { drawCardsOrEndTurn } from './postActionHelper.js'
 
 // Transition from Chaining(Chain) -> PREVIOUS STATE
 
-export class ChainingStateHandler implements MachineStateHandler<HydratedChain, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is HydratedChain {
+export class ChainingStateHandler implements MachineStateHandler<
+    HydratedChain,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSolGameState>
+    ): action is HydratedChain {
         if (!action.playerId) return false
         return isChain(action)
     }
 
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         return [ActionType.Chain]
     }
 

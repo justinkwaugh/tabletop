@@ -53,14 +53,18 @@ describe('a power that declares no choices', () => {
 
 describe('counts — "no choice was made" and "two given where one was wanted"', () => {
     it('a required choice missing is refused by name', () => {
-        declareChoices(CAPTAINS.cardId, 0, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
+        declareChoices(CAPTAINS.cardId, 0, [
+            one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })
+        ])
         expect(reasonChoicesInvalid(board(), 'p1', CAPTAINS, [])).toBe(
             'no choice was made for a favor bank'
         )
     })
 
     it('a surplus is refused against the max', () => {
-        declareChoices(CAPTAINS.cardId, 0, [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })])
+        declareChoices(CAPTAINS.cardId, 0, [
+            one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })
+        ])
         const two: PowerChoice[] = [
             { kind: PowerChoiceKind.FavorBank, suit: Suit.Beast },
             { kind: PowerChoiceKind.FavorBank, suit: Suit.Nomad }
@@ -129,12 +133,18 @@ describe('"that bank is not among the options" — validated against the live bo
     })
 
     it('player: defaults to every OTHER player', () => {
-        declareChoices(CAPTAINS.cardId, 0, [one(PowerChoiceKind.Player, { what: 'another player' })])
+        declareChoices(CAPTAINS.cardId, 0, [
+            one(PowerChoiceKind.Player, { what: 'another player' })
+        ])
         const state = board()
         const [{ options }] = legalChoices(state, 'p1', CAPTAINS)
-        expect(options.map((o) => (o.kind === PowerChoiceKind.Player ? o.playerId : undefined)).sort()).toEqual(['p2', 'p3'])
         expect(
-            reasonChoicesInvalid(state, 'p1', CAPTAINS, [{ kind: PowerChoiceKind.Player, playerId: 'p1' }])
+            options.map((o) => (o.kind === PowerChoiceKind.Player ? o.playerId : undefined)).sort()
+        ).toEqual(['p2', 'p3'])
+        expect(
+            reasonChoicesInvalid(state, 'p1', CAPTAINS, [
+                { kind: PowerChoiceKind.Player, playerId: 'p1' }
+            ])
         ).toBe('p1 is not among the options for another player')
     })
 
@@ -142,7 +152,9 @@ describe('"that bank is not among the options" — validated against the live bo
         declareChoices(CAPTAINS.cardId, 0, [one(PowerChoiceKind.Card, { what: 'a card' })])
         const state = board()
         const [{ options }] = legalChoices(state, 'p1', CAPTAINS)
-        const ids = options.map((o) => (o.kind === PowerChoiceKind.Card ? o.cardId : undefined)).sort()
+        const ids = options
+            .map((o) => (o.kind === PowerChoiceKind.Card ? o.cardId : undefined))
+            .sort()
         expect(ids).toEqual(
             ['denizen.beast.rangers', 'denizen.hearth.ballot-box', 'denizen.order.captains'].sort()
         )
@@ -157,9 +169,13 @@ describe('"that bank is not among the options" — validated against the live bo
         declareChoices(CAPTAINS.cardId, 0, [one(PowerChoiceKind.Site, { what: 'a site' })])
         const state = board()
         const [{ options }] = legalChoices(state, 'p1', CAPTAINS)
-        expect(options.map((o) => (o.kind === PowerChoiceKind.Site ? o.siteId : undefined)).sort()).toEqual(['c1', 'c2', 'p1'])
         expect(
-            reasonChoicesInvalid(state, 'p1', CAPTAINS, [{ kind: PowerChoiceKind.Site, siteId: 'h3' }])
+            options.map((o) => (o.kind === PowerChoiceKind.Site ? o.siteId : undefined)).sort()
+        ).toEqual(['c1', 'c2', 'p1'])
+        expect(
+            reasonChoicesInvalid(state, 'p1', CAPTAINS, [
+                { kind: PowerChoiceKind.Site, siteId: 'h3' }
+            ])
         ).toBe('h3 is not among the options for a site')
     })
 

@@ -136,7 +136,9 @@
         border: 2px solid #7a5f0a;
         border-radius: 999px;
         background: #e3c34a;
-        box-shadow: inset 0 0 0 3px #e3c34a, inset 0 0 0 4px rgba(122, 95, 10, 0.45);
+        box-shadow:
+            inset 0 0 0 3px #e3c34a,
+            inset 0 0 0 4px rgba(122, 95, 10, 0.45);
         color: #4a3a05;
         font-family: 'Railheads Baskerville', Georgia, serif;
         font-size: 20px;
@@ -147,7 +149,9 @@
     .coin.ending {
         border-color: #6e140f;
         background: #c42a22;
-        box-shadow: inset 0 0 0 3px #c42a22, inset 0 0 0 4px rgba(255, 255, 255, 0.45);
+        box-shadow:
+            inset 0 0 0 3px #c42a22,
+            inset 0 0 0 4px rgba(255, 255, 255, 0.45);
         color: #ffffff;
     }
 

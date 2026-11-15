@@ -136,7 +136,9 @@ export class WorkerCylinderAnimator extends StateAnimator<
         const toPlacements = buildActionWorkerPlacements(to)
         const toPlacementKeys = new Set(toPlacements.map((placement) => placement.key))
 
-        for (const removedPlacement of fromPlacements.filter((placement) => !toPlacementKeys.has(placement.key))) {
+        for (const removedPlacement of fromPlacements.filter(
+            (placement) => !toPlacementKeys.has(placement.key)
+        )) {
             const transient = {
                 key: removedPlacement.key,
                 scale: 1,
@@ -197,7 +199,6 @@ export class WorkerCylinderAnimator extends StateAnimator<
                 },
                 removalPopDuration
             )
-
         }
 
         const fromPlacementKeys = new Set(fromPlacements.map((placement) => placement.key))

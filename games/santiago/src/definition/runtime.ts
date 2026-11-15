@@ -8,11 +8,11 @@ import {
 } from '../model/gameState.js'
 import { SantiagoHydrator } from './hydrator.js'
 import { SantiagoGameInitializer } from './gameInitializer.js'
-import { SantiagoStateLogger } from '../util/stateLogger.js'
 import { SantiagoApiActions } from './apiActions.js'
 import { SantiagoStateHandlers } from './stateHandlers.js'
 import { SantiagoColors } from './colors.js'
 import { SantiagoScoring } from './scoring.js'
+import { SantiagoProgression } from './progression.js'
 
 export const SantiagoRuntime = {
     randomnessVersion: 1,
@@ -23,8 +23,8 @@ export const SantiagoRuntime = {
     stateHandlers: SantiagoStateHandlers,
     apiActions: SantiagoApiActions,
     playerColors: SantiagoColors,
-    stateLogger: new SantiagoStateLogger(),
     scoring: new SantiagoScoring(),
+    progression: new SantiagoProgression(),
     visibility: {
         state: Visibility.createProjector(SantiagoGameState),
         actions: Visibility.createActionProjector(SantiagoApiActions)

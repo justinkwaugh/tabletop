@@ -1,16 +1,19 @@
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
+import { actionMayOperate, inReceivership } from '../finance/receivership.js'
+import { completesFundedPurchase, type FundingState } from '../funding/trainFunding.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
 import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
+import { LoanRecord } from '../loans/loans.js'
 import {
     TrainPurchase,
     TrainPurchaseRequest,
@@ -27,7 +30,7 @@ import {
 } from './trainDepartures.js'
 export const BuyTrain = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         ...TrainPurchaseRequest.properties,
         type: Type.Literal('BuyTrain'),
         expectedPrice: Type.Integer({ minimum: 0 }),
@@ -36,7 +39,9 @@ export const BuyTrain = Type.Object(
                 {
                     ...TrainPurchaseDetails.properties,
                     companyChanges: Type.Optional(CompanyChanges),
-                    departurePayments: DeparturePayments
+                    departurePayments: DeparturePayments,
+                    /** The loans taken to pay for the train. */
+                    loans: Type.Optional(Type.Array(LoanRecord))
                 },
                 { additionalProperties: false }
             )
@@ -54,7 +59,7 @@ export function isBuyTrain(action: GameAction): action is BuyTrain {
 }
 export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implements BuyTrain {
     declare type: 'BuyTrain'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     declare trainId: string
     declare definitionId: string
@@ -66,11 +71,19 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         super(data instanceof HydratedBuyTrain ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & TrainPurchaseState & PhaseState): void {
+    apply(
+        state: HydratedGameState &
+            TrainPurchaseState &
+            PhaseState &
+            Pick<FundingState, 'trainFunding'>
+    ): void {
         const purchase = new TrainPurchase(state, this.#rules)
         assert(
-            this.source === ActionSource.User &&
-                state.activePlayerIds.includes(this.playerId) &&
+            (this.source === ActionSource.User ||
+                (this.source === ActionSource.System &&
+                    (inReceivership(state, this.companyId) ||
+                        completesFundedPurchase(state, this.companyId)))) &&
+                actionMayOperate(state, this, this.companyId) &&
                 purchase.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may buy trains'
         )
@@ -78,11 +91,15 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         assert(result.details, result.reason ?? 'Invalid train purchase')
         assert(result.details.price === this.expectedPrice, 'Train price has changed')
         const companies = new CompanyChangeRecorder(state)
+        const loans = this.#rules.borrowing?.allowed(state, this)
+            ? this.#rules.borrowing.loans.borrowFor(state, this.companyId, result.details.price)
+            : []
         const payments = applyTrainPurchase(state, result.details, this.#rules)
         this.metadata = {
             companyChanges: companies.changes(state),
             ...result.details,
-            ...departurePaymentsField(payments)
+            ...departurePaymentsField(payments),
+            ...(loans.length ? { loans } : {})
         }
     }
 }
@@ -99,8 +116,9 @@ export function applyTrainPurchase(
             amount: details.price
         }
     ])
-    if (details.exchangeTrainId)
-        releaseTrains(state.trainInventory, [details.exchangeTrainId], 'market')
+    const exchangeDestination = rules.exchangedTrainDestination ?? 'market'
+    if (details.exchangeTrainId && exchangeDestination !== 'depot')
+        releaseTrains(state.trainInventory, [details.exchangeTrainId], exchangeDestination)
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
     const payments = settleTrainDepartures(state, rules, [
         { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }
@@ -109,8 +127,14 @@ export function applyTrainPurchase(
         kind: 'company',
         companyId: details.companyId
     })
-    if (state.trainPurchaseStep?.companyId === details.companyId)
+    // A certificate turned over goes back once the new train has left the depot.
+    if (details.exchangeTrainId && exchangeDestination === 'depot')
+        rules.depot.restock(state.trainInventory, details.exchangeTrainId)
+    if (state.trainPurchaseStep?.companyId === details.companyId) {
         state.trainPurchaseStep.purchasedTrainIds.push(details.trainId)
+        if (details.exchangeTrainId)
+            (state.trainPurchaseStep.exchangedTrainIds ??= []).push(details.exchangeTrainId)
+    }
     closePrivatesOnTrainPurchase(state, rules, details.companyId)
     preparePhaseChange(state, details.trainId, details.definitionId, toPhaseId, {
         machineState: state.machineState,

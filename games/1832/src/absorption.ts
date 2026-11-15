@@ -10,6 +10,7 @@ import {
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoOperatingRules } from './roundRules.js'
+import { keyWestHolder } from './revenueTokens.js'
 
 export const Absorption = Type.Object(
     {
@@ -111,9 +112,7 @@ export function absorbCompany(
         token.companyId === fromId ? { ...token, companyId: survivorId } : token
     )
     if (state.londonCompanyId === fromId) state.londonCompanyId = survivorId
-    state.ownershipLimitExemptions = state.ownershipLimitExemptions.filter(
-        (exemption) => exemption.companyId !== fromId
-    )
+    if (keyWestHolder(state) === fromId) state.keyWestCompanyId = survivorId
     const set = state.operatingSet
     if (set && !set.completed) {
         if (!set.companyOrder.includes(survivorId))

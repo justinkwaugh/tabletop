@@ -9,6 +9,7 @@ import { DeclareDefense } from '../actions/declareDefense.js'
 import { DeclareFeint } from '../actions/declareFeint.js'
 import { DeployArmy } from '../actions/deployArmy.js'
 import { LeadDefense } from '../actions/leadDefense.js'
+import { AcknowledgeReveal } from '../actions/acknowledgeReveal.js'
 import { EndTurn } from '../actions/endTurn.js'
 import { Move } from '../actions/move.js'
 import { Occupy } from '../actions/occupy.js'
@@ -17,6 +18,7 @@ import { PlaceBid } from '../actions/placeBid.js'
 import { PressAttack } from '../actions/pressAttack.js'
 import { Regroup } from '../actions/regroup.js'
 import { Retreat } from '../actions/retreat.js'
+import { StayInReserve } from '../actions/stayInReserve.js'
 import { ThreatenAttack } from '../actions/threatenAttack.js'
 
 export const NapoleonsTriumphApiActions = {
@@ -38,5 +40,7 @@ export const NapoleonsTriumphApiActions = {
     [ActionType.Advance]: Advance,
     [ActionType.Retreat]: Retreat,
     [ActionType.Occupy]: Occupy,
-    [ActionType.EndTurn]: EndTurn
+    [ActionType.EndTurn]: EndTurn,
+    [ActionType.AcknowledgeReveal]: AcknowledgeReveal,
+    [ActionType.StayInReserve]: StayInReserve
 }

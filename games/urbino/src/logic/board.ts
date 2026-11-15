@@ -4,12 +4,21 @@ export const BOARD_SIZE = 9
 export const BOARD_SQUARES = BOARD_SIZE * BOARD_SIZE
 
 const DIRECTIONS_8: [number, number][] = [
-    [-1, 0], [1, 0], [0, -1], [0, 1],
-    [-1, -1], [-1, 1], [1, -1], [1, 1],
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+    [-1, -1],
+    [-1, 1],
+    [1, -1],
+    [1, 1]
 ]
 
 const DIRECTIONS_4: [number, number][] = [
-    [-1, 0], [1, 0], [0, -1], [0, 1],
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1]
 ]
 
 export function posToRowCol(pos: number): [number, number] {
@@ -28,17 +37,23 @@ export function getOrthogonalNeighbors(pos: number): number[] {
     const [row, col] = posToRowCol(pos)
     const neighbors: number[] = []
     for (const [dr, dc] of DIRECTIONS_4) {
-        const r = row + dr, c = col + dc
+        const r = row + dr,
+            c = col + dc
         if (isOnBoard(r, c)) neighbors.push(rowColToPos(r, c))
     }
     return neighbors
 }
 
-export function getLineOfSight(board: BoardSquare[], pos: number, blockers: Set<number> = new Set()): Set<number> {
+export function getLineOfSight(
+    board: BoardSquare[],
+    pos: number,
+    blockers: Set<number> = new Set()
+): Set<number> {
     const visible = new Set<number>()
     const [row, col] = posToRowCol(pos)
     for (const [dr, dc] of DIRECTIONS_8) {
-        let r = row + dr, c = col + dc
+        let r = row + dr,
+            c = col + dc
         while (isOnBoard(r, c)) {
             const p = rowColToPos(r, c)
             if (board[p] !== null || blockers.has(p)) break
@@ -61,7 +76,11 @@ export function getArchitectIntersection(board: BoardSquare[], architects: numbe
     return intersection
 }
 
-function satisfiesAdjacencyRule(board: BoardSquare[], pos: number, buildingType: BuildingType): boolean {
+function satisfiesAdjacencyRule(
+    board: BoardSquare[],
+    pos: number,
+    buildingType: BuildingType
+): boolean {
     if (buildingType === BuildingType.House) return true
     for (const n of getOrthogonalNeighbors(pos)) {
         if (board[n]?.buildingType === buildingType) return false
@@ -84,7 +103,11 @@ export function getDistrictFrom(board: BoardSquare[], startPos: number): Set<num
     return district
 }
 
-function countPlayerComponents(board: BoardSquare[], district: Set<number>, playerId: string): number {
+function countPlayerComponents(
+    board: BoardSquare[],
+    district: Set<number>,
+    playerId: string
+): number {
     const visited = new Set<number>()
     let count = 0
     for (const pos of district) {
@@ -125,14 +148,16 @@ function findAllMonumentsInDistrict(board: BoardSquare[], district: Set<number>)
     for (const p of district) {
         const [r, c] = posToRowCol(p)
         if (c + 2 < BOARD_SIZE) {
-            const p1 = rowColToPos(r, c + 1), p2 = rowColToPos(r, c + 2)
+            const p1 = rowColToPos(r, c + 1),
+                p2 = rowColToPos(r, c + 2)
             if (district.has(p1) && district.has(p2)) {
                 const m = checkMonument(board, p, p1, p2)
                 if (m) monuments.push(m)
             }
         }
         if (r + 2 < BOARD_SIZE) {
-            const p1 = rowColToPos(r + 1, c), p2 = rowColToPos(r + 2, c)
+            const p1 = rowColToPos(r + 1, c),
+                p2 = rowColToPos(r + 2, c)
             if (district.has(p1) && district.has(p2)) {
                 const m = checkMonument(board, p, p1, p2)
                 if (m) monuments.push(m)
@@ -142,7 +167,12 @@ function findAllMonumentsInDistrict(board: BoardSquare[], district: Set<number>)
     return monuments
 }
 
-function satisfiesMonumentRule(board: BoardSquare[], pos: number, playerId: string, buildingType: BuildingType): boolean {
+function satisfiesMonumentRule(
+    board: BoardSquare[],
+    pos: number,
+    playerId: string,
+    buildingType: BuildingType
+): boolean {
     const tempBoard = [...board]
     tempBoard[pos] = { playerId, buildingType }
     const district = getDistrictFrom(tempBoard, pos)
@@ -181,17 +211,35 @@ export function getValidPlacements(
 ): number[] {
     const validPositions = new Set<number>()
     if (buildings.houses > 0) {
-        for (const pos of getValidPlacementsForType(board, architects, playerId, BuildingType.House, monumentsVariant)) {
+        for (const pos of getValidPlacementsForType(
+            board,
+            architects,
+            playerId,
+            BuildingType.House,
+            monumentsVariant
+        )) {
             validPositions.add(pos)
         }
     }
     if (buildings.palaces > 0) {
-        for (const pos of getValidPlacementsForType(board, architects, playerId, BuildingType.Palace, monumentsVariant)) {
+        for (const pos of getValidPlacementsForType(
+            board,
+            architects,
+            playerId,
+            BuildingType.Palace,
+            monumentsVariant
+        )) {
             validPositions.add(pos)
         }
     }
     if (buildings.towers > 0) {
-        for (const pos of getValidPlacementsForType(board, architects, playerId, BuildingType.Tower, monumentsVariant)) {
+        for (const pos of getValidPlacementsForType(
+            board,
+            architects,
+            playerId,
+            BuildingType.Tower,
+            monumentsVariant
+        )) {
             validPositions.add(pos)
         }
     }
@@ -207,17 +255,25 @@ export function hasAnyValidPlacement(
 ): boolean {
     if (
         buildings.houses > 0 &&
-        getValidPlacementsForType(board, architects, playerId, BuildingType.House, monumentsVariant).length > 0
+        getValidPlacementsForType(board, architects, playerId, BuildingType.House, monumentsVariant)
+            .length > 0
     )
         return true
     if (
         buildings.palaces > 0 &&
-        getValidPlacementsForType(board, architects, playerId, BuildingType.Palace, monumentsVariant).length > 0
+        getValidPlacementsForType(
+            board,
+            architects,
+            playerId,
+            BuildingType.Palace,
+            monumentsVariant
+        ).length > 0
     )
         return true
     if (
         buildings.towers > 0 &&
-        getValidPlacementsForType(board, architects, playerId, BuildingType.Tower, monumentsVariant).length > 0
+        getValidPlacementsForType(board, architects, playerId, BuildingType.Tower, monumentsVariant)
+            .length > 0
     )
         return true
     return false
@@ -235,7 +291,8 @@ export function hasAnyValidPlacementAfterReposition(
             if (!isValidRepositionTarget(board, architects, architectIndex, newPos)) continue
             const newArchitects = [...architects]
             newArchitects[architectIndex] = newPos
-            if (hasAnyValidPlacement(board, newArchitects, playerId, buildings, monumentsVariant)) return true
+            if (hasAnyValidPlacement(board, newArchitects, playerId, buildings, monumentsVariant))
+                return true
         }
     }
     return false
@@ -256,16 +313,26 @@ export type DistrictInfo = {
     monuments: Monument[]
 }
 
-export function getDistrictInfo(board: BoardSquare[], pos: number, includeMonuments = false): DistrictInfo {
+export function getDistrictInfo(
+    board: BoardSquare[],
+    pos: number,
+    includeMonuments = false
+): DistrictInfo {
     const district = getDistrictFrom(board, pos)
     const monuments = includeMonuments ? findAllMonumentsInDistrict(board, district) : []
-    const monumentPositions = new Set<number>(monuments.flatMap(m => [...m.positions]))
+    const monumentPositions = new Set<number>(monuments.flatMap((m) => [...m.positions]))
 
     const playerStats = new Map<string, DistrictPlayerStats>()
     for (const p of district) {
         const sq = board[p]!
         if (!playerStats.has(sq.playerId)) {
-            playerStats.set(sq.playerId, { total: 0, monumentValue: 0, towers: 0, palaces: 0, houses: 0 })
+            playerStats.set(sq.playerId, {
+                total: 0,
+                monumentValue: 0,
+                towers: 0,
+                palaces: 0,
+                houses: 0
+            })
         }
         const stats = playerStats.get(sq.playerId)!
         if (!monumentPositions.has(p)) {
@@ -278,7 +345,10 @@ export function getDistrictInfo(board: BoardSquare[], pos: number, includeMonume
 
     for (const m of monuments) {
         const stats = playerStats.get(m.winnerId)
-        if (stats) { stats.total += m.value; stats.monumentValue += m.value }
+        if (stats) {
+            stats.total += m.value
+            stats.monumentValue += m.value
+        }
     }
 
     const contested = playerStats.size >= 2
@@ -304,7 +374,10 @@ export function getDistrictInfo(board: BoardSquare[], pos: number, includeMonume
     return { playerStats, winner, contested, monuments }
 }
 
-export function computeDistrictScores(board: BoardSquare[], includeMonuments = false): Map<string, number> {
+export function computeDistrictScores(
+    board: BoardSquare[],
+    includeMonuments = false
+): Map<string, number> {
     const scores = new Map<string, number>()
     const visited = new Set<number>()
 
@@ -332,20 +405,32 @@ export type Monument = {
 const MONUMENT_VALUE: Record<MonumentType, number> = {
     'town-wall': 6,
     'ducal-palace': 10,
-    'cathedral': 16,
+    cathedral: 16
 }
 
 function checkMonument(board: BoardSquare[], p0: number, p1: number, p2: number): Monument | null {
-    const b0 = board[p0], b1 = board[p1], b2 = board[p2]
+    const b0 = board[p0],
+        b1 = board[p1],
+        b2 = board[p2]
     if (!b0 || !b1 || !b2) return null
-    const t0 = b0.buildingType, t1 = b1.buildingType, t2 = b2.buildingType
+    const t0 = b0.buildingType,
+        t1 = b1.buildingType,
+        t2 = b2.buildingType
 
     let type: MonumentType | null = null
     if (t0 === BuildingType.House && t1 === BuildingType.House && t2 === BuildingType.House) {
         type = 'town-wall'
-    } else if (t0 === BuildingType.Palace && t1 === BuildingType.House && t2 === BuildingType.Palace) {
+    } else if (
+        t0 === BuildingType.Palace &&
+        t1 === BuildingType.House &&
+        t2 === BuildingType.Palace
+    ) {
         type = 'ducal-palace'
-    } else if (t0 === BuildingType.Tower && t1 === BuildingType.Palace && t2 === BuildingType.Tower) {
+    } else if (
+        t0 === BuildingType.Tower &&
+        t1 === BuildingType.Palace &&
+        t2 === BuildingType.Tower
+    ) {
         type = 'cathedral'
     }
     if (!type) return null
@@ -353,7 +438,6 @@ function checkMonument(board: BoardSquare[], p0: number, p1: number, p2: number)
 
     return { type, positions: [p0, p1, p2], value: MONUMENT_VALUE[type], winnerId: b0.playerId }
 }
-
 
 export function isValidRepositionTarget(
     board: BoardSquare[],

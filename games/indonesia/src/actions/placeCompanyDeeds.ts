@@ -7,8 +7,7 @@ import { Deeds } from '../components/deed.js'
 import { Era } from '../definition/eras.js'
 
 export type PlaceCompanyDeedsMetadata = Type.Static<typeof PlaceCompanyDeedsMetadata>
-export const PlaceCompanyDeedsMetadata = Type.Object({
-})
+export const PlaceCompanyDeedsMetadata = Type.Object({})
 
 export type PlaceCompanyDeeds = Type.Static<typeof PlaceCompanyDeeds>
 export const PlaceCompanyDeeds = Type.Evaluate(
@@ -27,7 +26,10 @@ export function isPlaceCompanyDeeds(action?: GameAction): action is PlaceCompany
     return action?.type === ActionType.PlaceCompanyDeeds
 }
 
-export class HydratedPlaceCompanyDeeds extends HydratableAction<typeof PlaceCompanyDeeds> implements PlaceCompanyDeeds {
+export class HydratedPlaceCompanyDeeds
+    extends HydratableAction<typeof PlaceCompanyDeeds>
+    implements PlaceCompanyDeeds
+{
     declare type: ActionType.PlaceCompanyDeeds
     declare playerId?: string
     declare metadata?: PlaceCompanyDeedsMetadata

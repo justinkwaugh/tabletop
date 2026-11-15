@@ -1,10 +1,11 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
@@ -17,10 +18,12 @@ import { TrackRequest, TrackConstruction, type TrackRules } from './trackConstru
 import { applyTrackLay } from './layTile.js'
 export const RequestTrackConsent = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...TrackRequest.properties,
         type: Type.Literal('RequestTrackConsent'),
-        expectedCost: Type.Integer({ minimum: 0 })
+        expectedCost: Type.Integer({ minimum: 0 }),
+        /** The player asked, where more than one player's agreement would serve. */
+        askedPlayerId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
@@ -38,6 +41,7 @@ export class HydratedRequestTrackConsent
     declare rotation: TrackRequest['rotation']
     declare nodeMapping: TrackRequest['nodeMapping']
     declare expectedCost: number
+    declare askedPlayerId?: string
     readonly #rules: TrackRules
     constructor(data: RequestTrackConsent, rules: TrackRules) {
         super(data instanceof HydratedRequestTrackConsent ? data.dehydrate() : data, Validator)
@@ -46,6 +50,7 @@ export class HydratedRequestTrackConsent
     isValid(state: CompanyDecisionState): boolean {
         const construction = new TrackConstruction(state, this.#rules)
         const details = construction.evaluate(this).details
+        const consenters = construction.consenters(this)
         return (
             this.source === ActionSource.User &&
             state.machineState === 'LayingTrack' &&
@@ -53,22 +58,27 @@ export class HydratedRequestTrackConsent
             state.activePlayerIds.includes(this.playerId) &&
             construction.canAct(this.playerId, this.companyId) &&
             details?.cost === this.expectedCost &&
-            !!details.consentPlayerId &&
-            details.consentPlayerId !== this.playerId
+            consenters.length > 0 &&
+            !consenters.includes(this.playerId) &&
+            (this.askedPlayerId === undefined || consenters.includes(this.askedPlayerId))
         )
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {
         assert(this.isValid(state), 'Invalid track permission request')
+        const details = new TrackConstruction(state, this.#rules).evaluate(this).details
+        assertExists(details, 'A valid request has its lay')
         state.trackConsent = {
             id: this.id,
             playerId: this.playerId,
-            details: new TrackConstruction(state, this.#rules).evaluate(this).details!
+            details: this.askedPlayerId
+                ? { ...details, consentPlayerId: this.askedPlayerId }
+                : details
         }
     }
 }
 export const RespondToTrackConsent = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('RespondToTrackConsent'),
         requestId: Type.String(),
         accept: Type.Boolean(),
@@ -110,7 +120,7 @@ export class HydratedRespondToTrackConsent
         return (
             construction.canAct(pending.playerId, pending.details.companyId) &&
             current?.cost === pending.details.cost &&
-            current?.consentPlayerId === this.playerId
+            construction.consenters(pending.details).includes(this.playerId)
         )
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {

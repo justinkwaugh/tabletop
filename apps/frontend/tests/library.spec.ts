@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import type { Game, Tournament, User } from '@tabletop/common'
-import { GameStatus, PlayerStatus, UserStatus, Role } from '@tabletop/common'
-import { mockLibrary } from './fixtures/library'
+import { GameResult, GameStatus, PlayerStatus, UserStatus, Role } from '@tabletop/common'
+import { mockLibrary, mockTitles } from './fixtures/library'
 
 const player: User = {
     id: 'library-player',
@@ -73,6 +73,11 @@ test.beforeEach(async ({ page }) => {
     )
     await page.route('**/api/v1/games/open/*', (route) =>
         route.fulfill({ json: { payload: { games: [] } } })
+    )
+    await page.route('**/api/v1/games/activity/*', (route) =>
+        route.fulfill({
+            json: { status: 'ok', payload: { activity: { inProgress: [], recentlyFinished: [] } } }
+        })
     )
     await page.route('**/api/v1/tournaments/**', (route) =>
         route.fulfill({ json: { status: 'ok', payload: { tournaments: [] } } })
@@ -267,12 +272,163 @@ test('the library shows its count beside the heading and returns from game detai
     await expect(page).toHaveURL(/\/library\/landing-0$/)
     await expect(page.getByRole('heading', { name: 'Game 01', exact: true })).toBeVisible()
     await expect(page.getByText('Example Designer')).toBeVisible()
+    await expect(
+        page.getByRole('link', { name: 'Example Publisher (opens in a new tab)' })
+    ).toHaveAttribute('href', 'https://example.com/game-01')
     await expect(page.getByText('Make every turn count.')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Open games' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Tournaments', exact: true })).toBeVisible()
     await page.goBack()
     await expect(page.locator('.game-shelf > li')).toHaveCount(12)
+})
+
+test('a publisher that sells the game offers to buy it', async ({ page }) => {
+    await page.goto('/library/landing-1')
+    await expect(page.locator('.credits.publisher')).toHaveText(
+        /^Published by Example Shop\s*·\s*buy it from Example Shop\s*\(opens in a new tab\)$/
+    )
+    await expect(
+        page.getByRole('link', { name: 'buy it from Example Shop (opens in a new tab)' })
+    ).toHaveAttribute('href', 'https://example.com/game-02')
+})
+
+test.describe('a library series', () => {
+    const covers = (page: Page) => page.locator('.cover-cycle .cover')
+
+    test.beforeEach(async ({ page }) => {
+        await mockTitles(page, 4)
+    })
+
+    async function advanceToSecondCover(page: Page) {
+        await expect(async () => {
+            await page.clock.runFor(2000)
+            await expect(covers(page).nth(1)).toHaveClass(/shown/, { timeout: 100 })
+        }).toPass()
+    }
+
+    test('takes one tile on the shelf and has its own page', async ({ page }) => {
+        await page.goto('/library')
+        await expect(page.locator('.game-shelf > li')).toHaveCount(9)
+        await expect(page.getByText('12 games in the library')).toBeVisible()
+        await expect(page.locator('.game-shelf > li').first()).toContainText('4 games')
+
+        await page.getByRole('link', { name: 'View 18xx, 4 games' }).click()
+        await expect(page).toHaveURL(/\/library\/series\/18xx$/)
+        await expect(page.getByRole('heading', { name: '18xx', exact: true })).toBeVisible()
+        await expect(page.locator('.game-shelf > li')).toHaveCount(4)
+
+        await page.getByRole('link', { name: 'View Game 01' }).click()
+        await expect(page).toHaveURL(/\/library\/landing-0$/)
+        await page.getByRole('link', { name: '18xx', exact: true }).click()
+        await expect(page).toHaveURL(/\/library\/series\/18xx$/)
+
+        await page.getByRole('link', { name: 'All games', exact: true }).click()
+        await expect(page).toHaveURL(/\/library$/)
+        await expect(page.locator('.game-shelf > li')).toHaveCount(9)
+    })
+
+    test('shows one cover at a time, every two seconds, and holds while hovered', async ({
+        page
+    }) => {
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+
+        await advanceToSecondCover(page)
+        await page.clock.runFor(1900)
+        await expect(covers(page).nth(1)).toHaveClass(/shown/)
+        await expect(covers(page)).toHaveCount(3)
+
+        const tile = page.getByRole('link', { name: 'View 18xx, 4 games' })
+        await tile.hover()
+        await page.clock.runFor(10000)
+        await expect(covers(page).nth(1)).toHaveClass(/shown/)
+
+        await page.mouse.move(0, 0)
+        await expect(async () => {
+            await page.clock.runFor(2000)
+            await expect(covers(page).nth(1)).not.toHaveClass(/shown/, { timeout: 100 })
+        }).toPass()
+        await expect(page.locator('.cover-cycle .cover.shown')).toHaveCount(1)
+    })
+
+    test('holds one cover still and loads no other with reduced motion', async ({ page }) => {
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+        await page.clock.runFor(10000)
+        await expect(covers(page)).toHaveCount(1)
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+    })
+
+    async function expectHeldOnFirstCover(page: Page) {
+        await expect(covers(page)).toHaveCount(1)
+        await page.clock.runFor(10000)
+        await expect(covers(page)).toHaveCount(1)
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+    }
+
+    test('holds its cover while focused', async ({ page }) => {
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await page.getByRole('link', { name: 'View 18xx, 4 games' }).focus()
+        await expectHeldOnFirstCover(page)
+    })
+
+    test('holds its cover while scrolled out of view', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 500 })
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await page.locator('.library-results').evaluate((results) => {
+            results.scrollTop = results.scrollHeight
+        })
+        await expectHeldOnFirstCover(page)
+        await page.locator('.library-results').evaluate((results) => {
+            results.scrollTop = 0
+        })
+        await expect(covers(page)).toHaveCount(2)
+    })
+
+    test('holds its cover while the tab is hidden', async ({ page }) => {
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await page.evaluate(() => {
+            Object.defineProperty(document, 'visibilityState', {
+                configurable: true,
+                value: 'hidden'
+            })
+            document.dispatchEvent(new Event('visibilitychange'))
+        })
+        await expectHeldOnFirstCover(page)
+    })
+
+    test('a failed catalog asks for a refresh instead of saying the series is missing', async ({
+        page
+    }) => {
+        await page.route('**/api/v1/catalog', (route) => route.fulfill({ status: 500 }))
+        await page.goto('/library/series/18xx')
+        await expect(page.getByRole('status')).toHaveText(
+            'The game shelf couldn’t load. Please refresh to try again.'
+        )
+        await expect(page.getByRole('heading', { name: '18xx', exact: true })).toBeVisible()
+    })
+
+    test('a series this player cannot see any of is not found', async ({ page }) => {
+        await mockTitles(page)
+        await page.goto('/library/series/18xx')
+        await expect(page.getByText('This series is not available in the library.')).toBeVisible()
+    })
+
+    test('an unknown series is not found', async ({ page }) => {
+        await page.goto('/library/series/constructor')
+        await expect(page.getByText('This series is not available in the library.')).toBeVisible()
+    })
 })
 
 test('the game page shows current games, joinable tables and paginated tournaments', async ({
@@ -354,6 +510,352 @@ test('each activity section can recover from a request failure', async ({ page }
     await expect(page.getByText('No tournaments to show for this game right now.')).toBeVisible()
     await section.getByRole('button', { name: 'Try again' }).click()
     await expect(section.getByText('Recovered game')).toBeVisible()
+    expect(attempts).toBe(2)
+})
+
+function publicGame(id: string, status: GameStatus.Started | GameStatus.Finished): Game {
+    return {
+        ...game(id, `Public ${id}`, false),
+        status,
+        players: [
+            {
+                id: 'seat-1',
+                isHuman: true,
+                userId: 'other-player',
+                name: 'Other player',
+                status: PlayerStatus.Joined
+            },
+            {
+                id: 'seat-2',
+                isHuman: true,
+                userId: 'third-player',
+                name: 'Third player',
+                status: PlayerStatus.Joined
+            }
+        ],
+        ...(status === GameStatus.Finished
+            ? {
+                  result: GameResult.Win,
+                  winningPlayerIds: ['seat-1'],
+                  finishedAt: new Date('2026-09-02')
+              }
+            : { activePlayerIds: ['seat-1'] })
+    }
+}
+
+test('public activity tabs preserve pages and switch without requests', async ({ page }) => {
+    const inProgress = Array.from({ length: 13 }, (_, index) =>
+        publicGame(`playing-${index}`, GameStatus.Started)
+    )
+    const recentlyFinished = Array.from({ length: 12 }, (_, index) =>
+        publicGame(`finished-${index}`, GameStatus.Finished)
+    )
+    let requests = 0
+    await page.route('**/api/v1/games/activity/landing-0', (route) => {
+        requests++
+        return route.fulfill({
+            json: { status: 'ok', payload: { activity: { inProgress, recentlyFinished } } }
+        })
+    })
+    let openRequests = 0
+    await page.route('**/api/v1/games/open/landing-0', (route) => {
+        openRequests++
+        return route.fulfill({
+            json: {
+                payload: {
+                    games: Array.from({ length: 5 }, (_, index) =>
+                        game(`open-${index}`, `Open table ${index}`, false)
+                    )
+                }
+            }
+        })
+    })
+    await page.goto('/library/landing-0')
+    const openSection = page.getByRole('region', { name: 'Open games' })
+    await expect(openSection.locator('.game-list > div')).toHaveCount(4)
+    await expect(openSection.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled()
+    await openSection.getByRole('button', { name: 'Next', exact: true }).click()
+    await expect(openSection.locator('.game-list > div')).toHaveCount(1)
+    await expect(openSection.getByText('Open table 4', { exact: true })).toBeVisible()
+    await expect(openSection.getByRole('button', { name: 'Next', exact: true })).toBeDisabled()
+    await expect(openSection.getByRole('button', { name: 'Next', exact: true })).toBeFocused()
+    await openSection.getByRole('button', { name: 'Previous', exact: true }).click()
+    await expect(openSection.getByText('Open table 0', { exact: true })).toBeVisible()
+    await expect(openSection.getByRole('button', { name: 'Previous', exact: true })).toBeFocused()
+    await openSection.getByRole('button', { name: 'Previous', exact: true }).press('Enter')
+    await expect(openSection.getByText('Open table 0', { exact: true })).toBeVisible()
+    expect(openRequests).toBe(1)
+    const section = page.getByRole('region', { name: 'Community games' })
+    const playingTab = section.getByRole('tab', { name: 'In progress 13' })
+    const finishedTab = section.getByRole('tab', { name: 'Recently finished 12' })
+    const panel = section.getByRole('tabpanel')
+
+    await expect(playingTab).toHaveAttribute('aria-selected', 'true')
+    await expect(panel).toHaveAccessibleName('In progress 13')
+    await expect(panel.getByRole('button', { name: 'Watch', exact: true })).toHaveCount(4)
+    await expect(panel.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled()
+    await panel.getByRole('button', { name: 'Next', exact: true }).click()
+    await expect(panel.getByText('Public playing-4', { exact: true })).toBeVisible()
+    await expect(panel.getByText('Public playing-0', { exact: true })).toHaveCount(0)
+    await panel.getByRole('button', { name: 'Next', exact: true }).click()
+    await panel.getByRole('button', { name: 'Next', exact: true }).click()
+    await expect(panel.getByRole('button', { name: 'Watch', exact: true })).toHaveCount(1)
+    await expect(panel.getByRole('button', { name: 'Next', exact: true })).toBeDisabled()
+    await panel.getByRole('button', { name: 'Previous', exact: true }).click()
+    await expect(panel.getByText('Public playing-8', { exact: true })).toBeVisible()
+
+    await finishedTab.click()
+    await expect(panel).toHaveAccessibleName('Recently finished 12')
+    await expect(panel.getByRole('button', { name: 'Watch', exact: true })).toHaveCount(0)
+    await expect(panel.getByRole('button', { name: 'Revisit', exact: true })).toHaveCount(4)
+    await expect(panel.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled()
+    await panel.getByRole('button', { name: 'Next', exact: true }).click()
+    await expect(panel.getByText('Public finished-4', { exact: true })).toBeVisible()
+
+    await finishedTab.focus()
+    await finishedTab.press('ArrowLeft')
+    await expect(playingTab).toBeFocused()
+    await expect(panel.getByText('Public playing-8', { exact: true })).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Watch', exact: true })).toHaveCount(4)
+    await playingTab.press('ArrowRight')
+    await expect(finishedTab).toBeFocused()
+    await expect(panel.getByText('Public finished-4', { exact: true })).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Revisit', exact: true })).toHaveCount(4)
+    await finishedTab.press('ArrowRight')
+    await expect(playingTab).toBeFocused()
+    await playingTab.press('End')
+    await expect(finishedTab).toBeFocused()
+    await finishedTab.press('Home')
+    await expect(playingTab).toBeFocused()
+
+    for (const width of [320, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 })
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width)
+    }
+    const cards = panel.locator('.game-list > div')
+    expect((await cards.nth(0).boundingBox())?.y).toBe((await cards.nth(1).boundingBox())?.y)
+    await page.setViewportSize({ width: 390, height: 900 })
+    expect((await cards.nth(1).boundingBox())?.y).toBeGreaterThan(
+        (await cards.nth(0).boundingBox())?.y ?? 0
+    )
+    expect(requests).toBe(1)
+})
+
+for (const count of [5, 9]) {
+    test(`open games pagination recovers when the last of ${count} games fills`, async ({
+        page
+    }) => {
+        const games = Array.from({ length: count }, (_, index) =>
+            game(`open-${index}`, `Open table ${index}`, false)
+        )
+        let requests = 0
+        await page.route('**/api/v1/games/open/landing-0', (route) => {
+            requests++
+            return route.fulfill({ json: { payload: { games } } })
+        })
+        const last = games[count - 1]
+        await page.route('**/api/v1/game/join', (route) =>
+            route.fulfill({
+                json: {
+                    payload: {
+                        game: {
+                            ...last,
+                            status: GameStatus.WaitingToStart,
+                            players: [
+                                last.players[0],
+                                {
+                                    id: 'seat-2',
+                                    isHuman: true,
+                                    userId: player.id,
+                                    name: player.username,
+                                    status: PlayerStatus.Joined
+                                }
+                            ]
+                        }
+                    }
+                }
+            })
+        )
+        await page.goto('/library/landing-0')
+        const section = page.getByRole('region', { name: 'Open games' })
+        for (let index = 0; index < Math.floor(count / 4); index++) {
+            await section.getByRole('button', { name: 'Next', exact: true }).click()
+        }
+        await expect(section.getByText(last.name, { exact: true })).toBeVisible()
+        await section.getByRole('button', { name: 'Join', exact: true }).click()
+        await expect(section.locator('.game-list > div')).toHaveCount(4)
+        await expect(section.getByText(`Open table ${count - 5}`, { exact: true })).toBeVisible()
+        if (count === 5) {
+            await expect(section.getByRole('navigation')).toHaveCount(0)
+        } else {
+            await section.getByRole('button', { name: 'Previous', exact: true }).click()
+            await expect(section.getByText('Open table 0', { exact: true })).toBeVisible()
+            await expect(
+                section.getByRole('button', { name: 'Previous', exact: true })
+            ).toBeDisabled()
+        }
+        expect(requests).toBe(1)
+    })
+}
+
+test('joining a table with another open seat preserves its page and position', async ({ page }) => {
+    const games = Array.from({ length: 6 }, (_, index) =>
+        game(`open-${index}`, `Open table ${index}`, false)
+    )
+    const target = games[1]
+    target.players.push({ id: 'seat-3', isHuman: true, name: '', status: PlayerStatus.Open })
+    let requests = 0
+    await page.route('**/api/v1/games/open/landing-0', (route) => {
+        requests++
+        return route.fulfill({ json: { payload: { games } } })
+    })
+    await page.route('**/api/v1/game/join', (route) =>
+        route.fulfill({
+            json: {
+                payload: {
+                    game: {
+                        ...target,
+                        players: target.players.map((seat) =>
+                            seat.id === 'seat-2'
+                                ? {
+                                      ...seat,
+                                      userId: player.id,
+                                      name: player.username,
+                                      status: PlayerStatus.Joined
+                                  }
+                                : seat
+                        )
+                    }
+                }
+            }
+        })
+    )
+    await page.goto('/library/landing-0')
+    const section = page.getByRole('region', { name: 'Open games' })
+    const cards = section.locator('.game-list > div')
+    await cards.nth(1).getByRole('button', { name: 'Join', exact: true }).click()
+    await expect(
+        page.getByRole('region', { name: 'Your games' }).getByText(target.name, { exact: true })
+    ).toBeVisible()
+    await expect(cards.nth(1).getByText(target.name, { exact: true })).toBeVisible()
+    await expect(cards.nth(1).getByRole('button', { name: 'Join', exact: true })).toHaveCount(0)
+    await expect(cards).toHaveCount(4)
+    await section.getByRole('button', { name: 'Next', exact: true }).click()
+    await expect(cards).toHaveCount(2)
+    await expect(cards.nth(0).getByText('Open table 4', { exact: true })).toBeVisible()
+    expect(requests).toBe(1)
+})
+
+for (const finishedCount of [0, 1]) {
+    test(`public activity defaults correctly with no ongoing games and ${finishedCount} finished`, async ({
+        page
+    }) => {
+        await page.route('**/api/v1/games/activity/landing-0', (route) =>
+            route.fulfill({
+                json: {
+                    status: 'ok',
+                    payload: {
+                        activity: {
+                            inProgress: [],
+                            recentlyFinished: Array.from({ length: finishedCount }, (_, index) =>
+                                publicGame(`finished-${index}`, GameStatus.Finished)
+                            )
+                        }
+                    }
+                }
+            })
+        )
+        await page.goto('/library/landing-0')
+        const section = page.getByRole('region', { name: 'Community games' })
+        const playingTab = section.getByRole('tab', { name: 'In progress 0' })
+        const finishedTab = section.getByRole('tab', { name: `Recently finished ${finishedCount}` })
+        await expect(finishedCount ? finishedTab : playingTab).toHaveAttribute(
+            'aria-selected',
+            'true'
+        )
+        await playingTab.click()
+        await expect(playingTab).toHaveAttribute('aria-selected', 'true')
+        await expect(section.getByRole('tabpanel')).toContainText(
+            'No public games of this title are being played right now.'
+        )
+    })
+}
+
+test('public activity failures leave the other sections working', async ({ page }) => {
+    let attempts = 0
+    await page.route('**/api/v1/games/activity/landing-0', (route) => {
+        attempts++
+        if (attempts === 1)
+            return route.fulfill({
+                status: 503,
+                json: {
+                    status: 'error',
+                    error: { name: 'TitleActivityUnavailable', message: 'Unavailable' }
+                }
+            })
+        if (attempts === 2) return route.fulfill({ status: 500, json: {} })
+        return route.fulfill({
+            json: {
+                status: 'ok',
+                payload: {
+                    activity: {
+                        inProgress: [publicGame('recovered', GameStatus.Started)],
+                        recentlyFinished: []
+                    }
+                }
+            }
+        })
+    })
+    await page.route('**/api/v1/games/open/landing-0', (route) =>
+        route.fulfill({ json: { payload: { games: [game('open', 'Everyone welcome', false)] } } })
+    )
+    await page.goto('/library/landing-0')
+    const activity = page.getByRole('region', { name: 'Community games' })
+
+    await expect(activity).toContainText('temporarily unavailable')
+    await expect(page.getByRole('region', { name: 'Open games' })).toContainText('Everyone welcome')
+    await expect(page.getByText('No tournaments to show for this game right now.')).toBeVisible()
+
+    await activity.getByRole('button', { name: 'Try again' }).click()
+    await expect(activity.getByRole('alert')).toContainText('couldn’t load')
+    await activity.getByRole('button', { name: 'Try again' }).click()
+    await expect(activity.getByText('Public recovered', { exact: true })).toBeVisible()
+    await activity.getByRole('tab', { name: 'Recently finished 0' }).click()
+    await expect(activity.getByRole('tabpanel')).toContainText(
+        'No public games of this title have finished yet.'
+    )
+    expect(attempts).toBe(3)
+})
+
+test('an unanswered public activity request becomes unavailable and can be retried', async ({
+    page
+}) => {
+    let attempts = 0
+    await page.route('**/api/v1/games/activity/landing-0', (route) => {
+        attempts++
+        if (attempts === 1) return
+        return route.fulfill({
+            json: {
+                status: 'ok',
+                payload: {
+                    activity: {
+                        inProgress: [publicGame('recovered', GameStatus.Started)],
+                        recentlyFinished: []
+                    }
+                }
+            }
+        })
+    })
+    await page.goto('/library/landing-0')
+    const activity = page.getByRole('region', { name: 'Community games' })
+    await expect(activity).toContainText('Loading games')
+    await expect(page.getByRole('region', { name: 'Open games' })).toContainText(
+        'No open tables right now.'
+    )
+    await expect(activity).toContainText('temporarily unavailable', { timeout: 15_000 })
+    expect(attempts).toBe(1)
+    await activity.getByRole('button', { name: 'Try again' }).click()
+    await expect(activity.getByText('Public recovered', { exact: true })).toBeVisible()
     expect(attempts).toBe(2)
 })
 

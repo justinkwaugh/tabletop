@@ -36,7 +36,8 @@
     const seed = Math.floor(Math.random() * 1000)
 
     // Flip so the merlon half always faces inward, toward the board.
-    const flipTransform = side === 'bottom' ? 'scaleY(-1)' : side === 'right' ? 'scaleX(-1)' : 'none'
+    const flipTransform =
+        side === 'bottom' ? 'scaleY(-1)' : side === 'right' ? 'scaleX(-1)' : 'none'
     const stoneColor = '#3f463f' // dark gray with a touch of green - matches WallSegment/RampartCorner
 </script>
 
@@ -48,26 +49,47 @@
 >
     <defs>
         <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed={seed} result="noise" />
+            <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.85"
+                numOctaves="3"
+                {seed}
+                result="noise"
+            ></feTurbulence>
             <feColorMatrix
                 in="noise"
                 type="matrix"
                 values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.45 0"
                 result="darkNoise"
-            />
-            <feComposite in="darkNoise" in2="SourceGraphic" operator="in" result="noiseOverShape" />
+            ></feColorMatrix>
+            <feComposite in="darkNoise" in2="SourceGraphic" operator="in" result="noiseOverShape"
+            ></feComposite>
             <feMerge>
-                <feMergeNode in="SourceGraphic" />
-                <feMergeNode in="noiseOverShape" />
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+                <feMergeNode in="noiseOverShape"></feMergeNode>
             </feMerge>
         </filter>
     </defs>
 
     <!-- base wall: solid across the full length, outer half of the thickness -->
     {#if isVertical}
-        <rect x={THICKNESS / 2} y="0" width={THICKNESS / 2} height={total} fill={stoneColor} filter="url(#{filterId})" />
+        <rect
+            x={THICKNESS / 2}
+            y="0"
+            width={THICKNESS / 2}
+            height={total}
+            fill={stoneColor}
+            filter="url(#{filterId})"
+        ></rect>
     {:else}
-        <rect x="0" y={THICKNESS / 2} width={total} height={THICKNESS / 2} fill={stoneColor} filter="url(#{filterId})" />
+        <rect
+            x="0"
+            y={THICKNESS / 2}
+            width={total}
+            height={THICKNESS / 2}
+            fill={stoneColor}
+            filter="url(#{filterId})"
+        ></rect>
     {/if}
 
     <!-- merlons: irregular teeth growing inward from the base -->
@@ -81,7 +103,7 @@
                     height={tooth.width}
                     fill={stoneColor}
                     filter="url(#{filterId})"
-                />
+                ></rect>
             {:else}
                 <rect
                     x={tooth.pos}
@@ -90,7 +112,7 @@
                     height={tooth.merlonHeight + THICKNESS / 2}
                     fill={stoneColor}
                     filter="url(#{filterId})"
-                />
+                ></rect>
             {/if}
         {/if}
     {/each}

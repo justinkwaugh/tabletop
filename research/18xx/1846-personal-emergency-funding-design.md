@@ -1,5 +1,10 @@
 # 1846 personal emergency train funding
 
+> Superseded on 2026-10-19: 1846 now runs the family's compulsory train funding with
+> `TrainFundingRules1846` (`games/1846/src/trainFundingRules.ts`) and an elimination
+> policy (`Elimination1846`); see [train funding](train-funding-slice-design.md) and
+> [receivership](receivership-design.md). The procedure below is the rules evidence.
+
 This slice extends the atomic emergency purchase with committed treasury issuance
 and personal stock sales. Bankruptcy, receivership, returned trains and later
 train phases remain separate work. An unfunded corporation cannot finish its turn.
@@ -74,3 +79,19 @@ other presidency changes and closure, pending order, phase continuation, both
 variants, oversale restrictions, forged actions, replay and Undo. The playground
 exposes issuance, legal sale blocks, the minimum train price and purchase choices.
 It clearly identifies the remaining bankruptcy boundary when funding is exhausted.
+
+## Repeat sales (2026-10-31)
+
+The single-block restriction came from the reference engine, not the rules. Neither
+the 1846 nor the 1833NE rulebook limits how often a company is sold: a president's
+sales move its price one column "even if several shares in that corporation were
+sold at once" (§5.22), and an emergency sale follows the normal restrictions (§6.88).
+Selling one share left a president unable to sell the rest of that company in the
+same funding (bug report 1566085490203959402, 1833NE). Issue-first funding and the
+treasury-share stock round now use `repeatSales: 'extend-block'`: a later sale of a
+company joins the first block at its price, and the marker moves only as far as the
+larger block would beyond the first. A funding's sale record carries the block's
+terms (`trainFunding.sales[].block`); a record from before that has none, so its
+company stays sold for that funding. 1889 and TOP keep one block per company in a
+funding, their rules requiring it ([correctness fixes](correctness-fixes-2026-10-03.md));
+1830 and 1832 sell separately.

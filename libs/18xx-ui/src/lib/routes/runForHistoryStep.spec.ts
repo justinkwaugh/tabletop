@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { type OperatingResult, type RunTrains } from '@tabletop/18xx'
+import type { OperatingResult, RunTrains } from '@tabletop/18xx'
 import { runForHistoryStep } from './runForHistoryStep.js'
 
 const result: OperatingResult = { companyId: 'MS', routes: [], revenue: 60 }

@@ -31,3 +31,11 @@ export function historyOperatingOrder(
     }
     return changes
 }
+
+export function entryOrderChanges(
+    actions: readonly GameAction[],
+    changes: ReadonlyMap<string, HistoryOperatingOrder>
+): ReadonlyMap<string, HistoryOperatingOrder> {
+    const roundStarts = new Set(actions.filter(isStartOperatingRound).map((action) => action.id))
+    return new Map([...changes].filter(([id]) => !roundStarts.has(id)))
+}

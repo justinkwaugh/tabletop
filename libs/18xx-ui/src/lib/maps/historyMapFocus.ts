@@ -7,14 +7,19 @@ import {
     isRunTrains,
     nextOperatingCompany,
     type EighteenXXState,
+    type RouteResult,
     type TrainRoute
 } from '@tabletop/18xx'
 import { assertExists, type GameAction } from '@tabletop/common'
+import { recordedRunRoutes, runLocationIds } from '../routes/routePresentation.js'
 import { companyFocusLocations } from './companyFocusLocations.js'
 
-function historyRunRoutes(state: EighteenXXState, action?: GameAction): readonly TrainRoute[] {
+function historyRunRoutes(
+    state: EighteenXXState,
+    action?: GameAction
+): readonly (TrainRoute | RouteResult)[] {
     if (!action) return []
-    if (isRunTrains(action)) return action.routes
+    if (isRunTrains(action)) return recordedRunRoutes(action)
     if (!isDistributeEarnings(action) || state.routeStep?.companyId !== action.companyId) return []
     assertExists(state.routeStep.result, 'Distributed earnings require the recorded train run')
     return state.routeStep.result.routes
@@ -24,14 +29,7 @@ export function historyMapFocus(state: EighteenXXState, action?: GameAction) {
     const routes = historyRunRoutes(state, action)
     if (routes.length) {
         return {
-            locations: [
-                ...new Set(
-                    routes.flatMap((route) => [
-                        route.start.locationId,
-                        ...route.paths.map((path) => path.locationId)
-                    ])
-                )
-            ],
+            locations: runLocationIds(routes),
             routes
         }
     }

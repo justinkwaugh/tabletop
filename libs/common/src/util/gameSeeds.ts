@@ -6,7 +6,7 @@ import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js'
 
 export const MasterSeed = Type.String({ pattern: '^[0-9a-f]{32}$' })
 export const GameCreationOptions = Type.Object(
-    { masterSeed: Type.Optional(MasterSeed) },
+    { masterSeed: Type.Optional(MasterSeed), continueFromGameId: Type.Optional(Type.String()) },
     { additionalProperties: false }
 )
 export type GameCreationOptions = Type.Static<typeof GameCreationOptions>

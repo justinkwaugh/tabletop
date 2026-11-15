@@ -24,6 +24,7 @@ export type Owner = Type.Static<typeof Owner>
 export const CompanyProperties = {
     id: Id,
     kind: Id,
+    /** Set where play sizes the company, such as 1817's formation; otherwise its charter's. */
     shareCount: Type.Optional(Type.Integer({ minimum: 1 })),
     parPrice: Type.Optional(Type.Integer({ minimum: 1 })),
     started: Type.Optional(Type.Boolean()),
@@ -32,6 +33,7 @@ export const CompanyProperties = {
     operated: Type.Optional(Type.Boolean()),
     floated: Type.Optional(Type.Boolean()),
     president: Type.Optional(President),
+    /** Set where play changes a private's income; otherwise its charter's. */
     privateRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
     lastRunRevenue: Type.Optional(Type.Integer({ minimum: 0 })),
     /** The highest number its certificates or stations have used, once any has left play. */
@@ -54,10 +56,7 @@ export const Company = Type.Object(
 )
 export type Company = Type.Static<typeof Company>
 export const Bank = Type.Object(
-    {
-        unlimitedAfterExhaustion: Type.Optional(Type.Boolean()),
-        broken: Type.Optional(Type.Boolean())
-    },
+    { broken: Type.Optional(Type.Boolean()) },
     { additionalProperties: false }
 )
 export type Bank = Type.Static<typeof Bank>
@@ -74,6 +73,12 @@ export const CertificatePool = Type.Object(
     { additionalProperties: false }
 )
 export type CertificatePool = Type.Static<typeof CertificatePool>
+
+export const treasuryPoolId = (companyId: string) => `treasury:${companyId}`
+export const isTreasuryPoolId = (poolId: string) => poolId.startsWith('treasury:')
+export function treasuryPool(companyId: string): CertificatePool {
+    return { id: treasuryPoolId(companyId), owner: { kind: 'company', companyId } }
+}
 
 const CertificateFields = {
     id: Id,
@@ -127,6 +132,16 @@ export const Certificate = Type.Union([
 ])
 export type Certificate = Type.Static<typeof Certificate>
 export type Portfolio = Certificate[]
+
+/** The shares an ordinary or president's certificate holds; none for a private's or a short. */
+export function certificateShares(certificate: Certificate): number {
+    return certificate.kind === 'share' ? certificate.shares : 0
+}
+
+/** The shares a set of certificates holds together. */
+export function totalCertificateShares(certificates: readonly Certificate[]): number {
+    return certificates.reduce((total, certificate) => total + certificateShares(certificate), 0)
+}
 export type OpenShare = Extract<Certificate, { kind: 'share' }>
 export type OpenShort = Extract<Certificate, { kind: 'short' }>
 export type Treasury = { cash: Cash['amount'] | undefined; portfolio: Portfolio }

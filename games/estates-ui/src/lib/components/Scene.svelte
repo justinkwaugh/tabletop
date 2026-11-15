@@ -27,7 +27,7 @@
     let gameSession = getGameSession() as EstatesGameSession
     let ghostHat: number | undefined = $state()
     let showMayorHighlights = $derived(
-        gameSession.isMyTurn &&
+        gameSession.canTakeTurn &&
             gameSession.gameState.machineState === MachineState.PlacingPiece &&
             isMayor(gameSession.gameState.chosenPiece)
     )

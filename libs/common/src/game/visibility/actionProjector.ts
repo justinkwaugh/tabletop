@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile, type Validator } from 'typebox/compile'
 import * as Value from 'typebox/value'
-import { GameAction } from '../engine/gameAction.js'
+import { GameAction, withoutActionPatches } from '../engine/gameAction.js'
 import { BranchCloseActionType, isBranchClose } from '../engine/parallelSpan.js'
 import {
     protect,
@@ -136,7 +136,7 @@ class SchemaActionProjector<Schemas extends ActionSchemaRegistry> implements Act
         }
 
         const projected: unknown = projector.project(
-            actionWithoutCanonicalPatches,
+            withoutActionPatches(action),
             perspective,
             context
         )

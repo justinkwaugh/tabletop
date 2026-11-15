@@ -4,44 +4,25 @@ import {
     GameEngine,
     GameResult,
     MachineContext,
-    PlayerStatus,
     validateGameResult
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { createTestGame } from './testGame.js'
 import type { PlaceBid } from '../actions/placeBid.js'
 import type { ScoreIsland } from '../actions/scoreIsland.js'
 import { KaivaiGameStateValidator } from '../model/gameState.js'
 import { ActionType } from './actions.js'
-import { Ruleset, type KaivaiGameConfig } from './gameConfig.js'
-import { Definition } from './gameDefinition.js'
+import { Ruleset } from './gameConfig.js'
 import { KaivaiRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
 const engine = new GameEngine(KaivaiRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
 
-function createGame(count: number, config: KaivaiGameConfig) {
-    return KaivaiRuntime.initializer.initializeGame(
-        {
-            id: 'kaivai-competition',
-            typeId: Definition.info.id,
-            ownerId: 'owner',
-            config,
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
 describe.each([3, 4])('Kaivai tournaments with %i players', (count) => {
     describe.each(Object.values(Ruleset))('%s', (ruleset) => {
         it('honors assigned seats through opening bids, then uses bid order for huts', () => {
-            const game = createGame(count, { ruleset, lucklessFishing: false })
+            const game = createTestGame(count, { ruleset, lucklessFishing: false })
             const playerIds = game.players.map((player) => player.id)
             for (let offset = 0; offset < count; offset++) {
                 const order = [...playerIds.slice(offset), ...playerIds.slice(0, offset)]
@@ -79,7 +60,7 @@ describe.each([3, 4])('Kaivai tournaments with %i players', (count) => {
             { lucklessFishing: true, lessluckFishing: false },
             { lucklessFishing: false, lessluckFishing: true }
         ])('preserves seeded setup and visibility with %o', (fishing) => {
-            const game = createGame(count, { ruleset, ...fishing })
+            const game = createTestGame(count, { ruleset, ...fishing })
             const uninitialized = engine.generateUninitializedState(game, masterSeed)
             const initialize = (playerIds?: string[]) =>
                 KaivaiRuntime.initializer
@@ -108,7 +89,7 @@ describe.each([3, 4])('Kaivai tournaments with %i players', (count) => {
         })
 
         it('records a terminal winner accepted by tournament scoring', () => {
-            const game = createGame(count, { ruleset, lucklessFishing: false })
+            const game = createTestGame(count, { ruleset, lucklessFishing: false })
             const state = KaivaiRuntime.hydrator.hydrateState(
                 engine.startGame(game, {
                     masterSeed,
@@ -133,7 +114,7 @@ describe.each([3, 4])('Kaivai tournaments with %i players', (count) => {
         ])(
             'reports every final score and a top scorer as winner (primary tie $tied)',
             ({ tied, scores, shells }) => {
-                const game = createGame(count, { ruleset, lucklessFishing: false })
+                const game = createTestGame(count, { ruleset, lucklessFishing: false })
                 const { startedGame, initialState } = engine.startGame(game, {
                     masterSeed,
                     startingPositions: {

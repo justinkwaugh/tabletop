@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
     import { PlayerName } from '@tabletop/frontend-components'
+    import { skullImage } from '$lib/images/diceImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import { warbandFigure } from '$lib/images/pieceImages.js'
@@ -10,16 +11,19 @@
     // A panel names favor, secrets and suits by their tokens and symbols; the word is the image's alt.
     // R-10.13 — given each phrase's colour, warbands are their token in the colour of the owner it names.
     // Given the seats, text that names them by id draws each as its colour chip.
+    // With `skulls`, "skull" is the attack die's skull face.
     let {
         text,
         warbandColor,
-        seats
+        seats,
+        skulls = false
     }: {
         text: string
         warbandColor?: (whose: WarbandWhose) => Color
         seats?: TokenOptions['seats']
+        skulls?: boolean
     } = $props()
-    let parts = $derived(tokenParts(text, { warbands: warbandColor !== undefined, seats }))
+    let parts = $derived(tokenParts(text, { warbands: warbandColor !== undefined, seats, skulls }))
 </script>
 
 <!-- `PlayerName` reads "you" and "your" for the viewer; inside a line in lower case, starting it capitalized. -->
@@ -32,6 +36,10 @@
             class="token-text__mark"
             src={suitImage(part.suit)}
             alt={part.bank ? `the ${suitName(part.suit)} bank` : suitName(part.suit)}
+        />{:else if part.kind === 'skull'}<img
+            class="token-text__mark"
+            src={skullImage()}
+            alt={part.words}
         />{:else if part.kind === 'warband'}<span class="token-text__count"
             >{part.count}{#if warbandColor}{@const figure = warbandFigure(
                     warbandColor(part.whose)

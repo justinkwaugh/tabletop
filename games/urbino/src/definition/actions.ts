@@ -4,5 +4,5 @@ export enum ActionType {
     RepositionArchitect = 'repositionArchitect',
     PlaceBuilding = 'placeBuilding',
     Pass = 'pass',
-    Concede = 'concede',
+    Concede = 'concede'
 }

@@ -1,3 +1,5 @@
+import { stateWith } from '../game/stateWith.js'
+import { companyShareCount, type CompanyCharters } from './companyCharters.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import { CertificateExchange } from '../finance/certificateExchange.js'
@@ -51,7 +53,7 @@ export function flotationAfterPurchase(
     purchase: SharePurchaseDetails,
     rules: CompanyRules
 ): CompanyFlotationDetails | undefined {
-    const projected: FormationState = { ...state, ...copyFinances(state) }
+    const projected: FormationState = stateWith(state, copyFinances(state))
     const certificate = projected.certificates.find((item) => item.id === purchase.certificateId)
     assert(certificate, 'Missing purchased certificate')
     certificate.owner = purchase.buyer
@@ -65,11 +67,12 @@ type ShareholdingState = Pick<FinancialState, 'companies' | 'certificates'>
 
 export function sharesStillToFloat(
     state: ShareholdingState,
+    charters: CompanyCharters,
     companyId: string,
     soldPercent: number,
     unsold: (certificate: OpenShare) => boolean
 ): number | undefined {
-    const { shareCount } = getCompany(state, companyId)
+    const shareCount = companyShareCount(state, charters, companyId)
     if (!shareCount) return undefined
     const unsoldShares = openShares(state, companyId)
         .filter(unsold)
@@ -79,6 +82,7 @@ export function sharesStillToFloat(
 
 export function fullCapitalizationPayments(
     state: ShareholdingState,
+    charters: CompanyCharters,
     companyId: string,
     sharesStillToFloat: number | undefined
 ): CashPayment[] | undefined {
@@ -86,12 +90,13 @@ export function fullCapitalizationPayments(
     const company = getCompany(state, companyId)
     if (company.funded) return []
     assertExists(company.parPrice, 'Started company requires a par price')
-    assertExists(company.shareCount, 'Full capitalization requires a share count')
+    const shareCount = companyShareCount(state, charters, companyId)
+    assertExists(shareCount, 'Full capitalization requires a share count')
     return [
         {
             from: { kind: 'bank' },
             to: { kind: 'company', companyId },
-            amount: company.parPrice * company.shareCount
+            amount: company.parPrice * shareCount
         }
     ]
 }

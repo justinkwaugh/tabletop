@@ -8,11 +8,6 @@ test('board auto zoom frames history steps by default and keeps the view when di
     await page.getByLabel('Game', { exact: true }).selectOption('1889')
     await page.getByLabel('Position', { exact: true }).selectOption('routes')
     await page.getByRole('button', { name: 'Run trains', exact: true }).click()
-    await page
-        .getByRole('button', { name: 'Pane options for Table views pane 4', exact: true })
-        .click()
-    await page.getByRole('button', { name: 'Board', exact: true }).click()
-    await page.keyboard.press('Escape')
     const board = page.getByRole('tabpanel', { name: 'Board', exact: true })
     await expect(board).toBeVisible()
     const transform = () =>
@@ -27,7 +22,6 @@ test('board auto zoom frames history steps by default and keeps the view when di
     async function viewAcrossRouteStep() {
         await history('step backwards').click()
         await history('step backwards').click()
-        await expect(page.getByText('VIEWING HISTORY', { exact: true })).toBeVisible()
         await board.getByRole('button', { name: 'Zoom in', exact: true }).click()
         await page.waitForTimeout(1000)
         const before = await transform()

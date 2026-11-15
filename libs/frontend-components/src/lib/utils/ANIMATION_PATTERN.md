@@ -71,23 +71,23 @@ Examples:
 Use this sequence before shipping animation bug fixes:
 
 1. Model the transition contract first.
-   - Trace the exact action/state transition sequence before editing animator code.
-   - Write down which step should trigger render changes vs animation changes.
+    - Trace the exact action/state transition sequence before editing animator code.
+    - Write down which step should trigger render changes vs animation changes.
 
 2. Choose one source of truth per concern.
-   - Explicitly choose authoritative inputs for:
-     - structural render presence,
-     - interaction eligibility,
-     - animation triggering.
-   - Avoid combining multiple inferred signals unless required by design.
+    - Explicitly choose authoritative inputs for:
+        - structural render presence,
+        - interaction eligibility,
+        - animation triggering.
+    - Avoid combining multiple inferred signals unless required by design.
 
 3. Change one behavioral axis at a time.
-   - Apply and verify fixes independently for:
-     - rendering,
-     - interaction,
-     - animation,
-     - history/undo behavior.
-   - Do not bundle multiple axis changes into one unverified patch.
+    - Apply and verify fixes independently for:
+        - rendering,
+        - interaction,
+        - animation,
+        - history/undo behavior.
+    - Do not bundle multiple axis changes into one unverified patch.
 
 ## Pattern 0: Persistent Element Animator (Single Attached Node)
 
@@ -264,18 +264,18 @@ For keyed SVG/HTML nodes:
 
 ```ts
 export function animateThing(
-  node: HTMLElement | SVGElement,
-  params: { animator: SomeAnimator; key: string }
+    node: HTMLElement | SVGElement,
+    params: { animator: SomeAnimator; key: string }
 ) {
-  params.animator.setElementForKey(params.key, node)
-  return {
-    update(next) {
-      // handle key changes if needed
-    },
-    destroy() {
-      params.animator.setElementForKey(params.key, undefined)
+    params.animator.setElementForKey(params.key, node)
+    return {
+        update(next) {
+            // handle key changes if needed
+        },
+        destroy() {
+            params.animator.setElementForKey(params.key, undefined)
+        }
     }
-  }
 }
 ```
 

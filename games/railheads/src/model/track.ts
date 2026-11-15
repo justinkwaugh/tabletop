@@ -1,8 +1,15 @@
 import * as Type from 'typebox'
 import { AxialCoordinates, sameCoordinates } from '@tabletop/common'
 import { hexKey, type MapHex } from '../editions/editions.js'
-import { CompanyId, HexKind, Industry, type LayTrackRules } from '../editions/types.js'
+import {
+    CompanyId,
+    Industry,
+    TRACK_HEX_KINDS,
+    isTollKind,
+    type LayTrackRules
+} from '../editions/types.js'
 import type { TrackHex } from './components.js'
+import { networkHexes } from './network.js'
 
 export enum PlacementKind {
     Disc = 'Disc',
@@ -22,6 +29,12 @@ export const Placement = Type.Object({
     boost: Type.Optional(Type.Enum(IndustryBoost))
 })
 
+export type TubeBonus = Type.Static<typeof TubeBonus>
+export const TubeBonus = Type.Object({
+    companyId: Type.Enum(CompanyId),
+    perShare: Type.Number()
+})
+
 export type PlacementEffect = Type.Static<typeof PlacementEffect>
 export const PlacementEffect = Type.Object({
     companyId: Type.Enum(CompanyId),
@@ -30,7 +43,10 @@ export const PlacementEffect = Type.Object({
     crossedCompanyId: Type.Optional(Type.Enum(CompanyId)),
     revenueGain: Type.Number(),
     industry: Type.Optional(Type.Enum(Industry)),
-    level: Type.Optional(Type.Number())
+    level: Type.Optional(Type.Number()),
+    tollId: Type.Optional(Type.String()),
+    // England & Wales: bonus dividends paid when the Underground couples with a company.
+    bonuses: Type.Optional(Type.Array(TubeBonus))
 })
 
 export type PlacementTarget = {
@@ -48,11 +64,7 @@ export function trackAt(
 }
 
 export function networkKeys(track: readonly TrackHex[], companyId: CompanyId): Set<number> {
-    return new Set(
-        track
-            .filter((hex) => hex.discs.includes(companyId) || hex.cube === companyId)
-            .map((hex) => hexKey(hex.coords))
-    )
+    return new Set(networkHexes(track, companyId).map((hex) => hexKey(hex.coords)))
 }
 
 export function discsPlaced(track: readonly TrackHex[], companyId: CompanyId): number {
@@ -71,16 +83,23 @@ export type PlacementContext = {
     companyId: CompanyId
     rules: LayTrackRules
     siteCapacity: (coords: AxialCoordinates) => number
+    industryInDemand: (industry: Industry) => boolean
     discsLeft: number
     cubesLeft: number
     neighbours: (coords: AxialCoordinates) => AxialCoordinates[]
+    isAnchor: (coords: AxialCoordinates) => boolean
 }
 
 export function placementKind(context: PlacementContext, place: MapHex): PlacementKind | undefined {
+    if (!context.isAnchor(place.coords)) {
+        return undefined
+    }
     const discs = trackAt(context.track, place.coords)?.discs ?? []
-    if (place.kind === HexKind.Countryside) {
+    if (TRACK_HEX_KINDS.includes(place.kind)) {
         if (discs.length === 0) {
-            return context.discsLeft > 0 ? PlacementKind.Disc : undefined
+            return context.discsLeft > 0 && (!isTollKind(place.kind) || context.rules.tolls > 0)
+                ? PlacementKind.Disc
+                : undefined
         }
         const cube = trackAt(context.track, place.coords)?.cube
         return context.rules.allowsCrossingCubes &&
@@ -92,6 +111,7 @@ export function placementKind(context: PlacementContext, place: MapHex): Placeme
     }
     return context.discsLeft > 0 &&
         discs.length < context.siteCapacity(place.coords) &&
+        (place.industry === undefined || context.industryInDemand(place.industry)) &&
         !discs.includes(context.companyId)
         ? PlacementKind.Disc
         : undefined

@@ -13,3 +13,9 @@ export function buildTileBag(): PlantingTile[] {
 export function tilesPerRound(playerCount: number): number {
     return Math.max(4, playerCount)
 }
+
+const tileCount = buildTileBag().length
+
+export function roundCount(playerCount: number): number {
+    return Math.floor(tileCount / tilesPerRound(playerCount))
+}

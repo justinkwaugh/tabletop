@@ -14,7 +14,7 @@ import {
     createHarnessAppContext,
     type GameUiDefinition
 } from '@tabletop/frontend-components'
-import { FreshFishRuntime } from '@tabletop/fresh-fish'
+import { FreshFishVisibility } from '@tabletop/fresh-fish'
 import { tick } from 'svelte'
 import { FreshFishUiRuntime } from '../../definition/gameUiRuntime.js'
 import { UiDefinition } from '../../index.js'
@@ -130,7 +130,7 @@ export async function runProjectedHistoryRoundTrip() {
     assertExists(hiddenTile, 'Expected a hidden Tile in the canonical bag')
     Reflect.set(hiddenTile, 'testMarker', 'canonical-hidden-tile')
 
-    const projectedBeforeAuction = FreshFishRuntime.visibility.state.project(
+    const projectedBeforeAuction = FreshFishVisibility.state.project(
         canonicalBeforeAuction,
         PLAYER_B_PERSPECTIVE
     )

@@ -63,7 +63,7 @@
     {onclick}
     {onmouseenter}
     {onmouseleave}
-/>
+></rect>
 {#if clickable && hovered && hasArchitect}
     <circle
         cx={origin.x + SQUARE_SIZE / 2}
@@ -73,5 +73,5 @@
         stroke="#f2c14e"
         stroke-width="3"
         pointer-events="none"
-    />
+    ></circle>
 {/if}

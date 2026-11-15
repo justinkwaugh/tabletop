@@ -8,13 +8,22 @@ import { isPass } from '../actions/pass.js'
 // Transition from Fishing(Fish) -> Fishing | TakingActions
 //                 Fishing(Pass) -> TakingActions
 
-export class FishingStateHandler implements MachineStateHandler<HydratedFish, HydratedKaivaiGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedKaivaiGameState>): action is HydratedFish {
+export class FishingStateHandler implements MachineStateHandler<
+    HydratedFish,
+    HydratedKaivaiGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedKaivaiGameState>
+    ): action is HydratedFish {
         if (!action.playerId) return false
         return action.type === ActionType.Fish || action.type === ActionType.Pass
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedKaivaiGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedKaivaiGameState>
+    ): ActionType[] {
         const gameState = context.gameState
         const playerState = gameState.getPlayerState(playerId)
 

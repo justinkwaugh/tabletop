@@ -267,11 +267,7 @@ describe('ShippingOperationsStateHandler', () => {
             ships: [companyId]
         }
 
-        const action = createPassAction(
-            state,
-            playerId,
-            PassReason.FinishOptionalShippingExpansion
-        )
+        const action = createPassAction(state, playerId, PassReason.FinishOptionalShippingExpansion)
         action.apply(state)
 
         const handler = new ShippingOperationsStateHandler()

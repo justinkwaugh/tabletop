@@ -19,7 +19,7 @@ In the rulebook's order (pp. 3–4):
 4. Each open-sea space gets a larva cube of its colour.
 5. A polyp drawn from the bag names the first open-sea space and goes back into the bag, which is then reshuffled. The spaces then receive 3, 3, 3, 2 and 1 polyps clockwise from it. Clockwise is the direction of the arrows on the second-edition board: white, yellow, orange, pink, grey.
 6. The start player is chosen at random. In turn order from them, players are dealt 6, then 9 (two players); 6, 7, 9 (three); or 6, 7, 8, 9 (four) polyps into their supplies.
-7. In turn order, each player secretly feeds one of their polyps to their parrotfish. Nobody else ever learns its colour before the game ends.
+7. Each player secretly feeds one of their polyps to their parrotfish. Nobody else ever learns its colour before the game ends. The rulebook has players feed in turn order; since no feed reveals anything, all players feed at once here (our ruling, asked for by the user). Everyone sees who has fed. Games begun before this ruling go on feeding in turn order.
 8. In turn order, each player takes two larva cubes from the general supply and shows them. Two of the same colour are allowed.
 
 ## Turns
@@ -57,8 +57,9 @@ In the rulebook's order (pp. 3–4):
 
 User ruling: the bonus polyps are part of the bag's population, set aside only to save time when action 8 or extra growth needs a polyp of one colour.
 
-- **Taking a polyp of one colour.** Action 8 and extra growth take the colour's bonus polyp when its space holds one. An emptied space is not refilled from the bag straight away.
-- **Searching the bag.** When the space is empty, the bag is searched for a polyp of that colour. Nobody can see into the bag, so the search is a reveal, and Undo cannot step back past it. Action 8 is offered whenever the bag may hold that colour; a search that finds none leaves the turn as if the player had not tried, and extra growth then grows nothing.
+- **Taking a polyp of one colour.** Action 8 and extra growth take the colour's bonus polyp when its space holds one. Each space holds one polyp.
+- **Refilling at turn end.** When a turn ends, after the open sea is refilled, every empty bonus space is refilled from the bag (user ruling). The open-sea refill is already a reveal, so this keeps a whole turn of trades and growth undoable. A colour the bag lacks leaves its space empty and is ruled out as below. Games begun before this ruling refill only from returned polyps.
+- **Searching the bag.** When the space is empty, a player may still trade for that colour or grow onto the starfish square: the bag is then searched for a polyp of that colour. Nobody can see into the bag, so the search is a reveal, and Undo cannot step back past it; the UI warns before the player commits. Action 8 is offered whenever the bag may hold that colour; a search that finds none leaves the turn as if the player had not tried, and extra growth then grows nothing.
 - **A colour known to be missing.** After a search finds none, neither action 8 nor extra growth searches for that colour again until a polyp of it goes back into the bag.
 - **Returned polyps.** A polyp returned by eating, action 6 or action 7 fills an empty bonus space of its colour first; any others go into the bag. Once the bonus polyps have joined the bag (see the refill above), every returned polyp goes into the bag.
 
@@ -83,6 +84,7 @@ User ruling: the bonus polyps are part of the bag's population, set aside only t
 - **At once.** The game ends the moment the condition is met: the player does nothing more that turn, not even action 10 (designer ruling, for the fourth shrimp; applied to every condition, since the rulebook says each ends the game immediately; confirmed by the user).
 - **Final turns.** After the first two conditions, every other player, in turn order from the next, has one more turn in which they may only eat a coral or pass. Eating then returns five polyps to the bag instead of four, so a coral of five feeds the parrotfish nothing. Nothing more happens if a final turn eats a player's fourth shrimp.
 - **What a final turn may eat.** The usual rules for eating hold: a coral of at least five polyps guarded by the player's own shrimp. The rulebook says only "consume one existing coral"; SpielByWeb says "shrimp-protected coral" (confirmed by the user). The last two conditions give no final turns.
+- **Passing a final turn that cannot score** (our ruling, asked for by the user). A player whose shrimps guard no coral larger than the polyps eating returns (five, or six in the Advanced game) passes without being asked, by a system Pass. Such a coral could only feed the parrotfish nothing.
 - **No rock left** is read as every rock square of every board holding a polyp. It is checked after each polyp is placed, since nothing else fills a square. Attacks that might still be possible on a full board don't count (confirmed by the user).
 - **Undo** cannot step back past the end of the game, which reveals everything hidden.
 

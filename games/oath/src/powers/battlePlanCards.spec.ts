@@ -23,7 +23,6 @@ const STORM = 'denizen.nomad.storm-caller'
 const SCOUTS = 'denizen.order.scouts'
 const OUTRIDERS = 'denizen.order.outriders'
 
-
 function table(
     over: Record<string, unknown> = {},
     advisers: { attacker?: string[]; defender?: string[] } = {},
@@ -70,7 +69,7 @@ function table(
     )
 }
 
-describe('the attacker\'s battle plans ride the Campaign (R-5.5.3)', () => {
+describe("the attacker's battle plans ride the Campaign (R-5.5.3)", () => {
     it('Scouts: gains 1 Supply on use, and the Campaign rolls as normal', () => {
         const s = table({}, { attacker: [SCOUTS] })
         const action = campaign({ plans: [battlePlanUse(SCOUTS)] })
@@ -102,15 +101,19 @@ describe('the attacker\'s battle plans ride the Campaign (R-5.5.3)', () => {
     })
 
     it('refuses a defender-side plan, an unruled plan, and a plan used twice', () => {
-        expect(() => campaign({ plans: [battlePlanUse(STORM)] }).apply(table({}, { attacker: [STORM] }))).toThrow(
-            /defender plan/
-        )
+        expect(() =>
+            campaign({ plans: [battlePlanUse(STORM)] }).apply(table({}, { attacker: [STORM] }))
+        ).toThrow(/defender plan/)
         // R-7.5.1 — the attacker stands at c1 but the defender rules it.
         expect(() =>
-            campaign({ plans: [battlePlanUse(SCOUTS)] }).apply(table({ denizensBySite: { c1: [SCOUTS] } }))
+            campaign({ plans: [battlePlanUse(SCOUTS)] }).apply(
+                table({ denizensBySite: { c1: [SCOUTS] } })
+            )
         ).toThrow(/do not rule/)
         expect(() =>
-            campaign({ plans: [battlePlanUse(SCOUTS), battlePlanUse(SCOUTS)] }).apply(table({}, { attacker: [SCOUTS] }))
+            campaign({ plans: [battlePlanUse(SCOUTS), battlePlanUse(SCOUTS)] }).apply(
+                table({}, { attacker: [SCOUTS] })
+            )
         ).toThrow(/used twice/)
     })
 
@@ -118,13 +121,17 @@ describe('the attacker\'s battle plans ride the Campaign (R-5.5.3)', () => {
         const s = table({}, { attacker: [SCOUTS] })
         openTurn(s, ATTACKER)
         const use = new HydratedUseActionPower(
-            buildAction(UseActionPower, { playerId: ATTACKER, cardId: SCOUTS, powerIndex: battlePlanUse(SCOUTS).powerIndex })
+            buildAction(UseActionPower, {
+                playerId: ATTACKER,
+                cardId: SCOUTS,
+                powerIndex: battlePlanUse(SCOUTS).powerIndex
+            })
         )
         expect(() => use.apply(s)).toThrow()
     })
 })
 
-describe('the defender\'s step holds the machine (R-5.5.3, R-7.5.2)', () => {
+describe("the defender's step holds the machine (R-5.5.3, R-7.5.2)", () => {
     it('with a usable defender plan, nothing is rolled until the defender answers', () => {
         const s = table({}, { defender: [PROVISIONS] })
         const action = campaign()
@@ -133,14 +140,23 @@ describe('the defender\'s step holds the machine (R-5.5.3, R-7.5.2)', () => {
         expect(s.campaign?.pendingDefenderPlans).toBeDefined()
         expect(s.campaign?.attackRoll).toEqual([])
         expect(s.prng.invocations).toBe(0)
-        expect(new ActPhaseStateHandler().onAction(action, machineContext(s))).toBe(MachineState.CampaignPlans)
+        expect(new ActPhaseStateHandler().onAction(action, machineContext(s))).toBe(
+            MachineState.CampaignPlans
+        )
 
         expect(
-            HydratedCampaignSacrifice.reasonCannotResolve(s, ATTACKER, { sacrifice: 0, defeatKills: [] })
+            HydratedCampaignSacrifice.reasonCannotResolve(s, ATTACKER, {
+                sacrifice: 0,
+                defeatKills: []
+            })
         ).toMatch(/yet to use/)
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, ATTACKER, [])).toMatch(/only the defender/)
+        expect(HydratedCampaignDefend.reasonCannotDefend(s, ATTACKER, [])).toMatch(
+            /only the defender/
+        )
         const handler = new CampaignPlansStateHandler()
-        expect(handler.validActionsForPlayer(DEFENDER, machineContext(s))).toEqual([ActionType.CampaignDefend])
+        expect(handler.validActionsForPlayer(DEFENDER, machineContext(s))).toEqual([
+            ActionType.CampaignDefend
+        ])
         expect(handler.validActionsForPlayer(ATTACKER, machineContext(s))).toEqual([])
     })
 
@@ -227,14 +243,24 @@ describe('Storm Caller (R-5.5.8 "at end, discard")', () => {
         expect(s.denizensBySite.c1).toEqual([])
     })
 
-    it('Specialist stops the bandits\' plans; a bandit Code of Honor stands alone', () => {
+    it("Specialist stops the bandits' plans; a bandit Code of Honor stands alone", () => {
         const SPECIALIST = 'denizen.order.specialist'
-        const locked = table({ warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } }, denizensBySite: { c1: [STORM] } }, { attacker: [SPECIALIST] })
-        const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')], plans: [battlePlanUse(SPECIALIST)] })
+        const locked = table(
+            { warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } }, denizensBySite: { c1: [STORM] } },
+            { attacker: [SPECIALIST] }
+        )
+        const action = campaign({
+            defender: { kind: 'bandits' },
+            targets: [siteTarget('c1')],
+            plans: [battlePlanUse(SPECIALIST)]
+        })
         action.apply(locked)
         expect(action.metadata?.battle?.plansUsed).toEqual([SPECIALIST])
         expect(locked.campaign?.defensePool).toBe(1)
-        const honor = table({ warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } }, denizensBySite: { c1: [STORM, 'denizen.order.code-of-honor'] } })
+        const honor = table({
+            warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } },
+            denizensBySite: { c1: [STORM, 'denizen.order.code-of-honor'] }
+        })
         const bandits = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')] })
         bandits.apply(honor)
         expect(bandits.metadata?.battle?.plansUsed).toEqual(['denizen.order.code-of-honor'])
@@ -252,12 +278,16 @@ describe('Storm Caller (R-5.5.8 "at end, discard")', () => {
     })
 })
 
-describe("Great Crusade for the bandits (R-5.5.3-H1)", () => {
+describe('Great Crusade for the bandits (R-5.5.3-H1)', () => {
     it('counts the nomad cards at the sites the bandits rule, in their favour', () => {
         const GREAT_CRUSADE = 'denizen.nomad.great-crusade'
         const s = table({
             warbandsBySite: { c1: {}, p1: { [DEFENDER]: 3 } },
-            denizensBySite: { c1: [GREAT_CRUSADE], p1: ['denizen.nomad.elders'], h1: ['denizen.nomad.tents'] }
+            denizensBySite: {
+                c1: [GREAT_CRUSADE],
+                p1: ['denizen.nomad.elders'],
+                h1: ['denizen.nomad.tents']
+            }
         })
         const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')] })
         action.apply(s)
@@ -292,7 +322,10 @@ describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
                     favor: 4,
                     warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
                     warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 15 },
-                    advisers: (advisers.chancellor ?? []).map((cardId) => ({ cardId, faceUp: true }))
+                    advisers: (advisers.chancellor ?? []).map((cardId) => ({
+                        cardId,
+                        faceUp: true
+                    }))
                 }),
                 testPlayer({
                     playerId: CITIZEN,
@@ -330,9 +363,13 @@ describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
         expect(s.prng.invocations).toBe(0)
 
         const handler = new CampaignPlansStateHandler()
-        expect(handler.validActionsForPlayer(CITIZEN, machineContext(s))).toEqual([ActionType.CampaignDefend])
+        expect(handler.validActionsForPlayer(CITIZEN, machineContext(s))).toEqual([
+            ActionType.CampaignDefend
+        ])
         expect(handler.validActionsForPlayer(CHANCELLOR, machineContext(s))).toEqual([])
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, CHANCELLOR, [])).toMatch(/ally is answering/)
+        expect(HydratedCampaignDefend.reasonCannotDefend(s, CHANCELLOR, [])).toMatch(
+            /ally is answering/
+        )
         expect(HydratedCampaignDefend.answeringPlayerId(s)).toBe(CITIZEN)
 
         const before = ongoingCampaign(s).defensePool
@@ -349,29 +386,51 @@ describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
         const ARCHERS = 'denizen.nomad.horse-archers'
         const s = allyTable({ citizen: [STORM] })
         s.getPlayerState(ATTACKER).addAdviser(ARCHERS, true)
-        const declared = { defender: { kind: 'player' as const, playerId: CHANCELLOR }, targets: [siteTarget('h1')], attackDice: 1 }
-        expect(HydratedCampaign.reasonCannotCampaign(s, ATTACKER, { ...declared, plans: [battlePlanUse(ARCHERS)] })).toMatch(/once the Citizens asked to join have answered/)
+        const declared = {
+            defender: { kind: 'player' as const, playerId: CHANCELLOR },
+            targets: [siteTarget('h1')],
+            attackDice: 1
+        }
+        expect(
+            HydratedCampaign.reasonCannotCampaign(s, ATTACKER, {
+                ...declared,
+                plans: [battlePlanUse(ARCHERS)]
+            })
+        ).toMatch(/once the Citizens asked to join have answered/)
         campaign(declared).apply(s)
         expect(s.pendingCampaign?.awaitingAttackerPlans).toBeUndefined()
         joinDefence(s, CITIZEN, CHANCELLOR)
         expect(s.pendingCampaign?.awaitingAttackerPlans).toBe(true)
         expect(s.campaign).toBeUndefined()
-        expect(new CampaignPlansStateHandler().validActionsForPlayer(ATTACKER, machineContext(s))).toEqual([ActionType.CampaignAttackPlans])
-        expect(HydratedCampaignAttackPlans.reasonCannotDeclare(s, CITIZEN, [])).toMatch(/only the attacker/)
+        expect(
+            new CampaignPlansStateHandler().validActionsForPlayer(ATTACKER, machineContext(s))
+        ).toEqual([ActionType.CampaignAttackPlans])
+        expect(HydratedCampaignAttackPlans.reasonCannotDeclare(s, CITIZEN, [])).toMatch(
+            /only the attacker/
+        )
 
-        new HydratedCampaignAttackPlans(buildAction(CampaignAttackPlans, { playerId: ATTACKER, plans: [battlePlanUse(ARCHERS)] })).apply(s)
+        new HydratedCampaignAttackPlans(
+            buildAction(CampaignAttackPlans, {
+                playerId: ATTACKER,
+                plans: [battlePlanUse(ARCHERS)]
+            })
+        ).apply(s)
         expect(s.pendingCampaign).toBeUndefined()
         expect(s.campaign?.allyPlayerIds).toEqual([CITIZEN])
         expect(s.campaign?.plansUsed).toContain(ARCHERS)
     })
 
-    it('R-5.5.3 — a plan at an Imperial site used by the defender is not the ally\'s to use again', () => {
+    it("R-5.5.3 — a plan at an Imperial site used by the defender is not the ally's to use again", () => {
         const s = allyTable({ chancellor: [STORM], citizen: [STORM] })
         s.denizensBySite = { ...s.denizensBySite, h1: [PROVISIONS] }
         attackEmpire(s)
         defend([battlePlanUse(PROVISIONS)], CHANCELLOR).apply(s)
-        expect(HydratedCampaignDefend.usablePlans(s, CITIZEN).map((p) => p.cardId)).not.toContain(PROVISIONS)
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, CITIZEN, [battlePlanUse(PROVISIONS)])).toMatch(/already used in this Campaign/)
+        expect(HydratedCampaignDefend.usablePlans(s, CITIZEN).map((p) => p.cardId)).not.toContain(
+            PROVISIONS
+        )
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, CITIZEN, [battlePlanUse(PROVISIONS)])
+        ).toMatch(/already used in this Campaign/)
     })
 
     it('the defender answers first, then each ally, and only the last answer rolls', () => {
@@ -387,7 +446,9 @@ describe("the defender's allies use battle plans too (R-5.5.3.a)", () => {
         expect(first.metadata?.awaitingMore).toEqual([CITIZEN])
         expect(s.campaign?.pendingDefenderPlans?.queue).toEqual([CITIZEN])
         expect(handler.onAction(first, machineContext(s))).toBe(MachineState.CampaignPlans)
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, CHANCELLOR, [])).toMatch(/ally is answering/)
+        expect(HydratedCampaignDefend.reasonCannotDefend(s, CHANCELLOR, [])).toMatch(
+            /ally is answering/
+        )
 
         const pool = ongoingCampaign(s).defensePool
         const second = defend([battlePlanUse(STORM)], CITIZEN)

@@ -22,10 +22,7 @@ import { onActivateEffect } from './postActionHelper.js'
 // Transition from SolarFlares(ActivateEffect) -> SolarFlares
 
 type SolarFlaresActions =
-    | HydratedPass
-    | HydratedSolarFlare
-    | HydratedActivate
-    | HydratedActivateEffect
+    HydratedPass | HydratedSolarFlare | HydratedActivate | HydratedActivateEffect
 
 export class SolarFlaresStateHandler implements MachineStateHandler<
     SolarFlaresActions,

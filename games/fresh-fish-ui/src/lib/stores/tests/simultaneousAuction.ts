@@ -16,11 +16,13 @@ import {
     ActionType,
     Definition,
     FreshFishRuntime,
+    FreshFishVisibility,
     GoodsType,
     MachineState,
     PlaceBid,
     TileType,
-    type FreshFishGameState
+    type FreshFishGameState,
+    RuleSet
 } from '@tabletop/fresh-fish'
 
 export const GAME_ID = 'simultaneous-undo-game'
@@ -203,7 +205,7 @@ export function createAuctionHost(): CanonicalHost {
                 }
             ],
             config: {
-                forceThreeDisks: false,
+                ruleSet: RuleSet.Classic,
                 boardSeed: 7
             },
             hotseat: false,
@@ -261,7 +263,7 @@ export function projectHostHistory(host: CanonicalHost, perspective?: Visibility
     return Visibility.projectActionHistory({
         currentState: host.state,
         actions: host.actionsSnapshot(),
-        visibility: FreshFishRuntime.visibility,
+        visibility: FreshFishVisibility,
         perspective,
         replay: { game: host.game, runtime: FreshFishRuntime }
     })
@@ -276,7 +278,7 @@ export function projectHostHistorySuffix(
         currentState: host.state,
         actions: host.actionsSnapshot().slice(startIndex),
         startIndex,
-        visibility: FreshFishRuntime.visibility,
+        visibility: FreshFishVisibility,
         perspective,
         replay: { game: host.game, runtime: FreshFishRuntime }
     })

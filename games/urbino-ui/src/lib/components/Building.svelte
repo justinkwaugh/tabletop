@@ -19,7 +19,11 @@
     } = $props()
 </script>
 
-<g transform="translate({center.x} {center.y})" class="transition-opacity duration-150" opacity={dimmed ? 0.35 : 1}>
+<g
+    transform="translate({center.x} {center.y})"
+    class="transition-opacity duration-150"
+    opacity={dimmed ? 0.35 : 1}
+>
     <BuildingShape
         {buildingType}
         {color}

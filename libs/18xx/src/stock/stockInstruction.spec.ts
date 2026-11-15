@@ -72,6 +72,19 @@ describe('standing instruction title hooks', () => {
         expect(stockPositionChange(state, standing, secure)).toBeUndefined()
     })
 
+    it('treats exactly half of a company as a secure presidency', () => {
+        const state = contested()
+        state.companies[0].shareCount = 6
+        const standing = createStandingStockInstruction(
+            state,
+            TestPlayerId,
+            { kind: 'pass' },
+            minimalStockRules
+        )
+        state.certificates.push({ ...state.certificates[3], id: 'r2', owner: rival })
+        expect(stockPositionChange(state, standing, minimalStockRules)).toBeUndefined()
+    })
+
     it('lets a title wrap the family cancel rules', () => {
         const state = contested()
         const rules = withHooks({

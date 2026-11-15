@@ -34,6 +34,22 @@ export const RoadMarch = Type.Object({
     stopped: Type.Optional(Type.Literal(true))
 })
 
+/** Rule 10: cavalry at the end of its ride that ended its move in the reserve it rode into, shown as it ended. */
+export type RideEndedInReserve = Type.Static<typeof RideEndedInReserve>
+export const RideEndedInReserve = Type.Object({
+    locale: Type.Integer(),
+    revealed: Type.Array(Face)
+})
+
+/**
+ * Rule 11: cavalry still riding when its turn ended, turned face-up then and kept so, with the
+ * blocks it stands among, until the opponent has seen it; only then are those blocks shuffled.
+ */
+export type RevealedRide = Type.Static<typeof RevealedRide>
+export const RevealedRide = Type.Object({
+    unitIds: Type.Array(Type.String(), { minItems: 1 })
+})
+
 export enum DecisionKind {
     OddLoss = 'OddLoss',
     ExcessLosses = 'ExcessLosses',
@@ -69,6 +85,8 @@ export const AdvanceDecision = Type.Object({
     playerId: Type.String(),
     unitIds: Type.Array(Type.String(), { minItems: 1 })
 })
+
+export type LossDecision = OddLossDecision | ExcessLossesDecision
 
 export type PendingDecision = Type.Static<typeof PendingDecision>
 export const PendingDecision = Type.Union([

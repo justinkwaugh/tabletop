@@ -5,7 +5,10 @@ import { BOARD_COLS, BOARD_ROWS, BoardSquare, SquareType, WallEdge } from '../mo
 import { MachineState } from '../definition/states.js'
 import { isKnightSafeToRemove } from './knightConnectivity.js'
 
-function blankBoard(): { squares: BoardSquare[][]; walls: { col: number; row: number; edge: WallEdge }[] } {
+function blankBoard(): {
+    squares: BoardSquare[][]
+    walls: { col: number; row: number; edge: WallEdge }[]
+} {
     return {
         squares: Array.from({ length: BOARD_ROWS }, () =>
             Array.from({ length: BOARD_COLS }, () => ({ type: SquareType.Blank }))
@@ -129,7 +132,7 @@ describe('isKnightSafeToRemove', () => {
         expect(isKnightSafeToRemove(state, 'p1', 1, 0)).toBe(false)
     })
 
-    it('is unaffected by a different owner\'s knights', () => {
+    it("is unaffected by a different owner's knights", () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Blank, castleOwner: 'p1' }
         board.squares[0][1] = { type: SquareType.Blank, knightOwner: 'p1' }

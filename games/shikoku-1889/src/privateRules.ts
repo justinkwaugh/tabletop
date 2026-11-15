@@ -30,5 +30,6 @@ export const Shikoku1889PrivateRules: PrivateRules = {
                 ? 'Player-owned ferry remains open, pays ¥50, and cannot be sold to a company.'
                 : 'At phase 5: stays open and pays ¥50 if player-owned; otherwise closes.'
         return Shikoku1889PrivateCatalog.definition(id).description ?? ''
-    }
+    },
+    blocking: Shikoku1889PrivateCatalog.blocking.bind(Shikoku1889PrivateCatalog)
 }

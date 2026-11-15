@@ -16,7 +16,11 @@ import { INN } from '../testing/cards.js'
 const AUGURY = 'denizen.arcane.augury'
 const RETURN = 'denizen.hearth.awaited-return'
 
-function board(c1Card: string, over: Record<string, unknown> = {}, ruler: Record<string, unknown> = {}) {
+function board(
+    c1Card: string,
+    over: Record<string, unknown> = {},
+    ruler: Record<string, unknown> = {}
+) {
     const s = testState(
         [
             testPlayer({
@@ -61,7 +65,7 @@ function campaign(targets: CampaignTarget[], attackDice: number) {
             playerId: 'ruler',
             defender: { kind: 'player', playerId: 'other' },
             targets: [...targets, pawn],
-            attackDice,
+            attackDice
         })
     )
 }
@@ -90,7 +94,9 @@ describe('R-11.4 — Plains and Mountain', () => {
     })
 
     it('Mountain with no attack dice to pay underflows into a defense die (R-5.5.3)', () => {
-        const neutral = board('site.mine', { siteCards: { c1: 'site.mine', c2: 'site.plains', p1: 'site.salt-flats' } })
+        const neutral = board('site.mine', {
+            siteCards: { c1: 'site.mine', c2: 'site.plains', p1: 'site.salt-flats' }
+        })
         const n = campaign([siteTarget('p1')], 0)
         n.apply(neutral)
         const s = board('site.mine')
@@ -101,7 +107,9 @@ describe('R-11.4 — Plains and Mountain', () => {
     })
 
     it('a site whose card is neither leaves the pools alone', () => {
-        const s = board('site.mine', { siteCards: { c1: 'site.mine', c2: 'site.marshes', p1: 'site.salt-flats' } })
+        const s = board('site.mine', {
+            siteCards: { c1: 'site.mine', c2: 'site.marshes', p1: 'site.salt-flats' }
+        })
         const a = campaign([siteTarget('c2')], 2)
         a.apply(s)
         expect(a.metadata?.battle?.attackPool).toBe(2)
@@ -116,7 +124,9 @@ describe('R-11.5 — River', () => {
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(ruled)
         expect(ruled.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4 + 3)
 
-        const unruled = board('site.river', { warbandsBySite: { c1: { other: 1 }, p1: { other: 2 } } })
+        const unruled = board('site.river', {
+            warbandsBySite: { c1: { other: 1 }, p1: { other: 2 } }
+        })
         expect(HydratedMuster.wanted(unruled, 'ruler', INN, [])).toBe(2)
         new HydratedMuster(buildAction(Muster, { playerId: 'ruler', cardId: INN })).apply(unruled)
         expect(unruled.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4 + 2)
@@ -140,15 +150,23 @@ describe('R-11.2 — Homelands', () => {
 
     it('Standing Stones pays a secret on an arcane play, and nothing on a hearth play', () => {
         const s = board('site.standing-stones')
-        expect(playCard(s, 'ruler', AUGURY, SearchPlay.Site, Region.Cradle).sitePower).toMatch(/secret/)
+        expect(playCard(s, 'ruler', AUGURY, SearchPlay.Site, Region.Cradle).sitePower).toMatch(
+            /secret/
+        )
         expect(s.getPlayerState('ruler').secrets).toBe(2)
         const t = board('site.standing-stones')
-        expect(playCard(t, 'ruler', RETURN, SearchPlay.Site, Region.Cradle).sitePower).toBeUndefined()
+        expect(
+            playCard(t, 'ruler', RETURN, SearchPlay.Site, Region.Cradle).sitePower
+        ).toBeUndefined()
         expect(t.getPlayerState('ruler').secrets).toBe(1)
     })
 
     it('a same-suit discard here this turn (the ledger) forfeits the gain', () => {
-        const s = board('site.fertile-valley', {}, { homelandUsedThisTurn: [homelandLedgerKey('c1', Suit.Hearth)] })
+        const s = board(
+            'site.fertile-valley',
+            {},
+            { homelandUsedThisTurn: [homelandLedgerKey('c1', Suit.Hearth)] }
+        )
         const played = playCard(s, 'ruler', RETURN, SearchPlay.Site, Region.Cradle)
         expect(played.sitePower).toMatch(/no Homeland gain/)
         expect(s.getPlayerState('ruler').favor).toBe(4)
@@ -158,13 +176,20 @@ describe('R-11.2 — Homelands', () => {
         const s = board('site.fertile-valley')
         s.denizensBySite.c1 = ['denizen.hearth.wayside-inn']
         discardEachFromPlay(s, 'ruler', ['denizen.hearth.wayside-inn'])
-        expect(s.getPlayerState('ruler').homelandUsedThisTurn).toEqual([homelandLedgerKey('c1', Suit.Hearth)])
-        expect(playCard(s, 'ruler', RETURN, SearchPlay.Site, Region.Cradle).sitePower).toMatch(/no Homeland gain/)
+        expect(s.getPlayerState('ruler').homelandUsedThisTurn).toEqual([
+            homelandLedgerKey('c1', Suit.Hearth)
+        ])
+        expect(playCard(s, 'ruler', RETURN, SearchPlay.Site, Region.Cradle).sitePower).toMatch(
+            /no Homeland gain/
+        )
     })
 
     it('an adviser play pays nothing (the Homeland is the site)', () => {
         const s = board('site.fertile-valley')
-        expect(playCard(s, 'ruler', RETURN, SearchPlay.Adviser, Region.Cradle, { faceUp: true }).sitePower).toBeUndefined()
+        expect(
+            playCard(s, 'ruler', RETURN, SearchPlay.Adviser, Region.Cradle, { faceUp: true })
+                .sitePower
+        ).toBeUndefined()
         expect(s.getPlayerState('ruler').favor).toBe(3)
     })
 })

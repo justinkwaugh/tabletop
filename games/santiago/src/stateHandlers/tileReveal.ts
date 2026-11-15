@@ -5,9 +5,10 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedRevealTiles, isRevealTiles } from '../actions/revealTiles.js'
 
 // Phase 1: a new round begins and its first bidder reveals the planting tiles.
-export class TileRevealStateHandler
-    implements MachineStateHandler<HydratedRevealTiles, HydratedSantiagoGameState>
-{
+export class TileRevealStateHandler implements MachineStateHandler<
+    HydratedRevealTiles,
+    HydratedSantiagoGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedSantiagoGameState>

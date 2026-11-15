@@ -18,8 +18,7 @@ rotation, where a town may become a city only within its colour.
 
 The chain asks this on every buildable hex, starting from the printed hex, so a label a hex takes
 in one colour constrains only that colour and later ones. TOP's yellow X and T hexes therefore do
-not let unlabelled yellow tiles become labelled green ones. A title's most-exits rule (`mostExits`,
-1817) keeps only the tiles of the colour with the most exits among those that keep the track.
+not let unlabelled yellow tiles become labelled green ones. A title's most-exits rule (`mostExits`, 1817) keeps only the tiles of the colour with the most exits among those that keep the track.
 
 `upgradesWithinColor` judges tiles only; when it becomes allowed is the title's `restriction`
 (1832: from phase 3).

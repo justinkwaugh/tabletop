@@ -46,14 +46,14 @@ function cross(origin: Point, a: Point, b: Point): number {
 }
 
 /**
- * Every place the centre of a level square of the given half size can stand and still touch the
- * outline: the outline grown by the square, the hull of its corners moved to the square's corners.
+ * Every place the centre of a level box of the given half sizes can stand and still touch the
+ * outline: the outline grown by the box, the hull of its corners moved to the box's corners.
  */
-export function grownBySquare(outline: ConvexOutline, half: number): Point[] {
+export function grownByLevelBox(outline: ConvexOutline, halfX: number, halfY: number): Point[] {
     const points = outline
         .flatMap((corner) =>
-            [-half, half].flatMap((dx) =>
-                [-half, half].map((dy) => ({ x: corner.x + dx, y: corner.y + dy }))
+            [-halfX, halfX].flatMap((dx) =>
+                [-halfY, halfY].map((dy) => ({ x: corner.x + dx, y: corner.y + dy }))
             )
         )
         .sort((a, b) => a.x - b.x || a.y - b.y)
@@ -171,6 +171,29 @@ export function overlapWhileSliding(
     return from < to ? [from, to] : undefined
 }
 
+/** Slides along `direction` at which no piece of `moving` overlaps any obstacle: none at all, if that is clear, and each end of an overlap that is. */
+export function clearSlides(
+    moving: readonly ConvexOutline[],
+    obstacles: readonly ConvexOutline[],
+    direction: Point
+): number[] {
+    const across = { x: -direction.y, y: direction.x }
+    const overlaps = moving.flatMap((piece) => {
+        const [movingLow, movingHigh] = spanAlong(piece, across)
+        return obstacles.flatMap((obstacle) => {
+            const [low, high] = spanAlong(obstacle, across)
+            const overlap =
+                high > movingLow && low < movingHigh
+                    ? overlapWhileSliding(piece, obstacle, direction)
+                    : undefined
+            return overlap ? [overlap] : []
+        })
+    })
+    return [0, ...overlaps.flat()].filter((slide) =>
+        overlaps.every(([from, to]) => slide <= from || slide >= to)
+    )
+}
+
 /**
  * The shortest slide along `direction` that leaves `moving` clear of every obstacle. Between two
  * slides of the same length it takes the one towards the right of the board, or down it, so shapes
@@ -181,19 +204,7 @@ export function shortestClearSlide(
     obstacles: readonly ConvexOutline[],
     direction: Point
 ): number {
-    const across = { x: -direction.y, y: direction.x }
-    const [movingLow, movingHigh] = spanAlong(moving, across)
-    const overlaps = obstacles.flatMap((obstacle) => {
-        const [low, high] = spanAlong(obstacle, across)
-        const overlap =
-            high > movingLow && low < movingHigh
-                ? overlapWhileSliding(moving, obstacle, direction)
-                : undefined
-        return overlap ? [overlap] : []
-    })
-    const clear = [0, ...overlaps.flat()].filter((slide) =>
-        overlaps.every(([from, to]) => slide <= from || slide >= to)
-    )
+    const clear = clearSlides([moving], obstacles, direction)
     const shortest = Math.min(...clear.map(Math.abs))
     const forward = Math.abs(direction.x) > PARALLEL ? direction.x : direction.y
     return clear

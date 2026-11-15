@@ -8,13 +8,12 @@ import { HydratedCancelAlliance } from '../actions/cancelAlliance.js'
 import { canCancelAnAlliance } from '../util/allianceCancellation.js'
 
 type TakingPoliticsCardAction =
-    | HydratedLookAtPoliticsPile
-    | HydratedTakePoliticsCard
-    | HydratedCancelAlliance
+    HydratedLookAtPoliticsPile | HydratedTakePoliticsCard | HydratedCancelAlliance
 
-export class TakingPoliticsCardStateHandler
-    implements MachineStateHandler<TakingPoliticsCardAction, HydratedLowenherzGameState>
-{
+export class TakingPoliticsCardStateHandler implements MachineStateHandler<
+    TakingPoliticsCardAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>

@@ -37,7 +37,11 @@ function board(options: { scepter?: boolean; p2Status?: PlayerStatus } = {}) {
                     { cardId: WOLVES, faceUp: true }
                 ]
             }),
-            testPlayer({ playerId: 'p2', siteId: 'c2', status: options.p2Status ?? PlayerStatus.Exile })
+            testPlayer({
+                playerId: 'p2',
+                siteId: 'c2',
+                status: options.p2Status ?? PlayerStatus.Exile
+            })
         ],
         { reliquary: [{ slotId: 'rel-1' }] }
     )
@@ -106,12 +110,32 @@ describe('Letting another player peek (R-6.1, R-9.4, R-6.6.1)', () => {
 describe('Let another peek at any time', () => {
     const game = testGame(['p1', 'p2', 'p3'])
 
-    function table(machine: Record<string, unknown> = {}, freeTravelAtAction?: number): OathProjectedState {
+    function table(
+        machine: Record<string, unknown> = {},
+        freeTravelAtAction?: number
+    ): OathProjectedState {
         const state = testState(
             [
-                testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', status: PlayerStatus.Chancellor, freeTravelAtAction, advisers: [{ cardId: STORYTELLER, faceUp: false }] }),
-                testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c2', advisers: [{ cardId: TUTOR, faceUp: false }] }),
-                testPlayer({ playerId: 'p3', color: Color.Yellow, siteId: 'c2', advisers: [{ cardId: WOLVES, faceUp: false }] })
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    status: PlayerStatus.Chancellor,
+                    freeTravelAtAction,
+                    advisers: [{ cardId: STORYTELLER, faceUp: false }]
+                }),
+                testPlayer({
+                    playerId: 'p2',
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    advisers: [{ cardId: TUTOR, faceUp: false }]
+                }),
+                testPlayer({
+                    playerId: 'p3',
+                    color: Color.Yellow,
+                    siteId: 'c2',
+                    advisers: [{ cardId: WOLVES, faceUp: false }]
+                })
             ],
             { chancellorPlayerId: 'p1', machineState: MachineState.ActPhase, ...machine }
         )
@@ -136,9 +160,19 @@ describe('Let another peek at any time', () => {
     })
 
     it('is refused to the player the game is waiting on, and allowed to the others mid-decision', () => {
-        const waiting = table({ machineState: MachineState.OathkeeperChoice, oathkeeperPlayerId: 'p2', pendingOathkeeperChoice: { holderPlayerId: 'p2', candidates: ['p1', 'p3'], resumeMachineState: MachineState.ActPhase } })
+        const waiting = table({
+            machineState: MachineState.OathkeeperChoice,
+            oathkeeperPlayerId: 'p2',
+            pendingOathkeeperChoice: {
+                holderPlayerId: 'p2',
+                candidates: ['p1', 'p3'],
+                resumeMachineState: MachineState.ActPhase
+            }
+        })
         waiting.activePlayerIds = ['p2']
-        expect(engine.getValidActionTypesForPlayer(game, waiting, 'p2')).not.toContain(ActionType.LetPeek)
+        expect(engine.getValidActionTypesForPlayer(game, waiting, 'p2')).not.toContain(
+            ActionType.LetPeek
+        )
         expect(() => show(waiting, 'p2', TUTOR, 'p3')).toThrow()
         const after = show(waiting, 'p3', WOLVES, 'p1')
         expect(after.machineState).toBe(MachineState.OathkeeperChoice)
@@ -175,8 +209,19 @@ describe('A let-peek is ordered and undone like any other player action', () => 
     function table(): OathProjectedState {
         const state = testState(
             [
-                testPlayer({ playerId: 'p1', color: Color.Red, siteId: 'c1', status: PlayerStatus.Chancellor, freeTravelAtAction: 0 }),
-                testPlayer({ playerId: 'p2', color: Color.Blue, siteId: 'c2', advisers: [{ cardId: TUTOR, faceUp: false }] }),
+                testPlayer({
+                    playerId: 'p1',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    status: PlayerStatus.Chancellor,
+                    freeTravelAtAction: 0
+                }),
+                testPlayer({
+                    playerId: 'p2',
+                    color: Color.Blue,
+                    siteId: 'c2',
+                    advisers: [{ cardId: TUTOR, faceUp: false }]
+                }),
                 testPlayer({ playerId: 'p3', color: Color.Yellow, siteId: 'c2' })
             ],
             { chancellorPlayerId: 'p1', machineState: MachineState.ActPhase }
@@ -188,7 +233,13 @@ describe('A let-peek is ordered and undone like any other player action', () => 
     }
 
     function peekAt(index: number): LetPeek {
-        return buildAction(LetPeek, { id: 'peek', playerId: 'p2', toPlayerId: 'p3', subject: adviser(TUTOR), index })
+        return buildAction(LetPeek, {
+            id: 'peek',
+            playerId: 'p2',
+            toPlayerId: 'p3',
+            subject: adviser(TUTOR),
+            index
+        })
     }
 
     function afterForgo() {
@@ -224,9 +275,17 @@ describe('A let-peek is ordered and undone like any other player action', () => 
 
     it('is accepted when resubmitted at the current index', () => {
         const raced = afterForgo()
-        const after = engine.executeCanonicalAction({ action: peekAt(1), state: raced.updatedState, game })
+        const after = engine.executeCanonicalAction({
+            action: peekAt(1),
+            state: raced.updatedState,
+            game
+        })
         expect(after.processedActions.map((action) => action.type)).toEqual([ActionType.LetPeek])
-        expect(after.updatedState.players[1].advisers[0]).toEqual({ faceUp: false, shownCardId: TUTOR, shownTo: ['p3'] })
+        expect(after.updatedState.players[1].advisers[0]).toEqual({
+            faceUp: false,
+            shownCardId: TUTOR,
+            shownTo: ['p3']
+        })
     })
 })
 
@@ -240,9 +299,29 @@ describe('An undo across a let-peek rewinds it, the Grand Scepter changing hands
     function table(seed: number): OathProjectedState {
         const state = testState(
             withChancellor([
-                testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 7, warbandsOnBoard: { [ATTACKER]: 8 }, warbandsInPersonalBank: { [ATTACKER]: 4 } }),
-                testPlayer({ playerId: HOLDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', warbandsInPersonalBank: { [HOLDER]: 13 }, relicIds: [GRAND_SCEPTER_ID] }),
-                testPlayer({ playerId: EXILE, color: Color.Blue, status: PlayerStatus.Exile, siteId: 'c2' })
+                testPlayer({
+                    playerId: ATTACKER,
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1',
+                    supply: 7,
+                    warbandsOnBoard: { [ATTACKER]: 8 },
+                    warbandsInPersonalBank: { [ATTACKER]: 4 }
+                }),
+                testPlayer({
+                    playerId: HOLDER,
+                    color: Color.Yellow,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c1',
+                    warbandsInPersonalBank: { [HOLDER]: 13 },
+                    relicIds: [GRAND_SCEPTER_ID]
+                }),
+                testPlayer({
+                    playerId: EXILE,
+                    color: Color.Blue,
+                    status: PlayerStatus.Exile,
+                    siteId: 'c2'
+                })
             ]),
             {
                 machineState: MachineState.ActPhase,
@@ -269,10 +348,18 @@ describe('An undo across a let-peek rewinds it, the Grand Scepter changing hands
         const processed: GameAction[] = []
         let state = start
         for (const action of [
-            buildAction(LetPeek, { playerId: HOLDER, toPlayerId: EXILE, subject: reliquary('rel-1') }),
+            buildAction(LetPeek, {
+                playerId: HOLDER,
+                toPlayerId: EXILE,
+                subject: reliquary('rel-1')
+            }),
             campaign,
             buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: [] }),
-            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false })
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [],
+                burnFavor: false
+            })
         ]) {
             const result = engine.runNext(action, state, game)
             processed.push(...result.processedActions)
@@ -283,7 +370,15 @@ describe('An undo across a let-peek rewinds it, the Grand Scepter changing hands
 
     function seedWhereSwordsAlreadyWin(): number {
         for (let seed = 1; seed < 5000; seed++) {
-            const peeked = engine.runNext(buildAction(LetPeek, { playerId: HOLDER, toPlayerId: EXILE, subject: reliquary('rel-1') }), table(seed), game)
+            const peeked = engine.runNext(
+                buildAction(LetPeek, {
+                    playerId: HOLDER,
+                    toPlayerId: EXILE,
+                    subject: reliquary('rel-1')
+                }),
+                table(seed),
+                game
+            )
             const rolled = engine.runNext(campaign, peeked.updatedState, game).updatedState.campaign
             if (rolled && rolled.swords > rolled.defense) return seed
         }
@@ -306,4 +401,3 @@ describe('An undo across a let-peek rewinds it, the Grand Scepter changing hands
         expect(rewound).toEqual(start)
     })
 })
-

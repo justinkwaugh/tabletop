@@ -1,13 +1,14 @@
 <script lang="ts">
     import { onDestroy, tick } from 'svelte'
-    import type { GameAction } from '@tabletop/common'
-    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import { isCallGameAction, type GameAction } from '@tabletop/common'
+    import { CalledGameDescription, createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import { actionCard } from '@tabletop/magna-grecia'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         historyLines,
         historyRounds,
         historySpaces,
+        winVerb,
         type HistoryRound,
         type HistoryTurn
     } from '$lib/utils/historyTurns.js'
@@ -31,6 +32,7 @@
         gameSession.actions.toSorted((a, b) => (a.index ?? 0) - (b.index ?? 0))
     )
     const displayedActions = $derived(replayUiState ? replayUiState.frozenActions : liveActions)
+    const callAction = $derived(displayedActions.find(isCallGameAction))
     const rounds = $derived(
         historyRounds(displayedActions, gameSession.gameState.players.length).toReversed()
     )
@@ -108,15 +110,24 @@
         {#if showFinishedMarker}
             <div class="milestone">
                 <span>Game over</span>
-                {#if gameSession.gameState.winningPlayerIds.length > 0}
+                {#if !callAction && gameSession.gameState.winningPlayerIds.length > 0}
                     <span class="winners">
-                        {#each gameSession.gameState.winningPlayerIds as playerId (playerId)}
+                        {#each gameSession.gameState.winningPlayerIds as playerId, index (playerId)}
+                            {#if index > 0}and{/if}
                             <PlayerName {playerId} />
                         {/each}
-                        {gameSession.gameState.winningPlayerIds.length > 1 ? 'win' : 'wins'}
+                        {winVerb(gameSession.gameState.winningPlayerIds, gameSession.myPlayerId)}
                     </span>
                 {/if}
                 <span class="when">{timeAgo.format(gameSession.game.finishedAt!)}</span>
+            </div>
+        {/if}
+        {#if callAction}
+            <div class="milestone">
+                <span class="winners"><CalledGameDescription action={callAction} /></span>
+                {#if callAction.createdAt}
+                    <span class="when">{timeAgo.format(callAction.createdAt)}</span>
+                {/if}
             </div>
         {/if}
         {#each rounds as round (round.round)}
@@ -181,7 +192,7 @@
                             onblur={() => highlight([])}
                         >
                             <PlayerName playerId={turn.playerId} />
-                            {#if !turn.ended}
+                            {#if !turn.ended && !callAction}
                                 <span class="in-progress">playing</span>
                             {/if}
                             {#if replaying}

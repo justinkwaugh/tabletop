@@ -3,8 +3,11 @@ export type PubSubSubscriber = {
     onMessage: ({ message, topic }: { message: string; topic: string }) => Promise<void>
 }
 
-export interface PubSubService {
+export interface MessagePublisher {
     publishMessage({ message, topic }: { message: string; topic: string }): Promise<void>
+}
+
+export interface PubSubService extends MessagePublisher {
     subscribeToTopics({
         topics,
         subscriber

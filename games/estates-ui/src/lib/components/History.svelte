@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Timeline, TimelineItem } from 'flowbite-svelte'
     import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { flip } from 'svelte/animate'
     import { quartIn } from 'svelte/easing'

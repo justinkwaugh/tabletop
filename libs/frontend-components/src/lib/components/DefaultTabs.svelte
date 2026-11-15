@@ -1,18 +1,21 @@
+<script lang="ts" module>
+    const DEFAULT_TABS = ['players', 'history', 'chat'] as const
+    export type DefaultTab = (typeof DEFAULT_TABS)[number]
+
+    function isDefaultTab(key: string | undefined): key is DefaultTab {
+        return DEFAULT_TABS.some((tab) => tab === key)
+    }
+</script>
+
 <script lang="ts">
     import { getGameSession } from '$lib/model/gameSessionContext.js'
-    import type { GameChatMessage } from '@tabletop/common'
-    import { onMount, type ComponentType, type Snippet } from 'svelte'
+    import { onMount, type Snippet } from 'svelte'
     import { Tabs, TabItem, Indicator } from 'flowbite-svelte'
     import { UserCircleSolid, ClockSolid, AnnotationSolid } from 'flowbite-svelte-icons'
-    import { toast, Toaster } from 'svelte-sonner'
-    import { ChatEventType, type ChatEvent } from '$lib/services/chatService.js'
-    import ChatToast from '$lib/components/ChatToast.svelte'
+    import { toastNewChatMessages } from '$lib/components/chatToasts.js'
+    import GameToaster from '$lib/components/GameToaster.svelte'
     import GameChat from '$lib/components/GameChat.svelte'
-    import {
-        adminChatAuthorBgColor,
-        adminChatAuthorName,
-        adminChatAuthorTextColor
-    } from '$lib/components/chatPresentation.js'
+    import { findSideFold } from '$lib/components/sideFold.js'
 
     let {
         history,
@@ -24,7 +27,8 @@
         fontClass = '',
         contentClass,
         activeTabClass,
-        inactiveTabClass
+        inactiveTabClass,
+        selectedTab = $bindable()
     }: {
         history?: Snippet
         playersPanel?: Snippet
@@ -36,14 +40,14 @@
         contentClass?: string
         activeTabClass?: string
         inactiveTabClass?: string
+        selectedTab?: DefaultTab
     } = $props()
 
     let gameSession = getGameSession()
 
-    let chatActive: boolean = $state(false)
-    let showNewMessageIndicator: boolean = $derived(
-        gameSession.hasUnreadMessages && !chatActive
-    )
+    const sideFold = findSideFold()
+    const chatShown = $derived(selectedTab === 'chat' && !sideFold?.folded)
+    let showNewMessageIndicator: boolean = $derived(gameSession.hasUnreadMessages && !chatShown)
 
     let activeTabClasses = $derived(
         `relative box-border ${activeTabClass ?? 'py-1 px-3 bg-gray-300 border-2 border-transparent rounded-lg text-gray-900'}`
@@ -52,51 +56,19 @@
         `relative box-border ${inactiveTabClass ?? 'text-gray-200 py-1 px-3 rounded-lg border-2 border-transparent hover:border-gray-700'}`
     )
 
-    function onChatClick() {
-        chatActive = true
-    }
-
-    function onNonChatClick() {
-        chatActive = false
-    }
-
-    function toastAttribution(message: GameChatMessage) {
-        if (message.admin) {
-            return {
-                playerName: adminChatAuthorName,
-                playerBgColor: adminChatAuthorBgColor,
-                playerTextColor: adminChatAuthorTextColor
-            }
-        }
-        return {
-            playerName: gameSession.getPlayerName(message.playerId),
-            playerBgColor: gameSession.colors.getPlayerBgColorValue(message.playerId),
-            playerTextColor: gameSession.colors.getPlayerTextColorValue(message.playerId)
-        }
-    }
-
-    async function chatListener(event: ChatEvent) {
-        if (event.eventType === ChatEventType.NewGameChatMessage && !chatActive) {
-            toast.custom(ChatToast as unknown as ComponentType, {
-                duration: 3000,
-                position: 'bottom-left',
-                componentProps: { message: event.message, ...toastAttribution(event.message) }
-            })
-        }
-    }
-
-    onMount(() => {
-        const chatService = gameSession.chatService
-        chatService.addListener(chatListener)
-
-        return () => {
-            chatService.removeListener(chatListener)
-        }
-    })
+    onMount(() => toastNewChatMessages(gameSession, () => chatShown))
 </script>
 
-<Toaster position="top-center" richColors closeButton />
+{#if !sideFold}
+    <GameToaster />
+{/if}
 <Tabs
+    bind:selected={
+        () => selectedTab,
+        (key) => {
+            if (isDefaultTab(key)) selectedTab = key
+        }
+    }
     tabStyle="pill"
     classes={{
         content: contentClass ?? 'p-0 mt-0 dark:bg-transparent h-full overflow-auto rounded-lg'
@@ -104,8 +76,8 @@
 >
     {#if playersPanel}
         <TabItem
+            key="players"
             open
-            onclick={onNonChatClick}
             activeClass={activeTabClasses}
             inactiveClass={inactiveTabClasses}
         >
@@ -121,11 +93,7 @@
         </TabItem>
     {/if}
     {#if history}
-        <TabItem
-            onclick={onNonChatClick}
-            activeClass={activeTabClasses}
-            inactiveClass={inactiveTabClasses}
-        >
+        <TabItem key="history" activeClass={activeTabClasses} inactiveClass={inactiveTabClasses}>
             {#snippet titleSlot()}
                 <div class="flex items-center gap-2 {fontClass}">
                     <ClockSolid size="md" />
@@ -138,11 +106,7 @@
         </TabItem>
     {/if}
     {#if gameSession.chatAvailable}
-        <TabItem
-            onclick={onChatClick}
-            activeClass={activeTabClasses}
-            inactiveClass={inactiveTabClasses}
-        >
+        <TabItem key="chat" activeClass={activeTabClasses} inactiveClass={inactiveTabClasses}>
             {#snippet titleSlot()}
                 <div class="flex items-center gap-2 {fontClass}">
                     <AnnotationSolid size="md" />
@@ -157,10 +121,12 @@
                     {/if}
                 </div>
             {/snippet}
-            {#if chat}
-                {@render chat()}
-            {:else}
-                <GameChat />
+            {#if !sideFold?.folded}
+                {#if chat}
+                    {@render chat()}
+                {:else}
+                    <GameChat />
+                {/if}
             {/if}
         </TabItem>
     {/if}

@@ -10,24 +10,14 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedProposeMerger, isProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedPass, isPass, PassReason } from '../actions/pass.js'
 import { HydratedPlaceMergerBid, isPlaceMergerBid } from '../actions/placeMergerBid.js'
-import {
-    HydratedPassMergerBid,
-    isPassMergerBid,
-    PassMergerBid
-} from '../actions/passMergerBid.js'
+import { HydratedPassMergerBid, isPassMergerBid, PassMergerBid } from '../actions/passMergerBid.js'
 import {
     HydratedMergeCompanies,
     isMergeCompanies,
     MergeCompanies
 } from '../actions/mergeCompanies.js'
-import {
-    HydratedRemoveSiapSajiArea,
-    isRemoveSiapSajiArea
-} from '../actions/removeSiapSajiArea.js'
-import {
-    HydratedRemoveCompanyDeed,
-    isRemoveCompanyDeed
-} from '../actions/removeCompanyDeed.js'
+import { HydratedRemoveSiapSajiArea, isRemoveSiapSajiArea } from '../actions/removeSiapSajiArea.js'
+import { HydratedRemoveCompanyDeed, isRemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { PhaseName } from '../definition/phases.js'
 import {
@@ -46,7 +36,10 @@ type MergersAction =
     | HydratedRemoveSiapSajiArea
     | HydratedRemoveCompanyDeed
 
-export class MergersStateHandler implements MachineStateHandler<MergersAction, HydratedIndonesiaGameState> {
+export class MergersStateHandler implements MachineStateHandler<
+    MergersAction,
+    HydratedIndonesiaGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
@@ -162,7 +155,10 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
         state.activePlayerIds = [nextAnnouncerId]
     }
 
-    onAction(action: MergersAction, context: MachineContext<HydratedIndonesiaGameState>): MachineState {
+    onAction(
+        action: MergersAction,
+        context: MachineContext<HydratedIndonesiaGameState>
+    ): MachineState {
         const state = context.gameState
         switch (true) {
             case isProposeMerger(action): {
@@ -302,7 +298,10 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
         state: HydratedIndonesiaGameState,
         context: MachineContext<HydratedIndonesiaGameState>
     ): void {
-        if (HydratedMergeCompanies.canMergeCompanies(state) || this.hasPendingMergeCompanies(context)) {
+        if (
+            HydratedMergeCompanies.canMergeCompanies(state) ||
+            this.hasPendingMergeCompanies(context)
+        ) {
             return
         }
 
@@ -331,12 +330,13 @@ export class MergersStateHandler implements MachineStateHandler<MergersAction, H
     ): boolean {
         return context
             .getPendingActions()
-            .some((pendingAction) => isPassMergerBid(pendingAction) && pendingAction.playerId === playerId)
+            .some(
+                (pendingAction) =>
+                    isPassMergerBid(pendingAction) && pendingAction.playerId === playerId
+            )
     }
 
-    private hasPendingMergeCompanies(
-        context: MachineContext<HydratedIndonesiaGameState>
-    ): boolean {
+    private hasPendingMergeCompanies(context: MachineContext<HydratedIndonesiaGameState>): boolean {
         return context.getPendingActions().some((pendingAction) => isMergeCompanies(pendingAction))
     }
 }

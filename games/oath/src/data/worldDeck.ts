@@ -40,21 +40,25 @@ export function composeFirstGameDeck(random: RandomFunction): string[] {
 
 /** R-8.8 — top card first; `random` is the protected stream (R-9.4). */
 export function composeWorldDeck(random: RandomFunction, pool?: WorldDeckPool): string[] {
-    const { denizenIds, visionIds } = pool ?? defaultWorldDeckPool()
+    return stackWorldDeck(pool ?? defaultWorldDeckPool(), (cardIds) => shuffle(cardIds, random))
+}
 
-    const denizens = [...denizenIds]
-    const visions = [...visionIds]
-    shuffle(denizens, random)
-    shuffle(visions, random)
+/**
+ * R-8.8 — shuffle the denizens and the Visions, then 10 denizens with 2 Visions, 15 with the other
+ * 3, each pile shuffled, stacked on the rest; `shuffleIn` shuffles a list in place, in that order.
+ * R-9.3 — a stack short of 25 denizens gives each pile as many as it holds.
+ */
+export function stackWorldDeck(
+    pool: WorldDeckPool,
+    shuffleIn: (cardIds: string[]) => void
+): string[] {
+    const denizens = [...pool.denizenIds]
+    const visions = [...pool.visionIds]
+    shuffleIn(denizens)
+    shuffleIn(visions)
 
     if (visions.length !== TOTAL_VISIONS) {
         throw Error(`R-8.5 fixes the Vision count at ${TOTAL_VISIONS}; found ${visions.length}`)
-    }
-    if (denizens.length < TOP_PILE_DENIZENS + SECOND_PILE_DENIZENS) {
-        throw Error(
-            `R-8.8 needs at least ${TOP_PILE_DENIZENS + SECOND_PILE_DENIZENS} denizens; ` +
-                `found ${denizens.length}`
-        )
     }
 
     const topPile = [
@@ -65,8 +69,8 @@ export function composeWorldDeck(random: RandomFunction, pool?: WorldDeckPool): 
         ...denizens.splice(0, SECOND_PILE_DENIZENS),
         ...visions.splice(0, SECOND_PILE_VISIONS)
     ]
-    shuffle(topPile, random)
-    shuffle(secondPile, random)
+    shuffleIn(topPile)
+    shuffleIn(secondPile)
 
     return [...topPile, ...secondPile, ...denizens]
 }

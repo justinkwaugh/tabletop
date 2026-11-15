@@ -50,7 +50,11 @@ export function sortedForSpreadsheet<Item, Key extends string>(
 }
 
 export function orderedAs<Id>(order: readonly Id[]): (a: Id, b: Id) => number {
-    return (a, b) => order.indexOf(a) - order.indexOf(b)
+    const position = (id: Id) => {
+        const index = order.indexOf(id)
+        return index < 0 ? order.length : index
+    }
+    return (a, b) => position(a) - position(b)
 }
 
 export function seatOrderFrom(

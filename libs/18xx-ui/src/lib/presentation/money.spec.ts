@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { cashText, moneyFormat, optionalMoney } from './money.js'
+import { cashText, currencyAffixes, moneyFormat, optionalMoney } from './money.js'
 
 it('writes an amount with the title’s symbol before or after it, grouping thousands', () => {
     expect(moneyFormat('¥')(1100)).toBe('¥1,100')
@@ -15,4 +15,9 @@ it('writes cash that is unlimited or absent, and leaves a missing amount blank',
     expect(cashText(yen, undefined)).toBe('—')
     expect(optionalMoney(yen, undefined)).toBe('')
     expect(optionalMoney(yen, 65)).toBe('¥65')
+})
+
+it('splits the title’s symbol around a typed amount', () => {
+    expect(currencyAffixes(moneyFormat('$'))).toEqual({ before: '$', after: '' })
+    expect(currencyAffixes(moneyFormat(' kr', 'after'))).toEqual({ before: '', after: ' kr' })
 })

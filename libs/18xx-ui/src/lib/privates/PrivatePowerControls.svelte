@@ -71,7 +71,8 @@
             <span class="power">
                 <span class="name"
                     >{owner(playerId)}{session.privates
-                        .requestablePrivateNames(playerId)
+                        .requestablePrivateIds(playerId)
+                        .map((id) => session.companyName(id))
                         .join(', ')}</span
                 >
                 <button

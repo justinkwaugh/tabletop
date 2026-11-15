@@ -10,7 +10,7 @@ import {
     straightOnlyTrackTileSet
 } from '@tabletop/18xx/testing'
 import type { MapViewDefinition } from '../maps/stationPresentation.js'
-import { MapModule } from './mapModule.svelte.js'
+import { MapModule, type HomeOffer } from './mapModule.svelte.js'
 import { RoutesModule } from './routesModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { TrackModule } from './trackModule.svelte.js'
@@ -23,23 +23,30 @@ const view: MapViewDefinition = {
     stations: { [TestCompanyId]: { color: '#123456', label: TestCompanyId } }
 }
 const rules = {
+    privateRules: {},
     trackRules: minimalTrackRules(tileSet),
     privatePowerRules: { trackTerms: () => undefined, earlyTrainCompany: () => undefined },
     stationRules: { ...minimalStationRules, map: minimalTrackMap, tileSet },
     routeRules: { ...minimalRouteRules, map: minimalTrackMap, tileSet }
 }
 
-const noAuctionHomes = { homeLocationIds: [], homePositions: [], chooseHome: () => {} }
+function homeOffer(offer: Partial<HomeOffer>): HomeOffer {
+    return { homePositions: [], chooseHome: () => {}, chosenHome: undefined, ...offer }
+}
+const noAuctionHomes = homeOffer({})
 
 function table(
     machineState: 'LayingTrack' | 'StockRound',
     valid: string[],
     availability = {},
-    companyAuction: ConstructorParameters<typeof MapModule>[5] = noAuctionHomes
+    homeOffers: readonly HomeOffer[] = [noAuctionHomes],
+    stateOverrides = {},
+    mapView = view
 ) {
     const base = minimalPlayState()
     const state = {
         ...base,
+        ...stateOverrides,
         machineState,
         companies: base.companies.map((company) => ({ ...company, floated: true })),
         cash: [
@@ -61,7 +68,7 @@ function table(
     const { session } = testSession(state, rules, valid, availability)
     const track = new TrackModule(
         session,
-        () => view,
+        () => mapView,
         { selection: undefined, trackPowerSelection: undefined, titlePower: undefined },
         { selectPrivateTile: () => {}, confirm: async () => {} },
         () => {
@@ -75,20 +82,14 @@ function table(
         },
         () => false
     )
-    const routes = new RoutesModule(
-        session,
-        (selection) => {
-            map.inspect(selection)
-        },
-        () => map.networkRoutes
-    )
+    const routes = new RoutesModule(session, () => map.networkRoutes)
     const map: MapModule = new MapModule(
         session,
-        () => view,
+        () => mapView,
         track,
         stations,
         routes,
-        companyAuction
+        homeOffers
     )
     return { map, track }
 }
@@ -100,6 +101,27 @@ describe('MapModule', () => {
         expect(map.tokens).toMatchObject([
             { locationId: TestTrackHomeLocationId, label: TestCompanyId }
         ])
+    })
+
+    it('lists the supply’s tiles in the manifest, each with its count, and none of the board’s', () => {
+        const { map } = table('StockRound', [])
+        expect(map.manifestTiles).toEqual(tileSet.definitions)
+        const counted = map.tileCounts.map((count) => count.definitionId)
+        expect(map.manifestTiles.filter((tile) => !counted.includes(tile.id))).toEqual([])
+        const [boardTile] = tileSet.definitions
+        const onBoard = table(
+            'StockRound',
+            [],
+            {},
+            [noAuctionHomes],
+            {},
+            {
+                ...view,
+                boardTiles: { [boardTile.id]: {} }
+            }
+        )
+        expect(onBoard.map.manifestTiles.map((tile) => tile.id)).not.toContain(boardTile.id)
+        expect(onBoard.map.tileCounts.map((count) => count.definitionId)).toEqual(counted)
     })
 
     it('inspects a clicked location when no action claims the click', () => {
@@ -217,12 +239,8 @@ describe('MapModule', () => {
             { selectPrivateTile: () => {}, confirm: async () => {} },
             () => {}
         )
-        const routes = new RoutesModule(
-            session,
-            () => {},
-            () => []
-        )
-        const map = new MapModule(session, () => view, track, stations, routes, noAuctionHomes)
+        const routes = new RoutesModule(session, () => [])
+        const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
         expect(stations.homeLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'slot', ...home, slot: 0 })
         await Promise.resolve()
@@ -234,18 +252,55 @@ describe('MapModule', () => {
     it('chooses an offered company auction home with a click on its city', () => {
         const chosen: unknown[] = []
         const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
-        const { map } = table(
-            'StockRound',
-            [],
-            {},
-            {
-                homeLocationIds: [TestTrackHomeLocationId],
-                homePositions: [home],
-                chooseHome: (position) => chosen.push(position)
-            }
-        )
+        const { map } = table('StockRound', [], {}, [
+            homeOffer({ homePositions: [home], chooseHome: (position) => chosen.push(position) })
+        ])
+        expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
         expect(chosen).toEqual([home])
+    })
+
+    it('holds the auctioned company’s home city on the map while players bid', () => {
+        const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
+        const { map } = table('StockRound', [], {}, [noAuctionHomes], {
+            companyAuction: {
+                companyId: 'B',
+                openerId: 'alex',
+                home,
+                auction: {
+                    id: 'auction',
+                    type: 'simple',
+                    auctioneerId: 'alex',
+                    highBid: 100,
+                    participants: [{ playerId: 'alex', passed: false, bid: 100 }]
+                }
+            }
+        })
+        expect(map.displayedReservations).toContainEqual({
+            companyId: 'B',
+            locationId: TestTrackHomeLocationId,
+            nodeId: 'city'
+        })
+    })
+
+    it('holds a home city chosen for a company before its auction opens', () => {
+        const chosenHome = { companyId: 'B', locationId: TestTrackHomeLocationId, nodeId: 'city' }
+        const { map } = table('StockRound', [], {}, [homeOffer({ chosenHome })])
+        expect(map.displayedReservations).toContainEqual(chosenHome)
+    })
+
+    it('offers a starting company’s home cities when no auction offers any', () => {
+        const auctioned: unknown[] = []
+        const started: unknown[] = []
+        const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
+        const { map } = table('StockRound', [], {}, [
+            homeOffer({ chooseHome: (position) => auctioned.push(position) }),
+            homeOffer({ homePositions: [home], chooseHome: (position) => started.push(position) })
+        ])
+        expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
+        map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
+        expect(auctioned).toEqual([])
+        expect(started).toEqual([home])
     })
 
     it('places a pending private station on a click anywhere on its one-city tile', async () => {
@@ -287,12 +342,8 @@ describe('MapModule', () => {
             { selectPrivateTile: () => {}, confirm: async () => {} },
             () => {}
         )
-        const routes = new RoutesModule(
-            session,
-            () => {},
-            () => []
-        )
-        const map = new MapModule(session, () => view, track, stations, routes, noAuctionHomes)
+        const routes = new RoutesModule(session, () => [])
+        const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
         expect(stations.privateStationLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
         await Promise.resolve()

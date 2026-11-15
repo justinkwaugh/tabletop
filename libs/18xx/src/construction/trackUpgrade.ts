@@ -1,5 +1,6 @@
 import { sameTileEndpoint } from '../tiles/topology.js'
 import type { TileEndpoint, TileFace, TileNode, TilePath } from '../tiles/tile.js'
+import { keepsTrackGauge } from '../tiles/trackGauge.js'
 
 export type TileNodeMapping = Readonly<Record<string, string>>
 
@@ -12,6 +13,39 @@ export function sameStopCounts(before: TileFace, after: TileFace): boolean {
 }
 
 /**
+ * A face without some of its stops, as a replacement that removes them must keep it: track that
+ * ran through a removed stop still runs between its other ends, and track that only joined a
+ * removed stop to another stop is gone with it.
+ */
+export function withoutStops(face: TileFace, removedNodeIds: readonly string[]): TileFace {
+    if (!removedNodeIds.length) return face
+    const removed = (end: TileEndpoint) =>
+        end.kind === 'node' && removedNodeIds.includes(end.nodeId)
+    const through = removedNodeIds.flatMap((nodeId) => {
+        const ends = face.paths.flatMap((path) => {
+            const [a, b] = path.endpoints
+            if (a.kind === 'node' && a.nodeId === nodeId) return removed(b) ? [] : [b]
+            if (b.kind === 'node' && b.nodeId === nodeId) return removed(a) ? [] : [a]
+            return []
+        })
+        return ends.flatMap((from, index) =>
+            ends
+                .slice(index + 1)
+                .flatMap((to): TilePath[] =>
+                    from.kind === 'edge' && to.kind === 'edge'
+                        ? [{ id: `${nodeId}:${index}:${ends.indexOf(to)}`, endpoints: [from, to] }]
+                        : []
+                )
+        )
+    })
+    return {
+        ...face,
+        nodes: face.nodes.filter((node) => !removedNodeIds.includes(node.id)),
+        paths: [...face.paths.filter((path) => !path.endpoints.some(removed)), ...through]
+    }
+}
+
+/**
  * The node mappings preserving a tile's track and stops; ``townsBecomeCities`` lets a town map
  * onto a city, as when a title promotes a town within its colour.
  */
@@ -21,7 +55,9 @@ export function tileUpgradeMappings(
     options: { townsBecomeCities?: boolean } = {}
 ): TileNodeMapping[] {
     const mappings: TileNodeMapping[] = []
-    const cityTargets = trackLessCityTargets(before, after)
+    const count = (face: TileFace, kind: TileNode['kind']) =>
+        face.nodes.filter((node) => node.kind === kind).length
+    const citiesMerge = count(before, 'city') > count(after, 'city')
     function visit(index: number, mapping: Record<string, string>) {
         const node = before.nodes[index]
         if (!node) {
@@ -30,18 +66,18 @@ export function tileUpgradeMappings(
             return
         }
         for (const target of after.nodes) {
+            // A terminal inside a tile, such as Boston's or Portland's, may become a city.
+            const joinsCity = node.kind === 'offboard' && target.kind === 'city'
             if (
                 node.kind !== target.kind &&
+                !joinsCity &&
                 !(options.townsBecomeCities && node.kind === 'town' && target.kind === 'city')
             )
                 continue
-            if (cityTargets && node.kind === 'city' && cityTargets.get(node.id) !== target.id)
-                continue
             if (
                 Object.values(mapping).includes(target.id) &&
-                (node.kind !== 'city' ||
-                    before.nodes.filter((entry) => entry.kind === 'city').length <=
-                        after.nodes.filter((entry) => entry.kind === 'city').length)
+                !joinsCity &&
+                (node.kind !== 'city' || !citiesMerge)
             )
                 continue
             mapping[node.id] = target.id
@@ -54,25 +90,9 @@ export function tileUpgradeMappings(
 }
 
 /**
- * Cities with no track have nothing to preserve, so an upgrade keeps their order: the first
- * city becomes the first city of the new tile, and so on.
+ * Whether the replacing face still runs the path between its mapped ends, through junctions, on
+ * track that keeps the path's gauge.
  */
-function trackLessCityTargets(before: TileFace, after: TileFace): Map<string, string> | undefined {
-    const cities = before.nodes.filter((node) => node.kind === 'city')
-    const targets = after.nodes.filter((node) => node.kind === 'city')
-    if (
-        cities.length < 2 ||
-        cities.length !== targets.length ||
-        before.paths.some((path) =>
-            path.endpoints.some(
-                (end) => end.kind === 'node' && cities.some((city) => city.id === end.nodeId)
-            )
-        )
-    )
-        return undefined
-    return new Map(cities.map((city, index) => [city.id, targets[index].id]))
-}
-
 export function preservesPath(path: TilePath, after: TileFace, mapping: TileNodeMapping): boolean {
     const endpoints = path.endpoints.map((end): TileEndpoint =>
         end.kind === 'node' ? { kind: 'node', nodeId: mapping[end.nodeId] } : end
@@ -91,11 +111,26 @@ export function preservesPath(path: TilePath, after: TileFace, mapping: TileNode
         )
             continue
         for (const next of after.paths) {
+            if (!keepsTrackGauge(path.gauge, next.gauge)) continue
             if (sameTileEndpoint(next.endpoints[0], current)) queue.push(next.endpoints[1])
             if (sameTileEndpoint(next.endpoints[1], current)) queue.push(next.endpoints[0])
         }
     }
     return false
+}
+
+/**
+ * The track a replacing face adds: its paths that do not run where track of the replaced face
+ * kept by their gauge did, as standard or narrow track becoming dual. ``mapping`` maps the
+ * replaced face's nodes onto the replacing face's, as a lay's node mapping does.
+ */
+export function addedTrack(
+    before: TileFace,
+    after: TileFace,
+    mapping: TileNodeMapping
+): readonly TilePath[] {
+    const reverse = Object.fromEntries(Object.entries(mapping).map(([id, target]) => [target, id]))
+    return after.paths.filter((path) => !preservesPath(path, before, reverse))
 }
 
 export function fixedNodeRevenue(node: TileNode): number {

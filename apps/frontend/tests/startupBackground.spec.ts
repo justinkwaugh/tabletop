@@ -1,5 +1,20 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { mockLibrary } from './fixtures/library'
+
+// The minified stylesheet writes the page colour as lab() where the shell writes oklch(), so the
+// two are compared as the colour each paints.
+function paintedBackground(page: Page, element: 'html' | 'body') {
+    return page.evaluate((element) => {
+        const sample = document.createElement('canvas').getContext('2d', {
+            willReadFrequently: true
+        })
+        if (!sample) throw new Error('Canvas 2D context unavailable')
+        const target = element === 'html' ? document.documentElement : document.body
+        sample.fillStyle = getComputedStyle(target).backgroundColor
+        sample.fillRect(0, 0, 1, 1)
+        return [...sample.getImageData(0, 0, 1, 1).data].join()
+    }, element)
+}
 
 test.beforeEach(async ({ page }) => {
     await mockLibrary(page)
@@ -16,14 +31,10 @@ test('the app shell paints the dark page background before any stylesheet loads'
     })
     await page.goto('/', { waitUntil: 'commit' })
     await page.waitForFunction(() => document.body !== null)
-    const shellBackground = await page.evaluate(
-        () => getComputedStyle(document.documentElement).backgroundColor
-    )
+    const shellBackground = await paintedBackground(page, 'html')
     releaseStylesheets()
     await expect(page.getByRole('heading', { name: 'Care to play a game?' })).toBeVisible()
-    const loadedBackground = await page.evaluate(
-        () => getComputedStyle(document.body).backgroundColor
-    )
+    const loadedBackground = await paintedBackground(page, 'body')
     expect(shellBackground).toBe(loadedBackground)
 })
 

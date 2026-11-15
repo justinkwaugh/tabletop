@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { Owner } from '../finance/finance.js'
+import { Owner, sameOwner } from '../finance/finance.js'
 import { StockTurn } from './stockTurn.js'
 import { StandingStockInstruction } from './stockInstruction.js'
 import { assert } from '@tabletop/common'
@@ -14,6 +14,19 @@ export const StockRound = Type.Object(
             Type.Object({ owner: Owner, companyId: Type.String() }, { additionalProperties: false })
         ),
         companyPurchases: Type.Array(Type.String()),
+        /** Shares each player bought this round, by company, where a title bars selling them in it. */
+        purchases: Type.Optional(
+            Type.Array(
+                Type.Object(
+                    {
+                        playerId: Type.String(),
+                        companyId: Type.String(),
+                        shares: Type.Integer({ minimum: 1 })
+                    },
+                    { additionalProperties: false }
+                )
+            )
+        ),
         instructions: Type.Optional(Type.Array(StandingStockInstruction))
     },
     { additionalProperties: false }
@@ -29,6 +42,15 @@ export function createStockRound(number: number): StockRound {
         sales: [],
         companyPurchases: []
     }
+}
+
+/** Whether the owner has sold the company's shares this stock round, which bars buying them back. */
+export function soldThisStockRound(round: StockRound, owner: Owner, companyId: string): boolean {
+    return round.sales.some((sale) => sameOwner(sale.owner, owner) && sale.companyId === companyId)
+}
+
+export function recordStockRoundSale(round: StockRound, owner: Owner, companyId: string): void {
+    if (!soldThisStockRound(round, owner, companyId)) round.sales.push({ owner, companyId })
 }
 
 export function validateStockRound(state: {

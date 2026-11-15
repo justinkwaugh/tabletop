@@ -23,7 +23,7 @@ This service handles everything related to creating and running games. It commun
 **Notifications**
 
 This service manages the sending and listening for realtime notifications on various topics for the application itself as well as pushed notifications to users for various purposes (game invites, turn notifications). It can support various transports
-for both types of notifications. By default it utilizes the PubSub service (described below) for the realtime application notifications, exposed via an SSE endpoint, but also supports [Ably](https://ably.com) for realtime web notifications. Currently Web Push and Discord transports are provided for user notifications. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
+for both types of notifications. By default it utilizes the PubSub service (described below) for the realtime application notifications, exposed via an SSE endpoint, but also supports [Ably](https://ably.com) for realtime web notifications. A self-hosted realtime relay in Go (`apps/realtime`, see [docs/realtime-relay.md](docs/realtime-relay.md)) is replacing both for realtime web notifications. Currently Web Push and Discord transports are provided for user notifications. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
 
 **Persistence**
 

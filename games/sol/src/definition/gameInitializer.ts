@@ -22,6 +22,7 @@ import { HydratedSolGameBoard } from '../components/gameBoard.js'
 import { Suit } from '../components/cards.js'
 import { HydratedDeck } from '../components/deck.js'
 import { Effect, EffectColor, Effects, EffectType } from '../components/effects.js'
+import { STARTING_INSTABILITY } from '../utils/solConstants.js'
 
 const MOTHERSHIP_SPACING = [0, 6, 4, 3, 3]
 
@@ -97,7 +98,7 @@ export class SolGameInitializer
             board,
             deck,
             effects,
-            instability: 13,
+            instability: STARTING_INSTABILITY,
             energyCubes: 89,
             cardsToDraw: 0,
             solarFlares: 0,

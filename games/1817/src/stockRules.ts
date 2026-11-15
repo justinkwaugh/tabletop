@@ -1,3 +1,4 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
@@ -12,8 +13,10 @@ import {
     playersAfterPresident,
     privateOwner,
     settleCashPayments,
+    sharesOwned,
     solventPlayerCount,
     stockCertificateCount,
+    treasuryPoolId,
     type CashPayment,
     type CompanyAuctionRules,
     type CompanyAuctionState,
@@ -22,9 +25,10 @@ import {
     type StationState,
     type StockRules,
     type StockState,
-    standardCertificateWeight
+    standardCertificateWeight,
+    companyShareCount
 } from '@tabletop/18xx'
-import { EighteenSeventeenStockRoundRules, MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { EighteenSeventeenStockRoundRules, MarketPoolId } from './roundRules.js'
 import { EighteenSeventeenMap } from './map.js'
 import { EighteenSeventeenStationRules } from './stationRules.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
@@ -66,11 +70,12 @@ function privateValue(privateIds: readonly string[]): number {
 /** The stations a company that has not yet operated still needs to buy for its size. */
 export function stationsOwed(state: StockState & StationState, companyId: string): number {
     const company = getCompany(state, companyId)
-    if (!company.started || company.operated || !company.shareCount) return 0
+    const shareCount = companyShareCount(state, EighteenSeventeenCharters, companyId)
+    if (!company.started || company.operated || !shareCount) return 0
     const held = state.stations.filter(
         (station) => station.companyId === companyId && station.status !== 'removed'
     ).length
-    return Math.max(0, StationsBySize[company.shareCount] - held)
+    return Math.max(0, StationsBySize[shareCount] - held)
 }
 
 /** Buys every station the company owes when its treasury can pay for all of them. */
@@ -250,7 +255,11 @@ export function marketSale(
     shares: number
 ): ShareSaleTerms | string {
     const company = getCompany(state, companyId)
-    if (!company.shareCount || !company.president || company.closed)
+    if (
+        !companyShareCount(state, EighteenSeventeenCharters, companyId) ||
+        !company.president ||
+        company.closed
+    )
         return 'This company has no saleable shares.'
     if (inClosingZone(state.stockMarket, companyId))
         return 'Shares in the acquisition or liquidation zone cannot be sold.'
@@ -264,7 +273,16 @@ export function marketSale(
 
 export const EighteenSeventeenStockRules: StockRules = {
     market: EighteenSeventeenMarket,
+    charters: EighteenSeventeenCharters,
     round: EighteenSeventeenStockRoundRules,
+    instructions: {
+        // A short issues an extra share, so a rival can pass a president holding half.
+        securePresidency(state, companyId, owner) {
+            const shareCount = companyShareCount(state, EighteenSeventeenCharters, companyId)
+            assertExists(shareCount, 'A company with a president has shares')
+            return sharesOwned(state, companyId, owner) * 2 > shareCount
+        }
+    },
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     purchaseTerms(state, certificate, buyer) {
@@ -301,7 +319,7 @@ export const EighteenSeventeenStockRules: StockRules = {
     certificateWeight: (_state, certificate) =>
         certificate.kind === 'private' ? 0 : standardCertificateWeight(certificate),
     ownershipLimit(state, companyId) {
-        return getCompany(state, companyId).shareCount === 2 ? 100 : 60
+        return companyShareCount(state, EighteenSeventeenCharters, companyId) === 2 ? 100 : 60
     },
     presidencyCandidates: (state, companyId) =>
         playersAfterPresident(state, companyId, state.turnManager.turnOrder),

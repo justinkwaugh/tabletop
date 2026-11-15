@@ -6,9 +6,10 @@ import { HydratedUrbinoGameState } from '../model/gameState.js'
 
 type ChoosingFirstPlayerAction = HydratedChooseFirstPlayer
 
-export class ChoosingFirstPlayerStateHandler
-    implements MachineStateHandler<ChoosingFirstPlayerAction, HydratedUrbinoGameState>
-{
+export class ChoosingFirstPlayerStateHandler implements MachineStateHandler<
+    ChoosingFirstPlayerAction,
+    HydratedUrbinoGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedUrbinoGameState>

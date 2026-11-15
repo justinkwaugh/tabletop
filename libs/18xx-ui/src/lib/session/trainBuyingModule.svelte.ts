@@ -13,6 +13,7 @@ import {
     type EighteenXXState,
     type EighteenXXTitleRules,
     type PurchaseOfferRequest,
+    type TrainPurchaseDetails,
     type TrainPurchaseRequest,
     isCompanyPurchaseOffer
 } from '@tabletop/18xx'
@@ -49,7 +50,11 @@ export class TrainBuyingModule {
     selection = $derived.by(() =>
         this.session.selectionsVisible && this.buying ? this.sourceStages.state : {}
     )
-    source = $derived.by(() => this.selection.source?.value ?? 'depot')
+    source = $derived.by(
+        (): TrainSource =>
+            this.selection.source?.value ??
+            (this.sources.length && !this.sources.includes('depot') ? this.sources[0] : 'depot')
+    )
     companyChoices = $derived.by(() =>
         this.purchaseOptions().flatMap((option) => {
             const { asset, seller } = option.request
@@ -81,6 +86,38 @@ export class TrainBuyingModule {
     offers = $derived.by(() => this.model.offers())
     marketOffers = $derived.by(() => this.model.marketOffers())
     exchanges = $derived.by(() => this.model.exchanges())
+    currentDepotOffers = $derived.by(() => {
+        const available = this.session.rules.trainRules.availableDefinitions(this.session.state)
+        return this.offers.filter(
+            (offer) => offer.remaining !== 0 && available.includes(offer.definitionId)
+        )
+    })
+    sources = $derived.by((): TrainSource[] => [
+        ...(this.currentDepotOffers.length ||
+        this.marketOffers.some((offer) => offer.details) ||
+        this.exchanges.length
+            ? (['depot'] as const)
+            : []),
+        ...(['mine', 'others'] as const).filter((source) =>
+            this.companyChoices.some((choice) => choice.source === source)
+        )
+    ])
+    exchangeChoices = $derived.by(() => {
+        const choices = new Map<
+            string,
+            { exchange: TrainPurchaseDetails; tradedDefinitionId: string }
+        >()
+        for (const exchange of this.exchanges) {
+            const traded = this.session.state.trainInventory.trains.find(
+                (train) => train.id === exchange.exchangeTrainId
+            )
+            assertExists(traded, 'A train exchange trades in an owned train')
+            const key = `${exchange.definitionId}:${traded.definitionId}:${exchange.price}`
+            if (!choices.has(key))
+                choices.set(key, { exchange, tradedDefinitionId: traded.definitionId })
+        }
+        return [...choices.values()]
+    })
     preview = $derived.by(() =>
         this.depotSelection ? this.model.evaluate(this.depotSelection).details : undefined
     )

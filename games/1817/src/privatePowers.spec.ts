@@ -5,6 +5,7 @@ import {
     getCompany,
     locationMarkers,
     privateTrackConstruction,
+    TrackConstruction,
     type CompanyDecisionState,
     type EighteenXXState
 } from '@tabletop/18xx'
@@ -105,6 +106,24 @@ describe('coal mines', () => {
         const play = mineReady('MINC')
         play.act('LayPrivateTile', mineLay('MINC'))
         expect(getCompany(play.state, 'MINC').closed).toBe(true)
+    })
+
+    it('do not hold the track step open once both lays are used', () => {
+        const play = mineReady('MINC')
+        const construction = new TrackConstruction(play.state, EighteenSeventeenTrackRules)
+        const [second] = EighteenSeventeenTrackRules.map.definition.locations.flatMap((location) =>
+            construction.choices(location.id)
+        )
+        assertExists(second, 'Boston & Albany has a second lay')
+        play.act('LayTile', {
+            companyId: 'BA',
+            locationId: second.locationId,
+            definitionId: second.definitionId,
+            rotation: second.rotation,
+            nodeMapping: second.nodeMapping,
+            expectedCost: second.cost
+        })
+        expect(play.state.machineState).not.toBe('LayingTrack')
     })
 
     it('need a company to own them', () => {

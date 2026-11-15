@@ -24,7 +24,7 @@ export const fetchBucketManifest = async (config: DeployConfig): Promise<SiteMan
             typeof error === 'object' && error !== null && 'stderr' in error
                 ? String(error.stderr).trim()
                 : ''
-        throw new Error(`Unable to read ${url}${stderr ? `: ${stderr}` : ''}`)
+        throw new Error(`Unable to read ${url}${stderr ? `: ${stderr}` : ''}`, { cause: error })
     }
 }
 

@@ -235,7 +235,11 @@ describe('HydratedChooseOperatingCompany.canChooseSpecificCompany', () => {
 
         state.getPlayerState(productionOwnerId).cash = 4
         expect(
-            HydratedChooseOperatingCompany.canChooseSpecificCompany(state, productionOwnerId, 'prod-1')
+            HydratedChooseOperatingCompany.canChooseSpecificCompany(
+                state,
+                productionOwnerId,
+                'prod-1'
+            )
         ).toBe(true)
     })
 

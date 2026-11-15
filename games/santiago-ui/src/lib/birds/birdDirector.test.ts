@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getPrng } from '@tabletop/common'
 import { CropType, SquareType, type BoardSquare } from '@tabletop/santiago'
-import { BirdDirector, type BirdEnvironment, type BirdHost, type TickCallback } from './birdDirector.js'
+import {
+    BirdDirector,
+    type BirdEnvironment,
+    type BirdHost,
+    type TickCallback
+} from './birdDirector.js'
 import { adjacentCandidates, nearbyCandidates } from './candidateFields.js'
 
 class RecordingTicker {
@@ -21,7 +26,10 @@ class RecordingTicker {
 
 function emptyBoard(): BoardSquare[][] {
     return Array.from({ length: 8 }, () =>
-        Array.from({ length: 6 }, (): BoardSquare => ({ type: SquareType.Empty, hasPalmTree: false }))
+        Array.from({ length: 6 }, (): BoardSquare => ({
+            type: SquareType.Empty,
+            hasPalmTree: false
+        }))
     )
 }
 
@@ -173,9 +181,12 @@ describe('bird director', () => {
         expect(adjacentCandidates(squares, { col: 3, row: 2 })).toEqual([{ col: 4, row: 2 }])
         expect(adjacentCandidates(squares, { col: 0, row: 0 })).toEqual([])
         plantField(squares, 2, 1)
-        expect(nearbyCandidates(squares, [{ col: 3, row: 2 }, { col: 4, row: 2 }])).toEqual([
-            { col: 2, row: 1 }
-        ])
+        expect(
+            nearbyCandidates(squares, [
+                { col: 3, row: 2 },
+                { col: 4, row: 2 }
+            ])
+        ).toEqual([{ col: 2, row: 1 }])
     })
 
     it('tears down timers, ticker and presence on detach', () => {
@@ -254,7 +265,9 @@ describe('bird director during a transition', () => {
         expect(f.director.hasFlock).toBe(true)
         const drying = emptyBoard()
         dryField(drying, 3, 2)
-        Object.defineProperty(f.host, 'incomingGameState', { get: () => ({ board: { squares: drying } }) })
+        Object.defineProperty(f.host, 'incomingGameState', {
+            get: () => ({ board: { squares: drying } })
+        })
         f.env.ticker.run(8)
         expect(f.director.hasFlock).toBe(false)
     })

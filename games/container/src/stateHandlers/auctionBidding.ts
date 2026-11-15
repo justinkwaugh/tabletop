@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineStateHandler,
-    MachineContext
-} from '@tabletop/common'
+import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedContainerGameState } from '../model/gameState.js'
@@ -11,13 +7,8 @@ import { HydratedTakeLoan, isTakeLoan } from '../actions/takeLoan.js'
 
 export type AuctionBiddingAction = HydratedSubmitBid | HydratedTakeLoan
 
-export class AuctionBiddingStateHandler
-    implements MachineStateHandler<AuctionBiddingAction>
-{
-    isValidAction(
-        action: HydratedAction,
-        context: MachineContext
-    ): action is AuctionBiddingAction {
+export class AuctionBiddingStateHandler implements MachineStateHandler<AuctionBiddingAction> {
+    isValidAction(action: HydratedAction, context: MachineContext): action is AuctionBiddingAction {
         const state = context.gameState as HydratedContainerGameState
         const auction = state.auction
         if (!action.playerId || !auction) {
@@ -29,9 +20,7 @@ export class AuctionBiddingStateHandler
             }
             const currentTotal = auction.totalBids[action.playerId] ?? 0
             const newTotal =
-                auction.phase === 'tiebreak'
-                    ? currentTotal + action.bidAmount
-                    : action.bidAmount
+                auction.phase === 'tiebreak' ? currentTotal + action.bidAmount : action.bidAmount
             const player = state.getPlayerState(action.playerId)
             return player.money >= newTotal && action.bidAmount >= 0
         }
@@ -50,9 +39,7 @@ export class AuctionBiddingStateHandler
             return []
         }
 
-        const participant = auction.round.participants.find(
-            (entry) => entry.playerId === playerId
-        )
+        const participant = auction.round.participants.find((entry) => entry.playerId === playerId)
         if (!participant || participant.bid !== undefined) {
             return []
         }

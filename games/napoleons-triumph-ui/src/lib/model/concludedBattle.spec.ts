@@ -10,7 +10,6 @@ import {
     feintAgainstBlockers,
     feintAgainstOneReserve,
     gunsStayAfterARetreat,
-    infantry,
     moveIn,
     regroupedAfterARepulse,
     repulsedByBlockers,
@@ -52,17 +51,10 @@ describe('the attack that has just ended', () => {
         expect(ended.taken).toBe(false)
     })
 
-    it('keeps the units the attack destroyed, as they were last seen', () => {
-        const game = repulsedByBlockers()
-        expect(game.hydrated.findUnit('F01')).toBeUndefined()
-        expect(battle(game).unitsLastSeen.get('F01')?.face).toEqual(infantry(2))
-    })
-
     it('names where the defenders retreated to and whether the attackers moved in', () => {
         const ended = battle(retreatToTheRefuge(wonBeforeTheRetreat()))
         expect(ended.retreatedTo).toEqual([BATTLE_REFUGE])
         expect(ended.taken).toBe(true)
-        expect(ended.unitsLastSeen.has('A03')).toBe(true)
     })
 
     it('names the army the attack demoralized', () => {

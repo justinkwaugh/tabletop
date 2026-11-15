@@ -1,12 +1,13 @@
 import {
     createCompanyStations,
     createOrdinaryShareCertificates,
+    treasuryPool,
     type InitialPosition
 } from '@tabletop/18xx'
 import { EighteenSeventeenCorporations } from './corporations.js'
 import { EighteenSeventeenMap } from './map.js'
 import { EighteenSeventeenPrivateCatalog } from './privates.js'
-import { MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { MarketPoolId } from './roundRules.js'
 import { EighteenSeventeenTileSet } from './tiles.js'
 import { EighteenSeventeenTrainDepot } from './trains.js'
 
@@ -24,7 +25,6 @@ export function createEighteenSeventeenPosition(
             ...EighteenSeventeenCorporations.map((company) => ({
                 id: company.id,
                 kind: 'major',
-                shareCount: 2,
                 started: false,
                 floated: false,
                 funded: false,
@@ -32,8 +32,7 @@ export function createEighteenSeventeenPosition(
             })),
             ...privates.map((company) => ({
                 id: company.id,
-                kind: 'private',
-                privateRevenue: 0
+                kind: 'private'
             }))
         ],
         cash: [
@@ -49,10 +48,7 @@ export function createEighteenSeventeenPosition(
         ],
         certificatePools: [
             { id: MarketPoolId, owner: bank },
-            ...EighteenSeventeenCorporations.map((company) => ({
-                id: treasuryPoolId(company.id),
-                owner: { kind: 'company' as const, companyId: company.id }
-            }))
+            ...EighteenSeventeenCorporations.map((company) => treasuryPool(company.id))
         ],
         certificates: [
             ...EighteenSeventeenCorporations.flatMap((company) =>

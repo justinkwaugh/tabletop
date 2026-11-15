@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { HydratedSearch, Search, SearchSource } from './search.js'
-import { HydratedSearchResolve, SearchPlay, SearchResolve, type SearchSecondPlay } from './searchResolve.js'
+import {
+    HydratedSearchResolve,
+    SearchPlay,
+    SearchResolve,
+    type SearchSecondPlay
+} from './searchResolve.js'
 import { Suit } from '../model/oathEnums.js'
 import { testPlayer, testState, openTurn, withChancellor } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
@@ -38,7 +43,12 @@ function table(oathRevision: number) {
             oathRevision,
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
             warbandsBySite: { c1: { me: 1 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            }
         }
     )
     openTurn(s, 'me')
@@ -46,7 +56,12 @@ function table(oathRevision: number) {
     return s
 }
 
-const search = buildAction(Search, { playerId: 'me', drawFrom: SearchSource.WorldDeck, revealsInfo: true, modifiers: [modifierUse(LAND_WARDEN)] })
+const search = buildAction(Search, {
+    playerId: 'me',
+    drawFrom: SearchSource.WorldDeck,
+    revealsInfo: true,
+    modifiers: [modifierUse(LAND_WARDEN)]
+})
 
 /** …and has searched the world deck with Land Warden declared, drawing those three. */
 function searched(oathRevision: number) {
@@ -56,7 +71,16 @@ function searched(oathRevision: number) {
 }
 
 function resolve(first: SearchPlay, second: SearchSecondPlay, faceUp?: boolean) {
-    return new HydratedSearchResolve(buildAction(SearchResolve, { playerId: 'me', keptCardId: WOLVES, discardOrder: [FILLER], play: first, faceUp, secondPlay: second }))
+    return new HydratedSearchResolve(
+        buildAction(SearchResolve, {
+            playerId: 'me',
+            keptCardId: WOLVES,
+            discardOrder: [FILLER],
+            play: first,
+            faceUp,
+            secondPlay: second
+        })
+    )
 }
 
 const innToSite: SearchSecondPlay = { cardId: INN, play: SearchPlay.Site }
@@ -68,7 +92,14 @@ describe('Land Warden — R-7.4: the second card’s play takes the Search’s c
         const before = s.getPlayerState('me')
         const favor = before.favor
         const secrets = before.secrets
-        expect(HydratedSearchResolve.reasonCannotResolve(s, 'me', { keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: innToSite })).toBeUndefined()
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(s, 'me', {
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: innToSite
+            })
+        ).toBeUndefined()
         const a = resolve(SearchPlay.Site, innToSite)
         a.apply(s)
 
@@ -109,12 +140,21 @@ describe('Land Warden — R-7.4: the second card’s play takes the Search’s c
     })
 
     it('R-X.4 — each revision’s two site plays under Book of Records replay unchanged', () => {
-        for (const [revision, favor, secrets] of [[OathRevision.CostsAndFacedownModifiers, 3, 3], [atRevision, 2, 4]]) {
+        for (const [revision, favor, secrets] of [
+            [OathRevision.CostsAndFacedownModifiers, 3, 3],
+            [atRevision, 2, 4]
+        ]) {
             const before = table(revision).dehydrate()
             const game = testGame(['me', 'foe', 'chancellor'])
             const drawn = engine.runNext(structuredClone(search), structuredClone(before), game)
             const recorded = engine.runNext(
-                buildAction(SearchResolve, { playerId: 'me', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: innToSite }),
+                buildAction(SearchResolve, {
+                    playerId: 'me',
+                    keptCardId: WOLVES,
+                    discardOrder: [FILLER],
+                    play: SearchPlay.Site,
+                    secondPlay: innToSite
+                }),
                 drawn.updatedState,
                 game
             )
@@ -123,7 +163,13 @@ describe('Land Warden — R-7.4: the second card’s play takes the Search’s c
             expect(me?.secrets).toBe(secrets)
 
             let replayed = structuredClone(before)
-            for (const action of [...drawn.processedActions, ...recorded.processedActions]) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of [...drawn.processedActions, ...recorded.processedActions])
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded.updatedState)
         }
     })
@@ -145,7 +191,10 @@ function crySearched(oathRevision: number, deck: string[]) {
                 secrets: 2,
                 supply: 4,
                 warbandsInPersonalBank: { me: 8 },
-                advisers: [LAND_WARDEN, WILD_CRY, WELCOMING].map((cardId) => ({ cardId, faceUp: true }))
+                advisers: [LAND_WARDEN, WILD_CRY, WELCOMING].map((cardId) => ({
+                    cardId,
+                    faceUp: true
+                }))
             }),
             testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c2', favor: 2, secrets: 2 })
         ]),
@@ -153,7 +202,12 @@ function crySearched(oathRevision: number, deck: string[]) {
             oathRevision,
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
             warbandsBySite: { c1: { me: 1 } },
-            siteCards: { c1: 'site.plains', c2: 'site.river', p1: 'site.marshes', h1: 'site.mountain' }
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            }
         }
     )
     openTurn(s, 'me')
@@ -171,12 +225,27 @@ function crySearched(oathRevision: number, deck: string[]) {
 
 function holding(s: ReturnType<typeof crySearched>) {
     const me = s.getPlayerState('me')
-    return { supply: me.supply, warbands: me.warbandsOnBoard?.['me'] ?? 0, hearth: s.favorBank[Suit.Hearth] }
+    return {
+        supply: me.supply,
+        warbands: me.warbandsOnBoard?.['me'] ?? 0,
+        hearth: s.favorBank[Suit.Hearth]
+    }
 }
 
-function playBoth(s: ReturnType<typeof crySearched>, kept: string, second: string, discard: string) {
+function playBoth(
+    s: ReturnType<typeof crySearched>,
+    kept: string,
+    second: string,
+    discard: string
+) {
     const a = new HydratedSearchResolve(
-        buildAction(SearchResolve, { playerId: 'me', keptCardId: kept, discardOrder: [discard], play: SearchPlay.Site, secondPlay: { cardId: second, play: SearchPlay.Site } })
+        buildAction(SearchResolve, {
+            playerId: 'me',
+            keptCardId: kept,
+            discardOrder: [discard],
+            play: SearchPlay.Site,
+            secondPlay: { cardId: second, play: SearchPlay.Site }
+        })
     )
     a.apply(s)
     return a
@@ -199,7 +268,9 @@ describe('Land Warden — Wild Cry and Welcoming Party look at both cards, and p
         expect(holding(s).supply - was.supply).toBe(1)
         expect(holding(s).warbands - was.warbands).toBe(2)
         expect(was.hearth - holding(s).hearth).toBe(1)
-        expect(a.metadata?.modifierNotes?.filter((n) => n.startsWith('Welcoming Party'))).toHaveLength(1)
+        expect(
+            a.metadata?.modifierNotes?.filter((n) => n.startsWith('Welcoming Party'))
+        ).toHaveLength(1)
     })
 
     it('R-X.4 — before the revision only the kept card is looked at: a beast second card gains nothing', () => {
@@ -222,10 +293,19 @@ describe('Land Warden — Animal Host as the second card counts the beast cards 
         new HydratedSearch(search).apply(s)
         const warbands = s.getPlayerState('me').warbandsOnBoard['me'] ?? 0
         new HydratedSearchResolve(
-            buildAction(SearchResolve, { playerId: 'me', keptCardId: WOLVES, discardOrder: [FILLER], play: SearchPlay.Site, secondPlay: { cardId: ANIMAL_HOST, play: SearchPlay.Adviser, faceUp: true } })
+            buildAction(SearchResolve, {
+                playerId: 'me',
+                keptCardId: WOLVES,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: ANIMAL_HOST, play: SearchPlay.Adviser, faceUp: true }
+            })
         ).apply(s)
         expect(s.denizensBySite['c1']).toEqual([WOLVES])
-        expect(s.getPlayerState('me').advisers).toContainEqual({ cardId: ANIMAL_HOST, faceUp: true })
+        expect(s.getPlayerState('me').advisers).toContainEqual({
+            cardId: ANIMAL_HOST,
+            faceUp: true
+        })
         return (s.getPlayerState('me').warbandsOnBoard['me'] ?? 0) - warbands
     }
 

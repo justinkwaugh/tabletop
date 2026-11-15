@@ -1,14 +1,25 @@
 <script lang="ts">
+    import type { Point } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { BOARD_HEIGHT, BOARD_WIDTH, TRACK_CELL, revenueCell } from '$lib/utils/boardLayout.js'
+    import { TRACK_CELL, boardLayout } from '$lib/utils/boardLayout.js'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
+    import { editionStyle } from '$lib/utils/editionStyle.js'
+
+    // The track and its numbers sit under the map; the obsolescence arrows and the revenue
+    // markers sit over it, so hexes near the edge cannot hide them.
+    let { layer = 'track' }: { layer?: 'track' | 'over' } = $props()
 
     const gameSession = getGameSession()
+    const background = $derived(
+        editionStyle(gameSession.gameState.editionId).background ?? '#e6e2c3'
+    )
 
-    const CORNERS = new Set([0, 20, 50, 70])
     const MARKER_RADIUS = 11
 
-    const cells = Array.from({ length: 100 }, (_, step) => ({ step, ...revenueCell(step) }))
+    const layout = $derived(boardLayout(gameSession.gameState.editionId))
+    const cells = $derived(
+        Array.from({ length: 100 }, (_, step) => ({ step, ...layout.revenueCell(step) }))
+    )
 
     const BAND_WIDTH = 10
     // Like the printed board: each arrow runs just inside the track's inner edge,
@@ -18,30 +29,53 @@
     const BAND_GAP = 3
     const ARROW_HEAD = 6
 
+    // Each arrow follows the track just inside its inner edge, turning with it at a corner,
+    // from the end of its band's last cell to the start of its first, pointing down the track.
     const bands = $derived.by(() => {
         const obsolescence = gameSession.gameState.edition.definition.obsolescence
         return obsolescence.map((band, index) => {
             const last = (obsolescence[index + 1]?.from ?? band.from + BAND_WIDTH) - 1
-            // A corner cell belongs to the next side, so a band ending on one stops at its edge.
-            const lastOnSide = CORNERS.has(last % 100) ? last - 1 : last
-            const tip = cellEdge(band.from, band.from + 1)
-            const tail = cellEdge(lastOnSide, lastOnSide - 1)
-            const length = Math.hypot(tip.x - tail.x, tip.y - tail.y)
-            const along = { x: (tip.x - tail.x) / length, y: (tip.y - tail.y) / length }
+            // A band starting or ending on a corner cell stops at that cell's edge.
+            const isCorner = (step: number) => layout.corners.has(step % 100)
+            const tip = isCorner(band.from)
+                ? cellEdge(band.from + 1, band.from + 2)
+                : cellEdge(band.from, band.from + 1)
+            const tail = isCorner(last) ? cellEdge(last - 1, last - 2) : cellEdge(last, last - 1)
+            const turns = []
+            for (let step = last - 1; step > band.from; step--) {
+                if (isCorner(step)) turns.push(innerCorner(step))
+            }
+            const points = [tail, ...turns, tip]
+            const before = points[points.length - 2]
+            const length = Math.hypot(tip.x - before.x, tip.y - before.y)
+            const along = { x: (tip.x - before.x) / length, y: (tip.y - before.y) / length }
             const across = { x: -along.y, y: along.x }
             const head = { x: tip.x - along.x * BAND_GAP, y: tip.y - along.y * BAND_GAP }
             const base = { x: head.x - along.x * ARROW_HEAD, y: head.y - along.y * ARROW_HEAD }
-            const end = { x: tail.x + along.x * BAND_GAP, y: tail.y + along.y * BAND_GAP }
+            const first = points[1]
+            const startLength = Math.hypot(first.x - tail.x, first.y - tail.y)
+            const end = {
+                x: tail.x + ((first.x - tail.x) / startLength) * BAND_GAP,
+                y: tail.y + ((first.y - tail.y) / startLength) * BAND_GAP
+            }
             const bubble = bubblePoint(band.from + 4)
             return {
                 drop: band.drop,
                 x: bubble.x,
                 y: bubble.y,
-                shaft: `M ${end.x} ${end.y} L ${base.x} ${base.y}`,
+                shaft: [end, ...points.slice(1, -1), base]
+                    .map((point, at) => `${at === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+                    .join(' '),
                 head: [
                     head,
-                    { x: base.x + across.x * ARROW_HEAD * 0.5, y: base.y + across.y * ARROW_HEAD * 0.5 },
-                    { x: base.x - across.x * ARROW_HEAD * 0.5, y: base.y - across.y * ARROW_HEAD * 0.5 }
+                    {
+                        x: base.x + across.x * ARROW_HEAD * 0.5,
+                        y: base.y + across.y * ARROW_HEAD * 0.5
+                    },
+                    {
+                        x: base.x - across.x * ARROW_HEAD * 0.5,
+                        y: base.y - across.y * ARROW_HEAD * 0.5
+                    }
                 ]
                     .map((point) => `${point.x},${point.y}`)
                     .join(' ')
@@ -49,10 +83,21 @@
         })
     })
 
+    // Where the lines inside the two sides meeting at a corner cell cross.
+    function innerCorner(step: number): Point {
+        const cell = layout.revenueCell(step)
+        const a = layout.inwardOf(step - 1, LINE_INSET)
+        const b = layout.inwardOf(step + 1, LINE_INSET)
+        return {
+            x: cell.x + TRACK_CELL / 2 + a.x + b.x,
+            y: cell.y + TRACK_CELL / 2 + a.y + b.y
+        }
+    }
+
     // Along the top and bottom the bubble hangs just below or above the numbers. Down the sides
     // it is wider than the gap beside them, so it sits on the line between two numbers instead.
-    function bubblePoint(step: number): { x: number; y: number } {
-        if (inwardOf(step, 1).y !== 0) {
+    function bubblePoint(step: number): Point {
+        if (layout.inwardOf(step, 1).y !== 0) {
             return trackPoint(step, BUBBLE_INSET)
         }
         const cell = trackPoint(step, LINE_INSET)
@@ -61,15 +106,15 @@
     }
 
     // The outer edge of a cell, on the side away from its neighbour along the track.
-    function cellEdge(step: number, neighbour: number): { x: number; y: number } {
+    function cellEdge(step: number, neighbour: number): Point {
         const cell = trackPoint(step, LINE_INSET)
         const other = trackPoint(neighbour, LINE_INSET)
         return { x: cell.x + (cell.x - other.x) / 2, y: cell.y + (cell.y - other.y) / 2 }
     }
 
-    function trackPoint(step: number, inset: number): { x: number; y: number } {
-        const cell = revenueCell(step)
-        const inward = inwardOf(step, inset)
+    function trackPoint(step: number, inset: number): Point {
+        const cell = layout.revenueCell(step)
+        const inward = layout.inwardOf(step, inset)
         return { x: cell.x + TRACK_CELL / 2 + inward.x, y: cell.y + TRACK_CELL / 2 + inward.y }
     }
 
@@ -80,7 +125,7 @@
             const step = company.revenue % 100
             const index = byCell.get(step) ?? 0
             byCell.set(step, index + 1)
-            const cell = revenueCell(company.revenue)
+            const cell = layout.revenueCell(company.revenue)
             const offsets = [
                 { x: -8, y: -8 },
                 { x: 8, y: -8 },
@@ -98,69 +143,67 @@
         })
     })
 
-    function inwardOf(step: number, reach: number): { x: number; y: number } {
-        if (step <= 20) return { x: 0, y: reach }
-        if (step <= 50) return { x: -reach, y: 0 }
-        if (step <= 70) return { x: 0, y: -reach }
-        return { x: reach, y: 0 }
-    }
-
     function label(step: number): string {
         if (step === 0) return '0/100'
         return step < 10 ? `0${step}` : `${step}`
     }
 </script>
 
-<rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} rx="10" fill="#33401a" />
-<rect
-    x={TRACK_CELL}
-    y={TRACK_CELL}
-    width={BOARD_WIDTH - 2 * TRACK_CELL}
-    height={BOARD_HEIGHT - 2 * TRACK_CELL}
-    fill="#e6e2c3"
-/>
-{#each cells as cell (cell.step)}
-    {@const corner = CORNERS.has(cell.step)}
+{#if layer === 'track'}
+    <rect x="0" y="0" width={layout.width} height={layout.height} rx="10" fill="#33401a"></rect>
     <rect
-        x={cell.x + 1}
-        y={cell.y + 1}
-        width={TRACK_CELL - 2}
-        height={TRACK_CELL - 2}
-        rx="3"
-        fill={corner ? '#1f280c' : cell.step % 5 === 0 ? '#2a3512' : '#3e4d1f'}
-    />
-    <text
-        x={cell.x + TRACK_CELL / 2}
-        y={cell.y + TRACK_CELL / 2 + 5}
-        class="number"
-        class:highlight={cell.step % 5 === 0}
-        class:corner
-        font-size={cell.step === 0 ? 11 : corner ? 17 : 14}>{label(cell.step)}</text
-    >
-{/each}
-{#each bands as band (band.drop)}
-    <g class="band-arrow">
-        <path d={band.shaft} />
-        <polygon points={band.head} />
-    </g>
-    <g class="band" transform="translate({band.x} {band.y})">
-        <rect x="-15" y="-9" width="30" height="18" rx="9" />
-        <text y="4.5">−{band.drop}</text>
-    </g>
-{/each}
-{#each markers as marker (marker.companyId)}
-    {@const style = COMPANY_STYLE[marker.companyId]}
-    <circle
-        cx={marker.x}
-        cy={marker.y}
-        r={MARKER_RADIUS}
-        fill={style.fill}
-        stroke={style.text === '#ffffff' ? '#f4f0d8' : '#1d1d1b'}
-        stroke-width="2"
-    >
-        <title>{gameSession.gameState.companyDefinition(marker.companyId).shortName} revenue {marker.revenue}</title>
-    </circle>
-{/each}
+        x={TRACK_CELL}
+        y={TRACK_CELL}
+        width={layout.width - 2 * TRACK_CELL}
+        height={layout.height - 2 * TRACK_CELL}
+        fill={background}
+    ></rect>
+    {#each cells as cell (cell.step)}
+        {@const corner = layout.corners.has(cell.step)}
+        <rect
+            x={cell.x + 1}
+            y={cell.y + 1}
+            width={TRACK_CELL - 2}
+            height={TRACK_CELL - 2}
+            rx="3"
+            fill={corner ? '#1f280c' : cell.step % 5 === 0 ? '#2a3512' : '#3e4d1f'}
+        ></rect>
+        <text
+            x={cell.x + TRACK_CELL / 2}
+            y={cell.y + TRACK_CELL / 2 + 5}
+            class="number"
+            class:highlight={cell.step % 5 === 0}
+            class:corner
+            font-size={cell.step === 0 ? 11 : corner ? 17 : 14}>{label(cell.step)}</text
+        >
+    {/each}
+{:else}
+    {#each bands as band (band.drop)}
+        <g class="band-arrow">
+            <path d={band.shaft}></path>
+            <polygon points={band.head}></polygon>
+        </g>
+        <g class="band" transform="translate({band.x} {band.y})">
+            <rect x="-15" y="-9" width="30" height="18" rx="9"></rect>
+            <text y="4.5">−{band.drop}</text>
+        </g>
+    {/each}
+    {#each markers as marker (marker.companyId)}
+        {@const style = COMPANY_STYLE[marker.companyId]}
+        <circle
+            cx={marker.x}
+            cy={marker.y}
+            r={MARKER_RADIUS}
+            fill={style.fill}
+            stroke={style.text === '#ffffff' ? '#f4f0d8' : '#1d1d1b'}
+            stroke-width="2"
+        >
+            <title
+                >{gameSession.gameState.companyDefinition(marker.companyId).shortName} revenue {marker.revenue}</title
+            >
+        </circle>
+    {/each}
+{/if}
 
 <style>
     .number {
@@ -181,6 +224,10 @@
         stroke-width: 1.5;
         stroke-linecap: round;
         stroke-linejoin: round;
+    }
+
+    .band-arrow path {
+        fill: none;
     }
 
     .band rect {

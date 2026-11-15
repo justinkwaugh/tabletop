@@ -6,9 +6,10 @@ import { HydratedUrbinoGameState } from '../model/gameState.js'
 
 type PlacingArchitectsAction = HydratedPlaceArchitect
 
-export class PlacingArchitectsStateHandler
-    implements MachineStateHandler<PlacingArchitectsAction, HydratedUrbinoGameState>
-{
+export class PlacingArchitectsStateHandler implements MachineStateHandler<
+    PlacingArchitectsAction,
+    HydratedUrbinoGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedUrbinoGameState>

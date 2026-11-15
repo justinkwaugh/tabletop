@@ -27,10 +27,8 @@
 </script>
 
 <g transform="translate({ROUND_HEADER_RECT.x} {ROUND_HEADER_RECT.y})">
-    <text x="28" y="54" class="round"
-        >Round <tspan class="round-number">{round}</tspan></text
-    >
-    <line x1={TRACK_X - 20} y1="18" x2={TRACK_X - 20} y2="68" class="divider" />
+    <text x="28" y="54" class="round">Round <tspan class="round-number">{round}</tspan></text>
+    <line x1={TRACK_X - 20} y1="18" x2={TRACK_X - 20} y2="68" class="divider"></line>
     <text x={TRACK_X} y="22" class="track-title">Dividend Track</text>
     {#each slots as slot (slot.index)}
         <g transform="translate({TRACK_X + slot.index * ROUND_SLOT_WIDTH} {TRACK_Y})">
@@ -40,7 +38,7 @@
                 rx="5"
                 class="slot"
                 class:payday={slot.index === ACTIONS_PER_ROUND - 1}
-            />
+            ></rect>
             <text x={BOX_WIDTH - 5} y="12" class="number">{slot.index + 1}</text>
             {#if slot.index === ACTIONS_PER_ROUND - 1}
                 <text x={BOX_WIDTH / 2} y="24" class="pay">Pay</text>
@@ -48,9 +46,9 @@
             {/if}
             {#if slot.taken}
                 <g transform="translate({BOX_WIDTH / 2} {ROUND_SLOT_HEIGHT / 2 + 2})" class="seal">
-                    <circle r="14" class="seal-disc" />
-                    <circle r="10.5" class="seal-ring" />
-                    <path d="M -5.5 0.5 L -1.5 4.5 L 6 -4.5" class="seal-check" />
+                    <circle r="14" class="seal-disc"></circle>
+                    <circle r="10.5" class="seal-ring"></circle>
+                    <path d="M -5.5 0.5 L -1.5 4.5 L 6 -4.5" class="seal-check"></path>
                 </g>
             {/if}
         </g>
