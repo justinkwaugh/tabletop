@@ -71,9 +71,10 @@ designs already in the family.
 - **Phase decision states** (`railwayStateValidation({ phaseDecisionStates })`). A title state
   that decides a phase's effects while its discards wait: 1861's trainless public companies.
 
-## Rulings to confirm with the owner
+## Rulings
 
-Mine, not the owner's, until confirmed.
+Made while implementing. Which the designer, the GTG text or the owner has since confirmed or
+changed is listed under "Grand Trunk edition and the designer's rulings".
 
 1. **Majors may start from phase 4.** §7.3 says "after the start of Phase 5", §8 (Phase 4) and
    §9.3 say Phase 4. Phase 4, as the research engine.
@@ -84,7 +85,7 @@ Mine, not the owner's, until confirmed.
    priority deal holder submits the run (as the research engine), the UI offering the autorouter's
    best.
 4. **Certificate limits** are not in the rulebook text (they are on the board): 21/16/13/11 for
-   3–6 players from the research engine.
+   3–6 players from the research engine, and 21 for two (GTG §16).
 5. **Minor Y.** §7.2 lists a minor "D"; the research engine has "Y, Yuzovka Railway" at the same
    home. Y, as the owner chose.
 6. **Merger commitments before the merger.** §12.4 reverses a merger when no player has two
@@ -108,13 +109,14 @@ its owner: convert it, merge it with other connected minors, or pass.
    value. A merger names the minors (2–10, at most six of one owner, connected to the proposing
    minor's stations by legal routes with the merging companies' stations not blocking) and an
    unstarted major, priced at the best par space not above the highest plus the lowest minor's
-   price, at most R200. Owners of the other minors answer the proposal; any refusal ends it.
+   price, at least R100 and at most R200. Owners of the other minors answer the proposal; any refusal ends it.
 2. **Stations.** Where the merging minors have more than two placed stations, or two in one hex,
    the director-to-be chooses the two (in different hexes) that become the major's.
-3. **Shareholders' purchases.** Each minor becomes one share; the player with most (ties: the
-   owner of the minor earliest in operating order) is director. From the director clockwise,
-   each player with a share buys any number of treasury shares in one go (at most 60%, within the
-   certificate limit). If nobody would hold two shares, the proposal lapses and nothing changes.
+3. **Shareholders' purchases.** Each minor becomes one share. From the active minor's owner
+   clockwise, each player with a share buys any number of treasury shares in one go (at most 60%,
+   within the certificate limit). The first player to hold two shares directs the company, and
+   anyone who then holds more than the director takes over. If nobody would hold two shares, the
+   proposal lapses and nothing changes.
 4. **Formation.** Assets (cash, trains, privates, loans) move to the major; minors close; the
    director's certificate goes to the director; the purchases are paid to the treasury.
 5. **Open purchases.** Every player, the director first, may buy one treasury share.
@@ -122,12 +124,16 @@ its owner: convert it, merge it with other connected minors, or pass.
 
 ## Verification
 
-- `src/fullGame.spec.ts`: seeded bot games (`test/bot.ts`) for 3, 4 and 6 players play to the end;
+- `src/fullGame.spec.ts`: seeded bot games (`test/bot.ts`) for 2, 3, 4 and 6 players play to the end;
   `SWEEP=1` plays thirty seeds of each.
 - `src/loans.spec.ts`: automatic loans for a trainless company's train, interest and compulsory
   repayment, and nationalisation for unpaid interest (price, payout, the RSR's Moscow station).
 - `src/mergers.spec.ts`: a conversion from the yellow column with the shareholders' and open
   purchases; a conversion refused outside it.
+- `src/phaseEffects.spec.ts`: a minor buying the first 8-train in its own turn is nationalised
+  with every other minor, and play goes on with the next public company.
+- `src/competition.spec.ts`: assigned seating for every player count and option, the private
+  auction opened in seat order, and a finished game's result ranked by final scores.
 - `src/track.spec.ts`: private hexes closed until phase 3, the home hex first, the R20 second lay.
 - `src/opening.spec.ts`: the private auction in order, the all-pass discount, the Nikolaev first,
   and the §14 options.
@@ -177,31 +183,33 @@ Further rulings (mine):
 Compared on 2026-11-14 with the research checkout of the 18xx.games engine (`g_1861` on `g_1867`).
 
 Agreeing: 1 (majors from phase 4), 2 (RSR private bonuses), 3 (priority holder runs the RSR), 4
-(certificate limits), 6 in effect (the engine merges first and asks for an undo when no one holds
-two shares; the director's stations come before the purchases there too), 8 (one round of single
-shares), 10 (city and town routes), 12 (the Nikolaev may be passed), 13 (a city with no station).
+(certificate limits), 5 (minor Y), 6 in effect (the engine merges first and asks for an undo when
+no one holds two shares; the director's stations come before the purchases there too), 8 (one
+round of single shares), 10 (city and town routes), 12 (the Nikolaev may be passed), 13 (a city
+with no station, from which no track reaches another stop). The merger floor of R100 and unpaid
+interest (none paid, loans repaid from cash, the rest to the RSR) agree since the owner's
+decisions below.
+
+On 13, the engine walks any track from the city with full cities not blocking. A full city blocks
+only a route that passes it, and the shortest such route ends at the first stop the track
+reaches, so a full city never changes the answer: both read §9.3's "cannot trace a legal route"
+the same way.
 
 Differing:
 
-- 5: the engine's minor at Yuzovka is "Y, Yuzovka Railway"; here "D, Donets Railway".
 - 7: the engine breaks ties between equal cities by hex id, the highest first; here the lowest.
 - 9: the engine refuses any route that enters a hex twice; here only stops and separated city
   spaces may not be used twice (§10.1's wording).
 - 11: in the engine the RSR keeps buying 8-trains after the first while its treasury pays; here it
   buys the first only (§7.4 "It may buy the first 8-train").
-- 13 in part: the engine's "unconnected" test walks any track from the city, full cities not
-  blocking; here a city full of other stations blocks (§9.3 "cannot trace a legal route").
 - Merger agreement: the engine has no consent step; here every owner of a merging minor agrees
   (§12.1 "all parties to a proposed merger must agree").
 - Merger connection: the engine lets a merger grow in a chain, each minor connected to any minor
   already in it; here one minor reaches every other (§12.3).
-- Merger price: the engine sets a merger at no less than R100 (§12.3 is silent); here no floor.
-- Unpaid interest: the engine pays none of it, repays what loans it can and gives the rest of the
-  cash to the RSR; here the company pays all it has to the bank first (§10.8).
 - 5+5E: the engine counts the route's off-board areas first and then the best cities; here the
   best five stops of any kind (§10.6 "any five cities").
-- Options: the engine offers none of §14 (only 1867's column market) and a two-player setup that
-  is not in the rulebook; here the §14 options and three to six players.
+- Options: the engine offers none of §14 (only 1867's column market); here the GTG edition's
+  options. Both have two players, the engine's not from the v2.0 rulebook, here the GTG §16 setup.
 
 ## Grand Trunk edition and the designer's rulings
 

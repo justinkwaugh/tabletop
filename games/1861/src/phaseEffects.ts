@@ -6,9 +6,11 @@ import {
     type MachineContext
 } from '@tabletop/common'
 import {
+    BetweenCompaniesState,
     CashPayment,
     Nationalisation,
     Owner,
+    RoundEnd,
     SystemActionFirstHandler,
     closeShareCompany,
     continuePhaseChange,
@@ -16,6 +18,7 @@ import {
     getCompany,
     isAdvancePhase,
     nextOperatingCompany,
+    operatingRoundEnd,
     settleCashPayments,
     systemAction,
     titleAction,
@@ -30,7 +33,7 @@ import {
     placeRsrMoscowStation,
     rsrOperates
 } from './national.js'
-import { OperatingRules1861, PhaseRules1861 } from './operating.js'
+import { EndingRules1861, OperatingRules1861, PhaseRules1861 } from './operating.js'
 import { PrivateCatalog1861, PrivateIds1861 } from './privates.js'
 import { TrainlessMajorsState, type HydratedState1861, type StateHandler1861 } from './state.js'
 import { MoscowGreyTileId } from './tiles.js'
@@ -63,7 +66,9 @@ const ApplyPhaseEffectsAction = systemAction('ApplyPhaseEffects', {
                 withdrawnMinorIds: Type.Array(Id),
                 privates: Type.Array(PrivateNationalisation),
                 nationalisations: Type.Array(Nationalisation),
-                trainlessMajorIds: Type.Array(Id)
+                trainlessMajorIds: Type.Array(Id),
+                /** The operating round, when the company whose turn it was is nationalised last. */
+                roundEnd: Type.Optional(RoundEnd)
             },
             { additionalProperties: false }
         )
@@ -129,7 +134,11 @@ function nationalisePrivates(state: HydratedState1861) {
     })
 }
 
-function applyPhaseEffects(state: HydratedState1861, phaseId: string) {
+function applyPhaseEffects(
+    state: HydratedState1861,
+    phaseId: string,
+    operatingCompanyId: string | undefined
+) {
     const rsrStarted = phaseId === MajorStartPhaseId && startRsr(state)
     const withdrawnMinorIds = phaseId === MinorAuctionEndPhaseId ? withdrawUnsoldMinors(state) : []
     const privates = phaseId === PrivateNationalisationPhaseId ? nationalisePrivates(state) : []
@@ -154,7 +163,7 @@ function applyPhaseEffects(state: HydratedState1861, phaseId: string) {
                     phaseId === MinorNationalisationPhaseId ||
                     (company.operated && trainless(state, companyId))
                 )
-                    nationalisations.push(nationalise1861(state, companyId))
+                    nationalisations.push(nationalise1861(state, companyId, operatingCompanyId))
             } else if (isMajor1861(companyId) && company.operated && trainless(state, companyId))
                 trainlessMajorIds.push(companyId)
         }
@@ -176,6 +185,20 @@ function applyPhaseEffects(state: HydratedState1861, phaseId: string) {
     }
 }
 
+/**
+ * A minor nationalised as phase 8 begins in its own turn, having bought the first 8-train, has
+ * ended that turn: play goes on between companies, its director the owner of the ended turn.
+ */
+function endedOperatingTurn(state: HydratedState1861, operatingCompanyId: string | undefined) {
+    if (
+        !operatingCompanyId ||
+        !state.operatingSet?.completedCompanyIds.includes(operatingCompanyId)
+    )
+        return undefined
+    if (state.phaseChange) state.phaseChange.continuation = { machineState: BetweenCompaniesState }
+    return { roundEnd: operatingRoundEnd(state, EndingRules1861) }
+}
+
 class HydratedApplyPhaseEffects extends ApplyPhaseEffectsAction.Base implements ApplyPhaseEffects {
     declare type: 'ApplyPhaseEffects'
     declare phaseId: string
@@ -188,10 +211,13 @@ class HydratedApplyPhaseEffects extends ApplyPhaseEffectsAction.Base implements 
                 !state.trainlessMajors,
             'A phase’s effects apply once, by the system'
         )
-        this.metadata = applyPhaseEffects(state, this.phaseId)
+        const operatingCompanyId = nextOperatingCompany(state)
+        const effects = applyPhaseEffects(state, this.phaseId, operatingCompanyId)
+        const ended = endedOperatingTurn(state, operatingCompanyId)
+        this.metadata = ended?.roundEnd ? { ...effects, roundEnd: ended.roundEnd } : effects
         state.trainlessMajors = {
             companyIds: this.metadata.trainlessMajorIds,
-            continuation: this.continuation,
+            continuation: ended ? BetweenCompaniesState : this.continuation,
             activePlayerIds: [...state.activePlayerIds]
         }
     }

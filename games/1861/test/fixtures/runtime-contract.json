@@ -2,7 +2,7 @@
   "actionSchemaDigests": {
     "AdvancePhase": "013a149f604147b529e1bc9ee94806b4697070f2d18e1e1a15c0a4d9c2fbc0c6",
     "AnswerMerger": "9566eba038f8195f0d7dbf942a6236ce180093733f7b4e0d3b54ce6acd42863e",
-    "ApplyPhaseEffects": "f493452775c0ab81b85d7361a048c2115af102ff894961083fa58cb7385e0f75",
+    "ApplyPhaseEffects": "26701e0a1c947219d095325fd2741e3a5610f3ec3a132474a593e4c042d607a6",
     "AuctionCompany": "7f533781dff1fbd18e6f9cf297d06386fad9f9271af81cc573d823b2c992a18c",
     "BidForCompany": "a5a3f6b24814e5fa9742f1c1c8c52736db92adc93a76a0dcf2bc7f1c2e3c8466",
     "BidForLot": "bb638dfd9f36f481fb409bb6a0cee49cb99859ebd982cb767f69ffdc00a961df",

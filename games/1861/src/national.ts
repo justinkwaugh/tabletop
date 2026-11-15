@@ -80,6 +80,9 @@ function cityValue(state: HydratedState1861, station: PlacedStation): number {
         : 0
 }
 
+/** Orders location ids the same in every locale. */
+const compareCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
+
 /**
  * The RSR takes over the nationalised company's stations, the most valuable cities first (ties
  * by location), one to a hex and no more than six outside St. Petersburg and Moscow (§11).
@@ -93,7 +96,7 @@ function nationalStations(state: HydratedState1861, companyId: string): National
         .toSorted(
             (a, b) =>
                 cityValue(state, b) - cityValue(state, a) ||
-                a.position.locationId.localeCompare(b.position.locationId)
+                compareCodeUnits(a.position.locationId, b.position.locationId)
         )
     const taken: NationalisedStation[] = []
     const hexes = new Set<string>()
@@ -147,10 +150,16 @@ export const NationalisationRules1861: NationalisationRules = {
 
 /**
  * Nationalises the company: its shareholders are paid, the RSR takes its assets and stations,
- * and it leaves the operating round, its turn ending if it is operating (§11).
+ * and it leaves the operating round, its turn ending if it is operating (§11). Nationalising
+ * several at once names the company operating before the first, as ending its turn makes the
+ * next company look as if it were operating.
  */
-export function nationalise1861(state: HydratedState1861, companyId: string): Nationalisation {
-    const operating = nextOperatingCompany(state) === companyId
+export function nationalise1861(
+    state: HydratedState1861,
+    companyId: string,
+    operatingCompanyId = nextOperatingCompany(state)
+): Nationalisation {
+    const operating = operatingCompanyId === companyId
     const details = nationaliseCompany(state, NationalisationRules1861, companyId)
     if (state.phaseChange)
         state.phaseChange.discardCompanyIds = state.phaseChange.discardCompanyIds.filter(

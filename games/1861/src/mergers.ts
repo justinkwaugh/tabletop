@@ -149,7 +149,7 @@ function mergerPrice(state: HydratedState1861, minorIds: readonly string[]): num
     return minorIds.length === 1 ? prices[0] : Math.max(...prices) + Math.min(...prices)
 }
 
-/** The designer rules a merger worth less than R100 illegal (BGG thread 2745032). */
+/** The designer rules a merger worth less than R100 illegal. */
 const MinimumMergerPrice = 100
 
 function stationOf(state: HydratedState1861, companyId: string): PlacedStation | undefined {
