@@ -220,6 +220,10 @@ export const BenchScenes = {
             setShillings(state, seat, 9)
         }
     },
+    cardTray: {
+        cards: ['tax', 'influence', 'move', 'explore'],
+        arrange: () => {}
+    },
     migrateShort: {
         cards: ['migrate', 'tax'],
         arrange: (state, { seat }) => {
