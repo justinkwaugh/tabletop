@@ -149,7 +149,7 @@
         })
     }
 
-    // A phone's view first rests on the middle third with hexes at least 33 px, not the wrapper's
+    // A phone's view first rests on the middle third with hexes at least 37 px, not the wrapper's
     // cover fit; a chosen focus is kept at its scale as the view resizes.
     const followView: Attachment<HTMLElement> = () => {
         const view = viewport

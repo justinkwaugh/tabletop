@@ -107,6 +107,17 @@ test('The board is drawn as large as the layout allows', async ({ page }) => {
     await settled(page)
     const width = await hexWidth(page)
     test.info().annotations.push({ type: 'hex width', description: `${width.toFixed(1)} px` })
-    // A phone rests at the middle third's scale, a hex never under 33 px.
-    expect(width).toBeGreaterThanOrEqual(onPhone() ? 33 - 0.1 : 34.5)
+    // A phone rests at the middle third's scale, a hex never under 37 px.
+    expect(width).toBeGreaterThanOrEqual(onPhone() ? 37 - 0.1 : 34.5)
+    if (!onPhone()) return
+    // At that scale the board is taller than its frame too, so it pans north–south at rest.
+    const heights = await board(page).evaluate((svg) => {
+        let frame: Element | null = svg.parentElement
+        while (frame && getComputedStyle(frame).overflow === 'visible') frame = frame.parentElement
+        return {
+            board: svg.getBoundingClientRect().height,
+            frame: frame?.getBoundingClientRect().height ?? Infinity
+        }
+    })
+    expect(heights.board).toBeGreaterThan(heights.frame)
 })

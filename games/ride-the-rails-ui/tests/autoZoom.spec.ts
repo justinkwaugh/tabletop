@@ -20,6 +20,9 @@ collectPageErrors()
 /** The contract's cap on how wide the zoom draws a hex. */
 const BUILD_ZOOM_MOST_HEX_PX = 64
 
+/** The contract's floor: a phone's board rests, and the zoom never goes below, a hex this wide. */
+const RESTING_HEX_PX = 37
+
 /** A hex is never drawn wider than this by the zoom (the cap, and rounding). */
 const MOST_HEX_PX = BUILD_ZOOM_MOST_HEX_PX + 0.5
 
@@ -129,11 +132,12 @@ test('The first building turn of round 1 zooms the view to the East Coast lit he
     expect(await litInView(page)).toHaveLength(6)
     const width = await hexWidth(page)
     expect(width).toBeLessThanOrEqual(MOST_HEX_PX)
-    expect(width).toBeGreaterThanOrEqual(33)
+    expect(width).toBeGreaterThanOrEqual(RESTING_HEX_PX - 0.1)
     // Zoomed in past the whole map the desktop board would otherwise rest at.
     expect(box.width).toBeGreaterThan((await frameBox(page)).width + 1)
     // Fitted: a hex is at its largest, or the lit hexes' box, a hex wider on every side, fills the
-    // frame's width or its height below the focus chooser's inset.
+    // frame's width or its height below the focus chooser's inset, or (a phone, where that box is
+    // wider than the view at the resting scale) the view keeps the resting scale.
     const lit = await litHexes(page).evaluateAll((hexes) => {
         const boxes = hexes.map((hex) => hex.getBoundingClientRect())
         return {
@@ -146,6 +150,7 @@ test('The first building turn of round 1 zooms the view to the East Coast lit he
         sizes.some((size) => Math.abs(padded - size) < 2)
     expect(
         width >= BUILD_ZOOM_MOST_HEX_PX - 1 ||
+            (onPhone() && Math.abs(width - RESTING_HEX_PX) < 0.5) ||
             fills(lit.width + 2 * width, [frame.width]) ||
             fills(lit.height + 2 * width, [frame.height, frame.height - FOCUS_CHOOSER_INSET_PX])
     ).toBe(true)

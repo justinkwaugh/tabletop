@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { USA_CITIES } from '@tabletop/ride-the-rails'
+import { MIN_RESTING_HEX_PX } from './boardFocus.js'
 import { HEX_SIZE, HEX_WIDTH } from './boardGeometry.js'
 import {
     BONUS_PILL,
@@ -44,8 +45,8 @@ describe('the $5 pill', () => {
         })
     })
 
-    it('reads at the phone zoom: a pill about 12 px across where a hex is 33 px wide', () => {
-        const phoneScale = 33 / HEX_WIDTH
+    it('reads at the phone zoom: a pill at least 12 px across where a phone rests', () => {
+        const phoneScale = MIN_RESTING_HEX_PX / HEX_WIDTH
         expect(BONUS_PILL.width * phoneScale).toBeGreaterThanOrEqual(12)
     })
 

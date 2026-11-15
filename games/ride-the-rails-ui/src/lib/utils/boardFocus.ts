@@ -21,8 +21,11 @@ export const BUILD_ZOOM_MAX_HEX_PX = 64
 /** A view whose whole-map fit is smaller than this rests at a cover fit instead (Phone layout). */
 export const BOARD_COVER_BELOW_SCALE = 0.3
 
-/** Contract, Phone layout: a lit hex is at least this wide on screen where the board rests. */
-export const MIN_RESTING_HEX_PX = 33
+/**
+ * Contract, Phone layout: a lit hex is at least this wide on screen where the board rests. A
+ * phone's board is then taller than its view, so it pans north–south as well as east–west.
+ */
+export const MIN_RESTING_HEX_PX = 37
 
 /** Contract, Phone layout (U-8): the focus chooser shows while a hex is narrower than this. */
 export const FOCUS_CHOOSER_BELOW_HEX_PX = 28
@@ -98,7 +101,7 @@ function unitRectAt(point: Point): BoundingBox {
     return { x: point.x - 0.5, y: point.y - 0.5, width: 1, height: 1 }
 }
 
-/** Contract, Phone layout: where a cover-fit view rests (the middle third, hexes at least 33 px); a whole-map view keeps its fit. */
+/** Contract, Phone layout: where a cover-fit view rests (the middle third, hexes at least 37 px); a whole-map view keeps its fit. */
 export function restingFocus(view: RectangleDimensions): BoardFocus | undefined {
     return restsAtCover(view) ? 'middle' : undefined
 }

@@ -77,13 +77,13 @@ test('A journey offer lit wholly outside the view pans the board to it, keeping 
     await page.waitForTimeout(PAN_SETTLE_MS)
     const inView = await litInView(page)
     expect(inView.length).toBeGreaterThan(0)
-    // The board kept the scale it rests at: a hex at least 33 px wide.
+    // The board kept the scale it rests at: a hex at least 37 px wide.
     const box = await boardBox(page)
     const hexWidth = await board(page).evaluate((root) => {
         const hit = root.querySelector('g.hits [role="button"]')
         return hit?.getBoundingClientRect().width ?? 0
     })
-    expect(hexWidth).toBeGreaterThanOrEqual(33)
+    expect(hexWidth).toBeGreaterThanOrEqual(37 - 0.1)
     expect(box.width).toBeGreaterThan(page.viewportSize()?.width ?? 0)
 })
 

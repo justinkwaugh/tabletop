@@ -69,7 +69,22 @@ describe('the phone board (contract, Phone layout)', () => {
         expect(restingFocus(DESKTOP_VIEW)).toBeUndefined()
     })
 
-    it('draws every lit target, the whole hex, at least 33 px wide where a phone rests', () => {
+    it('rests a 390 × 844 phone’s 280 × 566 view at 37 px a hex, panning both ways', () => {
+        const view = { width: 280, height: 566 }
+        const scale = restingScale(view)
+        expect(hexWidthOnScreen(scale)).toBeCloseTo(37)
+        // Taller than the view as well as wider, so it pans north–south as well as east–west.
+        expect(BOARD_HEIGHT * scale).toBeGreaterThan(view.height)
+        expect(BOARD_WIDTH * scale).toBeGreaterThan(view.width)
+    })
+
+    it('keeps the resting floor above the chooser’s threshold and below the building zoom’s cap', () => {
+        expect(MIN_RESTING_HEX_PX).toBe(37)
+        expect(FOCUS_CHOOSER_BELOW_HEX_PX).toBeLessThan(MIN_RESTING_HEX_PX)
+        expect(MIN_RESTING_HEX_PX).toBeLessThan(BUILD_ZOOM_MAX_HEX_PX)
+    })
+
+    it('draws every lit target, the whole hex, at least 37 px wide where a phone rests', () => {
         for (const view of [PHONE_VIEW, SHORT_PHONE_VIEW]) {
             const request = focusRequest('middle', view)
             expect(hexWidthOnScreen(request.maxScale)).toBeGreaterThanOrEqual(MIN_RESTING_HEX_PX)
@@ -394,7 +409,7 @@ describe('the building zoom’s fit (contract, Build)', () => {
         expect(shownScale(request, DESKTOP_VIEW)).toBeCloseTo(restingScale(DESKTOP_VIEW))
     })
 
-    it('keeps a phone’s resting scale, a hex at least 33 px, with lit hexes coast to coast', () => {
+    it('keeps a phone’s resting scale, a hex at least 37 px, with lit hexes coast to coast', () => {
         const coastToCoast = [westmostHex(), eastmostHex()]
         const request = buildZoomRequest(coastToCoast, PHONE_VIEW, restingPhone)
         assertExists(request)
