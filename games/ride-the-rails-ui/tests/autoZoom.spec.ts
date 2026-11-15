@@ -318,6 +318,65 @@ test('Ride opens on the phone’s resting view after a hand move in an earlier b
     expect(moved).toEqual(untouched)
 })
 
+/** What the view shows: how wide a hex is, and where on the board the frame's centre falls. */
+type ShownView = { hexWidth: number; x: number; y: number }
+
+async function viewShown(page: Page): Promise<ShownView> {
+    const box = await settled(page)
+    const frame = await frameBox(page)
+    return {
+        hexWidth: await hexWidth(page),
+        x: (frame.left + frame.width / 2 - box.left) / box.width,
+        y: (frame.top + frame.height / 2 - box.top) / box.height
+    }
+}
+
+function expectSameView(shown: ShownView, expected: ShownView) {
+    expect(shown.hexWidth).toBeCloseTo(expected.hexWidth, 1)
+    expect(shown.x).toBeCloseTo(expected.x, 2)
+    expect(shown.y).toBeCloseTo(expected.y, 2)
+}
+
+test('Ride opens on a focus chosen in a building turn, and the choice holds as the view resizes', async ({
+    page
+}) => {
+    test.skip(!onPhone(), 'On desktop a hex is never drawn small enough to show the chooser.')
+    await openScenario(page, 'First placement')
+    const zoomed = await settled(page)
+    await dragBoard(page, 80, 60)
+    expect(await settled(page)).not.toEqual(zoomed)
+    // The zoom draws hexes too wide for the chooser; zoomed out, it shows again.
+    const west = page.getByRole('button', { name: 'West', exact: true })
+    for (let step = 0; step < 6 && !(await west.isVisible()); step++) {
+        await page.getByRole('button', { name: 'Zoom out', exact: true }).tap()
+        await page.waitForTimeout(300)
+    }
+    await west.tap()
+    await expect(west).toHaveAttribute('aria-pressed', 'true')
+    await page.waitForTimeout(VIEW_SETTLE_MS)
+    const chosen = await viewShown(page)
+    for (const next of ['p2', 'p3', 'p4']) {
+        await page.getByRole('button', { name: 'Build nothing', exact: true }).tap()
+        await expect.poll(() => activePlayerId(page)).toBe(next)
+        await settled(page)
+    }
+    await page.getByRole('button', { name: 'Build nothing', exact: true }).tap()
+    await expect
+        .poll(() => page.evaluate(() => window.rtrSession.gameState.machineState))
+        .toBe('Riding')
+    await settled(page)
+    await page.waitForTimeout(VIEW_SETTLE_MS)
+    // West, at its scale, so a hex is too wide for the chooser to be drawn.
+    expectSameView(await viewShown(page), chosen)
+
+    // The chooser still names West: a resize refits that choice, not another.
+    const size = page.viewportSize()
+    if (!size) throw new Error('The phone project sets a viewport.')
+    await page.setViewportSize({ width: size.width, height: size.height - 100 })
+    await page.waitForTimeout(VIEW_SETTLE_MS)
+    expectSameView(await viewShown(page), chosen)
+})
+
 test('At 1440 × 900 the desktop view rests on the whole map when a zoom would barely gain', async ({
     page
 }) => {

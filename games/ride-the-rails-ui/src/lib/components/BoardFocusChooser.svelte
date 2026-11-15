@@ -57,6 +57,8 @@
     function choose(focus: BoardFocus) {
         show(focus, true)
         selection.keepPlayersView()
+        // A focus chosen while building is where the end of building returns to.
+        if (restoreView) restoreView = (animate) => show(focus, animate)
     }
 
     // Set once the view first rests, so an offer lit before then is looked at from where it rests.
@@ -89,8 +91,9 @@
     // The building offer last seen, looked at once the view rests.
     let buildOffer: BuildOffer = { turn: undefined, lit: [], held: undefined }
 
-    // Where the view goes back to when the building turns on this screen end: the focus chosen
-    // before the first zoom, the whole map where the view rested on it, or else the view as it was.
+    // Where the view goes back to when the building turns on this screen end: the focus last
+    // chosen during them, else the focus chosen before the first zoom, the whole map where the
+    // view rested on it, or the view as it was.
     let restoreView: ((animate: boolean) => void) | undefined
 
     function rememberView(shownWrapper: ScalingWrapper): (animate: boolean) => void {
