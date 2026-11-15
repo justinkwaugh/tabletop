@@ -208,6 +208,10 @@
         return gameTitle.info.configurator?.isOptionDisabled?.(config, option.id) === true
     }
 
+    function optionLabelColor(option: ConfigOption): 'disabled' | 'gray' {
+        return isOptionDisabled(option) ? 'disabled' : 'gray'
+    }
+
     function onOptionChange(option: ConfigOption, event: Event) {
         let value: string | boolean | number | null | undefined = undefined
         if (isBooleanConfigOption(option)) {
@@ -405,7 +409,7 @@
 </script>
 
 {#snippet stringInputOption(option: StringInputConfigOption)}
-    <Label class="mb-2">
+    <Label class="mb-2" color={optionLabelColor(option)}>
         {option.name}
     </Label>
     <Input
@@ -418,7 +422,7 @@
 {/snippet}
 
 {#snippet numberInputOption(option: NumberInputConfigOption)}
-    <Label class="mb-2">
+    <Label class="mb-2" color={optionLabelColor(option)}>
         {option.name}
     </Label>
     <Input
@@ -446,7 +450,7 @@
 {/snippet}
 
 {#snippet listOption(option: ListConfigOption)}
-    <Label class="mb-2">
+    <Label class="mb-2" color={optionLabelColor(option)}>
         {option.name}
     </Label>
     <Select
