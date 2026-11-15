@@ -18,6 +18,7 @@
     import { plural, systemName } from '$lib/utils/presentation.js'
     import ShipCard from '../ShipCard.svelte'
     import ShipTile from '../ShipTile.svelte'
+    import ShipCounter from '../board/ShipCounter.svelte'
 
     const gameSession = getGameSession()
     const gameState = $derived(gameSession.gameState)
@@ -92,44 +93,50 @@
 
     {#if damaged.length > 0}
         <div class="section-title">Repairs</div>
-        <div class="cards">
+        <div class="repairs">
             {#each damaged as ship (ship.shipId)}
                 {@const dock = dockRepairCapacity(gameState, ship)}
-                <ShipCard ship={shipDefinition(ship.shipId)}>
-                    <div class="stats">{ship.damage} damage</div>
-                    <div class="buttons">
+                {@const name = shipDefinition(ship.shipId).name}
+                <div class="repair" role="group" aria-label="Repair {name}">
+                    <svg width="64" height="64" aria-hidden="true"
+                        ><ShipCounter {ship} size={64} /></svg
+                    >
+                    <div class="repair-buttons">
                         {#if dock > 0}
                             <button
                                 type="button"
+                                title="At Sol's dock, $1B a point"
                                 onclick={() =>
                                     gameSession.repairShip(ship.shipId, RepairMethod.Dock, dock)}
-                                >Repair {dock} for ${dock}B</button
+                                >Repair {dock === ship.damage ? 'all' : dock} · ${dock}B</button
                             >
                         {/if}
                         {#if canRepair(gameState, playerId, ship.shipId, RepairMethod.RemotePoint, 1)}
                             <button
                                 type="button"
+                                title="Remote repair of one point"
                                 onclick={() =>
                                     gameSession.repairShip(
                                         ship.shipId,
                                         RepairMethod.RemotePoint,
                                         1
-                                    )}>Remote: 1 for ${REMOTE_REPAIR_POINT_COST}B</button
+                                    )}>Repair 1 · ${REMOTE_REPAIR_POINT_COST}B</button
                             >
                         {/if}
                         {#if canRepair(gameState, playerId, ship.shipId, RepairMethod.RemoteFull, ship.damage)}
                             <button
                                 type="button"
+                                title="Remote repair of all its damage"
                                 onclick={() =>
                                     gameSession.repairShip(
                                         ship.shipId,
                                         RepairMethod.RemoteFull,
                                         ship.damage
-                                    )}>Remote: all for ${remoteFullRepairCost(ship.shipId)}B</button
+                                    )}>Repair all · ${remoteFullRepairCost(ship.shipId)}B</button
                             >
                         {/if}
                     </div>
-                </ShipCard>
+                </div>
             {/each}
         </div>
     {/if}
@@ -156,11 +163,16 @@
                         class="danger scrap"
                         onclick={() => gameSession.scrapShip(ship.shipId)}
                     >
-                        <span>Scrap {shipDefinition(ship.shipId).name}</span>
-                        <span class="back" class:none={outcome.back === 'nothing back'}
-                            >{outcome.back}{outcome.why ? ` (${outcome.why})` : ''}</span
+                        <svg width="56" height="56" aria-hidden="true"
+                            ><ShipCounter {ship} size={56} /></svg
                         >
-                        {#if outcome.lost}<span class="lost">loses {outcome.lost}</span>{/if}
+                        <span class="scrap-text">
+                            <span>Scrap {shipDefinition(ship.shipId).name}</span>
+                            <span class="back" class:none={outcome.back === 'nothing back'}
+                                >{outcome.back}{outcome.why ? ` (${outcome.why})` : ''}</span
+                            >
+                            {#if outcome.lost}<span class="lost">loses {outcome.lost}</span>{/if}
+                        </span>
                     </button>
                 {/each}
             </div>
@@ -169,12 +181,47 @@
 </div>
 
 <style>
-    .scrap {
-        display: inline-flex;
+    /* Each damaged ship as its counter, its damage on the counter's badge, with its repairs. */
+    .repairs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 18px;
+    }
+
+    .repair {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .repair svg {
+        flex-shrink: 0;
+    }
+
+    .repair-buttons {
+        display: flex;
         flex-direction: column;
         align-items: flex-start;
-        gap: 1px;
+        gap: 4px;
+    }
+
+    /* Each ship offered for scrapping as its counter beside what scrapping it gives and loses. */
+    .scrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px 5px 5px;
         text-align: left;
+    }
+
+    .scrap svg {
+        flex-shrink: 0;
+    }
+
+    .scrap-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
     }
 
     .scrap .back {

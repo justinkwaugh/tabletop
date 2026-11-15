@@ -184,10 +184,11 @@
 - **Panning the star map:** once zoomed in at all, the star map can be dragged past its edges until an edge reaches the middle of the view, as on 18xx maps (wide layouts always; narrow layouts only when expanded). The map's background fades into the page colour at its edges, so no border shows. The tech chart does not overpan.
 - **Category focus:** the All / Biology / Physics / Engineering buttons show every category or just one, for the rest of the session. A focused category uses taller cards with larger text, and each card lists its prerequisites from other categories, because their connectors are not drawn. Focus never changes which techs are available or chosen.
 
-### Scrapping a ship
+### Repairing and scrapping ships
 
-- **Where:** the build step's folded `Scrap a ship` lists every ship as a red button.
-- **What each says:** `Scrap Polaris`, then what scrapping gives back: half the ship's cost in gold (`+$6B`) for an undamaged ship at Sol, otherwise `nothing back` with the reason (`in transit`, `only at Sol`, `damaged`); and, in red, what goes down with it (`loses 2 settlements and 1 good`).
+- **Repairs:** under `REPAIRS` in the build step, each damaged ship is its counter (its damage on the counter's red badge) with its repairs stacked beside it: `Repair 1 · $3B` and `Repair all · $4B` remotely, and at Sol the dock's `Repair all · $3B` (or `Repair 2 · $2B` when the dock cannot mend it all). Tooltips say which is remote and which the dock.
+- **Scrapping:** the build step's folded `Scrap a ship` lists every ship as a red button.
+- **What each scrap button says:** the ship's counter (as on the map, with its damage and cargo badges), beside `Scrap Polaris`, then what scrapping gives back: half the ship's cost in gold (`+$6B`) for an undamaged ship at Sol, otherwise `nothing back` with the reason (`in transit`, `only at Sol`, `damaged`); and, in red, what goes down with it (`loses 2 settlements and 1 good`).
 
 ### System names
 
