@@ -2,20 +2,19 @@
     import { TITLE_POINTS, titleDefinition, type TitleId } from '@tabletop/stellar-horizons-2'
 
     // A title as printed: its name, what it does, its prerequisite, its 10 points and its cost
-    // in IP (rulebook 5.2). A title the viewer can buy offers Buy; one they own, Renounce.
+    // in IP (rulebook 5.2). One the viewer owns offers Renounce; Buy is the Titles view's, below
+    // the card.
     let {
         titleId,
         cost,
         note,
         renounceLabel = 'Renounce',
-        onbuy,
         onrenounce
     }: {
         titleId: TitleId
         cost?: number
         note?: string
         renounceLabel?: string
-        onbuy?: () => void
         onrenounce?: () => void
     } = $props()
 
@@ -32,10 +31,8 @@
         <span class="cost">{cost ?? title.cost} IP</span>
     </span>
     {#if note}<span class="note">{note}</span>{/if}
-    {#if onbuy}
-        <button type="button" class="act" onclick={onbuy}>Buy · {cost ?? title.cost} IP</button>
-    {:else if onrenounce}
-        <button type="button" class="act renounce" onclick={onrenounce}>{renounceLabel}</button>
+    {#if onrenounce}
+        <button type="button" class="act" onclick={onrenounce}>{renounceLabel}</button>
     {/if}
 </div>
 
@@ -66,6 +63,11 @@
     .prerequisite {
         font-size: 11px;
         line-height: 1.25;
+    }
+
+    /* A card stretched to its neighbours' height keeps the prerequisite and price at the foot. */
+    .effect {
+        flex: 1;
     }
 
     .label {
@@ -116,14 +118,9 @@
         padding: 3px 10px;
         border: 1px solid #14244a;
         border-radius: 999px;
-        background: #14244a;
-        color: #f3e6c0;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .act.renounce {
         background: transparent;
         color: #14244a;
+        font-size: 12px;
+        font-weight: 700;
     }
 </style>

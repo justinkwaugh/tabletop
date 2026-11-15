@@ -441,6 +441,50 @@ function campaignBuyingCards() {
 }
 
 /**
+ * Developing in 2100 with a late-game collection. The Starfarers own nine cards across both
+ * decks and all levels and, as Engineer, hold two fleet cards and a genetic one; the Givers own
+ * two.
+ */
+function campaignCardCollection() {
+    const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
+    const arranged = edit(started, (state) => {
+        const starfarers = playerOf(state, Faction.Starfarers)
+        for (const cardId of [
+            'robo-miners',
+            'crew-focus',
+            'engine-upgrades',
+            'freight-haulers',
+            'military-academy',
+            'pioneers',
+            'creative',
+            'neural-interface',
+            'aquatic-species'
+        ]) {
+            ownCard(state, starfarers, cardId)
+        }
+        holdCard(state, starfarers, 'scout-ships')
+        holdCard(state, starfarers, 'gifted-artists')
+        const pile = takeCard(state, 'quantum-sensors')
+        state.getPlayerState(starfarers).hand.push({
+            playerId: starfarers,
+            deck: pile.deck,
+            level: pile.level,
+            cardId: 'quantum-sensors'
+        })
+        state.getPlayerState(starfarers).titles.push(TitleId.Engineer)
+        const givers = playerOf(state, Faction.Givers)
+        ownCard(state, givers, 'cunning')
+        ownCard(state, givers, 'sensor-upgrades')
+        for (const player of state.players) {
+            player.techMarkers = { Biology: [5, 4, 3], Physics: [5, 5, 4], Engineering: [4, 3] }
+            player.influence = 3
+            player.cash = 6
+        }
+    })
+    return { game, state: advanceTo(game, arranged, TurnPhase.Development) }
+}
+
+/**
  * The deal after 2100's development: nobody bought anything, so every hand is discarded and
  * redrawn, and the Starfarers, with Starship Theoretical Concepts, choose their fleet card's level.
  */
@@ -1216,6 +1260,7 @@ write('campaign-demand', 'Campaign: choosing demand', campaignDemandChoice())
 write('campaign-reward-goods', 'Campaign: reward goods', campaignRewardGoods())
 write('campaign-buying-cards', 'Campaign: buying cards', campaignBuyingCards())
 write('campaign-card-levels', 'Campaign: choosing a card level', campaignCardLevels())
+write('campaign-card-collection', 'Campaign: a card collection', campaignCardCollection())
 write('campaign-short-deck', 'Campaign: a short deck', campaignShortDeck())
 write('campaign-anomaly-card', 'Campaign: a card from an anomaly', campaignAnomalyCard())
 write('campaign-card-pact', 'Campaign: a pact for a card', campaignCardPact())

@@ -21,8 +21,6 @@
         directiveScore,
         usesDirectives,
         TitleRequestKind,
-        canBuyTitle,
-        titleCost,
         canRenounceTitle,
         titleScore,
         usesTitles
@@ -42,12 +40,11 @@
     import AnomalyTile from '../AnomalyTile.svelte'
     import GoodChit from '../GoodChit.svelte'
     import TechMarkerTotal from '../TechMarkerTotal.svelte'
-    import CardBack from '../cards/CardBack.svelte'
-    import CardFace from '../cards/CardFace.svelte'
     import EscalationChip from '../escalation/EscalationChip.svelte'
     import DirectiveCard from '../directives/DirectiveCard.svelte'
     import DirectiveChoice from '../directives/DirectiveChoice.svelte'
     import TitleCard from '../titles/TitleCard.svelte'
+    import CardLedger from '../cards/CardLedger.svelte'
     import { TITLE_REQUEST_WAITS } from '$lib/utils/titles.js'
     import { directiveProgress, goalTypes, heldDirectiveIds } from '$lib/utils/directives.js'
     import BaseTab from './BaseTab.svelte'
@@ -72,9 +69,6 @@
     const canChooseDirective = $derived(
         mine && gameSession.validActionTypes.includes(ActionType.ChooseDirective)
     )
-    const canBuyTitles = $derived(
-        mine && gameSession.validActionTypes.includes(ActionType.BuyTitle)
-    )
     const canRenounceTitles = $derived(
         mine && gameSession.validActionTypes.includes(ActionType.RenounceTitle)
     )
@@ -82,13 +76,7 @@
     const choosingInStep = $derived(gameSession.actingPhase === TurnPhase.Directives)
     const goods = $derived(playerId ? holdings(gameSession.gameState, playerId) : [])
     let scoreOpen = $state(false)
-    // An owned or held card shows its text once tapped.
-    let openCardId: string | undefined = $state()
     const player = $derived(playerId ? gameSession.gameState.getPlayerState(playerId) : undefined)
-
-    function toggleCard(cardId: string) {
-        openCardId = openCardId === cardId ? undefined : cardId
-    }
 
     const SCORE_LINES = [
         ['techs', 'Techs not developed'],
@@ -128,9 +116,8 @@
                     >{mine ? 'Your faction' : gameSession.getPlayerName(standing.playerId)}</span
                 >
             </div>
-            <div class="turn">
-                <span>Initiative {standing.initiative}</span>
-                {#if standing.phase}
+            {#if standing.phase}
+                <div class="turn">
                     <span
                         >{standing.phase.progress === 'done'
                             ? 'Done'
@@ -138,8 +125,8 @@
                               ? 'Waiting'
                               : PHASE_LABELS[standing.phase.phase]}</span
                     >
-                {/if}
-            </div>
+                </div>
+            {/if}
         </div>
         <div class="body">
             <div class="resources">
@@ -172,43 +159,6 @@
                     <span>Bases <b>{sheet.bases} of {sheet.maxBases}</b></span>
                     <span>Settlements <b>${sheet.settlementCost}B</b></span>
                 </div>
-            {/if}
-
-            {#if standing.campaign}
-                {@const score = standing.campaign.score}
-                <section>
-                    <h4>
-                        <button
-                            type="button"
-                            class="fold"
-                            aria-expanded={scoreOpen}
-                            aria-controls="faction-score"
-                            onclick={() => (scoreOpen = !scoreOpen)}
-                        >
-                            Score
-                            <span class="total"
-                                >{score.total} VP · {galacticRank(score.total)}
-                                <svg
-                                    class="chevron"
-                                    class:open={scoreOpen}
-                                    viewBox="0 0 16 16"
-                                    aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg
-                                ></span
-                            >
-                        </button>
-                    </h4>
-                    {#if scoreOpen}
-                        <div class="score" id="faction-score">
-                            {#each SCORE_LINES as [key, label] (key)}
-                                {#if score[key] !== 0}
-                                    <span>{label}</span><span class="value"
-                                        >{signed(score[key])}</span
-                                    >
-                                {/if}
-                            {/each}
-                        </div>
-                    {/if}
-                </section>
             {/if}
 
             {#if player && playerId && usesDirectives(gameSession.gameState)}
@@ -332,21 +282,6 @@
                     {:else}
                         <div class="note">No titles owned</div>
                     {/if}
-                    {#if mine}
-                        <div class="laid-out">Laid out</div>
-                        <div class="titles">
-                            {#each gameSession.gameState.availableTitles as titleId (titleId)}
-                                <TitleCard
-                                    {titleId}
-                                    cost={titleCost(gameSession.gameState, playerId, titleId)}
-                                    onbuy={canBuyTitles &&
-                                    canBuyTitle(gameSession.gameState, playerId, titleId)
-                                        ? () => gameSession.buyTitle(titleId)
-                                        : undefined}
-                                />
-                            {/each}
-                        </div>
-                    {/if}
                 </section>
             {/if}
 
@@ -449,38 +384,9 @@
                             >{plural(player.cards.length, 'card')} · {player.cardPoints()} VP</span
                         >
                     </h4>
-                    {#if player.cards.length > 0}
-                        <div class="cards">
-                            {#each player.cards as card (card.cardId)}
-                                <CardFace
-                                    cardId={card.cardId}
-                                    compact={openCardId !== card.cardId}
-                                    onclick={() => toggleCard(card.cardId)}
-                                />
-                            {/each}
-                        </div>
-                    {:else}
-                        <div class="note">No cards owned</div>
+                    {#if playerId}
+                        <CardLedger {playerId} {mine} />
                     {/if}
-                    <div class="hand">
-                        <span class="where">Hand</span>
-                        <span class="cards">
-                            {#each player.hand as card, index (card.cardId ?? index)}
-                                {#if mine && card.cardId}
-                                    {@const cardId = card.cardId}
-                                    <CardFace
-                                        {cardId}
-                                        compact={openCardId !== cardId}
-                                        onclick={() => toggleCard(cardId)}
-                                    />
-                                {:else}
-                                    <CardBack deck={card.deck} level={card.level} />
-                                {/if}
-                            {:else}
-                                <span class="note">Empty</span>
-                            {/each}
-                        </span>
-                    </div>
                 </section>
             {/if}
 
@@ -534,6 +440,43 @@
                 {/each}
             </section>
 
+            {#if standing.campaign}
+                {@const score = standing.campaign.score}
+                <section>
+                    <h4>
+                        <button
+                            type="button"
+                            class="fold"
+                            aria-expanded={scoreOpen}
+                            aria-controls="faction-score"
+                            onclick={() => (scoreOpen = !scoreOpen)}
+                        >
+                            Score
+                            <span class="total"
+                                >{score.total} VP · {galacticRank(score.total)}
+                                <svg
+                                    class="chevron"
+                                    class:open={scoreOpen}
+                                    viewBox="0 0 16 16"
+                                    aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg
+                                ></span
+                            >
+                        </button>
+                    </h4>
+                    {#if scoreOpen}
+                        <div class="score" id="faction-score">
+                            {#each SCORE_LINES as [key, label] (key)}
+                                {#if score[key] !== 0}
+                                    <span>{label}</span><span class="value"
+                                        >{signed(score[key])}</span
+                                    >
+                                {/if}
+                            {/each}
+                        </div>
+                    {/if}
+                </section>
+            {/if}
+
             <section>
                 <h4>Techs</h4>
                 <div class="techs">
@@ -564,16 +507,11 @@
 {/if}
 
 <style>
-    .laid-out {
-        margin-top: 8px;
-        font-size: 13px;
-        color: #9fb4d0;
-    }
-
+    /* Equal rows, so every title is as tall as the tallest. */
     .titles {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, 136px);
+        grid-auto-rows: 1fr;
         gap: 6px;
         margin-top: 4px;
     }
@@ -590,26 +528,6 @@
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
-    }
-
-    .cards {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 6px;
-    }
-
-    .hand {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding-top: 6px;
-    }
-
-    .hand .where {
-        min-width: 44px;
-        padding-top: 4px;
-        font-size: 13px;
     }
 
     .holding {

@@ -223,11 +223,55 @@ test('a title is earned by selling on Earth and bought at once on the Main Line'
     page
 }) => {
     await openScenario(page, 'Campaign title guildmaster')
-    const guildmaster = page.getByRole('group', { name: 'Guildmaster' })
-    await expect(guildmaster.getByRole('button', { name: /^Buy/ })).toHaveCount(0)
+    const titlesView = page.locator('.view-toggle').getByRole('button', { name: /^Titles/ })
+    await expect(titlesView).toHaveText('Titles')
     await page.getByRole('button', { name: 'Sell goods at Sol' }).click({ force: true })
     await page.getByRole('button', { name: /^Sell 3 for/ }).click()
-    await guildmaster.getByRole('button', { name: 'Buy · 9 IP' }).click()
-    // Owned now, it offers Renounce; a replacement is laid out in its place.
-    await expect(guildmaster.getByRole('button', { name: 'Renounce' })).toBeVisible()
+    // Earned, it is counted on the Titles button and bought from the Titles view.
+    await expect(titlesView).toHaveText('Titles1')
+    await titlesView.click()
+    const laidOut = page.locator('.titles-view').getByRole('group', { name: 'Guildmaster' })
+    await page.getByRole('button', { name: 'Buy Guildmaster for 9 IP' }).click()
+    // Owned now, it is in the console with Renounce and no longer laid out.
+    await expect(laidOut).toHaveCount(0)
+    await expect(
+        page
+            .locator('.console')
+            .getByRole('group', { name: 'Guildmaster' })
+            .getByRole('button', { name: 'Renounce' })
+    ).toBeVisible()
+})
+
+test('a tech is developed with the IP chosen in the payment panel', async ({ page }) => {
+    await openScenario(page, 'Campaign buying cards')
+    await page.getByRole('button', { name: 'Advanced Laser Propulsion', exact: true }).click()
+    // Paying with one marker of the two suggested and one IP leaves $3B to pay.
+    await page.getByRole('button', { name: 'Keep physics 5' }).first().click()
+    await page.getByRole('button', { name: 'One IP more' }).click()
+    const develop = page.getByRole('button', { name: /^Develop with/ })
+    await expect(develop).toHaveText('Develop with 5 and 1 IP and $3B')
+    await develop.click()
+    // 3 IP, less the 1 spent, plus 1 for being the first to develop it.
+    await expect(page.locator('.console').getByTitle('Influence points')).toHaveText('3 IP')
+    await page.getByRole('tab', { name: 'History' }).click()
+    await expect(page.getByText(/developed Advanced Laser Propulsion with 1 IP/)).toBeVisible()
+})
+
+test('the console lists owned cards and the hand, and opens a printed card', async ({ page }) => {
+    await openScenario(page, 'Campaign card collection')
+    const cards = page.locator('.console .ledger')
+    await expect(cards.getByRole('tab', { name: 'Owned 9' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+    )
+    await expect(cards.getByRole('button', { name: /^III Military Academy/ })).toBeVisible()
+    await cards.getByRole('tab', { name: 'Hand 3' }).click()
+    await cards.getByRole('button', { name: /^II Quantum Sensors/ }).click()
+    const card = page.getByRole('dialog', { name: 'Card' })
+    await expect(card.getByRole('heading', { name: /Quantum Sensors/ })).toBeVisible()
+    await expect(card.getByText('Costs you now')).toBeVisible()
+    await page.keyboard.press('ArrowRight')
+    await expect(card.getByRole('heading', { name: /Gifted Artists/ })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(card).toBeHidden()
 })

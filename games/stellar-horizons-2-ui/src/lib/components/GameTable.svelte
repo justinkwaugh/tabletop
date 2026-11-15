@@ -15,7 +15,14 @@
         HydratedStellarHorizonsGameState,
         StellarHorizonsProjectedState
     } from '@tabletop/stellar-horizons-2'
-    import { TECH_FIELDS, TurnPhase, type TechField } from '@tabletop/stellar-horizons-2'
+    import {
+        ActionType,
+        TECH_FIELDS,
+        TurnPhase,
+        buyableTitles,
+        usesTitles,
+        type TechField
+    } from '@tabletop/stellar-horizons-2'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
@@ -26,6 +33,7 @@
     import TechTree from '$lib/components/TechTree.svelte'
     import SystemPanel from '$lib/components/SystemPanel.svelte'
     import CombatPanel from '$lib/components/combat/CombatPanel.svelte'
+    import TitlesView from '$lib/components/titles/TitlesView.svelte'
     import FactionSheet from '$lib/components/prototype/playerArea/FactionSheet.svelte'
     import { playerArea } from '$lib/components/prototype/playerArea/campaignMock.svelte.js'
     import { fly } from 'svelte/transition'
@@ -48,7 +56,7 @@
     setGameSession(gameSession)
     const session = getGameSession()
 
-    type TableView = 'map' | 'techs'
+    type TableView = 'map' | 'techs' | 'titles'
     const paneLayout = new MediaQuery('(min-width: 64rem)')
     const mapOverpan = $derived(paneLayout.current ? 'both' : 'focus')
     let chosenView: { phase: TurnPhase | undefined; view: TableView } | undefined = $state()
@@ -170,6 +178,16 @@
         return () => clearTimeout(timer)
     })
 
+    const showsTitles = $derived(usesTitles(session.gameState))
+    // While the viewer can buy a title, the Titles button counts them, so one whose prerequisite
+    // ends with the turn is not missed.
+    const buyableTitleCount = $derived.by(() => {
+        const playerId = session.myPlayerId
+        if (!showsTitles || !playerId || !session.validActionTypes.includes(ActionType.BuyTitle))
+            return 0
+        return buyableTitles(session.gameState, playerId).length
+    })
+
     function choose(next: TableView) {
         chosenView = { phase: session.actingPhase, view: next }
     }
@@ -255,6 +273,17 @@
                             class:active={view === 'techs'}
                             onclick={() => choose('techs')}>Tech chart</button
                         >
+                        {#if showsTitles}
+                            <button
+                                type="button"
+                                class:active={view === 'titles'}
+                                onclick={() => choose('titles')}
+                                >Titles{#if buyableTitleCount > 0}<span
+                                        class="count"
+                                        title="Titles you can buy now">{buyableTitleCount}</span
+                                    >{/if}</button
+                            >
+                        {/if}
                         {#if view === 'techs'}
                             <span class="divider"></span>
                             <button
@@ -324,6 +353,8 @@
                                 <div class="faction-sheet"><FactionSheet /></div>
                             {/if}
                         </div>
+                    {:else if view === 'titles'}
+                        <TitlesView />
                     {:else}
                         <ScalingWrapper justify="center" controls="bottom-left" expandable>
                             <TechTree focus={techFocus} />
@@ -377,6 +408,20 @@
         background: #7fd3ff;
         border-color: #7fd3ff;
         color: #05070d;
+    }
+
+    .view-toggle .count {
+        display: inline-block;
+        min-width: 18px;
+        margin-left: 6px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: #f4c430;
+        color: #05070d;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-align: center;
     }
 
     .divider {

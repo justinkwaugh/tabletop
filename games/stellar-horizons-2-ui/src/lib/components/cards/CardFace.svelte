@@ -1,81 +1,74 @@
 <script lang="ts">
-    import { CardDeck, cardDefinition, romanLevel } from '@tabletop/stellar-horizons-2'
+    import { cardDefinition, romanLevel } from '@tabletop/stellar-horizons-2'
+    import { CARD_ART } from '$lib/art/manifest.js'
     import { FIELD_COLORS } from '$lib/utils/presentation.js'
 
-    // A fleet improvement or genetic manipulation as printed: its title and level on the deck's
-    // band, its text, the points on the star and the cost in the circle of its tech type's
-    // colour. With `cost` the circle shows what it costs the viewer now. With `onclick` the card
-    // is a button.
+    // A fleet improvement or genetic manipulation as printed, its art at `width`, with what it
+    // costs the viewer now beneath it (the printed circle shows the printed cost) and, with
+    // `note`, why it cannot be bought. With `onclick` the card is a button.
     let {
         cardId,
         cost,
         disabled = false,
         note,
-        compact = false,
+        width = 180,
         onclick
     }: {
         cardId: string
         cost?: number
         disabled?: boolean
         note?: string
-        compact?: boolean
+        width?: number
         onclick?: () => void
     } = $props()
 
     const card = $derived(cardDefinition(cardId))
-    const price = $derived(cost ?? card.cost)
+    const label = $derived(
+        `${card.name} ${romanLevel(card.level)}, ★ ${card.points}${cost !== undefined ? `, costs ${cost}` : ''}${note ? `, ${note}` : ''}`
+    )
 </script>
 
 {#snippet face()}
-    <span class="band" class:genetic={card.deck === CardDeck.Genetic}>
-        <span class="name">{card.name}</span>
-        <span class="level">{romanLevel(card.level)}</span>
-    </span>
-    {#if !compact}
-        <span class="text">{card.text}</span>
+    <img
+        src={CARD_ART[cardId]}
+        alt=""
+        {width}
+        height={Math.round((width * 348) / 253)}
+        style:width="{width}px"
+    />
+    {#if cost !== undefined || note}
+        <span class="foot">
+            {#if cost !== undefined}
+                <span class="cost"
+                    >Costs <b style:background={FIELD_COLORS[card.field]}>{cost}</b
+                    >{#if cost !== card.cost}<span class="printed">printed {card.cost}</span
+                        >{/if}</span
+                >
+            {/if}
+            {#if note}
+                <span class="note">{note}</span>
+            {/if}
+        </span>
     {/if}
-    <span class="foot">
-        <span class="points" title="{card.points} victory points">★ {card.points}</span>
-        {#if note}
-            <span class="note">{note}</span>
-        {/if}
-        <span
-            class="cost"
-            class:changed={price !== card.cost}
-            style:background={FIELD_COLORS[card.field]}
-            title="{price} {card.field.toLowerCase()} points">{price}</span
-        >
-    </span>
 {/snippet}
 
 {#if onclick}
-    <button type="button" class="card" class:compact {disabled} {onclick}>{@render face()}</button>
+    <button type="button" class="card" aria-label={label} {disabled} {onclick}
+        >{@render face()}</button
+    >
 {:else}
-    <div class="card" class:compact>{@render face()}</div>
+    <div class="card" role="img" aria-label={label}>{@render face()}</div>
 {/if}
 
 <style>
     .card {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        width: 188px;
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0 0 6px;
-        border: 1px solid #2a3a58;
-        border-radius: 7px;
-        background: #0b1220;
-        color: #dbe7f5;
-        text-align: left;
-        overflow: hidden;
-    }
-
-    .card.compact {
-        width: auto;
-        min-width: 150px;
+        align-items: center;
         gap: 4px;
-        padding-bottom: 4px;
+        margin: 0;
+        padding: 0;
+        color: #dbe7f5;
     }
 
     button.card {
@@ -84,74 +77,48 @@
 
     button.card:disabled {
         cursor: default;
-        opacity: 0.5;
     }
 
-    .band {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 6px;
-        padding: 4px 8px;
-        background: #6f6140;
-        color: #fbf3df;
-        font-weight: 700;
-        font-size: 13px;
+    button.card:disabled img {
+        opacity: 0.45;
     }
 
-    .band.genetic {
-        background: #4f6b34;
-    }
-
-    .level {
-        font-size: 12px;
-        letter-spacing: 0.08em;
-    }
-
-    .text {
-        padding: 0 8px;
-        font-size: 12px;
-        line-height: 1.35;
-        font-style: italic;
+    img {
+        display: block;
+        height: auto;
     }
 
     .foot {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        padding: 0 8px;
-        margin-top: auto;
-    }
-
-    .points {
-        font-size: 13px;
-        font-weight: 700;
-        color: #f2c94c;
-    }
-
-    .note {
-        font-size: 11px;
-        color: #ff8a7a;
-        text-align: center;
+        gap: 2px;
+        font-size: 12px;
     }
 
     .cost {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        justify-content: center;
-        min-width: 24px;
-        height: 24px;
-        padding: 0 4px;
-        box-sizing: border-box;
-        border: 2px solid #f4f7fb;
-        border-radius: 12px;
-        color: #ffffff;
-        font-size: 12px;
-        font-weight: 800;
+        gap: 5px;
     }
 
-    .cost.changed {
-        border-color: #f2c94c;
+    .cost b {
+        min-width: 24px;
+        padding: 1px 5px;
+        border-radius: 999px;
+        color: #fff;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .printed {
+        color: #7f93b0;
+        font-size: 11px;
+    }
+
+    .note {
+        color: #ff8a7a;
+        font-size: 11.5px;
+        text-align: center;
     }
 </style>

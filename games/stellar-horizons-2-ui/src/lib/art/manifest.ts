@@ -565,57 +565,126 @@ import art562 from '$lib/images/art/anomalies/tunnel-complex.webp'
 import art563 from '$lib/images/art/anomaly-backs/tunnel-complex.webp'
 import art564 from '$lib/images/art/anomalies/violent-separatists.webp'
 import art565 from '$lib/images/art/anomaly-backs/violent-separatists.webp'
-import art566 from '$lib/images/art/events/apprehend-renegade.webp'
-import art567 from '$lib/images/art/events/breakthrough-biology.webp'
-import art568 from '$lib/images/art/events/breakthrough-engineering.webp'
-import art569 from '$lib/images/art/events/breakthrough-physics.webp'
-import art570 from '$lib/images/art/events/collapsing-biosphere.webp'
-import art571 from '$lib/images/art/events/colonial-rush.webp'
-import art572 from '$lib/images/art/events/contagion.webp'
-import art573 from '$lib/images/art/events/first-contact.webp'
-import art574 from '$lib/images/art/events/homesteaders.webp'
-import art575 from '$lib/images/art/events/hostile-probe.webp'
-import art576 from '$lib/images/art/events/incoming-comet.webp'
-import art577 from '$lib/images/art/events/infectious-parasites.webp'
-import art578 from '$lib/images/art/events/irradiated-atmosphere.webp'
-import art579 from '$lib/images/art/events/pirate-raids-3.webp'
-import art580 from '$lib/images/art/events/pirate-raids-5.webp'
-import art581 from '$lib/images/art/events/prisoner-revolt.webp'
-import art582 from '$lib/images/art/events/smugglers.webp'
-import art583 from '$lib/images/art/events/supervolcano.webp'
-import art584 from '$lib/images/art/events/unrest.webp'
-import art585 from '$lib/images/art/events/ai-sentient-emergence.webp'
-import art586 from '$lib/images/art/goods/Beverages.webp'
-import art587 from '$lib/images/art/goods/Beverages-back.webp'
-import art588 from '$lib/images/art/demand/Beverages.webp'
-import art589 from '$lib/images/art/goods/Entertainment.webp'
-import art590 from '$lib/images/art/goods/Entertainment-back.webp'
-import art591 from '$lib/images/art/demand/Entertainment.webp'
-import art592 from '$lib/images/art/goods/Fauna.webp'
-import art593 from '$lib/images/art/goods/Fauna-back.webp'
-import art594 from '$lib/images/art/demand/Fauna.webp'
-import art595 from '$lib/images/art/goods/FineArt.webp'
-import art596 from '$lib/images/art/goods/FineArt-back.webp'
-import art597 from '$lib/images/art/demand/FineArt.webp'
-import art598 from '$lib/images/art/goods/Flora.webp'
-import art599 from '$lib/images/art/goods/Flora-back.webp'
-import art600 from '$lib/images/art/demand/Flora.webp'
-import art601 from '$lib/images/art/goods/Food.webp'
-import art602 from '$lib/images/art/goods/Food-back.webp'
-import art603 from '$lib/images/art/demand/Food.webp'
-import art604 from '$lib/images/art/goods/Machinery.webp'
-import art605 from '$lib/images/art/goods/Machinery-back.webp'
-import art606 from '$lib/images/art/demand/Machinery.webp'
-import art607 from '$lib/images/art/goods/Medicine.webp'
-import art608 from '$lib/images/art/goods/Medicine-back.webp'
-import art609 from '$lib/images/art/demand/Medicine.webp'
-import art610 from '$lib/images/art/goods/Ore.webp'
-import art611 from '$lib/images/art/goods/Ore-back.webp'
-import art612 from '$lib/images/art/demand/Ore.webp'
-import art613 from '$lib/images/art/goods/RareMaterials.webp'
-import art614 from '$lib/images/art/goods/RareMaterials-back.webp'
-import art615 from '$lib/images/art/demand/RareMaterials.webp'
-import art616 from '$lib/images/art/demand/Sol.webp'
+import art566 from '$lib/images/art/cards/crew-focus.webp'
+import art567 from '$lib/images/art/cards/hypersonic-missiles.webp'
+import art568 from '$lib/images/art/cards/minefields.webp'
+import art569 from '$lib/images/art/cards/planetary-surveys.webp'
+import art570 from '$lib/images/art/cards/reinforced-hulls.webp'
+import art571 from '$lib/images/art/cards/resilient-crews.webp'
+import art572 from '$lib/images/art/cards/robotic-focus.webp'
+import art573 from '$lib/images/art/cards/robo-miners.webp'
+import art574 from '$lib/images/art/cards/scout-ships.webp'
+import art575 from '$lib/images/art/cards/sensor-upgrades.webp'
+import art576 from '$lib/images/art/cards/superior-robotics.webp'
+import art577 from '$lib/images/art/cards/deep-core-mining.webp'
+import art578 from '$lib/images/art/cards/engine-upgrades.webp'
+import art579 from '$lib/images/art/cards/explorers-guild.webp'
+import art580 from '$lib/images/art/cards/freight-haulers.webp'
+import art581 from '$lib/images/art/cards/mining-vessel-upgrades.webp'
+import art582 from '$lib/images/art/cards/quantum-sensors.webp'
+import art583 from '$lib/images/art/cards/research-vessel-upgrades.webp'
+import art584 from '$lib/images/art/cards/robotic-swarms.webp'
+import art585 from '$lib/images/art/cards/self-repair-system.webp'
+import art586 from '$lib/images/art/cards/starports.webp'
+import art587 from '$lib/images/art/cards/traders-guild.webp'
+import art588 from '$lib/images/art/cards/fleet-logistics.webp'
+import art589 from '$lib/images/art/cards/interstellar-mining-conglomerate.webp'
+import art590 from '$lib/images/art/cards/military-academy.webp'
+import art591 from '$lib/images/art/cards/planetary-engineering.webp'
+import art592 from '$lib/images/art/cards/science-academy.webp'
+import art593 from '$lib/images/art/cards/stabilized-wormholes.webp'
+import art594 from '$lib/images/art/cards/aquatic-tolerance.webp'
+import art595 from '$lib/images/art/cards/arid-tolerance.webp'
+import art596 from '$lib/images/art/cards/cold-tolerance.webp'
+import art597 from '$lib/images/art/cards/creative.webp'
+import art598 from '$lib/images/art/cards/culinary-geniuses.webp'
+import art599 from '$lib/images/art/cards/cunning.webp'
+import art600 from '$lib/images/art/cards/enhanced-strength.webp'
+import art601 from '$lib/images/art/cards/environmental-tolerance.webp'
+import art602 from '$lib/images/art/cards/gifted-artists.webp'
+import art603 from '$lib/images/art/cards/pioneers.webp'
+import art604 from '$lib/images/art/cards/prolific-breeders.webp'
+import art605 from '$lib/images/art/cards/radiation-tolerance.webp'
+import art606 from '$lib/images/art/cards/skilled-biologists.webp'
+import art607 from '$lib/images/art/cards/skilled-engineers.webp'
+import art608 from '$lib/images/art/cards/skilled-entertainers.webp'
+import art609 from '$lib/images/art/cards/skilled-naturalists.webp'
+import art610 from '$lib/images/art/cards/skilled-physicists.webp'
+import art611 from '$lib/images/art/cards/cultural-dominance.webp'
+import art612 from '$lib/images/art/cards/eager-migrants.webp'
+import art613 from '$lib/images/art/cards/increased-body-size.webp'
+import art614 from '$lib/images/art/cards/infrared-vision.webp'
+import art615 from '$lib/images/art/cards/enhanced-intellect.webp'
+import art616 from '$lib/images/art/cards/neural-interface.webp'
+import art617 from '$lib/images/art/cards/reduced-body-size.webp'
+import art618 from '$lib/images/art/cards/skilled-artisans.webp'
+import art619 from '$lib/images/art/cards/spacefaring-populace.webp'
+import art620 from '$lib/images/art/cards/zero-g-tolerance.webp'
+import art621 from '$lib/images/art/cards/aquatic-species.webp'
+import art622 from '$lib/images/art/cards/cyborg-species.webp'
+import art623 from '$lib/images/art/cards/desert-species.webp'
+import art624 from '$lib/images/art/cards/flying.webp'
+import art625 from '$lib/images/art/cards/hive-mind.webp'
+import art626 from '$lib/images/art/cards/natural-immortality.webp'
+import art627 from '$lib/images/art/cards/subterranean.webp'
+import art628 from '$lib/images/art/cards/transcend-biology.webp'
+import art629 from '$lib/images/art/cards/Fleet-1-back.webp'
+import art630 from '$lib/images/art/cards/Fleet-2-back.webp'
+import art631 from '$lib/images/art/cards/Fleet-3-back.webp'
+import art632 from '$lib/images/art/cards/Genetic-1-back.webp'
+import art633 from '$lib/images/art/cards/Genetic-2-back.webp'
+import art634 from '$lib/images/art/cards/Genetic-3-back.webp'
+import art635 from '$lib/images/art/events/apprehend-renegade.webp'
+import art636 from '$lib/images/art/events/breakthrough-biology.webp'
+import art637 from '$lib/images/art/events/breakthrough-engineering.webp'
+import art638 from '$lib/images/art/events/breakthrough-physics.webp'
+import art639 from '$lib/images/art/events/collapsing-biosphere.webp'
+import art640 from '$lib/images/art/events/colonial-rush.webp'
+import art641 from '$lib/images/art/events/contagion.webp'
+import art642 from '$lib/images/art/events/first-contact.webp'
+import art643 from '$lib/images/art/events/homesteaders.webp'
+import art644 from '$lib/images/art/events/hostile-probe.webp'
+import art645 from '$lib/images/art/events/incoming-comet.webp'
+import art646 from '$lib/images/art/events/infectious-parasites.webp'
+import art647 from '$lib/images/art/events/irradiated-atmosphere.webp'
+import art648 from '$lib/images/art/events/pirate-raids-3.webp'
+import art649 from '$lib/images/art/events/pirate-raids-5.webp'
+import art650 from '$lib/images/art/events/prisoner-revolt.webp'
+import art651 from '$lib/images/art/events/smugglers.webp'
+import art652 from '$lib/images/art/events/supervolcano.webp'
+import art653 from '$lib/images/art/events/unrest.webp'
+import art654 from '$lib/images/art/events/ai-sentient-emergence.webp'
+import art655 from '$lib/images/art/goods/Beverages.webp'
+import art656 from '$lib/images/art/goods/Beverages-back.webp'
+import art657 from '$lib/images/art/demand/Beverages.webp'
+import art658 from '$lib/images/art/goods/Entertainment.webp'
+import art659 from '$lib/images/art/goods/Entertainment-back.webp'
+import art660 from '$lib/images/art/demand/Entertainment.webp'
+import art661 from '$lib/images/art/goods/Fauna.webp'
+import art662 from '$lib/images/art/goods/Fauna-back.webp'
+import art663 from '$lib/images/art/demand/Fauna.webp'
+import art664 from '$lib/images/art/goods/FineArt.webp'
+import art665 from '$lib/images/art/goods/FineArt-back.webp'
+import art666 from '$lib/images/art/demand/FineArt.webp'
+import art667 from '$lib/images/art/goods/Flora.webp'
+import art668 from '$lib/images/art/goods/Flora-back.webp'
+import art669 from '$lib/images/art/demand/Flora.webp'
+import art670 from '$lib/images/art/goods/Food.webp'
+import art671 from '$lib/images/art/goods/Food-back.webp'
+import art672 from '$lib/images/art/demand/Food.webp'
+import art673 from '$lib/images/art/goods/Machinery.webp'
+import art674 from '$lib/images/art/goods/Machinery-back.webp'
+import art675 from '$lib/images/art/demand/Machinery.webp'
+import art676 from '$lib/images/art/goods/Medicine.webp'
+import art677 from '$lib/images/art/goods/Medicine-back.webp'
+import art678 from '$lib/images/art/demand/Medicine.webp'
+import art679 from '$lib/images/art/goods/Ore.webp'
+import art680 from '$lib/images/art/goods/Ore-back.webp'
+import art681 from '$lib/images/art/demand/Ore.webp'
+import art682 from '$lib/images/art/goods/RareMaterials.webp'
+import art683 from '$lib/images/art/goods/RareMaterials-back.webp'
+import art684 from '$lib/images/art/demand/RareMaterials.webp'
+import art685 from '$lib/images/art/demand/Sol.webp'
 
 export const SYSTEM_ART: Record<string, string> = {
     sol: art0,
@@ -1523,69 +1592,146 @@ export const ANOMALY_BACK_ART: Record<string, string> = {
 }
 
 export const EVENT_ART: Record<string, string> = {
-    'apprehend-renegade': art566,
-    'breakthrough-biology': art567,
-    'breakthrough-engineering': art568,
-    'breakthrough-physics': art569,
-    'collapsing-biosphere': art570,
-    'colonial-rush': art571,
-    contagion: art572,
-    'first-contact': art573,
-    homesteaders: art574,
-    'hostile-probe': art575,
-    'incoming-comet': art576,
-    'infectious-parasites': art577,
-    'irradiated-atmosphere': art578,
-    'pirate-raids-3': art579,
-    'pirate-raids-5': art580,
-    'prisoner-revolt': art581,
-    smugglers: art582,
-    supervolcano: art583,
-    unrest: art584,
-    'ai-sentient-emergence': art585
+    'apprehend-renegade': art635,
+    'breakthrough-biology': art636,
+    'breakthrough-engineering': art637,
+    'breakthrough-physics': art638,
+    'collapsing-biosphere': art639,
+    'colonial-rush': art640,
+    contagion: art641,
+    'first-contact': art642,
+    homesteaders: art643,
+    'hostile-probe': art644,
+    'incoming-comet': art645,
+    'infectious-parasites': art646,
+    'irradiated-atmosphere': art647,
+    'pirate-raids-3': art648,
+    'pirate-raids-5': art649,
+    'prisoner-revolt': art650,
+    smugglers: art651,
+    supervolcano: art652,
+    unrest: art653,
+    'ai-sentient-emergence': art654
 }
 
 export const EVENT_ART_SIZE = { width: 238, height: 238 }
 
+// Fleet improvement and genetic manipulation fronts, keyed by card id, 253x348.
+export const CARD_ART: Record<string, string> = {
+    'crew-focus': art566,
+    'hypersonic-missiles': art567,
+    minefields: art568,
+    'planetary-surveys': art569,
+    'reinforced-hulls': art570,
+    'resilient-crews': art571,
+    'robotic-focus': art572,
+    'robo-miners': art573,
+    'scout-ships': art574,
+    'sensor-upgrades': art575,
+    'superior-robotics': art576,
+    'deep-core-mining': art577,
+    'engine-upgrades': art578,
+    'explorers-guild': art579,
+    'freight-haulers': art580,
+    'mining-vessel-upgrades': art581,
+    'quantum-sensors': art582,
+    'research-vessel-upgrades': art583,
+    'robotic-swarms': art584,
+    'self-repair-system': art585,
+    starports: art586,
+    'traders-guild': art587,
+    'fleet-logistics': art588,
+    'interstellar-mining-conglomerate': art589,
+    'military-academy': art590,
+    'planetary-engineering': art591,
+    'science-academy': art592,
+    'stabilized-wormholes': art593,
+    'aquatic-tolerance': art594,
+    'arid-tolerance': art595,
+    'cold-tolerance': art596,
+    creative: art597,
+    'culinary-geniuses': art598,
+    cunning: art599,
+    'enhanced-strength': art600,
+    'environmental-tolerance': art601,
+    'gifted-artists': art602,
+    pioneers: art603,
+    'prolific-breeders': art604,
+    'radiation-tolerance': art605,
+    'skilled-biologists': art606,
+    'skilled-engineers': art607,
+    'skilled-entertainers': art608,
+    'skilled-naturalists': art609,
+    'skilled-physicists': art610,
+    'cultural-dominance': art611,
+    'eager-migrants': art612,
+    'increased-body-size': art613,
+    'infrared-vision': art614,
+    'enhanced-intellect': art615,
+    'neural-interface': art616,
+    'reduced-body-size': art617,
+    'skilled-artisans': art618,
+    'spacefaring-populace': art619,
+    'zero-g-tolerance': art620,
+    'aquatic-species': art621,
+    'cyborg-species': art622,
+    'desert-species': art623,
+    flying: art624,
+    'hive-mind': art625,
+    'natural-immortality': art626,
+    subterranean: art627,
+    'transcend-biology': art628
+}
+
+// Card backs, keyed `${deck}-${level}`.
+export const CARD_BACK_ART: Record<string, string> = {
+    'Fleet-1': art629,
+    'Fleet-2': art630,
+    'Fleet-3': art631,
+    'Genetic-1': art632,
+    'Genetic-2': art633,
+    'Genetic-3': art634
+}
+
 export const TRADE_GOOD_ART: Record<string, string> = {
-    Beverages: art586,
-    Entertainment: art589,
-    Fauna: art592,
-    FineArt: art595,
-    Flora: art598,
-    Food: art601,
-    Machinery: art604,
-    Medicine: art607,
-    Ore: art610,
-    RareMaterials: art613
+    Beverages: art655,
+    Entertainment: art658,
+    Fauna: art661,
+    FineArt: art664,
+    Flora: art667,
+    Food: art670,
+    Machinery: art673,
+    Medicine: art676,
+    Ore: art679,
+    RareMaterials: art682
 }
 
 export const TRADE_GOOD_BACK_ART: Record<string, string> = {
-    Beverages: art587,
-    Entertainment: art590,
-    Fauna: art593,
-    FineArt: art596,
-    Flora: art599,
-    Food: art602,
-    Machinery: art605,
-    Medicine: art608,
-    Ore: art611,
-    RareMaterials: art614
+    Beverages: art656,
+    Entertainment: art659,
+    Fauna: art662,
+    FineArt: art665,
+    Flora: art668,
+    Food: art671,
+    Machinery: art674,
+    Medicine: art677,
+    Ore: art680,
+    RareMaterials: art683
 }
 
 // Keyed by TradeGood, and 'Sol' for Sol's permanent marker.
 export const DEMAND_ART: Record<string, string> = {
-    Beverages: art588,
-    Entertainment: art591,
-    Fauna: art594,
-    FineArt: art597,
-    Flora: art600,
-    Food: art603,
-    Machinery: art606,
-    Medicine: art609,
-    Ore: art612,
-    RareMaterials: art615,
-    Sol: art616
+    Beverages: art657,
+    Entertainment: art660,
+    Fauna: art663,
+    FineArt: art666,
+    Flora: art669,
+    Food: art672,
+    Machinery: art675,
+    Medicine: art678,
+    Ore: art681,
+    RareMaterials: art684,
+    Sol: art685
 }
 
 export const ANOMALY_BADGE: Record<

@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { CARDS, CardDeck } from '@tabletop/stellar-horizons-2'
 
 const vassalDir = process.argv[2] ?? '/workspace/artassets/stellar-horizons-2/vassal/unpacked'
 const images = join(vassalDir, 'images')
@@ -157,6 +158,7 @@ for (const dir of [
     'anomalies',
     'anomaly-backs',
     'events',
+    'cards',
     'goods',
     'demand'
 ]) {
@@ -254,6 +256,8 @@ const entries = {
     anomalies: {},
     anomalyBacks: {},
     events: {},
+    cards: {},
+    cardBacks: {},
     goods: {},
     goodBacks: {},
     demand: {}
@@ -619,6 +623,55 @@ for (const [anomalyId, file] of Object.entries(ANOMALY_ART)) {
     register('anomalyBacks', anomalyId, `anomaly-backs/${anomalyId}.webp`)
 }
 
+// Fleet improvement and genetic manipulation fronts are `FI|GM <name> <level>.png`, apart from
+// these, whose module files are spelt otherwise.
+const CARD_FILES = {
+    'hypersonic-missiles': 'FI Hypersonic_Missiles 1.png',
+    minefields: 'FI Mine Fields 1.png',
+    'robotic-focus': 'FI Robitic Focus 1.png',
+    'superior-robotics': 'FI Superior Robotic 1.png',
+    'explorers-guild': 'FI Explorers Guild 2.png',
+    'quantum-sensors': 'FI Quantum_Sensors 2.png',
+    'robotic-swarms': 'FI Robitic Swarms 2.png',
+    starports: 'FI Star Ports 2.png',
+    'traders-guild': 'FI Traders Guild 2.png',
+    'science-academy': 'FI Sicence Academy 3.png',
+    'environmental-tolerance': 'GM Enviromental Tolerance 1.png',
+    'skilled-entertainers': 'GM Skilled Enterainers 1.png',
+    'enhanced-intellect': 'GM Inhanced Intellect 2.png',
+    'spacefaring-populace': 'GM Spacefaring Population 2.png'
+}
+const CARD_PREFIX = { [CardDeck.Fleet]: 'FI', [CardDeck.Genetic]: 'GM' }
+
+// A card is printed on black; the black outside its rounded border is made transparent.
+function cardWebp(source, target) {
+    webp(source, target, [
+        '-alpha',
+        'set',
+        '-fuzz',
+        '12%',
+        '-fill',
+        'none',
+        ...['0,0', '252,0', '0,347', '252,347'].flatMap((corner) => [
+            '-draw',
+            `color ${corner} floodfill`
+        ])
+    ])
+}
+
+for (const card of CARDS) {
+    const file = CARD_FILES[card.id] ?? `${CARD_PREFIX[card.deck]} ${card.name} ${card.level}.png`
+    cardWebp(file, `cards/${card.id}.webp`)
+    register('cards', card.id, `cards/${card.id}.webp`)
+}
+for (const deck of [CardDeck.Fleet, CardDeck.Genetic]) {
+    for (const level of [1, 2, 3]) {
+        const key = `${deck}-${level}`
+        cardWebp(`${CARD_PREFIX[deck]} ${level} Back.png`, `cards/${key}-back.webp`)
+        register('cardBacks', key, `cards/${key}-back.webp`)
+    }
+}
+
 const EVENT_SIZE = { width: 238, height: 238 }
 for (const [eventId, file] of Object.entries(EVENT_ART)) {
     webp(file, `events/${eventId}.webp`)
@@ -709,6 +762,16 @@ ${record('events').join('\n')}
 }
 
 export const EVENT_ART_SIZE = ${JSON.stringify(EVENT_SIZE)}
+
+// Fleet improvement and genetic manipulation fronts, keyed by card id, 253x348.
+export const CARD_ART: Record<string, string> = {
+${record('cards').join('\n')}
+}
+
+// Card backs, keyed \`\${deck}-\${level}\`.
+export const CARD_BACK_ART: Record<string, string> = {
+${record('cardBacks').join('\n')}
+}
 
 export const TRADE_GOOD_ART: Record<string, string> = {
 ${record('goods').join('\n')}

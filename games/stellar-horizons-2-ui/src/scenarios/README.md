@@ -125,6 +125,15 @@ Developing techs in 2100. Player 1 (the Starfarers) holds Scout Ships and Gifted
 - **The deal.** When everyone has finished, a Player who bought nothing discards their hand and history says so; every hand is filled again, level I only, drawn for them in initiative order. The console shows the new hand to its owner and only the backs (type and level) to others.
 - **Protected view.** With Options → Protected mode, choosing Player 2 shows Player 1's hand as backs and the decks' cards hidden; history names a drawn card only to its drawer.
 
+## Campaign card collection
+
+Developing techs in 2100 with a late-game collection. Player 1 (the Starfarers) owns nine cards: Robo Miners, Crew Focus, Engine Upgrades, Freight Haulers and Military Academy, Pioneers, Creative, Neural Interface and Aquatic Species (29 VP). As Engineer they hold two fleet cards, Scout Ships and Quantum Sensors, and Gifted Artists. The Givers own Cunning and Sensor Upgrades.
+
+- **Owned.** The console's Cards section opens on Owned 9: fleet improvements, then genetic manipulations, each by level, with its level tag, name, effect and ★ points.
+- **Hand.** The Hand 3 tab lists Quantum Sensors and Scout Ships, then Gifted Artists, each with what it costs Player 1 now in its tech type's colour (18, 15 and 17).
+- **The printed card.** A row opens the card's art with its effect, points, printed cost and cost now; ◀ ▶ or the arrow keys step through the tab's rows, and Escape or Close shuts it.
+- **Others.** Choosing the Givers in the standings shows their two cards owned and their hand as backs (deck and level).
+
 ## Campaign card levels
 
 The deal after 2100's development: nobody bought anything, so every hand was discarded. Player 1 (the Starfarers) owns Starship Theoretical Concepts, so they may draw fleet improvements of level I or II.

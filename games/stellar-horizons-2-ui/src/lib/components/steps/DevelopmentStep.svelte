@@ -149,90 +149,100 @@
 
     async function pay() {
         if (!purchase || !affordable) return
+        // The payment is derived from the choices, so it is read before they are cleared.
+        const paid = { markers, cash, influence }
         chosenMarkers = undefined
         chosenInfluence = undefined
         if (techId) {
-            await gameSession.developTech(techId, markers, cash, influence)
+            await gameSession.developTech(techId, paid.markers, paid.cash, paid.influence)
         } else if (cardId) {
-            await gameSession.buyCard(cardId, markers, cash, influence)
+            await gameSession.buyCard(cardId, paid.markers, paid.cash, paid.influence)
         }
     }
 </script>
 
 <div class="sh-step">
     {#if purchase && field}
-        {#if techId}
-            {@const tech = techDefinition(techId)}
-            <div class="section-title">{tech.name}</div>
-            <p class="hint">
-                {TECH_EFFECT_TEXT[tech.id]}. Cost {cost}
-                {field.toLowerCase()} points.
-            </p>
-        {:else if cardId}
-            <div class="section-title">{cardTitle(cardId)}</div>
-            <p class="hint">
-                {cardDefinition(cardId).text}. Cost {cost}
-                {field.toLowerCase()} points; it counts as your {field.toLowerCase()} purchase this turn.
-            </p>
-        {/if}
-        <div class="payment">
-            <div class="group">
-                <span class="label">Pay with</span>
-                <span class="chits">
-                    {#each paying as marker (marker.index)}
-                        <TechMarker
-                            {field}
-                            value={marker.value}
-                            size={40}
-                            label="Keep {field.toLowerCase()} {marker.value}"
-                            onclick={() => toggle(marker.index)}
-                        />
-                    {/each}
-                    {#if maxInfluence > 0 || influence > 0}
-                        <span class="influence-picker" aria-label="IP to spend">
-                            <button
-                                type="button"
-                                aria-label="One IP fewer"
-                                disabled={influence === 0}
-                                onclick={() => adjustInfluence(-1)}>−</button
-                            >
-                            <span>{influence} IP</span>
-                            <button
-                                type="button"
-                                aria-label="One IP more"
-                                disabled={influence >= maxInfluence}
-                                onclick={() => adjustInfluence(1)}>+</button
-                            >
-                        </span>
-                    {/if}
-                    {#if cash > 0}
-                        <span class="cash" class:short={!affordable}>${cash}B</span>
-                    {:else if paying.length === 0}
-                        <span class="nothing">Nothing</span>
-                    {/if}
-                </span>
-            </div>
-            {#if keeping.length > 0}
-                <div class="group keep">
-                    <span class="label">Keep</span>
-                    <span class="chits">
-                        {#each keeping as marker (marker.index)}
-                            <TechMarker
-                                {field}
-                                value={marker.value}
-                                size={40}
-                                label="Pay with {field.toLowerCase()} {marker.value}"
-                                onclick={() => toggle(marker.index)}
-                            />
-                        {/each}
-                    </span>
-                </div>
+        <div class="purchase">
+            {#if cardId}
+                <CardFace {cardId} width={200} />
             {/if}
-        </div>
-        <div class="buttons">
-            <button type="button" class="primary" disabled={!affordable} onclick={pay}>
-                {payLabel}
-            </button>
+            <div class="purchase-detail">
+                {#if techId}
+                    {@const tech = techDefinition(techId)}
+                    <div class="section-title">{tech.name}</div>
+                    <p class="hint">
+                        {TECH_EFFECT_TEXT[tech.id]}. Cost {cost}
+                        {field.toLowerCase()} points.
+                    </p>
+                {:else if cardId}
+                    <div class="section-title">{cardTitle(cardId)}</div>
+                    <p class="hint">
+                        {cardDefinition(cardId).text}. Cost {cost}
+                        {field.toLowerCase()} points; it counts as your {field.toLowerCase()} purchase
+                        this turn.
+                    </p>
+                {/if}
+                <div class="payment">
+                    <div class="group">
+                        <span class="label">Pay with</span>
+                        <span class="chits">
+                            {#each paying as marker (marker.index)}
+                                <TechMarker
+                                    {field}
+                                    value={marker.value}
+                                    size={40}
+                                    label="Keep {field.toLowerCase()} {marker.value}"
+                                    onclick={() => toggle(marker.index)}
+                                />
+                            {/each}
+                            {#if maxInfluence > 0 || influence > 0}
+                                <span class="influence-picker" aria-label="IP to spend">
+                                    <button
+                                        type="button"
+                                        aria-label="One IP fewer"
+                                        disabled={influence === 0}
+                                        onclick={() => adjustInfluence(-1)}>−</button
+                                    >
+                                    <span>{influence} IP</span>
+                                    <button
+                                        type="button"
+                                        aria-label="One IP more"
+                                        disabled={influence >= maxInfluence}
+                                        onclick={() => adjustInfluence(1)}>+</button
+                                    >
+                                </span>
+                            {/if}
+                            {#if cash > 0}
+                                <span class="cash" class:short={!affordable}>${cash}B</span>
+                            {:else if paying.length === 0}
+                                <span class="nothing">Nothing</span>
+                            {/if}
+                        </span>
+                    </div>
+                    {#if keeping.length > 0}
+                        <div class="group keep">
+                            <span class="label">Keep</span>
+                            <span class="chits">
+                                {#each keeping as marker (marker.index)}
+                                    <TechMarker
+                                        {field}
+                                        value={marker.value}
+                                        size={40}
+                                        label="Pay with {field.toLowerCase()} {marker.value}"
+                                        onclick={() => toggle(marker.index)}
+                                    />
+                                {/each}
+                            </span>
+                        </div>
+                    {/if}
+                </div>
+                <div class="buttons">
+                    <button type="button" class="primary" disabled={!affordable} onclick={pay}>
+                        {payLabel}
+                    </button>
+                </div>
+            </div>
         </div>
     {:else}
         <dl class="funds" aria-label="Available to spend">
@@ -300,7 +310,23 @@
     .hand {
         display: flex;
         flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    /* A chosen card sits beside its payment, so the printed card stays in view. */
+    .purchase {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .purchase-detail {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
         gap: 8px;
+        min-width: 260px;
     }
 
     .modifier {
