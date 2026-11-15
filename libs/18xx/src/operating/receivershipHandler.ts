@@ -120,9 +120,9 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
         const companyId = this.receiver(context.gameState)
         const automatic = companyId ? this.automatic(context.gameState, companyId) : undefined
         // A step that finishes itself, as a station step with nothing to place does, needs no
-        // second finish from the receiver.
-        const type = automatic?.schema.properties.type.const
-        if (automatic && !context.getPendingActions().some((action) => action.type === type))
+        // second finish from the receiver; a step whose own system action comes first, as an 1861
+        // company's loans are settled, is entered again once it has applied.
+        if (automatic && !context.getPendingActions().length)
             context.addSystemAction(automatic.schema, automatic.fields)
     }
     onAction(action: HydratedAction, context: MachineContext<S>): string {

@@ -245,8 +245,13 @@ export const validateRailwayComponents: StateValidation<EighteenXXState> = (
  * earnings until play resumes.
  */
 export function railwayStateValidation({
-    operatingInterruptions = []
-}: { operatingInterruptions?: readonly string[] } = {}): StateValidation<EighteenXXState> {
+    operatingInterruptions = [],
+    phaseDecisionStates = []
+}: {
+    operatingInterruptions?: readonly string[]
+    /** A title's states that decide what a phase change brings before its trains are discarded. */
+    phaseDecisionStates?: readonly string[]
+} = {}): StateValidation<EighteenXXState> {
     return (state, components) => {
         validateStockRound(state)
         validateOperatingSet(state)
@@ -256,7 +261,7 @@ export function railwayStateValidation({
         validateFinalResults(state)
         validateCompanyDecisions(state)
         validateRouteStep(state)
-        validatePhaseChange(state)
+        validatePhaseChange(state, phaseDecisionStates)
         validateEarningsDistribution(state, operatingInterruptions)
         validateTrainPurchaseStep(state)
         validateRailwayComponents(state, components)

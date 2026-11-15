@@ -878,6 +878,12 @@ function describeShared(
                 detail: resolution.lotIds.map((id) => `${companyName(id)} closed`).join(' · '),
                 important: true
             }
+        if (resolution.kind === 'discount')
+            return {
+                text: `Everyone passed: ${lotName(resolution.lotId)} now opens lower`,
+                detail: `${money(resolution.discount)} off, ${playerName(resolution.nominatorId)} to start`,
+                important: true
+            }
         return { text: 'Auction ended', routine: true }
     }
     if (isAuctionCompany(action))

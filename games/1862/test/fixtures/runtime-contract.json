@@ -7,7 +7,7 @@
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
     "BuyShares": "8f60485b6529935b55415672fd55755010a62988b882f0f1e6a637772a2a6a25",
     "BuyStations": "fa1d26d475eb98a866c20be7f234bdf48af23d6bcd1fa0e341a242d673681ccd",
-    "BuyTrain": "e056830121300080ef83b562169963ed85049d9f2b7b800359dc6fb272db7557",
+    "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
     "BuyWarranties": "d7bd98a40f715e4bcf8898791379313356e580ee6503bbb68d356c7a449738c4",
     "CompleteShareMerge": "353354ec9ccab1375116edb2c42202a47f18dd358150aa7665d8d5ea50d36745",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
@@ -30,8 +30,8 @@
     "ForgiveFine": "4267fe6daa87dbd8726c7be65d0900357731454357c3c04e4666f02f4679a9bf",
     "FormLner": "df1c0668f98fed8dcb3f3550c0f971b3a912d52bbc1c5cb9186a33683bd2ffca",
     "GoBankrupt": "58cf0cc8a4dc791f17364fd2f0e93552cf2af8921a93d5dab315837c7cd5c0ca",
-    "LayPrivateTile": "0629721f6f87d606cfde0451aca4d77ab599f19a25a9bd2e57e397e5226bb676",
-    "LayTile": "f6fdd363e241d0f3956e2235c2b20592d5352f527b049f5e5340a8a9f649eca3",
+    "LayPrivateTile": "8fe6bfc7d8f5d5c8f4055e418bc59b2b8680d23734b546f9622c80a1085daed5",
+    "LayTile": "a97510122093676f6fe04f834f75a3735a949727476971890c48b3149e2f25a1",
     "ObtainCharter": "3eb58fb22d1de9e772c032dac5fba62467236699c074b2706f94e0efa42c782e",
     "OfferPurchase": "ada2ef3b1e215a94eee8ce5de40283d1dbe277e72a95c29469b2a1a8c19d6fd3",
     "OpenCharterAuction": "2542d65b4410e71f3df7e4d68f790e33a9d48d08d5002b8c49b189e6eb6efd41",
@@ -46,7 +46,7 @@
     "Refinance": "86d0e3c054fa818d97e452ec5b4ddd75546b902403ee7f8b3ca5725d80107054",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
-    "RespondToTrackConsent": "ffd2dd7d01d094d6292ffbc89e8fdecf9ac8a62505542ccd64a70a0aa13abe24",
+    "RespondToTrackConsent": "ec49608e7714bcf685930bc4e7d3785aff976bed12e92e1ccb3ec6d763f7f9b1",
     "RunTrains": "f77e13e519cdbe71c499b87416f7dd039f58690003a440888b48845bb0ec985a",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
@@ -3844,6 +3844,9 @@
             "properties": {
               "acted": {
                 "type": "boolean"
+              },
+              "auctionWinnerId": {
+                "type": "string"
               },
               "bought": {
                 "type": "boolean"

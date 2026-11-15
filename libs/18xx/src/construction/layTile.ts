@@ -89,6 +89,10 @@ export function applyTrackLay(
     const construction = new TrackConstruction(state, rules, payer)
     const inventory = construction.inventoryAfter(details)
     const { stations, stationReservations, hexReservations } = construction.stationsAfter(details)
+    const loans =
+        payer.kind === 'company' && details.cost
+            ? (rules.borrowing?.borrowFor(state, payer.companyId, details.cost) ?? [])
+            : []
     if (details.cost)
         settleCashPayments(state, [{ from: payer, to: { kind: 'bank' }, amount: details.cost }])
     state.tileInventory = inventory
@@ -107,11 +111,12 @@ export function applyTrackLay(
             definitionId: details.definitionId,
             privateCompanyId
         })
+    const borrowed = loans.length ? { ...details, loans } : details
     const effects = rules.afterLay?.(state, details, payer)
-    if (!effects) return details
+    if (!effects) return borrowed
     settleCashPayments(state, effects.payments)
     for (const privateId of effects.closedPrivateIds) closePrivate(state, privateId)
     return effects.payments.length || effects.closedPrivateIds.length
-        ? { ...details, effects }
-        : details
+        ? { ...borrowed, effects }
+        : borrowed
 }

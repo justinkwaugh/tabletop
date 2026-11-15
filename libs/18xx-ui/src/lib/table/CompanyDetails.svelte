@@ -1,6 +1,6 @@
 <script lang="ts">
     import { chainSidewaysScroll } from '@tabletop/frontend-components'
-    import { privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
+    import { NationalCompanyKind, privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
         companySharePrice,
@@ -405,7 +405,11 @@
                         {/each}
                     </tbody>
                 </table>
-            {:else}<p class="empty">No issued shares.</p>{/if}
+            {:else}<p class="empty">
+                    {company.kind === NationalCompanyKind
+                        ? 'Owned by the state; no shares.'
+                        : 'No issued shares.'}
+                </p>{/if}
         </section>
         {#if !vertical || privates.length || personalPrivates.length || investmentCompanies.length}
             <section aria-label="Company assets">
@@ -487,7 +491,7 @@
         {@render marketValue()}
         {#if session.loans.rules && company.kind !== 'private' && company.started}<div>
                 <span>{session.presentation.loanTerms?.name ?? 'Loans'}</span><strong
-                    >{session.loans.loans(company.id)}/{session.loans.capacity(company.id)}</strong
+                    >{session.loans.held(company.id)}</strong
                 >
             </div>{/if}
         {#each session.presentation.companyFacts?.(session.gameState, company.id) ?? [] as fact (fact.label)}<div

@@ -279,7 +279,8 @@ export function createEighteenXXRuntime<
             ? new PresidencyClaimsHandler(handler, { stockRules: rules, receivershipRules })
             : handler
     const familySteps = options.operatingSteps ?? OperatingStepStates
-    const operatingSteps = loanRules ? [...familySteps, 'RepayingLoans'] : familySteps
+    const loanStep = !!loanRules && !loanRules.automatic
+    const operatingSteps = loanStep ? [...familySteps, 'RepayingLoans'] : familySteps
     const after = (step: string) => stateAfterOperatingStep(step, operatingSteps)
     assert(
         !options.stationsWithTrack || !familySteps.includes('PlacingStation'),
@@ -290,7 +291,7 @@ export function createEighteenXXRuntime<
             ? new StationsWithTrackHandler(handler, options.stationRules, after('LayingTrack'))
             : handler
     const allowsLoans = (handler: Handler): Handler =>
-        loanRules && !loanRules.borrowsInLoanStepOnly
+        loanRules && loanStep && !loanRules.borrowsInLoanStepOnly
             ? new LoanTakingHandler(handler, loanRules)
             : handler
     const { accessRightRules } = options
@@ -562,7 +563,7 @@ export function createEighteenXXRuntime<
                 )
             )
         ),
-        ...(loanRules
+        ...(loanRules && loanStep
             ? {
                   // A loan's move left can take the company's price to zero; it closes then.
                   RepayingLoans: followsRunInstructions(
@@ -697,7 +698,7 @@ export function createEighteenXXRuntime<
             after('DistributingEarnings'),
             receivershipRules
         ),
-        ...trainActions(options.trainRules, options.phaseRules, !loanRules),
+        ...trainActions(options.trainRules, options.phaseRules, !loanStep),
         ...bidBoxActions(options.bidBoxRules),
         ...(options.titleActions ?? [])
     ])

@@ -13,15 +13,27 @@ export const LoanStep = Type.Object(
     { additionalProperties: false }
 )
 export type LoanStep = Type.Static<typeof LoanStep>
+/** Loans the operating company took this turn, their interest paid as they were taken. */
+export const TurnLoans = Type.Object(
+    { companyId: Type.String(), loans: Type.Integer({ minimum: 1 }) },
+    { additionalProperties: false }
+)
+export type TurnLoans = Type.Static<typeof TurnLoans>
 export const LoanFields = {
     interestRate: Type.Optional(Type.Integer({ minimum: 0 })),
-    loanStep: Type.Optional(LoanStep)
+    loanStep: Type.Optional(LoanStep),
+    turnLoans: Type.Optional(TurnLoans)
 }
 export type LoanState = StockState & Type.Static<Type.TObject<typeof LoanFields>>
 
 export type LoanMarketMove = { direction: string; steps: number }
 export const LoanRecord = Type.Object(
-    { payment: CashPayment, marketMove: Type.Optional(StockMarketMove) },
+    {
+        payment: CashPayment,
+        /** The interest paid as the loan was taken, where the title charges it then. */
+        interest: Type.Optional(CashPayment),
+        marketMove: Type.Optional(StockMarketMove)
+    },
     { additionalProperties: false }
 )
 export type LoanRecord = Type.Static<typeof LoanRecord>
@@ -65,6 +77,17 @@ export interface LoanRules {
      * bonds are issued at the end of the operating turn (§14.2).
      */
     borrowsInLoanStepOnly?: true
+    /**
+     * Companies never borrow by choice: the system takes the fewest loans a payment needs (see
+     * `automaticBorrowing`), and the title settles interest and repayment in a step of its own,
+     * as 1861's (§10.2, §10.8–§10.9). The family's loan step and its loan Actions are left out.
+     */
+    automatic?: true
+    /**
+     * A loan's interest for the round is paid as it is taken, so a company owes interest in its
+     * turn only on the loans it began the turn with (1861 §10.2).
+     */
+    interestWhenTaken?: true
 }
 
 export function companyLoans(state: LoanState, companyId: string): number {
@@ -82,7 +105,7 @@ export function loansRemaining(state: LoanState, rules: LoanRules): number {
 export function interestOwed(state: LoanState, rules: LoanRules, companyId: string): number {
     assertExists(state.interestRate, 'Interest is charged at a fixed rate')
     return (
-        (state.interestRate * companyLoans(state, companyId) * rules.value) / 100 +
+        companyLoans(state, companyId) * loanInterest(state, rules) +
         (rules.extraInterest?.(state, companyId) ?? 0)
     )
 }
@@ -124,12 +147,44 @@ export function takeLoan(state: LoanState, rules: LoanRules, companyId: string):
     settleCashPayments(state, [payment])
     const company = getCompany(state, companyId)
     company.loans = (company.loans ?? 0) + 1
-    return withMarketMove(
+    const record = withMarketMove(
         state,
         rules.marketFor?.(state) ?? rules.market,
         companyId,
         payment,
         rules.takeMove
+    )
+    if (!rules.interestWhenTaken) return record
+    const interest: CashPayment = {
+        from: { kind: 'company', companyId },
+        to: { kind: 'bank' },
+        amount: loanInterest(state, rules)
+    }
+    if (interest.amount) settleCashPayments(state, [interest])
+    state.turnLoans =
+        state.turnLoans?.companyId === companyId
+            ? { companyId, loans: state.turnLoans.loans + 1 }
+            : { companyId, loans: 1 }
+    return interest.amount ? { ...record, interest } : record
+}
+
+/** The interest one loan pays in a round. */
+export function loanInterest(state: LoanState, rules: LoanRules): number {
+    return ((state.interestRate ?? rules.rate(state)) * rules.value) / 100
+}
+
+/**
+ * The interest the company owes in its turn: on the loans it began the turn with, where the
+ * title charges a loan's first interest as it is taken.
+ */
+export function turnInterestOwed(state: LoanState, rules: LoanRules, companyId: string): number {
+    const taken =
+        rules.interestWhenTaken && state.turnLoans?.companyId === companyId
+            ? state.turnLoans.loans
+            : 0
+    return (
+        (companyLoans(state, companyId) - taken) * loanInterest(state, rules) +
+        (rules.extraInterest?.(state, companyId) ?? 0)
     )
 }
 

@@ -15,7 +15,7 @@
     <section aria-label={terms?.name ?? 'Loans'}>
         <h2>
             {name} · {terms?.name ?? 'Loans'}
-            {session.loans.loans(companyId)}/{session.loans.capacity(companyId)}
+            {session.loans.held(companyId)}
         </h2>
         <p>
             {#if paid?.default && terms?.interestDefault}

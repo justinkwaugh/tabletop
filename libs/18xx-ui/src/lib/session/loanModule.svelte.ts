@@ -63,6 +63,12 @@ export class LoanModule {
         assertExists(this.rules, 'This title has no loans')
         return this.rules.capacity(this.session.state, companyId)
     }
+    /** The company's loans against its limit, or alone where it may borrow without one. */
+    held(companyId: string): string {
+        const capacity = this.capacity(companyId)
+        const loans = this.loans(companyId)
+        return Number.isFinite(capacity) ? `${loans}/${capacity}` : String(loans)
+    }
 
     async take(companyId: string) {
         assert(this.canTake, 'The company cannot borrow now')

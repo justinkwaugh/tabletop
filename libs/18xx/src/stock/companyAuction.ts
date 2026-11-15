@@ -69,6 +69,11 @@ export interface CompanyAuctionRules {
     formationReason(state: CompanyAuctionState, formation: CompanyFormation): string | undefined
     /** Settles the bid and the title's formation terms once the company has its president. */
     form(state: CompanyAuctionState, formation: CompanyFormation): void
+    /**
+     * The turn records the winner, for the title's next turn to follow them rather than the
+     * player who opened the auction (1861 §9.2).
+     */
+    nextTurnFollowsWinner?(state: CompanyAuctionState): boolean
 }
 
 export function canBeAuctioned(company: Company): boolean {
@@ -264,6 +269,8 @@ export class CompanyAuctionModel {
             cost: 0
         })
         this.terms.form(this.state, formation)
+        if (this.terms.nextTurnFollowsWinner?.(this.state))
+            this.state.stockRound.turn.auctionWinnerId = playerId
         delete this.state.companyAuction
         this.state.activePlayerIds = [auction.openerId]
         const parPrice = getCompany(this.state, companyId).parPrice

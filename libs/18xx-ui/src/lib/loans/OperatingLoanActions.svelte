@@ -21,9 +21,7 @@
     <div class="loan-actions" aria-label={terms?.name ?? 'Loans'}>
         <span
             >{terms?.name ?? 'Loans'}
-            {session.loans.loans(companyId)}/{session.loans.capacity(
-                companyId
-            )}{#if !terms?.fixedTerms}
+            {session.loans.held(companyId)}{#if !terms?.fixedTerms}
                 · {session.loans.rate}%{/if}</span
         >
         {#if session.loans.canTake && session.gameState.machineState !== 'RepayingLoans'}<button

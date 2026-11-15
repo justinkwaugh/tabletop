@@ -13,6 +13,7 @@ import {
 } from './train.js'
 import type { TrainDepot } from './trainDepot.js'
 import type { DeparturePayment, TrainDeparture } from './trainDepartures.js'
+import type { AutomaticBorrowing } from '../loans/automaticBorrowing.js'
 export interface TrainRules {
     depot: TrainDepot
     exchangePrice(
@@ -53,6 +54,14 @@ export interface TrainRules {
     exchangedTrainDestination?: TrainDestination | 'depot'
     /** The open privates that close when the company acquires a train by any purchase. */
     privatesClosedByPurchase?(state: TrainPurchaseState, companyId: string): readonly string[]
+    /**
+     * Loans the company takes for a purchase its cash cannot pay for, where the title allows it
+     * for this purchase, as an 1861 company without a train borrows for one from the bank (§10.2).
+     */
+    borrowing?: {
+        loans: AutomaticBorrowing
+        allowed(state: TrainPurchaseState, request: TrainPurchaseRequest): boolean
+    }
     /** Records the title's consequences of trains departing, returning what the bank pays. */
     afterTrainsDepart?(
         state: TrainPurchaseState,
@@ -222,7 +231,10 @@ export class TrainPurchase {
             return { reason: 'The company has used its depot purchase allowance.' }
         const price = exchangePrice ?? this.rules.depot.trainDefinition(definitionId).price
         const cash = cashOwnedBy(this.state, { kind: 'company', companyId })
-        if (cash === undefined || (cash !== 'unlimited' && cash < price))
+        const borrowable = this.rules.borrowing?.allowed(this.state, request)
+            ? this.rules.borrowing.loans.capacity(this.state, companyId)
+            : 0
+        if (cash === undefined || (cash !== 'unlimited' && cash + borrowable < price))
             return { reason: 'The company cannot afford this train.' }
         return {
             details: {

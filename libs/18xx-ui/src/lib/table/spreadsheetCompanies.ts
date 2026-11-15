@@ -1,4 +1,5 @@
 import {
+    NationalCompanyKind,
     companyShareCount,
     isStartCompany,
     type CompanyCharters,
@@ -19,7 +20,9 @@ export function spreadsheetCompanies(
         (company) =>
             (company.started || isIncluded(company.id)) &&
             !company.closed &&
-            (companyShareCount(state, charters, company.id) !== undefined ||
+            // A national company, such as 1861's RSR, has no shares but runs like the rest.
+            (company.kind === NationalCompanyKind ||
+                companyShareCount(state, charters, company.id) !== undefined ||
                 state.certificates.some(
                     (certificate) =>
                         certificate.kind === 'share' && certificate.companyId === company.id

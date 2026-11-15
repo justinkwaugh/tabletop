@@ -38,7 +38,13 @@ import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 type MapState = Parameters<typeof stationMapTokens>[0] &
     Pick<
         EighteenXXState,
-        'companies' | 'certificates' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
+        | 'companies'
+        | 'certificates'
+        | 'stations'
+        | 'tileInventory'
+        | 'stationStep'
+        | 'trackStep'
+        | 'phaseId'
     > &
     Pick<CompanyAuctionState, 'companyAuction'> & {
         locationMarkers?: readonly Pick<
@@ -160,10 +166,12 @@ export class MapModule {
     private overfullCities = $derived(this.overfullCityKey ? this.overfullCityKey.split('|') : [])
     private companies = $derived.by(() => this.displayState().companies)
     private certificates = $derived.by(() => this.displayState().certificates)
+    private phaseId = $derived.by(() => this.displayState().phaseId)
     private liftedPrivateBlocks = $derived.by(() =>
         liftedPrivateBlocks(this.view().map.markedPrivateIds, this.session.rules.privateRules, {
             companies: this.companies,
-            certificates: this.certificates
+            certificates: this.certificates,
+            phaseId: this.phaseId
         })
     )
     scene = $derived.by(() => this.draw(this.tileInventory))

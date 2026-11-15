@@ -3,11 +3,11 @@
     "AdvancePhase": "2f9ac94079d8c4318e27ae945a40b685d862a99ef06373818a16bb2154f56202",
     "AssignRevenueMarker": "127b13ebfb7e99a0cc6847c4b6925ef6f557f369dd903bbb608160f58f27d6b1",
     "AssignSteamboat": "ee1aa86a3ec152fc1d956d798b2701cab42af89dfc7e24057b7b4222eebed841",
-    "BuildPrivateTrack": "48279cd0e0cc521c32265d18a63ec0841e87ca5a25369ef0cd47778d252df23f",
+    "BuildPrivateTrack": "678fa641a1c3f59a737ea2bccfb9a8730f8cf1a11d9ea65aa22779032510e5a5",
     "BuyOpeningCompany": "037beb29789c4752646b76d22a226c413602bab29a5fb17e4b54fd5164eea860",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
     "BuyShares": "8f60485b6529935b55415672fd55755010a62988b882f0f1e6a637772a2a6a25",
-    "BuyTrain": "e056830121300080ef83b562169963ed85049d9f2b7b800359dc6fb272db7557",
+    "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
     "ChooseDraftCard": "d562b0b48c9621309b9e9ac1aa8445be3f9c94f915e98ee454e0b5328a164846",
     "ClaimPresidency": "d9a068161d36b3e54c044ceb453b5135861417862b1574945967355e9f454f7b",
     "CloseCorporation": "769d979381be6738da1c6f27b865d9db613289b2a13db8d58b9b1181b9a9f6ce",
@@ -28,8 +28,8 @@
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "c13d6806abfe285b8dd92ec09c4f940bf0778e185162f4db823d6a00e3cf1b5a",
     "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
-    "LayPrivateTile": "0629721f6f87d606cfde0451aca4d77ab599f19a25a9bd2e57e397e5226bb676",
-    "LayTile": "f6fdd363e241d0f3956e2235c2b20592d5352f527b049f5e5340a8a9f649eca3",
+    "LayPrivateTile": "8fe6bfc7d8f5d5c8f4055e418bc59b2b8680d23734b546f9622c80a1085daed5",
+    "LayTile": "a97510122093676f6fe04f834f75a3735a949727476971890c48b3149e2f25a1",
     "OfferPurchase": "cc9f7dd68e38b943fa907e5a6f284f2da89c11dd3ffe5cd3c3313c0a963cd9be",
     "PassFinalCompany": "6755635a7b9754ed7f369640a5bb9314aa10672e2dd7a8030514f6d3f0bab8c2",
     "PassOpeningPurchase": "a10e80c18e5c5dc2e594f731057e7213ad6990d505610de010f3ffa49320954c",
@@ -38,7 +38,7 @@
     "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "RespondToPurchaseOffer": "e798173d5818e1a80dd54089f9bcab2a3f3a34266a268f41001354b40ee46765",
-    "RespondToTrackConsent": "ffd2dd7d01d094d6292ffbc89e8fdecf9ac8a62505542ccd64a70a0aa13abe24",
+    "RespondToTrackConsent": "ec49608e7714bcf685930bc4e7d3785aff976bed12e92e1ccb3ec6d763f7f9b1",
     "ResumeOpeningPurchases": "b34f78e0a18a485f85b0e63c4116e1ab110ea1993dbd9276375e6bba51728931",
     "RevealDraft": "c2b83e5b8b845a50157a61a13c0bc7c7e18b849e134b8c205ffbda7c59dda05e",
     "RunTrains": "f77e13e519cdbe71c499b87416f7dd039f58690003a440888b48845bb0ec985a",
@@ -3603,6 +3603,9 @@
             "properties": {
               "acted": {
                 "type": "boolean"
+              },
+              "auctionWinnerId": {
+                "type": "string"
               },
               "bought": {
                 "type": "boolean"

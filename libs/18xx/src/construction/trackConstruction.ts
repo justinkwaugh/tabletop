@@ -39,6 +39,8 @@ import { assert, assertExists } from '@tabletop/common'
 import type { OperatingSet } from '../operating/operatingSet.js'
 import type { GameEnding } from '../ending/gameEnding.js'
 import type { AccessRightState } from '../rights/accessRights.js'
+import { LoanRecord } from '../loans/loans.js'
+import type { AutomaticBorrowing } from '../loans/automaticBorrowing.js'
 
 export const TrackStep = Type.Object(
     {
@@ -132,7 +134,9 @@ export const TrackLayDetails = Type.Object(
         displacedStationIds: Type.Optional(Type.Array(Type.String())),
         /** The upgrade rebuilt the hex's cities, keeping only its exits. */
         reconfigured: Type.Optional(Type.Literal(true)),
-        effects: Type.Optional(TrackLayEffects)
+        effects: Type.Optional(TrackLayEffects),
+        /** The loans taken to pay for the lay. */
+        loans: Type.Optional(Type.Array(LoanRecord))
     },
     { additionalProperties: false }
 )
@@ -143,6 +147,8 @@ export interface TrackRules {
     map: RailwayMap
     tileSet: TileSet
     colorOrder: readonly string[]
+    /** Loans the company takes for construction its cash cannot pay for (1861 §10.2). */
+    borrowing?: AutomaticBorrowing
     availableColors(state: ConstructionState): readonly string[]
     /** Whether the company may lay a tile of the colour, replacing a tile when ``upgrade``. */
     allowance(
@@ -430,7 +436,10 @@ export class TrackConstruction {
         const consentPlayerId = this.rules.consentPlayerId?.(this.state, request)
         const cost = terrainCost + allowance.cost
         const cash = cashOwnedBy(this.state, this.payer ?? { kind: 'company', companyId })
-        if (cash === undefined || (cash !== 'unlimited' && cash < cost))
+        const borrowable = this.payer
+            ? 0
+            : (this.rules.borrowing?.capacity(this.state, companyId) ?? 0)
+        if (cash === undefined || (cash !== 'unlimited' && cash + borrowable < cost))
             return { reason: 'The company cannot afford construction' }
         const piece =
             this.availablePieces(definitionId)[0] ??
