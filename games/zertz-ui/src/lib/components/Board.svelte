@@ -55,6 +55,9 @@
     const MARK_PATH = DASH_PERIOD * Math.round(ellipseLength(MARK_RADIUS, TILT) / DASH_PERIOD)
     const MARK_FADE_IN = 120
     const MARK_FADE_OUT = 280
+    // WebKit ignores dominant-baseline on a group, so the labels sit on the alphabetic baseline,
+    // moved down by the share of their 17px font that central would have moved them.
+    const LABEL_DY = 5.9
 
     // Ramanujan's approximation to the length round an ellipse `radius` wide, `tilt` as deep.
     function ellipseLength(radius: number, tilt: number): number {
@@ -196,7 +199,7 @@
     {#if session.showCoordinates}
         <g class="coordinate-labels">
             {#each session.notation.labels as label (label.key)}
-                <text x={label.at.x} y={label.at.y}>{label.text}</text>
+                <text x={label.at.x} y={label.at.y} dy={LABEL_DY}>{label.text}</text>
             {/each}
         </g>
     {/if}
@@ -370,7 +373,6 @@
         font-weight: 600;
         letter-spacing: 0.04em;
         text-anchor: middle;
-        dominant-baseline: central;
     }
 
     .ring-hit {
