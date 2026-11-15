@@ -267,11 +267,50 @@ type Leg = {
     toHexId: HexId
 }
 
+// R-3.3.2, R-3.3.3: the fewest steps one link of this railroad takes from fromHexId to the city at
+// toHexId through non-city hexes outside the blocked ones; undefined when it cannot get there. A
+// breadth-first search of the railroad's track.
+function stepsToCity(
+    track: Track,
+    railroadId: RailroadId,
+    fromHexId: HexId,
+    toHexId: HexId,
+    blocked: HexSet
+): number | undefined {
+    const reached = new Set<HexId>([fromHexId])
+    let frontier: HexId[] = [fromHexId]
+    for (let steps = 1; frontier.length > 0; steps++) {
+        const nextFrontier: HexId[] = []
+        for (const hexId of frontier) {
+            for (const next of neighboursInHexOrder(hexId)) {
+                if (
+                    reached.has(next) ||
+                    blocked.has(next) ||
+                    !hasTrackIn(track, next, railroadId)
+                ) {
+                    continue
+                }
+                if (next === toHexId) {
+                    return steps
+                }
+                reached.add(next)
+                if (!isCityHex(next)) {
+                    nextFrontier.push(next)
+                }
+            }
+        }
+        frontier = nextFrontier
+    }
+    return undefined
+}
+
 // R-3.3.2, R-3.3.2-H1, R-3.3.3: the links of the leg's railroad from its first city to its second
-// that use none of the blocked hexes, in the order the depth-first search of railroadLinksFrom
-// finds them. A step is taken only while the second city can still be reached without the hexes
-// already used, so the search never walks into a dead end and finds each next link in polynomial
-// time. Each step spends one expansion of the budget.
+// that use none of the blocked hexes, shortest first (fewest hexes), links of one length in hex
+// id order (each step tries the neighbours in hex order). Each length is a depth-first search
+// that steps onto a hex only while the second city can still be reached from it in the steps
+// left, without the hexes already used. At the shortest length every such step lies on a
+// shortest way, so the first link comes straight, in polynomial time; a longer length may back
+// out of a step. Each step spends one expansion of the budget.
 function* railroadLinksTo(
     track: Track,
     { railroadId, fromHexId, toHexId }: Leg,
@@ -281,39 +320,53 @@ function* railroadLinksTo(
     if (!hasTrackIn(track, fromHexId, railroadId) || blocked.has(toHexId)) {
         return
     }
+    const shortest = stepsToCity(track, railroadId, fromHexId, toHexId, blocked)
+    if (shortest === undefined) {
+        return
+    }
+    // A link passes each of the railroad's non-city hexes at most once.
+    const longest =
+        USA_HEXES.filter((hex) => !isCityHex(hex.id) && hasTrackIn(track, hex.id, railroadId))
+            .length + 1
     const path: HexId[] = [fromHexId]
     const onPath = new Set<HexId>(path)
     const used = either(blocked, onPath)
-    function* extend(hexId: HexId): Generator<Link> {
+    function* extend(hexId: HexId, stepsLeft: number): Generator<Link> {
         for (const next of neighboursInHexOrder(hexId)) {
             if (used.has(next) || !hasTrackIn(track, next, railroadId)) {
                 continue
             }
             if (next === toHexId) {
-                yield { railroadId, hexIds: [...path, next] }
+                if (stepsLeft === 1) {
+                    yield { railroadId, hexIds: [...path, next] }
+                }
                 continue
             }
-            if (isCityHex(next)) {
+            if (isCityHex(next) || stepsLeft === 1) {
                 continue
             }
             onPath.add(next)
-            if (reachesCity(track, railroadId, next, toHexId, used)) {
+            const steps = stepsToCity(track, railroadId, next, toHexId, used)
+            if (steps !== undefined && steps < stepsLeft) {
                 if (!budget.spend()) {
+                    onPath.delete(next)
                     return
                 }
                 path.push(next)
-                yield* extend(next)
+                yield* extend(next, stepsLeft - 1)
                 path.pop()
             }
             onPath.delete(next)
         }
     }
-    yield* extend(fromHexId)
+    for (let length = shortest; length <= longest && !budget.capped; length++) {
+        yield* extend(fromHexId, length)
+    }
 }
 
-// R-3.3.2, R-3.3.3: the leg's first link outside the blocked hexes, or undefined when it has none.
-// Every step can still reach the second city, so the search goes straight there: at most one
-// step per hex of the railroad, each a search of its track.
+// R-3.3.2, R-3.3.3: the leg's shortest link outside the blocked hexes, or undefined when it has
+// none. Every step lies on a shortest way to the second city, so the search goes straight there:
+// at most one step per hex of the way, each a search of the railroad's track.
 function firstLinkOf(track: Track, leg: Leg, blocked: HexSet): Link | undefined {
     const first = railroadLinksTo(track, leg, blocked, unbounded()).next()
     return first.done ? undefined : first.value
@@ -418,11 +471,12 @@ function sameLink(a: Link, b: Link): boolean {
     )
 }
 
-// R-3.3.2, R-3.3.3: the first realisation of the legs in link order, by a search that backs up
-// to an earlier link when a later one cannot be made. From each city it first follows the leg's
-// first link; only when the rest of the route cannot follow it does it look at the others, and
-// then never at a link that takes a hex a later leg needs (hexesLaterLegsNeed), so it tries only
-// links that leave every later leg possible on its own. It gives up when the budget is spent.
+// R-3.3.2, R-3.3.3: the first realisation of the legs in link order, each leg's links shortest
+// first (railroadLinksTo), by a search that backs up to an earlier link when a later one cannot be
+// made. From each city it first follows the leg's shortest link; only when the rest of the route
+// cannot follow it does it look at the others, and then never at a link that takes a hex a later
+// leg needs (hexesLaterLegsNeed), so it tries only links that leave every later leg possible on
+// its own. It gives up when the budget is spent.
 function searchRealisation(
     track: Track,
     legs: readonly Leg[],
@@ -469,13 +523,15 @@ function searchRealisation(
 export const REALISE_EXPANSION_CAP = 20_000
 
 // R-3.3.2, R-3.3.3, R-X.1: the hexes of a route given as its cities and each link's railroad,
-// the first realisation in link order that visits no hex twice; undefined when none exists, when
-// the start holds no passenger, or when the search spends REALISE_EXPANSION_CAP steps.
+// the first realisation in link order that visits no hex twice, each link taking its shortest way
+// (fewest hexes, ties in hex id order) that leaves the later links possible; undefined when none
+// exists, when the start holds no passenger, or when the search spends REALISE_EXPANSION_CAP
+// steps.
 //
-// The route is realised one link at a time: the first realisation of the route so far is kept
-// while the next link can follow it, so that link is the first one out of its city that avoids
-// the route's hexes, found without a search. Only when it cannot follow does the search look for
-// the first realisation of the whole route so far. So every city nextCities offers after the
+// The route is realised one link at a time: the realisation of the route so far is kept while the
+// next link can follow it, so that link is its shortest way out of its city that avoids the
+// route's hexes, found without a search. Only when it cannot follow does the search look for the
+// first realisation of the whole route so far. So every city nextCities offers after the
 // realisation of a route is realised with it, whatever the cap, and the hexes of the route so
 // far stay as they were.
 //

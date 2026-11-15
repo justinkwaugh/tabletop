@@ -398,6 +398,65 @@ describe('realise (R-3.3.2, R-3.3.3, R-X.1)', () => {
     })
 })
 
+describe('realise takes the shortest way for each link (R-3.3.2, R-3.3.3)', () => {
+    const BALTIMORE: CityId = 'city.usa.baltimore'
+    const WASHINGTON: CityId = 'city.usa.washington'
+    // Red: Baltimore, the plain south-west of it, Washington. A longer Red way runs from that
+    // plain through the plain west of Washington, which Red's line on to Cincinnati also uses.
+    const SHORT_WAY: readonly HexId[] = ['hex.usa.9-55', 'hex.usa.10-54', 'hex.usa.11-55']
+    const LONG_WAY: readonly HexId[] = [
+        'hex.usa.9-55',
+        'hex.usa.10-54',
+        'hex.usa.11-53',
+        'hex.usa.11-55'
+    ]
+    const WASHINGTON_TO_CINCINNATI: readonly HexId[] = [
+        'hex.usa.11-55',
+        'hex.usa.11-53',
+        'hex.usa.10-52',
+        'hex.usa.9-51',
+        'hex.usa.9-49',
+        'hex.usa.8-48',
+        'hex.usa.8-46'
+    ]
+    const state = riding(trackOf([RED, LONG_WAY], [RED, WASHINGTON_TO_CINCINNATI]))
+
+    it('draws one link the short way, not through the plain west of Washington', () => {
+        expect(realise(state, [BALTIMORE, WASHINGTON], [RED])).toEqual([link(RED, SHORT_WAY)])
+    })
+
+    it('keeps the short way when a second link takes the plain west of Washington', () => {
+        expect(realise(state, [BALTIMORE, WASHINGTON, CINCINNATI], [RED, RED])).toEqual([
+            link(RED, SHORT_WAY),
+            link(RED, WASHINGTON_TO_CINCINNATI)
+        ])
+    })
+
+    // Red also runs Baltimore, the plain south-east of it, Washington: as short, later in hex
+    // order. Red's line from Washington to Pittsburgh can only leave through the south-west plain.
+    const OTHER_SHORT_WAY: readonly HexId[] = ['hex.usa.9-55', 'hex.usa.10-56', 'hex.usa.11-55']
+    const WASHINGTON_TO_PITTSBURGH: readonly HexId[] = [
+        'hex.usa.11-55',
+        'hex.usa.10-54',
+        'hex.usa.9-53',
+        'hex.usa.8-52',
+        'hex.usa.7-51'
+    ]
+    const shared = riding(
+        trackOf([RED, SHORT_WAY], [RED, OTHER_SHORT_WAY], [RED, WASHINGTON_TO_PITTSBURGH])
+    )
+
+    it('breaks a tie between two shortest ways in hex order', () => {
+        expect(realise(shared, [BALTIMORE, WASHINGTON], [RED])).toEqual([link(RED, SHORT_WAY)])
+    })
+
+    it('R-3.3.3: backs up to the other short way when a later link needs a hex of the first', () => {
+        const route = realise(shared, [BALTIMORE, WASHINGTON, PITTSBURGH], [RED, RED])
+        expect(route).toEqual([link(RED, OTHER_SHORT_WAY), link(RED, WASHINGTON_TO_PITTSBURGH)])
+        expect(isLegalJourney(shared, route ?? [])).toBe(true)
+    })
+})
+
 describe('bestJourneys (R-3.3.4, R-3.3.5)', () => {
     it("ranks the rider's fare plus their own dividends first", () => {
         const state = riding(NETWORK, { p1: { [BLUE]: 2 }, p2: { [RED]: 3 } })
