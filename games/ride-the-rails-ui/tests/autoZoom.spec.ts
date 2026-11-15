@@ -261,6 +261,63 @@ test('Done building at the end of the round returns the desktop view to the whol
     expect(await showsWholeMap(page)).toBe(true)
 })
 
+/** Drags the board by hand from the middle of its frame. */
+async function dragBoard(page: Page, dx: number, dy: number) {
+    const frame = await frameBox(page)
+    const x = frame.left + frame.width / 2
+    const y = frame.top + frame.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    for (let step = 1; step <= 10; step++) {
+        await page.mouse.move(x + (dx * step) / 10, y + (dy * step) / 10)
+    }
+    await page.mouse.up()
+}
+
+/**
+ * From "First placement": Ada first drags her zoomed view by hand if asked, then all four seats
+ * build nothing, and the round goes on to Ride. Returns where the board rests once Ride opens.
+ */
+async function buildNothingToRide(page: Page, dragFirst: boolean): Promise<BoardBox> {
+    await openScenario(page, 'First placement')
+    const zoomed = await settled(page)
+    if (dragFirst) {
+        await dragBoard(page, 80, 60)
+        expect(await settled(page)).not.toEqual(zoomed)
+    }
+    for (const next of ['p2', 'p3', 'p4']) {
+        await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
+        await expect.poll(() => activePlayerId(page)).toBe(next)
+        await settled(page)
+    }
+    await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
+    await expect
+        .poll(() => page.evaluate(() => window.rtrSession.gameState.machineState))
+        .toBe('Riding')
+    await settled(page)
+    await page.waitForTimeout(VIEW_SETTLE_MS)
+    return settled(page)
+}
+
+test('Ride opens on the whole desktop map after a hand move in an earlier building turn', async ({
+    page
+}) => {
+    test.skip(onPhone(), 'A phone returns to its resting middle third, not the whole map.')
+    await buildNothingToRide(page, true)
+    expect(await showsWholeMap(page)).toBe(true)
+})
+
+test('Ride opens on the phone’s resting view after a hand move in an earlier building turn', async ({
+    page
+}) => {
+    test.skip(!onPhone(), 'The desktop returns to the whole map.')
+    const untouched = await buildNothingToRide(page, false)
+    const moved = await buildNothingToRide(page, true)
+    // The resting view: the middle third at its scale, where the same turns end with no hand move.
+    expect(Math.abs((await hexWidth(page)) - RESTING_HEX_PX)).toBeLessThan(0.5)
+    expect(moved).toEqual(untouched)
+})
+
 test('At 1440 × 900 the desktop view rests on the whole map when a zoom would barely gain', async ({
     page
 }) => {

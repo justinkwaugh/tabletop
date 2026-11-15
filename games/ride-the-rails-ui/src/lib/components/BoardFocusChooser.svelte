@@ -89,8 +89,8 @@
     // The building offer last seen, looked at once the view rests.
     let buildOffer: BuildOffer = { turn: undefined, lit: [], held: undefined }
 
-    // Where the view goes back to at the end of the building turn: the focus chosen before the
-    // zoom, the whole map where the view rested on it, or else the view as it was.
+    // Where the view goes back to when the building turns on this screen end: the focus chosen
+    // before the first zoom, the whole map where the view rested on it, or else the view as it was.
     let restoreView: ((animate: boolean) => void) | undefined
 
     function rememberView(shownWrapper: ScalingWrapper): (animate: boolean) => void {

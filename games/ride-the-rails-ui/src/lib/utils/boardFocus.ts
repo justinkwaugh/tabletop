@@ -350,8 +350,9 @@ export type BuildOffer = {
 }
 
 /**
- * How the view moves: fit these hexes (first remembering the view, to return to at the turn's end),
- * fit them again only if one has left the view, or return to the remembered view.
+ * How the view moves: fit these hexes (first remembering the view, to return to when the building
+ * turns on this screen end), fit them again only if one has left the view, or return to the
+ * remembered view.
  */
 export type BuildZoomMove =
     | { kind: 'fit'; hexIds: readonly HexId[]; remember: boolean }
@@ -362,13 +363,15 @@ export type BuildZoomMove =
  * Contract, Build: when the deciding seat's view zooms to its building offer. A turn's first lit
  * hexes are fitted, narrowed to a held spotlight's railroad when it has lit hexes; each change of
  * held spotlight fits again; a placement's next lit hexes refit only once one has left the view.
- * Moving the view by hand lets it go until the next turn or held spotlight change, and the end of
- * the turn returns to the view from before the zoom unless the hand has moved it since.
+ * Moving the view by hand lets it go until the next turn or held spotlight change. The view from
+ * before the first zoom is kept across turns that follow on the same screen, through any hand
+ * move, and the end of the last of them returns to it.
  */
 export class BuildZoom {
     private turn: string | undefined
     private started = false
     private byHand = false
+    /** Whether the view from before the first zoom of these turns is remembered, to return to. */
     private remembered = false
     private held: RailroadId | undefined
     /** The railroad the zoom narrows to; none for every lit hex. */
@@ -415,10 +418,9 @@ export class BuildZoom {
         return { kind: 'keep-in-view', hexIds: this.target(offer.lit) }
     }
 
-    /** The player moved the view: it stays where they put it, and the turn's end leaves it there. */
+    /** The player moved the view: it stays there until the next turn or held spotlight change. */
     moveByHand() {
         this.byHand = true
-        this.remembered = false
     }
 
     private fit(lit: readonly BuildLitHex[]): BuildZoomMove {

@@ -597,10 +597,11 @@ describe('when the building zoom moves the view (contract, Build)', () => {
         zoom.moveByHand()
         const newYork = [lit(NEW_YORK, RED)]
         expect(zoom.follow({ turn: 'ada', lit: newYork, held: undefined })).toBeUndefined()
+        // The view from before the turn's first zoom is still the one the turn's end returns to.
         expect(zoom.follow({ turn: 'ada', lit: newYork, held: RED })).toEqual({
             kind: 'fit',
             hexIds: [NEW_YORK],
-            remember: true
+            remember: false
         })
         expect(zoom.follow({ turn: 'ada', lit: offer, held: RED })).toEqual({
             kind: 'keep-in-view',
@@ -615,10 +616,35 @@ describe('when the building zoom moves the view (contract, Build)', () => {
         expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toBeUndefined()
     })
 
-    it('leaves a view moved by hand where it is when the turn ends', () => {
+    it('returns to the view from before the zoom when the turn ends, even after a hand move', () => {
         const zoom = started()
         zoom.moveByHand()
+        expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toEqual({
+            kind: 'restore'
+        })
         expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toBeUndefined()
+    })
+
+    it('keeps the view from before the first zoom across turns after a hand move in an earlier one', () => {
+        const zoom = started('ada')
+        zoom.moveByHand()
+        expect(zoom.follow({ turn: 'ben', lit: offer, held: undefined })).toEqual({
+            kind: 'fit',
+            hexIds: all,
+            remember: false
+        })
+        expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toEqual({
+            kind: 'restore'
+        })
+    })
+
+    it('returns to the view from before the first zoom when the last seat moved it by hand', () => {
+        const zoom = started('ada')
+        zoom.follow({ turn: 'ben', lit: offer, held: undefined })
+        zoom.moveByHand()
+        expect(zoom.follow({ turn: undefined, lit: [], held: undefined })).toEqual({
+            kind: 'restore'
+        })
     })
 
     it('starts again on the next turn, after a hand move in the last', () => {
