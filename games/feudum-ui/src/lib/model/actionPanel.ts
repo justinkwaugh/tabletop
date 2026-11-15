@@ -20,6 +20,7 @@ import type { Feed, NourishSend, NourishSummary } from './nourishDraft.svelte.js
 import type { SeatPaint } from './seatPaint.js'
 import { takesTradePicker } from './tradePicker.js'
 import type { FeudumGameSession } from './session.svelte.js'
+import type { SulfurDestination } from './startingGoodsDraft.svelte.js'
 import type { OrderRow } from './sharedRows.js'
 import type { TileArt } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
@@ -39,8 +40,6 @@ export interface ActionRow {
     readonly art?: RowArt
     /** R-3.3 A pouch choice: what it does, beneath its name. */
     readonly caption?: string
-    /** R-1.4.8 What this row asks beside itself: the sulfur's destination. */
-    readonly popup?: readonly ActionRow[]
     /** R-3.2 Forfeit: a choice that stands last, drawn quieter than the modes before it. */
     readonly quiet?: true
     /** A card's mode: refused, it shows its reason beneath its name before any press. */
@@ -196,6 +195,8 @@ type PanelBlock =
           readonly heading?: string
           /** Beneath the heading, where it has one: the pouch's "one or none". */
           readonly hint?: string
+          /** It stands on a line of its own: the starting sulfur's destination. */
+          readonly line?: true
           readonly rows: readonly ActionRow[]
       }
     | {
@@ -353,6 +354,33 @@ function turnRow(session: PanelSession, choice: PanelChoice): ActionRow {
     return { choice, press: () => session.pressTurnChoice(choice), ...(art ? { art } : {}) }
 }
 
+/**
+ * R-1.4.8 The picked sulfur's destination, on a line of its own under the goods, in the Merchant
+ * basket's words; each choice's name says what it does.
+ */
+const SulfurChoices = [
+    { to: 'supply', label: 'Keep the sulfur', shown: 'Keep it' },
+    { to: 'barrel', label: 'Put the sulfur into the barrel', shown: 'Into the barrel' }
+] as const
+
+function sulfurLine(session: PanelSession, sulfurTo: SulfurDestination | undefined): ActionBlock[] {
+    if (!sulfurTo) {
+        return []
+    }
+    return [
+        {
+            kind: 'rows',
+            name: 'sulfur',
+            heading: 'Sulfur:',
+            line: true,
+            rows: SulfurChoices.map(({ to, label, shown }) => ({
+                choice: { label, shown, picked: sulfurTo === to },
+                press: () => session.chooseSulfurDestination(to)
+            }))
+        }
+    ]
+}
+
 function goodsBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['startingGoodsPanel']>
@@ -366,21 +394,16 @@ function goodsBlocks(
             }
         ]
     }
-    const destination = ['supply', 'barrel'] as const
-    const sulfurPopup = destination.map((to): ActionRow => ({
-        choice: plainChoice(`To ${to}`, panel.sulfurTo === to),
-        press: () => session.chooseSulfurDestination(to)
-    }))
     return [
         ...rows(
             'goods',
             panel.goods.map(({ good, count, picked, refusal }) => ({
                 choice: plainChoice(`${titled(good)} ${count}`, picked, refusal),
                 press: () => session.pressStartingGood(good),
-                art: { kind: 'good', good },
-                ...(good === 'sulfur' && panel.asksSulfurDestination ? { popup: sulfurPopup } : {})
+                art: { kind: 'good', good }
             }))
         ),
+        ...sulfurLine(session, panel.sulfurTo),
         ...(panel.primary ? [primaryBlock(panel.primary, () => session.sendStartingGoods())] : [])
     ]
 }

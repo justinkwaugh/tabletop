@@ -350,18 +350,28 @@ describe('R-X.3 the rows of the panel', () => {
         expect(markup).not.toContain('>Badlands I')
     })
 
-    it('S2 R-1.4.8 the sulfur asks beside itself where it goes', () => {
+    it('S1 R-1.4.8 the sulfur’s line stands under the goods on a line of its own, each choice named for what it does', () => {
         const markup = markupOf(
-            rowsBlock('goods', [
-                {
-                    ...aRow('Sulfur', { picked: true }),
-                    popup: [aRow('Sulfur in the pouch'), aRow('Sulfur in the barrel')]
-                }
-            ])
+            { kind: 'rows', name: 'goods', rows: [aRow('Sulfur 25', { picked: true })] },
+            {
+                kind: 'rows',
+                name: 'sulfur',
+                heading: 'Sulfur:',
+                line: true,
+                rows: [
+                    aRow('Keep the sulfur', { shown: 'Keep it', picked: true }),
+                    aRow('Put the sulfur into the barrel', { shown: 'Into the barrel' })
+                ]
+            }
         )
-        const [, asked] = markup.split('data-row-popup="Sulfur"')
-        expect(asked).toContain('data-row="Sulfur in the pouch"')
-        expect(asked).toContain('data-row="Sulfur in the barrel"')
+        const [goods, line] = markup.split('data-rows="sulfur"')
+        expect(goods).toContain('data-row="Sulfur 25"')
+        expect(goods).not.toContain('Keep it')
+        expect(line).toContain('Sulfur:')
+        expect(line).toContain('aria-label="Keep the sulfur"')
+        expect(line).toContain('aria-label="Put the sulfur into the barrel"')
+        expect(line).toContain('>Into the barrel<')
+        expect(markup).toMatch(/class="[^"]*w-full[^"]*"[^>]*data-rows="sulfur"/)
     })
 
     it('S1 the haversack counts stand for the seats that watch', () => {

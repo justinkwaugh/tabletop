@@ -9,11 +9,9 @@
     import PanelRow, { type RowPointer } from '$lib/components/table/PanelRow.svelte'
     import type { ActionRow } from '$lib/model/actionPanel.js'
     import DieChoice from './DieChoice.svelte'
-    import RowChoice from './RowChoice.svelte'
 
     /**
-     * One row with its art, and what it asks beside itself: R-1.4.8 the sulfur's destination. A
-     * held tile shows its landscape once known (R-4.3), its epoch side before. A guild's die is the
+     * One row with its art. A held tile shows its landscape once known (R-4.3), its epoch side before. A guild's die is the
      * whole row. Contract, Pick conventions: art first, words second; the words stay the row's
      * accessible name. R-3.9-H1 A disc choice is the disc with its back peeking out behind it.
      */
@@ -67,18 +65,6 @@
         explained={row.explained}
         onPress={() => void row.press()}
     />
-{/if}
-{#if row.popup}
-    <span
-        class="inline-flex items-center gap-1 rounded-lg border border-feudum-accent bg-feudum-surface-raised p-1"
-        role="group"
-        aria-label="Where {row.choice.label} goes"
-        data-row-popup={row.choice.label}
-    >
-        {#each row.popup as asked (asked.choice.label)}
-            <RowChoice row={asked} {pointer} />
-        {/each}
-    </span>
 {/if}
 
 <style>

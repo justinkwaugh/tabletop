@@ -4,19 +4,26 @@ import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
 
 export type SulfurDestination = 'supply' | 'barrel'
 
+/** R-1.4.8 The pick as it stands: the goods, and where a picked sulfur goes. */
+export interface StartingGoodsPick {
+    readonly goods: readonly Good[]
+    readonly sulfurTo: SulfurDestination
+}
+
 export type StartingGoodsValues = {
-    /** A tap list: each press pushes the list as it now stands. */
-    goods: Good[]
-    sulfurTo: SulfurDestination
+    /** A tap list: each press, on a good or on the sulfur's destination, pushes the pick as it now stands. */
+    pick: StartingGoodsPick
 }
 
 export const StartingGoodsStageOrder = [
-    'goods',
-    'sulfurTo'
+    'pick'
 ] as const satisfies readonly (keyof StartingGoodsValues)[]
 type MissingStages = Exclude<keyof StartingGoodsValues, (typeof StartingGoodsStageOrder)[number]>
 const stageCoverage: MissingStages extends never ? true : never = true
 void stageCoverage
+
+/** R-1.4.8 Sulfur is kept unless the seat puts it into the barrel, as `ChooseStartingGoods` takes it. */
+const NothingPicked: StartingGoodsPick = { goods: [], sulfurTo: 'supply' }
 
 /** R-1.4.8 `ChooseStartingGoods` (contract: Setup; S1). */
 export class StartingGoodsDraft extends StagedDraft<StartingGoodsValues> {
@@ -26,51 +33,61 @@ export class StartingGoodsDraft extends StagedDraft<StartingGoodsValues> {
 
     /** R-1.4.8 With exactly three goods in the haversack the pick is the lone legal choice. */
     protected override read(): StagedSelectionState<StartingGoodsValues> {
-        const offers = this.offers()
-        return withLoneChoice<StartingGoodsValues, 'goods'>(
+        return withLoneChoice<StartingGoodsValues, 'pick'>(
             super.read(),
             StartingGoodsStageOrder,
-            'goods',
-            offers.length === StartingGoodsChosen ? [[...offers]] : []
+            'pick',
+            this.forced ? [{ ...NothingPicked, goods: [...this.offers()] }] : []
         )
     }
 
+    private get forced(): boolean {
+        return this.offers().length === StartingGoodsChosen
+    }
+
+    private get pick(): StartingGoodsPick {
+        return this.value('pick') ?? NothingPicked
+    }
+
     get goods(): readonly Good[] {
-        return this.value('goods') ?? []
+        return this.pick.goods
     }
 
-    get sulfurTo(): SulfurDestination | undefined {
-        return this.value('sulfurTo')
+    get sulfurTo(): SulfurDestination {
+        return this.pick.sulfurTo
     }
 
-    /** The popup beside sulfur. */
-    get asksSulfurDestination(): boolean {
-        return this.goods.includes('sulfur') && !this.sulfurTo
+    /** The sulfur's own line: it stands while sulfur is picked. */
+    get asksSulfur(): boolean {
+        return this.goods.includes('sulfur')
     }
 
     get ready(): boolean {
-        return this.goods.length === StartingGoodsChosen && !this.asksSulfurDestination
+        return this.goods.length === StartingGoodsChosen
     }
 
-    /** A tap list: a press picks the good, or unpicks it. A fourth pick and a forced pick do nothing. */
+    /**
+     * A tap list: a press picks the good, or unpicks it, the sulfur's destination kept. Unpicking the
+     * sulfur drops its destination. A fourth pick and a forced pick do nothing.
+     */
     press(good: Good): void {
-        const { goods } = this
-        if (this.entry('goods')?.source === 'auto') {
+        const { goods, sulfurTo } = this
+        if (this.forced) {
             return
         }
         if (goods.includes(good)) {
-            this.push(
-                'goods',
-                goods.filter((picked) => picked !== good)
-            )
+            this.push('pick', {
+                goods: goods.filter((picked) => picked !== good),
+                sulfurTo: good === 'sulfur' ? NothingPicked.sulfurTo : sulfurTo
+            })
         } else if (goods.length < StartingGoodsChosen) {
-            this.push('goods', [...goods, good])
+            this.push('pick', { goods: [...goods, good], sulfurTo })
         }
     }
 
     chooseSulfurDestination(destination: SulfurDestination): void {
-        if (this.goods.includes('sulfur')) {
-            this.set('sulfurTo', destination)
+        if (this.asksSulfur && destination !== this.sulfurTo) {
+            this.push('pick', { goods: this.goods, sulfurTo: destination })
         }
     }
 

@@ -53,7 +53,6 @@ async function stepSetup(page: Page, stopAtPawn: boolean, stopAtHands = false): 
             const session = window.feudumSession
             const goods = session.startingGoodsPanel
             if (goods?.deciding) {
-                // Sulfur would ask where it goes, so these choose without it.
                 for (const good of ['iron', 'wood', 'saltpeter', 'food'] as const) {
                     if (!session.startingGoodsPanel?.primary) {
                         session.pressStartingGood(good)

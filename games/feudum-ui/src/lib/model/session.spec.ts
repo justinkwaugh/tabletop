@@ -48,21 +48,19 @@ describe('staged-selection helpers', () => {
     })
 
     it('leaves a filled stage alone, and two choices or none unfilled', () => {
-        const filled = { sulfurTo: { value: 'barrel', source: 'manual' } } as const
+        const kept = { goods: ['iron', 'wood', 'food'], sulfurTo: 'supply' } as const
+        const filled = { pick: { value: kept, source: 'manual' } } as const
         expect(
-            withLoneChoice<StartingGoodsValues, 'sulfurTo'>(
-                filled,
-                StartingGoodsStageOrder,
-                'sulfurTo',
-                ['supply']
-            )
+            withLoneChoice<StartingGoodsValues, 'pick'>(filled, StartingGoodsStageOrder, 'pick', [
+                kept
+            ])
         ).toBe(filled)
-        for (const choices of [[], ['supply', 'barrel']] as const) {
+        for (const choices of [[], [kept, { ...kept, sulfurTo: 'barrel' }]] as const) {
             expect(
-                withLoneChoice<StartingGoodsValues, 'sulfurTo'>(
+                withLoneChoice<StartingGoodsValues, 'pick'>(
                     {},
                     StartingGoodsStageOrder,
-                    'sulfurTo',
+                    'pick',
                     choices
                 )
             ).toEqual({})
@@ -90,30 +88,27 @@ describe('confirming a send (R-X.2; contract: Confirming a send)', () => {
 })
 
 describe('StartingGoodsDraft (R-1.4.8): minimum tests', () => {
-    it('setting a stage clears the stages after it', () => {
+    it('the sulfur is kept unless the seat puts it into the barrel, as the logic takes it', () => {
         const draft = goodsDraft()
-        for (const good of ['sulfur', 'iron', 'food'] as const) draft.press(good)
-        draft.chooseSulfurDestination('barrel')
-
-        draft.set('goods', ['sulfur', 'iron', 'wood'])
-
-        expect(draft.sulfurTo).toBeUndefined()
+        draft.press('sulfur')
+        expect(draft.asksSulfur).toBe(true)
+        expect(draft.sulfurTo).toBe('supply')
     })
 
-    it('Undo with a manual stage pops the highest and takes no Action back', () => {
+    it('Undo with a manual stage pops the latest press and takes no Action back', () => {
         const draft = goodsDraft()
         for (const good of ['sulfur', 'iron', 'food'] as const) draft.press(good)
         draft.chooseSulfurDestination('barrel')
 
         expect(draft.localSelection.undo()).toBe(true)
 
-        expect(draft.sulfurTo).toBeUndefined()
+        expect(draft.sulfurTo).toBe('supply')
         expect(draft.goods).toEqual(['sulfur', 'iron', 'food'])
     })
 
     it('Undo with only an auto stage falls through to the Action undo', () => {
         const draft = goodsDraft(['iron', 'wood', 'food'])
-        expect(draft.entry('goods')?.source).toBe('auto')
+        expect(draft.entry('pick')?.source).toBe('auto')
         expect(draft.localSelection.hasManual()).toBe(false)
         expect(draft.localSelection.undo()).toBe(false)
         expect(draft.goods).toEqual(['iron', 'wood', 'food'])
@@ -121,11 +116,14 @@ describe('StartingGoodsDraft (R-1.4.8): minimum tests', () => {
 
     it('a stage the order lacks throws', () => {
         expect(() =>
-            new StagedDraft<StartingGoodsValues>(['goods']).set('sulfurTo', 'barrel')
+            new StagedDraft<StartingPawnValues>(['first']).set('second', {
+                kind: 'space',
+                spaceId: DESERT_3
+            })
         ).toThrow('does not exist in stage order')
     })
 
-    it('reselecting an earlier stage: a press changes the list and asks for sulfur again', () => {
+    it('the sulfur’s destination stays as other goods are picked and unpicked', () => {
         const draft = goodsDraft()
         for (const good of ['sulfur', 'iron', 'food'] as const) draft.press(good)
         draft.chooseSulfurDestination('barrel')
@@ -135,8 +133,19 @@ describe('StartingGoodsDraft (R-1.4.8): minimum tests', () => {
         draft.press('wood')
 
         expect(draft.goods).toEqual(['sulfur', 'iron', 'wood'])
-        expect(draft.asksSulfurDestination).toBe(true)
-        expect(draft.ready).toBe(false)
+        expect(draft.asksSulfur).toBe(true)
+        expect(draft.sulfurTo).toBe('barrel')
+        expect(draft.ready).toBe(true)
+    })
+
+    it('unpicking the sulfur drops its line; picked again, it is kept', () => {
+        const draft = goodsDraft()
+        draft.press('sulfur')
+        draft.chooseSulfurDestination('barrel')
+        draft.press('sulfur')
+        expect(draft.asksSulfur).toBe(false)
+        draft.press('sulfur')
+        expect(draft.sulfurTo).toBe('supply')
     })
 })
 
@@ -150,32 +159,39 @@ describe('StartingGoodsDraft (R-1.4.8): stacked stage', () => {
         expect(draft.goods).toEqual(['saltpeter', 'sulfur'])
     })
 
-    it('a press clears every later stage, and Undo pops the open later stage first', () => {
+    it('Undo takes back one press at a time, a good or the destination', () => {
         const draft = goodsDraft()
-        for (const good of ['sulfur', 'iron', 'food'] as const) draft.press(good)
-        draft.chooseSulfurDestination('supply')
-
-        draft.localSelection.undo()
-        expect(draft.goods).toEqual(['sulfur', 'iron', 'food'])
-        expect(draft.sulfurTo).toBeUndefined()
+        for (const good of ['sulfur', 'iron'] as const) draft.press(good)
+        draft.chooseSulfurDestination('barrel')
+        draft.press('food')
 
         draft.localSelection.undo()
         expect(draft.goods).toEqual(['sulfur', 'iron'])
+        expect(draft.sulfurTo).toBe('barrel')
+
+        draft.localSelection.undo()
+        expect(draft.sulfurTo).toBe('supply')
+
+        draft.localSelection.undo()
+        expect(draft.goods).toEqual(['sulfur'])
     })
 
-    it('a fourth good and an unpick of a good nobody picked change nothing', () => {
+    it('a fourth good and a press on the destination already chosen change nothing', () => {
         const draft = goodsDraft()
-        for (const good of ['saltpeter', 'iron', 'food'] as const) draft.press(good)
+        for (const good of ['saltpeter', 'sulfur', 'food'] as const) draft.press(good)
         draft.press('wood')
-        expect(draft.goods).toEqual(['saltpeter', 'iron', 'food'])
+        draft.chooseSulfurDestination('supply')
+        expect(draft.goods).toEqual(['saltpeter', 'sulfur', 'food'])
+        draft.localSelection.undo()
+        expect(draft.goods).toEqual(['saltpeter', 'sulfur'])
     })
 
     it('the destination is asked only of sulfur', () => {
         const draft = goodsDraft()
         draft.press('iron')
         draft.chooseSulfurDestination('barrel')
-        expect(draft.sulfurTo).toBeUndefined()
-        expect(draft.asksSulfurDestination).toBe(false)
+        expect(draft.sulfurTo).toBe('supply')
+        expect(draft.asksSulfur).toBe(false)
     })
 })
 
@@ -264,8 +280,11 @@ describe('the real session: S1, goods with the sulfur destination (R-1.4.8)', ()
             session.pressStartingGood(good)
         }
         flushSync()
-        expect(session.startingGoodsPanel?.asksSulfurDestination).toBe(true)
-        expect(session.startingGoodsPanel?.primary?.enabled).toBe(false)
+        expect(session.startingGoodsPanel?.sulfurTo).toBe('supply')
+        expect(session.startingGoodsPanel?.primary).toEqual({
+            label: 'Take saltpeter, sulfur, food',
+            enabled: true
+        })
 
         session.chooseSulfurDestination('barrel')
         flushSync()
@@ -275,7 +294,7 @@ describe('the real session: S1, goods with the sulfur destination (R-1.4.8)', ()
         })
 
         await session.undo()
-        expect(session.startingGoods.sulfurTo).toBeUndefined()
+        expect(session.startingGoods.sulfurTo).toBe('supply')
         await session.undo()
         expect(session.startingGoods.goods).toEqual(['saltpeter', 'sulfur'])
         await session.undo()
@@ -304,12 +323,25 @@ describe('the real session: S1, goods with the sulfur destination (R-1.4.8)', ()
         const session = await table.openSeat(table.setupSeat)
 
         session.pressStartingGood('sulfur')
-        await session.sendStartingGoods()
         session.pressStartingGood('iron')
-        session.pressStartingGood('food')
         await session.sendStartingGoods()
 
         expect(table.actions).toEqual([])
+    })
+
+    it('the sulfur kept by default reaches the logic as kept', async () => {
+        const table = openTable()
+        const seat = table.setupSeat
+        const session = await table.openSeat(seat)
+
+        for (const good of ['sulfur', 'iron', 'food'] as const) session.pressStartingGood(good)
+        await session.sendStartingGoods()
+        await session.waitForVisibleTransitionSettled()
+
+        const sent = table.sent.get(seat)?.[0]
+        expect(sent).toMatchObject({ type: ActionType.ChooseStartingGoods })
+        expect(sent).not.toHaveProperty('sulfurToBarrel')
+        expect(session.gameState.getPlayerState(seat).goods.sulfur).toBe(1)
     })
 
     it('another seat sees counts and the waiting line, and has no draft', async () => {
@@ -371,7 +403,7 @@ describe('the real session: S1, goods with the sulfur destination (R-1.4.8)', ()
 
         expect(table.game.protectedInformation).toBe(true)
         expect(session.startingGoods.goods).toEqual(['iron', 'wood', 'food'])
-        expect(session.startingGoods.entry('goods')?.source).toBe('auto')
+        expect(session.startingGoods.entry('pick')?.source).toBe('auto')
         expect(session.hasLocalSelection).toBe(false)
         expect(table.actions).toEqual([])
         expect(session.startingGoodsPanel?.primary?.enabled).toBe(true)
