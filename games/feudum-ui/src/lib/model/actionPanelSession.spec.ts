@@ -159,55 +159,76 @@ async function sendNamed(session: FeudumGameSession, label: string | RegExp) {
 }
 
 describe('Setup', () => {
-    it('S1 R-1.4.8 five goods with the count; the sulfur popup; the primary names all three; Undo; the send', async () => {
+    it('S1 R-1.4.8 five goods with the count; the sulfur’s own line under them; the primary names all three; Undo; the send', async () => {
         const table = openHost()
         const seat = table.setupSeat
         const session = await table.openSeat(seat)
         const counts = session.gameState.supply.haversack
-        expect(rowLabels(session.actionPanel, 'goods')).toEqual([
+        const goodsRow = [
             `Saltpeter ${counts.saltpeter}`,
             `Sulfur ${counts.sulfur}`,
             `Iron ${counts.iron}`,
             `Wood ${counts.wood}`,
             `Food ${counts.food}`
-        ])
+        ]
+        expect(rowLabels(session.actionPanel, 'goods')).toEqual(goodsRow)
         expect(rowsOf(session.actionPanel, 'goods').map(({ art }) => art)).toEqual(
             ['saltpeter', 'sulfur', 'iron', 'wood', 'food'].map((good) => ({ kind: 'good', good }))
         )
         expect(primaryLabels(session.actionPanel)).toEqual([])
+        expect(rowsOf(session.actionPanel, 'sulfur')).toEqual([])
 
         await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
         await pressRow(rowNamed(session.actionPanel, /^Sulfur/))
-        const asked = rowNamed(session.actionPanel, /^Sulfur/).popup
-        expect(asked?.map(({ choice }) => choice.label)).toEqual(['To supply', 'To barrel'])
-        await pressRow(rowNamed(session.actionPanel, /^Food/))
-        const still = rowNamed(session.actionPanel, /^Sulfur/).popup
-        expect(still?.map(({ choice }) => choice.label)).toEqual(['To supply', 'To barrel'])
-        assertExists(still, 'The sulfur asks where it goes')
-        expect(primaryNamed(session.actionPanel, /^Take/).enabled).toBe(false)
-        await pressRow(still[1])
+        const blockNames = () =>
+            session.actionPanel.blocks.flatMap((block) =>
+                block.kind === 'rows' ? [block.name] : []
+            )
+        expect(blockNames()).toEqual(['goods', 'sulfur'])
+        expect(rowLabels(session.actionPanel, 'goods')).toEqual(goodsRow)
+        const line = session.actionPanel.blocks.find(
+            (block) => block.kind === 'rows' && block.name === 'sulfur'
+        )
+        expect(line?.kind === 'rows' && line.heading).toBe('Sulfur:')
+        const sulfurLine = () =>
+            rowsOf(session.actionPanel, 'sulfur').map(({ choice }) => [
+                choice.label,
+                choice.shown,
+                choice.picked
+            ])
+        expect(sulfurLine()).toEqual([
+            ['Keep the sulfur', 'Keep it', true],
+            ['Put the sulfur into the barrel', 'Into the barrel', false]
+        ])
 
-        expect(rowNamed(session.actionPanel, /^Sulfur/).popup).toBeUndefined()
+        await pressRow(rowNamed(session.actionPanel, 'Put the sulfur into the barrel'))
+        await pressRow(rowNamed(session.actionPanel, /^Food/))
+        expect(blockNames()).toEqual(['goods', 'sulfur'])
+        expect(sulfurLine()).toEqual([
+            ['Keep the sulfur', 'Keep it', false],
+            ['Put the sulfur into the barrel', 'Into the barrel', true]
+        ])
         const primary = primaryNamed(session.actionPanel, /^Take/)
         expect(primary.label).toBe('Take saltpeter, sulfur (barrel), food')
         expect(primary.enabled).toBe(true)
 
         await session.undo()
         flushSync()
-        expect(rowNamed(session.actionPanel, /^Sulfur/).popup).toBeDefined()
-        expect(rowNamed(session.actionPanel, /^Food/).choice.picked).toBe(true)
+        expect(rowNamed(session.actionPanel, /^Food/).choice.picked).toBe(false)
+        expect(rowNamed(session.actionPanel, 'Put the sulfur into the barrel').choice.picked).toBe(
+            true
+        )
         await session.undo()
         flushSync()
-        expect(rowNamed(session.actionPanel, /^Food/).choice.picked).toBe(false)
+        expect(rowNamed(session.actionPanel, 'Keep the sulfur').choice.picked).toBe(true)
         await session.undo()
         flushSync()
         expect(rowNamed(session.actionPanel, /^Sulfur/).choice.picked).toBe(false)
+        expect(rowsOf(session.actionPanel, 'sulfur')).toEqual([])
 
         await pressRow(rowNamed(session.actionPanel, /^Sulfur/))
         await pressRow(rowNamed(session.actionPanel, /^Food/))
-        const again = rowNamed(session.actionPanel, /^Sulfur/).popup
-        assertExists(again, 'Asked again')
-        await pressRow(again[1])
+        await pressRow(rowNamed(session.actionPanel, 'Put the sulfur into the barrel'))
         await sendNamed(session, 'Take saltpeter, sulfur (barrel), food')
         expect(table.sent.get(seat)?.[0]).toMatchObject({
             type: ActionType.ChooseStartingGoods,

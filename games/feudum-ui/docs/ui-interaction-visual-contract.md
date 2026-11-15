@@ -118,7 +118,7 @@ A press that completes an undoable Action sends at once. A step whose Action wil
 
 ### Setup
 
-- **`ChooseStartingGoods`** (R-1.4.8). The setup seat's panel shows the five goods with the haversack's count of each. Presses pick three different goods (tap list); a good the haversack lacks is dimmed. When sulfur is picked a popup beside it asks "To supply" or "To barrel". The primary button reads "Take saltpeter, sulfur (barrel), iron". Others see "‹Name› chooses starting goods" and the haversack counts.
+- **`ChooseStartingGoods`** (R-1.4.8). The setup seat's panel shows the five goods with the haversack's count of each. Presses pick three different goods (tap list); a good the haversack lacks is dimmed. While sulfur is picked, a line of its own under the goods row reads "Sulfur:" with two choices in the Merchant basket's words, "Keep it" and "Into the barrel", named "Keep the sulfur" and "Put the sulfur into the barrel", the current one shown chosen; "Keep it" at first, as the logic takes a sulfur with no destination. The line never moves the goods row, keeps its place and its choice whatever other goods are pressed, and goes only when sulfur is unpicked (picked again, it is kept). Undo takes back one press at a time, a good or the destination. The primary button reads "Take saltpeter, sulfur (barrel), iron". Others see "‹Name› chooses starting goods" and the haversack counts.
 - **`PlaceStartingPawn`** (R-1.4.9). The panel shows the six characters as guild dice, each badged with the rank it would give now (M, J, A, or a dash for none, from the guild tracks, R-4.5). A press picks a character; the six starting spaces light on the map. A press on a lit space sends. Picking the space first is equally allowed: either order, Undo steps back one press. Others see the starting spaces outlined as being decided.
 
 ### Hand selection (`SelectingHands`)
@@ -457,7 +457,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 
 **Setup**
 
-- **S1. `ChooseStartingGoods`.** Setup, this seat first. Pick saltpeter, sulfur, food: the sulfur popup asks supply or barrel; choose barrel. The primary names all three. Undo: the barrel choice, then food, then sulfur, one per press. Send: three goods fly from the haversack, the sulfur into the barrel; the next seat is asked. Auto.
+- **S1. `ChooseStartingGoods`.** Setup, this seat first. Pick saltpeter, sulfur: the sulfur's line opens under the goods row, "Keep it" chosen, and no good moves; choose "Into the barrel", then pick food, unpick it and pick iron: the line stays where it is, still on the barrel. The primary names all three. Undo: one press at a time, the goods, then the barrel choice, then sulfur, and the line goes. Send: three goods fly from the haversack, the sulfur into the barrel; the next seat is asked. Auto.
 - **S2. `PlaceStartingPawn`, either order.** Pick Knight, "Knight, master": its die's badge reads M; the six starting spaces light, the map dims. Press Desert 3: sent; the pawn flies there and a marker lands on the Knight master space. Repeat with the space first, then the character popup. Undo before the send steps back one press. Auto.
 - **S3. Rank badges follow the tracks.** A later seat in a four-player game picking Knight after two others: the badge reads A ("Knight, apprentice"); once the track is full it is a dimmed dash ("Knight, no rank"). Auto.
 

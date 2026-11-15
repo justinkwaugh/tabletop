@@ -202,7 +202,9 @@
         </div>
     {:else if block.kind === 'rows'}
         <div
-            class="flex flex-wrap items-center {block.rows.every(({ art }) => art?.kind === 'die')
+            class="flex flex-wrap items-center {block.line ? 'w-full' : ''} {block.rows.every(
+                ({ art }) => art?.kind === 'die'
+            )
                 ? 'gap-4 max-sm:gap-1'
                 : 'gap-1'}"
             data-rows={block.name}

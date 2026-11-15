@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test'
+import { shot } from './helpers.js'
 import { scenario } from './scenarioTable.js'
 
 /** The contract's setup scenarios, sentence by sentence, on the real table at both widths. */
@@ -15,27 +16,61 @@ const StartingSpaces = [
 scenario('S1 R-1.4.8 ChooseStartingGoods', 'setup-goods', async (table) => {
     const picked = (label: string) =>
         table.panel().locator(`[data-rows="goods"] [data-row^="${label}"][data-picked]`)
-    const toBarrel = table.panel().getByRole('button', { name: 'To barrel', exact: true })
+    const line = table.panel().locator('[data-rows="sulfur"]')
+    const keep = table.panel().getByRole('button', { name: 'Keep the sulfur', exact: true })
+    const toBarrel = table
+        .panel()
+        .getByRole('button', { name: 'Put the sulfur into the barrel', exact: true })
+    /** Where each good stands in the goods row. */
+    const goodsRow = () =>
+        table
+            .panel()
+            .locator('[data-rows="goods"] [data-row]')
+            .evaluateAll((rows) =>
+                rows.map((row) => {
+                    const { x, y } = row.getBoundingClientRect()
+                    return `${row.getAttribute('data-row')} ${Math.round(x)},${Math.round(y)}`
+                })
+            )
 
     await table.press(table.rowStarting('Saltpeter'))
+    const before = await goodsRow()
     await table.press(table.rowStarting('Sulfur'))
-    await expect(
-        table.panel().getByRole('button', { name: 'To supply', exact: true })
-    ).toBeVisible()
-    await expect(toBarrel).toBeVisible()
-    await table.press(table.rowStarting('Food'))
-    await expect(toBarrel).toBeVisible()
+    await expect(line).toBeVisible()
+    await expect(line).toContainText('Sulfur:')
+    await expect(keep).toHaveText('Keep it')
+    await expect(keep).toHaveAttribute('aria-pressed', 'true')
+    await expect(toBarrel).toHaveText('Into the barrel')
+    await expect(toBarrel).toHaveAttribute('aria-pressed', 'false')
+    expect(await goodsRow()).toEqual(before)
+    const lineAt = await line.boundingBox()
+    const goodsAt = await table.panel().locator('[data-rows="goods"]').boundingBox()
+    expect(lineAt?.y ?? 0).toBeGreaterThanOrEqual((goodsAt?.y ?? 0) + (goodsAt?.height ?? 0))
+
     await table.press(toBarrel)
-    await expect(table.primary()).toHaveText('Take saltpeter, sulfur (barrel), food')
+    await table.press(table.rowStarting('Food'))
+    await expect(toBarrel).toHaveAttribute('aria-pressed', 'true')
+    expect(await goodsRow()).toEqual(before)
+    expect(await line.boundingBox()).toEqual(lineAt)
+    await table.press(table.rowStarting('Food'))
+    await table.press(table.rowStarting('Iron'))
+    await expect(toBarrel).toHaveAttribute('aria-pressed', 'true')
+    expect(await line.boundingBox()).toEqual(lineAt)
+    await expect(table.primary()).toHaveText('Take saltpeter, sulfur (barrel), iron')
+    await shot(table.page, 'starting-sulfur')
 
     await table.press(table.undo())
-    await expect(toBarrel).toBeVisible()
+    await expect(picked('Iron')).toHaveCount(0)
+    await table.press(table.undo())
     await expect(picked('Food')).toHaveCount(1)
     await table.press(table.undo())
     await expect(picked('Food')).toHaveCount(0)
-    await expect(picked('Sulfur')).toHaveCount(1)
+    await expect(toBarrel).toHaveAttribute('aria-pressed', 'true')
+    await table.press(table.undo())
+    await expect(keep).toHaveAttribute('aria-pressed', 'true')
     await table.press(table.undo())
     await expect(picked('Sulfur')).toHaveCount(0)
+    await expect(line).toHaveCount(0)
     await expect(picked('Saltpeter')).toHaveCount(1)
 
     await table.press(table.rowStarting('Sulfur'))

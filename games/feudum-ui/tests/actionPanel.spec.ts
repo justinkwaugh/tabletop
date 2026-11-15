@@ -37,7 +37,7 @@ async function rowBy(page: Page, block: string, label: RegExp): Promise<Locator>
     return panel(page).locator(`[data-rows="${block}"] button`).filter({ hasText: label }).first()
 }
 
-test('S1 R-1.4.8 the goods are rows with their tokens, and the sulfur asks beside itself', async ({
+test('S1 R-1.4.8 the goods are rows with their tokens, and the sulfur asks on its own line', async ({
     page
 }) => {
     await createGame(page)
@@ -45,12 +45,12 @@ test('S1 R-1.4.8 the goods are rows with their tokens, and the sulfur asks besid
     await expect(panel(page).locator('[data-rows="goods"] svg[aria-label="iron"]')).toBeVisible()
     await (await rowBy(page, 'goods', /^\s*(saltpeter)?\s*Saltpeter/i)).click()
     await (await rowBy(page, 'goods', /Sulfur/)).click()
-    const asked = panel(page).locator('[data-row-popup]')
-    await expect(asked.getByRole('button', { name: 'To supply', exact: true })).toBeVisible()
+    const asked = panel(page).locator('[data-rows="sulfur"]')
+    await expect(asked.getByRole('button', { name: 'Keep the sulfur', exact: true })).toBeVisible()
     await (await rowBy(page, 'goods', /Food/)).click()
     await shot(page, 'goods-sulfur-asks')
-    await expect(primary(page)).toBeDisabled()
-    await asked.getByRole('button', { name: 'To barrel', exact: true }).click()
+    await expect(primary(page)).toHaveText('Take saltpeter, sulfur, food')
+    await asked.getByRole('button', { name: 'Put the sulfur into the barrel', exact: true }).click()
     await expect(primary(page)).toHaveText('Take saltpeter, sulfur (barrel), food')
     await shot(page, 'goods-all-three')
     await primary(page).click()

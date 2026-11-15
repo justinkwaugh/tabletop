@@ -93,7 +93,7 @@ export interface StartingGoodsPanel {
         /** Dimmed, with the line a press gives. */
         readonly refusal?: string
     }[]
-    readonly asksSulfurDestination: boolean
+    /** R-1.4.8 Where the picked sulfur goes; only while sulfur is picked. */
     readonly sulfurTo?: SulfurDestination
     readonly primary?: PrimaryButton
 }
@@ -527,8 +527,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                     ...(refusal ? { refusal } : {})
                 }
             }),
-            asksSulfurDestination: deciding && draft.asksSulfurDestination,
-            ...(deciding && draft.sulfurTo ? { sulfurTo: draft.sulfurTo } : {}),
+            ...(deciding && draft.asksSulfur ? { sulfurTo: draft.sulfurTo } : {}),
             ...(deciding && draft.goods.length === StartingGoodsChosen
                 ? { primary: { label: primaryLabel(draft.primaryName), enabled: draft.ready } }
                 : {})
