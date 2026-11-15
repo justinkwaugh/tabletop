@@ -74,12 +74,8 @@ scenario('S41 R-4.6.4 Merchant pull with count', 'guild-merchant-pull', async (t
     const barn = table.page.locator('[data-bench-area="farmer"]')
     const market = table.page.locator('[data-bench-area="merchant"]')
     const [left, right] = [await barn.boundingBox(), await market.boundingBox()]
-    if (table.phone) {
-        // S68 The phone's bottom sheet stands the barn over the market.
-        expect((left?.y ?? 0) + (left?.height ?? 0)).toBeLessThanOrEqual(right?.y ?? 0)
-    } else {
-        expect((left?.x ?? 0) + (left?.width ?? 0)).toBeLessThanOrEqual(right?.x ?? 0)
-    }
+    // The two upright areas stand side by side, on a desk and in a phone's sheet.
+    expect((left?.x ?? 0) + (left?.width ?? 0)).toBeLessThanOrEqual(right?.x ?? 0)
 
     await pressBench(table, 'good:iron', 'good:iron', 'good:wood')
     await expect(ghostsIn(table, 'merchant')).toHaveCount(3)

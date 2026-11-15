@@ -6,7 +6,6 @@
         CardArt,
         CardBox,
         faceTier,
-        PrintedCard,
         PrintedCardPlace,
         PrintedFrameFoot,
         printedNameLinePath,
@@ -77,9 +76,9 @@
     {#if printedUrl}
         <image
             href={printedUrl}
-            x={PrintedCardPlace.x}
+            x="0"
             y="0"
-            width={PrintedCard.width * PrintedCardPlace.scale}
+            width={CardBox.width}
             height={CardBox.height}
             preserveAspectRatio="xMidYMid meet"
         ></image>
