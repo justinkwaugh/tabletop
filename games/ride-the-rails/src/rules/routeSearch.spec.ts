@@ -451,7 +451,7 @@ describe('bestJourneys (R-3.3.4, R-3.3.5)', () => {
         ])
     })
 
-    it('R-3.3.1: suggests nothing from a city without a passenger', () => {
+    it('R-3.3.1: lists nothing from a city without a passenger', () => {
         const state = riding(NETWORK, undefined, [SAINT_LOUIS])
         expect(bestJourneys(state, KANSAS_CITY, 'p1')).toEqual({
             journeys: [],
@@ -460,7 +460,7 @@ describe('bestJourneys (R-3.3.4, R-3.3.5)', () => {
         })
     })
 
-    it('visits each hex of a suggestion once', () => {
+    it('visits each hex of a listed journey once', () => {
         const { journeys } = bestJourneys(riding(NETWORK), SAINT_LOUIS, 'p1')
         for (const { links } of journeys) {
             const hexIds = hexIdsOf(links)
@@ -479,7 +479,7 @@ describe('the expansion cap (R-X.1)', () => {
         expect(bestJourneys(dense, SAINT_LOUIS, 'p1', 250).expansions).toBe(250)
     })
 
-    it('can only shorten the suggestion list', () => {
+    it('can only shorten the list', () => {
         const short = bestJourneys(dense, SAINT_LOUIS, 'p1', 250).journeys
         const long = bestJourneys(dense, SAINT_LOUIS, 'p1', 2500).journeys
         expect(short.length).toBeLessThan(long.length)
@@ -661,7 +661,7 @@ describe('bestJourneys on track that leads to no other city (R-3.3.1-H1, R-X.1)'
         )
     )
 
-    it('spends nothing on it and still suggests the journey there is', () => {
+    it('spends nothing on it and still lists the journey there is', () => {
         const result = bestJourneys(state, SPOKANE, 'p1')
         expect(result.capped).toBe(false)
         expect(result.journeys).toEqual([{ links: [link(BLUE, SPOKANE_TO_SEATTLE)], gain: 2 }])

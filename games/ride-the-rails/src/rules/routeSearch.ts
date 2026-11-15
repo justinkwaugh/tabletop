@@ -573,8 +573,9 @@ function compareRanked(a: RankedJourney, b: RankedJourney): number {
     )
 }
 
-// R-3.3, R-X.1: suggestions only. Every legal journey from the start, best first for the rider:
-// gain, then more links, then fewer hexes, then id order. One expansion is one hex the search
+// R-3.3, R-X.1: ranks journeys for the scripted players (testing/completeGame.ts and walk.ts); no
+// rule and no UI reads it. Every legal journey from the start, best first for the rider: gain,
+// then more links, then fewer hexes, then id order. One expansion is one hex the search
 // steps onto; at the cap the search stops, so a cap can only drop journeys from the list. The
 // search steps only onto hexes on the way to another city (railroadLinksFrom), so it reaches its
 // first link within a railroad's length and lists a journey whenever one leaves the start.

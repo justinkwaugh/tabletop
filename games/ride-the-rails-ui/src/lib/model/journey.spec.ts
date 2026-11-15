@@ -10,14 +10,11 @@ import {
 import {
     MachineState,
     PhaseName,
-    bestJourneys,
     isRideJourney,
-    journeyCities,
     journeyPayments,
     journeyRefusal,
     nextCities,
     railroadsIn,
-    realise,
     usaCity,
     type CityId,
     type HexId,
@@ -28,20 +25,13 @@ import {
 } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
-import {
-    BEST_ROUTE_TRIES,
-    bestRoute,
-    heldJourneyStage,
-    journeyOffer,
-    startCities
-} from './journeyOffer.js'
+import { heldJourneyStage, journeyOffer, startCities } from './journeyOffer.js'
 import {
     JourneyStageOrder,
     draftLinks,
     openRailroadChoice,
     pickJourneyStart,
     pushDraftLink,
-    replaceDraftLinks,
     type JourneyStageValues
 } from './journeyStage.js'
 import type { RideTheRailsGameSession } from './session.svelte.js'
@@ -326,78 +316,6 @@ describe('extending the route (R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
     })
 })
 
-describe('Best route (R-3.3, R-X.1)', () => {
-    it('replaces the links with the best journey, and Undo pops only its last link', async () => {
-        const state = riding()
-        const actionUndo = spyOnActionUndo()
-        const session = await startedIn(KANSAS_CITY, state)
-        await session.pressHex(hexOf(SAINT_LOUIS))
-        session.chooseLinkRailroad(BLUE)
-
-        session.chooseBestRoute()
-        const best = bestJourneys(state, KANSAS_CITY, 'p1').journeys[0]
-        expect(routeOf(session)).toEqual(
-            journeyCities(best.links)
-                .slice(1)
-                .map((cityId, index) => [cityId, best.links[index].railroadId])
-        )
-        expect(routeOf(session)).toEqual([
-            [SAINT_LOUIS, RED],
-            [CINCINNATI, RED],
-            [PITTSBURGH, BLUE]
-        ])
-        expect(session.journeyPreview?.riderGain).toBe(best.gain)
-
-        await session.undo()
-        expect(routeOf(session)).toEqual([
-            [SAINT_LOUIS, RED],
-            [CINCINNATI, RED]
-        ])
-        expect(actionUndo).not.toHaveBeenCalled()
-    })
-
-    describe('falls back to the next-ranked journey whose draft realises', () => {
-        const state = riding()
-        const ranked = bestJourneys(state, KANSAS_CITY, 'p1').journeys
-        const draftOf = (index: number) =>
-            journeyCities(ranked[index].links)
-                .slice(1)
-                .map((cityId, link) => ({
-                    cityId,
-                    railroadId: ranked[index].links[link].railroadId
-                }))
-
-        it('takes the best-ranked journey when its draft realises', () => {
-            const realiser = vi.fn(realise)
-            expect(bestRoute(state, KANSAS_CITY, 'p1', realiser)).toEqual(draftOf(0))
-            expect(realiser).toHaveBeenCalledTimes(1)
-        })
-
-        it('takes the next-ranked journey when the best one does not realise', () => {
-            expect(draftOf(1)).not.toEqual(draftOf(0))
-            const realiser = vi.fn(realise).mockReturnValueOnce(undefined)
-            expect(bestRoute(state, KANSAS_CITY, 'p1', realiser)).toEqual(draftOf(1))
-            expect(realiser).toHaveBeenCalledTimes(2)
-        })
-
-        it('gives up after BEST_ROUTE_TRIES journeys', () => {
-            expect(ranked.length).toBeGreaterThan(BEST_ROUTE_TRIES)
-            const realiser = vi.fn(realise).mockReturnValue(undefined)
-            expect(bestRoute(state, KANSAS_CITY, 'p1', realiser)).toBeUndefined()
-            expect(realiser).toHaveBeenCalledTimes(BEST_ROUTE_TRIES)
-        })
-    })
-
-    it('is offered only once a start is picked', async () => {
-        const session = await openSessionOn(riding())
-        expect(session.canChooseBestRoute).toBe(false)
-        session.chooseBestRoute()
-        expect(session.journeyDraft).toBeUndefined()
-        await session.pressHex(hexOf(PITTSBURGH))
-        expect(session.canChooseBestRoute).toBe(true)
-    })
-})
-
 describe('riding the journey (R-3.3.3 to R-3.3.6)', () => {
     it('is enabled from the first link and sends the route the draft shows', async () => {
         const session = await startedIn(PITTSBURGH)
@@ -417,7 +335,15 @@ describe('riding the journey (R-3.3.3 to R-3.3.6)', () => {
     it('pays every seat exactly the preview, and the new Game State clears the draft', async () => {
         const state = riding()
         const session = await startedIn(KANSAS_CITY, state)
-        session.chooseBestRoute()
+        await session.pressHex(hexOf(SAINT_LOUIS))
+        session.chooseLinkRailroad(RED)
+        await session.pressHex(hexOf(CINCINNATI))
+        await session.pressHex(hexOf(PITTSBURGH))
+        expect(routeOf(session)).toEqual([
+            [SAINT_LOUIS, RED],
+            [CINCINNATI, RED],
+            [PITTSBURGH, BLUE]
+        ])
         const preview = session.journeyPreview
         assertExists(preview)
         const before = new Map(state.players.map((player) => [player.playerId, player.money]))
@@ -543,22 +469,6 @@ describe('Undo and the journey draft (docs/user-interactions.md)', () => {
         expect(pushed.links?.previous?.value).toEqual([{ cityId: SAINT_LOUIS, railroadId: RED }])
     })
 
-    it('Best route pushes each link as its own press', () => {
-        const stage = replaceDraftLinks(
-            pushDraftLink(pickJourneyStart({}, KANSAS_CITY), {
-                cityId: SAINT_LOUIS,
-                railroadId: BLUE
-            }),
-            [
-                { cityId: SAINT_LOUIS, railroadId: RED },
-                { cityId: CINCINNATI, railroadId: RED }
-            ]
-        )
-        expect(draftLinks(stage)).toHaveLength(2)
-        expect(stage.links?.previous?.value).toEqual([{ cityId: SAINT_LOUIS, railroadId: RED }])
-        expect(stage.links?.previous?.previous).toBeUndefined()
-    })
-
     it('a new Game State clears the draft', async () => {
         const session = await startedIn(KANSAS_CITY)
         await session.pressHex(hexOf(SAINT_LOUIS))
@@ -648,22 +558,6 @@ describe('a block of track with millions of paths (R-3.3.2, R-3.3.3, R-X.1)', ()
         const offer = journeyOffer(state, linked, 'p1')
         expect(offer.draft?.links.map((link) => link.hexIds.at(-1))).toEqual([hexOf(SEATTLE)])
         expect(offer.lit).toEqual([])
-    }, 2000)
-
-    it('Best route suggests the journey another railroad makes when Red leads to no other city', async () => {
-        // Red: Spokane and the block, but not Seattle. Blue: one link from Spokane to Seattle.
-        const toSeattle: HexId[] = [hexOf(SPOKANE), 'hex.usa.0-8', 'hex.usa.0-6', hexOf(SEATTLE)]
-        const state = riding(
-            trackOf(
-                [RED, SPOKANE_BLOCK.filter((hexId) => hexId !== hexOf(SEATTLE))],
-                [BLUE, toSeattle]
-            )
-        )
-        const session = await startedIn(SPOKANE, state)
-        expect(session.canChooseBestRoute).toBe(true)
-        session.chooseBestRoute()
-        expect(routeOf(session)).toEqual([[SEATTLE, BLUE]])
-        expect(session.journeyDraft?.links).toEqual([{ railroadId: BLUE, hexIds: toSeattle }])
     }, 2000)
 })
 

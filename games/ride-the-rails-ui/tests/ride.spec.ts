@@ -56,10 +56,6 @@ async function openSeatChips(page: Page) {
     }
 }
 
-function draftLinkCount(page: Page): Promise<number> {
-    return page.evaluate(() => window.rtrSession.journeyDraft?.links.length ?? -1)
-}
-
 test('12. Start and extend: a passenger city, a one-railroad link, then undo both', async ({
     page
 }) => {
@@ -175,34 +171,37 @@ test('14. No loop: a city on the route, or past a used hex, never lights', async
     expect(await linkTargets(page)).toEqual([])
 })
 
-test('15. Best route: fills the best journey, undo pops one link, Ride pays the preview', async ({
+test('15. City by city: the panel offers no Best route; Ride sends the route shown', async ({
     page
 }) => {
     await openScenario(page, 'Journey choices')
+    const bestRoute = page.getByRole('button', { name: /best route/i })
+    await expect(bestRoute).toHaveCount(0)
     await pressHex(page, litHex(page, `Saint Louis: ${START}`))
-    const best = page.getByRole('button', { name: 'Best route', exact: true })
-    await best.click()
-    await settled(page)
-    // R-3.3: Yellow into Chicago, then Orange to Milwaukee, since Ada holds Orange.
-    await routeHeading(page, 'Saint Louis → Chicago → Milwaukee')
-    expect(
-        await page.evaluate(() =>
-            window.rtrSession.journeyDraft?.links.map((link) => link.railroadId)
-        )
-    ).toEqual(['railroad.yellow', 'railroad.orange'])
-    await expect(page.getByText(/^2 links · fare \$3/)).toBeVisible()
+    await routeHeading(page, 'Saint Louis')
+    await expect(page.getByRole('button', { name: 'Ride', exact: true })).toBeDisabled()
+    await expect(bestRoute).toHaveCount(0)
 
-    await undo(page)
-    expect(await draftLinkCount(page)).toBe(1)
+    // R-3.3.2: the route is named one city at a time.
+    await pressHex(page, litHex(page, 'Chicago: link by Yellow'))
     await routeHeading(page, 'Saint Louis → Chicago')
-
-    await best.click()
+    await pressHex(page, litHex(page, 'Milwaukee: link by Orange or Yellow'))
+    await linkPopup(page, 'Milwaukee')
+        .getByRole('button', { name: /^Link by Orange, / })
+        .click()
     await settled(page)
-    expect(await draftLinkCount(page)).toBe(2)
+    await routeHeading(page, 'Saint Louis → Chicago → Milwaukee')
+    await expect(page.getByText(/^2 links · fare \$3/)).toBeVisible()
+    await expect(bestRoute).toHaveCount(0)
+
     const shown = await page.evaluate(() => ({
         links: window.rtrSession.journeyDraft?.links,
         payments: window.rtrSession.journeyPreview?.payments ?? []
     }))
+    expect(shown.links?.map((link) => link.railroadId)).toEqual([
+        'railroad.yellow',
+        'railroad.orange'
+    ])
     const before = await page.evaluate(() =>
         Object.fromEntries(
             window.rtrSession.gameState.players.map((player) => [player.playerId, player.money])
@@ -238,7 +237,6 @@ test('16. Pass: no passenger city has a link, so Pass is the only button', async
     ).toBeVisible()
     const pass = page.getByRole('button', { name: 'Pass', exact: true })
     await expect(pass).toBeEnabled()
-    await expect(page.getByRole('button', { name: 'Best route' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^Ride/ })).toHaveCount(0)
     await expect(litHexes(page)).toHaveCount(0)
     await expect(board(page).locator('g.scrim path')).toHaveCount(0)

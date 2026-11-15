@@ -55,12 +55,6 @@
         <div class="flex flex-wrap gap-2">
             <button
                 type="button"
-                class="rounded-lg border border-rtr-line bg-rtr-panel-raised px-3 py-1.5 text-sm font-semibold hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent disabled:opacity-50"
-                disabled={!gameSession.canChooseBestRoute}
-                onclick={() => gameSession.chooseBestRoute()}>Best route</button
-            >
-            <button
-                type="button"
                 class="rounded-lg border border-rtr-halo bg-rtr-accent px-3 py-1.5 text-sm font-semibold text-rtr-halo hover:enabled:brightness-110 focus-visible:outline-2 focus-visible:outline-rtr-ink disabled:opacity-50"
                 disabled={!gameSession.canRideJourney}
                 onclick={() => gameSession.rideJourney()}

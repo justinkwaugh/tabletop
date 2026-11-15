@@ -41,7 +41,6 @@ import { hexDetailPlace } from '$lib/utils/pickMarks.js'
 import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
 import {
     EMPTY_JOURNEY_OFFER,
-    bestRoute,
     heldJourneyStage,
     journeyBoardOffer,
     journeyOffer,
@@ -57,7 +56,6 @@ import {
     openRailroadChoice,
     pickJourneyStart,
     pushDraftLink,
-    replaceDraftLinks,
     type JourneyStage
 } from './journeyStage.js'
 
@@ -246,8 +244,6 @@ export class RideTheRailsGameSession extends GameSession<
 
     canRideJourney = $derived(this.journeyPreview !== undefined)
 
-    canChooseBestRoute = $derived(this.journeyDraft !== undefined)
-
     private pressJourneyHex(hexId: HexId) {
         const offer = this.offeredJourney
         if (offer.draft && this.isJourneyStart(offer.draft, hexId)) {
@@ -289,20 +285,6 @@ export class RideTheRailsGameSession extends GameSession<
                 cityId: popup.cityId,
                 railroadId
             })
-        }
-    }
-
-    // R-3.3, R-X.1: Best route fills the draft; the seat may Undo links from it and extend again.
-    chooseBestRoute() {
-        const draft = this.journeyDraft
-        const riderId = this.journeyRiderId
-        if (!draft || !riderId) {
-            return
-        }
-        const links = bestRoute(this.gameState, draft.startCityId, riderId)
-        if (links) {
-            this.closeHexDetail()
-            this.journeyStage = replaceDraftLinks(this.heldJourney, links)
         }
     }
 

@@ -49,16 +49,6 @@ export function pushDraftLink(stage: JourneyStage, link: DraftLink): JourneyStag
     )
 }
 
-// Best route: the links replace the draft's, one press each, so Undo takes them back one at a time.
-export function replaceDraftLinks(stage: JourneyStage, links: readonly DraftLink[]): JourneyStage {
-    const cleared = clearStagedSelectionAtOrAfter<JourneyStageValues, 'links'>(
-        stage,
-        JourneyStageOrder,
-        'links'
-    )
-    return links.reduce(pushDraftLink, cleared)
-}
-
 export function openRailroadChoice(stage: JourneyStage, cityId: CityId): JourneyStage {
     return setStagedSelectionValue<JourneyStageValues, 'railroadChoice'>(
         stage,
