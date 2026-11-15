@@ -143,6 +143,9 @@ export class EncodedRoutes {
                     hex,
                     // A route that reaches a stop along terminus track ends there.
                     terminal: arrival.kind === 'node' && terminusNodeId(path) === arrival.nodeId,
+                    // Only a route with a station at or before the stop runs on from it this way.
+                    departs_terminal:
+                        departure.kind === 'node' && terminusNodeId(path) === departure.nodeId,
                     crossings: arrival.kind === 'edge' ? 1 : 0,
                     gauge: path.gauge ?? 'standard'
                 })
@@ -344,7 +347,7 @@ export class EncodedRoutes {
         this.junctionKeys = [...junctions.keys()]
         this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 9,
+            version: 10,
             stops,
             arcs,
             trains,

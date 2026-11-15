@@ -58,6 +58,10 @@ struct Arc {
     hex: usize,
     /// A route that follows the arc to its stop ends there; the reverse arc leaves the stop freely.
     terminal: bool,
+    /// The arc leaves its stop along terminus track, which a route runs on along only with one of
+    /// its company's stations at or before that stop.
+    #[serde(default)]
+    departs_terminal: bool,
     crossings: u32,
     #[serde(default)]
     gauge: Gauge,
@@ -266,6 +270,7 @@ struct Connection {
     hexes: Vec<usize>,
     first_terminal: bool,
     last_terminal: bool,
+    departs_terminal: bool,
     crossings: u32,
     gauge: Stretch,
 }
@@ -662,7 +667,7 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 9
+    if problem.version != 10
         || !problem.budget_ms.is_finite()
         || problem.budget_ms <= 0.0
         || problem.memory_budget_bytes == 0
@@ -826,6 +831,7 @@ impl Compiler<'_> {
                             .collect(),
                         first_terminal: self.problem.arcs[self.walking[0]].terminal,
                         last_terminal: arc.terminal,
+                        departs_terminal: self.problem.arcs[self.walking[0]].departs_terminal,
                         crossings: self
                             .walking
                             .iter()
@@ -952,7 +958,14 @@ impl Search<'_> {
         let bonus = self.train.first_bonus[node];
         let first_bonus = if first_bonus != 0 { first_bonus } else { bonus };
         let last_bonus = if bonus != 0 { bonus } else { last_bonus };
-        if node > start
+        // Each route is kept from one of its ends; one that ends across a link of terminus track
+        // is walked only towards the link.
+        let across_link = self.walking.len() > 1
+            && self.walking.last().is_some_and(|&id| {
+                let arrival = &self.connections[id];
+                arrival.last_terminal && arrival.departs_terminal
+            });
+        if (node > start || across_link)
             && token
             && stop.endpoint
             && (!self.train.requires_city || city)
@@ -1000,6 +1013,7 @@ impl Search<'_> {
             if self.visited[edge.to]
                 || next.groups.iter().any(|&g| self.groups[g])
                 || edge.first_terminal && !self.walking.is_empty() && edge.paths.len() > 1
+                || edge.departs_terminal && !self.walking.is_empty() && !token
                 || edge
                     .resources
                     .iter()
@@ -2466,7 +2480,7 @@ mod tests {
         fn new() -> Self {
             Self {
                 problem: serde_json::from_value(serde_json::json!({
-                    "version": 9, "stops": [], "arcs": [], "trains": [],
+                    "version": 10, "stops": [], "arcs": [], "trains": [],
                     "resource_count": 130, "junction_count": 0, "group_count": 0,
                     "hex_bonuses": [], "budget_ms": 30000, "memory_budget_bytes": 65536,
                 }))
@@ -2480,6 +2494,7 @@ mod tests {
                         hexes: vec![],
                         first_terminal: false,
                         last_terminal: false,
+                        departs_terminal: false,
                         crossings: 0,
                         gauge: Stretch::Standard,
                     })

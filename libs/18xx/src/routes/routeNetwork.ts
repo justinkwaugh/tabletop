@@ -15,6 +15,8 @@ export type RouteVisit = RevenueCenter & {
     node: Exclude<TileNode, { kind: 'junction' }>
     /** The route reached the stop along terminus track, so it ends there. */
     terminus?: true
+    /** The route runs on from the stop along terminus track. */
+    leavesAlongTerminus?: true
 }
 /** Track a route runs between two stops, or from its last stop on, and the hex sides it crosses. */
 export type TrackStretch = { gauge: StretchGauge; crossings: number }
@@ -101,6 +103,16 @@ export class RouteNetwork {
             if (!stretch) {
                 stretch = { gauge: 'either', crossings: 0 }
                 trace.stretches.push(stretch)
+                const departed = trace.visits[trace.visits.length - 1]
+                if (
+                    departed &&
+                    endpoint.kind === 'node' &&
+                    terminusNodeId(path) === endpoint.nodeId
+                )
+                    trace.visits[trace.visits.length - 1] = {
+                        ...departed,
+                        leavesAlongTerminus: true
+                    }
             }
             stretch.crossings += arrival.crossed
             const gauge = continueStretch(stretch.gauge, path)

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     TrackConstruction,
+    StationPlacement,
     getCompany,
+    homeStationId,
     markTurn,
     placeStockMarker,
     privateTrackConstruction,
@@ -22,11 +24,14 @@ import {
     stepTo
 } from '../test/positions.js'
 import { minorAcquisitions1822 } from './acquisition.js'
+import { MetropolitanId, major1822 } from './companies.js'
+import { RoundelSlot1822 } from './housekeeping.js'
 import { Map1822 } from './map.js'
 import { acquirablePrivates1822, acquisitionChoices1822 } from './privateAcquisition.js'
 import { EnglishChannelLocationId } from './privates.js'
 import { AdvancedLayMark, PrivatePowerRules1822, terrainCost1822 } from './privatePowers.js'
 import type { State1822 } from './state.js'
+import { StationRules1822 } from './stations.js'
 import { exchangeTokens1822, placeExchangeToken1822, returnExchangeToken1822 } from './tokens.js'
 import { EnglishChannelTileIds1822, Tiles1822 } from './tiles.js'
 import { TrackRules1822 } from './track.js'
@@ -97,6 +102,53 @@ describe('acquiring a minor company (§5.18)', () => {
         // One acquisition a turn (§5.18.1).
         expect(minorAcquisitions1822(state, first)).toEqual([])
         expect(game.valid(first)).not.toContain('BuyTrain')
+    })
+
+    it('opens the London roundel space to any company once the Metropolitan’s token leaves it (§5.10.4)', () => {
+        const game = prepared((state, [first]) => {
+            state.phaseId = '3'
+            kit.operated(state, 'GWR', first, { price: 100, shares: 6, cash: 400 })
+            runMinor(state, MetropolitanId, first)
+            kit.giveTrain(state, 'GWR', '3')
+            kit.giveTrain(state, MetropolitanId, '2')
+            const home = major1822('GWR')?.home
+            assertExists(home, 'The Great Western starts in London')
+            state.stations = state.stations.map((station) =>
+                station.id === homeStationId(MetropolitanId)
+                    ? {
+                          id: station.id,
+                          companyId: MetropolitanId,
+                          status: 'placed',
+                          position: { ...home, slot: RoundelSlot1822 }
+                      }
+                    : station
+            )
+        })
+        const [first] = game.state.turnManager.turnOrder
+        const home = major1822('GWR')?.home
+        assertExists(home, 'The Great Western starts in London')
+        const openSlots = () =>
+            new StationPlacement(game.hydrated, StationRules1822).openSlots(
+                'CR',
+                home.locationId,
+                home.nodeId
+            )
+        expect(openSlots()).toEqual([])
+        stepTo(game, 'BuyingTrains', 'GWR')
+        const offer = minorAcquisitions1822(game.hydrated, first).find(
+            (entry) => entry.minorId === MetropolitanId
+        )
+        assertExists(offer, 'The Great Western may acquire the Metropolitan')
+        // A company holds one station in each of London's stations (§5.12.6).
+        expect(offer.tokens).toEqual(['available'])
+        game.act('AcquireMinor', {
+            companyId: 'GWR',
+            minorId: MetropolitanId,
+            shares: offer.terms[0].shares,
+            token: 'available',
+            discardTrainIds: []
+        })
+        expect(openSlots()).toEqual([RoundelSlot1822])
     })
 
     it('is closed to a company in the operating round of its first turn (§5.18.1)', () => {

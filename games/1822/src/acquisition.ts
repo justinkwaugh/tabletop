@@ -432,6 +432,12 @@ function acquireFromDirector(state: HydratedState1822, terms: DirectorTerms): De
     if (state.hillDiscountCompanyId === terms.minorId) state.hillDiscountCompanyId = terms.companyId
     const position = { ...home.position }
     closeShareCompany(state, terms.minorId, 'removed')
+    if (
+        terms.minorId === MetropolitanId &&
+        position.slot === RoundelSlot1822 &&
+        terms.token !== 'place'
+    )
+        state.vacatedRoundelNodeId = position.nodeId
     return {
         source: 'director',
         playerId: director.playerId,

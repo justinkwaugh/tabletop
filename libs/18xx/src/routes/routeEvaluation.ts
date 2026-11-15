@@ -411,6 +411,10 @@ export class RouteEvaluation {
                 )
             )
                 return { reason: 'The route must include a station of this company.' }
+            if (this.leavesTerminusAwayFromStation(companyId, trace.visits))
+                return {
+                    reason: 'A route runs on along terminus track only after a station of this company.'
+                }
             const fleetReason = this.rules.fleet && fleetRouteReason(this.rules.fleet, trace.visits)
             if (fleetReason) return { reason: fleetReason }
             const shapeReason = this.rules.routeAllowed?.(
@@ -648,6 +652,24 @@ export class RouteEvaluation {
                 }
             })
         ].filter((bonus) => bonus.amount > 0)
+    }
+    /**
+     * A train runs from its station, so a route reaching its only station across terminus track
+     * would be run along that track from the far end, which ends a route (1822 §5.4.7).
+     */
+    private leavesTerminusAwayFromStation(
+        companyId: string,
+        visits: readonly RouteVisit[]
+    ): boolean {
+        const departure = visits.findIndex((visit, index) => index > 0 && visit.leavesAlongTerminus)
+        return (
+            departure > 0 &&
+            !visits
+                .slice(0, departure + 1)
+                .some((visit) =>
+                    usesStationAt(this.state, companyId, visit.locationId, visit.nodeId)
+                )
+        )
     }
     private repeatedStopGroup(trace: RouteTrace): string | undefined {
         const groups = trace.visits.flatMap(

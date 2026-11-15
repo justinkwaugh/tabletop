@@ -5056,6 +5056,10 @@
         "type": "array",
         "uniqueItems": true
       },
+      "vacatedRoundelNodeId": {
+        "minLength": 1,
+        "type": "string"
+      },
       "variants": {
         "additionalProperties": false,
         "properties": {

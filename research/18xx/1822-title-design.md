@@ -305,13 +305,18 @@ Readings this title keeps, each as the research engine has it unless noted:
    connection as two pointed tracks, one from each city into the other's hex (the illustration
    at §5.4.7), and E32 is off the map. The research engine models the two as one direct track
    and one through E32, and lets a company's trains use one of the two in a turn; the same runs
-   are legal. An earlier version of this title had only the track through E32.
+   are legal. An earlier version of this title had only the track through E32. A route runs on
+   across the link only with a station of its company at or before the city it leaves: "the
+   train starts at the token", so M20 at Pontypool cannot run Cardiff–Merthyr Tydfil–Pontypool
+   (designer, BGG article 44435154, 2024). In the family this is `RouteVisit.leavesAlongTerminus`,
+   and the autorouter's `departs_terminal` arcs (protocol 10).
 10. **Agreement between two players is asked for in the game**: a major's offer for a minor
     another player directs (§5.18.1) and a company's request for a private another player holds
     (§3.1.2) wait for that player to accept or decline, and a refusal ends the matter for the
     turn. The engine takes the agreement on trust.
-11. **A Pullman may be attached to an L-train**; the rulebook bars only the E-train (§5.5.6). The
-    engine attaches it to no L-train.
+11. **A Pullman is never attached to an L-train.** The rulebook bars only the E-train (§5.5.6);
+    the designer also bars the permanent L (BGG article 34859364, 2020), and this title bars the
+    ordinary L too. Earlier versions of this title allowed both.
 12. **A company's station already in its destination city becomes its destination station**
     when it connects, and its destination token stays off the map, as the LNWR's Manchester
     station does (§5.11.3). A company reaches its destination city before joining it to home only
@@ -320,9 +325,8 @@ Readings this title keeps, each as the research engine has it unless noted:
     say what happens then; this reading moves no placed station (§5.12.8) and never puts a second
     station of one company in a city (§5.12.6). Confirmed by the user 2026-11-14.
 13. **P12's extra lays all come before the turn's own track or all after it.** The rulebook does
-    not say so; this is the designer's ruling the engine cites (BoardGameGeek thread 2425653),
-    which I have not read myself. It forbids an own tile, an extra tile and then another own
-    tile in one turn.
+    not say so; this is the designer's ruling (BoardGameGeek thread 2425653, article 34793831).
+    It forbids an own tile, an extra tile and then another own tile in one turn.
 
 Changed to follow the rulebook as the engine reads it:
 
@@ -371,6 +375,36 @@ BoardGameGeek thread 2425653; the rulebook is silent). Once an extra lay follows
 own track, the company lays no more of its own; and P12's second tile is given up once the turn's
 own track follows its first. A private's lay made in place of the normal track (P2, P11, P21)
 counts as the turn's own.
+
+## BoardGameGeek rulings
+
+Every thread of BGG's 1822 forums (object 193867, 207 threads; dump and report in
+`/workspace/tmp/1822-bgg-forums`) was checked against this title on 2026-11-14. About ninety
+answered questions match it. Changed to follow them, at the owner's direction:
+
+- **No Pullman on an L-train** (reading 11).
+- **No route to an English Channel the company is tokened out of**: the Channel and France are
+  one stop, so a company that cannot run through the Channel to France cannot run to it either
+  (designer, article 32242130, 2019; §5.4.6 reads otherwise). `RouteRules1822.stopAllowed`.
+- **Merthyr Tydfil–Pontypool is run from the token** (reading 9). The autorouter also used to miss
+  a legal route ending across the link when the far city came first in its stop order.
+- **The roundel space the Metropolitan Railway leaves is open to any company** when the major
+  acquiring it takes no exchange token there (§5.10.4; asked on BGG, article 23978336, unanswered).
+  `vacatedRoundelNodeId` in the title state; the family's `StationRules.opensBesideCity`.
+
+Kept as the research engine has them, at the owner's direction:
+
+- **P2 counts as one of a major's lays**, so a second yellow tile may follow it. A forum answer
+  (article 31854300) reads "counts as the company's normal track laying step" as the whole step.
+- **The six-exit rule covers city tiles only** (§5.8.17 names plain track and small stations
+  too; the forum, on a later printing, says cities). One difference from the engine is left: this
+  title lets the five-exit tile be laid where the six-exit one is unaffordable, which the rule
+  and the engine forbid, but no hex of the board can take a six-exit tile at an estuary cost.
+
+Open: whether the London major beside the Metropolitan's home may take the roundel space with an
+exchange token (designer, article 23964153, says the acquirer may; this title offers only
+"available" to a company already in that station, §5.12.6), whether loan repayments return to the
+bank, and what the Kickstarter fix pack corrected on the Y and T city tiles and on P15 and P20.
 
 ## Data notes
 

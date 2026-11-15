@@ -1645,7 +1645,7 @@ mod tests {
         trains
             .extend((1..=lone).map(|route| train(&[(2 * route, 100), (2 * route + 1, 100)], None)));
         let problem: Problem = serde_json::from_value(serde_json::json!({
-            "version": 9, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
+            "version": 10, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
             "hex_bonuses": vec![0; lone + 1], "budget_ms": 1, "memory_budget_bytes": 1,
             "stops": (0..stops).map(|stop| serde_json::json!({
                 "token": true, "blocked": false, "endpoint": true, "allowed": true,
@@ -1676,6 +1676,7 @@ mod tests {
                 hexes: vec![],
                 first_terminal: false,
                 last_terminal: false,
+                departs_terminal: false,
                 crossings: 0,
                 gauge: crate::Stretch::Standard,
             })

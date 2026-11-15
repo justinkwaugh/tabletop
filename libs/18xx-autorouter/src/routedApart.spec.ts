@@ -49,6 +49,28 @@ it('ends a route where it reaches a terminus and starts one there freely', () =>
     expect(router.solve(fromTerminus.state, fromTerminus.rules, 'A').result.revenue).toBe(70)
 })
 
+it('runs on across a link of terminus track only from a station on its near side', () => {
+    const middle = city('gray', [3, 0], 30, 2)
+    const link = (edge: TileEdge): TileFace => ({
+        ...middle,
+        paths: middle.paths.map((path) =>
+            path.endpoints.some((end) => end.kind === 'edge' && end.edge === edge)
+                ? { ...path, terminus: true as const }
+                : path
+        )
+    })
+    const towardLink = [city('yellow', [0], 20, 1), link(0), terminusCity([3], 40)]
+    const nearStation = position(towardLink, [stops(3)])
+    expect(router.solve(nearStation.state, nearStation.rules, 'A').result.revenue).toBe(90)
+    const farStation = position(towardLink, [stops(3)])
+    farStation.state.stations[0].position.locationId = '2'
+    expect(router.solve(farStation.state, farStation.rules, 'A').result.revenue).toBe(70)
+    const awayFromLink = [terminusCity([0], 40), link(3), city('yellow', [3], 20, 1)]
+    const lastStation = position(awayFromLink, [stops(3)])
+    lastStation.state.stations[0].position.locationId = '2'
+    expect(router.solve(lastStation.state, lastStation.rules, 'A').result.revenue).toBe(90)
+})
+
 it('runs two trains across one hex side on its two lanes', () => {
     const home: TileFace = {
         ...city('yellow', [], 20, 1),

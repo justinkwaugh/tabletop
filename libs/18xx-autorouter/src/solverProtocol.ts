@@ -20,6 +20,8 @@ export type SolverArc = {
     path: number
     hex: number
     terminal: boolean
+    /** A route runs along the arc only from a stop at or after one of its company's stations. */
+    departs_terminal: boolean
     crossings: number
     /** The path's gauge on the wire: a running gauge, or dual. */
     gauge: RunningGauge | TrackGauge

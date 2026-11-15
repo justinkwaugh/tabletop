@@ -1,5 +1,7 @@
+import { assertExists } from '@tabletop/common'
 import {
     RailwayMapState,
+    cityIsBlocked,
     getCompany,
     privateOwningCompany,
     routeRevenue,
@@ -29,11 +31,15 @@ export const DestinationBonusSourceId = 'destination'
 
 const LocalTrainIds: readonly string[] = [LocalTrainId, PermanentLocalTrainId]
 
-/** The printed value of a stop at the current phase, before any doubling (§5.13.5). */
-function printedValue(state: TrainRunningState, center: RevenueCenter): number {
-    const node = new RailwayMapState(Map1822, TileSet1822, state.tileInventory)
+function stopNode(state: TrainRunningState, center: RevenueCenter) {
+    return new RailwayMapState(Map1822, TileSet1822, state.tileInventory)
         .tile(center.locationId)
         .face.nodes.find((entry) => entry.id === center.nodeId)
+}
+
+/** The printed value of a stop at the current phase, before any doubling (§5.13.5). */
+function printedValue(state: TrainRunningState, center: RevenueCenter): number {
+    const node = stopNode(state, center)
     return node && node.kind !== 'junction'
         ? routeRevenue(node.revenue, revenueStages1822(state.phaseId))
         : 0
@@ -61,18 +67,18 @@ export function destinationReached1822(state: TrainRunningState, companyId: stri
     return placed && (companyId !== LnwrId || requireState1822(state).lnwrConnected === true)
 }
 
-/** A train with a Pullman counts only large stations and passes small ones for their revenue (§5.5.6). */
+/**
+ * A train with a Pullman counts only large stations and passes small ones for their revenue
+ * (§5.5.6). The designer bars it from the permanent L (BGG article 34859364); this title bars it
+ * from the ordinary L as well.
+ */
 function withPullman(train: TrainDefinition): TrainDefinition | string {
     if (train.id === ElectricTrainId) return 'A Pullman is never added to an E train (§5.5.6).'
-    const { maximum, stationRun } = train.distance
+    if (LocalTrainIds.includes(train.id)) return 'A Pullman is never added to an L train.'
     return {
         ...train,
         name: `${train.name}+`,
-        distance: {
-            measure: 'cities-and-offboards',
-            maximum,
-            ...(stationRun ? { stationRun: true as const } : {})
-        }
+        distance: { measure: 'cities-and-offboards', maximum: train.distance.maximum }
     }
 }
 
@@ -105,6 +111,15 @@ export const RouteRules1822: RouteRules = {
     // The English Channel and France together are one stop, so a run of those two alone is no
     // route; France is the map's one off-board area (§5.4.6, §5.13.1).
     minimumCitiesAndTowns: 2,
+    // The English Channel and France are one stop, so a company that cannot run through a full
+    // Channel to France cannot run to the Channel either: the designer's ruling on §5.4.6 (BGG
+    // article 32242130).
+    stopAllowed(state, companyId, center) {
+        if (center.locationId !== EnglishChannelLocationId) return true
+        const node = stopNode(state, center)
+        assertExists(node, 'The English Channel has no stop')
+        return !cityIsBlocked(state, companyId, center.locationId, node)
+    },
     // An E train stops only at its company's stations, and at France through a station of its
     // own in the English Channel; it passes every other stop (§5.5.8, §5.9.2).
     stopsAt(state, companyId, center, train) {

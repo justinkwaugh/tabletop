@@ -626,6 +626,8 @@ describe('routes (§5.4, §5.5)', () => {
             state.phaseId = '5'
             kit.operated(state, 'SECR', first, { price: 100, shares: 6 })
             kit.giveTrain(state, 'SECR', '5')
+            kit.operated(state, 'LBSCR', first, { price: 100, shares: 6 })
+            kit.giveTrain(state, 'LBSCR', '5')
             layTiles(state, [
                 { locationId: EnglishChannelLocationId, definitionId: channelTileId, rotation: 0 }
             ])
@@ -649,7 +651,9 @@ describe('routes (§5.4, §5.5)', () => {
             )
         })
         const { state, evaluation } = running(game, 'SECR')
-        const [train] = state.trainInventory.trains.filter((entry) => entry.status === 'owned')
+        const [train] = state.trainInventory.trains.filter(
+            (entry) => entry.status === 'owned' && entry.owner.companyId === 'SECR'
+        )
         const toFrance = evaluation.network.mapState
             .tile(EnglishChannelLocationId)
             .face.paths.find((path) =>
@@ -669,6 +673,26 @@ describe('routes (§5.4, §5.5)', () => {
                 }
             ]).reason
         ).toBe('A route must visit at least 2 cities or towns.')
+        // A company tokened out of the Channel cannot run to it either (BGG article 32242130).
+        const channel = { locationId: EnglishChannelLocationId, nodeId: 'city' }
+        expect(RouteRules1822.stopAllowed?.(state, 'SECR', channel)).toBe(true)
+        expect(RouteRules1822.stopAllowed?.(state, 'LBSCR', channel)).toBe(false)
+        const blocked = running(game, 'LBSCR')
+        const [lbscrTrain] = blocked.state.trainInventory.trains.filter(
+            (entry) => entry.status === 'owned' && entry.owner.companyId === 'LBSCR'
+        )
+        expect(
+            blocked.evaluation.evaluate('LBSCR', [
+                {
+                    trainId: lbscrTrain.id,
+                    start: channel,
+                    paths: [
+                        { locationId: EnglishChannelLocationId, pathId: toFrance.id },
+                        { locationId: FranceLocationId, pathId: inFrance.id }
+                    ]
+                }
+            ]).reason
+        ).toBe('This company may not use that revenue center.')
     })
 
     it('ends a route that crosses between Merthyr Tydfil and Pontypool (§5.4.7)', () => {
@@ -685,6 +709,25 @@ describe('routes (§5.4, §5.5)', () => {
         expect(evaluation.network.extensions(route.start, route.paths)).toEqual([])
     })
 
+    it('runs across the Merthyr Tydfil–Pontypool link only from a station on its near side (§5.4.7)', () => {
+        const runFrom = (minorId: string) => {
+            const game = prepared((state, [first]) => {
+                runMinor(state, minorId, first)
+                kit.giveTrain(state, minorId, '3')
+            })
+            const { state, evaluation } = running(game, minorId)
+            const [train] = state.trainInventory.trains.filter((entry) => entry.status === 'owned')
+            const cardiff = { locationId: 'F35', nodeId: 'city' }
+            const route = kit.route(state, train.id, cardiff, ['F35', 'E34', 'F33'])
+            return evaluation.evaluate(minorId, [route])
+        }
+        // Phase 1 values: Cardiff £30, Merthyr Tydfil £30 and Pontypool £20 (§5.4.5).
+        expect(runFrom('M21').result?.revenue).toBe(80)
+        expect(runFrom('M20').reason).toBe(
+            'A route runs on along terminus track only after a station of this company.'
+        )
+    })
+
     it('has an E train stop only at its company’s stations, doubled (§5.5.8)', () => {
         const game = prepared((state, [first]) => kit.operated(state, 'CR', first))
         const state = game.hydrated
@@ -699,7 +742,7 @@ describe('routes (§5.4, §5.5)', () => {
         expect(RouteRules1822.stopRevenue?.(state, 'CR', home, 40, three)).toBe(40)
     })
 
-    it('lets a Pullman make a train count large stations only, though never an E train (§5.5.6)', () => {
+    it('lets a Pullman make a train count large stations only, though never an E or L train (§5.5.6)', () => {
         const game = prepared(() => undefined)
         const state = game.hydrated
         const pullman = RouteRules1822.depot.trainDefinition('P+')
@@ -712,12 +755,13 @@ describe('routes (§5.4, §5.5)', () => {
             name: '3+',
             distance: { measure: 'cities-and-offboards', maximum: 3 }
         })
-        expect(
-            typeof RouteRules1822.attachedDefinition?.(
-                state,
-                RouteRules1822.depot.trainDefinition('E'),
-                [pullman]
-            )
-        ).toBe('string')
+        for (const trainId of ['E', 'L', 'LP'])
+            expect(
+                typeof RouteRules1822.attachedDefinition?.(
+                    state,
+                    RouteRules1822.depot.trainDefinition(trainId),
+                    [pullman]
+                )
+            ).toBe('string')
     })
 })

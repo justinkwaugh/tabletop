@@ -11,7 +11,7 @@ fn solve(problem: &Value) -> Value {
 
 fn graph(nodes: usize, edges: &[(usize, usize)], trains: &[u32]) -> Value {
     json!({
-        "version": 9, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
+        "version": 10, "junction_count": 1, "budget_ms": 30000, "memory_budget_bytes": 48_000_000,
         "resource_count": edges.len(), "group_count": 1, "hex_bonuses": vec![0; edges.len()],
         "stops": (0..nodes).map(|id| json!({
             "token": id == 0, "blocked": false, "endpoint": true, "allowed": true,
@@ -227,6 +227,24 @@ fn terminal_track_may_be_last_but_not_internal() {
     p["arcs"][2]["terminal"] = json!(true);
     p["arcs"][3]["terminal"] = json!(true);
     assert_eq!(solve(&p)["revenue"], 60);
+}
+
+#[test]
+fn terminal_link_is_run_on_from_a_station_on_its_near_side() {
+    let link = |edges: &[(usize, usize)], link_arcs: [usize; 2], token: usize| {
+        let mut p = graph(3, edges, &[3]);
+        for arc in link_arcs {
+            p["arcs"][arc]["terminal"] = json!(true);
+            p["arcs"][arc]["departs_terminal"] = json!(true);
+        }
+        for stop in 0..3 {
+            p["stops"][stop]["token"] = json!(stop == token);
+        }
+        p
+    };
+    assert_eq!(solve(&link(&[(0, 1), (1, 2)], [2, 3], 0))["revenue"], 60);
+    assert_eq!(solve(&link(&[(0, 1), (1, 2)], [2, 3], 2))["revenue"], 50);
+    assert_eq!(solve(&link(&[(0, 1), (1, 2)], [0, 1], 2))["revenue"], 60);
 }
 
 fn permutations(remaining: &mut Vec<usize>, prefix: &mut Vec<usize>, result: &mut Vec<Vec<usize>>) {

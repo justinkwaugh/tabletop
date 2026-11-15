@@ -14,6 +14,7 @@ import {
 } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
+import type { TileNode } from '../tiles/tile.js'
 import { TrackNetwork } from '../construction/trackNetwork.js'
 import type { OperatingSet } from '../operating/operatingSet.js'
 import type { GameEnding } from '../ending/gameEnding.js'
@@ -84,6 +85,12 @@ export interface StationRules {
      * company, as London's six stations are (1822 §5.4.2, §5.12.6).
      */
     citiesApart?(locationId: string): boolean
+    /**
+     * Whether the space beside a full city, which otherwise only a title's own tokens take, is
+     * open to any company's station, as the London roundel space the Metropolitan Railway leaves
+     * (1822 §5.10.4).
+     */
+    opensBesideCity?(state: StationPlacementState, locationId: string, nodeId: string): boolean
 }
 export type StationEvaluation =
     { details: StationPlacementDetails; reason?: never } | { details?: never; reason: string }
@@ -199,15 +206,34 @@ export class StationPlacement {
                 )
                 .map((reservation) => reservation.companyId)
         ).size
-        const free = Array.from({ length: node.stationSlots }, (_, slot) => slot).filter(
-            (slot) =>
-                !occupied.some(
-                    (station) => station.status === 'placed' && station.position.slot === slot
-                )
-        )
-        if (free.length <= reserved) return []
+        const isFree = (slot: number) =>
+            !occupied.some(
+                (station) => station.status === 'placed' && station.position.slot === slot
+            )
+        const free = Array.from({ length: node.stationSlots }, (_, slot) => slot).filter(isFree)
+        const offered = [
+            ...(free.length > reserved ? free : []),
+            ...this.freeBesideSlots(locationId, node)
+        ]
+        if (!offered.length) return []
         return this.hexClaims(companyId, locationId) < this.hexSpaces(companyId, locationId)
-            ? free
+            ? offered
+            : []
+    }
+    private freeBesideSlots(
+        locationId: string,
+        node: Extract<TileNode, { kind: 'city' }>
+    ): readonly number[] {
+        const beside = node.stationSlots
+        const taken = this.state.stations.some(
+            (station) =>
+                station.status === 'placed' &&
+                station.position.locationId === locationId &&
+                station.position.nodeId === node.id &&
+                station.position.slot === beside
+        )
+        return !taken && this.rules.opensBesideCity?.(this.state, locationId, node.id)
+            ? [beside]
             : []
     }
     /**
@@ -242,7 +268,11 @@ export class StationPlacement {
                     )
                     .map((reservation) => reservation.companyId)
             ).size
-            return total + Math.max(0, node.stationSlots - placed - reserved)
+            return (
+                total +
+                Math.max(0, node.stationSlots - placed - reserved) +
+                this.freeBesideSlots(locationId, node).length
+            )
         }, 0)
     }
     homePlacements(): StationPlacementDetails[] {

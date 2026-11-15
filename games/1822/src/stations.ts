@@ -17,6 +17,7 @@ import {
     minor1822
 } from './companies.js'
 import { Map1822 } from './map.js'
+import { requireState1822 } from './state.js'
 import { EnglishChannelLocationId } from './privates.js'
 import { TileSet1822 } from './tiles.js'
 
@@ -71,5 +72,7 @@ export const StationRules1822: StationRules = {
     pendingHomes,
     // A company may hold a station in more than one of London's six, never two in one (§5.4.2,
     // §5.12.6).
-    citiesApart: (locationId) => locationId === LondonLocationId
+    citiesApart: (locationId) => locationId === LondonLocationId,
+    opensBesideCity: (state, locationId, nodeId) =>
+        locationId === LondonLocationId && requireState1822(state).vacatedRoundelNodeId === nodeId
 }

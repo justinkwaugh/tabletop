@@ -58,6 +58,11 @@ export const TitleFields1822 = {
      * them takes part in an acquisition (§5.18.1).
      */
     debutCompanyIds: Type.Array(Id, { uniqueItems: true }),
+    /**
+     * The London station whose roundel space the Metropolitan Railway left with no exchange token
+     * in its place, open now to any company's station (§5.10.4).
+     */
+    vacatedRoundelNodeId: Type.Optional(Id),
     /** The LNWR has joined London to Manchester, so its Manchester station is its destination (§5.11.3). */
     lnwrConnected: Type.Optional(Type.Literal(true)),
     /**
