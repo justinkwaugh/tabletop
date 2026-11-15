@@ -1,40 +1,72 @@
 <script lang="ts">
-    import { shownRailroadCards } from '$lib/model/railroadCards.js'
+    import { choosingShare, shareButtons, shownRailroadCards } from '$lib/model/railroadCards.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { railroadStyle } from '$lib/utils/railroadStyle.js'
+    import { CARD_PILE_UNIT } from '$lib/utils/supplyPile.js'
     import SupplyPile from './board/SupplyPile.svelte'
     import RailroadSpotlightControl from './RailroadSpotlightControl.svelte'
 
     const gameSession = getGameSession()
     const flights = gameSession.flights
 
-    const cards = $derived(shownRailroadCards(gameSession))
+    const buttons = $derived(shareButtons(shownRailroadCards(gameSession), gameSession))
+    const sharing = $derived(choosingShare(gameSession))
+    const dotColour = $derived(
+        gameSession.myPlayerId
+            ? gameSession.colors.getPlayerBgColorValue(gameSession.myPlayerId)
+            : undefined
+    )
 </script>
 
 <!-- Contract, Desktop layout: one card per railroad available this round (R-1.4), between the
-     action area and the board, outside the scaling: its name and its supply pile, the cubes as
-     large as the card holds; the seat cards beside the board show the shares. A press or hover
-     spotlights it; a press holds it, which narrows the building zoom. -->
+     action area and the board, outside the scaling: its supply pile alone, with no name (the
+     colour is the label), the cubes as large as the card holds; the seat cards beside the board
+     show the shares. While the viewer takes a share each card is that share's button, the
+     viewer's shares as dots; otherwise a press or hover spotlights it, and a press holds it, which
+     narrows the building zoom. -->
 <div class="railroad-cards flex max-sm:hidden" role="group" aria-label="Railroads">
-    {#each cards as card (card.railroadId)}
-        {@const style = railroadStyle(card.railroadId)}
+    {#each buttons as button (button.railroadId)}
         <div
             class="slot"
-            style:opacity={card.arriving ? 0 : undefined}
-            use:flights.register={card.entryKey}
+            style:opacity={button.arriving ? 0 : undefined}
+            use:flights.register={button.entryKey}
         >
-            <RailroadSpotlightControl railroadId={card.railroadId} label={card.label} class="card">
-                <span class="head rtr-serif" style:background={style.fill} style:color={style.ink}
-                    >{style.name}</span
+            {#if sharing}
+                <button
+                    type="button"
+                    class="card share hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent"
+                    class:empty={button.supply === 0}
+                    disabled={!button.enabled}
+                    aria-label={button.shareLabel}
+                    onclick={() => gameSession.takeShare(button.railroadId)}
                 >
-                <span class="body">
                     <SupplyPile
-                        railroadId={card.railroadId}
-                        supply={card.supply}
-                        arrangement="columns"
+                        railroadId={button.railroadId}
+                        supply={button.supply}
+                        fit="fixed"
+                        unit={CARD_PILE_UNIT}
                     />
-                </span>
-            </RailroadSpotlightControl>
+                    {#if button.held > 0}
+                        <span class="dots">
+                            {#each { length: button.held }, index (index)}
+                                <span class="dot" style:background-color={dotColour}></span>
+                            {/each}
+                        </span>
+                    {/if}
+                </button>
+            {:else}
+                <RailroadSpotlightControl
+                    railroadId={button.railroadId}
+                    label={button.label}
+                    class="card"
+                >
+                    <SupplyPile
+                        railroadId={button.railroadId}
+                        supply={button.supply}
+                        fit="fixed"
+                        unit={CARD_PILE_UNIT}
+                    />
+                </RailroadSpotlightControl>
+            {/if}
         </div>
     {/each}
 </div>
@@ -54,34 +86,47 @@
     }
 
     .railroad-cards :global(.card) {
+        position: relative;
         flex: 1;
         min-width: 0;
         height: 64px;
         display: flex;
-        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         overflow: hidden;
         border-radius: 8px;
         border: 1px solid var(--rtr-card-edge);
         background: var(--rtr-panel);
         color: var(--rtr-ink);
-        text-align: left;
     }
 
-    .head {
-        flex: none;
-        height: 14px;
-        padding: 0 6px;
-        font-size: 10px;
-        line-height: 14px;
-        white-space: nowrap;
+    .railroad-cards .share {
+        border: 1.5px solid var(--rtr-line);
+        background: var(--rtr-panel-raised);
+        box-shadow: 0 2px 0 var(--rtr-line);
     }
 
-    .body {
-        flex: 1;
-        min-height: 0;
+    .share:disabled {
+        opacity: 0.55;
+    }
+
+    .railroad-cards .share.empty {
+        border-style: dashed;
+        box-shadow: none;
+    }
+
+    .dots {
+        position: absolute;
+        top: 5px;
+        right: 6px;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 6px 0 5px;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
     }
 </style>

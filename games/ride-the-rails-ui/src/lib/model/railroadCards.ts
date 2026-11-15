@@ -1,3 +1,4 @@
+import { MachineState } from '@tabletop/ride-the-rails'
 import { ROUND_KEY, railroadEntryKey, sharesKey, supplyKey } from '$lib/animators/flights.svelte.js'
 import {
     railroadCards,
@@ -11,17 +12,15 @@ import type { RideTheRailsGameSession } from './session.svelte.js'
 export type ShownRailroadCard = RailroadCard & {
     /** Made available by the end of round under way: drawn unseen until it brightens in. */
     arriving: boolean
-    /** Its card or rail pile, which the end of round brightens. */
+    /** Its desktop card, which the end of round brightens. */
     entryKey: string
-    /** The desktop card's accessible name. */
+    /** The desktop card's and the phone build pile's accessible name. */
     label: string
-    /** The phone rail pile's accessible name. */
-    pileLabel: string
 }
 
 /**
  * Contract, The table: the railroads available this round (R-1.4) as the desktop cards and the
- * phone's rail show them. The round, the supply and the shares tick ahead of the shown state as
+ * phone's share buttons show them. The round, the supply and the shares tick ahead of the shown state as
  * a flight lifts or lands, or as the end of a round steps (Animation plan).
  */
 export function shownRailroadCards(session: RideTheRailsGameSession): ShownRailroadCard[] {
@@ -43,8 +42,7 @@ export function shownRailroadCards(session: RideTheRailsGameSession): ShownRailr
             ...shown,
             arriving: !settled.has(card.railroadId),
             entryKey: railroadEntryKey(card.railroadId),
-            label: railroadCardLabel(shown),
-            pileLabel: railroadPileLabel(shown, (playerId) => session.getPlayerName(playerId))
+            label: railroadCardLabel(shown)
         }
     })
 }
@@ -54,16 +52,59 @@ export function railroadCardLabel(card: RailroadCard): string {
     return `${railroadStyle(card.railroadId).name}: ${supplyText(card.supply)}`
 }
 
+export type ShareButton = ShownRailroadCard & {
+    /** The viewer's shares of it, drawn as dots. */
+    held: number
+    /** Whether the viewer may take a share of it now (R-3.1). */
+    enabled: boolean
+    shareLabel: string
+}
+
 /**
- * A phone rail pile's accessible name: its supply, and its holders, as the seat cards are in a
- * drawer off screen there.
+ * Contract, Take a share: one button per railroad available this round, its pile with no words;
+ * an empty one stays, disabled. What the viewer holds and may take come from the session.
  */
-export function railroadPileLabel(
-    card: RailroadCard,
-    nameOf: (playerId: string) => string
-): string {
-    const holders = card.shareholders
-        .map((holding) => `${nameOf(holding.playerId)} ${holding.shares}`)
-        .join(', ')
-    return `${railroadCardLabel(card)}${holders ? `, shares ${holders}` : ''}`
+export function shareButtons(
+    cards: readonly ShownRailroadCard[],
+    session: Pick<RideTheRailsGameSession, 'myPlayerId' | 'shareChoices'>
+): ShareButton[] {
+    return cards.map((card) => {
+        const held =
+            card.shareholders.find((holding) => holding.playerId === session.myPlayerId)?.shares ??
+            0
+        return {
+            ...card,
+            held,
+            enabled: session.shareChoices.includes(card.railroadId),
+            shareLabel: shareButtonLabel(card, held)
+        }
+    })
+}
+
+/**
+ * A share button's accessible name: the whole choice the wordless pile stands for, "Take a Red
+ * share, 16 left, you hold 1", or "Red: none left" once its supply is empty.
+ */
+export function shareButtonLabel(card: RailroadCard, held: number): string {
+    const name = railroadStyle(card.railroadId).name
+    const holding = held > 0 ? `, you hold ${held}` : ''
+    if (card.supply === 0) return `${name}: none left${holding}`
+    const article = /^[AEIOU]/.test(name) ? 'an' : 'a'
+    return `Take ${article} ${name} share, ${card.supply} left${holding}`
+}
+
+/**
+ * Contract, Take a share: the deciding seat's phase 1, when the action area shows Take a share and
+ * the desktop railroad cards are the share buttons.
+ */
+export function choosingShare(
+    session: Pick<RideTheRailsGameSession, 'isMyTurn' | 'isViewingHistory' | 'gameState'>
+): boolean {
+    const state = session.gameState
+    return (
+        session.isMyTurn &&
+        !session.isViewingHistory &&
+        !state.result &&
+        state.machineState === MachineState.TakingShares
+    )
 }

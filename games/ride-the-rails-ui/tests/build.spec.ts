@@ -27,8 +27,11 @@ const EAST_COAST = [
     'Jacksonville'
 ]
 
+/** "2 of 5 placed" on desktop; on a phone the one-line panel's count, "2/5". */
 function placed(page: Page, text: string) {
-    return expect(page.getByText(text, { exact: true })).toBeVisible()
+    const phone = test.info().project.use.isMobile === true
+    const shown = phone ? text.replace(/^(\d+) of (\d+) placed$/, '$1/$2') : text
+    return expect(page.getByText(shown, { exact: true })).toBeVisible()
 }
 
 function scrim(page: Page) {

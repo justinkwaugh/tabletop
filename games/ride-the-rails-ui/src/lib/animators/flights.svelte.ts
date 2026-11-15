@@ -50,7 +50,7 @@ export function roundTicketKey(round: number): string {
     return `round-ticket:${round}`
 }
 
-/** A railroad's card or rail pile, which brightens in when the end of a round makes it available. */
+/** A railroad's desktop card, which brightens in when the end of a round makes it available. */
 export function railroadEntryKey(railroadId: RailroadId): string {
     return `railroad-entry:${railroadId}`
 }

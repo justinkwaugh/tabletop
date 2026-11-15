@@ -68,14 +68,14 @@ async function showsWholeMap(page: Page): Promise<boolean> {
     )
 }
 
-/** A railroad's card above the board on desktop, or its pile on the phone's rail. */
+/** A railroad's card above the board on desktop, or its pile in a phone's build panel. */
 function railroadEntry(page: Page, name: string) {
     return page
         .getByRole('group', { name: 'Railroads' })
         .getByRole('button', { name: new RegExp(`^${name}: `) })
 }
 
-/** Presses a railroad's spotlight as a player would: its card, or its pile on a phone. */
+/** Presses a railroad's spotlight as a player would: its card, or its build pile on a phone. */
 async function pressSpotlight(page: Page, name: string) {
     if (onPhone()) {
         await railroadEntry(page, name).tap()
@@ -376,7 +376,16 @@ test('A watching seat’s view does not zoom, not even for a held spotlight', as
     const watching = await settled(page)
     if (!onPhone()) expect(await showsWholeMap(page)).toBe(true)
 
-    await pressSpotlight(page, 'Red')
+    if (onPhone()) {
+        // A watching phone shows no piles: the seat cards' share rows, in the Players drawer off
+        // screen, hold the spotlight. Pressed in place, so the drawer does not scroll the board.
+        await page
+            .getByRole('region', { name: /^Ada, / })
+            .getByRole('button', { name: /^Red: / })
+            .dispatchEvent('click')
+    } else {
+        await pressSpotlight(page, 'Red')
+    }
     await expect
         .poll(() => page.evaluate(() => window.rtrSession.heldRailroadId))
         .toBe('railroad.red')

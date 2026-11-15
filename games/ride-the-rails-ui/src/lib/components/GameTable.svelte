@@ -15,7 +15,6 @@
     } from '@tabletop/ride-the-rails'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
-    import PhoneSupplyRail from '$lib/components/PhoneSupplyRail.svelte'
     import RailroadCards from '$lib/components/RailroadCards.svelte'
     import SideRail from '$lib/components/SideRail.svelte'
     import Board from '$lib/components/Board.svelte'
@@ -138,9 +137,10 @@
         {/snippet}
         {#snippet gameContent()}
             <div class="shrink-0"><TableControls /></div>
-            <!-- One of the two at a time, so each railroad's pile and card are one flight target. -->
+            <!-- Desktop only: on a phone the action panel's piles stand in for the cards, so a
+                 railroad's pile is one flight target. -->
             {#if !isPhoneWidth()}<RailroadCards />{/if}
-            <div class="flex min-h-0 gap-1.5" style="flex:1;">
+            <div class="flex min-h-0" style="flex:1;">
                 <div
                     class="min-w-0 grow-0 overflow-hidden"
                     style="flex:1;"
@@ -171,7 +171,6 @@
                         {/snippet}
                     </ScalingWrapper>
                 </div>
-                {#if isPhoneWidth()}<PhoneSupplyRail />{/if}
             </div>
         {/snippet}
     </DefaultTableLayout>

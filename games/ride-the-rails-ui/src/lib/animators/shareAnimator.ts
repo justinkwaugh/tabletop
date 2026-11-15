@@ -18,8 +18,8 @@ export const SHARE_FLYER_KEY = 'share'
 
 /**
  * Contract, Animation plan, Share (Patterns B and D): R-3.1, a locomotive lifts from its
- * railroad's supply pile (its card on desktop, the rail on a phone) and flies to the seat's card;
- * the pile loses a cube as it lifts and the seat's share count ticks as it lands
+ * railroad's supply pile (its card on desktop, its share button on a phone) and flies to the
+ * seat's card; the pile loses a cube as it lifts and the seat's share count ticks as it lands
  * (`flightPlaces`). Without an action the counts change with the state.
  */
 export function shareAnimator(flights: Flights): GameStateChangeListener<State> {

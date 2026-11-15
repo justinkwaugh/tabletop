@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 // Contract, The table: what the railroad cards' and the round tickets' sources must hold.
 const SOURCES = import.meta.glob(
-    ['./RailroadCards.svelte', './PhoneSupplyRail.svelte', './panel/RoundTickets.svelte'],
+    [
+        './RailroadCards.svelte',
+        './panel/TakeSharePanel.svelte',
+        './panel/BuildPanel.svelte',
+        './panel/RoundTickets.svelte'
+    ],
     { query: '?raw', import: 'default', eager: true }
 )
 
@@ -11,23 +16,36 @@ function source(file: string): string {
 }
 
 describe('the desktop railroad cards', () => {
-    it('draw the name and the pile alone: no track count, and no holders (the seat cards show the shares)', () => {
+    it('draw the pile alone: no name head, no track count, and no holders (the seat cards show the shares)', () => {
         const cards = source('./RailroadCards.svelte')
         expect(cards).toMatch(/<SupplyPile\b/)
+        expect(cards).not.toMatch(/class="head\b/)
+        expect(cards).not.toMatch(/\.name\b|railroadName/)
         expect(cards).not.toMatch(/track/)
         expect(cards).not.toMatch(/shareholders/)
-        expect(cards).not.toMatch(/seatInitials/)
-        expect(cards).not.toMatch(/class="(?:holders?|disc)"/)
-        expect(cards).toMatch(/label=\{card\.label\}/)
+        expect(cards).toMatch(/label=\{button\.label\}/)
+    })
+
+    it('become the share buttons while the viewer takes a share', () => {
+        const cards = source('./RailroadCards.svelte')
+        expect(cards).toMatch(/aria-label=\{button\.shareLabel\}/)
+        expect(cards).toMatch(/gameSession\.takeShare\(button\.railroadId\)/)
     })
 })
 
-describe('the phone rail', () => {
-    it('opens a pile’s holders without its track count, its name listing the holders', () => {
-        const rail = source('./PhoneSupplyRail.svelte')
-        expect(rail).toMatch(/\{#each card\.shareholders as holding/)
-        expect(rail).not.toMatch(/trackCount|class="track"/)
-        expect(rail).toMatch(/label=\{card\.pileLabel\}/)
+describe('the action panel’s piles', () => {
+    it('draw Take a share’s buttons as piles with no railroad names, each named in full', () => {
+        const panel = source('./panel/TakeSharePanel.svelte')
+        expect(panel).toMatch(/<SupplyPile\b[^>]*fit="follow"/)
+        expect(panel).toMatch(/aria-label=\{button\.shareLabel\}/)
+        expect(panel).not.toMatch(/railroadName|RailroadPieceIcon|\.name\b/)
+    })
+
+    it('show only the building seat’s buildable railroads, each holding its spotlight', () => {
+        const panel = source('./panel/BuildPanel.svelte')
+        expect(panel).toMatch(/buildableRailroads\(/)
+        expect(panel).toMatch(/<RailroadSpotlightControl\b/)
+        expect(panel).toMatch(/<SupplyPile\b[^>]*fit="follow"/)
     })
 })
 

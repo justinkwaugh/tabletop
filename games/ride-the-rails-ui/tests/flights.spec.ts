@@ -2,7 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 import { collectPageErrors, litHex, openScenario, pressHex, settled } from './helpers.js'
 
 // The contract's Animation plan: the board holds only the map, so the flights lift from and land
-// on what the table shows beside it (the supply piles on the railroad cards or the phone's rail,
+// on what the table shows beside it (the supply piles on the railroad cards, or on a phone in the
+// action panel,
 // the seat cards, the Transcontinental chip in the turn line), the round steps on the turn line's
 // tickets at the end of a round, and the railroad it makes available brightens in.
 collectPageErrors()
@@ -81,7 +82,7 @@ test('A share lifts from its supply pile and lands on the seat card', async ({ p
     expect(shares).toBeDefined()
 
     await recordFlyers(page)
-    await page.getByRole('button', { name: 'Red, 27 left', exact: true }).click()
+    await page.getByRole('button', { name: 'Take a Red share, 27 left', exact: true }).click()
     await settled(page)
 
     const path = await recordedPath(page, 'share')
@@ -93,6 +94,43 @@ test('A share lifts from its supply pile and lands on the seat card', async ({ p
     expect(inView(last, view)).toBe(true)
     expect(shares && onOrBeside(last, shares, view)).toBe(true)
     expect(path.every((spot) => inView(spot, view))).toBe(true)
+})
+
+test('A placement’s locomotive lifts from its pile: the card, or on a phone the build panel', async ({
+    page
+}) => {
+    await openScenario(page, 'First placement')
+    await settled(page)
+    const piles = await targetBoxes(page, 'supply:railroad.red')
+    expect(piles).toHaveLength(1)
+    const [pile] = piles
+    // On a phone the one pile is the build panel's, in the action area above the board.
+    const inPanel = await page
+        .locator('[data-flight-target="supply:railroad.red"]')
+        .evaluate((element) => element.closest('[role="group"][aria-label="Railroads"]') !== null)
+    expect(inPanel).toBe(true)
+    if (onPhone()) {
+        const panel = page.getByRole('button', { name: 'Build nothing', exact: true })
+        const button = await panel.boundingBox()
+        expect(
+            button && pile && Math.abs(button.y + button.height / 2 - (pile.top + pile.bottom) / 2)
+        ).toBeLessThan(20)
+    }
+
+    await recordFlyers(page)
+    await pressHex(page, litHex(page, 'New York: start Red'))
+    await settled(page)
+
+    const keys = await page.evaluate(() =>
+        Object.keys(Reflect.get(window, 'rtrPaths') ?? {}).filter((key) =>
+            key.startsWith('locomotive:')
+        )
+    )
+    expect(keys).toHaveLength(1)
+    const path = await recordedPath(page, keys[0] ?? '')
+    expect(path.length).toBeGreaterThan(5)
+    const first = path[0] ?? { x: -1, y: -1 }
+    expect(pile && onOrBeside(first, pile, viewSize(page))).toBe(true)
 })
 
 test('The Transcontinental coin flies to the chip in the turn line, which shows the claim', async ({
@@ -139,7 +177,7 @@ test('The end of round steps the round and brightens the railroad it makes avail
             for (const ticket of document.querySelectorAll('[role="listitem"]')) {
                 if ((ticket.getAttribute('style') ?? '').includes('scale(1.')) seen.hops++
             }
-            for (const button of document.querySelectorAll('button[aria-label^="Orange:"]')) {
+            for (const button of document.querySelectorAll('button[aria-label*="Orange"]')) {
                 const slot = button.closest<HTMLElement>('[style*="opacity"], .slot')
                 if (slot && slot.getBoundingClientRect().width > 0) {
                     seen.orange.add(Number(getComputedStyle(slot).opacity))
@@ -164,8 +202,14 @@ test('The end of round steps the round and brightens the railroad it makes avail
         expect(rounds).toEqual(['Round 1, Red and Blue arrive', 'Round 2, Orange arrives'])
         expect(hops).toBeGreaterThan(2)
     }
-    // Orange's entry joins unseen and brightens through the values between.
-    expect(orange).toContain(0)
-    expect(orange.some((opacity) => opacity > 0.3 && opacity < 0.95)).toBe(true)
-    await expect(entries.getByRole('button', { name: /^Orange: 27 left$/ })).toBeVisible()
+    // Orange's card joins unseen and brightens through the values between. A phone has no cards:
+    // Orange is among the next seat's share buttons once the round has stepped.
+    if (!onPhone()) {
+        expect(orange).toContain(0)
+        expect(orange.some((opacity) => opacity > 0.3 && opacity < 0.95)).toBe(true)
+    }
+    // Ada takes a share next: Orange's card (on a phone, its pile) is a share button.
+    await expect(
+        entries.getByRole('button', { name: 'Take an Orange share, 27 left', exact: true })
+    ).toBeVisible()
 })

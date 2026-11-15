@@ -25,12 +25,11 @@ import {
     latestShare,
     linksAndFareText,
     mountainNote,
+    placedCount,
     placedText,
     roundLabels,
     seatGains,
     seatMoney,
-    shareButtonDetail,
-    shareButtons,
     sharedWinNote,
     stillToTakeShare,
     winnersHeadline
@@ -40,6 +39,8 @@ import type { RideTheRailsGameSession } from './session.svelte.js'
 
 const RED: RailroadId = 'railroad.red'
 const BLUE: RailroadId = 'railroad.blue'
+const ORANGE: RailroadId = 'railroad.orange'
+const BLACK: RailroadId = 'railroad.black'
 const KANSAS_CITY: CityId = 'city.usa.kansas-city'
 const SAINT_LOUIS: CityId = 'city.usa.saint-louis'
 const CINCINNATI: CityId = 'city.usa.cincinnati'
@@ -74,48 +75,6 @@ async function settled(session: RideTheRailsGameSession) {
 }
 
 describe('Take a share panel (R-3.1, R-1.4, R-1.1-H1)', () => {
-    it('lists the six railroads in railroad order, the later ones with their round', () => {
-        const state = buildState({ playerCount: 4, round: 1, phase: PhaseName.TakeShare })
-        const buttons = shareButtons(state, 'p4')
-        expect(buttons.map((button) => button.railroadId)).toEqual([
-            'railroad.red',
-            'railroad.blue',
-            'railroad.orange',
-            'railroad.yellow',
-            'railroad.purple',
-            'railroad.black'
-        ])
-        expect(buttons.map(shareButtonDetail)).toEqual([
-            '27 left',
-            '27 left',
-            'from round 2',
-            'from round 3',
-            'from round 4',
-            'from round 5'
-        ])
-        expect(buttons.map((button) => button.availability.kind)).toEqual([
-            'open',
-            'open',
-            'later',
-            'later',
-            'later',
-            'later'
-        ])
-    })
-
-    it('shows an empty supply as "none left", with the seat\'s own shares', () => {
-        const state = buildState({
-            playerCount: 4,
-            round: 2,
-            phase: PhaseName.TakeShare,
-            shares: { p4: { [RED]: 1, [BLUE]: 2 }, p1: { [RED]: 26 } }
-        })
-        const [red, blue] = shareButtons(state, 'p4')
-        expect(red.availability).toEqual({ kind: 'empty' })
-        expect(shareButtonDetail(red)).toBe('none left · you 1')
-        expect(shareButtonDetail(blue)).toBe('25 left · you 2')
-    })
-
     it('names the seats still to take in reverse turn order (R-2.2)', () => {
         const state = buildState({ playerCount: 4, round: 1, phase: PhaseName.TakeShare })
         expect(decidingPlayerId(state)).toBe('p4')
@@ -191,6 +150,33 @@ describe('build panel (R-3.2.1, R-3.2.4)', () => {
                 'p1'
             )
         ).toEqual([RED, BLUE])
+    })
+
+    it('lists each of three railroads the builder holds, and none it does not', () => {
+        const state = buildState({
+            playerCount: 4,
+            round: 5,
+            phase: PhaseName.Build,
+            shares: { p1: { [RED]: 1, [ORANGE]: 1, [BLACK]: 1 }, p2: { [BLUE]: 1 } }
+        })
+        expect(buildableRailroads(state, 'p1')).toEqual([RED, ORANGE, BLACK])
+        expect(buildableRailroads(state, 'p2')).toEqual([BLUE])
+    })
+
+    it('counts the phone’s one-line panel as placed over the limit', () => {
+        const count = (placed: number, usedMountain: boolean) => {
+            const progress = buildProgress(
+                buildState({
+                    playerCount: 4,
+                    phase: PhaseName.Build,
+                    building: { placed, usedMountain }
+                })
+            )
+            assertExists(progress)
+            return placedCount(progress)
+        }
+        expect(count(0, false)).toBe('0/5')
+        expect(count(1, true)).toBe('1/4')
     })
 })
 

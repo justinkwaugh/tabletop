@@ -1,14 +1,15 @@
 import { expect, test, type Page } from '@playwright/test'
 import { board, collectPageErrors, litHexes, openScenario, settled } from './helpers.js'
 
-// The contract's Desktop and Phone layouts: the board cropped to the land, one railroad card (on a
-// phone, one supply pile on the rail) per railroad available this round, piles of cubes with no
-// number, and a press that spotlights the railroad and, on a phone, opens its holders.
+// The contract's Desktop and Phone layouts: the board cropped to the land, one railroad card per
+// railroad available this round on desktop, and on a phone no rail, the piles only where they are
+// used (the share buttons, the building seat's railroads); piles of cubes with no number or name,
+// and a press that spotlights the railroad.
 collectPageErrors()
 
 const onPhone = () => test.info().project.use.isMobile === true
 
-/** The railroad cards above the board, or the rail beside it on a phone. */
+/** The railroad cards above the board, or on a phone the action panel's piles. */
 function railroads(page: Page) {
     return page.getByRole('group', { name: 'Railroads' })
 }
@@ -17,7 +18,7 @@ async function shownRailroads(page: Page): Promise<string[]> {
     const labels = await railroads(page)
         .getByRole('button')
         .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') ?? ''))
-    return labels.map((label) => label.slice(0, label.indexOf(':')))
+    return labels.map((label) => /^(?:Take an? )?(\w+)/.exec(label)?.[1] ?? label)
 }
 
 /** A hex's width on screen, across its flats, in px. */
@@ -31,13 +32,50 @@ function hexWidth(page: Page): Promise<number> {
 test('Round 1 shows only Red and Blue; round 4 adds Purple, and Black waits', async ({ page }) => {
     await openScenario(page, 'First share')
     expect(await shownRailroads(page)).toEqual(['Red', 'Blue'])
+    test.skip(onPhone(), 'A phone shows the building seat’s railroads alone (next test).')
     await openScenario(page, 'Purple arrives')
     expect(await shownRailroads(page)).toEqual(['Red', 'Blue', 'Orange', 'Yellow', 'Purple'])
 })
 
-test('No supply count is written on the board, the cards or the rail', async ({ page }) => {
+test('A phone’s build panel shows only the railroads the building seat may place', async ({
+    page
+}) => {
+    // Ada holds Red alone; then Red, Orange and Purple; then Red, Orange and Black.
+    for (const [scenario, held] of [
+        ['First placement', ['Red']],
+        ['Purple arrives', ['Red', 'Orange', 'Purple']],
+        ['Black unstarted', ['Red', 'Orange', 'Black']]
+    ] as const) {
+        await openScenario(page, scenario)
+        if (onPhone()) {
+            expect(await shownRailroads(page), scenario).toEqual(held)
+            await expect(page.getByText(/^0\/[45]$/)).toBeVisible()
+        } else {
+            // The desktop cards show every railroad of the round, and the panel no pile.
+            expect((await shownRailroads(page)).length, scenario).toBeGreaterThan(held.length)
+            await expect(page.getByRole('button', { name: 'Build nothing' })).toBeVisible()
+            expect(await railroads(page).locator('[data-supply-pile]').count()).toBe(
+                (await shownRailroads(page)).length
+            )
+        }
+    }
+})
+
+test('Riding shows no piles on a phone', async ({ page }) => {
+    await openScenario(page, 'Journey choices')
+    await expect(litHexes(page).first()).toBeVisible()
+    const piles = page.locator('[data-supply-pile]')
+    if (onPhone()) {
+        await expect(piles).toHaveCount(0)
+    } else {
+        await expect(railroads(page).getByRole('button')).not.toHaveCount(0)
+        expect(await piles.count()).toBe(await railroads(page).getByRole('button').count())
+    }
+})
+
+test('No supply count is written on the board, the cards or the piles', async ({ page }) => {
     await openScenario(page, 'Purple arrives')
-    await expect(railroads(page).getByRole('button')).toHaveCount(5)
+    await expect(railroads(page).getByRole('button')).toHaveCount(onPhone() ? 3 : 5)
     for (const text of [await board(page).textContent(), await railroads(page).textContent()]) {
         expect(text ?? '').not.toMatch(/\d+\s+left|none left/)
     }
@@ -60,10 +98,10 @@ test('Pressing a railroad holds its spotlight; a second press lets it go', async
     expect(await page.evaluate(() => window.rtrSession.heldRailroadId)).toBeUndefined()
 })
 
-test('A desktop card shows its name and its pile alone, the cubes as large as it holds', async ({
+test('A desktop card shows its pile alone, with no name, the cubes as large as it holds', async ({
     page
 }) => {
-    test.skip(onPhone(), 'A phone’s rail shows the piles alone.')
+    test.skip(onPhone(), 'A phone has no railroad cards.')
     await openScenario(page, 'Purple arrives')
     // Ada and Ben hold Orange, and it has track on the map; the card shows neither.
     const orangeState = await page.evaluate(() => {
@@ -81,48 +119,71 @@ test('A desktop card shows its name and its pile alone, the cubes as large as it
     expect(orangeState.track).toBeGreaterThan(0)
     const orange = railroads(page).getByRole('button', { name: /^Orange: / })
     await expect(orange).toHaveAccessibleName(/^Orange: \d+ left$/)
-    await expect(orange).toHaveText(/^\s*Orange\s*$/)
-    // The card keeps its height, and a full pile's six columns of five fill the body below the
-    // name, 1 px clear of it and of the card's foot.
+    // The colour is the label: no name is drawn.
+    expect((await orange.innerText()).trim()).toBe('')
+    // The card keeps its height, and a full pile's six columns of five stand 56 px tall in it,
+    // clear of its top and foot.
     for (const card of await railroads(page).getByRole('button').all()) {
         const fit = await card.evaluate((element) => {
             const edge = element.getBoundingClientRect()
-            const head = element.firstElementChild?.getBoundingClientRect()
             const pile = element.querySelector('[data-supply-pile]')?.getBoundingClientRect()
             const cube = element.querySelector('[data-supply-pile] rect')?.getBoundingClientRect()
             return {
                 height: edge.height,
                 pile: pile?.height ?? 0,
-                clearOfHead: head && pile ? pile.top - head.bottom : -1,
+                clearOfTop: pile ? pile.top - edge.top - 1 : -1,
                 clearOfFoot: pile ? edge.bottom - 1 - pile.bottom : -1,
                 clearOfSides: pile ? Math.min(pile.left - edge.left, edge.right - pile.right) : -1,
                 cube: cube?.width ?? 0
             }
         })
         expect(fit.height).toBeCloseTo(64, 0)
-        expect(fit.pile).toBeCloseTo(46, 0)
-        expect(fit.clearOfHead).toBeGreaterThanOrEqual(0.5)
-        expect(fit.clearOfFoot).toBeGreaterThanOrEqual(0.5)
+        expect(fit.pile).toBeCloseTo(56, 0)
+        expect(fit.clearOfTop).toBeGreaterThanOrEqual(2)
+        expect(fit.clearOfFoot).toBeGreaterThanOrEqual(2)
         expect(fit.clearOfSides).toBeGreaterThan(5)
-        if (fit.cube) expect(fit.cube).toBeCloseTo(8.17, 1)
+        if (fit.cube) expect(fit.cube).toBeCloseTo(9.95, 1)
     }
 })
 
-test('On a phone a pile opens its railroad’s holders', async ({ page }) => {
-    test.skip(!onPhone(), 'The desktop seat cards show the holders.')
+test('A phone has no supply rail: the board takes the game column’s width', async ({ page }) => {
+    test.skip(!onPhone(), 'The desktop shows the railroad cards above the board.')
+    await page.setViewportSize({ width: 390, height: 844 })
     await openScenario(page, 'Purple arrives')
-    const popover = page.getByRole('note', { name: 'Orange railroad' })
-    await expect(popover).toHaveCount(0)
-    // The seat cards are in a drawer off screen, so the pile's name lists the holders too.
-    const orange = railroads(page).getByRole('button', { name: /^Orange: / })
-    await expect(orange).toHaveAccessibleName(/^Orange: \d+ left, shares (?=.*Ada 1)(?=.*Ben 2)/)
-    await orange.tap()
-    await expect(popover).toBeVisible()
-    await expect(popover).not.toContainText('track')
-    await expect(popover).toContainText(/Ada\s*1/)
-    await expect(popover).toContainText(/Ben\s*2/)
-    await orange.tap()
-    await expect(popover).toHaveCount(0)
+    await expect(page.locator('.phone-rail')).toHaveCount(0)
+    await expect(page.getByRole('note')).toHaveCount(0)
+    const fit = await board(page).evaluate((svg) => {
+        let frame: Element | null = svg.parentElement
+        while (frame && getComputedStyle(frame).overflow === 'visible') frame = frame.parentElement
+        const view = frame?.getBoundingClientRect()
+        const panel = document
+            .querySelector('[data-rtr-table] .rounded-xl')
+            ?.getBoundingClientRect()
+        return { left: view?.left ?? 0, right: view?.right ?? 0, panelRight: panel?.right ?? 0 }
+    })
+    // The board's view reaches the action panel's right edge: nothing stands beside it.
+    expect(fit.right).toBeGreaterThanOrEqual(fit.panelRight - 1)
+    expect(fit.right - fit.left).toBeGreaterThanOrEqual(343 - 1)
+})
+
+test('A phone’s board rests at least 343 × 593 px on a round 5 building turn', async ({ page }) => {
+    test.skip(!onPhone(), 'The phone layout’s target.')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await openScenario(page, 'Black unstarted')
+    await settled(page)
+    const view = await board(page).evaluate((svg) => {
+        let frame: Element | null = svg.parentElement
+        while (frame && getComputedStyle(frame).overflow === 'visible') frame = frame.parentElement
+        const box = frame?.getBoundingClientRect()
+        return { width: box?.width ?? 0, height: box?.height ?? 0 }
+    })
+    test.info().annotations.push({
+        type: 'board view',
+        description: `${view.width.toFixed(1)} × ${view.height.toFixed(1)} px`
+    })
+    // The layout's target for a building turn at 390 × 844: 343 × 593.
+    expect(view.width).toBeGreaterThanOrEqual(343 - 1)
+    expect(view.height).toBeGreaterThanOrEqual(593 - 1)
 })
 
 test('Every city is named while a seat chooses, a lit one too, above the picks', async ({

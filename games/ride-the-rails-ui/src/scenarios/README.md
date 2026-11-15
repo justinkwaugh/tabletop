@@ -6,7 +6,7 @@ The dev harness lists these under **Scenarios**; loading one again starts it ove
 
 Round 1 with four seats, before anyone holds a share. Dell, last in turn order, decides first (scenario 1).
 
-- Red and Blue read "27 left"; Orange to Black are disabled with their rounds.
+- Red and Blue read "27 left"; Orange to Black are not shown until their rounds.
 - Taking Red flies a locomotive to Dell's marker and passes to Cora, with Red at "26 left".
 
 ## Red supply empty
@@ -52,7 +52,7 @@ Round 5, Build. Purple from San Francisco waits beside Denver, where Orange's li
 
 Round 4, Build, the first round Purple may build. Ada holds Red, Orange and Purple; Purple has no track yet (scenario 25 and the railroad cards).
 
-- The railroad cards (on a phone, the supply rail) show Red, Blue, Orange, Yellow and Purple; Black is not shown.
+- The railroad cards show Red, Blue, Orange, Yellow and Purple; Black is not shown. On a phone the build panel shows Ada's railroads' piles alone: Red, Orange and Purple.
 - Purple's four western start cities wear its dashed start cue.
 
 ## Yellow starts

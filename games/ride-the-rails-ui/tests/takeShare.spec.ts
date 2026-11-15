@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import {
     activePlayerId,
     board,
@@ -9,6 +9,16 @@ import {
     undo
 } from './helpers.js'
 
+/** The last share taken, as its seat and railroad. */
+function lastTakenShare(page: Page) {
+    return page.evaluate(() => {
+        const action = window.rtrSession.actions.at(-1)
+        return action && 'railroadId' in action
+            ? { playerId: action.playerId, railroadId: action.railroadId }
+            : undefined
+    })
+}
+
 // The contract's verification scenarios for Take a share (R-3.1), each at desktop and phone width.
 collectPageErrors()
 
@@ -18,19 +28,14 @@ test('1. Round 1, 4 seats, phase 1: take Red, then undo it', async ({ page }) =>
     expect(await activePlayerId(page)).toBe('p4')
     await expect(page.getByText("Dell - It's your turn")).toBeVisible()
 
-    // R-1.4: Red and Blue from round 1, the others from their rounds.
-    const red = page.getByRole('button', { name: 'Red, 27 left', exact: true })
+    // R-1.4: Red and Blue from round 1; the others are not shown until their rounds.
+    const red = page.getByRole('button', { name: 'Take a Red share, 27 left', exact: true })
     await expect(red).toBeEnabled()
-    await expect(page.getByRole('button', { name: 'Blue, 27 left', exact: true })).toBeEnabled()
-    for (const [railroad, round] of [
-        ['Orange', 2],
-        ['Yellow', 3],
-        ['Purple', 4],
-        ['Black', 5]
-    ] as const) {
-        await expect(
-            page.getByRole('button', { name: `${railroad}, from round ${round}`, exact: true })
-        ).toBeDisabled()
+    await expect(
+        page.getByRole('button', { name: 'Take a Blue share, 27 left', exact: true })
+    ).toBeEnabled()
+    for (const railroad of ['Orange', 'Yellow', 'Purple', 'Black']) {
+        await expect(page.getByRole('button', { name: new RegExp(railroad) })).toHaveCount(0)
     }
     // No pick is open, so the map has no scrim and no lit hex.
     await expect(board(page).locator('g.scrim path')).toHaveCount(0)
@@ -39,7 +44,7 @@ test('1. Round 1, 4 seats, phase 1: take Red, then undo it', async ({ page }) =>
     const flyers = await flyersDuring(page, () => red.click())
     expect(flyers).toContain('locomotive')
     expect(await activePlayerId(page)).toBe('p3')
-    await expect(page.getByRole('button', { name: /^Red, 26 left/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Take a Red share, 26 left' })).toBeVisible()
     await expect(
         page
             .getByRole('region', { name: 'Dell, 4th' })
@@ -48,7 +53,9 @@ test('1. Round 1, 4 seats, phase 1: take Red, then undo it', async ({ page }) =>
 
     await undo(page)
     expect(await activePlayerId(page)).toBe('p4')
-    await expect(page.getByRole('button', { name: 'Red, 27 left', exact: true })).toBeEnabled()
+    await expect(
+        page.getByRole('button', { name: 'Take a Red share, 27 left', exact: true })
+    ).toBeEnabled()
     await expect(page.getByRole('region', { name: 'Dell, 4th' })).toContainText('No shares')
 })
 
@@ -56,10 +63,41 @@ test('2. Empty supply: Red is disabled, Blue is not', async ({ page }) => {
     await openScenario(page, 'Red supply empty')
     expect(await activePlayerId(page)).toBe('p2')
     // R-3.1: a railroad with no locomotives left offers no share.
+    const red = page.getByRole('button', { name: 'Red: none left, you hold 2', exact: true })
+    await expect(red).toBeDisabled()
+    // Its pile is a dashed ghost column, with no cube.
+    await expect(red.locator('[data-supply-ghost]')).toHaveCount(1)
+    await expect(red.locator('[data-supply-pile] rect:not([data-supply-ghost])')).toHaveCount(0)
     await expect(
-        page.getByRole('button', { name: 'Red, none left · you 2', exact: true })
-    ).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Blue, 22 left', exact: true })).toBeEnabled()
+        page.getByRole('button', { name: 'Take a Blue share, 22 left', exact: true })
+    ).toBeEnabled()
+})
+
+/** Every railroad's name, as a word anywhere on the table. */
+const RAILROAD_NAME = /\b(Red|Blue|Orange|Yellow|Purple|Black)\b/
+
+test('The share buttons are piles with no words: a tap takes that share', async ({ page }) => {
+    await openScenario(page, 'Red supply empty')
+    expect(await activePlayerId(page)).toBe('p2')
+    // On desktop the railroad cards are the buttons; on a phone the action panel's piles.
+    const buttons = page.getByRole('group', { name: 'Railroads' }).getByRole('button')
+    await expect(buttons).toHaveCount(4)
+    for (const button of await buttons.all()) {
+        await expect(button).toHaveAccessibleName(/^(Take an? \w+ share, \d+ left|\w+: none left)/)
+        await expect(button.locator('[data-supply-pile]')).toHaveCount(1)
+        expect((await button.innerText()).trim()).toBe('')
+    }
+    // No railroad's name is drawn anywhere in the table during the share step.
+    const table = page.locator('[data-rtr-table]')
+    expect(await table.innerText()).not.toMatch(RAILROAD_NAME)
+
+    const blue = page.getByRole('button', { name: /^Take a Blue share, 22 left/ })
+    await (test.info().project.use.hasTouch ? blue.tap() : blue.click())
+    await settled(page)
+    expect(await lastTakenShare(page)).toEqual({ playerId: 'p2', railroadId: 'railroad.blue' })
+    await expect(
+        page.getByRole('region', { name: /^Ben, / }).getByRole('button', { name: /^Blue: / })
+    ).toBeVisible()
 })
 
 test("1. Round 1: the seat card counts the share as the share's locomotive lands", async ({
@@ -82,7 +120,7 @@ test("1. Round 1: the seat card counts the share as the share's locomotive lands
         }
         watch()
     })
-    await page.getByRole('button', { name: 'Red, 27 left', exact: true }).click()
+    await page.getByRole('button', { name: 'Take a Red share, 27 left', exact: true }).click()
     await settled(page)
     const frames = await page.evaluate(() => {
         const seen: unknown = Reflect.get(window, 'rtrFrames')

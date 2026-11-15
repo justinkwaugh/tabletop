@@ -1,13 +1,28 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { shareButtonDetail, shareButtons, shareOrder } from '$lib/model/actionArea.js'
-    import { railroadName } from '$lib/utils/describeAction.js'
-    import RailroadPieceIcon from '../board/RailroadPieceIcon.svelte'
+    import { shareOrder } from '$lib/model/actionArea.js'
+    import { shareButtons, shownRailroadCards } from '$lib/model/railroadCards.js'
+    import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
+    import { SHARE_BUTTON_ROW, fittedPileUnit, pileFootprint } from '$lib/utils/supplyPile.js'
+    import SupplyPile from '../board/SupplyPile.svelte'
 
     const gameSession = getGameSession()
 
     const playerId = $derived(gameSession.myPlayerId)
-    const buttons = $derived(playerId ? shareButtons(gameSession.gameState, playerId) : [])
+    const buttons = $derived(shareButtons(shownRailroadCards(gameSession), gameSession))
+    const dotColour = $derived(
+        playerId ? gameSession.colors.getPlayerBgColorValue(playerId) : undefined
+    )
+
+    // The row's inner width: the piles are drawn as large as lets every button fit it.
+    let room = $state(0)
+    const unit = $derived(
+        fittedPileUnit(
+            buttons.map((button) => pileFootprint('follow', button.supply).width),
+            room,
+            SHARE_BUTTON_ROW
+        )
+    )
 
     // R-2.2: "phase 1 goes in reverse turn order: you first, then Ezra, Silas, Hattie".
     const orderText = $derived.by(() => {
@@ -25,23 +40,76 @@
         >phase 1 goes in reverse turn order: {orderText}</span
     >
 </div>
-<div class="mt-2 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
-    {#each buttons as button (button.railroadId)}
-        {@const enabled = gameSession.shareChoices.includes(button.railroadId)}
-        <button
-            type="button"
-            class="flex min-w-0 flex-col items-start gap-0.5 rounded-lg border border-rtr-line bg-rtr-panel-raised px-2.5 py-1.5 text-left hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent disabled:pointer-events-none disabled:opacity-50 sm:w-32"
-            disabled={!enabled}
-            aria-label="{railroadName(button.railroadId)}, {shareButtonDetail(button)}"
-            onclick={() => gameSession.takeShare(button.railroadId)}
-        >
-            <span class="flex items-center gap-1.5 text-sm font-semibold">
-                <RailroadPieceIcon railroadId={button.railroadId} size={22} />
-                <span class="truncate">{railroadName(button.railroadId)}</span>
-            </span>
-            <span class="text-xs whitespace-nowrap text-rtr-ink-muted"
-                >{shareButtonDetail(button)}</span
+<!-- Contract, Take a share: on a phone the piles are the buttons, one per railroad available this
+     round (R-1.4), with no words: the viewer's shares are dots, and an empty supply is a dashed
+     ghost, disabled. On wider screens the railroad cards above the board are the buttons. The
+     panel shows once a round has stepped, so a railroad that round adds is simply among them. -->
+{#if isPhoneWidth()}
+    <div class="share-row" role="group" aria-label="Railroads" bind:clientWidth={room}>
+        {#each buttons as button (button.railroadId)}
+            <button
+                type="button"
+                class="share hover:enabled:border-rtr-accent focus-visible:outline-2 focus-visible:outline-rtr-accent"
+                class:empty={button.supply === 0}
+                disabled={!button.enabled}
+                aria-label={button.shareLabel}
+                onclick={() => gameSession.takeShare(button.railroadId)}
             >
-        </button>
-    {/each}
-</div>
+                <SupplyPile
+                    railroadId={button.railroadId}
+                    supply={button.supply}
+                    fit="follow"
+                    {unit}
+                />
+                <span class="dots">
+                    {#each { length: button.held }, index (index)}
+                        <span class="dot" style:background-color={dotColour}></span>
+                    {/each}
+                </span>
+            </button>
+        {/each}
+    </div>
+{/if}
+
+<style>
+    .share-row {
+        display: flex;
+        gap: 5px;
+        margin-top: 6px;
+    }
+
+    .share {
+        min-width: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px;
+        padding: 5px 5px 4px;
+        border: 1.5px solid var(--rtr-line);
+        border-radius: 9px;
+        background: var(--rtr-panel-raised);
+        box-shadow: 0 1.5px 0 var(--rtr-line);
+    }
+
+    .share:disabled {
+        opacity: 0.55;
+    }
+
+    .share.empty {
+        border-style: dashed;
+        box-shadow: none;
+    }
+
+    .dots {
+        display: flex;
+        gap: 2px;
+        height: 6px;
+    }
+
+    .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+</style>

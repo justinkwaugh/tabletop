@@ -49,11 +49,11 @@ async function shownOrder(page: Page, seats: readonly string[]) {
         )
 }
 
-/** A railroad's card on desktop, or its pile on the phone's rail. */
+/** A railroad's card on desktop, or its share button on a phone (a share step's only piles). */
 function railroadEntry(page: Page, name: string) {
     return page
         .getByRole('group', { name: 'Railroads' })
-        .getByRole('button', { name: new RegExp(`^${name}: `) })
+        .getByRole('button', { name: new RegExp(`^(Take an? )?${name}\\b`) })
 }
 
 test('18. End of round: money order with the tie swapped, round II, Orange; undo reverses it', async ({
@@ -66,7 +66,8 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     // R-1.4: Orange is not shown until its round.
     const orange = railroadEntry(page, 'Orange')
     await expect(orange).toHaveCount(0)
-    await expect(railroadEntry(page, 'Blue')).toBeVisible()
+    // A phone shows no piles while riding.
+    await expect(railroadEntry(page, 'Blue')).toHaveCount(isPhone() ? 0 : 1)
 
     // Dell rides the round's last journey, Washington to Baltimore by Blue.
     await pressHex(page, litHex(page, `Washington: ${START}`))
@@ -82,9 +83,9 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     // R-2.5.2, R-2.5.3: round 2 starts with Orange available, and phase 1 runs in reverse.
     expect(await roundNumber(page)).toBe(2)
     await shownRound(page, 2)
-    await expect(orange).toHaveAccessibleName(/^Orange: 27 left$/)
     expect(await activePlayerId(page)).toBe('p1')
-    await expect(page.getByRole('button', { name: 'Orange, 27 left', exact: true })).toBeEnabled()
+    await expect(orange).toHaveAccessibleName('Take an Orange share, 27 left')
+    await expect(orange).toBeEnabled()
 
     // Undo of the journey, before Ada takes her share, takes back the end of round too.
     await undo(page)

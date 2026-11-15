@@ -2,7 +2,6 @@ import type { GameAction } from '@tabletop/common'
 import {
     PhaseName,
     RAILROAD_IDS,
-    RAILROAD_INTRODUCTIONS,
     isPassJourney,
     isRideJourney,
     isSkipShare,
@@ -13,7 +12,6 @@ import {
     phaseTurnOrder,
     placementLimit,
     richestPlayerIds,
-    supplyOf,
     type HydratedRideTheRailsGameState,
     type JourneyPayment,
     type LinksPerRailroad,
@@ -21,43 +19,6 @@ import {
     type RailroadId
 } from '@tabletop/ride-the-rails'
 import { routeText, type Description } from '$lib/utils/describeAction.js'
-
-export type ShareAvailability =
-    { kind: 'open' } | { kind: 'later'; fromRound: number } | { kind: 'empty' }
-
-export type ShareButton = {
-    railroadId: RailroadId
-    supply: number
-    held: number
-    availability: ShareAvailability
-}
-
-// R-1.4, R-1.1-H1, R-3.1: every railroad in railroad order, with why a share of it cannot be taken.
-export function shareButtons(
-    state: HydratedRideTheRailsGameState,
-    playerId: string
-): ShareButton[] {
-    const round = state.roundManager.currentRound?.number ?? 1
-    const held = state.getPlayerState(playerId)
-    return RAILROAD_INTRODUCTIONS[state.mapId].map(({ railroadId, availableFromRound }) => {
-        const supply = supplyOf(state, railroadId)
-        const availability: ShareAvailability =
-            availableFromRound > round
-                ? { kind: 'later', fromRound: availableFromRound }
-                : supply > 0
-                  ? { kind: 'open' }
-                  : { kind: 'empty' }
-        return { railroadId, supply, held: held.sharesOf(railroadId), availability }
-    })
-}
-
-export function shareButtonDetail(button: ShareButton): string {
-    if (button.availability.kind === 'later') {
-        return `from round ${button.availability.fromRound}`
-    }
-    const supply = button.availability.kind === 'empty' ? 'none left' : `${button.supply} left`
-    return button.held > 0 ? `${supply} · you ${button.held}` : supply
-}
 
 // R-2.2: phase 1 runs in reverse turn order.
 export function shareOrder(state: HydratedRideTheRailsGameState): string[] {
@@ -91,6 +52,11 @@ export function buildProgress(state: HydratedRideTheRailsGameState): BuildProgre
 
 export function placedText(progress: BuildProgress): string {
     return `${progress.placed} of ${progress.limit} placed`
+}
+
+// The phone's one-line build panel: "0/5", or "1/4" once a mountain lowers the limit.
+export function placedCount(progress: BuildProgress): string {
+    return `${progress.placed}/${progress.limit}`
 }
 
 // R-3.2.4

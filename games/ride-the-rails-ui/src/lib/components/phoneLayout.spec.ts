@@ -30,19 +30,18 @@ describe('the phone layout', () => {
         expect(source('./panel/TableControls.svelte')).toMatch(/<ActionArea \/>/)
     })
 
-    it('keeps the railroad cards above the board and the supply rail beside it, outside the scaling', () => {
+    it('keeps the railroad cards above the board, outside the scaling, and no rail beside it', () => {
         const table = source('./GameTable.svelte')
         const wrapper = table.search(/^\s*<ScalingWrapper\b/m)
-        const wrapperEnd = table.indexOf('</ScalingWrapper>')
         const cards = table.indexOf('<RailroadCards />')
-        const rail = table.indexOf('<PhoneSupplyRail />')
         expect(cards).toBeGreaterThan(-1)
         expect(cards).toBeLessThan(wrapper)
-        expect(rail).toBeGreaterThan(wrapperEnd)
         expect(source('./RailroadCards.svelte')).toMatch(
             /class="railroad-cards flex max-sm:hidden"/
         )
-        expect(source('./PhoneSupplyRail.svelte')).toMatch(/class="phone-rail flex sm:hidden"/)
+        // The board takes the phone's whole width: the piles are in the action panel.
+        expect(table).not.toMatch(/PhoneSupplyRail/)
+        expect(Object.keys(SOURCES)).not.toContain('./PhoneSupplyRail.svelte')
     })
 
     it('makes every lit target the whole hex', () => {

@@ -24,8 +24,8 @@ const QUICK_END_OF_ROUND: typeof END_OF_ROUND = {
  * Contract, Animation plan, End of round (Pattern A): R-2.5. The end of round is its own action,
  * presented as the step after the last journey's, so it plays once the journey's motion has
  * played, at its own explicit positions: the next round's ticket in the turn line hops and the
- * table shows the next round at the top of its hop; then the card (on a phone, the rail's pile) of
- * the railroad made available brightens in. Each is the table's own element, tweened in place and
+ * table shows the next round at the top of its hop; then the desktop card of the railroad made
+ * available brightens in (a phone has no cards: the railroad is among the next share buttons). Each is the table's own element, tweened in place and
  * given back its style when the new state is shown. Without an action (Undo, state-only history),
  * with reduced motion, or when one step carries the last journey and the end of round together,
  * every part starts at 0 and lands within 200 ms. Phones show no tickets; their turn line names
