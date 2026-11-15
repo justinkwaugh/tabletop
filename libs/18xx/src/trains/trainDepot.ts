@@ -5,6 +5,8 @@ import { assert, assertExists, deepFreeze } from '@tabletop/common'
 import { TrainDefinition, releaseTrains, type Train, type TrainInventory } from './train.js'
 import type { Owner } from '../finance/finance.js'
 const SupplyCount = Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
+/** A variant's count; none where the variant leaves a train out, as 1849 its E trains (§14.3). */
+const VariantSupplyCount = Type.Union([Type.Integer({ minimum: 0 }), Type.Literal('unlimited')])
 const SupplyEntry = Type.Object(
     {
         definitionId: Type.String({ minLength: 1 }),
@@ -27,7 +29,7 @@ export const TrainDepotDefinition = Type.Object(
         supplyVariants: Type.Optional(
             Type.Record(
                 Type.String({ minLength: 1 }),
-                Type.Record(Type.String({ minLength: 1 }), SupplyCount)
+                Type.Record(Type.String({ minLength: 1 }), VariantSupplyCount)
             )
         ),
         assignedTrains: Type.Optional(Type.Array(AssignedTrain))
@@ -174,6 +176,17 @@ export class TrainDepot {
             ) ?? this.nextTrain(inventory, definitionId)
         assert(train?.id === trainId, 'This depot train is no longer available')
         this.store(inventory, { ...train, definitionId, status: 'owned', owner: { ...owner } })
+    }
+    /** Returns a finite supply's train to the depot, as the certificate it was sold from. */
+    restock(inventory: TrainInventory, trainId: string): void {
+        const train = inventory.trains.find((entry) => entry.id === trainId)
+        assertExists(train, 'Only a train in play returns to the depot')
+        const entry = this.supplyEntry(train.definitionId, this.supplyId(inventory))
+        assert(
+            entry && entry.count !== 'unlimited',
+            'Only a train of a finite supply returns to the depot'
+        )
+        this.store(inventory, { id: train.id, definitionId: entry.definitionId, status: 'depot' })
     }
     export(inventory: TrainInventory, definitionId: string): Train {
         const train = this.nextTrain(inventory, definitionId)

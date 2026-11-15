@@ -7,6 +7,8 @@ export enum ActionType {
     InvestInIndustry = 'InvestInIndustry',
     PlaceSealedBid = 'PlaceSealedBid',
     ResolveIndustryAuction = 'ResolveIndustryAuction',
+    ClaimInvestment = 'ClaimInvestment',
+    DeclineInvestment = 'DeclineInvestment',
     LayTrack = 'LayTrack',
     EndRound = 'EndRound',
     ScoreGame = 'ScoreGame'

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { DecisionKind } from '@tabletop/napoleons-triumph'
 import {
+    BATTLE_REFUGE,
     BattleGame,
     attacker,
     defender,
@@ -56,5 +57,14 @@ describe('what the other player is waited on for in an attack', () => {
         const game = new BattleGame([attacker('F01', infantry(3)), defender('A01', infantry(2))])
         game.threaten()
         expect(awaitedStep(attackOf(game), game.hydrated)).toBe('to defend or retreat')
+    })
+
+    it('waits only on the retreat when nothing can defend the approach', () => {
+        const game = new BattleGame([
+            attacker('F01', infantry(3)),
+            defender('A01', infantry(2), { facing: BATTLE_REFUGE })
+        ])
+        game.threaten()
+        expect(awaitedStep(attackOf(game), game.hydrated)).toBe('to retreat')
     })
 })

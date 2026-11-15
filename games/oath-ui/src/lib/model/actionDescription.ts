@@ -76,6 +76,7 @@ import {
     type CampaignTarget,
     type ConspiracyPlay,
     type WarbandGroup,
+    Region,
     Suit,
     type LetPeek,
     type PaidToll,
@@ -693,7 +694,11 @@ function outcomeClauses(action: GameAction, viewerId: string | undefined): strin
     const searchDiscards = describeSearchDiscards(action, isActor)
     if (searchDiscards) parts.unshift(searchDiscards)
     const merged = mergedPilesOf(action)
-    if (merged) parts.push(`the ${merged.from} discard pile went onto the ${merged.to} pile`)
+    if (merged) {
+        parts.push(
+            `the ${regionName(merged.from)} discard pile went onto the ${regionName(merged.to)} pile`
+        )
+    }
     const seen = actorOnlyOutcome(action, viewerId)
     if (seen?.peeked) parts.push(`you saw ${seen.peeked.map(cardName).join(', ')}`)
     if (seen?.relicToDeckBottom !== undefined) {
@@ -703,7 +708,7 @@ function outcomeClauses(action: GameAction, viewerId: string | undefined): strin
 }
 
 function describeDeposit(deposit: PileDeposit, isActor: boolean): string {
-    const where = `${deposit.bottom ? 'the bottom of ' : ''}the ${deposit.region} discard pile`
+    const where = `${deposit.bottom ? 'the bottom of ' : ''}the ${regionName(deposit.region)} discard pile`
     return isActor
         ? `${deposit.cardIds.map(cardName).join(', ')} went to ${where}`
         : `cards went to ${where}`
@@ -716,7 +721,7 @@ function describeSearchDiscards(action: GameAction, isActor: boolean): string | 
     if (meta.discardedCount === 0) return undefined
     const where = meta.discardToWorldDeck
         ? 'the bottom of the world deck'
-        : `${meta.discardToBottom ? 'the bottom of ' : ''}the ${meta.discardPileRegion} discard pile`
+        : `${meta.discardToBottom ? 'the bottom of ' : ''}the ${regionName(meta.discardPileRegion)} discard pile`
     const what = isActor
         ? meta.discardedCardIds.map(cardName).join(', ')
         : plural(meta.discardedCount, 'card')
@@ -889,17 +894,35 @@ function describeActionCited(
             meta?.playedCardId === undefined
         // The searcher's own site and Vision: "your own" to them, "their own" to every other seat.
         const theirs = (words: string) => namedNote(words, action.playerId, names, viewerId)
+        // Land Warden — the second card, worded as the kept card is and named only by the metadata, which holds it
+        // only when the play showed it (R-9.4).
+        const secondPlayed = ({ play, faceUp }: { play: SearchPlay; faceUp?: boolean }): string => {
+            const shown = meta?.secondPlayedCardId
+            // A Vision revealed as the second card, named as a revealed Vision is.
+            if (play === SearchPlay.RevealedVision)
+                return shown
+                    ? `; ${theirs(`revealed ${cardName(shown)} as ${action.playerId}'s Vision`)}`
+                    : ''
+            const facedown = play === SearchPlay.Adviser && faceUp !== true && shown === undefined
+            return (
+                `; ${theirs(describePlay(play, `${action.playerId}'s`, shownCard(shown)))}` +
+                (facedown ? ', facedown' : '')
+            )
+        }
+        // R-5.1.4.I, New Growth — a kept card played to another site names it, as the facedown adviser's play does.
+        // The card that allowed it is named once, on the Search's own row, which declared it.
+        const keptPlay =
+            action.play === SearchPlay.Site && action.toSiteId !== undefined
+                ? `played it to ${names.site(action.toSiteId)}`
+                : describePlay(action.play, `${action.playerId}'s`)
         return (
-            `kept ${shownCard(kept)} and ${theirs(describePlay(action.play, `${action.playerId}'s`))}` +
+            `kept ${shownCard(kept)} and ${theirs(keptPlay)}` +
             (facedown ? ', facedown' : '') +
             discardedFirstClause(action.play, discardFirstCardIdsOf(action)) +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId) +
-            // Land Warden — a Vision revealed as the second card, named as a revealed Vision is.
-            (action.secondPlay?.play === SearchPlay.RevealedVision && meta?.secondPlayedCardId
-                ? `; ${theirs(`revealed ${cardName(meta.secondPlayedCardId)} as ${action.playerId}'s Vision`)}`
-                : '')
+            (action.secondPlay ? secondPlayed(action.secondPlay) : '')
         )
     }
     if (isSearchSwap(action)) return describeSearchSwap(action)
@@ -1243,7 +1266,7 @@ function prophesiedDiscardWhere(meta: AnswerQuestionMetadata): string {
     if (meta.discardToWorldDeck) return ' under the world deck'
     const chosen = (meta.modifiers?.length ?? 0) > 0 || (meta.tollsUnpaid?.length ?? 0) > 0
     if (!chosen || meta.discardPileRegion === undefined) return ''
-    return ` to ${meta.discardToBottom ? 'the bottom of ' : ''}the ${meta.discardPileRegion} discard pile`
+    return ` to ${meta.discardToBottom ? 'the bottom of ' : ''}the ${regionName(meta.discardPileRegion)} discard pile`
 }
 
 /**
@@ -1524,7 +1547,21 @@ export function namedNote(
     names: HistoryNames,
     viewerId: string | undefined
 ): string {
-    return namedBanks(nameSeats(note, names, viewerId, actorId))
+    return namedPiles(namedBanks(nameSeats(note, names, viewerId, actorId)))
+}
+
+// Older games' summaries wrote a region's id where the board prints its name: "the cradle discard
+// pile", and Convoys' "onto the cradle pile". Only those phrases, whole words in lower case, are named.
+function namedPiles(text: string): string {
+    return Object.values(Region).reduce((named, region) => {
+        const name = regionName(region)
+        return named
+            .replace(
+                new RegExp(`\\bthe ${region} discard pile\\b`, 'g'),
+                `the ${name} discard pile`
+            )
+            .replace(new RegExp(`\\bonto the ${region} pile\\b`, 'g'), `onto the ${name} pile`)
+    }, text)
 }
 
 /** R-4.1.1, R-4.1.4 — the People's Favor steps and the site's take; R-4.1.2's win ends the Wake before the take. */
@@ -1598,19 +1635,22 @@ function describeAdviserPlay(play: SearchPlay, card: string): string {
     }
 }
 
-/** A card's play; a Search names whose site by the searcher's id (`p1's`), for `namedNote` to word. */
-function describePlay(play: SearchPlay, whose = 'their'): string {
+/**
+ * A card's play; a Search names whose site by the searcher's id (`p1's`), for `namedNote` to word, and Land Warden's
+ * second card by its name in place of "it".
+ */
+function describePlay(play: SearchPlay, whose = 'their', card = 'it'): string {
     switch (play) {
         case SearchPlay.Site:
-            return `played it to ${whose} site`
+            return `played ${card} to ${whose} site`
         case SearchPlay.Adviser:
-            return 'played it as an adviser'
+            return `played ${card} as an adviser`
         case SearchPlay.RevealedVision:
-            return 'revealed it as a Vision'
+            return `revealed ${card} as a Vision`
         case SearchPlay.Conspiracy:
             return 'played the Conspiracy'
         case SearchPlay.Discard:
-            return 'discarded it'
+            return `discarded ${card}`
     }
 }
 

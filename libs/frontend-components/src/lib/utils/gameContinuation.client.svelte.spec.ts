@@ -61,7 +61,7 @@ function heldInState(game: Game): Game {
 
 describe('continuationGame', () => {
     test('continues a finished game the History list holds in $state', () => {
-        const source = heldInState(finishedGame({ unlisted: true }))
+        const source = heldInState(finishedGame({ unlisted: true, paceMinutes: 60 }))
         expect(() => structuredClone(source.config)).toThrow(/could not be cloned/)
 
         const continued = continuationGame(source, dana, () => danaSeat)
@@ -83,6 +83,7 @@ describe('continuationGame', () => {
             ],
             isPublic: true,
             unlisted: true,
+            paceMinutes: 60,
             hotseat: false,
             ownerId: dana.id,
             config: { variant: 'advanced', rounds: 3, expansions: true }

@@ -51,7 +51,7 @@ function cardAction(action: ActionType | undefined): CardAction | undefined {
     return CARD_ACTIONS.find((a) => a === action)
 }
 
-/** The entry without the powers list's mark, its other fields kept. */
+/** The entry without the mark of the card whose "Use" opened the action, its other fields kept. */
 function unopened(m: ModifierDeclaration): ModifierDeclaration {
     return {
         use: m.use,
@@ -208,8 +208,8 @@ export class ModifierDeclarations implements ModifierRows {
     }
 
     /**
-     * R-7.4 — the powers list opens an action with its card, or a pair's two cards, in use. Both
-     * of a pair are marked opened, so Undo takes them back to the powers together.
+     * R-7.4 — a card's "Use" opens an action with the card, or a pair's two cards, in use. Both
+     * of a pair are marked opened, so Undo takes them back to the grid together.
      */
     open(uses: readonly PowerUseKey[]): void {
         assert(uses.length > 0, 'An action is opened with a card in use')
@@ -267,7 +267,7 @@ export class ModifierDeclarations implements ModifierRows {
     }
 
     /**
-     * R-7.4 — of the powers list's entries that make the action possible (a card, or a pair), one
+     * R-7.4 — of the cards and pairs whose "Use" makes the action possible, one
      * stays in use whatever is tapped: the card is one of an entry in use, and no such entry
      * would be in use without it. A pair keeps both its cards.
      */
@@ -287,7 +287,7 @@ export class ModifierDeclarations implements ModifierRows {
         )
     }
 
-    /** An action entered from the powers list stays so while a card is in use, whichever card. */
+    /** An action a card's "Use" opened stays so while a card is in use, whichever card. */
     private keepingRoute(
         staged: readonly ModifierDeclaration[],
         next: ModifierDeclaration[]

@@ -14,6 +14,19 @@ export const StockRound = Type.Object(
             Type.Object({ owner: Owner, companyId: Type.String() }, { additionalProperties: false })
         ),
         companyPurchases: Type.Array(Type.String()),
+        /** Shares each player bought this round, by company, where a title bars selling them in it. */
+        purchases: Type.Optional(
+            Type.Array(
+                Type.Object(
+                    {
+                        playerId: Type.String(),
+                        companyId: Type.String(),
+                        shares: Type.Integer({ minimum: 1 })
+                    },
+                    { additionalProperties: false }
+                )
+            )
+        ),
         instructions: Type.Optional(Type.Array(StandingStockInstruction))
     },
     { additionalProperties: false }

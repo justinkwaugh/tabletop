@@ -2,6 +2,8 @@
     import type { MapDrawing } from './mapDrawing.js'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { mapTrackJoins } from './trackJoins.js'
+    import TrackStrokes from '../tiles/TrackStrokes.svelte'
+    import { trackCasing, trackInk } from '../tiles/trackGaugeStrokes.js'
 
     let { scene, appearance }: { scene: MapDrawing; appearance: TileAppearance } = $props()
     const maskId = $props.id()
@@ -29,12 +31,12 @@
                 {#each scene.locations as entry (entry.location.id)}
                     <g transform={`translate(${entry.center.x} ${entry.center.y})`}>
                         {#each entry.drawing.paths as path (path.id)}
-                            <path
+                            <TrackStrokes
                                 d={path.d}
-                                stroke={border ? appearance.paper : appearance.ink}
-                                stroke-width={appearance.trackWidth +
-                                    (border ? appearance.trackBorderWidth : 0)}
-                            ></path>
+                                strokes={border
+                                    ? [trackCasing(appearance, appearance.trackBorderWidth)]
+                                    : trackInk(appearance, path.gauge)}
+                            />
                         {/each}
                     </g>
                 {/each}

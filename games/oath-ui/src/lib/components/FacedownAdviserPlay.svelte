@@ -119,17 +119,18 @@
         <p class="text-[11px] text-oath-danger">
             <TokenText text={gameSession.humanizeReason(reason) ?? ''} />
         </p>
+    {:else}
+        <!-- The gold-outline primary, as wide as its words; a refused play shows its red line instead. -->
+        <button
+            type="button"
+            class="self-start rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-3 py-1 text-sm font-semibold max-sm:min-h-11"
+            aria-label="{confirmWord} {name}"
+            disabled={busy}
+            onclick={() => gameSession.confirmAdviserPlay()}
+        >
+            {confirmWord}
+        </button>
     {/if}
-    <!-- The gold-outline primary, as wide as its words. -->
-    <button
-        type="button"
-        class="self-start rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40 border-[1.5px] border-oath-primary-border px-3 py-1 text-sm font-semibold max-sm:min-h-11"
-        aria-label="{confirmWord} {name}"
-        disabled={busy || !!reason}
-        onclick={() => gameSession.confirmAdviserPlay()}
-    >
-        {confirmWord}
-    </button>
 {/snippet}
 
 <div class="flex flex-col gap-2" data-facedown-play={cardId}>

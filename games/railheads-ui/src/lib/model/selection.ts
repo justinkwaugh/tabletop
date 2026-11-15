@@ -14,11 +14,13 @@ export type TrackSelectionValues = {
     firstPiece2: Placement
     firstPiece3: Placement
     firstPiece4: Placement
+    firstPiece5: Placement
     secondCompany: CompanyId
     secondPiece1: Placement
     secondPiece2: Placement
     secondPiece3: Placement
     secondPiece4: Placement
+    secondPiece5: Placement
     boostHex: AxialCoordinates
 }
 
@@ -30,11 +32,13 @@ export const TrackStageOrder = [
     'firstPiece2',
     'firstPiece3',
     'firstPiece4',
+    'firstPiece5',
     'secondCompany',
     'secondPiece1',
     'secondPiece2',
     'secondPiece3',
     'secondPiece4',
+    'secondPiece5',
     'boostHex'
 ] as const satisfies readonly (keyof TrackSelectionValues)[]
 type MissingTrackStages = Exclude<keyof TrackSelectionValues, (typeof TrackStageOrder)[number]>
@@ -44,8 +48,8 @@ void trackCoverage
 export type CompanySlot = 'first' | 'second'
 
 const PIECE_STAGES = {
-    first: ['firstPiece1', 'firstPiece2', 'firstPiece3', 'firstPiece4'],
-    second: ['secondPiece1', 'secondPiece2', 'secondPiece3', 'secondPiece4']
+    first: ['firstPiece1', 'firstPiece2', 'firstPiece3', 'firstPiece4', 'firstPiece5'],
+    second: ['secondPiece1', 'secondPiece2', 'secondPiece3', 'secondPiece4', 'secondPiece5']
 } as const
 
 const COMPANY_STAGES = { first: 'firstCompany', second: 'secondCompany' } as const

@@ -309,6 +309,80 @@ describe('tiles', () => {
         expect(awards.towers).toEqual([Tower.NorthWest])
     })
 
+    function towerHolder(state: HydratedMedinaGameState, tower: Tower): string | undefined {
+        return state.towerTiles.find((tile) => tile.tower === tower)?.palaceId
+    }
+
+    function buildWall(state: HydratedMedinaGameState, side: WallSide, position: number) {
+        const section = { side, position }
+        state.walls.push(section)
+        return state.wallReachesPalace(section)
+    }
+
+    it('does not move the tower tile when another wall reaches a palace already connected to that tower', () => {
+        const state = start(4)
+        withPalace(
+            state,
+            'a',
+            PalaceColor.Grey,
+            [
+                { x: 0, y: 0 },
+                { x: 1, y: 0 }
+            ],
+            'p0'
+        )
+        withPalace(state, 'b', PalaceColor.Brown, [{ x: 0, y: 3 }], 'p1')
+        buildWall(state, WallSide.North, 0)
+        for (let position = 0; position < 4; position++) {
+            buildWall(state, WallSide.West, position)
+        }
+        expect(towerHolder(state, Tower.NorthWest)).toBe('b')
+
+        const awards = buildWall(state, WallSide.North, 1)
+        expect(awards?.towers ?? []).toEqual([])
+        expect(towerHolder(state, Tower.NorthWest)).toBe('b')
+    })
+
+    it('does not move the tower tile when a stable reaches a wall of a tower the palace is already connected to', () => {
+        const state = start(4)
+        withPalace(state, 'a', PalaceColor.Grey, [{ x: 0, y: 1 }])
+        withPalace(state, 'b', PalaceColor.Brown, [{ x: 0, y: 5 }])
+        for (let position = 0; position < 6; position++) {
+            state.walls.push({ side: WallSide.West, position })
+        }
+        state.walls.push({ side: WallSide.North, position: 0 })
+        state.claimPalace(state.palace('a'), { x: 0, y: 1 }, 'p0')
+        state.claimPalace(state.palace('b'), { x: 0, y: 5 }, 'p1')
+        expect(towerHolder(state, Tower.NorthWest)).toBe('b')
+
+        state.stables.push({ coords: { x: 0, y: 0 }, palaceId: 'a' })
+        const awards = state.extendClaimedPalace(state.palace('a'), { x: 0, y: 0 })
+        expect(awards.towers).toEqual([])
+        expect(towerHolder(state, Tower.NorthWest)).toBe('b')
+    })
+
+    it('moves the tower tile when a connected palace reaches a second tower', () => {
+        const state = start(4)
+        const width = state.size().width
+        withPalace(
+            state,
+            'a',
+            PalaceColor.Grey,
+            [6, 7, 8].map((x) => ({ x, y: 0 })),
+            'p0'
+        )
+        for (let position = 0; position <= 6; position++) {
+            buildWall(state, WallSide.North, position)
+        }
+        for (let position = width - 1; position > 8; position--) {
+            buildWall(state, WallSide.North, position)
+        }
+        const awards = buildWall(state, WallSide.North, 8)
+        expect(awards?.towers).toEqual([Tower.NorthEast])
+        expect(towerHolder(state, Tower.NorthWest)).toBe('a')
+        expect(towerHolder(state, Tower.NorthEast)).toBe('a')
+    })
+
     it('counts down the tea tiles for each purple claim', () => {
         const state = start(4)
         expect(state.teaTilesForNextPurpleClaim()).toBe(3)

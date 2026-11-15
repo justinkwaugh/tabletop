@@ -1,4 +1,5 @@
 import { AccountChangeType } from '../email/emailService.js'
+import type { ContentReportEmail } from '../moderation/contentReports.js'
 import {
     type AccountChangeNotice,
     CreatePushTaskOptions,
@@ -53,6 +54,14 @@ export abstract class BaseTaskService implements TaskService {
             queue: 'account-notification-email',
             path: '/email/sendAccountChangedNotificationEmail',
             payload: { email, changeType, timestamp, ...(username ? { username } : {}) }
+        })
+    }
+
+    async sendContentReportEmail(report: ContentReportEmail) {
+        await this.createPushTask({
+            queue: 'maintenance',
+            path: '/email/sendContentReportEmail',
+            payload: report
         })
     }
 

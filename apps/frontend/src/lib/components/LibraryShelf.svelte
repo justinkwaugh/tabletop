@@ -6,6 +6,7 @@
     import { getLoginModal } from '$lib/stores/loginModal'
     import {
         gameCount,
+        playerCountText,
         seriesUrl,
         titleMaturityLabel,
         type LibraryShelfItem
@@ -61,9 +62,7 @@
                     {/snippet}
                     {#snippet caption()}
                         <UsersOutline class="h-3.5 w-3.5" />
-                        {title.metadata
-                            .minPlayers}{#if title.metadata.maxPlayers !== title.metadata.minPlayers}–{title
-                                .metadata.maxPlayers}{/if} players
+                        {playerCountText(title.metadata)}
                     {/snippet}
                 </LibraryTile>
             {/if}

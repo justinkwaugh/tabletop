@@ -1,11 +1,13 @@
 import type {
     BugReportRequest,
+    ContentReportRequest,
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
     CharityTally,
     GameHistoryPage,
     TitleActivity,
+    SeriesActivity,
     UserGameStats,
     CanonicalActionReplay,
     Game,
@@ -17,6 +19,8 @@ import type {
     GameSyncStatus,
     ProcessedActionReplay,
     User,
+    UserCreateRequest,
+    UserUpdateRequest,
     UserPreferences,
     Visibility,
     Tournament,
@@ -231,6 +235,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('logout')
     }
 
+    async deleteOwnAccount(): Promise<void> {
+        return this.fail('deleteOwnAccount')
+    }
+
     async logoutAll(): Promise<void> {
         return this.fail('logoutAll')
     }
@@ -239,11 +247,11 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('searchUsernames')
     }
 
-    async createUser(_user: Partial<User>): Promise<User> {
+    async createUser(_request: UserCreateRequest): Promise<User> {
         return this.fail('createUser')
     }
 
-    async updateUser(_user: Partial<User>): Promise<User> {
+    async updateUser(_request: UserUpdateRequest): Promise<User> {
         return this.fail('updateUser')
     }
 
@@ -320,6 +328,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getTitleActivity')
     }
 
+    async getSeriesActivity(_seriesId: string): Promise<SeriesActivity> {
+        return this.fail('getSeriesActivity')
+    }
+
     async getGame(
         _gameId: string,
         _options?: GetGameOptions
@@ -345,6 +357,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async reportBug(_report: BugReportRequest): Promise<void> {
         return this.fail('reportBug')
+    }
+
+    async reportContent(_report: ContentReportRequest): Promise<void> {
+        return this.fail('reportContent')
     }
 
     async checkInvitation(_token: string): Promise<Game> {
@@ -469,6 +485,18 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async banUser(_userId: string): Promise<User> {
         return this.fail('banUser')
+    }
+
+    async deleteUser(_userId: string): Promise<User> {
+        return this.fail('deleteUser')
+    }
+
+    async redactGameChatMessage(_gameId: string, _messageId: string): Promise<void> {
+        return this.fail('redactGameChatMessage')
+    }
+
+    async renameGameAsAdministrator(_gameId: string, _name: string): Promise<Game> {
+        return this.fail('renameGameAsAdministrator')
     }
 
     async unbanUser(_userId: string): Promise<User> {

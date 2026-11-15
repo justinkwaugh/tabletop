@@ -30,7 +30,12 @@
     }
 
     const armies = $derived(
-        game.players.flatMap((player) => (player.side ? [{ player, side: player.side }] : []))
+        game.players
+            .flatMap((player) => (player.side ? [{ player, side: player.side }] : []))
+            .toSorted(
+                (a, b) =>
+                    Number(b.side === gameSession.mySide) - Number(a.side === gameSession.mySide)
+            )
     )
 
     function unitCount(units: ProjectedUnit[]): string {

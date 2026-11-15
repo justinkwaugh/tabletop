@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { CompanyId } from '@tabletop/railheads'
+    import { EditionId, loanLimit, type CompanyId } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
     import { editionStyle } from '$lib/utils/editionStyle.js'
@@ -26,9 +26,17 @@
     const company = $derived(state.company(companyId))
     const sharesLeft = $derived(state.unsoldShares(companyId))
     const stackSteps = $derived(definition.shares - 1)
-    const drop = $derived(state.edition.obsolescenceDrop(company.revenue))
+    const hasLoans = $derived(state.edition.definition.loans !== undefined)
+    const loans = $derived(state.loans(companyId))
+    // Switzerland's interest takes a revenue step per loan instead of obsolescence.
+    const drop = $derived(
+        hasLoans
+            ? Math.min(loans, company.revenue)
+            : state.edition.obsolescenceDrop(company.revenue)
+    )
     const bonus = $derived(editionStyle(state.editionId))
-    const countsRegions = $derived(state.edition.map.regions.length > 0)
+    const countsRegions = $derived(state.editionId === EditionId.Midwest)
+    const sharesBonus = $derived(state.editionId !== EditionId.Denmark)
 </script>
 
 {#snippet body()}
@@ -88,22 +96,34 @@
                 <span>Per share</span><span class="money">${state.dividendPerShare(companyId)}</span
                 >
             </div>
-            <div
-                class="entry"
-                title="Game-end {bonus.endBonusName} if the game ended now: {bonus.endBonusRule}"
-            >
-                {#if countsRegions}
-                    <span>States · end / share</span><span class="money"
-                        >{state.regionsReached(companyId)} · ${state.endBonusPerShare(
-                            companyId
-                        )}</span
+            {#if hasLoans}
+                <div
+                    class="entry"
+                    title="Loans carried, and the Loan Limit at this revenue; over it, no Total Subsidies"
+                >
+                    <span>Loans · limit</span><span
+                        class="money"
+                        class:over={loans > loanLimit(company.revenue)}
+                        >{loans} · {loanLimit(company.revenue)}</span
                     >
-                {:else}
-                    <span>End bonus / share</span><span class="money"
-                        >${state.endBonusPerShare(companyId)}</span
-                    >
-                {/if}
-            </div>
+                </div>
+            {/if}
+            {#if sharesBonus}<div
+                    class="entry"
+                    title="Game-end {bonus.endBonusName} if the game ended now: {bonus.endBonusRule}"
+                >
+                    {#if countsRegions}
+                        <span>States · end / share</span><span class="money"
+                            >{state.regionsReached(companyId)} · ${state.endBonusPerShare(
+                                companyId
+                            )}</span
+                        >
+                    {:else}
+                        <span>End bonus / share</span><span class="money"
+                            >${state.endBonusPerShare(companyId)}</span
+                        >
+                    {/if}
+                </div>{/if}
             <div class="entry" title="Track discs and crossing cubes still on the charter">
                 <span>Discs · cubes</span><span class="money"
                     >{state.discsLeft(companyId)} · {state.cubesLeft(companyId)}</span
@@ -137,6 +157,10 @@
 {/if}
 
 <style>
+    .over {
+        color: #b8232a;
+    }
+
     .charter {
         display: flex;
         flex-direction: column;

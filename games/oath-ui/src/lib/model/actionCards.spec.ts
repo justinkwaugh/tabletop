@@ -22,7 +22,6 @@ import {
     actionMenu,
     actionMenuRows,
     answerCostText,
-    cardCostLine,
     cardsMakingPossible,
     soleDeclarations,
     type ActionCard
@@ -69,7 +68,7 @@ const advisers = (...cardIds: string[]) => cardIds.map((cardId) => ({ cardId, fa
 const listed = (s: ReturnType<typeof table>) =>
     actionCards(s, 'me').map((card) => [card.cardId, card.action, card.kind])
 
-describe('R-7.4 — the cards that change an action, as the powers list them', () => {
+describe('R-7.4 — the cards that change an action, each wearing a "Use"', () => {
     it('Mushrooms makes a Search possible at 1 Supply, where a Search paid with Supply is refused', () => {
         const s = table({ supply: 1, secrets: 1 }, { denizensBySite: { c1: [MUSHROOMS] } })
         expect(HydratedSearch.canDoSearch(s, 'me')).toBe(false)
@@ -99,11 +98,9 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
             expect.objectContaining({
                 cardId: SPECIAL_ENVOY,
                 action: ActionType.Travel,
-                kind: 'makesPossible',
-                consequence: 'ends your Act Phase'
+                kind: 'makesPossible'
             })
         ])
-        expect(actionCards(s, 'me')[0].consequence).toBeUndefined()
     })
 
     it('Errand Boy makes a Search possible when the pawn’s pile is empty and the world deck is out of reach', () => {
@@ -135,7 +132,7 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
         expect(listed(s)).toEqual([])
     })
 
-    it('leaves out a card that only adds something after the action, though its condition narrows where it fits', () => {
+    it('lists a card that only adds something after the action as changing it, where some row is sent with it', () => {
         const hospitality = table(
             { supply: 3, advisers: advisers(HOSPITALITY) },
             { denizensBySite: { c1: [WAYSIDE_INN], c2: [TENTS] } }
@@ -155,11 +152,11 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
         expect(menu.map((row) => row.key)).toEqual(
             actionMenuRows(hospitality, 'me', ActionType.Travel, [])
         )
-        expect(listed(hospitality)).toEqual([])
+        expect(listed(hospitality)).toEqual([[HOSPITALITY, ActionType.Travel, 'changes']])
 
         const huntingParty = table({ supply: 3, advisers: advisers(HUNTING_PARTY) })
         expect(actionMenuRows(huntingParty, 'me', ActionType.Search, []).length).toBe(2)
-        expect(listed(huntingParty)).toEqual([])
+        expect(listed(huntingParty)).toEqual([[HUNTING_PARTY, ActionType.Search, 'changes']])
     })
 
     it('R-10.2 — lists nothing while a free action is due, when only it is offered', () => {
@@ -232,15 +229,6 @@ describe('the words of a card’s row and of the grey tile', () => {
         expect(cardsMakingPossible(cards, ActionType.Travel)).toEqual(cards.slice(0, 2))
         expect(cardsMakingPossible(cards, ActionType.Search)).toEqual([])
         expect(cardsMakingPossible(cards, ActionType.Muster)).toEqual([])
-    })
-
-    it('says what using the card costs, or that it is free (R-7.1.2)', () => {
-        const none = { placeFavor: 0, burnFavor: 0, placeSecret: 0, burnSecret: 0 }
-        expect(cardCostLine(none)).toBe('free')
-        expect(cardCostLine({ ...none, placeSecret: 1 })).toBe('put 1 secret on it')
-        expect(cardCostLine({ ...none, placeFavor: 2, burnSecret: 2 })).toBe(
-            'put 2 favor on it, burn 2 secrets'
-        )
     })
 
     it('a question’s yes shows what the card costs as counts, nothing when free', () => {

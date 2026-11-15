@@ -12,6 +12,15 @@ export default async function (fastify: FastifyInstance) {
     )
 
     fastify.post<{ Body: AccountGamesTask }>(
+        '/releaseDeletedAccount',
+        { schema: { body: AccountGamesTask } },
+        async (request) => {
+            await fastify.accountModeration.releaseDeletedAccount(request.body)
+            return { status: 'ok', payload: {} }
+        }
+    )
+
+    fastify.post<{ Body: AccountGamesTask }>(
         '/releaseBannedPlayer',
         { schema: { body: AccountGamesTask } },
         async (request) => {

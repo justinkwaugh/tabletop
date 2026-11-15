@@ -45,12 +45,7 @@
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
             <WaterfallAuctionLots {session} />
         {:else}
-            <OperatingActions
-                {privateOperationDescription}
-                onFocusRoute={focusRoute}
-                {session}
-                {createRouteWorker}
-            />
+            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} />
         {/if}
     {/snippet}
 </GameTable>

@@ -97,30 +97,26 @@ describe('assigned starting positions', () => {
         }
     )
 
-    it.each(SEATINGS)(
-        'do not take the place of the morale auction, which position zero opens: %s, %s',
-        (first, second) => {
-            const game = seated([first, second], SEED, { sideSelection: 'Auction' })
-            expect(game.state.machineState).toBe(MachineState.Bidding)
-            expect(game.state.activePlayerIds).toEqual([first])
-            game.act(ActionType.PlaceBid, first, { amount: 2 })
-            expect(game.state.activePlayerIds).toEqual([second])
-            game.act(ActionType.PassBid, second)
-            game.act(ActionType.ChooseSide, first, { side: Side.French })
-            expect(game.hydrated.playerOf(Side.French)).toMatchObject({
-                playerId: first,
-                morale: 21
-            })
+    it.each(
+        ['Auction', 'FirstPlayerChooses'].flatMap((sideSelection) =>
+            SEATINGS.map((seating) => ({ sideSelection, seating }))
+        )
+    )(
+        'decide the armies by seat, with no choice of army, even under $sideSelection: $seating',
+        ({ sideSelection, seating }) => {
+            const [first, second] = seating
+            const game = seated(seating, SEED, { sideSelection })
+            expect(game.state.machineState).toBe(MachineState.AlliedSetup)
+            expect(game.state.auction).toBeUndefined()
             expect(game.hydrated.playerOf(Side.Allied)).toMatchObject({
-                playerId: second,
+                playerId: first,
                 morale: 27
             })
-            expect(game.state.machineState).toBe(MachineState.AlliedSetup)
-            expect(game.state.activePlayerIds).toEqual([second])
-            game.deployBoth()
-            expect(game.state.activePlayerIds).toEqual([second])
-            playOut(game)
-            expect(() => validateGameResult(game.canonical)).not.toThrow()
+            expect(game.hydrated.playerOf(Side.French)).toMatchObject({
+                playerId: second,
+                morale: 23
+            })
+            expect(game.state.activePlayerIds).toEqual([first])
         }
     )
 

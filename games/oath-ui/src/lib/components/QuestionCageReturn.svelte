@@ -25,12 +25,12 @@
             onpick={(row, count) => draft.setCageCount(row, count)}
         />
     </div>
-    <div class="flex flex-wrap gap-2" data-answer-row>
-        <AnswerButton
-            primary
-            {width}
-            disabled={busy || !draft.cageReturnReady}
-            onclick={() => void draft.returnCage()}>Return them</AnswerButton
-        >
-    </div>
+    <!-- "Return them" once the engine takes the placement: every warband placed. -->
+    {#if draft.cageReturnReady}
+        <div class="flex flex-wrap gap-2" data-answer-row>
+            <AnswerButton primary {width} disabled={busy} onclick={() => void draft.returnCage()}
+                >Return them</AnswerButton
+            >
+        </div>
+    {/if}
 </QuestionForm>

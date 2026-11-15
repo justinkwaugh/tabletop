@@ -1,4 +1,5 @@
-import { PrivateCatalog } from '@tabletop/18xx'
+import { PrivateCatalog, placeReference as place } from '@tabletop/18xx'
+import { CoalFieldsLocationId } from './coalAccess.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 
 // The private companies of §16.2; the Southern Bank (P6) belongs to a deferred variant.
@@ -43,8 +44,7 @@ export const EighteenThirtyTwoPrivateCatalog = new PrivateCatalog(
                 name: 'West Virginia Coal Fields',
                 faceValue: 80,
                 revenue: 15,
-                description:
-                    'Gives its owning company a free WVCF token. Others may buy WVCF tokens for $80, half to the owning company. No company may use the coal fields until it is owned by a company or closed. Companies may buy it in phase 2 for up to face value. Closes at phase 5.'
+                description: `Gives its owning company a free WVCF token. Others may buy WVCF tokens for $80, half to the owning company. No company may use ${place(CoalFieldsLocationId)} until a company owns this private or it closes. Companies may buy it in phase 2 for up to face value. Closes at phase 5.`
             },
             {
                 id: 'P7',

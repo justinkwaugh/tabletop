@@ -80,11 +80,12 @@ const ownFaceupDenizenAdvisers: ChoiceDomain = (state, playerId) =>
 
 // R-11.10 — the Great Slum lets a card here be discarded before one is moved here. From revision 31 (R-X.4) a locked
 // card is not offered, so naming it is refused with the choices, before anything is paid; before, it is offered too.
-const slumCardsAtYourSite: ChoiceDomain = (state, playerId) => {
+// From revision 33 Homesteaders itself is not offered either (R-11.10-H2).
+const slumCardsAtYourSite: ChoiceDomain = (state, playerId, power) => {
     const here = pawnSiteId(state, playerId)
     let cards: string[]
     if (isAtLeastOathRevision(state, OathRevision.EngineFixes26)) {
-        cards = greatSlumDenizensToDiscardFirst(state, playerId, here)
+        cards = greatSlumDenizensToDiscardFirst(state, playerId, here, [], power.cardId)
     } else {
         cards = categoryAt(state, here) === 'greatSlum' ? state.denizensAt(here) : []
     }

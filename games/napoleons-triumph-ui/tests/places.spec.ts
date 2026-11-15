@@ -95,6 +95,35 @@ test('the view moves for a place only when its locale is off screen', async ({ p
     expect((await board.boundingBox())!.width).toBeCloseTo(zoomed.width, 0)
 })
 
+test('a place on screen leaves the view still where getBoundingClientRect leaves out CSS zoom', async ({
+    page
+}) => {
+    // Safari 26.0 and older report a rect inside a CSS-zoomed element divided by its zoom.
+    await page.addInitScript(() => {
+        const measure = Element.prototype.getBoundingClientRect
+        Element.prototype.getBoundingClientRect = function (this: Element) {
+            let zoom = Number.parseFloat(getComputedStyle(this).zoom) || 1
+            for (let node = this.parentElement; node; node = node.parentElement)
+                zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1
+            const rect = measure.call(this)
+            return new DOMRect(rect.x / zoom, rect.y / zoom, rect.width / zoom, rect.height / zoom)
+        }
+    })
+    await threatenFrom72Into81(page)
+    const place = page.locator('.nt-orders-name').getByRole('button', { name: 'locale 81' })
+    const board = page.locator('svg[data-board]')
+    await openMapMenu(page)
+    await page.getByRole('button', { name: 'Locale numbers' }).click()
+
+    // The view is still moving to the corps just picked up.
+    await page.waitForTimeout(1200)
+    expect(await onScreen(page, page.locator('[data-locale-number="81"]'))).toBe(true)
+    const before = await board.boundingBox()
+    await place.click()
+    await page.waitForTimeout(800)
+    expect(await board.boundingBox()).toEqual(before)
+})
+
 test('a corps’s location in the armies panel highlights its locale without zooming in', async ({
     page
 }) => {

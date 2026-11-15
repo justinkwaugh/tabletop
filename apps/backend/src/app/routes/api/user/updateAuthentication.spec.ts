@@ -131,6 +131,14 @@ describe('Recent Authentication for profile submissions', () => {
         expect(account().username).toBe('Renamed')
     })
 
+    it('records Age Confirmation from a submission with old proof', async () => {
+        const { signIn, submit, account } = await fixture()
+        const { cookie } = await signIn(16)
+        expect((await submit(cookie, { ageConfirmed: true })).statusCode).toBe(200)
+        expect(account().ageConfirmedAt).toBeInstanceOf(Date)
+        expect((await submit(cookie, { ageConfirmed: false })).statusCode).toBe(400)
+    })
+
     it('does not prompt for an unchanged email address', async () => {
         const { signIn, submit } = await fixture()
         const { cookie } = await signIn(16)
