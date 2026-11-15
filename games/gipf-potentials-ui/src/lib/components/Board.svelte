@@ -88,6 +88,9 @@
     const SPOT_RADIUS = PIECE_RADIUS * 0.13
 
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
+    // Labels sit on the alphabetic baseline, shifted in user units: WebKit misplaces a central
+    // baseline under the board's zoom. 0.343 of the 17px font matches central in Chromium.
+    const LABEL_SHIFT = 17 * 0.343
 
     const chosen = $derived(session.chosenFrom !== undefined || session.chosenDot !== undefined)
 
@@ -194,7 +197,9 @@
 
     {#if session.showCoordinates}
         {#each session.notation.labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+            <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
+                >{label.text}</text
+            >
         {/each}
     {/if}
 
@@ -522,7 +527,6 @@
         font-weight: 600;
         letter-spacing: 0.04em;
         text-anchor: middle;
-        dominant-baseline: central;
         pointer-events: none;
     }
 
