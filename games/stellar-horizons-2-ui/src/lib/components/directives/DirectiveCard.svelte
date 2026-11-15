@@ -1,5 +1,6 @@
 <script lang="ts">
     import { directiveDefinition, directiveType } from '@tabletop/stellar-horizons-2'
+    import SystemText from '../systems/SystemText.svelte'
     import {
         DIRECTIVE_TYPE_COLORS,
         DIRECTIVE_TYPE_LABELS,
@@ -34,7 +35,11 @@
             <span class="type" style:color={DIRECTIVE_TYPE_COLORS[type]}
                 >{DIRECTIVE_TYPE_LABELS[type]}</span
             >
-            <span class="text">{text}</span>
+            <span class="text"
+                >{#if onclick}{text}{:else}<SystemText
+                        text={directiveText(directive.condition, true)}
+                    />{/if}</span
+            >
             {#if note}<span class="note">{note}</span>{/if}
         </span>
         <span class="points" title="{directive.points} VP">{directive.points}</span>

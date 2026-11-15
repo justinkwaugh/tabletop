@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { anomalyDefinition } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { systemName } from '$lib/utils/presentation.js'
@@ -15,8 +16,8 @@
     <div class="sh-step">
         <p class="hint">
             {anomalyDefinition(reward.anomalyId).name} gives {reward.count}
-            {name}. Choose your ships or your base at {systemName(reward.systemId)} to put them there;
-            any you do not place are destroyed for $1B each. Undo takes one back.
+            {name}. Choose your ships or your base at <SystemLink systemId={reward.systemId} /> to put
+            them there; any you do not place are destroyed for $1B each. Undo takes one back.
         </p>
         <div class="buttons">
             <button type="button" class="primary" onclick={() => gameSession.commitRewardGoods()}>

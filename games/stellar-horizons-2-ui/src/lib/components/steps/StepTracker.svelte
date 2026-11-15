@@ -116,7 +116,8 @@
             </ol>
         {/if}
     </div>
-    {#if acting && !economic && gameSession.canEndPhase}
+    <!-- The recap of what happened meanwhile is read before the phase can be ended. -->
+    {#if acting && !economic && gameSession.canEndPhase && gameSession.unreadRecap.length === 0}
         <button type="button" class="done" onclick={() => gameSession.endPhase()}>
             {PHASE_DONE_LABELS[acting]}
         </button>

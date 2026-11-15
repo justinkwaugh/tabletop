@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { removalOptions, replacementOptions } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { systemName } from '$lib/utils/presentation.js'
@@ -39,8 +40,8 @@
     {@const current = gameState.systemState(choice.systemId).worlds[choice.slot]}
     <div class="sh-step">
         <p class="hint">
-            Terraforming at {systemName(choice.systemId)}. Choose a drawn world to replace the
-            current one, and optionally remove smaller draws from the game.
+            Terraforming at <SystemLink systemId={choice.systemId} />. Choose a drawn world to
+            replace the current one, and optionally remove smaller draws from the game.
         </p>
         <div class="row">
             <div class="world">

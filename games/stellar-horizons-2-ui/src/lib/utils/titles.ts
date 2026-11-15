@@ -20,7 +20,7 @@ export function titleChangeText(change: TitleChange): string {
         return `renounces ${name}`
     }
     if (change.failed) {
-        return `cannot have ${name}, taken by a Player earlier in initiative order, and has the ${change.influence} IP back`
+        return `cannot have ${name}, taken by a Player earlier in initiative order; the ${change.influence} IP are returned`
     }
     const renounced = change.renounced.length ? `, renouncing ${titleNames(change.renounced)}` : ''
     const replacement = change.replacement

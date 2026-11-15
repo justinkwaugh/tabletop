@@ -133,6 +133,12 @@ Developing techs in 2100. Player 1 (the Starfarers) has eight ships: the REs Kep
 - **The counters.** One flow: the REs by exploration value (Copernicus, Kuiper, Kepler), then the CVs by size (Andromeda, Orion, Polaris, Voyager, Nova), smallest first. Kuiper says `arrives in 2` and Nova `arrives in 1`, both in a dashed outline; Voyager and Orion say `crippled`; Copernicus `explored`.
 - **Pointing.** Clicking Voyager turns the main area from the tech chart to the star map, zooms into Wolf-359 and outlines Voyager in gold in the panel.
 
+## Campaign scrapping
+
+The Campaign fleet's Starfarers in the build phase of 2110: Polaris is at Sol with 2 settlements aboard, Kuiper is still on its way to Vega, Voyager and Orion are damaged, and the rest are away from Sol.
+
+- **Scrap a ship.** Opening Scrap a ship lists every ship with what scrapping it gives back: Polaris `+$6B` and `loses 2 settlements`; Kuiper `nothing back (in transit)`; the others `nothing back (only at Sol)`, and Andromeda also `loses 1 settlement and 1 good`.
+
 ## Campaign card collection
 
 Developing techs in 2100 with a late-game collection. Player 1 (the Starfarers) owns nine cards: Robo Miners, Crew Focus, Engine Upgrades, Freight Haulers and Military Academy, Pioneers, Creative, Neural Interface and Aquatic Species (29 VP). As Engineer they hold two fleet cards, Scout Ships and Quantum Sensors, and Gifted Artists. The Givers own Cunning and Sensor Upgrades.

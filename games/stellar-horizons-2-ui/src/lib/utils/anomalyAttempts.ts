@@ -1,6 +1,9 @@
 import {
+    type AnomalyChallenge,
     anomalyAttemptShips,
+    anomalyDifficulty,
     anomalyStrength,
+    pledgedStrength,
     type HydratedStellarHorizonsGameState,
     type ShipState
 } from '@tabletop/stellar-horizons-2'
@@ -18,7 +21,40 @@ export interface RivalAttempt {
     resolvesFirst: boolean
 }
 
-// An anomaly the player has ships at, or has already committed ships to.
+// The most every ship at the system could bring, the viewer's own as they are and the others' as
+// a pact would pledge them, against the easiest difficulty among their owners: whether the
+// anomaly can be resolved there at all this phase.
+function anyoneCouldResolve(
+    state: HydratedStellarHorizonsGameState,
+    playerId: string,
+    systemId: string,
+    anomaly: { id: string; challenge: AnomalyChallenge },
+    ownStrength: number
+): boolean {
+    const others = state.players
+        .map((player) => player.playerId)
+        .filter((other) => other !== playerId)
+        .map((other) => ({
+            playerId: other,
+            strength: state.pledgeableShips
+                .filter((ship) => ship.playerId === other)
+                .reduce(
+                    (total, ship) =>
+                        total +
+                        pledgedStrength(state, other, ship.shipId, systemId, anomaly.challenge),
+                    0
+                )
+        }))
+        .filter((other) => other.strength > 0)
+    const strength = ownStrength + others.reduce((total, other) => total + other.strength, 0)
+    const difficulty = Math.min(
+        anomalyDifficulty(state, anomaly.id, playerId),
+        ...others.map((other) => anomalyDifficulty(state, anomaly.id, other.playerId))
+    )
+    return strength >= difficulty
+}
+
+// An anomaly the player has ships at that could be resolved, or has already committed ships to.
 export interface AnomalyOpportunity {
     systemId: string
     summary: AnomalySummary
@@ -57,6 +93,12 @@ export function anomalyOpportunities(
         }
         const total = (entries: readonly AttemptShip[]) =>
             entries.reduce((sum, entry) => sum + entry.strength, 0)
+        if (
+            !committed &&
+            !anyoneCouldResolve(state, playerId, system.systemId, summary.anomaly, total(ships))
+        ) {
+            return []
+        }
         return [
             {
                 systemId: system.systemId,

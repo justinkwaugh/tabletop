@@ -13,6 +13,7 @@ import {
     type TradeGood
 } from '@tabletop/stellar-horizons-2'
 import { systemName } from './presentation.js'
+import { systemRef } from './systemText.js'
 
 // Goods of one kind and how many; in a cargo draft a negative count moves them off the ship.
 export interface GoodsGroup {
@@ -24,12 +25,13 @@ export function goodName(good: TradeGood): string {
     return tradeGoodDefinition(good).name
 }
 
-export function holderName(holder: GoodsHolder): string {
+// `linked` names a base's system by its reference, for text shown with SystemText.
+export function holderName(holder: GoodsHolder, linked = false): string {
     switch (holder.kind) {
         case GoodsHolderKind.Earth:
             return 'Earth'
         case GoodsHolderKind.Base:
-            return `${systemName(holder.systemId)} base`
+            return `${(linked ? systemRef : systemName)(holder.systemId)} base`
         case GoodsHolderKind.Ship:
             return shipDefinition(holder.shipId).name
     }
@@ -100,7 +102,7 @@ export interface Holding {
 export function holdings(state: HydratedStellarHorizonsGameState, playerId: string): Holding[] {
     const holding = (holder: GoodsHolder, goods: readonly TradeGood[]): Holding => ({
         holder,
-        label: holderName(holder),
+        label: holderName(holder, true),
         groups: groupGoods(goods)
     })
     return [

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import {
         CargoPartnerKind,
         carriesCargo,
@@ -87,7 +88,9 @@
         {#if cargoShip && partner && view}
             <CargoTransfer ship={cargoShip} {partner} {view} />
         {:else if cargoShip}
-            <p class="empty">Nothing to load or unload at {systemName(cargoShip.systemId)}.</p>
+            <p class="empty">
+                Nothing to load or unload at <SystemLink systemId={cargoShip.systemId} />.
+            </p>
         {/if}
     </div>
     {#if gameSession.saleOptions.length > 0}

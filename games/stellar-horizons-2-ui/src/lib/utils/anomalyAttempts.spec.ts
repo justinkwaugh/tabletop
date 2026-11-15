@@ -80,6 +80,28 @@ describe('anomaly opportunities', () => {
         expect(opportunity.committedShipIds).toBeUndefined()
     })
 
+    it('leave out an anomaly that every ship at the system together could not resolve', () => {
+        const state = voyages()
+        const [first, second] = state.initiativeOrder()
+        // Stellar Chart needs 6 science; Kuiper brings 2.
+        state.systemState('vega').anomaly = 'stellar-chart'
+        state.ships['starfarers-kuiper'] = ship('starfarers-kuiper', first, 'vega')
+        expect(anomalyOpportunities(state, first, undefined)).toEqual([])
+        // Another player's ship there that a pact could pledge makes it possible.
+        state.ships['givers-darwin'] = ship('givers-darwin', second, 'vega')
+        state.pledgeableShips = [
+            { playerId: second, shipId: 'givers-darwin', systemId: 'vega', science: 4, combat: 0 }
+        ]
+        expect(
+            anomalyOpportunities(state, first, undefined).map((entry) => entry.systemId)
+        ).toEqual(['vega'])
+        // A ship of theirs elsewhere does not.
+        state.pledgeableShips = [
+            { playerId: second, shipId: 'givers-darwin', systemId: 'altair', science: 4, combat: 0 }
+        ]
+        expect(anomalyOpportunities(state, first, undefined)).toEqual([])
+    })
+
     it('show the player’s own commitment and who else has committed, and in which order', () => {
         const state = voyages()
         const [first, second] = state.initiativeOrder()

@@ -20,6 +20,7 @@ import {
     type ShipState,
     type TradeGood
 } from '@tabletop/stellar-horizons-2'
+import { difficultyAdjustments, type DifficultyAdjustment } from './difficulty.js'
 
 export interface FleetSummary {
     playerId: string
@@ -39,6 +40,8 @@ export interface AnomalySummary {
     anomaly: AnomalyDefinition
     difficulty: number
     players: number
+    // The viewer's faction, cards and titles that change the difficulty from printed + players.
+    adjustments: DifficultyAdjustment[]
 }
 
 export interface EventSummary {
@@ -104,7 +107,8 @@ export function anomalySummary(
         ? {
               anomaly,
               difficulty: anomalyDifficulty(state, anomaly.id, viewerId),
-              players: state.numPlayers
+              players: state.numPlayers,
+              adjustments: difficultyAdjustments(state, viewerId, anomaly.challenge)
           }
         : undefined
 }

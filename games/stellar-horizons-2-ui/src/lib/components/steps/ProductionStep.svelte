@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import {
         CASH_PRODUCTION,
         availableProductions,
@@ -46,7 +47,7 @@
         {@const blockade = blockadeOf(gameState, playerId, base.systemId)}
         <div class="base">
             <span class="system"
-                >{systemName(base.systemId)}
+                ><SystemLink systemId={base.systemId} />
                 <span class="note">{plural(base.settlements, 'settlement')}</span></span
             >
             {#if blockade}
@@ -76,7 +77,7 @@
     {/each}
     {#each chosen as { base, production } (base.systemId)}
         <div class="base done">
-            <span class="system">{systemName(base.systemId)}</span>
+            <span class="system"><SystemLink systemId={base.systemId} /></span>
             <span class="note"
                 >{productionLabel(production, productionYield(gameState, base, production))}</span
             >

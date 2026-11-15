@@ -2,10 +2,16 @@ import { expect, test, type Page } from '@playwright/test'
 
 const pageErrors = new WeakMap<Page, string[]>()
 
-test.beforeEach(({ page }) => {
+test.beforeEach(async ({ page }) => {
     const errors: string[] = []
     pageErrors.set(page, errors)
     page.on('pageerror', (error) => errors.push(error.message))
+    // These tests play through the turn; the recap of what happened meanwhile is read and
+    // dismissed whenever it stands in the way. The recap's own test removes this.
+    const recap = page.getByRole('region', { name: 'Since your last turn' })
+    await page.addLocatorHandler(recap, async () => {
+        await recap.getByRole('button', { name: 'Continue' }).click()
+    })
 })
 
 test.afterEach(({ page }) => {
@@ -355,4 +361,88 @@ test('a ship chosen to move frames its destinations from the whole map too', asy
     for (const destination of await destinations.all()) {
         await expect(destination).toBeInViewport()
     }
+})
+
+test('a world is chosen to research by its art, and the roll shows as a result', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign mining')
+    const research = page.getByRole('button', {
+        name: /^Research the M world at Alpha Centauri: \d+% for a biology marker$/
+    })
+    await expect(research).toBeVisible()
+    await expect(
+        page.getByRole('button', { name: /^Mine the D world at Alpha Centauri/ })
+    ).toBeVisible()
+    await research.click()
+    const results = page.getByRole('table', { name: 'Mining, research and terraforming' })
+    await expect(results.getByText('researched', { exact: true })).toBeVisible()
+    await expect(
+        results.getByRole('img', { name: /^Rolled \d+: \d+ or less earns a marker$/ })
+    ).toHaveCount(1)
+    // Orion has researched the system, so Pytheas may only terraform there.
+    await expect(page.getByRole('button', { name: /^Mine the/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Terraform the D world/ })).toBeVisible()
+})
+
+test('what happened since the player last acted is shown before their step, until read', async ({
+    page
+}) => {
+    const recap = page.getByRole('region', { name: 'Since your last turn' })
+    await page.removeLocatorHandler(recap)
+    await openScenario(page, 'Campaign mining')
+    await page.getByRole('button', { name: /^Explore with Kuiper/ }).click()
+    // Everyone finishes exploring; the markers are drawn and Player 1 develops first.
+    const done = page.getByRole('button', { name: 'Done exploring' })
+    for (let player = 0; player < 3; player++) {
+        await expect(done).toBeVisible()
+        await done.click()
+    }
+    await expect(recap).toBeVisible()
+    await expect(recap.getByText('Markers drawn')).toBeVisible()
+    // Neither the step nor the button that ends the phase shows until the recap is read.
+    await expect(page.getByRole('button', { name: 'Done developing' })).toHaveCount(0)
+    await expect(page.getByText(/^Choose a tech on the chart below/)).toHaveCount(0)
+    await recap.getByRole('button', { name: 'Continue' }).click()
+    await expect(recap).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Done developing' })).toBeVisible()
+    await expect(page.getByText(/^Choose a tech on the chart below/)).toBeVisible()
+    // Undo brings it back before undoing anything, and Continue reads it again.
+    await page.getByRole('button', { name: 'UNDO' }).click()
+    await expect(recap).toBeVisible()
+    await recap.getByRole('button', { name: 'Continue' }).click()
+    await expect(recap).toHaveCount(0)
+})
+
+test('a system named in History zooms the map into it, and out again', async ({ page }) => {
+    await openScenario(page, 'Campaign trading')
+    await page.getByRole('button', { name: "Sell goods at Barnard's Star" }).click({ force: true })
+    await page
+        .getByRole('button', { name: /^Sell 1 for/ })
+        .first()
+        .click()
+    await page.getByRole('button', { name: 'Back to map' }).click()
+    await page.getByRole('tab', { name: 'History' }).click()
+    const link = page.getByRole('button', { name: "Barnard's Star", exact: true }).first()
+    await link.click()
+    const panel = page.getByRole('complementary', { name: "Barnard's Star details" })
+    await expect(panel).toBeVisible()
+    await link.click()
+    await expect(panel).toHaveCount(0)
+})
+
+test('each ship offered for scrapping says what it gives back and what it loses', async ({
+    page
+}) => {
+    await openScenario(page, 'Campaign scrapping')
+    await page.getByText('Scrap a ship').click()
+    await expect(page.getByRole('button', { name: /^Scrap Polaris/ })).toHaveText(
+        /Scrap Polaris\s*\+\$6B\s*loses 2 settlements/
+    )
+    await expect(page.getByRole('button', { name: /^Scrap Kuiper/ })).toHaveText(
+        /nothing back \(in transit\)/
+    )
+    await expect(page.getByRole('button', { name: /^Scrap Andromeda/ })).toHaveText(
+        /nothing back \(only at Sol\)\s*loses 1 settlement and 1 good/
+    )
 })

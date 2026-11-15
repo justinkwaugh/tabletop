@@ -142,6 +142,8 @@ import {
     type TechId
 } from '@tabletop/stellar-horizons-2'
 import { cargoDraftFits } from '$lib/utils/cargoTransferView.js'
+import { recapActions, unreadRecap } from '$lib/utils/recap.js'
+import { recapRead } from './recapRead.svelte.js'
 import { type CombatRef, combatRef, sameCombat } from '$lib/utils/combat.js'
 import { evenShares, type ShareItem } from '$lib/utils/pacts.js'
 import { plural, systemName } from '$lib/utils/presentation.js'
@@ -1541,9 +1543,38 @@ export class StellarHorizonsGameSession extends GameSession<
         }
     }
 
+    // What happened since the viewer last acted (the recap), and what of it is still unread.
+    // Reading it is local to this device; Undo brings back a recap read before anything else.
+    recap: GameAction[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        return playerId && !this.isViewingHistory ? recapActions(this.actions, playerId) : []
+    })
+
+    unreadRecap: GameAction[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        return playerId ? unreadRecap(this.recap, recapRead.lastRead(this.game.id, playerId)) : []
+    })
+
+    canReopenRecap: boolean = $derived(this.recap.length > 0 && this.unreadRecap.length === 0)
+
+    readRecap() {
+        const playerId = this.myPlayerId
+        const last = this.unreadRecap.at(-1)
+        if (playerId && last) recapRead.markRead(this.game.id, playerId, last.id)
+    }
+
+    reopenRecap() {
+        const playerId = this.myPlayerId
+        if (playerId) recapRead.markUnread(this.game.id, playerId)
+    }
+
     override async undo() {
         if (this.hasManualSelection()) {
             this.select(popSelection(this.selection))
+            return
+        }
+        if (this.canReopenRecap) {
+            this.reopenRecap()
             return
         }
         await super.undo()

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { WorldSide, maxPopulation, surveySwapSlots } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { systemName } from '$lib/utils/presentation.js'
@@ -24,8 +25,9 @@
     <div class="sh-step">
         {#if choice.fillsSlot}
             <p class="hint">
-                Your survey of {systemName(choice.systemId)} drew {choice.drawnTileIds.length} worlds
-                with Planetary Surveys. Choose the one to place; the other goes back to the pool.
+                Your survey of <SystemLink systemId={choice.systemId} /> drew {choice.drawnTileIds
+                    .length} worlds with Planetary Surveys. Choose the one to place; the other goes back
+                to the pool.
             </p>
             <div class="row">
                 {#each choice.drawnTileIds as tileId (tileId)}
@@ -41,7 +43,7 @@
             </div>
         {:else}
             <p class="hint">
-                Your survey of {systemName(choice.systemId)} found
+                Your survey of <SystemLink systemId={choice.systemId} /> found
                 {choice.drawnTileIds.length > 1 ? 'worlds' : 'a world'} of population
                 {choice.drawnTileIds
                     .map((tileId) => maxPopulation(tileId, WorldSide.I))

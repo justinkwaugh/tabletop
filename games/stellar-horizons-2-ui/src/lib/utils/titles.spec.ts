@@ -29,7 +29,7 @@ describe('title history', () => {
 
     it('says when an earlier Player took it, and when one is renounced', () => {
         expect(titleChangeText({ ...change, titleId: TitleId.Chancellor, failed: true })).toBe(
-            'cannot have Chancellor, taken by a Player earlier in initiative order, and has the 18 IP back'
+            'cannot have Chancellor, taken by a Player earlier in initiative order; the 18 IP are returned'
         )
         expect(
             titleChangeText({

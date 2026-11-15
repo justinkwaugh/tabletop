@@ -7,12 +7,13 @@
         isStartTurn,
         malfunctionRate,
         ShipKind,
-        shipDefinition
+        shipDefinition,
+        starSystemDefinition
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { anomalyOpportunities } from '$lib/utils/anomalyAttempts.js'
     import { columnFill } from '$lib/utils/columnFill.js'
-    import { plural, systemName } from '$lib/utils/presentation.js'
+    import { FIELD_COLORS, plural, systemName } from '$lib/utils/presentation.js'
     import ShipTile from '../ShipTile.svelte'
     import AnomalyAttempt from './AnomalyAttempt.svelte'
     import ExplorationResult from './ExplorationResult.svelte'
@@ -110,6 +111,7 @@
     <div class="cards">
         {#each explorers as ship (ship.shipId)}
             {@const value = explorationValue(gameState, ship)}
+            {@const field = starSystemDefinition(ship.systemId).exploration.field}
             <ShipTile
                 ship={shipDefinition(ship.shipId)}
                 named={false}
@@ -117,8 +119,15 @@
                 label="Show {shipDefinition(ship.shipId).name} at {systemName(ship.systemId)}"
                 onclick={() => gameSession.locateShip(ship.shipId)}
             >
-                <div class="odds" title="Exploration value {value}: {odds(value)}">
+                <div
+                    class="odds"
+                    title="Exploration value {value}: {odds(value).replaceAll(
+                        'tech marker',
+                        `${field.toLowerCase()} marker`
+                    )}"
+                >
                     {shortOdds(value)}
+                    <span class="marker" style:--field={FIELD_COLORS[field]}></span>
                 </div>
                 <button
                     type="button"
@@ -171,9 +180,20 @@
     }
 
     .odds {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         margin-top: 2px;
         font-size: 15px;
         color: #e8f1ff;
+    }
+
+    /* The tech type the system's exploration earns, as on the research choices. */
+    .marker {
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
+        background: var(--field);
     }
 
     .explore {

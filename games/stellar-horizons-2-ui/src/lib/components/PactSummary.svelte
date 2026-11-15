@@ -1,6 +1,7 @@
 <script lang="ts">
     // A pact as everyone may see it: its target, each partner's pledged ships and share, and
     // who has accepted. The viewer's own lines read in the second person.
+    import SystemLink from './systems/SystemLink.svelte'
     import type { Snippet } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { shipDefinition, type Pact } from '@tabletop/stellar-horizons-2'
@@ -24,7 +25,7 @@
 
 <section class="pact" class:agreed={pact.agreed}>
     <div class="title">
-        Pact on {pactTargetName(pact.terms)} at {systemName(pact.systemId)}
+        Pact on {pactTargetName(pact.terms)} at <SystemLink systemId={pact.systemId} />
         <span class="status">{status}</span>
     </div>
     <ul>

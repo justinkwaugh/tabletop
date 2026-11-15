@@ -1,6 +1,7 @@
 <script lang="ts">
     import { AnomalyChallenge } from '@tabletop/stellar-horizons-2'
     import type { AnomalySummary } from '$lib/utils/systemSummary.js'
+    import { difficultySum } from '$lib/utils/difficulty.js'
     import { ANOMALY_SIZE } from '$lib/utils/tileFeatures.js'
     import AnomalyTile from './AnomalyTile.svelte'
 
@@ -21,7 +22,9 @@
             {science ? 'Science' : 'Combat'} challenge:
             <strong>{summary.difficulty}</strong>
             {science ? 'exploration' : 'combat'} value to resolve
-            <span class="sum">({anomaly.difficulty} + {summary.players} players)</span>
+            <span class="sum"
+                >({difficultySum(anomaly.difficulty, summary.players, summary.adjustments)})</span
+            >
         </span>
         {#if anomaly.noExploration}
             <span class="rule">No exploration here until it is resolved.</span>

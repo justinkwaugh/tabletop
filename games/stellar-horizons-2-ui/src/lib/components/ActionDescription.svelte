@@ -2,6 +2,10 @@
     import type { GameAction } from '@tabletop/common'
     import { directiveText, fulfilledIn } from '$lib/utils/directives.js'
     import { titleActionText, titleChangeText } from '$lib/utils/titles.js'
+    import { toPlayer } from '$lib/utils/person.js'
+    import { systemRef } from '$lib/utils/systemText.js'
+    import SystemLink from './systems/SystemLink.svelte'
+    import SystemText from './systems/SystemText.svelte'
     import {
         AnomalyBackKind,
         CargoPartnerKind,
@@ -137,6 +141,9 @@
     const gameSession = getGameSession()
     // A drawn card is named only to its drawer, as the projection does in a hosted game.
     const viewerId = $derived(gameSession.myPlayerId)
+    // A phrase about a player, turned to "you" when they are the viewer (shown as "You").
+    const to = (playerId: string | undefined, phrase: string) =>
+        toPlayer(playerId !== undefined && playerId === viewerId, phrase)
 
     // Each Player's directives drawn in a deal, in the order they drew.
     function dealtCounts(dealt: readonly HeldDirective[]): { playerId: string; count: number }[] {
@@ -166,7 +173,7 @@
         return parts.length > 0 ? ` (${parts.join(' and ')} in compensation)` : ''
     }
 
-    function rewardCardText(card: RewardCard | undefined): string {
+    function rewardCardText(card: RewardCard | undefined, playerId: string | undefined): string {
         if (!card) {
             return ''
         }
@@ -175,7 +182,7 @@
             case RewardCardOutcome.Earned:
                 return name
             case RewardCardOutcome.FromHand:
-                return `${name}, from their hand`
+                return to(playerId, `${name}, from their hand`)
             case RewardCardOutcome.AlreadyOwned:
                 return `no card (${name} drawn, already owned)`
             case RewardCardOutcome.DeckEmpty:
@@ -183,7 +190,7 @@
         }
     }
 
-    function rewardText(reward: GrantedReward): string {
+    function rewardText(reward: GrantedReward, playerId: string | undefined): string {
         const goodsCash = reward.goodsCash
             ? ` ($${reward.goodsCash}B for goods the pool lacked)`
             : ''
@@ -191,15 +198,17 @@
             ...reward,
             markers: reward.markers.length ? `markers (${reward.markers.join(', ')})` : '',
             goods: reward.goods ? plural(reward.goods, 'good') : '',
-            card: rewardCardText(reward.card)
+            card: rewardCardText(reward.card, playerId)
         })}${goodsCash}`
     }
 
-    function escalationDrawText(draw: EscalationDraw): string {
+    function escalationDrawText(draw: EscalationDraw, playerId?: string): string {
         const short = draw.owed - Math.min(draw.owed, draw.drawn.length)
         const lost =
             short > 0 ? `; the pool was ${short} short, costing ${draw.influenceLost} IP` : ''
-        const banned = draw.banned ? ', and they cannot attack until the next initiative roll' : ''
+        const banned = draw.banned
+            ? to(playerId, ', and they cannot attack until the next initiative roll')
+            : ''
         return `drawing ${escalationList(draw.drawn)}${lost}${banned}`
     }
 
@@ -235,12 +244,12 @@
         return value > 0 ? ` + ${value}%` : ` − ${-value}%`
     }
 
-    function transferPartnerName(partner: CargoPartner): string {
+    function transferPartnerName(partner: CargoPartner, playerId: string | undefined): string {
         switch (partner.kind) {
             case CargoPartnerKind.Earth:
                 return 'Earth'
             case CargoPartnerKind.Base:
-                return 'their base'
+                return to(playerId, 'their base')
             case CargoPartnerKind.Ship:
                 return shipName(partner.shipId)
         }
@@ -252,7 +261,7 @@
         const reason =
             entry.reason === MarkerReason.Loss
                 ? `for the loss of ${shipName(entry.shipId)}`
-                : `for ${shipName(entry.shipId)}'s exploration of ${systemName(entry.systemId)}`
+                : `for ${shipName(entry.shipId)}'s exploration of ${systemRef(entry.systemId)}`
         const survey = entry.survey ? ', enough for a survey' : ''
         return `${markersText(entry.field, entry.markers.length)}${drawn}${cash} ${reason}${survey}`
     }
@@ -264,12 +273,12 @@
         : 'justify-start'}"
 >
     {#if isChooseFaction(action)}
-        <span>leads {factionName(action.faction)}</span>
+        <span>{to(action.playerId, 'leads')} {factionName(action.faction)}</span>
     {:else if isPlaceStartingBase(action)}
         <span>
-            founded a base of {plural(action.metadata?.settlements ?? 0, 'settlement')} at {systemName(
-                action.systemId
-            )}
+            founded a base of {plural(action.metadata?.settlements ?? 0, 'settlement')} at <SystemLink
+                systemId={action.systemId}
+            />
         </span>
     {:else if isStartTurn(action)}
         <span>
@@ -281,18 +290,23 @@
         </span>
         {#each action.metadata?.influence ?? [] as { playerId, amount } (playerId)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName {playerId} /> earns {amount} IP from their cards and titles.</span
+                ><PlayerName {playerId} />
+                {to(playerId, `earns ${amount} IP from their cards and titles`)}.</span
             >
         {/each}
         {#each action.metadata?.removedDirectives ?? [] as { playerId, directiveId } (directiveId)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName {playerId} /> gives up the directive “{directiveText(
-                    directiveDefinition(directiveId).condition
-                )}”, its system fully surveyed, and draws two.</span
+                ><PlayerName {playerId} />
+                <SystemText
+                    text={to(
+                        playerId,
+                        `gives up the directive “${directiveText(directiveDefinition(directiveId).condition, true)}”, its system fully surveyed`
+                    )}
+                />, and {to(playerId, 'draws two')}.</span
             >
         {/each}
     {:else if isBuildShip(action)}
-        <span>built {shipName(action.shipId)} at {systemName(action.systemId)}</span>
+        <span>built {shipName(action.shipId)} at <SystemLink systemId={action.systemId} /></span>
     {:else if isRepairShip(action)}
         <span
             >repaired {shipName(action.shipId)}{action.method === RepairMethod.Dock
@@ -306,7 +320,7 @@
                 : ''}</span
         >
     {:else if isCloneSettlement(action)}
-        <span>cloned a settlement at {systemName(action.systemId)}</span>
+        <span>cloned a settlement at <SystemLink systemId={action.systemId} /></span>
     {:else if isTransferCargo(action)}
         {@const count = plural(Math.abs(action.settlements), 'settlement')}
         {#if action.partner.kind === CargoPartnerKind.Earth}
@@ -325,17 +339,17 @@
             >
         {:else if action.settlements > 0}
             <span
-                >loaded a settlement onto {shipName(action.shipId)}{action.metadata
-                    ? ` at ${systemName(action.metadata.systemId)}`
-                    : ''}</span
+                >loaded a settlement onto {shipName(action.shipId)}<SystemText
+                    text={action.metadata ? ` at ${systemRef(action.metadata.systemId)}` : ''}
+                /></span
             >
         {:else}
             <span
                 >{action.metadata?.foundedBase
                     ? 'founded a base'
-                    : 'expanded their base'}{action.metadata
-                    ? ` at ${systemName(action.metadata.systemId)}`
-                    : ''} ({plural(
+                    : to(action.playerId, 'expanded their base')}<SystemText
+                    text={action.metadata ? ` at ${systemRef(action.metadata.systemId)}` : ''}
+                /> ({plural(
                     action.metadata?.baseSettlements ?? -action.settlements,
                     'settlement'
                 )})</span
@@ -345,13 +359,13 @@
         {@const count = `${Math.abs(action.count)} ${goodName(action.good)}`}
         <span
             >{action.count > 0
-                ? `loaded ${count} onto ${shipName(action.shipId)} from ${transferPartnerName(action.partner)}`
-                : `unloaded ${count} from ${shipName(action.shipId)} to ${transferPartnerName(action.partner)}`}</span
+                ? `loaded ${count} onto ${shipName(action.shipId)} from ${transferPartnerName(action.partner, action.playerId)}`
+                : `unloaded ${count} from ${shipName(action.shipId)} to ${transferPartnerName(action.partner, action.playerId)}`}</span
         >
     {:else if isSellGoods(action)}
         <span
             >sold {action.metadata?.count ?? ''}
-            {goodName(action.good)} at {systemName(action.systemId)}{action.metadata
+            {goodName(action.good)} at <SystemLink systemId={action.systemId} />{action.metadata
                 ? ` for $${action.metadata.cash}B${action.metadata.influence ? ` and ${action.metadata.influence} IP` : ''}`
                 : ''}</span
         >
@@ -362,14 +376,16 @@
         {/if}
     {:else if isChooseDemand(action)}
         <span
-            >{action.metadata
-                ? `chose ${goodName(action.good)} demand for ${systemName(action.metadata.systemId)}, from ${action.metadata.drawn.map(goodName).join(' and ')}`
-                : `chose ${goodName(action.good)} demand`}</span
+            ><SystemText
+                text={action.metadata
+                    ? `chose ${goodName(action.good)} demand for ${systemRef(action.metadata.systemId)}, from ${action.metadata.drawn.map(goodName).join(' and ')}`
+                    : `chose ${goodName(action.good)} demand`}
+            /></span
         >
     {:else if isDestroyGoods(action)}
         <span
             >destroyed {action.count}
-            {goodName(action.good)} at {holderName(action.holder)} for ${action.count}B</span
+            {goodName(action.good)} at <SystemText text={holderName(action.holder, true)} /> for ${action.count}B</span
         >
     {:else if isDrawTradeGoods(action)}
         <span>Trade goods drawn:</span>
@@ -384,38 +400,46 @@
         {/each}
     {:else if isAssignGoods(action)}
         <span
-            >{action.assignments.length > 0
-                ? `assigned ${action.assignments
-                      .map(
-                          (assignment) =>
-                              `${goodName(assignment.good)} to ${holderName(assignment.store)}`
-                      )
-                      .join(', ')}`
-                : 'assigned no goods'}{action.metadata?.discarded.length
+            ><SystemText
+                text={action.assignments.length > 0
+                    ? `assigned ${action.assignments
+                          .map(
+                              (assignment) =>
+                                  `${goodName(assignment.good)} to ${holderName(assignment.store, true)}`
+                          )
+                          .join(', ')}`
+                    : 'assigned no goods'}
+            />{action.metadata?.discarded.length
                 ? `; discarded ${goodsText(action.metadata.discarded)} for $${action.metadata.cash}B`
                 : ''}</span
         >
     {:else if isPlaceRewardGoods(action)}
         <span
-            >{action.placements.length > 0
-                ? `put reward goods in ${action.placements
-                      .map((placement) => `${holderName(placement.holder)} (${placement.count})`)
-                      .join(', ')}`
-                : 'placed no reward goods'}{action.metadata?.destroyed
+            ><SystemText
+                text={action.placements.length > 0
+                    ? `put reward goods in ${action.placements
+                          .map(
+                              (placement) =>
+                                  `${holderName(placement.holder, true)} (${placement.count})`
+                          )
+                          .join(', ')}`
+                    : 'placed no reward goods'}
+            />{action.metadata?.destroyed
                 ? `; destroyed ${action.metadata.destroyed} for $${action.metadata.cash}B`
                 : ''}</span
         >
     {:else if isMoveShip(action)}
         <span
-            >sent {shipName(action.shipId)} to {systemName(action.systemId)}{action.metadata
+            >sent {shipName(action.shipId)} to <SystemLink
+                systemId={action.systemId}
+            />{action.metadata
                 ? `, arriving in ${plural(action.metadata.turns, 'turn')}`
                 : ''}</span
         >
     {:else if isExplore(action)}
         <span>
-            explored {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
-                action.shipId
-            )}{action.metadata
+            explored {#if action.metadata}<SystemLink systemId={action.metadata.systemId} />{/if} with
+            {shipName(action.shipId)}{action.metadata
                 ? `: ${markersText(action.metadata.field, action.metadata.markerCount)} earned`
                 : ''}{action.metadata?.rewardRoll !== undefined && action.metadata.rewardRolls
                 ? ` (${rolledText(action.metadata.rewardRoll, action.metadata.rewardRolls)} for one more)`
@@ -427,9 +451,11 @@
         </span>
     {:else if isSettleExplorations(action)}
         <span
-            >{action.metadata?.settled.length
-                ? `received ${action.metadata.settled.map(settledText).join('; ')}`
-                : 'received no markers'}</span
+            ><SystemText
+                text={action.metadata?.settled.length
+                    ? `received ${action.metadata.settled.map(settledText).join('; ')}`
+                    : 'received no markers'}
+            /></span
         >
     {:else if isDevelopTech(action)}
         <span
@@ -446,7 +472,12 @@
     {:else if isDrawCard(action)}
         {@const drawn = action.metadata?.drawn?.cardId}
         {#if action.level === undefined}
-            <span>could draw no {deckName(action.deck)}: no deck they may draw from has cards</span>
+            <span
+                >could draw no {deckName(action.deck)}: {to(
+                    action.playerId,
+                    'no deck they may draw from has cards'
+                )}</span
+            >
         {:else}
             {@const card =
                 viewerId === action.playerId && drawn !== undefined
@@ -455,7 +486,7 @@
             <span
                 >drew {card}{action.metadata?.kept
                     ? ''
-                    : ', a copy of a card they have, and discarded it'}</span
+                    : to(action.playerId, ', a copy of a card they have, and discarded it')}</span
             >
         {/if}
     {:else if isChooseEconomicTile(action)}
@@ -468,9 +499,9 @@
         >
     {:else if isChooseGrowthBase(action)}
         <span
-            >grew {plural(action.metadata?.settlements ?? 0, 'settlement')} at {systemName(
-                action.systemId
-            )} with Prolific Breeders</span
+            >grew {plural(action.metadata?.settlements ?? 0, 'settlement')} at <SystemLink
+                systemId={action.systemId}
+            /> with Prolific Breeders</span
         >
     {:else if isChooseEndRollModifier(action)}
         <span
@@ -509,14 +540,18 @@
         {/each}
         {#each action.metadata?.escalationDiscards ?? [] as { playerId, discarded } (playerId)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName {playerId} /> returns {escalationList(discarded)}.</span
+                ><PlayerName {playerId} />
+                {to(playerId, 'returns')}
+                {escalationList(discarded)}.</span
             >
         {/each}
     {:else if isChooseProduction(action)}
         <span
             >chose to produce {action.production === CASH_PRODUCTION
                 ? 'cash'
-                : action.production.toLowerCase()} at {systemName(action.systemId)}</span
+                : action.production.toLowerCase()} at <SystemLink
+                systemId={action.systemId}
+            /></span
         >
     {:else if isProduceAtBases(action)}
         <span>Bases produce:</span>
@@ -525,9 +560,9 @@
                 ><PlayerName playerId={result.playerId} />
                 {productionLabel(result.production, result.amount)}{result.goods.goods.length
                     ? ` and ${goodsText(result.goods.goods)}`
-                    : ''}{result.goods.cash ? ` and $${result.goods.cash}B for goods` : ''} at {systemName(
-                    result.systemId
-                )}{result.blockaded ? ' (blockaded, halved)' : ''}{index <
+                    : ''}{result.goods.cash ? ` and $${result.goods.cash}B for goods` : ''} at <SystemLink
+                    systemId={result.systemId}
+                />{result.blockaded ? ' (blockaded, halved)' : ''}{index <
                 (action.metadata?.results.length ?? 0) - 1
                     ? ';'
                     : ''}</span
@@ -543,7 +578,7 @@
         {#each grown as result, index (`${result.playerId}:${result.systemId}`)}
             <span class="inline-flex items-center gap-x-1"
                 ><PlayerName playerId={result.playerId} />
-                +{result.after - result.before} at {systemName(result.systemId)}{index <
+                +{result.after - result.before} at <SystemLink systemId={result.systemId} />{index <
                 grown.length - 1
                     ? ';'
                     : ''}</span
@@ -553,16 +588,16 @@
         {/each}
         {#each action.metadata?.chosen ?? [] as chosen (chosen.playerId)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName playerId={chosen.playerId} /> +{chosen.settlements} at {systemName(
-                    chosen.systemId
-                )} with Prolific Breeders</span
+                ><PlayerName playerId={chosen.playerId} /> +{chosen.settlements} at <SystemLink
+                    systemId={chosen.systemId}
+                /> with Prolific Breeders</span
             >
         {/each}
     {:else if isConvertSettlement(action)}
         <span>tried to convert a settlement of</span>
         <PlayerName playerId={action.targetPlayerId} />
         <span
-            >at {systemName(action.systemId)}{action.metadata
+            >at <SystemLink systemId={action.systemId} />{action.metadata
                 ? `: rolled ${action.metadata.roll}${action.metadata.target === undefined ? '' : ` against ${action.metadata.target}`}, ${action.metadata.converted ? 'converted' : 'failed'}`
                 : ''}</span
         >
@@ -572,8 +607,10 @@
         <span>turned {action.influence} IP into ${action.influence * CASH_PER_INFLUENCE}B</span>
     {:else if isStartPhase(action)}
         <span
-            >{action.metadata ? PHASE_STARTED[action.metadata.phase] : 'starts a phase'}{action
-                .metadata?.repairedShipIds?.length
+            >{to(
+                action.playerId,
+                action.metadata ? PHASE_STARTED[action.metadata.phase] : 'starts a phase'
+            )}{action.metadata?.repairedShipIds?.length
                 ? `; Self Repair System took a point of damage off ${action.metadata.repairedShipIds
                       .map(shipName)
                       .join(', ')}`
@@ -582,22 +619,31 @@
     {:else if isEndPhase(action)}
         <span>{PHASE_FINISHED[action.phase]}</span>
     {:else if isSkipPhase(action)}
-        <span>{action.metadata ? PHASE_SKIPPED[action.metadata.phase] : 'has nothing to do'}</span>
+        <span
+            >{to(
+                action.playerId,
+                action.metadata ? PHASE_SKIPPED[action.metadata.phase] : 'has nothing to do'
+            )}</span
+        >
     {:else if isCompletePhase(action)}
         <span>{action.metadata ? PHASE_OVER[action.metadata.phase] : 'The phase is over.'}</span>
         {#each action.metadata?.discardedHands ?? [] as playerId (playerId)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName {playerId} /> bought nothing and discards their hand.</span
+                ><PlayerName {playerId} />
+                {to(playerId, 'bought nothing and discarded their hand')}.</span
             >
         {/each}
         {#each action.metadata?.titles ?? [] as change, index (index)}
-            <span><PlayerName playerId={change.playerId} /> {titleChangeText(change)}.</span>
+            <span
+                ><PlayerName playerId={change.playerId} />
+                {to(change.playerId, titleChangeText(change))}.</span
+            >
         {/each}
     {:else if isAttemptAnomaly(action)}
         <span>
             sent {action.shipIds.map(shipName).join(', ')} to resolve {action.metadata
                 ? anomalyDefinition(action.metadata.anomalyId).name
-                : 'an anomaly'} at {systemName(action.systemId)}{action.metadata
+                : 'an anomaly'} at <SystemLink systemId={action.systemId} />{action.metadata
                 ? ` (${action.metadata.strength} against ${action.metadata.difficulty})`
                 : ''}
         </span>
@@ -607,27 +653,29 @@
             {#if metadata.pactId}
                 <span
                     >A pact {metadata.resolved ? 'resolved' : 'arrived too late to resolve'}
-                    {anomalyDefinition(metadata.anomalyId).name} at {systemName(
-                        metadata.systemId
-                    )}</span
+                    {anomalyDefinition(metadata.anomalyId).name} at <SystemLink
+                        systemId={metadata.systemId}
+                    /></span
                 >
                 {#each metadata.shares ?? [] as share (share.playerId)}
                     <span class="inline-flex items-center gap-x-1"
-                        >; <PlayerName playerId={share.playerId} /> {rewardText(share)}</span
+                        >; <PlayerName playerId={share.playerId} />
+                        {rewardText(share, share.playerId)}</span
                     >
                 {/each}
                 {#if metadata.keeperId}
                     <span class="inline-flex items-center gap-x-1"
-                        >; <PlayerName playerId={metadata.keeperId} /> keeps the tile</span
+                        >; <PlayerName playerId={metadata.keeperId} />
+                        {to(metadata.keeperId, 'keeps the tile')}</span
                     >
                 {/if}
             {:else}
                 <PlayerName playerId={metadata.playerId} />
                 <span>
                     {metadata.resolved ? 'resolved' : 'arrived too late to resolve'}
-                    {anomalyDefinition(metadata.anomalyId).name} at {systemName(
-                        metadata.systemId
-                    )}{metadata.reward ? `: ${rewardText(metadata.reward)}` : ''}
+                    {anomalyDefinition(metadata.anomalyId).name} at <SystemLink
+                        systemId={metadata.systemId}
+                    />{metadata.reward ? `: ${rewardText(metadata.reward, metadata.playerId)}` : ''}
                 </span>
             {/if}
             {#if metadata.turnedOver}
@@ -642,13 +690,18 @@
         {/if}
     {:else if isPlaceRewardSettlements(action)}
         <span
-            >placed reward settlements: {action.placements
-                .map((placement) => `${placement.settlements} at ${systemName(placement.systemId)}`)
-                .join(', ')}</span
+            >placed reward settlements: <SystemText
+                text={action.placements
+                    .map(
+                        (placement) =>
+                            `${placement.settlements} at ${systemRef(placement.systemId)}`
+                    )
+                    .join(', ')}
+            /></span
         >
     {:else if isMine(action)}
         <span
-            >mined {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
+            >mined {#if action.metadata}<SystemLink systemId={action.metadata.systemId} />{/if} with {shipName(
                 action.shipId
             )}{action.metadata
                 ? `: ${rolledText(action.metadata.roll, action.metadata.rolls)} against ${action.metadata.target}, $${action.metadata.cash}B`
@@ -656,9 +709,8 @@
         >
     {:else if isResearch(action)}
         <span
-            >researched {action.metadata ? systemName(action.metadata.systemId) : ''} with {shipName(
-                action.shipId
-            )}{action.metadata
+            >researched {#if action.metadata}<SystemLink systemId={action.metadata.systemId} />{/if} with
+            {shipName(action.shipId)}{action.metadata
                 ? `: rolled ${action.metadata.roll} against ${action.metadata.target}, ${action.metadata.success ? `a ${action.metadata.field?.toLowerCase()} marker` : 'nothing'}`
                 : ''}</span
         >
@@ -666,9 +718,10 @@
         <span>The Syndicate takes its cut:</span>
         {#each action.metadata?.takes ?? [] as take, index (index)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName playerId={take.fromPlayerId} /> pays ${take.cash}B at {systemName(
-                    take.systemId
-                )}</span
+                ><PlayerName playerId={take.fromPlayerId} />
+                {to(take.fromPlayerId, 'pays')} ${take.cash}B at <SystemLink
+                    systemId={take.systemId}
+                /></span
             >
         {/each}
     {:else if isTerraformWithShip(action)}
@@ -679,9 +732,11 @@
         {#if action.metadata}
             <PlayerName playerId={action.metadata.playerId} />
             <span
-                >{action.metadata.outcome
-                    ? `terraformed a world at ${systemName(action.metadata.systemId)} with ${shipName(action.metadata.shipId)}${action.metadata.outcome.flipped ? '' : ' and drew new worlds'}`
-                    : `could no longer terraform at ${systemName(action.metadata.systemId)}`}</span
+                ><SystemText
+                    text={action.metadata.outcome
+                        ? `terraformed a world at ${systemRef(action.metadata.systemId)} with ${shipName(action.metadata.shipId)}${action.metadata.outcome.flipped ? '' : ' and drew new worlds'}`
+                        : `could no longer terraform at ${systemRef(action.metadata.systemId)}`}
+                /></span
             >
         {/if}
     {:else if isDrawEvent(action)}
@@ -690,7 +745,7 @@
             {#each metadata.triggered as triggered (triggered.eventId)}
                 <span
                     >{eventDefinition(triggered.eventId).name} was not resolved in time and strikes
-                    {triggered.systemId ? systemName(triggered.systemId) : ''}.</span
+                    {#if triggered.systemId}<SystemLink systemId={triggered.systemId} />{/if}.</span
                 >
             {/each}
             {#if metadata.eventId}
@@ -715,9 +770,9 @@
             {/if}
         {/if}
     {:else if isPlaceEvent(action)}
-        <span>placed the event at {systemName(action.systemId)}</span>
+        <span>placed the event at <SystemLink systemId={action.systemId} /></span>
     {:else if isPlaceHomesteaders(action)}
-        <span>added 2 Homesteaders settlements at {systemName(action.systemId)}</span>
+        <span>added 2 Homesteaders settlements at <SystemLink systemId={action.systemId} /></span>
     {:else if isAttemptEvent(action)}
         <span
             >sent {action.shipIds.map(shipName).join(', ')} against {eventDefinition(action.eventId)
@@ -749,10 +804,11 @@
         {#if action.metadata}
             <PlayerName playerId={action.metadata.playerId} />
             <span>
-                {action.metadata.completed
-                    ? `completed a survey of ${systemName(action.metadata.systemId)}${action.metadata.placedSlot !== undefined ? ' and found a new world' : ''}`
-                    : `arrived too late to survey ${systemName(action.metadata.systemId)}`}{action
-                    .metadata.anomaly?.anomalyId
+                <SystemText
+                    text={action.metadata.completed
+                        ? `completed a survey of ${systemRef(action.metadata.systemId)}${action.metadata.placedSlot !== undefined ? ' and found a new world' : ''}`
+                        : `arrived too late to survey ${systemRef(action.metadata.systemId)}`}
+                />{action.metadata.anomaly?.anomalyId
                     ? ` and discovered an anomaly: ${anomalyDefinition(action.metadata.anomaly.anomalyId).name}`
                     : ''}
             </span>
@@ -760,14 +816,15 @@
     {:else if isChooseSurveyWorld(action)}
         <span
             >{action.tileId === undefined
-                ? 'kept their surveyed worlds'
+                ? to(action.playerId, 'kept their surveyed worlds')
                 : action.slot === undefined
                   ? 'chose which surveyed world to place'
                   : 'swapped in a newly surveyed world'}</span
         >
     {:else if isTerraform(action)}
         <span
-            >terraformed a world at {systemName(action.systemId)}{action.metadata?.flipped
+            >terraformed a world at <SystemLink systemId={action.systemId} />{action.metadata
+                ?.flipped
                 ? ''
                 : ' and drew new worlds'}</span
         >
@@ -775,13 +832,17 @@
         <span>chose not to terraform</span>
     {:else if isChooseTerraformWorld(action)}
         <span
-            >{action.tileId ? 'replaced a terraformed world' : 'kept their terraformed world'}</span
+            >{action.tileId
+                ? 'replaced a terraformed world'
+                : to(action.playerId, 'kept their terraformed world')}</span
         >
     {:else if isDeclareAttack(action)}
         <span
-            >{action.kind === CombatKind.Explorer && action.explorerId
-                ? `destroys ${shipName(action.explorerId)} at ${systemName(action.systemId)}, an RE of`
-                : `starts a ${COMBAT_KIND_LABELS[action.kind].toLowerCase()} at ${systemName(action.systemId)}${action.shipIds.length ? ` with ${action.shipIds.map(shipName).join(' and ')}` : ''} against`}</span
+            ><SystemText
+                text={action.kind === CombatKind.Explorer && action.explorerId
+                    ? `${to(action.playerId, 'destroys')} ${shipName(action.explorerId)} at ${systemRef(action.systemId)}, an RE of`
+                    : `${to(action.playerId, 'starts')} a ${COMBAT_KIND_LABELS[action.kind].toLowerCase()} at ${systemRef(action.systemId)}${action.shipIds.length ? ` with ${action.shipIds.map(shipName).join(' and ')}` : ''} against`}
+            /></span
         >
         <PlayerName playerId={action.defenderId} />
         {#if action.metadata}
@@ -803,8 +864,9 @@
         {/if}
     {:else if isDefendAttack(action)}
         <span
-            >defends {action.includeBase
-                ? 'with their base too'
+            >{to(action.playerId, 'defends')}
+            {action.includeBase
+                ? to(action.playerId, 'with their base too')
                 : action.shipIds.length
                   ? `with ${action.shipIds.map(shipName).join(' and ')}`
                   : 'without adding to the defence'}.</span
@@ -814,12 +876,14 @@
             <span>{capitalized(hitsText(action.metadata.hits))}</span>
         {/if}
     {:else if isAssignHit(action)}
-        <span>assigns {hitsText(action.metadata?.hits ?? [])}</span>
+        <span>{to(action.playerId, 'assigns')} {hitsText(action.metadata?.hits ?? [])}</span>
     {:else if isResolveRaid(action)}
         <span>{action.metadata ? raidOutcomeText(action.metadata) : ''}</span>
     {:else if isEndCombat(action)}
         {#if action.metadata?.declined}
-            <span>declines the escalation markers, so the defender gains no IP.</span>
+            <span
+                >{to(action.playerId, 'declines')} the escalation markers, so the defender gains no IP.</span
+            >
         {:else if action.metadata}
             <span
                 >The attacker {action.metadata.escalation
@@ -828,7 +892,7 @@
             >
         {/if}
     {:else if isEndAttacks(action)}
-        <span>makes no more attacks</span>
+        <span>{to(action.playerId, 'makes no more attacks')}</span>
     {:else if isDeclareBlockade(action)}
         <span>blockaded</span>
         {#each action.targetIds as targetId, index (targetId)}
@@ -839,8 +903,8 @@
             >
         {/each}
         <span
-            >at {systemName(action.systemId)}{action.metadata
-                ? `, ${action.metadata.force} against ${action.metadata.defence}, ${escalationDrawText(action.metadata.escalation)}`
+            >at <SystemLink systemId={action.systemId} />{action.metadata
+                ? `, ${action.metadata.force} against ${action.metadata.defence}, ${escalationDrawText(action.metadata.escalation, action.playerId)}`
                 : ''}; {action.targetIds.length === 1
                 ? 'the blockaded faction gains'
                 : 'each blockaded faction gains'}
@@ -889,30 +953,37 @@
         <span>Directives are dealt:</span>
         {#each dealt as { playerId, count }, index (playerId)}
             <span class="inline-flex items-center gap-x-1"
-                ><PlayerName {playerId} /> draws {plural(count, 'directive')}{index <
-                dealt.length - 1
-                    ? ';'
-                    : '.'}</span
+                ><PlayerName {playerId} />
+                {to(playerId, 'draws')}
+                {plural(count, 'directive')}{index < dealt.length - 1 ? ';' : '.'}</span
             >
         {/each}
     {:else if isChooseDirective(action)}
         <span
-            >keeps a directive{action.directiveId
-                ? `: “${directiveText(directiveDefinition(action.directiveId).condition)}”`
-                : ''}</span
+            >{to(action.playerId, 'keeps')} a directive<SystemText
+                text={action.directiveId
+                    ? `: “${directiveText(directiveDefinition(action.directiveId).condition, true)}”`
+                    : ''}
+            /></span
         >
     {:else if isRedrawDirective(action)}
         <span
-            >gives up their directive for {DIRECTIVE_REDRAW_COST} IP{action.metadata?.queued
+            >{to(
+                action.playerId,
+                `gives up their directive for ${DIRECTIVE_REDRAW_COST} IP`
+            )}{action.metadata?.queued
                 ? '; two more are drawn once everyone has finished the phase'
-                : ' and draws two more'}</span
+                : ` and ${to(action.playerId, 'draws two more')}`}</span
         >
     {:else if isBuyTitle(action) || isRenounceTitle(action)}
         <span
-            >{titleActionText(
-                isBuyTitle(action) ? TitleRequestKind.Buy : TitleRequestKind.Renounce,
-                action.titleId,
-                action.metadata?.change
+            >{to(
+                action.playerId,
+                titleActionText(
+                    isBuyTitle(action) ? TitleRequestKind.Buy : TitleRequestKind.Renounce,
+                    action.titleId,
+                    action.metadata?.change
+                )
             )}</span
         >
     {:else}
@@ -921,9 +992,10 @@
     {#each fulfilledIn(action) as fulfilled (fulfilled.directiveId)}
         {@const directive = directiveDefinition(fulfilled.directiveId)}
         <span
-            ><PlayerName playerId={fulfilled.playerId} /> fulfils the directive “{directiveText(
-                directive.condition
-            )}” for {directive.points} VP and {DIRECTIVE_INFLUENCE} IP.</span
+            ><PlayerName playerId={fulfilled.playerId} />
+            {to(fulfilled.playerId, 'fulfils')} the directive “<SystemText
+                text={directiveText(directive.condition, true)}
+            />” for {directive.points} VP and {DIRECTIVE_INFLUENCE} IP.</span
         >
     {/each}
 </span>

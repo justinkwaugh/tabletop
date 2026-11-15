@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import { AnomalyChallenge, PactTargetKind, shipDefinition } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -37,7 +38,7 @@
     <div class="body">
         <div class="title">
             {anomaly.name}
-            <span class="where">at {systemName(opportunity.systemId)}</span>
+            <span class="where">at <SystemLink systemId={opportunity.systemId} /></span>
             <span class="need">needs {difficulty} {value}</span>
         </div>
         {#if committed}
@@ -85,7 +86,7 @@
         {/if}
         {#if anomaly.noExploration}
             <p class="hint">
-                Ships cannot explore {systemName(opportunity.systemId)} until this is resolved.
+                Ships cannot explore <SystemLink systemId={opportunity.systemId} /> until this is resolved.
             </p>
         {/if}
         {#if !opportunity.committedShipIds}

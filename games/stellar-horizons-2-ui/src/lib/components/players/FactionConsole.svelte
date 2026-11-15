@@ -1,5 +1,7 @@
 <script lang="ts">
     // Everything about the player chosen in the standings, in plain labelled sections.
+    import SystemLink from '../systems/SystemLink.svelte'
+    import SystemText from '../systems/SystemText.svelte'
     import {
         ActionType,
         CASH_PER_INFLUENCE,
@@ -368,7 +370,7 @@
                         {#if faction}
                             <BaseTab {faction} settlements={base.settlements} />
                         {/if}
-                        <span class="system">{systemName(base.systemId)}</span>
+                        <span class="system"><SystemLink systemId={base.systemId} /></span>
                         <span
                             class="note"
                             class:met={goal !== undefined &&
@@ -396,7 +398,7 @@
                     </h4>
                     {#each goods as holding (holding.label)}
                         <div class="holding">
-                            <span class="where">{holding.label}</span>
+                            <span class="where"><SystemText text={holding.label} /></span>
                             <span class="chits">
                                 {#each holding.groups as group (group.good)}
                                     <span class="chit">

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         CombatKind,
@@ -124,7 +125,7 @@
         <p class="hint">
             <PlayerName playerId={combat.attackerId} /> starts a {COMBAT_KIND_LABELS[
                 combat.kind
-            ].toLowerCase()} at {systemName(combat.systemId)}.
+            ].toLowerCase()} at <SystemLink systemId={combat.systemId} />.
             {combat.kind === CombatKind.Fleet
                 ? 'All your CVs there defend. Add your base to the defence?'
                 : 'Your base defends. Choose which of your CVs there join it.'}

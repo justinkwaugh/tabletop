@@ -11,10 +11,16 @@ declare global {
 
 const pageErrors = new WeakMap<Page, string[]>()
 
-test.beforeEach(({ page }) => {
+test.beforeEach(async ({ page }) => {
     const errors: string[] = []
     pageErrors.set(page, errors)
     page.on('pageerror', (error) => errors.push(error.message))
+    // These tests play through the turn; the recap of what happened meanwhile is read and
+    // dismissed whenever it stands in the way. The recap's own test removes this.
+    const recap = page.getByRole('region', { name: 'Since your last turn' })
+    await page.addLocatorHandler(recap, async () => {
+        await recap.getByRole('button', { name: 'Continue' }).click()
+    })
 })
 
 test.afterEach(({ page }) => {

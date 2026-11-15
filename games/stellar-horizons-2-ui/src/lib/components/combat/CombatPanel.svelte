@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
         CombatSide,
@@ -61,9 +62,9 @@
     <aside class="panel" aria-label="Combat at {systemName(combat.systemId)}">
         <header>
             <h2>
-                {COMBAT_KIND_LABELS[combat.kind]} at {systemName(combat.systemId)}{outcome
-                    ? ' · over'
-                    : ''}
+                {COMBAT_KIND_LABELS[combat.kind]} at <SystemLink
+                    systemId={combat.systemId}
+                />{outcome ? ' · over' : ''}
             </h2>
             <button type="button" class="back" onclick={() => gameSession.leaveFocus()}
                 >Back to map</button

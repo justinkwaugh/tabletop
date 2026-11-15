@@ -14,6 +14,7 @@ import {
 } from '@tabletop/stellar-horizons-2'
 import type { GameAction } from '@tabletop/common'
 import { plural, systemName } from './presentation.js'
+import { systemRef } from './systemText.js'
 import { goodName } from './trade.js'
 
 export const DIRECTIVE_TYPE_LABELS: Record<DirectiveType, string> = {
@@ -35,8 +36,8 @@ export const DIRECTIVE_TYPE_COLORS: Record<DirectiveType, string> = {
     [DirectiveType.Terraform]: '#6cc46a'
 }
 
-function place(systemId: string): string {
-    return systemId === SOL_SYSTEM_ID ? 'on Earth' : `at ${systemName(systemId)}`
+function place(systemId: string, name: (systemId: string) => string): string {
+    return systemId === SOL_SYSTEM_ID ? 'on Earth' : `at ${name(systemId)}`
 }
 
 function classList(classes: readonly string[]): string {
@@ -45,8 +46,10 @@ function classList(classes: readonly string[]): string {
         : `${classes.slice(0, -1).join(', ')} or ${classes.at(-1)}`
 }
 
-// The condition as printed: "Resolve a combat anomaly of 7+ difficulty".
-export function directiveText(condition: DirectiveCondition): string {
+// The condition as printed: "Resolve a combat anomaly of 7+ difficulty". `linked` names a
+// system by its reference, for text that shows it as a link into the map (SystemText).
+export function directiveText(condition: DirectiveCondition, linked = false): string {
+    const name = linked ? systemRef : systemName
     switch (condition.kind) {
         case DirectiveType.Anomaly:
             return `Resolve a ${condition.challenge === AnomalyChallenge.Combat ? 'combat' : 'science'} anomaly of ${condition.difficulty}+ difficulty`
@@ -63,9 +66,9 @@ export function directiveText(condition: DirectiveCondition): string {
                   ? `Earn ${plural(condition.amount, 'tech marker')} using research ships`
                   : `Earn $${condition.amount}B cash from base production`
         case DirectiveType.Survey:
-            return `Complete a survey at ${systemName(condition.systemId)}`
+            return `Complete a survey at ${name(condition.systemId)}`
         case DirectiveType.Trade:
-            return `Sell ${condition.good ? `${condition.count} ${goodName(condition.good)}` : plural(condition.count, 'trade good')} ${place(condition.systemId)}`
+            return `Sell ${condition.good ? `${condition.count} ${goodName(condition.good)}` : plural(condition.count, 'trade good')} ${place(condition.systemId, name)}`
         case DirectiveType.Terraform:
             return `Terraform a world into ${classList(condition.classes)}-class`
     }

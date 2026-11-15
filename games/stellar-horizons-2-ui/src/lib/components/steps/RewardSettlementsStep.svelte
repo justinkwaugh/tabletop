@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { anomalyDefinition } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { plural, systemName } from '$lib/utils/presentation.js'
@@ -23,13 +24,13 @@
                 reward.settlements,
                 'settlement'
             )}. Choose highlighted systems on the map, one settlement each: any of your bases, or a
-            new base at {systemName(reward.systemId)} if you are within your base limit. Undo takes one
-            back.
+            new base at <SystemLink systemId={reward.systemId} /> if you are within your base limit. Undo
+            takes one back.
         </p>
         <div class="row">
             {#each placements as placement (placement.systemId)}
                 <span class="placed"
-                    >{systemName(placement.systemId)}{gameState.base(
+                    ><SystemLink systemId={placement.systemId} />{gameState.base(
                         reward.playerId,
                         placement.systemId
                     )

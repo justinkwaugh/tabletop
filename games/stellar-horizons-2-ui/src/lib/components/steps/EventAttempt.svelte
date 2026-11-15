@@ -1,6 +1,7 @@
 <script lang="ts">
     // An event challenge the Player's ships can meet: choose ships and commit them, or propose a
     // pact. AI Sentient Emergence may be met with science or with combat.
+    import SystemLink from '../systems/SystemLink.svelte'
     import {
         AnomalyChallenge,
         PactTargetKind,
@@ -64,7 +65,7 @@
     <div class="body">
         <div class="title">
             {definition.name}
-            <span class="where">at {systemName(event.systemId)}</span>
+            <span class="where">at <SystemLink systemId={event.systemId} /></span>
             <span class="need">needs {difficulty} {CHALLENGE_LABELS[challenge].value}</span>
         </div>
         {#if challenges.length > 1 && !committed}

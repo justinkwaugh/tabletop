@@ -84,7 +84,7 @@
         {/key}
     </div>
     <div class="actions">
-        {#if gameSession.hasManualSelection() || gameSession.undoableAction}
+        {#if gameSession.hasManualSelection() || gameSession.canReopenRecap || gameSession.undoableAction}
             <button type="button" onclick={() => gameSession.undo()} class="header-button"
                 >UNDO</button
             >

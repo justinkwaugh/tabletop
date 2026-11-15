@@ -30,9 +30,13 @@
     import BlockadeStep from './steps/BlockadeStep.svelte'
     import CombatStep from './steps/CombatStep.svelte'
     import DirectiveStep from './steps/DirectiveStep.svelte'
+    import RecapPanel from './steps/RecapPanel.svelte'
 
     const gameSession = getGameSession()
     const machineState = $derived(gameSession.gameState.machineState)
+
+    // What happened since the viewer last acted, until they have read it.
+    const recap = $derived(gameSession.unreadRecap)
 </script>
 
 <div class="panel">
@@ -40,9 +44,17 @@
         {#if gameSession.currentPhase}
             <StepTracker />
         {/if}
+        {#if recap.length > 0}
+            <RecapPanel actions={recap} oncontinue={() => gameSession.readRecap()} />
+        {/if}
         <!-- A hotseat Player waiting on another's Branch may still answer a pact naming them. -->
         <PactList />
         <WaitingPanel />
+    {:else if recap.length > 0}
+        {#if gameSession.currentPhase}
+            <StepTracker />
+        {/if}
+        <RecapPanel actions={recap} oncontinue={() => gameSession.readRecap()} />
     {:else if machineState === MachineState.ChoosingFactions}
         <FactionPicker />
     {:else if machineState === MachineState.PlacingStartingBases}

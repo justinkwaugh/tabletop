@@ -8,12 +8,14 @@
         cloningBases,
         dockRepairCapacity,
         remoteFullRepairCost,
+        SOL_SYSTEM_ID,
         scrapRefund,
         shipDefinition,
+        type ShipState,
         shipsAvailableToBuild
     } from '@tabletop/stellar-horizons-2'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { systemName } from '$lib/utils/presentation.js'
+    import { plural, systemName } from '$lib/utils/presentation.js'
     import ShipCard from '../ShipCard.svelte'
     import ShipTile from '../ShipTile.svelte'
 
@@ -25,6 +27,33 @@
     const fleet = $derived(gameState.shipsOf(playerId))
     const damaged = $derived(fleet.filter((ship) => ship.damage > 0))
     const clonable = $derived(cloningBases(gameState, playerId))
+
+    // What scrapping a ship gives back (half its cost, at Sol, undamaged and arrived), why it
+    // gives nothing otherwise, and what goes down with it.
+    function scrapOutcome(ship: ShipState): { back: string; why?: string; lost?: string } {
+        const refund = scrapRefund(ship)
+        const why =
+            refund > 0
+                ? undefined
+                : ship.transit > 0
+                  ? 'in transit'
+                  : ship.systemId !== SOL_SYSTEM_ID
+                    ? 'only at Sol'
+                    : ship.damage > 0
+                      ? 'damaged'
+                      : undefined
+        const lost = [
+            ship.settlements > 0 ? plural(ship.settlements, 'settlement') : '',
+            ship.goods.length > 0 ? plural(ship.goods.length, 'good') : ''
+        ]
+            .filter(Boolean)
+            .join(' and ')
+        return {
+            back: refund > 0 ? `+$${refund}B` : 'nothing back',
+            ...(why ? { why } : {}),
+            ...(lost ? { lost } : {})
+        }
+    }
 </script>
 
 <div class="sh-step">
@@ -121,18 +150,45 @@
             <summary>Scrap a ship</summary>
             <div class="buttons">
                 {#each fleet as ship (ship.shipId)}
-                    {@const refund = scrapRefund(ship)}
+                    {@const outcome = scrapOutcome(ship)}
                     <button
                         type="button"
-                        class="danger"
+                        class="danger scrap"
                         onclick={() => gameSession.scrapShip(ship.shipId)}
                     >
-                        Scrap {shipDefinition(ship.shipId).name}{refund > 0
-                            ? ` (+$${refund}B)`
-                            : ''}
+                        <span>Scrap {shipDefinition(ship.shipId).name}</span>
+                        <span class="back" class:none={outcome.back === 'nothing back'}
+                            >{outcome.back}{outcome.why ? ` (${outcome.why})` : ''}</span
+                        >
+                        {#if outcome.lost}<span class="lost">loses {outcome.lost}</span>{/if}
                     </button>
                 {/each}
             </div>
         </details>
     {/if}
 </div>
+
+<style>
+    .scrap {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px;
+        text-align: left;
+    }
+
+    .scrap .back {
+        font-weight: 700;
+        color: #f4c430;
+    }
+
+    .scrap .back.none {
+        font-weight: 400;
+        color: #b5c5dc;
+    }
+
+    .scrap .lost {
+        font-size: 12px;
+        color: #f08a7a;
+    }
+</style>

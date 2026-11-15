@@ -444,7 +444,7 @@ function campaignBuyingCards() {
  * Developing in 2100 with the Starfarers' fleet of eight: explorers and crew vehicles of several
  * sizes, mining and research ships, damaged, loaded and in transit.
  */
-function campaignFleet() {
+function campaignFleet(phase = TurnPhase.Development) {
     const { game, state: started } = startedGame(3, CAMPAIGN_CONFIG)
     const arranged = edit(started, (state) => {
         const starfarers = playerOf(state, Faction.Starfarers)
@@ -461,7 +461,7 @@ function campaignFleet() {
         placeShip(state, starfarers, 'starfarers-voyager', 'wolf-359', { damage: 3 })
         placeShip(state, starfarers, 'starfarers-nova', 'tau-ceti', { transit: 1 })
     })
-    return { game, state: advanceTo(game, arranged, TurnPhase.Development) }
+    return { game, state: advanceTo(game, arranged, phase) }
 }
 
 /**
@@ -1286,6 +1286,7 @@ write('campaign-buying-cards', 'Campaign: buying cards', campaignBuyingCards())
 write('campaign-card-levels', 'Campaign: choosing a card level', campaignCardLevels())
 write('campaign-card-collection', 'Campaign: a card collection', campaignCardCollection())
 write('campaign-fleet', 'Campaign: a fleet', campaignFleet())
+write('campaign-scrapping', 'Campaign: scrapping ships', campaignFleet(TurnPhase.Build))
 write('campaign-short-deck', 'Campaign: a short deck', campaignShortDeck())
 write('campaign-anomaly-card', 'Campaign: a card from an anomaly', campaignAnomalyCard())
 write('campaign-card-pact', 'Campaign: a pact for a card', campaignCardPact())

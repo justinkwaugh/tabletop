@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SystemLink from '../systems/SystemLink.svelte'
     import { DEMAND_ART } from '$lib/art/manifest.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { systemName } from '$lib/utils/presentation.js'
@@ -11,8 +12,8 @@
 {#if draw}
     <div class="sh-step">
         <p class="hint">
-            {systemName(draw.systemId)} gets a demand marker: goods of its kind can be sold there. Keep
-            one; the others go back to the pool.
+            <SystemLink systemId={draw.systemId} /> gets a demand marker: goods of its kind can be sold
+            there. Keep one; the others go back to the pool.
         </p>
         <div class="markers">
             {#each draw.drawn as good, index (index)}
