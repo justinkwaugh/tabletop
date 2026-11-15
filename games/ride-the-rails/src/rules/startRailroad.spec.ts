@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
 import { PhaseName } from '../definition/phases.js'
+import { USA_CITIES } from '../data/usaMap.js'
 import type { Track, YellowState } from '../model/gameState.js'
 import { buildState } from '../testing/fixtures.js'
-import { placementTest } from './placement.js'
+import { placementTest, startCityIds } from './placement.js'
 import { westernmostOccupiedCities, westernmostSet, yellowStartIn } from './startRailroad.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
@@ -270,5 +271,70 @@ describe('a placement next to the railroad’s own track is never a start (R-4.1
     it('lets Red build into an East Coast city by adjacency without a start', () => {
         const track: Track = { [PHILADELPHIA]: ['railroad.red'], 'hex.usa.6-58': ['railroad.red'] }
         expect(verdict(track, 'railroad.red', NEW_YORK)).toEqual({ legal: true, isStart: false })
+    })
+})
+
+describe('the cities a railroad may start in now (R-4.2)', () => {
+    const sorted = (cityIds: readonly string[]) => cityIds.toSorted()
+    const WEST_COAST = USA_CITIES.filter((city) => city.groups.includes('west-coast'))
+
+    it('gives Yellow Chicago and the westernmost cities holding exactly one locomotive', () => {
+        expect(sorted(startCityIds(building(WESTERN_TRACK), 'railroad.yellow'))).toEqual(
+            sorted([
+                'city.usa.chicago',
+                'city.usa.reno',
+                'city.usa.pocatello',
+                'city.usa.salt-lake-city'
+            ])
+        )
+    })
+
+    it('follows the track: a placement changes Yellow’s set before its first placement', () => {
+        const filledPocatello: Track = {
+            ...WESTERN_TRACK,
+            [POCATELLO]: ['railroad.black', 'railroad.purple']
+        }
+        expect(startCityIds(building(filledPocatello), 'railroad.yellow')).not.toContain(
+            'city.usa.pocatello'
+        )
+        // Seattle now lies furthest west, so the set shrinks to Seattle, Reno and Boise.
+        const seattleTaken: Track = { ...WESTERN_TRACK, [SEATTLE]: ['railroad.purple'] }
+        expect(sorted(startCityIds(building(seattleTaken), 'railroad.yellow'))).toEqual(
+            sorted(['city.usa.chicago', 'city.usa.seattle', 'city.usa.reno'])
+        )
+    })
+
+    it('gives Purple the four West Coast cities, then drops one without room', () => {
+        expect(WEST_COAST).toHaveLength(4)
+        expect(startCityIds(building({}), 'railroad.purple')).toEqual(
+            WEST_COAST.map((city) => city.id)
+        )
+        const fullSeattle: Track = { [SEATTLE]: ['railroad.black', 'railroad.orange'] }
+        expect(startCityIds(building(fullSeattle), 'railroad.purple')).toEqual(
+            WEST_COAST.filter((city) => city.hexId !== SEATTLE).map((city) => city.id)
+        )
+    })
+
+    it('gives a railroad no start city once it has started', () => {
+        expect(
+            startCityIds(building({ [LOS_ANGELES]: ['railroad.purple'] }), 'railroad.purple')
+        ).toEqual([])
+    })
+
+    it('agrees with the placement test on every city', () => {
+        const state = building(WESTERN_TRACK)
+        for (const railroadId of [
+            'railroad.yellow',
+            'railroad.purple',
+            'railroad.black'
+        ] as const) {
+            const starts = startCityIds(state, railroadId)
+            for (const city of USA_CITIES) {
+                const placement = verdict(WESTERN_TRACK, railroadId, city.hexId)
+                expect(starts.includes(city.id), `${railroadId} in ${city.id}`).toBe(
+                    placement.legal && placement.isStart
+                )
+            }
+        }
     })
 })

@@ -5,6 +5,7 @@ import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import {
     adjacentHexIds,
     cityIn,
+    type CityId,
     USA_CITIES,
     USA_HEXES,
     usaHex,
@@ -150,16 +151,44 @@ function hexRefusal(
     if (!withinPlacementLimit(state, hexId)) {
         return 'over-placement-limit'
     }
-    if (hasTrackIn(state.track, hexId, railroadId)) {
+    return roomRefusal(state.track, railroadId, hexId, eastCoastHeld)
+}
+
+// R-4.1.3, R-4.1.4: the clauses about the track already in the hex, in order.
+function roomRefusal(
+    track: Track,
+    railroadId: RailroadId,
+    hexId: HexId,
+    eastCoastHeld: () => number
+): PlacementRefusal | undefined {
+    if (hasTrackIn(track, hexId, railroadId)) {
         return 'railroad-in-hex'
     }
-    if (!hasRoomIn(state.track, hexId)) {
+    if (!hasRoomIn(track, hexId)) {
         return 'hex-at-capacity'
     }
     if (isEastCoastHex(hexId) && eastCoastHeld() >= EAST_COAST_CITIES_PER_RAILROAD) {
         return 'east-coast-cities-held'
     }
     return undefined
+}
+
+// R-4.2: the cities where the railroad could start now, in the map table's order: those with room
+// for it (R-4.1.3, R-4.1.4) where the placement test would make a placement its start (R-4.1.2,
+// R-4.2). The clauses about the seat and the turn (a share, the supply, the placement limit) are
+// left out, so the set is the same for every seat at any point of the round.
+export function startCityIds(
+    state: HydratedRideTheRailsGameState,
+    railroadId: RailroadId
+): CityId[] {
+    const held = eastCoastCitiesHeld(state.track, railroadId)
+    return USA_CITIES.filter((city) => {
+        if (roomRefusal(state.track, railroadId, city.hexId, () => held)) {
+            return false
+        }
+        const verdict = startOrAdjacency(state, railroadId, city.hexId)
+        return verdict.legal && verdict.isStart
+    }).map((city) => city.id)
 }
 
 // R-4.1.1, R-4.1.2, R-4.2: next to the railroad's own track, or else a start.
