@@ -338,13 +338,18 @@
         ...ownerStatisticColumns,
         turnOrder: { value: (values) => values.turnOrder, directions: ['ascending'] }
     }
-    type CompanyStatistic = 'value' | 'cash' | 'lastRun' | `column:${string}`
+    type CompanyStatistic = 'value' | 'cash' | 'loans' | 'lastRun' | `column:${string}`
     const titleColumns = $derived(session.presentation.companyColumns ?? [])
+    /** The heading of the loans a company holds, where the title has them in this game. */
+    const loansLabel = $derived(
+        session.loans.rules ? (session.presentation.loanTerms?.name ?? 'Loans') : undefined
+    )
     const companyStatisticHeadings = $derived([
         pricePresentation.label,
         'Cash',
         'Trains',
         'Tokens',
+        ...(loansLabel ? [loansLabel] : []),
         'Last run',
         ...titleColumns.map((column) => column.label)
     ])
@@ -482,6 +487,10 @@
                 (station) => station.companyId === company.id
             ),
             cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
+            loans:
+                session.loans.rules && company.started && company.kind !== 'private'
+                    ? session.loans.loans(company.id)
+                    : undefined,
             lastRun: companyLastRun(session.actions, session.gameState.actionCount, company.id),
             presidentId: session.drafterOf(company.id)
                 ? `player:${session.drafterOf(company.id)}`
@@ -514,6 +523,7 @@
                     tieOrder: (a, b) => operatingOrder(a.company.id, b.company.id)
                 },
                 cash: { value: (row) => (typeof row.cash === 'number' ? row.cash : undefined) },
+                loans: { value: (row) => row.loans },
                 lastRun: { value: (row) => row.company.lastRunRevenue },
                 ...Object.fromEntries(
                     titleColumns.flatMap((column) => {
@@ -684,6 +694,12 @@
 
 {#snippet companyCash(cash: number | 'unlimited' | undefined)}
     {cashText(money, cash)}
+{/snippet}
+
+{#snippet loansCell(row: CompanyRow)}
+    {#if row.loans === undefined}<span class="empty">—</span>{:else}{session.loans.held(
+            row.company.id
+        )}{/if}
 {/snippet}
 
 {#snippet lastRunCell(row: CompanyRow)}
@@ -952,6 +968,11 @@
                                     {@render companySortHeader('col', 'Cash', 'cash')}
                                     <th scope="col">Trains</th>
                                     <th scope="col">Tokens</th>
+                                    {#if loansLabel}{@render companySortHeader(
+                                            'col',
+                                            loansLabel,
+                                            'loans'
+                                        )}{/if}
                                     {@render companySortHeader('col', 'Last run', 'lastRun')}
                                     {#each titleColumns as column (column.id)}{@render titleHeader(
                                             'col',
@@ -1018,6 +1039,9 @@
                                                 (station) => station.status === 'available'
                                             ).length}/{row.stations.length}</td
                                         >
+                                        {#if loansLabel}<td class="company-stat-start bright-cell"
+                                                >{@render loansCell(row)}</td
+                                            >{/if}
                                         <td class="company-stat-start"
                                             >{@render lastRunCell(row)}</td
                                         >
@@ -1178,6 +1202,20 @@
                                             class="void"
                                         ></td>{/each}
                                 </tr>
+                                {#if loansLabel}
+                                    <tr class="company-stat-start financial-row">
+                                        {@render companySortHeader('row', loansLabel, 'loans')}
+                                        {#each rows as row (row.company.id)}<td
+                                                class:operating-column={row.company.id ===
+                                                    operatingCompanyId}
+                                                class="bright-cell">{@render loansCell(row)}</td
+                                            >{/each}
+                                        {#each ownerStatisticKeys as _, index (index)}<td
+                                                class:stat-start={index === 0}
+                                                class="void"
+                                            ></td>{/each}
+                                    </tr>
+                                {/if}
                                 <tr class="company-stat-start financial-row">
                                     {@render companySortHeader('row', 'Last run', 'lastRun')}
                                     {#each rows as row (row.company.id)}<td

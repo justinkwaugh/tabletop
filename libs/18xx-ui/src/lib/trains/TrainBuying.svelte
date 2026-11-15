@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { TrainPurchaseDetails } from '@tabletop/18xx'
+    import CompanyTreasuryLine from '../finance/CompanyTreasuryLine.svelte'
     import type { TrainSource } from '../session/trainBuyingSelection.js'
     import TrainPurchaseButton from './TrainPurchaseButton.svelte'
     import TrainBadge from './TrainBadge.svelte'
@@ -122,6 +123,11 @@
                         >{/if}
                 </header>
             {/if}
+            {#if step}<CompanyTreasuryLine
+                    {session}
+                    companyId={step.companyId}
+                    borrowable={session.trainBuying.model.depotBorrowing()}
+                />{/if}
 
             {#if session.trainBuying.sources.length > 1}
                 {@const sources = session.trainBuying.sources}

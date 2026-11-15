@@ -138,9 +138,6 @@ type Details = NonNullable<Parameters<typeof locations>[2]>
 
 // Difficult terrain is water at R20, R40 or R80 (§10.4).
 const water = (cost: 20 | 40 | 80): Details => ({ terrain: { cost, kinds: ['water'] } })
-const closed = (...edges: TileEdge[]): Details => ({
-    borders: edges.map((edge) => ({ edge, kind: 'impassable' as const }))
-})
 
 const phased = (yellow: number, green: number, brown: number, gray: number): TileRevenue =>
     createStagedTileRevenue([
@@ -250,22 +247,16 @@ export const Map1861 = new RailwayMap({
                 ['S']
             )
         ),
-        // The red off-board areas (§5, §10.6); a route counts each area once.
-        ...locations('A9', offboard([5, 4], poland), { stopGroup: 'Poland', ...closed(0) }),
-        ...locations('A11 A13', offboard([5, 4], poland), { stopGroup: 'Poland', ...closed(3, 0) }),
-        ...locations('A15', offboard([5, 4], poland), { stopGroup: 'Poland', ...closed(3) }),
-        ...locations('B18', offboard([3, 4, 5], romania), { stopGroup: 'Romania', ...closed(0) }),
-        ...locations('B20', offboard([4], romania), { stopGroup: 'Romania', ...closed(3) }),
-        ...locations('J20', offboard([2, 3, 4], caucasus), {
-            stopGroup: 'Caucasus',
-            ...closed(1, 5)
+        // The red off-board areas (§5, §10.6), each printed as one; a route counts each area once.
+        ...locations(PolandLocationIds.join(' '), offboard([5, 4], poland), {
+            stopGroup: 'Poland'
         }),
-        ...locations('I21', offboard([3], caucasus), { stopGroup: 'Caucasus', ...closed(4) }),
-        ...locations('K21', offboard([3, 4], caucasus), { stopGroup: 'Caucasus', ...closed(2) }),
-        ...locations('Q11', offboard([1, 2], centralAsia), {
-            stopGroup: 'CentralAsia',
-            ...closed(0)
-        }),
-        ...locations('Q13', offboard([2], centralAsia), { stopGroup: 'CentralAsia', ...closed(3) })
+        ...locations('B18', offboard([3, 4, 5], romania), { stopGroup: 'Romania' }),
+        ...locations('B20', offboard([4], romania), { stopGroup: 'Romania' }),
+        ...locations('J20', offboard([2, 3, 4], caucasus), { stopGroup: 'Caucasus' }),
+        ...locations('I21', offboard([3], caucasus), { stopGroup: 'Caucasus' }),
+        ...locations('K21', offboard([3, 4], caucasus), { stopGroup: 'Caucasus' }),
+        ...locations('Q11', offboard([1, 2], centralAsia), { stopGroup: 'CentralAsia' }),
+        ...locations('Q13', offboard([2], centralAsia), { stopGroup: 'CentralAsia' })
     ]
 })

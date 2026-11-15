@@ -1,4 +1,5 @@
 import {
+    LoanRules1861,
     Market1861,
     MarketPoolId1861,
     MarketZoneColors1861,
@@ -8,7 +9,8 @@ import {
     isStartMergerRound,
     type State1861
 } from '@tabletop/1861'
-import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import { companyLoans, loanInterest } from '@tabletop/18xx'
+import { moneyFormat, type TitleFact, type TitlePresentation } from '@tabletop/18xx-ui'
 import { CompanyNames1861 } from './companyPresentation.js'
 import { PhaseChart1861 } from './phaseChart.js'
 import { PhaseColors1861, TrainColors1861 } from './trainPresentation.js'
@@ -20,11 +22,26 @@ const MinorColumnEdges = Market1861.spaces
     .filter((space) => space.column === MinorCapColumn)
     .map((space) => ({ spaceId: space.id, side: 'right' as const }))
 
+/** The interest a company's loans cost each operating round, where it has any (§10.8). */
+function companyFacts1861(state: State1861, companyId: string): TitleFact[] {
+    const loans = companyLoans(state, companyId)
+    return loans
+        ? [
+              {
+                  label: 'Interest',
+                  value: `${money(loans * loanInterest(state, LoanRules1861))} a round`,
+                  below: true
+              }
+          ]
+        : []
+}
+
 export const Presentation1861: TitlePresentation<State1861> = {
     money,
     phaseChart: PhaseChart1861,
     trainColors: TrainColors1861,
     phaseColors: PhaseColors1861,
+    companyFacts: companyFacts1861,
     marketPoolId: MarketPoolId1861,
     poolName: (poolId) => (poolId === MarketPoolId1861 ? 'Bank pool' : 'Treasury'),
     companyNames: CompanyNames1861,

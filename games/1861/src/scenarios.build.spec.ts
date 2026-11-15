@@ -83,6 +83,22 @@ describe.skipIf(!process.env.SCENARIOS)('1861 harness scenarios', () => {
         )
     })
 
+    it('writes a trainless public company borrowing for a train', { timeout: 600_000 }, () => {
+        save(
+            'trainless-company-borrowing',
+            playUntil(4, 1, (game) => {
+                const companyId = game.state.trainPurchaseStep?.companyId ?? ''
+                return (
+                    game.state.machineState === 'BuyingTrains' &&
+                    !!companyId &&
+                    getCompany(game.state, companyId).kind === 'major' &&
+                    !trainsOwnedBy(game.state, { kind: 'company', companyId }).length &&
+                    game.valid().includes('BuyTrain')
+                )
+            })
+        )
+    })
+
     it('writes the state railway running', { timeout: 600_000 }, () => {
         save(
             'state-railway-running',

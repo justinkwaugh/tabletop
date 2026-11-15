@@ -1,3 +1,4 @@
+import type { Point } from '@tabletop/common'
 import {
     CaucasusLocationIds,
     CentralAsiaLocationIds,
@@ -38,6 +39,11 @@ const separateCities = (sides: readonly number[]): TileLayout => ({
     labelPosition: towardTileEdge(sides[0] + 1.5, 34)
 })
 const GreenThreeCities = separateCities([0.5, 2.5, 4.5])
+// The printed hexes' letter stands further out, clear of the city above it.
+const PrintedThreeCities: TileLayout = {
+    ...separateCities([0, 2, 4]),
+    labelPosition: { x: -39, y: 1 }
+}
 
 export const TileLayouts1861: Readonly<Record<string, TileLayout>> = {
     ...StandardTileLayouts,
@@ -75,9 +81,21 @@ const AreaJoins: Readonly<Record<string, readonly (0 | 1 | 2 | 3 | 4 | 5)[]>> = 
     Q11: [0],
     Q13: [3]
 }
-/** The hex of each area that prints its name and values. */
-const AreaFaces: readonly string[] = ['A11', 'B18', 'J20', 'Q11']
-const AreaOthers = Areas.flat().filter((locationId) => !AreaFaces.includes(locationId))
+/**
+ * The hex of each area that prints its name and values, clear of the area's track. A seam
+ * between two hexes is the area at its narrowest, so a name stands across one only where the
+ * name is short enough.
+ */
+const AreaFaces: Readonly<
+    Record<string, { name: Point; values: Point; stack: NonNullable<TileLayout['revenueStack']> }>
+> = {
+    A13: { name: { x: 0, y: -27 }, values: { x: -18, y: 7 }, stack: 'column' },
+    B20: { name: { x: 0, y: -25 }, values: { x: -14, y: 9 }, stack: 'column' },
+    // Caucasus's track fills the top of its middle hex, so its values stand in a row below.
+    J20: { name: { x: 0, y: 4 }, values: { x: 0, y: 19 }, stack: 'row' },
+    Q13: { name: { x: 2, y: -46 }, values: { x: 10, y: 8 }, stack: 'column' }
+}
+const AreaOthers = Areas.flat().filter((locationId) => !(locationId in AreaFaces))
 
 const blocked = (privateCompanyId: string) => `private-${privateCompanyId}`
 
@@ -91,9 +109,14 @@ export const MapView1861: MapViewDefinition = {
     },
     stations: Stations,
     terrainCostPrefix: TitleRules1861.currencySymbol,
+    // Nizhnii Novgorod's Y and track fill its lower half; its river's cost stands at the top.
+    terrainPositions: { K7: { x: 0, y: -33 } },
     offboardNames: { fontSize: 11, color: '#4a0b0b' },
     joinedEdges: AreaJoins,
     nameLines: Object.fromEntries(AreaOthers.map((locationId) => [locationId, []])),
+    namePositions: Object.fromEntries(
+        Object.entries(AreaFaces).map(([locationId, { name }]) => [locationId, name])
+    ),
     revenueStageColors: {
         yellow: TrainColors1861['2'],
         green: [TrainColors1861['3'], TrainColors1861['4']],
@@ -103,9 +126,15 @@ export const MapView1861: MapViewDefinition = {
     layouts: {
         ...TileLayouts1861,
         ...Object.fromEntries(AreaOthers.map((locationId) => [locationId, { hideRevenue: true }])),
+        ...Object.fromEntries(
+            Object.entries(AreaFaces).map(([locationId, { values, stack }]) => [
+                locationId,
+                { revenuePositions: { offboard: values }, revenueStack: stack }
+            ])
+        ),
         // Moscow's and Kiev's printed cities each face their one track; St. Petersburg's two too.
-        H8: separateCities([0, 2, 4]),
-        D14: separateCities([0, 2, 4]),
+        H8: PrintedThreeCities,
+        D14: PrintedThreeCities,
         // St. Petersburg's values stand above its two cities, its S between them.
         E1: {
             ...separateCities([1, 5]),

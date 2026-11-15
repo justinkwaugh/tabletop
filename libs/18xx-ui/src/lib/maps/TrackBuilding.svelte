@@ -3,6 +3,7 @@
     import { getCompany, cashOwnedBy } from '@tabletop/18xx'
     import { trackConsentDecline } from '../session/trackConsentNotice.js'
     import Tile from '../tiles/Tile.svelte'
+    import CompanyTreasuryLine from '../finance/CompanyTreasuryLine.svelte'
     import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let {
@@ -16,6 +17,7 @@
     const selection = $derived(session.track.selection)
     const preview = $derived(session.track.preview)
     const askable = $derived(session.track.consentersToAsk)
+    const borrowable = $derived(session.track.borrowable)
 </script>
 
 {#if turn && session.gameState.machineState === 'LayingTrack' && !session.gameState.trackConsent}
@@ -48,6 +50,7 @@
                     disabled={!session.track.canBuild || !!selection.locationId}>skip</button
                 >
             </header>
+            <CompanyTreasuryLine {session} companyId={turn.companyId} {borrowable} />
         {:else}
             <header>
                 <strong>{session.companyName(turn.companyId)} · Track</strong>
@@ -58,7 +61,7 @@
                             kind: 'company',
                             companyId: turn.companyId
                         })
-                    )}</span
+                    )}{#if borrowable > 0}, can borrow {money(borrowable)} more{/if}</span
                 >
                 <span>{turn.lays.length} placed</span>
                 {#if showUndo}<button

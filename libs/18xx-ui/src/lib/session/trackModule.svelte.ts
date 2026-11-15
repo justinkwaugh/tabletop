@@ -223,6 +223,12 @@ export class TrackModule {
     cancel() {
         this.stages.clear()
     }
+    /** What the loans the building company may take for track would add to its cash. */
+    borrowable = $derived.by(() => {
+        const { state, rules } = this.session
+        const companyId = state.trackStep?.companyId
+        return companyId ? (rules.trackRules.borrowing?.capacity(state, companyId) ?? 0) : 0
+    })
     /**
      * The players whose agreement the previewed lay needs, any one of whom may be asked; none
      * where the player on turn is one of them.

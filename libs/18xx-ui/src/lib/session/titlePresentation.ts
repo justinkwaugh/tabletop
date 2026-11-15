@@ -44,7 +44,12 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 }
 
 /** A labelled fact of the title's own, about the game or one of its companies. */
-export type TitleFact = { label: string; value: string }
+export type TitleFact = {
+    label: string
+    value: string
+    /** Shown on a company card as a line beneath its figures rather than as one of them. */
+    below?: true
+}
 /** How a title names its loans and their actions, and what follows interest a treasury lacks. */
 export type LoanTerms = {
     /** The label for a company's loans: "Bond". */

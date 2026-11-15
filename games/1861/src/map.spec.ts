@@ -82,9 +82,20 @@ describe('the map', () => {
             expect(stopGroups.size).toBe(1)
             expect([...stopGroups][0]).toBeDefined()
         }
-        // Its hexes do not join each other.
-        expect(Map1861.across('A9', 0)).toBeUndefined()
-        expect(Map1861.across('A11', 3)).toBeUndefined()
+        // No track runs from one of an area's hexes into another.
+        for (const id of [
+            ...PolandLocationIds,
+            ...RomaniaLocationIds,
+            ...CaucasusLocationIds,
+            ...CentralAsiaLocationIds
+        ])
+            for (const path of location(id).preprintedTile.paths)
+                for (const end of path.endpoints)
+                    if (end.kind === 'edge')
+                        expect(
+                            location(Map1861.across(id, end.edge)?.location.id ?? id).preprintedTile
+                                .color
+                        ).not.toBe('red')
     })
 
     it('fixes the grey and red hexes, Ekaterinburg among them at R40', () => {

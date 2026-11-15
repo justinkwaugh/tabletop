@@ -141,6 +141,22 @@ export class TrainPurchase {
             }
         })
     }
+    /**
+     * What borrowing would add to the buying company's cash toward a train from the bank, where
+     * the title lets it borrow for one, as an 1861 company without a train may (§10.2).
+     */
+    depotBorrowing(): number {
+        const companyId = this.state.trainPurchaseStep?.companyId
+        const borrowing = this.rules.borrowing
+        if (!companyId || !borrowing) return 0
+        const request = this.rules.availableDefinitions(this.state).flatMap((definitionId) => {
+            const train = this.rules.depot.nextTrain(this.state.trainInventory, definitionId)
+            return train ? [{ companyId, trainId: train.id, definitionId }] : []
+        })[0]
+        return request && borrowing.allowed(this.state, request)
+            ? borrowing.loans.capacity(this.state, companyId)
+            : 0
+    }
     marketOffers(): TrainPurchaseEvaluation[] {
         const companyId = this.state.trainPurchaseStep?.companyId
         return companyId

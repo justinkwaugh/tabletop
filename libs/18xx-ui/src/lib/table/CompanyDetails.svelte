@@ -112,6 +112,9 @@
     const compactMarks = $derived(marks.filter((mark) => mark.compact))
     const rosterMarks = $derived(marks.filter((mark) => !mark.compact))
     const stationCosts = $derived(!session.presentation.hideStationCosts)
+    const titleFacts = $derived(
+        session.presentation.companyFacts?.(session.gameState, company.id) ?? []
+    )
     const origin = $derived(session.presentation.companyOrigin?.(gameState, company.id))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)
@@ -329,7 +332,14 @@
             {/if}
         </p>
     {/if}
-    <div class="financial-summary">{@render prices()}</div>
+    <div class="financial-summary">
+        {@render prices()}
+        {#if titleFacts.some((fact) => fact.below)}<p class="fact-notes">
+                {#each titleFacts.filter((fact) => fact.below) as fact (fact.label)}<span
+                        >{fact.label} <strong>{fact.value}</strong></span
+                    >{/each}
+            </p>{/if}
+    </div>
     <div class="detail-columns" {@attach chainSidewaysScroll}>
         <section aria-label="Company ownership">
             <div class="ownership-heading">
@@ -494,8 +504,7 @@
                     >{session.loans.held(company.id)}</strong
                 >
             </div>{/if}
-        {#each session.presentation.companyFacts?.(session.gameState, company.id) ?? [] as fact (fact.label)}<div
-            >
+        {#each titleFacts.filter((fact) => !fact.below) as fact (fact.label)}<div>
                 <span>{fact.label}</span><strong>{fact.value}</strong>
             </div>{/each}
         {#if !vertical}
@@ -673,6 +682,23 @@
     }
     .financial-summary .prices {
         gap: 0;
+    }
+    .fact-notes {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2px 14px;
+        margin: 0;
+        align-items: center;
+        padding: 4px 10px;
+        border-top: 1px solid #ffffff0a;
+        font-size: 11px;
+        line-height: 14px;
+        color: var(--rail-muted, #887664);
+    }
+    .fact-notes strong {
+        color: var(--rail-text, #514536);
+        font-weight: 600;
     }
     .financial-summary .prices div {
         position: relative;

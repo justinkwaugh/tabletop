@@ -14,6 +14,8 @@ games, each with the actions that led to it.
   partner minors to merge into a public company, or pass (§12).
 - **Public company buying trains**: interest is settled first; a company without a train borrows
   for one from the bank (§10.2, §10.8–§10.10).
+- **Trainless company borrowing**: a public company with no train must buy one from the bank,
+  borrowing for it where its treasury falls short (§10.2, §10.10).
 - **State railway running**: the Russian State Railway's turn; the priority holder runs its
   trains, it keeps its earnings and buys trains by itself (§7.4).
 - **Trainless public company**: a phase began with a public company that has operated but owns
