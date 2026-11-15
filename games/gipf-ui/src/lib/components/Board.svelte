@@ -5,6 +5,7 @@
     import { CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, includesCoords } from '$lib/board/geometry.js'
     import { gridLines } from '$lib/board/boardLines.js'
     import { pushArrow, stackOutline } from '$lib/board/marks.js'
+    import { SHADOW, SHADOW_STOPS } from '$lib/board/softShadow.js'
     import PieceDefs from './PieceDefs.svelte'
     import StandingPiece from './StandingPiece.svelte'
     import StagedPiece from './StagedPiece.svelte'
@@ -133,9 +134,15 @@
 >
     <defs>
         <PieceDefs prefix="gipf-board" />
-        <filter id="gipf-soft" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="2.5"></feGaussianBlur>
-        </filter>
+        <radialGradient id="gipf-soft-shadow">
+            {#each SHADOW_STOPS as stop, index (index)}
+                <stop
+                    offset={stop.offset}
+                    stop-color="black"
+                    stop-opacity={stop.opacity * SHADOW.opacity}
+                ></stop>
+            {/each}
+        </radialGradient>
     </defs>
 
     <polygon points={playArea} class="play-area"></polygon>
