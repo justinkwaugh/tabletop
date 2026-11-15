@@ -50,7 +50,12 @@ export const AuctionFields = {
 export type AuctionState = FinancialState &
     Pick<GameState, 'players' | 'activePlayerIds' | 'turnManager'> &
     Type.Static<Type.TObject<typeof AuctionFields & typeof PendingParFields>>
-export interface WaterfallAuctionRules {
+/**
+ * A title's waterfall auction. Its award and income hooks receive the title's whole state, such
+ * as a share drawn at setup to go with a lot (1882 §3); the family's auction code reads only the
+ * auction's own fields.
+ */
+export interface WaterfallAuctionRules<State extends AuctionState = AuctionState> {
     lots(state: FinancialState): readonly AuctionLot[]
     increment: number
     bidOrder: 'clockwise-from-highest' | 'lowest-bid-first'
@@ -74,8 +79,8 @@ export interface WaterfallAuctionRules {
      * after the last player who bought a lot on their turn.
      */
     firstStockPlayer?: 'after-last-actor' | 'after-last-purchase'
-    award(state: AuctionState, award: AuctionAward): void
-    incomePayments(state: AuctionState): CashPayment[]
+    award(state: State, award: AuctionAward): void
+    incomePayments(state: State): CashPayment[]
 }
 export type AuctionResolution =
     | { kind: 'award'; award: AuctionAward }

@@ -62,6 +62,13 @@ event sections, and the waterfall auctions of 1830, 1889, 1894 and 1833NE.
 - **A token near its printed point** (`TokenPlacement: { near }`): a marker stands at the clear
   spot nearest where the board prints it, as 1882's rebellion markers on each hex's right side,
   moving only as far as a laid tile's track and stops make it.
+- **A train a company may count as obliged to own** (`TrainRules.mayRequireTrain`,
+  `EmergencyTrainFunding.optional`): a trainless company not obliged to buy a train may still
+  have its president fund one through the ordinary emergency procedure, and may finish without
+  it; the train panel says "may buy". 1882's fishing exit is the first use.
+- **Auction hooks typed by the title's state** (`WaterfallAuctionRules<State>`): a title's
+  award and income hooks read its own fields, as 1882's award reads the Trestle Bridge's drawn
+  share.
 - **Title operating modes in the train step**: the operating mode switch also shows in
   `BuyingTrains` when the title offers a mode there, as 1882's NWR power may be used at any time
   in the turn.
@@ -90,8 +97,10 @@ Made while implementing; the forum sources are in `rulings.md`.
 7. **The CN cannot use the NWR private**: neutral stations are not "its existing station markers"
    to move (unruled; 18xx.games might offer it).
 8. **A route to the fishing exit alone obliges no train** (§11.5: the president chooses whether it
-   counts). Limit: the president cannot then choose to count it and contribute to a train; a
-   company with cash may still buy one. 18xx.games lets the president contribute there.
+   counts), but the president may count it and raise money for a train as a company that must,
+   selling shares if needed (§11.8), as 18xx.games allows. The family's
+   `TrainRules.mayRequireTrain` offers that funding while letting the company finish without a
+   train.
 9. **The rebellion follows the purchase that reveals it**, before the phase change it may also
    bring; its yellow tiles return to the supply and stations stay in their cities (§8).
 10. **The SC's extra train** is added when the next train in the bank is a 3, 4, 5 or 6, of that

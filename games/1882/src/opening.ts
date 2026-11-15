@@ -45,15 +45,7 @@ export function trestleShareId(companyId: string): string {
     return `${companyId}:share:1`
 }
 
-function trestleShareCompany(state: object): string {
-    assert(
-        'trestleShareCompanyId' in state && typeof state.trestleShareCompanyId === 'string',
-        'The Trestle Bridge’s share is drawn at setup'
-    )
-    return state.trestleShareCompanyId
-}
-
-export const AuctionRules1882: WaterfallAuctionRules = {
+export const AuctionRules1882: WaterfallAuctionRules<HydratedState1882> = {
     lots: (state) => PrivateCatalog1882.lots(state),
     increment: 5,
     bidMultiple: 5,
@@ -66,7 +58,7 @@ export const AuctionRules1882: WaterfallAuctionRules = {
     award(state, award) {
         const extras =
             award.lotId === TbId
-                ? [trestleShareId(trestleShareCompany(state))]
+                ? [trestleShareId(state.trestleShareCompanyId)]
                 : award.lotId === CpId
                   ? [`${CprId}:president`]
                   : []

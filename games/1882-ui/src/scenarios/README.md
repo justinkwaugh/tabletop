@@ -14,4 +14,8 @@ games, each with the actions that led to it.
 - **Rebellion extra lay**: the extra lay or upgrade in the hex the station moved to (§7.1.3).
 - **Rebellion train**: a company about to buy the train whose purchase brings the rebellion (§8).
 - **Canadian National track**: the CN laying track from its neutral stations (§10.4).
+- **Fishing exit funding**: the Canadian Northern's train step, its only route from a Spiritwood
+  station to the fishing exit and $50 in its treasury. It may finish without a train, or its
+  president may fund a 2-train as a company that must (§11.5, §11.8). Arranged in code, so it has
+  no history.
 - **Finished game**: a whole game, for history and the final scores.

@@ -68,3 +68,30 @@ export function setCash(state: State1882, companyId: string, amount: number): vo
     if (!account) throw new Error(`${companyId} has no treasury`)
     account.amount = amount
 }
+
+/** The Canadian Northern with a second station in Spiritwood, whose only track runs to the fishing exit. */
+export function fishingOnly(): Table {
+    const game = opened(4)
+    floatCompany(game, 'CNoR')
+    kit.passStockRound(game)
+    edit(game, (state) => {
+        const [piece] = TileSet1882.availablePieces(state.tileInventory, '18xx:57')
+        // #57 joins the south and north sides; the north side meets the fishing exit (B6).
+        state.tileInventory.placements.D6 = {
+            pieceId: piece.id,
+            definitionId: '18xx:57',
+            rotation: 0
+        }
+        state.stations = state.stations.map((station) =>
+            station.id === 'CNoR:station:1'
+                ? {
+                      ...station,
+                      status: 'placed',
+                      position: { locationId: 'D6', nodeId: 'city', slot: 0 }
+                  }
+                : station
+        )
+        setCash(state, 'CNoR', 50)
+    })
+    return game
+}

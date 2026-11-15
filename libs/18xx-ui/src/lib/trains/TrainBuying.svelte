@@ -101,7 +101,7 @@
         {#if session.gameState.purchaseOffer?.asset.kind === 'train'}
             <CompanyTrainBuying {session} {trainColors} />
         {:else}
-            {#if !session.trainFunding.purchases.length || session.trainFunding.voluntary}
+            {#if !session.trainFunding.purchases.length || session.trainFunding.optional}
                 <header>
                     <h2>
                         Choose a train to buy

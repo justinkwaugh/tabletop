@@ -1,8 +1,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { describe, it } from 'vitest'
+import { startingPositionFile } from '@tabletop/common/testing'
 import { StationPlacement, neutralStation, placeableStations } from '@tabletop/18xx'
 import { botMove, Random } from '../test/bot.js'
-import { kit, type Table } from '../test/kit.js'
+import { fishingOnly, kit, type Table } from '../test/kit.js'
 import { CnId, NwrId } from './companies.js'
 import { StationRules1882 } from './stations.js'
 import { TrainDepot1882 } from './trains.js'
@@ -35,6 +36,18 @@ function save(slug: string, game: Table) {
         actions: game.actions.map((action) => ({ ...action, gameId: id }))
     }
     writeFileSync(new URL(`${slug}.json`, folder), JSON.stringify(file))
+}
+
+/** Saves a position arranged in code, which starts its history afresh. */
+function saveArranged(slug: string, game: Table) {
+    mkdirSync(folder, { recursive: true })
+    const { fileName, contents } = startingPositionFile({
+        slug: `1882-${slug}`,
+        name: slug.replace(/-/g, ' '),
+        game: game.game,
+        state: game.state
+    })
+    writeFileSync(new URL(fileName.replace(/^1882-/, ''), folder), contents)
 }
 
 /** The operating company may place the neutral station it holds. */
@@ -113,6 +126,17 @@ describe.skipIf(!process.env.SCENARIOS)('1882 harness scenarios', () => {
                     game.valid().includes('LayTile')
             )
         )
+    })
+
+    it('writes a company whose only route is to the fishing exit', () => {
+        const game = fishingOnly()
+        game.act('FinishTrack', { companyId: 'CNoR' })
+        while (game.state.machineState !== 'BuyingTrains')
+            game.act(
+                game.valid().includes('FinishStations') ? 'FinishStations' : 'FinishOperatingTurn',
+                { companyId: 'CNoR' }
+            )
+        saveArranged('fishing-exit-funding', game)
     })
 
     it('writes a finished game', { timeout: 600_000 }, () => {

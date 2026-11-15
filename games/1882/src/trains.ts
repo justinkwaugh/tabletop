@@ -87,13 +87,16 @@ const notFishing = (_state: unknown, _companyId: string, center: RevenueCenter) 
 
 /**
  * A company with a route of two revenue locations must own a train (§11.7). Its president may
- * leave the fishing exit uncounted (§11.5), so a route to the fishing exit alone obliges none.
+ * leave the fishing exit uncounted (§11.5), so a route to the fishing exit alone obliges none,
+ * but the president may count it and raise money for a train as for a company that must.
  */
 export const requiresTrain1882 = requiresStationRoute(Map1882, TileSet1882, notFishing)
+const countingFishing = requiresStationRoute(Map1882, TileSet1882)
 
 export const TrainRules1882: TrainRules = {
     depot: TrainDepot1882,
     requiresTrain: requiresTrain1882,
+    mayRequireTrain: countingFishing,
     // D-trains go on sale with the first 6-train; a 4, 5 or 6 trades in for $800 (§11.7).
     ...dieselTrains({
         depot: TrainDepot1882,

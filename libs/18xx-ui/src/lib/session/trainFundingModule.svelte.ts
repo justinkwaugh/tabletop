@@ -54,6 +54,11 @@ export class TrainFundingModule {
             this.session.state.trainFunding?.purchase.companyId ?? this.purchases[0]?.companyId
         return !!companyId && !!this.model?.voluntary(companyId)
     })
+    /** Whether the company may finish its turn without the train its funding is offered for. */
+    optional = $derived.by(() => {
+        const companyId = this.purchases[0]?.companyId
+        return !!companyId && !!this.model?.optional(companyId)
+    })
     choice = $derived.by(() =>
         this.session.state.machineState === 'FundingTrain' ? this.model?.next() : undefined
     )
