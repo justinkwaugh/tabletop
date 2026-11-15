@@ -1,6 +1,7 @@
 import type { Attachment } from 'svelte/attachments'
 import type { TransitionConfig } from 'svelte/transition'
 import { gsap } from 'gsap'
+import { fromToPose, killPose, poseOf, tweenPose } from './svgPose.js'
 
 export const DROP = {
     fall: 0.26,
@@ -48,28 +49,48 @@ export function dropMarble(
         settling: false
     }
 ): number {
-    scaledFromCentre(body, shadow)
     if (from.settling) return settle(timeline, body, shadow, at, from)
     const { left } = from
     timeline.fromTo(
         body,
-        { opacity: from.opacity, scale: from.scale, y: from.y },
+        { opacity: from.opacity },
         { opacity: 1, duration: Math.min(fall * 0.25, left), ease: 'none', immediateRender: true },
         at
     )
     // A fall taken over mid-way is already moving, so it keeps on rather than easing in again.
     const ease = left < fall ? 'none' : 'power2.in'
-    timeline.to(body, { scale: 1, y: 0, duration: left, ease }, at)
+    timeline.add(
+        fromToPose(
+            body,
+            { scale: from.scale, y: from.y },
+            { scale: 1, y: 0, duration: left, ease, immediateRender: true }
+        ),
+        at
+    )
     timeline.fromTo(
         shadow,
-        { opacity: from.shadowOpacity, scale: from.shadowScale },
-        { opacity: 1, scale: 1, duration: left, ease: 'power2.in', immediateRender: true },
+        { opacity: from.shadowOpacity },
+        { opacity: 1, duration: left, ease: 'power2.in', immediateRender: true },
+        at
+    )
+    timeline.add(
+        fromToPose(
+            shadow,
+            { scale: from.shadowScale },
+            { scale: 1, duration: left, ease: 'power2.in', immediateRender: true }
+        ),
         at
     )
     let time = at + left
     for (const height of wobble) {
-        timeline.to(body, { y: height, duration: DROP.settle, ease: 'power1.out' }, time)
-        timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, time + DROP.settle)
+        timeline.add(
+            tweenPose(body, { y: height, duration: DROP.settle, ease: 'power1.out' }),
+            time
+        )
+        timeline.add(
+            tweenPose(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }),
+            time + DROP.settle
+        )
         time += DROP.settle * 2
     }
     return time
@@ -84,13 +105,17 @@ function settle(
     { y }: DropPose
 ): number {
     const duration = DROP.settle * 2
-    timeline.fromTo(
-        body,
-        { y, scale: 1, opacity: 1 },
-        { y: 0, duration, ease: 'sine.inOut', immediateRender: true },
+    timeline.set(body, { opacity: 1, immediateRender: true }, at)
+    timeline.add(
+        fromToPose(
+            body,
+            { y, scale: 1 },
+            { y: 0, duration, ease: 'sine.inOut', immediateRender: true }
+        ),
         at
     )
-    timeline.set(shadow, { opacity: 1, scale: 1 }, at)
+    timeline.set(shadow, { opacity: 1 }, at)
+    timeline.add(tweenPose(shadow, { scale: 1, duration: 0 }), at)
     return at + duration
 }
 
@@ -123,14 +148,14 @@ export class StagedDrop {
         const time = this.timeline.time()
         if (!this.drops || body === undefined || shadowNode === undefined) return undefined
         if (time >= DROP.fall + DROP.wobble.length * DROP.settle * 2) return undefined
-        const read = (node: SVGGElement, property: string) =>
-            Number(gsap.getProperty(node, property))
+        const opacity = (node: SVGGElement) => Number(gsap.getProperty(node, 'opacity'))
+        const { y, scale } = poseOf(body)
         return {
-            y: read(body, 'y'),
-            scale: read(body, 'scale'),
-            opacity: read(body, 'opacity'),
-            shadowScale: read(shadowNode, 'scale'),
-            shadowOpacity: read(shadowNode, 'opacity'),
+            y,
+            scale,
+            opacity: opacity(body),
+            shadowScale: poseOf(shadowNode).scale,
+            shadowOpacity: opacity(shadowNode),
             left: DROP.fall - time,
             settling: time >= DROP.fall
         }
@@ -145,7 +170,9 @@ type LiftOff = { lifts: () => boolean }
 
 // The drop runs on nodes inside the one lifted, so the two never write the same transform.
 function stopDrop(wrapper: Element) {
-    gsap.killTweensOf(wrapper.querySelectorAll('g'))
+    const nodes = wrapper.querySelectorAll<SVGGElement>('g')
+    gsap.killTweensOf(nodes)
+    for (const node of nodes) killPose(node)
 }
 
 export function liftOffBody(node: Element, { lifts }: LiftOff): TransitionConfig {
@@ -171,10 +198,4 @@ export function liftOffShadow(node: Element, { lifts }: LiftOff): TransitionConf
             return `opacity: ${1 - up}; transform: scale(${1 + (DROP.shadow - 1) * up})`
         }
     }
-}
-
-// Set only as a move starts: GSAP measures each node to place the origin, and doing it for every
-// node as it was drawn froze opening a game for seconds on a phone.
-export function scaledFromCentre(...nodes: SVGGElement[]) {
-    gsap.set(nodes, { svgOrigin: '0 0' })
 }

@@ -29,11 +29,11 @@ import {
     DROP,
     dropMarble,
     QUICK_DROP,
-    scaledFromCentre,
     type DropPose,
     type DropTiming,
     type StagedDrop
 } from './drop.js'
+import { fromToPose, tweenPose } from './svgPose.js'
 
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
@@ -398,13 +398,20 @@ export class BoardAnimator implements MoveInterrupter {
         for (const node of [this.ringNodes.get(key), this.ringShadowNodes.get(key)]) {
             if (node === undefined) continue
             if (first !== undefined) {
-                timeline.to(
-                    node,
-                    { x: first.x, y: first.y, duration: firstLeg, ease: 'power1.inOut' },
+                timeline.add(
+                    tweenPose(node, {
+                        x: first.x,
+                        y: first.y,
+                        duration: firstLeg,
+                        ease: 'power1.inOut'
+                    }),
                     startsAt
                 )
             }
-            timeline.to(node, { x: out.x, y: out.y, duration, ease: 'power2.in' }, outAt)
+            timeline.add(
+                tweenPose(node, { x: out.x, y: out.y, duration, ease: 'power2.in' }),
+                outAt
+            )
             timeline.to(
                 node,
                 { opacity: 0, duration: fade, ease: 'power1.in' },
@@ -427,10 +434,12 @@ export class BoardAnimator implements MoveInterrupter {
         const home = first ?? { x: 0, y: 0 }
         for (const node of [this.ringNodes.get(key), this.ringShadowNodes.get(key)]) {
             if (node === undefined) continue
-            timeline.fromTo(
-                node,
-                { x: out.x, y: out.y },
-                { x: home.x, y: home.y, duration, ease: 'power2.out', immediateRender: true },
+            timeline.add(
+                fromToPose(
+                    node,
+                    { x: out.x, y: out.y },
+                    { x: home.x, y: home.y, duration, ease: 'power2.out', immediateRender: true }
+                ),
                 0
             )
             timeline.fromTo(
@@ -445,7 +454,10 @@ export class BoardAnimator implements MoveInterrupter {
                 0
             )
             if (first !== undefined) {
-                timeline.to(node, { x: 0, y: 0, duration, ease: 'power1.inOut' }, duration)
+                timeline.add(
+                    tweenPose(node, { x: 0, y: 0, duration, ease: 'power1.inOut' }),
+                    duration
+                )
             }
         }
         if (ring.marble === undefined) return
@@ -454,8 +466,16 @@ export class BoardAnimator implements MoveInterrupter {
         if (body !== undefined) {
             timeline.fromTo(
                 body,
-                { opacity: 0, y: LIFT.rise },
-                { opacity: 1, y: 0, duration: settle, ease: 'power1.in', immediateRender: true },
+                { opacity: 0 },
+                { opacity: 1, duration: settle, ease: 'power1.in', immediateRender: true },
+                slide
+            )
+            timeline.add(
+                fromToPose(
+                    body,
+                    { y: LIFT.rise },
+                    { y: 0, duration: settle, ease: 'power1.in', immediateRender: true }
+                ),
                 slide
             )
         }
@@ -473,10 +493,9 @@ export class BoardAnimator implements MoveInterrupter {
         const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
         if (body === undefined) return
-        scaledFromCentre(body)
-        timeline.to(
-            body,
-            { opacity: 0, scale: LIFT.scale, y: LIFT.rise, duration, ease: 'power1.out' },
+        timeline.to(body, { opacity: 0, duration, ease: 'power1.out' }, at)
+        timeline.add(
+            tweenPose(body, { scale: LIFT.scale, y: LIFT.rise, duration, ease: 'power1.out' }),
             at
         )
         this.fadeShadow(key, timeline, at, duration)
@@ -485,8 +504,8 @@ export class BoardAnimator implements MoveInterrupter {
     private fadeShadow(key: number, timeline: Timeline, at: number, duration: number) {
         const shadow = this.marbleShadowNodes.get(key)
         if (shadow === undefined) return
-        scaledFromCentre(shadow)
-        timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, at)
+        timeline.to(shadow, { opacity: 0, duration, ease: 'power1.out' }, at)
+        timeline.add(tweenPose(shadow, { scale: DROP.shadow, duration, ease: 'power1.out' }), at)
     }
 
     private drop(
@@ -521,9 +540,9 @@ export class BoardAnimator implements MoveInterrupter {
         const key = coordinatesToNumber(coords)
         const body = this.marbleNodes.get(key)
         if (body === undefined) return
-        timeline.to(
-            body,
-            { opacity: 0, y: DROP.rise / 2, duration: FALLBACK_DURATION, ease: 'power1.in' },
+        timeline.to(body, { opacity: 0, duration: FALLBACK_DURATION, ease: 'power1.in' }, 0)
+        timeline.add(
+            tweenPose(body, { y: DROP.rise / 2, duration: FALLBACK_DURATION, ease: 'power1.in' }),
             0
         )
         this.fadeShadow(key, timeline, 0, FALLBACK_DURATION)
@@ -556,36 +575,41 @@ export class BoardAnimator implements MoveInterrupter {
         const across = Math.hypot(end.x - start.x, (end.y - start.y) / view.tilt)
         const rise = JUMP.arc * across * Math.sqrt(1 - view.tilt ** 2)
         const half = duration / 2
-        timeline.to(flier, { x: end.x - start.x, y: end.y - start.y, duration, ease: 'none' }, 0)
+        const offset = { x: end.x - start.x, y: end.y - start.y }
+        timeline.add(tweenPose(flier, { ...offset, duration, ease: 'none' }), 0)
         const body = this.flierBodyNode
         if (body === undefined) return
-        scaledFromCentre(body)
-        timeline.to(
-            body,
-            { y: -rise, scale: JUMP.peakScale, duration: half, ease: 'power2.out' },
+        timeline.add(
+            tweenPose(body, {
+                y: -rise,
+                scale: JUMP.peakScale,
+                duration: half,
+                ease: 'power2.out'
+            }),
             0
         )
-        timeline.to(body, { y: 0, scale: 1, duration: half, ease: 'power2.in' }, half)
+        timeline.add(tweenPose(body, { y: 0, scale: 1, duration: half, ease: 'power2.in' }), half)
         const shadow = this.flierShadowNode
         if (shadow !== undefined) {
-            scaledFromCentre(shadow)
-            const high = { scale: JUMP.shadowScale, opacity: JUMP.shadowFade }
-            timeline.to(shadow, { ...high, duration: half, ease: 'power2.out' }, 0)
-            timeline.to(shadow, { scale: 1, opacity: 1, duration: half, ease: 'power2.in' }, half)
+            const out = { duration: half, ease: 'power2.out' }
+            const back = { duration: half, ease: 'power2.in' }
+            timeline.to(shadow, { opacity: JUMP.shadowFade, ...out }, 0)
+            timeline.add(tweenPose(shadow, { scale: JUMP.shadowScale, ...out }), 0)
+            timeline.to(shadow, { opacity: 1, ...back }, half)
+            timeline.add(tweenPose(shadow, { scale: 1, ...back }), half)
         }
         // A quick catch-up through history just arrives.
         if (duration <= FALLBACK_DURATION) return
         let at = duration
         for (const reach of LANDING.rebound) {
             const along = reach / distance
-            timeline.to(
-                body,
-                {
-                    x: (end.x - start.x) * along,
-                    y: (end.y - start.y) * along,
+            timeline.add(
+                tweenPose(body, {
+                    x: offset.x * along,
+                    y: offset.y * along,
                     duration: LANDING.step,
                     ease: 'sine.inOut'
-                },
+                }),
                 at
             )
             at += LANDING.step
