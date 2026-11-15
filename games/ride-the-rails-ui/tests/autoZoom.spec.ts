@@ -2,13 +2,15 @@ import { expect, test, type Page } from '@playwright/test'
 import {
     activePlayerId,
     board,
+    boardBox,
     collectPageErrors,
     litHexAt,
     litHexes,
     litInView,
     openScenario,
     pressHex,
-    settled
+    settled,
+    type BoardBox
 } from './helpers.js'
 
 // The contract's Build section: the deciding seat's view zooms to the hexes its building offer
@@ -31,24 +33,8 @@ function onPhone(): boolean {
     return test.info().project.use.isMobile === true
 }
 
-type Box = { left: number; top: number; width: number; height: number }
-
-/** Where the board is drawn on screen, to the half pixel. */
-function boardBox(page: Page): Promise<Box> {
-    return board(page).evaluate((root) => {
-        const box = root.getBoundingClientRect()
-        const half = (value: number) => Math.round(value * 2) / 2
-        return {
-            left: half(box.left),
-            top: half(box.top),
-            width: half(box.width),
-            height: half(box.height)
-        }
-    })
-}
-
 /** The box the board is clipped to on screen: its frame, within the window. */
-function frameBox(page: Page): Promise<Box> {
+function frameBox(page: Page): Promise<BoardBox> {
     return board(page).evaluate((root) => {
         let frame: Element | null = root.parentElement
         while (frame && getComputedStyle(frame).overflow === 'visible') {
@@ -61,26 +47,6 @@ function frameBox(page: Page): Promise<Box> {
         const bottom = Math.min(innerHeight, clip?.bottom ?? innerHeight)
         return { left, top, width: right - left, height: bottom - top }
     })
-}
-
-/** Where the board rests once the view has held still. */
-async function steadyBoardBox(page: Page): Promise<Box> {
-    await settled(page)
-    // A glide starts a frame or more after what sets it off.
-    await page.waitForTimeout(VIEW_SETTLE_MS)
-    let last = await boardBox(page)
-    await expect
-        .poll(
-            async () => {
-                const next = await boardBox(page)
-                const same = JSON.stringify(next) === JSON.stringify(last)
-                last = next
-                return same
-            },
-            { intervals: [250] }
-        )
-        .toBe(true)
-    return last
 }
 
 /** How wide a hex is on screen. */
@@ -154,7 +120,7 @@ test('The first building turn of round 1 zooms the view to the East Coast lit he
     page
 }) => {
     await openScenario(page, 'First placement')
-    const box = await steadyBoardBox(page)
+    const box = await settled(page)
     await expect(litHexes(page)).toHaveCount(6)
     expect(await litInView(page)).toHaveLength(6)
     const width = await hexWidth(page)
@@ -186,7 +152,6 @@ test('A held spotlight narrows the view to its railroad, and its release widens 
 }) => {
     // Ada holds Red, Orange and Black; Black's start lights nearly every city.
     await openScenario(page, 'Black unstarted')
-    await steadyBoardBox(page)
     const wide = await hexWidth(page)
     const red = await litFor(page, 'railroad.red')
     expect(red.length).toBeGreaterThan(0)
@@ -197,7 +162,7 @@ test('A held spotlight narrows the view to its railroad, and its release widens 
     await expect
         .poll(() => page.evaluate(() => window.rtrSession.heldRailroadId))
         .toBe('railroad.red')
-    await steadyBoardBox(page)
+    await settled(page)
     expect(await hexWidth(page)).toBeLessThanOrEqual(MOST_HEX_PX)
     if (onPhone()) {
         // Red's lit hexes are too far apart to fit a phone above its resting scale, so the view
@@ -210,14 +175,14 @@ test('A held spotlight narrows the view to its railroad, and its release widens 
 
     await pressSpotlight(page, 'Red')
     await expect.poll(() => page.evaluate(() => window.rtrSession.heldRailroadId)).toBe(undefined)
-    await steadyBoardBox(page)
+    await settled(page)
     expect(await hexWidth(page)).toBeCloseTo(wide, 0)
 })
 
 test('Hovering a railroad strip entry on desktop does not move the view', async ({ page }) => {
     test.skip(onPhone(), 'A phone has no pointer to hover with; a tap presses the spotlight.')
     await openScenario(page, 'Black unstarted')
-    const before = await steadyBoardBox(page)
+    const before = await settled(page)
     await board(page)
         .getByRole('button', { name: /^Red: .* track/ })
         .hover()
@@ -231,7 +196,6 @@ test('Hovering a railroad strip entry on desktop does not move the view', async 
 
 test('A hand pan holds the view across the next placement', async ({ page }) => {
     await openScenario(page, 'First placement')
-    await steadyBoardBox(page)
     const frame = await frameBox(page)
     // The northernmost lit city, panned by hand up to the frame's top edge, so the hexes north of
     // it that a start there lights lie out of view.
@@ -249,7 +213,7 @@ test('A hand pan holds the view across the next placement', async ({ page }) => 
     for (let moved = 0; moved < shift; moved += 30) {
         await page.mouse.wheel(0, Math.min(30, shift - moved))
     }
-    const panned = await steadyBoardBox(page)
+    const panned = await settled(page)
     expect(await litInView(page)).toContain(north.hexId)
 
     await pressHex(page, litHexAt(page, north.hexId))
@@ -272,7 +236,7 @@ test('Done building at the end of the round returns the desktop view to the whol
     for (const next of ['p2', 'p3', 'p4']) {
         await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
         await expect.poll(() => activePlayerId(page)).toBe(next)
-        await steadyBoardBox(page)
+        await settled(page)
         expect(await showsWholeMap(page)).toBe(false)
     }
     // Dell, last in turn order, places and is done: the round goes on to Ride.
@@ -282,18 +246,17 @@ test('Done building at the end of the round returns the desktop view to the whol
     await expect
         .poll(() => page.evaluate(() => window.rtrSession.gameState.machineState))
         .toBe('Riding')
-    await steadyBoardBox(page)
+    await settled(page)
     expect(await showsWholeMap(page)).toBe(true)
 })
 
 test('A watching seat’s view does not zoom, not even for a held spotlight', async ({ page }) => {
     await openScenario(page, 'First placement')
-    await steadyBoardBox(page)
     // The harness's Non-active view: Ben watches Ada build.
     await page.evaluate(() => window.rtrSession.setViewingAsNonActivePlayer(true))
     await expect.poll(() => page.evaluate(() => window.rtrSession.myPlayerId)).toBe('p2')
     await expect(litHexes(page)).toHaveCount(0)
-    const watching = await steadyBoardBox(page)
+    const watching = await settled(page)
     if (!onPhone()) expect(await showsWholeMap(page)).toBe(true)
 
     await pressSpotlight(page, 'Red')
@@ -306,15 +269,130 @@ test('A watching seat’s view does not zoom, not even for a held spotlight', as
 
 test('The zoom glides to a held spotlight’s railroad', async ({ page }) => {
     await openScenario(page, 'Black unstarted')
-    await steadyBoardBox(page)
     const boxes = await boardBoxesDuring(page, () => pressSpotlight(page, 'Red'))
     expect(boxes.length).toBeGreaterThan(3)
+})
+
+type Touched = { hexId: string; box: string }
+
+/** Where the board is drawn, to the whole pixel, as the touch records it. */
+function boardKey(page: Page): Promise<string> {
+    return board(page).evaluate((root) => {
+        const box = root.getBoundingClientRect()
+        return [box.left, box.top, box.width].map(Math.round).join(' ')
+    })
+}
+
+/** Records, as the next finger lands, the hex under it and where the board is drawn. */
+function recordTouch(page: Page): Promise<void> {
+    return board(page).evaluate((root) => {
+        Reflect.set(window, 'rtrTouched', undefined)
+        const note = (event: TouchEvent) => {
+            const touch = event.touches[0]
+            const hit = document
+                .elementFromPoint(touch?.clientX ?? -1, touch?.clientY ?? -1)
+                ?.closest('[data-hex-id]')
+            const box = root.getBoundingClientRect()
+            Reflect.set(window, 'rtrTouched', {
+                hexId: hit?.getAttribute('data-hex-id') ?? '',
+                box: [box.left, box.top, box.width].map(Math.round).join(' ')
+            })
+        }
+        addEventListener('touchstart', note, { capture: true, once: true })
+    })
+}
+
+function touched(page: Page): Promise<Touched | undefined> {
+    return page.evaluate(() => {
+        const seen: unknown = Reflect.get(window, 'rtrTouched')
+        return seen === undefined ? undefined : JSON.parse(JSON.stringify(seen))
+    })
+}
+
+/** The lit hex with one placement nearest the screen's middle, where it is the topmost thing. */
+function hexToTap(
+    page: Page
+): Promise<{ hexId: string; railroadId: string; x: number; y: number } | undefined> {
+    return board(page).evaluate((root) => {
+        const placed = new Map<string, string>()
+        for (const hex of window.rtrSession.boardOffer.lit) {
+            const [only, ...others] = hex.placements
+            if (only && others.length === 0) placed.set(hex.hexId, only.railroadId)
+        }
+        let best: { hexId: string; railroadId: string; x: number; y: number } | undefined
+        let bestDistance = Infinity
+        for (const hit of root.querySelectorAll('g.hits [role="button"]')) {
+            const hexId = hit.getAttribute('data-hex-id') ?? ''
+            const railroadId = placed.get(hexId)
+            const box = hit.getBoundingClientRect()
+            const x = box.left + box.width / 2
+            const y = box.top + box.height / 2
+            if (!railroadId || document.elementFromPoint(x, y) !== hit) continue
+            const distance = Math.hypot(x - innerWidth / 2, y - innerHeight / 2)
+            if (distance < bestDistance) {
+                best = { hexId, railroadId, x, y }
+                bestDistance = distance
+            }
+        }
+        return best
+    })
+}
+
+function trackNow(page: Page): Promise<Record<string, string[]>> {
+    return page.evaluate(() => JSON.parse(JSON.stringify(window.rtrSession.gameState.track)))
+}
+
+/** About half of the view's glide, which takes 180 ms. */
+const HALF_GLIDE_MS = 90
+
+test('On a phone a tap while the zoom glides places the hex under the finger as it lands', async ({
+    page
+}) => {
+    test.skip(!onPhone(), 'A mouse press is a click; the finger that stops a glide is a touch.')
+    // Where an uninterrupted glide to Red's lit hexes ends.
+    await openScenario(page, 'Black unstarted')
+    const start = await boardKey(page)
+    await pressSpotlight(page, 'Red')
+    await expect
+        .poll(() => page.evaluate(() => window.rtrSession.heldRailroadId))
+        .toBe('railroad.red')
+    await settled(page)
+    const end = await boardKey(page)
+    expect(end).not.toBe(start)
+
+    // The same glide from the same view, with the page's clock held so it stops halfway.
+    await openScenario(page, 'Black unstarted')
+    expect(await boardKey(page)).toBe(start)
+    const before = await trackNow(page)
+    await page.clock.install()
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000))
+    await pressSpotlight(page, 'Red')
+    await page.clock.runFor(HALF_GLIDE_MS)
+    const halfway = await boardKey(page)
+    expect(halfway).not.toBe(start)
+    expect(halfway).not.toBe(end)
+    const target = await hexToTap(page)
+    expect(target).toBeDefined()
+    await recordTouch(page)
+    await page.touchscreen.tap(target?.x ?? -1, target?.y ?? -1)
+    await page.clock.resume()
+    await settled(page)
+
+    // The finger landed on the hex mid-glide, and that hex is the one placed.
+    const touch = await touched(page)
+    expect(touch?.box).toBe(halfway)
+    expect(touch?.hexId).toBe(target?.hexId)
+    const after = await trackNow(page)
+    const changed = Object.keys(after).filter(
+        (hexId) => JSON.stringify(after[hexId]) !== JSON.stringify(before[hexId])
+    )
+    expect(changed).toEqual([target?.hexId])
+    expect(after[target?.hexId ?? '']).toContain(target?.railroadId)
 })
 
 test('With reduced motion the zoom jumps rather than glides', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await openScenario(page, 'Black unstarted')
-    await steadyBoardBox(page)
     const boxes = await boardBoxesDuring(page, () => pressSpotlight(page, 'Red'))
     // Where it was, and where it jumped to: no frame in between.
     expect(boxes).toHaveLength(2)

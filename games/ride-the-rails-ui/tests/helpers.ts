@@ -122,8 +122,11 @@ export async function undo(page: Page) {
     await settled(page)
 }
 
-/** Waits for every flight to land and the engine to answer. */
-export async function settled(page: Page) {
+/**
+ * Waits for every flight to land, the engine to answer and the board to hold still, and returns
+ * where the board rests.
+ */
+export async function settled(page: Page): Promise<BoardBox> {
     await expect
         .poll(() =>
             page.evaluate(
@@ -131,6 +134,63 @@ export async function settled(page: Page) {
             )
         )
         .toBe(true)
+    return steadyBoard(page)
+}
+
+export type BoardBox = { left: number; top: number; width: number; height: number }
+
+/** Where the board is drawn on screen, to the half pixel. */
+export function boardBox(page: Page): Promise<BoardBox> {
+    return board(page).evaluate((root) => {
+        const box = root.getBoundingClientRect()
+        const half = (value: number) => Math.round(value * 2) / 2
+        return {
+            left: half(box.left),
+            top: half(box.top),
+            width: half(box.width),
+            height: half(box.height)
+        }
+    })
+}
+
+/** The view skips a new layout within 1% of its scale; rounding adds a little. */
+const RENDER_SCALE_TOLERANCE = 0.011
+
+/** Whether the board's view has laid its content out again at the scale it shows it at. */
+function renderScaleCommitted(page: Page): Promise<boolean> {
+    return board(page).evaluate((root, tolerance) => {
+        let content: HTMLElement | null = root.parentElement
+        while (content && !content.style.transform.includes('translate3d')) {
+            content = content.parentElement
+        }
+        const scale = /scale\(([^)]+)\)/.exec(content?.style.transform ?? '')?.[1]
+        return scale !== undefined && Math.abs(Number(scale) - 1) < tolerance
+    }, RENDER_SCALE_TOLERANCE)
+}
+
+/**
+ * Waits until the board holds still on screen, and returns where it rests: the same box on two
+ * reads at least 100 ms apart, and the view's content laid out again at its scale. A glide of
+ * the view (the building zoom's first fit, a held spotlight) is neither a flight nor the engine,
+ * so a hex read or pressed before this may be read or pressed on a moving board.
+ */
+async function steadyBoard(page: Page): Promise<BoardBox> {
+    let last: BoardBox | undefined
+    await expect
+        .poll(
+            async () => {
+                const next = await boardBox(page)
+                const same =
+                    last !== undefined &&
+                    JSON.stringify(next) === JSON.stringify(last) &&
+                    (await renderScaleCommitted(page))
+                last = next
+                return same
+            },
+            { intervals: [150] }
+        )
+        .toBe(true)
+    return boardBox(page)
 }
 
 /** Records each kind of flyer, with a coin's amount, while `act` runs and its motion plays. */
