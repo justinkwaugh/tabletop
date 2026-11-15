@@ -1,6 +1,7 @@
 import type { Attachment } from 'svelte/attachments'
 import type { TransitionConfig } from 'svelte/transition'
 import { gsap } from 'gsap'
+import { fromToPose, killPose, setPose, tweenPose } from './svgPose.js'
 
 export const DROP = {
     fall: 0.26,
@@ -45,18 +46,18 @@ export function dropDisc(
 ) {
     const { settle } = DROP
     const start = at + index * stagger
-    gsap.set(node, { svgOrigin: '0 0' })
     timeline.fromTo(
         node,
-        { opacity: 0, scale: DROP.scale, y: DROP.rise },
+        { opacity: 0 },
         { opacity: 1, duration: fall * 0.25, ease: 'none', immediateRender: true },
         start
     )
-    timeline.to(node, { scale: 1, y: 0, duration: fall, ease: 'power1.in' }, start)
+    setPose(node, { scale: DROP.scale, y: DROP.rise })
+    timeline.add(tweenPose(node, { scale: 1, y: 0, duration: fall, ease: 'power1.in' }), start)
     wobble.forEach((height, bounce) => {
         const up = start + fall + bounce * settle * 2
-        timeline.to(node, { y: height, duration: settle, ease: 'power1.out' }, up)
-        timeline.to(node, { y: 0, duration: settle, ease: 'power1.in' }, up + settle)
+        timeline.add(tweenPose(node, { y: height, duration: settle, ease: 'power1.out' }), up)
+        timeline.add(tweenPose(node, { y: 0, duration: settle, ease: 'power1.in' }), up + settle)
     })
 }
 
@@ -66,11 +67,18 @@ export function dropShadow(
     at = 0,
     { fall }: Pick<DropTiming, 'fall'> = DROP
 ) {
-    gsap.set(node, { svgOrigin: '0 0' })
     timeline.fromTo(
         node,
-        { opacity: 0, scale: DROP.shadow },
-        { opacity: 1, scale: 1, duration: fall, ease: 'power1.in', immediateRender: true },
+        { opacity: 0 },
+        { opacity: 1, duration: fall, ease: 'power1.in', immediateRender: true },
+        at
+    )
+    timeline.add(
+        fromToPose(
+            node,
+            { scale: DROP.shadow },
+            { scale: 1, duration: fall, ease: 'power1.in', immediateRender: true }
+        ),
         at
     )
 }
@@ -99,11 +107,11 @@ export class StagedDrop {
     readonly parts: PieceParts = {
         disc: (index) => (node) => {
             if (this.drops) dropDisc(this.timeline, node, index)
-            return () => gsap.killTweensOf(node)
+            return () => stopMotion(node)
         },
         crease: (index) => (node) => {
             if (this.drops) dropCrease(this.timeline, node, index)
-            return () => gsap.killTweensOf(node)
+            return () => stopMotion(node)
         },
         lifts: true
     }
@@ -133,9 +141,14 @@ export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfi
 
 type DiscLiftOff = { parts?: PieceParts }
 
+function stopMotion(node: SVGElement) {
+    gsap.killTweensOf(node)
+    killPose(node)
+}
+
 // The lift takes over from a drop still under way: the disc rises from where it is.
 function stopDrops(wrapper: Element) {
-    for (const child of wrapper.children) gsap.killTweensOf(child)
+    for (const child of wrapper.children) if (child instanceof SVGElement) stopMotion(child)
 }
 
 export function liftOffDisc(node: Element, { parts }: DiscLiftOff): TransitionConfig {
