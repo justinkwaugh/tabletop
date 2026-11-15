@@ -51,8 +51,8 @@ async function settle(page: Page) {
         .toBe(false)
 }
 
-async function act<A>(page: Page, run: (arg: A) => unknown, arg: A) {
-    await page.evaluate(run, arg)
+async function act(page: Page, run: (label: string) => unknown, label = '') {
+    await page.evaluate(run, label)
     await settle(page)
 }
 
@@ -63,9 +63,9 @@ function press(label: string) {
 }
 
 // Plays a motion frame by frame and returns every board transform that is a matrix().
-async function matricesDuring<A>(page: Page, start: (arg: A) => unknown, arg: A) {
+async function matricesDuring(page: Page, start: (label: string) => unknown, label = '') {
     await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
-    await page.evaluate(start, arg)
+    await page.evaluate(start, label)
     const found: string[] = []
     for (let i = 0; i <= 30; i++) {
         found.push(
@@ -94,10 +94,10 @@ test('a push, its Undo and a history step move pieces without matrix()', async (
     expect(await matricesDuring(page, press, 'dot E1')).toEqual([])
     expect(await matricesDuring(page, press, 'push to E2')).toEqual([])
     const undo = () => void window.gipfSession.undo()
-    expect(await matricesDuring(page, undo, undefined)).toEqual([])
+    expect(await matricesDuring(page, undo)).toEqual([])
     await act(page, press, 'push to E2')
     const back = () => void window.gipfSession.history.goToPreviousAction()
-    expect(await matricesDuring(page, back, undefined)).toEqual([])
+    expect(await matricesDuring(page, back)).toEqual([])
     const forward = () => void window.gipfSession.history.goToNextAction()
-    expect(await matricesDuring(page, forward, undefined)).toEqual([])
+    expect(await matricesDuring(page, forward)).toEqual([])
 })
