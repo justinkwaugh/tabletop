@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Level from './Level.svelte'
     import { beadValue, rosaryBeadSum, type HydratedFeudumGameState } from '@tabletop/feudum'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
@@ -54,13 +55,15 @@
         data-rosary-total={rosaryBeadSum(state)}
     />
 {:else}
-    <text
-        x={RosaryTotalAt.x}
-        y={RosaryTotalAt.y}
-        text-anchor="middle"
-        font-size="18"
-        fill="var(--feudum-ink)"
-        data-rosary-total={rosaryBeadSum(state)}>Rosary · {rosaryBeadSum(state)}</text
+    <Level at={{ x: RosaryTotalAt.x, y: RosaryTotalAt.y }}
+        ><text
+            x={RosaryTotalAt.x}
+            y={RosaryTotalAt.y}
+            text-anchor="middle"
+            font-size="18"
+            fill="var(--feudum-ink)"
+            data-rosary-total={rosaryBeadSum(state)}>Rosary · {rosaryBeadSum(state)}</text
+        ></Level
     >
 
     <rect
@@ -72,12 +75,14 @@
         fill="var(--feudum-parchment-shade)"
         stroke="var(--feudum-ink)"
     ></rect>
-    <text
-        x={CofferBox.x + CofferBox.width / 2}
-        y={CofferBox.y + 26}
-        text-anchor="middle"
-        font-size="18"
-        fill="var(--feudum-ink)">Coffer</text
+    <Level at={{ x: CofferBox.x + CofferBox.width / 2, y: CofferBox.y + 26 }}
+        ><text
+            x={CofferBox.x + CofferBox.width / 2}
+            y={CofferBox.y + 26}
+            text-anchor="middle"
+            font-size="18"
+            fill="var(--feudum-ink)">Coffer</text
+        ></Level
     >
 {/if}
 <BoardPiece at={coffer} piece="coffer">
@@ -96,13 +101,15 @@
         data-coffer={state.guilds.monk.coffer}
     />
 {:else}
-    <text
-        x={coffer.x}
-        y={coffer.y + 56}
-        text-anchor="middle"
-        font-size="24"
-        font-weight="700"
-        fill="var(--feudum-ink)"
-        data-coffer={state.guilds.monk.coffer}>{state.guilds.monk.coffer}s</text
+    <Level at={{ x: coffer.x, y: coffer.y + 56 }}
+        ><text
+            x={coffer.x}
+            y={coffer.y + 56}
+            text-anchor="middle"
+            font-size="24"
+            font-weight="700"
+            fill="var(--feudum-ink)"
+            data-coffer={state.guilds.monk.coffer}>{state.guilds.monk.coffer}s</text
+        ></Level
     >
 {/if}

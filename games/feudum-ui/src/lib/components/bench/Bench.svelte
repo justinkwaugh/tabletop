@@ -56,7 +56,7 @@
         return held && (held.playerId ? paintOf(held.playerId) : colourPaintOf(held.colour))
     }
 
-    /** On a phone's sheet, the width at which every area stands whole above the footer. */
+    /** The long side at which every area stands whole above the footer, side by side. */
     const fit = new BenchFit()
 
     /** Stands where the board's container is, in the page or in the full screen dialog. */
@@ -136,19 +136,19 @@
         aria-label={bench.title}
         data-bench={bench.title}
         {@attach overTheBoard(true)}
-        {@attach sheet ? fit.attach : undefined}
+        {@attach fit.attach}
     >
         <div class="px-3 pt-2 text-sm font-semibold text-feudum-heading" data-bench-title>
             {bench.title}
         </div>
         <div
-            class="flex min-h-0 grow flex-wrap content-start justify-center gap-3 overflow-auto p-3"
+            class="flex min-h-0 grow flex-wrap content-start justify-center gap-3 overflow-auto p-3 max-sm:gap-1 max-sm:px-0.5"
             data-bench-areas
         >
             {#each view.areas as area (area.guild)}
                 <BenchArea
                     {area}
-                    fit={sheet ? fit.width : undefined}
+                    fit={fit.long}
                     {state}
                     {paintOf}
                     {colourPaintOf}

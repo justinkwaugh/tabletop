@@ -1,42 +1,40 @@
 import type { Attachment } from 'svelte/attachments'
 import { GuildBox } from '$lib/utils/boardGeometry.js'
 
-/** What stands round the areas' pictures in a phone's bench sheet, in CSS pixels. */
-export interface SheetRoom {
-    /** The sheet's height cap, less its own padding and border. */
-    readonly sheet: number
+/** What stands round the areas' pictures in the bench, in CSS pixels. */
+export interface BenchRoom {
+    /** The bench's height (a phone's sheet: its cap), less its own padding and border. */
+    readonly height: number
+    /** The areas' holder's width inside its padding. */
+    readonly width: number
     readonly title: number
     readonly footer: number
     /** The areas' holder's padding, top and bottom together. */
     readonly padding: number
+    /** Between two areas side by side. */
     readonly gap: number
     /** Each area's height outside its picture: its button row and the gap above it. */
     readonly around: readonly number[]
 }
 
 /**
- * Contract, Phone layout: the room left under the title and over the footer, less what stands round
- * the areas' pictures, shared out between the pictures, gives each its height, and so its width at
- * the guild area's own shape.
+ * Contract, The bench: the areas stand upright side by side, so each picture's long side is the
+ * height left under the title and over the footer, less the tallest button row, or what the
+ * holder's width allows each at the guild area's own shape, whichever is less.
  */
-export function fittedAreaWidth(room: SheetRoom): number {
+export function fittedAreaLong(room: BenchRoom): number {
     const count = room.around.length
-    const pictures =
-        room.sheet -
-        room.title -
-        room.footer -
-        room.padding -
-        room.gap * (count - 1) -
-        room.around.reduce((sum, height) => sum + height, 0)
-    return Math.floor(((pictures / count) * GuildBox.width) / GuildBox.height)
+    const tall = room.height - room.title - room.footer - room.padding - Math.max(...room.around)
+    const across = (room.width - room.gap * (count - 1)) / count
+    return Math.floor(Math.min(tall, (across * GuildBox.width) / GuildBox.height))
 }
 
 /**
- * The width at which every area of a phone's bench sheet stands whole above its footer, measured
- * from the sheet as it stands and again whenever the sheet, its title or its footer changes size.
+ * The long side at which every area of the bench stands whole above its footer, measured from the
+ * bench as it stands and again whenever the bench, its title or its footer changes size.
  */
 export class BenchFit {
-    width = $state<number | undefined>(undefined)
+    long = $state<number | undefined>(undefined)
 
     readonly attach: Attachment<HTMLElement> = (node) => {
         const title = node.querySelector<HTMLElement>('[data-bench-title]')
@@ -52,23 +50,28 @@ export class BenchFit {
             }
             const outer = getComputedStyle(node)
             const inner = getComputedStyle(holder)
-            const width = fittedAreaWidth({
-                sheet:
-                    parseFloat(outer.maxHeight) -
+            const cap = parseFloat(outer.maxHeight)
+            const long = fittedAreaLong({
+                height:
+                    (Number.isNaN(cap) ? node.clientHeight : cap) -
                     parseFloat(outer.paddingBottom) -
                     parseFloat(outer.borderTopWidth),
+                width:
+                    holder.clientWidth -
+                    parseFloat(inner.paddingLeft) -
+                    parseFloat(inner.paddingRight),
                 title: title.offsetHeight,
                 footer: footer.offsetHeight,
                 padding: parseFloat(inner.paddingTop) + parseFloat(inner.paddingBottom),
-                gap: parseFloat(inner.rowGap),
+                gap: parseFloat(inner.columnGap),
                 around: areas.map(
                     (area) =>
                         area.offsetHeight -
                         (area.querySelector<HTMLElement>('[data-pick]')?.offsetHeight ?? 0)
                 )
             })
-            if (this.width === undefined || Math.abs(width - this.width) >= 1) {
-                this.width = width
+            if (this.long === undefined || Math.abs(long - this.long) >= 1) {
+                this.long = long
             }
         }
         const observer = new ResizeObserver(measure)

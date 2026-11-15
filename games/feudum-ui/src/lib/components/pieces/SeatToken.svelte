@@ -30,11 +30,15 @@
     } = $props()
 
     const Names = { marker: 'influence marker', disc: 'player disc', reeve: 'reeve' } as const
-    /** Where each print stands in the 24-unit box: the drawn piece's own extent. */
+    /**
+     * Where each print stands in the 24-unit box: the drawn piece's own extent. R-4.7 A reeve is a
+     * player disc showing its printed point, so it fills its box as a disc does.
+     */
+    const DiscBox = { x: 1.5, y: 1.5, width: 21, height: 21 } as const
     const PrintBox = {
         marker: { x: 2.4, y: 1, width: 19.2, height: 22 },
-        disc: { x: 1.5, y: 1.5, width: 21, height: 21 },
-        reeve: { x: 4.5, y: 4.5, width: 15, height: 15 }
+        disc: DiscBox,
+        reeve: DiscBox
     } as const
 
     const OutlineWidth = 4
@@ -53,7 +57,7 @@
     {:else if kind === 'marker'}
         <path d="M3 10 A9 5 0 0 1 21 10 L21 15 A9 5 0 0 1 3 15 Z" {...lift}></path>
     {:else}
-        <circle cx="12" cy="12" r={kind === 'disc' ? 10.5 : 7.5} {...lift}></circle>
+        <circle cx="12" cy="12" r="10.5" {...lift}></circle>
     {/if}
 {/snippet}
 

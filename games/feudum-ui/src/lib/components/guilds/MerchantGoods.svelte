@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Level from './Level.svelte'
     import { Goods, MarketSpaces, type HydratedFeudumGameState } from '@tabletop/feudum'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
@@ -39,14 +40,16 @@
             fill="var(--feudum-parchment-shade)"
             stroke="var(--feudum-ink)"
         ></rect>
-        <text
-            x={at.x + 44}
-            y={at.y + 7}
-            text-anchor="middle"
-            font-size="20"
-            font-weight="700"
-            fill="var(--feudum-ink)"
-            data-price={space.id}>{space.price}s</text
+        <Level at={{ x: at.x + 44, y: at.y + 7 }}
+            ><text
+                x={at.x + 44}
+                y={at.y + 7}
+                text-anchor="middle"
+                font-size="20"
+                font-weight="700"
+                fill="var(--feudum-ink)"
+                data-price={space.id}>{space.price}s</text
+            ></Level
         >
     {/if}
     {#if state.guilds.merchant.market[space.id]}

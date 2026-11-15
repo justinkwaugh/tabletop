@@ -743,11 +743,17 @@ describe('On the printed panels, every part stands on its printed space (R-1.3)'
             const slot = guildSlot(space.id)
             const offset = reeveOffset(space.guild)
             const reeve = { x: slot.x + offset.x, y: slot.y + offset.y }
-            expect(distance(slot, reeve)).toBeGreaterThanOrEqual(
-                (GuildSizes.marker + GuildSizes.reeve) / 2
-            )
+            for (const rank of GuildTrackSpaces.filter(({ guild }) => guild === space.guild)) {
+                expect(distance(guildSlot(rank.id), reeve)).toBeGreaterThanOrEqual(
+                    (GuildSizes.marker + GuildSizes.reeve) / 2
+                )
+            }
             expect(within(reeve, GuildBox, 10)).toBe(true)
         }
+    })
+
+    it('R-4.7 draws a reeve at the influence marker’s size, its point readable', () => {
+        expect(GuildSizes.reeve).toBe(GuildSizes.marker)
     })
 
     it('R-1.3 keeps the market bins, Knight cells, scrolls and inventions each on its own space', () => {
