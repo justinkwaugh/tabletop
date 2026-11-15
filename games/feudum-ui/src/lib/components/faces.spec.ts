@@ -247,7 +247,8 @@ describe('printed action cards (R-3.1)', () => {
     /**
      * Measured on the print (580 x 938 px): the foot's name line in the print's other languages, per
      * card, across and from its top to the print's foot, and the frame's colour round it in each
-     * printed colour. The frame's jewel dips into the line's top between 278 and 310, to 918.
+     * printed colour (the palette's `print-frame`, whose values the art plan holds). The frame's
+     * jewel dips into the line's top between 278 and 310, to 918.
      */
     const NameLine: Record<(typeof ActionCardKinds)[number], readonly [number, number]> = {
         conquer: [152, 424],
@@ -263,11 +264,11 @@ describe('printed action cards (R-3.1)', () => {
         tax: [186, 365]
     }
     const FrameFoot = {
-        [Color.Red]: '#9f302c',
-        [Color.Blue]: '#4e5992',
-        [Color.Green]: '#5c6139',
-        [Color.Purple]: '#9f548d',
-        [Color.Yellow]: '#c7b041'
+        [Color.Red]: 'var(--feudum-print-frame-red)',
+        [Color.Blue]: 'var(--feudum-print-frame-blue)',
+        [Color.Green]: 'var(--feudum-print-frame-green)',
+        [Color.Purple]: 'var(--feudum-print-frame-purple)',
+        [Color.Yellow]: 'var(--feudum-print-frame-yellow)'
     } as const
 
     function nameLineOf(face: string) {

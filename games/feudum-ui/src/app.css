@@ -83,6 +83,11 @@
     --feudum-river: #5fb3c4;
     --feudum-board-frame: #5b3b1e;
     --feudum-score-cell: #efe3c8;
+    --feudum-print-frame-red: #9f302c;
+    --feudum-print-frame-blue: #4e5992;
+    --feudum-print-frame-green: #5c6139;
+    --feudum-print-frame-purple: #9f548d;
+    --feudum-print-frame-yellow: #c7b041;
     --feudum-disc-outpost: #8e8096;
     --feudum-disc-farm: #8c9a3a;
     --feudum-disc-town: #c9ae2e;
@@ -149,6 +154,11 @@
     --color-feudum-river: var(--feudum-river);
     --color-feudum-board-frame: var(--feudum-board-frame);
     --color-feudum-score-cell: var(--feudum-score-cell);
+    --color-feudum-print-frame-red: var(--feudum-print-frame-red);
+    --color-feudum-print-frame-blue: var(--feudum-print-frame-blue);
+    --color-feudum-print-frame-green: var(--feudum-print-frame-green);
+    --color-feudum-print-frame-purple: var(--feudum-print-frame-purple);
+    --color-feudum-print-frame-yellow: var(--feudum-print-frame-yellow);
     --color-feudum-disc-outpost: var(--feudum-disc-outpost);
     --color-feudum-disc-farm: var(--feudum-disc-farm);
     --color-feudum-disc-town: var(--feudum-disc-town);
