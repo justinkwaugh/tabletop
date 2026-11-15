@@ -91,15 +91,14 @@ export class BoardAnimator implements MoveInterrupter {
     private staged: StagedDrop | undefined
     private liveActions: readonly GameAction[] = []
     private explorationActions: readonly GameAction[] = []
-    private exploring = false
+    // Where the state on screen is: the session has moved on by the time it is replaced.
+    private exploring: boolean
+    private inHistory: boolean
     private abandoned: HydratedZertzGameState | undefined
 
     constructor(private readonly session: ZertzGameSession) {
-        // Kept as each state is shown, as a jump forward through history needs the actions it
-        // hides; this runs again once leaving history has finished. Board.svelte constructs the
-        // animator during its setup, so the board owns this effect, as GameTable owns
-        // DebouncedLayout's.
-        $effect(() => this.rememberActions())
+        this.exploring = session.isExploring
+        this.inHistory = session.isViewingHistory
     }
 
     readonly attach: Attachment = () => {
@@ -188,17 +187,18 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // The live game's and an exploration's actions are kept apart, so neither stands in for the
-    // other.
-    private rememberActions() {
-        const { actions, isViewingHistory, isExploring } = this.session
-        if (isExploring !== this.exploring) {
-            this.exploring = isExploring
-            this.explorationActions = []
+    // A jump forward through history needs the actions it hides, so the actions shown outside
+    // history are kept as another state replaces them. The live game's and an exploration's are
+    // kept apart, so neither stands in for the other.
+    replacingShown() {
+        const { actions, isExploring, history } = this.session
+        if (!this.inHistory) {
+            if (this.exploring) this.explorationActions = actions
+            else this.liveActions = actions
         }
-        if (isViewingHistory) return
-        if (isExploring) this.explorationActions = actions
-        else this.liveActions = actions
+        if (isExploring !== this.exploring) this.explorationActions = []
+        this.exploring = isExploring
+        this.inHistory = history.inHistory
     }
 
     // History shows its actions only up to the step it is on, so a jump forward reads the list, as

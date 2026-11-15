@@ -36,6 +36,8 @@ export type MoveInterrupter = {
     interrupt(): void
     // Lands it and drops the rest of its replay: another state is being shown.
     abandon(): void
+    // Called as a newly published state replaces the one on screen.
+    replacingShown(): void
 }
 
 type SessionOptions = ConstructorParameters<
@@ -186,6 +188,7 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     }
 
     override beforeNewState({ kind }: PresentedTransition): void {
+        this.moveInterrupter?.replacingShown()
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const incoming = this.presentingState
         const move = kind === 'undo' && incoming ? this.restagedMove(incoming) : undefined
