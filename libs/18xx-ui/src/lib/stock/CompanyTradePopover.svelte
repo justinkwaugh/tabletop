@@ -227,8 +227,8 @@
         background: var(--trade-buy);
     }
     .chip.sell {
-        border-color: #7c3a2a;
-        background: #8e4431;
+        border-color: var(--trade-sell-border);
+        background: var(--trade-sell);
     }
     .chip:disabled {
         opacity: 0.4;
