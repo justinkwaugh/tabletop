@@ -42,13 +42,13 @@ export const PrintedNameLine = {
     } satisfies Record<ActionCardKind, { from: number; to: number }>
 } as const
 
-/** The printed frame's colour round the name line, measured on the print. */
+/** The printed frame's colour round the name line, measured on the print (the palette's `print-frame`). */
 export const PrintedFrameFoot: Record<PrintedColour, string> = {
-    [Color.Red]: '#9f302c',
-    [Color.Blue]: '#4e5992',
-    [Color.Green]: '#5c6139',
-    [Color.Purple]: '#9f548d',
-    [Color.Yellow]: '#c7b041'
+    [Color.Red]: 'var(--feudum-print-frame-red)',
+    [Color.Blue]: 'var(--feudum-print-frame-blue)',
+    [Color.Green]: 'var(--feudum-print-frame-green)',
+    [Color.Purple]: 'var(--feudum-print-frame-purple)',
+    [Color.Yellow]: 'var(--feudum-print-frame-yellow)'
 }
 
 /** The name line's cover as an SVG path in the print's pixels, the jewel's notch left open. */
