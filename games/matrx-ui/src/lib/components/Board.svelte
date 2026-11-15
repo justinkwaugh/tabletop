@@ -119,6 +119,9 @@
     const tableArea = $derived(tableAreaOf(frame))
     const centreTriangles = $derived(centreTrianglesOf(view))
     const TOGGLE_RADIUS = PIECE_RADIUS * 0.66
+    // Labels are centred from the alphabetic baseline, as WebKit mis-scales a central baseline
+    // under the board's CSS zoom: 0.343 of their 17px font, measured.
+    const LABEL_SHIFT = 17 * 0.343
 
     const chosen = $derived(session.chosenFrom !== undefined || session.chosenDot !== undefined)
 
@@ -250,7 +253,9 @@
 
     {#if session.showCoordinates}
         {#each session.notation.labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+            <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
+                >{label.text}</text
+            >
         {/each}
     {/if}
 
@@ -604,7 +609,6 @@
         font-weight: 600;
         letter-spacing: 0.04em;
         text-anchor: middle;
-        dominant-baseline: central;
         pointer-events: none;
     }
 
