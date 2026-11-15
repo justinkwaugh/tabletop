@@ -20,7 +20,7 @@ function processedOf(run: ReturnType<typeof runAction>) {
     return run.processed.map(({ type, playerId, source }) => ({ type, playerId, source }))
 }
 
-describe('TakingShares (R-3.1, R-1.1-H1)', () => {
+describe('TakingShares (R-3.1, R-1.1)', () => {
     it('skips, by itself, each turn that finds every supply empty', () => {
         const state = buildState({
             shares: { p1: { 'railroad.red': 26 }, p2: { 'railroad.blue': 27 } }
@@ -99,7 +99,7 @@ describe('Building (R-3.2.1, R-3.2.3, R-3.2.4)', () => {
     })
 })
 
-describe('Riding (R-3.3.1, R-3.3.1-H1)', () => {
+describe('Riding (R-3.3.1)', () => {
     it('offers the journey, and not the pass, while one exists', () => {
         const state = buildState({
             phase: PhaseName.Ride,

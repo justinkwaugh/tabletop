@@ -6,7 +6,7 @@
 
     const gameSession = getGameSession()
 
-    // R-6.2, R-6.2-H1: final money in order; every seat tied for the most wins.
+    // R-6.2: final money in order; every seat tied for the most wins.
     const standings = $derived(finalStandings(gameSession.gameState))
     const winners = $derived(standings.filter((standing) => standing.winner))
 

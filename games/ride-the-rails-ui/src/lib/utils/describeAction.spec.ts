@@ -81,7 +81,7 @@ describe('share descriptions (R-3.1)', () => {
         expect(readDescription(description, SPECTATOR, NAMES)).toBe(`${NAMES[playerId]} took Blue`)
     })
 
-    it('reads a skipped share as that seat’s own entry (R-1.1-H1)', () => {
+    it('reads a skipped share as that seat’s own entry (R-3.1)', () => {
         const action: SkipShare = {
             ...SYSTEM,
             type: ActionType.SkipShare,
@@ -219,7 +219,7 @@ describe('riding descriptions (R-3.3)', () => {
         })
     })
 
-    it('reads a pass with its reason (R-3.3.1-H1)', () => {
+    it('reads a pass with its reason (R-3.3.1)', () => {
         const action: PassJourney = { ...USER, type: ActionType.PassJourney, playerId: ACTOR }
         expectReadings(action, {
             actor: 'You passed: no journey was possible',
@@ -288,7 +288,7 @@ describe('end of round and game descriptions (R-2.5, R-6.2)', () => {
         })
     })
 
-    it('names every seat tied for the most money as a winner (R-6.2-H1)', () => {
+    it('names every seat tied for the most money as a winner (R-6.2)', () => {
         const action: EndGame = {
             ...SYSTEM,
             type: ActionType.EndGame,

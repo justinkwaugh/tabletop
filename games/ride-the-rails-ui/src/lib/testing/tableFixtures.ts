@@ -353,7 +353,7 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
             phase: PhaseName.TakeShare
         }
     },
-    // Scenario 2: Red's 27 locomotives are all shares and track (R-1.1-H1).
+    // Scenario 2: Red's 27 locomotives are all shares and track (R-1.1).
     {
         slug: 'red-supply-empty',
         name: 'Red supply empty',
@@ -586,7 +586,7 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
         }
     },
     // Scenario 9: round 3 with three seats; Ada holds Orange and Yellow, and the westernmost
-    // occupied cities are Omaha, Kansas City and Des Moines (R-4.2.3, R-4.2.3-H2).
+    // occupied cities are Omaha, Kansas City and Des Moines (R-4.2.3).
     {
         slug: 'yellow-starts',
         name: 'Yellow starts',
@@ -730,7 +730,7 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
         }
     },
     // Scenario 16: round 2, Ride. Round 1's journeys carried every passenger the links reach, and
-    // Orange's stub out of Chicago links nothing, so Ada can only pass (R-3.3.1-H1).
+    // Orange's stub out of Chicago links nothing, so Ada can only pass (R-3.3.1).
     {
         slug: 'no-journey',
         name: 'No journey',
@@ -762,7 +762,7 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
         }
     },
     // Scenario 18: round 1's last journey. Ada, Ben and Cora have ridden; Dell's journey from
-    // Washington ties him with Ben, so the two swap places in the new order (R-2.5-H1).
+    // Washington ties him with Ben, so the two swap places in the new order (R-2.5).
     {
         slug: 'round-one-ends',
         name: 'Round one ends',
@@ -775,7 +775,7 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
         }
     },
     // Scenario 19: round 6's last journey. Cora's ride from Saint Louis brings her level with Ada,
-    // and the two share the win (R-6.2-H1).
+    // and the two share the win (R-6.2).
     {
         slug: 'last-journey',
         name: 'Last journey',

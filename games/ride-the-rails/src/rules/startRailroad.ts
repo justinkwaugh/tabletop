@@ -17,7 +17,7 @@ export function isWestCoastCity(city: City): boolean {
     return city.groups.includes('west-coast')
 }
 
-// R-4.2.3-H2: the occupied cities lowest in dcol, every city tied with the third included,
+// R-4.2.3: the occupied cities lowest in dcol, every city tied with the third included,
 // whether or not it could take Yellow.
 export function westernmostOccupiedCities(track: Track): CityId[] {
     const occupied = USA_CITIES.filter((city) => railroadsIn(track, city.hexId).length > 0)
@@ -63,7 +63,7 @@ function cityFitsStartRule(startRule: StartRule, city: City, track: Track) {
         // R-4.2.2
         case 'east-coast-or-chicago':
             return isEastCoastCity(city) || city.id === CHICAGO_CITY_ID
-        // R-4.2.3, R-4.2.3-H1, R-4.2.3-H2: the set is read from the track before the placement.
+        // R-4.2.3: the set is read from the track before the placement.
         case 'chicago-or-westernmost':
             return (
                 city.id === CHICAGO_CITY_ID ||
@@ -73,7 +73,7 @@ function cityFitsStartRule(startRule: StartRule, city: City, track: Track) {
         // R-4.2.4
         case 'west-coast':
             return isWestCoastCity(city)
-        // R-4.2.5, R-4.2.5-H1: any city with room, which the placement test checks.
+        // R-4.2.5: any city with room, which the placement test checks.
         case 'any-city':
             return true
     }

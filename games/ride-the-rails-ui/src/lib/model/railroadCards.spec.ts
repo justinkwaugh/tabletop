@@ -53,7 +53,7 @@ describe('a share button’s accessible name (R-3.1), its pile drawn without wor
     })
 })
 
-describe('the share buttons (R-3.1, R-1.4, R-1.1-H1)', () => {
+describe('the share buttons (R-3.1, R-1.4, R-1.1)', () => {
     it('are the railroads available this round: round 1 shows Red and Blue alone', async () => {
         const session = await openSessionOn(
             buildState({ playerCount: 4, round: 1, phase: PhaseName.TakeShare })

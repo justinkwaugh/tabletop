@@ -13,7 +13,7 @@
     const claim = $derived(gameSession.gameState.transcontinental)
 </script>
 
-<!-- R-4.3.3, R-4.3.3-H1: the claim's gold medallion with its amount, or a dashed gold ring while
+<!-- R-4.3.3: the claim's gold medallion with its amount, or a dashed gold ring while
      the line is unclaimed. The chip that holds it names it. -->
 <svg
     class="block shrink-0"

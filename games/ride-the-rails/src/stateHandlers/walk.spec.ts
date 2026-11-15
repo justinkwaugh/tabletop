@@ -258,7 +258,7 @@ describe.each([3, 4, 5])(
     }
 )
 
-describe.each([3, 4, 5])('a seeded walk with %i players (R-5-H1, R-X.2)', (playerCount) => {
+describe.each([3, 4, 5])('a seeded walk with %i players (R-5, R-X.2)', (playerCount) => {
     it(
         'is the same game each time it is played from the same seed',
         () => {

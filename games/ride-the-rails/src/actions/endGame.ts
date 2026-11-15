@@ -37,7 +37,7 @@ export class HydratedEndGame extends HydratableAction<typeof EndGame> implements
         super(data, EndGameValidator)
     }
 
-    // R-6.1, R-6.2, R-6.2-H1: no reorder after round 6.
+    // R-6.1, R-6.2: no reorder after round 6.
     apply(state: HydratedRideTheRailsGameState, _context?: MachineContext) {
         assert(HydratedEndGame.canEndGame(state), 'The game ends only after round 6 (R-6.1)')
         state.roundManager.endRound(state.actionCount)

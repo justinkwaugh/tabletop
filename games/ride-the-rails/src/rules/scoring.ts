@@ -17,7 +17,7 @@ export function moneyOf(
     }))
 }
 
-// R-6.2, R-6.2-H1: the most money wins; every player tied for it shares the win.
+// R-6.2: the most money wins; every player tied for it shares the win.
 export function richestPlayerIds(state: HydratedRideTheRailsGameState): string[] {
     const most = Math.max(...state.players.map((player) => player.money))
     return state.players.filter((player) => player.money === most).map((player) => player.playerId)

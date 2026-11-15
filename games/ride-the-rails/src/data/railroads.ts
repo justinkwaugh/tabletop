@@ -44,7 +44,7 @@ export type RailroadIntroduction = {
     readonly startRule: StartRule
 }
 
-// R-1.4 availability and R-4.2.1 to R-4.2.5 starts; R-8-H1: an expansion map adds its own row.
+// R-1.4 availability and R-4.2.1 to R-4.2.5 starts; R-8: an expansion map adds its own row.
 export const RAILROAD_INTRODUCTIONS: Readonly<Record<MapId, readonly RailroadIntroduction[]>> = {
     'map.usa': [
         { railroadId: 'railroad.red', availableFromRound: 1, startRule: 'east-coast-apart' },

@@ -54,7 +54,7 @@ describe('EndGame (R-6)', () => {
         })
     })
 
-    describe('winners (R-6.2, R-6.2-H1)', () => {
+    describe('winners (R-6.2)', () => {
         it('names the player with the most money as the winner (R-6.2)', () => {
             const state = finalState({ p1: 40, p2: 52, p3: 25 })
             endGame(state)
@@ -62,14 +62,14 @@ describe('EndGame (R-6)', () => {
             expect(state.result).toBe(GameResult.Win)
         })
 
-        it('shares the win between two players tied for the most money (R-6.2-H1)', () => {
+        it('shares the win between two players tied for the most money (R-6.2)', () => {
             const state = finalState({ p1: 52, p2: 30, p3: 52 })
             endGame(state)
             expect(state.winningPlayerIds).toEqual(['p1', 'p3'])
             expect(state.result).toBe(GameResult.Draw)
         })
 
-        it('shares the win among every tied player, with no tie-break (R-6.2-H1)', () => {
+        it('shares the win among every tied player, with no tie-break (R-6.2)', () => {
             const state = buildState({
                 playerCount: 4,
                 round: 6,

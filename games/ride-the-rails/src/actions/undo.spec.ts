@@ -66,7 +66,7 @@ function nextPlayersStepIndex(walk: Walk, stepIndex: number): number | undefined
     return index >= 0 ? index : undefined
 }
 
-// R-5-H1: the player takes the action back, with its whole cascade, until the next player acts.
+// R-5: the player takes the action back, with its whole cascade, until the next player acts.
 function expectUndoableUntilTheNextPlayerActs(walk: Walk, stepIndex: number) {
     const step = walk.steps[stepIndex]
     const action = userAction(step)
@@ -89,7 +89,7 @@ function expectUndoableUntilTheNextPlayerActs(walk: Walk, stepIndex: number) {
     }
 }
 
-describe('undo of each action until the next player acts (R-5-H1)', () => {
+describe('undo of each action until the next player acts (R-5)', () => {
     it('takes back a share', () => {
         expectUndoableUntilTheNextPlayerActs(
             fourPlayerWalk,
@@ -153,7 +153,7 @@ describe('undo of each action until the next player acts (R-5-H1)', () => {
     })
 })
 
-describe('undo of a cascade with its cause (R-5-H1)', () => {
+describe('undo of a cascade with its cause (R-5)', () => {
     it('undoes the FinishBuilding a placement at the limit carries, and reopens the building turn', () => {
         const index = firstStepOf(fourPlayerWalk, ActionType.PlaceLocomotive, (types) =>
             types.includes(ActionType.FinishBuilding)

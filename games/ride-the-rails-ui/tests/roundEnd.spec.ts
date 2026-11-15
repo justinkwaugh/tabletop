@@ -75,7 +75,7 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     await page.getByRole('button', { name: 'Ride · you +$3', exact: true }).click()
     await settled(page)
 
-    // R-2.5.1, R-2.5-H1: lowest money first; Ben and Dell tie at $4, so they swap places.
+    // R-2.5.1: lowest money first; Ben and Dell tie at $4, so they swap places.
     expect(await moneyOf(page, 'p4')).toBe(4)
     expect(await moneyOf(page, 'p2')).toBe(4)
     expect(await turnOrder(page)).toEqual(['p4', 'p2', 'p3', 'p1'])
@@ -118,7 +118,7 @@ test('19. Game end: final money in order, and both seats tied for most win', asy
     await page.getByRole('button', { name: 'Ride · you +$5', exact: true }).click()
     await settled(page)
 
-    // R-6.1, R-6.2, R-6.2-H1: the game ends after round 6; Ada and Cora share the win.
+    // R-6.1, R-6.2: the game ends after round 6; Ada and Cora share the win.
     expect(await page.evaluate(() => window.rtrSession.gameState.result !== undefined)).toBe(true)
     const headline = page.getByRole('heading', {
         name: 'Ada and Cora share the win with $44',

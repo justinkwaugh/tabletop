@@ -164,7 +164,7 @@ describe('the board offer in Building (R-3.2, R-4.1, R-4.2)', () => {
     })
 
     it.each(['city.usa.chicago', 'city.usa.omaha'] as const)(
-        'lights and cues no Yellow start once Yellow has started in %s (R-4.2.3-H1)',
+        'lights and cues no Yellow start once Yellow has started in %s (R-4.2.3)',
         async (cityId) => {
             const yellow: RailroadId = 'railroad.yellow'
             const fixture = TABLE_FIXTURES.find((candidate) => candidate.slug === 'yellow-starts')
@@ -272,7 +272,7 @@ describe('placing a locomotive (U-2, R-3.2)', () => {
         expect(session.hasLocalSelection).toBe(false)
     })
 
-    it('Undo closes the popup and places nothing; a second Undo takes back the previous placement (R-5-H1)', async () => {
+    it('Undo closes the popup and places nothing; a second Undo takes back the previous placement (R-5)', async () => {
         const session = await openSessionOn(redAndBlue())
         const single = litWith(session, 1)
         await session.pressHex(single.hexId)
@@ -488,7 +488,7 @@ describe('the other actions', () => {
         expect(isTakeShare(action) && action.railroadId).toBe('railroad.blue')
     })
 
-    it('passes a journey only when no journey exists (R-3.3.1-H1)', async () => {
+    it('passes a journey only when no journey exists (R-3.3.1)', async () => {
         const session = await openSessionOn(buildState({ phase: PhaseName.Ride }))
         expect(session.canPassJourney).toBe(true)
         const apply = spyOnApply()

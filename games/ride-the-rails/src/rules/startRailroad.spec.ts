@@ -107,7 +107,7 @@ describe('Purple starts on the West Coast (R-4.2.4)', () => {
     })
 })
 
-describe('Black starts in any city with room, Chicago included (R-4.2.5, R-4.2.5-H1)', () => {
+describe('Black starts in any city with room, Chicago included (R-4.2.5)', () => {
     it('starts in any city, a $5 city or an East Coast city included', () => {
         expect(verdict({}, 'railroad.black', DENVER)).toEqual(START)
         expect(verdict({}, 'railroad.black', BOSTON)).toEqual(START)
@@ -138,7 +138,7 @@ describe('Black starts in any city with room, Chicago included (R-4.2.5, R-4.2.5
     })
 })
 
-describe('the westernmost set (R-4.2.3, R-4.2.3-H2)', () => {
+describe('the westernmost set (R-4.2.3)', () => {
     it('takes the occupied cities lowest in dcol, every city tied with the third included', () => {
         expect(westernmostOccupiedCities(WESTERN_TRACK)).toEqual([
             'city.usa.reno',
@@ -174,7 +174,7 @@ describe('the westernmost set (R-4.2.3, R-4.2.3-H2)', () => {
     })
 })
 
-describe('Yellow starts once, in Chicago or a westernmost city (R-4.2.3, R-4.2.3-H1)', () => {
+describe('Yellow starts once, in Chicago or a westernmost city (R-4.2.3)', () => {
     it('starts in Chicago, whatever Chicago holds', () => {
         const crowded: Track = {
             ...WESTERN_TRACK,
@@ -207,7 +207,7 @@ describe('Yellow starts once, in Chicago or a westernmost city (R-4.2.3, R-4.2.3
     })
 })
 
-describe('a placement next to the railroad’s own track is never a start (R-4.1.2, R-4.2.3-H1)', () => {
+describe('a placement next to the railroad’s own track is never a start (R-4.1.2, R-4.2.3)', () => {
     it('lets Yellow build into Chicago by adjacency, not as a start', () => {
         const track: Track = { ...WESTERN_TRACK, [NEXT_TO_CHICAGO]: ['railroad.yellow'] }
         expect(verdict(track, 'railroad.yellow', CHICAGO)).toEqual({

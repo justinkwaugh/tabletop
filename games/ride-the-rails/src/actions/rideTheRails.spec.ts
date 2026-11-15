@@ -180,7 +180,7 @@ describe('RideJourney (R-3.3, R-X.1)', () => {
         expect(() => rideJourney('p1', links).apply(riding())).toThrow(reason)
     })
 
-    it('pays every player dividends per link and share, and the rider a fare per city visited (R-3.3.2-H1, R-3.3.4, R-3.3.5)', () => {
+    it('pays every player dividends per link and share, and the rider a fare per city visited (R-3.3.2, R-3.3.4, R-3.3.5)', () => {
         const state = riding()
         rideJourney('p1', THROUGH_SAINT_LOUIS).apply(state)
         expect(moneyOf(state)).toEqual({ p1: 10 + 2 * 2 + 4, p2: 20 + 2 * 1 + 1 * 1, p3: 30 })
@@ -221,7 +221,7 @@ describe('RideJourney (R-3.3, R-X.1)', () => {
     })
 })
 
-describe('PassJourney (R-3.3.1-H1)', () => {
+describe('PassJourney (R-3.3.1)', () => {
     it('is an API action the hydrator rebuilds', () => {
         const action = passJourney('p1')
         expect(RideTheRailsApiActions[ActionType.PassJourney]).toBeDefined()

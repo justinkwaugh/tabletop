@@ -65,7 +65,7 @@ describe('railroads (R-1.1, R-1.4)', () => {
         ])
     })
 
-    it('introduces each railroad once per map, in railroad order (R-1.4, R-8-H1)', () => {
+    it('introduces each railroad once per map, in railroad order (R-1.4, R-8)', () => {
         for (const introductions of Object.values(RAILROAD_INTRODUCTIONS)) {
             expect(introductions.map((introduction) => introduction.railroadId)).toEqual(
                 RAILROAD_IDS
@@ -98,7 +98,7 @@ describe('placement limits (R-3.2.3, R-3.2.4)', () => {
         expect(placementLimit('map.usa', 5, true)).toBe(3)
     })
 
-    it('has one row per player count on every map (R-1.2, R-8-H1)', () => {
+    it('has one row per player count on every map (R-1.2, R-8)', () => {
         for (const limits of Object.values(PLACEMENT_LIMITS)) {
             expect(limits.byPlayerCount.map((row) => row.playerCount)).toEqual([3, 4, 5])
         }
@@ -135,7 +135,7 @@ describe('bonuses (R-4.3)', () => {
         })
     })
 
-    it('lists the three USA bonuses for the USA map (R-4.3, R-8-H1)', () => {
+    it('lists the three USA bonuses for the USA map (R-4.3, R-8)', () => {
         expect(BONUSES['map.usa'].map((bonus) => bonus.id)).toEqual([
             'bonus.usa.chicago',
             'bonus.usa.five-dollar',
@@ -149,7 +149,7 @@ describe('bonuses (R-4.3)', () => {
     })
 })
 
-describe('tables keyed by map id (R-8-H1)', () => {
+describe('tables keyed by map id (R-8)', () => {
     it('keys every table by the same map ids', () => {
         expect(Object.keys(RAILROAD_INTRODUCTIONS)).toEqual(['map.usa'])
         expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa'])

@@ -4,7 +4,7 @@ import { RideTheRailsInfo } from './info.js'
 import { GAME_VERSION } from './version.js'
 
 describe('RideTheRailsInfo', () => {
-    it('seats three to five players and defaults to four (R-1.2-H1)', () => {
+    it('seats three to five players and defaults to four (R-1.2)', () => {
         expect(RideTheRailsInfo.metadata).toMatchObject({
             minPlayers: 3,
             maxPlayers: 5,
@@ -12,7 +12,7 @@ describe('RideTheRailsInfo', () => {
         })
     })
 
-    it('offers no creation options (R-8-H1)', () => {
+    it('offers no creation options (R-8)', () => {
         expect(RideTheRailsInfo.configurator).toBeUndefined()
     })
 

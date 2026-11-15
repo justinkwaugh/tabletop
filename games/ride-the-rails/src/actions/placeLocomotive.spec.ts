@@ -202,7 +202,7 @@ describe('bonuses at the placement (R-3.2.5, R-4.3)', () => {
         })
     })
 
-    it('pays and claims the Transcontinental once (R-4.3.3, R-4.3.3-H2)', () => {
+    it('pays and claims the Transcontinental once (R-4.3.3)', () => {
         const track = trackOf(
             ['railroad.purple', [...row(9, 5, 31), KANSAS_CITY]],
             ['railroad.red', row(9, 33, 55)]
@@ -232,7 +232,7 @@ describe('bonuses at the placement (R-3.2.5, R-4.3)', () => {
     })
 })
 
-describe('Yellow’s one start (R-4.2.3, R-4.2.3-H1, R-4.2.3-H2)', () => {
+describe('Yellow’s one start (R-4.2.3)', () => {
     const NOT_ADJACENT = { legal: false, reason: 'not-adjacent-or-start' }
 
     it('starts in a westernmost city holding exactly one locomotive', () => {
@@ -358,7 +358,7 @@ describe('the turn ends by itself when nothing more is legal (R-3.2.3, R-3.2.4)'
     })
 })
 
-describe('Undo of a placement (R-5-H1)', () => {
+describe('Undo of a placement (R-5)', () => {
     it('takes back that one locomotive with the bonuses it paid', () => {
         const track = trackOf(
             ['railroad.purple', [...row(9, 5, 31), KANSAS_CITY]],

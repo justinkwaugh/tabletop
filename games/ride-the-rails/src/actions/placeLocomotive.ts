@@ -116,7 +116,7 @@ export class HydratedPlaceLocomotive
         }
     }
 
-    // R-3.2.5, R-4.3.3-H2: every bonus to the placing player; the Transcontinental is claimed once.
+    // R-3.2.5, R-4.3.3: every bonus to the placing player; the Transcontinental is claimed once.
     private payBonuses(state: HydratedRideTheRailsGameState, bonuses: readonly BonusPayment[]) {
         const player = state.getPlayerState(this.playerId)
         for (const bonus of bonuses) {

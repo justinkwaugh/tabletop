@@ -46,7 +46,7 @@ export class HydratedSkipShare extends HydratableAction<typeof SkipShare> implem
         super(data, SkipShareValidator)
     }
 
-    // R-1.1-H1: the turn takes nothing when every available railroad's supply is empty.
+    // R-3.1: the turn takes nothing when every available railroad's supply is empty.
     apply(state: HydratedRideTheRailsGameState, _context?: MachineContext) {
         assert(state.machineState === MachineState.TakingShares, 'Shares are taken in phase 1')
         assert(state.isActivePlayer(this.playerId), 'It is not that player’s turn')

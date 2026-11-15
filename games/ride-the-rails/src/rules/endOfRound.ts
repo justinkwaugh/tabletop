@@ -15,7 +15,7 @@ export function isLastRound(state: HydratedRideTheRailsGameState): boolean {
     return currentRoundNumber(state) === ROUND_COUNT
 }
 
-// R-2.5.1, R-2.5-H1: lowest money first; tied players, however many, reverse their order from
+// R-2.5.1: lowest money first; tied players, however many, reverse their order from
 // the round just played, so the stable sort runs over that order reversed.
 export function turnOrderByMoney(state: HydratedRideTheRailsGameState): string[] {
     return [...state.turnManager.turnOrder]

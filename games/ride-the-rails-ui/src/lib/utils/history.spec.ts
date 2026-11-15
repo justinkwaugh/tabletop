@@ -457,7 +457,7 @@ describe('a whole game (R-2.1, R-3.1–R-3.3, R-2.5)', () => {
                 expect(reading(turnDescription(turn), undefined)).not.toMatch(/undefined/)
             }
 
-            // R-1.1-H1, R-3.2.4: SkipShare and FinishBuilding fold into their seat's entry.
+            // R-3.1, R-3.2.4: SkipShare and FinishBuilding fold into their seat's entry.
             const folded = history.filter(
                 (action) => isSkipShare(action) || isFinishBuilding(action)
             )

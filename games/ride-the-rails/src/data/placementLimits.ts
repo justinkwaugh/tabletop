@@ -11,7 +11,7 @@ export type MapPlacementLimits = {
     readonly mountainReduction: number
 }
 
-// R-3.2.3 limits and R-3.2.4 mountain reduction; R-8-H1: an expansion map adds its own row.
+// R-3.2.3 limits and R-3.2.4 mountain reduction; R-8: an expansion map adds its own row.
 export const PLACEMENT_LIMITS: Readonly<Record<MapId, MapPlacementLimits>> = {
     'map.usa': {
         byPlayerCount: [

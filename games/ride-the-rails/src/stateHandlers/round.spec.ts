@@ -108,7 +108,7 @@ describe('one whole round through the engine (R-2.1, R-2.2)', () => {
         expect(table.state.building).toBeUndefined()
     })
 
-    it('walks Ride from first to last, offering the pass only when no journey exists (R-3.3.1-H1)', () => {
+    it('walks Ride from first to last, offering the pass only when no journey exists (R-3.3.1)', () => {
         table.expectOffers('p1', [ActionType.RideJourney])
         table.act({
             type: ActionType.RideJourney,

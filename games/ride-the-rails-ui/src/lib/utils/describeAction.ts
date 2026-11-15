@@ -106,7 +106,7 @@ function shareDescription(action: GameAction): Description | undefined {
         return [{ playerId: action.playerId }, ' took ', { railroadId: action.railroadId }]
     }
     if (isSkipShare(action)) {
-        // R-1.1-H1: the seat's own turn, which takes nothing.
+        // R-3.1: the seat's own turn, which takes nothing.
         const empty = action.metadata?.railroadIds ?? []
         return empty.length === 0
             ? [{ playerId: action.playerId }, ' took no share']
@@ -164,7 +164,7 @@ function ridingDescription(action: GameAction): Description | undefined {
         ]
     }
     if (isPassJourney(action)) {
-        // R-3.3.1-H1: a pass is open only when no journey exists.
+        // R-3.3.1: a pass is open only when no journey exists.
         return [{ playerId: action.playerId }, ' passed: no journey was possible']
     }
     return undefined
@@ -190,7 +190,7 @@ function endDescription(action: GameAction): Description | undefined {
         if (!metadata) {
             return ['The game ended']
         }
-        // R-6.2-H1: every seat tied for the most money wins.
+        // R-6.2: every seat tied for the most money wins.
         const winners = metadata.winningPlayerIds
         const ranked = metadata.money.toSorted((a, b) => b.money - a.money)
         return [

@@ -133,7 +133,7 @@ export class RideTheRailsGameSession extends GameSession<
 
     takingShare = $derived(this.canAct && this.gameState.machineState === MachineState.TakingShares)
 
-    // R-3.1, R-1.4, R-1.1-H1
+    // R-3.1, R-1.4, R-1.1
     shareChoices: RailroadId[] = $derived(
         this.takingShare ? shareableRailroads(this.gameState) : []
     )
@@ -232,7 +232,7 @@ export class RideTheRailsGameSession extends GameSession<
         }
     }
 
-    // R-3.3.1-H1
+    // R-3.3.1
     canPassJourney = $derived.by(() => {
         const playerId = this.myPlayerId
         return (
@@ -406,7 +406,7 @@ export class RideTheRailsGameSession extends GameSession<
         }
     }
 
-    // R-3.3.1, R-3.3.1-H1: the deciding seat chooses a journey; with none possible it may only pass.
+    // R-3.3.1: the deciding seat chooses a journey; with none possible it may only pass.
     journeyPossible = $derived(
         this.gameState.machineState === MachineState.Riding && journeyExists(this.gameState)
     )

@@ -39,7 +39,7 @@ export const TRANSCONTINENTAL_BONUS: JunctionPricedBonus = {
     otherHexAmount: 8
 }
 
-// R-4.3; R-8-H1: an expansion map adds its own row.
+// R-4.3; R-8: an expansion map adds its own row.
 export const BONUSES: Readonly<Record<MapId, readonly BonusDefinition[]>> = {
     'map.usa': [CHICAGO_BONUS, FIVE_DOLLAR_BONUS, TRANSCONTINENTAL_BONUS]
 }

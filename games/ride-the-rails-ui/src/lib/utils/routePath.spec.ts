@@ -63,7 +63,7 @@ function expectALine(track: Track, route: HexId[] | undefined) {
     }
 }
 
-describe('the claimed Transcontinental line (R-4.3.3, R-4.3.3-H1, R-4.3.3-H2)', () => {
+describe('the claimed Transcontinental line (R-4.3.3)', () => {
     it('finds no line on an empty map, as the rules do', () => {
         expect(transcontinentalLine({})).toBeUndefined()
     })

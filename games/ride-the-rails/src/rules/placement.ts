@@ -63,7 +63,7 @@ export function hasRoomIn(track: Track, hexId: HexId): boolean {
     return capacity === 'unlimited' || railroadsIn(track, hexId).length < capacity
 }
 
-// R-4.1.4, R-4.2.5-H1: the East Coast cities holding this railroad's track, a start included.
+// R-4.1.4, R-4.2.5: the East Coast cities holding this railroad's track, a start included.
 export function eastCoastCitiesHeld(track: Track, railroadId: RailroadId): number {
     return USA_CITIES.filter(
         (city) => isEastCoastCity(city) && hasTrackIn(track, city.hexId, railroadId)
@@ -75,8 +75,8 @@ export function isAdjacentToOwnTrack(track: Track, railroadId: RailroadId, hexId
     return adjacentHexIds(hexId).some((adjacent) => hasTrackIn(track, adjacent, railroadId))
 }
 
-// The placement test: R-3.2.2, R-1.1-H1, R-3.2.3, R-3.2.4, R-4.1.3, R-4.1.4, R-4.1.1, R-4.1.2,
-// R-4.2. A placement adjacent to the railroad's own track is never a start (R-4.1.2, R-4.2.3-H1).
+// The placement test: R-3.2.2, R-1.1, R-3.2.3, R-3.2.4, R-4.1.3, R-4.1.4, R-4.1.1, R-4.1.2,
+// R-4.2. A placement adjacent to the railroad's own track is never a start (R-4.1.2, R-4.2.3).
 export function placementTest(
     state: HydratedRideTheRailsGameState,
     playerId: string,
@@ -126,7 +126,7 @@ function* placementsPassing(
     }
 }
 
-// R-3.2.2, R-1.1-H1: the clauses that hold for the railroad on every hex.
+// R-3.2.2, R-1.1: the clauses that hold for the railroad on every hex.
 function railroadRefusal(
     state: HydratedRideTheRailsGameState,
     playerId: string,

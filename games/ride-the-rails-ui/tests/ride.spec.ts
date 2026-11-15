@@ -228,7 +228,7 @@ test('15. City by city: the panel offers no Best route; Ride sends the route sho
 test('16. Pass: no passenger city has a link, so Pass is the only button', async ({ page }) => {
     await openScenario(page, 'No journey')
     expect(await activePlayerId(page)).toBe('p1')
-    // R-3.3.1-H1
+    // R-3.3.1
     await expect(
         page.getByRole('heading', {
             name: "No passenger can travel: no link leaves any passenger's city"

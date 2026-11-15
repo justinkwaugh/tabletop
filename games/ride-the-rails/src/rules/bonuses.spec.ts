@@ -93,7 +93,7 @@ function transcontinental(amount: number): BonusPayment {
     return { bonusId: 'bonus.usa.transcontinental', amount }
 }
 
-describe('the bonus table (R-4.3, R-8-H1)', () => {
+describe('the bonus table (R-4.3, R-8)', () => {
     it('keys the USA bonuses by map, in the order they are evaluated (R-3.2.5)', () => {
         expect(BONUS_RULES['map.usa'].map((rule) => rule.bonus)).toEqual(BONUSES['map.usa'])
         expect(BONUS_RULES['map.usa'].map((rule) => rule.bonus.id)).toEqual([
@@ -154,7 +154,7 @@ describe('Chicago (R-4.3.1)', () => {
     })
 })
 
-describe('$5 cities (R-4.3.2, R-4.3.2-H1)', () => {
+describe('$5 cities (R-4.3.2)', () => {
     it('has the four $5 cities', () => {
         expect(FIVE_DOLLAR_CITIES.map((city) => city.id)).toEqual([
             'city.usa.minneapolis',
@@ -207,7 +207,7 @@ describe('$5 cities (R-4.3.2, R-4.3.2-H1)', () => {
     })
 })
 
-describe('the Transcontinental (R-4.3.3, R-4.3.3-H1, R-4.3.3-H2)', () => {
+describe('the Transcontinental (R-4.3.3)', () => {
     it('pays $12 when the railroads join in a city hex', () => {
         const track = trackOf(
             ['railroad.purple', [...row(9, 5, 31), KANSAS_CITY]],

@@ -309,7 +309,7 @@ describe('every route a search helper returns passes the journey test (R-3.3.2, 
     })
 })
 
-describe('firstLinkFrom (R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
+describe('firstLinkFrom (R-3.3.2, R-3.3.3)', () => {
     const state = riding(NETWORK)
 
     it('takes the first railroad of R-1.4 with a link, then its lowest link by hex id', () => {
@@ -337,7 +337,7 @@ describe('firstLinkFrom (R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
         expect(firstLinkFrom(state, 'hex.usa.8-38', visited)).toBeUndefined()
     })
 
-    it('R-3.3.2-H1: stops at the first city', () => {
+    it('R-3.3.2: stops at the first city', () => {
         const found = firstLinkFrom(state, 'hex.usa.8-32', ['hex.usa.8-32'])
         assertExists(found, 'No link from Kansas City')
         expect(isLink(NETWORK, found)).toBe(true)
@@ -705,7 +705,7 @@ describe('the realise cap (R-X.1)', () => {
     }, 2000)
 })
 
-describe('bestJourneys on track that leads to no other city (R-3.3.1-H1, R-X.1)', () => {
+describe('bestJourneys on track that leads to no other city (R-3.3.1, R-X.1)', () => {
     // Red: Spokane and the block around it, no second city. Blue: one link to Seattle.
     const SPOKANE_TO_SEATTLE: HexId[] = [
         usaCity(SPOKANE).hexId,

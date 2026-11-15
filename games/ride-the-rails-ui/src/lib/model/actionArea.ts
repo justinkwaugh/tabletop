@@ -105,7 +105,7 @@ export function seatGains(
     })
 }
 
-// R-3.3.1-H1
+// R-3.3.1
 export const NO_JOURNEY_PROMPT = "No passenger can travel: no link leaves any passenger's city"
 
 // R-2.5.1: money decides the next round's order, so every waiting view shows it.
@@ -122,7 +122,7 @@ function latestInPhase(
     return latest && belongs(latest) ? latest : undefined
 }
 
-// R-3.1, R-1.1-H1
+// R-3.1, R-1.1
 export function latestShare(actions: readonly GameAction[]): GameAction | undefined {
     return latestInPhase(actions, (action) => isTakeShare(action) || isSkipShare(action))
 }
@@ -161,7 +161,7 @@ export type FinalStanding = {
     shares: HeldShares[]
 }
 
-// R-6.2, R-6.2-H1: most money first, ties in turn order; every seat tied for the most wins.
+// R-6.2: most money first, ties in turn order; every seat tied for the most wins.
 export function finalStandings(state: HydratedRideTheRailsGameState): FinalStanding[] {
     const winners = new Set(richestPlayerIds(state))
     return seatMoney(state)
@@ -180,7 +180,7 @@ export function finalStandings(state: HydratedRideTheRailsGameState): FinalStand
         })
 }
 
-// R-6.2, R-6.2-H1: "Silas wins with $146", or "Silas and Ezra share the win with $146".
+// R-6.2: "Silas wins with $146", or "Silas and Ezra share the win with $146".
 export function winnersHeadline(names: readonly string[], money: number): string {
     if (names.length === 1) {
         return `${names[0]} wins with $${money}`
@@ -188,7 +188,7 @@ export function winnersHeadline(names: readonly string[], money: number): string
     return `${names.slice(0, -1).join(', ')} and ${names.at(-1)} share the win with $${money}`
 }
 
-// R-6.2-H1: "both win" for two tied seats, "all three win" for three.
+// R-6.2: "both win" for two tied seats, "all three win" for three.
 export function sharedWinNote(winnerCount: number): string {
     const all = ['', '', 'both', 'all three', 'all four', 'all five'][winnerCount] ?? 'all'
     return `tied for most money: ${all} win`

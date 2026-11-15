@@ -7,7 +7,7 @@ export function railroadsIn(track: Track, hexId: HexId): readonly RailroadId[] {
     return track[hexId] ?? []
 }
 
-// R-1.1-H1: a railroad's locomotives on the map, one per hex at most (R-4.1.3).
+// R-1.1: a railroad's locomotives on the map, one per hex at most (R-4.1.3).
 export function trackCount(track: Track, railroadId: RailroadId): number {
     return Object.values(track).filter((railroadIds) => railroadIds.includes(railroadId)).length
 }

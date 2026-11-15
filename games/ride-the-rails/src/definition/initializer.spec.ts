@@ -37,11 +37,11 @@ describe('initialization', () => {
         expect(freshState().rideTheRailsRevision).toBe(CURRENT_RIDE_THE_RAILS_REVISION)
     })
 
-    it('plays the USA map, the only map of this release (R-8-H1)', () => {
+    it('plays the USA map, the only map of this release (R-8)', () => {
         expect(freshState().mapId).toBe('map.usa')
     })
 
-    it('puts one passenger on every city, in id order (R-1.3.2, R-1.3-H1)', () => {
+    it('puts one passenger on every city, in id order (R-1.3.2)', () => {
         const { passengers } = freshState()
         expect(passengers).toHaveLength(51)
         expect(new Set(passengers)).toEqual(new Set(USA_CITIES.map((city) => city.id)))
@@ -76,7 +76,7 @@ describe('initialization', () => {
     })
 })
 
-describe.each([3, 4, 5])('setup for %i players (R-1.2-H1, R-1.3)', (playerCount) => {
+describe.each([3, 4, 5])('setup for %i players (R-1.2, R-1.3)', (playerCount) => {
     const state = freshState(playerCount)
 
     it('seats every player', () => {
@@ -84,7 +84,7 @@ describe.each([3, 4, 5])('setup for %i players (R-1.2-H1, R-1.3)', (playerCount)
         expect(state.turnManager.turnOrder).toHaveLength(playerCount)
     })
 
-    it('puts 51 passengers on the map (R-1.3-H1)', () => {
+    it('puts 51 passengers on the map (R-1.3)', () => {
         expect(state.passengers).toHaveLength(51)
     })
 
@@ -106,7 +106,7 @@ describe.each([3, 4, 5])('setup for %i players (R-1.2-H1, R-1.3)', (playerCount)
     })
 })
 
-describe('player count (R-1.2-H1)', () => {
+describe('player count (R-1.2)', () => {
     it.each([2, 6])('refuses a game of %i players', (playerCount) => {
         expect(() => engine.startGame(gameFor(playerCount), masterSeed)).toThrow(/3 to 5 players/)
     })

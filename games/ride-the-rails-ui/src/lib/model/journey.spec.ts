@@ -185,7 +185,7 @@ async function startedIn(cityId: CityId, state = riding()) {
     return session
 }
 
-describe('choosing a start (R-3.3.1, R-3.3.1-H1)', () => {
+describe('choosing a start (R-3.3.1)', () => {
     it('lights every passenger city with a link out, with a pip per railroad leaving it', async () => {
         const session = await openSessionOn(riding())
         expect(session.journeyDraft).toBeUndefined()
@@ -227,7 +227,7 @@ describe('choosing a start (R-3.3.1, R-3.3.1-H1)', () => {
     })
 })
 
-describe('extending the route (R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
+describe('extending the route (R-3.3.2, R-3.3.3)', () => {
     it('lights the next cities with their pips once the start is picked', async () => {
         const state = riding()
         const session = await startedIn(KANSAS_CITY, state)

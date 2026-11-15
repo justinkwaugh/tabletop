@@ -69,7 +69,7 @@ function neighboursInHexOrder(hexId: HexId): readonly HexId[] {
     return neighbours
 }
 
-// R-3.3.2, R-3.3.2-H1, R-3.3.3: a depth-first search in one railroad's track through non-city
+// R-3.3.2, R-3.3.3: a depth-first search in one railroad's track through non-city
 // hexes, neighbours in hex order, so the links come out in hex id order. It steps onto a non-city
 // hex only while some city outside the route and the path can still be reached from it, so every
 // expansion lies on the way to a link and track that leads to no other city costs nothing. The
@@ -131,7 +131,7 @@ function searchLinksFrom(
 
 const unbounded = () => new ExpansionBudget(Number.POSITIVE_INFINITY)
 
-// R-3.3.2, R-3.3.2-H1, R-3.3.3: the first link out of the city at hexId that uses none of the
+// R-3.3.2, R-3.3.3: the first link out of the city at hexId that uses none of the
 // visited hexes (the city itself may be among them), in railroad order of R-1.4, then hex id
 // order; undefined when it has none. The search steps only onto hexes from which a city outside
 // the path can still be reached, so it never backs out of a step on its way to the first link:
@@ -160,7 +160,7 @@ function routeEndHexId(startHexId: HexId, links: readonly Link[]): HexId {
     return links.at(-1)?.hexIds.at(-1) ?? startHexId
 }
 
-// R-3.3.2, R-3.3.2-H1, R-3.3.3: the cities one link of this railroad reaches from the city at
+// R-3.3.2, R-3.3.3: the cities one link of this railroad reaches from the city at
 // fromHexId through non-city hexes outside the visited ones (the city itself may be among them).
 // A search of the railroad's track, each hex reached once.
 function railroadCitiesFrom(
@@ -304,7 +304,7 @@ function stepsToCity(
     return undefined
 }
 
-// R-3.3.2, R-3.3.2-H1, R-3.3.3: the links of the leg's railroad from its first city to its second
+// R-3.3.2, R-3.3.3: the links of the leg's railroad from its first city to its second
 // that use none of the blocked hexes, shortest first (fewest hexes), links of one length in hex
 // id order (each step tries the neighbours in hex order). Each length is a depth-first search
 // that steps onto a hex only while the second city can still be reached from it in the steps

@@ -8,15 +8,15 @@ import { buildState, hydrated, runAction } from '../testing/fixtures.js'
 import { ActionType } from './actions.js'
 import { PhaseName } from './phases.js'
 
-// R-X.3: a recorded game replays under the rules of its revision. These pin the provisional
-// rulings as revision 1 plays them; a ruling that changes needs a new revision, with the old
+// R-X.3: a recorded game replays under the rules of its revision. These pin how revision 1 plays
+// two rules a reader might take another way; a change to either needs a new revision, with the old
 // behaviour kept for games created under revision 1.
 describe('revision 1 (R-X.3)', () => {
     it('is the revision new games are created under', () => {
         expect(CURRENT_RIDE_THE_RAILS_REVISION).toBe(1)
     })
 
-    it('R-1.1-H1: refuses a share and track from an empty supply', () => {
+    it('R-1.1, R-3.1: refuses a share and track from an empty supply', () => {
         const sharing = buildState({ shares: { p1: { 'railroad.red': 27 } } })
         expect(() =>
             runAction(sharing, {
@@ -45,7 +45,7 @@ describe('revision 1 (R-X.3)', () => {
         ).toThrow()
     })
 
-    it('R-4.2.3-H1: lets Yellow start once, in Chicago or a westernmost city, not in both', () => {
+    it('R-4.2.3: lets Yellow start once, in Chicago or a westernmost city, not in both', () => {
         const chicago = usaCity('city.usa.chicago').hexId
         const seattle = usaCity('city.usa.seattle').hexId
         const before = buildState({

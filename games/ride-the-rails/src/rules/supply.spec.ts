@@ -3,13 +3,13 @@ import { PhaseName } from '../definition/phases.js'
 import { buildState } from '../testing/fixtures.js'
 import { availableRailroads, hasSupply, supplyOf } from './supply.js'
 
-describe('supply (R-1.1, R-1.1-H1)', () => {
+describe('supply (R-1.1)', () => {
     it('holds all 27 locomotives of a railroad with no shares and no track', () => {
         const state = buildState()
         expect(supplyOf(state, 'railroad.red')).toBe(27)
     })
 
-    it('is 27 minus every player’s shares minus the track on the map (R-1.1-H1)', () => {
+    it('is 27 minus every player’s shares minus the track on the map (R-1.1)', () => {
         const state = buildState({
             phase: PhaseName.Build,
             shares: {
@@ -28,7 +28,7 @@ describe('supply (R-1.1, R-1.1-H1)', () => {
         expect(supplyOf(state, 'railroad.orange')).toBe(27)
     })
 
-    it('is empty once every locomotive is a share or track (R-1.1-H1)', () => {
+    it('is empty once every locomotive is a share or track (R-1.1)', () => {
         const state = buildState({
             phase: PhaseName.Build,
             shares: { p1: { 'railroad.blue': 20 }, p2: { 'railroad.blue': 5 } },

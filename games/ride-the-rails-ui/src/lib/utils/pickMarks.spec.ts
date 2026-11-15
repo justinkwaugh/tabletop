@@ -336,7 +336,7 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
         ])
     })
 
-    it('shows no pill for a start that uses up the $5 (R-4.3.2-H1)', () => {
+    it('shows no pill for a start that uses up the $5 (R-4.3.2)', () => {
         const popup = { hexId: fiveDollarCity.hexId, chips: [blackStart], lowersLimit: false }
         expect(chipModifiers({}, popup, blackStart)).toEqual({
             bonuses: [],

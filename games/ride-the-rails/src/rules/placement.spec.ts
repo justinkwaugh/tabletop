@@ -50,7 +50,7 @@ describe('the placement test', () => {
         })
     })
 
-    describe('supply (R-1.1-H1)', () => {
+    describe('supply (R-1.1)', () => {
         it('refuses track from an empty supply', () => {
             const state = building({
                 shares: { p1: { 'railroad.red': 20 }, p2: { 'railroad.red': 6 } }
@@ -196,7 +196,7 @@ describe('the placement test', () => {
         })
     })
 
-    describe('at most two East Coast cities, a start counted (R-4.1.4, R-4.2.5-H1)', () => {
+    describe('at most two East Coast cities, a start counted (R-4.1.4, R-4.2.5)', () => {
         it('refuses a railroad a third East Coast city', () => {
             const state = building({
                 track: {

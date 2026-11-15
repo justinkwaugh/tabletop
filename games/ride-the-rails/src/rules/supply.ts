@@ -7,13 +7,13 @@ import {
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { trackCount } from './track.js'
 
-// R-1.1, R-1.1-H1: a locomotive is a share or track, never both; the rest is the supply.
+// R-1.1: a locomotive is a share or track, never both; the rest is the supply.
 export function supplyOf(state: HydratedRideTheRailsGameState, railroadId: RailroadId): number {
     const shares = state.players.reduce((sum, player) => sum + player.sharesOf(railroadId), 0)
     return LOCOMOTIVES_PER_RAILROAD - shares - trackCount(state.track, railroadId)
 }
 
-// R-1.1-H1: an empty supply stops that railroad's shares and track.
+// R-1.1: an empty supply stops that railroad's shares and track.
 export function hasSupply(state: HydratedRideTheRailsGameState, railroadId: RailroadId): boolean {
     return supplyOf(state, railroadId) > 0
 }

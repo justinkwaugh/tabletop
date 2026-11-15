@@ -74,7 +74,7 @@ async function settled(session: RideTheRailsGameSession) {
     flushSync()
 }
 
-describe('Take a share panel (R-3.1, R-1.4, R-1.1-H1)', () => {
+describe('Take a share panel (R-3.1, R-1.4, R-1.1)', () => {
     it('names the seats still to take in reverse turn order (R-2.2)', () => {
         const state = buildState({ playerCount: 4, round: 1, phase: PhaseName.TakeShare })
         expect(decidingPlayerId(state)).toBe('p4')
@@ -180,7 +180,7 @@ describe('build panel (R-3.2.1, R-3.2.4)', () => {
     })
 })
 
-describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1-H1)', () => {
+describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1)', () => {
     it('reads the route as its cities and the links with the fare', () => {
         expect(routeText([KANSAS_CITY, SAINT_LOUIS, CINCINNATI])).toBe(
             'Kansas City → Saint Louis → Cincinnati'
@@ -291,7 +291,7 @@ describe('turn header (R-2.1)', () => {
     })
 })
 
-describe('game end (R-6.2, R-6.2-H1)', () => {
+describe('game end (R-6.2)', () => {
     it('ranks the final money and marks every seat tied for most as a winner, with its shares', () => {
         const state = buildState({
             playerCount: 4,

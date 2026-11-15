@@ -21,7 +21,7 @@ export class RidingStateHandler implements MachineStateHandler<
         return isRideJourney(action) || isPassJourney(action)
     }
 
-    // R-3.3.1-H1: the pass is offered only when no journey exists.
+    // R-3.3.1: the pass is offered only when no journey exists.
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedRideTheRailsGameState>

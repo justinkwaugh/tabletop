@@ -44,7 +44,7 @@ const RED_AND_BLUE_TAKEN = {
     p3: { 'railroad.blue': 7 }
 } as const
 
-describe('TakeShare (R-3.1, R-1.4, R-1.1-H1)', () => {
+describe('TakeShare (R-3.1, R-1.4, R-1.1)', () => {
     it('is registered as the phase 1 user action and hydrates', () => {
         expect(RideTheRailsApiActions[ActionType.TakeShare]).toBe(TakeShare)
         const state = buildState()
@@ -73,7 +73,7 @@ describe('TakeShare (R-3.1, R-1.4, R-1.1-H1)', () => {
         expect(action.metadata).toEqual({ shares: 3, supplyLeft: 24 })
     })
 
-    it('has no cap on one railroad’s shares (R-3.1-H1)', () => {
+    it('has no cap on one railroad’s shares (R-3.1)', () => {
         const state = buildState({ round: 6, shares: { p3: { 'railroad.red': 25 } } })
         const action = takeShare(state, 'p3', 'railroad.red')
         action.apply(state)
@@ -105,7 +105,7 @@ describe('TakeShare (R-3.1, R-1.4, R-1.1-H1)', () => {
         expect(state.dehydrate()).toEqual(before)
     })
 
-    it('refuses a railroad whose supply is empty (R-1.1-H1)', () => {
+    it('refuses a railroad whose supply is empty (R-1.1)', () => {
         const state = buildState({
             shares: { p1: { 'railroad.red': 20 }, p2: { 'railroad.red': 6 } },
             track: { 'hex.usa.6-60': ['railroad.red'] }
@@ -117,7 +117,7 @@ describe('TakeShare (R-3.1, R-1.4, R-1.1-H1)', () => {
         expect(state.getPlayerState('p3').shares).toEqual({})
     })
 
-    it('takes the last locomotive of a supply (R-1.1-H1)', () => {
+    it('takes the last locomotive of a supply (R-1.1)', () => {
         const state = buildState({ shares: { p1: { 'railroad.red': 26 } } })
         const action = takeShare(state, 'p3', 'railroad.red')
         action.apply(state)
@@ -137,13 +137,13 @@ describe('TakeShare (R-3.1, R-1.4, R-1.1-H1)', () => {
         expect(() => takeShare(state, 'p1', 'railroad.red').apply(state)).toThrow(/phase 1/)
     })
 
-    it('is not offered when every available supply is empty (R-1.1-H1)', () => {
+    it('is not offered when every available supply is empty (R-3.1)', () => {
         const state = buildState({ shares: RED_AND_BLUE_TAKEN })
         expect(HydratedTakeShare.canTakeShare(state, 'p3')).toBe(false)
     })
 })
 
-describe('SkipShare (R-1.1-H1)', () => {
+describe('SkipShare (R-3.1)', () => {
     it('is a system action, kept out of the API actions, and hydrates', () => {
         expect(Object.values(RideTheRailsApiActions)).not.toContain(SkipShare)
         const state = buildState({ shares: RED_AND_BLUE_TAKEN })
@@ -162,7 +162,7 @@ describe('SkipShare (R-1.1-H1)', () => {
         expect(mustSkipShare(buildState({ round: 2, shares: RED_AND_BLUE_TAKEN }))).toBe(false)
     })
 
-    it('counts track against the supply (R-1.1-H1)', () => {
+    it('counts track against the supply (R-1.1)', () => {
         const state = buildState({
             shares: { p1: { 'railroad.red': 26 }, p2: { 'railroad.blue': 25 } },
             track: {
@@ -211,7 +211,7 @@ function userShare(
     }
 }
 
-describe('undo of a share (R-5-H1)', () => {
+describe('undo of a share (R-5)', () => {
     it('restores the state exactly', () => {
         const hydrated = buildState({ round: 3, shares: { p3: { 'railroad.red': 1 } } })
         const state = hydrated.dehydrate()

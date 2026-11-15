@@ -1,6 +1,6 @@
 # Ride the Rails rules digest
 
-The rules as the code cites them: `R-<section>` names a section below. Built from the sources listed here and nothing else; a sentence with no source is a gap, not a rule. Sources are cited as **B** (base rules, page 1 or 2), **AC** (Australia & Canada rules) and **FD** (France & Germany rules). The digest paraphrases; it does not reproduce the rulebooks.
+The rules as the code cites them: `R-<section>` names a section below. Built from the sources listed here and nothing else; a sentence with no source is a gap, not a rule. Every rule the code follows is here, including the reading of each question in `open-questions.md`. Sources are cited as **B** (base rules, page 1 or 2), **AC** (Australia & Canada rules) and **FD** (France & Germany rules). The digest paraphrases; it does not reproduce the rulebooks.
 
 ## Sources
 
@@ -31,14 +31,16 @@ Where sources conflict, the later official one wins and the conflict is listed i
 | Player disks         | 15    | 3 in each of 5 player colours: money (units), money (hundreds), turn order |
 | Round marker         | 1     | on the round track, which also shows which railroads are available         |
 
+The 27 locomotives of each colour are that railroad's whole supply, for shares and track together: a locomotive is a share on a player board or track on the map, never both. Once every locomotive of a colour is on player boards and the map, no more shares of that railroad can be taken (R-3.1) and no more of its track built (R-3.2).
+
 ### R-1.2 Players (B p1; AC p1; FD p1)
 
-3 to 5 players, every map.
+3 to 5 players, every map. There is no 2- or 6-player mode: the rules give no placement limits for one.
 
 ### R-1.3 Setup (B p1)
 
 1. Place the board.
-2. Place one passenger on each city (cities carry a station icon). Map changes: Australia, no passenger on Perth or Brisbane (AC); Germany, the two Berlin hexes are one city and get one passenger (FD).
+2. Place one passenger on each city (cities carry a station icon). The USA map has 51 cities and the box 52 passengers, so the supply never runs short. Map changes: Australia, no passenger on Perth or Brisbane (AC); Germany, the two Berlin hexes are one city and get one passenger (FD).
 3. Place the six tracker disks and the hexagon tracker on their starting spaces (bookkeeping).
 4. Locomotives form the general supply beside the board.
 5. Each player takes a colour, its player board and its three disks.
@@ -83,7 +85,7 @@ Money is a single total per player, kept on a track; going past $100 moves a sec
 
 ### R-2.5 End of round (B p2; FD p1)
 
-1. **Turn order.** Players are reordered by money, lowest first; the richest plays last. Ties: the rulebook says to "swap player positions" (R-2.5-H1).
+1. **Turn order.** Players are reordered by money, lowest first; the richest plays last. Players tied on money "swap player positions": the tied players reverse their relative order from the round just played, so with three or more tied their previous order is reversed.
 2. **Round marker** advances.
 3. **New railroad.** After rounds 1, 2, 3 and 4, the next railroad in R-1.4 becomes available.
 4. **France only — Paris Travels:** if Paris has no passenger, one is placed there (FD).
@@ -92,10 +94,10 @@ Money is a single total per player, kept on a track; going past $100 moves a sec
 
 ### R-3.1 Take a Share (phase 1) (B p1)
 
-1. In reverse turn order, each player **must** take one locomotive of any available railroad (R-1.4) from the supply.
+1. In reverse turn order, each player **must** take one locomotive of any available railroad (R-1.4) from the supply. A railroad whose supply is empty (R-1.1) can't be taken; the player takes one of another available railroad, and a player with no available railroad left to take takes nothing.
 2. It goes on the player's board in that railroad's row: it is now one **share** of that railroad.
 3. Shares let a player build that railroad's track (R-3.2) and earn its dividends (R-3.3.4).
-4. A player may hold several shares of the same railroad and shares of several railroads.
+4. A player may hold several shares of the same railroad and shares of several railroads, with no cap on the shares of one railroad (the player board's rows set none).
 
 ### R-3.2 Build Railroad Track (phase 2) (B p1, p2)
 
@@ -114,8 +116,8 @@ Money is a single total per player, kept on a track; going past $100 moves a sec
 
 ### R-3.3 Ride the Rails (phase 3) (B p2)
 
-1. **Choose.** In turn order, each player **must** pick one passenger on the board, its city as the start, and a different city as the end.
-2. **Route.** The player must trace a route from start to end made of **links**. A link is a path of locomotives of a single railroad that connects two cities. The route may pass through several cities, and its links may belong to any railroads; the player need not hold shares in a railroad to use it. The player chooses the route and which railroad's links are used.
+1. **Choose.** In turn order, each player **must** pick one passenger on the board, its city as the start, and a different city as the end. A player with no passenger they can carry on a legal journey passes the phase and earns nothing; the pass is offered only then.
+2. **Route.** The player must trace a route from start to end made of **links**. A link is a path of locomotives of a single railroad that connects two cities. The route may pass through several cities, and its links may belong to any railroads; the player need not hold shares in a railroad to use it. The player chooses the route and which railroad's links are used. A link runs between two cities with no city between them, so a railroad's track through a city is two links, every city passed through is visited and counted, and a route changes railroad only in a city. This keeps "links + 1 = cities visited" (item 5) true.
 3. **No looping.** Each hex may be visited at most once on the journey.
 4. **Dividends.** Each railroad pays $1 per link of it used, to every player, per share of that railroad they hold (the active player included). Example (B p2): 2 Red links and 1 Blue link pay each Red shareholder $2 per Red share and each Blue shareholder $1 per Blue share.
 5. **Fare.** The active player gains (total links + 1) dollars: the number of cities visited, start and end included. The trackers on the board only help count this.
@@ -142,15 +144,17 @@ A city showing a railroad's colour is a legal start for it; Yellow is the one ex
 
 1. **Red and Blue** (round 1): start in one of the six multi-coloured East Coast cities, and not in the same city as each other.
 2. **Orange** (round 2): any of the six East Coast cities, or Chicago.
-3. **Yellow** (round 3): one start, in Chicago or in one of the three westernmost occupied cities. The westernmost city chosen must hold exactly one locomotive before Yellow builds there; Chicago may hold any number. Which cities are westernmost is read at the moment the first Yellow locomotive would be placed. Every later Yellow locomotive is adjacent to a Yellow locomotive (R-4.1.2). (Rulings: R-4.2.3-H1, R-4.2.3-H2.)
+3. **Yellow** (round 3): one start, in Chicago or in one of the three westernmost occupied cities ("and/or" names the choice of where, not a second start). The westernmost city chosen must hold exactly one locomotive before Yellow builds there; Chicago may hold any number. Which cities are westernmost is read at the moment the first Yellow locomotive would be placed: the cities holding at least one locomotive whose hexes lie furthest west by horizontal position (the lowest `dcol`, `components.md`), every city tied with the third included. A city among them that cannot take Yellow (it holds two locomotives, or is a one-locomotive city already filled) still counts among the three. Every later Yellow locomotive is adjacent to a Yellow locomotive (R-4.1.2), as for every railroad.
 4. **Purple** (round 4): one of the four Purple & Black western cities. Germany changes this (R-8.5).
-5. **Black** (round 5): any city that does not already hold two locomotives, or Chicago.
+5. **Black** (round 5): any city that does not already hold two locomotives, or Chicago: any city with room for Black under its capacity. On the USA map every city is drawn black or shows Black among its colours; an East Coast start still counts toward Black's two East Coast cities (R-4.1.4).
 
 ### R-4.3 Building bonuses, USA (B p2)
 
 1. **Chicago, $2:** whenever a player places a locomotive in Chicago, including a railroad's first placement there.
-2. **$5 cities:** each of the four cities with a green $5 banner pays $5 to the first player to build track into it. Nothing is paid when another railroad later builds into it, or when a railroad starts there.
+2. **$5 cities:** each of the four cities with a green $5 banner pays $5 to the first player to build track into it. Nothing is paid when another railroad later builds into it, or when a railroad starts there: the bonus goes with the first locomotive placed in the city, so a start uses it up without earning it.
 3. **Transcontinental, $12 or $8, once:** the first player to complete a line of track made of different railroads connecting a West Coast Purple & Black city to one of the six East Coast cities. $12 if the railroads connect in a city hex, $8 if they connect in any other hex.
+    - The line needs at least two different railroads; one railroad's track from coast to coast does not count. Two railroads connect where both have a locomotive in the same hex; locomotives of different railroads in adjacent hexes do not connect. A line is a walk over connected track and may pass a hex more than once, so a railroad may carry it out and back.
+    - The price is $12 if some line the placement completes changes railroad only in city hexes, and $8 otherwise. It goes, once, to the player whose placement first completes any qualifying line.
 
 The other maps replace these (R-8).
 
@@ -158,10 +162,12 @@ The other maps replace these (R-8).
 
 Everything is public: the board, every player's shares, money and the turn order. The only random element is the initial turn order (R-1.3). There are no hidden components.
 
+A player may take back any of their own actions until the next player acts: each placement, with any bonus it paid; a share; a journey. Nothing is hidden or random after setup, so no action reveals information.
+
 ## R-6 Game end and scoring
 
 1. The game ends at the end of round 6 (B p1, p2).
-2. The player with the most money wins. Ties are possible: the rulebook gives no tie-break (B p2).
+2. The player with the most money wins. Ties are possible: the rulebook gives no tie-break, so players tied for the most money share the win (B p2).
 
 ## R-7 Component text
 
@@ -169,7 +175,7 @@ No component carries rules text. The board prints reminders of R-3.2 and R-4.1 (
 
 ## R-8 Maps
 
-The base rules apply on every map except where a section below changes them. The first release plays the USA map only; R-8.2 to R-8.5 are recorded for the later expansion maps. Each map's hexes, terrain, cities, start colours and bonus cities are a gap until the boards are supplied.
+The base rules apply on every map except where a section below changes them. The first release plays the USA map only, so there is no map option at game creation; the game state keeps a map id, so the expansion maps can add the option later. R-8.2 to R-8.5 are recorded for those maps. Each map's hexes, terrain, cities, start colours and bonus cities are a gap until the boards are supplied.
 
 ### R-8.1 USA (B)
 

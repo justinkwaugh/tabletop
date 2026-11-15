@@ -26,7 +26,7 @@ export const RideTheRailsRuntime = {
     stateHandlers: RideTheRailsStateHandlers,
     apiActions: RideTheRailsApiActions,
     playerColors: RideTheRailsColors,
-    // R-6.2: each seat's final money, the only value EndGame ranks by (R-6.2-H1: no tie-break).
+    // R-6.2: each seat's final money, the only value EndGame ranks by (R-6.2: no tie-break).
     scoring: new RideTheRailsScoring(),
     stateLogger: new DefaultStateLogger()
 } satisfies GameRuntime<RideTheRailsGameState, HydratedRideTheRailsGameState>

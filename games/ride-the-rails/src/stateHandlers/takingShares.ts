@@ -31,7 +31,7 @@ export class TakingSharesStateHandler implements MachineStateHandler<
             : []
     }
 
-    // R-1.1-H1: a player who can take nothing skips their turn by itself.
+    // R-3.1: a player who can take nothing skips their turn by itself.
     enter(context: MachineContext<HydratedRideTheRailsGameState>) {
         const state = context.gameState
         const playerId = turnPlayerId(state)

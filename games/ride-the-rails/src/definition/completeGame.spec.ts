@@ -120,7 +120,7 @@ describe.each(SCRIPTS)(
         )
 
         it(
-            'undoes every action in reverse back to setup, matching the state before each user action (R-5-H1)',
+            'undoes every action in reverse back to setup, matching the state before each user action (R-5)',
             () => {
                 const { initial, steps, final } = played(script)
                 let state = final
@@ -143,7 +143,7 @@ describe.each(SCRIPTS)(
 
 describe('across the scripted complete games', () => {
     it(
-        'every user and system action occurs; SkipShare needs every available supply empty, which ordinary play does not reach (R-1.1-H1)',
+        'every user and system action occurs; SkipShare needs every available supply empty, which ordinary play does not reach (R-3.1)',
         () => {
             const seen = new Set(
                 SCRIPTS.flatMap((script) => played(script).history.map((action) => action.type))
@@ -155,7 +155,7 @@ describe('across the scripted complete games', () => {
     )
 
     it.each(PLAYER_COUNTS)(
-        'with %i players, a building turn opens with nothing legal once the seat’s railroads have empty supplies, and finishes by itself (R-1.1-H1, R-3.2.4)',
+        'with %i players, a building turn opens with nothing legal once the seat’s railroads have empty supplies, and finishes by itself (R-1.1, R-3.2.4)',
         (playerCount) => {
             const { game, steps } = played({ playerCount, seed: 1, railroads: 'scarcest' })
             const opensEmpty = (action: GameAction) =>

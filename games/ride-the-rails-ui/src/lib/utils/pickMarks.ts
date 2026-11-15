@@ -338,7 +338,7 @@ export type ChipModifiers = {
     bonuses: MarkView[]
     /** R-4.3.3: what completing the Transcontinental pays, if this placement does. */
     transcontinental: number | undefined
-    /** R-4.3.2-H1: a start in an empty $5 city uses the bonus up and pays nothing. */
+    /** R-4.3.2: a start in an empty $5 city uses the bonus up and pays nothing. */
     startUsesBonus: number | undefined
     /** R-3.2.4: the hex is the turn's first mountain, so the limit drops by one. */
     mountain: boolean

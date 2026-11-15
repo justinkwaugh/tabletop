@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { hexIdAt, type HexId } from '../data/hexes.js'
-import type { RailroadId } from '../data/railroads.js'
-import { isUsaHex } from '../data/usaMap.js'
+import { LOCOMOTIVES_PER_RAILROAD, type RailroadId } from '../data/railroads.js'
+import { adjacentHexIds, isUsaHex, USA_CITIES } from '../data/usaMap.js'
 import type { Track } from '../model/gameState.js'
+import { isEastCoastCity, isWestCoastCity } from './startRailroad.js'
 import { transcontinentalLine } from './transcontinental.js'
 
 const KANSAS_CITY: HexId = 'hex.usa.8-32'
@@ -37,7 +38,29 @@ describe('the Transcontinental line search (R-4.3.3)', () => {
         expect(transcontinentalLine({})).toBeUndefined()
     })
 
-    describe('a line needs two railroads (R-4.3.3-H1)', () => {
+    describe('a line needs two railroads (R-4.3.3)', () => {
+        it('decides real games: one railroad can reach coast to coast with 22 of its 27 locomotives', () => {
+            const west = USA_CITIES.filter(isWestCoastCity).map((city) => city.hexId)
+            const hexesFromWest = new Map<HexId, number>(west.map((hexId) => [hexId, 1]))
+            const queue = [...west]
+            for (let index = 0; index < queue.length; index++) {
+                const hexId = queue[index]
+                for (const next of adjacentHexIds(hexId)) {
+                    if (!hexesFromWest.has(next)) {
+                        hexesFromWest.set(next, (hexesFromWest.get(hexId) ?? 0) + 1)
+                        queue.push(next)
+                    }
+                }
+            }
+            const fewest = Math.min(
+                ...USA_CITIES.filter(isEastCoastCity).map(
+                    (city) => hexesFromWest.get(city.hexId) ?? Infinity
+                )
+            )
+            expect(fewest).toBe(22)
+            expect(fewest).toBeLessThan(LOCOMOTIVES_PER_RAILROAD)
+        })
+
         it('finds no line in one railroad alone coast to coast', () => {
             expect(
                 transcontinentalLine(trackOf(['railroad.purple', row(9, 5, 55)]))
@@ -128,7 +151,7 @@ describe('the Transcontinental line search (R-4.3.3)', () => {
         })
     })
 
-    describe('its price (R-4.3.3-H2)', () => {
+    describe('its price (R-4.3.3)', () => {
         it('changes railroad only in a city hex', () => {
             const track = trackOf(
                 ['railroad.purple', [...row(9, 5, 31), KANSAS_CITY]],

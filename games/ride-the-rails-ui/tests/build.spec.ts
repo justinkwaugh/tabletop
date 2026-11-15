@@ -359,7 +359,7 @@ test("9. Yellow's starts: Chicago or the westernmost set, and only one", async (
     expect(await page.evaluate(() => window.rtrSession.gameState.track['hex.usa.5-43'])).toContain(
         'railroad.yellow'
     )
-    // R-4.2.3-H1: one start only. The western cities no longer light for Yellow, its cues are
+    // R-4.2.3: one start only. The western cities no longer light for Yellow, its cues are
     // gone, and Yellow lights only next to Chicago (R-4.1.2).
     const nextToChicago = [
         'hex.usa.4-42',

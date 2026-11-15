@@ -30,7 +30,7 @@ export type BonusRule = {
     readonly evaluate: BonusEvaluation
 }
 
-// R-4.3.3-H2
+// R-4.3.3
 export function transcontinentalAmount(line: TranscontinentalLine): number {
     return line.changesRailroadOnlyInCities
         ? TRANSCONTINENTAL_BONUS.cityHexAmount
@@ -49,7 +49,7 @@ const CHICAGO_RULE: BonusRule = {
     }
 }
 
-// R-4.3.2, R-4.3.2-H1: the first locomotive in the city takes the bonus; a start uses it up unpaid.
+// R-4.3.2: the first locomotive in the city takes the bonus; a start uses it up unpaid.
 const FIVE_DOLLAR_RULE: BonusRule = {
     bonus: FIVE_DOLLAR_BONUS,
     evaluate: (placement, trackBefore) => {
@@ -65,7 +65,7 @@ const FIVE_DOLLAR_RULE: BonusRule = {
     }
 }
 
-// R-4.3.3, R-4.3.3-H2: once, to the placement that first completes any line.
+// R-4.3.3: once, to the placement that first completes any line.
 const TRANSCONTINENTAL_RULE: BonusRule = {
     bonus: TRANSCONTINENTAL_BONUS,
     evaluate: (placement, trackBefore, transcontinental) => {
@@ -80,7 +80,7 @@ const TRANSCONTINENTAL_RULE: BonusRule = {
     }
 }
 
-// R-4.3, R-3.2.5: evaluated in this order; R-8-H1: an expansion map adds its own row.
+// R-4.3, R-3.2.5: evaluated in this order; R-8: an expansion map adds its own row.
 export const BONUS_RULES: Readonly<Record<MapId, readonly BonusRule[]>> = {
     'map.usa': [CHICAGO_RULE, FIVE_DOLLAR_RULE, TRANSCONTINENTAL_RULE]
 }

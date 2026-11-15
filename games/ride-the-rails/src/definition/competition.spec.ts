@@ -137,7 +137,7 @@ function roundOneTurns(state: RideTheRailsGameState): Record<string, string[]> {
     )
 }
 
-describe.each([3, 4, 5])('Ride the Rails tournaments with %i players (R-1.2-H1)', (count) => {
+describe.each([3, 4, 5])('Ride the Rails tournaments with %i players (R-1.2)', (count) => {
     const playerIds = fixturePlayerIds(count)
 
     // R-2.2: position zero is first in turn order. Take a Share runs in reverse, so its first
@@ -241,7 +241,7 @@ describe.each([3, 4, 5])('Ride the Rails tournaments with %i players (R-1.2-H1)'
     )
 })
 
-describe('terminal results (R-6.2, R-6.2-H1)', () => {
+describe('terminal results (R-6.2)', () => {
     function endGame(playerCount: number, money: Record<string, number>) {
         const state = buildState({ playerCount, round: 6, phase: PhaseName.Ride, money })
         new HydratedEndGame(

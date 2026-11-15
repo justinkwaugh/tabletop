@@ -34,7 +34,7 @@ export class HydratedPassJourney
         super(data, PassJourneyValidator)
     }
 
-    // R-3.3.1-H1: the pass pays nothing and is open only when no journey exists.
+    // R-3.3.1: the pass pays nothing and is open only when no journey exists.
     apply(state: HydratedRideTheRailsGameState, _context?: MachineContext) {
         assert(isRidingPlayer(state, this.playerId), 'It is not your journey')
         assert(!journeyExists(state), 'A journey exists, so you must ride')

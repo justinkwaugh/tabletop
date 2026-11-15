@@ -27,7 +27,7 @@ export function ordinal(position: number): string {
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI'] as const
 
-// R-1.1-H1: a railroad's locomotives still off the map.
+// R-1.1: a railroad's locomotives still off the map.
 export function supplyText(supply: number): string {
     return supply > 0 ? `${supply} left` : 'none left'
 }
@@ -109,7 +109,7 @@ export function shownRoundNumber(state: HydratedRideTheRailsGameState): number {
     return state.roundManager.currentRound?.number ?? state.roundManager.series.at(-1)?.number ?? 1
 }
 
-// R-1.1, R-1.1-H1, R-1.4: one card per railroad available in `round` (the shown round, unless the
+// R-1.1, R-1.4: one card per railroad available in `round` (the shown round, unless the
 // end of a round has stepped ahead of the state), in R-1.4 order, its supply from the logic
 // package; shareholders in turn order.
 export function railroadCards(

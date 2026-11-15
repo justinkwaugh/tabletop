@@ -10,9 +10,9 @@ import { supplyOf } from '../rules/supply.js'
 
 export type TakeShareMetadata = Type.Static<typeof TakeShareMetadata>
 export const TakeShareMetadata = Type.Object({
-    // The player's shares of the railroad after this one (R-3.1-H1: no cap).
+    // The player's shares of the railroad after this one (R-3.1: no cap).
     shares: Type.Integer({ minimum: 1 }),
-    // The railroad's supply after this share (R-1.1-H1).
+    // The railroad's supply after this share (R-1.1).
     supplyLeft: Type.Integer({ minimum: 0 })
 })
 
@@ -45,8 +45,8 @@ export class HydratedTakeShare extends HydratableAction<typeof TakeShare> implem
         super(data, TakeShareValidator)
     }
 
-    // R-3.1: one locomotive of an available railroad (R-1.4) from its supply (R-1.1-H1)
-    // goes on the player's board as one share, with no cap (R-3.1-H1).
+    // R-3.1: one locomotive of an available railroad (R-1.4) from its supply (R-1.1)
+    // goes on the player's board as one share, with no cap (R-3.1).
     apply(state: HydratedRideTheRailsGameState, _context?: MachineContext) {
         assert(state.machineState === MachineState.TakingShares, 'Shares are taken in phase 1')
         assert(state.isActivePlayer(this.playerId), 'It is not your turn')
@@ -59,7 +59,7 @@ export class HydratedTakeShare extends HydratableAction<typeof TakeShare> implem
         this.metadata = { shares, supplyLeft: supplyOf(state, this.railroadId) }
     }
 
-    // R-3.1, R-1.1-H1
+    // R-3.1, R-1.1
     static canTakeShare(state: HydratedRideTheRailsGameState, playerId: string): boolean {
         return (
             state.machineState === MachineState.TakingShares &&

@@ -21,7 +21,7 @@ import { startWalk, type UserInput, type WalkStep } from './walk.js'
 // How the scripted players pick a railroad, for a share and for a placement.
 // - 'least-taken': one not yet taken this game first, so a game reaches every railroad.
 // - 'scarcest': the one with the smallest supply, so the players empty supplies early
-//   (R-1.1-H1) and a building turn can open with nothing legal (R-3.2.4).
+//   (R-1.1) and a building turn can open with nothing legal (R-3.2.4).
 export type RailroadPreference = 'least-taken' | 'scarcest'
 
 export type ScriptedOptions = {

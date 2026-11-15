@@ -53,7 +53,7 @@ describe('EndRound (R-2.5)', () => {
         })
     })
 
-    describe('ties (R-2.5-H1)', () => {
+    describe('ties (R-2.5)', () => {
         it('swaps two tied players next to each other', () => {
             const state = stateAtEndOf(1, { p1: 10, p2: 10, p3: 5 })
             endRound(state)

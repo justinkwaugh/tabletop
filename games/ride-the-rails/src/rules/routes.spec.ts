@@ -82,7 +82,7 @@ function riding(track: Track = NETWORK, passengers?: CityId[], shares?: Record<s
     return buildState({ playerCount: 3, phase: PhaseName.Ride, track, passengers, shares })
 }
 
-describe('a link (R-3.3.2, R-3.3.2-H1)', () => {
+describe('a link (R-3.3.2)', () => {
     it('joins a city to another city through hexes all holding its railroad', () => {
         expect(isLink(NETWORK, link(RED, KANSAS_CITY_TO_SAINT_LOUIS))).toBe(true)
     })
@@ -112,7 +112,7 @@ describe('a link (R-3.3.2, R-3.3.2-H1)', () => {
         expect(isLink(NETWORK, link(RED, ['hex.usa.8-32', 'hex.usa.99-99']))).toBe(false)
     })
 
-    it('R-3.3.2-H1: ends at the first city, so track through a city is two links', () => {
+    it('R-3.3.2: ends at the first city, so track through a city is two links', () => {
         const throughSaintLouis = [
             ...KANSAS_CITY_TO_SAINT_LOUIS,
             ...SAINT_LOUIS_TO_CINCINNATI.slice(1)
@@ -123,7 +123,7 @@ describe('a link (R-3.3.2, R-3.3.2-H1)', () => {
     })
 })
 
-describe('the journey test (R-3.3.1, R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
+describe('the journey test (R-3.3.1, R-3.3.2, R-3.3.3)', () => {
     const route = [
         link(RED, KANSAS_CITY_TO_SAINT_LOUIS),
         link(RED, SAINT_LOUIS_TO_CINCINNATI),
@@ -151,7 +151,7 @@ describe('the journey test (R-3.3.1, R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
         )
     })
 
-    it("R-3.3.2-H1: refuses a railroad's track through a city sent as one link", () => {
+    it("R-3.3.2: refuses a railroad's track through a city sent as one link", () => {
         const throughSaintLouis = [
             ...KANSAS_CITY_TO_SAINT_LOUIS,
             ...SAINT_LOUIS_TO_CINCINNATI.slice(1)
@@ -159,7 +159,7 @@ describe('the journey test (R-3.3.1, R-3.3.2, R-3.3.2-H1, R-3.3.3)', () => {
         expect(journeyRefusal(riding(), [link(RED, throughSaintLouis)])).toBe('not-a-link')
     })
 
-    it('R-3.3.2-H1: refuses links that do not meet in a city', () => {
+    it('R-3.3.2: refuses links that do not meet in a city', () => {
         const apart = [link(RED, KANSAS_CITY_TO_SAINT_LOUIS), link(BLUE, CINCINNATI_TO_PITTSBURGH)]
         expect(journeyRefusal(riding(), apart)).toBe('links-do-not-meet')
     })
@@ -219,7 +219,7 @@ describe('journey payments (R-3.3.4, R-3.3.5)', () => {
     })
 })
 
-describe('whether a journey exists (R-3.3.1-H1)', () => {
+describe('whether a journey exists (R-3.3.1)', () => {
     it('is false with no track', () => {
         expect(journeyExists(riding({}))).toBe(false)
     })
@@ -242,7 +242,7 @@ describe('whether a journey exists (R-3.3.1-H1)', () => {
         expect(journeyExists(riding(spur))).toBe(false)
     })
 
-    it('R-3.3.2-H1: is false when only a change of railroad outside a city reaches another city', () => {
+    it('R-3.3.2: is false when only a change of railroad outside a city reaches another city', () => {
         const track = trackOf(
             [RED, KANSAS_CITY_TO_SAINT_LOUIS.slice(0, 2)],
             [BLUE, KANSAS_CITY_TO_SAINT_LOUIS.slice(2)]

@@ -68,7 +68,7 @@ describe('EndBuilding (R-3.2.1, R-2.2)', () => {
         expect(() => endBuilding(takingShares)).toThrow()
     })
 
-    it('is undone on its own (R-5-H1)', () => {
+    it('is undone on its own (R-5)', () => {
         const run = endBuilding(building({ building: { placed: 2, usedMountain: false } }))
         expect(latestPlayerUndoTarget(run.processed, 'p1')?.type).toBe(ActionType.EndBuilding)
         expect(undoRun(run)).toEqual(run.before)

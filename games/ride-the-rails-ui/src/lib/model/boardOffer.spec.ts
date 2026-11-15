@@ -115,7 +115,7 @@ describe('the placement offer (R-3.2, R-4.1, R-4.2)', () => {
         expect(offeredAt(placementOffer(state, 'p1'), PHILADELPHIA)).toBeUndefined()
     })
 
-    it('gives the start ring only where every placement is a start (R-4.2.5-H1)', () => {
+    it('gives the start ring only where every placement is a start (R-4.2.5)', () => {
         const state = building({
             round: 5,
             shares: { p1: holding('railroad.red', 'railroad.black') },
@@ -151,7 +151,7 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         ])
     })
 
-    it('marks an empty $5 city when some placement there earns it, and a start there pays nothing (R-4.3.2, R-4.3.2-H1)', () => {
+    it('marks an empty $5 city when some placement there earns it, and a start there pays nothing (R-4.3.2)', () => {
         const [besideKansasCity] = adjacentHexIds(KANSAS_CITY)
         const state = building({
             round: 5,
@@ -177,7 +177,7 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         expect(offeredAt(placementOffer(blackOnly, 'p1'), KANSAS_CITY)?.marks).toEqual([])
     })
 
-    it('marks a hex completing the Transcontinental with $12 in a city and $8 elsewhere (R-4.3.3-H2)', () => {
+    it('marks a hex completing the Transcontinental with $12 in a city and $8 elsewhere (R-4.3.3)', () => {
         const atCity = building({
             round: 6,
             shares: { p1: EVERY_SHARE },

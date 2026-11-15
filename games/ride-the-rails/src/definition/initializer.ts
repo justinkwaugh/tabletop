@@ -40,7 +40,7 @@ export class RideTheRailsGameInitializer
         state: UninitializedGameState,
         assignment?: StartingPositionAssignment
     ): HydratedRideTheRailsGameState {
-        // R-1.2-H1: three to five players, as printed.
+        // R-1.2: three to five players, as printed.
         const { minPlayers, maxPlayers } = RideTheRailsInfo.metadata
         const playerCount = game.players.length
         assert(
@@ -75,7 +75,7 @@ export class RideTheRailsGameInitializer
             roundManager,
             phaseManager,
             track: {},
-            // R-1.3.2, R-1.3-H1: a passenger on every city, kept in id order.
+            // R-1.3.2: a passenger on every city, kept in id order.
             passengers: inCityIdOrder(USA_CITIES.map((city) => city.id))
         })
 

@@ -14,7 +14,7 @@ import { hasTrackIn } from './track.js'
 import type { RideTheRailsGameState, Track } from '../model/gameState.js'
 import type { RideTheRailsPlayerState } from '../model/playerState.js'
 
-// R-3.3.2, R-3.3.2-H1: one railroad's hexes from a city to the next city, both cities included.
+// R-3.3.2: one railroad's hexes from a city to the next city, both cities included.
 export type Link = Type.Static<typeof Link>
 export const Link = Type.Object({
     railroadId: RailroadId,
@@ -42,7 +42,7 @@ export type JourneyPayments = {
     payments: JourneyPayment[]
 }
 
-// R-3.3.2, R-3.3.2-H1: a link ends at the first city it reaches, so track through a city is two links.
+// R-3.3.2: a link ends at the first city it reaches, so track through a city is two links.
 export function isLink(track: Track, { railroadId, hexIds }: Link): boolean {
     if (hexIds.length < 2 || !hexIds.every(isUsaHex) || new Set(hexIds).size !== hexIds.length) {
         return false
@@ -59,7 +59,7 @@ export function isLink(track: Track, { railroadId, hexIds }: Link): boolean {
     )
 }
 
-// R-3.3.2-H1: a route changes railroad only in a city, where one link ends and the next begins.
+// R-3.3.2: a route changes railroad only in a city, where one link ends and the next begins.
 function linksMeet(links: readonly Link[]): boolean {
     return links.every(
         (link, index) => index === 0 || links[index - 1].hexIds.at(-1) === link.hexIds[0]
@@ -82,7 +82,7 @@ function startsAtPassenger(state: RideTheRailsGameState, links: readonly Link[])
     return start !== undefined && state.passengers.includes(start.id)
 }
 
-// R-3.3.1, R-3.3.2, R-3.3.2-H1, R-3.3.3: the player need not hold shares in a railroad to use it.
+// R-3.3.1, R-3.3.2, R-3.3.3: the player need not hold shares in a railroad to use it.
 export function journeyRefusal(
     state: RideTheRailsGameState,
     links: readonly Link[]
@@ -147,7 +147,7 @@ export function paymentTotal({ dividends, fare }: JourneyPayment): number {
     return dividends + fare
 }
 
-// R-3.3.1-H1: a search in one railroad's track from a city through non-city hexes to another city.
+// R-3.3.1: a search in one railroad's track from a city through non-city hexes to another city.
 export function hasLinkFrom(track: Track, cityHexId: HexId, railroadId: RailroadId): boolean {
     if (!hasTrackIn(track, cityHexId, railroadId)) {
         return false
@@ -169,7 +169,7 @@ export function hasLinkFrom(track: Track, cityHexId: HexId, railroadId: Railroad
     return false
 }
 
-// R-3.3.1-H1: one link is a journey, so the pass is legal only when no passenger city has a link out.
+// R-3.3.1: one link is a journey, so the pass is legal only when no passenger city has a link out.
 export function journeyExists(state: RideTheRailsGameState): boolean {
     return state.passengers.some((cityId) => {
         const { hexId } = usaCity(cityId)

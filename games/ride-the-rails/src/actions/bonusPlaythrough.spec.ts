@@ -87,7 +87,7 @@ function sameEntry(bonus: PaidBonus, entry: Entry): boolean {
     return bonus.bonusId === entry.bonusId && bonus.cityId === entry.cityId
 }
 
-// R-4.3.1, R-4.3.2, R-4.3.2-H1, read straight from the board before the placement.
+// R-4.3.1, R-4.3.2, read straight from the board before the placement.
 function cityBonusesDue(before: RideTheRailsGameState, placement: Placement): PaidBonus[] {
     const hex = usaHex(placement.action.hexId)
     if (hex.terrain !== 'city') {
@@ -129,7 +129,7 @@ const sweepSteering: Steering = {
 }
 
 // Red from the East Coast and Purple from the West Coast each build to one meeting hex. Red's
-// shares are taken in round 1 only, so its supply keeps locomotives for track (R-1.1-H1).
+// shares are taken in round 1 only, so its supply keeps locomotives for track (R-1.1).
 function meetingSteering(meetAt: (state: RideTheRailsGameState) => HexId): Steering {
     return {
         sharePreference: (state) => (currentRoundNumber(state) === 1 ? [RED] : [PURPLE, BLUE]),
@@ -252,7 +252,7 @@ const BOARDS: readonly Board[] = [
                 bonusId: FIVE_DOLLAR_BONUS.id,
                 cityId: KANSAS_CITY,
                 fires: false,
-                why: 'Black starts there first, using the bonus up unpaid (R-4.3.2-H1)'
+                why: 'Black starts there first, using the bonus up unpaid (R-4.3.2)'
             },
             { bonusId: FIVE_DOLLAR_BONUS.id, cityId: DALLAS, fires: false, why: ONLY_KANSAS_CITY },
             {
@@ -328,7 +328,7 @@ describe.each(BOARDS)('the USA bonuses in a steered game: $name (R-4.3)', (board
         }
     })
 
-    it('claims the Transcontinental for the one placement that paid it (R-4.3.3-H2)', () => {
+    it('claims the Transcontinental for the one placement that paid it (R-4.3.3)', () => {
         const payments = paymentsOf(game, { bonusId: TRANSCONTINENTAL_BONUS.id })
         expect(payments.length).toBeLessThanOrEqual(1)
         const [payment] = payments
@@ -389,7 +389,7 @@ describe('Chicago in a real game (R-4.3.1)', () => {
     })
 })
 
-describe('a $5 city started in by Black, in a real game (R-4.3.2, R-4.3.2-H1)', () => {
+describe('a $5 city started in by Black, in a real game (R-4.3.2)', () => {
     const game = gameOf('Black starts in Kansas City')
     const inKansasCity = placementsOf(game).filter(({ action }) => action.hexId === KANSAS_CITY_HEX)
 
@@ -410,7 +410,7 @@ describe('a $5 city started in by Black, in a real game (R-4.3.2, R-4.3.2-H1)', 
     })
 })
 
-describe('the Transcontinental once taken, in a real game (R-4.3.3, R-4.3.3-H2)', () => {
+describe('the Transcontinental once taken, in a real game (R-4.3.3)', () => {
     it('pays nothing for a later line, even one that changes railroad only in a city', () => {
         const game = gameOf('Red and Purple meet east of Denver')
         const later = placementsOf(game).filter(({ actionRun }) => {

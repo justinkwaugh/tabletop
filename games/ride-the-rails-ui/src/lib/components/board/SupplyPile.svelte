@@ -32,7 +32,7 @@
     )
 </script>
 
-<!-- Art plan, Supply pile: the locomotives left (R-1.1-H1), drawn as the cubes themselves with no
+<!-- Art plan, Supply pile: the locomotives left (R-1.1), drawn as the cubes themselves with no
      number, or a dashed ghost column once none is left; what a share or placement flight lifts
      from. -->
 <svg

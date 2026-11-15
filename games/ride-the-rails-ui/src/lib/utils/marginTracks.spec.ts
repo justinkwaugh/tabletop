@@ -52,7 +52,7 @@ describe('the railroad cards', () => {
         expect(strip.map((entry) => entry.railroadId)).toEqual(RAILROAD_IDS.slice(0, 3))
     })
 
-    it('shows the supply the rules count (R-1.1, R-1.1-H1)', () => {
+    it('shows the supply the rules count (R-1.1)', () => {
         for (const entry of strip) {
             expect(entry.supply).toBe(supplyOf(state, entry.railroadId))
         }

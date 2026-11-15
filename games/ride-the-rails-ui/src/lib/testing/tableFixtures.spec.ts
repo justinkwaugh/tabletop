@@ -56,7 +56,7 @@ describe('the named table fixtures', () => {
 
         const hydrated = tableState(recipe)
         const round = recipe.rounds.length
-        // R-1.1-H1: the shares and track of a railroad never exceed its 27 locomotives.
+        // R-1.1: the shares and track of a railroad never exceed its 27 locomotives.
         for (const railroadId of RAILROAD_IDS) {
             expect(supplyOf(hydrated, railroadId)).toBeGreaterThanOrEqual(0)
         }
@@ -110,7 +110,7 @@ describe('the named table fixtures', () => {
             }
             const previous = records[index - 1]
             if (!previous) continue
-            // R-2.5.1, R-2.5-H1: lowest money first at the round's end; tied seats swap.
+            // R-2.5.1: lowest money first at the round's end; tied seats swap.
             const money = (playerId: string) => previous.money[playerId] ?? 0
             for (const [position, playerId] of record.turnOrder.entries()) {
                 const next = record.turnOrder[position + 1]

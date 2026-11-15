@@ -3,7 +3,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { RailroadId } from '../data/railroads.js'
 
-// R-3.1-H1: no cap on one railroad's shares; a railroad with none is absent.
+// R-3.1: no cap on one railroad's shares; a railroad with none is absent.
 export type Shares = Type.Static<typeof Shares>
 export const Shares = Type.Options(
     Type.Partial(Type.Record(RailroadId, Type.Integer({ minimum: 0 }))),

@@ -2,7 +2,7 @@ import type { Point, RectangleDimensions } from '@tabletop/common'
 import { LOCOMOTIVES_PER_RAILROAD } from '@tabletop/ride-the-rails'
 
 /**
- * Art plan, Supply pile: a railroad's locomotives still off the map (R-1.1-H1), drawn as the cubes
+ * Art plan, Supply pile: a railroad's locomotives still off the map (R-1.1), drawn as the cubes
  * themselves with no number, in columns of five, each filling from the front (bottom) row. Sizes
  * are pile units.
  *

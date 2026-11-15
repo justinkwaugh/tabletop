@@ -5,7 +5,7 @@
     const gameSession = getGameSession()
 </script>
 
-<!-- R-3.3.1-H1: with no journey possible, Pass is the only choice. -->
+<!-- R-3.3.1: with no journey possible, Pass is the only choice. -->
 <h2 class="text-base font-bold">{NO_JOURNEY_PROMPT}</h2>
 <div class="mt-2 flex flex-wrap gap-2">
     <button

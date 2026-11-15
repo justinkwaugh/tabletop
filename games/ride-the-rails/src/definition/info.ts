@@ -1,7 +1,7 @@
 import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 
-// R-1.2-H1: three to five players, as printed. R-8-H1: the USA map only, so no creation options.
+// R-1.2: three to five players, as printed. R-8: the USA map only, so no creation options.
 export const RideTheRailsInfo: GameInfo = {
     id: 'ride-the-rails',
     metadata: {

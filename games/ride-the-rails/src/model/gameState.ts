@@ -25,7 +25,7 @@ export const CURRENT_RIDE_THE_RAILS_REVISION = 1
 export type Track = Type.Static<typeof Track>
 export const Track = Type.Record(HexId, Type.Array(RailroadId, { minItems: 1, uniqueItems: true }))
 
-// R-4.3.3, R-4.3.3-H2: paid once.
+// R-4.3.3: paid once.
 export type TranscontinentalClaim = Type.Static<typeof TranscontinentalClaim>
 export const TranscontinentalClaim = Type.Object({
     playerId: Type.String(),

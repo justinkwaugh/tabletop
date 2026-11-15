@@ -72,7 +72,7 @@ export const EMPTY_JOURNEY_OFFER: JourneyOffer = {
     preview: undefined
 }
 
-// R-3.3.1, R-3.3.1-H1: a journey starts in a city holding a passenger with a link out, in map order.
+// R-3.3.1: a journey starts in a city holding a passenger with a link out, in map order.
 export function startCities(state: RideTheRailsGameState): JourneyCity[] {
     return USA_HEXES.flatMap((hex): JourneyCity[] => {
         if (hex.terrain !== 'city' || !state.passengers.includes(hex.cityId)) {
@@ -85,7 +85,7 @@ export function startCities(state: RideTheRailsGameState): JourneyCity[] {
     })
 }
 
-// R-3.3.2, R-3.3.2-H1, R-3.3.3: the cities one more link reaches from the route's last city, each
+// R-3.3.2, R-3.3.3: the cities one more link reaches from the route's last city, each
 // with the railroads for which the whole route still visits no hex twice. The route is named by its
 // cities and railroads, so a link may take other hexes than the draft's current realisation.
 function extensionCities(
