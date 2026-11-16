@@ -185,6 +185,22 @@ function wayOfStep({ to, route, vessel, ferry }: RouteStep): Omit<GodspeedStep, 
     }
 }
 
+function sameWay(a: RouteStep, b: RouteStep): boolean {
+    return a.to === b.to && a.route === b.route && a.vessel === b.vessel && a.ferry === b.ferry
+}
+
+/**
+ * R-3.7.3 Godspeed's ways are the monk's own steps, so while steps remain a Godspeed way the
+ * monk's step offers is that step: taking it as Godspeed would only give up the steps left.
+ */
+function godspeedBeyondSteps(offers: MoveOffers): MoveOffers['godspeed'] {
+    return offers.godspeed.map(({ pawn, ways }) => {
+        const steps =
+            offers.pieces.find(({ piece }) => piece.kind === 'pawn' && piece.n === pawn)?.ways ?? []
+        return { pawn, ways: ways.filter((way) => !steps.some((step) => sameWay(step, way))) }
+    })
+}
+
 /** The moves to each space, spaces and moves in the order given. */
 function movesBySpace(moves: readonly SpaceMove[]): ReadonlyMap<SpaceId, readonly SpaceMove[]> {
     const spaces = new Map<SpaceId, SpaceMove[]>()
@@ -357,16 +373,17 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
     }
 
     /**
-     * Contract, Hover: what staging a Move would light: its pieces, a lone piece's ways, and the
-     * Godspeed destinations.
+     * Contract, Hover: what staging a Move would light: its pieces and a lone piece's ways, or the
+     * Godspeed destinations when no piece can step.
      */
     lightsOpening(context: MoveContext): readonly BoardTarget[] {
         const offers = moveOffers(context.state, context.playerId, { steps: [] })
         const movable = offers.pieces.filter(({ ways }) => ways.length > 0)
         const [lone] = movable
+        const monks = movable.length > 0 ? godspeedBeyondSteps(offers) : offers.godspeed
         const ways = [
             ...(movable.length === 1 ? lone.ways : []),
-            ...offers.godspeed.flatMap((monk) => monk.ways)
+            ...monks.flatMap((monk) => monk.ways)
         ]
         return [
             ...movable.map(({ piece }) => pieceTarget(piece)),
@@ -375,8 +392,8 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
     }
 
     /**
-     * R-3.7.1 Steps until the allowance is spent or the seat stops; S30 takes no press. R-3.7.3 The
-     * Godspeed destinations light alongside: taking one stops the steps there.
+     * R-3.7.1 Steps until the allowance is spent or the seat stops; S30 takes no press. R-3.7.3 A
+     * Godspeed way that is no step lights alongside: taking it stops the steps there.
      */
     private stepsView(
         context: MoveContext,
@@ -389,7 +406,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             ...(picked
                 ? picked.ways.map((way): SpaceMove => ({ kind: 'step', piece: picked.piece, way }))
                 : []),
-            ...this.godspeedMoves(context, offers.godspeed)
+            ...this.godspeedMoves(context, godspeedBeyondSteps(offers))
         ]
         const pieces = movable.map(({ piece }): FlowPick => {
             const isPicked = picked !== undefined && samePiece(picked.piece, piece)

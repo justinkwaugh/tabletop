@@ -372,7 +372,8 @@ describe('S26 R-4.2.3 ways to one space', () => {
         choices[1].press?.({ pick: () => undefined, stack: () => undefined })
         expect(taken).toEqual([moves[1]])
 
-        // R-3.7.3 With a Godspeed there too, each row says what happens, and its way when it has two.
+        // R-3.7.3 With a Godspeed there that no step offers, each row says what happens, and its
+        // way when it has two.
         const godspeed: SpaceMove = {
             kind: 'godspeed',
             pawn: 2,
@@ -595,9 +596,10 @@ describe('S29 R-3.7.3, R-3.7.4 Godspeed and pilfer', () => {
         const ironBefore = session.gameState.getPlayerState(seat).goods.iron
         pickCard(session, 'move')
         await press(session, monk)
-        // The monk's own step could be its Godspeed too: the popup asks which.
+        // R-3.7.3 The monk's own step is the step, one press: its Godspeed comes after the steps.
+        expect(chip(session, spaceTarget(RoadEnd))?.label).toBe('road')
         await press(session, spaceTarget(RoadEnd))
-        await pressWay(session, 'Step')
+        expect(session.movePanel?.popup).toBeUndefined()
         await press(session, pawnTarget(seat, 2))
         await press(session, spaceTarget(Ruled))
         expect(session.movePanel?.stage).toBe('steps')
@@ -892,37 +894,42 @@ describe('S29 R-3.7.3 Godspeed as a move target', () => {
         return session.movePanel?.popup?.choices.map(({ label }) => label) ?? []
     }
 
-    it("a lone monk's Godspeed is one press, mid-steps or after them", async () => {
-        const arrange = (state: HydratedFeudumGameState, { seat }: TurnTable) => {
-            stand(state, seat, [RoadEnd, 'monk'], Farmer, Elsewhere)
-        }
-        const mid = await table(['move', 'tax'], arrange)
-        pickCard(mid.session, 'move')
-        expect(role(mid.session, spaceTarget(Inland))).toBe('lit')
-        expect(chip(mid.session, spaceTarget(Inland))?.label).toBe('Godspeed')
-        await press(mid.session, spaceTarget(Inland))
-        expect(mid.session.move.value('godspeed')).toEqual({ pawn: 1, to: Inland, medium: 'road' })
-        expect(mid.session.movePanel?.stage).toBe('send')
-        expect(mid.session.movePanel?.primary?.label).toBe('Move · 1 step')
-        host?.close()
-
-        const after = await table(['move', 'tax'], arrange)
-        pickCard(after.session, 'move')
-        await pressRow(after.session, 'Stop moving')
-        expect(after.session.movePanel?.stage).toBe('godspeed')
-        expect(role(after.session, pawnTarget(after.seat, 1))).toBe('dimmed')
-        expect(role(after.session, spaceTarget(Inland))).toBe('lit')
-        expect(chip(after.session, spaceTarget(Inland))?.label).toBe('Godspeed')
-        await press(after.session, spaceTarget(Inland))
-        expect(after.session.move.value('godspeed')).toEqual({
-            pawn: 1,
-            to: Inland,
-            medium: 'road'
+    it("a monk's step mid-steps is one press, with its way's chip and no Godspeed chip", async () => {
+        const { session, seat } = await table(['move', 'tax'], (state, turn) => {
+            stand(state, turn.seat, [RoadEnd, 'monk'], Farmer, Elsewhere)
         })
-        expect(after.session.movePanel?.stage).toBe('send')
+        pickCard(session, 'move')
+        await press(session, pawnTarget(seat, 1))
+        expect(role(session, spaceTarget(Inland))).toBe('lit')
+        expect(chip(session, spaceTarget(Inland))?.label).toBe('road')
+        const chips = [...session.boardOffer.targets.values()].map(({ chip }) => chip?.label)
+        expect(chips).not.toContain('Godspeed')
+        await press(session, spaceTarget(Inland))
+        expect(session.movePanel?.popup).toBeUndefined()
+        expect(session.move.value('steps')).toEqual([
+            { piece: { kind: 'pawn', playerId: seat, n: 1 }, to: Inland, medium: 'road' }
+        ])
+        expect(session.move.value('godspeed')).toBeUndefined()
+        expect(session.movePanel?.stage).toBe('steps')
     })
 
-    it("the Move card's hover lights the Godspeed destinations with its pieces", async () => {
+    it("a lone monk's Godspeed after the steps is one press", async () => {
+        const { session, seat } = await table(['move', 'tax'], (state, turn) => {
+            stand(state, turn.seat, [RoadEnd, 'monk'], Farmer, Elsewhere)
+        })
+        pickCard(session, 'move')
+        await pressRow(session, 'Stop moving')
+        expect(session.movePanel?.stage).toBe('godspeed')
+        expect(role(session, pawnTarget(seat, 1))).toBe('dimmed')
+        expect(role(session, spaceTarget(Inland))).toBe('lit')
+        expect(chip(session, spaceTarget(Inland))?.label).toBe('Godspeed')
+        await press(session, spaceTarget(Inland))
+        expect(session.movePanel?.popup).toBeUndefined()
+        expect(session.move.value('godspeed')).toEqual({ pawn: 1, to: Inland, medium: 'road' })
+        expect(session.movePanel?.stage).toBe('send')
+    })
+
+    it("the Move card's hover lights its pieces, and no Godspeed among the steps", async () => {
         const { session, seat } = await table(['move', 'tax'], (state, turn) => {
             stand(state, turn.seat, [RoadEnd, 'monk'], Farmer, Elsewhere)
         })
@@ -932,8 +939,7 @@ describe('S29 R-3.7.3 Godspeed as a move target', () => {
             input: {}
         })
         expect(lights).toContain(pawnTarget(seat, 1))
-        expect(lights).toContain(spaceTarget(Inland))
-        expect(lights).not.toContain(spaceTarget('space.forest.2'))
+        expect(lights).not.toContain(spaceTarget(Inland))
     })
 
     it('two monks onto one space ask once, each row naming where its monk stands', async () => {
@@ -952,80 +958,6 @@ describe('S29 R-3.7.3 Godspeed as a move target', () => {
         expect(session.move.value('godspeed')).toEqual({ pawn: 2, to: Inland, medium: 'road' })
         expect(session.movePanel?.popup).toBeUndefined()
     })
-
-    it('a space that is a step and a Godspeed asks once: "Step" or the Godspeed', async () => {
-        const { session, seat } = await table(['move', 'tax'], (state, turn) => {
-            stand(state, turn.seat, [RoadEnd, 'monk'], Farmer, Elsewhere)
-        })
-        pickCard(session, 'move')
-        await press(session, pawnTarget(seat, 2))
-        await press(session, spaceTarget(Inland))
-        expect(popupRows(session)).toEqual(['Step', 'Godspeed: monk from Desert 1'])
-        await pressWay(session, 'Step')
-        expect(session.move.value('steps')).toEqual([
-            { piece: { kind: 'pawn', playerId: seat, n: 2 }, to: Inland, medium: 'road' }
-        ])
-        expect(session.move.value('godspeed')).toBeUndefined()
-        expect(session.movePanel?.stage).toBe('steps')
-
-        // From Desert 3 the farmer steps back to Desert 4, which the monk can't reach.
-        expect(chip(session, spaceTarget(Farmer))?.label).toBe('road')
-        await press(session, spaceTarget(Inland))
-        expect(popupRows(session)).toEqual([])
-        expect(session.move.value('godspeed')).toEqual({ pawn: 1, to: Inland, medium: 'road' })
-    })
-
-    it('Godspeed chosen mid-steps sends the same Move as after "Stop moving"', async () => {
-        const arrange = (state: HydratedFeudumGameState, { seat }: TurnTable) => {
-            stand(state, seat, [RoadEnd, 'monk'], Farmer, Elsewhere)
-        }
-        const sendBy = async (stop: boolean) => {
-            const turn = await table(['move', 'tax'], arrange)
-            const { session, seat } = turn
-            pickCard(session, 'move')
-            await press(session, pawnTarget(seat, 2))
-            await press(session, spaceTarget('space.forest.3'))
-            if (stop) {
-                await pressRow(session, 'Stop moving')
-            }
-            await press(session, spaceTarget(Inland))
-            expect(session.movePanel?.primary?.label).toBe('Move · 2 steps')
-            await session.sendTurnCard()
-            await settled(session)
-            const sent = sentBy(turn)
-            assertExists(sent)
-            host?.close()
-            host = undefined
-            return sent
-        }
-        const afterStop = await sendBy(true)
-        const midSteps = await sendBy(false)
-        const shape = (action: GameAction) => {
-            const { steps, godspeed } = action as GameAction & { steps: unknown; godspeed: unknown }
-            return { type: action.type, steps, godspeed }
-        }
-        expect(shape(midSteps)).toEqual(shape(afterStop))
-        expect(shape(midSteps)).toMatchObject({
-            type: ActionType.Move,
-            godspeed: { pawn: 1, to: Inland, medium: 'road' }
-        })
-    })
-
-    it('Godspeed mid-steps ends the steps; Undo brings them back', async () => {
-        const { session, seat } = await table(['move', 'tax'], (state, turn) => {
-            stand(state, turn.seat, [RoadEnd, 'monk'], Farmer, Elsewhere)
-        })
-        pickCard(session, 'move')
-        await press(session, pawnTarget(seat, 3))
-        await press(session, spaceTarget('space.forest.2'))
-        await press(session, spaceTarget(Inland))
-        expect(session.movePanel?.stage).toBe('send')
-        expect(session.boardOffer.trail?.[1]).toMatchObject({ n: 2, to: Inland, godspeed: true })
-        await undo(session)
-        expect(session.move.value('godspeed')).toBeUndefined()
-        expect(session.movePanel?.stage).toBe('steps')
-        expect(session.movePanel?.line).toBe('2 of 3 steps left')
-    })
 })
 
 describe('S30 R-3.7.1 the allowance spent', () => {
@@ -1037,7 +969,6 @@ describe('S30 R-3.7.1 the allowance spent', () => {
         expect(session.movePanel?.stage).toBe('steps')
         expect(row(session.movePanel?.rows, 'Stop moving').picked).toBe(false)
         await press(session, spaceTarget(RoadEnd))
-        await pressWay(session, 'Step')
         expect(session.move.value('stopped')).toBeUndefined()
         expect(session.movePanel?.line).toBe('0 of 1 steps left')
         expect(session.movePanel?.stage).toBe('godspeed')
