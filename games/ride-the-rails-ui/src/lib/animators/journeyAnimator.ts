@@ -7,7 +7,7 @@ import {
     type RideJourney
 } from '@tabletop/ride-the-rails'
 import { hexCenter, stationOf } from '$lib/utils/boardGeometry.js'
-import { passengerSpot } from '$lib/utils/passengerLayout.js'
+import { passengerSpot, startPassengerSpot } from '$lib/utils/passengerLayout.js'
 import { seatMoneyPoint } from './flightPlaces.js'
 import { moneyKey, passengerKey, type Flights, type Flyer } from './flights.svelte.js'
 import { coinFan, hexStep, journeyCoins, passengerChanges } from './journeyPlan.js'
@@ -44,20 +44,24 @@ const COIN_RISE = 24
 
 /**
  * Contract, Animation plan, Journey (Patterns B and D): R-3.3, the start passenger travels the
- * route through the hex centres, about 120 ms a hex and at most 2.4 s in all; each city it reaches
+ * route through the hex centres at its grown size, about 120 ms a hex and at most 2.4 s in all; each city it reaches
  * pulses its station ring once; at the end it fades. Then every dividend coin and the fare rise
  * from the end city and fly to the seats' money together (`flightPlaces`), and money ticks as
  * they land. Without an action (Undo, state-only history) or with reduced motion there is no
  * travel: a passenger taken away shrinks, one put back pops in, and money changes with the state.
  */
-export function journeyAnimator(flights: Flights): GameStateChangeListener<State> {
+export function journeyAnimator(
+    flights: Flights,
+    /** Whether the rider's own board already shows the start passenger grown in the middle. */
+    startsCentred: (playerId: string) => boolean = () => false
+): GameStateChangeListener<State> {
     return async ({ from, to, action, animationContext }: Step) => {
         if (!from) return
         const mode = motionMode(flights, action)
         if (mode === 'still') return
         if (mode === 'cinematic' && isRideJourney(action) && action.metadata) {
             flights.follow(animationContext)
-            await ride(flights, { to, animationContext }, action)
+            await ride(flights, { to, animationContext }, action, startsCentred(action.playerId))
             return
         }
         const { arriving, leaving } = passengerChanges(from, to)
@@ -75,14 +79,18 @@ export function journeyAnimator(flights: Flights): GameStateChangeListener<State
 async function ride(
     flights: Flights,
     { to, animationContext }: Pick<Step, 'to' | 'animationContext'>,
-    action: RideJourney
+    action: RideJourney,
+    centred: boolean
 ) {
     const metadata = action.metadata
     if (!metadata) return
     const { startCityId, endCityId, cityIds, payments } = metadata
     const hexes = journeyHexIds(action.links)
-    // The journey draft, and with it the lifted start, is put away while the step plays.
-    const spot = passengerSpot(startCityId, false)
+    // The journey draft is put away while the step plays. The passenger travels grown, as the
+    // rider's own draft showed it: from the middle of its hex there, or growing into it from its
+    // place in the top right on every other board.
+    const spot = centred ? startPassengerSpot(startCityId) : passengerSpot(startCityId, false)
+    const grown = startPassengerSpot(startCityId).scale
     const points = [spot, ...hexes.map(hexCenter)]
     const moves = points.length - 1
     const step = hexStep(moves)
@@ -115,9 +123,10 @@ async function ride(
     const travel = new PoseTween(flights, animationContext, passenger, passengerPose)
     for (let index = 1; index <= moves; index++) {
         const point = points[index]
-        travel.to({ x: point.x, y: point.y }, step, (index - 1) * step, 'none')
+        const grows = index === 1 ? { scale: grown } : {}
+        travel.to({ x: point.x, y: point.y, ...grows }, step, (index - 1) * step, 'none')
     }
-    travel.to({ opacity: 0, scale: spot.scale * 0.6 }, JOURNEY.fade, moves * step, 'power1.in')
+    travel.to({ opacity: 0, scale: grown * 0.6 }, JOURNEY.fade, moves * step, 'power1.in')
 
     for (const pulse of pulses) {
         new PoseTween(flights, animationContext, pulse.key, pulse.pose)

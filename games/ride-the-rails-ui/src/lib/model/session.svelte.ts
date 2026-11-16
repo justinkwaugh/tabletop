@@ -55,6 +55,7 @@ import {
 import {
     JourneyStageOrder,
     closeRailroadChoice,
+    cutDraftLinks,
     openRailroadChoice,
     pickJourneyStart,
     pushDraftLink,
@@ -272,10 +273,22 @@ export class RideTheRailsGameSession extends GameSession<
 
     private pressJourneyHex(hexId: HexId) {
         const offer = this.offeredJourney
-        if (offer.draft && this.isJourneyStart(offer.draft, hexId)) {
-            this.closeHexDetail()
-            this.journeyStage = {}
-            return
+        if (offer.draft) {
+            // A press on a city the route already reaches cuts it back to there; on the start,
+            // back to the start alone, and a second press on the start drops the draft.
+            const links = offer.draft.draftLinks
+            const reached = this.isJourneyStart(offer.draft, hexId)
+                ? 0
+                : links.findIndex((link) => usaCity(link.cityId).hexId === hexId) + 1
+            if (reached > 0 || this.isJourneyStart(offer.draft, hexId)) {
+                this.closeHexDetail()
+                if (reached === 0 && links.length === 0) {
+                    this.journeyStage = {}
+                } else if (reached < links.length) {
+                    this.journeyStage = cutDraftLinks(this.heldJourney, reached)
+                }
+                return
+            }
         }
         const city = offer.lit.find((lit) => lit.hexId === hexId)
         if (!city) {
@@ -315,10 +328,18 @@ export class RideTheRailsGameSession extends GameSession<
     }
 
     // R-3.3.1, R-3.3.2, R-X.1: the seat sends the hexes of the route it named.
+    /**
+     * The journey just sent. Its draft is put away at once so the passenger can travel on the
+     * flight layer, but the action panel keeps showing it until the new Game State is shown.
+     */
+    sentJourney: { draft: JourneyDraft; preview: JourneyPreview } | undefined = $state.raw()
+
     async rideJourney() {
         this.closeHexDetail()
         const draft = this.journeyDraft
-        if (draft && this.canRideJourney) {
+        const preview = this.journeyPreview
+        if (draft && preview && this.canRideJourney) {
+            this.sentJourney = { draft, preview }
             await this.applyAction(this.createPlayerAction(RideJourney, { links: draft.links }))
         }
     }
@@ -394,6 +415,7 @@ export class RideTheRailsGameSession extends GameSession<
 
     override beforeNewState(transition: PresentedTransition) {
         this.flights.settle()
+        this.sentJourney = undefined
         const hexId = this.shownHexId
         const incoming = this.incomingGameState
         if (

@@ -18,7 +18,7 @@ import {
     type PlayerMoney,
     type RailroadId
 } from '@tabletop/ride-the-rails'
-import { routeText, type Description } from '$lib/utils/describeAction.js'
+import { routeSummary, type Description } from '$lib/utils/describeAction.js'
 
 // R-2.2: phase 1 runs in reverse turn order.
 export function shareOrder(state: HydratedRideTheRailsGameState): string[] {
@@ -66,7 +66,7 @@ export function mountainNote(progress: BuildProgress): string | undefined {
 
 // R-3.2.1: the turn may end before its first placement.
 export function endBuildingLabel(progress: BuildProgress): string {
-    return progress.placed === 0 ? 'Build nothing' : 'Done building'
+    return progress.placed === 0 ? 'Skip' : 'Done'
 }
 
 // R-3.2, R-4.1, R-4.2: the railroads the builder may place now, in railroad order.
@@ -146,7 +146,7 @@ export function journeyLine(
     const viewerGain = viewer ? paymentTotal(viewer) : 0
     return [
         { playerId: action.playerId },
-        `: ${routeText(cityIds)}, ${linksText(totalLinks(linksPerRailroad))}`,
+        `: ${routeSummary(cityIds)}, ${linksText(totalLinks(linksPerRailroad))}`,
         ...(rider ? [`, fare $${rider.fare}`] : []),
         ...(viewerGain > 0 ? [`; you +$${viewerGain}`] : [])
     ]

@@ -5,20 +5,13 @@
         buildableRailroads,
         endBuildingLabel,
         mountainNote,
-        placedCount,
         placedText
     } from '$lib/model/actionArea.js'
     import { isInFullScreen } from '$lib/model/fullScreenContext.js'
     import { shownRailroadCards } from '$lib/model/railroadCards.js'
     import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
-    import {
-        BUILD_PILE_ROOM,
-        BUILD_PILE_ROW,
-        fittedPileUnit,
-        pileFootprint
-    } from '$lib/utils/supplyPile.js'
     import MarkPill from '../board/MarkPill.svelte'
-    import SupplyPile from '../board/SupplyPile.svelte'
+    import SupplyCount from '../SupplyCount.svelte'
     import RailroadSpotlightControl from '../RailroadSpotlightControl.svelte'
 
     const gameSession = getGameSession()
@@ -31,7 +24,7 @@
     const progress = $derived(buildProgress(gameSession.gameState))
     const note = $derived(progress && mountainNote(progress))
 
-    // R-3.2, R-4.1, R-4.2: on one line, the piles of the railroads the building seat may place now,
+    // R-3.2, R-4.1, R-4.2: on a phone, a card for each of the railroads the building seat may place now,
     // the same set that lights the hexes; a railroad that empties or has no legal hex drops out.
     const piles = $derived.by(() => {
         const playerId = gameSession.myPlayerId
@@ -39,40 +32,18 @@
         const buildable = buildableRailroads(gameSession.gameState, playerId)
         return shownRailroadCards(gameSession).filter((card) => buildable.includes(card.railroadId))
     })
-
-    // The piles' room between the count and the button, measured, and at most 160 px.
-    let room = $state(0)
-    const unit = $derived(
-        fittedPileUnit(
-            piles.map((card) => pileFootprint('follow', card.supply).width),
-            room > 0 ? Math.min(room, BUILD_PILE_ROOM) : 0,
-            BUILD_PILE_ROW
-        )
-    )
 </script>
 
 {#if progress && oneLine}
-    <!-- Contract, Build: one line on a phone and in full screen, the placed count, the piles, and
-         the button. -->
-    <div class="flex items-center gap-2.5">
-        <span class="count rtr-display" aria-hidden="true">{placedCount(progress)}</span>
+    <!-- Contract, Build: on a phone and in full screen, the count, the mountain's −1 and the
+         button on one line, and below them a card for each railroad the seat may place now, its
+         supply as a cube and the number left; a press spotlights it. -->
+    <div class="flex items-center justify-center gap-2.5">
+        <span class="rtr-display text-[22px] leading-none" aria-hidden="true"
+            >{progress.placed} / {progress.limit}</span
+        >
         <span class="sr-only">{placedText(progress)}{note ? `, ${note}` : ''}</span>
-        <div class="piles" role="group" aria-label="Railroads" bind:clientWidth={room}>
-            {#each piles as card (card.railroadId)}
-                <RailroadSpotlightControl
-                    railroadId={card.railroadId}
-                    label={card.label}
-                    class="build-pile"
-                >
-                    <SupplyPile
-                        railroadId={card.railroadId}
-                        supply={card.supply}
-                        fit="follow"
-                        {unit}
-                    />
-                </RailroadSpotlightControl>
-            {/each}
-        </div>
+        {#if note}<MarkPill tone="cost" text="−1" />{/if}
         <button
             type="button"
             class="h-8 shrink-0 rounded-full border-2 border-rtr-pill bg-rtr-pill px-3.5 text-sm font-semibold whitespace-nowrap text-rtr-pill-ink hover:enabled:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent disabled:opacity-50"
@@ -80,18 +51,34 @@
             onclick={() => gameSession.endBuilding()}>{endBuildingLabel(progress)}</button
         >
     </div>
+    {#if piles.length > 0}
+        <div class="cards" role="group" aria-label="Railroads">
+            {#each piles as card (card.railroadId)}
+                <div class="slot">
+                    <RailroadSpotlightControl
+                        railroadId={card.railroadId}
+                        label={card.label}
+                        class="build-card"
+                    >
+                        <SupplyCount railroadId={card.railroadId} supply={card.supply} />
+                    </RailroadSpotlightControl>
+                </div>
+            {/each}
+        </div>
+    {/if}
 {:else if progress}
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 class="text-base font-bold">Place locomotives</h2>
-        <span class="text-sm text-rtr-ink-muted">{placedText(progress)}</span>
+    <h2 class="text-base font-bold">Choose spaces on the map to build track</h2>
+    <!-- The count and the mountain's −1 on the next line, beside the button. -->
+    <div class="mt-1.5 flex flex-wrap items-center gap-2.5">
+        <span class="rtr-display text-[26px] leading-none"
+            >{progress.placed} / {progress.limit}<span class="sr-only"
+                >, {placedText(progress)}</span
+            ></span
+        >
         {#if note}
-            <span class="flex items-center gap-1.5 text-sm text-rtr-ink-muted">
-                <MarkPill tone="cost" text="−1" />
-                {note}
-            </span>
+            <MarkPill tone="cost" text="−1" />
+            <span class="sr-only">{note}</span>
         {/if}
-    </div>
-    <div class="mt-2 flex flex-wrap gap-2">
         <button
             type="button"
             class="rounded-full border-2 border-rtr-pill bg-rtr-pill px-3.5 py-1 text-sm font-semibold text-rtr-pill-ink hover:enabled:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent disabled:opacity-50"
@@ -102,24 +89,41 @@
 {/if}
 
 <style>
-    .count {
-        flex: none;
-        font-size: 18px;
-        line-height: 1;
+    .cards {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin-top: 6px;
     }
 
-    .piles {
-        flex: 1 1 0;
+    /* The desktop cards' width, narrowing when six railroads would not fit a phone's row. */
+    .slot {
+        flex: 0 1 66px;
         min-width: 0;
         display: flex;
-        gap: 4px;
     }
 
-    /* 2 px above and below keeps the line, and the panel, 50 px tall. */
-    .piles :global(.build-pile) {
+    .cards :global(.build-card) {
+        flex: 1;
+        min-width: 0;
+        height: 34px;
         display: flex;
-        padding: 2px 3px;
-        border: 1px solid var(--rtr-rule);
-        border-radius: 7px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid var(--rtr-card-edge);
+        background: var(--rtr-panel-raised);
+        color: var(--rtr-ink);
+        container-type: inline-size;
+    }
+
+    /* As the share buttons: a smaller cube and figure in a narrow card. */
+    @container (max-width: 44px) {
+        .cards :global(.supply) {
+            --supply-cube: 10px;
+            --supply-gap: 3px;
+            --supply-figure: 17px;
+        }
     }
 </style>

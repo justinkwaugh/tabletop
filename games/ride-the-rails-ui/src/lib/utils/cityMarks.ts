@@ -1,21 +1,17 @@
 import type { Point } from '@tabletop/common'
-import { usaCity, type CityId, type RailroadId } from '@tabletop/ride-the-rails'
+import type { CityId, RailroadId } from '@tabletop/ride-the-rails'
 import { HEX_SIZE } from './boardGeometry.js'
 import type { CityBonusMark } from './boardPieces.js'
 
 // Art plan, City marks: every mark is placed from its hex's centre, in board units.
-
-function hasNoLimit(cityId: CityId): boolean {
-    return usaCity(cityId).capacity === 'unlimited'
-}
 
 // The start band (BOARD_LOOK.startMark 'band').
 
 /** The band of start colours just inside the hex's edge, measured across its sides. */
 export const START_BAND_WIDTH = 6.4
 
-/** A city with no printed start colour, where only Black may start, has a thinner Black band. */
-export const PLAIN_CITY_BAND_WIDTH = 5.2
+/** A city where only Black may start (no printed colour, no cue) has a thin Black band. */
+export const PLAIN_CITY_BAND_WIDTH = 2.4
 
 /** The pale line across the band where one colour meets the next. */
 export const BAND_SEPARATOR_WIDTH = 1.6
@@ -172,21 +168,22 @@ export const CAPACITY_ONE = { x: 0, y: -22.4, fontSize: 16 } as const
 
 /**
  * Where a city's passenger stands from the hex's centre: up and right, inside the hex's top and
- * above the cubes, which keep their places in every hex; Chicago's at the top centre, above its
- * back row of three.
+ * above the cubes, which keep their places in every hex, Chicago's too.
  */
 const PASSENGER_OFFSET: Point = { x: 14.4, y: -23.8 }
-const CHICAGO_PASSENGER_OFFSET: Point = { x: 0, y: -25.6 }
 
 /** The passenger's scale on the board, from its own units. */
 export const PASSENGER_SCALE = 1.5
 
-export function passengerOffset(cityId: CityId): Point {
-    return hasNoLimit(cityId) ? CHICAGO_PASSENGER_OFFSET : PASSENGER_OFFSET
+export function passengerOffset(_cityId: CityId): Point {
+    return PASSENGER_OFFSET
 }
 
 /** A picked journey start lifts its passenger slightly, in the passenger's own units. */
 export const PASSENGER_LIFT = 8
+
+/** A picked journey start's passenger stands in the middle of its hex at this scale, over the cubes. */
+export const START_PASSENGER_SCALE = 2.8
 
 /**
  * Art plan, Passenger: a classic meeple in its own units, centred on the origin, one flat shape: a

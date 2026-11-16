@@ -2,6 +2,7 @@ import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isTakeShare, supplyOf } from '@tabletop/ride-the-rails'
 import { TRAVELLING_LOCOMOTIVE_WIDTH, railroadSourcePoint, seatCardPoint } from './flightPlaces.js'
 import { shareChanges } from './flightPlan.js'
+import { newShareSlot } from '$lib/utils/seatCards.js'
 import { sharesKey, supplyKey, type Flights } from './flights.svelte.js'
 import {
     FLIGHT,
@@ -19,7 +20,7 @@ export const SHARE_FLYER_KEY = 'share'
 /**
  * Contract, Animation plan, Share (Patterns B and D): R-3.1, a locomotive lifts from its
  * railroad's supply pile (its card on desktop, its share button on a phone) and flies to the
- * seat's card; the pile loses a cube as it lifts and the seat's share count ticks as it lands
+ * slot it fills on the seat's card; the pile loses a cube as it lifts and the seat's share count ticks as it lands
  * (`flightPlaces`). Without an action the counts change with the state.
  */
 export function shareAnimator(flights: Flights): GameStateChangeListener<State> {
@@ -32,7 +33,9 @@ export function shareAnimator(flights: Flights): GameStateChangeListener<State> 
         flights.follow(animationContext)
 
         const start = railroadSourcePoint(flights.table, change.railroadId)
-        const marker = seatCardPoint(flights.table, change.playerId)
+        const taker = to.getPlayerState(change.playerId)
+        const slot = newShareSlot((railroadId) => taker.sharesOf(railroadId), change.railroadId)
+        const marker = seatCardPoint(flights.table, change.playerId, slot)
         const startPose = pose(start.x, start.y)
         const shown = await showFlyers(flights, [
             {

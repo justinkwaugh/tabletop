@@ -25,8 +25,9 @@
      back on the USA map (R-3.3.6), so it leaves nothing. -->
 <g class="passengers" aria-hidden="true">
     {#each cities as city (city.cityId)}
-        {#if city.waiting}
-            {@const spot = passengerSpot(city.cityId, city.cityId === startCityId)}
+        <!-- A picked journey start's passenger is drawn grown and centred by the staged route. -->
+        {#if city.waiting && city.cityId !== startCityId}
+            {@const spot = passengerSpot(city.cityId, false)}
             <g transform="translate({spot.x} {spot.y}) scale({spot.scale})">
                 <PassengerFigure />
             </g>

@@ -49,6 +49,16 @@ export function pushDraftLink(stage: JourneyStage, link: DraftLink): JourneyStag
     )
 }
 
+/** The route cut back to its first `count` links, as one press Undo takes back. */
+export function cutDraftLinks(stage: JourneyStage, count: number): JourneyStage {
+    return pushStagedSelectionValue<JourneyStageValues, 'links'>(
+        stage,
+        JourneyStageOrder,
+        'links',
+        draftLinks(stage).slice(0, count)
+    )
+}
+
 export function openRailroadChoice(stage: JourneyStage, cityId: CityId): JourneyStage {
     return setStagedSelectionValue<JourneyStageValues, 'railroadChoice'>(
         stage,

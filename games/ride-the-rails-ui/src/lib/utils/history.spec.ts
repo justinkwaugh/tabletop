@@ -191,14 +191,10 @@ describe('a building turn is one entry (R-3.2, R-4.3)', () => {
         expect(turn.closed).toBe(true)
         expect(turn.actions).toHaveLength(6)
         const description = turnDescription(turn)
-        expect(reading(description, 'p1')).toBe(
-            'You built 5: Red ×3, Blue ×2 · Chicago $2 · Denver $5'
-        )
-        expect(reading(description, 'p2')).toBe(
-            'Ana built 5: Red ×3, Blue ×2 · Chicago $2 · Denver $5'
-        )
+        expect(reading(description, 'p1')).toBe('You built 3 Red 2 Blue · Chicago $2 · Denver $5')
+        expect(reading(description, 'p2')).toBe('Ana built 3 Red 2 Blue · Chicago $2 · Denver $5')
         expect(reading(description, undefined)).toBe(
-            'Ana built 5: Red ×3, Blue ×2 · Chicago $2 · Denver $5'
+            'Ana built 3 Red 2 Blue · Chicago $2 · Denver $5'
         )
     })
 
@@ -211,7 +207,7 @@ describe('a building turn is one entry (R-3.2, R-4.3)', () => {
         const turn = onlyTurn(entries)
         expect(turn.closed).toBe(false)
         expect(reading(buildingTurnDescription(turn), 'p2')).toBe(
-            'Ana built 2: Red ×1, Blue ×1 · Chicago $2'
+            'Ana built 1 Red 1 Blue · Chicago $2'
         )
     })
 
@@ -225,7 +221,7 @@ describe('a building turn is one entry (R-3.2, R-4.3)', () => {
         )
         expect(limit.closed).toBe(true)
         expect(reading(turnDescription(limit), 'p2')).toBe(
-            'Ana built 5: Red ×3, Blue ×2 · Chicago $2 · Denver $5 · placement limit reached'
+            'Ana built 3 Red 2 Blue · Chicago $2 · Denver $5'
         )
 
         const stuck = onlyTurn(

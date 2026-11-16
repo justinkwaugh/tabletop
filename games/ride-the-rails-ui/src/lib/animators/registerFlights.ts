@@ -12,7 +12,10 @@ export function registerFlightAnimators(session: RideTheRailsGameSession): () =>
         shareAnimator(session.flights),
         placementAnimator(session.flights),
         transcontinentalAnimator(session.flights, () => session.wantsTranscontinentalLine),
-        journeyAnimator(session.flights),
+        journeyAnimator(
+            session.flights,
+            (playerId) => playerId === session.myPlayerId && !session.isViewingHistory
+        ),
         endOfRoundAnimator(session.flights)
     ]
     for (const listener of listeners) session.addGameStateChangeListener(listener)

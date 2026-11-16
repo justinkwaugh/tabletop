@@ -428,11 +428,15 @@ describe('Undo and the journey draft (docs/user-interactions.md)', () => {
         ).toThrow()
     })
 
-    it('pressing the picked start clears the whole draft, and another start can then be picked', async () => {
+    it('pressing the picked start cuts the route back to it, and a second press drops the draft', async () => {
         const session = await startedIn(KANSAS_CITY)
         await session.pressHex(hexOf(SAINT_LOUIS))
         session.chooseLinkRailroad(RED)
         await session.pressHex(hexOf(CINCINNATI))
+
+        await session.pressHex(hexOf(KANSAS_CITY))
+        expect(session.journeyDraft?.startCityId).toBe(KANSAS_CITY)
+        expect(routeOf(session)).toEqual([])
 
         await session.pressHex(hexOf(KANSAS_CITY))
         expect(session.journeyDraft).toBeUndefined()
@@ -440,6 +444,28 @@ describe('Undo and the journey draft (docs/user-interactions.md)', () => {
 
         await session.pressHex(hexOf(PITTSBURGH))
         expect(session.journeyDraft?.startCityId).toBe(PITTSBURGH)
+    })
+
+    it('pressing a city the route reaches cuts it back to there, and Undo puts the rest back', async () => {
+        const session = await startedIn(KANSAS_CITY)
+        await session.pressHex(hexOf(SAINT_LOUIS))
+        session.chooseLinkRailroad(RED)
+        await session.pressHex(hexOf(CINCINNATI))
+        await session.pressHex(hexOf(PITTSBURGH))
+
+        await session.pressHex(hexOf(SAINT_LOUIS))
+        expect(routeOf(session)).toEqual([[SAINT_LOUIS, RED]])
+        expect(session.hexDetailHexId).toBeUndefined()
+
+        await session.pressHex(hexOf(SAINT_LOUIS))
+        expect(routeOf(session)).toEqual([[SAINT_LOUIS, RED]])
+
+        await session.undo()
+        expect(routeOf(session)).toEqual([
+            [SAINT_LOUIS, RED],
+            [CINCINNATI, RED],
+            [PITTSBURGH, BLUE]
+        ])
     })
 
     it('Undo closes the railroad popup before taking back any link, and a second press closes it', async () => {

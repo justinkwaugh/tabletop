@@ -129,7 +129,9 @@ describe('the flight layer in a session (R-3.2, R-3.2.5)', () => {
         expect(session.isViewingHistory).toBe(false)
         expect(session.gameState.actionCount).toBe(played)
         expect(flights.flyers).toEqual([])
-    })
+        // With no journey to make after it, the Ride phase passes by itself and the round ends, so
+        // the replay runs to the end of round's motion too.
+    }, 15_000)
 
     it('moves nothing when the shown state is swapped silently', async () => {
         const { session, flights } = await flying(redBesideChicago())

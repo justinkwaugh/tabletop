@@ -17,7 +17,6 @@ import { EMPTY_BOARD_OFFER, type BoardOffer, type OfferedHex } from '$lib/model/
 import { BOARD_EXTENTS, FITTED_DESKTOP_SCALE, hexCenter } from './boardGeometry.js'
 import { trackSlots } from './trackLayout.js'
 import {
-    BOARD_OUTLINE_PATH,
     LARGEST_PICK_SCALE,
     buildChoice,
     chipModifiers,
@@ -277,12 +276,13 @@ describe('marks are sized for the view (Contract, Render ownership)', () => {
 describe('the scrim, the spotlight and hex detail (Contract, Coexistence and precedence)', () => {
     const pick: BoardOffer = { ...EMPTY_BOARD_OFFER, scrim: { holes: [NEW_YORK, PHILADELPHIA] } }
 
-    it('covers the whole board, water and margin included, with a hole per lit hex', () => {
-        const { x, y, width, height } = BOARD_EXTENTS
-        expect(BOARD_OUTLINE_PATH).toBe(`M${x},${y}h${width}v${height}h${-width}Z`)
+    it('covers the land only, never the sea, with a hole per lit hex', () => {
+        const land = scrimPath([])
+        const { width, height } = BOARD_EXTENTS
+        expect(land).not.toContain(`h${width}v${height}`)
         const path = scrimPath([NEW_YORK, PHILADELPHIA])
-        expect(path.startsWith(BOARD_OUTLINE_PATH)).toBe(true)
-        expect(path.slice(BOARD_OUTLINE_PATH.length).match(/Z/g)).toHaveLength(2)
+        expect(path.startsWith(land)).toBe(true)
+        expect(path.slice(land.length).match(/Z/g)).toHaveLength(2)
     })
 
     it('dims other track with no pick, and only outlines the railroad during one', () => {

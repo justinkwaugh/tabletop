@@ -237,3 +237,43 @@ describe('ghost cubes in a lit hex', () => {
         ])
     })
 })
+
+describe('Chicago’s cubes as they arrive', () => {
+    const chicago = cityHex('city.usa.chicago')
+    const center = hexCenter(chicago)
+    function shape(held: number): [number, number, number][] {
+        return trackSlots(chicago, held).map((placed) => [
+            Math.round((placed.x - center.x) * 10) / 10,
+            Math.round((placed.y - center.y) * 10) / 10,
+            placed.width
+        ])
+    }
+
+    it('stands one full size in the middle, then two side by side like any city', () => {
+        const city = trackSlots(cityHex('city.usa.denver'), 2).map((placed) => placed.width)
+        expect(shape(1)).toHaveLength(1)
+        expect(shape(1)[0]?.slice(0, 2)).toEqual([0, shape(2)[0]?.[1]])
+        expect(shape(2).map(([, , width]) => width)).toEqual(city)
+        expect(shape(2)[0]?.[0]).toBeLessThan(0)
+        expect(shape(2)[1]?.[0]).toBeGreaterThan(0)
+    })
+
+    it('makes three smaller straight across, then lifts them for a fourth below in the middle', () => {
+        const three = shape(3)
+        expect(new Set(three.map(([, y]) => y)).size).toBe(1)
+        expect(three[0]?.[2]).toBeLessThan(shape(2)[0]?.[2] ?? 0)
+        const four = shape(4)
+        expect(four.slice(0, 3).map(([x]) => x)).toEqual(three.map(([x]) => x))
+        expect(four[3]?.[0]).toBe(0)
+        expect(four[3]?.[1]).toBeGreaterThan(four[0]?.[1] ?? 0)
+    })
+
+    it('splits the bottom row for a fifth, then holds two rows of three', () => {
+        const five = shape(5)
+        expect(five.slice(3).map(([x]) => Math.sign(x))).toEqual([-1, 1])
+        expect(five[3]?.[1]).toBe(five[4]?.[1])
+        const six = shape(6)
+        expect(six).toHaveLength(6)
+        expect(new Set(six.map(([, y]) => y)).size).toBe(2)
+    })
+})

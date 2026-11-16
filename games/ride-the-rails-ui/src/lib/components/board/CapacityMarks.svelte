@@ -4,6 +4,7 @@
 
     const SIDE = 20
     const GAP = 6
+    const CHICAGO_EXTRA = 9
 
     // R-4.1.3, R-4.1.4: the cities with a printed limit other than two: an East Coast city holds a
     // single locomotive, Chicago any number, and so at most six, one per railroad.
@@ -34,7 +35,8 @@
                     center.y + Math.sin(angle) * HEX_WIDTH
                 )
             ) ?? 0
-        const distance = HEX_WIDTH / 2 + GAP + SIDE / 2
+        // Chicago's 6 stands further out, clear of the passenger in its hex's top right.
+        const distance = HEX_WIDTH / 2 + GAP + SIDE / 2 + (text === '6' ? CHICAGO_EXTRA : 0)
         return {
             cityId: city.id,
             text,

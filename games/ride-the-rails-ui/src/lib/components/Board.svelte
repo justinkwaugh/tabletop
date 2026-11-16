@@ -8,13 +8,16 @@
     import BonusLayer from './board/BonusLayer.svelte'
     import CityLayer from './board/CityLayer.svelte'
     import CapacityMarks from './board/CapacityMarks.svelte'
+    import LitWashLayer from './board/LitWashLayer.svelte'
+    import MapTitle from './board/MapTitle.svelte'
+    import StartLegend from './board/StartLegend.svelte'
     import FlightLayer from './board/FlightLayer.svelte'
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
     import LineLayer from './board/LineLayer.svelte'
     import PassengerLayer from './board/PassengerLayer.svelte'
     import PickLayer from './board/PickLayer.svelte'
-    import PopupAnchor, { CHOICE_ANCHOR_ID, DETAIL_ANCHOR_ID } from './board/PopupAnchor.svelte'
+    import PopupAnchor, { CHOICE_ANCHOR_ID, RIDE_ANCHOR_ID } from './board/PopupAnchor.svelte'
     import ScrimLayer from './board/ScrimLayer.svelte'
     import StagedRouteLayer from './board/StagedRouteLayer.svelte'
     import StartCueLayer from './board/StartCueLayer.svelte'
@@ -47,12 +50,18 @@
     )
 
     const stagedRoute = $derived(draft ?? EMPTY_STAGED_ROUTE)
+    // The city the next link leaves from, so each next city's chevron points the way it goes.
+    const journeyFrom: HexId | undefined = $derived(
+        draft ? usaCity(draft.draftLinks.at(-1)?.cityId ?? draft.startCityId).hexId : undefined
+    )
+
+    // The route's last city, where a Ride button floats once the journey can be made.
+    const rideHexId: HexId | undefined = $derived(
+        gameSession.canRideJourney && !gameSession.journeyPopup ? journeyFrom : undefined
+    )
 
     // The popups themselves are drawn outside the board's CSS zoom (BoardPopups).
     const choiceHexId = $derived(offer.popup?.hexId ?? gameSession.journeyPopup?.hexId)
-    const detailBeside = $derived(
-        gameSession.hexDetailInSidePanel ? undefined : gameSession.hexDetailHexId
-    )
 </script>
 
 <!-- Contract, Render ownership: one SVG, back to front. -->
@@ -66,7 +75,9 @@
     data-map-board
 >
     <GroundLayer />
+    <LitWashLayer {views} />
     <CapacityMarks />
+    <MapTitle />
     <CityLayer />
     <StartCueLayer />
     <BonusLayer />
@@ -74,10 +85,12 @@
     <TrackLayer {standAside} />
     <LineLayer lastJourney={gameSession.lastJourney} />
     <ScrimLayer {offer} />
+    <!-- Above the scrim: the legend is never dimmed. -->
+    <StartLegend />
     <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />
-    <PickLayer {views} {viewScale} />
+    <PickLayer {views} {viewScale} {journeyFrom} />
     <FlightLayer />
     <HitLayer {views} />
     <PopupAnchor id={CHOICE_ANCHOR_ID} hexId={choiceHexId} />
-    <PopupAnchor id={DETAIL_ANCHOR_ID} hexId={detailBeside} />
+    <PopupAnchor id={RIDE_ANCHOR_ID} hexId={rideHexId} />
 </svg>

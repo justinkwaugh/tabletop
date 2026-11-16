@@ -14,9 +14,9 @@
     const machineState = $derived(gameSession.gameState.machineState)
 </script>
 
-<!-- docs/game-ui-layout.md, Action area views: exactly one of these. -->
+<!-- docs/game-ui-layout.md, Action area views: exactly one of these, centred in the panel. -->
 <div
-    class="mx-2 rounded-xl border border-rtr-card-edge bg-rtr-panel px-3 py-2 text-rtr-ink shadow-sm max-sm:mx-1 max-sm:px-2 max-sm:py-[5px]"
+    class="action rounded-xl border border-rtr-card-edge bg-rtr-panel px-3 py-2 text-rtr-ink shadow-sm max-sm:px-1.5 max-sm:py-[5px]"
 >
     {#if gameSession.isViewingHistory}
         <HistoryDescription />
@@ -36,3 +36,19 @@
         <WaitingView />
     {/if}
 </div>
+
+<style>
+    /* Every view's rows and columns centre in the panel, the share buttons' row too. */
+    .action {
+        text-align: center;
+    }
+
+    .action :global(.flex),
+    .action :global(.share-row) {
+        justify-content: center;
+    }
+
+    .action :global(.flex-col) {
+        align-items: center;
+    }
+</style>

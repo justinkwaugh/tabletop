@@ -8,7 +8,7 @@ export type State = HydratedRideTheRailsGameState
 export type Step = Parameters<GameStateChangeListener<State>>[0]
 
 /** Players who ask for less motion get the quick changes Undo uses, as the platform's games do. */
-function prefersReducedMotion(): boolean {
+export function prefersReducedMotion(): boolean {
     return (
         typeof window !== 'undefined' &&
         typeof window.matchMedia === 'function' &&

@@ -10,6 +10,7 @@ import {
 } from '@tabletop/ride-the-rails'
 import { hexCenter } from '$lib/utils/boardGeometry.js'
 import { locomotivePieces, type LocomotivePiece } from '$lib/utils/boardPieces.js'
+import type { TrackSlot } from '$lib/utils/trackLayout.js'
 import type { State } from './motion.js'
 
 // R-3.2, R-4.1: the locomotives the transition adds and the ones it takes away (an Undo).
@@ -25,6 +26,21 @@ export function placementChanges(
         arriving: after.filter((piece) => !beforeKeys.has(piece.key)),
         leaving: before.filter((piece) => !afterKeys.has(piece.key))
     }
+}
+
+export type Regrouping = { key: string; from: TrackSlot; to: TrackSlot }
+
+// R-4.1.3: the locomotives that stay while their hex gains or loses one, each from the slot it held
+// to the slot the hex's new count gives it (a lone cube stands aside, Chicago regroups).
+export function regroupings(from: State, to: State): Regrouping[] {
+    const before = new Map(locomotivePieces(from.track).map((piece) => [piece.key, piece.slot]))
+    return locomotivePieces(to.track).flatMap((piece): Regrouping[] => {
+        const was = before.get(piece.key)
+        if (!was) return []
+        const moved =
+            was.x !== piece.slot.x || was.y !== piece.slot.y || was.width !== piece.slot.width
+        return moved ? [{ key: piece.key, from: was, to: piece.slot }] : []
+    })
 }
 
 export type ShareChange = { playerId: string; railroadId: RailroadId; shares: number }

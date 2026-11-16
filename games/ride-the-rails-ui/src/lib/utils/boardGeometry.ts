@@ -17,8 +17,8 @@ import {
 
 export const HEX_SIZE = 40
 export const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE
-/** Art plan, Board: the board is cropped to the land, with a thin rim of sea for the frame. */
-export const BOARD_MARGIN = 6
+/** Art plan, Board: the board is cropped to the land, with a band of sea around it. */
+export const BOARD_MARGIN = 40
 
 const HEX_DEFINITION = {
     orientation: HexOrientation.Pointy,

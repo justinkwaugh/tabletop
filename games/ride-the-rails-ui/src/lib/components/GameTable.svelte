@@ -6,6 +6,7 @@
         HistoryControls,
         DefaultTableLayout,
         CustomFont,
+        GameChat,
         GameSession,
         type DefaultTab
     } from '@tabletop/frontend-components'
@@ -16,10 +17,8 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import RailroadCards from '$lib/components/RailroadCards.svelte'
-    import SideRail from '$lib/components/SideRail.svelte'
     import Board from '$lib/components/Board.svelte'
     import BoardPopups from '$lib/components/board/BoardPopups.svelte'
-    import HexDetailCard from '$lib/components/board/HexDetailCard.svelte'
     import TableFlightLayer from '$lib/components/board/TableFlightLayer.svelte'
     import TableControls from '$lib/components/panel/TableControls.svelte'
     import FullScreenControls from '$lib/components/panel/FullScreenControls.svelte'
@@ -56,25 +55,12 @@
     const session = untrack(() => ensureRideTheRailsGameSession(gameSession))
     setGameSession(session)
 
-    // Contract, Desktop layout: a player may fold the side panel to a rail, and the board grows.
-    let sideFolded = $state(false)
     let sideTab: DefaultTab | undefined = $state()
-
-    function openSideAt(tab: DefaultTab) {
-        sideTab = tab
-        sideFolded = false
-    }
 
     let wrapper = $state<ScalingWrapper>()
     const boardView = new BoardView()
     /** Screen pixels kept between a hex panned into view and the board's edge. */
     const REVEAL_PADDING = 24
-
-    // Contract, Coexistence and precedence: during a map pick on wider screens the hex detail opens
-    // in the side panel.
-    const sidePanelHexId = $derived(
-        session.hexDetailInSidePanel ? session.hexDetailHexId : undefined
-    )
 
     // Contract, Phone layout: a hex focused out of view is panned into it, and nothing scrolls.
     const keepFocusInBoard = keepFocusedHexInBoard((hexId) => {
@@ -103,16 +89,16 @@
     data-rtr-palette={BOARD_LOOK.palette}
     {@attach session.flights.attachTable}
 >
-    <DefaultTableLayout bind:sideFolded>
-        {#snippet foldedSideContent()}
-            <SideRail onopen={openSideAt} />
+    <DefaultTableLayout>
+        {#snippet mobileControlsContent()}
+            <!-- The phone's history bar, inked for the table's paper as the side panel's is. -->
+            <HistoryControls
+                enabledColor="text-rtr-ink"
+                disabledColor="text-rtr-line"
+                borderClass="border-rtr-line border-b-2"
+            />
         {/snippet}
         {#snippet sideContent()}
-            {#if sidePanelHexId}
-                {#key sidePanelHexId}
-                    <HexDetailCard hexId={sidePanelHexId} />
-                {/key}
-            {/if}
             <!-- The site's history bar and tabs, inked for the table's paper. -->
             <div class="max-sm:hidden">
                 <HistoryControls
@@ -132,6 +118,19 @@
                 {/snippet}
                 {#snippet history()}
                     <History />
+                {/snippet}
+                {#snippet chat()}
+                    <!-- The site's chat, inked for the table's paper. -->
+                    <GameChat
+                        timeColor="text-rtr-ink-muted"
+                        messageTextColor="text-rtr-ink"
+                        composerTextColor="text-rtr-ink"
+                        messageHoverColor="hover:bg-rtr-panel"
+                        inputBgColor="bg-rtr-panel-raised"
+                        inputBorderColor="border-rtr-line"
+                        borderColor="border-rtr-card-edge shadow-sm"
+                        bgColor="bg-rtr-panel"
+                    />
                 {/snippet}
             </DefaultTabs>
         {/snippet}

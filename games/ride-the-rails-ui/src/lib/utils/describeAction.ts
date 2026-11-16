@@ -40,6 +40,15 @@ export function routeText(cityIds: readonly CityId[]): string {
     return cityIds.map(cityName).join(' → ')
 }
 
+/** A route by its two ends and how many cities it passes between them: "Kansas City → Pittsburgh,
+ * via 2 cities". A route of one link is its two cities. */
+export function routeSummary(cityIds: readonly CityId[]): string {
+    const between = cityIds.length - 2
+    if (between <= 0) return routeText(cityIds)
+    const ends = routeText([cityIds[0], cityIds[cityIds.length - 1]])
+    return `${ends}, via ${between} ${between === 1 ? 'city' : 'cities'}`
+}
+
 function hexName(hexId: HexId): string {
     const hex = usaHex(hexId)
     if (hex.terrain === 'city') {
@@ -140,7 +149,11 @@ function buildingDescription(action: GameAction): Description | undefined {
         // R-3.2.1, R-3.2.3, R-3.2.4: the turn ended by itself, so its reason is shown.
         const metadata = action.metadata
         const facts = metadata
-            ? ` · ${placedCount(metadata.placed)} · ${FINISH_BUILDING_REASONS[metadata.reason]}`
+            ? ` · ${placedCount(metadata.placed)}${
+                  metadata.reason === 'limit'
+                      ? ''
+                      : ` · ${FINISH_BUILDING_REASONS[metadata.reason]}`
+              }`
             : ''
         return [{ playerId: action.playerId }, ` finished building${facts}`]
     }
@@ -157,8 +170,7 @@ function ridingDescription(action: GameAction): Description | undefined {
         const fare = metadata.payments.find(({ playerId }) => playerId === action.playerId)
         return [
             { playerId: action.playerId },
-            ` made a journey: ${routeText(metadata.cityIds)} · `,
-            ...countsInRailroadOrder(metadata.linksPerRailroad),
+            ` made a journey: ${routeSummary(metadata.cityIds)}`,
             ...(fare ? [` · fare $${fare.fare}`] : []),
             ...dividendLines(metadata.payments).flatMap((line) => [' · ', ...line])
         ]

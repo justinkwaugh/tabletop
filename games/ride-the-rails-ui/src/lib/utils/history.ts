@@ -8,6 +8,7 @@ import {
 } from '@tabletop/common'
 import {
     PhaseName,
+    RAILROAD_IDS,
     isEndBuilding,
     isEndGame,
     isEndRound,
@@ -17,14 +18,15 @@ import {
     isRideJourney,
     isSkipShare,
     isTakeShare,
+    paymentTotal,
     type RailroadId
 } from '@tabletop/ride-the-rails'
 import { PHASE_LABELS } from '$lib/model/actionArea.js'
 import {
     FINISH_BUILDING_REASONS,
     bonusLabel,
-    countsInRailroadOrder,
     describeAction,
+    routeText,
     type Description
 } from './describeAction.js'
 import { romanRound } from './marginTracks.js'
@@ -182,7 +184,7 @@ export function phaseHeading(entry: HistoryPhase): string {
     return `Round ${romanRound(entry.round)} · ${PHASE_LABELS[entry.phase]}`
 }
 
-// R-3.2, R-4.3: "Ana built 5: Red ×3, Blue ×2 · Chicago $2 · Denver $5", with the reason when the
+// R-3.2, R-4.3: "Ana built 3 ■ 2 ■ · Chicago $2 · Denver $5", with the reason when the
 // turn ended by itself (R-3.2.3, R-3.2.4).
 export function buildingTurnDescription(turn: HistoryTurn): Description {
     const placements = turn.actions.filter(isPlaceLocomotive)
@@ -190,28 +192,61 @@ export function buildingTurnDescription(turn: HistoryTurn): Description {
     for (const { railroadId } of placements) {
         counts[railroadId] = (counts[railroadId] ?? 0) + 1
     }
-    const railroads = countsInRailroadOrder(counts)
+    // "2 ■ 1 ■": each railroad's count before its colour square, in railroad order.
+    const railroads: Description = RAILROAD_IDS.flatMap((railroadId): Description => {
+        const count = counts[railroadId]
+        return count === undefined ? [] : [` ${count} `, { railroadId }]
+    })
     const bonuses = placements.flatMap((placement) =>
         (placement.metadata?.bonuses ?? []).map((bonus) => ` · ${bonusLabel(bonus)}`)
     )
     const finish = turn.actions.find(isFinishBuilding)?.metadata
-    const reason = finish ? [` · ${FINISH_BUILDING_REASONS[finish.reason]}`] : []
+    // A turn that used up its placements needs no reason; one with nothing legal left says so.
+    const reason =
+        finish && finish.reason !== 'limit' ? [` · ${FINISH_BUILDING_REASONS[finish.reason]}`] : []
     if (placements.length === 0) {
         return [{ playerId: turn.playerId }, ' built nothing', ...reason]
     }
-    return [
-        { playerId: turn.playerId },
-        ` built ${placements.length}: `,
-        ...railroads,
-        ...bonuses,
-        ...reason
-    ]
+    return [{ playerId: turn.playerId }, ' built', ...railroads, ...bonuses, ...reason]
 }
 
 export function turnDescription(turn: HistoryTurn): Description {
-    return turn.turn === 'building'
-        ? buildingTurnDescription(turn)
-        : describeAction(turn.actions[0])
+    if (turn.turn === 'building') return buildingTurnDescription(turn)
+    const [action] = turn.actions
+    // R-3.3: a journey's row heads its route lines (journeyRoute) and payout table.
+    if (isRideJourney(action) && action.metadata) {
+        return [{ playerId: action.playerId }, ' made a journey:']
+    }
+    return describeAction(action)
+}
+
+export type JourneyRoute = { ends: string; cities: number; fare: number }
+
+// R-3.3.5: "New York → Albany" and "4 total cities – Fare $4", the fare the rider's own.
+export function journeyRoute(turn: HistoryTurn): JourneyRoute | undefined {
+    const [action] = turn.actions
+    if (!isRideJourney(action) || !action.metadata) return undefined
+    const { cityIds, payments } = action.metadata
+    const first = cityIds[0]
+    const last = cityIds[cityIds.length - 1]
+    const rider = payments.find((payment) => payment.playerId === action.playerId)
+    return {
+        ends: routeText(first === last ? [first] : [first, last]),
+        cities: cityIds.length,
+        fare: rider?.fare ?? 0
+    }
+}
+
+export type Payout = { playerId: string; amount: number }
+
+// R-3.3.4, R-3.3.5: each seat a journey paid, fare and dividends together, most first.
+export function journeyPayouts(turn: HistoryTurn): Payout[] {
+    const [action] = turn.actions
+    if (!isRideJourney(action) || !action.metadata) return []
+    return action.metadata.payments
+        .map((payment) => ({ playerId: payment.playerId, amount: paymentTotal(payment) }))
+        .filter((payout) => payout.amount > 0)
+        .toSorted((a, b) => b.amount - a.amount)
 }
 
 export type HistoryJump = { actionIndex: number; exact: boolean }

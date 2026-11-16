@@ -21,7 +21,7 @@ Round 1, Build. Ada and Cora took Red, Ben and Dell Blue; Ada builds first (scen
 
 - The six East Coast cities light with a Red ghost cube in each; the rest of the map dims.
 - With four seats the limit is 5, or 4 once a mountain is used.
-- Build nothing passes the turn to Ben.
+- Skip passes the turn to Ben.
 
 ## Philadelphia taken
 

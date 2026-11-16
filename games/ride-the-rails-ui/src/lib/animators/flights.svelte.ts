@@ -39,6 +39,11 @@ export function seatCardKey(playerId: string): string {
     return `seat:${playerId}`
 }
 
+/** A share slot on a seat's card, where a share flight lands when the slot is drawn. */
+export function shareSlotKey(playerId: string, slot: number): string {
+    return `share-slot:${playerId}:${slot}`
+}
+
 /** The Transcontinental chip in the turn line, where the claim's coin lands. */
 export const TRANSCONTINENTAL_KEY = 'transcontinental'
 
@@ -57,6 +62,16 @@ export function railroadEntryKey(railroadId: RailroadId): string {
 
 export function sharesKey(playerId: string, railroadId: RailroadId): string {
     return `shares:${playerId}:${railroadId}`
+}
+
+/** A locomotive on the board, which slides to its new slot as its hex regroups (Pattern A). */
+export function trackPieceKey(pieceKey: string): string {
+    return `track:${pieceKey}`
+}
+
+/** The seat bar under a locomotive placed this building turn, which slides with it. */
+export function trackBarKey(pieceKey: string): string {
+    return `track-bar:${pieceKey}`
 }
 
 /** A city's waiting passenger, hidden on the passenger layer while a flyer draws it. */

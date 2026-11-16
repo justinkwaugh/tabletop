@@ -1,6 +1,7 @@
 <script module lang="ts">
     export const CHOICE_ANCHOR_ID = 'rtr-railroad-choice-anchor'
     export const DETAIL_ANCHOR_ID = 'rtr-hex-detail-anchor'
+    export const RIDE_ANCHOR_ID = 'rtr-ride-anchor'
 </script>
 
 <script lang="ts">

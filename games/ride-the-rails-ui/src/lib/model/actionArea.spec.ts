@@ -98,7 +98,7 @@ describe('Take a share panel (R-3.1, R-1.4, R-1.1)', () => {
 })
 
 describe('build panel (R-3.2.1, R-3.2.4)', () => {
-    it('counts placements against the limit and offers Build nothing before the first', () => {
+    it('counts placements against the limit and offers Skip before the first', () => {
         const progress = buildProgress(
             buildState({
                 playerCount: 4,
@@ -109,10 +109,10 @@ describe('build panel (R-3.2.1, R-3.2.4)', () => {
         assertExists(progress)
         expect(placedText(progress)).toBe('0 of 5 placed')
         expect(mountainNote(progress)).toBeUndefined()
-        expect(endBuildingLabel(progress)).toBe('Build nothing')
+        expect(endBuildingLabel(progress)).toBe('Skip')
     })
 
-    it('reads "Mountain used: limit 4" after a mountain, and Done building after a placement', () => {
+    it('reads "Mountain used: limit 4" after a mountain, and Done after a placement', () => {
         const progress = buildProgress(
             buildState({
                 playerCount: 4,
@@ -123,7 +123,7 @@ describe('build panel (R-3.2.1, R-3.2.4)', () => {
         assertExists(progress)
         expect(placedText(progress)).toBe('3 of 4 placed')
         expect(mountainNote(progress)).toBe('Mountain used: limit 4')
-        expect(endBuildingLabel(progress)).toBe('Done building')
+        expect(endBuildingLabel(progress)).toBe('Done')
     })
 
     it('has no progress outside a building turn', () => {
@@ -237,7 +237,8 @@ describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1)', () => {
                 phase: PhaseName.Ride,
                 track: redLine(),
                 shares: { p1: { [RED]: 1 }, p3: { [RED]: 1 } },
-                passengers: [KANSAS_CITY]
+                // A passenger left with a link out keeps the Ride phase going after the journey.
+                passengers: [KANSAS_CITY, CINCINNATI]
             })
         )
         await session.pressHex(usaCity(KANSAS_CITY).hexId)
@@ -249,13 +250,13 @@ describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1)', () => {
         assertExists(latest)
         expect(journeyLine(latest, 'p3')).toEqual([
             { playerId: 'p1' },
-            ': Kansas City → Saint Louis → Cincinnati, 2 links',
+            ': Kansas City → Cincinnati, via 1 city, 2 links',
             ', fare $3',
             '; you +$2'
         ])
         expect(journeyLine(latest, 'p2')).toEqual([
             { playerId: 'p1' },
-            ': Kansas City → Saint Louis → Cincinnati, 2 links',
+            ': Kansas City → Cincinnati, via 1 city, 2 links',
             ', fare $3'
         ])
     })

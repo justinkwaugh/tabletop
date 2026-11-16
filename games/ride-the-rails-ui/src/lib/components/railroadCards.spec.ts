@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 const SOURCES = import.meta.glob(
     [
         './RailroadCards.svelte',
+        './ShareButton.svelte',
         './panel/TakeSharePanel.svelte',
         './panel/BuildPanel.svelte',
         './panel/RoundTickets.svelte'
@@ -16,9 +17,9 @@ function source(file: string): string {
 }
 
 describe('the desktop railroad cards', () => {
-    it('draw the pile alone: no name head, no track count, and no holders (the seat cards show the shares)', () => {
+    it('draw the supply alone: no name head, no track count, and no holders (the seat cards show the shares)', () => {
         const cards = source('./RailroadCards.svelte')
-        expect(cards).toMatch(/<SupplyPile\b/)
+        expect(cards).toMatch(/<SupplyCount\b/)
         expect(cards).not.toMatch(/class="head\b/)
         expect(cards).not.toMatch(/\.name\b|railroadName/)
         expect(cards).not.toMatch(/track/)
@@ -27,17 +28,20 @@ describe('the desktop railroad cards', () => {
     })
 
     it('become the share buttons while the viewer takes a share', () => {
-        const cards = source('./RailroadCards.svelte')
-        expect(cards).toMatch(/aria-label=\{button\.shareLabel\}/)
-        expect(cards).toMatch(/gameSession\.takeShare\(button\.railroadId\)/)
+        expect(source('./RailroadCards.svelte')).toMatch(
+            /\{#if sharing\}\s*<ShareButton \{button\} dots=\{false\} \/>/
+        )
+        const share = source('./ShareButton.svelte')
+        expect(share).toMatch(/<SupplyCount\b/)
+        expect(share).toMatch(/aria-label=\{button\.shareLabel\}/)
+        expect(share).toMatch(/gameSession\.takeShare\(button\.railroadId\)/)
     })
 })
 
 describe('the action panel’s piles', () => {
-    it('draw Take a share’s buttons as piles with no railroad names, each named in full', () => {
+    it('draw Take a share’s buttons as the desktop cards’ share buttons, with no railroad names', () => {
         const panel = source('./panel/TakeSharePanel.svelte')
-        expect(panel).toMatch(/<SupplyPile\b[^>]*fit="follow"/)
-        expect(panel).toMatch(/aria-label=\{button\.shareLabel\}/)
+        expect(panel).toMatch(/<ShareButton \{button\} \/>/)
         expect(panel).not.toMatch(/railroadName|RailroadPieceIcon|\.name\b/)
     })
 
@@ -45,7 +49,7 @@ describe('the action panel’s piles', () => {
         const panel = source('./panel/BuildPanel.svelte')
         expect(panel).toMatch(/buildableRailroads\(/)
         expect(panel).toMatch(/<RailroadSpotlightControl\b/)
-        expect(panel).toMatch(/<SupplyPile\b[^>]*fit="follow"/)
+        expect(panel).toMatch(/<SupplyCount\b/)
     })
 })
 

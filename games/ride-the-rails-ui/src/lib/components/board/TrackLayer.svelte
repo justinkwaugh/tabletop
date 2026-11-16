@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { HexId } from '@tabletop/ride-the-rails'
+    import { trackBarKey, trackPieceKey } from '$lib/animators/flights.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { locomotivePieces, thisTurnPlacements } from '$lib/utils/boardPieces.js'
     import RailroadPiece from './RailroadPiece.svelte'
@@ -7,6 +8,7 @@
     let { standAside }: { standAside: ReadonlySet<HexId> } = $props()
 
     const gameSession = getGameSession()
+    const flights = gameSession.flights
 
     // An Undo's flight shrinks a copy of each cube it takes away (FlightLayer).
     const locomotives = $derived(
@@ -31,10 +33,14 @@
 </script>
 
 <!-- R-3.2, R-4.1: every railroad's cubes in its rule colour; this building turn's carry a seat bar.
-     A spotlit railroad's stay whole and the rest fade. -->
+     A spotlit railroad's stay whole and the rest fade. Each cube and bar is registered so the
+     placement animator can slide it to a new slot as its hex regroups. -->
 <g class="track" aria-hidden="true">
     {#each locomotives as piece (piece.key)}
-        <g opacity={spotlight && piece.railroadId !== spotlight ? FADED : undefined}>
+        <g
+            opacity={spotlight && piece.railroadId !== spotlight ? FADED : undefined}
+            use:flights.register={trackPieceKey(piece.key)}
+        >
             <RailroadPiece
                 railroadId={piece.railroadId}
                 x={piece.slot.x}
@@ -45,6 +51,7 @@
     {/each}
     {#each thisTurnPieces as piece (piece.key)}
         <rect
+            use:flights.register={trackBarKey(piece.key)}
             x={piece.slot.x - (piece.slot.width * BAR_WIDTH) / 2}
             y={piece.slot.y + piece.slot.height / 2 + 1}
             width={piece.slot.width * BAR_WIDTH}

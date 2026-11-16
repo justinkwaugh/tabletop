@@ -82,10 +82,10 @@ describe('hex positions (components.md, Coordinates)', () => {
         }
     })
 
-    it('crops the board to the land, a thin margin of 6 board units on every side', () => {
-        expect(BOARD_MARGIN).toBe(6)
-        expect(BOARD_WIDTH).toBeCloseTo(MAP_EXTENTS.width + 12, 6)
-        expect(BOARD_HEIGHT).toBeCloseTo(MAP_EXTENTS.height + 12, 6)
+    it('crops the board to the land, a margin of sea, 40 board units on every side', () => {
+        expect(BOARD_MARGIN).toBe(40)
+        expect(BOARD_WIDTH).toBeCloseTo(MAP_EXTENTS.width + 80, 6)
+        expect(BOARD_HEIGHT).toBeCloseTo(MAP_EXTENTS.height + 80, 6)
     })
 
     it('gives the board the map data’s extents plus the fixed margin on every side', () => {

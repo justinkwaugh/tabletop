@@ -196,10 +196,4 @@ describe('the passenger’s place', () => {
             expect(meepleLeft).toBeGreaterThan(BONUS_PILL.center.x + BONUS_PILL.width / 2)
         }
     })
-
-    it('stands Chicago’s higher, above its back row of cubes', () => {
-        expect(passengerOffset('city.usa.chicago').y).toBeLessThan(
-            passengerOffset('city.usa.denver').y
-        )
-    })
 })

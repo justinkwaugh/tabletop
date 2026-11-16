@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PhaseName } from '@tabletop/ride-the-rails'
 import { buildState } from '@tabletop/ride-the-rails/testing'
-import { pendingGains, seatCards } from './seatCards.js'
+import { SHARE_SLOTS, newShareSlot, pendingGains, seatCards } from './seatCards.js'
 
 describe('seat cards', () => {
     const state = buildState({
@@ -19,11 +19,11 @@ describe('seat cards', () => {
     it('gives one card per seat in turn order (R-2.3)', () => {
         state.turnManager.turnOrder = ['p3', 'p1', 'p4', 'p2']
         const cards = seatCards(state)
-        expect(cards.map((card) => [card.playerId, card.position, card.money])).toEqual([
-            ['p3', 1, 0],
-            ['p1', 2, 10],
-            ['p4', 3, 15],
-            ['p2', 4, 22]
+        expect(cards.map((card) => [card.playerId, card.money])).toEqual([
+            ['p3', 0],
+            ['p1', 10],
+            ['p4', 15],
+            ['p2', 22]
         ])
     })
 
@@ -58,6 +58,38 @@ describe('seat cards', () => {
             { railroadId: 'railroad.red', shares: 2 },
             { railroadId: 'railroad.yellow', shares: 1 }
         ])
+    })
+})
+
+describe('share slots', () => {
+    const state = buildState({
+        playerCount: 4,
+        round: 5,
+        phase: PhaseName.Build,
+        currentPlayerId: 'p1',
+        shares: { p1: { 'railroad.yellow': 1, 'railroad.red': 2, 'railroad.blue': 1 } }
+    })
+
+    it('fills six slots with the seat’s shares in railroad order, the rest empty (R-2.1, R-3.1)', () => {
+        const card = seatCards(state).find((seat) => seat.playerId === 'p1')
+        expect(SHARE_SLOTS).toBe(6)
+        expect(card?.slots).toEqual([
+            'railroad.red',
+            'railroad.red',
+            'railroad.blue',
+            'railroad.yellow',
+            undefined,
+            undefined
+        ])
+    })
+
+    it('lands a new share in the slot after its railroad’s others', () => {
+        const after: Record<string, number> = {
+            'railroad.red': 2,
+            'railroad.blue': 2,
+            'railroad.yellow': 1
+        }
+        expect(newShareSlot((id) => after[id] ?? 0, 'railroad.blue')).toBe(3)
     })
 })
 

@@ -171,7 +171,7 @@ describe('building descriptions (R-3.2)', () => {
         expect(readings(nothing).spectator).toBe('Ana ended building · nothing placed')
     })
 
-    it('names why a building turn finished by itself (R-3.2.3, R-3.2.4)', () => {
+    it('names why a building turn finished by itself, unless it used up its placements (R-3.2.3, R-3.2.4)', () => {
         const limit: FinishBuilding = {
             ...SYSTEM,
             type: ActionType.FinishBuilding,
@@ -179,9 +179,9 @@ describe('building descriptions (R-3.2)', () => {
             metadata: { reason: 'limit', placed: 5 }
         }
         expectReadings(limit, {
-            actor: 'You finished building · 5 placed · placement limit reached',
-            otherSeat: 'Ana finished building · 5 placed · placement limit reached',
-            spectator: 'Ana finished building · 5 placed · placement limit reached'
+            actor: 'You finished building · 5 placed',
+            otherSeat: 'Ana finished building · 5 placed',
+            spectator: 'Ana finished building · 5 placed'
         })
         const stuck: FinishBuilding = { ...limit, metadata: { reason: 'nothing-legal', placed: 1 } }
         expect(readings(stuck).spectator).toBe(
@@ -211,11 +211,11 @@ describe('riding descriptions (R-3.3)', () => {
 
     it('reads the cities, links per railroad, the fare and each seat’s dividends (R-3.3.4, R-3.3.5)', () => {
         expectReadings(journey, {
-            actor: 'You made a journey: Chicago → Kansas City → Denver · Red ×2, Blue ×1 · fare $4 · you +$2 · Ben +$3',
+            actor: 'You made a journey: Chicago → Denver, via 1 city · fare $4 · you +$2 · Ben +$3',
             otherSeat:
-                'Ana made a journey: Chicago → Kansas City → Denver · Red ×2, Blue ×1 · fare $4 · Ana +$2 · you +$3',
+                'Ana made a journey: Chicago → Denver, via 1 city · fare $4 · Ana +$2 · you +$3',
             spectator:
-                'Ana made a journey: Chicago → Kansas City → Denver · Red ×2, Blue ×1 · fare $4 · Ana +$2 · Ben +$3'
+                'Ana made a journey: Chicago → Denver, via 1 city · fare $4 · Ana +$2 · Ben +$3'
         })
     })
 

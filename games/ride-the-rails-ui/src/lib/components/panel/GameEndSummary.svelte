@@ -1,7 +1,6 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { finalStandings, sharedWinNote, winnersHeadline } from '$lib/model/actionArea.js'
-    import RailroadPieceIcon from '../board/RailroadPieceIcon.svelte'
     import SeatDot from './SeatDot.svelte'
 
     const gameSession = getGameSession()
@@ -18,31 +17,68 @@
     )
 </script>
 
-<div class="flex flex-wrap items-baseline gap-x-3">
-    <h2 class="text-base font-bold">{headline}</h2>
+<!-- R-6.2: the headline, then a small table of each seat's final money, most first; every seat tied
+     for the most is marked as a winner. -->
+<div class="flex flex-col items-center gap-1.5">
+    <h2 class="flex items-center gap-2 text-xl font-bold">
+        <span class="flex items-center gap-1" aria-hidden="true">
+            {#each winners as winner (winner.playerId)}
+                <SeatDot playerId={winner.playerId} />
+            {/each}
+        </span>
+        {headline}
+    </h2>
     {#if winners.length > 1}
         <span class="text-sm text-rtr-ink-muted">{sharedWinNote(winners.length)}</span>
     {/if}
+    <table class="standings" aria-label="Final money">
+        <tbody>
+            {#each standings as standing, index (standing.playerId)}
+                <tr class:winner={standing.winner}>
+                    <td class="rank">{index + 1}</td>
+                    <td class="name">
+                        <span class="inline-flex items-center gap-1.5">
+                            <SeatDot playerId={standing.playerId} />
+                            {gameSession.getPlayerName(standing.playerId)}
+                        </span>
+                    </td>
+                    <td class="money rtr-display">${standing.money}</td>
+                </tr>
+            {/each}
+        </tbody>
+    </table>
 </div>
-<div class="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-    {#each standings as standing (standing.playerId)}
-        <div
-            class="flex min-w-0 flex-col gap-0.5 sm:min-w-36 rounded-lg border bg-rtr-panel-raised px-3 py-1.5 {standing.winner
-                ? 'border-rtr-accent ring-1 ring-rtr-accent'
-                : 'border-rtr-line'}"
-        >
-            <span class="flex items-center gap-1.5 text-sm font-semibold">
-                <SeatDot playerId={standing.playerId} />
-                {gameSession.getPlayerName(standing.playerId)}{standing.winner ? ' · winner' : ''}
-            </span>
-            <span class="rtr-display text-3xl leading-none max-sm:text-2xl">${standing.money}</span>
-            <span class="flex flex-wrap items-center gap-x-2 text-xs text-rtr-ink-muted">
-                {#each standing.shares as held (held.railroadId)}
-                    <span class="inline-flex items-center gap-0.5">
-                        <RailroadPieceIcon railroadId={held.railroadId} size={16} />×{held.count}
-                    </span>
-                {/each}
-            </span>
-        </div>
-    {/each}
-</div>
+
+<style>
+    .standings {
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .standings td {
+        padding: 1px 6px;
+    }
+
+    .standings tr + tr td {
+        border-top: 1px solid var(--rtr-rule);
+    }
+
+    .name {
+        text-align: left;
+    }
+
+    .rank {
+        color: var(--rtr-ink-muted);
+        text-align: right;
+    }
+
+    .money {
+        font-size: 17px;
+        text-align: right;
+    }
+
+    .winner .name,
+    .winner .money {
+        font-weight: 700;
+    }
+</style>

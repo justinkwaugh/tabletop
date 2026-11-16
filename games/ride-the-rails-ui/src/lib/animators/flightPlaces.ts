@@ -7,6 +7,7 @@ import {
     TRANSCONTINENTAL_KEY,
     moneyKey,
     seatCardKey,
+    shareSlotKey,
     supplyKey,
     type Flyer
 } from './flights.svelte.js'
@@ -165,9 +166,13 @@ export function seatMoneyPoint(table: Element | undefined, playerId: string): Po
     return tablePlace(table, moneyKey(playerId)) ?? BESIDE_THE_SIDE_PANEL
 }
 
-/** Where a seat's new share lands: its seat card. */
-export function seatCardPoint(table: Element | undefined, playerId: string): Point {
-    return tablePlace(table, seatCardKey(playerId)) ?? BESIDE_THE_SIDE_PANEL
+/** Where a seat's new share lands: the slot it fills on the seat card, or the card itself. */
+export function seatCardPoint(table: Element | undefined, playerId: string, slot?: number): Point {
+    return (
+        (slot === undefined ? undefined : tablePlace(table, shareSlotKey(playerId, slot))) ??
+        tablePlace(table, seatCardKey(playerId)) ??
+        BESIDE_THE_SIDE_PANEL
+    )
 }
 
 /** Where the Transcontinental's coin lands: the chip in the turn line. */

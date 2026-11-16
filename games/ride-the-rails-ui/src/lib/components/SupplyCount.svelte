@@ -9,7 +9,8 @@
 </script>
 
 <!-- A railroad card's supply (R-1.1): one cube in its colour and the locomotives left; a dashed
-     cube once none is left. What a share or placement flight lifts from. -->
+     cube once none is left. What a share or placement flight lifts from. A parent may shrink it
+     through --supply-cube, --supply-gap and --supply-figure. -->
 <span class="supply" class:empty={supply === 0} data-flight-target={supplyKey(railroadId)}>
     <span class="cube" style:--cube-fill={fill} aria-hidden="true"></span>
     <span class="rtr-display figure" aria-hidden="true">{supply}</span>
@@ -19,12 +20,12 @@
     .supply {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: var(--supply-gap, 6px);
     }
 
     .cube {
-        width: 16px;
-        height: 16px;
+        width: var(--supply-cube, 16px);
+        height: var(--supply-cube, 16px);
         border-radius: 3px;
         background: var(--cube-fill);
         border: 1.5px solid var(--rtr-cube-edge);
@@ -37,7 +38,7 @@
     }
 
     .figure {
-        font-size: 21px;
+        font-size: var(--supply-figure, 21px);
         line-height: 1;
     }
 

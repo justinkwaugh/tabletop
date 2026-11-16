@@ -1,6 +1,9 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { decidingPlayerId, roundLabels } from '$lib/model/actionArea.js'
+    import { decidingPlayerId } from '$lib/model/actionArea.js'
+    import { ROUND_KEY } from '$lib/animators/flights.svelte.js'
+    import { roundTickets, shownRoundNumber } from '$lib/utils/marginTracks.js'
+    import RoundTicket from './RoundTicket.svelte'
     import RoundTickets from './RoundTickets.svelte'
     import SeatDot from './SeatDot.svelte'
     import TranscontinentalChip from './TranscontinentalChip.svelte'
@@ -8,7 +11,13 @@
     const gameSession = getGameSession()
 
     const deciderId = $derived(decidingPlayerId(gameSession.gameState))
-    const labels = $derived(roundLabels(gameSession.gameState))
+    // Where the six tickets do not fit, the current round's ticket alone, stepping as the round
+    // ends (Animation plan, End of round).
+    const currentTicket = $derived(
+        roundTickets(gameSession.gameState.mapId)[
+            gameSession.flights.shown(ROUND_KEY, shownRoundNumber(gameSession.gameState)) - 1
+        ]
+    )
     const canUndo = $derived(
         gameSession.hasLocalSelection || gameSession.undoableAction !== undefined
     )
@@ -31,19 +40,23 @@
     )
 </script>
 
-<div class="flex h-11 items-center justify-between gap-3 px-3 text-rtr-ink max-sm:h-9 max-sm:px-2">
+<div
+    class="flex min-h-11 items-center justify-between gap-3 px-3 text-rtr-ink max-sm:min-h-9 max-sm:px-2"
+>
     <div class="flex min-w-0 items-baseline gap-3 max-sm:gap-1.5">
-        <span class="flex items-center gap-2 text-lg font-bold max-sm:gap-1.5 max-sm:text-base">
+        <span
+            class="flex items-center gap-2 text-lg leading-tight font-bold max-sm:gap-1.5 max-sm:text-base"
+            data-turn-whose
+        >
             {#if showsSeat && deciderId}<SeatDot playerId={deciderId} />{/if}
             {whose}
         </span>
-        {#if labels}
-            <span class="text-sm text-rtr-ink-muted max-sm:hidden">{labels.full}</span>
-            <span class="text-sm text-rtr-ink-muted sm:hidden">{labels.compact}</span>
-        {/if}
     </div>
     <div class="flex shrink-0 items-center gap-3 max-sm:gap-1.5">
         <RoundTickets />
+        {#if currentTicket}
+            <span class="lg:hidden"><RoundTicket ticket={currentTicket} /></span>
+        {/if}
         <TranscontinentalChip />
         <button
             type="button"

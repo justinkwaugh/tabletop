@@ -45,8 +45,37 @@ const SLOT_OFFSETS: Readonly<Record<TrackSlotLayout, readonly TrackSlot[]>> = {
 // A hex holding one cube stands it in the middle; a second moves it aside into the first slot.
 const LONE_CUBE: Partial<Record<TrackSlotLayout, TrackSlot>> = {
     'open-hex': slot(0, TRACK_Y, CUBE_WIDTH),
-    city: slot(0, TRACK_Y, CUBE_WIDTH),
-    chicago: slot(0, CHICAGO_ROWS_Y[0], CHICAGO_WIDTH)
+    city: slot(0, TRACK_Y, CUBE_WIDTH)
+}
+
+// Chicago's cubes by how many it holds, in placement order: one full size in the middle, two side
+// by side like any city, then smaller: three straight across, then those three up a row with the
+// fourth below in the middle, the fifth splitting the bottom row in two, the sixth making two rows
+// of three.
+const [TOP_ROW_Y, BOTTOM_ROW_Y] = CHICAGO_ROWS_Y
+const CHICAGO_ROW = [-CHICAGO_COLUMN_X, 0, CHICAGO_COLUMN_X]
+const CHICAGO_HALF_X = CHICAGO_COLUMN_X / 2
+const CHICAGO_LAYOUTS: Readonly<Record<number, readonly TrackSlot[]>> = {
+    1: [slot(0, TRACK_Y, CUBE_WIDTH)],
+    2: [slot(-COLUMN_X, TRACK_Y, CUBE_WIDTH), slot(COLUMN_X, TRACK_Y, CUBE_WIDTH)],
+    3: CHICAGO_ROW.map((x) => slot(x, TRACK_Y, CHICAGO_WIDTH)),
+    4: [
+        ...CHICAGO_ROW.map((x) => slot(x, TOP_ROW_Y, CHICAGO_WIDTH)),
+        slot(0, BOTTOM_ROW_Y, CHICAGO_WIDTH)
+    ],
+    5: [
+        ...CHICAGO_ROW.map((x) => slot(x, TOP_ROW_Y, CHICAGO_WIDTH)),
+        slot(-CHICAGO_HALF_X, BOTTOM_ROW_Y, CHICAGO_WIDTH),
+        slot(CHICAGO_HALF_X, BOTTOM_ROW_Y, CHICAGO_WIDTH)
+    ]
+}
+
+function layoutOffsets(layout: TrackSlotLayout, held: number | undefined): readonly TrackSlot[] {
+    if (layout === 'chicago') {
+        return (held === undefined ? undefined : CHICAGO_LAYOUTS[held]) ?? SLOT_OFFSETS.chicago
+    }
+    const lone = held === 1 ? LONE_CUBE[layout] : undefined
+    return lone ? [lone] : SLOT_OFFSETS[layout]
 }
 
 export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
@@ -56,12 +85,11 @@ export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
     return isCityHex(hexId) ? 'city' : 'open-hex'
 }
 
-/** The hex's slots when it holds `held` cubes: a lone cube stands in the middle. */
+/** The hex's slots when it holds `held` cubes: a lone cube stands in the middle; Chicago's
+ * cubes regroup as they arrive (CHICAGO_LAYOUTS). */
 export function trackSlots(hexId: HexId, held?: number): TrackSlot[] {
     const center = hexCenter(hexId)
-    const layout = trackSlotLayout(hexId)
-    const lone = held === 1 ? LONE_CUBE[layout] : undefined
-    return (lone ? [lone] : SLOT_OFFSETS[layout]).map((offset) => ({
+    return layoutOffsets(trackSlotLayout(hexId), held).map((offset) => ({
         ...offset,
         x: center.x + offset.x,
         y: center.y + offset.y

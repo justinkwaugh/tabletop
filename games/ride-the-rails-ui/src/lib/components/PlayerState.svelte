@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
-    import { moneyKey, seatCardKey } from '$lib/animators/flights.svelte.js'
+    import { moneyKey, seatCardKey, shareSlotKey } from '$lib/animators/flights.svelte.js'
     import type { SeatCard } from '$lib/utils/seatCards.js'
     import RailroadPieceIcon from './board/RailroadPieceIcon.svelte'
     import RailroadSpotlightControl from './RailroadSpotlightControl.svelte'
@@ -14,15 +15,18 @@
     const name = $derived(gameSession.getPlayerName(card.playerId))
     const headerFill = $derived(gameSession.colors.getPlayerUiColor(card.playerId))
 
-    function rowLabel(railroadId: RailroadId, shares: number): string {
+    function slotLabel(railroadId: RailroadId): string {
+        const shares = card.rows.find((row) => row.railroadId === railroadId)?.shares ?? 0
         return `${railroadStyle(railroadId).name}: ${shares} share${shares === 1 ? '' : 's'}`
     }
 </script>
 
-<!-- Contract, Seat card: a paper card on the table, edged and marked in the seat's colour. -->
+<!-- Contract, Seat card: a card on the table, edged and marked in the seat's colour; paper, or
+     charcoal with light ink (BOARD_LOOK.seatCard). -->
 <section
     class="seat"
     class:acting={card.acting}
+    class:charcoal={BOARD_LOOK.seatCard === 'charcoal'}
     aria-label={name}
     data-flight-target={seatCardKey(card.playerId)}
     style:--seat={headerFill}
@@ -32,25 +36,29 @@
         <span class="name">{name}</span>
     </header>
     <div class="board">
-        <div class="rows">
-            {#each card.rows as row (row.railroadId)}
-                <RailroadSpotlightControl
-                    railroadId={row.railroadId}
-                    label={rowLabel(row.railroadId, row.shares)}
-                    class="share-row"
-                >
-                    <RailroadPieceIcon railroadId={row.railroadId} size={18} />
-                    <span class="count">×{row.shares}</span>
-                </RailroadSpotlightControl>
-            {:else}
-                <span class="none">No shares</span>
+        <!-- R-2.1, R-3.1: six share slots, one a round, filled in R-1.4 order; each held cube
+             spotlights its railroad. -->
+        <div class="slots" role="group" aria-label="Shares">
+            {#each card.slots as railroadId, slot (slot)}
+                <span class="slot" data-flight-target={shareSlotKey(card.playerId, slot)}>
+                    {#if railroadId}
+                        <RailroadSpotlightControl
+                            {railroadId}
+                            label={slotLabel(railroadId)}
+                            class="held"
+                        >
+                            <RailroadPieceIcon {railroadId} size={18} />
+                        </RailroadSpotlightControl>
+                    {:else}
+                        <span class="empty" aria-hidden="true"></span>
+                    {/if}
+                </span>
             {/each}
         </div>
         <div class="money" data-flight-target={moneyKey(card.playerId)}>
             <span class="rtr-display figure"
                 >${gameSession.flights.shown(moneyKey(card.playerId), card.money)}</span
             >
-            <span class="caption">Money</span>
             {#if pendingGain}
                 <span class="pending" aria-label="Pending +${pendingGain}">+${pendingGain}</span>
             {/if}
@@ -67,21 +75,37 @@
         background: var(--rtr-panel);
         color: var(--rtr-ink);
         text-align: left;
+        /* Name over shares on the left, money centred down the right, the same space all round. */
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px 10px;
+        padding: 8px 10px;
+    }
+
+    /* BOARD_LOOK.seatCard 'charcoal': the card's own tokens, so everything in it follows. */
+    .seat.charcoal {
+        --rtr-panel: #25282d;
+        --rtr-panel-raised: #30343a;
+        --rtr-ink: #f4f1ea;
+        --rtr-ink-muted: #b8b3a7;
+        --rtr-line: #5b6068;
+        --rtr-card-edge: #15171a;
+        --rtr-halo: #f4f1ea;
     }
 
     /* Drawn inside the card, inside the seat colour's bar, so the side panel, which clips what
        overflows it, shows the whole ring. */
     .seat.acting {
-        box-shadow:
-            inset 0 0 0 3px var(--seat),
-            inset 0 0 0 4.5px var(--rtr-halo);
+        box-shadow: inset 0 0 0 3px var(--seat);
     }
 
     header {
         display: flex;
         align-items: center;
+        grid-column: 1;
         gap: 8px;
-        padding: 6px 10px 0;
+        line-height: 1;
         letter-spacing: 0.02em;
     }
 
@@ -103,46 +127,44 @@
     }
 
     .board {
-        display: flex;
-        align-items: stretch;
-        gap: 10px;
-        padding: 4px 10px 8px;
+        display: contents;
     }
 
-    .rows {
-        flex: 1;
+    .slots {
+        grid-column: 1;
         min-width: 0;
         display: flex;
-        flex-wrap: wrap;
-        align-content: center;
-        gap: 4px 6px;
-        min-height: 44px;
-    }
-
-    .rows :global(.share-row) {
-        display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 1px 6px 1px 3px;
+    }
+
+    .slot {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .slots :global(.held) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
         border-radius: 4px;
-        border: 1px solid var(--rtr-line);
-        background: var(--rtr-panel);
-        color: var(--rtr-ink);
     }
 
-    .count {
-        font-size: 12.5px;
-        font-weight: 700;
-        line-height: 1;
-    }
-
-    .none {
-        align-self: center;
-        font-size: 12px;
-        color: var(--rtr-ink-muted);
+    .empty {
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        border: 1.5px dashed var(--rtr-line);
     }
 
     .money {
+        grid-column: 2;
+        grid-row: 1 / span 2;
         display: flex;
         flex-direction: column;
         align-items: flex-end;
@@ -152,15 +174,8 @@
     }
 
     .figure {
-        font-size: 34px;
+        font-size: 28px;
         color: var(--rtr-ink);
-    }
-
-    .caption {
-        font-size: 11px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--rtr-ink-muted);
     }
 
     .pending {

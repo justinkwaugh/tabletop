@@ -1,4 +1,4 @@
-import { assertExists, distanceAxial } from '@tabletop/common'
+import { assertExists, distanceAxial, type Point } from '@tabletop/common'
 import {
     FIVE_DOLLAR_BONUS,
     USA_CITIES,
@@ -305,12 +305,69 @@ function hexPath(hexId: HexId): string {
     return closedPath(hexCorners(hexId))
 }
 
-/** The whole board, water and margin included, so everything under the scrim dims alike. */
+/** The whole board, water and margin included. */
 export const BOARD_OUTLINE_PATH = `M${BOARD_EXTENTS.x},${BOARD_EXTENTS.y}h${BOARD_EXTENTS.width}v${BOARD_EXTENTS.height}h${-BOARD_EXTENTS.width}Z`
 
-/** The scrim: the whole board with a hole at each lit hex, filled even-odd. */
+function pointKey(point: Point): string {
+    return `${point.x.toFixed(2)},${point.y.toFixed(2)}`
+}
+
+/**
+ * The land's outline: every hex side no two land hexes share, chained into closed loops, so the
+ * land fills as one shape with no seams between hexes. Three hexes meet at each corner and any two
+ * of them are neighbours, so each corner on the outline joins exactly two of its sides.
+ */
+function landOutline(): string {
+    const sides = new Map<string, { from: Point; to: Point; count: number }>()
+    for (const hex of USA_HEXES) {
+        const corners = hexCorners(hex.id)
+        corners.forEach((from, index) => {
+            const to = corners[(index + 1) % corners.length]
+            const key = [pointKey(from), pointKey(to)].sort().join(' ')
+            const side = sides.get(key)
+            if (side) side.count += 1
+            else sides.set(key, { from, to, count: 1 })
+        })
+    }
+    const points = new Map<string, Point>()
+    const next = new Map<string, string[]>()
+    for (const { from, to, count } of sides.values()) {
+        if (count !== 1) continue
+        const [a, b] = [pointKey(from), pointKey(to)]
+        points.set(a, from)
+        points.set(b, to)
+        next.set(a, [...(next.get(a) ?? []), b])
+        next.set(b, [...(next.get(b) ?? []), a])
+    }
+    const visited = new Set<string>()
+    const loops: Point[][] = []
+    for (const start of next.keys()) {
+        if (visited.has(start)) continue
+        const loop: Point[] = []
+        let previous: string | undefined
+        let current = start
+        while (!visited.has(current)) {
+            visited.add(current)
+            const point = points.get(current)
+            const ends = next.get(current)
+            assertExists(point)
+            assertExists(ends)
+            const step = ends[0] === previous ? ends[1] : ends[0]
+            assertExists(step)
+            loop.push(point)
+            previous = current
+            current = step
+        }
+        loops.push(loop)
+    }
+    return loops.map(closedPath).join('')
+}
+
+const LAND_OUTLINE_PATH = landOutline()
+
+/** The scrim: the land with a hole at each lit hex, filled even-odd; the sea is never dimmed. */
 export function scrimPath(holes: readonly HexId[]): string {
-    return `${BOARD_OUTLINE_PATH}${holes.map(hexPath).join('')}`
+    return `${LAND_OUTLINE_PATH}${holes.map(hexPath).join('')}`
 }
 
 export type SpotlightMode = 'none' | 'dim' | 'outline'
