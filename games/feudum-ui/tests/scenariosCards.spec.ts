@@ -370,10 +370,10 @@ scenario('S23 R-3.15 Repeat and Deja Vu', 'cards-repeat', async (table) => {
     await expect(replays.locator('[data-row="Defend"]')).toHaveCount(0)
     await table.press(table.rowIn('replays', 'Move'))
     await expect(table.flowLine().first()).toHaveText('1 of 1 steps left')
-    // The lone monk's next spaces are its steps and its Godspeed alike: the press asks which.
-    expect(await table.litChips()).toEqual({ [Forest3]: 'Godspeed', [Desert3]: 'Godspeed' })
+    // The lone monk's next spaces are its steps, one press each: its Godspeed comes after them.
+    expect(await table.litChips()).toEqual({ [Forest3]: 'road', [Desert3]: 'road' })
     await table.pressPick(Desert3)
-    await table.press(table.popupRow('Step'))
+    await expect(table.popup()).toHaveCount(0)
     await table.press(table.row('No Godspeed'))
     await expect(table.primary()).toHaveText('Move · 1 step')
     await table.press(table.primary())

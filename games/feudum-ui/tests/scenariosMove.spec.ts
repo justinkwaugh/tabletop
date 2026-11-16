@@ -156,8 +156,10 @@ scenario('S29 R-3.7.3 R-3.7.4 Godspeed and pilfer', 'move-godspeed', async (tabl
     const ironOnTown = table.page.locator('[data-world^="good:space.desert.1:iron"]')
     await expect(ironOnTown).toHaveCount(1)
     await table.press(table.card('Move'))
-    // R-3.7.3 The monk's next spaces light among the steps, each with its Godspeed chip.
-    expect(await table.litChips()).toMatchObject({ [Forest3]: 'Godspeed' })
+    // R-3.7.3 While steps remain a monk's next spaces are its steps: no Godspeed chip lights.
+    await table.pressPick('pawn:p1:1')
+    expect(await table.litChips()).toMatchObject({ [Forest3]: 'road' })
+    expect(Object.values(await table.litChips())).not.toContain('Godspeed')
     await table.pressPick('pawn:p1:2')
     await table.pressPick(Desert1)
     await table.pressPick('pawn:p1:3')
@@ -208,13 +210,9 @@ scenario(
     'move-last-step-monk',
     async (table) => {
         await table.press(table.card('Move'))
-        // The lone monk's step could be its Godspeed too: the popup asks which, once.
+        // The lone monk's last step is one press; its Godspeed follows.
         await table.pressPick(Forest3)
-        await expect(table.popup().locator('[data-row]')).toHaveText([
-            'Step',
-            'Godspeed: monk from Forest 2'
-        ])
-        await table.press(table.popupRow('Step'))
+        await expect(table.popup()).toHaveCount(0)
         await expect(table.row('No Godspeed')).toBeVisible()
         await expect(table.row('Stop moving')).toHaveCount(0)
         expect(await table.litChips()).toMatchObject({ [Badlands1]: 'Godspeed' })
