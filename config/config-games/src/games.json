@@ -166,5 +166,9 @@
     {
         "gameId": "matrx",
         "packageId": "matrx"
+    },
+    {
+        "gameId": "gipf-potentials",
+        "packageId": "gipf-potentials"
     }
 ]
