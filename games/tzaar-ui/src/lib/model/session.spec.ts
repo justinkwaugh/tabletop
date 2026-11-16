@@ -79,8 +79,10 @@ afterEach(() => {
     for (const dispose of disposals.splice(0)) dispose()
 })
 
-async function aliceSession() {
-    const { game, state, actions } = twoTzaarsLeft()
+async function aliceSession({ hotseat = false } = {}) {
+    const prepared = twoTzaarsLeft()
+    const { state, actions } = prepared
+    const game = { ...prepared.game, hotseat }
     const app = createHarnessAppContext(definition)
     vi.spyOn(app.gameService, 'saveGameLocally').mockResolvedValue(undefined)
     const bridgedContext = new BridgedContext({
@@ -134,7 +136,7 @@ describe('Undo of a move', () => {
         expect(session.gameState.board.stackAt(D1).length).toBeGreaterThan(0)
         expect(session.chosenFrom).toEqual(D1)
         expect(session.captureTargets).toContainEqual(D2)
-        expect(session.hasManualSelection()).toBe(true)
+        expect(session.hasLocalSelection).toBe(true)
     })
 
     it('then puts the stack down without undoing any action', async () => {
@@ -146,7 +148,7 @@ describe('Undo of a move', () => {
         await settled(session.undo())
         expect(session.chosenFrom).toBeUndefined()
         expect(session.gameState.actionCount).toBe(0)
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
     })
 
     it('chooses nothing when history steps back over the move', async () => {
@@ -167,8 +169,69 @@ describe('Letting go', () => {
         await session.chooseSpace(D1)
         session.letGo()
         expect(session.chosenFrom).toBeUndefined()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(session.gameState.actionCount).toBe(0)
+    })
+})
+
+describe('A move playing', () => {
+    it('ignores taps on its choices until the new state lands', async () => {
+        const session = await aliceSession()
+        session.updatingVisibleState = true
+        await session.chooseSpace(D1)
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.hasLocalSelection).toBe(false)
+
+        session.updatingVisibleState = false
+        await session.chooseSpace(D1)
+        expect(session.chosenFrom).toEqual(D1)
+        session.updatingVisibleState = true
+        session.letGo()
+        await session.chooseSpace(D2)
+        expect(session.chosenFrom).toEqual(D1)
+        expect(session.gameState.actionCount).toBe(0)
+    })
+})
+
+describe('A choice belongs to its maker', () => {
+    it("keeps a player's chosen stack from anyone else viewing, and back for them", async () => {
+        const session = await aliceSession({ hotseat: true })
+        await session.chooseSpace(D1)
+        expect(session.hasLocalSelection).toBe(true)
+
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.myPlayer?.id).not.toBe(ALICE)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenFrom).toBeUndefined()
+
+        session.setViewingAsNonActivePlayer(false)
+        expect(session.chosenFrom).toEqual(D1)
+    })
+
+    it('restages only the move the Undo takes back, and only for its maker', async () => {
+        const session = await aliceSession({ hotseat: true })
+        await session.chooseSpace(D1)
+        await settled(session.chooseSpace(D2))
+        const [move] = session.actions
+        session.willUndo(move)
+        expect(session.restagedMove({ actionCount: 0 })).toBeDefined()
+        // An Undo landing on another count takes back some other action.
+        expect(session.restagedMove({ actionCount: 1 })).toBeUndefined()
+
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.restagedMove({ actionCount: 0 })).toBeUndefined()
+    })
+
+    it("chooses nothing when another player's Undo takes the move back", async () => {
+        const session = await aliceSession()
+        await session.chooseSpace(D1)
+        await settled(session.chooseSpace(D2))
+        // As another client sees an Undo: no move of this session's is being taken back.
+        session.willUndo = () => {}
+        await settled(session.undo())
+        expect(session.gameState.actionCount).toBe(0)
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.hasLocalSelection).toBe(false)
     })
 })
 

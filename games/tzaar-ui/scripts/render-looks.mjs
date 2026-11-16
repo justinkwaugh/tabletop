@@ -1,10 +1,10 @@
 // Pre-renders each tone and type of piece to its own bitmap in ../src/lib/images/looks, which the
 // board and the icons show as images, with each piece's specks drawn over it. Drawn live, the
-// looks' thousands of paths made opening a game and each move slow on phones (as MATRX GIPF
-// found). It also writes board/lookUrls.ts, importing each file by name. Rerun after changing how
-// a piece is drawn (board/pieceShape.ts, a colour in board/pieceStyle.ts,
-// components/DiscLook.svelte or LookDefs.svelte), with the harness running:
-//   node scripts/render-looks.mjs   (PORT defaults to 5173)
+// looks' thousands of paths made opening a game and each move slow on phones. It also writes
+// board/lookUrls.ts, importing each file by name. Rerun after changing how a piece is drawn
+// (board/pieceShape.ts, a colour in board/pieceStyle.ts, components/DiscLook.svelte or
+// LookDefs.svelte), with the harness running:
+//   PORT=5206 node scripts/render-looks.mjs   (PORT defaults to 5173)
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -50,8 +50,9 @@ const files = await page.evaluate(() => {
     })
 })
 
-// Pixels per board unit: a piece about 680 px across, sharp at the board's full zoom on a phone.
-const SCALE = 12
+// Pixels per board unit: the board's largest fit (2.5 CSS px per unit, GameTable's maxFitScale)
+// at 2.5 device pixels per CSS pixel.
+const SCALE = 2.5 * 2.5
 // Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
 // seams between the many bands of the groove's walls. Only the drawing grows, not the files.
 const SUPERSAMPLE = 4

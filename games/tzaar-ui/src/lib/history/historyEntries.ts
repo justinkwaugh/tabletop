@@ -1,17 +1,14 @@
-import type { AxialCoordinates, GameAction } from '@tabletop/common'
+import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     isCapture,
     isPass,
     isPlacePiece,
     isStack,
-    type Piece,
-    type PieceKind
+    type PieceKind,
+    type StackSummary
 } from '@tabletop/tzaar'
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
-
-// A stack as history tells it: how tall, and the type on top.
-export type StackSummary = { height: number; kind?: PieceKind }
 
 export type PlaceEntry = Span & {
     kind: 'place'
@@ -40,7 +37,7 @@ export type StackEntry = Span & {
     from: AxialCoordinates
     to: AxialCoordinates
     moved: StackSummary
-    landedOn: StackSummary
+    landedOnHeight: number
     stuckPlayerId?: string
 }
 
@@ -48,8 +45,10 @@ export type PassEntry = Span & { kind: 'pass'; stuckPlayerId?: string }
 
 export type HistoryEntry = PlaceEntry | CaptureEntry | StackEntry | PassEntry
 
-function summary(pieces: readonly Piece[] | undefined): StackSummary {
-    return { height: pieces?.length ?? 0, kind: pieces?.at(-1)?.kind }
+// Every action played records what history tells of it.
+function recorded<T>(metadata: T | undefined): T {
+    assertExists(metadata, 'A played action records its outcome')
+    return metadata
 }
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
@@ -62,47 +61,51 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             playerId: action.playerId
         }
         if (isPlacePiece(action)) {
+            const metadata = recorded(action.metadata)
             return [
                 {
                     ...span,
                     kind: 'place',
                     coords: action.coords,
                     piece: action.kind,
-                    stuckPlayerId: action.metadata?.stuckPlayerId
+                    stuckPlayerId: metadata.stuckPlayerId
                 }
             ]
         }
         if (isCapture(action)) {
+            const metadata = recorded(action.metadata)
             return [
                 {
                     ...span,
                     kind: 'capture',
                     from: action.from,
                     to: action.to,
-                    moved: summary(action.metadata?.moved),
-                    captured: summary(action.metadata?.captured),
-                    eliminated: action.metadata?.eliminatedKind,
-                    opening: action.metadata?.opening ?? false,
-                    noSecondMove: action.metadata?.noSecondMove ?? false,
-                    stuckPlayerId: action.metadata?.stuckPlayerId
+                    moved: metadata.moved,
+                    captured: metadata.captured,
+                    eliminated: metadata.eliminatedKind,
+                    opening: metadata.opening === true,
+                    noSecondMove: metadata.noSecondMove === true,
+                    stuckPlayerId: metadata.stuckPlayerId
                 }
             ]
         }
         if (isStack(action)) {
+            const metadata = recorded(action.metadata)
             return [
                 {
                     ...span,
                     kind: 'stack',
                     from: action.from,
                     to: action.to,
-                    moved: summary(action.metadata?.moved),
-                    landedOn: summary(action.metadata?.landedOn),
-                    stuckPlayerId: action.metadata?.stuckPlayerId
+                    moved: metadata.moved,
+                    landedOnHeight: metadata.landedOnHeight,
+                    stuckPlayerId: metadata.stuckPlayerId
                 }
             ]
         }
         if (isPass(action)) {
-            return [{ ...span, kind: 'pass', stuckPlayerId: action.metadata?.stuckPlayerId }]
+            const { stuckPlayerId } = recorded(action.metadata)
+            return [{ ...span, kind: 'pass', stuckPlayerId }]
         }
         return []
     })

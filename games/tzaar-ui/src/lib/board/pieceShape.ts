@@ -2,21 +2,12 @@ import { PieceKind } from '@tabletop/tzaar'
 import { PIECE_MODEL, RISE, TILT, type PieceModel } from './pieceGeometry.js'
 import { metalOf, SURFACE_STYLES, type Surface, type Tone } from './pieceStyle.js'
 
-// A TZAAR piece is a GIPF piece with a sunken middle, drawn as MATRX GIPF's discs are: a plastic
-// disc with rounded edges and a flat top, with a circular groove set in from the edge, its lips
-// rounded down to a rounded floor; inside it a flat ring level with the edge, and inside the ring
-// the centre is sunk, its edge rounded down to a flat floor. A Tzarra's sunken centre is metal,
-// gold on white and silver on black; a Tzaar's groove is metal too. A Tott is plain.
-//
-// The side is drawn as a lathe: thin slices from the base up, each a flattened circle of the
-// side's radius at its height, painted bottom first so each slice leaves only its front edge
-// showing. The top is drawn from one height profile as bands from the edge inward, each at its
-// height, shaded by which way it faces: the far half of every band first, outer to inner, so a
-// lower band further in shows where it is nearer you; then the near half, inner to outer, so a
-// higher band further out hides a lower one behind it.
-//
-// Each tone and kind's piece is pre-rendered to an image by scripts/render-looks.mjs; the specks,
-// which differ from piece to piece, are drawn over it (specks.ts).
+// A disc with rounded edges and a flat top, a groove set in from the edge and a sunken centre.
+// A Tzarra's centre is metal, and a Tzaar's groove too. The side is drawn as thin slices from the
+// base up, painted bottom first so each leaves only its front edge showing. The top is drawn as
+// bands from the edge inward, each at its height: the far half of every band first, outer to
+// inner, so a lower band further in shows where it is nearer you; then the near half, inner to
+// outer, so a higher band further out hides a lower one behind it.
 
 // All as fractions of the piece's radius, the heights through the thickness.
 const BASE_ROUND = 0.25
@@ -44,9 +35,8 @@ export type Ellipse = { y: number; rx: number; ry: number }
 export type Slice = Ellipse & { level: number }
 
 // A band of the top between two distances from the centre: the ellipse at its outer edge, whose
-// far side shows, and the near half of the band itself; its surface, its colour, and how steep it
-// is. A steep band's wall is shaded on top of its colour, darker towards the far side and lighter
-// towards the near side, fading to its colour at either end, so the shade turns smoothly round.
+// far side shows, and the near half of the band itself. `steep` sets how much wall shade LookDefs
+// lays over its colour.
 export type Band = { outer: Ellipse; near: string; surface: Surface; color: string; steep: number }
 
 // Every piece's look, pre-rendered to a file by scripts/render-looks.mjs.
@@ -178,8 +168,7 @@ function shadeAt(surface: Surface, distance: number): number {
     return surface === 'white' && distance < CENTRE.top ? WHITE_CENTRE_SHADE : 1
 }
 
-// The floors darker than the top, the far walls in shade, the near lips catching the light;
-// steeper walls more so. Each band is of its surface: plastic, or the markings' metal.
+// The top's bands, each of its surface (plastic, or the markings' metal), darker in the hollows.
 export function topBands(radius: number, look: Look, model: PieceModel = PIECE_MODEL): Band[] {
     const ellipse = flatEllipse(radius)
     const edges = bandEdges(model)
@@ -259,14 +248,10 @@ export function ellipsePath({ y, rx, ry }: Ellipse): string {
 // The least a speck shrinks to keep off the lips; smaller, it is left out.
 const MIN_SPECK_SCALE = 0.4
 
-// A speck on the top of a piece of a kind, centred `x` to the right and `y` toward you and
-// reaching `extent` from its centre, all over the radius: where it shows on screen from the top's
-// centre, how much it shrinks, how much its surface there is squeezed up the screen against the
-// flat top's, and its colour in the light there. A speck lies wholly on a flat, in the groove or
-// in the sunken centre, never across a lip, where it would hide the edge, nor past the piece's
-// edge (it runs on over the rounded rim, drawn as the top): one that would shrinks to fit, or is
-// left out if it would shrink too far, as is one on metal, and one the top nearer you hides, as a
-// lip hides the floor just behind it.
+// Where a speck on the top shows on screen, how much it shrinks and is squeezed, and its colour
+// in the light there; `x`, `y` and `extent` are over the radius. A speck across a lip would hide
+// the edge, so it shrinks to fit or is left out, as is one on metal or hidden by the top nearer
+// you.
 export function topSpeck(
     radius: number,
     look: Look,
@@ -315,9 +300,8 @@ export function topSpeck(
     }
 }
 
-// A colour on the top lit as the top is there (topBands, with LookDefs' wall gradients over
-// them): darker in the hollows, and on their steep walls in shade on the far half of the piece,
-// catching the light on the near half, most at the far and near points, none at the sides.
+// A colour on the top lit as topBands and LookDefs' wall gradients light the top there, so a
+// speck matches the surface under it.
 function lightAt(look: Look, tint: Rgb, x: number, y: number, model: PieceModel): Rgb {
     const distance = Math.max(1e-6, Math.hypot(x, y))
     const surface = surfaceAt(look, distance)
@@ -334,7 +318,7 @@ function lightAt(look: Look, tint: Rgb, x: number, y: number, model: PieceModel)
     const base = mix(flat, floor, depth)
     const lit = away > 0 ? mix(base, farWall, steep * away) : mix(base, nearWall, -steep * away)
     // The speck takes the change in light from the flat top, channel by channel.
-    return tint.map((value, index) => (value * (lit[index] + 8)) / (flat[index] + 8)) as Rgb
+    return mapRgb(tint, (value, index) => (value * (lit[index] + 8)) / (flat[index] + 8))
 }
 
 // The front half of a thinned piece's side: a band from its underside up.
@@ -346,14 +330,17 @@ export function bandPath(base: number, side: number, radius: number): string {
 
 type Rgb = [number, number, number]
 
+function mapRgb(color: Rgb, channel: (value: number, index: number) => number): Rgb {
+    return [channel(color[0], 0), channel(color[1], 1), channel(color[2], 2)]
+}
+
 function rgb(hex: string): Rgb {
     const value = Number.parseInt(hex.slice(1), 16)
     return [(value >> 16) & 255, (value >> 8) & 255, value & 255]
 }
 
 function mix(from: Rgb, to: Rgb, amount: number): Rgb {
-    const toward = (index: 0 | 1 | 2) => from[index] + (to[index] - from[index]) * amount
-    return [toward(0), toward(1), toward(2)]
+    return mapRgb(from, (value, index) => value + (to[index] - value) * amount)
 }
 
 function css(color: Rgb, brightness = 1): string {
@@ -364,12 +351,10 @@ function css(color: Rgb, brightness = 1): string {
 // A speck's colour rounded to a few steps, so the specks of a piece share a handful of colours and
 // draw as a path each.
 function steps(color: Rgb): Rgb {
-    return color.map((value) => Math.round(value / 8) * 8) as Rgb
+    return mapRgb(color, (value) => Math.round(value / 8) * 8)
 }
 
-// A surface's shades, from its style: the side lit by its face colour and shaded by its edge
-// colour; the top flat in its face colour, a hollow's floor darker, its far wall in shade and its
-// near wall catching the light.
+// A surface's shades, from its style: the flat top, a hollow's floor, and its far and near walls.
 function palette(surface: Surface) {
     const style = SURFACE_STYLES[surface]
     const face = rgb(style.face)
@@ -388,8 +373,7 @@ export function wallColors(surface: Surface): { far: string; near: string } {
     return { far: css(farWall), near: css(nearWall) }
 }
 
-// The stops across a side slice, left to right, as GIPF's and LYNGK's: rounded away from the
-// light at either edge.
+// The stops across a side slice, left to right: rounded away from the light at either edge.
 export function sideStops(surface: Surface, shade: number): { offset: number; color: string }[] {
     const style = SURFACE_STYLES[surface]
     const facing = (shade / (SHADE_LEVELS - 1)) * 2 - 1
@@ -408,10 +392,10 @@ export function sideSpeckFill(tint: string, across: number): string {
     const at = (across + 1) / 2
     const light =
         at < 0.32 ? 0.75 + (1.06 - 0.75) * (at / 0.32) : 1.06 - (1.06 - 0.62) * ((at - 0.32) / 0.68)
-    return css(steps(rgb(tint).map((value) => Math.min(255, value * light)) as Rgb))
+    return css(steps(mapRgb(rgb(tint), (value) => Math.min(255, value * light))))
 }
 
-// The top of a covered piece, in the shadow of the piece resting on it, as GIPF's and LYNGK's.
+// The top of a covered piece, in the shadow of the piece resting on it.
 export function creaseColor(tone: Tone): string {
     const { face, edge } = SURFACE_STYLES[tone]
     return css(mix(rgb(edge), rgb(face), 0.15))

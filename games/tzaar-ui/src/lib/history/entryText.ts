@@ -1,6 +1,6 @@
 import type { AxialCoordinates } from '@tabletop/common'
-import { PieceKind } from '@tabletop/tzaar'
-import type { HistoryEntry, StackSummary } from './historyEntries.js'
+import { PieceKind, type StackSummary } from '@tabletop/tzaar'
+import type { HistoryEntry } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
@@ -48,7 +48,7 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
                 space(entry.from),
                 text(' onto '),
                 space(entry.to),
-                text(`, making ${entry.moved.height + entry.landedOn.height}`),
+                text(`, making ${entry.moved.height + entry.landedOnHeight}`),
                 ...stuck
             ]
         case 'pass':
@@ -66,6 +66,5 @@ function stuckSegments(playerId: string, brief: boolean): Segment[] {
 
 // "a Tott", or "a Tzaar stack of 3" for a stack of three topped by a Tzaar.
 function stackOf({ height, kind }: StackSummary): string {
-    const name = kind === undefined ? 'piece' : KIND_NAMES[kind]
-    return height === 1 ? `a ${name}` : `a ${name} stack of ${height}`
+    return height === 1 ? `a ${KIND_NAMES[kind]}` : `a ${KIND_NAMES[kind]} stack of ${height}`
 }

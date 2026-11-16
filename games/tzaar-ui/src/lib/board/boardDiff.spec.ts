@@ -1,89 +1,77 @@
 import { describe, expect, it } from 'vitest'
-import {
-    emptyBoard,
-    HydratedTzaarBoard,
-    PieceKind,
-    spaceFromName,
-    type Piece
-} from '@tabletop/tzaar'
+import { PieceKind, spaceFromName, type Piece, type TzaarBoard } from '@tabletop/tzaar'
 import { boardDiff } from './boardDiff.js'
 
-function board(stacks: Record<string, Piece[]>): HydratedTzaarBoard {
-    const data = emptyBoard()
-    for (const space of data.spaces) {
-        for (const [name, pieces] of Object.entries(stacks)) {
-            const coords = spaceFromName(name)
-            if (coords.q === space.coords.q && coords.r === space.coords.r) space.stack = pieces
-        }
+function board(stacks: Record<string, Piece[]>): TzaarBoard {
+    return {
+        stacks: Object.entries(stacks).map(([name, pieces]) => ({
+            coords: spaceFromName(name),
+            pieces
+        }))
     }
-    return new HydratedTzaarBoard(data)
 }
 
 const piece = (id: number, playerId: string): Piece => ({ id, playerId, kind: PieceKind.Tott })
 const w1 = piece(1, 'w')
 const w2 = piece(2, 'w')
-const b1 = piece(3, 'b')
+const w3 = piece(3, 'w')
+const b1 = piece(4, 'b')
 
 describe('boardDiff', () => {
-    it('reads a capture: the stack moves onto the space and the one there is taken', () => {
+    it('reads a capture: the stack moves onto the space and the one there leaves', () => {
         const diff = boardDiff(board({ A1: [w1], A3: [b1] }), board({ A3: [w1] }))
-        expect(diff.moved).toMatchObject({
-            from: spaceFromName('A1'),
-            to: spaceFromName('A3'),
-            landingOn: 0,
-            captured: [b1],
-            forward: true
-        })
-        expect(diff.vanished).toEqual([])
+        expect(diff.runs).toEqual([
+            {
+                pieces: [w1],
+                start: spaceFromName('A1'),
+                end: spaceFromName('A3'),
+                leftBelow: 0,
+                landingOn: 0
+            }
+        ])
+        expect(diff.vanished).toEqual([{ coords: spaceFromName('A3'), pieces: [b1] }])
+        expect(diff.appeared).toEqual([])
     })
 
     it('reads a stacking onto the player’s own stack', () => {
         const diff = boardDiff(board({ A1: [w1], A2: [w2] }), board({ A2: [w2, w1] }))
-        expect(diff.moved).toMatchObject({ landingOn: 1, captured: [], forward: true })
+        expect(diff.runs).toMatchObject([{ pieces: [w1], landingOn: 1, leftBelow: 0 }])
+        expect(diff.vanished).toEqual([])
     })
 
     it('reads an undone capture backwards, the captured stack coming back', () => {
         const diff = boardDiff(board({ A3: [w1] }), board({ A1: [w1], A3: [b1] }))
-        expect(diff.moved).toMatchObject({
-            from: spaceFromName('A3'),
-            to: spaceFromName('A1'),
-            captured: [b1],
-            forward: false
-        })
-        expect(diff.appeared).toEqual([])
+        expect(diff.runs).toMatchObject([
+            { start: spaceFromName('A3'), end: spaceFromName('A1'), landingOn: 0 }
+        ])
+        expect(diff.appeared).toEqual([{ coords: spaceFromName('A3'), pieces: [b1] }])
     })
 
     it('reads an undone stacking backwards, leaving the stack below', () => {
         const diff = boardDiff(board({ A2: [w2, w1] }), board({ A1: [w1], A2: [w2] }))
-        expect(diff.moved).toMatchObject({ leftBelow: 1, pieces: [w1], forward: false })
+        expect(diff.runs).toMatchObject([{ pieces: [w1], leftBelow: 1, landingOn: 0 }])
     })
 
     it('reads a placement as a stack appearing', () => {
         const diff = boardDiff(board({}), board({ E4: [w1] }))
-        expect(diff.moved).toBeUndefined()
+        expect(diff.runs).toEqual([])
         expect(diff.appeared).toHaveLength(1)
     })
 
-    it('follows the move the session knows, and reads the boards when it does not fit', () => {
-        const before = board({ A1: [w1], A3: [b1] })
-        const after = board({ A3: [w1] })
-        const known = { from: spaceFromName('A1'), to: spaceFromName('A3') }
-        expect(boardDiff(before, after, known).moved).toMatchObject({ captured: [b1] })
-        const wrong = { from: spaceFromName('B1'), to: spaceFromName('B2') }
-        expect(boardDiff(before, after, wrong).moved).toMatchObject({
-            from: spaceFromName('A1'),
-            to: spaceFromName('A3')
-        })
+    it('reads a capture and a stacking with the same stack as one run, start to end', () => {
+        const diff = boardDiff(board({ A1: [w1], A3: [b1], A4: [w3] }), board({ A4: [w3, w1] }))
+        expect(diff.runs).toMatchObject([
+            { pieces: [w1], start: spaceFromName('A1'), end: spaceFromName('A4'), landingOn: 1 }
+        ])
+        expect(diff.vanished).toEqual([{ coords: spaceFromName('A3'), pieces: [b1] }])
     })
 
-    it('reads a known move taken back', () => {
-        const known = { from: spaceFromName('A1'), to: spaceFromName('A2') }
-        const diff = boardDiff(board({ A2: [w2, w1] }), board({ A1: [w1], A2: [w2] }), known)
-        expect(diff.moved).toMatchObject({
-            from: spaceFromName('A2'),
-            to: spaceFromName('A1'),
-            leftBelow: 1,
-            forward: false
-        })
+    it('reads a stack that is landed on and then moves as two runs to one end', () => {
+        const diff = boardDiff(board({ A1: [w1], A2: [w2], A4: [b1] }), board({ A4: [w2, w1] }))
+        expect(diff.runs).toMatchObject([
+            { pieces: [w1], start: spaceFromName('A1'), landingOn: 1 },
+            { pieces: [w2], start: spaceFromName('A2'), landingOn: 0 }
+        ])
+        expect(diff.vanished).toEqual([{ coords: spaceFromName('A4'), pieces: [b1] }])
     })
 })

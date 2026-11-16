@@ -1,14 +1,12 @@
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
-// The stack to move, as a coordinate key.
+// The stack to move, as its space's key.
 export type TzaarSelectionValues = {
-    from: string
+    from: number
 }
 
 export type TzaarSelection = StagedSelectionState<TzaarSelectionValues>
@@ -37,13 +35,4 @@ export function setTzaarSelection<TStage extends keyof TzaarSelectionValues>(
               value,
               'manual'
           )
-}
-
-export function hasManualTzaarSelection(selection: TzaarSelection): boolean {
-    return hasManualStagedSelection<TzaarSelectionValues>(selection, TzaarStageOrder)
-}
-
-export function popTzaarSelection(selection: TzaarSelection): TzaarSelection {
-    return popHighestManualStagedSelection<TzaarSelectionValues>(selection, TzaarStageOrder)
-        .nextState
 }

@@ -22,7 +22,7 @@ export function metalOf(tone: Tone): Surface {
 export type SurfaceStyle = { face: string; edge: string; bevel: string }
 
 export const SURFACE_STYLES: Record<Surface, SurfaceStyle> = {
-    // A cool, very white plastic under the flecks, as YINSH's white rings are.
+    // A cool, very white plastic, which reads as white under the flecks.
     white: { face: '#f0f2f7', edge: '#787c8a', bevel: '#ffffff' },
     black: { face: '#232427', edge: '#000000', bevel: '#8d8c86' },
     gold: { face: '#cf9f3c', edge: '#6e4a10', bevel: '#f3d98e' },

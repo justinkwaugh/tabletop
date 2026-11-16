@@ -45,7 +45,7 @@ describe('history text', () => {
                 from: spaceFromName('C4'),
                 to: spaceFromName('A2'),
                 moved: { height: 1, kind: PieceKind.Tott },
-                landedOn: { height: 2, kind: PieceKind.Tott },
+                landedOnHeight: 2,
                 stuckPlayerId: 'bob'
             })
         ).toBe(' stacked a Tott from C4 onto A2, making 3; bob cannot capture and loses')

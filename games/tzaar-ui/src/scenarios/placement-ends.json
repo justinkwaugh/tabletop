@@ -27,26 +27,28 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 1,
+        "seed": 3367980177,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-30T04:43:18.889Z",
+        "createdAt": "2026-11-16T17:34:07.596Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-30T04:43:18.889Z"
+        "startedAt": "2026-11-16T17:34:07.596Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "Sj2vtMtVgfdlqzP04SWDO",
+        "id": "MLfnAesg0f2klqf7JxF0l",
         "gameId": "scenario-placement-ends",
-        "seed": 1,
+        "seed": 3367980177,
         "prng": {
-            "seed": 1,
+            "seed": 3367980177,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3091922829,
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
             "invocations": 0
         },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
         "activePlayerIds": ["player-1"],
         "winningPlayerIds": [],
         "actionCount": 0,
@@ -74,17 +76,17 @@
             "turnCounts": {
                 "player-1": 29,
                 "player-2": 29
-            }
+            },
+            "seriesKeeps": "latest"
         },
-        "version": "Tournament",
         "board": {
-            "spaces": [
+            "stacks": [
                 {
                     "coords": {
                         "q": 1,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 0,
                             "playerId": "player-1",
@@ -97,7 +99,7 @@
                         "q": 1,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 1,
                             "playerId": "player-2",
@@ -110,7 +112,7 @@
                         "q": 0,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 2,
                             "playerId": "player-1",
@@ -123,7 +125,7 @@
                         "q": -1,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 3,
                             "playerId": "player-2",
@@ -136,7 +138,7 @@
                         "q": -1,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 4,
                             "playerId": "player-1",
@@ -149,7 +151,7 @@
                         "q": 0,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 5,
                             "playerId": "player-2",
@@ -162,7 +164,7 @@
                         "q": 1,
                         "r": -2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 6,
                             "playerId": "player-1",
@@ -175,7 +177,7 @@
                         "q": 2,
                         "r": -2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 7,
                             "playerId": "player-2",
@@ -188,7 +190,7 @@
                         "q": 2,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 8,
                             "playerId": "player-1",
@@ -201,7 +203,7 @@
                         "q": 2,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 9,
                             "playerId": "player-2",
@@ -214,7 +216,7 @@
                         "q": 1,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 10,
                             "playerId": "player-1",
@@ -227,7 +229,7 @@
                         "q": 0,
                         "r": 2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 11,
                             "playerId": "player-2",
@@ -240,7 +242,7 @@
                         "q": -1,
                         "r": 2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 12,
                             "playerId": "player-1",
@@ -253,7 +255,7 @@
                         "q": -2,
                         "r": 2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 13,
                             "playerId": "player-2",
@@ -266,7 +268,7 @@
                         "q": -2,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 14,
                             "playerId": "player-1",
@@ -279,7 +281,7 @@
                         "q": -2,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 15,
                             "playerId": "player-2",
@@ -292,7 +294,7 @@
                         "q": -1,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 16,
                             "playerId": "player-1",
@@ -305,7 +307,7 @@
                         "q": 0,
                         "r": -2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 17,
                             "playerId": "player-2",
@@ -318,7 +320,7 @@
                         "q": 2,
                         "r": -3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 18,
                             "playerId": "player-1",
@@ -331,7 +333,7 @@
                         "q": 3,
                         "r": -3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 19,
                             "playerId": "player-2",
@@ -344,7 +346,7 @@
                         "q": 3,
                         "r": -2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 20,
                             "playerId": "player-1",
@@ -357,7 +359,7 @@
                         "q": 3,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 21,
                             "playerId": "player-2",
@@ -370,7 +372,7 @@
                         "q": 3,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 22,
                             "playerId": "player-1",
@@ -383,7 +385,7 @@
                         "q": 2,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 23,
                             "playerId": "player-2",
@@ -396,7 +398,7 @@
                         "q": 1,
                         "r": 2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 24,
                             "playerId": "player-1",
@@ -409,7 +411,7 @@
                         "q": 0,
                         "r": 3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 25,
                             "playerId": "player-2",
@@ -422,7 +424,7 @@
                         "q": -1,
                         "r": 3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 26,
                             "playerId": "player-1",
@@ -435,7 +437,7 @@
                         "q": -2,
                         "r": 3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 27,
                             "playerId": "player-2",
@@ -448,7 +450,7 @@
                         "q": -3,
                         "r": 3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 28,
                             "playerId": "player-1",
@@ -461,7 +463,7 @@
                         "q": -3,
                         "r": 2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 29,
                             "playerId": "player-2",
@@ -474,7 +476,7 @@
                         "q": -3,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 30,
                             "playerId": "player-1",
@@ -487,7 +489,7 @@
                         "q": -3,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 31,
                             "playerId": "player-2",
@@ -500,7 +502,7 @@
                         "q": -2,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 32,
                             "playerId": "player-1",
@@ -513,7 +515,7 @@
                         "q": -1,
                         "r": -2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 33,
                             "playerId": "player-2",
@@ -526,7 +528,7 @@
                         "q": 0,
                         "r": -3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 34,
                             "playerId": "player-1",
@@ -539,7 +541,7 @@
                         "q": 1,
                         "r": -3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 35,
                             "playerId": "player-2",
@@ -552,7 +554,7 @@
                         "q": 3,
                         "r": -4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 36,
                             "playerId": "player-1",
@@ -565,7 +567,7 @@
                         "q": 4,
                         "r": -4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 37,
                             "playerId": "player-2",
@@ -578,7 +580,7 @@
                         "q": 4,
                         "r": -3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 38,
                             "playerId": "player-1",
@@ -591,7 +593,7 @@
                         "q": 4,
                         "r": -2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 39,
                             "playerId": "player-2",
@@ -604,7 +606,7 @@
                         "q": 4,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 40,
                             "playerId": "player-1",
@@ -617,7 +619,7 @@
                         "q": 4,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 41,
                             "playerId": "player-2",
@@ -630,7 +632,7 @@
                         "q": 3,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 42,
                             "playerId": "player-1",
@@ -643,7 +645,7 @@
                         "q": 2,
                         "r": 2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 43,
                             "playerId": "player-2",
@@ -656,7 +658,7 @@
                         "q": 1,
                         "r": 3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 44,
                             "playerId": "player-1",
@@ -669,7 +671,7 @@
                         "q": 0,
                         "r": 4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 45,
                             "playerId": "player-2",
@@ -682,7 +684,7 @@
                         "q": -1,
                         "r": 4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 46,
                             "playerId": "player-1",
@@ -695,7 +697,7 @@
                         "q": -2,
                         "r": 4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 47,
                             "playerId": "player-2",
@@ -708,7 +710,7 @@
                         "q": -3,
                         "r": 4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 48,
                             "playerId": "player-1",
@@ -721,7 +723,7 @@
                         "q": -4,
                         "r": 4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 49,
                             "playerId": "player-2",
@@ -734,7 +736,7 @@
                         "q": -4,
                         "r": 3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 50,
                             "playerId": "player-1",
@@ -747,7 +749,7 @@
                         "q": -4,
                         "r": 2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 51,
                             "playerId": "player-2",
@@ -760,7 +762,7 @@
                         "q": -4,
                         "r": 1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 52,
                             "playerId": "player-1",
@@ -773,7 +775,7 @@
                         "q": -4,
                         "r": 0
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 53,
                             "playerId": "player-2",
@@ -786,7 +788,7 @@
                         "q": -3,
                         "r": -1
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 54,
                             "playerId": "player-1",
@@ -799,7 +801,7 @@
                         "q": -2,
                         "r": -2
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 55,
                             "playerId": "player-2",
@@ -812,7 +814,7 @@
                         "q": -1,
                         "r": -3
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 56,
                             "playerId": "player-1",
@@ -825,27 +827,13 @@
                         "q": 0,
                         "r": -4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 57,
                             "playerId": "player-2",
                             "kind": "tott"
                         }
                     ]
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -4
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -4
-                    },
-                    "stack": []
                 }
             ]
         }

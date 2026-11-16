@@ -8,11 +8,10 @@ export const PIECE_RADIUS = SPACING_UNIT * 0.47
 export const TILT = 0.75
 export const RISE = Math.sqrt(1 - TILT ** 2)
 
-// A piece's proportions, as fractions of its radius, as GIPF's and LYNGK's discs: each disc
-// stands on the ring under it a `gap` above the disc below, and the bottom disc the same gap above
-// the board, so a dark crease shows at each seam and under the stack. Past `cap` pieces a stack
-// rises no higher; the pieces between its bottom and top thin out instead, so a tall stack does
-// not bury the row behind it. The count on top says how many there are.
+// A piece's proportions, as fractions of its radius: each disc stands a `gap` above the disc
+// below, and the bottom disc the same gap above the board, so a dark crease shows at each seam.
+// Past `cap` pieces a stack rises no higher; the pieces between its bottom and top thin out
+// instead, so a tall stack does not bury the row behind it.
 export type PieceModel = {
     thickness: number
     gap: number

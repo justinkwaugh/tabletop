@@ -1,135 +1,65 @@
-import { addAxial, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-import { DIRECTIONS, type HydratedTzaarBoard, type Piece } from '@tabletop/tzaar'
+import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { spaceKey, type Piece, type PieceStack, type TzaarBoard } from '@tabletop/tzaar'
 
-export type PlacedStack = { coords: AxialCoordinates; pieces: Piece[] }
-
-export type StackMotion = {
-    from: AxialCoordinates
-    to: AxialCoordinates
+// Pieces that leave one space together for another, bottom to top.
+export type Run = {
     pieces: Piece[]
-    // How many pieces stay under the moving ones where they start, and wait for them where
-    // they land.
+    start: AxialCoordinates
+    end: AxialCoordinates
+    // How many pieces stay on the start space under it, and how many it lands on at the end.
     leftBelow: number
     landingOn: number
-    // The stack a capture takes from where the moving stack lands; taken back, it returns there
-    // once the moving stack has left.
-    captured: Piece[]
-    // A move played, rather than taken back.
-    forward: boolean
 }
 
+// What changes on the board between two states, piece by piece.
 export type BoardDiff = {
-    moved?: StackMotion
-    appeared: PlacedStack[]
-    vanished: PlacedStack[]
+    runs: Run[]
+    // Stacks that leave the board, or come onto it, with every piece in them.
+    vanished: PieceStack[]
+    appeared: PieceStack[]
 }
 
-function stacks(board: HydratedTzaarBoard): PlacedStack[] {
-    return board.spaces
-        .filter((space) => space.stack.length > 0)
-        .map((space) => ({ coords: space.coords, pieces: space.stack }))
-}
+type Place = { coords: AxialCoordinates; index: number }
 
-function samePieces(a: readonly Piece[], b: readonly Piece[]): boolean {
-    return a.length === b.length && a.every((piece, index) => piece.id === b[index].id)
-}
+// Each piece's moves from one board to the next, read by its id, so any number of moves between
+// the two boards is read alike: each run goes straight from where it stood to where it ends.
+export function boardDiff(from: TzaarBoard, to: TzaarBoard): BoardDiff {
+    const before = locate(from)
+    const after = locate(to)
+    const runs = new Map<string, Run>()
 
-function stackAt(list: readonly PlacedStack[], coords: AxialCoordinates): Piece[] {
-    return list.find((stack) => sameCoordinates(stack.coords, coords))?.pieces ?? []
-}
-
-// Whether the whole stack at `from` in `before` now stands at `to` in `after`: on the stack it
-// found there, or in place of an opponent's stack it captured.
-function movedTo(
-    before: PlacedStack[],
-    after: PlacedStack[],
-    from: AxialCoordinates,
-    to: AxialCoordinates
-): StackMotion | undefined {
-    const moving = stackAt(before, from)
-    const was = stackAt(before, to)
-    const now = stackAt(after, to)
-    if (moving.length === 0 || was.length === 0 || stackAt(after, from).length > 0) {
-        return undefined
+    for (const stack of from.stacks) {
+        stack.pieces.forEach((piece, index) => {
+            const now = after.get(piece.id)
+            if (now === undefined || sameCoordinates(now.coords, stack.coords)) return
+            const key = `${spaceKey(stack.coords)}>${spaceKey(now.coords)}`
+            const run = runs.get(key) ?? {
+                pieces: [],
+                start: stack.coords,
+                end: now.coords,
+                leftBelow: index,
+                landingOn: now.index
+            }
+            run.pieces.push(piece)
+            runs.set(key, run)
+        })
     }
-    const motion = { from, to, pieces: moving, leftBelow: 0, forward: true }
-    if (samePieces(now, [...was, ...moving])) {
-        return { ...motion, landingOn: was.length, captured: [] }
-    }
-    if (samePieces(now, moving)) {
-        return { ...motion, landingOn: 0, captured: was }
-    }
-    return undefined
-}
-
-function inLine(from: AxialCoordinates, to: AxialCoordinates): boolean {
-    return spacesBetween(from, to) !== undefined
-}
-
-// A stack that left one space and now stands on another in line with it, read forwards (a move)
-// or backwards (its undo), from the two boards alone.
-function findMove(before: PlacedStack[], after: PlacedStack[]): StackMotion | undefined {
-    for (const origin of before) {
-        for (const target of after) {
-            if (!inLine(origin.coords, target.coords)) continue
-            const move = movedTo(before, after, origin.coords, target.coords)
-            if (move) return move
-        }
-    }
-    return undefined
-}
-
-// What changed between two boards. `known` is the move the session knows was played or taken
-// back, used when it turns one board into the other.
-export function boardDiff(
-    from: HydratedTzaarBoard,
-    to: HydratedTzaarBoard,
-    known?: { from: AxialCoordinates; to: AxialCoordinates }
-): BoardDiff {
-    const before = stacks(from)
-    const after = stacks(to)
-    const forward =
-        (known && movedTo(before, after, known.from, known.to)) ?? findMove(before, after)
-    const backward = forward
-        ? undefined
-        : ((known && movedTo(after, before, known.from, known.to)) ?? findMove(after, before))
-    const reversed: StackMotion | undefined = backward && {
-        from: backward.to,
-        to: backward.from,
-        pieces: backward.pieces,
-        leftBelow: backward.landingOn,
-        landingOn: 0,
-        captured: backward.captured,
-        forward: false
-    }
-    const motion = forward ?? reversed
-    const isMotionSpace = (coords: AxialCoordinates) =>
-        motion !== undefined &&
-        (sameCoordinates(coords, motion.from) || sameCoordinates(coords, motion.to))
 
     return {
-        moved: motion,
-        appeared: after.filter(
-            (stack) => !isMotionSpace(stack.coords) && stackAt(before, stack.coords).length === 0
+        runs: [...runs.values()],
+        vanished: from.stacks.filter((stack) =>
+            stack.pieces.every((piece) => !after.has(piece.id))
         ),
-        vanished: before.filter(
-            (stack) => !isMotionSpace(stack.coords) && stackAt(after, stack.coords).length === 0
-        )
+        appeared: to.stacks.filter((stack) => stack.pieces.every((piece) => !before.has(piece.id)))
     }
 }
 
-// The spaces a move from `from` to `to` passes over, in order; undefined when they are not in
-// line.
-export function spacesBetween(
-    from: AxialCoordinates,
-    to: AxialCoordinates
-): AxialCoordinates[] | undefined {
-    for (const direction of DIRECTIONS) {
-        const passed: AxialCoordinates[] = []
-        for (let at = addAxial(from, direction); passed.length < 9; at = addAxial(at, direction)) {
-            if (sameCoordinates(at, to)) return passed
-            passed.push(at)
-        }
+function locate(board: TzaarBoard): Map<number, Place> {
+    const located = new Map<number, Place>()
+    for (const stack of board.stacks) {
+        stack.pieces.forEach((piece, index) =>
+            located.set(piece.id, { coords: stack.coords, index })
+        )
     }
-    return undefined
+    return located
 }

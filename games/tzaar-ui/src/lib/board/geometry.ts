@@ -20,22 +20,6 @@ export const SPACING = SPACING_UNIT
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
 
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
-}
-
-// The corners of the board and of the centre it lacks, clockwise from the top.
-function cornersAt(distance: number): AxialCoordinates[] {
-    return [
-        { q: 0, r: -distance },
-        { q: distance, r: -distance },
-        { q: distance, r: 0 },
-        { q: 0, r: distance },
-        { q: -distance, r: distance },
-        { q: -distance, r: 0 }
-    ]
-}
-
 // The lines run on past the outer spaces by this share of a step, as on the printed board.
 const WHISKER = 0.25
 // From a column's end stack to its label, on screen.
@@ -45,9 +29,8 @@ const LABEL_HALF = { x: 11, y: 8 }
 // From the board, its pieces and the labels to the frame's edge.
 const FRAME_MARGIN = SPACING * 0.15
 // Stacks left whole: the frame keeps room above the far row for one this many pieces taller than
-// a shrunk stack (9 on the board, 13 on the rotated board), so it grows over a taller one
-// (`raiseFor`) less often. TZAAR's board is fitted by its height on most screens, so the room
-// shrinks it a little (about 5% on the board) while stacks are left whole.
+// a shrunk stack, so it grows over a taller one (`raiseFor`) less often. The board is fitted by its
+// height on most screens, so the room costs about 5% of its size.
 export const WHOLE_HEADROOM = 4
 // Room below the bottom labels for the zoom controls, which sit in the bottom-left corner.
 const CONTROLS_ROOM = SPACING * 0.4
@@ -71,13 +54,10 @@ export function flatCenter(coords: AxialCoordinates): Point {
     return flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
 }
 
-// Where everything on the board is drawn, in board units. The board is seen from the near side
-// of the table: depth shrinks to `tilt` of its length, and heights show at `rise` of theirs. An
-// unlabelled view's frame leaves no room for the labels. A rotated view turns the board a
-// quarter turn clockwise, so its flat sides face the players and the columns run across, A at
-// the top. A turned view sees the board from the far side, half a turn round, so what tall stacks
-// hide comes in front. A view that does not shrink stacks stands every stack whole, for players
-// who would rather turn the board to see past a tall one.
+// Where everything on the board is drawn, in board units, seen from the near side of the table:
+// depth shrinks to `tilt` of its length and heights show at `rise` of theirs. `rotated` turns the
+// board a quarter turn clockwise, so its flat sides face the players; `turned` sees it from the far
+// side, so what tall stacks hide comes in front; without `shrinks`, every stack stands whole.
 export class BoardView {
     readonly radius = PIECE_RADIUS
     readonly rise: number
@@ -105,7 +85,7 @@ export class BoardView {
         this.model = shrinks ? shrunk : { ...shrunk, cap: Number.POSITIVE_INFINITY }
         this.framedHeight = shrinks ? shrunk.cap : shrunk.cap + WHOLE_HEADROOM
         const outline = (distance: number) =>
-            cornersAt(distance)
+            this.cornersAt(distance)
                 .map((corner) => this.center(corner))
                 .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
                 .join(' ') + ' Z'
@@ -142,10 +122,8 @@ export class BoardView {
         }
     }
 
-    // A label a gap beyond the piece at its column's end: above a single piece's top, below its
-    // near edge, or on a rotated board beside it, the column's start on the left; outside the
-    // board either way, so on a turned board a column's top is at the bottom or on the left. A
-    // taller stack on a top space covers its label.
+    // A label a gap beyond a single piece at its column's end, always outside the board. A taller
+    // stack on a top space covers its label.
     labelAt(label: ColumnEnd): Point {
         const center = this.center(label.coords)
         const above = label.above !== this.turned
@@ -175,6 +153,18 @@ export class BoardView {
     // How far up the screen a height above the board shows.
     height(height: number): number {
         return height * this.rise
+    }
+
+    // The corners of the board and of the centre it lacks, clockwise from the top.
+    private cornersAt(distance: number): AxialCoordinates[] {
+        return [
+            { q: 0, r: -distance },
+            { q: distance, r: -distance },
+            { q: distance, r: 0 },
+            { q: 0, r: distance },
+            { q: -distance, r: distance },
+            { q: -distance, r: 0 }
+        ]
     }
 
     // Each run of neighbouring spaces along a direction, whiskered past the board's edge but not
@@ -218,7 +208,6 @@ export class BoardView {
     }
 }
 
-// The house angle, shared with the other GIPF project titles.
 export const VIEW = new BoardView(TILT)
 
 const VIEWS = new Map<string, BoardView>([['true,false,false,true', VIEW]])

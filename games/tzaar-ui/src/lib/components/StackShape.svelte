@@ -114,9 +114,13 @@
             <g transform="translate({radius * 0.6} {face.y + radius * 0.42 * TILT})">
                 <circle r={radius * 0.27} class="badge"></circle>
                 <!-- Set ten times larger and scaled down: text this small is snapped to whole
-                     pixels, which pushed the digits off the badge's centre on phones. -->
-                <text transform="scale(0.1)" font-size={radius * 3.7} dy="0.36em" class="count"
-                    >{pieces.length}</text
+                     pixels, which pushed the digits off the badge's centre on phones. On the
+                     alphabetic baseline, lowered by a share of its size to centre on the badge. -->
+                <text
+                    transform="scale(0.1)"
+                    font-size={radius * 3.7}
+                    dy={radius * 3.7 * 0.36}
+                    class="count">{pieces.length}</text
                 >
             </g>
         {/if}

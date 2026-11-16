@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MachineState, PIECE_KINDS, type PieceKind } from '@tabletop/tzaar'
+    import { MachineState, PIECE_KINDS } from '@tabletop/tzaar'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { historyEntries } from '$lib/history/historyEntries.js'
     import { KIND_NAMES } from '$lib/history/entryText.js'
@@ -9,7 +9,6 @@
     const session = getGameSession()
 
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
-    const myTone = $derived(session.myPlayer ? session.toneOfPlayer(session.myPlayer.id) : 'white')
     const opening = $derived(session.gameState.isOpeningTurn())
     const second = $derived(session.gameState.machineState === MachineState.SecondMove)
 
@@ -19,19 +18,14 @@
             if (session.chosenFrom) return 'Choose a stack to capture'
             return opening ? 'Opening move: capture' : 'Capture'
         }
-        if (second) {
+        if (second && session.canPass) {
             return session.chosenFrom ? 'Capture, or stack on your own' : 'Capture, stack or'
         }
         return undefined
     })
-
-    function inHand(kind: PieceKind): number {
-        const playerId = session.myPlayer?.id
-        return playerId === undefined ? 0 : session.gameState.piecesInHand(playerId, kind)
-    }
 </script>
 
-<!-- One row, as Bus and Magna Grecia do: the last move while you wait, the prompt on your turn. -->
+<!-- One row: the last move while you wait, the prompt on your turn. -->
 <div class="panel">
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}
@@ -42,18 +36,20 @@
     {:else}
         <span>{prompt}</span>
         {#if session.canPlace}
+            {@const tone = session.placingTone()}
             {#each PIECE_KINDS as kind (kind)}
+                {@const inHand = session.piecesInHand(kind)}
                 <button
                     type="button"
                     class="kind"
                     class:chosen={session.placingKind === kind}
-                    disabled={inHand(kind) === 0}
+                    disabled={inHand === 0}
                     aria-pressed={session.placingKind === kind}
-                    aria-label="{KIND_NAMES[kind]}, {inHand(kind)} left"
+                    aria-label="{KIND_NAMES[kind]}, {inHand} left"
                     onclick={() => session.chooseKind(kind)}
                 >
-                    <PieceIcon tone={myTone} {kind} size={30} />
-                    <span>{inHand(kind)}</span>
+                    <PieceIcon {tone} {kind} size={30} />
+                    <span>{inHand}</span>
                 </button>
             {/each}
         {/if}

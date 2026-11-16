@@ -9,8 +9,6 @@ function action(playerId: string, fields: { type: string } & Record<string, unkn
     return { id: `a${counter}`, gameId: 'g', source: ActionSource.User, playerId, ...fields }
 }
 
-const piece = (id: number, playerId: string, kind: PieceKind) => ({ id, playerId, kind })
-
 describe('historyEntries', () => {
     it('reads placements, captures, stackings and passes from their metadata', () => {
         const entries = historyEntries([
@@ -18,15 +16,15 @@ describe('historyEntries', () => {
                 type: ActionType.PlacePiece,
                 coords: s('E4'),
                 kind: PieceKind.Tzarra,
-                metadata: { piece: piece(0, 'a', PieceKind.Tzarra), stuckPlayerId: 'b' }
+                metadata: { stuckPlayerId: 'b' }
             }),
             action('a', {
                 type: ActionType.Capture,
                 from: s('D1'),
                 to: s('D2'),
                 metadata: {
-                    moved: [piece(1, 'a', PieceKind.Tott), piece(2, 'a', PieceKind.Tzarra)],
-                    captured: [piece(3, 'b', PieceKind.Tzaar)],
+                    moved: { height: 2, kind: PieceKind.Tzarra },
+                    captured: { height: 1, kind: PieceKind.Tzaar },
                     eliminatedKind: PieceKind.Tzaar,
                     noSecondMove: true
                 }
@@ -36,8 +34,8 @@ describe('historyEntries', () => {
                 from: s('C4'),
                 to: s('A2'),
                 metadata: {
-                    moved: [piece(4, 'b', PieceKind.Tott)],
-                    landedOn: [piece(5, 'b', PieceKind.Tott), piece(6, 'b', PieceKind.Tott)],
+                    moved: { height: 1, kind: PieceKind.Tott },
+                    landedOnHeight: 2,
                     stuckPlayerId: 'a'
                 }
             }),
@@ -59,11 +57,17 @@ describe('historyEntries', () => {
                 kind: 'stack',
                 playerId: 'b',
                 moved: { height: 1, kind: PieceKind.Tott },
-                landedOn: { height: 2, kind: PieceKind.Tott },
+                landedOnHeight: 2,
                 stuckPlayerId: 'a'
             },
             { kind: 'pass', playerId: 'a', firstIndex: 3 }
         ])
         expect(entries[3]).not.toHaveProperty('stuckPlayerId', expect.anything())
+    })
+
+    it('refuses a played action without its record', () => {
+        expect(() =>
+            historyEntries([action('a', { type: ActionType.Capture, from: s('D1'), to: s('D2') })])
+        ).toThrow(/records its outcome/)
     })
 })

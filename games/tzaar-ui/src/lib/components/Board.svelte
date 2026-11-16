@@ -1,12 +1,10 @@
 <script lang="ts">
     import { MediaQuery } from 'svelte/reactivity'
-    import { Tween } from 'svelte/motion'
-    import { cubicOut } from 'svelte/easing'
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-    import { SPACES, spaceName } from '@tabletop/tzaar'
+    import { SPACES, spaceKey, spaceName } from '@tabletop/tzaar'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, VIEW, viewOf } from '$lib/board/geometry.js'
+    import { VIEW, viewOf } from '$lib/board/geometry.js'
     import { stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
     import { markRing, outlinePath } from '$lib/board/pieceShape.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
@@ -29,21 +27,10 @@
 
     const animator = new BoardAnimator(session, () => layout)
 
-    // Stacks left whole may stand out of the frame, so it rises over the tallest: those drawn,
-    // those a move under way is about to leave, and the stack in flight at its highest. It eases
-    // up as the move sets off, and back down once a smaller board has settled.
-    const raise = Tween.of(
-        () =>
-            layout.raiseFor(
-                [...animator.stacks, ...animator.landing].map((stack) => ({
-                    coords: stack.coords,
-                    height: stack.pieces.length
-                })),
-                animator.flightTop === undefined ? [] : [animator.flightTop]
-            ),
-        { duration: 300, easing: cubicOut }
-    )
-    const frame = $derived(layout.raised(raise.current))
+    const frame = $derived(layout.raised(animator.raise))
+    // Coordinate labels sit on the alphabetic baseline, lowered by a share of their size to centre
+    // on their point, which every browser draws alike.
+    const LABEL_SIZE = 15
 
     // Back to front, so a nearer stack covers the one behind it.
     const stacks = $derived(
@@ -55,7 +42,7 @@
     )
 
     function stackId(key: string): string {
-        return `tzaar-stack-${key.replace(',', '_')}`
+        return `tzaar-stack-${key}`
     }
 
     function heightAt(coords: AxialCoordinates): number {
@@ -129,121 +116,127 @@
     {@const center = layout.center(stack.coords)}
     {@const role = roleOf(stack.coords)}
     <g id={stackId(stack.key)} transform="translate({center.x} {center.y})" class="piece">
-        <g {@attach animator.stack(stack.key, 'whole')}>
-            <g {@attach animator.stack(stack.key, 'shadow')}>
-                {@render shadow()}
-            </g>
-            <g {@attach animator.stack(stack.key, 'body')}>
-                <StackShape
-                    pieces={stack.pieces.map((piece) => session.shapeOf(piece))}
-                    {radius}
-                    prefix="tzaar-board"
-                    model={animator.modelAt(stack.key, layout.model)}
-                    quarterTurns={layout.quarterTurns}
-                >
-                    <!-- A mark recolors a ring on the top piece, under the count, so the count
-                         stays whole. The animator fades it with the move. -->
-                    {#snippet onTop()}
-                        {#if role}
-                            <g class="rim role-{role}" {@attach animator.mark()}>
-                                {#each ['under', 'over'] as layer (layer)}
-                                    <ellipse cy={ring.y} rx={ring.rx} ry={ring.ry} class={layer}
-                                    ></ellipse>
-                                {/each}
-                            </g>
-                        {/if}
-                    {/snippet}
-                </StackShape>
-            </g>
+        <g {@attach animator.stack(stack.key, 'shadow')}>
+            {@render shadow()}
+        </g>
+        <g {@attach animator.stack(stack.key, 'body')}>
+            <StackShape
+                pieces={stack.pieces.map((piece) => session.shapeOf(piece))}
+                {radius}
+                prefix="tzaar-board"
+                model={animator.modelAt(stack.key, layout.model)}
+                quarterTurns={layout.quarterTurns}
+            >
+                <!-- A mark recolors a ring on the top piece, under the count, so the count
+                     stays whole. The animator fades it with the move. -->
+                {#snippet onTop()}
+                    {#if role}
+                        <g class="rim role-{role}" {@attach animator.mark()}>
+                            {#each ['under', 'over'] as layer (layer)}
+                                <ellipse cy={ring.y} rx={ring.rx} ry={ring.ry} class={layer}
+                                ></ellipse>
+                            {/each}
+                        </g>
+                    {/if}
+                {/snippet}
+            </StackShape>
         </g>
     </g>
 {/snippet}
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<svg
-    class="tzaar-board"
-    viewBox="{frame.x} {frame.y} {frame.width} {frame.height}"
-    width={frame.width}
-    height={frame.height}
-    role="group"
-    aria-label="TZAAR board"
-    onclick={onBoardClick}
-    {@attach animator.attach}
->
-    <defs>
-        <PieceDefs prefix="tzaar-board" {radius} />
-        <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
-             removed piece under a filter on screen until something else repaints there. -->
-        <radialGradient id="tzaar-shadow">
-            <stop offset="0.72" stop-color="#000" stop-opacity="0.32"></stop>
-            <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
-        </radialGradient>
-    </defs>
+<div class="tap-off" role="presentation" onclick={onBoardClick}>
+    <svg
+        class="tzaar-board"
+        viewBox="{frame.x} {frame.y} {frame.width} {frame.height}"
+        width={frame.width}
+        height={frame.height}
+        role="group"
+        aria-label="TZAAR board"
+        {@attach animator.attach}
+    >
+        <defs>
+            <PieceDefs prefix="tzaar-board" {radius} />
+            <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
+                 removed piece under a filter on screen until something else repaints there. -->
+            <radialGradient id="tzaar-shadow">
+                <stop offset="0.72" stop-color="#000" stop-opacity="0.32"></stop>
+                <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
+            </radialGradient>
+        </defs>
 
-    <path d={layout.playArea} class="play-area" fill-rule="evenodd"></path>
-    <g class="lines">
-        {#each layout.lines as line, index (index)}
-            <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
-        {/each}
-    </g>
-
-    {#if session.showCoordinates}
-        {#each layout.labels as label (label.key)}
-            {@const at = layout.labelAt(label)}
-            <text x={at.x} y={at.y} class="coordinate-label">{label.text}</text>
-        {/each}
-    {/if}
-
-    {#each stacks as stack (stack.key)}
-        {@render drawn(stack)}
-    {/each}
-
-    {#if animator.flier}
-        {@const flier = animator.flier}
-        {@const center = layout.center(flier.coords)}
-        <g transform="translate({center.x} {center.y})" class="flier">
-            <g {@attach animator.flierNode('whole')}>
-                <g {@attach animator.flierNode('shadow')}>
-                    {@render shadow()}
-                </g>
-                <g {@attach animator.flierNode('body')}>
-                    <StackShape
-                        pieces={flier.pieces.map((piece) => session.shapeOf(piece))}
-                        {radius}
-                        prefix="tzaar-board"
-                        model={layout.model}
-                        quarterTurns={layout.quarterTurns}
-                    />
-                </g>
-            </g>
-        </g>
-        <!-- Each stack again over the flier, shown while it stands in front of it. -->
-        <g class="occluders" aria-hidden="true">
-            {#each stacks as stack (stack.key)}
-                {#if !flier.passes.includes(stack.key)}
-                    <use href="#{stackId(stack.key)}" {@attach animator.occluder(stack)}></use>
-                {/if}
+        <path d={layout.playArea} class="play-area" fill-rule="evenodd"></path>
+        <g class="lines">
+            {#each layout.lines as line, index (index)}
+                <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
             {/each}
         </g>
-    {/if}
 
-    <g class="targets">
-        {#each clickable as coords (coordsKey(coords))}
-            {@const center = layout.center(coords)}
-            <path
-                d={target(coords)}
-                transform="translate({center.x} {center.y})"
-                class="target"
-                role="button"
-                tabindex="0"
-                aria-label={describe(coords)}
-                onclick={() => session.chooseSpace(coords)}
-                onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
-            ></path>
+        {#if session.showCoordinates}
+            {#each layout.labels as label (label.key)}
+                {@const at = layout.labelAt(label)}
+                <text
+                    x={at.x}
+                    y={at.y}
+                    dy={LABEL_SIZE * 0.35}
+                    font-size={LABEL_SIZE}
+                    class="coordinate-label">{label.text}</text
+                >
+            {/each}
+        {/if}
+
+        {#each stacks as stack (stack.key)}
+            {@render drawn(stack)}
         {/each}
-    </g>
-</svg>
+
+        {#each animator.fliers as flier (flier.key)}
+            {@const center = layout.center(flier.from)}
+            <g transform="translate({center.x} {center.y})" class="flier">
+                <g {@attach animator.flierNode(flier.key, 'whole')}>
+                    <g {@attach animator.flierNode(flier.key, 'shadow')}>
+                        {@render shadow()}
+                    </g>
+                    <g {@attach animator.flierNode(flier.key, 'body')}>
+                        <StackShape
+                            pieces={flier.pieces.map((piece) => session.shapeOf(piece))}
+                            {radius}
+                            prefix="tzaar-board"
+                            model={layout.model}
+                            quarterTurns={layout.quarterTurns}
+                        />
+                    </g>
+                </g>
+            </g>
+        {/each}
+        <!-- A lone flier passes behind the stacks nearer the viewer than its place on the board. -->
+        {#if animator.fliers.length === 1}
+            {@const flier = animator.fliers[0]}
+            <g class="occluders" aria-hidden="true">
+                {#each stacks as stack (stack.key)}
+                    {#if !flier.passes.includes(stack.key)}
+                        <use href="#{stackId(stack.key)}" {@attach animator.occluder(stack)}></use>
+                    {/if}
+                {/each}
+            </g>
+        {/if}
+
+        <g class="targets">
+            {#each clickable as coords (spaceKey(coords))}
+                {@const center = layout.center(coords)}
+                <path
+                    d={target(coords)}
+                    transform="translate({center.x} {center.y})"
+                    class="target"
+                    role="button"
+                    tabindex="0"
+                    aria-label={describe(coords)}
+                    onclick={() => session.chooseSpace(coords)}
+                    onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
+                ></path>
+            {/each}
+        </g>
+    </svg>
+</div>
 
 <style>
     .tzaar-board {
@@ -263,12 +256,14 @@
 
     .coordinate-label {
         fill: var(--tzaar-label);
-        font-size: 15px;
         font-weight: 600;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.6px;
         text-anchor: middle;
-        dominant-baseline: central;
         pointer-events: none;
+    }
+
+    .tap-off {
+        display: contents;
     }
 
     .piece,

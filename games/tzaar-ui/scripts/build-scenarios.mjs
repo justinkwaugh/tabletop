@@ -12,7 +12,7 @@ import {
     PIECE_KINDS,
     PIECES_OF_KIND,
     SPACES,
-    spaceName,
+    spaceFromName,
     TzaarInfo,
     TzaarRuntime
 } from '@tabletop/tzaar'
@@ -22,14 +22,16 @@ const engine = new GameEngine(TzaarRuntime)
 const FIRST = 'player-1'
 const SECOND = 'player-2'
 const KINDS = { r: 'tzaar', a: 'tzarra', t: 'tott' }
+// Each game starts from a fixed master seed, so the random start and every file come out the same
+// on each run.
+const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
-function newGame(version, seed = 1) {
+function newGame(version) {
     const game = TzaarRuntime.initializer.initializeGame(
         {
             id: 'scenario',
             typeId: 'tzaar',
             ownerId: 'owner',
-            seed,
             config: { ...defaultGameConfig(TzaarInfo.configurator?.options ?? []), version },
             players: [FIRST, SECOND].map((id, index) => ({
                 id,
@@ -40,7 +42,10 @@ function newGame(version, seed = 1) {
         },
         Definition
     )
-    return engine.startGame(game, { startingPositions: { playerIds: [FIRST, SECOND] } })
+    return engine.startGame(game, {
+        masterSeed: MASTER_SEED,
+        startingPositions: { playerIds: [FIRST, SECOND] }
+    })
 }
 
 /**
@@ -51,13 +56,14 @@ function newGame(version, seed = 1) {
 function position(stacks) {
     const { startedGame: game, initialState: state } = newGame('Fixed')
     let id = 0
-    for (const space of state.board.spaces) {
-        space.stack = (stacks[spaceName(space.coords)] ?? '').split('').map((letter) => ({
+    state.board.stacks = Object.entries(stacks).map(([name, letters]) => ({
+        coords: spaceFromName(name),
+        pieces: letters.split('').map((letter) => ({
             id: id++,
             playerId: letter === letter.toUpperCase() ? FIRST : SECOND,
             kind: KINDS[letter.toLowerCase()]
         }))
-    }
+    }))
     const hydrated = new HydratedTzaarGameState(state)
     for (const player of state.players) {
         for (const kind of PIECE_KINDS) {
@@ -97,7 +103,7 @@ function act(game, state, action) {
 // stacks more often than not, so heights build up as they do between careful players. Stops at
 // the start of one of Alice's turns.
 function midgame({ seed, turns }) {
-    const { startedGame: game, initialState } = newGame('Random', seed)
+    const { startedGame: game, initialState } = newGame('Random')
     let state = initialState
     const random = seeded(seed)
     const pick = (options) => options[Math.floor(random() ** 2 * options.length)]

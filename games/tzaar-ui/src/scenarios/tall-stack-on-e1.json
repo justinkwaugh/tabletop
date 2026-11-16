@@ -27,26 +27,28 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 1,
+        "seed": 3367980177,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-06T16:29:34.332Z",
+        "createdAt": "2026-11-16T17:34:07.594Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-06T16:29:34.332Z"
+        "startedAt": "2026-11-16T17:34:07.594Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "TW0GnHyuLAmjKUDfLTtXK",
+        "id": "UChQ0L8dm2k9aHPLTtD6G",
         "gameId": "scenario-tall-stack-on-e1",
-        "seed": 1,
+        "seed": 3367980177,
         "prng": {
-            "seed": 1,
+            "seed": 3367980177,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 1180874386,
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
             "invocations": 0
         },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
         "activePlayerIds": ["player-1"],
         "winningPlayerIds": [],
         "actionCount": 0,
@@ -74,31 +76,17 @@
             "turnCounts": {
                 "player-1": 0,
                 "player-2": 0
-            }
+            },
+            "seriesKeeps": "latest"
         },
-        "version": "Fixed",
         "board": {
-            "spaces": [
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 0
-                    },
-                    "stack": []
-                },
+            "stacks": [
                 {
                     "coords": {
                         "q": 0,
-                        "r": 1
+                        "r": 4
                     },
-                    "stack": [
+                    "pieces": [
                         {
                             "id": 0,
                             "playerId": "player-2",
@@ -108,188 +96,30 @@
                 },
                 {
                     "coords": {
-                        "q": -1,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -2
-                    },
-                    "stack": [
-                        {
-                            "id": 1,
-                            "playerId": "player-2",
-                            "kind": "tzarra"
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 0
-                    },
-                    "stack": [
-                        {
-                            "id": 2,
-                            "playerId": "player-1",
-                            "kind": "tzarra"
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 2
-                    },
-                    "stack": [
-                        {
-                            "id": 3,
-                            "playerId": "player-2",
-                            "kind": "tzaar"
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 0
-                    },
-                    "stack": [
-                        {
-                            "id": 4,
-                            "playerId": "player-1",
-                            "kind": "tzaar"
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
                         "q": 0,
                         "r": 3
                     },
-                    "stack": [
+                    "pieces": [
+                        {
+                            "id": 1,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 2,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 3,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 4,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
                         {
                             "id": 5,
                             "playerId": "player-1",
@@ -328,304 +158,112 @@
                         {
                             "id": 12,
                             "playerId": "player-1",
-                            "kind": "tott"
-                        },
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 4
+                    },
+                    "pieces": [
                         {
                             "id": 13,
                             "playerId": "player-1",
-                            "kind": "tott"
+                            "kind": "tzarra"
                         },
                         {
                             "id": 14,
                             "playerId": "player-1",
-                            "kind": "tott"
+                            "kind": "tzarra"
                         },
                         {
                             "id": 15,
                             "playerId": "player-1",
-                            "kind": "tott"
+                            "kind": "tzarra"
                         },
                         {
                             "id": 16,
                             "playerId": "player-1",
                             "kind": "tzarra"
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -4
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -4
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 4
-                    },
-                    "stack": [
+                        },
                         {
                             "id": 17,
-                            "playerId": "player-2",
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 18,
+                            "playerId": "player-1",
                             "kind": "tott"
                         }
                     ]
                 },
                 {
                     "coords": {
-                        "q": -1,
-                        "r": 4
+                        "q": -2,
+                        "r": 0
                     },
-                    "stack": [
-                        {
-                            "id": 18,
-                            "playerId": "player-1",
-                            "kind": "tzarra"
-                        },
+                    "pieces": [
                         {
                             "id": 19,
                             "playerId": "player-1",
-                            "kind": "tzarra"
-                        },
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "pieces": [
                         {
                             "id": 20,
                             "playerId": "player-1",
                             "kind": "tzarra"
-                        },
-                        {
-                            "id": 21,
-                            "playerId": "player-1",
-                            "kind": "tzarra"
-                        },
-                        {
-                            "id": 22,
-                            "playerId": "player-1",
-                            "kind": "tzarra"
-                        },
-                        {
-                            "id": 23,
-                            "playerId": "player-1",
-                            "kind": "tott"
                         }
                     ]
                 },
                 {
                     "coords": {
                         "q": -2,
-                        "r": 4
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 4
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 4
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -4,
                         "r": 2
                     },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -4
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -4
-                    },
-                    "stack": []
+                    "pieces": [
+                        {
+                            "id": 21,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        }
+                    ]
                 },
                 {
                     "coords": {
                         "q": 2,
-                        "r": -4
+                        "r": -2
                     },
-                    "stack": []
+                    "pieces": [
+                        {
+                            "id": 22,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "pieces": [
+                        {
+                            "id": 23,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        }
+                    ]
                 }
             ]
         }

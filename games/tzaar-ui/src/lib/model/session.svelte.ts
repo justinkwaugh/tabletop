@@ -1,9 +1,15 @@
 import {
     GameSession,
+    undoableStagedSelection,
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    sameCoordinates,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import {
     ActionType,
     Capture,
@@ -13,6 +19,7 @@ import {
     PIECE_KINDS,
     PieceKind,
     PlacePiece,
+    spaceKey,
     Stack,
     TzaarPreferenceDefinition,
     type HydratedTzaarGameState,
@@ -20,13 +27,7 @@ import {
     type TzaarGameState,
     type TzaarPreferences
 } from '@tabletop/tzaar'
-import {
-    hasManualTzaarSelection,
-    popTzaarSelection,
-    setTzaarSelection,
-    type TzaarSelection
-} from './stagedSelection.js'
-import { coordsKey } from '$lib/board/geometry.js'
+import { setTzaarSelection, TzaarStageOrder, type TzaarSelection } from './stagedSelection.js'
 import { toneOf, type ShapePiece, type Tone } from '$lib/board/pieceStyle.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
@@ -35,24 +36,56 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
 
 export type KnownMove = Capture | Stack
 
+// Lets the session stop the motion an animator is playing.
+export type MoveInterrupter = {
+    // Lands the move at once; the rest of its replay still plays.
+    interrupt(): void
+    // Lands it and drops the rest of its replay: another state is being shown.
+    abandon(): void
+}
+
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<TzaarGameState, HydratedTzaarGameState>
+>[0]
+
 export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarGameState> {
     selection: TzaarSelection = $state({})
+    // Anyone but the selection's owner, as the harness's Non-active view can be after an Undo,
+    // sees none of it, and Undo passes it by.
+    private selectionOwner: string | undefined = $state()
+    private ownSelection: TzaarSelection = $derived(
+        this.selectionOwner !== undefined && this.selectionOwner === this.myPlayer?.id
+            ? this.selection
+            : {}
+    )
 
-    // The type of piece the next placement puts down. It stays chosen from one placement to the
-    // next, like a tool, so it is not a step Undo takes back.
+    // The type the next placement puts down: a tool kept from one placement to the next, so
+    // Undo neither takes it back nor clears it.
     private chosenKind: PieceKind = $state(PieceKind.Tott)
 
-    // The move an Undo under way takes back, and the move history last stepped to: the board
-    // animator follows them where the two boards alone cannot say which stack moved.
-    undoingMove: KnownMove | undefined
-    historyMove: KnownMove | undefined
+    // The move your own Undo takes back, whose stack is chosen again as it lands.
+    private undoingMove: KnownMove | undefined
+    readonly moveInterrupters = new Set<MoveInterrupter>()
+
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                TzaarStageOrder,
+                () => this.ownSelection,
+                (selection) => this.select(selection)
+            )
+        )
+    }
 
     readonly preferences: TitlePreferences<typeof TzaarPreferences> =
         this.createPreferences(TzaarPreferenceDefinition)
 
     rotatedBoard: boolean = $derived(this.preferences.values.rotatedBoard)
 
+    // A move's motion is laid out in the view it started in, so changing the view lands it.
     toggleRotatedBoard() {
+        this.interruptMoves()
         this.preferences.set({ rotatedBoard: !this.rotatedBoard })
     }
 
@@ -60,14 +93,14 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
     turned: boolean = $derived(this.preferences.values.turned)
 
     toggleTurned() {
+        this.interruptMoves()
         this.preferences.set({ turned: !this.turned })
     }
 
-    // Stacks past the full height shrink to it unless a player would rather see every piece
-    // stacked whole, turning the board to see past a tall one.
     shrinkStacks: boolean = $derived(this.preferences.values.shrinkStacks)
 
     toggleShrinkStacks() {
+        this.interruptMoves()
         this.preferences.set({ shrinkStacks: !this.shrinkStacks })
     }
 
@@ -82,10 +115,8 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
     canStack = $derived(this.canAct(ActionType.Stack))
     canPass = $derived(this.canAct(ActionType.Pass))
 
-    private actorId: string | undefined = $derived(this.myPlayer?.id)
-
     kindsInHand: PieceKind[] = $derived(
-        this.canPlace && this.actorId !== undefined ? this.gameState.kindsInHand(this.actorId) : []
+        this.canPlace ? this.gameState.kindsInHand(this.actorId()) : []
     )
 
     // The chosen type while the player still has one; otherwise the next they have.
@@ -99,12 +130,8 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         this.canPlace ? this.gameState.board.vacantSpaces() : []
     )
 
-    private captureMoves = $derived(
-        this.canCapture && this.actorId !== undefined ? this.gameState.captures(this.actorId) : []
-    )
-    private stackMoves = $derived(
-        this.canStack && this.actorId !== undefined ? this.gameState.stackings(this.actorId) : []
-    )
+    private captureMoves = $derived(this.canCapture ? this.gameState.captures(this.actorId()) : [])
+    private stackMoves = $derived(this.canStack ? this.gameState.stackings(this.actorId()) : [])
 
     movable: AxialCoordinates[] = $derived(
         [...this.captureMoves, ...this.stackMoves]
@@ -116,7 +143,7 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
     )
 
     chosenFrom: AxialCoordinates | undefined = $derived(
-        this.movable.find((coords) => coordsKey(coords) === this.selection.from?.value)
+        this.movable.find((coords) => spaceKey(coords) === this.ownSelection.from?.value)
     )
 
     captureTargets: AxialCoordinates[] = $derived(this.targetsFrom(this.captureMoves))
@@ -133,6 +160,23 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
     }
 
+    // Only the player whose turn it is gets choices, so whoever the choices are for is a player.
+    private actorId(): string {
+        const playerId = this.myPlayer?.id
+        assertExists(playerId, 'Only a player has choices')
+        return playerId
+    }
+
+    // Once a move is played, its motion runs on the state it started from, whose choices still
+    // show as they fade; taps on them do nothing until the new state lands.
+    private get moving(): boolean {
+        return this.updatingVisibleState
+    }
+
+    private interruptMoves() {
+        for (const interrupter of this.moveInterrupters) interrupter.interrupt()
+    }
+
     toneOfPlayer(playerId: string): Tone {
         return toneOf(this.gameState.getPlayerState(playerId).color)
     }
@@ -141,39 +185,50 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         return { tone: this.toneOfPlayer(piece.playerId), kind: piece.kind, seedKey: `${piece.id}` }
     }
 
+    // The placing player's tone, and how many pieces of a type they have left to place.
+    placingTone(): Tone {
+        return this.toneOfPlayer(this.actorId())
+    }
+
+    piecesInHand(kind: PieceKind): number {
+        return this.gameState.piecesInHand(this.actorId(), kind)
+    }
+
     chooseKind(kind: PieceKind) {
         this.chosenKind = kind
-    }
-
-    hasManualSelection(): boolean {
-        return hasManualTzaarSelection(this.selection)
-    }
-
-    override async undo() {
-        if (this.hasManualSelection()) {
-            this.selection = popTzaarSelection(this.selection)
-            return
-        }
-        await super.undo()
-    }
-
-    resetAction() {
-        this.selection = {}
     }
 
     override willUndo(action: GameAction): void {
         this.undoingMove = isCapture(action) || isStack(action) ? action : undefined
     }
 
-    override onHistoryAction(action?: GameAction): void {
-        this.historyMove = isCapture(action) || isStack(action) ? action : undefined
+    get presentingState(): HydratedTzaarGameState | undefined {
+        return this.incomingGameState
     }
 
-    // Undoing a move takes the stack home and leaves it chosen; the next Undo puts it down.
+    // The move your own Undo takes back to `to`. None when the view passes to the other player
+    // as the Undo lands, as the harness's Non-active view does.
+    restagedMove(to: Pick<TzaarGameState, 'actionCount'>): KnownMove | undefined {
+        const move = this.undoingMove
+        if (move === undefined || move.index !== to.actionCount) return undefined
+        return this.isViewingAsNonActivePlayer ? undefined : move
+    }
+
+    // Undoing your move takes the stack home and leaves it chosen; the next Undo lets go of it.
     override beforeNewState({ kind }: PresentedTransition): void {
-        const move = kind === 'undo' ? this.undoingMove : undefined
-        this.selection = move ? setTzaarSelection({}, 'from', coordsKey(move.from)) : {}
-        if (kind !== 'undo') this.undoingMove = undefined
+        if (kind === 'view-switch') {
+            for (const interrupter of this.moveInterrupters) interrupter.abandon()
+        }
+        if (kind === 'undo') {
+            const incoming = this.presentingState
+            assertExists(incoming, 'An Undo presents the state it leads to')
+            const move = this.restagedMove(incoming)
+            if (move) {
+                this.selection = setTzaarSelection({}, 'from', spaceKey(move.from))
+                this.selectionOwner = move.playerId
+            }
+        }
+        this.undoingMove = undefined
     }
 
     isClickable(coords: AxialCoordinates): boolean {
@@ -186,6 +241,7 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
     }
 
     async chooseSpace(coords: AxialCoordinates) {
+        if (this.moving) return
         const from = this.chosenFrom
         if (includesCoords(this.placeable, coords) && this.placingKind !== undefined) {
             await this.applyAction(
@@ -197,22 +253,26 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
             await this.applyAction(this.createPlayerAction(Stack, { from, to: coords }))
         } else if (includesCoords(this.movable, coords)) {
             const same = from !== undefined && sameCoordinates(from, coords)
-            this.selection = setTzaarSelection(
-                this.selection,
-                'from',
-                same ? undefined : coordsKey(coords)
+            this.select(
+                setTzaarSelection(this.ownSelection, 'from', same ? undefined : spaceKey(coords))
             )
         }
     }
 
-    // Tapping where there is nothing to choose lets go of a chosen stack. The piece type chosen for
-    // placing stays, as it is not a step.
+    // Tapping where there is nothing to choose lets go of a chosen stack; the type chosen for
+    // placing stays.
     letGo() {
-        if (this.chosenFrom === undefined) return
-        this.selection = setTzaarSelection(this.selection, 'from', undefined)
+        if (this.moving || this.chosenFrom === undefined) return
+        this.select(setTzaarSelection(this.ownSelection, 'from', undefined))
     }
 
     async pass() {
+        if (this.moving) return
         await this.applyAction(this.createPlayerAction(Pass, {}))
+    }
+
+    private select(selection: TzaarSelection) {
+        this.selection = selection
+        this.selectionOwner = this.myPlayer?.id
     }
 }
