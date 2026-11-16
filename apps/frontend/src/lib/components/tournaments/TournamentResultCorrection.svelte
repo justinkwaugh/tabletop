@@ -1,14 +1,20 @@
 <script lang="ts">
     import { Select } from 'flowbite-svelte'
     import { onMount } from 'svelte'
-    import type { TournamentDetail, TournamentSchedule } from '@tabletop/common'
+    import {
+        ranksByAveragePlace,
+        type TournamentDetail,
+        type TournamentSchedule
+    } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import { placementCorrection, standingsPlaces } from '$lib/utils/tournamentFinishingPlaces'
 
     let { detail, onchanged }: { detail: TournamentDetail; onchanged: () => void } = $props()
     const { api } = getAppContext()
     let schedule = $state<TournamentSchedule>()
     let tableId = $state('')
     let winners = $state<string[]>([])
+    let places = $state<Record<string, number>>({})
     let reason = $state('')
     let busy = $state(false)
     let error = $state('')
@@ -19,12 +25,19 @@
         detail.games?.find((game) => game.tableId === tableId)?.userIds ?? table?.entrantIds ?? []
     )
     let finished = $derived(detail.tournament.stages[0]?.dispatch?.finished ?? [])
+    let ranksByPlace = $derived(ranksByAveragePlace(detail.tournament.rules))
+    let placed = $derived(seated.every((id) => places[id] !== undefined))
 
     function selectTable() {
-        winners = [
-            ...(detail.games?.find((game) => game.tableId === tableId)?.winningUserIds ?? [])
-        ]
+        const game = detail.games?.find((game) => game.tableId === tableId)
+        winners = [...(game?.winningUserIds ?? [])]
+        places = game?.finishingPlaces ? standingsPlaces(game.finishingPlaces) : {}
         reason = ''
+    }
+
+    function choosePlace(id: string, value: string) {
+        if (value) places[id] = Number(value)
+        else delete places[id]
     }
     async function save() {
         busy = true
@@ -34,6 +47,7 @@
                 revision: detail.tournament.revision,
                 tableId,
                 winningUserIds: winners,
+                ...(ranksByPlace ? placementCorrection(places) : {}),
                 reason
             })
             reason = ''
@@ -61,7 +75,8 @@
 >
     <h2 class="font-tournament text-lg font-semibold">Correct tournament credit</h2>
     <p class="mt-1 text-xs text-gray-500">
-        Choose the credited winners. The played game and its history stay unchanged.
+        {ranksByPlace ? 'Choose every place' : 'Choose the credited winners'}. The played game and
+        its history stay unchanged.
     </p>
     {#if error}<p role="alert" class="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>{/if}
     <form
@@ -88,7 +103,31 @@
                 {/each}
             </Select>
         </label>
-        {#if table}
+        {#if table && ranksByPlace}
+            <fieldset disabled={busy} class="space-y-2">
+                <legend class="mb-2 text-xs text-gray-500"
+                    >Places — players given the same number share a place</legend
+                >
+                {#each seated as id, entrantIndex (entrantIndex)}
+                    <label class="flex items-center gap-2 text-sm"
+                        ><Select
+                            size="sm"
+                            placeholder=""
+                            class="w-16"
+                            bind:value={
+                                () => String(places[id] ?? ''), (value) => choosePlace(id, value)
+                            }
+                            required
+                        >
+                            <option value="">–</option>
+                            {#each seated as _, place (place)}
+                                <option value={String(place + 1)}>{place + 1}</option>
+                            {/each}
+                        </Select>{detail.usernames[id] ?? 'Unavailable account'}</label
+                    >
+                {/each}
+            </fieldset>
+        {:else if table}
             <fieldset disabled={busy} class="space-y-2">
                 <legend class="mb-2 text-xs text-gray-500"
                     >Credited winners — choose one or more</legend
@@ -101,6 +140,8 @@
                     >
                 {/each}
             </fieldset>
+        {/if}
+        {#if table}
             <label class="block text-xs"
                 >Reason
                 <textarea
@@ -114,7 +155,8 @@
             </label>
             <button
                 class="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                disabled={busy || !reason.trim() || !winners.length}>Save correction</button
+                disabled={busy || !reason.trim() || (ranksByPlace ? !placed : !winners.length)}
+                >Save correction</button
             >
         {/if}
     </form>

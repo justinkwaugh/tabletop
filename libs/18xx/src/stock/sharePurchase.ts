@@ -10,6 +10,7 @@ import {
     copyFinances,
     cashOwnedBy,
     getCompany,
+    removeCertificates,
     sameOwner,
     sharesOwned,
     type Portfolio
@@ -26,6 +27,7 @@ import {
 import {
     certificateLimitAllows,
     stockCertificateCount,
+    presidencyExchangeTerms,
     purchaseOwnershipCeiling,
     type StockRules
 } from './stockRules.js'
@@ -41,11 +43,17 @@ export const SharePurchaseDetails = Type.Object(
         buyer: Owner,
         seller: Owner,
         poolId: Type.Optional(Type.String()),
-        price: Type.Integer({ minimum: 1 }),
+        /** Nothing where a certificate is taken up in exchange, as 1822's LNWR concession. */
+        price: Type.Integer({ minimum: 0 }),
         payments: Type.Array(CashPayment),
         presidency: Type.Optional(PresidencyChange),
         presidencyClaim: Type.Optional(PresidencyClaim),
-        coveredShortId: Type.Optional(Type.String())
+        coveredShortId: Type.Optional(Type.String()),
+        /**
+         * Certificates taken out of play just before the purchase; the bought certificate among
+         * them leaves the buyer nothing (``StockRules.purchaseRemoval``).
+         */
+        removedCertificateIds: Type.Optional(Type.Array(Type.String()))
     },
     { additionalProperties: false }
 )
@@ -63,12 +71,24 @@ export function evaluateSharePurchase(
         return { reason: 'This is not an available share certificate.' }
     if (state.stockRound.turn.bought && !furtherShareAllowed(state, certificate, rules))
         return { reason: 'Only one purchase is allowed this turn.' }
-    return evaluateShareAcquisition(
+    const result = evaluateShareAcquisition(
         state,
         request,
         rules,
         rules.purchaseTerms(state, certificate, request.buyer)
     )
+    const removedId = result.details && rules.purchaseRemoval?.(state, certificate, request.buyer)
+    if (!result.details || !removedId) return result
+    if (removedId !== certificate.id)
+        return { details: { ...result.details, removedCertificateIds: [removedId] } }
+    // The bought certificate leaves play first: the turn's purchase brings nothing.
+    const { presidency: _presidency, presidencyClaim: _claim, ...details } = result.details
+    return { details: { ...details, price: 0, payments: [], removedCertificateIds: [removedId] } }
+}
+
+/** Whether a purchase's certificate left play before the buyer could take it. */
+export function purchaseForfeited(details: SharePurchaseDetails): boolean {
+    return !!details.removedCertificateIds?.includes(details.certificateId)
 }
 
 export function evaluateShareAcquisition(
@@ -146,7 +166,7 @@ export function evaluateShareTransfer(
         company.id,
         rules.presidencyCandidates(state, company.id),
         undefined,
-        rules.presidencyExchangeLargestFirst
+        presidencyExchangeTerms(rules)
     )
     if (presidency.reason) return { reason: presidency.reason }
     if (presidency.claim) applyPresidencyClaim(projected, presidency.claim)
@@ -178,7 +198,9 @@ export function evaluateShareTransfer(
 }
 
 export function applySharePurchase(state: StockState, details: SharePurchaseDetails): void {
-    applyShareTransfer(state, details)
+    if (details.removedCertificateIds?.length)
+        removeCertificates(state, details.removedCertificateIds)
+    if (!purchaseForfeited(details)) applyShareTransfer(state, details)
     if (details.buyer.kind === 'company')
         state.stockRound.companyPurchases.push(details.buyer.companyId)
     markTurnPurchase(state)

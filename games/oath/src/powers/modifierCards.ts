@@ -353,14 +353,16 @@ registerModifier(
 )
 
 // "If you play a beast card, gain 1 Supply and 2 warbands."
+const WILD_CRY_SUIT = Suit.Beast
 registerModifier(
     'denizen.beast.wild-cry',
     powerIndexOf('denizen.beast.wild-cry', PowerTiming.Modifier),
     {
         freeGain: true,
         hooks: {
+            playedSuitGains: WILD_CRY_SUIT,
             after: (ctx) => {
-                if (!playedCardIds(ctx).some((id) => ctx.state.suitInPlay(id) === Suit.Beast))
+                if (!playedCardIds(ctx).some((id) => ctx.state.suitInPlay(id) === WILD_CRY_SUIT))
                     return undefined
                 const supply = gainSupply(ctx.state, ctx.playerId, 1)
                 const gained = gainWarbandsToBoard(ctx.state, ctx.playerId, 2)

@@ -66,6 +66,9 @@ export class WaterfallAuctionHandler<
         }
     }
     onAction(_action: HydratedAction, context: MachineContext<State>): string {
+        // An export after an all-pass income round may start a phase, which resumes the auction.
+        const state: object = context.gameState
+        if ('phaseChange' in state && state.phaseChange) return 'AdvancingPhase'
         return context.gameState.openingAuction?.completed
             ? 'StockRound'
             : context.gameState.openingAuction?.bidding

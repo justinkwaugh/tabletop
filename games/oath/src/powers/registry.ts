@@ -224,6 +224,8 @@ export interface ModifierHooks {
     sitePlayGainsSecret?: boolean
     /** Welcoming Party — the bank its `after` gains 1 favor from once a denizen is played; read to plan it. */
     playFavorFrom?: Suit
+    /** Wild Cry — the suit a card played must have for its `after` to gain; a Vision has none (R-2.7). */
+    playedSuitGains?: Suit
     /** New Growth */
     playAnywhere?: (ctx: EffectContext) => boolean
     /** Land Warden — if at least one play is to a site. */

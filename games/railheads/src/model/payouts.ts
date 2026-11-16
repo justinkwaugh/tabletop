@@ -7,7 +7,10 @@ export const PayoutRates = Type.Object({
     companies: Type.Array(
         Type.Object({ companyId: Type.Enum(CompanyId), perShare: Type.Number() })
     ),
-    industries: Type.Array(Type.Object({ industry: Type.Enum(Industry), perToken: Type.Number() }))
+    industries: Type.Array(Type.Object({ industry: Type.Enum(Industry), perToken: Type.Number() })),
+    perTollStar: Type.Optional(Type.Number()),
+    perCreditSuisse: Type.Optional(Type.Number()),
+    perBond: Type.Optional(Type.Number())
 })
 
 export type PlayerIncome = Type.Static<typeof PlayerIncome>

@@ -4,6 +4,7 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { nextBidderId } from '../model/moraleAuction.js'
+import { sideChoice } from '../model/sides.js'
 import { StepStateHandler } from './stepStateHandler.js'
 
 export class BiddingStateHandler extends StepStateHandler {
@@ -25,9 +26,7 @@ export class ChoosingSideStateHandler extends StepStateHandler {
     protected readonly actions = [{ type: ActionType.ChooseSide }]
 
     protected actor(state: HydratedNapoleonsTriumphGameState): string {
-        const winnerId = state.auction?.winnerId
-        assertExists(winnerId, 'The auction has no winner')
-        return winnerId
+        return sideChoice(state).chooserId
     }
 
     override onAction(): MachineState {

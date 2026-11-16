@@ -46,6 +46,14 @@ export function titleMaturityLabel(metadata: GameMetadata): 'Alpha' | 'Beta' | u
     }
 }
 
+export function playerCountText(metadata: GameMetadata): string {
+    const range =
+        metadata.maxPlayers === metadata.minPlayers
+            ? `${metadata.minPlayers}`
+            : `${metadata.minPlayers}–${metadata.maxPlayers}`
+    return `${range} players`
+}
+
 export function availableLibraryTitles(
     titlesById: Record<string, GameUiDefinition<GameState, HydratedGameState>>,
     user?: User

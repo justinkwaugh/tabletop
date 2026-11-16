@@ -1,5 +1,12 @@
 import { FlatHexDirection, HexOrientation, PointyHexDirection } from '@tabletop/common'
-import type { TileEdge, TileEndpoint, TileFace, TilePath, TileRotation } from './tile.js'
+import type {
+    TileEdge,
+    TileEdgeEndpoint,
+    TileEndpoint,
+    TileFace,
+    TilePath,
+    TileRotation
+} from './tile.js'
 
 export const TileEdges: readonly TileEdge[] = [0, 1, 2, 3, 4, 5]
 const FlatDirections: Record<TileEdge, FlatHexDirection> = {
@@ -57,8 +64,30 @@ export function rotateTileFace(face: TileFace, rotation: TileRotation): TileFace
 
 export function sameTileEndpoint(a: TileEndpoint, b: TileEndpoint): boolean {
     return a.kind === 'edge'
-        ? b.kind === 'edge' && a.edge === b.edge
+        ? b.kind === 'edge' && a.edge === b.edge && tileEdgeLane(a) === tileEdgeLane(b)
         : b.kind === 'node' && a.nodeId === b.nodeId
+}
+
+/** Which parallel track of its hex side an edge endpoint is; the first, 0, unless it names one. */
+export function tileEdgeLane(endpoint: TileEdgeEndpoint): number {
+    return endpoint.lane ?? 0
+}
+
+/** Names an edge endpoint's track among its hex's: the side, and which parallel track of it. */
+export function tileEdgeKey(endpoint: TileEdgeEndpoint): string {
+    return `${endpoint.edge}/${tileEdgeLane(endpoint)}`
+}
+
+/** The endpoint across a hex side that an edge endpoint's track meets: the same lane there. */
+export function oppositeTileEndpoint(endpoint: TileEdgeEndpoint, edge: TileEdge): TileEdgeEndpoint {
+    return { ...endpoint, edge }
+}
+
+/** The stop a terminus path ends routes at, where the path is one. */
+export function terminusNodeId(path: TilePath): string | undefined {
+    if (!path.terminus) return undefined
+    const [node] = path.endpoints.flatMap((end) => (end.kind === 'node' ? [end.nodeId] : []))
+    return node
 }
 
 export function tilePathsAtEndpoint(face: TileFace, endpoint: TileEndpoint): readonly TilePath[] {
@@ -69,6 +98,6 @@ export function tilePathsAtEndpoint(face: TileFace, endpoint: TileEndpoint): rea
 
 function rotateTileEndpoint(endpoint: TileEndpoint, rotation: TileRotation): TileEndpoint {
     return endpoint.kind === 'edge'
-        ? { kind: 'edge', edge: rotateTileEdge(endpoint.edge, rotation) }
+        ? { ...endpoint, edge: rotateTileEdge(endpoint.edge, rotation) }
         : endpoint
 }

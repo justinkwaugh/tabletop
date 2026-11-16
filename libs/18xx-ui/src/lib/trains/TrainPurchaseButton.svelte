@@ -2,7 +2,6 @@
     import type { MoneyFormat } from '../presentation/money.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import { ArtworkLoad } from '../presentation/artworkLoad.svelte.js'
-    import '../presentation/artworkStandIn.css'
     let {
         money,
         name,
@@ -36,6 +35,7 @@
 <button
     class:card={artwork.shown}
     class:artwork-stand-in={artwork.standingIn}
+    {@attach artwork.holdStandIn}
     class:upcoming
     style:background={artwork.shown ? undefined : color}
     style:color={artwork.shown ? undefined : contrastingTextColor(color)}

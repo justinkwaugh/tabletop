@@ -85,6 +85,7 @@ const CharterRules: EighteenXXTitleRules<typeof CharterState, HydratedCharterSta
     ...Shikoku1889TitleRules,
     state: CharterStateDefinition,
     canonicalState: undefined,
+    auctionRules: Shikoku1889AuctionRules,
     createOpening: (setup) => ({
         position: Shikoku1889TitleRules.createOpening(setup).position,
         begin: beginWaterfallAuction(Shikoku1889AuctionRules, setup.startingPositions),

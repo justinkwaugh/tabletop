@@ -23,10 +23,12 @@ import { BuyAuctionLot, HydratedBuyAuctionLot, isBuyAuctionLot } from './buyAuct
 import { PassAuction, HydratedPassAuction, isPassAuction } from './passAuction.js'
 import { ResolveAuction, HydratedResolveAuction, isResolveAuction } from './resolveAuction.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
+import type { TrainRules } from '../trains/trainPurchase.js'
 
 function sharedAuctionActions(
     rules: OpeningAuctionRules,
-    valuationRules: ValuationRules
+    valuationRules: ValuationRules,
+    trainRules: TrainRules
 ): ActionDefinition[] {
     return [
         defineAction(
@@ -37,7 +39,7 @@ function sharedAuctionActions(
         defineAction(
             ResolveAuction,
             isResolveAuction,
-            (action) => new HydratedResolveAuction(action, rules, valuationRules)
+            (action) => new HydratedResolveAuction(action, rules, valuationRules, trainRules)
         )
     ]
 }
@@ -97,13 +99,14 @@ export function auctionActions(
     offer: OfferPileAuctionRules | undefined,
     waterfall: WaterfallAuctionRules | undefined,
     selection: SelectionAuctionRules | undefined,
-    valuationRules: ValuationRules
+    valuationRules: ValuationRules,
+    trainRules: TrainRules
 ): ActionDefinition[] {
     const shared = offer ?? waterfall
     return [
         ...(offer ? offerAuctionActions(offer) : []),
         ...(waterfall ? waterfallAuctionActions(waterfall) : []),
-        ...(shared ? sharedAuctionActions(shared, valuationRules) : []),
+        ...(shared ? sharedAuctionActions(shared, valuationRules, trainRules) : []),
         ...(selection ? selectionAuctionActions(selection, valuationRules) : [])
     ]
 }

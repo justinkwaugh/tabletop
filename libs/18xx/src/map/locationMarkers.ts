@@ -2,7 +2,13 @@ import * as Type from 'typebox'
 
 const Id = Type.String({ minLength: 1 })
 export const LocationMarker = Type.Object(
-    { locationId: Id, kind: Id, privateCompanyId: Id },
+    {
+        locationId: Id,
+        kind: Id,
+        privateCompanyId: Id,
+        /** The revenue center it stands on, where it marks one of its location's. */
+        nodeId: Type.Optional(Id)
+    },
     { additionalProperties: false }
 )
 export type LocationMarker = Type.Static<typeof LocationMarker>

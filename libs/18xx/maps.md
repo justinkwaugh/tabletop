@@ -73,8 +73,7 @@ logic. Physical board images and their alignment remain M2 presentation data.
 Rules text and private powers across the researched titles name map locations in
 three ways: a printed place (Burlington, Ohzu, Pittsburgh), a bare coordinate for an
 unnamed hex (1830's G15 and D18, TOP's N18), and a described group of hexes (1817's
-"a mountain hex beside a city", 1846's Michigan Central hexes, ports, coastal
-cities). Multi-city hexes carry one combined name (New York & Newark), and offboard
+"a mountain hex beside a city", 1846's ports, 1832's coastal cities). Multi-city hexes carry one combined name (New York & Newark), and offboard
 areas are named like places.
 
 `placeReference(locationId)` marks a single location in player text, and
@@ -84,7 +83,8 @@ decides whether a reference becomes plain text or a link to the map, so a
 description is written once for history, tooltips and linked panels. Described
 groups stay prose: linking them would need a selector over map data (terrain,
 adjacency, port symbols), not a list of ids, and no display needs that yet. A
-reference names a hex, not a city within it.
+group that is a fixed list of hexes, such as 1846's Michigan Central hexes, names
+each one. A reference names a hex, not a city within it.
 
 ## Title evidence and verification
 

@@ -201,7 +201,7 @@ describe('the Horned Mask at the Great Slum, in Use a power', () => {
         }
         expect(row([LONGBOWS, TENTS, WOLVES])).toBe(
             'used Horned Mask, placing a secret on it: discarded Wolves first; swapped Longbows with Tents; ' +
-                'Wolves went to the provinces discard pile'
+                'Wolves went to the Provinces discard pile'
         )
         expect(row([LONGBOWS, TENTS])).toBe(
             'used Horned Mask, placing a secret on it: swapped Longbows with Tents'

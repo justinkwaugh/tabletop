@@ -5,7 +5,6 @@
     import PlaceText from '../places/PlaceText.svelte'
     import PhaseText from '../phases/PhaseText.svelte'
     import { ArtworkLoad } from '../presentation/artworkLoad.svelte.js'
-    import '../presentation/artworkStandIn.css'
     let {
         money,
         name,
@@ -38,6 +37,7 @@
     class="private-card"
     class:image={artwork.shown}
     class:artwork-stand-in={artwork.standingIn}
+    {@attach artwork.holdStandIn}
     data-card-image={imageUrl ? true : undefined}
 >
     {#if imageUrl}

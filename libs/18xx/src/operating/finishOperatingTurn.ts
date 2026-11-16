@@ -15,16 +15,35 @@ import {
 import type { DistributionState } from '../earnings/earningsDistribution.js'
 import type { ConstructionState } from '../construction/trackConstruction.js'
 import type { StationPlacementState } from '../stations/stationPlacement.js'
-import type { TrainRules } from '../trains/trainPurchase.js'
-import { trainsOwnedBy } from '../trains/train.js'
+import { ownsRequiredTrain, type TrainRules } from '../trains/trainPurchase.js'
 import { nextOperatingCompany, type OperatingState } from './operatingSet.js'
 import type { LoanState } from '../loans/loans.js'
+
+/**
+ * What a title marks as done in the operating turn, such as 1849's station token bought (§14.1),
+ * cleared as the turn ends; optional, for the titles that mark any.
+ */
+export const TurnMarkFields = {
+    turnMarks: Type.Optional(Type.Array(Type.String({ minLength: 1 }), { uniqueItems: true }))
+}
+export type TurnMarkState = Type.Static<Type.TObject<typeof TurnMarkFields>>
+
+/** Whether the operating turn has the title's mark. */
+export function hasTurnMark(state: TurnMarkState, mark: string): boolean {
+    return !!state.turnMarks?.includes(mark)
+}
+
+/** Marks the operating turn, until it ends. */
+export function markTurn(state: TurnMarkState, mark: string): void {
+    if (!hasTurnMark(state, mark)) state.turnMarks = [...(state.turnMarks ?? []), mark]
+}
 
 export type OperatingTurnState = OperatingState &
     DistributionState &
     ConstructionState &
     StationPlacementState &
-    Pick<LoanState, 'loanStep'>
+    Pick<LoanState, 'loanStep' | 'turnLoans' | 'turnInterest'> &
+    TurnMarkState
 export function finishOperatingTurnReason(
     state: OperatingTurnState,
     rules: TrainRules,
@@ -38,7 +57,7 @@ export function finishOperatingTurnReason(
     )
         return 'This company is not finishing its operating turn.'
     if (
-        !trainsOwnedBy(state, { kind: 'company', companyId }).length &&
+        !ownsRequiredTrain(state, rules, companyId) &&
         rules.requiresTrain(state, companyId) &&
         !inReceivership(state, companyId)
     )
@@ -112,4 +131,7 @@ export function endOperatingTurn(
     delete state.routeStep
     delete state.earningsDistribution
     delete state.loanStep
+    delete state.turnLoans
+    delete state.turnInterest
+    delete state.turnMarks
 }

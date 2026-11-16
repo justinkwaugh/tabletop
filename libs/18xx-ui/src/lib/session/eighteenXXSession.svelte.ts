@@ -23,6 +23,7 @@ import {
     type Owner,
     type PendingPurchaseOffer,
     type Portfolio,
+    type TileFace,
     type TileRotation
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
@@ -43,7 +44,7 @@ import {
     type StationAppearance,
     type TokenTiles
 } from '../maps/stationPresentation.js'
-import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { createTileDrawing, type TileLayout } from '../tiles/tileDrawing.js'
 import { ownerPortfolio } from '../finance/ownerPortfolio.js'
 import {
     draftedCertificates,
@@ -68,6 +69,7 @@ import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareC
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
 import type { PhaseChangePalette } from '../table/historyPhaseChange.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
+import { BidBoxModule } from './bidBoxModule.svelte.js'
 import { CashCrisisModule } from './cashCrisisModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
@@ -287,6 +289,8 @@ export class EighteenXXSession<
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
     readonly selectionAuction = new SelectionAuctionModule(this.moduleSession)
     readonly companyAuction = new CompanyAuctionModule(this.moduleSession)
+    /** Bids in the boxes of a stock round, for titles with bid boxes. */
+    readonly bidBoxes = new BidBoxModule(this.moduleSession)
     get privateAuctionActive(): boolean {
         return this.offers.active || this.waterfall.active || this.selectionAuction.active
     }
@@ -363,10 +367,9 @@ export class EighteenXXSession<
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
-        (selection) => {
-            this.map.inspect(selection)
-        },
-        () => this.map.networkRoutes
+        () => this.map.networkRoutes,
+        (companyId) => this.presentation.manualRoutes?.(this.gameState, companyId) ?? false,
+        () => this.presentation.drawnRunsEarnMost
     )
     readonly stock = new StockModule(
         this.moduleSession,
@@ -703,6 +706,11 @@ export class EighteenXXSession<
             companyName: (companyId) => this.companyName(companyId),
             ownerName: (owner) => this.ownerName(owner),
             trainName: (trainId) => this.trainName(state, trainId),
+            stationPlace: (stationId) => {
+                const station = state.stations.find((entry) => entry.id === stationId)
+                assert(station?.status === 'placed', `Station ${stationId} is placed`)
+                return this.placeName(station.position.locationId)
+            },
             money: this.presentation.money
         }
     }
@@ -823,6 +831,15 @@ export class EighteenXXSession<
         return playerId && this.draftedCompanies.some((company) => company.companyId === companyId)
             ? playerId
             : undefined
+    }
+    /**
+     * The cash a player's bids hold back: their reserved bids in an opening auction, or their
+     * highest bids in the bid boxes.
+     */
+    reservedCash(playerId: string): number {
+        return this.bidBoxes.available
+            ? this.bidBoxes.reserved(playerId)
+            : this.waterfall.reserved(playerId)
     }
     portfolio(owner: Owner, minorsAsPrivates = false) {
         const portfolio = ownerPortfolio(
@@ -1023,11 +1040,13 @@ export class EighteenXXSession<
         localSelections.register(this.waterfall.choice)
         localSelections.register(this.selectionAuction.choice)
         localSelections.register(this.companyAuction)
+        localSelections.register(this.bidBoxes.selection)
         localSelections.register(this.decisions.choice)
         localSelections.register(this.privateActions)
         localSelections.register(this.privates.exchangeChoice)
         localSelections.register(this.discard.choice)
         localSelections.register(this.earnings.choice)
+        localSelections.register(this.earnings.separate)
         localSelections.register(this.routes)
         localSelections.register(this.trainBuying.depotChoice)
         localSelections.register(this.stations.stages)
@@ -1069,6 +1088,31 @@ export type MapLocationChoice = {
     locationIds: readonly string[]
     /** Chooses a hex, with the city or town clicked within it when there was one. */
     choose(locationId: string, nodeId?: string): void
+    /** A further choice about the chosen hex, offered beside it. */
+    followUp?: MapLocationFollowUp
+}
+
+/** How an option looks as the chosen hex's tile, drawn as the map would draw it. */
+export type MapLocationFollowUpTile = {
+    face: TileFace
+    rotation: TileRotation
+    layout?: TileLayout
+}
+
+/** Which of a few things to do at a chosen hex, such as which line takes a station. */
+export type MapLocationFollowUp = {
+    locationId: string
+    /** Names the choice, as a question. */
+    label: string
+    options: readonly { id: string; label: string; tile?: MapLocationFollowUpTile }[]
+    /**
+     * Where every option is a tile: the option shown over the hex, which accepting takes. Options
+     * arc around the hex as tiles do when laying track, and tapping the hex moves to the next.
+     */
+    selected?: string
+    select?(id: string): void
+    choose(id: string): void
+    cancel(): void
 }
 
 export type EighteenXXSessionView = GameSessionView<EighteenXXState, HydratedEighteenXXState> &

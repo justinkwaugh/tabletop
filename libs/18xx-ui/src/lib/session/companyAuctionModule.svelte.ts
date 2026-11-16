@@ -53,9 +53,16 @@ export class CompanyAuctionModule {
     canForm = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('FormCompany')
     )
-    companies = $derived.by(() =>
-        this.canOpen ? this.session.state.companies.filter(canBeAuctioned) : []
-    )
+    // Only the companies the title offers a home now, as 1861 offers only its minors (§9.2).
+    companies = $derived.by(() => {
+        const model = this.model
+        if (!this.canOpen || !model) return []
+        return this.session.state.companies.filter(
+            (company) =>
+                canBeAuctioned(company) &&
+                model.terms.homes(this.session.state, company.id).length > 0
+        )
+    })
     selectedCompanyId = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('companyId') : undefined
     )
@@ -138,6 +145,14 @@ export class CompanyAuctionModule {
     selectCompany(companyId: string) {
         assert(this.canOpen, 'Company auctions are unavailable')
         this.opening.choose('companyId', companyId)
+        // A company with one possible home, as 1861's minors, takes it without a choice.
+        const homes = this.model?.terms.homes(this.session.state, companyId) ?? []
+        if (homes.length === 1)
+            this.opening.choose(
+                'home',
+                { locationId: homes[0].locationId, nodeId: homes[0].nodeId },
+                'auto'
+            )
     }
     toggleCompany(companyId: string) {
         if (this.selectedCompanyId === companyId) this.clearOpening()

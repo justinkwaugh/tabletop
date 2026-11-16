@@ -78,6 +78,12 @@ describe.each(TABLES)('a $count player game of $edition', ({ edition, count }) =
         ]) {
             expect(history.some((action) => action.type === type)).toBe(true)
         }
+        if (editionOf(edition).definition.investmentPartner) {
+            expect(history.some((action) => action.type === ActionType.ClaimInvestment)).toBe(true)
+        }
+        if (editionOf(edition).definition.loans) {
+            expect(history.some((action) => isLayTrack(action) && action.loan)).toBe(true)
+        }
         const scores = RailheadsRuntime.scoring.finalScores(final)
         const best = Math.max(...Object.values(scores))
         expect(final.winningPlayerIds.every((playerId) => scores[playerId] === best)).toBe(true)

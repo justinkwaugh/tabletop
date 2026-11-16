@@ -25,22 +25,29 @@
     import { prefersReducedMotion } from 'svelte/motion'
     let {
         session,
-        createRouteWorker,
         onFocusRoute,
         privateOperationDescription,
-        titleMode
+        titleMode,
+        purchasedTrain
     }: {
-        createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         privateOperationDescription: (id: string, companyId: string) => string | undefined
         session: EighteenXXSessionView
         /** The panel of one of the session's `titleOperatingModes`, by its id. */
         titleMode?: Snippet<[string]>
+        /** What a title adds beside a train bought this turn, such as its warranties, by train id. */
+        purchasedTrain?: Snippet<[string]>
     } = $props()
     const { trainColors, privateTilePrompts } = $derived(session.presentation)
     const gameState = $derived(session.gameState)
     const trainBuying = $derived(gameState.machineState === 'BuyingTrains')
     const trainOffer = $derived(trainBuying && gameState.purchaseOffer?.asset.kind === 'train')
+    // A station token is bought in the train step's own panel (1849 §14.1).
+    const stationSelected = $derived(
+        session.decisions.selection?.kind === 'purchase' &&
+            session.decisions.selection.request.asset.kind === 'station'
+    )
+    const decisionSelected = $derived(!!session.decisions.selection && !stationSelected)
     const titleModePanel = $derived.by(() => {
         const id = session.operatingMode.titleModeShown
         if (!id) return undefined
@@ -50,7 +57,7 @@
 </script>
 
 {#snippet actionControls()}
-    {#if (gameState.purchaseOffer && !trainOffer) || gameState.trackConsent || gameState.privateTrackLay || gameState.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || option.request.asset.kind !== 'train') || session.decisions.privateTrainOptions.length || session.decisions.selection || session.privateActions.selection === 'powers'}
+    {#if (gameState.purchaseOffer && !trainOffer) || gameState.trackConsent || gameState.privateTrackLay || gameState.privatePowerWindow || session.decisions.purchaseOptions.some((option) => !trainBuying || (option.request.asset.kind !== 'train' && option.request.asset.kind !== 'station')) || session.decisions.privateTrainOptions.length || decisionSelected || session.privateActions.selection === 'powers'}
         <CompanyDecisions
             {session}
             {trainColors}
@@ -59,7 +66,7 @@
             excludeTrainPurchases={trainBuying}
         />
     {/if}
-    {#if !session.privateActions.selection && !session.decisions.selection && !session.privateActions.trackPowerSelection && (!gameState.purchaseOffer || trainOffer)}
+    {#if !session.privateActions.selection && !decisionSelected && !session.privateActions.trackPowerSelection && (!gameState.purchaseOffer || trainOffer)}
         {#if session.stationReturn.pending || (gameState.machineState === 'OperatingSet' && session.stationReturn.waiting.length)}<StationReturnChoice
                 {session}
             />
@@ -82,7 +89,6 @@
             /><ProjectedRun {session} {onFocusRoute} />
         {:else if gameState.machineState === 'RunningTrains'}<AutomaticRoutes
                 {session}
-                {createRouteWorker}
                 {onFocusRoute}
                 {trainColors}
             />
@@ -95,7 +101,7 @@
                 {session}
                 showUndo={false}
             />
-        {:else}<TrainBuying {session} {trainColors} showUndo={false} />{/if}
+        {:else}<TrainBuying {session} {trainColors} showUndo={false} {purchasedTrain} />{/if}
     {/if}
 {/snippet}
 

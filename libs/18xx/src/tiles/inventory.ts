@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { Clone } from 'typebox/value'
 import { assert, assertExists, deepFreeze } from '@tabletop/common'
 import { TileRotation, type ImmutableTileData, type TileDefinition } from './tile.js'
+import { TrackStop } from './trackStops.js'
 import type { TileCatalog } from './catalog.js'
 
 const Identifier = Type.String({ minLength: 1 })
@@ -30,7 +31,9 @@ export const TilePlacement = Type.Object(
     {
         pieceId: Identifier,
         definitionId: Identifier,
-        rotation: TileRotation
+        rotation: TileRotation,
+        /** Towns standing on the tile's plain track, such as 1862's small stations. */
+        trackStops: Type.Optional(Type.Array(TrackStop, { minItems: 1 }))
     },
     { additionalProperties: false }
 )
@@ -40,6 +43,8 @@ export const TileInventory = Type.Object(
     {
         // Stored games from before this stopped being recorded may hold it; never read.
         tileSetId: Type.Optional(Type.Unsafe<never>(Identifier)),
+        /** The set's variant chosen at setup, such as a scenario's board and smaller supply. */
+        variantId: Type.Optional(Identifier),
         placements: Type.Record(Identifier, TilePlacement),
         retiredPieceIds: Type.Array(Identifier, { uniqueItems: true })
     },
@@ -59,6 +64,18 @@ export type TileReplacement = {
     returnPrevious: boolean
 }
 
+/** A tile a set variant prints on the board from the start, standing until play replaces it. */
+export type BoardTile = { locationId: string; definitionId: string; rotation: TileRotation }
+/**
+ * A variant of a tile set chosen at setup, as 1822's scenarios: tiles printed on the board from
+ * the start, and the pieces of the supply it plays without, the last so many of each definition.
+ * The inventory records only the variant's id, so neither is stored in a game.
+ */
+export type TileSetVariant = {
+    board?: readonly BoardTile[]
+    removed?: Readonly<Record<string, number>>
+}
+
 const ManifestValidator = Compile(TileManifest)
 const InventoryValidator = Compile(TileInventory)
 const PlacementValidator = Compile(TilePlacement)
@@ -68,8 +85,14 @@ export class TileSet {
     readonly definitions: readonly TileDefinition[]
     readonly pieces: readonly TilePiece[]
     private readonly piecesById: Map<string, TilePiece>
+    private readonly variants: Readonly<Record<string, TileSetVariant>>
+    private readonly variantRemovedPieceIds: ReadonlyMap<string, ReadonlySet<string>>
 
-    constructor(manifest: TileManifest, catalogs: readonly TileCatalog[]) {
+    constructor(
+        manifest: TileManifest,
+        catalogs: readonly TileCatalog[],
+        variants: Readonly<Record<string, TileSetVariant>> = {}
+    ) {
         assert(ManifestValidator.Check(manifest), 'Invalid tile manifest')
         assert(
             new Set(manifest.entries.map((entry) => entry.id)).size === manifest.entries.length,
@@ -87,7 +110,12 @@ export class TileSet {
         }
         this.manifest = Clone(manifest)
         deepFreeze(this.manifest)
-        const selected = new Set(manifest.entries.flatMap((entry) => [...entry.faceDefinitionIds]))
+        const selected = new Set([
+            ...manifest.entries.flatMap((entry) => [...entry.faceDefinitionIds]),
+            ...Object.values(variants).flatMap((variant) =>
+                (variant.board ?? []).map((tile) => tile.definitionId)
+            )
+        ])
         this.definitions = Object.freeze(
             [...selected].map((id) => {
                 const definition = definitions.get(id)
@@ -104,12 +132,38 @@ export class TileSet {
         deepFreeze(this.pieces)
         this.piecesById = new Map(this.pieces.map((piece) => [piece.id, piece]))
         assert(this.piecesById.size === this.pieces.length, 'Duplicate physical tile identity')
+        this.variants = variants
+        this.variantRemovedPieceIds = new Map(
+            Object.entries(variants).map(([variantId, variant]) => [
+                variantId,
+                new Set(
+                    Object.entries(variant.removed ?? {}).flatMap(([definitionId, count]) => {
+                        const pieces = this.pieces.filter((piece) =>
+                            piece.faceDefinitionIds.includes(definitionId)
+                        )
+                        assert(
+                            pieces.length >= count,
+                            `The set has ${count} of tile ${definitionId} to remove`
+                        )
+                        return pieces.slice(pieces.length - count).map((piece) => piece.id)
+                    })
+                )
+            ])
+        )
+    }
+
+    /** The tiles the inventory's variant prints on the board, by location. */
+    boardTiles(inventory: TileInventory): readonly BoardTile[] {
+        return inventory.variantId ? (this.variants[inventory.variantId]?.board ?? []) : []
     }
 
     createInventory(
-        placements: readonly (Omit<TilePlacement, 'pieceId'> & { locationId: string })[] = []
+        placements: readonly (Omit<TilePlacement, 'pieceId'> & { locationId: string })[] = [],
+        variantId?: string
     ): TileInventory {
+        assert(!variantId || this.variants[variantId] !== undefined, 'Unknown tile set variant')
         let inventory: TileInventory = {
+            ...(variantId ? { variantId } : {}),
             placements: {},
             retiredPieceIds: []
         }
@@ -202,6 +256,7 @@ export class TileSet {
         }
         placements.set(replacement.locationId, { ...next })
         return {
+            ...(inventory.variantId ? { variantId: inventory.variantId } : {}),
             placements: Object.fromEntries(
                 [...placements].map(([id, placement]) => [id, { ...placement }])
             ),
@@ -211,7 +266,11 @@ export class TileSet {
 
     private assertInventory(inventory: TileInventory): void {
         assert(InventoryValidator.Check(inventory), 'Invalid tile inventory schema')
-        const used = new Set<string>()
+        assert(
+            !inventory.variantId || this.variants[inventory.variantId] !== undefined,
+            'Unknown tile set variant'
+        )
+        const used = new Set<string>(this.variantRemoved(inventory))
         for (const placement of Object.values(inventory.placements)) {
             this.assertPieceFace(placement)
             assert(!used.has(placement.pieceId), 'Physical tile occupies multiple locations')
@@ -248,8 +307,16 @@ export class TileSet {
         )
     }
 
+    private variantRemoved(inventory: TileInventory): ReadonlySet<string> {
+        return (
+            (inventory.variantId && this.variantRemovedPieceIds.get(inventory.variantId)) ||
+            new Set()
+        )
+    }
+
     private unavailablePieces(inventory: TileInventory): Set<string> {
         return new Set([
+            ...this.variantRemoved(inventory),
             ...inventory.retiredPieceIds,
             ...Object.values(inventory.placements).map((placement) => placement.pieceId)
         ])

@@ -62,12 +62,7 @@
         {:else if session.acquisitionCompanyId}
             <AcquisitionRound {session} companyId={session.acquisitionCompanyId} />
         {:else}
-            <OperatingActions
-                {privateOperationDescription}
-                onFocusRoute={focusRoute}
-                {session}
-                {createRouteWorker}
-            />
+            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} />
         {/if}
     {/snippet}
 </GameTable>

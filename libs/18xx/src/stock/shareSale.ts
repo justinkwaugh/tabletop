@@ -18,7 +18,7 @@ import {
 } from './presidency.js'
 import { placeStockMarker, stockMarkerStackIndex } from './stockMarket.js'
 import { copyStockState, type StockState } from './stockState.js'
-import { type StockRules, exceedsStockLimits } from './stockRules.js'
+import { type StockRules, exceedsStockLimits, presidencyExchangeTerms } from './stockRules.js'
 import type { SaleBlockTerms } from './stockTurn.js'
 
 export const ShareSale = Type.Object(
@@ -27,6 +27,11 @@ export const ShareSale = Type.Object(
 )
 export type ShareSale = Type.Static<typeof ShareSale>
 export type SaleRequest = { playerId: string; seller: Owner; sales: ShareSale[] }
+export const PresidencyLapse = Type.Object(
+    { previous: Owner, takenCertificateIds: Type.Array(Type.String()) },
+    { additionalProperties: false }
+)
+export type PresidencyLapse = Type.Static<typeof PresidencyLapse>
 export const ShareSaleSettlement = Type.Object(
     {
         ...ShareSale.properties,
@@ -38,11 +43,63 @@ export const ShareSaleSettlement = Type.Object(
         /** The company's place in its space's stack before the sale, from the top. */
         fromStackIndex: Type.Optional(Type.Integer({ minimum: 0 })),
         toMarketSpaceId: Type.String(),
-        presidency: Type.Optional(PresidencyChange)
+        presidency: Type.Optional(PresidencyChange),
+        /** The president's certificate went to the pool with no successor (1862 §6.3). */
+        lapse: Type.Optional(PresidencyLapse)
     },
     { additionalProperties: false }
 )
 export type ShareSaleSettlement = Type.Static<typeof ShareSaleSettlement>
+
+/**
+ * A president selling below the president's certificate with no one to succeed them, where the
+ * title lets the presidency lapse: the certificate goes to the pool, and the seller keeps the
+ * rest of their holding in ordinary certificates, taking from the pool what they lack.
+ */
+export function presidencyLapse(
+    state: StockState,
+    companyId: string,
+    seller: Owner,
+    kept: number,
+    poolId: string
+): { soldCertificateIds: string[]; lapse: PresidencyLapse } | undefined {
+    const company = getCompany(state, companyId)
+    if (!company.president || !sameOwner(company.president, seller)) return undefined
+    const owned = certificatesOwnedBy(state, seller).filter(
+        (certificate) => certificate.kind === 'share' && certificate.companyId === companyId
+    )
+    const president = owned.find(
+        (certificate) => certificate.kind === 'share' && certificate.president
+    )
+    if (!president || president.kind !== 'share' || kept >= president.shares) return undefined
+    const ordinary = owned.filter((certificate) => certificate !== president)
+    const keptIds = certificatesForShares(ordinary, companyId, Math.min(kept, sharesOf(ordinary)))
+    if (!keptIds) return undefined
+    const pooled = state.certificates.filter(
+        (certificate) =>
+            certificate.kind === 'share' &&
+            !certificate.president &&
+            certificate.companyId === companyId &&
+            certificate.poolId === poolId
+    )
+    const taken = certificatesForShares(
+        pooled,
+        companyId,
+        kept - sharesOf(ordinary.filter((c) => keptIds.includes(c.id)))
+    )
+    if (!taken) return undefined
+    return {
+        soldCertificateIds: [
+            president.id,
+            ...ordinary.filter((certificate) => !keptIds.includes(certificate.id)).map((c) => c.id)
+        ],
+        lapse: { previous: company.president, takenCertificateIds: taken }
+    }
+}
+
+function sharesOf(certificates: readonly { kind: string; shares?: number }[]): number {
+    return certificates.reduce((sum, certificate) => sum + (certificate.shares ?? 0), 0)
+}
 export const ShareSaleDetails = Type.Object(
     {
         seller: Owner,
@@ -100,10 +157,12 @@ export function evaluateShareSale(
     if (!rules.sellers(state, playerId).some((owner) => sameOwner(owner, seller)))
         return { reason: 'This player cannot sell for that owner.' }
     const turn = state.stockRound.turn
+    const turnOrder =
+        typeof rules.turnOrder === 'function' ? rules.turnOrder(state) : rules.turnOrder
     if (
         turn.bought &&
-        (rules.turnOrder === 'sell-buy' ||
-            (rules.turnOrder === 'sell-buy-or-buy-sell' && turn.soldBeforeBuying))
+        (turnOrder === 'sell-buy' ||
+            (turnOrder === 'sell-buy-or-buy-sell' && turn.soldBeforeBuying))
     )
         return { reason: 'Selling is not allowed after this purchase.' }
     const previous = turn.saleBlocks?.find(
@@ -179,8 +238,9 @@ export function evaluateShareDisposal(
         | 'charters'
         | 'saleTerms'
         | 'presidencyCandidates'
-        | 'presidencyExchangeLargestFirst'
+        | 'presidencyExchange'
         | 'holdsMarketMove'
+        | 'presidencyLapses'
     >
 ): ShareSaleResult {
     if (!sales.length || new Set(sales.map((sale) => sale.companyId)).size !== sales.length)
@@ -221,15 +281,17 @@ export function evaluateShareDisposal(
             company.id,
             rules.presidencyCandidates(projected, company.id),
             { owner: seller, shares: owned - sale.shares },
-            rules.presidencyExchangeLargestFirst
+            presidencyExchangeTerms(rules)
         )
-        if (presidency.reason) return { reason: presidency.reason }
+        const lapsed =
+            presidency.reason && rules.presidencyLapses
+                ? presidencyLapse(projected, company.id, seller, owned - sale.shares, pool.id)
+                : undefined
+        if (presidency.reason && !lapsed) return { reason: presidency.reason }
         if (presidency.change) applyPresidencyChange(projected, presidency.change)
-        const certificateIds = certificatesForShares(
-            certificatesOwnedBy(projected, seller),
-            company.id,
-            sale.shares
-        )
+        const certificateIds =
+            lapsed?.soldCertificateIds ??
+            certificatesForShares(certificatesOwnedBy(projected, seller), company.id, sale.shares)
         if (!certificateIds)
             return {
                 reason: 'The president’s certificate cannot be sold without an eligible successor.'
@@ -247,7 +309,8 @@ export function evaluateShareDisposal(
             fromMarketSpaceId: from.id,
             fromStackIndex,
             toMarketSpaceId: to.id,
-            ...(presidency.change ? { presidency: presidency.change } : {})
+            ...(presidency.change ? { presidency: presidency.change } : {}),
+            ...(lapsed ? { lapse: lapsed.lapse } : {})
         }
         transferSaleCertificates(projected, settlement)
         if (rules.holdsMarketMove?.(projected, settlement, seller))
@@ -277,6 +340,14 @@ export function transferSaleCertificates(state: StockState, sale: ShareSaleSettl
         certificate.owner = pool.owner
         certificate.poolId = pool.id
     }
+    if (!sale.lapse) return
+    for (const id of sale.lapse.takenCertificateIds) {
+        const certificate = state.certificates.find((certificate) => certificate.id === id)
+        assert(certificate, 'Missing exchanged certificate')
+        certificate.owner = sale.lapse.previous
+        delete certificate.poolId
+    }
+    delete getCompany(state, sale.companyId).president
 }
 
 export function applyShareSale(state: StockState, details: ShareSaleDetails): void {

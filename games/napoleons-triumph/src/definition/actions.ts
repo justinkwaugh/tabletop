@@ -18,5 +18,6 @@ export enum ActionType {
     Retreat = 'Retreat',
     Occupy = 'Occupy',
     EndTurn = 'EndTurn',
-    AcknowledgeReveal = 'AcknowledgeReveal'
+    AcknowledgeReveal = 'AcknowledgeReveal',
+    StayInReserve = 'StayInReserve'
 }

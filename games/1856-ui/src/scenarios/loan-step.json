@@ -1,0 +1,3199 @@
+{
+    "game": {
+        "id": "scenario-1856-loan-step",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "1856",
+        "deleted": false,
+        "name": "loan step",
+        "ownerId": "p1",
+        "players": [
+            { "id": "p1", "userId": "p1", "name": "Player 1", "isHuman": true, "status": "joined" },
+            { "id": "p2", "userId": "p2", "name": "Player 2", "isHuman": true, "status": "joined" },
+            { "id": "p3", "userId": "p3", "name": "Player 3", "isHuman": true, "status": "joined" },
+            { "id": "p4", "userId": "p4", "name": "Player 4", "isHuman": true, "status": "joined" }
+        ],
+        "config": {},
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3758006212,
+        "activePlayerIds": [],
+        "createdAt": "2026-11-15T23:29:05.020Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-15T23:29:05.020Z",
+        "progress": { "fraction": 0, "label": "Phase 2 · Bank $10,500" }
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "XrI-7DfYa3QQjE5dw6k_2",
+        "gameId": "scenario-1856-loan-step",
+        "seed": 3758006212,
+        "prng": { "seed": 3758006212, "invocations": 1051 },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "cf17c8e67e84c50e2c8b94e2c4a8f79e8287f32f4afb8767af180b666499b0a1",
+            "invocations": 0
+        },
+        "masterSeed": "00000000000000000000000000000001",
+        "activePlayerIds": ["p3"],
+        "winningPlayerIds": [],
+        "actionCount": 63,
+        "actionChecksum": -613849607,
+        "players": [
+            { "playerId": "p1", "color": "blue" },
+            { "playerId": "p2", "color": "red" },
+            { "playerId": "p3", "color": "green" },
+            { "playerId": "p4", "color": "yellow" }
+        ],
+        "phaseEvents": [],
+        "usedPrivatePowerIds": [],
+        "accessRights": [],
+        "machineState": "RepayingLoans",
+        "stockRound": {
+            "number": 1,
+            "completed": true,
+            "passedPlayerIds": ["p4", "p1", "p2", "p3"],
+            "turn": {
+                "acted": false,
+                "bought": false,
+                "soldBeforeBuying": false,
+                "companiesSold": []
+            },
+            "sales": [],
+            "companyPurchases": []
+        },
+        "turnManager": {
+            "series": [
+                { "type": "turn", "playerId": "p1", "start": 34, "end": 35 },
+                { "type": "turn", "playerId": "p2", "start": 35, "end": 36 },
+                { "type": "turn", "playerId": "p3", "start": 36, "end": 37 },
+                { "type": "turn", "playerId": "p4", "start": 43, "end": 51 },
+                { "type": "turn", "playerId": "p3", "start": 54 }
+            ],
+            "turnOrder": ["p4", "p1", "p2", "p3"],
+            "turnCounts": { "p1": 6, "p2": 7, "p3": 7, "p4": 7 },
+            "seriesKeeps": "latest"
+        },
+        "stockMarket": {
+            "stacks": [
+                { "spaceId": "3:4", "companyIds": ["BBG"] },
+                { "spaceId": "5:4", "companyIds": ["CPR"] },
+                { "spaceId": "2:3", "companyIds": ["CA", "CV"] }
+            ]
+        },
+        "bank": { "breaksOnShortfall": true },
+        "companies": [
+            {
+                "id": "BBG",
+                "kind": "major",
+                "started": true,
+                "floated": false,
+                "funded": false,
+                "operated": false,
+                "parPrice": 75,
+                "president": { "kind": "player", "playerId": "p2" }
+            },
+            {
+                "id": "CA",
+                "kind": "major",
+                "started": true,
+                "floated": true,
+                "funded": false,
+                "operated": true,
+                "parPrice": 80,
+                "president": { "kind": "player", "playerId": "p4" },
+                "lastRunRevenue": 0
+            },
+            {
+                "id": "CPR",
+                "kind": "major",
+                "started": true,
+                "floated": false,
+                "funded": false,
+                "operated": false,
+                "parPrice": 65,
+                "president": { "kind": "player", "playerId": "p1" }
+            },
+            {
+                "id": "CV",
+                "kind": "major",
+                "started": true,
+                "floated": true,
+                "funded": false,
+                "operated": true,
+                "parPrice": 80,
+                "president": { "kind": "player", "playerId": "p3" },
+                "loans": 1,
+                "lastRunRevenue": 0
+            },
+            {
+                "id": "GT",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "GW",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "LPS",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "TGB",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "THB",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "WR",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "WGB",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "CGR",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            { "id": "FT", "kind": "private" },
+            { "id": "WSRC", "kind": "private" },
+            { "id": "TCC", "kind": "private" },
+            { "id": "GLSC", "kind": "private" },
+            { "id": "NFSBC", "kind": "private" },
+            { "id": "SCFTC", "kind": "private" }
+        ],
+        "cash": [
+            { "owner": { "kind": "bank" }, "amount": 10910 },
+            { "owner": { "kind": "player", "playerId": "p1" }, "amount": 45 },
+            { "owner": { "kind": "player", "playerId": "p2" }, "amount": 35 },
+            { "owner": { "kind": "player", "playerId": "p3" }, "amount": 35 },
+            { "owner": { "kind": "player", "playerId": "p4" }, "amount": 55 },
+            { "owner": { "kind": "company", "companyId": "BBG" }, "amount": 225 },
+            { "owner": { "kind": "company", "companyId": "CA" }, "amount": 140 },
+            { "owner": { "kind": "company", "companyId": "CPR" }, "amount": 325 },
+            { "owner": { "kind": "company", "companyId": "CV" }, "amount": 230 },
+            { "owner": { "kind": "company", "companyId": "GT" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "GW" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "LPS" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "TGB" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "THB" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "WR" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "WGB" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "CGR" }, "amount": 0 }
+        ],
+        "certificatePools": [
+            { "id": "initial-offering", "owner": { "kind": "bank" } },
+            { "id": "open-market", "owner": { "kind": "bank" } }
+        ],
+        "certificates": [
+            {
+                "id": "BBG:president",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "player", "playerId": "p2" }
+            },
+            {
+                "id": "BBG:share:1",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:2",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "player", "playerId": "p3" }
+            },
+            {
+                "id": "BBG:share:3",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:4",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:5",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:6",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:7",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:8",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:president",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "player", "playerId": "p4" }
+            },
+            {
+                "id": "CA:share:1",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:2",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:3",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:4",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:5",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:6",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:7",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "player", "playerId": "p2" }
+            },
+            {
+                "id": "CA:share:8",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:president",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "player", "playerId": "p1" }
+            },
+            {
+                "id": "CPR:share:1",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:2",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:3",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:4",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "player", "playerId": "p3" }
+            },
+            {
+                "id": "CPR:share:5",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "player", "playerId": "p2" }
+            },
+            {
+                "id": "CPR:share:6",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:7",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:8",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "player", "playerId": "p1" }
+            },
+            {
+                "id": "CV:president",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "player", "playerId": "p3" }
+            },
+            {
+                "id": "CV:share:1",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:2",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:3",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:4",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:5",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:6",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "player", "playerId": "p4" }
+            },
+            {
+                "id": "CV:share:7",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:8",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:president",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:1",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:2",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:3",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:4",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:5",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:6",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:7",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:8",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:president",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:1",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:2",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:3",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:4",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:5",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:6",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:7",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:8",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:president",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:1",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:2",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:3",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:4",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:5",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:6",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:7",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:8",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:president",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:1",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:2",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:3",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:4",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:5",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:6",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:7",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:8",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:president",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:1",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:2",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:3",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:4",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:5",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:6",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:7",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:8",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:president",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:1",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:2",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:3",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:4",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:5",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:6",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:7",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:8",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:president",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:1",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:2",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:3",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:4",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:5",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:6",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:7",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:8",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "FT:charter",
+                "companyId": "FT",
+                "kind": "private",
+                "owner": { "kind": "player", "playerId": "p2" }
+            },
+            {
+                "id": "WSRC:charter",
+                "companyId": "WSRC",
+                "kind": "private",
+                "owner": { "kind": "player", "playerId": "p2" }
+            },
+            {
+                "id": "TCC:charter",
+                "companyId": "TCC",
+                "kind": "private",
+                "owner": { "kind": "player", "playerId": "p3" }
+            },
+            {
+                "id": "GLSC:charter",
+                "companyId": "GLSC",
+                "kind": "private",
+                "owner": { "kind": "player", "playerId": "p1" }
+            },
+            {
+                "id": "NFSBC:charter",
+                "companyId": "NFSBC",
+                "kind": "private",
+                "owner": { "kind": "player", "playerId": "p4" }
+            },
+            {
+                "id": "SCFTC:charter",
+                "companyId": "SCFTC",
+                "kind": "private",
+                "owner": { "kind": "player", "playerId": "p1" }
+            }
+        ],
+        "stations": [
+            { "id": "BBG:home", "companyId": "BBG", "status": "available" },
+            { "id": "BBG:station:1", "companyId": "BBG", "status": "available" },
+            { "id": "BBG:station:2", "companyId": "BBG", "status": "available" },
+            {
+                "id": "CA:home",
+                "companyId": "CA",
+                "status": "placed",
+                "position": { "locationId": "D17", "nodeId": "city", "slot": 0 }
+            },
+            { "id": "CA:station:1", "companyId": "CA", "status": "available" },
+            { "id": "CA:station:2", "companyId": "CA", "status": "available" },
+            { "id": "CPR:home", "companyId": "CPR", "status": "available" },
+            { "id": "CPR:station:1", "companyId": "CPR", "status": "available" },
+            { "id": "CPR:station:2", "companyId": "CPR", "status": "available" },
+            { "id": "CPR:station:3", "companyId": "CPR", "status": "available" },
+            {
+                "id": "CV:home",
+                "companyId": "CV",
+                "status": "placed",
+                "position": { "locationId": "N11", "nodeId": "city-0", "slot": 0 }
+            },
+            { "id": "CV:station:1", "companyId": "CV", "status": "available" },
+            { "id": "CV:station:2", "companyId": "CV", "status": "available" },
+            { "id": "GT:home", "companyId": "GT", "status": "available" },
+            { "id": "GT:station:1", "companyId": "GT", "status": "available" },
+            { "id": "GT:station:2", "companyId": "GT", "status": "available" },
+            { "id": "GT:station:3", "companyId": "GT", "status": "available" },
+            { "id": "GW:home", "companyId": "GW", "status": "available" },
+            { "id": "GW:station:1", "companyId": "GW", "status": "available" },
+            { "id": "GW:station:2", "companyId": "GW", "status": "available" },
+            { "id": "GW:station:3", "companyId": "GW", "status": "available" },
+            { "id": "LPS:home", "companyId": "LPS", "status": "available" },
+            { "id": "LPS:station:1", "companyId": "LPS", "status": "available" },
+            { "id": "TGB:home", "companyId": "TGB", "status": "available" },
+            { "id": "TGB:station:1", "companyId": "TGB", "status": "available" },
+            { "id": "THB:home", "companyId": "THB", "status": "available" },
+            { "id": "THB:station:1", "companyId": "THB", "status": "available" },
+            { "id": "WR:home", "companyId": "WR", "status": "available" },
+            { "id": "WR:station:1", "companyId": "WR", "status": "available" },
+            { "id": "WR:station:2", "companyId": "WR", "status": "available" },
+            { "id": "WGB:home", "companyId": "WGB", "status": "available" },
+            { "id": "WGB:station:1", "companyId": "WGB", "status": "available" },
+            { "id": "CGR:home", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:1", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:2", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:3", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:4", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:5", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:6", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:7", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:8", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:9", "companyId": "CGR", "status": "available" }
+        ],
+        "stationReservations": [
+            { "companyId": "CPR", "nodeId": "city", "locationId": "M4" },
+            { "companyId": "GW", "nodeId": "city", "locationId": "F15" },
+            { "companyId": "WGB", "nodeId": "city", "locationId": "J11" },
+            { "companyId": "BBG", "nodeId": "city", "locationId": "J15" },
+            { "companyId": "TGB", "nodeId": "city", "locationId": "K8" },
+            { "companyId": "WR", "nodeId": "city", "locationId": "O16" },
+            { "companyId": "LPS", "nodeId": "city", "locationId": "C14" },
+            { "companyId": "GT", "nodeId": "city", "locationId": "P9" }
+        ],
+        "hexReservations": [{ "companyId": "THB", "locationId": "L15" }],
+        "tileInventory": {
+            "placements": {
+                "D17": { "pieceId": "1856:standard/5/1", "definitionId": "18xx:5", "rotation": 0 },
+                "M12": { "pieceId": "1856:standard/9/1", "definitionId": "18xx:9", "rotation": 1 }
+            },
+            "retiredPieceIds": []
+        },
+        "trainInventory": {
+            "depotId": "1856:diesels",
+            "trains": [
+                {
+                    "id": "1856:diesels/2/1",
+                    "definitionId": "2",
+                    "status": "owned",
+                    "owner": { "kind": "company", "companyId": "CA" }
+                },
+                {
+                    "id": "1856:diesels/2/2",
+                    "definitionId": "2",
+                    "status": "owned",
+                    "owner": { "kind": "company", "companyId": "CV" }
+                },
+                { "id": "1856:diesels/2/3", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/4", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/5", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/6", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/3/7", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/8", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/9", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/10", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/11", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/4/12", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/4/13", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/4/14", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/4/15", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/5/16", "definitionId": "5", "status": "depot" },
+                { "id": "1856:diesels/5/17", "definitionId": "5", "status": "depot" },
+                { "id": "1856:diesels/5/18", "definitionId": "5", "status": "depot" },
+                { "id": "1856:diesels/6/19", "definitionId": "6", "status": "depot" },
+                { "id": "1856:diesels/6/20", "definitionId": "6", "status": "depot" }
+            ],
+            "nextTrainNumber": 21
+        },
+        "phaseId": "2",
+        "variants": {},
+        "funding": [
+            { "companyId": "BBG", "capitalization": "escrow" },
+            { "companyId": "CA", "capitalization": "escrow" },
+            { "companyId": "CPR", "capitalization": "escrow" },
+            { "companyId": "CV", "capitalization": "escrow" }
+        ],
+        "destinationsReached": [],
+        "openingAuction": {
+            "remainingLotIds": [],
+            "reservations": [],
+            "nextPlayerId": "p2",
+            "passedPlayerIds": [],
+            "discount": 0,
+            "awards": [
+                { "playerId": "p2", "lotId": "FT", "price": 20 },
+                { "playerId": "p2", "lotId": "WSRC", "price": 40 },
+                { "playerId": "p3", "lotId": "TCC", "price": 50 },
+                { "playerId": "p1", "lotId": "GLSC", "price": 70 },
+                { "playerId": "p4", "lotId": "NFSBC", "price": 100 },
+                { "playerId": "p1", "lotId": "SCFTC", "price": 100 }
+            ],
+            "completed": true
+        },
+        "operatingSet": {
+            "number": 1,
+            "roundNumber": 1,
+            "roundCount": 1,
+            "companyOrder": ["CA", "CV", "BBG", "CPR"],
+            "completedCompanyIds": ["CA"],
+            "privateIncomePaid": true,
+            "completed": false
+        },
+        "interestRate": 10,
+        "trackStep": {
+            "companyId": "CV",
+            "lays": [{ "locationId": "M12", "definitionId": "18xx:9" }],
+            "completed": true
+        },
+        "turnLoans": { "companyId": "CV", "loans": 1 },
+        "stationStep": { "companyId": "CV", "placedStationIds": [], "completed": true },
+        "routeStep": {
+            "companyId": "CV",
+            "result": { "companyId": "CV", "routes": [], "revenue": 0 }
+        },
+        "turnInterest": { "companyId": "CV", "fromRevenue": 0 },
+        "earningsDistribution": {
+            "companyId": "CV",
+            "choice": "withhold",
+            "revenue": 0,
+            "retained": 0,
+            "dividendPerShare": 0,
+            "bonusPerShare": 0,
+            "bankAdjustment": 0,
+            "payments": [],
+            "marketMove": {
+                "companyId": "CV",
+                "fromMarketSpaceId": "2:4",
+                "toMarketSpaceId": "2:3"
+            }
+        },
+        "trainPurchaseStep": { "companyId": "CV", "purchasedTrainIds": ["1856:diesels/2/2"] },
+        "loanStep": { "companyId": "CV" }
+    },
+    "actions": [
+        {
+            "id": "action:0",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p2",
+            "type": "BuyAuctionLot",
+            "lotId": "FT",
+            "expectedPrice": 20,
+            "createdAt": "2026-11-15T23:29:05.026Z",
+            "metadata": { "playerId": "p2", "lotId": "FT", "price": 20, "shares": [] },
+            "index": 0,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p2" },
+                { "op": "replace", "path": "/actionCount", "value": 0 },
+                { "op": "replace", "path": "/actionChecksum", "value": 0 },
+                { "op": "remove", "path": "/turnManager/series/0/end" },
+                { "op": "remove", "path": "/turnManager/series/1" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p2", "value": 0 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10500 },
+                { "op": "replace", "path": "/cash/2/amount", "value": 375 },
+                { "op": "replace", "path": "/certificates/99/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/openingAuction/remainingLotIds/0", "value": "FT" },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p2" },
+                { "op": "remove", "path": "/openingAuction/awards/0" }
+            ]
+        },
+        {
+            "id": "action:1",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "PassAuction",
+            "createdAt": "2026-11-15T23:29:05.032Z",
+            "index": 1,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p3" },
+                { "op": "replace", "path": "/actionCount", "value": 1 },
+                { "op": "replace", "path": "/actionChecksum", "value": 2013360278 },
+                { "op": "remove", "path": "/turnManager/series/1/end" },
+                { "op": "remove", "path": "/turnManager/series/2" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p3", "value": 0 },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p3" },
+                { "op": "remove", "path": "/openingAuction/passedPlayerIds/0" }
+            ]
+        },
+        {
+            "id": "action:2",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "PassAuction",
+            "createdAt": "2026-11-15T23:29:05.035Z",
+            "index": 2,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p4" },
+                { "op": "replace", "path": "/actionCount", "value": 2 },
+                { "op": "replace", "path": "/actionChecksum", "value": 179409827 },
+                { "op": "remove", "path": "/turnManager/series/2/end" },
+                { "op": "remove", "path": "/turnManager/series/3" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p4", "value": 0 },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p4" },
+                { "op": "remove", "path": "/openingAuction/passedPlayerIds/1" }
+            ]
+        },
+        {
+            "id": "action:3",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p1",
+            "type": "PassAuction",
+            "createdAt": "2026-11-15T23:29:05.039Z",
+            "index": 3,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p1" },
+                { "op": "replace", "path": "/actionCount", "value": 3 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1730853444 },
+                { "op": "remove", "path": "/turnManager/series/3/end" },
+                { "op": "remove", "path": "/turnManager/series/4" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p1", "value": 0 },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p1" },
+                { "op": "remove", "path": "/openingAuction/passedPlayerIds/2" }
+            ]
+        },
+        {
+            "id": "action:4",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p2",
+            "type": "BuyAuctionLot",
+            "lotId": "WSRC",
+            "expectedPrice": 40,
+            "createdAt": "2026-11-15T23:29:05.042Z",
+            "metadata": { "playerId": "p2", "lotId": "WSRC", "price": 40, "shares": [] },
+            "index": 4,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p2" },
+                { "op": "replace", "path": "/actionCount", "value": 4 },
+                { "op": "replace", "path": "/actionChecksum", "value": 251221228 },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p2", "start": 0, "end": 2 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p2", "value": 1 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10520 },
+                { "op": "replace", "path": "/cash/2/amount", "value": 355 },
+                { "op": "replace", "path": "/certificates/100/owner", "value": { "kind": "bank" } },
+                {
+                    "op": "replace",
+                    "path": "/openingAuction",
+                    "value": {
+                        "remainingLotIds": ["WSRC", "TCC", "GLSC", "NFSBC", "SCFTC"],
+                        "reservations": [],
+                        "nextPlayerId": "p2",
+                        "passedPlayerIds": ["p3", "p4", "p1"],
+                        "discount": 0,
+                        "awards": [{ "playerId": "p2", "lotId": "FT", "price": 20 }],
+                        "completed": false
+                    }
+                }
+            ]
+        },
+        {
+            "id": "action:5",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "BuyAuctionLot",
+            "lotId": "TCC",
+            "expectedPrice": 50,
+            "createdAt": "2026-11-15T23:29:05.045Z",
+            "metadata": { "playerId": "p3", "lotId": "TCC", "price": 50, "shares": [] },
+            "index": 5,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p3" },
+                { "op": "replace", "path": "/actionCount", "value": 5 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1786175425 },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p3", "start": 2, "end": 3 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p3", "value": 1 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10560 },
+                { "op": "replace", "path": "/cash/3/amount", "value": 375 },
+                { "op": "replace", "path": "/certificates/101/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/openingAuction/remainingLotIds/0", "value": "TCC" },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p3" },
+                { "op": "remove", "path": "/openingAuction/awards/2" }
+            ]
+        },
+        {
+            "id": "action:6",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "PassAuction",
+            "createdAt": "2026-11-15T23:29:05.048Z",
+            "index": 6,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p4" },
+                { "op": "replace", "path": "/actionCount", "value": 6 },
+                { "op": "replace", "path": "/actionChecksum", "value": 890983449 },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p4", "start": 3, "end": 4 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p4", "value": 1 },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p4" },
+                { "op": "remove", "path": "/openingAuction/passedPlayerIds/0" }
+            ]
+        },
+        {
+            "id": "action:7",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyAuctionLot",
+            "lotId": "GLSC",
+            "expectedPrice": 70,
+            "createdAt": "2026-11-15T23:29:05.053Z",
+            "metadata": { "playerId": "p1", "lotId": "GLSC", "price": 70, "shares": [] },
+            "index": 7,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p1" },
+                { "op": "replace", "path": "/actionCount", "value": 7 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1865577383 },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p1", "start": 4, "end": 5 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p1", "value": 1 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10610 },
+                { "op": "replace", "path": "/cash/1/amount", "value": 375 },
+                { "op": "replace", "path": "/certificates/102/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/openingAuction/remainingLotIds/0", "value": "GLSC" },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p1" },
+                { "op": "add", "path": "/openingAuction/passedPlayerIds/0", "value": "p4" },
+                { "op": "remove", "path": "/openingAuction/awards/3" }
+            ]
+        },
+        {
+            "id": "action:8",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p2",
+            "type": "PassAuction",
+            "createdAt": "2026-11-15T23:29:05.056Z",
+            "index": 8,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p2" },
+                { "op": "replace", "path": "/actionCount", "value": 8 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1002582405 },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p2", "start": 5, "end": 6 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p2", "value": 2 },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p2" },
+                { "op": "remove", "path": "/openingAuction/passedPlayerIds/0" }
+            ]
+        },
+        {
+            "id": "action:9",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "PassAuction",
+            "createdAt": "2026-11-15T23:29:05.058Z",
+            "index": 9,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p3" },
+                { "op": "replace", "path": "/actionCount", "value": 9 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1787703044 },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p3", "start": 6, "end": 7 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p3", "value": 2 },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p3" },
+                { "op": "remove", "path": "/openingAuction/passedPlayerIds/1" }
+            ]
+        },
+        {
+            "id": "action:10",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "BuyAuctionLot",
+            "lotId": "NFSBC",
+            "expectedPrice": 100,
+            "createdAt": "2026-11-15T23:29:05.060Z",
+            "metadata": { "playerId": "p4", "lotId": "NFSBC", "price": 100, "shares": [] },
+            "index": 10,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p4" },
+                { "op": "replace", "path": "/actionCount", "value": 10 },
+                { "op": "replace", "path": "/actionChecksum", "value": 561358667 },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p4", "start": 7, "end": 8 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p4", "value": 2 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10680 },
+                { "op": "replace", "path": "/cash/4/amount", "value": 375 },
+                { "op": "replace", "path": "/certificates/103/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/openingAuction/remainingLotIds/0", "value": "NFSBC" },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p4" },
+                {
+                    "op": "replace",
+                    "path": "/openingAuction/passedPlayerIds",
+                    "value": ["p2", "p3"]
+                },
+                { "op": "remove", "path": "/openingAuction/awards/4" }
+            ]
+        },
+        {
+            "id": "action:11",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyAuctionLot",
+            "lotId": "SCFTC",
+            "expectedPrice": 100,
+            "createdAt": "2026-11-15T23:29:05.063Z",
+            "metadata": { "playerId": "p1", "lotId": "SCFTC", "price": 100, "shares": [] },
+            "index": 11,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 1 },
+                { "op": "replace", "path": "/actionCount", "value": 11 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1066477785 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10780 },
+                { "op": "replace", "path": "/cash/1/amount", "value": 305 },
+                { "op": "replace", "path": "/certificates/104/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/openingAuction/remainingLotIds/0", "value": "SCFTC" },
+                { "op": "replace", "path": "/openingAuction/nextPlayerId", "value": "p1" },
+                { "op": "remove", "path": "/openingAuction/awards/5" }
+            ]
+        },
+        {
+            "id": "RHqv1Dmy7d9GsEIn7unwf",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "ResolveAuction",
+            "createdAt": "2026-11-15T23:29:05.063Z",
+            "metadata": {
+                "kind": "complete",
+                "roundEnd": {
+                    "round": "opening",
+                    "playerNetWorth": { "p1": 375, "p2": 375, "p3": 375, "p4": 375 }
+                }
+            },
+            "index": 12,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p1" },
+                { "op": "replace", "path": "/actionCount", "value": 12 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1504286679 },
+                { "op": "replace", "path": "/machineState", "value": "WaterfallAuction" },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p1", "start": 8, "end": 9 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p1", "value": 2 },
+                { "op": "replace", "path": "/openingAuction/completed", "value": false }
+            ]
+        },
+        {
+            "id": "action:13",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p2",
+            "type": "StartCompany",
+            "buyer": { "kind": "player", "playerId": "p2" },
+            "companyId": "BBG",
+            "marketSpaceId": "3:4",
+            "expectedPrice": 150,
+            "createdAt": "2026-11-15T23:29:05.079Z",
+            "metadata": {
+                "certificateId": "BBG:president",
+                "companyId": "BBG",
+                "shares": 2,
+                "buyer": { "kind": "player", "playerId": "p2" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 150,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p2" },
+                        "to": { "kind": "company", "companyId": "BBG" },
+                        "amount": 150
+                    }
+                ],
+                "marketSpaceId": "3:4",
+                "parPrice": 75
+            },
+            "index": 13,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 36 },
+                { "op": "replace", "path": "/actionCount", "value": 13 },
+                { "op": "replace", "path": "/actionChecksum", "value": 61357560 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "remove", "path": "/stockMarket/stacks/0" },
+                {
+                    "op": "replace",
+                    "path": "/companies/0",
+                    "value": {
+                        "id": "BBG",
+                        "kind": "major",
+                        "started": false,
+                        "floated": false,
+                        "funded": false,
+                        "operated": false
+                    }
+                },
+                { "op": "replace", "path": "/cash/2/amount", "value": 315 },
+                { "op": "replace", "path": "/cash/5/amount", "value": 0 },
+                { "op": "replace", "path": "/certificates/0/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/0/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/funding/0" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "a8JJ88E4grBkT90wa9OxC",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p2",
+            "createdAt": "2026-11-15T23:29:05.080Z",
+            "metadata": { "passed": false },
+            "index": 14,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p2" },
+                { "op": "replace", "path": "/actionCount", "value": 14 },
+                { "op": "replace", "path": "/actionChecksum", "value": -294135999 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p2", "start": 9, "end": 10 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p2", "value": 3 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "start", "companyId": "BBG" }]
+                }
+            ]
+        },
+        {
+            "id": "action:15",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "BuyShares",
+            "buyer": { "kind": "player", "playerId": "p3" },
+            "certificateId": "BBG:share:2",
+            "expectedPrice": 75,
+            "createdAt": "2026-11-15T23:29:05.091Z",
+            "metadata": {
+                "certificateId": "BBG:share:2",
+                "companyId": "BBG",
+                "shares": 1,
+                "buyer": { "kind": "player", "playerId": "p3" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 75,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p3" },
+                        "to": { "kind": "company", "companyId": "BBG" },
+                        "amount": 75
+                    }
+                ]
+            },
+            "index": 15,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 71 },
+                { "op": "replace", "path": "/actionCount", "value": 15 },
+                { "op": "replace", "path": "/actionChecksum", "value": 871787258 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "replace", "path": "/cash/3/amount", "value": 325 },
+                { "op": "replace", "path": "/cash/5/amount", "value": 150 },
+                { "op": "replace", "path": "/certificates/2/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/2/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "C0IpaeLUXailVsGTKHcVt",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.092Z",
+            "metadata": { "passed": false },
+            "index": 16,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p3" },
+                { "op": "replace", "path": "/actionCount", "value": 16 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1752397410 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p3", "start": 10, "end": 11 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p3", "value": 3 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "share", "companyId": "BBG", "poolId": "initial-offering" }]
+                }
+            ]
+        },
+        {
+            "id": "action:17",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "StartCompany",
+            "buyer": { "kind": "player", "playerId": "p4" },
+            "companyId": "CA",
+            "marketSpaceId": "2:4",
+            "expectedPrice": 160,
+            "createdAt": "2026-11-15T23:29:05.100Z",
+            "metadata": {
+                "certificateId": "CA:president",
+                "companyId": "CA",
+                "shares": 2,
+                "buyer": { "kind": "player", "playerId": "p4" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 160,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p4" },
+                        "to": { "kind": "company", "companyId": "CA" },
+                        "amount": 160
+                    }
+                ],
+                "marketSpaceId": "2:4",
+                "parPrice": 80
+            },
+            "index": 17,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 106 },
+                { "op": "replace", "path": "/actionCount", "value": 17 },
+                { "op": "replace", "path": "/actionChecksum", "value": -787069948 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "remove", "path": "/stockMarket/stacks/1" },
+                {
+                    "op": "replace",
+                    "path": "/companies/1",
+                    "value": {
+                        "id": "CA",
+                        "kind": "major",
+                        "started": false,
+                        "floated": false,
+                        "funded": false,
+                        "operated": false
+                    }
+                },
+                { "op": "replace", "path": "/cash/4/amount", "value": 275 },
+                { "op": "replace", "path": "/cash/6/amount", "value": 0 },
+                { "op": "replace", "path": "/certificates/9/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/9/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/funding/1" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "g2gNlbgZJV2ULS3fW1gr6",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.100Z",
+            "metadata": { "passed": false },
+            "index": 18,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p4" },
+                { "op": "replace", "path": "/actionCount", "value": 18 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1115364587 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p4", "start": 11, "end": 12 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p4", "value": 3 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "start", "companyId": "CA" }]
+                }
+            ]
+        },
+        {
+            "id": "action:19",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p1",
+            "type": "StartCompany",
+            "buyer": { "kind": "player", "playerId": "p1" },
+            "companyId": "CPR",
+            "marketSpaceId": "5:4",
+            "expectedPrice": 130,
+            "createdAt": "2026-11-15T23:29:05.107Z",
+            "metadata": {
+                "certificateId": "CPR:president",
+                "companyId": "CPR",
+                "shares": 2,
+                "buyer": { "kind": "player", "playerId": "p1" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 130,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p1" },
+                        "to": { "kind": "company", "companyId": "CPR" },
+                        "amount": 130
+                    }
+                ],
+                "marketSpaceId": "5:4",
+                "parPrice": 65
+            },
+            "index": 19,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 141 },
+                { "op": "replace", "path": "/actionCount", "value": 19 },
+                { "op": "replace", "path": "/actionChecksum", "value": -2135563657 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "remove", "path": "/stockMarket/stacks/2" },
+                {
+                    "op": "replace",
+                    "path": "/companies/2",
+                    "value": {
+                        "id": "CPR",
+                        "kind": "major",
+                        "started": false,
+                        "floated": false,
+                        "funded": false,
+                        "operated": false
+                    }
+                },
+                { "op": "replace", "path": "/cash/1/amount", "value": 205 },
+                { "op": "replace", "path": "/cash/7/amount", "value": 0 },
+                { "op": "replace", "path": "/certificates/18/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/18/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/funding/2" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "a0yCiKzxwKFpsa0wWoZm0",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p1",
+            "createdAt": "2026-11-15T23:29:05.107Z",
+            "metadata": { "passed": false },
+            "index": 20,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p1" },
+                { "op": "replace", "path": "/actionCount", "value": 20 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1395415542 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p1", "start": 12, "end": 13 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p1", "value": 3 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "start", "companyId": "CPR" }]
+                }
+            ]
+        },
+        {
+            "id": "action:21",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p2",
+            "type": "BuyShares",
+            "buyer": { "kind": "player", "playerId": "p2" },
+            "certificateId": "CA:share:7",
+            "expectedPrice": 80,
+            "createdAt": "2026-11-15T23:29:05.117Z",
+            "metadata": {
+                "certificateId": "CA:share:7",
+                "companyId": "CA",
+                "shares": 1,
+                "buyer": { "kind": "player", "playerId": "p2" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 80,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p2" },
+                        "to": { "kind": "company", "companyId": "CA" },
+                        "amount": 80
+                    }
+                ]
+            },
+            "index": 21,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 176 },
+                { "op": "replace", "path": "/actionCount", "value": 21 },
+                { "op": "replace", "path": "/actionChecksum", "value": 961906906 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "replace", "path": "/cash/2/amount", "value": 165 },
+                { "op": "replace", "path": "/cash/6/amount", "value": 160 },
+                { "op": "replace", "path": "/certificates/16/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/16/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "XGR8MNQaLCGCvPKx7VgSo",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p2",
+            "createdAt": "2026-11-15T23:29:05.118Z",
+            "metadata": { "passed": false },
+            "index": 22,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p2" },
+                { "op": "replace", "path": "/actionCount", "value": 22 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1068501367 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p2", "start": 13, "end": 15 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p2", "value": 4 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "share", "companyId": "CA", "poolId": "initial-offering" }]
+                }
+            ]
+        },
+        {
+            "id": "action:23",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "StartCompany",
+            "buyer": { "kind": "player", "playerId": "p3" },
+            "companyId": "CV",
+            "marketSpaceId": "2:4",
+            "expectedPrice": 160,
+            "createdAt": "2026-11-15T23:29:05.124Z",
+            "metadata": {
+                "certificateId": "CV:president",
+                "companyId": "CV",
+                "shares": 2,
+                "buyer": { "kind": "player", "playerId": "p3" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 160,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p3" },
+                        "to": { "kind": "company", "companyId": "CV" },
+                        "amount": 160
+                    }
+                ],
+                "marketSpaceId": "2:4",
+                "parPrice": 80
+            },
+            "index": 23,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 211 },
+                { "op": "replace", "path": "/actionCount", "value": 23 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1332689185 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "remove", "path": "/stockMarket/stacks/1/companyIds/1" },
+                {
+                    "op": "replace",
+                    "path": "/companies/3",
+                    "value": {
+                        "id": "CV",
+                        "kind": "major",
+                        "started": false,
+                        "floated": false,
+                        "funded": false,
+                        "operated": false
+                    }
+                },
+                { "op": "replace", "path": "/cash/3/amount", "value": 250 },
+                { "op": "replace", "path": "/cash/8/amount", "value": 0 },
+                { "op": "replace", "path": "/certificates/27/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/27/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/funding/3" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "A7d8jVbX32uisJAxQHj6U",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.124Z",
+            "metadata": { "passed": false },
+            "index": 24,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p3" },
+                { "op": "replace", "path": "/actionCount", "value": 24 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1502592616 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p3", "start": 15, "end": 17 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p3", "value": 4 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "start", "companyId": "CV" }]
+                }
+            ]
+        },
+        {
+            "id": "action:25",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "BuyShares",
+            "buyer": { "kind": "player", "playerId": "p4" },
+            "certificateId": "CV:share:6",
+            "expectedPrice": 80,
+            "createdAt": "2026-11-15T23:29:05.140Z",
+            "metadata": {
+                "certificateId": "CV:share:6",
+                "companyId": "CV",
+                "shares": 1,
+                "buyer": { "kind": "player", "playerId": "p4" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 80,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p4" },
+                        "to": { "kind": "company", "companyId": "CV" },
+                        "amount": 80
+                    }
+                ]
+            },
+            "index": 25,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 246 },
+                { "op": "replace", "path": "/actionCount", "value": 25 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1946829503 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "replace", "path": "/cash/4/amount", "value": 115 },
+                { "op": "replace", "path": "/cash/8/amount", "value": 160 },
+                { "op": "replace", "path": "/certificates/33/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/33/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "3LtBccaUtt3a3jpK8bdqc",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.140Z",
+            "metadata": { "passed": false },
+            "index": 26,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p4" },
+                { "op": "replace", "path": "/actionCount", "value": 26 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1229530010 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p4", "start": 17, "end": 19 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p4", "value": 4 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "share", "companyId": "CV", "poolId": "initial-offering" }]
+                }
+            ]
+        },
+        {
+            "id": "action:27",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p1",
+            "type": "BuyShares",
+            "buyer": { "kind": "player", "playerId": "p1" },
+            "certificateId": "CPR:share:8",
+            "expectedPrice": 65,
+            "createdAt": "2026-11-15T23:29:05.156Z",
+            "metadata": {
+                "certificateId": "CPR:share:8",
+                "companyId": "CPR",
+                "shares": 1,
+                "buyer": { "kind": "player", "playerId": "p1" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 65,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p1" },
+                        "to": { "kind": "company", "companyId": "CPR" },
+                        "amount": 65
+                    }
+                ]
+            },
+            "index": 27,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 281 },
+                { "op": "replace", "path": "/actionCount", "value": 27 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1472007179 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "replace", "path": "/cash/1/amount", "value": 75 },
+                { "op": "replace", "path": "/cash/7/amount", "value": 130 },
+                { "op": "replace", "path": "/certificates/26/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/26/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "9RhIRfQXn4b5G2Tk2Y1B8",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p1",
+            "createdAt": "2026-11-15T23:29:05.156Z",
+            "metadata": { "passed": false },
+            "index": 28,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p1" },
+                { "op": "replace", "path": "/actionCount", "value": 28 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1988431829 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p1", "start": 19, "end": 21 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p1", "value": 4 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "share", "companyId": "CPR", "poolId": "initial-offering" }]
+                }
+            ]
+        },
+        {
+            "id": "action:29",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p2",
+            "type": "BuyShares",
+            "buyer": { "kind": "player", "playerId": "p2" },
+            "certificateId": "CPR:share:5",
+            "expectedPrice": 65,
+            "createdAt": "2026-11-15T23:29:05.168Z",
+            "metadata": {
+                "certificateId": "CPR:share:5",
+                "companyId": "CPR",
+                "shares": 1,
+                "buyer": { "kind": "player", "playerId": "p2" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 65,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p2" },
+                        "to": { "kind": "company", "companyId": "CPR" },
+                        "amount": 65
+                    }
+                ]
+            },
+            "index": 29,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 316 },
+                { "op": "replace", "path": "/actionCount", "value": 29 },
+                { "op": "replace", "path": "/actionChecksum", "value": 2037319033 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "replace", "path": "/cash/2/amount", "value": 85 },
+                { "op": "replace", "path": "/cash/7/amount", "value": 195 },
+                { "op": "replace", "path": "/certificates/23/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/23/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "TQ9ar7z0r0wxpSW3kZaud",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p2",
+            "createdAt": "2026-11-15T23:29:05.169Z",
+            "metadata": { "passed": false },
+            "index": 30,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p2" },
+                { "op": "replace", "path": "/actionCount", "value": 30 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1244082798 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p2", "start": 21, "end": 23 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p2", "value": 5 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "share", "companyId": "CPR", "poolId": "initial-offering" }]
+                }
+            ]
+        },
+        {
+            "id": "action:31",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "BuyShares",
+            "buyer": { "kind": "player", "playerId": "p3" },
+            "certificateId": "CPR:share:4",
+            "expectedPrice": 65,
+            "createdAt": "2026-11-15T23:29:05.181Z",
+            "metadata": {
+                "certificateId": "CPR:share:4",
+                "companyId": "CPR",
+                "shares": 1,
+                "buyer": { "kind": "player", "playerId": "p3" },
+                "seller": { "kind": "bank" },
+                "poolId": "initial-offering",
+                "price": 65,
+                "payments": [
+                    {
+                        "from": { "kind": "player", "playerId": "p3" },
+                        "to": { "kind": "company", "companyId": "CPR" },
+                        "amount": 65
+                    }
+                ]
+            },
+            "index": 31,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 351 },
+                { "op": "replace", "path": "/actionCount", "value": 31 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1890286027 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": false },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": false },
+                { "op": "replace", "path": "/cash/3/amount", "value": 90 },
+                { "op": "replace", "path": "/cash/7/amount", "value": 260 },
+                { "op": "replace", "path": "/certificates/22/owner", "value": { "kind": "bank" } },
+                { "op": "add", "path": "/certificates/22/poolId", "value": "initial-offering" },
+                { "op": "remove", "path": "/stockTurnPurchases" }
+            ]
+        },
+        {
+            "id": "junt3BoBpIdxbva1OOHVY",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStockTurn",
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.181Z",
+            "metadata": { "passed": false },
+            "index": 32,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p3" },
+                { "op": "replace", "path": "/actionCount", "value": 32 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1971394243 },
+                { "op": "replace", "path": "/stockRound/turn/acted", "value": true },
+                { "op": "replace", "path": "/stockRound/turn/bought", "value": true },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p3", "start": 23, "end": 25 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p3", "value": 5 },
+                {
+                    "op": "add",
+                    "path": "/stockTurnPurchases",
+                    "value": [{ "kind": "share", "companyId": "CPR", "poolId": "initial-offering" }]
+                }
+            ]
+        },
+        {
+            "id": "action:33",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "FinishStockTurn",
+            "createdAt": "2026-11-15T23:29:05.194Z",
+            "metadata": { "passed": true },
+            "index": 33,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p4" },
+                { "op": "replace", "path": "/actionCount", "value": 33 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1362406050 },
+                { "op": "remove", "path": "/stockRound/passedPlayerIds/0" },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p4", "start": 25, "end": 27 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p4", "value": 5 }
+            ]
+        },
+        {
+            "id": "action:34",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p1",
+            "type": "FinishStockTurn",
+            "createdAt": "2026-11-15T23:29:05.206Z",
+            "metadata": { "passed": true },
+            "index": 34,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p1" },
+                { "op": "replace", "path": "/actionCount", "value": 34 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1788452679 },
+                { "op": "remove", "path": "/stockRound/passedPlayerIds/1" },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p1", "start": 27, "end": 29 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p1", "value": 5 }
+            ]
+        },
+        {
+            "id": "action:35",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p2",
+            "type": "FinishStockTurn",
+            "createdAt": "2026-11-15T23:29:05.218Z",
+            "metadata": { "passed": true },
+            "index": 35,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p2" },
+                { "op": "replace", "path": "/actionCount", "value": 35 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1887338989 },
+                { "op": "remove", "path": "/stockRound/passedPlayerIds/2" },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p2", "start": 29, "end": 31 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "remove", "path": "/turnManager/series/5" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p2", "value": 6 }
+            ]
+        },
+        {
+            "id": "action:36",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "FinishStockTurn",
+            "createdAt": "2026-11-15T23:29:05.230Z",
+            "metadata": { "passed": true },
+            "index": 36,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 386 },
+                { "op": "replace", "path": "/actionCount", "value": 36 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1979157151 },
+                { "op": "remove", "path": "/stockRound/passedPlayerIds/3" },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p3", "start": 31, "end": 33 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p3", "value": 6 }
+            ]
+        },
+        {
+            "id": "xNh8wCzPsxApcBIZ3zMyy",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "CompleteStockRound",
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.230Z",
+            "metadata": {
+                "nextPlayerOrder": ["p4", "p1", "p2", "p3"],
+                "marketMoves": [],
+                "roundEnd": {
+                    "round": "stock",
+                    "playerNetWorth": { "p1": 375, "p2": 375, "p3": 375, "p4": 375 }
+                }
+            },
+            "index": 37,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 421 },
+                { "op": "add", "path": "/activePlayerIds/0", "value": "p3" },
+                { "op": "replace", "path": "/actionCount", "value": 37 },
+                { "op": "replace", "path": "/actionChecksum", "value": -211093820 },
+                { "op": "replace", "path": "/machineState", "value": "StockRound" },
+                { "op": "replace", "path": "/stockRound/completed", "value": false },
+                {
+                    "op": "replace",
+                    "path": "/turnManager/turnOrder",
+                    "value": ["p2", "p3", "p4", "p1"]
+                }
+            ]
+        },
+        {
+            "id": "EhTF0CExjIcAlTidQAlmi",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "StartOperatingSet",
+            "createdAt": "2026-11-15T23:29:05.231Z",
+            "metadata": {
+                "number": 1,
+                "roundNumber": 1,
+                "roundCount": 1,
+                "companyOrder": ["CA", "CV", "BBG", "CPR"],
+                "completedCompanyIds": [],
+                "privateIncomePaid": false,
+                "completed": false
+            },
+            "index": 38,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 456 },
+                { "op": "replace", "path": "/actionCount", "value": 38 },
+                { "op": "replace", "path": "/actionChecksum", "value": 218457356 },
+                { "op": "replace", "path": "/machineState", "value": "StartingOperatingSet" },
+                { "op": "remove", "path": "/operatingSet" }
+            ]
+        },
+        {
+            "id": "MDsA2PpdsHqDGATGvN2mS",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "StartOperatingRound",
+            "createdAt": "2026-11-15T23:29:05.232Z",
+            "metadata": {
+                "operatingSet": {
+                    "number": 1,
+                    "roundNumber": 1,
+                    "roundCount": 1,
+                    "companyOrder": ["CA", "CV", "BBG", "CPR"],
+                    "completedCompanyIds": [],
+                    "privateIncomePaid": true,
+                    "completed": false
+                },
+                "payments": [
+                    {
+                        "from": { "kind": "bank" },
+                        "to": { "kind": "player", "playerId": "p2" },
+                        "amount": 5
+                    },
+                    {
+                        "from": { "kind": "bank" },
+                        "to": { "kind": "player", "playerId": "p2" },
+                        "amount": 10
+                    },
+                    {
+                        "from": { "kind": "bank" },
+                        "to": { "kind": "player", "playerId": "p3" },
+                        "amount": 10
+                    },
+                    {
+                        "from": { "kind": "bank" },
+                        "to": { "kind": "player", "playerId": "p1" },
+                        "amount": 15
+                    },
+                    {
+                        "from": { "kind": "bank" },
+                        "to": { "kind": "player", "playerId": "p4" },
+                        "amount": 20
+                    },
+                    {
+                        "from": { "kind": "bank" },
+                        "to": { "kind": "player", "playerId": "p1" },
+                        "amount": 20
+                    }
+                ],
+                "snapshot": {
+                    "number": 1,
+                    "roundNumber": 1,
+                    "complete": false,
+                    "playerNetWorth": { "p1": 410, "p2": 390, "p3": 385, "p4": 395 },
+                    "companyIds": ["BBG", "CA", "CPR", "CV"]
+                }
+            },
+            "index": 39,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 491 },
+                { "op": "replace", "path": "/actionCount", "value": 39 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1857067096 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10880 },
+                { "op": "replace", "path": "/cash/1/amount", "value": 10 },
+                { "op": "replace", "path": "/cash/2/amount", "value": 20 },
+                { "op": "replace", "path": "/cash/3/amount", "value": 25 },
+                { "op": "replace", "path": "/cash/4/amount", "value": 35 },
+                { "op": "replace", "path": "/operatingSet/privateIncomePaid", "value": false },
+                { "op": "remove", "path": "/interestRate" }
+            ]
+        },
+        {
+            "id": "jQP1TjvbRi4dkkY7sy67h",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FloatCompany",
+            "companyId": "CA",
+            "createdAt": "2026-11-15T23:29:05.234Z",
+            "metadata": {
+                "companyId": "CA",
+                "payments": [],
+                "companyChanges": { "presidents": [], "closedCompanyIds": [] }
+            },
+            "index": 40,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 526 },
+                { "op": "replace", "path": "/actionCount", "value": 40 },
+                { "op": "replace", "path": "/actionChecksum", "value": -600807607 },
+                { "op": "replace", "path": "/companies/1/floated", "value": false }
+            ]
+        },
+        {
+            "id": "mLgGAV30QdJw7KKpit69V",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "PlaceHomeStations",
+            "createdAt": "2026-11-15T23:29:05.235Z",
+            "metadata": [
+                {
+                    "companyId": "CA",
+                    "stationId": "CA:home",
+                    "position": { "locationId": "D17", "nodeId": "city", "slot": 0 },
+                    "cost": 0
+                }
+            ],
+            "index": 41,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 561 },
+                { "op": "replace", "path": "/actionCount", "value": 41 },
+                { "op": "replace", "path": "/actionChecksum", "value": 402255232 },
+                {
+                    "op": "replace",
+                    "path": "/stations/3",
+                    "value": { "id": "CA:home", "companyId": "CA", "status": "available" }
+                },
+                {
+                    "op": "add",
+                    "path": "/stationReservations/3",
+                    "value": { "companyId": "CA", "nodeId": "city", "locationId": "D17" }
+                }
+            ]
+        },
+        {
+            "id": "yjhE9sBnYQyVBX3aQo9pU",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "StartOperatingTurn",
+            "companyId": "CA",
+            "createdAt": "2026-11-15T23:29:05.237Z",
+            "index": 42,
+            "undoPatch": [
+                { "op": "remove", "path": "/activePlayerIds/0" },
+                { "op": "replace", "path": "/actionCount", "value": 42 },
+                { "op": "replace", "path": "/actionChecksum", "value": -688644075 },
+                { "op": "replace", "path": "/machineState", "value": "OperatingSet" },
+                { "op": "remove", "path": "/turnManager/series/4" },
+                { "op": "remove", "path": "/trackStep" }
+            ]
+        },
+        {
+            "id": "action:43",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "LayTile",
+            "companyId": "CA",
+            "locationId": "D17",
+            "definitionId": "18xx:5",
+            "rotation": 0,
+            "nodeMapping": { "city": "city" },
+            "expectedCost": 0,
+            "createdAt": "2026-11-15T23:29:05.253Z",
+            "metadata": {
+                "companyId": "CA",
+                "locationId": "D17",
+                "definitionId": "18xx:5",
+                "rotation": 0,
+                "nodeMapping": { "city": "city" },
+                "placement": {
+                    "pieceId": "1856:standard/5/1",
+                    "definitionId": "18xx:5",
+                    "rotation": 0
+                },
+                "cost": 0,
+                "terrainCost": 0,
+                "allowanceCost": 0,
+                "movedStations": []
+            },
+            "index": 43,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 596 },
+                { "op": "replace", "path": "/actionCount", "value": 43 },
+                { "op": "replace", "path": "/actionChecksum", "value": -118398212 },
+                { "op": "remove", "path": "/tileInventory/placements/D17" },
+                { "op": "remove", "path": "/trackStep/lays/0" }
+            ]
+        },
+        {
+            "id": "8NUlpgFYfZQygJUqFkfb7",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishTrack",
+            "companyId": "CA",
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.257Z",
+            "index": 44,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 631 },
+                { "op": "replace", "path": "/actionCount", "value": 44 },
+                { "op": "replace", "path": "/actionChecksum", "value": -159742183 },
+                { "op": "replace", "path": "/machineState", "value": "LayingTrack" },
+                { "op": "replace", "path": "/trackStep/completed", "value": false },
+                { "op": "remove", "path": "/stationStep" }
+            ]
+        },
+        {
+            "id": "p2DmldQVaqLD9iab1f2LR",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStations",
+            "companyId": "CA",
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.265Z",
+            "index": 45,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 666 },
+                { "op": "replace", "path": "/actionCount", "value": 45 },
+                { "op": "replace", "path": "/actionChecksum", "value": -845020137 },
+                { "op": "replace", "path": "/machineState", "value": "PlacingStation" },
+                { "op": "replace", "path": "/stationStep/completed", "value": false },
+                { "op": "remove", "path": "/routeStep" }
+            ]
+        },
+        {
+            "id": "Lyo0dMEqiFN7f4z7wb0RG",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "RunTrains",
+            "companyId": "CA",
+            "routes": [],
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.269Z",
+            "metadata": { "companyId": "CA", "routes": [], "revenue": 0 },
+            "index": 46,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 701 },
+                { "op": "replace", "path": "/actionCount", "value": 46 },
+                { "op": "replace", "path": "/actionChecksum", "value": 430073716 },
+                { "op": "replace", "path": "/machineState", "value": "RunningTrains" },
+                { "op": "remove", "path": "/companies/1/lastRunRevenue" },
+                { "op": "remove", "path": "/routeStep/result" }
+            ]
+        },
+        {
+            "id": "974IE04yumheNjfQIqAsg",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "DistributeEarnings",
+            "companyId": "CA",
+            "choice": "withhold",
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.270Z",
+            "metadata": {
+                "companyId": "CA",
+                "choice": "withhold",
+                "revenue": 0,
+                "retained": 0,
+                "dividendPerShare": 0,
+                "bonusPerShare": 0,
+                "bankAdjustment": 0,
+                "payments": [],
+                "marketMove": {
+                    "companyId": "CA",
+                    "fromMarketSpaceId": "2:4",
+                    "toMarketSpaceId": "2:3"
+                },
+                "privateEffects": [],
+                "round": { "number": 1, "roundNumber": 1 }
+            },
+            "index": 47,
+            "undoPatch": [
+                { "op": "replace", "path": "/actionCount", "value": 47 },
+                { "op": "replace", "path": "/actionChecksum", "value": -947958490 },
+                { "op": "replace", "path": "/machineState", "value": "DistributingEarnings" },
+                { "op": "add", "path": "/stockMarket/stacks/1/companyIds/0", "value": "CA" },
+                { "op": "remove", "path": "/stockMarket/stacks/3" },
+                { "op": "replace", "path": "/companies/1/operated", "value": false },
+                { "op": "remove", "path": "/earningsDistribution" },
+                { "op": "remove", "path": "/trainPurchaseStep" }
+            ]
+        },
+        {
+            "id": "action:48",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "BuyTrain",
+            "companyId": "CA",
+            "trainId": "1856:diesels/2/1",
+            "definitionId": "2",
+            "expectedPrice": 100,
+            "createdAt": "2026-11-15T23:29:05.279Z",
+            "metadata": {
+                "companyChanges": { "presidents": [], "closedCompanyIds": [] },
+                "companyId": "CA",
+                "trainId": "1856:diesels/2/1",
+                "definitionId": "2",
+                "price": 100
+            },
+            "index": 48,
+            "undoPatch": [
+                { "op": "replace", "path": "/actionCount", "value": 48 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1203153565 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10800 },
+                { "op": "replace", "path": "/cash/6/amount", "value": 240 },
+                {
+                    "op": "replace",
+                    "path": "/trainInventory/trains/0",
+                    "value": { "id": "1856:diesels/2/1", "definitionId": "2", "status": "depot" }
+                },
+                { "op": "remove", "path": "/trainPurchaseStep/purchasedTrainIds/0" }
+            ]
+        },
+        {
+            "id": "action:49",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p4",
+            "type": "FinishTrains",
+            "companyId": "CA",
+            "createdAt": "2026-11-15T23:29:05.286Z",
+            "index": 49,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 736 },
+                { "op": "replace", "path": "/actionCount", "value": 49 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1505661656 },
+                { "op": "replace", "path": "/machineState", "value": "BuyingTrains" },
+                { "op": "remove", "path": "/loanStep" }
+            ]
+        },
+        {
+            "id": "IB9cl35Mu7SbEA4FIm6hE",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishOperatingTurn",
+            "companyId": "CA",
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.286Z",
+            "metadata": {
+                "number": 1,
+                "roundNumber": 1,
+                "complete": false,
+                "playerNetWorth": { "p1": 410, "p2": 385, "p3": 385, "p4": 385 },
+                "companyIds": ["BBG", "CA", "CPR", "CV"]
+            },
+            "index": 50,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 771 },
+                { "op": "replace", "path": "/actionCount", "value": 50 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1542816468 },
+                { "op": "replace", "path": "/machineState", "value": "RepayingLoans" },
+                {
+                    "op": "add",
+                    "path": "/turnManager/series/0",
+                    "value": { "type": "turn", "playerId": "p4", "start": 33, "end": 34 }
+                },
+                { "op": "remove", "path": "/turnManager/series/4/end" },
+                { "op": "replace", "path": "/turnManager/turnCounts/p4", "value": 6 },
+                { "op": "remove", "path": "/operatingSet/completedCompanyIds/0" },
+                {
+                    "op": "add",
+                    "path": "/trackStep",
+                    "value": {
+                        "companyId": "CA",
+                        "lays": [{ "locationId": "D17", "definitionId": "18xx:5" }],
+                        "completed": true
+                    }
+                },
+                {
+                    "op": "add",
+                    "path": "/stationStep",
+                    "value": { "companyId": "CA", "placedStationIds": [], "completed": true }
+                },
+                {
+                    "op": "add",
+                    "path": "/routeStep",
+                    "value": {
+                        "companyId": "CA",
+                        "result": { "companyId": "CA", "routes": [], "revenue": 0 }
+                    }
+                },
+                {
+                    "op": "add",
+                    "path": "/earningsDistribution",
+                    "value": {
+                        "companyId": "CA",
+                        "choice": "withhold",
+                        "revenue": 0,
+                        "retained": 0,
+                        "dividendPerShare": 0,
+                        "bonusPerShare": 0,
+                        "bankAdjustment": 0,
+                        "payments": [],
+                        "marketMove": {
+                            "companyId": "CA",
+                            "fromMarketSpaceId": "2:4",
+                            "toMarketSpaceId": "2:3"
+                        }
+                    }
+                },
+                {
+                    "op": "add",
+                    "path": "/trainPurchaseStep",
+                    "value": { "companyId": "CA", "purchasedTrainIds": ["1856:diesels/2/1"] }
+                },
+                { "op": "add", "path": "/loanStep", "value": { "companyId": "CA" } }
+            ]
+        },
+        {
+            "id": "6kHjteTFeJyJi6fbAicKo",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FloatCompany",
+            "companyId": "CV",
+            "createdAt": "2026-11-15T23:29:05.287Z",
+            "metadata": {
+                "companyId": "CV",
+                "payments": [],
+                "companyChanges": { "presidents": [], "closedCompanyIds": [] }
+            },
+            "index": 51,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 806 },
+                { "op": "replace", "path": "/actionCount", "value": 51 },
+                { "op": "replace", "path": "/actionChecksum", "value": -888947900 },
+                { "op": "replace", "path": "/companies/3/floated", "value": false }
+            ]
+        },
+        {
+            "id": "6y9SDUu56hJydv7gOerE2",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "PlaceHomeStations",
+            "playerId": "p4",
+            "createdAt": "2026-11-15T23:29:05.288Z",
+            "metadata": [
+                {
+                    "companyId": "CV",
+                    "stationId": "CV:home",
+                    "position": { "locationId": "N11", "nodeId": "city-0", "slot": 0 },
+                    "cost": 0
+                }
+            ],
+            "index": 52,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 841 },
+                { "op": "replace", "path": "/actionCount", "value": 52 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1931129762 },
+                {
+                    "op": "replace",
+                    "path": "/stations/10",
+                    "value": { "id": "CV:home", "companyId": "CV", "status": "available" }
+                },
+                {
+                    "op": "add",
+                    "path": "/stationReservations/2",
+                    "value": { "companyId": "CV", "nodeId": "city-0", "locationId": "N11" }
+                }
+            ]
+        },
+        {
+            "id": "B7kyq2gS5OAcajUizL3O9",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "StartOperatingTurn",
+            "companyId": "CV",
+            "createdAt": "2026-11-15T23:29:05.289Z",
+            "index": 53,
+            "undoPatch": [
+                { "op": "replace", "path": "/activePlayerIds/0", "value": "p4" },
+                { "op": "replace", "path": "/actionCount", "value": 53 },
+                { "op": "replace", "path": "/actionChecksum", "value": 487295449 },
+                { "op": "replace", "path": "/machineState", "value": "OperatingSet" },
+                { "op": "remove", "path": "/turnManager/series/4" },
+                { "op": "remove", "path": "/trackStep" }
+            ]
+        },
+        {
+            "id": "action:54",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "TakeLoan",
+            "companyId": "CV",
+            "createdAt": "2026-11-15T23:29:05.298Z",
+            "metadata": {
+                "payment": {
+                    "from": { "kind": "bank" },
+                    "to": { "kind": "company", "companyId": "CV" },
+                    "amount": 100
+                }
+            },
+            "index": 54,
+            "undoPatch": [
+                { "op": "replace", "path": "/actionCount", "value": 54 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1333127820 },
+                { "op": "remove", "path": "/companies/3/loans" },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10900 },
+                { "op": "replace", "path": "/cash/8/amount", "value": 240 },
+                { "op": "remove", "path": "/turnLoans" }
+            ]
+        },
+        {
+            "id": "action:55",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "LayTile",
+            "companyId": "CV",
+            "locationId": "M12",
+            "definitionId": "18xx:9",
+            "rotation": 1,
+            "nodeMapping": {},
+            "expectedCost": 0,
+            "createdAt": "2026-11-15T23:29:05.307Z",
+            "metadata": {
+                "companyId": "CV",
+                "locationId": "M12",
+                "definitionId": "18xx:9",
+                "rotation": 1,
+                "nodeMapping": {},
+                "placement": {
+                    "pieceId": "1856:standard/9/1",
+                    "definitionId": "18xx:9",
+                    "rotation": 1
+                },
+                "cost": 0,
+                "terrainCost": 0,
+                "allowanceCost": 0,
+                "movedStations": []
+            },
+            "index": 55,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 876 },
+                { "op": "replace", "path": "/actionCount", "value": 55 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1199877572 },
+                { "op": "remove", "path": "/tileInventory/placements/M12" },
+                { "op": "remove", "path": "/trackStep/lays/0" }
+            ]
+        },
+        {
+            "id": "VskbEGnH5z1naz3pSWPOh",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishTrack",
+            "companyId": "CV",
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.310Z",
+            "index": 56,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 911 },
+                { "op": "replace", "path": "/actionCount", "value": 56 },
+                { "op": "replace", "path": "/actionChecksum", "value": 396978670 },
+                { "op": "replace", "path": "/machineState", "value": "LayingTrack" },
+                { "op": "replace", "path": "/trackStep/completed", "value": false },
+                { "op": "remove", "path": "/stationStep" }
+            ]
+        },
+        {
+            "id": "1fnD4kZSsPMHPBQlQidhJ",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "FinishStations",
+            "companyId": "CV",
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.316Z",
+            "index": 57,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 946 },
+                { "op": "replace", "path": "/actionCount", "value": 57 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1873019855 },
+                { "op": "replace", "path": "/machineState", "value": "PlacingStation" },
+                { "op": "replace", "path": "/stationStep/completed", "value": false },
+                { "op": "remove", "path": "/routeStep" }
+            ]
+        },
+        {
+            "id": "r6izeuKYr3iGQgbEhNz2b",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "RunTrains",
+            "companyId": "CV",
+            "routes": [],
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.319Z",
+            "metadata": { "companyId": "CV", "routes": [], "revenue": 0 },
+            "index": 58,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 981 },
+                { "op": "replace", "path": "/actionCount", "value": 58 },
+                { "op": "replace", "path": "/actionChecksum", "value": -1129807382 },
+                { "op": "replace", "path": "/machineState", "value": "RunningTrains" },
+                { "op": "remove", "path": "/companies/3/lastRunRevenue" },
+                { "op": "remove", "path": "/routeStep/result" }
+            ]
+        },
+        {
+            "id": "twOPVQWSHy5nqPqHz6nvS",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "PayInterest",
+            "companyId": "CV",
+            "createdAt": "2026-11-15T23:29:05.320Z",
+            "metadata": {
+                "interest": 10,
+                "loansTaken": 0,
+                "payments": [
+                    {
+                        "from": { "kind": "company", "companyId": "CV" },
+                        "to": { "kind": "bank" },
+                        "amount": 10
+                    }
+                ],
+                "marketMoves": []
+            },
+            "index": 59,
+            "undoPatch": [
+                { "op": "replace", "path": "/prng/invocations", "value": 1016 },
+                { "op": "replace", "path": "/actionCount", "value": 59 },
+                { "op": "replace", "path": "/actionChecksum", "value": 569448346 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10800 },
+                { "op": "replace", "path": "/cash/8/amount", "value": 340 },
+                { "op": "remove", "path": "/turnInterest" }
+            ]
+        },
+        {
+            "id": "4LW4PfcLPWIrmkvvqPcF8",
+            "gameId": "scenario-1856-loan-step",
+            "source": "system",
+            "type": "DistributeEarnings",
+            "companyId": "CV",
+            "choice": "withhold",
+            "playerId": "p3",
+            "createdAt": "2026-11-15T23:29:05.321Z",
+            "metadata": {
+                "companyId": "CV",
+                "choice": "withhold",
+                "revenue": 0,
+                "retained": 0,
+                "dividendPerShare": 0,
+                "bonusPerShare": 0,
+                "bankAdjustment": 0,
+                "payments": [],
+                "marketMove": {
+                    "companyId": "CV",
+                    "fromMarketSpaceId": "2:4",
+                    "toMarketSpaceId": "2:3"
+                },
+                "privateEffects": [],
+                "round": { "number": 1, "roundNumber": 1 }
+            },
+            "index": 60,
+            "undoPatch": [
+                { "op": "replace", "path": "/actionCount", "value": 60 },
+                { "op": "replace", "path": "/actionChecksum", "value": 1518394322 },
+                { "op": "replace", "path": "/machineState", "value": "DistributingEarnings" },
+                {
+                    "op": "add",
+                    "path": "/stockMarket/stacks/1",
+                    "value": { "spaceId": "2:4", "companyIds": ["CV"] }
+                },
+                { "op": "remove", "path": "/stockMarket/stacks/3/companyIds/1" },
+                { "op": "replace", "path": "/companies/3/operated", "value": false },
+                { "op": "remove", "path": "/earningsDistribution" },
+                { "op": "remove", "path": "/trainPurchaseStep" }
+            ]
+        },
+        {
+            "id": "action:61",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "BuyTrain",
+            "companyId": "CV",
+            "trainId": "1856:diesels/2/2",
+            "definitionId": "2",
+            "expectedPrice": 100,
+            "createdAt": "2026-11-15T23:29:05.328Z",
+            "metadata": {
+                "companyChanges": { "presidents": [], "closedCompanyIds": [] },
+                "companyId": "CV",
+                "trainId": "1856:diesels/2/2",
+                "definitionId": "2",
+                "price": 100
+            },
+            "index": 61,
+            "undoPatch": [
+                { "op": "replace", "path": "/actionCount", "value": 61 },
+                { "op": "replace", "path": "/actionChecksum", "value": -435985215 },
+                { "op": "replace", "path": "/cash/0/amount", "value": 10810 },
+                { "op": "replace", "path": "/cash/8/amount", "value": 330 },
+                {
+                    "op": "replace",
+                    "path": "/trainInventory/trains/1",
+                    "value": { "id": "1856:diesels/2/2", "definitionId": "2", "status": "depot" }
+                },
+                { "op": "remove", "path": "/trainPurchaseStep/purchasedTrainIds/0" }
+            ]
+        },
+        {
+            "id": "action:62",
+            "gameId": "scenario-1856-loan-step",
+            "source": "user",
+            "playerId": "p3",
+            "type": "FinishTrains",
+            "companyId": "CV",
+            "createdAt": "2026-11-15T23:29:05.333Z",
+            "index": 62,
+            "undoPatch": [
+                { "op": "replace", "path": "/actionCount", "value": 62 },
+                { "op": "replace", "path": "/actionChecksum", "value": -28513202 },
+                { "op": "replace", "path": "/machineState", "value": "BuyingTrains" },
+                { "op": "remove", "path": "/loanStep" }
+            ]
+        }
+    ]
+}

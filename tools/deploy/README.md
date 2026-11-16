@@ -49,7 +49,10 @@ Building locally is not gated: `build-ui` and `build-logic` work on any tree.
 The frontend follows the same model with `release-frontend (--major | --minor | --patch)
 [--no-deploy]` and `deploy-frontend`. There is no `--logic` flag; the release bumps
 `apps/frontend/package.json`, tags `frontend-v<version>`, and the deploy uploads the build to
-`frontend/<version>` in the bucket before publishing the manifest.
+`frontend/<version>` in the bucket before publishing the manifest. The build includes the
+deployment's privacy policy and terms from the gitignored `apps/frontend/legal/` folder, like
+`apps/frontend/.env.production`, and the deploy prints which ones it found
+(`docs/legal/README.md`).
 
 Firebase Hosting serves the site files, so a frontend deploy, `rollback --frontend` and
 `switch --frontend` need `hosting.channel` in the deploy config (or `TABLETOP_HOSTING_CHANNEL`;

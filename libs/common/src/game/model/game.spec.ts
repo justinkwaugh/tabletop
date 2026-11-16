@@ -86,3 +86,15 @@ describe('omitGameState', () => {
         expect(Value.Check(GameWithoutState, gameWithoutState)).toBe(true)
     })
 })
+
+describe('turn start times', () => {
+    test('come back as Dates when a Game is read from JSON', () => {
+        const startedAt = new Date('2026-11-12T12:00:00Z')
+        const game = { ...Value.Create(Game), turnStartedAt: { a: startedAt } }
+
+        const read = Value.Convert(Game, JSON.parse(JSON.stringify(game)))
+
+        if (!Value.Check(Game, read)) throw new Error('The JSON did not read back as a Game')
+        expect(read.turnStartedAt).toEqual({ a: startedAt })
+    })
+})

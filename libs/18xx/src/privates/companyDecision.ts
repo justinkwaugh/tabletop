@@ -17,6 +17,8 @@ export const PrivateTrackLay = Type.Object(
     {
         privateCompanyId: Id,
         playerId: Id,
+        /** The one hex the lay is confined to, where a power fixed it before the lay. */
+        locationId: Type.Optional(Id),
         /** The rest of a power's lays laid together, which the player may not decline. */
         required: Type.Optional(Type.Literal(true))
     },

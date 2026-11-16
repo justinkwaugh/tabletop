@@ -16,7 +16,15 @@ export function createGameRequestSchema(config: TSchema = Type.Object({})) {
             options: Type.Optional(GameCreationOptions),
             game: Type.Evaluate(
                 Type.Intersect([
-                    Type.Pick(Game, ['id', 'name', 'players', 'isPublic', 'unlisted', 'seed']),
+                    Type.Pick(Game, [
+                        'id',
+                        'name',
+                        'players',
+                        'isPublic',
+                        'unlisted',
+                        'paceMinutes',
+                        'seed'
+                    ]),
                     Type.Object({ config: Type.Optional(config) })
                 ])
             )

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { Color } from '@tabletop/common'
+import { describe, expect, it, vi } from 'vitest'
+import { Color, assert, type Visibility } from '@tabletop/common'
 import { HydratedPlayFacedownAdviser, PlayFacedownAdviser } from './playFacedownAdviser.js'
 import { SearchPlay } from './searchResolve.js'
 import { Banner } from '../model/oathEnums.js'
@@ -11,6 +11,8 @@ import { INN } from '../testing/cards.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
 import { OathRevision } from '../util/revision.js'
 import { OathVisibility } from '../definition/runtime.js'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { served, servedJson } from '../testing/projection.js'
 import '../powers/index.js'
 
 const FORCED_LABOR = 'denizen.order.forced-labor'
@@ -247,6 +249,102 @@ describe('R-6.1 — Forced Labor tolls a facedown adviser’s play, as its Q&A r
                     RunMode.Single
                 ).updatedState
             expect(replayed).toEqual(recorded.updatedState)
+        }
+    })
+})
+
+describe('R-6.1, R-7.1.4 — the tolls that alone bar every facedown play, which the table names', () => {
+    const CONQUEST = 'vision.conquest'
+    const barring = (s: HydratedOathGameState, playerId = 'me') =>
+        HydratedPlayFacedownAdviser.tollsAloneBarPlay(s, playerId).map((toll) => toll.cardId)
+
+    it('with no favor to give, Forced Labor alone bars the play, and its toll goes to the ruler', () => {
+        const s = table(WOLVES, atRevision, { favor: 0 })
+        expect(HydratedPlayFacedownAdviser.legalCards(s, 'me')).toEqual([])
+        expect(HydratedPlayFacedownAdviser.tollsAloneBarPlay(s, 'me')).toEqual([
+            { cardId: FORCED_LABOR, payeeId: 'foe' }
+        ])
+    })
+
+    it('with 1 favor or 2 the card is offered, so no toll bars it', () => {
+        for (const favor of [1, 2]) {
+            const s = table(WOLVES, atRevision, { favor })
+            expect(HydratedPlayFacedownAdviser.legalCards(s, 'me'), `${favor}`).toEqual([WOLVES])
+            expect(barring(s), `${favor}`).toEqual([])
+        }
+    })
+
+    it('a facedown Vision beside a facedown denizen: the one toll bars both', () => {
+        const s = table(WOLVES, atRevision, {
+            favor: 0,
+            advisers: [
+                { cardId: WOLVES, faceUp: false },
+                { cardId: CONQUEST, faceUp: false }
+            ]
+        })
+        expect(HydratedPlayFacedownAdviser.legalCards(s, 'me')).toEqual([])
+        expect(barring(s)).toEqual([FORCED_LABOR])
+    })
+
+    it('the ruler, a player away from the ruled site, and a player with no facedown adviser are barred by nothing', () => {
+        const s = table(
+            WOLVES,
+            atRevision,
+            { favor: 0 },
+            { favor: 0, advisers: [{ cardId: INN, faceUp: false }] }
+        )
+        expect(barring(s, 'foe')).toEqual([])
+        const faceup = table(WOLVES, atRevision, {
+            favor: 0,
+            advisers: [{ cardId: WOLVES, faceUp: true }]
+        })
+        expect(barring(faceup)).toEqual([])
+        s.getPlayerState('me').siteId = 'p1'
+        expect(barring(s)).toEqual([])
+    })
+
+    it('R-X.4 — in a game created before the revision no toll is asked, so none bars the play', () => {
+        const s = table(WOLVES, OathRevision.CostsAndFacedownModifiers, { favor: 0 })
+        expect(HydratedPlayFacedownAdviser.legalCards(s, 'me')).toEqual([WOLVES])
+        expect(barring(s)).toEqual([])
+    })
+
+    it("R-9.4 — each player's own view reads the same as the server, never copying the state", () => {
+        const views = ['me', 'foe'].map((playerId): Visibility.Perspective => ({
+            kind: 'player',
+            playerId
+        }))
+        for (const favor of [0, 1]) {
+            const s = table(
+                WOLVES,
+                atRevision,
+                {
+                    favor,
+                    advisers: [
+                        { cardId: WOLVES, faceUp: false },
+                        { cardId: CONQUEST, faceUp: false }
+                    ]
+                },
+                { advisers: [{ cardId: INN, faceUp: false }] }
+            )
+            const before = views.map((view) => servedJson(s, view))
+            for (const view of views) {
+                assert(view.kind === 'player')
+                const own = OathVisibility.state.guardForExecution(
+                    new HydratedOathGameState(served(s, view)),
+                    view
+                )
+                const copied = vi.spyOn(own, 'dehydrate')
+                const seen = HydratedPlayFacedownAdviser.tollsAloneBarPlay(own, view.playerId)
+                expect(seen, `${favor}, ${view.playerId}`).toEqual(
+                    HydratedPlayFacedownAdviser.tollsAloneBarPlay(s, view.playerId)
+                )
+                expect(seen.map((toll) => toll.cardId)).toEqual(
+                    favor === 0 && view.playerId === 'me' ? [FORCED_LABOR] : []
+                )
+                expect(copied, `${favor}, ${view.playerId}`).not.toHaveBeenCalled()
+            }
+            expect(views.map((view) => servedJson(s, view))).toEqual(before)
         }
     })
 })

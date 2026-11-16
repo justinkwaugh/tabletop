@@ -24,6 +24,13 @@ const money = moneyFormat(TitleRules1850.currencySymbol)
 
 export const Presentation1850: TitlePresentation<State1850> = {
     money,
+    unstartedCompanies: {
+        onOffer: () => true,
+        home: (_state, companyId) => {
+            const company = company1850(companyId)
+            return { locationIds: company ? [company.home] : [] }
+        }
+    },
     phaseChart: PhaseChart1850,
     phaseChartFor: phaseChart1850,
     // With diesels, the first diesel brings in the last off-board values (§16.2).
