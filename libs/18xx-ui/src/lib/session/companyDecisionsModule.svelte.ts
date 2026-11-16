@@ -47,6 +47,10 @@ export type PrivateMarkerOption = {
     playerId: string
     kind: string
     locationId: string
+    /** The revenue center it goes on, where the terms name centers. */
+    nodeId?: string
+    /** Which of the location's offered centers it is, where there are several: 2 of 2. */
+    stopOrdinal?: { index: number; count: number }
 }
 export type CompanyDecision =
     | { kind: 'purchase'; request: PurchaseOfferRequest }
@@ -173,12 +177,32 @@ export class CompanyDecisionsModule {
                 .flatMap((company) => {
                     const terms = rules.privatePowerRules.markerTerms?.(state, company.id, playerId)
                     if (!terms) return []
-                    return terms.locationIds.map((locationId) => ({
-                        privateCompanyId: company.id,
-                        playerId,
-                        kind: terms.kind,
-                        locationId
-                    }))
+                    const { stops } = terms
+                    if (!stops)
+                        return terms.locationIds.map((locationId) => ({
+                            privateCompanyId: company.id,
+                            playerId,
+                            kind: terms.kind,
+                            locationId
+                        }))
+                    return stops.map((stop) => {
+                        const here = stops.filter((other) => other.locationId === stop.locationId)
+                        return {
+                            privateCompanyId: company.id,
+                            playerId,
+                            kind: terms.kind,
+                            locationId: stop.locationId,
+                            nodeId: stop.nodeId,
+                            ...(here.length > 1
+                                ? {
+                                      stopOrdinal: {
+                                          index: here.indexOf(stop) + 1,
+                                          count: here.length
+                                      }
+                                  }
+                                : {})
+                        }
+                    })
                 })
         )
     })
@@ -392,13 +416,15 @@ export class CompanyDecisionsModule {
             this.privateMarkerOptions.some(
                 (listed) =>
                     listed.privateCompanyId === option.privateCompanyId &&
-                    listed.locationId === option.locationId
+                    listed.locationId === option.locationId &&
+                    listed.nodeId === option.nodeId
             ),
             'This private cannot mark that location now'
         )
         const action = this.session.createPlayerAction(PlacePrivateMarker, {
             privateCompanyId: option.privateCompanyId,
-            locationId: option.locationId
+            locationId: option.locationId,
+            ...(option.nodeId ? { nodeId: option.nodeId } : {})
         })
         action.playerId = option.playerId
         await this.session.applyAction(action)
