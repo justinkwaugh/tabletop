@@ -13,10 +13,13 @@
     const covers: HTMLImageElement[] = []
 
     const shown = $derived(position % titles.length)
-    const running = $derived(
-        !paused && inView && visibilityState === 'visible' && !prefersReducedMotion.current
+    const cycling = $derived(
+        inView && visibilityState === 'visible' && !prefersReducedMotion.current
     )
-    const coverCount = $derived(Math.min(titles.length, furthestShown + (running ? 2 : 1)))
+    const running = $derived(cycling && !paused)
+    // Hovering must not add or remove covers: iOS Safari treats a tap that
+    // changes content under the finger as a hover and drops the click.
+    const coverCount = $derived(Math.min(titles.length, furthestShown + (cycling ? 2 : 1)))
 
     function showNextCover() {
         const next = (shown + 1) % titles.length
