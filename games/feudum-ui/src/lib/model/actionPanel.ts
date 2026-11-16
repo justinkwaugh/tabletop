@@ -817,7 +817,7 @@ function landscapesBlocks(
     panel: NonNullable<PanelSession['landscapesPanel']>
 ): ActionBlock[] {
     return [
-        line('flow', 'Collect your landscapes'),
+        line('flow', 'Collect'),
         ...panel.spaces.flatMap((space) =>
             rows(`landscape:${space.spaceId}`, [draftRow(session, space)], space.place)
         ),

@@ -221,7 +221,8 @@ test('S55 landscapes: the order row, each filled space, and a row brightens it',
 }) => {
     await openTable(page, `openLandscapesTable('seat')`)
     await expect(panel(page).locator('[data-order-row="landscapes"]')).toBeVisible()
-    await expect(primary(page)).toHaveText('Leave all')
+    await expect(primary(page)).toHaveText('Leave')
+    await expect(primary(page)).toHaveAccessibleName('Leave all')
     await panel(page)
         .getByRole('button', { name: /^collect/ })
         .first()

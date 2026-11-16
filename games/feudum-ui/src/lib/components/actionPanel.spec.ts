@@ -4,6 +4,7 @@ import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
 import WritFace from '$lib/components/pieces/WritFace.svelte'
 import type { ActionBlock, ActionRow, LineRole, SeatNames } from '$lib/model/actionPanel.js'
+import type { GameEndTie } from '$lib/model/gameEnd.js'
 import type { PanelChoice } from '$lib/model/cardFlows.js'
 import ActionPanelOnTable from '$lib/testing/ActionPanelOnTable.svelte'
 
@@ -833,8 +834,7 @@ describe('R-4.12 the dawn sheet', () => {
                     total: 0
                 }
             ],
-            fills: ['Sea 2: archery-butt +3'],
-            notes: ['New goods on the map']
+            fills: ['Sea 2: archery-butt +3']
         }
     })
 
@@ -852,9 +852,8 @@ describe('R-4.12 the dawn sheet', () => {
         expect(ben).not.toContain('text-feudum-danger')
     })
 
-    it('R-4.12.3, R-4.12.4 the fills and what came after follow the rows', () => {
+    it('R-4.12.3 the fills follow the rows', () => {
         expect(sheet).toContain('Sea 2: archery-butt +3')
-        expect(sheet).toContain('New goods on the map')
         expect(sheet.indexOf('data-dawn-row')).toBeLessThan(sheet.indexOf('data-dawn-note'))
     })
 })
@@ -868,12 +867,12 @@ describe('R-6.2, R-6.3 the game-end summary', () => {
         largeEmpire: score,
         shillings: score
     }
-    const summary = (tieBreak?: string) =>
+    const summary = (tieBreak?: GameEndTie) =>
         markupOf({
             kind: 'game-end',
             seats,
             summary: {
-                winnerLine: 'Ana wins',
+                winners: ['p1'],
                 ...(tieBreak ? { tieBreak } : {}),
                 columns: [
                     {
@@ -916,10 +915,46 @@ describe('R-6.2, R-6.3 the game-end summary', () => {
         expect(charter).toMatch(/data-charter-score[^>]*>6 vp<\/span>/)
     })
 
+    /** The paragraph marked so. */
+    const paragraphOf = (markup: string, attribute: string) => {
+        const from = markup.indexOf(attribute)
+        return markup.slice(from, markup.indexOf('</p>', from)).replace(/^[^>]*>/, '')
+    }
+    /** Its words, its chips read as their names. */
+    const wordsOf = (markup: string, attribute: string) =>
+        paragraphOf(markup, attribute)
+            .replace(/<!--.*?-->|<[^>]+>/gs, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+
+    it('S56 R-6.3 the winners stand as their chips', () => {
+        const markup = summary()
+        expect(paragraphOf(markup, 'data-game-winner')).toContain('data-seat-chip="Ana"')
+        expect(wordsOf(markup, 'data-game-winner')).toBe('Ana wins')
+    })
+
     it('S56 R-6.3 the tie-break is named when it broke a tie, and is absent otherwise', () => {
-        expect(textOf(summary('Ana has the fuller barrel'), 'data-game-tie-break')).toBe(
-            'Ana has the fuller barrel'
+        const broken = summary({
+            broken: true,
+            seats: [
+                { playerId: 'p1', barrel: 3 },
+                { playerId: 'p2', barrel: 1 }
+            ],
+            shared: false
+        })
+        expect(paragraphOf(broken, 'data-game-tie-break')).toContain('data-seat-chip="Ben"')
+        expect(wordsOf(broken, 'data-game-tie-break')).toBe(
+            'Tie broken by barrel sulfur: Ana 3 and Ben 1'
         )
+        const level = summary({
+            broken: false,
+            seats: [
+                { playerId: 'p1', barrel: 1 },
+                { playerId: 'p2', barrel: 1 }
+            ],
+            shared: true
+        })
+        expect(wordsOf(level, 'data-game-tie-break')).toBe('Tie: Ana and Ben · shared win')
         expect(summary()).not.toContain('data-game-tie-break')
     })
 })

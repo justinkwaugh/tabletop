@@ -509,7 +509,7 @@ describe('S55 landscapes, as drawn', () => {
         const table = hold(await atCollecting())
         const { session, spaces } = table
         const view = session.actionPanel
-        expect(primaryLabels(view)).toEqual(['Leave all'])
+        expect(primaryLabels(view)).toEqual(['Leave'])
         const first = rowsOf(view, `landscape:${spaces[0]}`)[0]
         expect(first.choice.label).toMatch(/^collect \d+ · 1 to the ruler$/)
         expect(lit(first)).toEqual([spaceTarget(spaces[0])])

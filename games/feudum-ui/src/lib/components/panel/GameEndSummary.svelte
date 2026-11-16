@@ -5,12 +5,13 @@
     import type { GameEndSummaryView } from '$lib/model/gameEnd.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { writName } from '$lib/model/writLabels.js'
+    import SeatChip from './SeatChip.svelte'
 
     /**
      * R-6.2, R-6.3 Every category per seat, sealed charters face up, and the winner: one column per
      * seat at a desk. On a phone, one row per seat, its categories running on as a line and its
      * charters small beside them, a press enlarging one, so every seat stands whole in the action
-     * area (contract: Phone layout).
+     * area (contract: Phone layout). The winners, and the seats tied on vp, stand as their chips.
      */
     let { summary, seats }: { summary: GameEndSummaryView; seats: SeatNames } = $props()
 
@@ -19,10 +20,43 @@
     const phone = new PhoneLayout()
 </script>
 
+{#snippet chips(playerIds: readonly string[], barrels?: readonly number[])}
+    {#each playerIds as playerId, index (playerId)}{#if index > 0}<span class="sr-only"
+                >{index === playerIds.length - 1 ? ' and ' : ', '}</span
+            >{/if}<span class="inline-flex items-center gap-0.5"
+            ><SeatChip
+                name={seats.nameOf(playerId)}
+                paint={seats.paintOf(playerId)}
+            />{#if barrels}<span>{` ${barrels[index]}`}</span>{/if}</span
+        >{/each}
+{/snippet}
+
 <div class="w-full overflow-x-auto" data-game-end>
-    <p class="text-sm font-semibold text-feudum-text" data-game-winner>{summary.winnerLine}</p>
+    <p
+        class="flex flex-wrap items-center gap-1 text-sm font-semibold text-feudum-text"
+        data-game-winner
+    >
+        {@render chips(summary.winners)}
+        {summary.winners.length === 1 ? 'wins' : 'win'}
+    </p>
     {#if summary.tieBreak}
-        <p class="text-xs text-feudum-text-muted" data-game-tie-break>{summary.tieBreak}</p>
+        {@const tie = summary.tieBreak}
+        <p
+            class="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-feudum-text-muted"
+            data-game-tie-break
+        >
+            {#if tie.broken}
+                Tie broken by barrel sulfur:
+                {@render chips(
+                    tie.seats.map(({ playerId }) => playerId),
+                    tie.seats.map(({ barrel }) => barrel)
+                )}
+            {:else}
+                Tie:
+                {@render chips(tie.seats.map(({ playerId }) => playerId))}
+            {/if}
+            {#if tie.shared}· shared win{/if}
+        </p>
     {/if}
     {#if phone.phone}
         <div class="mt-1 flex flex-col gap-1 text-xs leading-tight text-feudum-text">

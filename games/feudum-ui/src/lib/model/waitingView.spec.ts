@@ -436,12 +436,22 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         }
     })
 
-    it("R-4.12.4 the map's new goods and (III) the guild refill read on the sheet", async () => {
+    it("R-4.12.4 the map's new goods and (III) the guild refill read in the history, not on the sheet", async () => {
         const table = hold(await playOutRound(3))
-        const sheet = dawnOf(table.session)
+        const { session, host } = table
+        const sheet = dawnOf(session)
         expect(sheet.epoch).toBe(3)
-        expect(sheet.notes.join()).toMatch(/new goods/i)
-        expect(sheet.notes.join()).toMatch(/guilds refill/i)
+        expect(Object.keys(sheet)).not.toContain('notes')
+        const told = (type: ActionType) => {
+            const action = host.actions.findLast((each) => each.type === type)
+            assertExists(action, `The dawn played ${type}`)
+            return describeAction(action, {
+                viewerId: session.myPlayerId,
+                nameOf: (playerId) => session.getPlayerName(playerId)
+            })
+        }
+        expect(told(ActionType.ReplenishMap)).toMatch(/new goods/i)
+        expect(told(ActionType.ReplenishGuilds)).toMatch(/guilds refilled/i)
     })
 
     it('R-4.12.3 the sheet stays through the collecting, with the order row over it', async () => {
@@ -455,7 +465,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         expect(blockOf(session.actionPanel, 'order-row')?.step).toBe('landscapes')
         sameForAll(sessions)
         expect(dawnOf(session).fills.length).toBeGreaterThan(0)
-        await primaryNamed(session.actionPanel, /^(Leave all|Collect)/).send()
+        await primaryNamed(session.actionPanel, /^(Leave|Collect)/).send()
         for (const seat of sessions) {
             await settled(seat)
         }
@@ -569,7 +579,7 @@ describe('S56 R-6.2, R-6.3 the game-end summary', () => {
         expect(
             summary?.columns.filter(({ winner }) => winner).map(({ playerId }) => playerId)
         ).toEqual(winners)
-        expect(summary?.winnerLine).toMatch(/wins?$/)
+        expect(summary?.winners).toEqual(winners)
     })
 
     it('S56 R-6.3 every column adds up to its total, with what was scored before the V dawn', async () => {
@@ -634,14 +644,16 @@ describe('S56 R-6.2, R-6.3 the game-end summary', () => {
         const score = table.host.actions.find((action) => isScoreGame(action))
         const metadata = isScoreGame(score) ? score.metadata : undefined
         assertExists(metadata?.barrelTieBreak, 'The vp were tied')
-        const name = table.session.getPlayerName(table.seat)
         const barrel = metadata.barrelTieBreak.find(({ playerId }) => playerId === table.seat)
         expect(barrel?.barrel).toBeGreaterThan(0)
         for (const seat of table.sessions) {
             const summary = blockOf(seat.actionPanel, 'game-end')?.summary
-            expect(summary?.tieBreak).toMatch(/^Tie on vp broken by barrel sulfur: /)
-            expect(summary?.tieBreak).toContain(`${name} ${barrel?.barrel}`)
-            expect(summary?.winnerLine).toBe(`${name} wins`)
+            expect(summary?.tieBreak?.broken).toBe(true)
+            expect(summary?.tieBreak?.seats).toContainEqual({
+                playerId: table.seat,
+                barrel: barrel?.barrel
+            })
+            expect(summary?.winners).toEqual([table.seat])
         }
     })
 })

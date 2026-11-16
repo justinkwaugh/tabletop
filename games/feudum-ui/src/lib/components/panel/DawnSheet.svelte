@@ -7,7 +7,7 @@
 
     /**
      * R-4.12 One row per seat: guild ranks, landscapes, active regions, disloyalty in rose, the total;
-     * then the fills and what came after. The one drawing of the sheet, the same for every seat: a
+     * then the fills. The one drawing of the sheet, the same for every seat: a
      * table at a desk; on a phone, where five columns run past the width, each seat's row runs on as a
      * line under its name and total (contract: Phone layout).
      */
@@ -114,7 +114,7 @@
             </tbody>
         </table>
     {/if}
-    {#each [...sheet.fills, ...sheet.notes] as note (note)}
+    {#each sheet.fills as note (note)}
         <p class="text-xs text-feudum-text-muted" data-dawn-note>{note}</p>
     {/each}
 </div>

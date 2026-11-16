@@ -180,7 +180,7 @@ const PanelSteps: readonly [string, (page: Page, phone: boolean) => Promise<void
             openTablePage(page, 'followUpTablePage.ts', "openStarveTable(true, 'asked')")
     ],
     [
-        'R-4.12.3 the landscapes: Leave all stands after the landscapes',
+        'R-4.12.3 the landscapes: Leave stands after the landscapes',
         async (page) => openTablePage(page, 'followUpTablePage.ts', 'openDawnTable()')
     ]
 ]

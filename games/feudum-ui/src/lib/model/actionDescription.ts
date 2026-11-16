@@ -426,7 +426,7 @@ function migrateLine(action: GameAction, words: Words): string | undefined {
     return sentence(
         `${words.who(action.playerId)} migrated ${migrateOnto(action)}`,
         left?.vessel ? `${spoken(left.vessel)} left at ${spaceLabel(left.spaceId)}` : undefined,
-        left?.wine ? 'its sulfur to the haversack' : undefined,
+        left?.wine ? 'sulfur to the haversack' : undefined,
         action.distantKin ? 'Distant Kin' : undefined,
         wildTilesLine(action.wildTiles),
         ranksLine(action.metadata?.rankChanges, words),
@@ -616,7 +616,7 @@ function conqueredLine(
                 conquered.vessel
                     ? `${spoken(conquered.vessel)} left at ${spaceLabel(spaceId)}`
                     : undefined,
-                conquered.wine ? 'its sulfur to the haversack' : undefined
+                conquered.wine ? 'sulfur to the haversack' : undefined
             )
         case 'monster':
             return `${words.whose(defenderId)} ${spoken(conquered.monsterId)} went home`

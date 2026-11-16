@@ -235,8 +235,8 @@ const Lines: Readonly<
                 ...NoRanks
             }
         }),
-        actor: 'You migrated the monk off Forest 1 and a knight onto Desert 1 · ship left at Forest 1 · its sulfur to the haversack · Distant Kin',
-        other: 'Ana migrated the monk off Forest 1 and a knight onto Desert 1 · ship left at Forest 1 · its sulfur to the haversack · Distant Kin'
+        actor: 'You migrated the monk off Forest 1 and a knight onto Desert 1 · ship left at Forest 1 · sulfur to the haversack · Distant Kin',
+        other: 'Ana migrated the monk off Forest 1 and a knight onto Desert 1 · ship left at Forest 1 · sulfur to the haversack · Distant Kin'
     },
     [ActionType.Influence]: {
         action: sample<Influence>({

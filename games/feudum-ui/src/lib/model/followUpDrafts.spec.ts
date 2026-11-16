@@ -1571,7 +1571,7 @@ describe('R-4.3.4 Collect landscapes', () => {
         const panel = session.landscapesPanel
         expect(panel?.spaces).toHaveLength(2)
         expect(panel?.spaces[0].label).toMatch(/^collect \d+ · 1 to the ruler$/)
-        expect(panel?.primary).toEqual({ label: 'Leave all', enabled: true })
+        expect(panel?.primary).toEqual({ label: 'Leave', named: 'Leave all', enabled: true })
         expect(roleOf(session.boardOffer, spaceTarget(spaces[0]))).toBe('lit')
         await session.pressTurnTarget(spaceTarget(spaces[0]))
         flushSync()
@@ -1640,7 +1640,7 @@ describe('R-4.3.4 Collect landscapes', () => {
             await press(session, session.landscapesPanel?.spaces[0])
             await press(session, session.landscapesPanel?.spaces[0])
             expect(session.landscapes.value('spaces')).toEqual([])
-            expect(session.landscapesPanel?.primary.label).toBe('Leave all')
+            expect(session.landscapesPanel?.primary.label).toBe('Leave')
         })
     })
 })
