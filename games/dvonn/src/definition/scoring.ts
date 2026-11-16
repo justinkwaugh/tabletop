@@ -1,12 +1,15 @@
 import type { GameScoring } from '@tabletop/common'
-import { HydratedDvonnGameState, type DvonnGameState } from '../model/gameState.js'
+import type { DvonnGameState } from '../model/gameState.js'
 
-// Rule G2: each player scores every piece in the stacks they control, DVONN pieces included.
+// DVONN is won or lost; the stack totals only decide who. The winner scores 1 and the loser 0, and
+// a draw gives both players 1.
 export class DvonnScoring implements GameScoring<DvonnGameState> {
     finalScores(state: DvonnGameState): Record<string, number> {
-        const hydrated = new HydratedDvonnGameState(state)
         return Object.fromEntries(
-            hydrated.players.map((player) => [player.playerId, hydrated.score(player.playerId)])
+            state.players.map((player) => [
+                player.playerId,
+                state.winningPlayerIds.includes(player.playerId) ? 1 : 0
+            ])
         )
     }
 }

@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
+import { assertExists, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
 import { DIRECTIONS, isSpace, neighborsOf, spaceKey, SPACES, stepsFrom } from './geometry.js'
 
 // Every piece remembers the space it was placed on, which tells it apart from the others for as
@@ -14,16 +14,17 @@ export const PlayerPiece = Type.Object({ playerId: Type.String(), placedAt: Axia
 export type Piece = Type.Static<typeof Piece>
 export const Piece = Type.Union([DvonnPiece, PlayerPiece])
 
-// A stack lists its pieces from the bottom up.
-export type Space = Type.Static<typeof Space>
-export const Space = Type.Object({
+// An occupied space and its stack, listed from the bottom up. Empty spaces are not stored: the
+// board's spaces are SPACES.
+export type Stack = Type.Static<typeof Stack>
+export const Stack = Type.Object({
     coords: AxialCoordinates,
-    stack: Type.Array(Piece)
+    pieces: Type.Array(Piece, { minItems: 1 })
 })
 
 export type DvonnBoard = Type.Static<typeof DvonnBoard>
 export const DvonnBoard = Type.Object({
-    spaces: Type.Array(Space)
+    stacks: Type.Array(Stack)
 })
 
 export type RemovedStack = Type.Static<typeof RemovedStack>
@@ -46,33 +47,28 @@ export function stackOwner(stack: readonly Piece[]): string | undefined {
 }
 
 export function emptyBoard(): DvonnBoard {
-    return { spaces: SPACES.map((coords) => ({ coords: { ...coords }, stack: [] })) }
+    return { stacks: [] }
 }
 
 const DvonnBoardValidator = Compile(DvonnBoard)
 
 export class HydratedDvonnBoard extends Hydratable<typeof DvonnBoard> implements DvonnBoard {
-    declare spaces: Space[]
+    declare stacks: Stack[]
 
     constructor(data: DvonnBoard) {
         super(data, DvonnBoardValidator)
     }
 
-    private spaceAt(coords: AxialCoordinates): Space {
-        const key = spaceKey(coords)
-        const space = this.spaces.find((candidate) => spaceKey(candidate.coords) === key)
-        if (space === undefined) {
-            throw Error(`No space at ${coords.q},${coords.r}`)
-        }
-        return space
+    private stackOn(coords: AxialCoordinates): Stack | undefined {
+        return this.stacks.find((stack) => sameCoordinates(stack.coords, coords))
     }
 
     stackAt(coords: AxialCoordinates): readonly Piece[] {
-        return this.spaceAt(coords).stack
+        return this.stackOn(coords)?.pieces ?? []
     }
 
     isOccupied(coords: AxialCoordinates): boolean {
-        return isSpace(coords) && this.spaceAt(coords).stack.length > 0
+        return this.stackOn(coords) !== undefined
     }
 
     ownerAt(coords: AxialCoordinates): string | undefined {
@@ -80,30 +76,29 @@ export class HydratedDvonnBoard extends Hydratable<typeof DvonnBoard> implements
     }
 
     vacantSpaces(): AxialCoordinates[] {
-        return this.spaces.filter((space) => space.stack.length === 0).map((space) => space.coords)
+        return SPACES.filter((coords) => !this.isOccupied(coords))
     }
 
     isFull(): boolean {
-        return this.spaces.every((space) => space.stack.length > 0)
+        return this.stacks.length === SPACES.length
     }
 
     dvonnCount(): number {
-        return this.spaces.reduce(
-            (count, space) => count + space.stack.filter(isDvonnPiece).length,
+        return this.stacks.reduce(
+            (count, stack) => count + stack.pieces.filter(isDvonnPiece).length,
             0
         )
     }
 
     place(coords: AxialCoordinates, piece: Piece) {
-        const space = this.spaceAt(coords)
-        if (space.stack.length > 0) {
+        if (!isSpace(coords) || this.isOccupied(coords)) {
             throw Error('The space is taken')
         }
-        space.stack.push(piece)
+        this.stacks.push({ coords: { ...coords }, pieces: [piece] })
     }
 
     // Rule E6: a stack with all six neighbours occupied is blocked; edge spaces have fewer than six.
-    isSurrounded(coords: AxialCoordinates): boolean {
+    private isSurrounded(coords: AxialCoordinates): boolean {
         const neighbors = neighborsOf(coords)
         return (
             neighbors.length === DIRECTIONS.length &&
@@ -128,24 +123,27 @@ export class HydratedDvonnBoard extends Hydratable<typeof DvonnBoard> implements
     }
 
     stacksOf(playerId: string): AxialCoordinates[] {
-        return this.spaces
-            .filter((space) => stackOwner(space.stack) === playerId)
-            .map((space) => space.coords)
+        return this.stacks
+            .filter((stack) => stackOwner(stack.pieces) === playerId)
+            .map((stack) => stack.coords)
     }
 
     moveStack(from: AxialCoordinates, to: AxialCoordinates) {
-        const origin = this.spaceAt(from)
-        this.spaceAt(to).stack.push(...origin.stack)
-        origin.stack = []
+        const origin = this.stackOn(from)
+        const target = this.stackOn(to)
+        assertExists(origin, `No stack at ${from.q},${from.r}`)
+        assertExists(target, `No stack at ${to.q},${to.r}`)
+        target.pieces.push(...origin.pieces)
+        this.stacks = this.stacks.filter((stack) => stack !== origin)
     }
 
     // Rule F1: every stack that no chain of occupied neighbours links to a DVONN piece leaves the
     // board.
     removeIsolated(): RemovedStack[] {
         const linked = new Set<number>()
-        const frontier = this.spaces
-            .filter((space) => space.stack.some(isDvonnPiece))
-            .map((space) => space.coords)
+        const frontier = this.stacks
+            .filter((stack) => stack.pieces.some(isDvonnPiece))
+            .map((stack) => stack.coords)
         frontier.forEach((coords) => linked.add(spaceKey(coords)))
         for (let current = frontier.pop(); current !== undefined; current = frontier.pop()) {
             for (const neighbor of neighborsOf(current)) {
@@ -156,29 +154,24 @@ export class HydratedDvonnBoard extends Hydratable<typeof DvonnBoard> implements
             }
         }
 
-        const removed: RemovedStack[] = []
-        for (const space of this.spaces) {
-            if (space.stack.length > 0 && !linked.has(spaceKey(space.coords))) {
-                removed.push({ coords: { ...space.coords }, stack: space.stack })
-                space.stack = []
-            }
-        }
-        return removed
+        const isolated = this.stacks.filter((stack) => !linked.has(spaceKey(stack.coords)))
+        this.stacks = this.stacks.filter((stack) => linked.has(spaceKey(stack.coords)))
+        return isolated.map((stack) => ({ coords: { ...stack.coords }, stack: stack.pieces }))
     }
 
     piecesOf(playerId: string): number {
-        return this.spaces.reduce(
-            (count, space) =>
+        return this.stacks.reduce(
+            (count, stack) =>
                 count +
-                space.stack.filter((piece) => isPlayerPiece(piece) && piece.playerId === playerId)
+                stack.pieces.filter((piece) => isPlayerPiece(piece) && piece.playerId === playerId)
                     .length,
             0
         )
     }
 
     controlledPieces(playerId: string): number {
-        return this.spaces
-            .filter((space) => stackOwner(space.stack) === playerId)
-            .reduce((count, space) => count + space.stack.length, 0)
+        return this.stacks
+            .filter((stack) => stackOwner(stack.pieces) === playerId)
+            .reduce((count, stack) => count + stack.pieces.length, 0)
     }
 }

@@ -5,9 +5,9 @@ import { HydratedDvonnGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isSpace } from '../model/geometry.js'
 import { Piece, RemovedStack } from '../model/board.js'
-import { nextTurnAfterMove } from '../stateHandlers/turnFlow.js'
 
 export type MoveStackMetadata = Type.Static<typeof MoveStackMetadata>
+// `passedPlayerId` names a player whose turn this move's end skipped, as they could not move.
 export const MoveStackMetadata = Type.Object({
     moved: Type.Array(Piece),
     landedOn: Type.Array(Piece),
@@ -51,10 +51,6 @@ export class HydratedMoveStack extends HydratableAction<typeof MoveStack> implem
             throw Error('Invalid MoveStack action')
         }
         this.metadata = state.moveStack(this.from, this.to)
-        const passedPlayerId = nextTurnAfterMove(state, this.playerId).passedPlayerId
-        if (passedPlayerId !== undefined) {
-            this.metadata.passedPlayerId = passedPlayerId
-        }
     }
 
     isValid(state: HydratedDvonnGameState): boolean {

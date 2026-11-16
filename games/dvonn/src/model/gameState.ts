@@ -1,4 +1,5 @@
 import {
+    assertExists,
     type AxialCoordinates,
     Color,
     GameResult,
@@ -11,7 +12,6 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { DvonnPlayerState, HydratedDvonnPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
-import { DvonnVersion } from '../definition/config.js'
 import { DvonnBoard, HydratedDvonnBoard, type Piece, type RemovedStack } from './board.js'
 
 export const DVONN_PIECES = 3
@@ -24,7 +24,6 @@ export const DvonnGameState = Type.Evaluate(
         Type.Object({
             players: Type.Array(DvonnPlayerState),
             machineState: Type.Enum(MachineState),
-            version: Type.Enum(DvonnVersion),
             board: DvonnBoard
         })
     ])
@@ -53,7 +52,6 @@ export class HydratedDvonnGameState
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
-    declare version: DvonnVersion
     declare board: HydratedDvonnBoard
 
     constructor(data: DvonnGameState) {
@@ -64,18 +62,21 @@ export class HydratedDvonnGameState
 
     opponentOf(playerId: string): string {
         const opponent = this.players.find((player) => player.playerId !== playerId)
-        if (opponent === undefined) {
-            throw Error(`No opponent for ${playerId}`)
-        }
+        assertExists(opponent, `No opponent for ${playerId}`)
         return opponent.playerId
     }
 
     whitePlayerId(): string {
         const white = this.players.find((player) => player.color === Color.White)
-        if (white === undefined) {
-            throw Error('No player has White')
-        }
+        assertExists(white, 'No player has White')
         return white.playerId
+    }
+
+    // Each player starts with PIECES_PER_PLAYER; those not yet placed are in hand.
+    piecesInHand(playerId: string): number {
+        return this.machineState === MachineState.PlacingPieces
+            ? PIECES_PER_PLAYER - this.board.piecesOf(playerId)
+            : 0
     }
 
     // Rule D1: the three DVONN pieces go down first, then each player's own pieces.

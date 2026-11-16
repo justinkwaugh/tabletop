@@ -1,11 +1,16 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedMoveStack, isMoveStack } from '../actions/moveStack.js'
 import { HydratedDvonnGameState } from '../model/gameState.js'
-import { firstMovingTurn, nextTurnAfterMove, type NextTurn } from './turnFlow.js'
+import { firstMovingTurn, nextTurnAfterMove, turnHolder, type NextTurn } from './turnFlow.js'
 
-function startTurn(state: HydratedDvonnGameState, next: NextTurn): MachineState {
+export function startMovingTurn(state: HydratedDvonnGameState, next: NextTurn): MachineState {
     if (next.playerId === undefined) {
         state.declareResult()
         return MachineState.EndOfGame
@@ -15,7 +20,7 @@ function startTurn(state: HydratedDvonnGameState, next: NextTurn): MachineState 
 }
 
 export function beginMovingStacks(state: HydratedDvonnGameState): MachineState {
-    return startTurn(state, firstMovingTurn(state))
+    return startMovingTurn(state, firstMovingTurn(state))
 }
 
 export class MovingStacksStateHandler implements MachineStateHandler<
@@ -37,9 +42,7 @@ export class MovingStacksStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedDvonnGameState>) {
-        const { gameState } = context
-        const playerId = gameState.turnManager.currentTurn()?.playerId
-        gameState.activePlayerIds = playerId === undefined ? [] : [playerId]
+        context.gameState.activePlayerIds = [turnHolder(context.gameState)]
     }
 
     onAction(
@@ -48,6 +51,9 @@ export class MovingStacksStateHandler implements MachineStateHandler<
     ): MachineState {
         const { gameState } = context
         gameState.turnManager.endTurn(gameState.actionCount)
-        return startTurn(gameState, nextTurnAfterMove(gameState, action.playerId))
+        const next = nextTurnAfterMove(gameState, action.playerId)
+        assertExists(action.metadata, 'A moved stack records what it moved')
+        if (next.passedPlayerId !== undefined) action.metadata.passedPlayerId = next.passedPlayerId
+        return startMovingTurn(gameState, next)
     }
 }

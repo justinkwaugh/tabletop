@@ -1,4 +1,11 @@
+import { assertExists } from '@tabletop/common'
 import { HydratedDvonnGameState } from '../model/gameState.js'
+
+export function turnHolder(state: HydratedDvonnGameState): string {
+    const turn = state.turnManager.currentTurn()
+    assertExists(turn, 'A piece is placed or a stack moved only during a turn')
+    return turn.playerId
+}
 
 export type NextTurn = {
     playerId?: string

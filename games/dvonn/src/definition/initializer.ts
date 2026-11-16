@@ -35,6 +35,7 @@ export class DvonnGameInitializer
             prng.random,
             assignment ?? this.chosenWhite(game)
         )
+        turnManager.seriesKeeps = 'latest'
 
         const players = turnManager.turnOrder.map(
             (playerId, index) =>
@@ -50,7 +51,6 @@ export class DvonnGameInitializer
                 players,
                 machineState: MachineState.PlacingPieces,
                 turnManager,
-                version,
                 board:
                     version === DvonnVersion.RandomPlacement
                         ? this.randomBoard(turnManager.turnOrder, prng)
@@ -90,14 +90,14 @@ export class DvonnGameInitializer
             )
         ]
         shuffle(owners, prng.random)
-        const board = emptyBoard()
-        board.spaces.forEach((space, index) => {
-            const placedAt = { ...space.coords }
-            const playerId = owners[index]
-            const piece: Piece =
-                playerId === undefined ? { dvonn: true, placedAt } : { playerId, placedAt }
-            space.stack = [piece]
-        })
-        return board
+        return {
+            stacks: SPACES.map((coords, index) => {
+                const placedAt = { ...coords }
+                const playerId = owners[index]
+                const piece: Piece =
+                    playerId === undefined ? { dvonn: true, placedAt } : { playerId, placedAt }
+                return { coords: { ...coords }, pieces: [piece] }
+            })
+        }
     }
 }

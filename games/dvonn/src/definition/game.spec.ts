@@ -1,58 +1,34 @@
 import { describe, expect, it } from 'vitest'
-import {
-    ActionSource,
-    Color,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    sameCoordinates,
-    type GameAction
-} from '@tabletop/common'
-import { Definition } from './definition.js'
+import { assert, Color, GameResult, sameCoordinates, type GameAction } from '@tabletop/common'
 import { DvonnRuntime } from './runtime.js'
-import { DvonnInfo } from './info.js'
-import { DvonnVersion, WhitePlayer } from './config.js'
+import { DvonnVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { HydratedDvonnGameState, type DvonnGameState } from '../model/gameState.js'
-import { SPACES } from '../model/geometry.js'
+import { DIRECTIONS, neighborsOf, SPACES } from '../model/geometry.js'
 import { spaceFromName, spaceName } from '../model/notation.js'
 import { isDvonnPiece, stackOwner, type Piece } from '../model/board.js'
 import { isMoveStack, type MoveStack } from '../actions/moveStack.js'
 import { isPlacePiece, type PlacePiece } from '../actions/placePiece.js'
+import {
+    actionBase as base,
+    createGame as createTestGame,
+    engine,
+    execute,
+    playToEnd,
+    type DvonnConfig,
+    type DvonnGame
+} from './tests/playthrough.js'
 
-const engine = new GameEngine(DvonnRuntime)
 const W = 'white'
 const B = 'black'
 
 function createGame(
-    config: { version?: DvonnVersion; whitePlayer?: WhitePlayer } = {},
-    owner: { ownerId: string; userIds: Record<string, string> } = {
-        ownerId: 'owner',
-        userIds: {}
-    }
+    config: DvonnConfig = {},
+    owner?: { ownerId: string; userIds: Record<string, string> }
 ) {
-    return DvonnRuntime.initializer.initializeGame(
-        {
-            id: 'dvonn-test',
-            typeId: 'dvonn',
-            ownerId: owner.ownerId,
-            seed: 5,
-            config: { ...defaultGameConfig(DvonnInfo.configurator?.options ?? []), ...config },
-            players: [W, B].map((id) => ({
-                id,
-                name: id,
-                userId: owner.userIds[id],
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
+    return createTestGame(config, [W, B], owner)
 }
-
-type DvonnGame = ReturnType<typeof createGame>
 
 function start(game: DvonnGame): DvonnGameState {
     return engine.startGame(game, { startingPositions: { playerIds: [W, B] } }).initialState
@@ -60,16 +36,6 @@ function start(game: DvonnGame): DvonnGameState {
 
 function startUnassigned(game: DvonnGame): DvonnGameState {
     return engine.startGame(game).initialState
-}
-
-let counter = 0
-function base(game: DvonnGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: DvonnGame, state: DvonnGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
 }
 
 function lastAction(game: DvonnGame, state: DvonnGameState, action: GameAction) {
@@ -111,23 +77,24 @@ function fillBoard(game: DvonnGame): DvonnGameState {
 // Stacks read bottom to top: w white, b black, d DVONN. Every other space is empty and White moves.
 function position(game: DvonnGame, stacks: Record<string, string>): DvonnGameState {
     const state = fillBoard(game)
-    for (const space of state.board.spaces) {
-        const placedAt = space.coords
-        space.stack = (stacks[spaceName(space.coords)] ?? '')
-            .split('')
-            .map((letter): Piece =>
-                letter === 'd'
-                    ? { dvonn: true, placedAt }
-                    : { playerId: letter === 'w' ? W : B, placedAt }
-            )
-    }
+    state.board.stacks = Object.entries(stacks).map(([name, letters]) => {
+        const placedAt = s(name)
+        return {
+            coords: placedAt,
+            pieces: letters
+                .split('')
+                .map((letter): Piece =>
+                    letter === 'd'
+                        ? { dvonn: true, placedAt }
+                        : { playerId: letter === 'w' ? W : B, placedAt }
+                )
+        }
+    })
     return state
 }
 
-function stackAt(state: DvonnGameState, name: string): Piece[] {
-    const space = state.board.spaces.find((candidate) => sameCoordinates(candidate.coords, s(name)))
-    expect(space).toBeDefined()
-    return space?.stack ?? []
+function stackAt(state: DvonnGameState, name: string): readonly Piece[] {
+    return new HydratedDvonnGameState(state).board.stackAt(s(name))
 }
 
 function heightAt(state: DvonnGameState, name: string): number {
@@ -230,10 +197,32 @@ describe('moving stacks', () => {
         const ring = ['C2', 'E2', 'D3', 'E3', 'C1', 'D1']
         const stacks = Object.fromEntries(ring.map((name) => [name, 'b']))
         const state = position(game, { ...stacks, D2: 'w', A1: 'w', B1: 'd' })
-        expect(new HydratedDvonnGameState(state).board.isSurrounded(s('D2'))).toBe(true)
+        expect(new HydratedDvonnGameState(state).board.destinationsFrom(s('D2'))).toEqual([])
         rejectsMove(game, state, W, 'D2', 'E2')
         const next = move(game, state, W, 'A1', 'B1')
         expect(heightAt(next, 'B1')).toBe(2)
+    })
+})
+
+describe('near misses', () => {
+    it('does not move a stack one space short of a landing', () => {
+        const game = createGame()
+        const state = position(game, { A1: 'ww', B1: 'b', D1: 'd' })
+        expect(new HydratedDvonnGameState(state).board.destinationsFrom(s('A1'))).toEqual([])
+        rejectsMove(game, state, W, 'A1', 'B1')
+        rejectsMove(game, state, W, 'A1', 'C1')
+    })
+
+    // Rule E6 counts six neighbours; a space on the edge has fewer, however full they are.
+    it('moves an edge stack whose every neighbour is occupied', () => {
+        const game = createGame()
+        const neighbours = neighborsOf(s('A1'))
+        expect(neighbours.length).toBeLessThan(DIRECTIONS.length)
+        const stacks = Object.fromEntries(neighbours.map((coords) => [spaceName(coords), 'd']))
+        const state = position(game, { ...stacks, A1: 'w' })
+        expect(new HydratedDvonnGameState(state).board.destinationsFrom(s('A1')).length).toBe(
+            neighbours.length
+        )
     })
 })
 
@@ -277,8 +266,9 @@ describe('passing and the end', () => {
         const state = position(game, { A1: 'w', B1: 'd', E3: 'dbb' })
         const next = move(game, state, W, 'A1', 'B1')
         expect(next.machineState).toBe(MachineState.EndOfGame)
-        const scores = DvonnRuntime.scoring?.finalScores(next)
-        expect(scores).toEqual({ [W]: 2, [B]: 3 })
+        const hydrated = new HydratedDvonnGameState(next)
+        expect([hydrated.score(W), hydrated.score(B)]).toEqual([2, 3])
+        expect(DvonnRuntime.scoring?.finalScores(next)).toEqual({ [W]: 0, [B]: 1 })
         expect(next.winningPlayerIds).toEqual([B])
         expect(next.result).toBe(GameResult.Win)
     })
@@ -303,6 +293,42 @@ describe('passing and the end', () => {
     })
 })
 
+describe('the first move', () => {
+    // White places only inside the board and Black only on its edge, so once the board is full
+    // every White stack is surrounded and White, who should move first, cannot.
+    it('passes White when the last placement leaves them no move, and records it', () => {
+        const game = createGame()
+        const inside = SPACES.filter((coords) => neighborsOf(coords).length === DIRECTIONS.length)
+        const edge = SPACES.filter((coords) => neighborsOf(coords).length < DIRECTIONS.length)
+        // The DVONN pieces go first (White, Black, White), then the players alternate.
+        const order = [inside[0], edge[0], inside[1]]
+        const whites = inside.slice(2)
+        const blacks = edge.slice(1)
+        while (whites.length + blacks.length > 0) {
+            const next = order.length % 2 === 0 ? whites.shift() : blacks.shift()
+            assert(next !== undefined, 'White and Black place alternately')
+            order.push(next)
+        }
+        let state = start(game)
+        const last = order.pop()
+        assert(last !== undefined, 'The board has spaces')
+        for (const coords of order) {
+            state = execute(
+                game,
+                state,
+                placeAction(game, state.activePlayerIds[0], spaceName(coords))
+            )
+        }
+        expect(state.activePlayerIds).toEqual([W])
+        const placed = lastAction(game, state, placeAction(game, W, spaceName(last)))
+        assert(isPlacePiece(placed), 'The placement is processed')
+        expect(placed.metadata?.passedPlayerId).toBe(W)
+        const after = execute(game, state, placeAction(game, W, spaceName(last)))
+        expect(after.machineState).toBe(MachineState.MovingStacks)
+        expect(after.activePlayerIds).toEqual([B])
+    })
+})
+
 describe('setup options', () => {
     it('gives White to the game creator or the opponent when chosen', () => {
         const owner = { ownerId: 'u-black', userIds: { [W]: 'u-white', [B]: 'u-black' } }
@@ -319,34 +345,46 @@ describe('setup options', () => {
         expect(whiteOf(opponentWhite)).toBe(W)
     })
 
+    // The rulebook draws lots; Random leaves it to the seeded draw.
+    it('draws White by lot when Random, and when the creator does not play', () => {
+        const whiteOf = (state: DvonnGameState) =>
+            state.players.find((player) => player.color === Color.White)?.playerId
+        const outsider = { ownerId: 'u-host', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        for (const [config, owner] of [
+            [{ whitePlayer: WhitePlayer.Random }, undefined],
+            [{ whitePlayer: WhitePlayer.Creator }, outsider],
+            [{ whitePlayer: WhitePlayer.Opponent }, outsider]
+        ] as const) {
+            const whites = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const state = startUnassigned({ ...createGame(config, owner), seed })
+                    expect(state.activePlayerIds).toEqual([whiteOf(state)])
+                    return whiteOf(state)
+                })
+            )
+            expect(whites).toEqual(new Set([W, B]))
+        }
+    })
+
+    it('reads a missing option as its default and rejects an unknown one', () => {
+        expect(versionFromConfig({})).toBe(DvonnVersion.Standard)
+        expect(whitePlayerFromConfig({})).toBe(WhitePlayer.Random)
+        expect(() => versionFromConfig({ version: 'Bogus' })).toThrow()
+        expect(() => whitePlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
+    })
+
     it('fills the board at random and starts with White stacking', () => {
         const game = createGame({ version: DvonnVersion.RandomPlacement })
         const state = start(game)
         expect(state.machineState).toBe(MachineState.MovingStacks)
-        expect(state.board.spaces.every((space) => space.stack.length === 1)).toBe(true)
-        const pieces = state.board.spaces.map((space) => space.stack[0])
+        expect(state.board.stacks).toHaveLength(SPACES.length)
+        expect(state.board.stacks.every((stack) => stack.pieces.length === 1)).toBe(true)
+        const pieces = state.board.stacks.map((stack) => stack.pieces[0])
         expect(pieces.filter(isDvonnPiece)).toHaveLength(3)
         expect(pieces.filter((piece) => stackOwner([piece]) === W)).toHaveLength(23)
         expect(state.activePlayerIds).toEqual([W])
     })
 })
-
-function legalActions(game: DvonnGame, state: DvonnGameState): GameAction[] {
-    const hydrated = new HydratedDvonnGameState(state)
-    const [playerId] = state.activePlayerIds
-    if (state.machineState === MachineState.PlacingPieces) {
-        return hydrated.board
-            .vacantSpaces()
-            .map((coords) => placeAction(game, playerId, spaceName(coords)))
-    }
-    return hydrated
-        .movableStacks(playerId)
-        .flatMap((from) =>
-            hydrated.board
-                .destinationsFrom(from)
-                .map((to) => moveAction(game, playerId, spaceName(from), spaceName(to)))
-        )
-}
 
 describe('random playouts', () => {
     it.each(
@@ -355,24 +393,13 @@ describe('random playouts', () => {
         )
     )('%s seed %i plays to a result', (version, seed) => {
         const game = { ...createGame({ version }), seed: seed + 1 }
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions))
-            steps += 1
-            expect(steps).toBeLessThan(200)
-        }
+        const state = playToEnd(game, start(game), seed)
         expect(state.winningPlayerIds.length).toBeGreaterThan(0)
-        const scores = DvonnRuntime.scoring?.finalScores(state) ?? {}
-        const best = Math.max(...Object.values(scores))
-        expect(state.winningPlayerIds.every((id) => scores[id] === best)).toBe(true)
+        const hydrated = new HydratedDvonnGameState(state)
+        const best = Math.max(...state.players.map((player) => hydrated.score(player.playerId)))
+        for (const winner of state.winningPlayerIds) expect(hydrated.score(winner)).toBe(best)
+        // Nothing reads past turns, so the series keeps only each player's latest.
+        expect(state.turnManager.series.length).toBeLessThanOrEqual(2)
     })
 })
 
@@ -380,8 +407,7 @@ describe('piece identity', () => {
     it('keeps the space each piece was placed on as it moves', () => {
         const game = createGame()
         const state = fillBoard(game)
-        const moved = state.board.spaces.find((space) => spaceName(space.coords) === 'A1')
-        expect(moved?.stack[0].placedAt).toEqual(s('A1'))
+        expect(stackAt(state, 'A1')[0].placedAt).toEqual(s('A1'))
         const next = move(game, state, W, 'A1', 'B1')
         expect(stackAt(next, 'B1').map((piece) => spaceName(piece.placedAt))).toEqual(['B1', 'A1'])
     })

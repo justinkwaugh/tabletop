@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import {
+    assertExists,
     BaseConfigurator,
     ConfigOptionType,
     type GameConfig,
@@ -23,17 +24,24 @@ export const DvonnGameConfig = Type.Object({
     whitePlayer: Type.Optional(Type.Enum(WhitePlayer))
 })
 
+const standardDescription = 'Players place every piece, then stack.'
+const randomDescription = 'The board starts filled at random and play begins with stacking.'
+
 export const DvonnGameConfigOptions: GameConfigOptions = [
     {
         id: 'version',
         type: ConfigOptionType.List,
         name: 'Version',
-        description:
-            'Standard: players place every piece, then stack. Random placement: the board starts filled at random and play begins with stacking.',
+        // Older site forms show only this, so it describes every version.
+        description: `Standard: ${standardDescription} Random placement: ${randomDescription}`,
         default: DvonnVersion.Standard,
         options: [
-            { name: 'Standard', value: DvonnVersion.Standard },
-            { name: 'Random placement', value: DvonnVersion.RandomPlacement }
+            { name: 'Standard', value: DvonnVersion.Standard, description: standardDescription },
+            {
+                name: 'Random placement',
+                value: DvonnVersion.RandomPlacement,
+                description: randomDescription
+            }
         ],
         alwaysShow: true
     },
@@ -44,9 +52,17 @@ export const DvonnGameConfigOptions: GameConfigOptions = [
         description: 'Who plays White and goes first.',
         default: WhitePlayer.Random,
         options: [
-            { name: 'Random', value: WhitePlayer.Random },
-            { name: 'Game creator', value: WhitePlayer.Creator },
-            { name: 'Opponent', value: WhitePlayer.Opponent }
+            { name: 'Random', value: WhitePlayer.Random, description: 'White is drawn by lot.' },
+            {
+                name: 'Game creator',
+                value: WhitePlayer.Creator,
+                description: 'The player who created the game plays White.'
+            },
+            {
+                name: 'Opponent',
+                value: WhitePlayer.Opponent,
+                description: "The creator's opponent plays White."
+            }
         ],
         alwaysShow: true
     }
@@ -58,15 +74,15 @@ export class DvonnConfigurator extends BaseConfigurator {
 }
 
 export function versionFromConfig(config: GameConfig): DvonnVersion {
-    return (
-        Object.values(DvonnVersion).find((version) => version === config.version) ??
-        DvonnVersion.Standard
-    )
+    if (config.version === undefined) return DvonnVersion.Standard
+    const version = Object.values(DvonnVersion).find((known) => known === config.version)
+    assertExists(version, `Unknown DVONN version ${String(config.version)}`)
+    return version
 }
 
 export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
-    return (
-        Object.values(WhitePlayer).find((choice) => choice === config.whitePlayer) ??
-        WhitePlayer.Random
-    )
+    if (config.whitePlayer === undefined) return WhitePlayer.Random
+    const choice = Object.values(WhitePlayer).find((known) => known === config.whitePlayer)
+    assertExists(choice, `Unknown choice of White ${String(config.whitePlayer)}`)
+    return choice
 }
