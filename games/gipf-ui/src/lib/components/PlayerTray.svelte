@@ -16,12 +16,14 @@
         session.gameState.getPlayerState(session.gameState.opponentOf(playerState.playerId)).color
     )
 
+    const reserve = $derived(session.reserveLeft(playerState.playerId))
+
     const rows = $derived([
         {
-            count: playerState.reserve,
+            count: reserve,
             caption: 'reserve',
             color: playerState.color,
-            stacks: tallyStacks(playerState.reserve)
+            stacks: tallyStacks(reserve)
         },
         ...(usesGipf
             ? [

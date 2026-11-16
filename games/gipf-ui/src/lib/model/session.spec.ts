@@ -300,6 +300,22 @@ describe('Choosing the piece type', () => {
     })
 })
 
+describe('The reserve in the tray', () => {
+    it('leaves out the piece you have staged, then counts what a step leads to until it lands', async () => {
+        const session = await whiteSession()
+        const reserve = session.gameState.getPlayerState(WHITE).reserve
+        expect(session.reserveLeft(WHITE)).toBe(reserve)
+        session.chooseDot(DOT)
+        expect(session.reserveLeft(WHITE)).toBe(reserve - 1)
+
+        session.landingReserves = new Map([[WHITE, reserve - 5]])
+        expect(session.reserveLeft(WHITE)).toBe(reserve - 5)
+        await pushOwn(session)
+        expect(session.landingReserves).toBeUndefined()
+        expect(session.reserveLeft(WHITE)).toBe(session.gameState.getPlayerState(WHITE).reserve)
+    })
+})
+
 describe('Letting go', () => {
     it('takes the piece off its dot, GIPF-piece or single, without undoing any action', async () => {
         const session = await whiteSession()

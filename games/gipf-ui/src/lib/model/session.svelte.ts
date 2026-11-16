@@ -17,6 +17,7 @@ import {
     FinishRemoving,
     GipfPreferenceDefinition,
     MachineState,
+    piecesIn,
     PushPiece,
     RemoveRow,
     type Entry,
@@ -63,6 +64,12 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     private changedByPlayer = false
     historyPush: PushPiece | undefined
     moveInterrupter: MoveInterrupter | undefined
+    // Until the state lands: the reserves a step leads to, set as it starts when it brings a piece
+    // in, so a piece entering the board is not counted in its reserve too.
+    landingReserves: Map<string, number> | undefined = $derived.by(() => {
+        void this.gameState
+        return undefined
+    })
 
     constructor(options: SessionOptions) {
         super(options)
@@ -135,6 +142,18 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         const manual = this.ownSelection.dot?.value
         return manual !== undefined && includesCoords(this.entryDots, manual) ? manual : undefined
     })
+
+    reserveLeft(playerId: string): number {
+        const landing = this.landingReserves?.get(playerId)
+        if (landing !== undefined) return landing
+        const staged =
+            playerId === this.myPlayer?.id &&
+            this.chosenDot !== undefined &&
+            this.chosenGipf !== undefined
+                ? piecesIn(this.chosenGipf)
+                : 0
+        return this.gameState.getPlayerState(playerId).reserve - staged
+    }
 
     targets: Entry[] = $derived(
         this.chosenDot === undefined

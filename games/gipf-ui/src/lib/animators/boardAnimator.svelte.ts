@@ -170,6 +170,7 @@ export class BoardAnimator implements MoveInterrupter {
             return
         }
         this.abandoned = undefined
+        this.takeFromReserves(from, to)
         const timeline = animationContext.actionTimeline
         this.playing = timeline
         const shown = this.session.gameState
@@ -371,6 +372,20 @@ export class BoardAnimator implements MoveInterrupter {
         if (node === undefined) return
         const step = this.offset(dot, firstSpot)
         timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
+    }
+
+    // A replay's later steps keep the reserves its earlier ones set, as the state lands at its end.
+    private takeFromReserves(from: HydratedGipfGameState, to: HydratedGipfGameState) {
+        const landing = this.session.landingReserves
+        const changed = to.players.filter(
+            (player) =>
+                landing?.has(player.playerId) === true ||
+                player.reserve < from.getPlayerState(player.playerId).reserve
+        )
+        if (changed.length === 0) return
+        this.session.landingReserves = new Map(
+            changed.map((player) => [player.playerId, player.reserve])
+        )
     }
 
     private fadeMarks(timeline: Timeline, duration: number) {

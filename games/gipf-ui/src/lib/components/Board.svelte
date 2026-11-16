@@ -121,234 +121,238 @@
 </script>
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<svg
-    class="gipf-board"
-    viewBox={frame.viewBox}
-    width={frame.width}
-    height={frame.height}
-    role="group"
-    aria-label="GIPF board"
-    onclick={onBoardClick}
-    {@attach animator.attach}
->
-    <defs>
-        <PieceDefs prefix="gipf-board" />
-        <radialGradient id="gipf-soft-shadow">
-            {#each SHADOW_STOPS as stop, index (index)}
-                <stop
-                    offset={stop.offset}
-                    stop-color="black"
-                    stop-opacity={stop.opacity * SHADOW.opacity}
-                ></stop>
+<div class="tap-off" role="presentation" onclick={onBoardClick}>
+    <svg
+        class="gipf-board"
+        viewBox={frame.viewBox}
+        width={frame.width}
+        height={frame.height}
+        role="group"
+        aria-label="GIPF board"
+        {@attach animator.attach}
+    >
+        <defs>
+            <PieceDefs prefix="gipf-board" />
+            <radialGradient id="gipf-soft-shadow">
+                {#each SHADOW_STOPS as stop, index (index)}
+                    <stop
+                        offset={stop.offset}
+                        stop-color="black"
+                        stop-opacity={stop.opacity * SHADOW.opacity}
+                    ></stop>
+                {/each}
+            </radialGradient>
+        </defs>
+
+        <polygon points={playArea} class="play-area"></polygon>
+
+        <g class="lines">
+            {#each lines as line, index (index)}
+                <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
             {/each}
-        </radialGradient>
-    </defs>
-
-    <polygon points={playArea} class="play-area"></polygon>
-
-    <g class="lines">
-        {#each lines as line, index (index)}
-            <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
-        {/each}
-    </g>
-
-    {#if session.showCoordinates}
-        {#each session.notation.labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
-                >{label.text}</text
-            >
-        {/each}
-    {/if}
-
-    {#each DOTS as coords (coordinatesToNumber(coords))}
-        {@const center = view.center(coords)}
-        {@const entry = isEntryDot(coords)}
-        <g
-            transform="translate({center.x} {center.y})"
-            class="dot"
-            class:entry
-            class:chosen={isChosenDot(coords)}
-            role="button"
-            tabindex={entry ? 0 : -1}
-            aria-disabled={!entry}
-            aria-label="dot {session.notation.name(coords)}"
-            onclick={() => session.chooseDot(coords)}
-            onkeydown={(event) => onKey(event, () => session.chooseDot(coords))}
-            onpointerenter={() => (hoveredDot = coordinatesToNumber(coords))}
-            onpointerleave={() => (hoveredDot = undefined)}
-            onfocus={() => (hoveredDot = coordinatesToNumber(coords))}
-            onblur={() => (hoveredDot = undefined)}
-        >
-            {#if entry}
-                <ellipse rx={DOT_RADIUS * 2.4} ry={DOT_RADIUS * 2.4 * view.tilt} class="dot-hit"
-                ></ellipse>
-            {/if}
-            <ellipse rx={DOT_RADIUS} ry={DOT_RADIUS * view.tilt} class="dot-core"></ellipse>
         </g>
-    {/each}
 
-    <g {@attach animator.marks()}>
-        {#each session.entryDots as coords (coordinatesToNumber(coords))}
+        {#if session.showCoordinates}
+            {#each session.notation.labels as label (label.key)}
+                <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
+                    >{label.text}</text
+                >
+            {/each}
+        {/if}
+
+        {#each DOTS as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
-            <g
-                class="dot-ring"
-                class:chosen={isChosenDot(coords)}
-                class:faded={session.chosenDot !== undefined && !isChosenDot(coords)}
-                class:hovered={hoveredDot === coordinatesToNumber(coords)}
-            >
-                {#each ['under', 'over'] as layer (layer)}
-                    <ellipse
-                        cx={center.x}
-                        cy={center.y}
-                        rx={DOT_RADIUS * 2.4}
-                        ry={DOT_RADIUS * 2.4 * view.tilt}
-                        class={layer}
-                    ></ellipse>
-                {/each}
-            </g>
-        {/each}
-        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
-            {@const center = view.center(entry.line[0])}
-            <g
-                class="target-ring"
-                class:hovered={hoveredTarget === coordinatesToNumber(entry.line[0])}
-            >
-                {#each ['under', 'over'] as layer (layer)}
-                    <ellipse
-                        cx={center.x}
-                        cy={center.y}
-                        rx={PIECE_RADIUS + 2}
-                        ry={(PIECE_RADIUS + 2) * view.tilt}
-                        class={layer}
-                    ></ellipse>
-                {/each}
-            </g>
-        {/each}
-    </g>
-
-    {#each drawOrder as drawn (drawn.key)}
-        {@const center = view.center(drawn.coords)}
-        {#if drawn.kind === 'piece'}
-            {@const piece = drawn.piece}
-            {@const role = rowRole(piece.coords)}
-            {@const faceY = view.topFace(piece.gipf)}
+            {@const entry = isEntryDot(coords)}
             <g
                 transform="translate({center.x} {center.y})"
-                class="piece role-{role ?? 'none'}"
+                class="dot"
+                class:entry
+                class:chosen={isChosenDot(coords)}
                 role="button"
-                tabindex={role ? 0 : -1}
-                aria-disabled={!role}
-                aria-label="{piece.gipf ? 'GIPF-piece' : 'piece'} {session.notation.name(
-                    piece.coords
-                )}"
-                onclick={() => role && choosePiece(piece.coords)}
-                onkeydown={(event) => role && onKey(event, () => choosePiece(piece.coords))}
+                tabindex={entry ? 0 : -1}
+                aria-disabled={!entry}
+                aria-label="dot {session.notation.name(coords)}"
+                onclick={() => session.chooseDot(coords)}
+                onkeydown={(event) => onKey(event, () => session.chooseDot(coords))}
+                onpointerenter={() => (hoveredDot = coordinatesToNumber(coords))}
+                onpointerleave={() => (hoveredDot = undefined)}
+                onfocus={() => (hoveredDot = coordinatesToNumber(coords))}
+                onblur={() => (hoveredDot = undefined)}
             >
-                <g {@attach animator.piece(drawn.key)}>
-                    <StandingPiece
-                        color={colorOf(piece.playerId)}
-                        gipf={piece.gipf}
-                        body={animator.body(drawn.key)}
-                        shadow={animator.shadow(drawn.key)}
-                    />
+                {#if entry}
+                    <ellipse rx={DOT_RADIUS * 2.4} ry={DOT_RADIUS * 2.4 * view.tilt} class="dot-hit"
+                    ></ellipse>
+                {/if}
+                <ellipse rx={DOT_RADIUS} ry={DOT_RADIUS * view.tilt} class="dot-core"></ellipse>
+            </g>
+        {/each}
+
+        <g {@attach animator.marks()}>
+            {#each session.entryDots as coords (coordinatesToNumber(coords))}
+                {@const center = view.center(coords)}
+                <g
+                    class="dot-ring"
+                    class:chosen={isChosenDot(coords)}
+                    class:faded={session.chosenDot !== undefined && !isChosenDot(coords)}
+                    class:hovered={hoveredDot === coordinatesToNumber(coords)}
+                >
+                    {#each ['under', 'over'] as layer (layer)}
+                        <ellipse
+                            cx={center.x}
+                            cy={center.y}
+                            rx={DOT_RADIUS * 2.4}
+                            ry={DOT_RADIUS * 2.4 * view.tilt}
+                            class={layer}
+                        ></ellipse>
+                    {/each}
                 </g>
-                <!-- Marks sit outside the node that moves the piece, so they stay put. -->
-                {#if role}
-                    <g {@attach animator.marks()}>
-                        {#if role === 'row'}
-                            <ellipse
-                                cy={faceY}
-                                rx={PIECE_RADIUS - 3}
-                                ry={(PIECE_RADIUS - 3) * view.tilt}
-                                class="row-mark role-row"
-                            ></ellipse>
-                        {:else}
-                            {#if includesCoords(session.rowGipfPieces, piece.coords)}
+            {/each}
+            {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
+                {@const center = view.center(entry.line[0])}
+                <g
+                    class="target-ring"
+                    class:hovered={hoveredTarget === coordinatesToNumber(entry.line[0])}
+                >
+                    {#each ['under', 'over'] as layer (layer)}
+                        <ellipse
+                            cx={center.x}
+                            cy={center.y}
+                            rx={PIECE_RADIUS + 2}
+                            ry={(PIECE_RADIUS + 2) * view.tilt}
+                            class={layer}
+                        ></ellipse>
+                    {/each}
+                </g>
+            {/each}
+        </g>
+
+        {#each drawOrder as drawn (drawn.key)}
+            {@const center = view.center(drawn.coords)}
+            {#if drawn.kind === 'piece'}
+                {@const piece = drawn.piece}
+                {@const role = rowRole(piece.coords)}
+                {@const faceY = view.topFace(piece.gipf)}
+                <g
+                    transform="translate({center.x} {center.y})"
+                    class="piece role-{role ?? 'none'}"
+                    role="button"
+                    tabindex={role ? 0 : -1}
+                    aria-disabled={!role}
+                    aria-label="{piece.gipf ? 'GIPF-piece' : 'piece'} {session.notation.name(
+                        piece.coords
+                    )}"
+                    onclick={() => role && choosePiece(piece.coords)}
+                    onkeydown={(event) => role && onKey(event, () => choosePiece(piece.coords))}
+                >
+                    <g {@attach animator.piece(drawn.key)}>
+                        <StandingPiece
+                            color={colorOf(piece.playerId)}
+                            gipf={piece.gipf}
+                            body={animator.body(drawn.key)}
+                            shadow={animator.shadow(drawn.key)}
+                        />
+                    </g>
+                    <!-- Marks sit outside the node that moves the piece, so they stay put. -->
+                    {#if role}
+                        <g {@attach animator.marks()}>
+                            {#if role === 'row'}
                                 <ellipse
                                     cy={faceY}
-                                    rx={PIECE_RADIUS * CROWN_SCALE}
-                                    ry={PIECE_RADIUS * CROWN_SCALE * view.tilt}
-                                    class="crown-mark role-{role}"
+                                    rx={PIECE_RADIUS - 3}
+                                    ry={(PIECE_RADIUS - 3) * view.tilt}
+                                    class="row-mark role-row"
+                                ></ellipse>
+                            {:else}
+                                {#if includesCoords(session.rowGipfPieces, piece.coords)}
+                                    <ellipse
+                                        cy={faceY}
+                                        rx={PIECE_RADIUS * CROWN_SCALE}
+                                        ry={PIECE_RADIUS * CROWN_SCALE * view.tilt}
+                                        class="crown-mark role-{role}"
+                                    ></ellipse>
+                                {/if}
+                                <ellipse
+                                    cy={faceY}
+                                    rx={SPOT_RADIUS}
+                                    ry={SPOT_RADIUS * view.tilt}
+                                    class="mark-spot role-{role}"
                                 ></ellipse>
                             {/if}
-                            <ellipse
-                                cy={faceY}
-                                rx={SPOT_RADIUS}
-                                ry={SPOT_RADIUS * view.tilt}
-                                class="mark-spot role-{role}"
-                            ></ellipse>
-                        {/if}
+                        </g>
+                    {/if}
+                </g>
+            {:else if drawn.kind === 'entering'}
+                <g transform="translate({center.x} {center.y})" class="entering">
+                    <g {@attach animator.enteringPiece()}>
+                        <StandingPiece
+                            color={colorOf(drawn.playerId)}
+                            gipf={drawn.gipf}
+                            shadow={animator.enteringShadow()}
+                            parts={animator.enteringParts}
+                        />
                     </g>
-                {/if}
-            </g>
-        {:else if drawn.kind === 'entering'}
-            <g transform="translate({center.x} {center.y})" class="entering">
-                <g {@attach animator.enteringPiece()}>
-                    <StandingPiece
+                </g>
+            {:else}
+                <g
+                    transform="translate({center.x} {center.y})"
+                    class="entering"
+                    class:staged={session.choosesType}
+                    role="button"
+                    tabindex={session.choosesType ? 0 : -1}
+                    aria-disabled={!session.choosesType}
+                    aria-label={drawn.gipf ? 'make it a single piece' : 'make it a GIPF-piece'}
+                    onclick={() => session.toggleGipf()}
+                    onkeydown={(event) => onKey(event, () => session.toggleGipf())}
+                >
+                    <StagedPiece
                         color={colorOf(drawn.playerId)}
                         gipf={drawn.gipf}
-                        shadow={animator.enteringShadow()}
-                        parts={animator.enteringParts}
+                        drops={drawn.drops}
+                        lifts={() =>
+                            session.releasedByPlayer &&
+                            animator.entering === undefined &&
+                            !animator.pushedIn}
                     />
                 </g>
-            </g>
-        {:else}
-            <g
-                transform="translate({center.x} {center.y})"
-                class="entering"
-                class:staged={session.choosesType}
-                role="button"
-                tabindex={session.choosesType ? 0 : -1}
-                aria-disabled={!session.choosesType}
-                aria-label={drawn.gipf ? 'make it a single piece' : 'make it a GIPF-piece'}
-                onclick={() => session.toggleGipf()}
-                onkeydown={(event) => onKey(event, () => session.toggleGipf())}
-            >
-                <StagedPiece
-                    color={colorOf(drawn.playerId)}
-                    gipf={drawn.gipf}
-                    drops={drawn.drops}
-                    lifts={() =>
-                        session.releasedByPlayer &&
-                        animator.entering === undefined &&
-                        !animator.pushedIn}
-                />
-            </g>
-        {/if}
-    {/each}
-
-    <g {@attach animator.marks()}>
-        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
-            {@const center = view.center(entry.line[0])}
-            {@const key = coordinatesToNumber(entry.line[0])}
-            <g
-                class="target"
-                role="button"
-                tabindex="0"
-                aria-label="push to {session.notation.name(entry.line[0])}"
-                onclick={() => session.push(entry.line[0])}
-                onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
-                onpointerenter={() => (hoveredTarget = key)}
-                onpointerleave={() => (hoveredTarget = undefined)}
-                onfocus={() => (hoveredTarget = key)}
-                onblur={() => (hoveredTarget = undefined)}
-            >
-                <path
-                    d={standingOutline}
-                    transform="translate({center.x} {center.y})"
-                    class="target-hit"
-                ></path>
-                {#each ['under', 'over'] as layer (layer)}
-                    <path d={pushArrow(view, entry.dot, entry.line[0])} class="arrow {layer}"
-                    ></path>
-                {/each}
-            </g>
+            {/if}
         {/each}
-    </g>
-</svg>
+
+        <g {@attach animator.marks()}>
+            {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
+                {@const center = view.center(entry.line[0])}
+                {@const key = coordinatesToNumber(entry.line[0])}
+                <g
+                    class="target"
+                    role="button"
+                    tabindex="0"
+                    aria-label="push to {session.notation.name(entry.line[0])}"
+                    onclick={() => session.push(entry.line[0])}
+                    onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
+                    onpointerenter={() => (hoveredTarget = key)}
+                    onpointerleave={() => (hoveredTarget = undefined)}
+                    onfocus={() => (hoveredTarget = key)}
+                    onblur={() => (hoveredTarget = undefined)}
+                >
+                    <path
+                        d={standingOutline}
+                        transform="translate({center.x} {center.y})"
+                        class="target-hit"
+                    ></path>
+                    {#each ['under', 'over'] as layer (layer)}
+                        <path d={pushArrow(view, entry.dot, entry.line[0])} class="arrow {layer}"
+                        ></path>
+                    {/each}
+                </g>
+            {/each}
+        </g>
+    </svg>
+</div>
 
 <style>
+    .tap-off {
+        display: contents;
+    }
+
     .gipf-board {
         overflow: visible;
         user-select: none;
