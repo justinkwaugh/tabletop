@@ -31,7 +31,7 @@ export interface TradeCard {
     readonly gainWords?: string
     /** The card's accessible name: "Ship: 3s → ship". */
     readonly label: string
-    /** "3 in bin", "next one · 2 bought". */
+    /** "3 in bin", "2 bought". */
     readonly stock?: string
     /** The card's press: a Buy that sends, or a pick that adds to the basket. */
     readonly press?: BenchChoice
@@ -47,7 +47,7 @@ export interface TradePicker {
     readonly guild: GuildId
     /** "Alchemist trade". */
     readonly title: string
-    /** "buy 1 vessel for sale". */
+    /** "Buy 1". */
     readonly line: string
     /** What the seat can spend. */
     readonly purse: number
@@ -55,18 +55,11 @@ export interface TradePicker {
     readonly basket?: TradeBasket
     /** `each`: each card's Buy is the send. `one`: the picks add up, sent once under them. */
     readonly sends: 'each' | 'one'
-    readonly caption: string
 }
 
 /** R-4.6.3 Which trades the picker reads: the Farmer's goes to the map, so it keeps the bench. */
 export function takesTradePicker(bench: BenchOffer): boolean {
     return bench.fn === 'trade' && bench.guild !== 'farmer' && bench.collapsed === undefined
-}
-
-const VesselWords: Readonly<Record<VesselType, string>> = {
-    ship: 'for ship routes',
-    submersible: 'for submersible routes',
-    'flying-machine': 'for flying-machine routes'
 }
 
 /** Up to this many of a gain are drawn; past it the words carry the number. */
@@ -94,9 +87,12 @@ function vesselOf(id: string): VesselType | undefined {
     return VesselTypes.find((vessel) => `vessel:${vessel}` === id)
 }
 
-/** The press a card takes, named for the card, with no rose note: the card says the price. */
+/**
+ * The press a card takes, named for the card, with no rose note: the card says the price. One whose
+ * room the basket holds stays, dimmed.
+ */
 function pressOf(item: BenchItem, label: string, shown?: string): BenchChoice | undefined {
-    if (!item.press && item.refusal === undefined) {
+    if (!item.press && !item.spent) {
         return undefined
     }
     return {
@@ -104,12 +100,13 @@ function pressOf(item: BenchItem, label: string, shown?: string): BenchChoice | 
         ...(shown ? { shown } : {}),
         picked: item.picked,
         ...(item.press ? { press: item.press } : {}),
-        ...(item.refusal !== undefined ? { refusal: item.refusal } : {})
+        ...(item.spent ? { spent: true } : {})
     }
 }
 
+/** "Buy", its price on the cost line beside it; the full words stay its accessible name. */
 function buy(item: BenchItem, gain: string): BenchChoice | undefined {
-    return pressOf(item, `Buy ${gain} · ${shillings(item.price)}`, `Buy · ${shillings(item.price)}`)
+    return pressOf(item, `Buy ${gain} · ${shillings(item.price)}`, 'Buy')
 }
 
 function alchemistCards(bench: BenchOffer): readonly TradeCard[] {
@@ -124,7 +121,6 @@ function alchemistCards(bench: BenchOffer): readonly TradeCard[] {
             {
                 item,
                 name: item.label,
-                words: VesselWords[vessel],
                 ...(item.price !== undefined ? { price: item.price } : {}),
                 gain: [{ kind: 'vessel', vessel }],
                 label: costToGain(item.label, item.price, gain),
@@ -150,12 +146,8 @@ function knightCards(
     return [
         {
             item,
-            name: "Your row's markers",
-            // R-4.6.3 Tame the Beast is asked once the markers are 3 or more.
-            words:
-                markers >= 3
-                    ? `take all ${markers}; 3 or more may tame a beast`
-                    : `take all ${markers}`,
+            name: 'Your row',
+            words: `take ${markers}`,
             ...(item.price !== undefined ? { price: item.price } : {}),
             gain: Array.from({ length: Math.min(markers, MostDrawn) }, () => ({
                 kind: 'marker' as const,
@@ -187,7 +179,7 @@ function merchantCards(bench: BenchOffer): readonly TradeCard[] {
                 ...(item.price !== undefined ? { price: item.price } : {}),
                 gain: [{ kind: 'good', good }],
                 label,
-                stock: bought > 0 ? `next one · ${bought} bought` : `${item.count ?? 0} in bin`,
+                stock: bought > 0 ? `${bought} bought` : `${item.count ?? 0} in bin`,
                 ...(press ? { press } : {})
             }
         ]
@@ -205,14 +197,13 @@ function nobleCards(bench: BenchOffer): readonly TradeCard[] {
         if (!item.id.startsWith('scroll:')) {
             return []
         }
-        const name = `Seal, ${scrollWords(item)}`
+        const name = `Seal ${scrollWords(item)}`
         const label = costToGain(name, item.price, "king's seal")
         const press = pressOf(item, label)
         return [
             {
                 item,
                 name,
-                words: 'red side up, unseen',
                 ...(item.price !== undefined ? { price: item.price } : {}),
                 gain: [{ kind: 'seal' }],
                 label,
@@ -235,7 +226,7 @@ function monkCards(bench: BenchOffer): readonly TradeCard[] {
             item: first,
             name: 'Draw a bead',
             // R-4.6.3, R-4.6-H2 A draw that reveals a bead can't be undone.
-            words: `draw one · ${shillings(first.price)}${bench.preview?.revealsInfo ? " · can't be undone" : ''}`,
+            ...(bench.preview?.revealsInfo ? { words: "can't be undone" } : {}),
             ...(first.price !== undefined ? { price: first.price } : {}),
             gain: [],
             gainWords,
@@ -257,12 +248,6 @@ function basketOf(bench: BenchOffer, most: number): TradeBasket {
     return { picks, total: picks.length > 0 ? total : 0, most }
 }
 
-function listed(names: readonly string[]): string {
-    return names.length <= 1
-        ? (names[0] ?? '')
-        : `${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}`
-}
-
 /** R-4.6.2, R-4.6.3 The trade on the bench, as its picker reads it; undefined for any other bench. */
 export function tradePickerOf(
     bench: BenchOffer,
@@ -278,56 +263,35 @@ export function tradePickerOf(
         purse: state.getPlayerState(playerId).shillings
     }
     switch (bench.guild) {
-        case 'alchemist': {
-            const cards = alchemistCards(bench)
-            const names = cards.map(({ name }) => name.toLowerCase())
-            return {
-                ...common,
-                line: 'buy 1 vessel for sale',
-                cards,
-                sends: 'each',
-                caption: `For sale this round: ${listed(names)}, ringed on the board. Each Buy sends; Undo takes it back.`
-            }
-        }
+        case 'alchemist':
+            return { ...common, line: 'Buy 1', cards: alchemistCards(bench), sends: 'each' }
         case 'knight':
             return {
                 ...common,
-                line: "take your row's markers",
+                line: 'Take row',
                 cards: knightCards(bench, state, playerId),
-                sends: 'each',
-                caption:
-                    'Your row is ringed on the board. Buy sends, or asks first whether to tame a beast; Undo takes it back.'
+                sends: 'each'
             }
         case 'merchant':
             return {
                 ...common,
-                line: `buy up to ${MerchantTradeGoods} · each bin sells its cheapest`,
+                line: `Buy up to ${MerchantTradeGoods}`,
                 cards: merchantCards(bench),
                 basket: basketOf(bench, MerchantTradeGoods),
-                sends: 'one',
-                caption:
-                    'Each bin is ringed on the board. A press adds its cheapest good to the basket; Undo takes the last one back.'
+                sends: 'one'
             }
         case 'noble': {
             const { most, price } = nobleTradeOffer(state)
             return {
                 ...common,
-                line: `buy up to ${most} · ${shillings(price)} each`,
+                line: `Buy up to ${most} · ${shillings(price)} each`,
                 cards: nobleCards(bench),
                 basket: basketOf(bench, most),
-                sends: 'one',
-                caption:
-                    'The seals on the scrolls are ringed on the board. Which space a seal leaves matters to later pulls.'
+                sends: 'one'
             }
         }
         case 'monk':
-            return {
-                ...common,
-                line: 'draw one of two beads',
-                cards: monkCards(bench),
-                sends: 'one',
-                caption: 'The two beads the draw chooses between are ringed on the board.'
-            }
+            return { ...common, line: 'Draw 1 of 2', cards: monkCards(bench), sends: 'one' }
         case 'farmer':
             return undefined
     }

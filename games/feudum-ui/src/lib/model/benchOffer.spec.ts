@@ -130,7 +130,7 @@ describe('R-4.6.1 what the bench lights', () => {
         ])
     })
 
-    it('R-4.6.1 a good past what its bin holds dims with the logic’s reason and has no press', async () => {
+    it('R-4.6.1 a good past what its bin holds, the picks holding its room, dims with no line and no press', async () => {
         const turn = await table((state, { seat, other }) => {
             setJourneyman(state, seat, 'merchant', other)
             setBarn(state, { iron: 3, wood: 1 })
@@ -139,7 +139,8 @@ describe('R-4.6.1 what the bench lights', () => {
         const offer = offerOf(turn, 'merchant', 'pull', { picks: goods('iron') })
         const iron = item(offer, 'Iron')
         expect(iron.role).toBe('dimmed')
-        expect(iron.refusal).toBe('The iron bin has room for 1.')
+        expect(iron.spent).toBe(true)
+        expect(iron.refusal).toBeUndefined()
         expect(iron.press).toBeUndefined()
         expect(item(offer, 'Wood').role).toBe('lit')
     })
@@ -477,7 +478,8 @@ describe('R-4.6 per guild and function', () => {
 
         const after = item(offerOf(turn, 'merchant', 'trade', { picks: goods('iron') }), 'Iron')
         expect(after.role).toBe('dimmed')
-        expect(after.refusal).toMatch(/^Those goods cost /)
+        expect(after.spent).toBe(true)
+        expect(after.refusal).toBeUndefined()
     })
 
     it('R-4.6.3, R-4.10.2 Merchant trade: a sulfur bought asks how many go in the barrel', async () => {
@@ -568,8 +570,7 @@ describe('R-4.6 per guild and function', () => {
         })
         const none = offerOf(turn, 'knight', 'push')
         expect(none.line).toBe('Move up to 3')
-        const scroll = item(none, /r1c1$/)
-        expect(scroll.role).toBe('dimmed')
+        expect(none.items.some(({ id }) => id.endsWith('r1c1'))).toBe(false)
 
         const one = offerOf(turn, 'knight', 'push', { picks: [{ kind: 'row', row: 0 }] })
         expect(item(one, /r1c1$/).role).toBe('lit')
@@ -623,7 +624,7 @@ describe('R-4.6 per guild and function', () => {
         expect(offer.primary).toEqual({ label: "Flip 1 seal · can't be undone", enabled: true })
     })
 
-    it('R-4.6.4 Monk pull: one seal, "Flip it"', async () => {
+    it('R-4.6.4 Monk pull: one seal, "Flip"', async () => {
         const turn = await table((state, { seat, other }) => {
             setJourneyman(state, seat, 'monk', other)
             setScrolls(state, [R1C1, R1C2])
@@ -631,7 +632,7 @@ describe('R-4.6 per guild and function', () => {
         const offer = offerOf(turn, 'monk', 'pull', {
             picks: [{ kind: 'scroll', spaceId: R1C2 }]
         })
-        expect(offer.primary).toEqual({ label: "Flip it · can't be undone", enabled: true })
+        expect(offer.primary).toEqual({ label: "Flip · can't be undone", enabled: true })
     })
 
     it('R-4.6.3, R-4.6-H2 S46 Monk trade: the two candidates lit at the price, no press', async () => {
@@ -670,7 +671,7 @@ describe('R-4.6.3 a trade that goes to the map', () => {
             farm = ruleFarm(state, seat, { food: 4 })
         })
         const offer = offerOf(turn, 'farmer', 'trade')
-        expect(offer.collapsed).toBe('Farmer trade: pick a farm')
+        expect(offer.collapsed).toBe('Pick a farm.')
         expect(offer.map?.map(({ target }) => target)).toEqual([`space:${farm}`])
         expect(offer.items).toEqual([])
     })
@@ -700,7 +701,7 @@ describe('R-4.6.3 a trade that goes to the map', () => {
 
         const monster: MonsterId = 'behemoth'
         const tamed = offerOf(turn, 'knight', 'trade', { picks: [], take: true, monster })
-        expect(tamed.collapsed).toBe('Knight trade: tame the behemoth')
+        expect(tamed.collapsed).toBe('Pick a space.')
         expect(tamed.map?.length).toBeGreaterThan(0)
         expect(tamed.items).toEqual([])
     })

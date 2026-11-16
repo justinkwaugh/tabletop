@@ -228,7 +228,7 @@ describe('the bench draws its offer (contract: the bench)', () => {
 
     it('S44 R-4.6.3 a map pick closes it to its header, over nothing of the map', async () => {
         const { turn, bench } = await offered('farmerTrade', 'farmer', 'trade')
-        expect(bench.collapsed).toBe('Farmer trade: pick a farm')
+        expect(bench.collapsed).toBe('Pick a farm.')
         const html = markup(turn, bench)
         expect(html).toContain('data-bench-header')
         expect(html).not.toContain('data-bench-area')

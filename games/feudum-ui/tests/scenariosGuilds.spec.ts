@@ -119,14 +119,14 @@ scenario(
 scenario('S44 R-4.6.3, R-4.2.4 Knight trade and tame', 'guild-knight-trade', async (table) => {
     await openFunction(table, 'knight', 'Trade')
     const take = table.page.locator('[data-trade-buy="row:seat"] button')
-    await expect(take).toHaveText('Buy · 3s')
+    await expect(take).toHaveText('Buy')
     await expect(table.page.locator('[data-trade-card="row:seat"]')).toHaveAccessibleName(
         "Your row's markers: 3s → 4 markers"
     )
     await table.press(take)
     await table.press(table.popupRowStarting('Tame the behemoth'))
     await expect(bench(table)).toHaveCount(0)
-    await expect(header(table)).toHaveText('Knight trade: tame the behemoth')
+    await expect(header(table)).toHaveText('Pick a space.')
     await expect(table.lit()).not.toHaveCount(0)
 
     await table.press(table.undo())
@@ -154,8 +154,12 @@ scenario('S45 R-4.6.5, R-5-H1 Noble pull picks', 'guild-noble-pull', async (tabl
     )
     const seals = ghostsIn(table, 'noble')
     await expect(seals).toHaveCount(2)
-    await table.pressDimmed(benchItem(table, 'row:0'))
-    await expect(seals).toHaveCount(2)
+    // A used row stays picked, with no press and no line.
+    await expect(bench(table).locator('[data-bench-place="row:0"]')).toHaveAttribute(
+        'data-bench-role',
+        'picked'
+    )
+    await expect(benchItem(table, 'row:0')).toHaveCount(0)
     await expect(seals.getByRole('img', { name: "king's seal" })).toHaveCount(2)
     await expect(result(table)).toHaveText("3 vp · 2 writs, keep 1 · can't be undone")
 })

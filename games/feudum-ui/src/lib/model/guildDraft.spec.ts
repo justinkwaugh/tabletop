@@ -699,7 +699,7 @@ describe('R-4.6.1 the bench over the board', () => {
         await session.pressBoardTarget(guildTarget('merchant'))
         flushSync()
         expect(session.guild.value('guild')).toBe('farmer')
-        expect(benchOf(session).collapsed).toBe('Farmer trade: pick a farm')
+        expect(benchOf(session).collapsed).toBe('Pick a farm.')
     })
 
     it('R-4.6.3 a farm’s split keeps it at its header: the popup stands on the map', async () => {
@@ -711,7 +711,7 @@ describe('R-4.6.1 the bench over the board', () => {
         const target = benchOf(session).map?.at(0)?.target
         assertExists(target, 'A farm is lit')
         await pressTarget(session, target)
-        expect(benchOf(session).collapsed).toBe('Farmer trade: split the goods sent')
+        expect(benchOf(session).collapsed).toBe('Split.')
         expect(session.benchCovers).toBe(false)
     })
 })
@@ -784,9 +784,9 @@ describe('S44 R-4.6.3, R-4.2.4 a Knight trade that tames', () => {
         await pressChoice(session, popupRow(session, /behemoth/))
 
         const tamed = benchOf(session)
-        expect(tamed.collapsed).toBe('Knight trade: tame the behemoth')
+        expect(tamed.collapsed).toBe('Pick a space.')
         expect(tamed.items).toEqual([])
-        expect(session.guildPanel?.line).toBe('Knight trade: tame the behemoth')
+        expect(session.guildPanel?.line).toBe('Pick a space.')
         const lit = (session.guild.pick?.targets ?? []).map(({ target }) => target)
         expect(lit).toEqual(expect.arrayContaining(deploy.map(spaceTarget)))
     })
@@ -837,14 +837,14 @@ describe('S44 R-4.6.3 a Farmer trade goes to the map', () => {
         })
         const { session } = turn
         await openFunction(session, 'farmer', 'trade')
-        expect(benchOf(session).collapsed).toBe('Farmer trade: pick a farm')
+        expect(benchOf(session).collapsed).toBe('Pick a farm.')
         const target = benchOf(session).map?.at(0)?.target
         assertExists(target, 'A farm is lit')
         await pressTarget(session, target)
         expect(session.guildPanel?.popup?.anchor).toBe(target)
         await undo(session)
         expect(session.guildPanel?.popup).toBeUndefined()
-        expect(benchOf(session).collapsed).toBe('Farmer trade: pick a farm')
+        expect(benchOf(session).collapsed).toBe('Pick a farm.')
     })
 })
 
@@ -859,14 +859,15 @@ describe('S45 R-4.6.5 a Knight push', () => {
         return turn
     }
 
-    it('R-4.6.5 a used row’s press does nothing; a scroll waits for a row', async () => {
+    it('R-4.6.5 a used row stays picked, with no line, and its press does nothing; a scroll waits for a row', async () => {
         const { session } = await pushed()
-        expect(itemOf(session, `scroll:${R1C1}`).role).toBe('dimmed')
+        expect(benchOf(session).items.some(({ id }) => id === `scroll:${R1C1}`)).toBe(false)
         await pressItem(session, 'row:0')
         expect(itemOf(session, `scroll:${R1C1}`).role).toBe('lit')
         const used = itemOf(session, 'row:0')
         expect(used.role).toBe('picked')
-        expect(used.refusal).toBe('Pick rows of different colours.')
+        expect(used.refusal).toBeUndefined()
+        expect(used.press).toBeUndefined()
         await pressChoice(session, used)
         expect(session.guild.value('picks')).toEqual([{ kind: 'row', row: 0 }])
     })

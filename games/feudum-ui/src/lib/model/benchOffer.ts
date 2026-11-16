@@ -551,7 +551,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
     knight: {
         trade: {
             fixed: true,
-            name: () => 'Take the markers',
+            name: () => 'Take row',
             ready: ({ take }) => take === true,
             ghosts: ({ take, monster, deploy }) => [
                 ...(take ? [{ item: 'row:seat', at: SeatPlace }] : []),
@@ -565,7 +565,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
             pickOne: true,
             candidates: (seat, stages) => inventionCandidates(seat, { ...stages, picks: [] }, 0),
             dimsOnRefusal: true,
-            name: () => 'Invent it',
+            name: () => 'Invent',
             ghosts: inventionGhosts
         },
         push: rowsToScrolls(KnightPushMarkers, 'sets', false)
@@ -594,7 +594,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
             pickOne: true,
             line: () => 'Flip 1 seal',
             candidates: (seat) => sealCandidates(seat),
-            name: () => 'Flip it',
+            name: () => 'Flip',
             ghosts: sealGhosts(RosaryPlace)
         },
         push: drawABead
@@ -630,14 +630,17 @@ function repeats({ kind }: BenchPick): boolean {
     return kind === 'good' || kind === 'invention'
 }
 
-/** R-4.6.1 Lit while the logic reads the next picks; otherwise the logic's own line. */
+/**
+ * R-4.6.1 Lit while the logic reads the next picks. One it refuses is not offered, unless picks
+ * already staged hold its room: then it stays, dimmed, with no line and no press.
+ */
 function benchItem(
     row: BenchRow,
     source: BenchSource,
     stages: BenchStages,
     candidate: Candidate,
     presser: BenchPresser
-): BenchItem {
+): BenchItem | undefined {
     const { pick, label, area, note, count, price } = candidate
     const picked = stages.picks.some((other) => samePick(other, pick))
     const common = {
@@ -662,13 +665,11 @@ function benchItem(
     const next = row.pickOne ? [pick] : [...stages.picks, pick]
     const params = paramsOf({ ...stages, picks: next, sulfur: undefined, count: undefined })
     const preview = source.previewOf(params)
-    const reason = source.reasonOf(params)
     if (!preview || (row.dimsOnRefusal && preview.refused)) {
-        return {
-            ...common,
-            role: picked && !repeats(pick) ? 'picked' : 'dimmed',
-            ...(reason ? { refusal: preview?.refused ?? reason } : {})
-        }
+        const held = picked || (!row.pickOne && stages.picks.length > 0)
+        return held
+            ? { ...common, role: picked && !repeats(pick) ? 'picked' : 'dimmed', spent: true }
+            : undefined
     }
     return {
         ...common,
@@ -885,14 +886,13 @@ function farmStep(
     { state, playerId }: BenchSeat,
     source: BenchSource,
     stages: BenchStages,
-    title: string,
     presser: BenchPresser
 ): MapStep {
     const offers = farmerTradeOffers(state, playerId)
     const { farm } = stages
     if (!farm) {
         return {
-            collapsed: `${title}: pick a farm`,
+            collapsed: 'Pick a farm.',
             map: offers.map(({ spaceId, sent }) => ({
                 target: spaceTarget(spaceId),
                 notes: [{ kind: 'gain', label: `${sent} sent` }],
@@ -908,7 +908,7 @@ function farmStep(
     const offer = offers.find(({ spaceId }) => spaceId === farm)
     const splits = Array.from({ length: (offer?.rewards ?? 0) + 1 }, (_, takeFood) => takeFood)
     return {
-        collapsed: `${title}: split the goods sent`,
+        collapsed: 'Split.',
         popup: {
             anchor: spaceTarget(farm),
             choices: splits.flatMap((takeFood): PanelChoice[] => {
@@ -933,7 +933,6 @@ function farmStep(
 function knightStep(
     { state, playerId }: BenchSeat,
     stages: BenchStages,
-    title: string,
     presser: BenchPresser
 ): MapStep {
     if (!stages.take) {
@@ -972,7 +971,7 @@ function knightStep(
     }
     const spaces = monsters.find(({ monster: id }) => id === monster)?.spaces ?? []
     return {
-        collapsed: `${title}: tame the ${monsterWord(monster)}`,
+        collapsed: 'Pick a space.',
         map: spaces.map((spaceId) => ({
             target: spaceTarget(spaceId),
             press: () => {
@@ -1064,9 +1063,9 @@ export function benchOffer(
     const params = paramsOf(stages)
     const preview = source.previewOf(params)
     const step = isTradeOf(source, 'farmer')
-        ? farmStep(seat, source, stages, title, presser)
+        ? farmStep(seat, source, stages, presser)
         : isTradeOf(source, 'knight')
-          ? knightStep(seat, stages, title, presser)
+          ? knightStep(seat, stages, presser)
           : {}
     const refused = preview?.refused ?? (preview ? undefined : source.reasonOf(params))
     const ready = row.ready?.(stages) ?? true
@@ -1078,7 +1077,10 @@ export function benchOffer(
           ? knightItems(seat, stages, presser)
           : isTradeOf(source, 'monk')
             ? beadItems(preview)
-            : candidates.map((candidate) => benchItem(row, source, stages, candidate, presser))
+            : candidates.flatMap((candidate) => {
+                  const item = benchItem(row, source, stages, candidate, presser)
+                  return item ? [item] : []
+              })
     const staged =
         source.fn === 'trade' || row.pickOne ? [] : stagedPicks(candidates, stages, presser)
     const line = row.line?.(seat)
