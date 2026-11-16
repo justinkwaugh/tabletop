@@ -196,7 +196,7 @@ Symbols used in panels, chips, badges, log sentences and token text are the piec
 | Pieces                 | `influence`, `pawn`, `disc`, `target`, `barrel` (wine), `pouch`, `haversack`, `writ`, `tile`, `die`, `epoch`, `catapult`, `refill`                           |
 | Focus chooser (phone)  | Map, West guilds, East guilds, Tracks: four icon chips over the board's top edge, drawn from the above                                                       |
 
-A sealed pouch carries a padlock (`pieces/LockMark.svelte`), drawn in code in `currentColor` and always beside the words that say the same ("sealed", "hidden until all finalise"), so it is hidden from readers and needs no file (R-3.1-H1).
+A sealed pouch carries a padlock (`pieces/LockMark.svelte`), drawn in code in `currentColor` with no words beside it; it reads out "sealed" and needs no file (R-3.1-H1).
 
 The six guild icons are drawn once and reused: on the pawn cube's front face, on the guild die a seat picks a guild or character by, on the feudum keep, on the guild crest, in the card need row and the writ rewards, in the guild standing row. Every symbol has a spec entry (see below).
 

@@ -854,16 +854,16 @@ describe("The contract's own wording", () => {
         )
     })
 
-    it('R-3.1-H1 A reveal with no pouch good says so', () => {
+    it('R-3.1-H1 A reveal with no pouch good says all finalised, and nothing more', () => {
         const none = sample<RevealPouches>({
             ...System,
             type: ActionType.RevealPouches,
             revealsInfo: true,
             metadata: { pouches: [] }
         })
-        expect(line(none, 'p3')).toBe('All finalised · no pouch goods')
+        expect(line(none, 'p3')).toBe('All finalised')
         expect(describeAction(none, { ...viewOf('p3'), seats: ['p1', 'p2', 'p3'] })).toBe(
-            'All finalised · no pouch goods'
+            'All finalised'
         )
     })
 

@@ -55,8 +55,7 @@ describe('R-3.1 the finalise row', () => {
             { playerId: 'p2', name: 'Ben', paint, finalised: true, you: false, awaited: false },
             { playerId: 'p3', name: 'Cyd', paint, finalised: false, you: false, awaited: true }
         ],
-        caption: 'everyone at once · pouch goods shown when all have finalised',
-        lead: 'Round 2 · choose your hand'
+        lead: 'Round 2'
     })
     const words = (markup: string) =>
         markup
@@ -64,21 +63,33 @@ describe('R-3.1 the finalise row', () => {
             .replace(/\s+/g, ' ')
             .trim()
 
-    it('R-3.1-H1 one heading and one caption: everyone at once, the pouch goods shown when all have finalised', () => {
-        expect(row).toContain('data-finalise-caption')
-        expect(words(row)).toContain(
-            'Round 2 · choose your hand everyone at once · pouch goods shown when all have finalised'
-        )
-        expect(row).not.toContain('Finalise order')
+    it('R-3.1-H1 one heading, the round, and no caption', () => {
+        expect(textOf(row, 'data-round-lead')).toBe('Round 2')
+        expect(row).not.toContain('data-finalise-caption')
+        for (const gone of ['everyone at once', 'choose your hand', 'Finalise order']) {
+            expect(row).not.toContain(gone)
+        }
     })
 
-    it('R-3.1-H1 each seat says choosing or finalised and nothing else; the viewer is "you"', () => {
+    it('R-3.1-H1 each seat is its chip and its tick; "(you)", "choosing" and "finalised" are only read out', () => {
         const body = row.slice(0, row.lastIndexOf('</div>'))
-        const chips = body
-            .split('data-finalise-seat=')
-            .slice(1)
-            .map((chip) => words(chip.slice(chip.indexOf('>') + 1).replace(/<[^>]*$/, '')))
-        expect(chips).toEqual(['Ana (you) · finalised ✓', 'Ben · finalised ✓', 'Cyd · choosing'])
+        const parts = body.split('data-finalise-seat=').slice(1)
+        // The seat's name, then the words a screen reader hears, each in its own hidden span.
+        const spoken = parts.map((chip) =>
+            [...chip.matchAll(/<span class="sr-only">([^<]*)<\/span>/g)].map(([, t]) => t.trim())
+        )
+        expect(spoken).toEqual([['(you)'], [], ['choosing']])
+        const shown = parts.map((chip) =>
+            words(
+                chip
+                    .slice(chip.indexOf('>') + 1)
+                    .replace(/<span class="sr-only">[^<]*<\/span>/g, '')
+                    .replace(/<[^>]*$/, '')
+            )
+        )
+        expect(shown).toEqual(['Ana✓', 'Ben✓', 'Cyd'])
+        expect(row).not.toContain('· finalised')
+        expect(row).not.toContain('· choosing')
     })
 
     it('S4 S8 R-3.1-H1 names the seats in order, ticks those done, shows no pouch good, marks no next', () => {
@@ -96,17 +107,19 @@ describe('R-3.1 the finalise row', () => {
         expect(row).not.toContain('next to finalise')
     })
 
-    it('S8 a finalised seat is said once: its tick is hidden from a screen reader, which reads the words', () => {
+    it('S8 a finalised seat is said once: its tick reads out "finalised"', () => {
         const [, ana] = row.split('data-finalise-seat=')
-        expect(ana).toMatch(/<span aria-hidden="true"[^>]*>✓<\/span>/)
-        expect(ana).not.toContain('aria-label="finalised"')
+        expect(ana).toContain('<span role="img" aria-label="finalised">✓</span>')
     })
 
-    it('S8 a seat still choosing, while the viewer waits on it, is marked waited on', () => {
+    it('S8 a seat still choosing, while the viewer waits on it, has a solid ring, read out; none is dashed', () => {
         const [, ana, ben, cyd] = row.split('data-finalise-seat=')
         expect(cyd).toContain('data-awaited')
+        expect(cyd).toContain('ring-1')
+        expect(cyd).toContain('<span class="sr-only"> choosing</span>')
         expect(ana).not.toContain('data-awaited')
         expect(ben).not.toContain('data-awaited')
+        expect(row).not.toContain('border-dashed')
     })
 })
 
@@ -132,30 +145,33 @@ describe('R-3.1-H1 the hand once set: tray A shows it and the sealed pouch', () 
             .replace(/\s+/g, ' ')
             .trim()
 
-    it('S8 the hand as its four faces, in the order chosen, under "Hand · set"', () => {
+    it('S8 the hand as its four faces, in the order chosen, under "Hand"', () => {
         expect(sealed).toContain('data-hand-set')
+        expect(sealed).toContain('aria-label="Your hand and pouch, set"')
         const faces = [...sealed.matchAll(/data-set-card="([^"]+)"/g)].map(([, name]) => name)
         expect(faces).toEqual(['Move', 'Tax', 'Guild', 'Explore'])
-        expect(plain(textOf(sealed, 'data-tray-label="hand"') ?? '')).toBe('Hand set')
+        expect(plain(textOf(sealed, 'data-tray-label="hand"') ?? '')).toBe('Hand')
         // Nothing to press: the hand is final.
         expect(sealed.slice(sealed.indexOf('data-hand-set'))).not.toContain('<button')
     })
 
-    it('S8 R-3.1-H1 the pouch sealed: its good, its short name, a lock, hidden from the others', () => {
-        expect(plain(textOf(sealed, 'data-tray-label="pouch"') ?? '')).toBe('Pouch sealed')
+    it('S8 R-3.1-H1 the pouch sealed: its good, its short name and a lock that reads out "sealed"', () => {
+        expect(plain(textOf(sealed, 'data-tray-label="pouch"') ?? '')).toBe('Pouch')
         const pouch = sealed.slice(sealed.indexOf('data-set-pouch'))
         expect(sealed).toContain('data-set-pouch="sulfur"')
         expect(pouch).toContain('aria-label="sulfur"')
-        expect(pouch).toContain('data-lock')
-        expect(plain(untitled(pouch))).toContain(
-            '2 in a row hidden from the others until the reveal'
-        )
+        expect(pouch).toMatch(/<svg[^>]*role="img"[^>]*aria-label="sealed"[^>]*data-lock/)
+        const drawn = pouch.slice(pouch.indexOf('>') + 1, pouch.indexOf('</div>'))
+        expect(plain(untitled(drawn))).toBe('2 in a row')
+        expect(sealed).not.toContain('hidden from the others')
     })
 
     it('S8 without a good the pouch reads none', () => {
         const none = markupOf({ kind: 'hand-set', paint, cards })
         expect(none).toContain('data-set-pouch="none"')
-        expect(plain(textOf(none, 'data-tray-label="pouch"') ?? '')).toBe('Pouch none')
+        expect(plain(textOf(none, 'data-tray-label="pouch"') ?? '')).toBe('Pouch')
+        expect(plain(none.slice(none.indexOf('data-set-pouch')))).toContain('none')
+        expect(none).not.toContain('no pouch good')
         expect(none).not.toContain('data-lock')
     })
 
@@ -186,12 +202,10 @@ describe('R-X the lines of the panel', () => {
             kind: 'line',
             role: 'count',
             text: '4 of 4',
-            lead: 'Round 1 · choose your hand'
+            lead: 'Round 1'
         })
         expect(textOf(markup, 'data-hand-count')).toBe('4 of 4')
-        expect(markup.replace(/<!--.*?-->|<[^>]+>/gs, '')).toContain(
-            'Round 1 · choose your hand · 4 of 4'
-        )
+        expect(markup.replace(/<!--.*?-->|<[^>]+>/gs, '')).toContain('Round 1 · 4 of 4')
     })
 })
 
@@ -432,26 +446,19 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
         press: nothing
     } as const
     const move = { kind: 'move', label: 'Move', number: 2, picked: false, press: nothing } as const
-    const pouch = (refusal?: string): ActionRow[] => [
+    const pouch: ActionRow[] = [
         {
-            choice: {
-                label: 'Saltpeter: 5 cards',
-                picked: false,
-                shown: '+1 card',
-                ...(refusal ? { refusal } : {})
-            },
+            choice: { label: 'Saltpeter: 5 cards', picked: false, shown: '+1 card' },
             art: { kind: 'good', good: 'saltpeter' },
-            caption: 'opens a fifth slot',
             press: nothing
         },
         {
             choice: { label: 'Sulfur: two cards back to back', picked: true, shown: '2 in a row' },
             art: { kind: 'good', good: 'sulfur' },
-            caption: 'once this round',
             press: nothing
         }
     ]
-    const draft = (refusal?: string) =>
+    const draft = () =>
         markupOf(
             { kind: 'cards', tone: 'draft', paint, rows: [tax, move] },
             {
@@ -466,8 +473,7 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
                         awaited: false
                     }
                 ],
-                caption: 'everyone at once · pouch goods shown when all have finalised',
-                lead: 'Round 2 · choose your hand',
+                lead: 'Round 2',
                 stands: 'draft'
             },
             { kind: 'line', role: 'count', text: '1 of 4', lead: 'Hand', stands: 'draft' },
@@ -482,8 +488,7 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
                 kind: 'rows',
                 name: 'pouch',
                 heading: 'Pouch',
-                hint: 'one or none',
-                rows: pouch(refusal),
+                rows: pouch,
                 stands: 'draft'
             },
             {
@@ -520,12 +525,15 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
         expect(markup).not.toContain('data-plan-caption')
     })
 
-    it('R-3.3 each pouch choice is its art, its short name and what it does; the full words its name', () => {
+    it('R-3.3 each pouch choice is its art and its short name; the full words its name', () => {
         const markup = untitled(draft())
         expect(markup).toContain('aria-label="saltpeter"')
         expect(markup).toContain('aria-label="Saltpeter: 5 cards"')
         expect(all(markup, 'data-pouch-title')).toEqual(['+1 card', '2 in a row'])
-        expect(all(markup, 'data-pouch-caption')).toEqual(['opens a fifth slot', 'once this round'])
+        expect(markup).not.toContain('data-pouch-caption')
+        for (const gone of ['opens a fifth slot', 'once this round']) {
+            expect(markup).not.toContain(gone)
+        }
     })
 
     it('R-3.3 the two goods are the only choices: no empty pouch, and the chosen one is ringed', () => {
@@ -538,30 +546,12 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
         expect(saltpeter).not.toMatch(/class="[^"]*\bring-2\b/)
     })
 
-    it('R-3.3 one that cannot be chosen is dimmed and says why in place of what it does, once', () => {
-        const markup = untitled(draft('You hold no saltpeter.'))
-        expect(all(markup, 'data-pouch-caption')).toEqual([
-            'You hold no saltpeter.',
-            'once this round'
-        ])
-        expect(markup).toContain('aria-label="Saltpeter: 5 cards: You hold no saltpeter."')
-        expect(markup).toContain('title="You hold no saltpeter."')
-        expect(markup).toContain('aria-disabled="true"')
-        expect(markup).not.toContain('data-refusal')
-    })
-
-    it('R-3.3 tray A: the reason stands under the pair for a phone, without a press, one line', () => {
-        const markup = untitled(draft('You hold no saltpeter.'))
-        expect(all(markup, 'data-pouch-reason')).toEqual(['+1 card · You hold no saltpeter.'])
-        expect(markup.indexOf('data-pouch-reason')).toBeGreaterThan(
-            markup.lastIndexOf('data-pouch-choice')
+    it('R-3.3 tray A: no choice is dimmed and no reason line stands under the pair', () => {
+        const markup = draft()
+        expect(markup).not.toContain('data-pouch-reason')
+        expect(markup.slice(markup.indexOf('data-rows="pouch"'))).not.toContain(
+            'aria-disabled="true"'
         )
-        // The choice's own name already says why: the line is not read twice.
-        expect(markup).toMatch(/aria-hidden="true"[^>]*data-pouch-reason/)
-    })
-
-    it('R-3.3 tray A: with both goods to hand there is no reason line', () => {
-        expect(draft()).not.toContain('data-pouch-reason')
     })
 
     it("R-X.2 the send's second line says it finalises and can't be undone", () => {
@@ -595,7 +585,7 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
                 .trim()
         }
         expect(labelWords('hand')).toBe('Hand 1 of 4')
-        expect(labelWords('pouch')).toBe('Pouch one or none')
+        expect(labelWords('pouch')).toBe('Pouch')
         expect(textOf(tray, 'data-hand-count')).toBe('1 of 4')
         expect(tray.indexOf('data-tray-row="hand"')).toBeLessThan(tray.indexOf('data-plan'))
         expect(tray.indexOf('data-rows="pouch"')).toBeGreaterThan(tray.indexOf('data-plan'))

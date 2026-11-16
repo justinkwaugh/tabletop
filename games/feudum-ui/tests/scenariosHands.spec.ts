@@ -49,28 +49,18 @@ scenario('S5 R-3.3 Saltpeter count', 'hands-first-saltpeter', async (table) => {
 })
 
 scenario('S6 R-3.3 Pouch from barrel refused', 'hands-barrel-sulfur', async (table) => {
-    const sulfur = table.rowStarting('Sulfur')
-    await expect(sulfur).toHaveAttribute('aria-disabled', 'true')
-    // Contract, Hand selection: it says why in place of what it does; a phone, without that line,
-    // in one line under the pair, before any press.
-    const why = "Barrel sulfur can't go in the pouch."
-    const reason = table.panel().locator('[data-pouch-reason]')
-    if (table.phone) await expect(reason).toContainText(`2 in a row · ${why}`)
-    else {
-        await expect(sulfur.locator('[data-pouch-caption]')).toHaveText(why)
-        await expect(reason).toBeHidden()
-    }
-    await table.pressDimmed(sulfur)
-    await expect(table.panel().locator('[data-refusal]')).toHaveCount(0)
-    await expect(table.panel().locator('[data-row^="Sulfur"][data-picked]')).toHaveCount(0)
+    // Contract, Hand selection: a pouch good the seat can't commit is not drawn, and no line
+    // says why.
+    await expect(table.panel().locator('[data-cards="draft"]')).toBeVisible()
+    await expect(table.panel().locator('[data-row^="Sulfur"]')).toHaveCount(0)
+    await expect(table.panel().locator('[data-pouch-reason]')).toHaveCount(0)
+    await expect(table.panel().getByText("Barrel sulfur can't go in the pouch.")).toHaveCount(0)
 })
 
 scenario('S7 R-3.13-H1 Conquer warning', 'hands-first-saltpeter', async (table) => {
     await expect(table.panel().locator('[data-warning]')).toHaveCount(0)
     await table.pressCards('Conquer', 'Move', 'Tax', 'Guild')
-    await expect(table.panel().locator('[data-warning]')).toHaveText(
-        'Conquer may end up your last card; it would be forfeited.'
-    )
+    await expect(table.panel().locator('[data-warning]')).toHaveText('Conquer last is forfeited.')
     await expect(table.primary()).toHaveAccessibleName(Finalise)
     await expect(table.primary()).toBeEnabled()
 })
@@ -91,10 +81,8 @@ scenario(
         await expect(set.locator('[data-set-card]')).toHaveCount(4)
         await expect(set.locator('[data-set-pouch="sulfur"]')).toBeVisible()
         await expect(table.panel().locator('[data-awaited]')).toHaveCount(2)
-        await expect(table.panel().locator('[data-round-lead]')).toHaveText(
-            /^Round \d+ · your hand is set$/
-        )
-        await expect(table.page.locator('[data-table-header]')).toHaveText('Your hand is set')
+        await expect(table.panel().locator('[data-round-lead]')).toHaveText(/^Round \d+$/)
+        await expect(table.page.locator('[data-table-header]')).toHaveText('Hand set')
         if (table.phone) {
             await expect(table.page.locator('[data-hand-sheet]')).toHaveCount(1)
         } else {
@@ -108,7 +96,7 @@ scenario(
             'data-pouch-good',
             'sulfur'
         )
-        await expect(own.locator('[data-pouch="committed"]')).toContainText('sealed')
+        await expect(own.locator('[data-pouch="committed"] [aria-label="sealed"]')).toHaveCount(1)
         await table.closeSeatPanel()
 
         await table.showSeat('p2')
@@ -118,9 +106,8 @@ scenario(
         await expect(table.page.locator('[data-table-header]')).toHaveText('Your turn')
         const before = await table.seatPanel('p1')
         await expect(before.locator('[data-pouch-good]')).toHaveCount(0)
-        await expect(before.locator('[data-pouch="sealed"]')).toHaveText(
-            'hidden until all finalise'
-        )
+        await expect(before.locator('[data-pouch="sealed"]')).toHaveText('')
+        await expect(before.locator('[data-pouch="sealed"] [aria-label="sealed"]')).toHaveCount(1)
         await expect(before.locator('[data-hand-backs="4"]')).toHaveCount(0)
         await table.closeSeatPanel()
 

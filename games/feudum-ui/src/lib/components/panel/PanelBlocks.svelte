@@ -155,7 +155,7 @@
 
 {#snippet blockView(block: ActionBlock, index: number, list: readonly ActionBlock[])}
     {#if block.kind === 'finalise'}
-        <FinaliseRow entries={block.entries} caption={block.caption} lead={block.lead} />
+        <FinaliseRow entries={block.entries} lead={block.lead} />
     {:else if block.kind === 'hand-set'}
         <HandSet {block} />
     {:else if block.kind === 'slots'}
@@ -200,25 +200,12 @@
     {:else if block.kind === 'game-end'}
         <GameEndSummary summary={block.summary} seats={block.seats} />
     {:else if block.kind === 'rows' && block.name === 'pouch'}
-        {@const reasons = block.rows.flatMap(({ choice }) =>
-            choice.refusal ? [`${choice.shown ?? choice.label} · ${choice.refusal}`] : []
-        )}
         <div class="pouch-rows" role="group" aria-label="Pouch" data-rows="pouch">
             <div class="pouch-choices">
                 {#each block.rows as row (row.choice.label)}
                     <PouchChoice {row} />
                 {/each}
             </div>
-            <!-- Contract, Phone layout: the choices drop the line beneath, so the reason stands here. -->
-            {#if reasons.length > 0}
-                <p
-                    class="pouch-reason text-xs text-feudum-danger"
-                    aria-hidden="true"
-                    data-pouch-reason
-                >
-                    {reasons.join(' ')}
-                </p>
-            {/if}
         </div>
     {:else if block.kind === 'rows'}
         <div
@@ -329,10 +316,7 @@
                 </div>
             {/each}
             {#if draftPouch}
-                <p class="tray-label" data-tray-label="pouch">
-                    {draftPouch.heading ?? 'Pouch'}
-                    {#if draftPouch.hint}<small>{draftPouch.hint}</small>{/if}
-                </p>
+                <p class="tray-label" data-tray-label="pouch">{draftPouch.heading ?? 'Pouch'}</p>
                 <div class="tray-row" data-tray-row="pouch">
                     {@render blockView(draftPouch, 0, [draftPouch])}
                 </div>
@@ -493,16 +477,11 @@
         min-width: 100%;
     }
 
-    /* R-3.3 The two choices stack, each as wide as the slots, each saying what it does. */
+    /* R-3.3 The two choices stack, each as wide as the slots. */
     .pouch-choices {
         display: flex;
         flex-direction: column;
         gap: 0.375rem;
-    }
-
-    .pouch-reason {
-        display: none;
-        margin: 0.1875rem 0 0;
     }
 
     .tray-send {
@@ -664,17 +643,13 @@
             min-width: 0;
         }
 
-        /* Side by side, without the line beneath: a dimmed one's reason stands under the pair. */
+        /* Side by side. */
         .pouch-choices {
             flex-direction: row;
         }
 
         .pouch-choices > :global(*) {
             flex: 1 1 0;
-        }
-
-        .pouch-reason {
-            display: block;
         }
 
         .tray-send > :global(.sends) {

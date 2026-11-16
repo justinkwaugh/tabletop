@@ -5,7 +5,7 @@
      * A seat as the panel names it: its colour and its name in a pill. A solid ring in the accent
      * marks a seat being waited on (`ringLabel` reads out why); a tick, a seat that is done.
      * `compact` keeps the name for a screen reader alone on a phone, where the seat strip names the
-     * colours.
+     * colours. `spoken` is read out after the name and not shown ("(you)", "choosing").
      */
     let {
         name,
@@ -14,6 +14,7 @@
         ringLabel,
         done = false,
         doneLabel = 'done',
+        spoken,
         compact = false
     }: {
         name: string
@@ -22,6 +23,7 @@
         ringLabel?: string
         done?: boolean
         doneLabel?: string
+        spoken?: string
         compact?: boolean
     } = $props()
 </script>
@@ -36,7 +38,8 @@
           : 'border-feudum-frame text-feudum-text'}"
     data-seat-chip={name}
     ><span class="inline-block h-2.5 w-2.5 rounded-full" style:background-color={paint.fill}
-    ></span><span class={compact ? 'max-sm:sr-only' : ''}>{name}</span>{#if ring && ringLabel}<span
-            class="sr-only">{` ${ringLabel}`}</span
+    ></span><span class={compact ? 'max-sm:sr-only' : ''}>{name}</span>{#if spoken}<span
+            class="sr-only">{` ${spoken}`}</span
+        >{/if}{#if ring && ringLabel}<span class="sr-only">{` ${ringLabel}`}</span
         >{/if}{#if done}<span role="img" aria-label={doneLabel}>✓</span>{/if}</span
 >

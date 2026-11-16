@@ -58,7 +58,7 @@ const stack = (page: Page) => page.locator('.game-stack')
 const boardView = (page: Page) => page.locator('[data-board-view]')
 const surface = (page: Page) => page.locator('[data-board-surface]')
 const chip = (page: Page, area: string) => page.locator(`[data-focus-chip="${area}"]`)
-const seatChips = (page: Page) => page.locator('[data-seat-chip]')
+const seatChips = (page: Page) => page.locator('[data-seat-strip] [data-seat-chip]')
 const seatLayer = (page: Page) => page.locator('[data-table-layer="seat"]')
 const lit = (page: Page) => page.locator('[data-pick-role="lit"]')
 const popup = (page: Page) => page.locator('[data-board-popup]')
@@ -505,7 +505,7 @@ test.describe('held upright', () => {
         const sheet = await rect(cap(page))
         const strip = await rect(page.locator('[data-seat-strip]'))
         expect(Math.abs(sheet.y + sheet.height - strip.y)).toBeLessThan(2)
-        await expectTarget(page.locator('[data-seat-chip]').first())
+        await expectTarget(seatChips(page).first())
         expect(sheet.y).toBeGreaterThan((await rect(boardView(page))).y)
         expect(
             await cap(page).evaluate((element) => element.scrollHeight <= element.clientHeight + 1)
@@ -544,20 +544,16 @@ test.describe('held upright', () => {
         for (const button of await panel(page).locator('[data-rows="pouch"] button').all()) {
             await expectTarget(button)
         }
-        // R-3.3 The two choices side by side without the line beneath; a dimmed one's reason in
-        // one line under the pair, before any press.
+        // R-3.3 Only the pouch good the seat can commit (saltpeter) is drawn: its art and short
+        // name, nothing beneath, and no line about the one it lacks.
         const choices = panel(page).locator('[data-rows="pouch"] [data-pouch-choice]')
-        const [left, right] = [await rect(choices.nth(0)), await rect(choices.nth(1))]
-        expect(Math.abs(left.y - right.y)).toBeLessThan(1)
-        expect(right.x).toBeGreaterThanOrEqual(left.x + left.width)
-        await expect(choices.locator('[data-pouch-caption]').first()).toBeHidden()
-        const refused = panel(page).locator('[data-rows="pouch"] [aria-disabled="true"]')
-        await expect(refused.first()).toBeVisible()
-        const reason = panel(page).locator('[data-pouch-reason]')
-        await expect(reason).toBeVisible()
-        await expect(reason).toHaveText(/ · You hold no /)
-        expect((await rect(reason)).y).toBeGreaterThanOrEqual(left.y + left.height)
-        expect(send.y).toBeGreaterThanOrEqual((await rect(reason)).y)
+        await expect(choices).toHaveCount(1)
+        await expect(choices.first().locator('[data-pouch-title]')).toHaveText('+1 card')
+        await expect(choices.locator('[data-pouch-caption]')).toHaveCount(0)
+        await expect(panel(page).locator('[data-rows="pouch"] [aria-disabled="true"]')).toHaveCount(
+            0
+        )
+        await expect(panel(page).locator('[data-pouch-reason]')).toHaveCount(0)
 
         expect(send.y + send.height).toBeLessThanOrEqual(sheet.y + sheet.height + 1)
 

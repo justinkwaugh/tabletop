@@ -427,9 +427,7 @@ describe('Hand selection', () => {
         const count = () => linesOf(session.actionPanel, 'count')
         expect(count()).toEqual(['4 of 4'])
         expect(blockOf(session.actionPanel, 'line')?.lead).toBe('Hand')
-        expect(blockOf(session.actionPanel, 'finalise')?.lead).toMatch(
-            /^Round \d+ · choose your hand$/
-        )
+        expect(blockOf(session.actionPanel, 'finalise')?.lead).toMatch(/^Round \d+$/)
         const sends = () => primaryLabels(session.actionPanel)
         expect(sends()).toEqual(['Long live the king'])
         await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
@@ -448,14 +446,12 @@ describe('Hand selection', () => {
         expect(sends()).toEqual(['Long live the king'])
     })
 
-    it('R-3.1, R-3.1-H1 the finalise row: everyone at once, and the pouch goods shown when all have finalised', async () => {
+    it('R-3.1, R-3.1-H1 the finalise row: the seats in turn order, the viewer marked, no caption', async () => {
         const table = await atHands()
         const drafting = await table.openSeat(table.order[1])
         const watching = await table.openSpectator()
         for (const session of [drafting, watching]) {
-            expect(blockOf(session.actionPanel, 'finalise')?.caption).toBe(
-                'everyone at once · pouch goods shown when all have finalised'
-            )
+            expect(blockOf(session.actionPanel, 'finalise')).not.toHaveProperty('caption')
         }
         expect(
             blockOf(drafting.actionPanel, 'finalise')?.entries.map(({ playerId, you }) => [
@@ -468,7 +464,7 @@ describe('Hand selection', () => {
         )
     })
 
-    it('R-3.1, R-3.3 tray A: the hand counted under its label, the pouch headed "one or none"', async () => {
+    it('R-3.1, R-3.3 tray A: the hand counted under its label, the pouch headed "Pouch" and nothing more', async () => {
         const table = await atHands()
         const session = await table.openSeat(table.order[0])
         const count = blockOf(session.actionPanel, 'line')
@@ -476,10 +472,8 @@ describe('Hand selection', () => {
         const pouch = session.actionPanel.blocks.find(
             (block) => block.kind === 'rows' && block.name === 'pouch'
         )
-        expect(pouch?.kind === 'rows' && [pouch.heading, pouch.hint]).toEqual([
-            'Pouch',
-            'one or none'
-        ])
+        expect(pouch?.kind === 'rows' && pouch.heading).toBe('Pouch')
+        expect(pouch).not.toHaveProperty('hint')
     })
 
     it('R-3.1 the plan: a press fills the next slot and numbers the card; the slot or the card takes it back', async () => {
@@ -513,19 +507,19 @@ describe('Hand selection', () => {
         expect(filled()?.every((kind) => kind === undefined)).toBe(true)
     })
 
-    it('R-3.3 the pouch is two choices drawn with their goods, each with what it does', async () => {
+    it('R-3.3 the pouch is two choices drawn with their goods and short names, no caption', async () => {
         const table = await atHands()
         const session = await table.openSeat(table.order[0])
         expect(
-            rowsOf(session.actionPanel, 'pouch').map(({ art, choice, caption }) => [
+            rowsOf(session.actionPanel, 'pouch').map(({ art, choice }) => [
                 art?.kind === 'good' ? art.good : art?.kind,
-                choice.shown,
-                caption
+                choice.shown
             ])
         ).toEqual([
-            ['saltpeter', '+1 card', 'opens a fifth slot'],
-            ['sulfur', '2 in a row', 'once this round']
+            ['saltpeter', '+1 card'],
+            ['sulfur', '2 in a row']
         ])
+        expect(rowsOf(session.actionPanel, 'pouch').some((row) => 'caption' in row)).toBe(false)
     })
 
     it("R-X.2 the send's second line: it finalises and can't be undone", async () => {
@@ -552,34 +546,42 @@ describe('Hand selection', () => {
         }
     })
 
-    it('S6 R-3.3 a seat with sulfur only in its barrel: the row is dimmed, with the line, and has no effect', async () => {
+    it('S6 R-3.3 a seat with sulfur only in its barrel: that choice is not drawn, and a press does nothing', async () => {
         const table = await atHands()
         const [first] = table.order
         table.edit((state) => {
             returnGoods(state, first)
+            giveGood(state, first, 'saltpeter')
             state.getPlayerState(first).barrel = 1
         })
         const session = await table.openSeat(first)
-        expect(rowLabels(session.actionPanel, 'pouch')).toEqual([
-            'Saltpeter: 5 cards',
-            'Sulfur: two cards back to back'
-        ])
-        const sulfur = rowNamed(session.actionPanel, /^Sulfur/)
-        expect(sulfur.choice.refusal).toBe("Barrel sulfur can't go in the pouch.")
-        await pressRow(sulfur)
-        expect(rowNamed(session.actionPanel, /^Sulfur/).choice.picked).toBe(false)
+        expect(rowLabels(session.actionPanel, 'pouch')).toEqual(['Saltpeter: 5 cards'])
+        expect(session.handPanel?.drafting?.pouch[1]?.refusal).toBe(
+            "Barrel sulfur can't go in the pouch."
+        )
+        session.choosePouch('sulfur')
+        flushSync()
+        expect(session.handPanel?.drafting?.pouch[1]?.picked).toBe(false)
     })
 
-    it('S7 R-3.13-H1 the warning line shows and does not disable the send', async () => {
+    it('R-3.3 a seat holding neither pouch good: no pouch row at all', async () => {
+        const table = await atHands()
+        const [first] = table.order
+        table.edit((state) => {
+            returnGoods(state, first)
+        })
+        const session = await table.openSeat(first)
+        expect(rowsOf(session.actionPanel, 'pouch')).toEqual([])
+    })
+
+    it('S7 R-3.13-H1 the one red line shows and does not hold back the send', async () => {
         const table = await atHands()
         const [first] = table.order
         const session = await table.openSeat(first)
         for (const kind of ['conquer', 'move', 'tax', 'guild'] as const) {
             await pressCard(session.actionPanel, kind)
         }
-        expect(linesOf(session.actionPanel, 'warning')).toEqual([
-            'Conquer may end up your last card; it would be forfeited.'
-        ])
+        expect(linesOf(session.actionPanel, 'warning')).toEqual(['Conquer last is forfeited.'])
         expect(primaryLabels(session.actionPanel)).toEqual(['Long live the king'])
     })
 
@@ -638,7 +640,7 @@ describe('Hand selection', () => {
         }
         await sendNamed(session, 'Long live the king')
         const finalise = blockOf(session.actionPanel, 'finalise')
-        expect(finalise?.lead).toMatch(/^Round \d+ · your hand is set$/)
+        expect(finalise?.lead).toMatch(/^Round \d+$/)
         expect(finalise?.entries.map(({ playerId, awaited }) => [playerId, awaited])).toEqual([
             [first, false],
             [second, true],

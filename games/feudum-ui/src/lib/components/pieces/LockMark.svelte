@@ -1,9 +1,9 @@
 <script lang="ts">
     /**
-     * R-3.1-H1 A padlock beside a sealed pouch, drawn so no font has to carry it. It stands beside
-     * words that say the same, so a reader skips it.
+     * R-3.1-H1 A padlock on a sealed pouch, drawn so no font has to carry it. With a `label` it
+     * names itself ("sealed"); without one a reader skips it, as words beside it say the same.
      */
-    let { size = 12 }: { size?: number } = $props()
+    let { size = 12, label }: { size?: number; label?: string } = $props()
 </script>
 
 <svg
@@ -11,7 +11,9 @@
     width={size}
     height={size}
     viewBox="0 0 16 16"
-    aria-hidden="true"
+    role={label ? 'img' : undefined}
+    aria-label={label}
+    aria-hidden={label ? undefined : 'true'}
     data-lock
 >
     <path

@@ -382,16 +382,15 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(session.handPanel?.drafting?.count).toBe('5 of 4')
     })
 
-    it('R-3.3 the pouch choices: a short name and what each does', async () => {
+    it('R-3.3 the pouch choices: a short name each, and no caption', async () => {
         const table = await atHandSelection()
         const session = await table.openSeat(table.order[0])
         flushSync()
-        expect(
-            session.handPanel?.drafting?.pouch.map(({ title, caption }) => [title, caption])
-        ).toEqual([
-            ['+1 card', 'opens a fifth slot'],
-            ['2 in a row', 'once this round']
+        expect(session.handPanel?.drafting?.pouch.map(({ title }) => title)).toEqual([
+            '+1 card',
+            '2 in a row'
         ])
+        expect(session.handPanel?.drafting?.pouch.some((row) => 'caption' in row)).toBe(false)
     })
 
     it("R-X.2 the send reads Long live the king, its second line that it finalises and can't be undone", async () => {
@@ -440,9 +439,7 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         draftCards(session, ['conquer', 'move', 'tax', 'guild'])
 
         const drafting = session.handPanel?.drafting
-        expect(drafting?.conquerWarning).toBe(
-            'Conquer may end up your last card; it would be forfeited.'
-        )
+        expect(drafting?.conquerWarning).toBe('Conquer last is forfeited.')
         expect(drafting?.primary.enabled).toBe(true)
     })
 

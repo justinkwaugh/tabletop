@@ -40,8 +40,6 @@ export interface ActionRow {
     readonly choice: PanelChoice
     readonly press: () => void | Promise<void>
     readonly art?: RowArt
-    /** R-3.3 A pouch choice: what it does, beneath its name. */
-    readonly caption?: string
     /** R-3.2 Forfeit: a choice that stands last, drawn quieter than the modes before it. */
     readonly quiet?: true
     /** A card's mode: refused, it shows its reason beneath its name before any press. */
@@ -107,7 +105,7 @@ export interface FinaliseEntry {
     readonly name: string
     readonly paint: SeatPaint
     readonly finalised: boolean
-    /** The seat looking: its chip reads "(you)". */
+    /** The seat looking: its chip reads out "(you)". */
     readonly you: boolean
     /** S8 A seat still choosing while the one looking, its hand set, waits on it. */
     readonly awaited: boolean
@@ -148,9 +146,7 @@ type PanelBlock =
     | {
           readonly kind: 'finalise'
           readonly entries: readonly FinaliseEntry[]
-          /** R-3.1-H1 "everyone at once · pouch goods shown when all have finalised" */
-          readonly caption: string
-          /** "Round 4 · choose your hand", while this seat drafts. */
+          /** "Round 4": the round's heading. */
           readonly lead?: string
       }
     /** R-3.1-H1 Tray A once this seat has finalised: the hand as set, and the pouch sealed. */
@@ -214,8 +210,6 @@ type PanelBlock =
           readonly name: string
           /** A small heading before the rows: the attack's saltpeter count, a landscape's place. */
           readonly heading?: string
-          /** Beneath the heading, where it has one: the pouch's "one or none". */
-          readonly hint?: string
           /** It stands on a line of its own: the starting sulfur's destination. */
           readonly line?: true
           readonly rows: readonly ActionRow[]
@@ -487,9 +481,6 @@ function pawnBlocks(
     ]
 }
 
-/** R-3.1-H1 Choosing and finalising are simultaneous; the pouch goods are shown together. */
-const FinaliseCaption = 'everyone at once · pouch goods shown when all have finalised'
-
 function handBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['handPanel']>
@@ -505,7 +496,6 @@ function handBlocks(
             you: entry.playerId === session.myPlayerId,
             awaited: set !== undefined && !entry.finalised
         })),
-        caption: FinaliseCaption,
         ...(lead ? { lead } : {})
     }
     const paint = session.paintOf(session.myPlayerId ?? '')
@@ -545,18 +535,18 @@ function handBlocks(
             }),
             caption: 'play in any order'
         },
-        {
-            kind: 'rows',
-            name: 'pouch',
-            heading: 'Pouch',
-            hint: 'one or none',
-            rows: drafting.pouch.map(({ good, label, title, caption, picked, refusal }) => ({
-                choice: { ...plainChoice(label, picked, refusal), shown: title },
-                press: () => session.choosePouch(good),
-                art: { kind: 'good', good },
-                caption
-            }))
-        },
+        // R-3.3 A pouch good the seat can't commit (none held, or only in its barrel) is not drawn.
+        ...rows(
+            'pouch',
+            drafting.pouch
+                .filter(({ refusal }) => !refusal)
+                .map(({ good, label, title, picked }) => ({
+                    choice: { label, picked, shown: title },
+                    press: () => session.choosePouch(good),
+                    art: { kind: 'good', good }
+                })),
+            'Pouch'
+        ),
         ...(drafting.conquerWarning ? [line('warning', drafting.conquerWarning)] : []),
         ...sends(drafting.primary, () => session.finaliseHand()),
         ...atWillBlocks(session)

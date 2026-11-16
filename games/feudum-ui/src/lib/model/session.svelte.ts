@@ -122,7 +122,7 @@ export interface HandSet {
     /** The hand in the order it was chosen. */
     readonly cards: readonly ActionCardKind[]
     readonly pouch?: { readonly good: PouchGood; readonly title: string }
-    /** "Round 4 · your hand is set" */
+    /** "Round 4" */
     readonly line: string
 }
 
@@ -143,13 +143,12 @@ export interface HandDrafting {
         readonly good: PouchGood
         /** The full words, the choice's accessible name. */
         readonly label: string
-        /** The short name beside its art, and what it does beneath. */
+        /** The short name beside its art. */
         readonly title: string
-        readonly caption: string
         readonly picked: boolean
         readonly refusal?: string
     }[]
-    /** "Round 4 · choose your hand" */
+    /** "Round 4" */
     readonly line: string
     /** "4 of 5" */
     readonly count: string
@@ -171,20 +170,9 @@ const PouchRows: readonly {
     readonly good: PouchGood
     readonly label: string
     readonly title: string
-    readonly caption: string
 }[] = [
-    {
-        good: 'saltpeter',
-        label: 'Saltpeter: 5 cards',
-        title: PouchTitles.saltpeter,
-        caption: 'opens a fifth slot'
-    },
-    {
-        good: 'sulfur',
-        label: 'Sulfur: two cards back to back',
-        title: PouchTitles.sulfur,
-        caption: 'once this round'
-    }
+    { good: 'saltpeter', label: 'Saltpeter: 5 cards', title: PouchTitles.saltpeter },
+    { good: 'sulfur', label: 'Sulfur: two cards back to back', title: PouchTitles.sulfur }
 ]
 
 /** "Ada", "Ada and Bo", "Ada, Bo and Cy". */
@@ -704,7 +692,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return {
             cards: hand ?? [],
             ...(pouch ? { pouch: { good: pouch.good, title: pouch.title } } : {}),
-            line: `${this.roundLine()} · your hand is set`
+            line: this.roundLine()
         }
     }
 
@@ -727,22 +715,19 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                 return { kind, picked: at >= 0, ...(at >= 0 ? { slot: at + 1 } : {}) }
             }),
             slots: [...cards, ...Array.from({ length: open }, () => undefined)],
-            pouch: PouchRows.map(({ good, label, title, caption }) => {
+            pouch: PouchRows.map(({ good, label, title }) => {
                 const refusal = reasonPouchRefused(player, good)
                 return {
                     good,
                     label,
                     title,
-                    caption,
                     picked: good === pouchGood,
                     ...(refusal ? { refusal } : {})
                 }
             }),
-            line: `${this.roundLine()} · choose your hand`,
+            line: this.roundLine(),
             count: `${preview.chosen} of ${preview.required}`,
-            ...(preview.conquerMayEndLast
-                ? { conquerWarning: 'Conquer may end up your last card; it would be forfeited.' }
-                : {}),
+            ...(preview.conquerMayEndLast ? { conquerWarning: 'Conquer last is forfeited.' } : {}),
             // R-3.1-H1 Every seat finalises when it likes.
             primary: {
                 label: 'Long live the king',
@@ -759,7 +744,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     }
 
-    /** R-3.3 A press chooses the good, or clears it when chosen; a dimmed one's press does nothing but give its line. */
+    /** R-3.3 A press chooses the good, or clears it when chosen; one the seat can't commit isn't drawn, and does nothing. */
     choosePouch(good: PouchGood) {
         const me = this.myPlayerId
         if (!this.handKey || !me) {

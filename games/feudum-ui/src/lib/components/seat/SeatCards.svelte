@@ -59,7 +59,14 @@
         {:else if entry.item === 'in-hand'}
             <span class="label" data-in-hand={entry.count}>{entry.count} in hand</span>
         {:else if entry.item === 'choosing'}
-            <span class="label italic" data-pouch="choosing">choosing</span>
+            <!-- R-3.1 A hand still being chosen: one back, which names the state. -->
+            <span
+                class="flex"
+                role="img"
+                aria-label="choosing"
+                title="choosing"
+                data-pouch="choosing"><ActionCardFace faceShown={false} {paint} {width} /></span
+            >
         {:else}
             {@const card = entry.card}
             {@const mark = entry.item === 'played' ? entry.card.mark : undefined}

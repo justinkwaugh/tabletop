@@ -125,18 +125,20 @@ test('S4 to S8 R-3.1 the finalise row, the eleven faces, the pouch and the send'
     await shot(page, 'draft-next-seat')
 })
 
-test('S5 R-3.3 a dimmed pouch choice says why in place of what it does, once', async ({ page }) => {
+test('S5 R-3.3 a pouch good the seat does not hold is not drawn, and no line says why', async ({
+    page
+}) => {
     await createGame(page)
     await playToHands(page)
-    const dimmed = panel(page).locator('[data-rows="pouch"] button[aria-disabled="true"]')
-    await expect(dimmed.first()).toBeVisible()
-    await expect(dimmed.first().locator('[data-pouch-caption]')).toHaveText(/^You hold no /)
-    // It only looks disabled: it takes the press, and says nothing more.
-    await dimmed.first().click({ force: true })
-    await expect(panel(page).locator('[data-rows="pouch"] [data-refusal]')).toHaveCount(0)
-    // A desk says why in the caption's place, so the phone's line under the pair stays hidden.
-    await expect(panel(page).locator('[data-pouch-reason]')).toBeHidden()
-    await shot(page, 'pouch-refused')
+    // Each seat took saltpeter at setup and no sulfur: the pouch offers saltpeter alone.
+    const choices = panel(page).locator('[data-rows="pouch"] [data-pouch-choice]')
+    await expect(choices).toHaveCount(1)
+    await expect(choices.first()).toHaveAccessibleName('Saltpeter: 5 cards')
+    await expect(choices.first().locator('[data-pouch-title]')).toHaveText('+1 card')
+    await expect(panel(page).locator('[data-rows="pouch"] [aria-disabled="true"]')).toHaveCount(0)
+    await expect(panel(page).locator('[data-pouch-reason]')).toHaveCount(0)
+    await expect(panel(page).getByText(/You hold no/)).toHaveCount(0)
+    await shot(page, 'pouch-one')
 })
 
 test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot or the card takes it back', async ({
@@ -151,9 +153,8 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
     await expect(panel(page).locator('[data-plan] [role="list"]')).toHaveAccessibleName(
         'Your hand · play in any order'
     )
-    await expect(panel(page).locator('[data-finalise-caption]')).toContainText(
-        'everyone at once · pouch goods shown when all have finalised'
-    )
+    await expect(panel(page).locator('[data-finalise-caption]')).toHaveCount(0)
+    await expect(panel(page).locator('[data-round-lead]')).toHaveText(/^Round \d+$/)
 
     await faces.nth(2).locator('button').first().click()
     await faces.nth(0).locator('button').first().click()
@@ -212,17 +213,14 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
     const pouchLabel = await box(panel(page).locator('[data-tray-label="pouch"]'))
     expect(pouchLabel.y).toBeGreaterThanOrEqual(pouch.y - 1)
     expect(pouchLabel.y).toBeLessThan(pouch.y + pouch.height)
-    // R-3.3 The two choices stack, each as wide as the slots, each with what it does beneath.
+    // R-3.3 The choice the seat can commit (saltpeter) is as wide as the slots, its art and short
+    // name with nothing beneath.
     const choices = panel(page).locator('[data-rows="pouch"] [data-pouch-choice]')
-    await expect(choices).toHaveCount(2)
-    const [upper, lower] = [await box(choices.nth(0)), await box(choices.nth(1))]
-    expect(lower.y).toBeGreaterThanOrEqual(upper.y + upper.height)
-    for (const choice of [upper, lower]) {
-        expect(Math.abs(choice.x - plan.x)).toBeLessThan(1)
-        expect(Math.abs(choice.width - plan.width)).toBeLessThan(1)
-    }
-    await expect(choices.locator('[data-pouch-caption]')).toHaveCount(2)
-    await expect(choices.locator('[data-pouch-caption]').first()).toBeVisible()
+    await expect(choices).toHaveCount(1)
+    const choice = await box(choices.first())
+    expect(Math.abs(choice.x - plan.x)).toBeLessThan(1)
+    expect(Math.abs(choice.width - plan.width)).toBeLessThan(1)
+    await expect(choices.locator('[data-pouch-caption]')).toHaveCount(0)
     await shot(page, 'draft-two-picked')
 
     await slots.nth(0).locator('button').click()

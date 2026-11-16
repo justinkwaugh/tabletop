@@ -393,7 +393,7 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
             expect(viewOf(state, Other).pouch).toEqual({ status: 'sealed' })
         })
 
-        it('R-3.1-H1 Drawn sealed: the owner its good under a lock, the others a lock and no good', () => {
+        it('R-3.1-H1 Drawn sealed: the owner its good beside a lock, the others a lock alone; no words, the lock read out', () => {
             const state = pouchTable((row) => {
                 row.flow.selection = { finalised: [Owner] }
                 row.getPlayerState(Owner).committedPouch = 'sulfur'
@@ -410,14 +410,15 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
             }
             const ownPouch = within(own, 'data-pouch="committed"')
             expect(own).toContain('data-pouch-good="sulfur"')
-            expect(ownPouch).toContain('data-lock')
-            expect(words(ownPouch)).toContain('sealed')
+            expect(ownPouch).toMatch(/aria-label="sealed"[^>]*data-lock/)
+            expect(words(ownPouch.slice(ownPouch.indexOf('>') + 1))).toBe('')
             const other = markupOf(viewOf(state, Other))
             expect(other).toContain('data-pouch="sealed"')
             expect(other).not.toContain('data-pouch-good')
             const otherPouch = within(other, 'data-pouch="sealed"')
-            expect(otherPouch).toContain('data-lock')
-            expect(words(otherPouch)).toContain('hidden until all finalise')
+            expect(otherPouch).toMatch(/aria-label="sealed"[^>]*data-lock/)
+            expect(words(otherPouch.slice(otherPouch.indexOf('>') + 1))).toBe('')
+            expect(other).not.toContain('hidden until all finalise')
         })
 
         it('R-3.1-H1 After the reveal a seat without a good is empty for all', () => {
