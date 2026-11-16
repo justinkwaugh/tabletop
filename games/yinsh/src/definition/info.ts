@@ -18,7 +18,7 @@ export const YinshInfo: GameInfo = {
         version: GAME_VERSION,
         hasScores: false,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     },
     configurator: new YinshConfigurator(),
     preferences: YinshPreferenceDefinition
