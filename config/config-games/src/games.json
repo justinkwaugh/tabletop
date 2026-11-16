@@ -190,5 +190,9 @@
     {
         "gameId": "tzaar",
         "packageId": "tzaar"
+    },
+    {
+        "gameId": "punct",
+        "packageId": "punct"
     }
 ]
