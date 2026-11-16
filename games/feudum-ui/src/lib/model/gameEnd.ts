@@ -26,17 +26,22 @@ export interface GameEndColumn {
     readonly winner: boolean
 }
 
-export interface GameEndSummaryView {
-    readonly columns: readonly GameEndColumn[]
-    readonly winnerLine: string
-    /** R-6.3 Named only when the vp were tied: broken by the barrel, or still shared. */
-    readonly tieBreak?: string
+/**
+ * R-6.3 The seats tied on vp. The barrel broke the tie only when it left fewer winners than were
+ * tied; then each tied seat stands with its barrel sulfur, and a win still shared says so.
+ */
+export interface GameEndTie {
+    readonly broken: boolean
+    readonly seats: readonly { readonly playerId: string; readonly barrel: number }[]
+    readonly shared: boolean
 }
 
-function joined(names: readonly string[]): string {
-    return names.length < 2
-        ? names.join('')
-        : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+export interface GameEndSummaryView {
+    readonly columns: readonly GameEndColumn[]
+    /** R-6.3 The winners, each drawn as its seat's chip. */
+    readonly winners: readonly string[]
+    /** R-6.3 Only when the vp were tied: broken by the barrel, or still shared. */
+    readonly tieBreak?: GameEndTie
 }
 
 function voyageLabel(space: number | undefined): string {
@@ -48,27 +53,17 @@ function plural(count: number, one: string, many = `${one}s`): string {
     return `${count} ${count === 1 ? one : many}`
 }
 
-/**
- * R-6.3 "Tie: most sulfur in the wine barrel; still tied, shared." The barrel broke the tie only
- * when it left fewer winners than were tied on vp; a win still shared says so.
- */
-function tieBreakLine(
-    tie: BarrelTieBreak,
-    winners: readonly string[],
-    nameOf: (playerId: string) => string
-): string {
-    const named = tie.map(({ playerId, barrel }) => `${nameOf(playerId)} ${barrel}`).join(', ')
-    if (winners.length >= tie.length) {
-        return `Tie on vp and on barrel sulfur: ${named} · the win is shared`
+/** R-6.3 "Tie: most sulfur in the wine barrel; still tied, shared." */
+function tieOf(tie: BarrelTieBreak, winners: readonly string[]): GameEndTie {
+    return {
+        broken: winners.length < tie.length,
+        seats: tie.map(({ playerId, barrel }) => ({ playerId, barrel })),
+        shared: winners.length > 1
     }
-    return `Tie on vp broken by barrel sulfur: ${named}${winners.length > 1 ? ' · still tied, the win is shared' : ''}`
 }
 
 /** R-6.2, R-6.3 The summary, from ScoreGame's metadata: it needs nothing else to stand. */
-export function gameEndOf(
-    actions: readonly GameAction[],
-    nameOf: (playerId: string) => string
-): GameEndSummaryView | undefined {
+export function gameEndOf(actions: readonly GameAction[]): GameEndSummaryView | undefined {
     const score = actions.findLast((action) => isScoreGame(action))
     const metadata = isScoreGame(score) ? score.metadata : undefined
     if (!metadata) {
@@ -98,9 +93,9 @@ export function gameEndOf(
                 }
             }
         ),
-        winnerLine: `${joined(metadata.winners.map(nameOf))} ${metadata.winners.length === 1 ? 'wins' : 'win'}`,
+        winners: metadata.winners,
         ...(metadata.barrelTieBreak
-            ? { tieBreak: tieBreakLine(metadata.barrelTieBreak, metadata.winners, nameOf) }
+            ? { tieBreak: tieOf(metadata.barrelTieBreak, metadata.winners) }
             : {})
     }
 }

@@ -1036,9 +1036,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** R-6.2, R-6.3 The summary replaces the action area; History keeps its description. */
     gameEnd: GameEndSummaryView | undefined = $derived.by(() =>
-        this.isViewingHistory || !this.gameState.result
-            ? undefined
-            : gameEndOf(this.actions, (id) => this.getPlayerName(id))
+        this.isViewingHistory || !this.gameState.result ? undefined : gameEndOf(this.actions)
     )
 
     deckNote: string | undefined = $derived.by(() =>

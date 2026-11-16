@@ -106,10 +106,10 @@ export class LandscapesDraft extends DeciderDraft<LandscapesValues> {
                       )
                   }
                 : {}),
-            primary: {
-                label: picks.length > 0 ? `Collect ${picks.length}` : 'Leave all',
-                enabled: this.play !== undefined
-            }
+            primary:
+                picks.length > 0
+                    ? { label: `Collect ${picks.length}`, enabled: this.play !== undefined }
+                    : { label: 'Leave', named: 'Leave all', enabled: this.play !== undefined }
         }
     })
 

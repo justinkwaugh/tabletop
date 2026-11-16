@@ -50,11 +50,16 @@ describe('R-6.3 the barrel tie-break, as the end screen and the History word it'
                 { playerId: 'p2', barrel: 1 }
             ]
         )
-        const summary = gameEndOf([action], nameOf)
-        expect(summary?.winnerLine).toBe('Dana and Rhys win')
-        expect(summary?.tieBreak).toBe(
-            'Tie on vp and on barrel sulfur: Dana 1, Rhys 1 · the win is shared'
-        )
+        const summary = gameEndOf([action])
+        expect(summary?.winners).toEqual(['p1', 'p2'])
+        expect(summary?.tieBreak).toEqual({
+            broken: false,
+            seats: [
+                { playerId: 'p1', barrel: 1 },
+                { playerId: 'p2', barrel: 1 }
+            ],
+            shared: true
+        })
         const line = describeAction(action, { viewerId: undefined, nameOf })
         expect(line).toContain('tie on vp and on barrel sulfur: Dana 1, Rhys 1 · won by Dana, Rhys')
         expect(line).not.toMatch(/broken/)
@@ -69,9 +74,14 @@ describe('R-6.3 the barrel tie-break, as the end screen and the History word it'
                 { playerId: 'p2', barrel: 1 }
             ]
         )
-        expect(gameEndOf([action], nameOf)?.tieBreak).toBe(
-            'Tie on vp broken by barrel sulfur: Dana 3, Rhys 1'
-        )
+        expect(gameEndOf([action])?.tieBreak).toEqual({
+            broken: true,
+            seats: [
+                { playerId: 'p1', barrel: 3 },
+                { playerId: 'p2', barrel: 1 }
+            ],
+            shared: false
+        })
         expect(describeAction(action, { viewerId: undefined, nameOf })).toContain(
             'tie broken by barrel sulfur: Dana 3, Rhys 1 · won by Dana'
         )
@@ -87,9 +97,7 @@ describe('R-6.3 the barrel tie-break, as the end screen and the History word it'
                 { playerId: 'p3', barrel: 0 }
             ]
         )
-        expect(gameEndOf([action], nameOf)?.tieBreak).toBe(
-            'Tie on vp broken by barrel sulfur: Dana 2, Rhys 2, Ann 0 · still tied, the win is shared'
-        )
+        expect(gameEndOf([action])?.tieBreak).toMatchObject({ broken: true, shared: true })
         expect(describeAction(action, { viewerId: undefined, nameOf })).toContain(
             'tie broken by barrel sulfur: Dana 2, Rhys 2, Ann 0, still tied · won by Dana, Rhys'
         )

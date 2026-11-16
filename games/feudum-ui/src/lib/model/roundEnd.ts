@@ -2,11 +2,8 @@ import type { GameAction, Turn } from '@tabletop/common'
 import {
     ActionType,
     isBeginDawn,
-    isReplenishGuilds,
-    isReplenishMap,
     type BeginDawn,
     type Epoch,
-    type ReplenishGuilds,
     type ReplenishMap
 } from '@tabletop/feudum'
 import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
@@ -16,7 +13,6 @@ type DawnMetadata = NonNullable<BeginDawn['metadata']>
 export type DawnSheetRow = DawnMetadata['sheet'][number]
 type LandscapeFilled = DawnMetadata['fills'][number]
 type MapGood = NonNullable<ReplenishMap['metadata']>['goods'][number]
-type GuildRefill = NonNullable<ReplenishGuilds['metadata']>
 
 export interface DawnSheetView {
     readonly epoch: Epoch
@@ -24,11 +20,12 @@ export interface DawnSheetView {
     readonly rows: readonly DawnSheetRow[]
     /** R-4.12.3 The landscape fills, in the order they filled. */
     readonly fills: readonly string[]
-    /** R-4.12.4, R-5 What came after: the map's new goods and the guild refill. */
-    readonly notes: readonly string[]
 }
 
-/** R-4.11 The roll itself is the history's to tell; the action area keeps only the dawn's sheet. */
+/**
+ * R-4.11 The roll itself is the history's to tell; the action area keeps only the dawn's sheet. The
+ * map's new goods and the guild refill (R-4.12.4, R-5) are the history's too.
+ */
 export interface RoundEndView {
     readonly dawn: DawnSheetView
 }
@@ -40,21 +37,6 @@ export function fillLine({ spaceId, landscape, added }: LandscapeFilled): string
 export function goodsLine(goods: readonly MapGood[]): string {
     const named = goods.map(({ spaceId, good }) => `${good} at ${spaceLabel(spaceId)}`)
     return `New goods: ${named.join(', ')}`
-}
-
-function refillLine(refill: GuildRefill): string {
-    const parts: readonly (readonly [string, number])[] = [
-        ['market', refill.market.length],
-        ['carts', refill.carts.length],
-        ['vessels', refill.vessels.length],
-        ['knights', refill.knightRows.reduce((sum, { added }) => sum + added, 0)],
-        ['scrolls', refill.scrolls.length],
-        ['beads', refill.rosary.length],
-        ['chickens', refill.chickens.length],
-        ['barn', refill.barn.length]
-    ]
-    const named = parts.filter(([, count]) => count > 0).map(([name, count]) => `${count} ${name}`)
-    return `Guilds refill: ${named.length > 0 ? named.join(', ') : 'nothing'}`
 }
 
 /**
@@ -89,18 +71,11 @@ export function roundEndOf(
     if (!metadata) {
         return undefined
     }
-    const notes = recent.flatMap((action) => {
-        if (isReplenishMap(action) && action.metadata && action.metadata.goods.length > 0) {
-            return [goodsLine(action.metadata.goods)]
-        }
-        return isReplenishGuilds(action) && action.metadata ? [refillLine(action.metadata)] : []
-    })
     return {
         dawn: {
             epoch: metadata.epoch,
             rows: metadata.sheet,
-            fills: metadata.fills.map(fillLine),
-            notes
+            fills: metadata.fills.map(fillLine)
         }
     }
 }

@@ -258,10 +258,11 @@ scenario('S55 R-4.12.3 Collect landscapes', 'dawn-collect', async (table) => {
 
 scenario('S56 R-6.1, R-6.3 End of game', 'game-end', async (table) => {
     const summary = table.panel().locator('[data-game-end]')
-    await expect(summary.locator('[data-game-winner]')).toHaveText('Ana wins')
-    await expect(summary.locator('[data-game-tie-break]')).toHaveText(
-        'Tie on vp broken by barrel sulfur: Ana 2, Bram 1'
-    )
+    await expect(summary.locator('[data-game-winner]')).toHaveText(/^\s*Ana\s*wins\s*$/)
+    await expect(summary.locator('[data-game-winner] [data-seat-chip="Ana"]')).toBeVisible()
+    const tie = summary.locator('[data-game-tie-break]')
+    await expect(tie).toHaveText(/^\s*Tie broken by barrel sulfur:\s*Ana\s*2\s*and\s*Bram\s*1\s*$/)
+    await expect(tie.locator('[data-seat-chip]')).toHaveCount(2)
     await expect(summary.locator('[data-game-end-seat]')).toHaveCount(3)
     for (const row of [
         'before-dawn',
