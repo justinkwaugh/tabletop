@@ -1,5 +1,5 @@
 import { EighteenXXPreferenceDefinition, EighteenXXSeries } from '@tabletop/18xx'
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { EighteenNinetyFourConfigurator } from './gameConfig.js'
 import { GAME_VERSION } from './version.js'
 
@@ -13,14 +13,13 @@ export const EighteenNinetyFourInfo: GameInfo = {
         designer: 'Jan Kłos',
         year: '2023',
         description:
-            'Railway companies in north-eastern France and Belgium, from Paris to London, Brussels and Luxembourg.',
+            'In continental Europe the industrial revolution began in Belgium and the Nord, where coal, steel and textile towns wanted rails. Build an imagined network across north-eastern France and Belgium, from Paris to Brussels, Luxembourg and the ferry to London, in this 18xx for 3–4 players. Bid for private companies, float the French and Belgian majors, redeem and reissue their shares to fund trains, and place late companies wherever the map still has room; the richest player at the end wins.',
         minPlayers: 3,
         maxPlayers: 4,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
         series: EighteenXXSeries,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     },
     configurator: new EighteenNinetyFourConfigurator()
 }
