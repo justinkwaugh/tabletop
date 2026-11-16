@@ -8,6 +8,7 @@ export const GipfPotentialsInfo: GameInfo = {
     metadata: {
         name: 'GIPF with Potentials',
         designer: 'Kris Burm',
+        series: 'gipf-project',
         description:
             'GIPF with the potentials of the GIPF project loaded onto your pieces: extra moves, jumps, slides and covers. Line up four of your colour to recycle your pieces and capture your opponent’s, and keep a GIPF-piece in play.',
         year: '1997',

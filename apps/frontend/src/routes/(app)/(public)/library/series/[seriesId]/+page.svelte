@@ -14,6 +14,7 @@
     import {
         parseSeriesFilter,
         seriesFilterSearch,
+        seriesPageView,
         type SeriesFilter,
         type SeriesView
     } from '$lib/utils/seriesLobby'
@@ -29,7 +30,7 @@
             titles.map((title) => title.id)
         )
     )
-    const view = $derived<SeriesView>(user ? filter.view : 'titles')
+    const { tabbed, view } = $derived(seriesPageView(data.series, user !== undefined, filter))
     const tabsId = $props.id()
     const TABS: { view: SeriesView; label: string }[] = [
         { view: 'titles', label: 'Titles' },
@@ -72,7 +73,7 @@
             The game shelf couldn’t load. Please refresh to try again.
         </p>
     {:else}
-        {#if user}
+        {#if tabbed}
             <div class="collection-tabs series-tabs" role="tablist" aria-label={data.series.name}>
                 {#each TABS as tab, index (tab.view)}
                     <button
@@ -94,8 +95,8 @@
         {/if}
         <div
             id={`${tabsId}-panel`}
-            role={user ? 'tabpanel' : undefined}
-            aria-labelledby={user ? `${tabsId}-${view}` : undefined}
+            role={tabbed ? 'tabpanel' : undefined}
+            aria-labelledby={tabbed ? `${tabsId}-${view}` : undefined}
         >
             {#if view === 'titles'}
                 <LibraryShelf items={titleShelfItems(titles)} signedIn={user !== undefined} />

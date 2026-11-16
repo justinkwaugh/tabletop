@@ -9,6 +9,7 @@ export const TzaarInfo: GameInfo = {
         name: 'TZAAR',
         bggId: 31999,
         designer: 'Kris Burm',
+        series: 'gipf-project',
         description:
             "TZAAR is a 2-player abstract game of the GIPF project. Each turn, capture an enemy piece, then capture again, strengthen one of your stacks or pass. Win by taking the last of your opponent's Tzaars, Tzarras or Totts, or by leaving them nothing to capture.",
         year: '2007',

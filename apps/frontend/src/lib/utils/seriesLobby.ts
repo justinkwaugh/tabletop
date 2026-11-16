@@ -12,6 +12,7 @@ import {
 import { hasPendingGameInvitation } from './gameInvitation'
 import { isUsersNonHotseatTurn } from './dashboardGames'
 import type { DisplayedGameOption } from './gameOptions'
+import type { LibrarySeries } from './libraryTitles'
 import {
     playerHighlight,
     playersHostFirst,
@@ -43,6 +44,17 @@ export type PickerTitle = { entry: GameCatalogEntry; counts: TitleGameCounts }
 export type LobbyEntry = 'join' | 'joined' | 'full' | 'yourTurn' | 'enter' | 'watch' | 'revisit'
 
 const NO_GAMES: TitleGameCounts = { open: 0, inProgress: 0 }
+
+export type SeriesPageView = { tabbed: boolean; view: SeriesView }
+
+export function seriesPageView(
+    series: Pick<LibrarySeries, 'hasLobby'>,
+    signedIn: boolean,
+    filter: SeriesFilter
+): SeriesPageView {
+    const tabbed = signedIn && series.hasLobby
+    return { tabbed, view: tabbed ? filter.view : 'titles' }
+}
 
 export function paceFilterOf(value: string | null): GamePace | undefined {
     return PACE_FILTERS.find((filter) => filter.pace === value)?.pace

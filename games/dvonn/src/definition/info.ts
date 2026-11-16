@@ -9,6 +9,7 @@ export const DvonnInfo: GameInfo = {
         name: 'DVONN',
         bggId: 2346,
         designer: 'Kris Burm',
+        series: 'gipf-project',
         description:
             'DVONN is a 2-player abstract game of the GIPF project. Fill the board, then stack pieces on top of each other while staying linked to the three red DVONN pieces; whatever gets cut off leaves the board. Control the most pieces when no moves remain.',
         year: '2001',

@@ -9,6 +9,7 @@ export const PunctInfo: GameInfo = {
         name: 'PÜNCT',
         bggId: 19764,
         designer: 'Kris Burm',
+        series: 'gipf-project',
         description:
             'PÜNCT is a game of linking: place and move three-dot pieces to connect two opposite sides of the board. Pieces jump onto other pieces and bridge gaps, and the piece on top always counts.',
         year: '2005',

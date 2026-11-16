@@ -101,4 +101,9 @@ describe('library shelf series', () => {
         expect(librarySeriesById('18xx')?.name).toBe('18xx')
         expect(librarySeriesById('constructor')).toBeUndefined()
     })
+
+    it('gives 18xx a lobby and the GIPF project none', () => {
+        expect(librarySeriesById('18xx')?.hasLobby).toBe(true)
+        expect(librarySeriesById('gipf-project')?.hasLobby).toBe(false)
+    })
 })

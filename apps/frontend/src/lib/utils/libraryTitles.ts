@@ -14,6 +14,7 @@ export type LibrarySeries = {
     id: string
     name: string
     description: string
+    hasLobby: boolean
 }
 
 export type LibraryShelfItem =
@@ -26,7 +27,15 @@ const librarySeries = new Map<string, LibrarySeries>(
             id: '18xx',
             name: '18xx',
             description:
-                'Railroad games of share trading and track building. Run companies, buy into your rivals, and sell out before the next train rusts their fleet.'
+                'Railroad games of share trading and track building. Run companies, buy into your rivals, and sell out before the next train rusts their fleet.',
+            hasLobby: true
+        },
+        {
+            id: 'gipf-project',
+            name: 'GIPF project',
+            description:
+                'Kris Burm’s two-player abstract games. Simple pieces, open information and no luck: every game turns on the board and the choices in front of you.',
+            hasLobby: false
         }
     ].map((series) => [series.id, series])
 )

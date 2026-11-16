@@ -9,6 +9,7 @@ export const ZertzInfo: GameInfo = {
         name: 'ZÈRTZ',
         bggId: 528,
         designer: 'Kris Burm',
+        series: 'gipf-project',
         description:
             'ZÈRTZ is a 2-player abstract game from the GIPF project. Players share a pool of marbles, placing them on a shrinking board of rings and forcing captures, racing to collect a winning set of marbles.',
         year: '1999',

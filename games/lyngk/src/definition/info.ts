@@ -9,6 +9,7 @@ export const LyngkInfo: GameInfo = {
         name: 'LYNGK',
         bggId: 217083,
         designer: 'Kris Burm',
+        series: 'gipf-project',
         description:
             'LYNGK is the 2-player epilogue of the GIPF project. Claim two of five colors, move stacks across a shared network of pieces, and build stacks of five different colors.',
         year: '2017',

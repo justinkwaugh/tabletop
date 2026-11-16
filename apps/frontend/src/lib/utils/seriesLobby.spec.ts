@@ -18,6 +18,7 @@ import {
     pickerTitles,
     seatChoices,
     seriesFilterSearch,
+    seriesPageView,
     shortTitleName,
     takenSeats,
     titleGameCounts,
@@ -93,6 +94,31 @@ describe('series filter in the address', () => {
         expect(seriesFilterSearch({ view: 'lobby', titleIds: [], pace: GamePace.SameDay })).toBe(
             '?view=lobby&pace=sameDay'
         )
+    })
+})
+
+describe('series page view', () => {
+    const lobbyFilter = { view: 'lobby' as const, titleIds: [] }
+
+    it('shows a series with a lobby in tabs to someone signed in, on the view asked for', () => {
+        expect(seriesPageView({ hasLobby: true }, true, lobbyFilter)).toEqual({
+            tabbed: true,
+            view: 'lobby'
+        })
+    })
+
+    it('shows only the titles, without tabs, to someone signed out', () => {
+        expect(seriesPageView({ hasLobby: true }, false, lobbyFilter)).toEqual({
+            tabbed: false,
+            view: 'titles'
+        })
+    })
+
+    it('shows only the titles of a series without a lobby, even when its lobby is asked for', () => {
+        expect(seriesPageView({ hasLobby: false }, true, lobbyFilter)).toEqual({
+            tabbed: false,
+            view: 'titles'
+        })
     })
 })
 
