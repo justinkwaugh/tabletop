@@ -156,16 +156,18 @@ scenario('S29 R-3.7.3 R-3.7.4 Godspeed and pilfer', 'move-godspeed', async (tabl
     const ironOnTown = table.page.locator('[data-world^="good:space.desert.1:iron"]')
     await expect(ironOnTown).toHaveCount(1)
     await table.press(table.card('Move'))
+    // R-3.7.3 The monk's next spaces light among the steps, each with its Godspeed chip.
+    expect(await table.litChips()).toMatchObject({ [Forest3]: 'Godspeed' })
     await table.pressPick('pawn:p1:2')
     await table.pressPick(Desert1)
     await table.pressPick('pawn:p1:3')
     await table.pressPick(Forest1)
     await table.press(table.row('Stop moving'))
-    await expect(table.pick('pawn:p1:1')).toHaveAttribute('data-pick-role', 'lit')
-    await expect(table.pick('pawn:p1:2')).not.toHaveAttribute('data-pick-role', 'lit')
-    await expect(table.pick('pawn:p1:3')).not.toHaveAttribute('data-pick-role', 'lit')
+    for (const pawn of ['pawn:p1:1', 'pawn:p1:2', 'pawn:p1:3']) {
+        await expect(table.pick(pawn)).not.toHaveAttribute('data-pick-role', 'lit')
+    }
     await expect(table.row('No Godspeed')).toBeVisible()
-    await table.pressPick('pawn:p1:1')
+    expect(await table.litChips()).toMatchObject({ [Forest3]: 'Godspeed' })
     await table.pressPick(Forest3)
     await expect(trailOf(table, 3)).toHaveText('3')
     await expect(trailOf(table, 3)).toHaveAttribute('opacity', '0.6')
@@ -206,10 +208,16 @@ scenario(
     'move-last-step-monk',
     async (table) => {
         await table.press(table.card('Move'))
+        // The lone monk's step could be its Godspeed too: the popup asks which, once.
         await table.pressPick(Forest3)
+        await expect(table.popup().locator('[data-row]')).toHaveText([
+            'Step',
+            'Godspeed: monk from Forest 2'
+        ])
+        await table.press(table.popupRow('Step'))
         await expect(table.row('No Godspeed')).toBeVisible()
         await expect(table.row('Stop moving')).toHaveCount(0)
-        await expect(table.pick('pawn:p1:1')).toHaveAttribute('data-pick-role', /lit|picked/)
+        expect(await table.litChips()).toMatchObject({ [Badlands1]: 'Godspeed' })
     }
 )
 
