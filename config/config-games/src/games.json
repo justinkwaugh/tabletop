@@ -158,5 +158,9 @@
     {
         "gameId": "gipf",
         "packageId": "gipf"
+    },
+    {
+        "gameId": "zertz",
+        "packageId": "zertz"
     }
 ]
