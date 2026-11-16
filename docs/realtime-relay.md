@@ -125,11 +125,11 @@ The token format, Topic names, event framing and control messages are a contract
 
 ## Backend changes
 
-- **Publishing to Redis.** With `ABLY_API_KEY` set, as in production, the backend used to publish nothing to Redis. Setting `REALTIME_SIGNING_KEY` (`kid:base64url`) now adds a Redis publisher beside Ably (`apps/backend/src/app/plugins/services.ts`), so either transport can serve the client during the cutover. Topic names come from `libs/backend-services/src/notifications/topics.ts`.
+- **Transport switches.** The relay, Ably and the backend's own SSE streams are each off unless configured (`apps/backend/src/app/plugins/services.ts`). `REALTIME_SIGNING_KEY` (`kid:base64url`) publishes Realtime Updates to Redis for the relay; `ABLY_API_KEY` publishes them to Ably; `ENABLE_SSE_REALTIME=true` publishes them to Redis and subscribes the backend to Redis to feed `/api/sse/*`. A disabled transport's routes answer 404. Production runs the relay only; local development may use any of the three. Topic names come from `libs/backend-services/src/notifications/topics.ts`.
 - **Token endpoint.** `/api/realtime/token` issues Topic Registration tokens as described above, replacing `/api/sse/token`. It answers 404 when `REALTIME_SIGNING_KEY` is unset. The Ably token endpoint, `/api/auth/ably/token`, grants the same Topics (`apps/backend/src/app/lib/realtimeTopics.ts`) as an Ably capability with `subscribe` only, so an Ably client can neither publish nor attach a channel the backend did not grant; Ably matches a wildcard only to a whole colon-separated segment, so every Topic is named. The Ably client requests a token for its current game channels and re-authorizes before attaching a game channel its token does not cover.
 - **Control messages.** Not published yet; see [Revocation](#revocation).
 - **Redis connection.** The relay connects to Redis Cloud the way the backend does, over plain TCP with a username and password. Enabling TLS on the database would protect both.
-- **Retirement.** The SSE routes in `apps/backend/src/app/routes/api/sse/`, the Ably transport and token route, and `ARCHITECTURE.md`'s description of them are removed once the relay has proven itself.
+- **Ably and SSE kept for development.** The SSE routes in `apps/backend/src/app/routes/api/sse/` and the Ably transport and token route stay available behind their switches, so local development can run without the relay; production enables neither.
 
 ## Client changes
 

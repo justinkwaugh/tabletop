@@ -20,7 +20,10 @@ const user: User = {
     externalIds: []
 }
 
-async function createServer({ roles = [Role.User] }: { roles?: Role[] } = {}) {
+async function createServer({
+    roles = [Role.User],
+    withAbly = true
+}: { roles?: Role[]; withAbly?: boolean } = {}) {
     const server = Fastify()
     await server.register(SecureSession, {
         sessionName: 'session',
@@ -43,7 +46,7 @@ async function createServer({ roles = [Role.User] }: { roles?: Role[] } = {}) {
             )
         })
     )
-    server.decorate('ablyService', { createTokenRequest })
+    server.decorate('ablyService', withAbly ? { createTokenRequest } : undefined)
     await server.register(tokenRoute)
     return { server, createTokenRequest }
 }
@@ -54,6 +57,14 @@ describe('GET /auth/ably/token', () => {
     afterEach(async () => {
         await Promise.all(servers.map((server) => server.close()))
         servers.length = 0
+    })
+
+    it('answers 404 when Ably is not configured', async () => {
+        const { server, createTokenRequest } = await createServer({ withAbly: false })
+        servers.push(server)
+        const response = await server.inject({ method: 'GET', url: '/token' })
+        expect(response.statusCode).toBe(404)
+        expect(createTokenRequest).not.toHaveBeenCalled()
     })
 
     it('grants subscribe on the caller user topic and the global topic only', async () => {

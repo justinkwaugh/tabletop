@@ -32,10 +32,11 @@ Historical schema incompatibilities are reported as failures of these particular
 
 ## Hosted rehearsal
 
-Start the existing hosted runner with local realtime transport enabled:
+Start the existing hosted runner with the backend's own SSE realtime transport enabled:
 
 ```sh
-ABLY_API_KEY='' PUBLIC_ENABLE_ABLY_REALTIME='' PUBLIC_SSE_HOST='http://localhost:3000' \
+ABLY_API_KEY='' ENABLE_SSE_REALTIME=true PUBLIC_ENABLE_ABLY_REALTIME='' \
+  PUBLIC_SSE_HOST='http://localhost:3000' \
   node tools/scripts/local-hosted-game.mjs fresh-fish
 ```
 
