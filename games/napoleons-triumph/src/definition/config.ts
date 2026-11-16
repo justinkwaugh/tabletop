@@ -38,6 +38,7 @@ export const NapoleonsTriumphGameConfigOptions: GameConfigOptions = [
         id: 'sideSelection',
         type: ConfigOptionType.List,
         name: 'Sides',
+        seatedValue: 'By seat',
         description:
             'How the players come to command the French and the Allies. At a tournament table the seat decides the army',
         default: SideSelection.Random,

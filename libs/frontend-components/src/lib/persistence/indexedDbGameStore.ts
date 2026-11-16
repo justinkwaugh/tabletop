@@ -102,6 +102,11 @@ export class IndexedDbGameStore implements GameStore {
         return game
     }
 
+    async loadGameState(gameId: string): Promise<GameState | undefined> {
+        const db = await this.getDatabase()
+        return db.get(IndexedDbGameStore.STATE_STORE_NAME, gameId)
+    }
+
     async deleteGame(gameId: string): Promise<void> {
         const db = await this.getDatabase()
         const tx = db.transaction(

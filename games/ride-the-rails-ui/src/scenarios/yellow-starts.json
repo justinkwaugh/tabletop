@@ -1,0 +1,289 @@
+{
+ "game": {
+  "id": "scenario-yellow-starts",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "ride-the-rails",
+  "deleted": false,
+  "name": "Yellow starts",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p1",
+    "name": "Ada",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p2",
+    "name": "Ben",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p3",
+    "name": "Cora",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-01-05T12:00:00.000Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-01-05T12:00:00.000Z",
+  "updatedAt": "2026-01-05T12:00:00.000Z",
+  "lastActionAt": "2026-01-05T12:00:00.000Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "state-yellow-starts",
+  "gameId": "scenario-yellow-starts",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 6
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 0
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p1",
+    "color": "pink",
+    "money": 8,
+    "shares": {
+     "railroad.red": 1,
+     "railroad.orange": 1,
+     "railroad.yellow": 1
+    }
+   },
+   {
+    "playerId": "p2",
+    "color": "gray",
+    "money": 9,
+    "shares": {
+     "railroad.blue": 1,
+     "railroad.orange": 2
+    }
+   },
+   {
+    "playerId": "p3",
+    "color": "green",
+    "money": 17,
+    "shares": {
+     "railroad.red": 2,
+     "railroad.blue": 1
+    }
+   }
+  ],
+  "machineState": "Building",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p1",
+    "p2",
+    "p3"
+   ],
+   "turnCounts": {
+    "p1": 0,
+    "p2": 0,
+    "p3": 0
+   }
+  },
+  "rideTheRailsRevision": 1,
+  "mapId": "map.usa",
+  "roundManager": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 3
+    }
+   ]
+  },
+  "phaseManager": {
+   "series": [
+    {
+     "type": "phase",
+     "start": 0,
+     "name": "build"
+    }
+   ]
+  },
+  "track": {
+   "hex.usa.6-60": [
+    "railroad.red"
+   ],
+   "hex.usa.5-59": [
+    "railroad.red"
+   ],
+   "hex.usa.4-60": [
+    "railroad.red"
+   ],
+   "hex.usa.3-61": [
+    "railroad.red"
+   ],
+   "hex.usa.2-60": [
+    "railroad.red"
+   ],
+   "hex.usa.2-58": [
+    "railroad.red"
+   ],
+   "hex.usa.3-57": [
+    "railroad.red"
+   ],
+   "hex.usa.4-56": [
+    "railroad.red"
+   ],
+   "hex.usa.9-55": [
+    "railroad.blue"
+   ],
+   "hex.usa.10-56": [
+    "railroad.blue"
+   ],
+   "hex.usa.11-55": [
+    "railroad.blue"
+   ],
+   "hex.usa.5-55": [
+    "railroad.red"
+   ],
+   "hex.usa.5-53": [
+    "railroad.red"
+   ],
+   "hex.usa.6-52": [
+    "railroad.red"
+   ],
+   "hex.usa.7-51": [
+    "railroad.red"
+   ],
+   "hex.usa.8-50": [
+    "railroad.red"
+   ],
+   "hex.usa.8-48": [
+    "railroad.red"
+   ],
+   "hex.usa.8-46": [
+    "railroad.red"
+   ],
+   "hex.usa.8-44": [
+    "railroad.red"
+   ],
+   "hex.usa.5-43": [
+    "railroad.orange"
+   ],
+   "hex.usa.5-41": [
+    "railroad.orange"
+   ],
+   "hex.usa.5-39": [
+    "railroad.orange"
+   ],
+   "hex.usa.5-37": [
+    "railroad.orange"
+   ],
+   "hex.usa.8-42": [
+    "railroad.red"
+   ],
+   "hex.usa.8-40": [
+    "railroad.red"
+   ],
+   "hex.usa.8-38": [
+    "railroad.red"
+   ],
+   "hex.usa.8-36": [
+    "railroad.red"
+   ],
+   "hex.usa.5-35": [
+    "railroad.orange"
+   ],
+   "hex.usa.5-33": [
+    "railroad.orange"
+   ],
+   "hex.usa.5-31": [
+    "railroad.orange"
+   ],
+   "hex.usa.8-34": [
+    "railroad.red"
+   ],
+   "hex.usa.8-32": [
+    "railroad.red"
+   ]
+  },
+  "passengers": [
+   "city.usa.albany",
+   "city.usa.atlanta",
+   "city.usa.baltimore",
+   "city.usa.billings",
+   "city.usa.bismarck",
+   "city.usa.boise",
+   "city.usa.boston",
+   "city.usa.buffalo",
+   "city.usa.butte",
+   "city.usa.charleston",
+   "city.usa.cheyenne",
+   "city.usa.cincinnati",
+   "city.usa.corpus-christi",
+   "city.usa.dallas",
+   "city.usa.denver",
+   "city.usa.des-moines",
+   "city.usa.detroit",
+   "city.usa.el-paso",
+   "city.usa.fargo",
+   "city.usa.green-bay",
+   "city.usa.houston",
+   "city.usa.jacksonville",
+   "city.usa.kansas-city",
+   "city.usa.las-vegas",
+   "city.usa.little-rock",
+   "city.usa.los-angeles",
+   "city.usa.miami",
+   "city.usa.milwaukee",
+   "city.usa.minneapolis",
+   "city.usa.nashville",
+   "city.usa.new-orleans",
+   "city.usa.oklahoma-city",
+   "city.usa.omaha",
+   "city.usa.philadelphia",
+   "city.usa.phoenix",
+   "city.usa.pocatello",
+   "city.usa.portland-me",
+   "city.usa.portland-or",
+   "city.usa.rapid-city",
+   "city.usa.reno",
+   "city.usa.saint-louis",
+   "city.usa.salt-lake-city",
+   "city.usa.san-francisco",
+   "city.usa.santa-fe",
+   "city.usa.seattle",
+   "city.usa.spokane",
+   "city.usa.tampa",
+   "city.usa.washington"
+  ],
+  "building": {
+   "placed": 0,
+   "usedMountain": false
+  }
+ },
+ "actions": []
+}

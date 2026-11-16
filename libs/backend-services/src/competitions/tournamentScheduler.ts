@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto'
 import {
     getPrng,
+    knockoutBracket,
+    knockoutSlots,
     shuffle,
     tournamentTableId,
+    type KnockoutTableDue,
     type Tournament,
     type TournamentSchedule,
     type TournamentScheduleQuality,
@@ -18,6 +21,7 @@ export function generateTournamentSchedule(
     const stage = tournament.stages[0]
     if (!stage || tournament.status !== 'locked')
         throw new TournamentError('The roster must be locked before scheduling')
+    if (tournament.format.kind === 'knockout') return generateKnockoutSchedule(tournament, seed)
     const { tableSize, concurrency } = tournament.rules
     const gamesPerEntrant = tournament.format.stages[0].gamesPerEntrant
     const entrantIds = entrants.map((entrant) => entrant.userId).sort()
@@ -184,4 +188,62 @@ function compareQuality(a: TournamentScheduleQuality, b: TournamentScheduleQuali
         a.repeatedTables - b.repeatedTables ||
         pairCost(a) - pairCost(b)
     )
+}
+
+/**
+ * Draws a Knockout's Bracket and its first-round Tables. The shuffle stands in for seeding: the
+ * Bracket places Entrants by seed order, so a later seeding only has to supply that order.
+ */
+function generateKnockoutSchedule(tournament: Tournament, seed: number): TournamentSchedule {
+    const stage = tournament.stages[0]
+    const { tableSize, concurrency } = tournament.rules
+    const entrantIds = tournament.entrants.map((entrant) => entrant.userId).sort()
+    if (entrantIds.length < 2 || new Set(entrantIds).size !== entrantIds.length)
+        throw new TournamentError('A knockout needs at least two players', 400)
+    const seedOrder = [...entrantIds]
+    shuffle(seedOrder, getPrng(seed))
+    const draft: TournamentSchedule = {
+        id: '',
+        version: 1,
+        seed,
+        tournamentId: tournament.id,
+        stageId: stage.id,
+        rosterRevision: stage.rosterRevision,
+        entrantIds,
+        tableSize,
+        gamesPerEntrant: tournament.format.stages[0].gamesPerEntrant,
+        concurrency,
+        quality: { opponentCounts: [], repeatedTables: 0, openingTables: 0, openingEntrants: 0 },
+        tables: [],
+        bracket: { slots: knockoutSlots(seedOrder) }
+    }
+    const { due } = knockoutBracket(draft, {
+        winners: new Map(),
+        voided: new Set(),
+        withdrawn: new Set()
+    })
+    const tables = knockoutTables(draft, due)
+    const schedule: TournamentSchedule = {
+        ...draft,
+        tables,
+        quality: {
+            ...draft.quality,
+            openingTables: tables.length,
+            openingEntrants: new Set(tables.flatMap((table) => table.entrantIds)).size
+        }
+    }
+    schedule.id = createHash('sha256').update(JSON.stringify(schedule)).digest('hex')
+    return schedule
+}
+
+/** The Tables a Knockout adds for the due Games, numbered on from its Schedule. */
+export function knockoutTables(
+    schedule: Pick<TournamentSchedule, 'tables'>,
+    due: readonly KnockoutTableDue[]
+): TournamentSchedule['tables'] {
+    return due.map((table, index) => ({
+        id: tournamentTableId(schedule.tables.length + index),
+        entrantIds: [...table.entrantIds],
+        match: { ...table.match }
+    }))
 }

@@ -45,6 +45,7 @@ import {
     Tournament,
     tournamentEntrantIndex,
     tournamentSeatAccounts,
+    tournamentTableConfig,
     tournamentTableSettled,
     type TournamentGameReference,
     UserStatus,
@@ -350,7 +351,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         assert(
             game.typeId === tournament.rules.titleId &&
                 game.ownerId === tournament.organizerId &&
-                Value.Equal(game.config, tournament.rules.gameConfig),
+                Value.Equal(game.config, tournamentTableConfig(tournament, table)),
             'Game does not match tournament configuration'
         )
         assert(

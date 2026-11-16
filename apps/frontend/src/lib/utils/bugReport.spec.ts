@@ -56,6 +56,7 @@ const action: GameAction = {
 function storeWith(data: { game?: Game; actions: GameAction[] }): GameStore {
     return {
         loadGameData: async () => data,
+        loadGameState: async () => data.game?.state,
         createGame: async (created) => created,
         findGamesForUser: async () => [],
         findGameById: async () => data.game,

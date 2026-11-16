@@ -8,6 +8,7 @@ import { LeagueGroupReference } from './leagueGroupReference.js'
 import { assertExists } from '../util/assertions.js'
 import { sortedEqualGroups } from '../util/sortedEqualGroups.js'
 import type { TournamentTable } from './tournamentSchedule.js'
+import { knockoutDecider } from './tournamentKnockout.js'
 import type { Game } from '../game/model/game.js'
 
 export const miniTournamentDefaults = {
@@ -48,6 +49,16 @@ export const TournamentFormat = Type.Union([
         {
             kind: Type.Literal('multiStage'),
             stages: Type.Array(TournamentStagePlan, { minItems: 2, maxItems: 32 })
+        },
+        { additionalProperties: false }
+    ),
+    Type.Object(
+        {
+            kind: Type.Literal('knockout'),
+            // gamesPerEntrant is the Games of a Match before a Decider.
+            stages: Type.Tuple([TournamentStagePlan]),
+            // The options a Decider is played with; its seats are not assigned.
+            deciderGameConfig: GameConfig
         },
         { additionalProperties: false }
     )
@@ -166,6 +177,16 @@ export function tournamentSeatAccounts(
         assertExists(entrant, `Scheduled player ${userId} is not an entrant`)
         return tournamentEntrantAccount(entrant)
     })
+}
+
+/** The options a Table's Game is played with: a Knockout's Deciders take their own. */
+export function tournamentTableConfig(
+    tournament: Pick<Tournament, 'rules' | 'format'>,
+    table: Pick<TournamentTable, 'match'>
+): GameConfig {
+    return tournament.format.kind === 'knockout' && table.match && knockoutDecider(table.match)
+        ? tournament.format.deciderGameConfig
+        : tournament.rules.gameConfig
 }
 
 export function tournamentInPlay(status: Tournament['status']): boolean {

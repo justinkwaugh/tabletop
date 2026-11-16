@@ -24,6 +24,7 @@ import type { GameService } from '$lib/services/gameService.js'
 import type { GameStore } from '$lib/persistence/gameStore.js'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
 import { IndexedDbGameStore } from '$lib/persistence/indexedDbGameStore.js'
+import { storeLocalGame } from '$lib/persistence/storeLocalGame.js'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import type { LibraryService } from '$lib/services/libraryService.js'
 
@@ -255,32 +256,9 @@ export class HarnessGameService implements GameService {
         throw new Error('Not implemented in harness')
     }
 
-    async saveGameLocally({
-        game,
-        state,
-        actions
-    }: {
-        game: Game
-        state: GameState
-        actions: GameAction[]
-    }) {
-        const gameData = structuredClone(game)
-        const stateData = structuredClone(state)
-        const actionsData = actions.map((action) => structuredClone(action))
-
-        gameData.activePlayerIds = stateData.activePlayerIds
-
-        if (game.storage !== GameStorage.Local) {
-            throw new Error('Can only save local games locally')
-        }
-
-        await validateLocalGameState(this.libraryService, gameData, stateData)
-        await this.localGameStore.storeGameData({
-            game: gameData,
-            actions: actionsData,
-            state: stateData
-        })
-        this.gamesById.set(gameData.id, gameData)
+    async saveGameLocally(save: { game: Game; state: GameState; actions: GameAction[] }) {
+        const saved = await storeLocalGame(this.localGameStore, this.libraryService, save)
+        this.gamesById.set(saved.id, saved)
     }
 
     /** Saves a scenario as a local game of the harness user, replacing the copy loaded before, so loading it again starts it over. */
