@@ -13,7 +13,8 @@ const pose = (degrees: number, travel = { x: 0, y: -1 }) =>
 
 // The face's height on screen, from its matrix's y terms.
 function faceHeight(degrees: number, travel?: { x: number; y: number }): number {
-    const [, b, , d] = pose(degrees, travel).face.slice(7, -1).split(' ').map(Number)
+    const linear = pose(degrees, travel).face.match(/matrix\(([^)]*)\)/)?.[1] ?? ''
+    const [, b, , d] = linear.split(' ').map(Number)
     return 18 * Math.hypot(b, d)
 }
 

@@ -7,7 +7,9 @@ import type { BoardView } from './geometry.js'
 export type FlipPose = {
     // The side: the outline swept between the two faces' ellipses.
     side: string
-    // The face toward the viewer, as an SVG matrix taking a flat circle about the origin onto it.
+    // The face toward the viewer, as an SVG transform taking a flat circle about the origin onto
+    // it: a translate() to its centre, then a matrix() with no offset, as Firefox 140 leaves a
+    // matrix's offset out of the board's CSS zoom.
     face: string
     // Whether the face toward the viewer is the one that was up before the turn.
     upperFace: boolean
@@ -78,6 +80,7 @@ export function flipPose(
     const side = `M ${outline.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' L ')} Z`
 
     const at = upperFace ? upper : lower
-    const face = `matrix(${[m1.x, m1.y, m2.x, m2.y, at.x, at.y].map((n) => n.toFixed(4)).join(' ')})`
+    const linear = [m1.x, m1.y, m2.x, m2.y].map((n) => n.toFixed(4)).join(' ')
+    const face = `translate(${at.x.toFixed(4)} ${at.y.toFixed(4)}) matrix(${linear} 0 0)`
     return { side, face, upperFace }
 }

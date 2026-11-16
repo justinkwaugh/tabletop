@@ -26,26 +26,28 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 1618698728,
+        "seed": 1503872380,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-23T22:14:41.791Z",
+        "createdAt": "2026-11-16T11:48:00.135Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-23T22:14:41.791Z"
+        "startedAt": "2026-11-16T11:48:00.136Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "nDeO0ekQylbwQZsElI07-",
+        "id": "B-n3FEjx6JudoWZasMaSo",
         "gameId": "scenario-win-on-a-third-row",
-        "seed": 1618698728,
+        "seed": 1503872380,
         "prng": {
-            "seed": 1618698728,
+            "seed": 1503872380,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3231463228,
+            "algorithm": "chacha20-v1",
+            "seed": "0301c6eada68e29a89ccfea6d99210ce2dc2bb15ffa5c413c550a843cd46142c",
             "invocations": 0
         },
+        "masterSeed": "8f365d2d6c1044b534c7edf75f003100",
         "activePlayerIds": ["player-1"],
         "winningPlayerIds": [],
         "actionCount": 0,
@@ -54,13 +56,11 @@
             {
                 "playerId": "player-1",
                 "color": "white",
-                "ringsRemoved": 2,
                 "removedRingIds": [7, 8]
             },
             {
                 "playerId": "player-2",
                 "color": "black",
-                "ringsRemoved": 1,
                 "removedRingIds": [9]
             }
         ],
@@ -77,546 +77,153 @@
             "turnCounts": {
                 "player-1": 0,
                 "player-2": 0
-            }
+            },
+            "seriesKeeps": "latest"
         },
         "version": "Standard",
         "board": {
-            "points": [
+            "rings": [
                 {
                     "coords": {
                         "q": 0,
-                        "r": 0
+                        "r": 3
                     },
-                    "markerPlayerId": "player-2"
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 0
-                    },
-                    "ringPlayerId": "player-2",
-                    "ringId": 0
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -1
-                    },
-                    "markerPlayerId": "player-2"
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -2
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -1
-                    }
+                    "playerId": "player-1",
+                    "id": 0
                 },
                 {
                     "coords": {
                         "q": 2,
                         "r": 0
                     },
-                    "ringPlayerId": "player-1",
-                    "ringId": 1
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 1
-                    },
-                    "ringPlayerId": "player-2",
-                    "ringId": 2
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 2
-                    }
+                    "playerId": "player-1",
+                    "id": 1
                 },
                 {
                     "coords": {
                         "q": -2,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 1
+                        "r": -2
                     },
-                    "markerPlayerId": "player-2"
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 0
-                    },
-                    "markerPlayerId": "player-2"
+                    "playerId": "player-1",
+                    "id": 2
                 },
                 {
                     "coords": {
                         "q": -1,
-                        "r": -1
+                        "r": 0
                     },
-                    "markerPlayerId": "player-2"
+                    "playerId": "player-2",
+                    "id": 3
                 },
                 {
                     "coords": {
-                        "q": 0,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -3
+                        "q": 1,
+                        "r": 1
                     },
-                    "markerPlayerId": "player-2"
+                    "playerId": "player-2",
+                    "id": 4
                 },
                 {
                     "coords": {
                         "q": 3,
                         "r": -3
                     },
-                    "ringPlayerId": "player-2",
-                    "ringId": 3
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 3
-                    },
-                    "ringPlayerId": "player-1",
-                    "ringId": 4
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 3
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 3
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 3
-                    },
-                    "markerPlayerId": "player-1"
+                    "playerId": "player-2",
+                    "id": 5
                 },
                 {
                     "coords": {
                         "q": -3,
                         "r": 2
                     },
-                    "ringPlayerId": "player-2",
-                    "ringId": 5
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -3
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 4
-                    }
-                },
+                    "playerId": "player-2",
+                    "id": 6
+                }
+            ],
+            "markers": [
                 {
                     "coords": {
                         "q": -4,
                         "r": 3
                     },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 0
-                    }
+                    "playerId": "player-1"
                 },
                 {
                     "coords": {
                         "q": -3,
-                        "r": -1
-                    }
+                        "r": 3
+                    },
+                    "playerId": "player-1"
                 },
                 {
                     "coords": {
                         "q": -2,
-                        "r": -2
+                        "r": 3
                     },
-                    "ringPlayerId": "player-1",
-                    "ringId": 6
+                    "playerId": "player-1"
                 },
                 {
                     "coords": {
                         "q": -1,
+                        "r": 3
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 1,
                         "r": -3
-                    }
+                    },
+                    "playerId": "player-1"
                 },
                 {
                     "coords": {
                         "q": 0,
-                        "r": -4
-                    }
+                        "r": 0
+                    },
+                    "playerId": "player-2"
                 },
                 {
                     "coords": {
-                        "q": 1,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
+                        "q": 0,
                         "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 4
-                    }
+                    },
+                    "playerId": "player-2"
                 },
                 {
                     "coords": {
                         "q": -1,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
                         "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -5
-                    }
+                    },
+                    "playerId": "player-2"
                 },
                 {
                     "coords": {
                         "q": 2,
-                        "r": -5
-                    }
+                        "r": -3
+                    },
+                    "playerId": "player-2"
                 },
                 {
                     "coords": {
-                        "q": 3,
-                        "r": -5
-                    }
+                        "q": -2,
+                        "r": 1
+                    },
+                    "playerId": "player-2"
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    },
+                    "playerId": "player-2"
                 }
             ]
         },

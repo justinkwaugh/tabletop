@@ -209,7 +209,8 @@ const PALETTE: Record<Material, { lit: Rgb; shaded: Rgb }> = {
 }
 
 function mix(from: Rgb, to: Rgb, amount: number): Rgb {
-    return from.map((value, index) => value + (to[index] - value) * amount) as Rgb
+    const blend = (index: 0 | 1 | 2) => from[index] + (to[index] - from[index]) * amount
+    return [blend(0), blend(1), blend(2)]
 }
 
 function css(rgb: Rgb, brightness = 1): string {

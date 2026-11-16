@@ -1,16 +1,14 @@
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
-// The ring to move, and while taking a row the marker chosen as one end of it, as coordinate
-// keys. Each belongs to its own machine state, so only one is ever set.
+// The ring to move, and while taking a row the marker chosen as one end of it, as point keys.
+// Each belongs to its own machine state, so only one is ever set.
 export type YinshSelectionValues = {
-    from: string
-    anchor: string
+    from: number
+    anchor: number
 }
 
 export type YinshSelection = StagedSelectionState<YinshSelectionValues>
@@ -42,13 +40,4 @@ export function setYinshSelection<TStage extends keyof YinshSelectionValues>(
               value,
               'manual'
           )
-}
-
-export function hasManualYinshSelection(selection: YinshSelection): boolean {
-    return hasManualStagedSelection<YinshSelectionValues>(selection, YinshStageOrder)
-}
-
-export function popYinshSelection(selection: YinshSelection): YinshSelection {
-    return popHighestManualStagedSelection<YinshSelectionValues>(selection, YinshStageOrder)
-        .nextState
 }

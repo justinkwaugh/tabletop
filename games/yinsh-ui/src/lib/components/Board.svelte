@@ -1,9 +1,11 @@
 <script lang="ts">
-    import { addAxial, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-    import { AXES, POINTS, pointName } from '@tabletop/yinsh'
+    import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+    import { LINES, POINTS, pointKey, pointName } from '@tabletop/yinsh'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, flatCenter, VIEW } from '$lib/board/geometry.js'
+    import { includesCoords } from '$lib/model/rowChoice.js'
+    import { flatCenter, VIEW } from '$lib/board/geometry.js'
+    import { boardLines } from '$lib/board/boardLines.js'
+    import { markerSeed } from '$lib/board/ringSeeds.js'
     import { boardLabels } from '$lib/board/coordinates.js'
     import {
         MARKER_HEIGHT,
@@ -13,6 +15,7 @@
         RING_OUTER
     } from '$lib/board/pieceGeometry.js'
     import { BoardAnimator, pieceId, type DrawnPiece } from '$lib/animators/boardAnimator.svelte.js'
+    import { LABEL_SHIFT } from '$lib/board/coordinates.js'
     import { dropIn, liftOut } from '$lib/board/dropIn.js'
     import { ellipsePath, markerDrawing, ringDrawing } from '$lib/board/pieceShape.js'
     import RingShape from './RingShape.svelte'
@@ -28,24 +31,7 @@
     const frame = VIEW.frame(labels.map((label) => label.at))
     const outline = VIEW.playAreaOutline()
 
-    // Each line runs as far as consecutive points go, then a short whisker on past its end
-    // points, out over the edge of the board as on the real one.
-    const WHISKER = 0.15
-    const beyond = (coords: AxialCoordinates, step: AxialCoordinates) => {
-        const from = VIEW.center(coords)
-        const to = VIEW.center(addAxial(coords, step))
-        return { x: from.x + (to.x - from.x) * WHISKER, y: from.y + (to.y - from.y) * WHISKER }
-    }
-    const lines = AXES.flatMap((axis) => {
-        const back = { q: -axis.q, r: -axis.r }
-        return POINTS.filter((point) => !includesCoords(POINTS, addAxial(point, back))).map(
-            (start) => {
-                let end = start
-                while (includesCoords(POINTS, addAxial(end, axis))) end = addAxial(end, axis)
-                return { from: beyond(start, back), to: beyond(end, axis) }
-            }
-        )
-    })
+    const lines = boardLines(LINES)
 
     const animator = new BoardAnimator(session)
 
@@ -187,9 +173,13 @@
             <!-- Rule E2: the marker goes into the chosen ring before it moves. A staged preview, so
                  a local transition; the animator owns the motion once the move is committed. -->
             <!-- A ring Undo put back already holds its marker, so it does not drop in again. -->
-            {#key coordsKey(session.chosenFrom)}
-                <g class="drop" in:dropIn|global={{ instant: session.restaged, layer: 'under' }}>
-                    {@render marker(myTone, coordsKey(piece.coords))}
+            {#key pointKey(session.chosenFrom)}
+                <g
+                    class="drop"
+                    in:dropIn|global={{ instant: session.restaged, layer: 'under' }}
+                    onintrostart={() => session.stagedDropStarted()}
+                >
+                    {@render marker(myTone, markerSeed(piece.coords))}
                 </g>
                 <!-- The marker sits down in the hole, behind the ring's near half. -->
                 <RingShape
@@ -207,7 +197,7 @@
                     in:liftOut|global={{ layer: 'under' }}
                     onintroend={() => session.liftedOut()}
                 >
-                    {@render marker(myTone, coordsKey(piece.coords))}
+                    {@render marker(myTone, markerSeed(piece.coords))}
                 </g>
                 <RingShape
                     tone={session.toneOfPlayer(piece.playerId)}
@@ -237,18 +227,18 @@
         <!-- The moving marker's other copy, over the ring's near half and its mark: shown only
              while the marker is above the ring, so hidden at rest. -->
         {#if piece.kind === 'ring' && session.chosenFrom && sameCoordinates(session.chosenFrom, piece.coords)}
-            {#key coordsKey(session.chosenFrom)}
+            {#key pointKey(session.chosenFrom)}
                 <g
                     class="drop over"
                     in:dropIn|global={{ instant: session.restaged, layer: 'over' }}
                 >
-                    {@render marker(myTone, coordsKey(piece.coords))}
+                    {@render marker(myTone, markerSeed(piece.coords))}
                 </g>
             {/key}
         {:else if piece.kind === 'ring' && session.lifting && sameCoordinates(session.lifting, piece.coords)}
             {#key session.lifting}
                 <g class="drop over" in:liftOut|global={{ layer: 'over' }}>
-                    {@render marker(myTone, coordsKey(piece.coords))}
+                    {@render marker(myTone, markerSeed(piece.coords))}
                 </g>
             {/key}
         {/if}
@@ -256,135 +246,148 @@
 {/snippet}
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<svg
-    class="yinsh-board"
-    viewBox={frame.viewBox}
-    width={frame.width}
-    height={frame.height}
-    role="group"
-    aria-label="YINSH board"
-    onclick={onBoardClick}
-    {@attach animator.attach}
->
-    <defs>
-        <PieceDefs prefix={PREFIX} />
-    </defs>
+<div class="tap-off" role="presentation" onclick={onBoardClick}>
+    <svg
+        class="yinsh-board"
+        viewBox={frame.viewBox}
+        width={frame.width}
+        height={frame.height}
+        role="group"
+        aria-label="YINSH board"
+        {@attach animator.attach}
+    >
+        <defs>
+            <PieceDefs prefix={PREFIX} />
+        </defs>
 
-    <polygon points={outline} class="play-area"></polygon>
+        <polygon points={outline} class="play-area"></polygon>
 
-    <g class="lines">
-        {#each lines as line, index (index)}
-            <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
-        {/each}
-    </g>
-
-    {#if session.showCoordinates}
-        {#each labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
-        {/each}
-    {/if}
-
-    {#each sides as side (side.playerId)}
-        {#each side.slots as slot, index (index)}
-            <g transform="translate({slot.x} {slot.y})">
-                <path d={SLOT} fill-rule="evenodd" class="slot"></path>
-                {#if index < side.removed.length}
-                    {@render ringShadow()}
-                    {@render ring(session.toneOfPlayer(side.playerId), side.removed[index])}
-                {/if}
-            </g>
-        {/each}
-    {/each}
-
-    <!-- Destinations are empty points, so their spots lie on the board under every piece. -->
-    {#key session.gameState}
-        <g class="marks" {@attach animator.marks()}>
-            {#each destinations as center, index (index)}
-                <ellipse
-                    cx={center.x}
-                    cy={center.y}
-                    rx="5.5"
-                    ry={5.5 * VIEW.tilt}
-                    class="spot role-destination"
-                ></ellipse>
+        <g class="lines">
+            {#each lines as line, index (index)}
+                <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
             {/each}
         </g>
-    {/key}
 
-    <g class="shadows">
-        {#each pieces as piece (piece.key)}
-            {@const center = VIEW.center(piece.coords)}
-            <g transform="translate({center.x} {center.y})">
-                <g {@attach animator.node(`${piece.key}:shadow`)}>
-                    {#if piece.kind === 'ring'}
+        {#if session.showCoordinates}
+            {#each labels as label (label.key)}
+                <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
+                    >{label.text}</text
+                >
+            {/each}
+        {/if}
+
+        {#each sides as side (side.playerId)}
+            {#each side.slots as slot, index (index)}
+                <g transform="translate({slot.x} {slot.y})">
+                    <path d={SLOT} fill-rule="evenodd" class="slot"></path>
+                    {#if index < side.removed.length}
                         {@render ringShadow()}
-                    {:else}
-                        <PieceShadow kind="marker" prefix={PREFIX} />
+                        {@render ring(session.toneOfPlayer(side.playerId), side.removed[index])}
                     {/if}
                 </g>
-            </g>
+            {/each}
         {/each}
-    </g>
 
-    {#each pieces as piece (piece.key)}
-        {@render drawn(piece)}
-    {/each}
-
-    <!-- The ring in flight: its node follows the ground, with its shadow; its body rises above.
-         While it still stands around the marker it leaves, the marker shows in its hole, in
-         front of the far half and behind the near half. -->
-    {#if animator.flier}
-        {@const flier = animator.flier}
-        {@const tone = session.toneOfPlayer(flier.playerId)}
-        <g transform="translate({flier.at.x} {flier.at.y})" class="flier">
-            <g {@attach animator.flierPart('node')}>
-                <g {@attach animator.flierPart('shadow')}>{@render ringShadow()}</g>
-                <g {@attach animator.flierPart('body')}>{@render ring(tone, flier.seed)}</g>
+        <!-- Destinations are empty points, so their spots lie on the board under every piece. -->
+        <!-- Each spot fades on its own, so no effect covers more than a piece. -->
+        {#key session.gameState}
+            <g class="marks">
+                {#each destinations as center, index (index)}
+                    <ellipse
+                        cx={center.x}
+                        cy={center.y}
+                        rx="5.5"
+                        ry={5.5 * VIEW.tilt}
+                        class="spot role-destination"
+                        {@attach animator.marks()}
+                    ></ellipse>
+                {/each}
             </g>
-            {#if flier.leaves}
-                <use
-                    href="#{pieceId(flier.leaves)}"
-                    transform="translate({-flier.at.x} {-flier.at.y})"
-                    {@attach animator.flierPart('left')}
-                ></use>
-                <g {@attach animator.flierPart('nearNode')}>
-                    <g {@attach animator.flierPart('nearBody')}>
-                        <RingShape {tone} seedKey={flier.seed} prefix={PREFIX} near />
+        {/key}
+
+        <g class="shadows">
+            {#each pieces as piece (piece.key)}
+                {@const center = VIEW.center(piece.coords)}
+                <g transform="translate({center.x} {center.y})">
+                    <g {@attach animator.node(`${piece.key}:shadow`)}>
+                        {#if piece.kind === 'ring'}
+                            {@render ringShadow()}
+                        {:else}
+                            <PieceShadow kind="marker" prefix={PREFIX} />
+                        {/if}
                     </g>
                 </g>
-            {/if}
-        </g>
-        <g class="occluders" aria-hidden="true">
-            {#each pieces as piece (piece.key)}
-                {#if piece.key !== flier.leaves}
-                    <use
-                        href="#{pieceId(piece.key)}"
-                        {@attach animator.occluder(VIEW.center(piece.coords).y)}
-                    ></use>
-                {/if}
             {/each}
         </g>
-    {/if}
 
-    <g class="targets">
-        {#each clickable as coords (coordsKey(coords))}
-            {@const center = VIEW.center(coords)}
-            <path
-                d={STANDING}
-                transform="translate({center.x} {center.y})"
-                class="target"
-                role="button"
-                tabindex="0"
-                aria-label={describe(coords)}
-                onclick={() => session.choosePoint(coords)}
-                onkeydown={(event) => onKey(event, () => session.choosePoint(coords))}
-            ></path>
+        {#each pieces as piece (piece.key)}
+            {@render drawn(piece)}
         {/each}
-    </g>
-</svg>
+
+        <!-- The rings in flight: each node follows the ground, with its shadow; its body rises
+         above. While a ring still stands around the marker it leaves, the marker shows in its
+         hole, in front of the far half and behind the near half. -->
+        {#each animator.fliers as flier (flier.key)}
+            {@const tone = session.toneOfPlayer(flier.playerId)}
+            <g transform="translate({flier.at.x} {flier.at.y})" class="flier">
+                <g {@attach animator.flierPart(flier.key, 'node')}>
+                    <g {@attach animator.flierPart(flier.key, 'shadow')}>{@render ringShadow()}</g>
+                    <g {@attach animator.flierPart(flier.key, 'body')}>
+                        {@render ring(tone, flier.seed)}
+                    </g>
+                </g>
+                {#if flier.leaves}
+                    <use
+                        href="#{pieceId(flier.leaves)}"
+                        transform="translate({-flier.at.x} {-flier.at.y})"
+                        {@attach animator.flierLeft(flier.key)}
+                    ></use>
+                    <g {@attach animator.flierPart(flier.key, 'nearNode')}>
+                        <g {@attach animator.flierPart(flier.key, 'nearBody')}>
+                            <RingShape {tone} seedKey={flier.seed} prefix={PREFIX} near />
+                        </g>
+                    </g>
+                {/if}
+            </g>
+        {/each}
+        <!-- Pieces in front of a lone flier, drawn again over it while it is low behind them. -->
+        {#if animator.fliers.length === 1}
+            {@const flier = animator.fliers[0]}
+            <g class="occluders" aria-hidden="true">
+                {#each pieces as piece (piece.key)}
+                    {#if piece.key !== flier.leaves}
+                        <use
+                            href="#{pieceId(piece.key)}"
+                            {@attach animator.occluder(VIEW.center(piece.coords).y)}
+                        ></use>
+                    {/if}
+                {/each}
+            </g>
+        {/if}
+
+        <g class="targets">
+            {#each clickable as coords (pointKey(coords))}
+                {@const center = VIEW.center(coords)}
+                <path
+                    d={STANDING}
+                    transform="translate({center.x} {center.y})"
+                    class="target"
+                    role="button"
+                    tabindex="0"
+                    aria-label={describe(coords)}
+                    onclick={() => session.choosePoint(coords)}
+                    onkeydown={(event) => onKey(event, () => session.choosePoint(coords))}
+                ></path>
+            {/each}
+        </g>
+    </svg>
+</div>
 
 <style>
+    .tap-off {
+        display: contents;
+    }
+
     .yinsh-board {
         overflow: visible;
         user-select: none;
@@ -404,13 +407,14 @@
         stroke-width: 1.4;
     }
 
+    /* Centred by `dy` on the alphabetic baseline, and spaced in user units: WebKit misplaces a
+       central baseline and Safari em lengths under the board's zoom. */
     .coordinate-label {
         fill: var(--yinsh-label);
         font-size: 15px;
         font-weight: 600;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.6px;
         text-anchor: middle;
-        dominant-baseline: central;
         pointer-events: none;
     }
 

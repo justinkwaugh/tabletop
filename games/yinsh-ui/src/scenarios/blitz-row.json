@@ -26,26 +26,28 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 2608777847,
+        "seed": 1077982283,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-23T22:14:41.793Z",
+        "createdAt": "2026-11-16T11:48:00.137Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-23T22:14:41.794Z"
+        "startedAt": "2026-11-16T11:48:00.137Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "ciZ0A9poYkvFCuNtbgaEh",
+        "id": "97PgvqKtdtW52-FYv6lTY",
         "gameId": "scenario-blitz-row",
-        "seed": 2608777847,
+        "seed": 1077982283,
         "prng": {
-            "seed": 2608777847,
+            "seed": 1077982283,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3363086119,
+            "algorithm": "chacha20-v1",
+            "seed": "ce41163396b05af420c7301596b34929932ec8512f1f38471f428d4a0883b211",
             "invocations": 0
         },
+        "masterSeed": "231fd4ea54bf9e1b1f1ea986bf247d8d",
         "activePlayerIds": ["player-1"],
         "winningPlayerIds": [],
         "actionCount": 0,
@@ -54,12 +56,12 @@
             {
                 "playerId": "player-1",
                 "color": "white",
-                "ringsRemoved": 0
+                "removedRingIds": []
             },
             {
                 "playerId": "player-2",
                 "color": "black",
-                "ringsRemoved": 0
+                "removedRingIds": []
             }
         ],
         "machineState": "MovingRing",
@@ -75,548 +77,149 @@
             "turnCounts": {
                 "player-1": 0,
                 "player-2": 0
-            }
+            },
+            "seriesKeeps": "latest"
         },
         "version": "Blitz",
         "board": {
-            "points": [
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 0
-                    },
-                    "markerPlayerId": "player-2"
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 0
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -1
-                    },
-                    "markerPlayerId": "player-2"
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -2
-                    },
-                    "ringPlayerId": "player-2",
-                    "ringId": 0
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 0
-                    },
-                    "markerPlayerId": "player-2"
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 1
-                    },
-                    "ringPlayerId": "player-2",
-                    "ringId": 1
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -2
-                    },
-                    "ringPlayerId": "player-2",
-                    "ringId": 2
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 1
-                    },
-                    "ringPlayerId": "player-1",
-                    "ringId": 3
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 2
-                    },
-                    "ringPlayerId": "player-2",
-                    "ringId": 4
-                },
+            "rings": [
                 {
                     "coords": {
                         "q": 0,
                         "r": 3
                     },
-                    "ringPlayerId": "player-1",
-                    "ringId": 5
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 3
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 3
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 3
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 1
-                    }
+                    "playerId": "player-1",
+                    "id": 0
                 },
                 {
                     "coords": {
                         "q": -3,
                         "r": 0
                     },
-                    "ringPlayerId": "player-1",
-                    "ringId": 6
+                    "playerId": "player-1",
+                    "id": 1
                 },
                 {
                     "coords": {
-                        "q": -2,
-                        "r": -1
-                    }
+                        "q": 2,
+                        "r": 1
+                    },
+                    "playerId": "player-1",
+                    "id": 2
                 },
                 {
                     "coords": {
                         "q": -1,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 0,
                         "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -2
-                    }
+                    },
+                    "playerId": "player-1",
+                    "id": 3
                 },
                 {
                     "coords": {
                         "q": 4,
                         "r": -1
                     },
-                    "ringPlayerId": "player-1",
-                    "ringId": 7
+                    "playerId": "player-1",
+                    "id": 4
                 },
                 {
                     "coords": {
-                        "q": 4,
-                        "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
+                        "q": -2,
                         "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 2
-                    }
+                    },
+                    "playerId": "player-2",
+                    "id": 5
                 },
                 {
                     "coords": {
                         "q": 1,
+                        "r": -2
+                    },
+                    "playerId": "player-2",
+                    "id": 6
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    },
+                    "playerId": "player-2",
+                    "id": 7
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "playerId": "player-2",
+                    "id": 8
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 4
+                    },
+                    "playerId": "player-2",
+                    "id": 9
+                }
+            ],
+            "markers": [
+                {
+                    "coords": {
+                        "q": -4,
                         "r": 3
-                    }
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "playerId": "player-1"
                 },
                 {
                     "coords": {
                         "q": 0,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 4
-                    },
-                    "ringPlayerId": "player-2",
-                    "ringId": 8
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 3
-                    },
-                    "markerPlayerId": "player-1"
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
                         "r": 0
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -3
                     },
-                    "ringPlayerId": "player-1",
-                    "ringId": 9
+                    "playerId": "player-2"
                 },
                 {
                     "coords": {
                         "q": 0,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 5,
                         "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 2
-                    }
+                    },
+                    "playerId": "player-2"
                 },
                 {
                     "coords": {
                         "q": 2,
-                        "r": 3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": 5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -5,
-                        "r": 1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -4,
-                        "r": -1
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": -2
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -3
-                    }
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -4
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -5
-                    }
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -5
-                    }
+                        "r": 0
+                    },
+                    "playerId": "player-2"
                 }
             ]
         },

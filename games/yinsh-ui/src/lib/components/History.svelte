@@ -7,9 +7,7 @@
     const session = getGameSession()
 
     let replaying = $state.raw<{ entryId: string; entries: HistoryEntry[] } | undefined>(undefined)
-    const liveEntries = $derived(
-        historyEntries(session.actions, (id) => session.gameState.opponentOf(id))
-    )
+    const liveEntries = $derived(historyEntries(session.actions))
     const entries = $derived((replaying?.entries ?? liveEntries).toReversed())
 
     async function replay(entry: HistoryEntry) {

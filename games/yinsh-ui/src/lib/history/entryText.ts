@@ -1,4 +1,4 @@
-import type { AxialCoordinates } from '@tabletop/common'
+import { assertExists, type AxialCoordinates } from '@tabletop/common'
 import type { HistoryEntry, Removal } from './historyEntries.js'
 
 export type Segment =
@@ -15,8 +15,18 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
     switch (entry.kind) {
         case 'place':
             return [text(' placed a ring on '), point(entry.coords)]
+        case 'ring':
+            return [
+                text(' removed the ring on '),
+                point(entry.ring.coords),
+                text(` (${ordinal(entry.ring.ringsRemoved)} ring)`),
+                ...passSegments(entry.passedPlayerId, brief)
+            ]
         case 'take':
-            return removalSegments(entry.removals, brief, true)
+            return [
+                ...removalSegments(entry.removals, brief, true),
+                ...passSegments(entry.passedPlayerId, brief)
+            ]
         case 'move':
             return [
                 text(brief ? ' moved ' : ' moved a ring from '),
@@ -25,15 +35,18 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
                 point(entry.to),
                 ...flips(entry.flipped, brief),
                 ...removalSegments(entry.removals, brief, false),
-                ...(entry.opponentPassed && !brief
-                    ? [
-                          text('; '),
-                          { kind: 'player', playerId: entry.opponentId } satisfies Segment,
-                          text(' could not move and passed')
-                      ]
-                    : [])
+                ...passSegments(entry.passedPlayerId, brief)
             ]
     }
+}
+
+function passSegments(passedPlayerId: string | undefined, brief: boolean): Segment[] {
+    if (passedPlayerId === undefined || brief) return []
+    return [
+        text('; '),
+        { kind: 'player', playerId: passedPlayerId },
+        text(' could not move and passed')
+    ]
 }
 
 function flips(count: number, brief: boolean): Segment[] {
@@ -63,14 +76,17 @@ function removalSegments(removals: Removal[], brief: boolean, leading: boolean):
             ? []
             : [
                   text(' and the ring on '),
-                  point(removal.ring),
-                  ...(removal.ringsRemoved === undefined
-                      ? []
-                      : [text(` (${ordinal(removal.ringsRemoved)} ring)`)])
+                  point(removal.ring.coords),
+                  text(` (${ordinal(removal.ring.ringsRemoved)} ring)`)
               ])
     ])
 }
 
+// A player removes at most three rings: the third wins.
+const ORDINALS = ['first', 'second', 'third']
+
 function ordinal(count: number): string {
-    return ['first', 'second', 'third'][count - 1] ?? `${count}th`
+    const word = ORDINALS[count - 1]
+    assertExists(word, `No player removes ${count} rings`)
+    return word
 }

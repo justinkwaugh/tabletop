@@ -1,4 +1,4 @@
-import { addAxial, type AxialCoordinates, type Point } from '@tabletop/common'
+import { addAxial, assertExists, type AxialCoordinates, type Point } from '@tabletop/common'
 import { pointName } from '@tabletop/yinsh'
 import { VIEW } from './geometry.js'
 
@@ -9,6 +9,11 @@ export type CoordinateLabel = {
     text: string
     at: Point
 }
+
+// The labels' font size, and the shift that centres a label on its point from the alphabetic
+// baseline.
+export const LABEL_SIZE = 15
+export const LABEL_SHIFT = LABEL_SIZE * 0.35
 
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
 // Numbers stay level along the lines that run down to the right, so a line starts at its left.
@@ -25,7 +30,9 @@ export function boardLabels(positions: readonly AxialCoordinates[]): CoordinateL
             .map((key) => {
                 const members = positions.filter((coords) => group(coords) === key)
                 const end = pick(...members.map(along))
-                return members.find((coords) => along(coords) === end) ?? members[0]
+                const found = members.find((coords) => along(coords) === end)
+                assertExists(found, 'The extreme of a group is one of its members')
+                return found
             })
     const columnBottoms = extreme(
         (c) => c.q,

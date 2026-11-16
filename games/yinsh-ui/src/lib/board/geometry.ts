@@ -1,5 +1,5 @@
 import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@tabletop/common'
-import { DIRECTIONS, HEX_RADIUS, POINTS } from '@tabletop/yinsh'
+import { CORNERS, HEX_RADIUS, POINTS } from '@tabletop/yinsh'
 import { RING_HEIGHT, RING_OUTER } from './pieceGeometry.js'
 
 export const SPACING = 60
@@ -80,7 +80,7 @@ export class BoardView {
 
     // The playing surface ends at the grid's outer lines.
     playAreaOutline(): string {
-        return gridOutline()
+        return this.gridOutline()
             .map((coords) => {
                 const point = this.center(coords)
                 return `${point.x},${point.y}`
@@ -93,7 +93,7 @@ export class BoardView {
     // on the board's plane and run parallel to the hexagon's slanted edge, just beyond its
     // labels: the line numbers at the top left, the column letters at the bottom right.
     ringSlots(side: 'top' | 'bottom'): Point[] {
-        return flatRingSlots(side).map((point) => this.project(point))
+        return this.flatRingSlots(side).map((point) => this.project(point))
     }
 
     // Everything the board draws: the points with a ring standing on each, the labels and the
@@ -130,35 +130,37 @@ export class BoardView {
             height: halfHeight * 2 + CONTROLS_ROOM
         }
     }
-}
 
-export const VIEW = new BoardView(TILT)
-
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
-}
-
-const CORNERS: AxialCoordinates[] = DIRECTIONS.map((direction) => ({
-    q: direction.q * HEX_RADIUS,
-    r: direction.r * HEX_RADIUS
-}))
-
-// The grid's outer lines, clockwise: along each hexagon edge, then in to the point inside each
-// missing corner and out again, so the play area ends where the lines do.
-function gridOutline(): AxialCoordinates[] {
-    return CORNERS.flatMap((corner, index) => {
-        const previous = CORNERS[(index + CORNERS.length - 1) % CORNERS.length]
-        const next = CORNERS[(index + 1) % CORNERS.length]
-        const toward = (other: AxialCoordinates) => ({
-            q: corner.q + (other.q - corner.q) / HEX_RADIUS,
-            r: corner.r + (other.r - corner.r) / HEX_RADIUS
+    // The grid's outer lines, clockwise: along each hexagon edge, then in to the point inside each
+    // missing corner and out again, so the play area ends where the lines do.
+    private gridOutline(): AxialCoordinates[] {
+        return CORNERS.flatMap((corner, index) => {
+            const previous = CORNERS[(index + CORNERS.length - 1) % CORNERS.length]
+            const next = CORNERS[(index + 1) % CORNERS.length]
+            const toward = (other: AxialCoordinates) => ({
+                q: corner.q + (other.q - corner.q) / HEX_RADIUS,
+                r: corner.r + (other.r - corner.r) / HEX_RADIUS
+            })
+            const inside = {
+                q: (corner.q * (HEX_RADIUS - 1)) / HEX_RADIUS,
+                r: (corner.r * (HEX_RADIUS - 1)) / HEX_RADIUS
+            }
+            return [toward(previous), inside, toward(next)]
         })
-        const inside = {
-            q: (corner.q * (HEX_RADIUS - 1)) / HEX_RADIUS,
-            r: (corner.r * (HEX_RADIUS - 1)) / HEX_RADIUS
-        }
-        return [toward(previous), inside, toward(next)]
-    })
+    }
+
+    private flatRingSlots(side: 'top' | 'bottom'): Point[] {
+        const sign = side === 'top' ? 1 : -1
+        const anchor = side === 'top' ? LINE_8_LABEL : COLUMN_I_LABEL
+        const pitch = RING_OUTER * 2 + SLOT_GAP
+        return [-1, 0, 1].map((offset) => {
+            const along = SLOT_SHIFT + offset * pitch
+            return {
+                x: anchor.x + sign * (OUTWARD.x * SLOT_OFFSET + ALONG_EDGE.x * along),
+                y: anchor.y + sign * (OUTWARD.y * SLOT_OFFSET + ALONG_EDGE.y * along)
+            }
+        })
+    }
 }
 
 const SLOT_GAP = 4
@@ -181,15 +183,4 @@ const COLUMN_I_LABEL = {
     y: flatCenter({ q: 3, r: 2 }).y + LABEL_REACH
 }
 
-function flatRingSlots(side: 'top' | 'bottom'): Point[] {
-    const sign = side === 'top' ? 1 : -1
-    const anchor = side === 'top' ? LINE_8_LABEL : COLUMN_I_LABEL
-    const pitch = RING_OUTER * 2 + SLOT_GAP
-    return [-1, 0, 1].map((offset) => {
-        const along = SLOT_SHIFT + offset * pitch
-        return {
-            x: anchor.x + sign * (OUTWARD.x * SLOT_OFFSET + ALONG_EDGE.x * along),
-            y: anchor.y + sign * (OUTWARD.y * SLOT_OFFSET + ALONG_EDGE.y * along)
-        }
-    })
-}
+export const VIEW = new BoardView(TILT)

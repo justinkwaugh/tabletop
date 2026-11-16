@@ -3,7 +3,7 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
+import { defaultGameConfig, GameEngine, PlayerStatus, sameCoordinates } from '@tabletop/common'
 import { startingPositionFile } from '@tabletop/common/testing'
 import {
     Definition,
@@ -44,19 +44,23 @@ function position({ rings, markers = {}, removed = {}, version = 'Standard', fil
     const { startedGame, initialState: state } = engine.startGame(game, {
         startingPositions: { playerIds: [FIRST, SECOND] }
     })
-    const pointAt = (name) => {
-        const coords = pointFromName(name)
-        return state.board.points.find((p) => p.coords.q === coords.q && p.coords.r === coords.r)
-    }
+    // Rings are numbered in placing order: those on the board first, then those removed.
+    let nextId = 0
     for (const [playerId, names] of Object.entries(rings)) {
-        for (const name of names) pointAt(name).ringPlayerId = playerId
+        for (const name of names) {
+            state.board.rings.push({ coords: pointFromName(name), playerId, id: nextId++ })
+        }
     }
     for (const [playerId, names] of Object.entries(markers)) {
-        for (const name of names) pointAt(name).markerPlayerId = playerId
+        for (const name of names)
+            state.board.markers.push({ coords: pointFromName(name), playerId })
     }
     if (fill) fillMarkers(state, fill)
     for (const player of state.players) {
-        player.ringsRemoved = removed[player.playerId] ?? 0
+        player.removedRingIds = Array.from(
+            { length: removed[player.playerId] ?? 0 },
+            () => nextId++
+        )
     }
     state.machineState = MachineState.MovingRing
     state.activePlayerIds = [FIRST]
@@ -72,15 +76,18 @@ function position({ rings, markers = {}, removed = {}, version = 'Standard', fil
 // White only where q - r is a multiple of 3: that never puts five of one color in a line.
 function fillMarkers(state, { count, vacant }) {
     const keep = vacant.map(pointFromName)
-    let placed = state.board.points.filter((p) => p.markerPlayerId !== undefined).length
+    const taken = (coords) =>
+        [...state.board.rings, ...state.board.markers].some((piece) =>
+            sameCoordinates(piece.coords, coords)
+        )
+    let placed = state.board.markers.length
     for (const coords of POINTS) {
         if (placed === count) break
-        if (keep.some((k) => k.q === coords.q && k.r === coords.r)) continue
-        const point = state.board.points.find(
-            (p) => p.coords.q === coords.q && p.coords.r === coords.r
-        )
-        if (point.ringPlayerId !== undefined || point.markerPlayerId !== undefined) continue
-        point.markerPlayerId = (((coords.q - coords.r) % 3) + 3) % 3 === 0 ? FIRST : SECOND
+        if (keep.some((k) => sameCoordinates(k, coords)) || taken(coords)) continue
+        state.board.markers.push({
+            coords,
+            playerId: (((coords.q - coords.r) % 3) + 3) % 3 === 0 ? FIRST : SECOND
+        })
         placed += 1
     }
     if (placed !== count) throw Error('Not enough room for the markers')

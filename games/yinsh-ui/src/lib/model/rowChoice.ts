@@ -2,11 +2,12 @@ import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 
 export type Row = AxialCoordinates[]
 
-const contains = (row: Row, coords: AxialCoordinates) =>
-    row.some((candidate) => sameCoordinates(candidate, coords))
+export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
+    return list.some((candidate) => sameCoordinates(candidate, coords))
+}
 
 export function rowsThrough(rows: readonly Row[], ...markers: AxialCoordinates[]): Row[] {
-    return rows.filter((row) => markers.every((coords) => contains(row, coords)))
+    return rows.filter((row) => markers.every((coords) => includesCoords(row, coords)))
 }
 
 // A tap on a marker takes the one row it settles. A marker in several rows (inside a run
@@ -32,7 +33,7 @@ export function rowChoice(rows: readonly Row[], anchor?: AxialCoordinates): RowC
 function unique(list: readonly AxialCoordinates[]): AxialCoordinates[] {
     const result: AxialCoordinates[] = []
     for (const coords of list) {
-        if (!result.some((candidate) => sameCoordinates(candidate, coords))) result.push(coords)
+        if (!includesCoords(result, coords)) result.push(coords)
     }
     return result
 }

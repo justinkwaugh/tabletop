@@ -25,6 +25,23 @@ function onLayer(layer: MarkerLayer, y: number, opacity: number): number {
     return y < CLEARS === (layer === 'over') ? opacity : 0
 }
 
+// How long the staged marker takes to drop into its ring and settle.
+export const STAGED_DROP = MARKER_DROP.fall + MARKER_DROP.settle * 2
+
+// The staged marker `time` seconds into its drop: how far above its rest it is on screen, its
+// scale, and how far it has faded in.
+export function stagedDropPose(time: number): { y: number; scale: number; opacity: number } {
+    const { fall, rise, scale, bounce, settle } = MARKER_DROP
+    const opacity = Math.min(1, time / (fall * 0.25))
+    if (time >= STAGED_DROP) return { y: 0, scale: 1, opacity }
+    if (time < fall) {
+        const k = (time / fall) ** 2
+        return { y: rise * (1 - k), scale: scale + (1 - scale) * k, opacity }
+    }
+    const k = (time - fall) / (settle * 2)
+    return { y: bounce * Math.sin(Math.PI * k), scale: 1, opacity }
+}
+
 // The staged marker dropping into the chosen ring, as MARKER_DROP; `instant` when it is already
 // there.
 export function dropIn(
@@ -32,24 +49,11 @@ export function dropIn(
     { instant = false, layer = 'under' }: { instant?: boolean; layer?: MarkerLayer } = {}
 ): TransitionConfig {
     if (instant) return { duration: 0 }
-    const { fall, rise, scale, bounce, settle } = MARKER_DROP
-    const total = fall + settle * 2
     return {
-        duration: total * 1000,
+        duration: STAGED_DROP * 1000,
         css: (t) => {
-            const time = t * total
-            let y: number
-            let s = 1
-            if (time < fall) {
-                const k = (time / fall) ** 2
-                y = rise * (1 - k)
-                s = scale + (1 - scale) * k
-            } else {
-                const k = (time - fall) / (settle * 2)
-                y = bounce * Math.sin(Math.PI * k)
-            }
-            const opacity = onLayer(layer, y, Math.min(1, time / (fall * 0.25)))
-            return `transform: translate(0px, ${y}px) scale(${s}); opacity: ${opacity}`
+            const { y, scale, opacity } = stagedDropPose(t * STAGED_DROP)
+            return `transform: translate(0px, ${y}px) scale(${scale}); opacity: ${onLayer(layer, y, opacity)}`
         }
     }
 }

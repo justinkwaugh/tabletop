@@ -80,8 +80,10 @@ afterEach(() => {
     for (const dispose of disposals.splice(0)) dispose()
 })
 
-async function aliceSession() {
-    const { game, state, actions } = formARow()
+async function aliceSession({ hotseat = false } = {}) {
+    const prepared = formARow()
+    const { state, actions } = prepared
+    const game = { ...prepared.game, hotseat }
     const app = createHarnessAppContext(definition)
     vi.spyOn(app.gameService, 'saveGameLocally').mockResolvedValue(undefined)
     const bridgedContext = new BridgedContext({
@@ -130,7 +132,7 @@ describe('Choosing a ring to move', () => {
 
         await settled(session.undo())
         expect(session.chosenFrom).toBeUndefined()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(session.gameState.actionCount).toBe(0)
     })
 
@@ -154,7 +156,7 @@ describe('Letting go', () => {
         session.letGo()
         expect(session.chosenFrom).toBeUndefined()
         expect(session.lifting).toEqual(F3)
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(session.gameState.actionCount).toBe(0)
     })
 
@@ -192,7 +194,7 @@ describe('Undo of a move', () => {
         expect(session.gameState.board.ringsOf(ALICE)).toContainEqual(F3)
         expect(session.chosenFrom).toEqual(F3)
         expect(session.restaged).toBe(true)
-        expect(session.hasManualSelection()).toBe(true)
+        expect(session.hasLocalSelection).toBe(true)
     })
 
     it('then puts the ring down, lifting its marker out, without undoing any action', async () => {
@@ -205,7 +207,7 @@ describe('Undo of a move', () => {
         expect(session.chosenFrom).toBeUndefined()
         expect(session.lifting).toEqual(F3)
         expect(session.gameState.actionCount).toBe(0)
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
     })
 
     it('drops the marker in afresh when the ring is chosen again by hand', async () => {
@@ -219,6 +221,55 @@ describe('Undo of a move', () => {
         expect(session.chosenFrom).toEqual(F3)
         expect(session.restaged).toBe(false)
         expect(session.lifting).toBeUndefined()
+    })
+})
+
+describe('A move playing', () => {
+    it('ignores taps on its choices until the new state lands', async () => {
+        const session = await aliceSession()
+        session.updatingVisibleState = true
+        await session.choosePoint(F3)
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.hasLocalSelection).toBe(false)
+
+        session.updatingVisibleState = false
+        await session.choosePoint(F3)
+        expect(session.chosenFrom).toEqual(F3)
+        session.updatingVisibleState = true
+        session.letGo()
+        expect(session.chosenFrom).toEqual(F3)
+    })
+})
+
+describe('A choice belongs to its maker', () => {
+    it("keeps a player's chosen ring from anyone else viewing, and back for them", async () => {
+        const session = await aliceSession({ hotseat: true })
+        await session.choosePoint(F3)
+        expect(session.hasLocalSelection).toBe(true)
+
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.myPlayer?.id).not.toBe(ALICE)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenFrom).toBeUndefined()
+
+        session.setViewingAsNonActivePlayer(false)
+        expect(session.chosenFrom).toEqual(F3)
+        expect(session.hasLocalSelection).toBe(true)
+    })
+
+    it('restages only the move the Undo takes back, and only for its maker', async () => {
+        const session = await aliceSession({ hotseat: true })
+        await session.choosePoint(F3)
+        await settled(session.choosePoint(G3))
+        const [move] = session.actions
+        session.willUndo(move)
+        expect(session.restagedMove({ actionCount: 0 })).toBeDefined()
+        expect(session.keepsMarker({ actionCount: 0 }, F3)).toBe(true)
+        // An Undo landing on another count takes back some other action.
+        expect(session.restagedMove({ actionCount: 1 })).toBeUndefined()
+
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.restagedMove({ actionCount: 0 })).toBeUndefined()
     })
 })
 

@@ -1,5 +1,6 @@
 import {
     GameSession,
+    undoableStagedSelection,
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
@@ -9,6 +10,7 @@ import {
     isMoveRing,
     MoveRing,
     PlaceRing,
+    pointKey,
     POINTS,
     RemoveRing,
     RemoveRow,
@@ -18,28 +20,51 @@ import {
     type YinshGameState,
     type YinshPreferences
 } from '@tabletop/yinsh'
-import {
-    hasManualYinshSelection,
-    popYinshSelection,
-    setYinshSelection,
-    type YinshSelection
-} from './stagedSelection.js'
-import { rowChoice, rowsThrough, type Row, type RowChoice } from './rowChoice.js'
-import { coordsKey } from '$lib/board/geometry.js'
+import { setYinshSelection, YinshStageOrder, type YinshSelection } from './stagedSelection.js'
+import { includesCoords, rowChoice, rowsThrough, type Row, type RowChoice } from './rowChoice.js'
 import { toneOf, type Tone } from '$lib/board/pieceStyle.js'
+import { STAGED_DROP } from '$lib/board/dropIn.js'
 
-export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
-    return list.some((candidate) => sameCoordinates(candidate, coords))
+// Lets the session stop the move the board animator is playing.
+export type MoveInterrupter = {
+    // Lands the move at once and drops the rest of its replay: another state is being shown.
+    abandon(): void
 }
+
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<YinshGameState, HydratedYinshGameState>
+>[0]
 
 export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshGameState> {
     selection: YinshSelection = $state({})
-    // The move being taken back: Undo puts its ring back chosen, the marker still in it.
+    // Anyone but the selection's owner, as the harness's Non-active view can be after an Undo,
+    // sees none of it, and Undo passes it by.
+    private selectionOwner: string | undefined = $state()
+    private ownSelection: YinshSelection = $derived(
+        this.selectionOwner !== undefined && this.selectionOwner === this.myPlayer?.id
+            ? this.selection
+            : {}
+    )
+    // The move being taken back: your own Undo puts its ring back chosen, the marker still in it.
     private undoingMove: MoveRing | undefined
     // Whether the chosen ring is one Undo put back, so its marker is already in it.
     restaged: boolean = $state(false)
     // A ring just put down, whose staged marker is lifting back out of it.
     lifting: AxialCoordinates | undefined = $state()
+    moveInterrupter: MoveInterrupter | undefined
+    // When the staged marker began to drop into the chosen ring, in ms.
+    private stagedAt = -Infinity
+
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                YinshStageOrder,
+                () => this.ownSelection,
+                (selection) => this.select(selection)
+            )
+        )
+    }
 
     readonly preferences: TitlePreferences<typeof YinshPreferences> =
         this.createPreferences(YinshPreferenceDefinition)
@@ -71,7 +96,7 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
     movable: AxialCoordinates[] = $derived(this.ringMoves.map((ring) => ring.from))
 
     chosenFrom: AxialCoordinates | undefined = $derived(
-        this.movable.find((coords) => coordsKey(coords) === this.selection.from?.value)
+        this.movable.find((coords) => pointKey(coords) === this.ownSelection.from?.value)
     )
 
     destinations: RingMove[] = $derived(
@@ -87,7 +112,7 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
     )
 
     anchor: AxialCoordinates | undefined = $derived(
-        this.rows.flat().find((coords) => coordsKey(coords) === this.selection.anchor?.value)
+        this.rows.flat().find((coords) => pointKey(coords) === this.ownSelection.anchor?.value)
     )
 
     rowOptions: RowChoice = $derived(rowChoice(this.rows, this.anchor))
@@ -102,47 +127,66 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
     }
 
+    // Once a move is played, its motion runs on the state it started from, whose choices still
+    // show as they fade; taps on them do nothing until the new state lands.
+    private get moving(): boolean {
+        return this.updatingVisibleState
+    }
+
     toneOfPlayer(playerId: string): Tone {
         return toneOf(this.gameState.getPlayerState(playerId).color)
-    }
-
-    hasManualSelection(): boolean {
-        return hasManualYinshSelection(this.selection)
-    }
-
-    override async undo() {
-        if (this.hasManualSelection()) {
-            const chosen = this.chosenFrom
-            this.selection = popYinshSelection(this.selection)
-            if (chosen && !this.chosenFrom) this.lifting = chosen
-            return
-        }
-        await super.undo()
-    }
-
-    resetAction() {
-        this.selection = {}
     }
 
     override willUndo(action: GameAction): void {
         this.undoingMove = isMoveRing(action) ? action : undefined
     }
 
-    override beforeNewState({ kind }: PresentedTransition): void {
-        const move = kind === 'undo' ? this.undoingMove : undefined
-        this.selection = move ? setYinshSelection({}, 'from', coordsKey(move.from)) : {}
-        this.restaged = move !== undefined
-        this.lifting = undefined
-        if (kind !== 'undo') this.undoingMove = undefined
+    get presentingState(): HydratedYinshGameState | undefined {
+        return this.incomingGameState
     }
 
-    // Whether an Undo under way leaves the marker at `coords` in its ring, to be chosen again.
-    keepsMarker(coords: AxialCoordinates): boolean {
-        return this.undoingMove !== undefined && sameCoordinates(this.undoingMove.from, coords)
+    // The move your own Undo takes back from `to`, whose ring is chosen again. None when the
+    // view passes to the other player as the Undo lands, as the harness's Non-active view does.
+    restagedMove(to: Pick<YinshGameState, 'actionCount'>): MoveRing | undefined {
+        const move = this.undoingMove
+        if (move === undefined || move.index !== to.actionCount) return undefined
+        return this.isViewingAsNonActivePlayer ? undefined : move
+    }
+
+    // Whether the Undo leading to `to` leaves the marker at `coords` in its ring, to be chosen
+    // again.
+    keepsMarker(to: Pick<YinshGameState, 'actionCount'>, coords: AxialCoordinates): boolean {
+        const move = this.restagedMove(to)
+        return move !== undefined && sameCoordinates(move.from, coords)
+    }
+
+    override beforeNewState({ kind }: PresentedTransition): void {
+        if (kind === 'view-switch') this.moveInterrupter?.abandon()
+        const incoming = this.presentingState
+        const move = kind === 'undo' && incoming ? this.restagedMove(incoming) : undefined
+        if (move) {
+            this.selection = setYinshSelection({}, 'from', pointKey(move.from))
+            this.selectionOwner = move.playerId
+        }
+        this.restaged = move !== undefined
+        this.lifting = undefined
+        this.undoingMove = undefined
     }
 
     liftedOut() {
         this.lifting = undefined
+    }
+
+    // The staged marker's drop has begun to play.
+    stagedDropStarted() {
+        this.stagedAt = performance.now()
+    }
+
+    // How much of the staged marker's drop is still to play, in seconds: a move made while it is
+    // still falling carries it the rest of the way.
+    stagedDropLeft(): number {
+        if (this.restaged) return 0
+        return Math.max(0, STAGED_DROP - (performance.now() - this.stagedAt) / 1000)
     }
 
     isClickable(coords: AxialCoordinates): boolean {
@@ -156,6 +200,7 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
     }
 
     async choosePoint(coords: AxialCoordinates) {
+        if (this.moving) return
         if (includesCoords(this.placeable, coords)) {
             await this.applyAction(this.createPlayerAction(PlaceRing, { coords }))
         } else if (
@@ -176,27 +221,26 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
 
     // Tapping where there is nothing to choose lets go of a chosen ring or row end.
     letGo() {
+        if (this.moving) return
         if (this.chosenFrom) this.chooseRing(this.chosenFrom)
-        else if (this.anchor)
-            this.selection = setYinshSelection(this.selection, 'anchor', undefined)
+        else if (this.anchor) this.select(setYinshSelection(this.ownSelection, 'anchor', undefined))
     }
 
     private chooseRing(coords: AxialCoordinates) {
         const chosen = this.chosenFrom
         const same = chosen !== undefined && sameCoordinates(chosen, coords)
-        this.selection = setYinshSelection(
-            this.selection,
-            'from',
-            same ? undefined : coordsKey(coords)
+        // Choosing again the ring whose marker is lifting out drops a marker in afresh.
+        if (chosen === undefined && this.lifting && sameCoordinates(this.lifting, coords)) {
+            this.lifting = undefined
+        }
+        this.select(
+            setYinshSelection(this.ownSelection, 'from', same ? undefined : pointKey(coords))
         )
-        this.restaged = false
-        if (chosen) this.lifting = chosen
-        else if (this.lifting && sameCoordinates(this.lifting, coords)) this.lifting = undefined
     }
 
     private async chooseMarker(coords: AxialCoordinates) {
         if (this.anchor && sameCoordinates(this.anchor, coords)) {
-            this.selection = setYinshSelection(this.selection, 'anchor', undefined)
+            this.select(setYinshSelection(this.ownSelection, 'anchor', undefined))
             return
         }
         if (includesCoords(this.rowOptions.settling, coords)) {
@@ -207,6 +251,18 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
             )
             return
         }
-        this.selection = setYinshSelection(this.selection, 'anchor', coordsKey(coords))
+        this.select(setYinshSelection(this.ownSelection, 'anchor', pointKey(coords)))
+    }
+
+    // Every change of selection the player makes, by a tap or Undo. A ring let go lifts its
+    // staged marker back out; a new state clears the selection without one, as the next
+    // beforeNewState puts `lifting` back.
+    private select(selection: YinshSelection) {
+        const chosen = this.chosenFrom
+        this.selection = selection
+        this.selectionOwner = this.myPlayer?.id
+        this.restaged = false
+        const now = this.chosenFrom
+        if (chosen && !(now && sameCoordinates(now, chosen))) this.lifting = chosen
     }
 }

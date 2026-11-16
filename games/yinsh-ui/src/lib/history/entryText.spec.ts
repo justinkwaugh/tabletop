@@ -26,9 +26,8 @@ const move: HistoryEntry = {
     from: p('F3'),
     to: p('F9'),
     flipped: 3,
-    removals: [{ from: p('B3'), to: p('F3'), ring: p('F9'), ringsRemoved: 2 }],
-    opponentPassed: true,
-    opponentId: 'bob'
+    removals: [{ from: p('B3'), to: p('F3'), ring: { coords: p('F9'), ringsRemoved: 2 } }],
+    passedPlayerId: 'bob'
 }
 
 describe('entrySegments', () => {
@@ -43,7 +42,12 @@ describe('entrySegments', () => {
     })
 
     it('names a plain move and a placement', () => {
-        const plain: HistoryEntry = { ...move, flipped: 0, removals: [], opponentPassed: false }
+        const plain: HistoryEntry = {
+            ...move,
+            flipped: 0,
+            removals: [],
+            passedPlayerId: undefined
+        }
         expect(read(entrySegments(plain))).toBe(' moved a ring from F3 to F9')
         expect(read(entrySegments({ ...span, kind: 'place', coords: p('E5') }))).toBe(
             ' placed a ring on E5'
@@ -54,11 +58,21 @@ describe('entrySegments', () => {
         const take: HistoryEntry = {
             ...span,
             kind: 'take',
-            removals: [{ from: p('B3'), to: p('F3'), ring: p('K10'), ringsRemoved: 1 }]
+            removals: [{ from: p('B3'), to: p('F3'), ring: { coords: p('K10'), ringsRemoved: 1 } }],
+            passedPlayerId: 'bob'
         }
         expect(read(entrySegments(take))).toBe(
-            ' removed the row B3–F3 and the ring on K10 (first ring)'
+            ' removed the row B3–F3 and the ring on K10 (first ring); bob could not move and passed'
         )
         expect(read(entrySegments(take, true))).toBe(' took a row')
+    })
+
+    it('names a ring removed for a row history starts after', () => {
+        const ring: HistoryEntry = {
+            ...span,
+            kind: 'ring',
+            ring: { coords: p('K10'), ringsRemoved: 3 }
+        }
+        expect(read(entrySegments(ring))).toBe(' removed the ring on K10 (third ring)')
     })
 })
