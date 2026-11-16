@@ -294,7 +294,7 @@ export function benchViewOf(
 export interface StagedMove {
     readonly item: string
     readonly piece?: GhostPiece
-    /** "2 sulfur · Merchant → Alchemist" */
+    /** "2 · Merchant → Alchemist", beside the sulfur's piece. */
     readonly text: string
     /** Its accessible name: "2 sulfur from the Merchant to the Alchemist". */
     readonly words: string
@@ -329,10 +329,13 @@ export function stagedMoves(view: BenchView, bench: BenchOffer): StagedMoves | u
         lines: bench.staged.map(({ item, label, count, takeBack }) => {
             const { to, piece } = landing(item)
             const what = piece?.kind === 'good' ? `${count} ${piece.good}` : `${count} ${label}`
+            // A good or a row's marker is drawn beside it, so the line counts it and says where it goes.
+            const drawn = piece && (item.startsWith('good:') || item.startsWith('row:'))
+            const shown = drawn ? `${count}` : what
             return {
                 item,
                 ...(piece ? { piece } : {}),
-                text: to && to !== from ? `${what} · ${from} → ${to}` : `${what} · ${from}`,
+                text: to && to !== from ? `${shown} · ${from} → ${to}` : `${shown} · ${from}`,
                 words:
                     to && to !== from
                         ? `${what} from the ${from} to the ${to}`

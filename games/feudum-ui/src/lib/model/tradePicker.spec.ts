@@ -93,7 +93,7 @@ describe('Contract, The trade picker: each offer a choice card', () => {
         }, 'alchemist')
         const read = picker(turn)
         expect(read.title).toBe('Alchemist trade')
-        expect(read.line).toBe('buy 1 vessel for sale')
+        expect(read.line).toBe('Buy 1')
         expect(read.purse).toBe(9)
         expect(read.sends).toBe('each')
         expect(read.basket).toBeUndefined()
@@ -102,10 +102,12 @@ describe('Contract, The trade picker: each offer a choice card', () => {
         expect(ship.label).toBe(`Ship: ${ship.price}s → ship`)
         expect(ship.press).toMatchObject({
             label: `Buy ship · ${ship.price}s`,
-            shown: `Buy · ${ship.price}s`
+            shown: 'Buy'
         })
-        expect(read.cards.map(({ name }) => name)).toEqual(['Ship', 'Submersible'])
-        expect(read.caption).toContain('ship and submersible, ringed on the board')
+        expect(read.cards.map(({ name, words }) => [name, words])).toEqual([
+            ['Ship', undefined],
+            ['Submersible', undefined]
+        ])
 
         assertExists(ship.press, 'Buy takes a press')
         await press(turn.session, ship.press)
@@ -116,7 +118,7 @@ describe('Contract, The trade picker: each offer a choice card', () => {
         })
     })
 
-    it('R-4.6.3 a Knight trade: one card for the row’s markers, priced', async () => {
+    it('R-4.6.3 a Knight trade: one card for the row’s markers, priced, its full words its name', async () => {
         const turn = await opened((state, { seat }) => {
             const markers = [0, 0, 0, 0]
             markers[seatRowIndex(state, seat)] = 2
@@ -126,9 +128,11 @@ describe('Contract, The trade picker: each offer a choice card', () => {
         const read = picker(turn)
         const [only] = read.cards
         expect(read.cards).toHaveLength(1)
+        expect(read.line).toBe('Take row')
         expect(only?.label).toBe("Your row's markers: 3s → 2 markers")
+        expect([only?.name, only?.words]).toEqual(['Your row', 'take 2'])
         expect(only?.gain).toHaveLength(2)
-        expect(only?.press?.shown).toBe('Buy · 3s')
+        expect(only?.press).toMatchObject({ label: 'Buy 2 markers · 3s', shown: 'Buy' })
     })
 
     it('R-4.6.3, R-4.6-H2 a Monk trade: one card naming both beads; the send is the primary', async () => {
@@ -141,7 +145,8 @@ describe('Contract, The trade picker: each offer a choice card', () => {
         expect(read.cards.map(({ label, press: buy }) => [label, buy])).toEqual([
             [expect.stringMatching(/^Draw a bead: \d+s → bead 5 or 2$/), undefined]
         ])
-        expect(read.cards[0]?.words).toMatch(/can't be undone$/)
+        expect(read.line).toBe('Draw 1 of 2')
+        expect(read.cards[0]?.words).toBe("can't be undone")
     })
 
     it('R-4.6.3 a Farmer trade keeps the bench and its map pick', async () => {
@@ -161,6 +166,7 @@ describe('Contract, The trade picker: picks that add up stand in a basket', () =
         }, 'merchant')
         const before = picker(turn)
         expect(before.sends).toBe('one')
+        expect(before.line).toBe('Buy up to 3')
         expect(before.basket).toEqual({ picks: [], total: 0, most: 3 })
         const iron = card(before, 'Iron')
         expect(iron.stock).toBe('4 in bin')
@@ -176,7 +182,7 @@ describe('Contract, The trade picker: picks that add up stand in a basket', () =
             { kind: 'good', good: 'iron' },
             { kind: 'good', good: 'iron' }
         ])
-        expect(card(after, 'Iron').stock).toBe('next one · 2 bought')
+        expect(card(after, 'Iron').stock).toBe('2 bought')
         const total = after.basket?.total ?? 0
         expect(total).toBeGreaterThan(0)
         expect(turn.session.guildPanel?.primary?.label).toBe(`Buy 2 goods · ${total}s`)
@@ -237,11 +243,12 @@ describe('Contract, The trade picker: picks that add up stand in a basket', () =
             setShillings(state, seat, 9)
         }, 'noble')
         const read = picker(turn)
-        expect(read.line).toBe('buy up to 2 · 3s each')
+        expect(read.line).toBe('Buy up to 2 · 3s each')
         expect(read.cards.map(({ label }) => label)).toEqual([
-            "Seal, row 1, space 1: 3s → king's seal",
-            "Seal, row 1, space 3: 3s → king's seal"
+            "Seal row 1, space 1: 3s → king's seal",
+            "Seal row 1, space 3: 3s → king's seal"
         ])
+        expect(read.cards.map(({ words }) => words)).toEqual([undefined, undefined])
         const [first] = read.cards
         assertExists(first?.press, 'A seal takes a press')
         await press(turn.session, first.press)

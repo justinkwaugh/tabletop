@@ -981,7 +981,7 @@ describe('R-4.6 the staged moves of a guild function, in the tray', () => {
             (block): block is Extract<ActionBlock, { kind: 'staged' }> => block.kind === 'staged'
         )
 
-    it('each staged move is a line: the good as its piece with its count, where it goes, and the running count against the limit', async () => {
+    it('each staged move is a line: the good as its piece with its count, where it goes, its kind in its words, and the running count against the limit', async () => {
         const session = await pushing()
         expect(staged(session)).toBeUndefined()
 
@@ -994,12 +994,12 @@ describe('R-4.6 the staged moves of a guild function, in the tray', () => {
         expect(block.tally).toBe('3 of 4 moved')
         expect(block.lines.map(({ text, words, piece }) => ({ text, words, piece }))).toEqual([
             {
-                text: '2 sulfur · Merchant → Alchemist',
+                text: '2 · Merchant → Alchemist',
                 words: '2 sulfur from the Merchant to the Alchemist',
                 piece: { kind: 'good', good: 'sulfur' }
             },
             {
-                text: '1 iron · Merchant → Alchemist',
+                text: '1 · Merchant → Alchemist',
                 words: '1 iron from the Merchant to the Alchemist',
                 piece: { kind: 'good', good: 'iron' }
             }
@@ -1024,16 +1024,18 @@ describe('R-4.6 the staged moves of a guild function, in the tray', () => {
         await pressRow(sulfur.takeBack)
 
         const block = staged(session)
-        expect(block?.lines.map(({ text }) => text)).toEqual(['1 iron · Merchant → Alchemist'])
+        expect(block?.lines.map(({ words }) => words)).toEqual([
+            '1 iron from the Merchant to the Alchemist'
+        ])
         expect(block?.tally).toBe('1 of 4 moved')
         expect(primaryLabels(session.actionPanel)).toEqual([])
         expect(session.guildPanel?.primary?.label).toBe('Move 1 good')
 
         await session.undo()
         flushSync()
-        expect(staged(session)?.lines.map(({ text }) => text)).toEqual([
-            '2 sulfur · Merchant → Alchemist',
-            '1 iron · Merchant → Alchemist'
+        expect(staged(session)?.lines.map(({ words }) => words)).toEqual([
+            '2 sulfur from the Merchant to the Alchemist',
+            '1 iron from the Merchant to the Alchemist'
         ])
     })
 })

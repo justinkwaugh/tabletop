@@ -18,7 +18,7 @@
      * Contract, The trade picker: the guild's board upright at the left, and beside it, left aligned
      * in one reading order, the header with the purse right after its line, one choice card per
      * offer, the basket where picks add up, the bench's further choices (sulfur into the barrel),
-     * the send and a caption. On a desk it stands in the picked card's tray, under the tray's control
+     * and the send. On a desk it stands in the picked card's tray, under the tray's control
      * row; on a phone, in the bench's bottom sheet, its cards as compact rows. It reads the bench
      * offer and decides nothing.
      */
@@ -181,10 +181,6 @@
                         <span class="inline-flex" data-basket-pick
                             ><BenchGhostPiece {piece} size={22} {rowPaint} /></span
                         >
-                    {:else}
-                        <span class="text-xs text-feudum-text-muted"
-                            >empty · up to {picker.basket.most}</span
-                        >
                     {/each}
                     <span class="inline-flex items-center gap-0.5 font-semibold" data-basket-total
                         >= <ShillingToken value={1} size={16} />{picker.basket.total}</span
@@ -203,12 +199,6 @@
             {/if}
             {#if send}
                 <span class="send" data-bench-send><PrimaryButton block={send} /></span>
-            {/if}
-            {#if !compact}
-                <!-- It wraps in the column's width rather than widening it. -->
-                <p class="w-0 min-w-full text-xs text-feudum-text-muted" data-picker-caption>
-                    {picker.caption}
-                </p>
             {/if}
         </div>
     </div>

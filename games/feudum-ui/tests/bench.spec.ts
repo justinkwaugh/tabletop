@@ -222,7 +222,8 @@ test('S74 R-4.6.2 a Merchant trade: a bin per good, each priced; the basket adds
     await expect(tradeCard(page, 'good:iron').locator('button')).toHaveAccessibleName(
         /^Iron: \d+s → iron$/
     )
-    await expect(picker(page).locator('[data-trade-basket]')).toContainText('empty · up to 3')
+    await expect(picker(page).locator('[data-basket-pick]')).toHaveCount(0)
+    await expect(picker(page).locator('[data-basket-total]')).toHaveText(/\D0$/)
     await pressAll(page, 'good:iron', 'good:wood')
     await expect(picker(page).locator('[data-basket-pick]')).toHaveCount(2)
     const send = picker(page).locator('[data-bench-send] [data-primary]')
@@ -297,7 +298,7 @@ test('R-4.6.3 an Alchemist trade: a vessel for sale takes the press where it sta
     await expect(upright(page).locator('button')).toHaveCount(0)
     const ship = tradeCard(page, 'vessel:ship')
     await expect(ship).toHaveAccessibleName('Ship: 3s → ship')
-    await expect(ship.locator('[data-trade-buy] button')).toHaveText('Buy · 3s')
+    await expect(ship.locator('[data-trade-buy] button')).toHaveText('Buy')
     await expect(ship.locator('[data-trade-buy] button')).toHaveAccessibleName('Buy ship · 3s')
     await expect(picker(page).locator('[data-trade-card]')).toHaveCount(2)
     await expect(picker(page).locator('[data-purse]')).toHaveText(/^you have .*9$/)
@@ -321,9 +322,7 @@ test('S44 R-4.6.3, R-4.2.4 the row’s price; the popup; the header over the map
     await expect(tradeCard(page, 'row:seat')).toHaveAccessibleName(
         "Your row's markers: 3s → 4 markers"
     )
-    await expect(tradeCard(page, 'row:seat').locator('[data-trade-buy] button')).toHaveText(
-        'Buy · 3s'
-    )
+    await expect(tradeCard(page, 'row:seat').locator('[data-trade-buy] button')).toHaveText('Buy')
     await pressAll(page, 'row:seat')
     await expect(popup(page)).toBeVisible()
     await expect(popup(page).locator('[data-row]').last()).toHaveText('No')
@@ -331,7 +330,7 @@ test('S44 R-4.6.3, R-4.2.4 the row’s price; the popup; the header over the map
     await popupRow(page, /behemoth/).click()
     await settled(page)
     await expect(bench(page)).toHaveCount(0)
-    await expect(header(page)).toHaveText('Knight trade: tame the behemoth')
+    await expect(header(page)).toHaveText('Pick a space.')
     await expect(page.locator('[data-board-surface] [data-pick-role="lit"]')).not.toHaveCount(0)
     await shot(page, 'knight-trade-map')
     await page.keyboard.press('Escape')
@@ -353,11 +352,11 @@ test('S44 R-4.6.3 a Farmer trade: the header over the map; a farm’s popup keep
     page
 }) => {
     await openFunction(page, 'farmerTrade', 'farmer', /^\s*Trade/)
-    await expect(header(page)).toHaveText('Farmer trade: pick a farm')
+    await expect(header(page)).toHaveText('Pick a farm.')
     await page.locator('[data-board-surface] [data-pick-role="lit"]').first().click()
     await settled(page)
     await expect(popup(page)).toBeVisible()
-    await expect(header(page)).toContainText('split the goods sent')
+    await expect(header(page)).toHaveText('Split.')
     // Closed down to its header, the bench covers nothing: the board's guilds stay drawn.
     await expect(page.locator('[data-board-surface] [data-layer="guilds"]')).not.toHaveAttribute(
         'visibility',
@@ -366,16 +365,15 @@ test('S44 R-4.6.3 a Farmer trade: the header over the map; a farm’s popup keep
     await shot(page, 'farmer-trade-split')
 })
 
-test('S45 R-4.6.5, R-5-H1 a used colour’s row does nothing; the seals land unseen', async ({
+test('S45 R-4.6.5, R-5-H1 a used colour’s row stays picked, with no press and no line; the seals land unseen', async ({
     page
 }) => {
     await openFunction(page, 'knightPush', 'knight', /^\s*Push/)
     await pressAll(page, 'row:0', 'scroll:guild.noble.scroll.r1c1')
     await expect(page.locator('[data-bench-area="noble"] [data-ghost]')).toHaveCount(1)
-    await itemPress(page, 'row:0').click({ force: true })
-    await settled(page)
-    await expect(page.locator('[data-bench-area="noble"] [data-ghost]')).toHaveCount(1)
-    await expect(place(page, 'row:0').locator('[data-refusal]')).not.toBeEmpty()
+    await expect(place(page, 'row:0')).toHaveAttribute('data-bench-role', 'picked')
+    await expect(place(page, 'row:0').locator('button')).toHaveCount(0)
+    await expect(bench(page).locator('[data-refusal]')).toHaveCount(0)
     await shot(page, 'knight-push')
 })
 
@@ -731,7 +729,7 @@ test('R-4.6 a push lists its staged moves in the tray, each with its take-back',
     const staged = panel(page).locator('[data-card-tray] [data-staged]')
     await expect(staged.locator('[data-staged-line]')).toHaveCount(2)
     await expect(staged.locator('[data-staged-line]').first()).toContainText(
-        '2 sulfur · Merchant → Alchemist'
+        '2 · Merchant → Alchemist'
     )
     await expect(staged.locator('[data-staged-tally]')).toHaveText('3 of 4 moved')
     // R-X.2 Short of the push's count, no send is drawn.
