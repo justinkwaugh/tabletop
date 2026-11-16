@@ -1,5 +1,11 @@
 import type { AxialCoordinates } from '@tabletop/common'
-import { isPotentialKind, PieceKind, type PotentialKind } from '@tabletop/gipf-potentials'
+import {
+    isPotentialKind,
+    PieceKind,
+    POTENTIAL_KINDS,
+    type PotentialCounts,
+    type PotentialKind
+} from '@tabletop/gipf-potentials'
 import type { DiscKind } from '$lib/board/pieceShape.js'
 import type { HistoryEntry, Taking } from './historyEntries.js'
 
@@ -30,6 +36,17 @@ function moved(kind: PotentialKind): string {
         case PieceKind.Tamsk:
             throw Error('A TAMSK-potential has no move of its own')
     }
+}
+
+function givenUp(counts: PotentialCounts): Segment[] {
+    const kinds = POTENTIAL_KINDS.filter((kind) => counts[kind] > 0)
+    return [
+        text(', giving up'),
+        ...kinds.flatMap((kind, index) => {
+            const joiner = index === 0 ? ' ' : index === kinds.length - 1 ? ' and ' : ', '
+            return [text(`${joiner}${counts[kind]} `), piece(kind)]
+        })
+    ]
 }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
@@ -68,7 +85,7 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
                 ...(entry.extra ? [text(' as an extra move')] : []),
                 ...(!brief && entry.shifted > 0 ? [text(`, moving ${entry.shifted}`)] : []),
                 ...(tamsk && !brief ? [text(', a TAMSK piece onto E5')] : []),
-                ...(entry.forfeited && !brief ? [text(', giving up its potentials')] : []),
+                ...(entry.forfeited && !brief ? givenUp(entry.forfeited) : []),
                 ...rows
             ]
         }

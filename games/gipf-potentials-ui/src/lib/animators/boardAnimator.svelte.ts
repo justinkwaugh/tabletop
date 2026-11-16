@@ -2,6 +2,7 @@ import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
 import {
+    assertExists,
     coordinatesToNumber,
     distanceAxial,
     sameCoordinates,
@@ -17,6 +18,7 @@ import {
     isExtraMove,
     isPushPiece,
     PieceKind,
+    POTENTIAL_KINDS,
     type HydratedGipfPotentialsGameState
 } from '@tabletop/gipf-potentials'
 import type { GipfPotentialsGameSession, MoveInterrupter } from '$lib/model/session.svelte.js'
@@ -99,17 +101,9 @@ type StackNodes = {
 type FlierNodes = { whole?: SVGGElement; body?: SVGGElement; shadow?: SVGGElement }
 type Occluder = { x: number; y: number; top: number }
 
-function drawnStacks(state: HydratedGipfPotentialsGameState): DrawnStack[] {
-    return state.board.stacks.map((stack) => ({
-        key: coordinatesToNumber(stack.coords),
-        coords: stack.coords,
-        discs: discsOf(stack.units)
-    }))
-}
-
 export class BoardAnimator implements MoveInterrupter {
     // A replay leaves each action's board drawn until the state catches up.
-    stacks: DrawnStack[] = $derived.by(() => drawnStacks(this.session.gameState))
+    stacks: DrawnStack[] = $derived.by(() => this.drawnStacks(this.session.gameState))
     entering: Entering | undefined = $state()
     flier: Flier | undefined = $state()
     pushedIn: boolean = $derived.by(() => this.untilLanded(false))
@@ -176,8 +170,8 @@ export class BoardAnimator implements MoveInterrupter {
     parts(key: number): PieceParts {
         const nodes = this.nodesOf(key)
         return {
-            disc: (index) => register(nodes.discs, index),
-            crease: (index) => register(nodes.creases, index)
+            disc: (index) => this.register(nodes.discs, index),
+            crease: (index) => this.register(nodes.creases, index)
         }
     }
 
@@ -191,8 +185,8 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     readonly enteringParts: PieceParts = {
-        disc: (index) => register(this.enteringNodes.discs, index),
-        crease: (index) => register(this.enteringNodes.creases, index)
+        disc: (index) => this.register(this.enteringNodes.discs, index),
+        crease: (index) => this.register(this.enteringNodes.creases, index)
     }
 
     enteringShadow(): Attachment<SVGGElement> {
@@ -247,10 +241,12 @@ export class BoardAnimator implements MoveInterrupter {
             return
         }
         const presenting = this.session.presentingState
-        if (presenting !== undefined && presenting === this.abandoned) {
+        assertExists(presenting, 'A step is animated while its state is presented')
+        if (presenting === this.abandoned) {
             return
         }
         this.abandoned = undefined
+        this.takeFromTrays(from, to)
         this.playing = animationContext.actionTimeline
         const shown = this.session.gameState
         const quick = action === undefined
@@ -280,9 +276,9 @@ export class BoardAnimator implements MoveInterrupter {
         await tick()
         // The context's timelines run from its creation, so the motion starts after the draw time.
         const timeline = gsap.timeline()
-        // An actionless step has 0.2 s in all, so it waits at most 0.02 s for the draw.
+        // An actionless step has 0.2 s in all, so it waits at most 0.01 s for the draw.
         const drawn = (performance.now() - drawing) / 1000
-        animationContext.actionTimeline.add(timeline, quick ? Math.min(drawn, 0.02) : drawn)
+        animationContext.actionTimeline.add(timeline, quick ? Math.min(drawn, 0.01) : drawn)
 
         if (change.kind === 'push') {
             returned = await this.push(change, kind, to, quick, timeline, touched)
@@ -306,7 +302,7 @@ export class BoardAnimator implements MoveInterrupter {
             if (this.markNodes.size > 0) gsap.set([...this.markNodes], { opacity: 1 })
             // A switch of view has already shown another state, which this board must not cover.
             if (this.session.gameState !== shown) return
-            this.stacks = drawnStacks(to)
+            this.stacks = this.drawnStacks(to)
             this.returned = returned
         })
     }
@@ -316,10 +312,10 @@ export class BoardAnimator implements MoveInterrupter {
         to: HydratedGipfPotentialsGameState,
         change: PushChange | MoveChange | DiscsChange
     ): DrawnStack[] {
-        const before = drawnStacks(from)
+        const before = this.drawnStacks(from)
         if (change.kind === 'move') {
             const covered = change.cover
-                ? drawnStacks(to).find((stack) => sameCoordinates(stack.coords, change.to))
+                ? this.drawnStacks(to).find((stack) => sameCoordinates(stack.coords, change.to))
                 : undefined
             return before.flatMap((stack) => {
                 if (covered && sameCoordinates(stack.coords, change.to)) return [covered]
@@ -329,7 +325,7 @@ export class BoardAnimator implements MoveInterrupter {
             })
         }
         if (change.kind === 'discs') {
-            const after = drawnStacks(to)
+            const after = this.drawnStacks(to)
             const gaining = (coords: AxialCoordinates) =>
                 change.added.some((added) => sameCoordinates(added.coords, coords))
             return [
@@ -337,7 +333,7 @@ export class BoardAnimator implements MoveInterrupter {
                 ...after.filter((stack) => gaining(stack.coords))
             ]
         }
-        const regained = regainedAt(change)
+        const regained = this.regainedAt(change)
         if (regained !== undefined) {
             const discs = discsOf(to.board.stackAt(CENTRE))
             const piece = { key: coordinatesToNumber(regained), coords: regained, discs }
@@ -367,7 +363,7 @@ export class BoardAnimator implements MoveInterrupter {
             }
             this.slide(
                 line.slice(0, shifted),
-                alongLine(line, this),
+                this.alongLine(line),
                 timeline,
                 duration,
                 touched,
@@ -377,10 +373,10 @@ export class BoardAnimator implements MoveInterrupter {
             if (at > 0) this.dropEntering(timeline)
             return undefined
         }
-        const along = alongLine(line, this)
+        const along = this.alongLine(line)
         const back = { x: -along.x, y: -along.y }
         const toDot = this.offset(line[0], dot)
-        const regained = regainedAt(change)
+        const regained = this.regainedAt(change)
         if (regained !== undefined) {
             const height = discsOf(to.board.stackAt(CENTRE)).length
             this.dropOnto(regained, height - 1, 1, timeline, touched, true)
@@ -528,7 +524,7 @@ export class BoardAnimator implements MoveInterrupter {
         if (node === undefined || body === undefined || shadow === undefined) return
         const view = this.session.view
         const height = (coords: AxialCoordinates) => discsOf(before.board.stackAt(coords)).length
-        const between = spotsBetween(move.from, move.to)
+        const between = this.spotsBetween(move.from, move.to)
         if (move.disc.kind === PieceKind.Yinsh && !quick) {
             this.skid(move, between.length + 1, view.topFace(height(move.from) - 1), timeline)
             return
@@ -744,36 +740,69 @@ export class BoardAnimator implements MoveInterrupter {
         const end = view.center(to)
         return { x: end.x - start.x, y: end.y - start.y }
     }
-}
 
-function register(nodes: Map<number, SVGGElement>, index: number): Attachment<SVGGElement> {
-    return (node) => {
-        nodes.set(index, node)
-        return () => {
-            if (nodes.get(index) === node) nodes.delete(index)
+    // A replay's later steps keep the trays its earlier ones set, as the state lands only at its end.
+    private takeFromTrays(
+        from: HydratedGipfPotentialsGameState,
+        to: HydratedGipfPotentialsGameState
+    ) {
+        const landing = this.session.landingTrays
+        const changed = to.players.filter((player) => {
+            const before = from.getPlayerState(player.playerId)
+            return (
+                landing?.has(player.playerId) === true ||
+                player.reserve < before.reserve ||
+                POTENTIAL_KINDS.some((kind) => player.potentials[kind] < before.potentials[kind])
+            )
+        })
+        if (changed.length === 0) return
+        this.session.landingTrays = new Map(
+            changed.map((player) => [
+                player.playerId,
+                { reserve: player.reserve, potentials: { ...player.potentials } }
+            ])
+        )
+    }
+
+    private drawnStacks(state: HydratedGipfPotentialsGameState): DrawnStack[] {
+        return state.board.stacks.map((stack) => ({
+            key: coordinatesToNumber(stack.coords),
+            coords: stack.coords,
+            discs: discsOf(stack.units)
+        }))
+    }
+
+    private register(nodes: Map<number, SVGGElement>, index: number): Attachment<SVGGElement> {
+        return (node) => {
+            nodes.set(index, node)
+            return () => {
+                if (nodes.get(index) === node) nodes.delete(index)
+            }
         }
     }
-}
 
-// The piece regains its TAMSK-potential where it stands as the step starts: on the centre, or a
-// spot on if the push carried it, from where it slides back with the line.
-function regainedAt(change: PushChange | MoveChange | DiscsChange): AxialCoordinates | undefined {
-    if (change.kind !== 'push' || change.forward || !change.fromCentre) return undefined
-    const { line } = change.entry
-    const at = line.findIndex((coords) => sameCoordinates(coords, CENTRE))
-    return at >= 0 && at < change.shifted ? line[at + 1] : CENTRE
-}
+    // The piece regains its TAMSK-potential where it stands as the step starts: on the centre, or a
+    // spot on if the push carried it, from where it slides back with the line.
+    private regainedAt(
+        change: PushChange | MoveChange | DiscsChange
+    ): AxialCoordinates | undefined {
+        if (change.kind !== 'push' || change.forward || !change.fromCentre) return undefined
+        const { line } = change.entry
+        const at = line.findIndex((coords) => sameCoordinates(coords, CENTRE))
+        return at >= 0 && at < change.shifted ? line[at + 1] : CENTRE
+    }
 
-function alongLine(line: readonly AxialCoordinates[], animator: BoardAnimator) {
-    return line.length < 2 ? { x: 0, y: 0 } : animator.offset(line[0], line[1])
-}
+    private alongLine(line: readonly AxialCoordinates[]) {
+        return line.length < 2 ? { x: 0, y: 0 } : this.offset(line[0], line[1])
+    }
 
-function spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordinates[] {
-    const dq = to.q - from.q
-    const dr = to.r - from.r
-    const steps = distanceAxial(from, to)
-    return Array.from({ length: Math.max(0, steps - 1) }, (_, index) => ({
-        q: from.q + (dq / steps) * (index + 1),
-        r: from.r + (dr / steps) * (index + 1)
-    }))
+    private spotsBetween(from: AxialCoordinates, to: AxialCoordinates): AxialCoordinates[] {
+        const dq = to.q - from.q
+        const dr = to.r - from.r
+        const steps = distanceAxial(from, to)
+        return Array.from({ length: Math.max(0, steps - 1) }, (_, index) => ({
+            q: from.q + (dq / steps) * (index + 1),
+            r: from.r + (dr / steps) * (index + 1)
+        }))
+    }
 }

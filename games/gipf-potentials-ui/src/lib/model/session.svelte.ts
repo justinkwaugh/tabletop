@@ -34,6 +34,7 @@ import {
     type HydratedGipfPotentialsGameState,
     type GipfPotentialsGameState,
     type GipfPotentialsPreferences,
+    type PotentialCounts,
     type PotentialKind,
     type Row
 } from '@tabletop/gipf-potentials'
@@ -57,6 +58,8 @@ export type MoveInterrupter = {
 // Moves Undo restages: a push or extra move returns to its dot, a potential's move to its piece.
 type StepBack = PushPiece | ExtraMove | MovePotential
 
+export type TrayCounts = { reserve: number; potentials: PotentialCounts }
+
 type SessionOptions = ConstructorParameters<
     typeof GameSession<GipfPotentialsGameState, HydratedGipfPotentialsGameState>
 >[0]
@@ -75,8 +78,17 @@ export class GipfPotentialsGameSession extends GameSession<
     )
     preferredKind: PieceKind | undefined = $state()
     undoingMove: StepBack | undefined
-    historyMove: StepBack | undefined
+    private steppedMove: StepBack | undefined
+    // A staged piece lifts off only when the player lets it go, never when history, a new state or
+    // another viewer's perspective clears it.
+    private changedByPlayer = false
     moveInterrupter: MoveInterrupter | undefined
+    // Until the state lands: the trays a step leads to, set as it starts when it brings pieces in,
+    // so a piece entering the board is not counted in its tray too.
+    landingTrays: Map<string, TrayCounts> | undefined = $derived.by(() => {
+        void this.gameState
+        return undefined
+    })
 
     constructor(options: SessionOptions) {
         super(options)
@@ -84,7 +96,10 @@ export class GipfPotentialsGameSession extends GameSession<
             undoableStagedSelection(
                 GipfPotentialsStageOrder,
                 () => this.ownSelection,
-                (selection) => (this.selection = selection)
+                (selection) => {
+                    this.selection = selection
+                    this.changedByPlayer = true
+                }
             )
         )
     }
@@ -190,11 +205,15 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     inHand(playerId: string, kind: PotentialKind): number {
+        const landing = this.landingTrays?.get(playerId)
+        if (landing !== undefined) return landing.potentials[kind]
         const staged = this.staging(playerId) === kind ? 1 : 0
         return this.gameState.getPlayerState(playerId).potentials[kind] - staged
     }
 
     reserveLeft(playerId: string): number {
+        const landing = this.landingTrays?.get(playerId)
+        if (landing !== undefined) return landing.reserve
         const staged = this.staging(playerId)
         const onDot = staged === undefined ? 0 : staged === PieceKind.Gipf ? GIPF_PIECE_SIZE : 1
         const covering = playerId === this.myPlayer?.id && this.chosenTo !== undefined ? 1 : 0
@@ -313,7 +332,19 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     override onHistoryAction(action?: GameAction): void {
-        this.historyMove = action !== undefined && this.isStepBack(action) ? action : undefined
+        this.steppedMove = action !== undefined && this.isStepBack(action) ? action : undefined
+    }
+
+    get historyMove(): StepBack | undefined {
+        return this.isViewingHistory ? this.steppedMove : undefined
+    }
+
+    get releasedByPlayer(): boolean {
+        return (
+            this.changedByPlayer &&
+            !this.isViewingHistory &&
+            this.selectionOwner === this.myPlayer?.id
+        )
     }
 
     get presentingState(): HydratedGipfPotentialsGameState | undefined {
@@ -333,14 +364,20 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     override beforeNewState({ kind }: PresentedTransition): void {
+        this.changedByPlayer = false
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
-        const incoming = this.presentingState
-        const move = kind === 'undo' && incoming ? this.restagedMove(incoming) : undefined
+        const move = kind === 'undo' ? this.restagedMove(this.undoTarget()) : undefined
         if (move) {
             this.selection = this.restaged(move)
             this.selectionOwner = move.playerId
         }
         if (kind !== 'undo') this.undoingMove = undefined
+    }
+
+    private undoTarget(): HydratedGipfPotentialsGameState {
+        const incoming = this.presentingState
+        assertExists(incoming, 'An Undo presents the state it goes back to')
+        return incoming
     }
 
     private restaged(move: StepBack): GipfPotentialsSelection {
@@ -420,6 +457,7 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     private select(selection: GipfPotentialsSelection) {
+        this.changedByPlayer = true
         this.selection = selection
         this.selectionOwner = this.myPlayer?.id
     }
@@ -433,7 +471,7 @@ export class GipfPotentialsGameSession extends GameSession<
             return
         }
         const kind = this.chosenKind
-        if (kind === undefined) return
+        assertExists(kind, 'A push has its piece kind chosen')
         await this.applyAction(this.createPlayerAction(PushPiece, { ...placement, kind }))
     }
 
@@ -458,12 +496,13 @@ export class GipfPotentialsGameSession extends GameSession<
     }
 
     async coverWith(count: number) {
-        if (this.chosenTo !== undefined) await this.cover(this.chosenTo, count)
+        assertExists(this.chosenTo, 'Covering with a count follows choosing the piece to cover')
+        await this.cover(this.chosenTo, count)
     }
 
     private async cover(to: AxialCoordinates, cover: number) {
         const from = this.chosenFrom
-        if (from === undefined) return
+        assertExists(from, 'A cover has its moving potential chosen')
         await this.applyAction(this.createPlayerAction(MovePotential, { from, to, cover }))
     }
 

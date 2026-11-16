@@ -109,6 +109,25 @@ describe('history entries', () => {
         expect(text(entrySegments(entries[3]))).toBe(' gave up the extra move')
     })
 
+    it('names the potentials a plain piece gave up', () => {
+        const plain: PushPiece = {
+            ...base('w'),
+            type: ActionType.PushPiece,
+            dot: pointAt('E1'),
+            to: pointAt('E2'),
+            kind: PieceKind.Basic,
+            metadata: {
+                shifted: 0,
+                forfeited: { tamsk: 0, zertz: 2, dvonn: 0, yinsh: 4, punct: 1 }
+            }
+        }
+        const [entry] = historyEntries([plain])
+        expect(text(entrySegments(entry))).toContain(
+            ', giving up 2 [zertz], 4 [yinsh] and 1 [punct]'
+        )
+        expect(text(entrySegments(entry, true))).not.toContain('giving up')
+    })
+
     it('names the rows of GIPF-pieces a player left standing', () => {
         const pushGipf: PushPiece = {
             ...base('w'),

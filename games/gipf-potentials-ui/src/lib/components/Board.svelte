@@ -165,115 +165,96 @@
 </script>
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<svg
-    class="gp-board"
-    viewBox={frame.viewBox}
-    width={frame.width}
-    height={frame.height}
-    role="group"
-    aria-label="GIPF board"
-    onclick={onBoardClick}
-    {@attach animator.attach}
->
-    <defs>
-        <PieceDefs prefix="gp-board" />
-    </defs>
+<div class="tap-off" role="presentation" onclick={onBoardClick}>
+    <svg
+        class="gp-board"
+        viewBox={frame.viewBox}
+        width={frame.width}
+        height={frame.height}
+        role="group"
+        aria-label="GIPF board"
+        {@attach animator.attach}
+    >
+        <defs>
+            <PieceDefs prefix="gp-board" />
+        </defs>
 
-    <polygon points={playArea} class="play-area"></polygon>
+        <polygon points={playArea} class="play-area"></polygon>
 
-    <g class="lines">
-        {#each lines as line, index (index)}
-            <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
-        {/each}
-    </g>
-
-    {#if session.centreMark}
-        <g transform="translate({centre.x} {centre.y})" class="station">
-            <ellipse rx={STATION_RADIUS} ry={STATION_RADIUS * view.tilt}></ellipse>
-            <ellipse rx={STATION_INNER} ry={STATION_INNER * view.tilt} class="hub"></ellipse>
+        <g class="lines">
+            {#each lines as line, index (index)}
+                <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
+            {/each}
         </g>
-    {/if}
 
-    {#if session.showCoordinates}
-        {#each session.notation.labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
-                >{label.text}</text
-            >
-        {/each}
-    {/if}
+        {#if session.centreMark}
+            <g transform="translate({centre.x} {centre.y})" class="station">
+                <ellipse rx={STATION_RADIUS} ry={STATION_RADIUS * view.tilt}></ellipse>
+                <ellipse rx={STATION_INNER} ry={STATION_INNER * view.tilt} class="hub"></ellipse>
+            </g>
+        {/if}
 
-    {#each geometry.dots as coords (coordinatesToNumber(coords))}
-        {@const center = view.center(coords)}
-        {@const entry = includesCoords(session.entryDots, coords)}
-        <g
-            transform="translate({center.x} {center.y})"
-            class="dot"
-            class:entry
-            role="button"
-            tabindex={entry ? 0 : -1}
-            aria-disabled={!entry}
-            aria-label="dot {session.notation.name(coords)}"
-            onclick={() => session.chooseDot(coords)}
-            onkeydown={(event) => onKey(event, () => session.chooseDot(coords))}
-            onpointerenter={(event) => {
-                if (event.pointerType !== 'touch') hoveredDot = coordinatesToNumber(coords)
-            }}
-            onpointerleave={() => (hoveredDot = undefined)}
-            onfocus={() => (hoveredDot = coordinatesToNumber(coords))}
-            onblur={() => (hoveredDot = undefined)}
-        >
-            {#if entry}
-                <ellipse rx={DOT_RADIUS * 2.4} ry={DOT_RADIUS * 2.4 * view.tilt} class="dot-hit"
-                ></ellipse>
-            {/if}
-            <ellipse rx={DOT_RADIUS} ry={DOT_RADIUS * view.tilt} class="dot-core"></ellipse>
-        </g>
-    {/each}
+        {#if session.showCoordinates}
+            {#each session.notation.labels as label (label.key)}
+                <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
+                    >{label.text}</text
+                >
+            {/each}
+        {/if}
 
-    <g {@attach animator.marks()}>
-        {#each session.entryDots as coords (coordinatesToNumber(coords))}
+        {#each geometry.dots as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
+            {@const entry = includesCoords(session.entryDots, coords)}
             <g
-                class="dot-ring"
-                class:chosen={isChosenDot(coords)}
-                class:faded={chosen && !isChosenDot(coords)}
-                class:hovered={hoveredDot === coordinatesToNumber(coords)}
+                transform="translate({center.x} {center.y})"
+                class="dot"
+                class:entry
+                role="button"
+                tabindex={entry ? 0 : -1}
+                aria-disabled={!entry}
+                aria-label="dot {session.notation.name(coords)}"
+                onclick={() => session.chooseDot(coords)}
+                onkeydown={(event) => onKey(event, () => session.chooseDot(coords))}
+                onpointerenter={(event) => {
+                    if (event.pointerType !== 'touch') hoveredDot = coordinatesToNumber(coords)
+                }}
+                onpointerleave={() => (hoveredDot = undefined)}
+                onfocus={() => (hoveredDot = coordinatesToNumber(coords))}
+                onblur={() => (hoveredDot = undefined)}
             >
-                {#each ['under', 'over'] as layer (layer)}
-                    <ellipse
-                        cx={center.x}
-                        cy={center.y}
-                        rx={DOT_RADIUS * 2.4}
-                        ry={DOT_RADIUS * 2.4 * view.tilt}
-                        class={layer}
+                {#if entry}
+                    <ellipse rx={DOT_RADIUS * 2.4} ry={DOT_RADIUS * 2.4 * view.tilt} class="dot-hit"
                     ></ellipse>
-                {/each}
+                {/if}
+                <ellipse rx={DOT_RADIUS} ry={DOT_RADIUS * view.tilt} class="dot-core"></ellipse>
             </g>
         {/each}
-        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
-            {@const center = view.center(entry.line[0])}
-            <g
-                class="target-ring"
-                class:hovered={hoveredTarget === coordinatesToNumber(entry.line[0])}
-            >
-                {#each ['under', 'over'] as layer (layer)}
-                    <ellipse
-                        cx={center.x}
-                        cy={center.y}
-                        rx={PIECE_RADIUS + 2}
-                        ry={(PIECE_RADIUS + 2) * view.tilt}
-                        class={layer}
-                    ></ellipse>
-                {/each}
-            </g>
-        {/each}
-        {#each session.moveTargets as coords (coordinatesToNumber(coords))}
-            {@const center = view.center(coords)}
-            {#if stackHeight(coords) === 0}
+
+        <g {@attach animator.marks()}>
+            {#each session.entryDots as coords (coordinatesToNumber(coords))}
+                {@const center = view.center(coords)}
+                <g
+                    class="dot-ring"
+                    class:chosen={isChosenDot(coords)}
+                    class:faded={chosen && !isChosenDot(coords)}
+                    class:hovered={hoveredDot === coordinatesToNumber(coords)}
+                >
+                    {#each ['under', 'over'] as layer (layer)}
+                        <ellipse
+                            cx={center.x}
+                            cy={center.y}
+                            rx={DOT_RADIUS * 2.4}
+                            ry={DOT_RADIUS * 2.4 * view.tilt}
+                            class={layer}
+                        ></ellipse>
+                    {/each}
+                </g>
+            {/each}
+            {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
+                {@const center = view.center(entry.line[0])}
                 <g
                     class="target-ring"
-                    class:hovered={hoveredTarget === coordinatesToNumber(coords)}
+                    class:hovered={hoveredTarget === coordinatesToNumber(entry.line[0])}
                 >
                     {#each ['under', 'over'] as layer (layer)}
                         <ellipse
@@ -285,218 +266,244 @@
                         ></ellipse>
                     {/each}
                 </g>
-            {/if}
-        {/each}
-    </g>
+            {/each}
+            {#each session.moveTargets as coords (coordinatesToNumber(coords))}
+                {@const center = view.center(coords)}
+                {#if stackHeight(coords) === 0}
+                    <g
+                        class="target-ring"
+                        class:hovered={hoveredTarget === coordinatesToNumber(coords)}
+                    >
+                        {#each ['under', 'over'] as layer (layer)}
+                            <ellipse
+                                cx={center.x}
+                                cy={center.y}
+                                rx={PIECE_RADIUS + 2}
+                                ry={(PIECE_RADIUS + 2) * view.tilt}
+                                class={layer}
+                            ></ellipse>
+                        {/each}
+                    </g>
+                {/if}
+            {/each}
+        </g>
 
-    {#each drawOrder as drawn (drawn.key)}
-        {@const center = view.center(drawn.coords)}
-        {#if drawn.kind === 'stack'}
-            {@const stack = drawn.stack}
-            {@const role = stackRole(stack.coords)}
-            {@const faceY = view.topFace(stack.discs.length)}
-            {@const target = includesCoords(session.moveTargets, stack.coords)}
-            <g
-                transform="translate({center.x} {center.y})"
-                class="stack role-{role ?? 'none'}"
-                role="button"
-                tabindex={role ? 0 : -1}
-                aria-disabled={!role}
-                aria-label="stack {session.notation.name(stack.coords)}"
-                onclick={() => role && chooseStack(stack.coords)}
-                onkeydown={(event) => role && onKey(event, () => chooseStack(stack.coords))}
-            >
-                <g {@attach animator.stack(drawn.key, 'whole')}>
-                    <StandingStack
-                        discs={toned(stack.discs)}
-                        {view}
-                        bodyId="gp-stack-{stack.key}"
-                        body={animator.stack(drawn.key, 'body')}
-                        shadow={animator.stack(drawn.key, 'shadow')}
-                        parts={animator.parts(drawn.key)}
-                    />
-                </g>
-                {#if role || target}
-                    <g {@attach animator.marks()}>
-                        {#if target}
-                            {#each ['under', 'over'] as layer (layer)}
-                                {#each ring(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
-                                    <path
-                                        d={arc.d}
-                                        pathLength={arc.length}
-                                        class="top-ring role-target {layer}"
-                                        class:hovered={hoveredTarget === drawn.key}
-                                        class:chosen={isChosenTo(stack.coords)}
-                                        class:faded={session.chosenTo !== undefined &&
-                                            !isChosenTo(stack.coords)}
-                                    ></path>
+        {#each drawOrder as drawn (drawn.key)}
+            {@const center = view.center(drawn.coords)}
+            {#if drawn.kind === 'stack'}
+                {@const stack = drawn.stack}
+                {@const role = stackRole(stack.coords)}
+                {@const faceY = view.topFace(stack.discs.length)}
+                {@const target = includesCoords(session.moveTargets, stack.coords)}
+                <g
+                    transform="translate({center.x} {center.y})"
+                    class="stack role-{role ?? 'none'}"
+                    role="button"
+                    tabindex={role ? 0 : -1}
+                    aria-disabled={!role}
+                    aria-label="stack {session.notation.name(stack.coords)}"
+                    onclick={() => role && chooseStack(stack.coords)}
+                    onkeydown={(event) => role && onKey(event, () => chooseStack(stack.coords))}
+                >
+                    <g {@attach animator.stack(drawn.key, 'whole')}>
+                        <StandingStack
+                            discs={toned(stack.discs)}
+                            {view}
+                            bodyId="gp-stack-{stack.key}"
+                            body={animator.stack(drawn.key, 'body')}
+                            shadow={animator.stack(drawn.key, 'shadow')}
+                            parts={animator.parts(drawn.key)}
+                        />
+                    </g>
+                    {#if role || target}
+                        <g {@attach animator.marks()}>
+                            {#if target}
+                                {#each ['under', 'over'] as layer (layer)}
+                                    {#each ring(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                        <path
+                                            d={arc.d}
+                                            pathLength={arc.length}
+                                            class="top-ring role-target {layer}"
+                                            class:hovered={hoveredTarget === drawn.key}
+                                            class:chosen={isChosenTo(stack.coords)}
+                                            class:faded={session.chosenTo !== undefined &&
+                                                !isChosenTo(stack.coords)}
+                                        ></path>
+                                    {/each}
                                 {/each}
-                            {/each}
-                            {#if isChosenTo(stack.coords)}
+                                {#if isChosenTo(stack.coords)}
+                                    <ellipse
+                                        cy={faceY}
+                                        rx={SPOT_RADIUS}
+                                        ry={SPOT_RADIUS * view.tilt}
+                                        class="mark-spot role-cover"
+                                    ></ellipse>
+                                {/if}
+                            {:else if role === 'row' || role === 'movable' || role === 'chosen'}
+                                {#each role === 'row' ? ['over'] : ['under', 'over'] as layer (layer)}
+                                    {#each ring(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
+                                        <path
+                                            d={arc.d}
+                                            pathLength={arc.length}
+                                            class="top-ring role-{role} {layer}"
+                                            class:faded={chosen && role === 'movable'}
+                                        ></path>
+                                    {/each}
+                                {/each}
+                            {:else}
+                                {#if includesCoords(session.rowKeepable, stack.coords)}
+                                    {#each ring(stack.discs, TOGGLE_RADIUS, faceY) as arc, index (index)}
+                                        <path
+                                            d={arc.d}
+                                            pathLength={arc.length}
+                                            class="toggle-ring role-{role}"
+                                        ></path>
+                                    {/each}
+                                {/if}
                                 <ellipse
                                     cy={faceY}
                                     rx={SPOT_RADIUS}
                                     ry={SPOT_RADIUS * view.tilt}
-                                    class="mark-spot role-cover"
+                                    class="mark-spot role-{role}"
                                 ></ellipse>
                             {/if}
-                        {:else if role === 'row' || role === 'movable' || role === 'chosen'}
-                            {#each role === 'row' ? ['over'] : ['under', 'over'] as layer (layer)}
-                                {#each ring(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
-                                    <path
-                                        d={arc.d}
-                                        pathLength={arc.length}
-                                        class="top-ring role-{role} {layer}"
-                                        class:faded={chosen && role === 'movable'}
-                                    ></path>
-                                {/each}
-                            {/each}
-                        {:else}
-                            {#if includesCoords(session.rowKeepable, stack.coords)}
-                                {#each ring(stack.discs, TOGGLE_RADIUS, faceY) as arc, index (index)}
-                                    <path
-                                        d={arc.d}
-                                        pathLength={arc.length}
-                                        class="toggle-ring role-{role}"
-                                    ></path>
-                                {/each}
-                            {/if}
-                            <ellipse
-                                cy={faceY}
-                                rx={SPOT_RADIUS}
-                                ry={SPOT_RADIUS * view.tilt}
-                                class="mark-spot role-{role}"
-                            ></ellipse>
-                        {/if}
+                        </g>
+                    {/if}
+                </g>
+            {:else if drawn.kind === 'entering'}
+                <g transform="translate({center.x} {center.y})" class="entering">
+                    <g {@attach animator.enteringPiece()}>
+                        <StandingStack
+                            discs={toned(drawn.discs)}
+                            {view}
+                            shadow={animator.enteringShadow()}
+                            parts={animator.enteringParts}
+                        />
                     </g>
-                {/if}
-            </g>
-        {:else if drawn.kind === 'entering'}
-            <g transform="translate({center.x} {center.y})" class="entering">
-                <g {@attach animator.enteringPiece()}>
-                    <StandingStack
+                </g>
+            {:else}
+                <g transform="translate({center.x} {center.y})" class="entering">
+                    <StagedPiece
                         discs={toned(drawn.discs)}
                         {view}
-                        shadow={animator.enteringShadow()}
-                        parts={animator.enteringParts}
+                        drops={drawn.drops}
+                        lifts={() =>
+                            session.releasedByPlayer &&
+                            animator.entering === undefined &&
+                            !animator.pushedIn}
+                    />
+                </g>
+            {/if}
+        {/each}
+
+        {#if animator.flier}
+            {@const flier = animator.flier}
+            {@const center = view.center(flier.coords)}
+            <g transform="translate({center.x} {center.y})" class="flier">
+                <g {@attach animator.flierNode('whole')}>
+                    <StandingStack
+                        discs={toned([flier.disc])}
+                        {view}
+                        body={animator.flierNode('body')}
+                        shadow={animator.flierNode('shadow')}
                     />
                 </g>
             </g>
-        {:else}
-            <g transform="translate({center.x} {center.y})" class="entering">
-                <StagedPiece
-                    discs={toned(drawn.discs)}
-                    {view}
-                    drops={drawn.drops}
-                    lifts={() => animator.entering === undefined && !animator.pushedIn}
-                />
-            </g>
-        {/if}
-    {/each}
-
-    {#if animator.flier}
-        {@const flier = animator.flier}
-        {@const center = view.center(flier.coords)}
-        <g transform="translate({center.x} {center.y})" class="flier">
-            <g {@attach animator.flierNode('whole')}>
-                <StandingStack
-                    discs={toned([flier.disc])}
-                    {view}
-                    body={animator.flierNode('body')}
-                    shadow={animator.flierNode('shadow')}
-                />
-            </g>
-        </g>
-        {#each occluding as stack (stack.key)}
-            {@const center = view.center(stack.coords)}
-            <use
-                href="#gp-stack-{stack.key}"
-                transform="translate({center.x} {center.y})"
-                {@attach animator.occluder(stack)}
-            ></use>
-        {/each}
-    {/if}
-
-    <!-- Above the pieces, nearer ones last; tapping the staged stack is tapping its dot. -->
-    {#snippet pushTarget(entry: Entry, part: 'area' | 'arrow')}
-        {@const center = view.center(entry.line[0])}
-        {@const key = coordinatesToNumber(entry.line[0])}
-        <g
-            class="target"
-            role="button"
-            tabindex={part === 'area' ? 0 : -1}
-            aria-label={part === 'area'
-                ? `push to ${session.notation.name(entry.line[0])}`
-                : undefined}
-            aria-hidden={part === 'arrow' ? 'true' : undefined}
-            onclick={() => session.push(entry.line[0])}
-            onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
-            onpointerenter={(event) => {
-                if (event.pointerType !== 'touch') hoveredTarget = key
-            }}
-            onpointerleave={() => (hoveredTarget = undefined)}
-            onfocus={() => (hoveredTarget = key)}
-            onblur={() => (hoveredTarget = undefined)}
-        >
-            {#if part === 'area'}
-                <path
-                    d={stackOutline(view, stackHeight(entry.line[0]))}
+            {#each occluding as stack (stack.key)}
+                {@const center = view.center(stack.coords)}
+                <use
+                    href="#gp-stack-{stack.key}"
                     transform="translate({center.x} {center.y})"
-                    class="target-hit"
-                ></path>
-            {:else}
-                {#each ['under', 'over'] as layer (layer)}
-                    <path d={pushArrow(view, entry.dot, entry.line[0])} class="arrow {layer}"
-                    ></path>
-                {/each}
-            {/if}
-        </g>
-    {/snippet}
-    <g {@attach animator.marks()}>
-        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
-            {@render pushTarget(entry, 'area')}
-        {/each}
-        {#if preview && session.chosenDot !== undefined}
-            {@const dot = session.chosenDot}
-            {@const center = view.center(dot)}
-            <path
-                d={stackOutline(view, preview.discs.length)}
-                transform="translate({center.x} {center.y})"
-                class="target-hit target"
-                role="button"
-                tabindex="-1"
-                aria-label="stack on {session.notation.name(dot)}"
-                onclick={() => session.chooseDot(dot)}
-                onkeydown={(event) => onKey(event, () => session.chooseDot(dot))}
-            ></path>
+                    {@attach animator.occluder(stack)}
+                ></use>
+            {/each}
         {/if}
-        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
-            {@render pushTarget(entry, 'arrow')}
-        {/each}
-        {#each session.moveTargets.toSorted((a, b) => view.center(a).y - view.center(b).y) as coords (coordinatesToNumber(coords))}
-            {@const center = view.center(coords)}
-            {@const key = coordinatesToNumber(coords)}
-            <path
-                d={stackOutline(view, stackHeight(coords))}
-                transform="translate({center.x} {center.y})"
-                class="target-hit target"
+
+        <!-- Above the pieces, nearer ones last; tapping the staged stack is tapping its dot. -->
+        {#snippet pushTarget(entry: Entry, part: 'area' | 'arrow')}
+            {@const center = view.center(entry.line[0])}
+            {@const key = coordinatesToNumber(entry.line[0])}
+            <g
+                class="target"
                 role="button"
-                tabindex="0"
-                aria-label="move to {session.notation.name(coords)}"
-                onclick={() => session.movePotential(coords)}
-                onkeydown={(event) => onKey(event, () => session.movePotential(coords))}
+                tabindex={part === 'area' ? 0 : -1}
+                aria-label={part === 'area'
+                    ? `push to ${session.notation.name(entry.line[0])}`
+                    : undefined}
+                aria-hidden={part === 'arrow' ? 'true' : undefined}
+                onclick={() => session.push(entry.line[0])}
+                onkeydown={(event) => onKey(event, () => session.push(entry.line[0]))}
                 onpointerenter={(event) => {
                     if (event.pointerType !== 'touch') hoveredTarget = key
                 }}
                 onpointerleave={() => (hoveredTarget = undefined)}
                 onfocus={() => (hoveredTarget = key)}
                 onblur={() => (hoveredTarget = undefined)}
-            ></path>
-        {/each}
-    </g>
-</svg>
+            >
+                {#if part === 'area'}
+                    <path
+                        d={stackOutline(view, stackHeight(entry.line[0]))}
+                        transform="translate({center.x} {center.y})"
+                        class="target-hit"
+                    ></path>
+                {:else}
+                    {#each ['under', 'over'] as layer (layer)}
+                        <path d={pushArrow(view, entry.dot, entry.line[0])} class="arrow {layer}"
+                        ></path>
+                    {/each}
+                {/if}
+            </g>
+        {/snippet}
+        <g {@attach animator.marks()}>
+            {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
+                {@render pushTarget(entry, 'area')}
+            {/each}
+            {#if preview && session.chosenDot !== undefined}
+                {@const dot = session.chosenDot}
+                {@const center = view.center(dot)}
+                <path
+                    d={stackOutline(view, preview.discs.length)}
+                    transform="translate({center.x} {center.y})"
+                    class="target-hit target"
+                    role="button"
+                    tabindex="-1"
+                    aria-label="stack on {session.notation.name(dot)}"
+                    onclick={() => session.chooseDot(dot)}
+                    onkeydown={(event) => onKey(event, () => session.chooseDot(dot))}
+                ></path>
+            {/if}
+            {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
+                {@render pushTarget(entry, 'arrow')}
+            {/each}
+            {#each session.moveTargets.toSorted((a, b) => view.center(a).y - view.center(b).y) as coords (coordinatesToNumber(coords))}
+                {@const center = view.center(coords)}
+                {@const key = coordinatesToNumber(coords)}
+                <path
+                    d={stackOutline(view, stackHeight(coords))}
+                    transform="translate({center.x} {center.y})"
+                    class="target-hit target"
+                    role="button"
+                    tabindex="0"
+                    aria-label="move to {session.notation.name(coords)}"
+                    onclick={() => session.movePotential(coords)}
+                    onkeydown={(event) => onKey(event, () => session.movePotential(coords))}
+                    onpointerenter={(event) => {
+                        if (event.pointerType !== 'touch') hoveredTarget = key
+                    }}
+                    onpointerleave={() => (hoveredTarget = undefined)}
+                    onfocus={() => (hoveredTarget = key)}
+                    onblur={() => (hoveredTarget = undefined)}
+                ></path>
+            {/each}
+        </g>
+    </svg>
+</div>
 
 <style>
+    .tap-off {
+        display: contents;
+    }
+
     .gp-board {
         overflow: visible;
         user-select: none;
@@ -525,7 +532,8 @@
         fill: var(--gp-label);
         font-size: 17px;
         font-weight: 600;
-        letter-spacing: 0.04em;
+        /* In px, not em: Safari 27 divides SVG em lengths by the board's CSS zoom. */
+        letter-spacing: 0.68px;
         text-anchor: middle;
         pointer-events: none;
     }
