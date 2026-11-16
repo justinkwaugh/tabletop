@@ -56,9 +56,16 @@ This branch has had only two readiness commits: the move onto upstream's Rolldow
 **Where a catalogue fix could conflict with an author choice:**
 
 - D7 versus the drop bounce: an actionless step must end within 0.2 s, so it needs a quick drop. The full bounce stays for real moves.
-- D8: PÜNCT has no lift-off when you let go, because the hover just vanishes. Adding one is new motion, so ask the author first.
-- C2 per-tap Undo of turns: this changes how Undo feels after turning. Agree it with the author, and keep the turn animation, so Undo turns the piece back.
+- C2 per-tap Undo of turns: Undo now turns a new piece back to how it came (`cd165e5b9`). Making each turn its own Undo step would change how Undo feels; keep the turn animation either way.
 - A2 1/0 scores: the centre count stays on the cards and in the end panel.
+
+## Author's decisions
+
+- **Undo and actionless steps:** overlap and shorten the title's own motions until each step ends within 0.2 s (D7). Keep every motion; do not drop one or swap it for a fade.
+- **Pieces an Undo or step back puts back:** keep the title's own return motion. gipf `c7d160278` fades such pieces in only because GIPF's taken rows had no motion and popped in; it is not a rule for titles that already move them back.
+- **Let go, a staged piece lifts off**: done in `cd165e5b9`. A new piece rises and fades in 0.18 s; a moved one flies back to where it stood. History, a new state or a change of view still clear it at once (`releasedByPlayer`).
+- **Undo after turning a new piece** turns it back: fixed in `cd165e5b9`.
+- **BoardGameGeek id:** 19764.
 
 ## Fixes
 
@@ -70,7 +77,7 @@ This branch has had only two readiness commits: the move onto upstream's Rolldow
 - **A4 Config normalised and validated: applies.** `config.ts:56-65` (`variantFromConfig`, `whitePlayerFromConfig`) silently fall back to Standard and Random. Add `normalizeConfig` and `assertExists` as GP does. No derived settings need storing. Example: GP `4497039ac` (`normalizeGipfPotentialsConfig`).
 - **A5 Per-choice descriptions: applies.** The Version option (`config.ts:22-35`) has only a combined description. Give Standard and Basic their own and keep the combined text. White's choices can stay as in matrx. Example: gipf `d0c84518d`.
 - **A6 Config enum in an import-free module: applies.** `config.ts:8` imports `Variant` from `model/gameState.ts`, which pulls in the board, geometry, pieces and typebox compile. Move `Variant` into its own module, and maybe `EndReason`, which the UI imports. Example: matrx `2fca25a7f` (`model/boardShape.ts`).
-- **A7 BGG link: applies.** Add `bggId` to `info.ts` metadata (look up PÜNCT's id). Example: zertz `e35ef711b`.
+- **A7 BGG link: applies.** Add `bggId: 19764` to `info.ts` metadata. Example: zertz `e35ef711b`.
 - **B1 State keeps only what play changes: applies.**
     - `nextPieceId` (`gameState.ts:40`, used at `:176-177`, the initializer and `session.svelte.ts:190`) always equals `board.pieces.length`, because pieces never leave the board. Derive it from there, which keeps every id and speck seed the same, and rebuild the scenarios.
     - Check whether to do the same for `PunctPlayerState.reserve` (`playerState.ts:8-22`). It equals `SET_COUNTS` minus that player's pieces on the board.
@@ -118,7 +125,7 @@ This branch has had only two readiness commits: the move onto upstream's Rolldow
 ### Session and staged selection
 
 - **C1 `localSelections`, no `undo()` override: applies.** `session.svelte.ts:225-231` overrides `undo()`, and `Header.svelte:39` reads `hasManualSelection()`. Register the selection in the constructor with `undoableStagedSelection` and read `hasLocalSelection`. Example: gipf `f527b9e17` (current shape: `games/gipf-ui/src/lib/model/session.svelte.ts` constructor).
-- **C2 One Undo step per tap: applies, and it is a bug.** Turning sets one `rotation` stage (`session.svelte.ts:317`), so a single Undo resets every turn. For a new piece that Undo looks dead: `turnStaged` also sets `preferredRotation` (`:316`), and once the stage is popped `chosenOption` (`:172`) falls back to that same rotation. Decide with `docs/user-interactions.md` whether each turn is its own step (`pushStagedSelectionValue`), and either way make the Undo visibly change something. Add the stage-order mismatch spec. Example: gipf `c91b44ce8`.
+- **C2 One Undo step per tap: check.** Turning sets one `rotation` stage, so a single Undo resets every turn. The bug where that Undo looked dead for a new piece is fixed (`cd165e5b9`: turning no longer resets `preferredRotation`, which Undo fell back to). Decide with `docs/user-interactions.md` whether each turn should be its own step (`pushStagedSelectionValue`). Add the stage-order mismatch spec. Example: gipf `c91b44ce8`.
 - **C3 `selectionOwner`: applies.** The `staged` piece takes `playerId = this.myPlayer?.id` (`session.svelte.ts:182-190`). After an Undo in the harness's Non-active view, the next viewer gets the restaged choice in their own colour, and Undo pops it first. Examples: gipf `ec35a3152`, matrx `1f921c9b5`.
 - **C4 No taps while a committed move plays: applies.** While the own-action step lands, the selection and marks are still live. `choosePiece`, `chooseSpace`, `chooseKind`, `turnStaged`, `letGo` and `confirm` all act, and `StagedMotion.follow` would start a new motion mid-landing. Return early on `updatingVisibleState`, and test it. Example: matrx `bb1ad8e0c`.
 - **C6 Restage on your own Undo only: applies, and it is a bug.** `beforeNewState` (`session.svelte.ts:245-249`) restages whatever `undoingMove` holds on any `undo` transition, and never clears it on `undo`. A later Undo by the other player, or of an earlier move, restages a stale move. `boardAnimator.svelte.ts:151-153` then raises the wrong piece. Count the move only while `move.index === incoming.actionCount` and not `isViewingAsNonActivePlayer` (gipf's `restagedPush`), for both the restage and the animator. `restaged()` reads only the action, so nothing falls back to the shown state. Examples: gipf `b277355f5`, `601a844fe`.
@@ -136,7 +143,7 @@ This branch has had only two readiness commits: the move onto upstream's Rolldow
 
     Examples: matrx `4c9d54c1a`, (M) `cd2ef6b20`, zertz `e60bc9cce`.
 
-- **D8 Lift-off only when the player lets go: check.** `StagedMotion.follow(undefined)` (`stagedMotion.svelte.ts:114-117`) drops the hover at once in every case: let-go, view switch, History, perspective change. So no lift-off can play at the wrong time, and none plays on a let-go either. Adding one is new motion, so ask the author. A moved piece's origin reappears at once on let-go. Examples: gipf `c7d160278`, zertz `5bbd25aed`.
+- **D8 Lift-off only when the player lets go: done** (`cd165e5b9`). `session.releasedByPlayer` is true only after its viewer's own change outside History, and is reset in `beforeNewState`; `StagedMotion.follow` lifts a new piece off or flies a moved one back only then. When C3 adds `selectionOwner`, read the owner there instead of `changedBy`. Examples: gipf `c7d160278`, zertz `5bbd25aed`.
 - **D9 `historyMove` and the Undo's state: applies.** `historyMove` (`session.svelte.ts:77, 241-243`) is set and never read. Remove it. The animator's Undo (`boardAnimator.svelte.ts:151`) should assert that the move it raises is the one undone (see C6). Example: matrx `53b1cfea4`.
 - **D10 A piece coming in is drawn once: applies.** During another player's, history or exploration placement, `session.gameState` is still the from-state. `PlayerTray.svelte:34` and `ReserveStrip.svelte:23` (through `session.inReserve`, `session.svelte.ts:206-215`) count the dropping piece in the reserve too, and `PlayerTray.svelte:17` shows the old centre count. Set the landing reserves at step start. `inReserve` already leaves out the staged piece. Examples: gipf `c29b32285`, GP `487466baf`.
 - **D11 Drop mid-motion: check.** Own placements always come from the hover. `land()` starts from the hover's current `base`, so Drop pressed mid drop-in or mid-turn should continue from there. Confirm in the harness that pressing Drop mid-bounce does not snap. Examples: zertz `8f9341c11`, `57698b3e9`.
