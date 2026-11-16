@@ -1,5 +1,11 @@
-import { flatHexCoordsToCenterPoint, type AxialCoordinates, type Point } from '@tabletop/common'
-import { SPACES } from '@tabletop/punct'
+import {
+    addAxial,
+    flatHexCoordsToCenterPoint,
+    sameCoordinates,
+    type AxialCoordinates,
+    type Point
+} from '@tabletop/common'
+import { DIRECTIONS, isSpace, SPACES } from '@tabletop/punct'
 
 export const SPACING = 60
 // The holes in the board, and the pieces: as wide as the photos show them, just short of
@@ -23,14 +29,8 @@ export const BOARD_DEPTH = SPACING * 0.12
 // The frame reaches a margin beyond the cells and the coordinate labels.
 const FRAME_MARGIN = SPACING * 0.4
 const CELL_RADIUS = SPACING / Math.sqrt(3)
-const NEIGHBOUR_STEPS: AxialCoordinates[] = [
-    { q: 0, r: -1 },
-    { q: 1, r: -1 },
-    { q: 1, r: 0 },
-    { q: 0, r: 1 },
-    { q: -1, r: 1 },
-    { q: -1, r: 0 }
-]
+// Towards the three neighbours on one side, so each line between two holes is drawn once.
+const LINE_DIRECTIONS = DIRECTIONS.slice(1, 4)
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
 // From one column to the next, flat.
@@ -110,8 +110,7 @@ export class BoardView {
         return height * this.rise
     }
 
-    // How high the top of a piece resting on a level stands.
-    // Where a piece resting on a level stands.
+    // Where the underside of a piece resting on a level stands.
     levelBase(level: number): number {
         return level * (PIECE_THICKNESS + SEAM)
     }
@@ -133,16 +132,13 @@ export class BoardView {
         })
     }
 
-    // The printed lines: as on the real board, thin lines from each hole to every neighbouring
-    // hole, meeting in the holes (which are drawn over them, so each line stops at a rim).
+    // Lines from each hole to every neighbouring hole; the holes are drawn over them.
     gridLines(): string {
-        const keys = new Set(SPACES.map((coords) => `${coords.q},${coords.r}`))
-        // Each pair once: towards the three neighbours on one side.
         return SPACES.flatMap((coords) => {
             const from = this.center(coords)
-            return NEIGHBOUR_STEPS.slice(1, 4).flatMap((step) => {
-                const next = { q: coords.q + step.q, r: coords.r + step.r }
-                if (!keys.has(`${next.q},${next.r}`)) return []
+            return LINE_DIRECTIONS.flatMap((step) => {
+                const next = addAxial(coords, step)
+                if (!isSpace(next)) return []
                 const to = this.center(next)
                 return [`M ${from.x} ${from.y} L ${to.x} ${to.y}`]
             })
@@ -152,12 +148,12 @@ export class BoardView {
     // The plate's edge where it faces the viewer: a strip down from each outer cell edge with no
     // cell beyond it, and how much that strip faces the light, from the left and the front.
     plateSides(): { points: Point[]; light: number }[] {
-        const keys = new Set(SPACES.map((coords) => `${coords.q},${coords.r}`))
         return SPACES.flatMap((coords) => {
             const center = this.plan(coords)
-            return NEIGHBOUR_STEPS.flatMap((step) => {
-                if (keys.has(`${coords.q + step.q},${coords.r + step.r}`)) return []
-                const toward = this.plan({ q: coords.q + step.q, r: coords.r + step.r })
+            return DIRECTIONS.flatMap((step) => {
+                const neighbour = addAxial(coords, step)
+                if (isSpace(neighbour)) return []
+                const toward = this.plan(neighbour)
                 const facing = Math.atan2(toward.y - center.y, toward.x - center.x)
                 const normal = { x: Math.cos(facing), y: Math.sin(facing) }
                 if (normal.y <= 1e-6) return []
@@ -185,7 +181,7 @@ export class BoardView {
     // A point part of the way from a space towards where the next space along a direction would be.
     labelBeside(coords: AxialCoordinates, step: AxialCoordinates, reach: number): Point {
         const from = this.plan(coords)
-        const to = this.plan({ q: coords.q + step.q, r: coords.r + step.r })
+        const to = this.plan(addAxial(coords, step))
         return this.project({
             x: from.x + (to.x - from.x) * reach,
             y: from.y + (to.y - from.y) * reach
@@ -208,6 +204,7 @@ export class BoardView {
         }
     }
 }
+
 // The space under a point of the unturned board's plane.
 export function spaceUnder(point: Point): AxialCoordinates {
     const q = point.x / (1.5 * HEX_DIMENSIONS.xRadius)
@@ -233,8 +230,8 @@ export function viewOf(rotated: boolean, turned: boolean): BoardView {
     return VIEWS[(rotated ? 2 : 0) + (turned ? 1 : 0)]
 }
 
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
+export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
+    return list.some((candidate) => sameCoordinates(candidate, coords))
 }
 
 export function pointsAttribute(points: readonly Point[]): string {

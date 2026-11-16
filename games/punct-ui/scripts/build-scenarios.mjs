@@ -17,6 +17,8 @@ import {
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
 const engine = new GameEngine(PunctRuntime)
+// Each game starts from a fixed master seed, so every file comes out the same on each run.
+const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const WHITE = 'player-1'
 const BLACK = 'player-2'
 const KINDS = {
@@ -44,7 +46,10 @@ function startedGame(variant = 'Standard') {
         },
         Definition
     )
-    return engine.startGame(game, { startingPositions: { playerIds: [WHITE, BLACK] } })
+    return engine.startGame(game, {
+        masterSeed: MASTER_SEED,
+        startingPositions: { playerIds: [WHITE, BLACK] }
+    })
 }
 
 /**
@@ -52,35 +57,30 @@ function startedGame(variant = 'Standard') {
  * `<owner><kind> <PÜNCT space> <rotation>`: W or B, then T triangle, E straight with its PÜNCT
  * at an end, C straight with it in the centre, A angular with it at the corner, L or R angular
  * with it at an end, turning left or right. Each comes to rest where the rules put it, on the
- * board or on the pieces before it; reserves hold the rest unless `reserves` says otherwise.
+ * board or on the pieces before it; the reserves hold the rest.
  */
-function position(pieces, { variant = 'Standard', reserves = {} } = {}) {
+function position(pieces, variant = 'Standard') {
     const { startedGame: game, initialState: state } = startedGame(variant)
     const board = new HydratedPunctBoard({ pieces: [] })
     for (const spec of pieces) {
-        const [code, name, rotation] = spec.split(' ')
+        const [code, name, turn] = spec.split(' ')
         const playerId = code[0] === 'W' ? WHITE : BLACK
         const kind = KINDS[code[1]]
         const punct = spaceAt(name)
-        const level = board.levelFor(playerId, kind, punct, Number(rotation))
+        const rotation = Number(turn)
+        const level = board.levelFor(playerId, kind, punct, rotation)
         if (level === undefined) throw Error(`${spec} cannot rest there`)
-        board.place({
-            id: board.pieces.length,
-            playerId,
-            kind,
-            punct,
-            rotation: Number(rotation),
-            level
-        })
-        const player = state.players.find((p) => p.playerId === playerId)
-        player.reserve[kind] -= 1
-        if (player.reserve[kind] < 0) throw Error(`Too many ${kind} for ${playerId}`)
-    }
-    for (const player of state.players) {
-        Object.assign(player.reserve, reserves[player.playerId] ?? {})
+        board.move(board.place(playerId, kind, punct, rotation), { punct, rotation, level })
     }
     state.board = { pieces: board.pieces }
-    state.nextPieceId = board.pieces.length
+    const placed = new HydratedPunctGameState(state)
+    for (const player of state.players) {
+        for (const kind of Object.values(KINDS)) {
+            if (placed.reserveCount(player.playerId, kind) < 0) {
+                throw Error(`Too many ${kind} for ${player.playerId}`)
+            }
+        }
+    }
     return { game, state }
 }
 
@@ -109,8 +109,7 @@ function playout(seed, steps, variant = 'Standard') {
                     rotation: move.rotation
                 }))
         )
-        const player = hydrated.getPlayerState(playerId)
-        const kinds = player.kindsInReserve()
+        const kinds = hydrated.kindsInReserve(playerId)
         const kind = kinds[Math.floor(next() * kinds.length)]
         // New pieces gather near the middle, where they meet and climb.
         const entries = hydrated
@@ -135,13 +134,7 @@ function playout(seed, steps, variant = 'Standard') {
     }
     // The position, with White to move.
     const fresh = startedGame(variant)
-    const board = new HydratedPunctBoard(state.board)
-    const pieces = board.pieces.map((piece, id) => ({ ...piece, id }))
-    for (const player of fresh.initialState.players) {
-        player.reserve = { ...state.players.find((p) => p.playerId === player.playerId).reserve }
-    }
-    fresh.initialState.board = { pieces }
-    fresh.initialState.nextPieceId = pieces.length
+    fresh.initialState.board = { pieces: state.board.pieces }
     return { game: fresh.startedGame, state: fresh.initialState }
 }
 
@@ -181,7 +174,7 @@ write(
     ])
 )
 
-// Towers either side of where a straight piece goes in at D6 (BoardSpace's names): turning it
+// Towers either side of where a straight piece goes in at D6 (the logic's space names): turning it
 // from up the board to up and right sweeps over the tower at E8, and the long way round over
 // the one at C7, so it lifts clear, turns and comes back down.
 write(

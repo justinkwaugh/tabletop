@@ -27,26 +27,28 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 971174872,
+        "seed": 3367980177,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-02T01:07:55.128Z",
+        "createdAt": "2026-11-16T19:09:35.656Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-02T01:07:55.128Z"
+        "startedAt": "2026-11-16T19:09:35.656Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "MdTcMoesJF4HxhXA6b6gZ",
+        "id": "C4KjwmHCIuZg7muTEK55C",
         "gameId": "scenario-opening",
-        "seed": 971174872,
+        "seed": 3367980177,
         "prng": {
-            "seed": 971174872,
+            "seed": 3367980177,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 1925995900,
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
             "invocations": 0
         },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
         "activePlayerIds": ["player-1"],
         "winningPlayerIds": [],
         "actionCount": 0,
@@ -54,27 +56,11 @@
         "players": [
             {
                 "playerId": "player-1",
-                "color": "white",
-                "reserve": {
-                    "triangle": 5,
-                    "straightEnd": 3,
-                    "straightCentre": 2,
-                    "angleCorner": 1,
-                    "angleLeft": 2,
-                    "angleRight": 2
-                }
+                "color": "white"
             },
             {
                 "playerId": "player-2",
-                "color": "black",
-                "reserve": {
-                    "triangle": 5,
-                    "straightEnd": 3,
-                    "straightCentre": 2,
-                    "angleCorner": 2,
-                    "angleLeft": 1,
-                    "angleRight": 2
-                }
+                "color": "black"
             }
         ],
         "machineState": "TakingTurn",
@@ -90,7 +76,8 @@
             "turnCounts": {
                 "player-1": 0,
                 "player-2": 0
-            }
+            },
+            "seriesKeeps": "latest"
         },
         "variant": "Standard",
         "board": {
@@ -162,8 +149,7 @@
                     "level": 0
                 }
             ]
-        },
-        "nextPieceId": 6
+        }
     },
     "actions": []
 }

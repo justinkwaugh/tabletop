@@ -25,7 +25,7 @@
     })
 </script>
 
-<!-- One row, as Bus and Magna Grecia do: the last move while you wait, the prompt and its buttons on your turn. -->
+<!-- One row: the last move while you wait, the prompt and its buttons on your turn. -->
 <div class="panel">
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}
@@ -35,7 +35,6 @@
         {/if}
     {:else}
         {#if prompt === TURNABLE}
-            <!-- Turn is a button in the sentence; tapping the piece does the same. -->
             <span class="sentence"
                 >Tap the piece to <button
                     type="button"

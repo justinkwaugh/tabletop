@@ -1,5 +1,5 @@
 import type { AxialCoordinates } from '@tabletop/common'
-import { spaceKey } from '@tabletop/punct'
+import { dotsOf, spaceKey, type PlacedPiece } from '@tabletop/punct'
 import { VIEW, type BoardView } from './geometry.js'
 
 // Something standing over spaces at a level: a piece, or a mark lying on one.
@@ -75,4 +75,44 @@ export function drawOrder<T extends Stander>(standers: readonly T[], view = VIEW
         ordered.push(next)
     }
     return ordered
+}
+
+// What the board draws in one order: its pieces, the piece hovering over them unless it is lifted
+// clear and drawn over everything, and the PÜNCT marker where a staged move's piece stood.
+export type Drawn =
+    | { kind: 'piece'; key: string; cells: AxialCoordinates[]; level: number; piece: PlacedPiece }
+    | { kind: 'hover'; key: string; cells: AxialCoordinates[]; level: number }
+    | { kind: 'marker'; key: string; cells: AxialCoordinates[]; level: number; playerId: string }
+
+export type Scene = {
+    pieces: readonly PlacedPiece[]
+    // Pieces drawn elsewhere: hovering or in flight.
+    hidden: ReadonlySet<number>
+    hover?: { piece: PlacedPiece; cells: AxialCoordinates[]; aloft: boolean }
+    marker?: { at: AxialCoordinates; level: number; playerId: string }
+}
+
+export function sceneOrder({ pieces, hidden, hover, marker }: Scene, view: BoardView): Drawn[] {
+    const entries: Drawn[] = pieces
+        .filter((piece) => !hidden.has(piece.id))
+        .map((piece) => ({
+            kind: 'piece',
+            key: `piece-${piece.id}`,
+            cells: dotsOf(piece.kind, piece.punct, piece.rotation),
+            level: piece.level,
+            piece
+        }))
+    if (hover && !hover.aloft) {
+        entries.push({
+            kind: 'hover',
+            key: `hover-${hover.piece.id}`,
+            cells: hover.cells,
+            level: hover.piece.level + 1
+        })
+    }
+    if (marker) {
+        const { at, level, playerId } = marker
+        entries.push({ kind: 'marker', key: 'marker', cells: [at], level, playerId })
+    }
+    return drawOrder(entries, view)
 }

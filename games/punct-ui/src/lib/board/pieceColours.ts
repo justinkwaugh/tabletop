@@ -2,9 +2,9 @@ import { SHADE_LEVELS, type Tone } from './pieceShape.js'
 
 type Rgb = [number, number, number]
 
-// As GIPF's discs: each slice of the side mixed from the tone's shaded to its lit colour by
-// which way it faces, then across the piece rounded away from the light at either end. Black's
-// rim catches more light than its flat top shows, so each piece's edge parts it from the next.
+// Each slice of the side mixed from the tone's shaded to its lit colour by which way it faces,
+// then across the piece rounded away from the light at either end. Black's rim catches more light
+// than its flat top shows, so each piece's edge parts it from the next.
 const PALETTE: Record<Tone, { lit: Rgb; shaded: Rgb }> = {
     light: { lit: [238, 241, 246], shaded: [108, 115, 126] },
     dark: { lit: [92, 98, 105], shaded: [0, 0, 0] }
@@ -30,3 +30,16 @@ export function sideStops(tone: Tone, shade: number): { offset: number; colour: 
         { offset: 1, colour: css(base, 0.62) }
     ]
 }
+
+// The flat top, with a light edge so pieces crossing pieces of their own colour part.
+export const TOP_LOOK: Record<Tone, { fill: string; stroke: string; strokeWidth: number }> = {
+    light: { fill: 'rgb(226 230 236)', stroke: 'rgb(150 158 170)', strokeWidth: 1 },
+    dark: { fill: 'rgb(44 48 52)', stroke: 'rgb(115 122 130)', strokeWidth: 1.3 }
+}
+
+export const SPECK_FILL: Record<Tone, { plain: string; grey: string }> = {
+    light: { plain: '#24282d', grey: '#858b93' },
+    dark: { plain: '#d6dbe1', grey: '#858c94' }
+}
+
+export const SIDE_SPECK_OPACITY = 0.8

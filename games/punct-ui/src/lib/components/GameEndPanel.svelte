@@ -1,45 +1,52 @@
 <script lang="ts">
-    import { GameResult } from '@tabletop/common'
+    import { assertExists, GameResult } from '@tabletop/common'
     import { EndReason } from '@tabletop/punct'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const session = getGameSession()
 
-    const draw = $derived(session.gameState.result === GameResult.Draw)
-    const winnerId = $derived(draw ? undefined : session.gameState.winningPlayerIds[0])
-    const loserId = $derived(winnerId ? session.gameState.opponentOf(winnerId) : undefined)
+    const state = $derived(session.gameState)
+    const draw = $derived(state.result === GameResult.Draw)
 
     function nameOf(playerId: string): string {
         return playerId === session.myPlayer?.id ? 'You' : session.getPlayerName(playerId)
     }
 
+    function winnerId(): string {
+        const [winner] = state.winningPlayerIds
+        assertExists(winner, 'A game won has its winner')
+        return winner
+    }
+
     function centreCount(playerId: string): number {
-        return session.gameState.board.centreCount(playerId)
+        return state.board.centreCount(playerId)
     }
 
     const headline = $derived.by(() => {
         if (draw) return 'A draw'
-        if (!winnerId) return ''
-        return winnerId === session.myPlayer?.id ? 'You win' : `${nameOf(winnerId)} wins`
+        const winner = winnerId()
+        return winner === session.myPlayer?.id ? 'You win' : `${nameOf(winner)} wins`
     })
 
     const reason = $derived.by(() => {
-        switch (session.gameState.endReason) {
+        const endReason = state.endReason
+        assertExists(endReason, 'A finished game records why it ended')
+        switch (endReason) {
             case EndReason.Connection:
-                return winnerId ? `${nameOf(winnerId)} linked two opposite sides` : ''
+                return `${nameOf(winnerId())} linked two opposite sides`
             case EndReason.CentreCount: {
-                if (winnerId && loserId) {
-                    return `Last piece placed: ${centreCount(winnerId)} central spaces to ${centreCount(loserId)}`
+                if (draw) {
+                    const [first] = state.players
+                    return `Last piece placed: ${centreCount(first.playerId)} central spaces each`
                 }
-                const [first] = session.gameState.players
-                return `Last piece placed: ${centreCount(first.playerId)} central spaces each`
+                const winner = winnerId()
+                const loser = state.opponentOf(winner)
+                return `Last piece placed: ${centreCount(winner)} central spaces to ${centreCount(loser)}`
             }
             case EndReason.LastPiece:
                 return 'Last piece placed with no connection'
             case EndReason.NoMoves:
                 return 'Neither player could move'
-            default:
-                return ''
         }
     })
 </script>

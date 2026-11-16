@@ -17,7 +17,7 @@ import {
 // black, some grey, spread evenly over the piece.
 
 // How many flecks to a hundred square units of surface, how large they are against the usual,
-// and what share of them are grey: chosen from a range of densities and sizes.
+// and what share of them are grey.
 const FLECKS = { density: 2.5, size: 1.3, grey: 0.35 }
 
 // Positions on the piece's plan (unturned, its PÜNCT at the origin) or, on its side, along its
@@ -301,8 +301,7 @@ function speckPathsOf(kind: PieceKind, seed: number, angle: number, view: BoardV
     return paths
 }
 
-// Worked out once for each piece and way it lies, as drawings are (pieceShape.ts).
-const PATHS_LIMIT = 400
+// Kept for each piece and way it lies at rest; a turning piece's change at every frame.
 const paths = new Map<string, SpeckPaths>()
 
 export function speckPaths(
@@ -311,10 +310,10 @@ export function speckPaths(
     angle: number,
     view: BoardView
 ): SpeckPaths {
+    if (!Number.isInteger(angle * 2)) return speckPathsOf(kind, seed, angle, view)
     const key = `${kind}|${seed}|${angle}|${view.tilt}`
     let found = paths.get(key)
     if (found === undefined) {
-        if (paths.size >= PATHS_LIMIT) paths.clear()
         found = speckPathsOf(kind, seed, angle, view)
         paths.set(key, found)
     }

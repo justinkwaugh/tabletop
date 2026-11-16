@@ -1,8 +1,6 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -44,13 +42,4 @@ export function setPunctSelection<TStage extends keyof PunctSelectionValues>(
               value,
               'manual'
           )
-}
-
-export function hasManualPunctSelection(selection: PunctSelection): boolean {
-    return hasManualStagedSelection<PunctSelectionValues>(selection, PunctStageOrder)
-}
-
-export function popPunctSelection(selection: PunctSelection): PunctSelection {
-    return popHighestManualStagedSelection<PunctSelectionValues>(selection, PunctStageOrder)
-        .nextState
 }

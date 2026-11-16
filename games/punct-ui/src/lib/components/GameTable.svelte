@@ -144,7 +144,7 @@
                             >
                             <OverlayToggle
                                 label="Far side"
-                                pressed={gameSession.preferences.values.turned}
+                                pressed={gameSession.turned}
                                 onToggle={() => gameSession.toggleTurned()}
                             >
                                 <svg

@@ -157,14 +157,15 @@ export function round(value: number): number {
     return Math.round(value * 100) / 100
 }
 
-// A straight, upright side with only slightly rounded edges at the base and the rim. Rounded as
-// much as GIPF's discs (a quarter and a third of the thickness), the shading ran from light to
-// dark down most of the side, which read as a sloping, trapezoidal side.
+// A straight, upright side with only slightly rounded edges at the base and the rim: rounded
+// more, the shading runs from light to dark down most of the side, which reads as sloping.
 const BASE_ROUND = PIECE_THICKNESS * 0.1
 const RIM_ROUND = PIECE_THICKNESS * 0.13
-// The top face reaches a little over the rim's rounding, as GIPF's does.
+// The top face reaches a little over the rim's rounding.
 export const TOP_INSET = RIM_ROUND * 0.6
 const SLICES = 16
+// The side slices drawn, its base and its rim included.
+export const SLICE_COUNT = SLICES + 1
 
 // How far the outline draws in from the piece's full width at a height up its side, and which
 // way the side faces there: -1 straight down, 0 out, 1 straight up.
@@ -209,9 +210,7 @@ export type PieceDrawing = {
     topOutline: Point[]
 }
 
-// Drawings worked out once for each way a piece lies: every render of the board asked again for
-// every piece's. A turning piece asks at every frame, so the cache is cleared when it fills.
-const CACHE_LIMIT = 400
+// Drawings kept for each way a piece lies at rest; a turning piece's change at every frame.
 const drawings = new Map<string, PieceDrawing>()
 
 export function drawPiece(
@@ -220,10 +219,10 @@ export function drawPiece(
     view: BoardView = VIEW,
     thickness = PIECE_THICKNESS
 ): PieceDrawing {
+    if (!Number.isInteger(angle * 2)) return drawnPiece(kind, angle, view, thickness)
     const key = `${kind}|${angle}|${view.tilt}|${thickness}`
     let drawing = drawings.get(key)
     if (drawing === undefined) {
-        if (drawings.size >= CACHE_LIMIT) drawings.clear()
         drawing = drawnPiece(kind, angle, view, thickness)
         drawings.set(key, drawing)
     }
@@ -247,7 +246,7 @@ function drawnPiece(
     view: BoardView,
     thickness: number
 ): PieceDrawing {
-    const slices = Array.from({ length: SLICES + 1 }, (_, index) => {
+    const slices = Array.from({ length: SLICE_COUNT }, (_, index) => {
         const height = (thickness * index) / SLICES
         const { inset, facing } = profileAt(height, thickness)
         return {

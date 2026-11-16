@@ -2,10 +2,9 @@ import type { Point } from '@tabletop/common'
 import { DISH_RADIUS, PIECE_THICKNESS, type BoardView } from './geometry.js'
 import type { Tone } from './pieceShape.js'
 
-// A dot on a piece is a dish sunk into its top, as TZAAR's centre is: from its lip a curved wall
-// (a cosine across its width) runs down to a wide flat floor, 0.6 of the piece's thickness deep
-// (chosen from 0.3 to 0.7; at 0.3 the dots read shallow). Distances are from the dot's centre;
-// depths below the top.
+// A dot on a piece is a dish sunk into its top: from its lip a curved wall (a cosine across its
+// width) runs down to a wide flat floor, 0.6 of the piece's thickness deep; shallower, the dots
+// read flat. Distances are from the dot's centre; depths below the top.
 export const DISH = {
     top: DISH_RADIUS,
     floor: DISH_RADIUS * 0.7,
@@ -50,11 +49,10 @@ function dishEdges(): number[] {
 
 export const DISH_RINGS = WALL_BANDS + 1
 
-// How each ring faces, far side to near, -1 away to 1 towards you: as GIPF's trough and MATRX's
-// carvings, the far wall facing you lies in the lip's shade, darkest just under it and easing
-// into the floor, and the near wall facing away catches the light; the floor a little shaded.
-// Shaded more strongly than the shallow dish first drawn (0.3 of the thickness deep), as its
-// walls are steeper and its floor further down: by WALLS and FLOOR.
+// How each ring faces, far side to near, -1 away to 1 towards you: the far wall facing you lies
+// in the lip's shade, darkest just under it and easing into the floor, and the near wall facing
+// away catches the light; the floor a little shaded. WALLS and FLOOR deepen the shading to suit
+// the steep walls and deep floor.
 const WALLS = 2 ** 0.7
 const FLOOR = 2 ** 0.5
 

@@ -1,15 +1,17 @@
-import type { AxialCoordinates, Point } from '@tabletop/common'
+import { assertExists, type AxialCoordinates, type Point } from '@tabletop/common'
 import { SPACES } from '@tabletop/punct'
 import { SPACING, type BoardView } from './geometry.js'
 import { pointInPolygon } from './pieceShape.js'
 
-// Columns A–Q left to right, each numbered up from 1 at its bottom space, as GIPF, ZÈRTZ and
-// LYNGK are: A1–A7 up to H1–H16 and Q1–Q7.
+// Columns A–Q left to right, each numbered up from 1 at its bottom space: A1–A7 up to H1–H16
+// and Q1–Q7.
 export type CoordinateLabel = {
     key: string
     text: string
     at: Point
 }
+
+export const LABEL_FONT_SIZE = 25
 
 const COLUMNS = 'ABCDEFGHIJKLMNOPQ'
 const columns = [...new Set(SPACES.map((coords) => coords.q))].sort((a, b) => a - b)
@@ -20,9 +22,14 @@ for (const { q, r } of SPACES) {
     topOf.set(q, Math.min(topOf.get(q) ?? r, r))
 }
 
+function endOf(ends: Map<number, number>, q: number): number {
+    const r = ends.get(q)
+    assertExists(r, `Column ${q} has spaces`)
+    return r
+}
+
 export function spaceLabel(coords: AxialCoordinates): string {
-    const bottom = bottomOf.get(coords.q) ?? coords.r
-    return `${COLUMNS[columns.indexOf(coords.q)]}${bottom - coords.r + 1}`
+    return `${COLUMNS[columns.indexOf(coords.q)]}${endOf(bottomOf, coords.q) - coords.r + 1}`
 }
 
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
@@ -33,8 +40,8 @@ const ABOVE: AxialCoordinates = { q: 0, r: -1 }
 // cells. The edge columns, A and Q, take the same distance rather than their own.
 const LABEL_PADDING = 5
 // A label's box: its characters' width and the font's full height.
-const CHAR_WIDTH = 17
-const LABEL_HEIGHT = 30
+const CHAR_WIDTH = LABEL_FONT_SIZE * 0.68
+const LABEL_HEIGHT = LABEL_FONT_SIZE * 1.2
 const FIRST_REACH = 0.5
 const REACH_STEP = 0.01
 const COARSE_STEP = 0.1
@@ -86,14 +93,14 @@ function labelsFor(view: BoardView): CoordinateLabel[] {
         ...placeRow(
             view,
             columns.map((q) => {
-                const coords = { q, r: bottomOf.get(q) ?? 0 }
+                const coords = { q, r: endOf(bottomOf, q) }
                 return { key: `bottom-${q}`, text: spaceLabel(coords), coords, step: BELOW }
             })
         ),
         ...placeRow(
             view,
             columns.map((q) => {
-                const coords = { q, r: topOf.get(q) ?? 0 }
+                const coords = { q, r: endOf(topOf, q) }
                 return { key: `top-${q}`, text: spaceLabel(coords).slice(1), coords, step: ABOVE }
             })
         )

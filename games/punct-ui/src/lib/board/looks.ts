@@ -1,16 +1,14 @@
-import type { Point } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import { PIECE_KINDS, PieceKind } from '@tabletop/punct'
 import { HOLE_RADIUS, VIEW } from './geometry.js'
+import { FULL_TURN, wrapRotation } from './rotation.js'
 import { drawPiece, spineSegments, type Tone } from './pieceShape.js'
 import { DISH } from './dishShape.js'
 import { LOOK_URLS } from './lookUrls.js'
 
 // Pieces are drawn from images pre-rendered by scripts/render-looks.mjs: drawn live, each piece's
 // sixteen side slices and its dishes' rings made opening a game and every move slow on phones.
-// A piece's body (its side and flat top) is one image for each outline and way it lies on screen,
-// each of its dots one image of the dish, and the specks are drawn over them live, so every piece
-// keeps its own. Pieces lie on screen in whole sixths of a turn, or half sixths on the board laid
-// a quarter round; a piece turning between them is drawn live.
+// Specks are drawn over the images live, so every piece keeps its own.
 
 export const TONES: Tone[] = ['light', 'dark']
 
@@ -41,11 +39,12 @@ function boxOf(points: readonly Point[]): Box {
     }
 }
 
-// The angle a piece lies at on screen, if it is one an image is drawn for.
+// The angle a piece lies at on screen, if it is one an image is drawn for: whole sixths of a
+// turn, or half sixths on the board laid a quarter round.
 export function screenAngle(angle: number): number | undefined {
     const halves = angle * 2
     if (Math.abs(halves - Math.round(halves)) > 1e-6) return undefined
-    return ((((Math.round(halves) % 12) + 12) % 12) / 2) as number
+    return wrapRotation(Math.round(halves), 2 * FULL_TURN) / 2
 }
 
 // Pieces of different kinds, or lying different ways, often share an outline: the two straight
@@ -112,19 +111,27 @@ export function bodyBox(kind: PieceKind, angle: number): Box {
 
 export type PlacedImage = { href: string } & Box
 
-const placedCache = new Map<string, PlacedImage | undefined>()
+const placedCache = new Map<string, PlacedImage>()
 
 // The image of a piece's body and where it lies round its PÜNCT, or nothing while it turns.
 export function bodyImage(kind: PieceKind, angle: number, tone: Tone): PlacedImage | undefined {
     const at = screenAngle(angle)
     if (at === undefined) return undefined
     const cacheKey = `${kind}|${at}|${tone}`
-    if (placedCache.has(cacheKey)) return placedCache.get(cacheKey)
-    const body = BODIES.get(outlineKey(kind, at))
-    const href = body && LOOK_URLS[lookName(body, tone)]
-    const placed = href ? { href, ...bodyBox(kind, at) } : undefined
-    placedCache.set(cacheKey, placed)
+    let placed = placedCache.get(cacheKey)
+    if (placed === undefined) {
+        const body = BODIES.get(outlineKey(kind, at))
+        assertExists(body, `Every way a ${kind} lies has an outline`)
+        placed = { href: lookUrl(lookName(body, tone)), ...bodyBox(kind, at) }
+        placedCache.set(cacheKey, placed)
+    }
     return placed
+}
+
+function lookUrl(name: string): string {
+    const url = LOOK_URLS[name]
+    assertExists(url, `scripts/render-looks.mjs renders ${name}`)
+    return url
 }
 
 // A dish's image: its rings, and on the PÜNCT's smooth insert, the sheen.
@@ -142,12 +149,12 @@ export function dishBox(): Box {
     }
 }
 
-export function dishUrl(look: DishLook): string | undefined {
-    return LOOK_URLS[`dish-${look}`]
+export function dishUrl(look: DishLook): string {
+    return lookUrl(`dish-${look}`)
 }
 
-export function iconUrl(kind: PieceKind, tone: Tone): string | undefined {
-    return LOOK_URLS[`icon-${tone}-${kind}`]
+export function iconUrl(kind: PieceKind, tone: Tone): string {
+    return lookUrl(`icon-${tone}-${kind}`)
 }
 
 // A hole through the board's plate, round its centre.
@@ -161,6 +168,6 @@ export function holeBox(): Box {
     }
 }
 
-export function holeUrl(): string | undefined {
-    return LOOK_URLS.hole
+export function holeUrl(): string {
+    return lookUrl('hole')
 }

@@ -1,4 +1,4 @@
-import type { AxialCoordinates, GameAction } from '@tabletop/common'
+import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import { isMovePiece, isPlacePiece, PieceKind } from '@tabletop/punct'
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
@@ -22,12 +22,13 @@ export type MoveEntry = Span & {
 
 export type HistoryEntry = PlaceEntry | MoveEntry
 
-function entryOf(action: GameAction, index: number): HistoryEntry | undefined {
-    if (action.playerId === undefined) return undefined
-    const span = { id: action.id, firstIndex: index, lastIndex: index, playerId: action.playerId }
+function entryOf(action: GameAction, index: number): HistoryEntry {
     if (isPlacePiece(action)) {
         return {
-            ...span,
+            id: action.id,
+            firstIndex: index,
+            lastIndex: index,
+            playerId: action.playerId,
             kind: 'place',
             piece: action.kind,
             at: action.punct,
@@ -35,21 +36,26 @@ function entryOf(action: GameAction, index: number): HistoryEntry | undefined {
         }
     }
     if (isMovePiece(action)) {
+        const { metadata } = action
+        assertExists(metadata, 'A move taken records the piece it moved')
         return {
-            ...span,
+            id: action.id,
+            firstIndex: index,
+            lastIndex: index,
+            playerId: action.playerId,
             kind: 'move',
-            piece: action.metadata?.kind ?? PieceKind.Triangle,
+            piece: metadata.kind,
             from: action.from,
             to: action.to,
-            fromLevel: action.metadata?.fromLevel ?? 0,
-            level: action.metadata?.level ?? 0,
-            passedPlayerId: action.metadata?.passedPlayerId
+            fromLevel: metadata.fromLevel,
+            level: metadata.level,
+            passedPlayerId: metadata.passedPlayerId
         }
     }
-    return undefined
+    throw Error(`PÜNCT has no ${action.type} action`)
 }
 
 // One entry for each placement and each move.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
-    return actions.flatMap((action, index) => entryOf(action, index) ?? [])
+    return actions.map(entryOf)
 }

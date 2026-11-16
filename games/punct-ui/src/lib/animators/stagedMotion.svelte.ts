@@ -1,5 +1,5 @@
 import { gsap } from 'gsap'
-import type { AxialCoordinates, Point } from '@tabletop/common'
+import { sameCoordinates, type AxialCoordinates, type Point } from '@tabletop/common'
 import {
     dotsOf,
     PieceKind,
@@ -8,28 +8,24 @@ import {
     type PlacedPiece
 } from '@tabletop/punct'
 import { PIECE_HALF_WIDTH, PIECE_THICKNESS, spaceUnder, VIEW } from '$lib/board/geometry.js'
+import { HOVER_HEIGHT } from '$lib/board/drawing.js'
 import { spineSegments } from '$lib/board/pieceShape.js'
+import { FULL_TURN, shortestTurn, wrapRotation } from '$lib/board/rotation.js'
 import type { StagedPiece } from '$lib/model/session.svelte.js'
+import { PiecePose, progressPath, type PieceAt } from './piecePose.js'
 
-// The piece you are placing or moving, hovering where you have put it before you drop it: a
-// little more than a piece's thickness above where it will rest. Positions are on the unturned
-// board's plane; heights are of the piece's underside.
+type Timeline = gsap.core.Timeline
+
+// The piece you are placing or moving, hovering where you have put it until you drop it. The
+// board draws it after whatever stands on its spaces below it (`cells`, every space it sweeps over
+// as it turns), or over everything while it is lifted clear (`aloft`).
 export type Hover = {
     piece: PlacedPiece
-    plan: Point
-    base: number
-    // The height of the surface its shadow falls on.
-    ground: number
-    angle: number
-    // Lifted clear above everything, drawn over the other pieces.
-    aloft: boolean
-    // The spaces it stands over, or sweeps over as it turns: it is drawn after whatever stands
-    // on them below it.
+    pose: PiecePose
     cells: AxialCoordinates[]
-    opacity: number
+    aloft: boolean
 }
 
-const FLOAT = PIECE_THICKNESS * 1.15
 // A new piece falls, gathering speed, to where it would rest, bounces off it up past the hover,
 // and settles back down into the hover.
 const DROP = {
@@ -39,98 +35,27 @@ const DROP = {
     rebound: 0.16,
     settle: 0.18
 }
-// A turn about the PÜNCT eases in and out; a lift clears whatever stands in the way.
 const TURN = { duration: 0.28, perStep: 0.07 }
 const RAISE = { duration: 0.18, clearance: PIECE_THICKNESS * 0.25 }
 // A moved piece lifts off where it stands, then flies over everything into its hover.
 const FLIGHT = { lift: 0.16, travel: 0.42, clearance: PIECE_THICKNESS * 0.5 }
-// The drop from the hover onto the board.
 const LANDING = { duration: 0.16, bounce: 6, settle: 0.14 }
-// Let go, a new piece rises off and fades as it goes, as GIPF's staged piece does.
 const LIFT_OFF = { duration: 0.18, rise: 30 }
 const QUICK = 0.18
 
-function restingBase(level: number): number {
-    return VIEW.levelBase(level)
-}
-
-function hoverBase(level: number): number {
-    return restingBase(level) + FLOAT
-}
-
-function wrapped(steps: number, period: number): number {
-    return ((steps % period) + period) % period
-}
-
-type Pose = { plan: Point; angle: number }
-
-// The spaces under where the piece passes through these poses.
-function cellsUnder(kind: PieceKind, poses: Pose[]): AxialCoordinates[] {
-    const cells = new Map<number, AxialCoordinates>()
-    for (const pose of poses) {
-        for (const [a, b] of spineSegments(kind, pose.angle)) {
-            const length = Math.hypot(b.x - a.x, b.y - a.y) || 1
-            const across = { x: -(b.y - a.y) / length, y: (b.x - a.x) / length }
-            for (let step = 0; step <= 4; step++) {
-                const along = step / 4
-                for (const side of [-0.7, 0, 0.7]) {
-                    const cell = spaceUnder({
-                        x:
-                            pose.plan.x +
-                            a.x +
-                            (b.x - a.x) * along +
-                            across.x * side * PIECE_HALF_WIDTH,
-                        y:
-                            pose.plan.y +
-                            a.y +
-                            (b.y - a.y) * along +
-                            across.y * side * PIECE_HALF_WIDTH
-                    })
-                    cells.set(spaceKey(cell), cell)
-                }
-            }
-        }
-    }
-    return [...cells.values()]
-}
-
-// The tallest stack, in levels, among these spaces, leaving out the piece being moved.
-function tallestOn(
-    board: HydratedPunctBoard,
-    cells: AxialCoordinates[],
-    movingId: number | undefined
-): number {
-    return Math.max(0, ...cells.map((cell) => board.heightAt(cell, movingId)))
-}
-
-function between(from: number, to: number, count: number): number[] {
-    return Array.from({ length: count + 1 }, (_, index) => from + ((to - from) * index) / count)
-}
-
 export class StagedMotion {
-    hover: Hover | undefined = $state()
-    private timeline: gsap.core.Timeline | undefined
+    hover: Hover | undefined = $state.raw()
+    // A staged choice, not a state change, so this timeline of its own plays the motion.
+    private timeline: Timeline | undefined
     // Lifting off or flying back after being let go.
     private leaving = false
 
-    // Follows the piece the session stages: a new piece drops into its hover, a moved one lifts
-    // off and flies there, and a turn swings it round its PÜNCT. Let go by the player, a new
-    // piece lifts off and a moved one flies back to where it stood; cleared any other way, it
-    // goes at once.
+    // A new piece drops into its hover, a moved one lifts off and flies there, and a turn swings
+    // it round its PÜNCT. Let go by its player, a new piece lifts off and a moved one flies back
+    // to where it stood; cleared any other way, it goes at once.
     follow(staged: StagedPiece | undefined, board: HydratedPunctBoard, released: boolean) {
         if (staged === undefined) {
-            const current = this.hover
-            if (!released || current === undefined) {
-                this.clear()
-                return
-            }
-            const origin = board.pieceById(current.piece.id)
-            if (origin) {
-                this.fly(current, origin, board, this.restingOn(origin), () => this.clear())
-            } else {
-                this.liftOff(current)
-            }
-            this.leaving = true
+            this.letGo(board, released)
             return
         }
         const piece: PlacedPiece = {
@@ -145,70 +70,78 @@ export class StagedMotion {
         const moved = staged.from !== undefined
         if (current === undefined || current.piece.id !== piece.id || this.leaving) {
             const origin = moved ? board.pieceById(piece.id) : undefined
-            if (origin) {
-                const from = this.leaving && current ? current : this.restingOn(origin)
-                this.fly(from, piece, board, this.hoverOf(piece))
-            } else {
+            if (origin === undefined) {
                 this.drop(piece)
+            } else {
+                const from = this.leaving && current ? current.pose.current : this.restingAt(origin)
+                this.fly(from, piece, board, this.hoverAt(piece))
             }
             return
         }
-        const samePlace =
-            current.piece.punct.q === piece.punct.q && current.piece.punct.r === piece.punct.r
-        if (!samePlace) {
-            if (moved) this.fly(current, piece, board, this.hoverOf(piece))
+        if (!sameCoordinates(current.piece.punct, piece.punct)) {
+            if (moved) this.fly(current.pose.current, piece, board, this.hoverAt(piece))
             else this.drop(piece)
             return
         }
         if (current.piece.rotation !== piece.rotation || current.piece.level !== piece.level) {
-            this.turn(current, piece, board)
+            this.turn(current.pose.current, piece, board)
         }
     }
 
-    // Undoing a drop: the piece rises from where it rested back into its hover, where the
-    // session stages it again.
-    rise(piece: PlacedPiece, timeline: gsap.core.Timeline) {
+    // Undoing a drop: the piece rises from where it rests back into its hover.
+    rise(piece: PlacedPiece, timeline: Timeline) {
         this.stop()
-        const start = this.restingOn(piece)
-        const proxy = { base: start.base }
-        this.hover = start
+        const pose = this.show(
+            piece,
+            this.restingAt(piece),
+            dotsOf(piece.kind, piece.punct, piece.rotation),
+            false
+        )
         timeline.to(
-            proxy,
-            {
-                base: hoverBase(piece.level),
-                duration: QUICK,
-                ease: 'power1.out',
-                onUpdate: () => this.set({ base: proxy.base })
-            },
+            pose,
+            { base: this.hoverAt(piece).base, duration: QUICK, ease: 'power1.out' },
             0
         )
     }
 
-    // Dropping the piece: from its hover onto where it rests, with a small bounce.
-    land(timeline: gsap.core.Timeline) {
-        const hover = this.hover
-        if (hover === undefined) return
+    // Dropping the piece: from wherever it is, even mid-flight or mid-turn, onto where it rests,
+    // with a small bounce.
+    land(timeline: Timeline) {
+        const current = this.hover
+        if (current === undefined) throw Error('Only a hovering piece lands')
         this.stop()
-        const rest = restingBase(hover.piece.level)
-        const proxy = { base: hover.base }
-        const update = () => this.set({ base: proxy.base })
+        const { pose, piece } = current
+        const rest = this.restingAt(piece)
+        const angle = pose.angle + shortestTurn(pose.angle, rest.angle)
         timeline.to(
-            proxy,
-            { base: rest, duration: LANDING.duration, ease: 'power2.in', onUpdate: update },
+            pose,
+            {
+                ...rest,
+                angle,
+                duration: LANDING.duration,
+                ease: 'power2.in'
+            },
             0
         )
-        timeline.to(proxy, {
-            base: rest + LANDING.bounce,
-            duration: LANDING.settle / 2,
-            ease: 'power1.out',
-            onUpdate: update
-        })
-        timeline.to(proxy, {
-            base: rest,
-            duration: LANDING.settle / 2,
-            ease: 'power1.in',
-            onUpdate: update
-        })
+        const half = LANDING.settle / 2
+        timeline.to(
+            pose,
+            { base: rest.base + LANDING.bounce, duration: half, ease: 'power1.out' },
+            LANDING.duration
+        )
+        timeline.to(
+            pose,
+            { base: rest.base, duration: half, ease: 'power1.in' },
+            LANDING.duration + half
+        )
+    }
+
+    // Puts a hovering piece where it hovers at once, as an interrupted rise ends.
+    settle() {
+        const current = this.hover
+        if (current === undefined) return
+        this.stop()
+        current.pose.set(this.hoverAt(current.piece))
     }
 
     clear() {
@@ -216,193 +149,223 @@ export class StagedMotion {
         this.hover = undefined
     }
 
-    private restingOn(piece: PlacedPiece): Hover {
-        return {
-            piece,
-            plan: VIEW.plan(piece.punct),
-            base: restingBase(piece.level),
-            ground: restingBase(piece.level),
-            angle: piece.rotation,
-            aloft: false,
-            cells: dotsOf(piece.kind, piece.punct, piece.rotation),
-            opacity: 1
+    private letGo(board: HydratedPunctBoard, released: boolean) {
+        const current = this.hover
+        if (!released || current === undefined) {
+            this.clear()
+            return
         }
+        const origin = board.pieceById(current.piece.id)
+        if (origin === undefined) {
+            this.liftOff(current.pose)
+        } else {
+            this.fly(current.pose.current, origin, board, this.restingAt(origin), () =>
+                this.clear()
+            )
+        }
+        this.leaving = true
     }
 
-    private hoverOf(piece: PlacedPiece): Hover {
-        return { ...this.restingOn(piece), base: hoverBase(piece.level) }
+    private restingAt(piece: PlacedPiece): PieceAt {
+        const plan = VIEW.plan(piece.punct)
+        const base = VIEW.levelBase(piece.level)
+        return { x: plan.x, y: plan.y, base, ground: base, angle: piece.rotation, opacity: 1 }
     }
 
-    private set(change: Partial<Hover>) {
-        if (this.hover) this.hover = { ...this.hover, ...change }
+    private hoverAt(piece: PlacedPiece): PieceAt {
+        const rest = this.restingAt(piece)
+        return { ...rest, base: rest.base + HOVER_HEIGHT }
+    }
+
+    // The hover for a piece, at a pose: the same pose while the same piece hovers.
+    private show(
+        piece: PlacedPiece,
+        at: PieceAt,
+        cells: AxialCoordinates[],
+        aloft: boolean
+    ): PiecePose {
+        const current = this.hover
+        const pose =
+            current !== undefined && current.piece.id === piece.id
+                ? current.pose
+                : new PiecePose(piece.kind, piece.id, at)
+        pose.set(at)
+        this.hover = { piece, pose, cells, aloft }
+        return pose
     }
 
     private stop() {
         this.timeline?.kill()
         this.timeline = undefined
         this.leaving = false
+        if (this.hover) gsap.killTweensOf(this.hover.pose)
     }
 
-    private start(): gsap.core.Timeline {
+    private start(): Timeline {
         this.stop()
         this.timeline = gsap.timeline()
         return this.timeline
     }
 
     private drop(piece: PlacedPiece) {
-        const target = this.hoverOf(piece)
-        const ground = restingBase(piece.level)
-        const proxy = { base: target.base + DROP.fall }
-        this.hover = { ...target, base: proxy.base }
-        const update = () => this.set({ base: proxy.base })
+        const target = this.hoverAt(piece)
+        const ground = this.restingAt(piece).base
+        const cells = dotsOf(piece.kind, piece.punct, piece.rotation)
         const timeline = this.start()
-        timeline.to(proxy, {
-            base: ground,
-            duration: DROP.duration,
-            ease: 'power2.in',
-            onUpdate: update
-        })
-        timeline.to(proxy, {
-            base: target.base + DROP.overshoot,
-            duration: DROP.rebound,
-            ease: 'power2.out',
-            onUpdate: update
-        })
-        timeline.to(proxy, {
-            base: target.base,
-            duration: DROP.settle,
-            ease: 'sine.inOut',
-            onUpdate: update
-        })
+        const pose = this.show(piece, { ...target, base: target.base + DROP.fall }, cells, false)
+        timeline.to(pose, { base: ground, duration: DROP.duration, ease: 'power2.in' }, 0)
+        timeline.to(
+            pose,
+            { base: target.base + DROP.overshoot, duration: DROP.rebound, ease: 'power2.out' },
+            DROP.duration
+        )
+        timeline.to(
+            pose,
+            { base: target.base, duration: DROP.settle, ease: 'sine.inOut' },
+            DROP.duration + DROP.rebound
+        )
     }
 
-    private liftOff(from: Hover) {
-        const proxy = { base: from.base, opacity: 1 }
+    private liftOff(pose: PiecePose) {
         const timeline = this.start()
-        timeline.to(proxy, {
-            base: from.base + LIFT_OFF.rise,
-            duration: LIFT_OFF.duration,
-            ease: 'power1.out',
-            onUpdate: () => this.set({ base: proxy.base })
-        })
-        timeline.to(
-            proxy,
-            {
-                opacity: 0,
-                duration: LIFT_OFF.duration,
-                ease: 'power2.in',
-                onUpdate: () => this.set({ opacity: proxy.opacity })
-            },
-            0
-        )
-        timeline.call(() => this.clear())
+        const ease = 'power1.out'
+        timeline.to(pose, { base: pose.base + LIFT_OFF.rise, duration: LIFT_OFF.duration, ease }, 0)
+        timeline.to(pose, { opacity: 0, duration: LIFT_OFF.duration, ease: 'power2.in' }, 0)
+        timeline.call(() => this.clear(), [], LIFT_OFF.duration)
     }
 
     // Up off where it is, clear of everything on its way, across while turning, and down into
     // the target: its hover, or where it stood when it is let go.
     private fly(
-        from: Hover,
+        from: PieceAt,
         piece: PlacedPiece,
         board: HydratedPunctBoard,
-        target: Hover,
+        target: PieceAt,
         done?: () => void
     ) {
-        const turnSteps = wrapped(target.angle - from.angle, 6)
-        const steps = turnSteps > 3 ? turnSteps - 6 : turnSteps
-        const poses = between(0, 1, 12).map((t) => ({
-            plan: {
-                x: from.plan.x + (target.plan.x - from.plan.x) * t,
-                y: from.plan.y + (target.plan.y - from.plan.y) * t
-            },
+        const steps = shortestTurn(from.angle, target.angle)
+        const poses = this.between(0, 1, 12).map((t) => ({
+            plan: { x: from.x + (target.x - from.x) * t, y: from.y + (target.y - from.y) * t },
             angle: from.angle + steps * t
         }))
-        const tallest = tallestOn(board, cellsUnder(piece.kind, poses), piece.id)
+        const tallest = this.tallestOn(board, this.cellsUnder(piece.kind, poses), piece.id)
         const cruise = Math.max(
             VIEW.surface(tallest) + FLIGHT.clearance,
-            from.base + FLOAT,
+            from.base + HOVER_HEIGHT,
             target.base
         )
-        const proxy = { t: 0, base: from.base }
-        this.hover = { ...from, piece, aloft: true }
+        const cells = dotsOf(piece.kind, piece.punct, piece.rotation)
         const timeline = this.start()
-        timeline.to(proxy, {
-            base: cruise,
-            duration: FLIGHT.lift,
-            ease: 'power1.out',
-            onUpdate: () => this.set({ base: proxy.base })
+        const pose = this.show(piece, from, cells, true)
+        timeline.to(pose, { base: cruise, duration: FLIGHT.lift, ease: 'power1.out' }, 0)
+        // Level across, then easing down into the target over the last stretch.
+        const across = progressPath((t) => {
+            const descent = Math.max(0, (t - 0.55) / 0.45)
+            const settle = descent * descent * (3 - 2 * descent)
+            pose.set({
+                x: from.x + (target.x - from.x) * t,
+                y: from.y + (target.y - from.y) * t,
+                base: cruise + (target.base - cruise) * settle,
+                ground: from.ground + (target.ground - from.ground) * t,
+                angle: from.angle + steps * t
+            })
         })
-        timeline.to(proxy, {
-            t: 1,
-            duration: FLIGHT.travel,
-            ease: 'power2.inOut',
-            onUpdate: () => {
-                const t = proxy.t
-                // Level across, then easing down into the hover over the last stretch.
-                const descent = Math.max(0, (t - 0.55) / 0.45)
-                const settle = descent * descent * (3 - 2 * descent)
-                this.set({
-                    plan: {
-                        x: from.plan.x + (target.plan.x - from.plan.x) * t,
-                        y: from.plan.y + (target.plan.y - from.plan.y) * t
-                    },
-                    base: cruise + (target.base - cruise) * settle,
-                    ground: from.ground + (target.ground - from.ground) * t,
-                    angle: from.angle + steps * t
-                })
-            },
-            onComplete: () => {
-                this.set({ ...target })
+        timeline.to(across, { t: 1, duration: FLIGHT.travel, ease: 'power2.inOut' }, FLIGHT.lift)
+        timeline.call(
+            () => {
+                this.show(piece, target, cells, false)
                 done?.()
-            }
-        })
+            },
+            [],
+            FLIGHT.lift + FLIGHT.travel
+        )
     }
 
-    // Round its PÜNCT the way it was asked (clockwise), or the other way if that is blocked; if
-    // both are, up clear of everything, round, and back down.
-    private turn(from: Hover, piece: PlacedPiece, board: HydratedPunctBoard) {
-        const target = this.hoverOf(piece)
-        const clockwise = wrapped(target.angle - from.angle, 6)
-        const sweep = (steps: number) =>
-            between(
-                from.angle,
-                from.angle + steps,
-                Math.max(4, Math.ceil(Math.abs(steps) * 8))
-            ).map((angle) => ({ plan: target.plan, angle }))
-        const swept = (steps: number) => cellsUnder(piece.kind, sweep(steps))
-        const clear = (steps: number) => tallestOn(board, swept(steps), piece.id) <= piece.level + 1
-        const ways = [clockwise, clockwise - 6].filter((steps) => steps !== 0)
+    // Round its PÜNCT clockwise, or the other way if that is blocked; if both are, up clear of
+    // everything, round, and back down.
+    private turn(from: PieceAt, piece: PlacedPiece, board: HydratedPunctBoard) {
+        const target = this.hoverAt(piece)
+        const clockwise = wrapRotation(target.angle - from.angle)
+        const swept = (steps: number) =>
+            this.cellsUnder(
+                piece.kind,
+                this.between(
+                    from.angle,
+                    from.angle + steps,
+                    Math.max(4, Math.ceil(Math.abs(steps) * 8))
+                ).map((angle) => ({ plan: { x: target.x, y: target.y }, angle }))
+            )
+        const clear = (steps: number) =>
+            this.tallestOn(board, swept(steps), piece.id) <= piece.level + 1
+        const ways = [clockwise, clockwise - FULL_TURN].filter((steps) => steps !== 0)
         const free = ways.find(clear)
         const steps = free ?? ways[0] ?? 0
-        const proxy = { angle: from.angle, base: from.base }
+        const lifts = free === undefined && steps !== 0
+        const cells = dotsOf(piece.kind, piece.punct, piece.rotation)
         const timeline = this.start()
-        const duration = TURN.duration + TURN.perStep * Math.abs(steps)
-        const update = () => this.set({ angle: proxy.angle, base: proxy.base })
-        this.hover = { ...from, piece, cells: [...target.cells, ...swept(steps)] }
-        if (free === undefined && steps !== 0) {
-            const tallest = tallestOn(board, swept(steps), piece.id)
+        const pose = this.show(piece, from, [...cells, ...swept(steps)], lifts)
+        let at = 0
+        if (lifts) {
+            const tallest = this.tallestOn(board, swept(steps), piece.id)
             const above = Math.max(target.base, VIEW.surface(tallest) + RAISE.clearance)
-            this.set({ aloft: true })
-            timeline.to(proxy, {
-                base: above,
-                duration: RAISE.duration,
-                ease: 'power1.out',
-                onUpdate: update
-            })
+            timeline.to(pose, { base: above, duration: RAISE.duration, ease: 'power1.out' }, at)
+            at += RAISE.duration
         }
-        timeline.to(proxy, {
-            angle: from.angle + steps,
-            duration,
-            ease: 'power2.inOut',
-            onUpdate: update
-        })
-        if (proxy.base !== target.base || free === undefined) {
-            timeline.to(proxy, {
-                base: target.base,
-                duration: RAISE.duration,
-                ease: 'power1.in',
-                onUpdate: update
-            })
+        const duration = TURN.duration + TURN.perStep * Math.abs(steps)
+        timeline.to(pose, { angle: from.angle + steps, duration, ease: 'power2.inOut' }, at)
+        at += duration
+        if (from.base !== target.base || free === undefined) {
+            timeline.to(
+                pose,
+                {
+                    base: target.base,
+                    ground: target.ground,
+                    duration: RAISE.duration,
+                    ease: 'power1.in'
+                },
+                at
+            )
+            at += RAISE.duration
         }
-        timeline.call(() => this.set({ ...target }))
+        timeline.call(() => this.show(piece, target, cells, false), [], at)
+    }
+
+    // The spaces under where the piece passes through these poses.
+    private cellsUnder(
+        kind: PieceKind,
+        poses: { plan: Point; angle: number }[]
+    ): AxialCoordinates[] {
+        const cells = new Map<number, AxialCoordinates>()
+        for (const pose of poses) {
+            for (const [a, b] of spineSegments(kind, pose.angle)) {
+                const length = Math.hypot(b.x - a.x, b.y - a.y)
+                const across = { x: -(b.y - a.y) / length, y: (b.x - a.x) / length }
+                for (let step = 0; step <= 4; step++) {
+                    const along = step / 4
+                    for (const side of [-0.7, 0, 0.7]) {
+                        const offset = side * PIECE_HALF_WIDTH
+                        const cell = spaceUnder({
+                            x: pose.plan.x + a.x + (b.x - a.x) * along + across.x * offset,
+                            y: pose.plan.y + a.y + (b.y - a.y) * along + across.y * offset
+                        })
+                        cells.set(spaceKey(cell), cell)
+                    }
+                }
+            }
+        }
+        return [...cells.values()]
+    }
+
+    // The tallest stack, in levels, among these spaces, leaving out the piece being moved.
+    private tallestOn(
+        board: HydratedPunctBoard,
+        cells: AxialCoordinates[],
+        movingId: number
+    ): number {
+        return Math.max(0, ...cells.map((cell) => board.heightAt(cell, movingId)))
+    }
+
+    private between(from: number, to: number, count: number): number[] {
+        return Array.from({ length: count + 1 }, (_, index) => from + ((to - from) * index) / count)
     }
 }

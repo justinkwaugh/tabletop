@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { GameResult } from '@tabletop/common'
     import { PIECE_KINDS, Variant, type HydratedPunctPlayerState } from '@tabletop/punct'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PieceIcon from './PieceIcon.svelte'
@@ -9,12 +10,11 @@
 
     const isActive = $derived(session.gameState.activePlayerIds.includes(playerState.playerId))
     const isWinner = $derived(
-        session.gameState.result !== undefined &&
-            session.gameState.winningPlayerIds.length === 1 &&
+        session.gameState.result === GameResult.Win &&
             session.gameState.winningPlayerIds.includes(playerState.playerId)
     )
     const standard = $derived(session.gameState.variant === Variant.Standard)
-    const centre = $derived(session.gameState.board.centreCount(playerState.playerId))
+    const centre = $derived(session.centreCount(playerState.playerId))
 </script>
 
 <div class="tray" class:active={isActive}>

@@ -1,34 +1,29 @@
 <script lang="ts">
-    import { Color, type AxialCoordinates, type Point } from '@tabletop/common'
-    import {
-        CENTRE_SPACES,
-        dotsOf,
-        isCentre,
-        SPACES,
-        type PieceKind,
-        type PlacedPiece
-    } from '@tabletop/punct'
-    import { untrack } from 'svelte'
+    import { Color, type AxialCoordinates } from '@tabletop/common'
+    import { CENTRE_SPACES, SPACES, spaceKey, type PlacedPiece } from '@tabletop/punct'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { Hover } from '$lib/animators/stagedMotion.svelte.js'
-    import { includesCoords } from '$lib/model/session.svelte.js'
-    import {
-        coordsKey,
-        BOARD_DEPTH,
-        HOLE_RADIUS,
-        PIECE_HALF_WIDTH,
-        PIECE_THICKNESS,
-        SEAM,
-        pointsAttribute,
-        SPACING
-    } from '$lib/board/geometry.js'
-    import { boardLabels, spaceLabel } from '$lib/board/coordinates.js'
-    import { drawOrder } from '$lib/board/drawOrder.js'
-    import { holeBox, holeUrl } from '$lib/board/looks.js'
-    import { drawPiece, outlinePlan, pathOf, type Tone } from '$lib/board/pieceShape.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
+    import { BOARD_DEPTH, HOLE_RADIUS, pointsAttribute, SPACING } from '$lib/board/geometry.js'
+    import { boardLabels, LABEL_FONT_SIZE, spaceLabel } from '$lib/board/coordinates.js'
+    import { sceneOrder } from '$lib/board/drawOrder.js'
+    import {
+        anchorOf,
+        BADGE_FONT_SIZE,
+        BADGE_RADIUS,
+        BADGE_TEXT_SCALE,
+        badgeAt,
+        CENTRED_BASELINE,
+        onTopOf,
+        plateSideFill,
+        shadowPath
+    } from '$lib/board/drawing.js'
+    import { destinationMarks, winningDots } from '$lib/board/marks.js'
+    import { holeBox, holeUrl } from '$lib/board/looks.js'
+    import { drawPiece, pathOf, type Tone } from '$lib/board/pieceShape.js'
     import PieceDefs from './PieceDefs.svelte'
     import PieceSlab from './PieceSlab.svelte'
+    import MovingPiece from './MovingPiece.svelte'
     import PunctMarker from './PunctMarker.svelte'
 
     const session = getGameSession()
@@ -37,8 +32,8 @@
     const frame = $derived(view.frame(labels.map((label) => label.at)))
     const animator = new BoardAnimator(session)
 
-    // The printed board: the pale area a honeycomb cell round every hole, ending at the outer
-    // cells' edges, the central hexagon's cells tinted; lines from hole to hole.
+    // The printed board: the pale area a honeycomb cell round every hole, the central hexagon's
+    // cells tinted; lines from hole to hole.
     const cellPath = (coords: AxialCoordinates) =>
         `M ${pointsAttribute(view.cell(coords)).replaceAll(' ', ' L ')} Z`
     const gridPath = $derived(SPACES.map(cellPath).join(' '))
@@ -46,150 +41,71 @@
     const gridLines = $derived(view.gridLines())
     const plateSides = $derived(view.plateSides())
     const holes = $derived(SPACES.map((coords) => view.center(coords)))
-    const hole = { href: holeUrl() ?? '', ...holeBox() }
+    const hole = { href: holeUrl(), ...holeBox() }
 
-    function plateSideFill(light: number): string {
-        const lit = [178, 192, 182]
-        const shaded = [104, 116, 108]
-        const [r, g, b] = lit.map((value, index) =>
-            Math.round(shaded[index] + (value - shaded[index]) * light)
+    const hover = $derived(animator.staged.hover)
+    // The draw order is worked out again only when the hover's place in it changes, never at each
+    // frame of its motion.
+    const hoverPiece = $derived(hover?.piece)
+    const hoverCells = $derived(hover?.cells)
+    const hoverAloft = $derived(hover?.aloft ?? false)
+    const hidden = $derived(
+        new Set([
+            ...(hoverPiece ? [hoverPiece.id] : []),
+            ...animator.fliers.map((flier) => flier.piece.id)
+        ])
+    )
+    const marker = $derived.by(() => {
+        const staged = session.staged
+        if (staged?.from === undefined || hoverPiece === undefined) return undefined
+        return {
+            at: staged.from,
+            level: session.gameState.board.heightAt(staged.from, staged.id),
+            playerId: staged.playerId
+        }
+    })
+    const drawn = $derived(
+        sceneOrder(
+            {
+                pieces: animator.pieces,
+                hidden,
+                hover: hoverPiece &&
+                    hoverCells && { piece: hoverPiece, cells: hoverCells, aloft: hoverAloft },
+                marker
+            },
+            view
         )
-        return `rgb(${r} ${g} ${b})`
-    }
+    )
 
-    // As large as fits inside the piece at the near right of its PÜNCT, over the dish's rim.
-    const BADGE_RADIUS = PIECE_HALF_WIDTH * 0.42
-    const BADGE_OFFSET = { x: PIECE_HALF_WIDTH * 0.5, y: PIECE_HALF_WIDTH * 0.3 }
+    const marks = $derived(
+        destinationMarks(
+            session.gameState.board,
+            session.chosenPiece,
+            session.destinations,
+            session.stagedCells,
+            view
+        )
+    )
+    // Once a space is chosen, the other destinations dim; once a piece is, the other movable ones.
+    const destinationsDimmed = $derived(session.chosenAt !== undefined)
+    const chosen = $derived(session.chosenPiece !== undefined || session.chosenAt !== undefined)
+    const connection = $derived(session.winningConnection)
+    const emptyChoices = $derived(
+        SPACES.filter(
+            (coords) =>
+                session.isChoosableSpace(coords) && session.gameState.board.heightAt(coords) === 0
+        )
+    )
 
     function toneOf(playerId: string): Tone {
         return session.gameState.getPlayerState(playerId).color === Color.White ? 'light' : 'dark'
     }
 
-    // Where a piece standing on a level puts its PÜNCT on screen.
-    function anchor(punct: AxialCoordinates, level: number): Point {
-        return view.project(view.plan(punct), view.levelBase(level))
-    }
-
-    type Drawn =
-        | {
-              kind: 'piece'
-              key: string
-              cells: AxialCoordinates[]
-              level: number
-              piece: PlacedPiece
-          }
-        | { kind: 'hover'; key: string; cells: AxialCoordinates[]; level: number }
-        | {
-              kind: 'marker'
-              key: string
-              cells: AxialCoordinates[]
-              level: number
-              playerId: string
-          }
-
-    const staged = $derived(session.staged)
-    const hover = $derived(animator.staged.hover)
-
-    // The piece you place or move hovers where you put it, moved by its own motion.
-    $effect(() => {
-        const next = session.staged
-        const board = session.gameState.board
-        untrack(() => animator.staged.follow(next, board, session.releasedByPlayer))
-    })
-
-    // What of the hover and the flier the order rests on, which stays put while they move: the
-    // order is worked out again only when one of these changes, not at every frame.
-    const hoverPiece = $derived(hover?.piece)
-    const hoverCells = $derived(hover?.cells)
-    const hoverAloft = $derived(hover?.aloft ?? false)
-    const flierId = $derived(animator.flier?.piece.id)
-
-    const drawn: Drawn[] = $derived.by(() => {
-        const entries: Drawn[] = animator.pieces
-            .filter((piece) => piece.id !== hoverPiece?.id && piece.id !== flierId)
-            .map((piece) => ({
-                kind: 'piece',
-                key: `piece-${piece.id}`,
-                cells: dotsOf(piece.kind, piece.punct, piece.rotation),
-                level: piece.level,
-                piece
-            }))
-        // Lifted clear, it is drawn over everything instead.
-        if (hoverPiece && hoverCells && !hoverAloft) {
-            entries.push({
-                kind: 'hover',
-                key: `hover-${hoverPiece.id}`,
-                cells: hoverCells,
-                level: hoverPiece.level + 1
-            })
-        }
-        if (staged?.from && hoverPiece) {
-            entries.push({
-                kind: 'marker',
-                key: 'marker',
-                cells: [staged.from],
-                level: session.gameState.board.heightAt(staged.from, staged.id),
-                playerId: staged.playerId
-            })
-        }
-        return drawOrder(entries, view)
-    })
-
-    // The board without the piece being moved: where marks for its PÜNCT lie. Once a space is
-    // chosen they stay, dimmed, so another can be chosen, except under the hovering piece.
-    const destinationMarks = $derived.by(() => {
-        const piece = session.chosenPiece
-        if (piece === undefined) return []
-        return session.destinations
-            .filter((coords) => !includesCoords(session.stagedCells, coords))
-            .map((coords) => {
-                const top = session.gameState.board.topAt(coords, piece.id)
-                return {
-                    coords,
-                    onPieceId: top?.piece.id,
-                    height: session.gameState.board.heightAt(coords, piece.id)
-                }
-            })
-    })
-    const destinationsDimmed = $derived(session.chosenAt !== undefined)
-
-    const chosenPieceCells = $derived(
-        session.chosenPiece
-            ? dotsOf(
-                  session.chosenPiece.kind,
-                  session.chosenPiece.punct,
-                  session.chosenPiece.rotation
-              )
-            : []
-    )
-
-    // Where a mark lies on a space's top surface, on screen.
-    function surface(coords: AxialCoordinates, height: number): Point {
-        return view.project(view.plan(coords), view.surface(height))
-    }
-
-    // The connection that won, marked on its spaces' top dots.
-    const connection = $derived(session.winningConnection)
-
-    function topHeight(coords: AxialCoordinates): number {
-        return session.gameState.board.heightAt(coords)
-    }
-
-    function roleOf(entry: Drawn): 'chosen' | 'movable' | undefined {
-        if (entry.kind !== 'piece') return undefined
-        if (session.chosenPiece?.id === entry.piece.id) return 'chosen'
-        return session.movablePieces.some((piece) => piece.id === entry.piece.id)
+    function roleOf(piece: PlacedPiece): 'chosen' | 'movable' | undefined {
+        if (session.chosenPiece?.id === piece.id) return 'chosen'
+        return session.movablePieces.some((movable) => movable.id === piece.id)
             ? 'movable'
             : undefined
-    }
-
-    function chooseDrawn(entry: Drawn) {
-        if (entry.kind === 'piece') session.choosePiece(entry.piece)
-    }
-
-    // Under a hovering piece its shadow is lighter the higher it is.
-    function hoverShadow(hover: Hover): number {
-        return Math.max(0.3, 1 - (0.45 * (hover.base - hover.ground)) / (PIECE_THICKNESS * 1.15))
     }
 
     // A tap on nothing you can choose lets go of what is chosen.
@@ -206,96 +122,78 @@
             act()
         }
     }
-
-    // Once a piece is chosen, the others you could move fade.
-    const chosen = $derived(session.chosenPiece !== undefined || session.chosenAt !== undefined)
-
-    // Each piece's shadow at its feet. On the board it is soft; on a piece it falls on that
-    // piece's top, across the seam between them, as a dark crease that parts the levels. Worked
-    // out once for each way a piece lies at rest; a turning piece's changes at every frame.
-    const shadows = new Map<string, string>()
-    function shadowPath(kind: PieceKind, angle: number, onPiece: boolean): string {
-        const key = `${kind}|${angle}|${onPiece}|${view.tilt}`
-        const found = shadows.get(key)
-        if (found !== undefined) return found
-        const below = onPiece ? -SEAM : 0
-        const width = onPiece ? PIECE_HALF_WIDTH + 0.6 : SPACING * 0.45
-        const path = pathOf(
-            outlinePlan(kind, angle, width).map((point) => view.project(point, below))
-        )
-        if (Number.isInteger(angle * 2)) shadows.set(key, path)
-        return path
-    }
-
-    function relative(cell: AxialCoordinates, punct: AxialCoordinates, height: number): Point {
-        const a = view.plan(cell)
-        const b = view.plan(punct)
-        return view.project({ x: a.x - b.x, y: a.y - b.y }, height)
-    }
 </script>
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<svg
-    class="punct-board"
-    viewBox={frame.viewBox}
-    width={frame.width}
-    height={frame.height}
-    role="group"
-    aria-label="PÜNCT board"
-    onclick={onBoardClick}
-    {@attach animator.attach}
->
-    <defs>
-        <PieceDefs prefix="punct-board" />
-    </defs>
+<div class="tap-off" role="presentation" onclick={onBoardClick}>
+    <svg
+        class="punct-board"
+        viewBox={frame.viewBox}
+        width={frame.width}
+        height={frame.height}
+        role="group"
+        aria-label="PÜNCT board"
+        {@attach animator.attach}
+    >
+        <defs>
+            <PieceDefs prefix="punct-board" />
+        </defs>
 
-    <!-- The plate: its shadow on the table, its edge where it faces you, then its top. -->
-    <path d={gridPath} class="plate-shadow" transform="translate(3 {view.height(BOARD_DEPTH) + 3})"
-    ></path>
-    {#each plateSides as side, index (index)}
-        <polygon points={pointsAttribute(side.points)} fill={plateSideFill(side.light)}></polygon>
-    {/each}
-    <path d={gridPath} class="play-area"></path>
-    <path d={centrePath} class="centre"></path>
-    <path d={gridLines} class="grid"></path>
-
-    {#if session.showCoordinates}
-        {#each labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+        <!-- The plate: its shadow on the table, its edge where it faces you, then its top. -->
+        <path
+            d={gridPath}
+            class="plate-shadow"
+            transform="translate(3 {view.height(BOARD_DEPTH) + 3})"
+        ></path>
+        {#each plateSides as side, index (index)}
+            <polygon points={pointsAttribute(side.points)} fill={plateSideFill(side.light)}
+            ></polygon>
         {/each}
-    {/if}
+        <path d={gridPath} class="play-area"></path>
+        <path d={centrePath} class="centre"></path>
+        <path d={gridLines} class="grid"></path>
 
-    <!-- The holes, cut through to the base below (pre-rendered, board/looks.ts). -->
-    {#each holes as center, index (index)}
-        <image
-            href={hole.href}
-            x={center.x + hole.x}
-            y={center.y + hole.y}
-            width={hole.width}
-            height={hole.height}
-            class="hole"
-        ></image>
-    {/each}
+        {#if session.showCoordinates}
+            {#each labels as label (label.key)}
+                <text
+                    x={label.at.x}
+                    y={label.at.y}
+                    dy={LABEL_FONT_SIZE * CENTRED_BASELINE}
+                    font-size={LABEL_FONT_SIZE}
+                    class="coordinate-label">{label.text}</text
+                >
+            {/each}
+        {/if}
 
-    <!-- Spaces you can choose; a tap anywhere else on the board lets go. -->
-    {#each SPACES.filter((coords) => session.isChoosableSpace(coords) && topHeight(coords) === 0) as coords (coordsKey(coords))}
-        <polygon
-            points={pointsAttribute(view.cell(coords))}
-            class="cell"
-            role="button"
-            tabindex="0"
-            aria-label="space {spaceLabel(coords)}"
-            onclick={() => session.chooseSpace(coords)}
-            onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
-        ></polygon>
-    {/each}
+        <!-- The holes, cut through to the base below. -->
+        {#each holes as center, index (index)}
+            <image
+                href={hole.href}
+                x={center.x + hole.x}
+                y={center.y + hole.y}
+                width={hole.width}
+                height={hole.height}
+                class="hole"
+            ></image>
+        {/each}
 
-    <!-- Marks for the chosen piece's PÜNCT on empty spaces lie on the board, under the pieces. -->
-    <g {@attach animator.marks()}>
-        {#each destinationMarks.filter((mark) => mark.onPieceId === undefined && !includesCoords(chosenPieceCells, mark.coords)) as mark (coordsKey(mark.coords))}
+        <!-- Spaces you can choose; a tap anywhere else on the board lets go. -->
+        {#each emptyChoices as coords (spaceKey(coords))}
+            <polygon
+                points={pointsAttribute(view.cell(coords))}
+                class="cell"
+                role="button"
+                tabindex="0"
+                aria-label="space {spaceLabel(coords)}"
+                onclick={() => session.chooseSpace(coords)}
+                onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
+            ></polygon>
+        {/each}
+
+        <!-- Marks for the chosen piece's PÜNCT on empty spaces lie on the board, under the pieces. -->
+        {#each marks.onBoard as mark (spaceKey(mark.coords))}
             {@const center = view.center(mark.coords)}
-            <g class="target-ring" class:faded={destinationsDimmed}>
+            <g class="target-ring" class:faded={destinationsDimmed} {@attach animator.mark()}>
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse
                         cx={center.x}
@@ -307,114 +205,92 @@
                 {/each}
             </g>
         {/each}
-    </g>
 
-    <!-- The piece you place or move, hovering until you drop it: its shadow on the surface
-         below, lighter the higher it is; tapping it turns it. -->
-    {#snippet hovering(hover: Hover)}
-        {@const plan = view.orient(hover.plan)}
-        {@const at = view.project(plan, hover.base)}
-        {@const ground = view.project(plan, hover.ground)}
-        {@const angle = hover.angle + view.turnSteps}
-        {@const piece = hover.piece}
-        {@const drawing = drawPiece(piece.kind, angle, view)}
-        {@const turnable = session.staged?.id === piece.id}
-        <path
-            d={shadowPath(piece.kind, angle, hover.ground > 0)}
-            transform="translate({ground.x} {ground.y})"
-            class="shadow"
-            class:crease={hover.ground > 0}
-            class:dark={toneOf(piece.playerId) === 'dark'}
-            style:opacity={hoverShadow(hover) * hover.opacity}
-        ></path>
-        <g
-            transform="translate({at.x} {at.y})"
-            opacity={hover.opacity < 1 ? hover.opacity : undefined}
-            class="piece-place"
-            class:role-none={!turnable}
-            role="button"
-            tabindex={turnable ? 0 : -1}
-            aria-disabled={!turnable}
-            aria-label="piece at {spaceLabel(piece.punct)}"
-            onclick={() => turnable && session.turnStaged()}
-            onkeydown={(event) => turnable && onKey(event, () => session.turnStaged())}
-        >
-            <PieceSlab
-                kind={piece.kind}
-                {angle}
-                tone={toneOf(piece.playerId)}
-                seed={piece.id}
-                prefix="punct-board"
+        <!-- The piece you place or move, hovering until you drop it; tapping it turns it. -->
+        {#snippet hovering(hover: Hover)}
+            {@const turnable = session.staged?.id === hover.piece.id}
+            <MovingPiece
+                pose={hover.pose}
+                tone={toneOf(hover.piece.playerId)}
                 {view}
-                moving
-            />
-            {#if turnable}
-                <g {@attach animator.marks()}>
-                    {#each ['under', 'over'] as layer (layer)}
-                        <path d={pathOf(drawing.topOutline)} class="top-ring role-staged {layer}"
-                        ></path>
-                    {/each}
-                </g>
-            {/if}
-        </g>
-    {/snippet}
-
-    {#each drawn as entry (entry.key)}
-        {#if entry.kind === 'marker'}
-            {@const at = anchor(entry.cells[0], entry.level)}
-            <g transform="translate({at.x} {at.y})" class="marker">
-                <PunctMarker tone={toneOf(entry.playerId)} />
-            </g>
-        {:else if entry.kind === 'hover'}
-            {#if hover}
-                {@render hovering(hover)}
-            {/if}
-        {:else}
-            {@const piece = entry.piece}
-            {@const role = roleOf(entry)}
-            {@const at = anchor(piece.punct, piece.level)}
-            {@const angle = animator.angleOf(piece)}
-            <g
-                transform="translate({at.x} {at.y})"
-                class="piece-place role-{role ?? 'none'}"
-                role="button"
-                tabindex={role ? 0 : -1}
-                aria-disabled={!role}
-                aria-label="piece at {spaceLabel(piece.punct)}"
-                onclick={() => role && chooseDrawn(entry)}
-                onkeydown={(event) => role && onKey(event, () => chooseDrawn(entry))}
+                prefix="punct-board"
+                label="piece at {spaceLabel(hover.piece.punct)}"
+                {turnable}
+                onTurn={() => session.turnStaged()}
             >
-                <path
-                    d={shadowPath(piece.kind, angle, piece.level > 0)}
-                    class="shadow"
-                    class:crease={piece.level > 0}
-                    class:dark={toneOf(piece.playerId) === 'dark'}
-                    {@attach animator.pieceShadow(piece.id)}
-                ></path>
-                <g {@attach animator.pieceNode(piece.id)}>
-                    <PieceSlab
-                        kind={piece.kind}
-                        {angle}
-                        tone={toneOf(piece.playerId)}
-                        seed={piece.id}
-                        prefix="punct-board"
-                        {view}
-                    />
+                {#snippet ring()}
+                    {#if turnable}
+                        <g {@attach animator.mark()} {@attach hover.pose.ring(view)}>
+                            {#each ['under', 'over'] as layer (layer)}
+                                <path data-part="ring" class="top-ring role-staged {layer}"></path>
+                            {/each}
+                        </g>
+                    {/if}
+                {/snippet}
+            </MovingPiece>
+        {/snippet}
+
+        {#each drawn as entry (entry.key)}
+            {#if entry.kind === 'marker'}
+                {@const at = anchorOf(view, entry.cells[0], entry.level)}
+                <g transform="translate({at.x} {at.y})" class="marker">
+                    <PunctMarker tone={toneOf(entry.playerId)} />
                 </g>
-                <g {@attach animator.marks()}>
+            {:else if entry.kind === 'hover'}
+                {#if hover}
+                    {@render hovering(hover)}
+                {/if}
+            {:else}
+                {@const piece = entry.piece}
+                {@const role = roleOf(piece)}
+                {@const at = anchorOf(view, piece.punct, piece.level)}
+                {@const angle = piece.rotation + view.turnSteps}
+                <g
+                    transform="translate({at.x} {at.y})"
+                    class="piece-place role-{role ?? 'none'}"
+                    role="button"
+                    tabindex={role ? 0 : -1}
+                    aria-disabled={!role}
+                    aria-label="piece at {spaceLabel(piece.punct)}"
+                    onclick={() => role && session.choosePiece(piece)}
+                    onkeydown={(event) => role && onKey(event, () => session.choosePiece(piece))}
+                >
+                    <path
+                        d={shadowPath(piece.kind, angle, piece.level > 0, view)}
+                        class="shadow"
+                        class:crease={piece.level > 0}
+                        class:dark={toneOf(piece.playerId) === 'dark'}
+                        {@attach animator.pieceShadow(piece.id)}
+                    ></path>
+                    <g {@attach animator.pieceNode(piece.id)}>
+                        <PieceSlab
+                            kind={piece.kind}
+                            {angle}
+                            tone={toneOf(piece.playerId)}
+                            seed={piece.id}
+                            prefix="punct-board"
+                            {view}
+                        />
+                    </g>
                     {#if role}
                         {@const ring = pathOf(drawPiece(piece.kind, angle, view).topOutline)}
-                        {#each ['under', 'over'] as layer (layer)}
-                            <path
-                                d={ring}
-                                class="top-ring role-{role} {layer}"
-                                class:faded={chosen && role === 'movable'}
-                            ></path>
-                        {/each}
+                        <g {@attach animator.mark()}>
+                            {#each ['under', 'over'] as layer (layer)}
+                                <path
+                                    d={ring}
+                                    class="top-ring role-{role} {layer}"
+                                    class:faded={chosen && role === 'movable'}
+                                ></path>
+                            {/each}
+                        </g>
                     {/if}
-                    {#each destinationMarks.filter((mark) => mark.onPieceId === piece.id) as mark (coordsKey(mark.coords))}
-                        {@const spot = relative(mark.coords, piece.punct, PIECE_THICKNESS)}
-                        <g class="target-ring" class:faded={destinationsDimmed}>
+                    {#each marks.onPieces.get(piece.id) ?? [] as mark (spaceKey(mark.coords))}
+                        {@const spot = onTopOf(view, mark.coords, piece.punct)}
+                        <g
+                            class="target-ring"
+                            class:faded={destinationsDimmed}
+                            {@attach animator.mark()}
+                        >
                             {#each ['under', 'over'] as layer (layer)}
                                 <ellipse
                                     cx={spot.x}
@@ -427,8 +303,8 @@
                         </g>
                     {/each}
                     {#if connection}
-                        {#each dotsOf(piece.kind, piece.punct, piece.rotation).filter((cell) => includesCoords(connection, cell) && session.gameState.board.topAt(cell)?.piece.id === piece.id) as cell (coordsKey(cell))}
-                            {@const spot = relative(cell, piece.punct, PIECE_THICKNESS)}
+                        {#each winningDots(session.gameState.board, piece, connection) as cell (spaceKey(cell))}
+                            {@const spot = onTopOf(view, cell, piece.punct)}
                             <ellipse
                                 cx={spot.x}
                                 cy={spot.y}
@@ -438,60 +314,43 @@
                             ></ellipse>
                         {/each}
                     {/if}
-                </g>
-                {#if session.showLevels && piece.level > 0}
-                    {@const badge = view.project(BADGE_OFFSET, PIECE_THICKNESS)}
-                    <!-- Over the piece's marks, moving with the piece. -->
-                    <g {@attach animator.pieceNode(piece.id)}>
-                        <!-- The level, on a badge at the near right of the PÜNCT, as TZAAR's
-                             counts: set ten times larger and scaled down, as small text is
-                             snapped to whole pixels. -->
-                        <g transform="translate({badge.x} {badge.y})" class="level-badge">
-                            <circle r={BADGE_RADIUS}></circle>
-                            <text transform="scale(0.1)" font-size={BADGE_RADIUS * 13.7} dy="0.36em"
-                                >{piece.level + 1}</text
-                            >
+                    {#if session.showLevels && piece.level > 0}
+                        {@const badge = badgeAt(view)}
+                        <!-- Over the piece's marks, moving with the piece. -->
+                        <g {@attach animator.pieceNode(piece.id)}>
+                            <g transform="translate({badge.x} {badge.y})" class="level-badge">
+                                <circle r={BADGE_RADIUS}></circle>
+                                <text
+                                    transform="scale({BADGE_TEXT_SCALE})"
+                                    font-size={BADGE_FONT_SIZE}
+                                    dy={BADGE_FONT_SIZE * CENTRED_BASELINE}>{piece.level + 1}</text
+                                >
+                            </g>
                         </g>
-                    </g>
-                {/if}
-            </g>
+                    {/if}
+                </g>
+            {/if}
+        {/each}
+
+        {#if hover?.aloft}
+            {@render hovering(hover)}
         {/if}
-    {/each}
 
-    {#if hover?.aloft}
-        {@render hovering(hover)}
-    {/if}
-
-    {#if animator.flier}
-        {@const flier = animator.flier}
-        {@const at = view.project(flier.plan, flier.height)}
-        <g transform="translate({at.x} {at.y})" class="flier">
-            <path
-                d={shadowPath(flier.piece.kind, flier.angle, flier.groundHeight > 0)}
-                class="shadow"
-                transform="translate(0 {view.height(flier.height - flier.groundHeight)})"
-            ></path>
-            <PieceSlab
-                kind={flier.piece.kind}
-                angle={flier.angle}
+        {#each animator.fliers as flier (flier.piece.id)}
+            <MovingPiece
+                pose={flier.pose}
                 tone={toneOf(flier.piece.playerId)}
-                seed={flier.piece.id}
-                prefix="punct-board"
                 {view}
-                moving
+                prefix="punct-board"
             />
-        </g>
-    {/if}
+        {/each}
 
-    <!-- Click areas for the chosen piece's PÜNCT on top of pieces, or under the piece itself,
-         stand above everything, nearer ones last. -->
-    <g {@attach animator.marks()}>
-        {#each destinationMarks
-            .filter((mark) => mark.onPieceId !== undefined || includesCoords(chosenPieceCells, mark.coords))
-            .toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y) as mark (coordsKey(mark.coords))}
-            {@const spot = surface(mark.coords, mark.height)}
+        <!-- Click areas for the chosen piece's PÜNCT on top of pieces, or under the piece itself,
+             stand above everything, nearer ones last. -->
+        {#each marks.raised as mark (spaceKey(mark.coords))}
+            {@const spot = view.project(view.plan(mark.coords), view.surface(mark.height))}
             {#if mark.onPieceId === undefined}
-                <g class="target-ring" class:faded={destinationsDimmed}>
+                <g class="target-ring" class:faded={destinationsDimmed} {@attach animator.mark()}>
                     {#each ['under', 'over'] as layer (layer)}
                         <ellipse
                             cx={spot.x}
@@ -516,10 +375,14 @@
                 onkeydown={(event) => onKey(event, () => session.chooseSpace(mark.coords))}
             ></ellipse>
         {/each}
-    </g>
-</svg>
+    </svg>
+</div>
 
 <style>
+    .tap-off {
+        display: contents;
+    }
+
     .punct-board {
         overflow: visible;
         user-select: none;
@@ -543,11 +406,9 @@
 
     .coordinate-label {
         fill: var(--punct-label);
-        font-size: 25px;
         font-weight: 600;
-        letter-spacing: 0.04em;
+        letter-spacing: 1px;
         text-anchor: middle;
-        dominant-baseline: central;
         pointer-events: none;
     }
 
@@ -573,6 +434,13 @@
         cursor: pointer;
     }
 
+    .shadow {
+        fill: rgb(20 30 25 / 0.28);
+        stroke: rgb(20 30 25 / 0.12);
+        stroke-width: 3;
+        pointer-events: none;
+    }
+
     .shadow.crease {
         fill: rgb(30 34 40 / 0.62);
         stroke: none;
@@ -582,19 +450,11 @@
         fill: rgb(0 0 0 / 0.9);
     }
 
-    .shadow {
-        fill: rgb(20 30 25 / 0.28);
-        stroke: rgb(20 30 25 / 0.12);
-        stroke-width: 3;
+    .marker {
         pointer-events: none;
     }
 
-    .marker,
-    .flier {
-        pointer-events: none;
-    }
-
-    /* Choice marks are two-tone, as in every title: a dark band under a cyan core. */
+    /* Choice marks are two-tone: a dark band under a cyan core. */
     .under {
         stroke: rgb(0 0 0 / 0.8);
     }

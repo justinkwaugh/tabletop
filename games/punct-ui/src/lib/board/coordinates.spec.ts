@@ -5,7 +5,7 @@ import { TURNED_VIEW, VIEW, viewOf } from './geometry.js'
 
 describe('space names', () => {
     it('numbers each column up from 1 at its bottom space', () => {
-        // BoardSpace's names, as the logic package keeps them, on the left.
+        // The logic's space names on the left.
         expect(spaceLabel(spaceAt('A2'))).toBe('A1')
         expect(spaceLabel(spaceAt('A8'))).toBe('A7')
         expect(spaceLabel(spaceAt('H16'))).toBe('H16')

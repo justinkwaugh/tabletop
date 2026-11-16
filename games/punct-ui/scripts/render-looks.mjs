@@ -5,7 +5,7 @@
 // a piece is drawn (board/pieceShape.ts, board/dishShape.ts, board/pieceColours.ts,
 // components/PieceBody.svelte, DishLook.svelte, PieceDefs.svelte, or an icon's specks), with the
 // harness running:
-//   node scripts/render-looks.mjs   (PORT defaults to 5173)
+//   node scripts/render-looks.mjs   (PORT defaults to the harness's 5208)
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -15,7 +15,7 @@ const LIB = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib')
 const OUT = join(LIB, 'images', 'looks')
 const browser = await chromium.launch()
 const page = await browser.newPage()
-await page.goto(`http://localhost:${process.env.PORT ?? 5173}/looks`, { waitUntil: 'networkidle' })
+await page.goto(`http://localhost:${process.env.PORT ?? 5208}/looks`, { waitUntil: 'networkidle' })
 await page.locator('svg[data-look]').first().waitFor()
 
 // Each look as a standalone file: styles from the component's CSS become attributes, and only the
@@ -60,10 +60,10 @@ const files = await page.evaluate(() => {
     })
 })
 
-// Pixels per board unit: sharp at the board's full zoom on a phone (about 1.3 CSS pixels a unit at
-// 3 device pixels each). Icons are drawn up to 0.5 CSS pixels a unit (the reserve strip): 1 to
-// 1.5 device pixels.
-const scaleOf = (name) => (name.startsWith('icon-') ? 1.6 : 4)
+// Pixels per board unit. The board is shown at up to 2.5 CSS pixels a unit, but drawn at view
+// scale, so 4 is sharp at its usual zoom on a 3x phone. Icons are shown at up to 0.5 CSS pixels a
+// unit (the desktop reserve strip), so 1.25 is 2.5 device pixels for each, and no more is seen.
+const scaleOf = (name) => (name.startsWith('icon-') ? 1.25 : 4)
 // Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
 // seams between the many bands of the groove's walls. Only the drawing grows, not the files.
 const SUPERSAMPLE = 4

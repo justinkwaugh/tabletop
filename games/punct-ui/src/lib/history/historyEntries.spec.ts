@@ -46,7 +46,6 @@ describe('history entries', () => {
         metadata: {
             pieceId: 1,
             kind: PieceKind.StraightEnd,
-            fromRotation: 0,
             fromLevel: 0,
             level,
             ...(passedPlayerId ? { passedPlayerId } : {})
