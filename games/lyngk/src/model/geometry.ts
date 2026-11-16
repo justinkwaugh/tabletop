@@ -1,6 +1,7 @@
 import {
     ClockwiseFlatHexDirections,
     coordinatesToNumber,
+    distanceAxial,
     FlatNeighborOffsets,
     HexOrientation,
     hexSpiralPattern,
@@ -15,9 +16,7 @@ export const DIRECTIONS: readonly AxialCoordinates[] = ClockwiseFlatHexDirection
     (direction) => FlatNeighborOffsets[direction]
 )
 
-export function ringDistance(coords: AxialCoordinates): number {
-    return Math.max(Math.abs(coords.q), Math.abs(coords.r), Math.abs(coords.q + coords.r))
-}
+const CENTER: AxialCoordinates = { q: 0, r: 0 }
 
 export const TIPS: readonly AxialCoordinates[] = [
     { q: 2, r: -4 },
@@ -29,7 +28,10 @@ export const TIPS: readonly AxialCoordinates[] = [
 ]
 
 export function isPoint(coords: AxialCoordinates): boolean {
-    return ringDistance(coords) <= HEX_RADIUS || TIPS.some((tip) => sameCoordinates(tip, coords))
+    return (
+        distanceAxial(coords, CENTER) <= HEX_RADIUS ||
+        TIPS.some((tip) => sameCoordinates(tip, coords))
+    )
 }
 
 export const POINTS: readonly AxialCoordinates[] = Array.from(

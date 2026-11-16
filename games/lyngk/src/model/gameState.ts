@@ -1,4 +1,5 @@
 import {
+    assertExists,
     GameResult,
     GameState,
     HydratableGameState,
@@ -74,9 +75,7 @@ export class HydratedLyngkGameState
 
     opponentOf(playerId: string): string {
         const opponent = this.players.find((player) => player.playerId !== playerId)
-        if (opponent === undefined) {
-            throw Error(`No opponent for ${playerId}`)
-        }
+        assertExists(opponent, `No opponent for ${playerId}`)
         return opponent.playerId
     }
 
@@ -141,9 +140,8 @@ export class HydratedLyngkGameState
 
     move(playerId: string, path: MovePath): MoveOutcome {
         const landedOn = [...this.board.stackAt(path.to)]
-        const movedIds = this.board.idsAt(path.from)
-        const moved = this.board.lift(path.from)
-        this.board.drop(path.to, moved, movedIds)
+        const moved = this.board.stackAt(path.from)
+        this.board.drop(path.to, this.board.lift(path.from))
         const result = this.board.stackAt(path.to)
         const top = topOf(result)
         const ownsTop = top !== undefined && this.getPlayerState(playerId).claimed.includes(top)
@@ -179,14 +177,30 @@ export class HydratedLyngkGameState
         this.endReason = reason
     }
 
+    // Each count the ranking compares, by the height of the stacks it counts: 5 for the stacks
+    // scored (in Stack of 6, stacks of 5 on the board), then 4, 3, 2 and 1.
+    rankingCounts(playerId: string): { height: number; count: number }[] {
+        return this.rankingOf(playerId).map((count, index) => ({ height: 5 - index, count }))
+    }
+
+    // Where the two players' rankings first differ; none for a full tie.
+    deciderIndex(): number | undefined {
+        const [first, second] = this.players.map((player) => this.rankingOf(player.playerId))
+        const index = first.findIndex((count, at) => count !== second[at])
+        return index < 0 ? undefined : index
+    }
+
     // Rule G3: a full tie is a draw, which the platform records with both players as winners.
     declareWinnerByRanking() {
         this.endReason = EndReason.NoMoves
-        const [first, second] = this.players.map((player) => this.rankingOf(player.playerId))
-        const difference = first.map((count, index) => count - second[index]).find((d) => d !== 0)
-        this.winningPlayerIds =
-            difference === undefined
-                ? this.players.map((player) => player.playerId)
-                : [this.players[difference > 0 ? 0 : 1].playerId]
+        const decider = this.deciderIndex()
+        if (decider === undefined) {
+            this.winningPlayerIds = this.players.map((player) => player.playerId)
+            return
+        }
+        const [first, second] = this.players
+        const ahead =
+            this.rankingOf(first.playerId)[decider] > this.rankingOf(second.playerId)[decider]
+        this.winningPlayerIds = [(ahead ? first : second).playerId]
     }
 }

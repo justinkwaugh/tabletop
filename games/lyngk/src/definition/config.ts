@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import {
+    assertExists,
     BaseConfigurator,
     ConfigOptionType,
     type GameConfig,
@@ -26,17 +27,25 @@ export const LyngkGameConfig = Type.Object({
     variant: Type.Optional(Type.Enum(LyngkVariant))
 })
 
+const standardDescription = 'Stacks of 5 with your color on top are removed and score a point.'
+const stackOfSixDescription =
+    'Stacks of 5 stay on the board, a joker also counts as white, and completing a stack of 6 with your color on top wins at once.'
+
 export const LyngkGameConfigOptions: GameConfigOptions = [
     {
         id: 'variant',
         type: ConfigOptionType.List,
         name: 'Variant',
-        description:
-            'Standard: stacks of 5 with your color on top are removed and score a point. Stack of 6: stacks of 5 stay on the board, a joker also counts as white, and completing a stack of 6 with your color on top wins at once.',
+        // Older site forms show only this, so it describes every variant.
+        description: `Standard: ${standardDescription} Stack of 6: ${stackOfSixDescription}`,
         default: LyngkVariant.Standard,
         options: [
-            { name: 'Standard', value: LyngkVariant.Standard },
-            { name: 'Stack of 6', value: LyngkVariant.StackOfSix }
+            { name: 'Standard', value: LyngkVariant.Standard, description: standardDescription },
+            {
+                name: 'Stack of 6',
+                value: LyngkVariant.StackOfSix,
+                description: stackOfSixDescription
+            }
         ],
         alwaysShow: true
     }
@@ -48,8 +57,8 @@ export class LyngkConfigurator extends BaseConfigurator {
 }
 
 export function variantFromConfig(config: GameConfig): LyngkVariant {
-    return (
-        Object.values(LyngkVariant).find((variant) => variant === config.variant) ??
-        LyngkVariant.Standard
-    )
+    if (config.variant === undefined) return LyngkVariant.Standard
+    const variant = Object.values(LyngkVariant).find((known) => known === config.variant)
+    assertExists(variant, `Unknown LYNGK variant ${String(config.variant)}`)
+    return variant
 }

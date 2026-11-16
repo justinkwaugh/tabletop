@@ -1,64 +1,32 @@
 import { describe, expect, it } from 'vitest'
-import {
-    ActionSource,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    type AxialCoordinates,
-    type GameAction
-} from '@tabletop/common'
-import { Definition } from './definition.js'
-import { LyngkRuntime } from './runtime.js'
-import { LyngkInfo } from './info.js'
-import { LyngkVariant } from './config.js'
+import { assert, GameResult, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import { LyngkVariant, variantFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { EndReason, HydratedLyngkGameState, type LyngkGameState } from '../model/gameState.js'
-import { emptyBoard } from '../model/board.js'
 import { POINTS } from '../model/geometry.js'
-import { ACTIVE_COLORS, jokerNumber, PieceColor } from '../model/pieces.js'
+import { ACTIVE_COLORS, jokerNumber, PIECE_COUNT, pieceColor, PieceColor } from '../model/pieces.js'
 import type { ClaimColor } from '../actions/claimColor.js'
-import type { MoveStack } from '../actions/moveStack.js'
+import { isMoveStack, type MoveStack } from '../actions/moveStack.js'
+import {
+    actionBase as base,
+    createGame,
+    engine,
+    execute,
+    MASTER_SEED,
+    playToEnd,
+    type LyngkGame
+} from './tests/playthrough.js'
 
-const engine = new GameEngine(LyngkRuntime)
 const A = 'alice'
 const B = 'bob'
 const { Ivory: I, Blue: U, Red: R, Green: G, Black: K, Joker: J } = PieceColor
 
-function createGame(variant: LyngkVariant = LyngkVariant.Standard) {
-    return LyngkRuntime.initializer.initializeGame(
-        {
-            id: 'lyngk-test',
-            typeId: 'lyngk',
-            ownerId: 'owner',
-            seed: 5,
-            config: { ...defaultGameConfig(LyngkInfo.configurator?.options ?? []), variant },
-            players: [A, B].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
-type LyngkGame = ReturnType<typeof createGame>
-
 function start(game: LyngkGame): LyngkGameState {
-    return engine.startGame(game, { startingPositions: { playerIds: [A, B] } }).initialState
-}
-
-let counter = 0
-function base(game: LyngkGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: LyngkGame, state: LyngkGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
+    return engine.startGame(game, {
+        masterSeed: MASTER_SEED,
+        startingPositions: { playerIds: [A, B] }
+    }).initialState
 }
 
 function claimAction(game: LyngkGame, playerId: string, color: PieceColor): ClaimColor {
@@ -98,19 +66,21 @@ function rejects(game: LyngkGame, state: LyngkGameState, action: GameAction) {
 const c = (r: number): AxialCoordinates => ({ q: 0, r })
 const right = (r: number): AxialCoordinates => ({ q: 1, r })
 
+// The stacks given by colour, each piece a numbered piece of that colour not used before.
 function withStacks(
     state: LyngkGameState,
     stacks: [AxialCoordinates, PieceColor[]][],
     claims: Record<string, PieceColor[]> = {}
 ): LyngkGameState {
     const next = structuredClone(state)
-    next.board = emptyBoard()
-    for (const [coords, stack] of stacks) {
-        const point = next.board.points.find(
-            (p) => p.coords.q === coords.q && p.coords.r === coords.r
-        )
-        if (point === undefined) throw Error('not a point')
-        point.stack = stack
+    const unused = Array.from({ length: PIECE_COUNT }, (_, id) => id)
+    const take = (color: PieceColor) => {
+        const index = unused.findIndex((id) => pieceColor(id) === color)
+        if (index < 0) throw Error(`No ${color} piece left`)
+        return unused.splice(index, 1)[0]
+    }
+    next.board = {
+        stacks: stacks.map(([coords, colors]) => ({ coords, pieces: colors.map(take) }))
     }
     for (const player of next.players) {
         player.claimed = claims[player.playerId] ?? []
@@ -132,8 +102,9 @@ describe('board', () => {
 
     it('starts with 8 of each color and 3 jokers, one on every point', () => {
         const state = start(createGame())
-        const pieces = state.board.points.flatMap((point) => point.stack)
-        expect(state.board.points.every((point) => point.stack.length === 1)).toBe(true)
+        const board = new HydratedLyngkGameState(state).board
+        const pieces = POINTS.flatMap((coords) => board.stackAt(coords))
+        expect(POINTS.every((coords) => board.stackAt(coords).length === 1)).toBe(true)
         for (const color of ACTIVE_COLORS) {
             expect(pieces.filter((piece) => piece === color)).toHaveLength(8)
         }
@@ -142,29 +113,18 @@ describe('board', () => {
     })
 })
 
-// Gives each piece an identity, counting up from the bottom of each stack in turn.
-function numbered(state: LyngkGameState): LyngkGameState {
-    let next = 0
-    for (const point of state.board.points) {
-        point.ids = point.stack.map(() => next++)
-    }
-    return state
-}
-
-const idsAt = (state: LyngkGameState, coords: AxialCoordinates) =>
-    new HydratedLyngkGameState(state).board.idsAt(coords)
+const piecesAt = (state: LyngkGameState, coords: AxialCoordinates) =>
+    new HydratedLyngkGameState(state).board.piecesAt(coords)
 
 describe('piece identities', () => {
-    it('numbers the pieces color by color, the jokers last', () => {
+    it('deals every numbered piece once, its colour following from its number', () => {
         const state = start(createGame())
-        const dealt = state.board.points.map((point) => ({
-            color: point.stack[0],
-            id: point.ids![0]
-        }))
-        expect(dealt.map(({ id }) => id).toSorted((a, b) => a - b)).toEqual(
-            dealt.map((_, index) => index)
+        const dealt = state.board.stacks.flatMap((stack) => stack.pieces)
+        expect(dealt.toSorted((a, b) => a - b)).toEqual(
+            Array.from({ length: PIECE_COUNT }, (_, id) => id)
         )
-        for (const { color, id } of dealt) {
+        for (const id of dealt) {
+            const color = pieceColor(id)
             if (color === J) {
                 expect(jokerNumber(id)).toBeDefined()
             } else {
@@ -176,41 +136,30 @@ describe('piece identities', () => {
 
     it('carries the moved pieces onto the stack they land on', () => {
         const game = createGame()
-        const state = numbered(
-            withStacks(start(game), [
-                [c(-3), [I]],
-                [c(0), [U]]
-            ])
-        )
-        const [moving, target] = [idsAt(state, c(-3))!, idsAt(state, c(0))!]
-        const moved = move(game, state, A, c(-3), c(0))
-        expect(idsAt(moved, c(0))).toEqual([...target, ...moving])
-        expect(idsAt(moved, c(-3))).toBeUndefined()
-    })
-
-    it('leaves them out where the stack landed on has none', () => {
-        const game = createGame()
         const state = withStacks(start(game), [
             [c(-3), [I]],
             [c(0), [U]]
         ])
-        state.board.points.find((point) => point.coords.r === -3 && point.coords.q === 0)!.ids = [7]
-        expect(idsAt(move(game, state, A, c(-3), c(0)), c(0))).toBeUndefined()
+        const [moving, target] = [piecesAt(state, c(-3)), piecesAt(state, c(0))]
+        const moved = move(game, state, A, c(-3), c(0))
+        expect(piecesAt(moved, c(0))).toEqual([...target, ...moving])
+        expect(piecesAt(moved, c(-3))).toEqual([])
     })
 
     it('takes them off the board with a scored stack', () => {
         const game = createGame()
-        const state = numbered(
-            withStacks(
-                start(game),
-                [
-                    [c(0), [I]],
-                    [c(1), [U, R, G, K]]
-                ],
-                { [A]: [I] }
-            )
+        const state = withStacks(
+            start(game),
+            [
+                [c(0), [I]],
+                [c(1), [U, R, G, K]]
+            ],
+            { [A]: [I] }
         )
-        expect(idsAt(move(game, state, A, c(0), c(1)), c(1))).toBeUndefined()
+        const stack = [...piecesAt(state, c(1)), ...piecesAt(state, c(0))]
+        const scored = move(game, state, A, c(0), c(1))
+        expect(piecesAt(scored, c(1))).toEqual([])
+        expect(scored.players[0].scored).toEqual([stack])
     })
 })
 
@@ -348,7 +297,9 @@ describe('stacks of five', () => {
         )
         state = move(game, state, A, c(0), c(1))
         expect(stackAt(state, c(1))).toEqual([])
-        expect(state.players[0].scored).toEqual([[U, R, G, K, I]])
+        expect(state.players[0].scored.map((stack) => stack.map(pieceColor))).toEqual([
+            [U, R, G, K, I]
+        ])
     })
 
     it('leaves a completed neutral stack as an obstacle that never scores, even once claimed', () => {
@@ -369,6 +320,48 @@ describe('stacks of five', () => {
 })
 
 describe('the LYNGK-rule', () => {
+    // Our reading: the point the stack leaves counts as empty during a chain, so a chain can run
+    // back across it.
+    it('crosses the point the moving stack left as an empty point', () => {
+        const game = createGame()
+        const state = withStacks(
+            start(game),
+            [
+                [c(0), [I]],
+                [c(-2), [I]],
+                [c(2), [U, R]]
+            ],
+            { [A]: [I] }
+        )
+        const paths = new HydratedLyngkGameState(state).board.pathsFrom(
+            c(0),
+            { owned: [I], neutral: [] },
+            5
+        )
+        expect(paths).toContainEqual({ from: c(0), via: [c(-2)], to: c(2) })
+    })
+
+    // Our reading: only the moving stack's own claimed colour links; the opponent's does not.
+    it('lands on, and does not link through, a stack of the opponent’s claimed colour', () => {
+        const game = createGame()
+        const state = withStacks(
+            start(game),
+            [
+                [c(0), [I]],
+                [c(-2), [U]],
+                [c(-3), [R]]
+            ],
+            { [A]: [I], [B]: [U] }
+        )
+        const paths = new HydratedLyngkGameState(state).board.pathsFrom(
+            c(0),
+            { owned: [I], neutral: [R, G, K] },
+            5
+        )
+        expect(paths).toContainEqual({ from: c(0), via: [], to: c(-2) })
+        expect(paths.some((path) => path.via.length > 0)).toBe(false)
+    })
+
     // The red at c(-3) links over the reds at c(-1) and right(-1) to land on the green at right(2).
     const chain = (claims: Record<string, PieceColor[]>) =>
         withStacks(
@@ -406,7 +399,7 @@ describe('the LYNGK-rule', () => {
 describe('passing and the end', () => {
     it('makes a player with no move pass while the other plays on', () => {
         const game = createGame()
-        let state = withStacks(
+        const state = withStacks(
             start(game),
             [
                 [c(-3), [R]],
@@ -415,9 +408,59 @@ describe('passing and the end', () => {
             ],
             { [A]: [R, G], [B]: [K, U] }
         )
-        state = move(game, state, A, c(-3), c(-2))
-        expect(state.machineState).toBe(MachineState.TakingTurn)
-        expect(state.activePlayerIds).toEqual([A])
+        const { updatedState, processedActions } = engine.executeCanonicalAction({
+            game,
+            state,
+            action: moveAction(game, A, c(-3), c(-2))
+        })
+        expect(updatedState.machineState).toBe(MachineState.TakingTurn)
+        expect(updatedState.activePlayerIds).toEqual([A])
+        // The move that ended the turn records the pass.
+        const [moved] = processedActions
+        assert(isMoveStack(moved), 'The move is processed')
+        expect(moved.metadata?.passedPlayerId).toBe(B)
+    })
+
+    it('records no pass when the opponent can act', () => {
+        const game = createGame()
+        const state = withStacks(start(game), [
+            [c(-3), [R]],
+            [c(-2), [G]],
+            [c(2), [I]],
+            [c(3), [U]]
+        ])
+        const { processedActions } = engine.executeCanonicalAction({
+            game,
+            state,
+            action: moveAction(game, A, c(-3), c(-2))
+        })
+        const [moved] = processedActions
+        assert(isMoveStack(moved), 'The move is processed')
+        expect(moved.metadata?.passedPlayerId).toBeUndefined()
+    })
+
+    it('offers no claim that would leave the player without a move', () => {
+        const game = createGame()
+        const state = withStacks(start(game), [[c(0), [R]]])
+        const hydrated = new HydratedLyngkGameState(state)
+        expect(hydrated.claimableColors(A)).toEqual([])
+        expect(hydrated.canAct(A)).toBe(false)
+    })
+
+    it('counts a neutral top for no one in the tie-break', () => {
+        const game = createGame()
+        const state = withStacks(
+            start(game),
+            [
+                [c(0), [I, U, G, R]],
+                [c(2), [K, I, U, G]]
+            ],
+            { [A]: [G], [B]: [K] }
+        )
+        const hydrated = new HydratedLyngkGameState(state)
+        // The red top is no one's; the green top is Alice's.
+        expect(hydrated.rankingOf(A)[1]).toBe(1)
+        expect(hydrated.rankingOf(B)[1]).toBe(0)
     })
 
     it('makes a player claim when only a claim opens a move', () => {
@@ -532,17 +575,13 @@ describe('stack of 6', () => {
     })
 })
 
-function legalActions(game: LyngkGame, state: LyngkGameState): GameAction[] {
-    const hydrated = new HydratedLyngkGameState(state)
-    const playerId = state.activePlayerIds[0]
-    const claims = hydrated
-        .claimableColors(playerId)
-        .map((color) => claimAction(game, playerId, color))
-    const moves = hydrated
-        .pathsFor(playerId)
-        .map((path) => moveAction(game, playerId, path.from, path.to, path.via))
-    return [...claims, ...moves]
-}
+describe('configuration', () => {
+    it('reads a missing variant as Standard and rejects an unknown one', () => {
+        expect(variantFromConfig({})).toBe(LyngkVariant.Standard)
+        expect(variantFromConfig({ variant: 'StackOfSix' })).toBe(LyngkVariant.StackOfSix)
+        expect(() => variantFromConfig({ variant: 'NoSuchVariant' })).toThrow()
+    })
+})
 
 describe('random playouts', () => {
     it.each(
@@ -550,22 +589,25 @@ describe('random playouts', () => {
             Array.from({ length: 12 }, (_, seed) => [variant, seed] as const)
         )
     )('%s seed %i plays to a result', (variant, seed) => {
-        const game = { ...createGame(variant), seed: seed + 1 }
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions))
-            steps += 1
-            expect(steps).toBeLessThan(500)
-        }
-        expect(state.winningPlayerIds.length).toBeGreaterThan(0)
-        expect(state.endReason).toBeDefined()
+        const game = createGame(variant)
+        const finished = playToEnd(game, start(game), seed)
+        expect(finished.winningPlayerIds.length).toBeGreaterThan(0)
+        expect(finished.endReason).toBeDefined()
+        // Nothing reads past turns, so the series keeps only each player's latest.
+        expect(finished.turnManager.series.length).toBeLessThanOrEqual(2)
+    })
+
+    it('deals and plays the same game from the same master seed', () => {
+        const game = createGame()
+        const outcome = (state: LyngkGameState) => ({
+            board: state.board,
+            players: state.players,
+            winners: state.winningPlayerIds,
+            actions: state.actionCount
+        })
+        expect(start(game).board).toEqual(start(game).board)
+        expect(outcome(playToEnd(game, start(game), 3))).toEqual(
+            outcome(playToEnd(game, start(game), 3))
+        )
     })
 })

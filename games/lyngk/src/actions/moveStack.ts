@@ -6,11 +6,13 @@ import { ActionType } from '../definition/actions.js'
 import { Stack } from '../model/pieces.js'
 
 export type MoveStackMetadata = Type.Static<typeof MoveStackMetadata>
+// `passedPlayerId` names a player whose turn this move's end skipped, as they could not act.
 export const MoveStackMetadata = Type.Object({
     moved: Stack,
     landedOn: Stack,
     scored: Type.Boolean(),
-    completedSix: Type.Boolean()
+    completedSix: Type.Boolean(),
+    passedPlayerId: Type.Optional(Type.String())
 })
 
 export type MoveStack = Type.Static<typeof MoveStack>

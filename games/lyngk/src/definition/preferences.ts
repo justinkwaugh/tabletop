@@ -16,8 +16,6 @@ export const LyngkPreferenceDefinition = {
             showCoordinates: true,
             turned: false
         },
-        version: 2,
-        // Version 1 held only the light or dark board, which is gone.
-        migrations: { 1: () => ({}) }
+        version: 2
     }
 } satisfies TitlePreferenceDefinition<typeof LyngkPreferences>

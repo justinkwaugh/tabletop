@@ -30,6 +30,24 @@ export function jokerNumber(id: number): number | undefined {
     return number >= 0 && number < JOKER_COUNT ? number : undefined
 }
 
+// A piece's colour follows from its number.
+export function pieceColor(id: number): PieceColor {
+    if (jokerNumber(id) !== undefined) return PieceColor.Joker
+    const color = ACTIVE_COLORS[Math.floor(id / PIECES_PER_COLOR_ON_BOARD)]
+    if (color === undefined || id < 0 || !Number.isInteger(id)) throw Error(`No piece ${id}`)
+    return color
+}
+
+export const PIECE_COUNT = FIRST_JOKER_ID + JOKER_COUNT
+
+// A piece, by its number.
+export const PieceId = Type.Integer({ minimum: 0, maximum: PIECE_COUNT - 1 })
+
+// Pieces bottom to top, by number.
+export type Pieces = Type.Static<typeof Pieces>
+export const Pieces = Type.Array(PieceId, { minItems: 1 })
+
+// Pieces bottom to top, by colour, as the rules and the history read them.
 export type Stack = Type.Static<typeof Stack>
 export const Stack = Type.Array(Type.Enum(PieceColor))
 

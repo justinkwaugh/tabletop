@@ -1,21 +1,27 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { addAxial, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
-import { DIRECTIONS, isPoint, pointKey, POINTS } from './geometry.js'
-import { hasRepeatedColor, PieceColor, Stack, topOf, type ColorRights } from './pieces.js'
+import { DIRECTIONS, isPoint } from './geometry.js'
+import {
+    hasRepeatedColor,
+    pieceColor,
+    PieceColor,
+    Pieces,
+    topOf,
+    type ColorRights
+} from './pieces.js'
 
-export type Point = Type.Static<typeof Point>
-export const Point = Type.Object({
+// An occupied point and its pieces, bottom to top. Empty points are not stored: the board's
+// points are POINTS.
+export type BoardStack = Type.Static<typeof BoardStack>
+export const BoardStack = Type.Object({
     coords: AxialCoordinates,
-    stack: Stack,
-    // Each piece's identity, bottom to top: the index of the point it was dealt to, so a piece
-    // can be drawn the same wherever it goes. Boards set up without them leave them out.
-    ids: Type.Optional(Type.Array(Type.Number()))
+    pieces: Pieces
 })
 
 export type LyngkBoard = Type.Static<typeof LyngkBoard>
 export const LyngkBoard = Type.Object({
-    points: Type.Array(Point)
+    stacks: Type.Array(BoardStack)
 })
 
 // A move from `from` to `to`, passing through each LYNGK-point in `via` in order.
@@ -28,54 +34,47 @@ export type MovePath = {
 const LyngkBoardValidator = Compile(LyngkBoard)
 
 export function emptyBoard(): LyngkBoard {
-    return { points: POINTS.map((coords) => ({ coords: { ...coords }, stack: [] })) }
+    return { stacks: [] }
 }
 
 export class HydratedLyngkBoard extends Hydratable<typeof LyngkBoard> implements LyngkBoard {
-    declare points: Point[]
+    declare stacks: BoardStack[]
 
     constructor(data: LyngkBoard) {
         super(data, LyngkBoardValidator)
     }
 
-    private pointAt(coords: AxialCoordinates): Point {
-        const key = pointKey(coords)
-        const point = this.points.find((candidate) => pointKey(candidate.coords) === key)
-        if (point === undefined) {
-            throw Error(`No point at ${coords.q},${coords.r}`)
-        }
-        return point
+    private stackOn(coords: AxialCoordinates): BoardStack | undefined {
+        return this.stacks.find((stack) => sameCoordinates(stack.coords, coords))
     }
 
+    // The pieces at a point, by number; none on an empty point.
+    piecesAt(coords: AxialCoordinates): number[] {
+        return this.stackOn(coords)?.pieces ?? []
+    }
+
+    // The pieces at a point, by colour.
     stackAt(coords: AxialCoordinates): PieceColor[] {
-        return isPoint(coords) ? this.pointAt(coords).stack : []
+        return this.piecesAt(coords).map(pieceColor)
     }
 
-    occupied(): Point[] {
-        return this.points.filter((point) => point.stack.length > 0)
+    occupied(): AxialCoordinates[] {
+        return this.stacks.map((stack) => stack.coords)
     }
 
-    idsAt(coords: AxialCoordinates): number[] | undefined {
-        return isPoint(coords) ? this.pointAt(coords).ids : undefined
+    // Takes the whole stack off a point.
+    lift(coords: AxialCoordinates): number[] {
+        const stack = this.stackOn(coords)
+        if (stack === undefined) throw Error(`No stack at ${coords.q},${coords.r}`)
+        this.stacks = this.stacks.filter((other) => other !== stack)
+        return stack.pieces
     }
 
-    lift(coords: AxialCoordinates): PieceColor[] {
-        const point = this.pointAt(coords)
-        const stack = point.stack
-        point.stack = []
-        delete point.ids
-        return stack
-    }
-
-    // The pieces' identities come along only if the stack landed on has its own.
-    drop(coords: AxialCoordinates, stack: readonly PieceColor[], ids?: readonly number[]) {
-        const point = this.pointAt(coords)
-        if (ids !== undefined && (point.stack.length === 0 || point.ids !== undefined)) {
-            point.ids = [...(point.ids ?? []), ...ids]
-        } else {
-            delete point.ids
-        }
-        point.stack = [...point.stack, ...stack]
+    drop(coords: AxialCoordinates, pieces: readonly number[]) {
+        if (!isPoint(coords)) throw Error(`No point at ${coords.q},${coords.r}`)
+        const stack = this.stackOn(coords)
+        if (stack === undefined) this.stacks.push({ coords: { ...coords }, pieces: [...pieces] })
+        else stack.pieces.push(...pieces)
     }
 
     // The first occupied point in each direction, crossing only empty points; `vacated` counts as empty.
@@ -84,7 +83,7 @@ export class HydratedLyngkBoard extends Hydratable<typeof LyngkBoard> implements
         for (const direction of DIRECTIONS) {
             let current = addAxial(coords, direction)
             while (isPoint(current)) {
-                if (!sameCoordinates(current, vacated) && this.stackAt(current).length > 0) {
+                if (!sameCoordinates(current, vacated) && this.stackOn(current) !== undefined) {
                     reached.push(current)
                     break
                 }
@@ -113,24 +112,38 @@ export class HydratedLyngkBoard extends Hydratable<typeof LyngkBoard> implements
         )
     }
 
+    // The top colour of the stack at `from` when it is one of the mover's own claims, which is
+    // what lets it go through LYNGK-points.
+    private claimedTop(
+        from: AxialCoordinates,
+        owned: readonly PieceColor[]
+    ): PieceColor | undefined {
+        const top = topOf(this.stackAt(from))
+        return top !== undefined && owned.includes(top) ? top : undefined
+    }
+
+    // Rule F: a LYNGK-point is a stack topped by the moving stack's own claimed colour.
+    private isLyngkLink(target: AxialCoordinates, claimedTop: PieceColor | undefined): boolean {
+        return claimedTop !== undefined && topOf(this.stackAt(target)) === claimedTop
+    }
+
     // Every legal move of the stack at `from`; LYNGK-points are only followed for a claimed top color.
     pathsFrom(from: AxialCoordinates, rights: ColorRights, maxHeight: number): MovePath[] {
         if (!this.canMoveStack(from, rights)) {
             return []
         }
         const moving = this.stackAt(from)
-        const top = topOf(moving)
-        const owned = top !== undefined && rights.owned.includes(top)
+        const claimedTop = this.claimedTop(from, rights.owned)
         const paths: MovePath[] = []
         const explore = (position: AxialCoordinates, via: AxialCoordinates[]) => {
             for (const target of this.reachableFrom(position, from)) {
-                const targetStack = this.stackAt(target)
-                const isLink = owned && topOf(targetStack) === top
-                if (isLink) {
+                if (this.isLyngkLink(target, claimedTop)) {
                     if (!via.some((link) => sameCoordinates(link, target))) {
                         explore(target, [...via, target])
                     }
-                } else if (this.canLand(moving, targetStack, owned, maxHeight)) {
+                } else if (
+                    this.canLand(moving, this.stackAt(target), claimedTop !== undefined, maxHeight)
+                ) {
                     paths.push({ from, via, to: target })
                 }
             }
@@ -139,13 +152,54 @@ export class HydratedLyngkBoard extends Hydratable<typeof LyngkBoard> implements
         return paths
     }
 
+    // The route through the fewest LYNGK-points: the route never changes a move's outcome.
+    shortestPath(
+        from: AxialCoordinates,
+        to: AxialCoordinates,
+        rights: ColorRights,
+        maxHeight: number
+    ): MovePath | undefined {
+        return this.pathsFrom(from, rights, maxHeight)
+            .filter((path) => sameCoordinates(path.to, to))
+            .toSorted((a, b) => a.via.length - b.via.length)[0]
+    }
+
+    // Every LYNGK connection from the stack at `from`, as pairs of points: to each LYNGK-point it
+    // can reach, and on from each of those in turn, whether or not a move ends beyond them.
+    lyngkConnections(
+        from: AxialCoordinates,
+        owned: readonly PieceColor[]
+    ): [AxialCoordinates, AxialCoordinates][] {
+        const claimedTop = this.claimedTop(from, owned)
+        if (claimedTop === undefined) return []
+        const links: [AxialCoordinates, AxialCoordinates][] = []
+        const reached = [from]
+        const queue = [from]
+        for (let position = queue.shift(); position !== undefined; position = queue.shift()) {
+            for (const target of this.reachableFrom(position, from)) {
+                if (!this.isLyngkLink(target, claimedTop)) continue
+                const known = links.some(
+                    ([x, y]) =>
+                        (sameCoordinates(x, position) && sameCoordinates(y, target)) ||
+                        (sameCoordinates(x, target) && sameCoordinates(y, position))
+                )
+                if (!known) links.push([position, target])
+                if (!reached.some((coords) => sameCoordinates(coords, target))) {
+                    reached.push(target)
+                    queue.push(target)
+                }
+            }
+        }
+        return links
+    }
+
     allPaths(rights: ColorRights, maxHeight: number): MovePath[] {
-        return this.occupied().flatMap((point) => this.pathsFrom(point.coords, rights, maxHeight))
+        return this.occupied().flatMap((coords) => this.pathsFrom(coords, rights, maxHeight))
     }
 
     hasMove(rights: ColorRights, maxHeight: number): boolean {
         return this.occupied().some(
-            (point) => this.pathsFrom(point.coords, rights, maxHeight).length > 0
+            (coords) => this.pathsFrom(coords, rights, maxHeight).length > 0
         )
     }
 
@@ -159,9 +213,9 @@ export class HydratedLyngkBoard extends Hydratable<typeof LyngkBoard> implements
     }
 
     stacksOfHeight(height: number, colors: readonly PieceColor[]): number {
-        return this.occupied().filter((point) => {
-            const top = topOf(point.stack)
-            return point.stack.length === height && top !== undefined && colors.includes(top)
+        return this.stacks.filter((stack) => {
+            const top = topOf(stack.pieces.map(pieceColor))
+            return stack.pieces.length === height && top !== undefined && colors.includes(top)
         }).length
     }
 }

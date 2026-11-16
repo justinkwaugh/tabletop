@@ -1,15 +1,16 @@
 import { Color, Hydratable, PlayerState } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { PieceColor, Stack } from './pieces.js'
+import { PieceColor, Pieces } from './pieces.js'
 
 export type LyngkPlayerState = Type.Static<typeof LyngkPlayerState>
 export const LyngkPlayerState = Type.Evaluate(
     Type.Intersect([
         PlayerState,
         Type.Object({
-            claimed: Type.Array(Type.Enum(PieceColor)),
-            scored: Type.Array(Stack)
+            claimed: Type.Array(Type.Enum(PieceColor), { maxItems: 2 }),
+            // Each stack the player scored, by its pieces' numbers.
+            scored: Type.Array(Pieces)
         })
     ])
 )
@@ -25,7 +26,7 @@ export class HydratedLyngkPlayerState
     declare playerId: string
     declare color: Color
     declare claimed: PieceColor[]
-    declare scored: PieceColor[][]
+    declare scored: number[][]
 
     constructor(data: LyngkPlayerState) {
         super(data, LyngkPlayerStateValidator)

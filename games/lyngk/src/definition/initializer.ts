@@ -13,7 +13,8 @@ import { HydratedLyngkPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { variantFromConfig } from './config.js'
 import { LyngkColors } from './colors.js'
-import { emptyBoard } from '../model/board.js'
+import type { LyngkBoard } from '../model/board.js'
+import { POINTS } from '../model/geometry.js'
 import {
     ACTIVE_COLORS,
     JOKER_COUNT,
@@ -53,14 +54,17 @@ export class LyngkGameInitializer
             prng.random,
             assignment
         )
+        turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
 
-        const board = emptyBoard()
+        // One piece on every point, dealt at random.
         const pieces = shuffledPieces(prng.random)
-        board.points.forEach((point, index) => {
-            point.stack = [pieces[index].color]
-            point.ids = [pieces[index].id]
-        })
+        const board: LyngkBoard = {
+            stacks: POINTS.map((coords, index) => ({
+                coords: { ...coords },
+                pieces: [pieces[index].id]
+            }))
+        }
 
         const players = turnManager.turnOrder.map(
             (playerId, index) =>
