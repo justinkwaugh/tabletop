@@ -21,7 +21,7 @@ Looks the author chose:
 - **Pieces** are nested donuts. The top is dished down to a flat floor and the underside bulges to match. The side is straight, with corners rounded at 0.22 of the thickness (0.15 at the hole edge). The hole is 0.34 of the radius, the thickness 0.20 R, the seam gap 0.05 R and the rise off the board 0.06 R. There is no catch-light (`StackShape` `catchLight = 0`).
 - **Lighting and specks**: each colour's look is pre-rendered, with DVONN's own lighting rule (a slope facing you catches the light). The dish shading is gain 2.2, light 0.85, shade 0.7, floor 0. White stays very white. Specks are spread evenly on every surface: top, side, hole walls and thinned bands. They are seeded by the `placedAt` key plus the tone. When the board is turned, the side and the hole wall show their other half (`seed + 1`, `specks.ts:154-186`).
 - **Table and board**: the table is the rulebook's red-orange glow (#e8772f → #cf4128 → #a11e17). Panels and cards are sand #e3ddd0, and each card keeps its coloured name band. The sand board with its imprinted rings is the default. The graph board, with whiskers at 0.225, is a toggle.
-- **Marks**: cyan two-tone rings just inside the top piece's rim. The chosen stack gets a thicker ring. Destinations are dashed, each dash outlined. Once a stack is chosen, the other movable stacks' rings are **hidden**, as the visual contract says. The author's cross-title preference is that they fade to 40%. That is not a readiness item: ask the author before changing it either way.
+- **Marks**: cyan two-tone rings just inside the top piece's rim. The chosen stack gets a thicker ring. Destinations are dashed, each dash outlined. Once a stack is chosen, the other movable stacks' rings are **hidden**, as the visual contract says. The author keeps this here, so they are not mistaken for valid destinations.
 - **Height badges**: TZAAR's size (r 0.27 R), on by default (`heightBadges`). A badge sits at the top's far right, moves to the far left if a nearer stack covers that, and to the far middle if both are covered (`badgeSpot.ts`). Badges are drawn over the rings and move with the body (the animator's `badge` node). A badge is forced on for a stack shrunk past the cap.
 - **Toggles**, all icon-only: A1 coordinates, board style, far side (`turned`, a 180° turn; the labels stay below and on the left and only their text changes), stack limit (`shrinkStacks`, **off by default**, cap 13 when on) and height badges. The frame keeps room for a 30-high stack in the far row (`FRAMED_HEIGHT`), so the board never moves when a toggle changes. On phones with coordinates off, the board grows into the labels' room.
 - **Cards**: tallies in stacks of 10. Both cards are drawn at one size. The captions "left" and "high" share one width so the tally keeps its size. The end panel reads "stack height x to y".
@@ -40,22 +40,30 @@ Looks the author chose:
 Where a catalogue fix could flatten these:
 
 - **B1 against `placedAt`.** Reshape the board to hold only the occupied stacks, but keep `placedAt` on every piece. It is the piece's identity: the specks, `boardDiff`'s exact stack matching and the card tally all read it. A Random placement game has no placement actions, so the identity cannot be read from actions. MATRX kept its disc ids for the same reason (`908d7a0e9`).
-- **D7 against DVONN's sequenced Undo and history.** Both run two phases in a row: drop-back then hop, or hop then cut-off. Each phase is 0.18 s, so each takes 0.36 s. Overlap the phases to fit 0.2 s, but keep both motions, and show the author the result.
+- **D7 against DVONN's sequenced Undo and history.** Both run two phases in a row: drop-back then hop, or hop then cut-off. Each phase is 0.18 s, so each takes 0.36 s. Overlap and shorten the phases to fit 0.2 s, keeping both motions (the author's decision).
 - **D8's "fade in where they stand".** DVONN's Undo drops cut-off stacks back in, the reverse of their float-up, and the contract's regression checklist expects that. Keep the drop and only shorten it, unless the author agrees to a fade.
-- **A1 is inverted here.** DVONN has real points, so set `hasScores: true` and keep `finalScores` as the stack totals. Do not copy the merged titles' `false` and 1/0 scores.
 - **C1 / C3 / C6.** Moving to `localSelections` must keep the Undo restage and the re-tap and tap-off let-go.
 - **F2.** The pose rewrite must keep the occluders, the shrink and the drop wobble.
 - **F7.** Smaller looks soften the pieces at full zoom. The author accepted this on the merged titles, but show the before and after.
+
+## Author's decisions
+
+- **Undo and actionless steps:** overlap and shorten the title's own motions until each step ends within 0.2 s (D7). Keep every motion; do not drop one or swap it for a fade.
+- **Pieces an Undo or step back puts back:** keep the title's own return motion. gipf `c7d160278` fades such pieces in only because GIPF's taken rows had no motion and popped in; it is not a rule for titles that already move them back.
+- **Win or lose:** DVONN is a win/lose game, although the stack totals decide it. Treat it like the merged titles: `hasScores: false` and winner 1, loser 0 (A1, A2). The totals stay on the cards and in the end panel.
+- **Other movable stacks hide once one is chosen**, so they are not mistaken for valid destinations. Keep it.
+- **BoardGameGeek id:** 2346.
 
 ## Fixes
 
 ### Metadata and logic
 
-- **A1 `hasScores`: applies, inverted.** `games/dvonn/src/definition/info.ts:8-19` has no `hasScores`. Add `hasScores: true`: the scores are the rulebook's (G2), and the merged titles' `false` was for synthetic 1/0 scores. Example: gipf `7dd4828da` (the field; the opposite value).
+- **A1 `hasScores: false`: applies.** `games/dvonn/src/definition/info.ts:8-19` has none. DVONN is won or lost; the stack totals only decide who. Example: gipf `7dd4828da`.
+- **A2 Win/loss `finalScores`: applies.** `finalScores` reports the stack totals. Report winner 1 and loser 0, and 1 each for a draw; keep the totals on the cards and in the end panel. Examples: gipf `9824eb4b5`, zertz `b2a9b91fb` (draw).
 - **A3 turn series: applies.** `initializer.ts:33-37` makes the turn manager without `seriesKeeps`. Nothing reads more than `currentTurn()`: `Header.svelte:8`, and the state handlers' `enter`. Set `turnManager.seriesKeeps = 'latest'` and add a playout check that the series stays short. Passes give one player consecutive turns (`movingStacks.ts:8-15`), so cover a game with a pass. Example: gipf `36405defd`.
 - **A4 config normalised and validated: applies.** `config.ts:60-72` (`versionFromConfig`, `whitePlayerFromConfig`) read unknown values as the defaults through `??`. Reject them instead. Example: GP `4497039ac` (config.ts).
 - **A5 per-choice descriptions: applies.** `config.ts:26-53`: Version has one combined description, and the White choices have none. Give Standard and Random placement each their own `description`, and keep the combined text on the option. Do the same for Random, Game creator and Opponent. Example: gipf `d0c84518d`.
-- **A7 BoardGameGeek link: applies.** `info.ts` has no `bggId`. DVONN is BGG 2346; confirm before adding it. Example: zertz `e35ef711b`.
+- **A7 BoardGameGeek link: applies.** `info.ts` has no `bggId`. Add `bggId: 2346`. Example: zertz `e35ef711b`.
 - **B1 State keeps only what play changes: applies.**
     - `model/board.ts:18-27,48-50` stores all 49 spaces with empty stacks. Store only the occupied stacks, e.g. `stacks: { coords, pieces }[]`, and take the spaces from `SPACES`.
     - In the logic, `spaceAt`, `vacantSpaces`, `isFull`, `moveStack` (drop the emptied entry) and `removeIsolated` change.
@@ -160,7 +168,6 @@ Not in the catalogue:
 
 ### Not applicable
 
-- A2: DVONN's `finalScores` are the rules' own score (G2), not a stand-in. Keep them (see A1).
 - A6: `config.ts` imports only typebox and `@tabletop/common`, no geometry.
 - A8: already `Alpha`.
 - B6: there is no compatibility code (no "games from before" fields).
