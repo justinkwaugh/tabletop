@@ -1,11 +1,13 @@
 <script lang="ts">
-    import { usaCity } from '@tabletop/ride-the-rails'
+    import { usaCity, type HexId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { BOARD_HEIGHT, BOARD_WIDTH, FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
+    import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { BUILD_PICK, litHexViews, type PickContext } from '$lib/utils/pickMarks.js'
     import { EMPTY_STAGED_ROUTE } from '$lib/utils/routePath.js'
-    import CityLabelLayer from './board/CityLabelLayer.svelte'
+    import BonusLayer from './board/BonusLayer.svelte'
     import CityLayer from './board/CityLayer.svelte'
+    import CapacityMarks from './board/CapacityMarks.svelte'
     import FlightLayer from './board/FlightLayer.svelte'
     import GroundLayer from './board/GroundLayer.svelte'
     import HitLayer from './board/HitLayer.svelte'
@@ -37,6 +39,12 @@
               : BUILD_PICK
     )
     const views = $derived(litHexViews(offer, gameSession.gameState.track, context))
+    // A hex's lone cube stands aside for a ghost cube drawn beside it (locomotivePieces).
+    const standAside: ReadonlySet<HexId> = $derived(
+        BOARD_LOOK.litRailroads === 'ghost-cube'
+            ? new Set(views.filter((view) => view.ghosts.length > 0).map((view) => view.hexId))
+            : new Set()
+    )
 
     const stagedRoute = $derived(draft ?? EMPTY_STAGED_ROUTE)
 
@@ -58,15 +66,16 @@
     data-map-board
 >
     <GroundLayer />
+    <CapacityMarks />
     <CityLayer />
     <StartCueLayer />
+    <BonusLayer />
     <PassengerLayer startCityId={stagedRoute.startCityId} />
-    <TrackLayer />
+    <TrackLayer {standAside} />
     <LineLayer lastJourney={gameSession.lastJourney} />
-    <ScrimLayer {offer} spotlight={gameSession.spotlightRailroadId} />
+    <ScrimLayer {offer} />
     <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />
     <PickLayer {views} {viewScale} />
-    <CityLabelLayer {viewScale} />
     <FlightLayer />
     <HitLayer {views} />
     <PopupAnchor id={CHOICE_ANCHOR_ID} hexId={choiceHexId} />

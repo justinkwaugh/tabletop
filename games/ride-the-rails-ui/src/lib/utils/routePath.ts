@@ -22,9 +22,10 @@ export function polylinePoints(hexIds: readonly HexId[]): string {
 
 // The slot of the railroad's cube in a hex its route rides through.
 function routeSlot(track: Track, hexId: HexId, railroadId: RailroadId): TrackSlot {
-    const index = railroadsIn(track, hexId).indexOf(railroadId)
+    const railroadIds = railroadsIn(track, hexId)
+    const index = railroadIds.indexOf(railroadId)
     assert(index >= 0, `No ${railroadId} cube in ${hexId}`)
-    return trackSlot(hexId, index)
+    return trackSlot(hexId, index, railroadIds.length)
 }
 
 /**

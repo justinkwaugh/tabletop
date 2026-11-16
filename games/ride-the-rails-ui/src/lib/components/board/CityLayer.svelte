@@ -3,25 +3,37 @@
     import { hexCenter } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { cityPieces } from '$lib/utils/boardPieces.js'
-    import { BONUS_PILL, CAPACITY_ONE, fiveRing } from '$lib/utils/cityMarks.js'
-    import BonusPill from './BonusPill.svelte'
+    import { fiveRing } from '$lib/utils/cityMarks.js'
+    import { startCues } from '$lib/utils/startCues.js'
     import StartBand from './StartBand.svelte'
 
     const gameSession = getGameSession()
+
+    // R-4.2.3: where a newly available railroad could start now but its colour is not printed
+    // (Yellow in a westernmost city), the colour joins the city's band until it no longer may.
+    const cues = $derived(BOARD_LOOK.startCue === 'band' ? startCues(gameSession.gameState) : [])
 
     const cities = $derived(
         cityPieces(gameSession.gameState).map((city) => ({
             ...city,
             center: hexCenter(city.hexId),
-            fiveRing: fiveRing(city.bonus)
+            fiveRing: fiveRing(city.bonus),
+            bandColours: [
+                ...city.startColours,
+                ...cues
+                    .filter(
+                        (cue) =>
+                            cue.hexId === city.hexId && !city.startColours.includes(cue.railroadId)
+                    )
+                    .map((cue) => cue.railroadId)
+            ]
         }))
     )
 </script>
 
-<!-- R-4.1.4, R-4.2, R-4.3: start bands, East Coast capacities, bonus pills, and a green ring just
-     outside each $5 city whose bonus is still to be had (R-4.3.2); the names are
-     drawn above the track (CityLabelLayer). The look of each mark is the one BOARD_LOOK picks
-     (startMark, bonus); other styles are drawn beside them. -->
+<!-- R-4.2, R-4.3: start bands, and a green ring just outside each $5 city whose bonus is still to
+     be had (R-4.3.2); the bonus pills are drawn above the start cues (BonusLayer). The look of
+     each mark is the one BOARD_LOOK picks (startMark); other styles are drawn beside them. -->
 <g class="cities" aria-hidden="true">
     {#each cities as city (city.cityId)}
         <g transform="translate({city.center.x} {city.center.y})" data-city-marks={city.cityId}>
@@ -35,24 +47,8 @@
                     data-five-ring
                 ></polygon>
             {/if}
-            {#if BOARD_LOOK.startMark === 'band'}
-                <StartBand startColours={city.startColours} />
-            {/if}
-            {#if city.capacityMark === '×1'}
-                <text
-                    class="rtr-serif"
-                    x={CAPACITY_ONE.x}
-                    y={CAPACITY_ONE.y + CAPACITY_ONE.fontSize * 0.35}
-                    font-size={CAPACITY_ONE.fontSize}
-                    text-anchor="middle"
-                    fill="var(--rtr-ink)"
-                    data-capacity>1</text
-                >
-            {/if}
-            {#if city.bonus && BOARD_LOOK.bonus === 'pill'}
-                <g transform="translate({BONUS_PILL.center.x} {BONUS_PILL.center.y})">
-                    <BonusPill bonus={city.bonus} />
-                </g>
+            {#if BOARD_LOOK.startMark === 'band' && city.bandColours.length > 0}
+                <StartBand startColours={city.bandColours} />
             {/if}
         </g>
     {/each}

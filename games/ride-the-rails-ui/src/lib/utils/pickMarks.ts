@@ -261,7 +261,11 @@ export function litHexViews(
                       hex.placements.map((placement) => placement.railroadId)
                   )
                 : [],
-        marks: hex.marks.map(markView),
+        // A bonus the hex's own pill already shows (Chicago's $2, an untaken $5) is not marked
+        // again; the hex's spoken name still says it.
+        marks: hex.marks
+            .filter((mark) => !(mark.kind === 'bonus' && cityIn(hex.hexId)?.bonus === mark.bonusId))
+            .map(markView),
         chevrons:
             context.kind === 'journey-extend'
                 ? hex.placements.map((placement) => placement.railroadId)

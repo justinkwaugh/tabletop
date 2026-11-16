@@ -35,10 +35,13 @@ export const LOOK_OPTIONS = {
     piece: ['flat-square'],
     /** 6. A waiting passenger, and the outline it leaves once taken. */
     passenger: ['meeple'],
-    /** 7. The cities a newly available railroad could start in now. */
-    startCue: ['dashed-band'],
-    /** 8. Which railroads may build in a lit hex. */
-    litRailroads: ['ghost-cube']
+    /**
+     * 7. The cities a newly available railroad could start in now: a dashed ring in its colour, or
+     * its colour joining the city's start band where it is not printed.
+     */
+    startCue: ['dashed-band', 'band'],
+    /** 8. Which railroads may build in a lit hex: a ghost cube each, or nothing (the ring alone). */
+    litRailroads: ['ghost-cube', 'none']
 } as const
 
 export type PaletteName = (typeof LOOK_OPTIONS.palette)[number]
@@ -68,8 +71,8 @@ export const BOARD_LOOK: BoardLook = {
     bonus: 'pill',
     piece: 'flat-square',
     passenger: 'meeple',
-    startCue: 'dashed-band',
-    litRailroads: 'ghost-cube'
+    startCue: 'band',
+    litRailroads: 'none'
 }
 
 export type HexPaint = {

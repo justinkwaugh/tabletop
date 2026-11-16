@@ -111,9 +111,9 @@ export function startBandSeparators(spans: readonly BandSpan[], width: number): 
 
 // The bonus pill (BOARD_LOOK.bonus 'pill').
 
-/** The pill up and left of the hex's centre in every city with a bonus, Chicago included. */
+/** The pill at the bottom centre of every city with a bonus, below its cubes, Chicago included. */
 export const BONUS_PILL = {
-    center: { x: -16.8, y: -20.8 },
+    center: { x: 0, y: 26.6 },
     width: 26,
     height: 16.8,
     strokeWidth: 1.6,
@@ -165,20 +165,21 @@ export function fiveRing(bonus: CityBonusMark | undefined): FiveRing | undefined
     }
 }
 
-/** R-4.1.4: an East Coast city's capacity, a "1" above its one cube. */
+/** R-4.1.4: an East Coast city's capacity, a "1" at the top centre, left of the passenger. */
 export const CAPACITY_ONE = { x: 0, y: -22.4, fontSize: 16 } as const
 
 // The passenger (BOARD_LOOK.passenger 'meeple').
 
 /**
- * Where a city's passenger stands from the hex's centre: up and right, clear of the bonus pill;
- * Chicago's higher, clear of its back row of cubes.
+ * Where a city's passenger stands from the hex's centre: up and right, inside the hex's top and
+ * above the cubes, which keep their places in every hex; Chicago's at the top centre, above its
+ * back row of three.
  */
-const PASSENGER_OFFSET: Point = { x: 18.4, y: -18.4 }
-const CHICAGO_PASSENGER_OFFSET: Point = { x: 21.2, y: -22 }
+const PASSENGER_OFFSET: Point = { x: 14.4, y: -23.8 }
+const CHICAGO_PASSENGER_OFFSET: Point = { x: 0, y: -25.6 }
 
 /** The passenger's scale on the board, from its own units. */
-export const PASSENGER_SCALE = 2.1
+export const PASSENGER_SCALE = 1.5
 
 export function passengerOffset(cityId: CityId): Point {
     return hasNoLimit(cityId) ? CHICAGO_PASSENGER_OFFSET : PASSENGER_OFFSET

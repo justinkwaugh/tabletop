@@ -83,16 +83,25 @@ export type LocomotivePiece = {
     slot: TrackSlot
 }
 
-/** Every locomotive on the map, in map order and each hex's placement order. */
-export function locomotivePieces(track: Track): LocomotivePiece[] {
-    return USA_HEXES.flatMap((hex) =>
-        railroadsIn(track, hex.id).map((railroadId, index) => ({
+/**
+ * Every locomotive on the map, in map order and each hex's placement order. A hex holding one
+ * cube stands it in the middle, unless a ghost cube is drawn there (`standAside`): then it takes
+ * the first slot, where it will stand once the ghost's placement is made.
+ */
+export function locomotivePieces(
+    track: Track,
+    standAside: ReadonlySet<HexId> = new Set()
+): LocomotivePiece[] {
+    return USA_HEXES.flatMap((hex) => {
+        const railroadIds = railroadsIn(track, hex.id)
+        const held = railroadIds.length + (standAside.has(hex.id) ? 1 : 0)
+        return railroadIds.map((railroadId, index) => ({
             key: `${hex.id}:${railroadId}`,
             hexId: hex.id,
             railroadId,
-            slot: trackSlot(hex.id, index)
+            slot: trackSlot(hex.id, index, held)
         }))
-    )
+    })
 }
 
 export type ThisTurnPlacements = {

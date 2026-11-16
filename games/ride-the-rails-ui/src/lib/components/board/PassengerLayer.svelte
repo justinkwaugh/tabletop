@@ -11,7 +11,7 @@
     const gameSession = getGameSession()
 
     // A passenger on its journey, or one an Undo is taking away, is drawn by the flight layer and
-    // leaves its outline here, as a taken one does.
+    // gone from here, as a taken one is.
     const cities = $derived(
         cityPieces(gameSession.gameState).map((city) => ({
             cityId: city.cityId,
@@ -21,13 +21,15 @@
     )
 </script>
 
-<!-- R-3.3.1: a passenger waits at each city in the state's passengers; a taken one leaves an
-     outline. -->
+<!-- R-3.3.1: a passenger waits at each city in the state's passengers; a taken one never comes
+     back on the USA map (R-3.3.6), so it leaves nothing. -->
 <g class="passengers" aria-hidden="true">
     {#each cities as city (city.cityId)}
-        {@const spot = passengerSpot(city.cityId, city.waiting && city.cityId === startCityId)}
-        <g transform="translate({spot.x} {spot.y}) scale({spot.scale})">
-            <PassengerFigure gone={!city.waiting} />
-        </g>
+        {#if city.waiting}
+            {@const spot = passengerSpot(city.cityId, city.cityId === startCityId)}
+            <g transform="translate({spot.x} {spot.y}) scale({spot.scale})">
+                <PassengerFigure />
+            </g>
+        {/if}
     {/each}
 </g>

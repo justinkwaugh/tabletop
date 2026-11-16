@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { ordinal } from '$lib/utils/marginTracks.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
     import { moneyKey, seatCardKey } from '$lib/animators/flights.svelte.js'
     import type { SeatCard } from '$lib/utils/seatCards.js'
@@ -24,14 +23,13 @@
 <section
     class="seat"
     class:acting={card.acting}
-    aria-label="{name}, {ordinal(card.position)}"
+    aria-label={name}
     data-flight-target={seatCardKey(card.playerId)}
     style:--seat={headerFill}
 >
     <header class="rtr-display">
         <span class="disc" aria-hidden="true"></span>
         <span class="name">{name}</span>
-        <span class="position">{ordinal(card.position)}</span>
     </header>
     <div class="board">
         <div class="rows">
@@ -75,7 +73,7 @@
        overflows it, shows the whole ring. */
     .seat.acting {
         box-shadow:
-            inset 0 0 0 3px var(--rtr-accent),
+            inset 0 0 0 3px var(--seat),
             inset 0 0 0 4.5px var(--rtr-halo);
     }
 
@@ -102,12 +100,6 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 20px;
-    }
-
-    .position {
-        margin-left: auto;
-        font-size: 15px;
-        color: var(--rtr-ink-muted);
     }
 
     .board {

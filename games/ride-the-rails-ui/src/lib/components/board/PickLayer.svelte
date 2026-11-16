@@ -15,16 +15,15 @@
     // Rings and marks keep a readable screen size at any zoom; ghost cubes stand in their slots.
     const scale = $derived(pickScale(viewScale))
 
-    // A lit or picked hex: a bright amber ring on a dark edge just inside the hex; a city lit for
-    // a start only keeps a fainter amber ring further out, so extensions stand out.
+    // A lit hex: no ring, only its hole in the scrim; the picked one an amber ring on a dark
+    // edge, tinted. A city lit for a start only keeps a fainter amber ring further out, so extensions
+    // stand out.
     const LIT_INSET = 5
-    const START_INSET = 3.5
     const JOURNEY_START_INSET = 4
     const MARK_HEIGHT = 18.4
 
     const RING_WIDTHS = {
-        lit: { edge: 8.8, bright: 5.6 },
-        picked: { edge: 10.4, bright: 7.2 }
+        picked: { edge: 6.4, bright: 4 }
     } as const
 
     const MARK_FILL: Readonly<Record<MarkTone, string>> = {
@@ -42,7 +41,9 @@
      railroad on a journey's next city. -->
 <g class="picks" aria-hidden="true">
     {#each views as view (view.hexId)}
-        {#if view.ring === 'lit' || view.ring === 'picked'}
+        {#if view.ring === 'lit' || view.ring === 'start'}
+            <!-- A lit hex, a start one too, is a hole in the scrim alone, for now. -->
+        {:else if view.ring === 'picked'}
             {@const widths = RING_WIDTHS[view.ring]}
             <polygon
                 points={insetHexPoints(view.hexId, LIT_INSET)}
@@ -58,15 +59,6 @@
                 stroke="var(--rtr-lit-bright)"
                 stroke-width={widths.bright * scale}
                 stroke-linejoin="round"
-            ></polygon>
-        {:else if view.ring === 'start'}
-            <polygon
-                points={insetHexPoints(view.hexId, START_INSET)}
-                fill="var(--rtr-accent-fill)"
-                stroke="var(--rtr-accent-start)"
-                stroke-width={4 * scale}
-                stroke-linejoin="round"
-                data-ring={view.ring}
             ></polygon>
         {:else}
             <polygon
@@ -97,8 +89,9 @@
         {@const center = hexCenter(view.hexId)}
         {#each view.marks as mark, index (mark.tone)}
             {@const width = (mark.text.length > 2 ? 30 : 22) * scale}
-            {@const x = center.x + (18.8 + index * 18) * scale}
-            {@const y = center.y + (22 + index * 5) * scale}
+            <!-- Up and left of the centre, clear of the bonus pill below the cubes. -->
+            {@const x = center.x - (18.8 + index * 18) * scale}
+            {@const y = center.y - (22 + index * 5) * scale}
             <rect
                 x={x - width / 2}
                 y={y - (MARK_HEIGHT * scale) / 2}

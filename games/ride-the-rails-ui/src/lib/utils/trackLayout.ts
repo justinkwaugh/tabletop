@@ -22,35 +22,31 @@ function slot(x: number, y: number, width: number): TrackSlot {
     return { x, y, width, height: width }
 }
 
-// Art plan, Cube slots: as large as each hex leaves room for, each cube wholly inside its hex and
-// apart from the next; a city's sit low, under its bonus pill, passenger and capacity.
-const OPEN_HEX_WIDTH = 29
-const OPEN_HEX_COLUMN_X = 16.8
-const OPEN_HEX_Y = 2
-const CITY_WIDTH = 26
-const CITY_COLUMN_X = 15.8
-const CITY_TRACK_Y = 8
-const EAST_COAST_WIDTH = 32
-const EAST_COAST_TRACK_Y = 6.8
-const CHICAGO_WIDTH = 17
-const CHICAGO_ROWS_Y = [-0.4, 18] as const
+// Art plan, Cube slots: every cube one size and in the same places but Chicago's, which holds six;
+// each wholly inside its hex and apart from the next. A city's marks sit above them.
+const CUBE_WIDTH = 26
+const COLUMN_X = 16.8
+const TRACK_Y = 2
+const CHICAGO_WIDTH = 16
+const CHICAGO_ROWS_Y = [-6.5, 10.5] as const
 const CHICAGO_COLUMN_X = 19.6
 
 // R-4.1.4: two cubes side by side, one in an East Coast city, Chicago two rows of three, the back
 // row first.
 const SLOT_OFFSETS: Readonly<Record<TrackSlotLayout, readonly TrackSlot[]>> = {
-    'open-hex': [
-        slot(-OPEN_HEX_COLUMN_X, OPEN_HEX_Y, OPEN_HEX_WIDTH),
-        slot(OPEN_HEX_COLUMN_X, OPEN_HEX_Y, OPEN_HEX_WIDTH)
-    ],
-    city: [
-        slot(-CITY_COLUMN_X, CITY_TRACK_Y, CITY_WIDTH),
-        slot(CITY_COLUMN_X, CITY_TRACK_Y, CITY_WIDTH)
-    ],
-    'east-coast-city': [slot(0, EAST_COAST_TRACK_Y, EAST_COAST_WIDTH)],
+    'open-hex': [slot(-COLUMN_X, TRACK_Y, CUBE_WIDTH), slot(COLUMN_X, TRACK_Y, CUBE_WIDTH)],
+    city: [slot(-COLUMN_X, TRACK_Y, CUBE_WIDTH), slot(COLUMN_X, TRACK_Y, CUBE_WIDTH)],
+    'east-coast-city': [slot(0, TRACK_Y, CUBE_WIDTH)],
     chicago: CHICAGO_ROWS_Y.flatMap((y) =>
         [-CHICAGO_COLUMN_X, 0, CHICAGO_COLUMN_X].map((x) => slot(x, y, CHICAGO_WIDTH))
     )
+}
+
+// A hex holding one cube stands it in the middle; a second moves it aside into the first slot.
+const LONE_CUBE: Partial<Record<TrackSlotLayout, TrackSlot>> = {
+    'open-hex': slot(0, TRACK_Y, CUBE_WIDTH),
+    city: slot(0, TRACK_Y, CUBE_WIDTH),
+    chicago: slot(0, CHICAGO_ROWS_Y[0], CHICAGO_WIDTH)
 }
 
 export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
@@ -60,18 +56,21 @@ export function trackSlotLayout(hexId: HexId): TrackSlotLayout {
     return isCityHex(hexId) ? 'city' : 'open-hex'
 }
 
-export function trackSlots(hexId: HexId): TrackSlot[] {
+/** The hex's slots when it holds `held` cubes: a lone cube stands in the middle. */
+export function trackSlots(hexId: HexId, held?: number): TrackSlot[] {
     const center = hexCenter(hexId)
-    return SLOT_OFFSETS[trackSlotLayout(hexId)].map((offset) => ({
+    const layout = trackSlotLayout(hexId)
+    const lone = held === 1 ? LONE_CUBE[layout] : undefined
+    return (lone ? [lone] : SLOT_OFFSETS[layout]).map((offset) => ({
         ...offset,
         x: center.x + offset.x,
         y: center.y + offset.y
     }))
 }
 
-/** The slot of the hex's cube at this place in the hex's placement order. */
-export function trackSlot(hexId: HexId, placementIndex: number): TrackSlot {
-    const placedSlot = trackSlots(hexId)[placementIndex]
+/** The slot of the hex's cube at this place in the hex's placement order, of `held` cubes. */
+export function trackSlot(hexId: HexId, placementIndex: number, held: number): TrackSlot {
+    const placedSlot = trackSlots(hexId, held)[placementIndex]
     assertExists(placedSlot, `Hex ${hexId} has no track slot ${placementIndex}`)
     return placedSlot
 }
@@ -85,15 +84,20 @@ export const SHARED_GHOST_SCALE = 0.7
 
 /**
  * R-4.1.4: each railroad that may build in the hex, in the slot its placement would take: the
- * next free slot, a second railroad the one after. Where fewer slots are free than railroads,
- * all share the first free slot, smaller, spread from back left to front right.
+ * next free slot, a second railroad the one after; a lone railroad in an empty hex stands in
+ * the middle, where its cube would. A hex's held cube stands aside for its ghosts (see
+ * `locomotivePieces`). Where fewer slots are free than railroads, all share the first free
+ * slot, smaller, spread from back left to front right.
  */
 export function ghostCubes(
     hexId: HexId,
     track: Track,
     railroadIds: readonly RailroadId[]
 ): GhostCube[] {
-    const free = trackSlots(hexId).slice(railroadsIn(track, hexId).length)
+    const held = railroadsIn(track, hexId).length
+    const free = trackSlots(hexId, held === 0 && railroadIds.length === 1 ? 1 : undefined).slice(
+        held
+    )
     if (free.length >= railroadIds.length) {
         return railroadIds.map((railroadId, index) => ({ ...free[index], railroadId }))
     }

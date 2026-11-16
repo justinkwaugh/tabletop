@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { flip } from 'svelte/animate'
+    import { cubicOut } from 'svelte/easing'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { sharesKey } from '$lib/animators/flights.svelte.js'
@@ -16,7 +18,11 @@
 </script>
 
 <div class="flex flex-col gap-2 grow-0 shrink-0">
+    <!-- The cards reorder between phases (R-2.2) and rounds (R-2.5) once the new state is shown,
+         after any flight to them has landed; they slide to their new places. -->
     {#each cards as card (card.playerId)}
-        <PlayerState {card} pendingGain={pending.get(card.playerId)} />
+        <div animate:flip={{ duration: 320, easing: cubicOut }}>
+            <PlayerState {card} pendingGain={pending.get(card.playerId)} />
+        </div>
     {/each}
 </div>
