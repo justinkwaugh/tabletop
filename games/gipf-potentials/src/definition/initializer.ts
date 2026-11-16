@@ -54,6 +54,7 @@ export class GipfPotentialsGameInitializer
             prng.random,
             assignment ?? this.chosenWhite(game)
         )
+        turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
 
         const version = versionFromConfig(game.config)

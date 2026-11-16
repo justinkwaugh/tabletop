@@ -6,6 +6,7 @@ import {
     GameResult,
     isListConfigOption,
     listOptionDescription,
+    normalizeGameConfig,
     type GameConfig
 } from '@tabletop/common'
 import {
@@ -22,7 +23,9 @@ import {
     GipfPotentialsConfigurator,
     GipfVersion,
     potentialsFromConfig,
-    WhitePlayer
+    versionFromConfig,
+    WhitePlayer,
+    whitePlayerFromConfig
 } from './config.js'
 import {
     EndReason,
@@ -341,6 +344,20 @@ describe('the game form', () => {
         assert(version !== undefined && isListConfigOption(version), 'Version is a list')
         expect(listOptionDescription(version, GipfVersion.Ultimate)).toContain('21 pieces')
         expect(listOptionDescription(version, GipfVersion.Standard)).toContain('18 pieces')
+    })
+
+    it('stores every count as 3 under Ultimate, whatever an older form sent', () => {
+        const stored = { ...form(), version: GipfVersion.Ultimate, [PieceKind.Yinsh]: '5' }
+        expect(counts(normalizeGameConfig(stored, configurator))).toEqual(['3', '3', '3', '3', '3'])
+        const standard = { ...form(), [PieceKind.Yinsh]: '5' }
+        expect(normalizeGameConfig(standard, configurator)).toEqual(standard)
+    })
+
+    it('rejects a stored value it does not know', () => {
+        expect(() => normalizeGameConfig({ version: 'Mega' }, configurator)).toThrow()
+        expect(() => normalizeGameConfig({ [PieceKind.Zertz]: '2' }, configurator)).toThrow()
+        expect(() => versionFromConfig({ version: 'Mega' })).toThrow()
+        expect(() => whitePlayerFromConfig({ whitePlayer: 'Referee' })).toThrow()
     })
 
     it('counts are left as chosen, past 12 in all', () => {
@@ -886,5 +903,7 @@ describe('random playouts', () => {
         const state = playToEnd(game, start(game), seed)
         expect(state.winningPlayerIds).toHaveLength(1)
         expect(state.endReason).toBeDefined()
+        expect(state.turnManager.seriesKeeps).toBe('latest')
+        expect(state.turnManager.series.length).toBeLessThanOrEqual(3)
     })
 })

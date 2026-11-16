@@ -109,7 +109,7 @@ export class HydratedGipfPotentialsGameState
     }
 
     hasMoved(playerId: string): boolean {
-        return (this.turnManager.turnCounts[playerId] ?? 0) > 0
+        return this.turnManager.turnCount(playerId) > 0
     }
 
     // Tournament: a first piece is a GIPF-piece, and GIPF-pieces come only until the first other.

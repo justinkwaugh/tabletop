@@ -1,5 +1,8 @@
 import * as Type from 'typebox'
+import * as Value from 'typebox/value'
 import {
+    assert,
+    assertExists,
     BaseConfigurator,
     ConfigOptionType,
     type GameConfig,
@@ -135,9 +138,21 @@ export const GipfPotentialsGameConfigOptions: GameConfigOptions = [
     }
 ]
 
+// Ultimate fixes every potential count, so a stored game says what it plays even when an older
+// form, which could not disable the counts, sent others.
+export function normalizeGipfPotentialsConfig(config: GameConfig): GameConfig {
+    const valid: boolean = Value.Check(GipfPotentialsGameConfig, config)
+    assert(valid, `Invalid GIPF with Potentials configuration: ${JSON.stringify(config)}`)
+    const fixed = VERSION_RULES[versionFromConfig(config)].potentialsOfEveryKind
+    if (fixed === undefined) return config
+    const counts = Object.fromEntries(POTENTIAL_KINDS.map((kind) => [kind, String(fixed)]))
+    return { ...config, ...counts }
+}
+
 export class GipfPotentialsConfigurator extends BaseConfigurator {
     schema = GipfPotentialsGameConfig
     options = GipfPotentialsGameConfigOptions
+    normalizeConfig = normalizeGipfPotentialsConfig
 
     override updateConfig(
         config: GameConfig,
@@ -163,22 +178,23 @@ export class GipfPotentialsConfigurator extends BaseConfigurator {
 function chosenCounts(config: GameConfig): PotentialCounts {
     return countsOfEachKind((kind) => {
         const chosen = Number(config[kind] ?? DEFAULT_POTENTIALS[kind])
-        return POTENTIAL_COUNTS.includes(chosen) ? chosen : 0
+        assert(chosen === 0 || POTENTIAL_COUNTS.includes(chosen), `Unknown ${kind} potential count`)
+        return chosen
     })
 }
 
 export function versionFromConfig(config: GameConfig): GipfVersion {
-    return (
-        Object.values(GipfVersion).find((version) => version === config.version) ??
-        GipfVersion.Standard
-    )
+    if (config.version === undefined) return GipfVersion.Standard
+    const version = Object.values(GipfVersion).find((known) => known === config.version)
+    assertExists(version, `Unknown GIPF version ${String(config.version)}`)
+    return version
 }
 
 export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
-    return (
-        Object.values(WhitePlayer).find((choice) => choice === config.whitePlayer) ??
-        WhitePlayer.Random
-    )
+    if (config.whitePlayer === undefined) return WhitePlayer.Random
+    const choice = Object.values(WhitePlayer).find((known) => known === config.whitePlayer)
+    assertExists(choice, `Unknown choice of White ${String(config.whitePlayer)}`)
+    return choice
 }
 
 export function potentialsFromConfig(config: GameConfig): PotentialCounts {
