@@ -220,6 +220,21 @@ export const BenchScenes = {
             setShillings(state, seat, 9)
         }
     },
+    /** R-3.15 Repeat after Guild, Move and Influence: Repeat replays the Guild into a Knight trade. */
+    repeatKnightTrade: {
+        guild: 'knight',
+        fn: 'trade',
+        cards: ['repeat', 'tax'],
+        arrange: (state, { seat }) => {
+            const markers = [0, 0, 0, 0]
+            markers[seatRowIndex(state, seat)] = 4
+            setRowMarkers(state, markers)
+            setShillings(state, seat, 9)
+            state.getPlayerState(seat).played = (['guild', 'move', 'influence'] as const).map(
+                (kind) => ({ kind, use: 'regular' as const })
+            )
+        }
+    },
     cardTray: {
         cards: ['tax', 'influence', 'move', 'explore'],
         arrange: () => {}

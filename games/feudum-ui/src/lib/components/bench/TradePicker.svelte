@@ -2,11 +2,10 @@
     import type { Color } from '@tabletop/common'
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
     import PrimaryButton from '$lib/components/panel/PrimaryButton.svelte'
-    import RowChoice from '$lib/components/panel/RowChoice.svelte'
     import GuildDie from '$lib/components/pieces/GuildDie.svelte'
     import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
     import PanelRow, { type RowPointer } from '$lib/components/table/PanelRow.svelte'
-    import type { ActionBlock, ActionRow } from '$lib/model/actionPanel.js'
+    import type { ActionBlock } from '$lib/model/actionPanel.js'
     import type { BenchOffer } from '$lib/model/benchOffer.js'
     import { benchViewOf, type GhostPiece } from '$lib/model/benchView.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
@@ -16,16 +15,16 @@
     import UprightGuild from './UprightGuild.svelte'
 
     /**
-     * Contract, The trade picker: the guild's board upright at the left, and beside it the header,
-     * one choice card per offer, the basket where picks add up, the bench's further choices (sulfur
-     * into the barrel), the send, the card's other mode
-     * (Feast) and a caption. On a desk it stands in the picked card's tray; on a phone, in the bench's
-     * bottom sheet, its cards as compact rows. It reads the bench offer and decides nothing.
+     * Contract, The trade picker: the guild's board upright at the left, and beside it, left aligned
+     * in one reading order, the header with the purse right after its line, one choice card per
+     * offer, the basket where picks add up, the bench's further choices (sulfur into the barrel),
+     * the send and a caption. On a desk it stands in the picked card's tray, under the tray's control
+     * row; on a phone, in the bench's bottom sheet, its cards as compact rows. It reads the bench
+     * offer and decides nothing.
      */
     let {
         bench,
         compact = false,
-        other,
         send,
         state,
         playerId,
@@ -37,8 +36,6 @@
         bench: BenchOffer
         /** A phone's sheet: a shorter board and compact rows, so more of the map shows. */
         compact?: boolean
-        /** R-3.16.3 The card's other mode: Feast while a guild function is open. */
-        other?: ActionRow
         send?: Extract<ActionBlock, { kind: 'primary' }>
         state: HydratedFeudumGameState
         playerId: string
@@ -148,7 +145,7 @@
                 <GuildDie guild={picker.guild} size={24} phoneSize={20} />
                 <strong class="text-feudum-heading">{picker.title}</strong>
                 {#if !compact}<span class="text-feudum-text-muted">· {picker.line}</span>{/if}
-                <span class="ml-auto inline-flex items-center gap-1" data-purse>
+                <span class="inline-flex items-center gap-1" data-purse>
                     you have <span class="inline-flex" aria-hidden="true"
                         ><ShillingToken value={1} size={16} /></span
                     >{picker.purse}
@@ -207,13 +204,11 @@
             {#if send}
                 <span class="send" data-bench-send><PrimaryButton block={send} /></span>
             {/if}
-            {#if other}
-                <span class="other" data-trade-other>
-                    <RowChoice row={other} {pointer} />
-                </span>
-            {/if}
             {#if !compact}
-                <p class="text-xs text-feudum-text-muted" data-picker-caption>{picker.caption}</p>
+                <!-- It wraps in the column's width rather than widening it. -->
+                <p class="w-0 min-w-full text-xs text-feudum-text-muted" data-picker-caption>
+                    {picker.caption}
+                </p>
             {/if}
         </div>
     </div>
@@ -322,8 +317,7 @@
     }
 
     .compact .send :global(button),
-    .compact .buy :global(button),
-    .compact .other :global(button) {
+    .compact .buy :global(button) {
         min-height: 2.75rem;
     }
 </style>

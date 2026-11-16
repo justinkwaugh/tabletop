@@ -220,6 +220,17 @@ describe('Contract, The trade picker: picks that add up stand in a basket', () =
         expect(names.indexOf('second')).toBeLessThan(names.indexOf('trade-picker'))
     })
 
+    it('Contract, The trade picker: the control row, the second card then Forfeit, heads the tray and the picker ends it', async () => {
+        const turn = await opened((state, { seat }) => {
+            setVesselsForSale(state, ['ship'])
+            setShillings(state, seat, 30)
+            state.getPlayerState(seat).pouch = 'sulfur'
+        }, 'alchemist')
+        const tray = turn.session.actionPanel.blocks.filter(({ stands }) => stands === 'tray')
+        const names = tray.map((block) => (block.kind === 'rows' ? block.name : block.kind))
+        expect(names).toEqual(['second', 'card', 'trade-picker'])
+    })
+
     it('R-4.6-H1 a Noble basket: a card per seal on the scrolls, each its scroll space', async () => {
         const turn = await opened((state, { seat }) => {
             setScrolls(state, ['guild.noble.scroll.r1c1', 'guild.noble.scroll.r1c3'])

@@ -17,7 +17,6 @@
 <TradePicker
     bench={block.bench}
     {compact}
-    other={block.other}
     send={block.send}
     state={gameSession.gameState}
     playerId={gameSession.myPlayerId ?? ''}

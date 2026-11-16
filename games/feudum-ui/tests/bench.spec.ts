@@ -495,21 +495,23 @@ test('S48 R-3.4, R-4.3-H3 a Feast short of sulfur, with a tile: dimmed, and wher
     await shot(page, 'feast-short')
 })
 
-test('S74 R-3.16.3 a trade open, Feast stands under its cards, dimmed with its reason', async ({
+test('S74 R-3.16.3 a trade open, Feast stands in the control row above it, dimmed with its reason', async ({
     page
 }) => {
     await openFunction(page, 'feastShortTrade', 'knight', /^\s*Trade/)
-    const feast = picker(page).locator('[data-trade-other] button')
+    const controls = page.locator('[data-card-tray] [data-tray-controls]')
+    const feast = controls.locator('[data-rows="modes"] [data-row^="Feast"] button')
     await expect(feast).toContainText('Feast')
     await expect(feast).toHaveAttribute('aria-disabled', 'true')
-    await expect(picker(page).locator('[data-trade-other] [data-reason]')).toContainText(
-        'Undo, then spend a region tile.'
-    )
+    await expect(
+        controls.locator('[data-rows="modes"] [data-row^="Feast"] [data-reason]')
+    ).toContainText('Undo, then spend a region tile.')
+    await expect(controls.locator('[data-rows="card"]')).toContainText('Forfeit')
     await feast.click({ force: true })
     await expect(picker(page)).toBeVisible()
-    const cards = await picker(page).locator('[data-trade-cards]').boundingBox()
-    const under = await feast.boundingBox()
-    expect(under?.y ?? 0).toBeGreaterThan((cards?.y ?? 0) + (cards?.height ?? 0) - 1)
+    const above = await controls.boundingBox()
+    const board = await picker(page).boundingBox()
+    expect((above?.y ?? 0) + (above?.height ?? 0)).toBeLessThanOrEqual((board?.y ?? 0) + 1)
     await shot(page, 'feast-short-trade')
 })
 

@@ -225,12 +225,12 @@ type PanelBlock =
     | PrimaryBlock
     /**
      * Contract, The trade picker: a guild's trade read as choice cards, in the tray on a desk and in
-     * the bench's sheet on a phone, holding the card's other mode and the send.
+     * the bench's sheet on a phone, holding the send. The card's modes stand in the tray's control
+     * row above it.
      */
     | {
           readonly kind: 'trade-picker'
           readonly bench: BenchOffer
-          readonly other?: ActionRow
           readonly send?: PrimaryBlock
       }
     /**
@@ -888,21 +888,17 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
         : []
     const send = primary ? primaryBlock(primary, () => session.sendTurnCard()) : undefined
     const picker = guild?.bench && takesTradePicker(guild.bench) ? guild.bench : undefined
-    // R-3.16.3 The picker holds the Guild card's other mode, Feast, beneath its choices, and the send.
-    const other = modeRows.find(({ choice }) => !choice.picked)
+    // Contract, The trade picker: one control row heads the tray (the replay, the card's modes with
+    // R-3.16.3 Feast, the second card, then Forfeit), and the picker with its send stands under it.
     // R-3.3, R-3.15 The second card and a replay are declared before a Buy that sends.
     const tray: ActionBlock[] = picker
         ? [
               ...rows('replays', asTurnRows(turn.replays)),
+              ...rows('modes', modeRows),
               ...rows('second', secondRows),
-              {
-                  kind: 'trade-picker',
-                  bench: picker,
-                  ...(other ? { other } : {}),
-                  ...(send ? { send } : {})
-              },
+              ...rows('card', forfeitRows),
               ...turn.refusals.map((text) => line('refusal', text)),
-              ...rows('card', forfeitRows)
+              { kind: 'trade-picker', bench: picker, ...(send ? { send } : {}) }
           ]
         : [
               ...(flowLine ? [trayLine(flowLine, flowShort)] : []),

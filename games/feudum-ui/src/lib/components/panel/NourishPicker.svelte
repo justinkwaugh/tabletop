@@ -50,8 +50,8 @@
     }
 </script>
 
-<div class="flex w-full items-stretch gap-3.5 max-sm:flex-col max-sm:gap-2" data-nourish-picker>
-    <div class="flex flex-none flex-col gap-2 max-sm:gap-1.5" data-nourish-rows>
+<div class="flex w-full items-stretch gap-2 max-sm:flex-col max-sm:gap-1" data-nourish-picker>
+    <div class="flex flex-none flex-col gap-2 max-sm:gap-1" data-nourish-rows>
         {#each block.pawns as pawn (pawn.n)}
             <div
                 data-nourish-pawn={pawn.name}
@@ -74,7 +74,7 @@
                         >at {pawn.place}</span
                     >
                 </span>
-                <span class="flex flex-wrap gap-1.5" role="group" aria-label="Feed the {pawn.name}">
+                <span class="flex flex-wrap gap-1" role="group" aria-label="Feed the {pawn.name}">
                     {#each pawn.options as option (option.feed)}
                         {#snippet optionView()}
                             <span
@@ -115,8 +115,8 @@
         {/each}
     </div>
     <div
-        class="flex min-w-0 flex-1 flex-col justify-between gap-2 rounded-lg border border-feudum-frame bg-feudum-surface-raised p-3
-            max-sm:border-0 max-sm:p-0"
+        class="flex min-w-0 max-w-sm flex-1 flex-col gap-2 rounded-lg border border-feudum-frame bg-feudum-surface-raised p-3
+            max-sm:max-w-none max-sm:gap-1 max-sm:border-0 max-sm:p-0"
         data-nourish-summary
     >
         {#if !layout.phone}
@@ -156,11 +156,10 @@
                 {/each}
             </div>
         {/if}
-        <div class="flex items-center gap-2">
+        <!-- Contract, Spacing: the send right after the line before it, the group gap from it. -->
+        <div class="flex items-center gap-2 max-sm:gap-1">
             {#if layout.phone}
-                <span class="flex-1 text-xs text-feudum-text-muted" data-nourish-rule
-                    >{PhoneRule}</span
-                >
+                <span class="text-xs text-feudum-text-muted" data-nourish-rule>{PhoneRule}</span>
             {/if}
             <span class="max-sm:flex-none">
                 <PrimaryButton block={block.send}>

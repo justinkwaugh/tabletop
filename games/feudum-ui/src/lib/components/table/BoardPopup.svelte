@@ -51,7 +51,7 @@
                 {dice
                 ? 'grid grid-cols-3 justify-items-center gap-x-3 gap-y-2'
                 : discs
-                  ? 'flex max-w-xs flex-wrap items-center gap-2'
+                  ? 'flex max-w-xs flex-wrap items-center gap-1'
                   : 'flex flex-col items-stretch gap-1'}"
             data-popup-dice={dice ? '' : undefined}
         >

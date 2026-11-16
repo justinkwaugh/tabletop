@@ -65,7 +65,8 @@
             {/each}
         </div>
     {:else}
-        <table class="w-full text-xs text-feudum-text">
+        <!-- Contract, Spacing: as wide as its columns, so a total stands by its row. -->
+        <table class="text-xs text-feudum-text">
             <thead>
                 <tr class="text-feudum-text-muted">
                     <th class="pr-3 text-left font-normal"></th>
