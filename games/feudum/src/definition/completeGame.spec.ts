@@ -153,6 +153,16 @@ const Coverage: readonly {
     {
         name: 'R-4.10.2 a landscape tended',
         reached: (walk) => processedOf(walk).some(isTendLandscape)
+    },
+    {
+        name: 'R-4.10-H4 seats nourishing at once, answered against turn order',
+        reached: (walk) =>
+            walk.steps.some(
+                ({ input, before }) =>
+                    input.type === ActionType.Nourish &&
+                    before.activePlayerIds.length > 1 &&
+                    input.playerId !== before.activePlayerIds[0]
+            )
     }
 ]
 

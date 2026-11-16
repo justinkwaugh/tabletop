@@ -9,14 +9,20 @@ import { MachineState } from '../definition/states.js'
 import { conservationBreaks } from '../model/canonicalValidator.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf } from '../model/guildStatus.js'
-import { giveTile, tableInWindow } from '../testing/atWill.js'
+import { FarmerMandate, giveTile, tableInWindow } from '../testing/atWill.js'
 import { buildFeudum, holdWrit } from '../testing/combat.js'
 import { setMaster, setPawns, StandingSpace } from '../testing/guilds.js'
 import { playOutCards } from '../testing/roundEnd.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { isNourishPawns } from './nourishPawns.js'
-import { nourishHasChoice, nourishOffer, nourishPreview, type NourishInput } from './nourish.js'
+import {
+    nourishGroup,
+    nourishHasChoice,
+    nourishOffer,
+    nourishPreview,
+    type NourishInput
+} from './nourish.js'
 
 /** R-1.4.4 Moves the seat's food to or from the haversack, keeping totals. */
 function setFood(state: HydratedFeudumGameState, playerId: string, food: number): void {
@@ -315,19 +321,28 @@ describe('R-4.3.3 Nourish with wild tiles', () => {
 })
 
 describe('R-4.10, R-4.10-H4 who is asked', () => {
-    it('R-4.10-H4 asks in turn order, one seat at a time, and offers only the asked seat', () => {
-        const { table, playerId } = asking({ pawns: ['farmer'], food: 1 })
-        const next = table.order.find((seat) => seat !== playerId) ?? ''
+    it('R-4.10-H4 asks every waiting seat at once, and offers each its Nourish', () => {
+        const { table, order } = twoAsked()
+        const [first, second, third] = order
 
-        expect(table.offered(playerId)).toContain(ActionType.Nourish)
-        expect(table.offered(next)).not.toContain(ActionType.Nourish)
-        expect(() => table.send(next, Nourish)).toThrow()
+        expect(table.state.activePlayerIds).toEqual([first, second])
+        expect(table.offered(first)).toContain(ActionType.Nourish)
+        expect(table.offered(second)).toContain(ActionType.Nourish)
+        expect(table.offered(third)).not.toContain(ActionType.Nourish)
+        expect(nourishOffer(table.hydrated(), third)).toBeUndefined()
+        expect(() => table.send(third, Nourish)).toThrow()
+        expect(nourishPreview(table.hydrated(), third, Nourish).refused).toBe(
+            "You aren't feeding pawns now."
+        )
 
-        table.send(playerId, Nourish)
+        table.send(second, { ...Nourish, unfed: [1] })
 
-        expect(table.asked).not.toBe(playerId)
-        expect(table.asked).toBe(table.hydrated().flow.nourish?.pending[0])
-        expect(table.offered(playerId)).not.toContain(ActionType.Nourish)
+        expect(table.state.activePlayerIds).toEqual([first])
+        expect(nourishOffer(table.hydrated(), second)).toBeUndefined()
+        expect(table.hydrated().flow.nourish?.pending).toEqual([first])
+        expect(table.offered(second)).not.toContain(ActionType.Nourish)
+        expect(() => table.send(second, { ...Nourish, unfed: [1] })).toThrow()
+        expect(table.offered(first)).toContain(ActionType.Nourish)
     })
 
     it('R-4.10, R-4.11.1 once everyone has answered the die comes next', () => {
@@ -336,7 +351,7 @@ describe('R-4.10, R-4.10-H4 who is asked', () => {
         for (const seat of [...(table.hydrated().flow.nourish?.pending ?? [])]) {
             const { goods, pawns } = table.seat(seat)
             const onBoard = pawns.filter((pawn) => pawn.spaceId).map((pawn) => pawn.n)
-            expect(table.asked).toBe(seat)
+            expect(table.state.activePlayerIds).toContain(seat)
             processed = table.send(seat, { ...Nourish, unfed: onBoard.slice(goods.food) })
         }
 
@@ -386,7 +401,6 @@ describe('S53 Nourish offers and previews', () => {
             wildTileNeeded: false,
             sulfurToBarrel: true
         })
-        expect(nourishOffer(table.hydrated(), table.order[1])).toBeUndefined()
     })
 
     it('S53 the preselection is itself legal', () => {
@@ -545,6 +559,143 @@ describe('R-4.5-H1 nourishing re-ranks once, from the new totals, when it ends',
     })
 })
 
+/**
+ * R-4.10-H4 Two knights of equal stars, each seat's one pawn short and holding a writ, so both are
+ * asked; the game feeds the third.
+ */
+function twoAsked() {
+    const knights = tiedKnights((state, [first, second]) => {
+        holdWrit(state, first, 'writ.mandate.5')
+        holdWrit(state, second, 'writ.mandate.7')
+    })
+    playOutCards(knights.table)
+    expect(knights.table.state.flow.nourish?.pending).toEqual(knights.order.slice(0, 2))
+    return knights
+}
+
+/** The table as the rules leave it, without the record of how it got there or its row id. */
+function tableOf(state: HydratedFeudumGameState) {
+    const { actionChecksum, id, ...rest } = canonicalOf(state)
+    expect(actionChecksum).toBeDefined()
+    expect(id).toBeTruthy()
+    return rest
+}
+
+describe('R-4.10-H4 every asked seat feeds at once', () => {
+    it.each([
+        { name: 'in turn order', answering: [0, 1] },
+        { name: 'against turn order', answering: [1, 0] }
+    ])('R-4.10-H4, R-4.5-H1 $name: ranks recomputed once, on the last Nourish', ({ answering }) => {
+        const { table, order } = twoAsked()
+
+        const [first, last] = answering.map(
+            (seat) => table.send(order[seat], { ...Nourish, unfed: [1] })[0]
+        )
+
+        expect(first).not.toHaveProperty('metadata.rankChanges')
+        expect(last).toMatchObject({ type: ActionType.Nourish })
+        expect(last).toHaveProperty('metadata.rankChanges')
+        const after = table.hydrated()
+        expect(after.machineState).not.toBe(MachineState.Nourishing)
+        expect(after.statusStars(order[0], 'knight')).toBe(3)
+        expect(after.statusStars(order[1], 'knight')).toBe(3)
+        expect(rankOf(after.guilds.tracks.knight, order[0])).toBe('master')
+        expect(rankOf(after.guilds.tracks.knight, order[1])).toBe('journeyman')
+    })
+
+    it('R-4.10-H4 two seats confirming in either order leave the same table', () => {
+        const played = [
+            [0, 1],
+            [1, 0]
+        ].map((answering) => {
+            const { table, order } = twoAsked()
+            for (const seat of answering) {
+                table.send(order[seat], { ...Nourish, unfed: [1] })
+            }
+            return tableOf(table.hydrated())
+        })
+
+        expect(played[1]).toEqual(played[0])
+    })
+
+    it("R-4.10-H4 a seat sending from a state another seat has since moved on is still taken, in the round's group", () => {
+        const { table, order } = twoAsked()
+        const [first, second] = order
+        const index = table.state.actionCount
+        const simultaneousGroupId = nourishGroup(table.hydrated())
+        const round = table.hydrated().roundManager.currentRound?.number
+        const answer = { ...Nourish, unfed: [1], index }
+
+        table.send(second, { ...answer, simultaneousGroupId })
+        expect(() => table.send(first, answer)).toThrow(/Action index is not valid/)
+        table.send(first, { ...answer, simultaneousGroupId })
+
+        expect(table.hydrated().flow.nourish).toBeUndefined()
+        expect(simultaneousGroupId).toBe(`nourish-${round}`)
+    })
+
+    it('R-4.4-H1, R-4.10-H4 a seat plays at will while another decides; once fed, its window has closed', () => {
+        const tiles: Record<string, TileId> = {}
+        const { table, order } = tiedKnights((state, [first, second]) => {
+            tiles[first] = giveTile(state, first)
+            tiles[second] = giveTile(state, second)
+        })
+        playOutCards(table)
+        const [first, second] = order
+        expect(table.state.activePlayerIds).toEqual([first, second])
+
+        table.send(second, {
+            type: ActionType.SpendRegionTile,
+            tileId: tiles[second],
+            good: 'food'
+        })
+
+        expect(table.state.activePlayerIds).toEqual([first, second])
+        expect(table.seat(second).goods.food).toBe(1)
+        table.send(first, { ...Nourish, unfed: [1] })
+        expect(table.offered(first)).not.toContain(ActionType.SpendRegionTile)
+        expect(() =>
+            table.send(first, {
+                type: ActionType.SpendRegionTile,
+                tileId: tiles[first],
+                good: 'food'
+            })
+        ).toThrow()
+        expect(table.offered(second)).toContain(ActionType.Nourish)
+
+        const [fed] = table.send(second, Nourish)
+
+        expect(fed).toMatchObject({ metadata: { foodFed: [1], returned: [] } })
+        expect(fed).toHaveProperty('metadata.rankChanges')
+    })
+
+    it('R-4.4-H1, R-X.2 a mandate drawn at random while another seat decides is still a reveal', () => {
+        const { table, order } = tiedKnights((state, [first, second]) => {
+            holdWrit(state, first, 'writ.mandate.5')
+            setPawns(state, second, ['farmer', 'farmer', 'farmer'])
+            holdWrit(state, second, FarmerMandate)
+            state.recomputeRanks()
+        })
+        playOutCards(table)
+        const [first, second] = order
+        expect(table.state.activePlayerIds).toEqual([first, second])
+
+        const [mandate] = table.send(second, {
+            type: ActionType.PlayMandate,
+            writId: FarmerMandate,
+            alternative: 0,
+            rewardGuild: 'farmer'
+        })
+
+        expect(mandate).toMatchObject({
+            revealsInfo: true,
+            metadata: { received: { kind: 'goods' } }
+        })
+        expect(table.state.activePlayerIds).toEqual([first, second])
+        expect(table.offered(first)).toContain(ActionType.Nourish)
+    })
+})
+
 /** R-4.10.1 The haversack holds no food: the third seat holds it all and has no pawn to feed. */
 function emptyLarder(edit: (state: HydratedFeudumGameState, order: readonly string[]) => void) {
     const table = tableAtPlayingCards(undefined, 3)
@@ -561,10 +712,14 @@ function emptyLarder(edit: (state: HydratedFeudumGameState, order: readonly stri
     return { table, order }
 }
 
-describe('R-4.10.1, R-4.10-H4 nourishing in turn order', () => {
-    it('R-4.3.3 food an earlier seat pays into the haversack can feed a later seat by its tile', () => {
+describe('R-4.10.1, R-4.10-H4 a near-empty haversack: arrival order settles it', () => {
+    /**
+     * R-4.10.1 The haversack holds no food or sulfur. The first seat feeds its pawn with its own
+     * food, which goes to the haversack; the second is short and holds a tile.
+     */
+    function oneFoodComing() {
         let tileId: TileId | undefined
-        const { table, order } = emptyLarder((state, [first, second]) => {
+        const larder = emptyLarder((state, [first, second]) => {
             setPawns(state, first, ['farmer'])
             setFood(state, first, 1)
             setBarrel(state, first, 0)
@@ -573,16 +728,57 @@ describe('R-4.10.1, R-4.10-H4 nourishing in turn order', () => {
             setFood(state, second, 0)
             setBarrel(state, second, 0)
             tileId = giveTile(state, second)
+            const third = state.getPlayerState(state.turnManager.turnOrder[2])
+            third.goods.sulfur += state.supply.haversack.sulfur
+            state.supply.haversack.sulfur = 0
         })
         assertExists(tileId, 'The second seat holds a tile')
-        playOutCards(table)
-        expect(table.state.flow.nourish?.pending).toEqual([order[0], order[1]])
+        playOutCards(larder.table)
+        expect(larder.table.state.flow.nourish?.pending).toEqual(larder.order.slice(0, 2))
+        return { ...larder, tileId }
+    }
+
+    it("R-4.3.3 the food the first seat pays in arrives first: the second seat's tile takes it", () => {
+        const { table, order, tileId } = oneFoodComing()
+        const wildTiles = [{ tileId, good: 'food' as const }]
 
         table.send(order[0], Nourish)
-        expect(table.hydrated().supply.haversack.food).toBe(1)
-        const [fed] = table.send(order[1], { ...Nourish, wildTiles: [{ tileId, good: 'food' }] })
 
+        expect(table.hydrated().supply.haversack.food).toBe(1)
+        expect(nourishOffer(table.hydrated(), order[1])).toMatchObject({
+            wildTileNeeded: true,
+            haversackFor: { food: 1, sulfur: 0 }
+        })
+        expect(nourishOffer(table.hydrated(), order[1], wildTiles)?.haversackFor.food).toBe(0)
+        const [fed] = table.send(order[1], { ...Nourish, wildTiles })
         expect(fed).toMatchObject({ metadata: { foodFed: [1], returned: [] } })
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+    })
+
+    it('R-4.3.3 the second seat answers first: its offer says the haversack has no food, and its tile is refused', () => {
+        const { table, order, tileId } = oneFoodComing()
+        const wildTiles = [{ tileId, good: 'food' as const }]
+
+        expect(nourishOffer(table.hydrated(), order[1])).toMatchObject({
+            wildTileNeeded: false,
+            haversackFor: { food: 0, sulfur: 0 }
+        })
+        expect(nourishOffer(table.hydrated(), order[1], wildTiles)?.haversackFor.food).toBe(-1)
+        expect(nourishPreview(table.hydrated(), order[1], { ...Nourish, wildTiles })).toMatchObject(
+            {
+                refused: 'The haversack has no food left.'
+            }
+        )
+        expect(() => table.send(order[1], { ...Nourish, wildTiles })).toThrow(
+            'The haversack has no food left.'
+        )
+
+        const [late] = table.send(order[1], { ...Nourish, unfed: [1] })
+        table.send(order[0], Nourish)
+
+        expect(late).toMatchObject({ metadata: { returned: [{ n: 1 }] } })
+        expect(table.seat(order[1]).regionTiles).toEqual([tileId])
+        expect(table.hydrated().supply.haversack.food).toBe(1)
         expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
     })
 })

@@ -21,7 +21,7 @@ import { influenceOffers } from '../actions/influence.js'
 import { isKeepWrits, keepWritsOffer } from '../actions/keepWrits.js'
 import { migrateOffers } from '../actions/migrate.js'
 import { moveOffers, type MoveStep, type Pilfer, type PilferOffer } from '../actions/move.js'
-import { nourishOffer } from '../actions/nourish.js'
+import { nourishGroup, nourishOffer } from '../actions/nourish.js'
 import { isPlaceDisc, reasonPlaceDiscRefused } from '../actions/placeDisc.js'
 import { revealPouchOf } from '../actions/revealPouches.js'
 import { starveOffers } from '../actions/starveThePeople.js'
@@ -523,7 +523,12 @@ function moveOf(state: HydratedFeudumGameState, playerId: string, progress: Prog
         case MachineState.Nourishing: {
             const offer = nourishOffer(state, playerId)
             assertExists(offer, 'R-4.10 The seat decides its feeding')
-            return { type: ActionType.Nourish, playerId, ...offer.preselected }
+            return {
+                type: ActionType.Nourish,
+                playerId,
+                ...offer.preselected,
+                simultaneousGroupId: nourishGroup(state)
+            }
         }
         case MachineState.CollectingLandscapes: {
             const offer = collectLandscapesOffer(state, playerId)
@@ -594,7 +599,7 @@ export function walkFrom(game: Game, initial: FeudumProjectedState, plan?: WalkP
         if (steps.length >= MostMoves) {
             throw Error(`The walk is stuck in ${state.machineState} after ${steps.length} moves`)
         }
-        const [playerId] = state.activePlayerIds
+        const playerId = seatToAnswer(state)
         assertExists(playerId, `A seat is asked in ${state.machineState}`)
         const hydrated = new HydratedFeudumGameState(state)
         const move =
@@ -606,6 +611,17 @@ export function walkFrom(game: Game, initial: FeudumProjectedState, plan?: WalkP
         state = step.after[step.after.length - 1]
     }
     return { game, initial, steps, final: state }
+}
+
+/**
+ * The seat the walk answers for: the first asked, but R-4.10-H4 the last of the seats nourishing
+ * asks at once, so their answers also come against turn order.
+ */
+function seatToAnswer(state: FeudumProjectedState): string | undefined {
+    const { activePlayerIds } = state
+    return state.machineState === MachineState.Nourishing
+        ? activePlayerIds.at(-1)
+        : activePlayerIds[0]
 }
 
 /** Replays the walk's input on a fresh game from the seed. */

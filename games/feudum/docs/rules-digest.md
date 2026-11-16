@@ -327,7 +327,7 @@ On every push or pull, threshold reached or not (R-4.7-H1), you may place one of
 
 ### R-4.10 Nourish and wine
 
-1. After the last card, every pawn on the board must be fed with 1 food (to the haversack) or wine, if you have them; spending a region tile is optional. Unfed pawns return to supply. Monsters eat nothing. (RB p. 20; D 2018-08-26)
+1. After the last card, every pawn on the board must be fed with 1 food (to the haversack) or wine, if you have them; spending a region tile is optional. Unfed pawns return to supply. Monsters eat nothing. No order among the players is given; here everyone feeds at once (R-4.10-H4). (RB p. 20; D 2018-08-26)
 2. **Wine:** every sulfur you gain goes either to your supply or your barrel (max 3). Feeding with wine puts a barrel sulfur on the pawn: it is fed this round and the next; during that next round the pawn's own attack and defence are 0; at the end of it the sulfur is removed. (RB p. 20; FAQ (official))
 
 ### R-4.11 Progress die and epochs
