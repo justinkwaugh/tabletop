@@ -62,7 +62,15 @@ export class HydratedFinishStockTurn
         state.turnManager.endTurn(state.actionCount)
         clearTurnPurchases(state)
         if (!allPlayersPassed(state)) {
-            state.activePlayerIds = [state.turnManager.startNextTurn(state.actionCount + 1)]
+            const winnerId = state.stockRound.turn.auctionWinnerId
+            state.activePlayerIds = [
+                winnerId
+                    ? state.turnManager.startTurn(
+                          state.turnManager.nextPlayer(winnerId),
+                          state.actionCount + 1
+                      ).playerId
+                    : state.turnManager.startNextTurn(state.actionCount + 1)
+            ]
             state.stockRound.turn = {
                 acted: false,
                 bought: false,

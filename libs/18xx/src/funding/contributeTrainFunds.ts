@@ -2,7 +2,12 @@ import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { type GameAction, HydratableAction, assert, type HydratedGameState } from '@tabletop/common'
-import { EmergencyTrainFunding, type FundingState, type TrainFundingRules } from './trainFunding.js'
+import {
+    EmergencyTrainFunding,
+    lendCash,
+    type FundingState,
+    type TrainFundingRules
+} from './trainFunding.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { Owner, sameOwner } from '../finance/finance.js'
@@ -13,7 +18,16 @@ export const ContributeTrainFunds = Type.Object(
         ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ContributeTrainFunds'),
         owner: Owner,
-        amount: Type.Integer({ minimum: 1 })
+        amount: Type.Integer({ minimum: 1 }),
+        metadata: Type.Optional(
+            Type.Object(
+                {
+                    /** What of the amount the owner borrowed, their own cash being spent. */
+                    borrowed: Type.Integer({ minimum: 1 })
+                },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -33,6 +47,7 @@ export class HydratedContributeTrainFunds
     declare playerId: string
     declare owner: Owner
     declare amount: number
+    declare metadata?: ContributeTrainFunds['metadata']
     readonly #rules: TrainFundingRules
     readonly #stocks: StockRules
     readonly #trains: TrainRules
@@ -68,6 +83,11 @@ export class HydratedContributeTrainFunds
             next.kind === 'contribute' && state.trainFunding,
             'Funding requires an owner contribution'
         )
+        if (next.borrowed) {
+            lendCash(state, next.owner, next.borrowed)
+            this.#rules.recordLoan?.(state, next.owner, next.borrowed)
+            this.metadata = { borrowed: next.borrowed }
+        }
         settleCashPayments(state, [
             {
                 from: next.owner,

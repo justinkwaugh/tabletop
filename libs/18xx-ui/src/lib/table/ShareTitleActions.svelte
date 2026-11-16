@@ -21,8 +21,7 @@
         titleDecision,
         operatingPrompt,
         onFocusRoute,
-        privateOperationDescription,
-        createRouteWorker
+        privateOperationDescription
     }: {
         session: ShareSession
         /** A decision of the title's own that holds up the turn, shown in place of the rest. */
@@ -33,7 +32,6 @@
         privateOperationDescription: ComponentProps<
             typeof OperatingActions
         >['privateOperationDescription']
-        createRouteWorker: ComponentProps<typeof OperatingActions>['createRouteWorker']
     } = $props()
 </script>
 
@@ -49,5 +47,5 @@
     <CompanyShareActions {session} actions={session.shareActions} />
 {:else}
     {@render operatingPrompt?.()}
-    <OperatingActions {privateOperationDescription} {onFocusRoute} {session} {createRouteWorker} />
+    <OperatingActions {privateOperationDescription} {onFocusRoute} {session} />
 {/if}

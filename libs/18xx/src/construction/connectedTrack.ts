@@ -2,7 +2,7 @@ import { assertExists } from '@tabletop/common'
 import type { RevenueCenter } from '../routes/route.js'
 import type { RailwayMapState } from '../map/mapState.js'
 import type { TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
-import { rotateTileFace } from '../tiles/topology.js'
+import { rotateTileFace, tileEdgeKey } from '../tiles/topology.js'
 import { reachRoutes } from './routeReach.js'
 
 export class ConnectedTrack {
@@ -53,5 +53,5 @@ function add(sets: Map<string, Set<string>>, locationId: string, value: string):
 }
 
 function endpointKey(endpoint: TileEndpoint): string {
-    return endpoint.kind === 'edge' ? `edge ${endpoint.edge}` : `node ${endpoint.nodeId}`
+    return endpoint.kind === 'edge' ? `edge ${tileEdgeKey(endpoint)}` : `node ${endpoint.nodeId}`
 }

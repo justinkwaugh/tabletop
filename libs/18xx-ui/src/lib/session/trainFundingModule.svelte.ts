@@ -4,6 +4,7 @@ import {
     EmergencyTrainFunding,
     FundTrain,
     SellFundingShares,
+    insolvencyChoices,
     settlingFundingAction,
     isContributeTrainFunds,
     isIssueTreasuryShares,
@@ -53,9 +54,20 @@ export class TrainFundingModule {
             this.session.state.trainFunding?.purchase.companyId ?? this.purchases[0]?.companyId
         return !!companyId && !!this.model?.voluntary(companyId)
     })
+    /** Whether the company may finish its turn without the train its funding is offered for. */
+    optional = $derived.by(() => {
+        const companyId = this.purchases[0]?.companyId
+        return !!companyId && !!this.model?.optional(companyId)
+    })
     choice = $derived.by(() =>
         this.session.state.machineState === 'FundingTrain' ? this.model?.next() : undefined
     )
+    /** What the president of a failing company chooses as it closes, where the title asks. */
+    insolvencyChoices = $derived.by((): readonly string[] => {
+        const rules = this.session.rules.trainFundingRules
+        const choice = this.choice
+        return rules && choice ? insolvencyChoices(this.session.state, rules, choice) : []
+    })
     canFund = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('FundTrain')
     )
@@ -111,6 +123,16 @@ export class TrainFundingModule {
                 definitionId: purchase.definitionId,
                 expectedPrice: purchase.price
             })
+        )
+    }
+    /** Declares the company insolvent with the president's choice. */
+    async declareInsolvency(choice: string) {
+        assert(
+            this.canResolve && this.insolvencyChoices.includes(choice),
+            'Choose an offered way out'
+        )
+        await this.session.applyAction(
+            this.session.createPlayerAction(DeclareBankruptcy, { choice })
         )
     }
     /**

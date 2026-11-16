@@ -1,5 +1,6 @@
 import type * as Type from 'typebox'
 import { Validator } from 'typebox/compile'
+import { SchemaCleaner } from './schemaCleaner.js'
 
 export abstract class Hydratable<T extends Type.TSchema> {
     private _validator: Validator<Record<never, never>, T>
@@ -56,6 +57,8 @@ export abstract class Hydratable<T extends Type.TSchema> {
     }
 
     dehydrate(): Type.Static<T> {
-        return this._validator.Clean(structuredClone(this.cloneable())) as Type.Static<T>
+        return SchemaCleaner.for(this._validator)(
+            structuredClone(this.cloneable())
+        ) as Type.Static<T>
     }
 }

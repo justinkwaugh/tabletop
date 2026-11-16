@@ -605,9 +605,15 @@ describe('Hospitality only on the player’s own Travel', () => {
     })
 })
 
-describe('Hospitality and the powers list (R-7.4)', () => {
-    it('lists no Use a power entry for Hospitality: its gain comes after the action', () => {
-        expect(actionCards(scene(), 'dana').map((card) => card.cardId)).not.toContain(HOSPITALITY)
+describe('Hospitality and its "Use" (R-7.4)', () => {
+    it('changes the Travel: its gain comes after the action, on a row sent with it', () => {
+        expect(actionCards(scene(), 'dana')).toContainEqual(
+            expect.objectContaining({
+                cardId: HOSPITALITY,
+                action: ActionType.Travel,
+                kind: 'changes'
+            })
+        )
     })
 
     it('a destination offers the same Travel with Hospitality’s bank as without it', () => {

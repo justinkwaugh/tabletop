@@ -6,7 +6,6 @@ import type {
 } from '@tabletop/common'
 import { controllingOwner, type FinancialState } from '../finance/finance.js'
 import type { MapStateData } from '../map/mapState.js'
-import type { DisplacedStation } from '../map/station.js'
 import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import { HydratedReturnStation, stationToReturn } from './returnStation.js'

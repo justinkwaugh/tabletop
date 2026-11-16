@@ -198,12 +198,6 @@ export function closeTab(root: WorkspaceNode, tab: string): WorkspaceNode {
     return { ...root, tabs, active: root.active === tab ? tabs[0] : root.active }
 }
 
-export function moveTabToIndex(tabs: readonly string[], tab: string, index: number): string[] {
-    const rest = tabs.filter((id) => id !== tab)
-    rest.splice(Math.max(0, Math.min(rest.length, index)), 0, tab)
-    return rest
-}
-
 export function orderPaneTabs(
     root: WorkspaceNode,
     id: string,

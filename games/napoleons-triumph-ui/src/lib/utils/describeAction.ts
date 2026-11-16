@@ -16,6 +16,7 @@ import {
     isDeclareFeint,
     isDeployArmy,
     isAcknowledgeReveal,
+    isStayInReserve,
     isEndTurn,
     isLeadDefense,
     isMove,
@@ -237,7 +238,8 @@ export function describeAction(action: GameAction, game: DescribedGame, fight?: 
         return 'A pass in the morale auction.'
     }
     if (isChooseSide(action)) {
-        return `The auction winner takes ${action.side === Side.French ? 'the French' : 'the Allied'} army.`
+        const chooser = action.metadata?.wonAtAuction === false ? 'first player' : 'auction winner'
+        return `The ${chooser} takes ${action.side === Side.French ? 'the French' : 'the Allied'} army.`
     }
     if (isMove(action)) {
         const from = action.metadata?.from
@@ -327,6 +329,11 @@ export function describeAction(action: GameAction, game: DescribedGame, fight?: 
     }
     if (isEndTurn(action)) {
         return `${army} end their turn.`
+    }
+    if (isStayInReserve(action)) {
+        const locale = action.metadata?.locale
+        const where = locale === undefined ? '' : ` in ${game.map.label(locale)}`
+        return `${army} leave their cavalry in reserve${where} at the end of its ride. It is shown to be cavalry.`
     }
     if (isAcknowledgeReveal(action)) {
         return `${army} see the enemy cavalry still riding when the last turn ended.`

@@ -1,0 +1,113 @@
+import {
+    addAxial,
+    ClockwiseFlatHexDirections,
+    coordinatesToNumber,
+    FlatNeighborOffsets,
+    HexOrientation,
+    hexSpiralPattern,
+    type AxialCoordinates
+} from '@tabletop/common'
+import { BoardShape } from './boardShape.js'
+
+const GIPF_RADIUS = 4
+
+export const DIRECTIONS: readonly AxialCoordinates[] = ClockwiseFlatHexDirections.map(
+    (direction) => FlatNeighborOffsets[direction]
+)
+
+export const AXES: readonly AxialCoordinates[] = [
+    { q: 0, r: 1 },
+    { q: 1, r: 0 },
+    { q: 1, r: -1 }
+]
+
+// Spot E5, where a TAMSK stack earns an extra move.
+export const CENTRE: AxialCoordinates = { q: 0, r: 0 }
+
+export type Entry = {
+    dot: AxialCoordinates
+    direction: AxialCoordinates
+    line: AxialCoordinates[]
+}
+
+// Columns run along r, from the bottom (largest r) up. Column E is q = 0.
+const GIPF_POINTS: readonly AxialCoordinates[] = Array.from(
+    hexSpiralPattern({ radius: GIPF_RADIUS, orientation: HexOrientation.Flat })()
+)
+
+// MATRX adds a column J of four dots right of column I, which becomes three spots (I2–I4).
+const COLUMN_J: readonly AxialCoordinates[] = [-1, -2, -3, -4].map((r) => ({ q: 5, r }))
+
+const POINTS: Record<BoardShape, readonly AxialCoordinates[]> = {
+    [BoardShape.Gipf]: GIPF_POINTS,
+    [BoardShape.Matrx]: [...GIPF_POINTS, ...COLUMN_J]
+}
+
+export class BoardGeometry {
+    readonly points: readonly AxialCoordinates[]
+    readonly spots: readonly AxialCoordinates[]
+    readonly dots: readonly AxialCoordinates[]
+    readonly entries: readonly Entry[]
+    private readonly pointKeys: Set<number>
+    private readonly spotKeys: Set<number>
+
+    constructor(readonly shape: BoardShape) {
+        this.points = POINTS[shape]
+        this.pointKeys = new Set(this.points.map(coordinatesToNumber))
+        this.spots = this.points.filter((coords) =>
+            DIRECTIONS.every((direction) => this.isPoint(addAxial(coords, direction)))
+        )
+        this.spotKeys = new Set(this.spots.map(coordinatesToNumber))
+        this.dots = this.points.filter((coords) => !this.isSpot(coords))
+        this.entries = this.dots.flatMap((dot) =>
+            DIRECTIONS.filter((direction) => this.isSpot(addAxial(dot, direction))).map(
+                (direction) => ({
+                    dot,
+                    direction,
+                    line: this.lineFrom(addAxial(dot, direction), direction)
+                })
+            )
+        )
+    }
+
+    isPoint(coords: AxialCoordinates): boolean {
+        return this.pointKeys.has(coordinatesToNumber(coords))
+    }
+
+    isSpot(coords: AxialCoordinates): boolean {
+        return this.spotKeys.has(coordinatesToNumber(coords))
+    }
+
+    isDot(coords: AxialCoordinates): boolean {
+        return this.isPoint(coords) && !this.isSpot(coords)
+    }
+
+    lineFrom(start: AxialCoordinates, direction: AxialCoordinates): AxialCoordinates[] {
+        const line: AxialCoordinates[] = []
+        let current = start
+        while (this.isSpot(current)) {
+            line.push(current)
+            current = addAxial(current, direction)
+        }
+        return line
+    }
+}
+
+export const GEOMETRIES: Record<BoardShape, BoardGeometry> = {
+    [BoardShape.Matrx]: new BoardGeometry(BoardShape.Matrx),
+    [BoardShape.Gipf]: new BoardGeometry(BoardShape.Gipf)
+}
+
+export function pointAt(name: string): AxialCoordinates {
+    const q = name.charCodeAt(0) - 'A'.charCodeAt(0) - GIPF_RADIUS
+    return { q, r: columnBottom(q) - (Number(name.slice(1)) - 1) }
+}
+
+export function pointName({ q, r }: AxialCoordinates): string {
+    const letter = String.fromCharCode('A'.charCodeAt(0) + q + GIPF_RADIUS)
+    return `${letter}${columnBottom(q) - r + 1}`
+}
+
+function columnBottom(q: number): number {
+    return q <= 0 ? GIPF_RADIUS : GIPF_RADIUS - q
+}

@@ -219,23 +219,37 @@ export class RailwayMap {
     }
 }
 
+/**
+ * Which lines of hexes a map's letters name: a flat map's columns and a pointy map's rows unless
+ * the board prints them the other way, as some flat maps letter their rows.
+ */
+export type HexLetterLines = 'columns' | 'rows'
+
 export function letterNumberHexCoordinates(
     id: string,
     orientation: HexOrientation,
-    numberOffset: number
+    numberOffset: number,
+    letters: HexLetterLines = orientation === HexOrientation.Flat ? 'columns' : 'rows'
 ): AxialCoordinates {
     const match = /^([A-Z]+)(\d+)$/.exec(id)
     assertExists(match, `Invalid letter-number coordinate: ${id}`)
     const letter =
         [...match[1]].reduce((total, character) => total * 26 + character.charCodeAt(0) - 64, 0) - 1
-    const other = (Number(match[2]) - numberOffset - letter) / 2
+    const number = Number(match[2]) - numberOffset
+    const flat = orientation === HexOrientation.Flat
+    // Straight lines of hexes (flat columns, pointy rows) are numbered by one axis; the zigzag
+    // lines across them number every other hex.
+    const [straight, zigzag] =
+        flat === (letters === 'columns') ? [letter, number] : [number, letter]
+    const other = (zigzag - straight) / 2
     assert(Number.isInteger(other), `Invalid coordinate parity: ${id}`)
-    return orientation === HexOrientation.Flat ? { q: letter, r: other } : { q: other, r: letter }
+    return flat ? { q: straight, r: other } : { q: other, r: straight }
 }
 
 export function createLetterNumberLocationFactory(options: {
     orientation: HexOrientation
     numberOffset: number
+    letters?: HexLetterLines
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
     /**
@@ -254,7 +268,12 @@ export function createLetterNumberLocationFactory(options: {
     ): MapLocation[] =>
         ids.split(' ').map((id) => ({
             id,
-            coordinates: letterNumberHexCoordinates(id, options.orientation, options.numberOffset),
+            coordinates: letterNumberHexCoordinates(
+                id,
+                options.orientation,
+                options.numberOffset,
+                options.letters
+            ),
             preprintedTile,
             buildable: !options.fixedColors.includes(preprintedTile.color),
             ...details,

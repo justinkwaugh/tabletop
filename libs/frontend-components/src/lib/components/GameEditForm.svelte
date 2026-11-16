@@ -17,6 +17,8 @@
         getTitleVisibility,
         defaultGameConfig,
         normalizeGameConfig,
+        GAME_PACE_PRESETS,
+        gamePaceOf,
         type GameCreationOptions,
         assert,
         assertExists,
@@ -50,6 +52,7 @@
     import SegmentedControl from '$lib/components/SegmentedControl.svelte'
     import { getAppContext } from '$lib/model/appContext.js'
     import { continuationGame, type EditableGame } from '$lib/utils/gameContinuation.svelte.js'
+    import { GAME_PACE_LABELS } from '$lib/utils/gamePaceLabels.js'
 
     const EditMode = {
         Create: 'create',
@@ -128,6 +131,11 @@
     )
     let players: Player[] = $state(editedGame.players)
     let access: GameAccess = $state(initialAccess())
+    let paceMinutes = $state(String(gamePaceOf(editedGame).minutes))
+    const paceOptions = GAME_PACE_PRESETS.map((preset) => ({
+        value: String(preset.minutes),
+        name: GAME_PACE_LABELS[preset.pace].option
+    }))
     let includeOwner: boolean = $state(true)
     let isHotseat = $derived(access === GameAccess.Hotseat)
     let publicGame = $derived(access === GameAccess.Public || access === GameAccess.Unlisted)
@@ -194,6 +202,14 @@
 
     function generateDefaultOptions() {
         return defaultGameConfig(gameTitle.info.configurator?.options ?? [])
+    }
+
+    function isOptionDisabled(option: ConfigOption): boolean {
+        return gameTitle.info.configurator?.isOptionDisabled?.(config, option.id) === true
+    }
+
+    function optionLabelColor(option: ConfigOption): 'disabled' | 'gray' {
+        return isOptionDisabled(option) ? 'disabled' : 'gray'
     }
 
     function onOptionChange(option: ConfigOption, event: Event) {
@@ -300,6 +316,7 @@
             players: playersToUpload,
             isPublic: publicGame,
             ...(access === GameAccess.Unlisted ? { unlisted: true } : {}),
+            ...(isHotseat ? {} : { paceMinutes: Number(paceMinutes) }),
             hotseat: isHotseat,
             storage: isHotseat ? GameStorage.Local : GameStorage.Remote,
             ownerId: editedGame.ownerId,
@@ -392,7 +409,7 @@
 </script>
 
 {#snippet stringInputOption(option: StringInputConfigOption)}
-    <Label class="mb-2">
+    <Label class="mb-2" color={optionLabelColor(option)}>
         {option.name}
     </Label>
     <Input
@@ -400,11 +417,12 @@
         id={option.id}
         placeholder={option.placeholder}
         value={`${config[option.id] ?? option.default ?? ''}`}
+        disabled={isOptionDisabled(option)}
     ></Input>
 {/snippet}
 
 {#snippet numberInputOption(option: NumberInputConfigOption)}
-    <Label class="mb-2">
+    <Label class="mb-2" color={optionLabelColor(option)}>
         {option.name}
     </Label>
     <Input
@@ -412,6 +430,7 @@
         onchange={(event: Event) => onOptionChange(option, event)}
         id={option.id}
         value={`${config[option.id] ?? option.default ?? ''}`}
+        disabled={isOptionDisabled(option)}
     ></Input>
 {/snippet}
 
@@ -420,6 +439,7 @@
         onchange={(event: Event) => onOptionChange(option, event)}
         id={option.id}
         checked={(config[option.id] as boolean) ?? option.default}
+        disabled={isOptionDisabled(option)}
         ><div class="flex flex-col leading-tight justify-center items-start">
             {option.name}
             <Helper class="text-[.65rem] dark:text-gray-400 leading-tight">
@@ -430,7 +450,7 @@
 {/snippet}
 
 {#snippet listOption(option: ListConfigOption)}
-    <Label class="mb-2">
+    <Label class="mb-2" color={optionLabelColor(option)}>
         {option.name}
     </Label>
     <Select
@@ -439,6 +459,7 @@
         size="sm"
         items={option.options}
         value={`${config[option.id] ?? option.default}`}
+        disabled={isOptionDisabled(option)}
         required
         class="w-fit"
     />
@@ -585,6 +606,18 @@
                 bind:value={access}
             />
             <Helper class="dark:text-gray-400">{accessDescription}</Helper>
+        </div>
+    {/if}
+    {#if !isHotseat}
+        <div class="flex flex-col gap-2">
+            <Label for="pace">Pace</Label>
+            <Select
+                id="pace"
+                size="sm"
+                items={paceOptions}
+                bind:value={paceMinutes}
+                class="w-fit"
+            />
         </div>
     {/if}
     {#if showIncludeOwnerToggle}

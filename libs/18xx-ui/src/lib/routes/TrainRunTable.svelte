@@ -2,7 +2,8 @@
     import type { MoneyFormat } from '../presentation/money.js'
     import { isObsoleteTrain, type OperatingResult, type Train } from '@tabletop/18xx'
     import TrainBadge from '../trains/TrainBadge.svelte'
-    import { routeColor } from './routePresentation.js'
+    import { capitalized } from '../presentation/words.js'
+    import { DefaultRunSubsidyName, routeColor } from './routePresentation.js'
 
     let {
         money,
@@ -11,7 +12,15 @@
         trainName,
         trainColors,
         onFocusRoute,
-        label = 'Train income'
+        onChooseTrain,
+        onClearTrain,
+        chosenTrainId,
+        label = 'Train income',
+        attachments = [],
+        movableAttachments = [],
+        onAttach,
+        subsidyName = DefaultRunSubsidyName,
+        bonusName
     }: {
         money: MoneyFormat
         result: OperatingResult
@@ -19,23 +28,53 @@
         trainName: (definitionId: string) => string
         trainColors: Readonly<Record<string, string>>
         onFocusRoute?: (trainId: string) => void
+        onChooseTrain?: (trainId: string) => void
+        /** Empties the chosen train's route, offered beside its row. */
+        onClearTrain?: (trainId: string) => void
+        chosenTrainId?: string
         label?: string
+        /** Rolling stock the company may attach to a train for the run, such as a Pullman. */
+        attachments?: readonly Train[]
+        /** The rolling stock the chosen train could take over, offered under its row. */
+        movableAttachments?: readonly Train[]
+        onAttach?: (attachmentId: string) => void
+        /** What the run's payment to the treasury beside its revenue is called. */
+        subsidyName?: string
+        /** Names what earned a route's bonus, so that each train's bonuses are listed under it. */
+        bonusName?: (sourceId: string) => string
     } = $props()
+    const attached = (trainIds: readonly string[] = []) =>
+        trainIds.flatMap((id) => attachments.find((train) => train.id === id) ?? [])
+    /** A route's bonuses by what earned them, those without a named source left to the total. */
+    function bonuses(route: OperatingResult['routes'][number] | undefined) {
+        if (!bonusName) return []
+        const totals = new Map<string, number>()
+        for (const bonus of route?.bonuses ?? []) {
+            if (!bonus.sourceIds) continue
+            const label = bonus.sourceIds.map(bonusName).join(' + ')
+            totals.set(label, (totals.get(label) ?? 0) + bonus.amount)
+        }
+        return [...totals].map(([label, amount]) => ({ label, amount }))
+    }
 </script>
 
 <table aria-label={label}>
     <thead><tr><th scope="col">Train</th><th scope="col">Income</th></tr></thead>
     <tbody>
-        {#each trains as train (train.id)}
-            {@const index = result.routes.findIndex((route) => route.trainId === train.id)}
-            {@const route = result.routes[index]}
+        {#each trains as train, index (train.id)}
+            {@const route = result.routes.find((candidate) => candidate.trainId === train.id)}
             <tr data-route-train={train.id}>
                 <td colspan="2"
                     ><button
                         class="route-focus"
-                        disabled={!route || !onFocusRoute}
-                        aria-label={`Show ${trainName(train.definitionId)}${isObsoleteTrain(train) ? ' obsolete' : ''} route for ${money(route?.revenue ?? 0)}`}
-                        onclick={() => onFocusRoute?.(train.id)}
+                        class:chosen={chosenTrainId === train.id}
+                        disabled={onChooseTrain ? false : !route || !onFocusRoute}
+                        aria-pressed={onChooseTrain ? chosenTrainId === train.id : undefined}
+                        aria-label={`${onChooseTrain ? 'Draw' : 'Show'} ${trainName(train.definitionId)}${isObsoleteTrain(train) ? ' obsolete' : ''} route for ${money(route?.revenue ?? 0)}`}
+                        onclick={() => {
+                            onChooseTrain?.(train.id)
+                            if (route) onFocusRoute?.(train.id)
+                        }}
                         ><span class="train">
                             <span
                                 class="route-color"
@@ -45,14 +84,51 @@
                                 name={trainName(train.definitionId)}
                                 color={trainColors[train.definitionId]}
                                 obsolete={isObsoleteTrain(train)}
-                            />
+                            />{#each attached(route?.attachmentIds) as stock (stock.id)}<span
+                                    class="attached"
+                                    title={`${trainName(stock.definitionId)} attached`}
+                                    >+<TrainBadge
+                                        name={trainName(stock.definitionId)}
+                                        color={trainColors[stock.definitionId]}
+                                    /></span
+                                >{/each}
                         </span><span class="income">{money(route?.revenue ?? 0)}</span></button
-                    ></td
+                    >{#if onClearTrain && chosenTrainId === train.id}<button
+                            class="clear"
+                            aria-label={`Clear ${trainName(train.definitionId)} route`}
+                            title="Clear this route"
+                            onclick={() => onClearTrain(train.id)}
+                            ><svg viewBox="0 0 24 24" aria-hidden="true"
+                                ><path d="m7 7 10 10M17 7 7 17"></path></svg
+                            ></button
+                        >{/if}</td
                 >
             </tr>
+            {#if onAttach && chosenTrainId === train.id}
+                {#each movableAttachments as stock (stock.id)}
+                    <tr class="attachment">
+                        <td colspan="2"
+                            ><button class="attach" onclick={() => onAttach(stock.id)}
+                                >Attach the {trainName(stock.definitionId)} to this train</button
+                            ></td
+                        >
+                    </tr>
+                {/each}
+            {/if}
+            {#each bonuses(route) as bonus (bonus.label)}
+                <tr class="bonus">
+                    <td>{bonus.label}</td><td class="income">incl. {money(bonus.amount)}</td>
+                </tr>
+            {/each}
         {:else}<tr><td colspan="2">No trains</td></tr>{/each}
     </tbody>
-    <tfoot><tr><th scope="row">Total</th><td class="income">{money(result.revenue)}</td></tr></tfoot
+    <tfoot
+        ><tr><th scope="row">Total</th><td class="income">{money(result.revenue)}</td></tr
+        >{#if result.subsidy}<tr class="subsidy"
+                ><th scope="row">{capitalized(subsidyName)}</th><td class="income"
+                    >{money(result.subsidy)}</td
+                ></tr
+            >{/if}</tfoot
     >
 </table>
 
@@ -85,6 +161,20 @@
         padding-top: 3px;
         font-weight: 650;
     }
+    .attached {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        margin-left: 3px;
+        color: var(--rail-muted, #817565);
+        font-weight: 600;
+    }
+    .bonus td {
+        padding: 0 0 2px 14px;
+        color: var(--rail-muted, #817565);
+        font-size: 11px;
+        line-height: 14px;
+    }
     .route-focus {
         display: flex;
         align-items: center;
@@ -105,6 +195,58 @@
     }
     .route-focus:disabled {
         opacity: 1;
+    }
+    td:has(> .clear) {
+        position: relative;
+    }
+    /* Beside the row, so the income column keeps its alignment. */
+    .attach {
+        margin: 2px 0 4px 18px;
+        padding: 3px 8px;
+        border: 1px solid var(--rail-border, #b9ac99);
+        border-radius: 5px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 11px;
+        cursor: pointer;
+    }
+    .attach:hover {
+        border-color: var(--rail-focus, #443e35);
+    }
+    .clear {
+        position: absolute;
+        left: calc(100% + 6px);
+        top: 50%;
+        translate: 0 -50%;
+        display: grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: 1px solid var(--rail-border, #b9ac99);
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
+    .clear:hover {
+        background: var(--rail-hover, #463e350c);
+    }
+    .clear:focus-visible {
+        outline: 2px solid #bd865e;
+        outline-offset: 1px;
+    }
+    .clear svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+    }
+    .route-focus.chosen {
+        background: var(--rail-selected, #463e351f);
     }
     .train {
         display: flex;

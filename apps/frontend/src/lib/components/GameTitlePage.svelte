@@ -1,18 +1,21 @@
 <script lang="ts">
-    import { goto } from '$app/navigation'
-    import { GameEditForm, type GameUiDefinition } from '@tabletop/frontend-components'
+    import type { GameUiDefinition } from '@tabletop/frontend-components'
+    import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
-        GameStorage,
-        type Game,
-        type GameState,
-        type HydratedGameState
-    } from '@tabletop/common'
-    import { Modal } from 'flowbite-svelte'
-    import { ArrowRightOutline, UsersOutline } from 'flowbite-svelte-icons'
+        ArrowRightOutline,
+        ArrowUpRightFromSquareOutline,
+        UsersOutline
+    } from 'flowbite-svelte-icons'
     import TitleGames from '$lib/components/TitleGames.svelte'
-    import TitleTournaments from '$lib/components/TitleTournaments.svelte'
+    import TitleCompetitions from '$lib/components/TitleCompetitions.svelte'
     import BackLink from '$lib/components/BackLink.svelte'
-    import { seriesUrl, titleMaturityLabel, titleSeries } from '$lib/utils/libraryTitles'
+    import CreateGameModal from '$lib/components/CreateGameModal.svelte'
+    import {
+        playerCountText,
+        seriesUrl,
+        titleMaturityLabel,
+        titleSeries
+    } from '$lib/utils/libraryTitles'
 
     let { title }: { title: GameUiDefinition<GameState, HydratedGameState> } = $props()
     let creating = $state(false)
@@ -23,14 +26,9 @@
     const series = $derived(titleSeries(metadata))
     const paragraphs = $derived(metadata.description.split('\n').filter((line) => line.trim()))
 
-    async function onGameCreated(game: Game) {
-        creating = false
-        if (game.storage === GameStorage.Local) {
-            await goto(`/game/${game.id}`)
-        } else {
-            created = true
-            await gamesSection?.refresh()
-        }
+    async function onGameCreated() {
+        created = true
+        await gamesSection?.refresh()
     }
 </script>
 
@@ -54,14 +52,28 @@
             <div class="facts">
                 <span
                     ><UsersOutline class="h-4 w-4" />
-                    {metadata.minPlayers}{#if metadata.maxPlayers !== metadata.minPlayers}–{metadata.maxPlayers}{/if}
-                    players</span
+                    {playerCountText(metadata)}</span
                 ><span>{metadata.year}</span>{#if maturityLabel}<span class="maturity-label"
                         >{maturityLabel}</span
                     >{/if}
             </div>
             <h1 id="title-heading">{metadata.name}</h1>
-            <p class="designer">Designed by <span>{metadata.designer}</span></p>
+            <p class="credits">Designed by <span>{metadata.designer}</span></p>
+            {#if metadata.publisher}
+                {@const publisher = metadata.publisher}
+                <p class="credits publisher">
+                    Published by
+                    {#if publisher.sellsGame}<span>{publisher.name}</span><span class="separator"
+                            >·</span
+                        ><a href={publisher.url} target="_blank" rel="noopener noreferrer"
+                            >buy it from {publisher.name}<ArrowUpRightFromSquareOutline
+                                class="ml-1 inline h-3.5 w-3.5 align-[-2px]"
+                            /><span class="sr-only">(opens in a new tab)</span></a
+                        >{:else}<a href={publisher.url} target="_blank" rel="noopener noreferrer"
+                            >{publisher.name}<span class="sr-only">(opens in a new tab)</span></a
+                        >{/if}
+                </p>
+            {/if}
             <div class="description">
                 {#each paragraphs as paragraph, index (index)}<p>{paragraph}</p>{/each}
             </div>
@@ -79,25 +91,16 @@
             titleId={title.info.id}
             oncreate={() => (creating = true)}
         />
-        <TitleTournaments titleId={title.info.id} />
+        <TitleCompetitions titleId={title.info.id} />
     </div>
 </main>
 
-<Modal
+<CreateGameModal
     bind:open={creating}
-    title={metadata.name}
-    size="xs"
-    outsideclose
-    class="backdrop:bg-black/70 dark:bg-gray-900 border border-highlight-border dark:border-highlight-border divide-y-0"
-    classes={{ header: "font-['Inter'] text-2xl pb-0 md:pb-0" }}
->
-    <GameEditForm
-        {title}
-        showHeading={false}
-        oncancel={() => (creating = false)}
-        onsave={onGameCreated}
-    />
-</Modal>
+    titles={[title]}
+    initialTitleId={title.info.id}
+    oncreated={onGameCreated}
+/>
 
 <style>
     .title-page {
@@ -154,13 +157,32 @@
         letter-spacing: -0.035em;
         overflow-wrap: anywhere;
     }
-    .designer {
+    .credits {
         margin-top: 12px;
         font-size: 14px;
         color: var(--color-gray-400);
     }
-    .designer span {
+    .credits > span {
         color: var(--color-gray-300);
+    }
+    .credits.publisher {
+        margin-top: 4px;
+    }
+    .credits > .separator {
+        margin: 0 6px;
+        color: var(--color-gray-500);
+    }
+    .credits a {
+        color: var(--color-blue-300);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+    .credits a:hover {
+        color: var(--color-blue-200);
+    }
+    .credits a:focus-visible {
+        outline: 2px solid var(--color-blue-300);
+        outline-offset: 2px;
     }
     .description {
         margin-top: 24px;

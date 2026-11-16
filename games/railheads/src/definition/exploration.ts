@@ -1,4 +1,5 @@
 import { assertExists, type ExplorationPopulation, type GameExploration } from '@tabletop/common'
+import { edition } from '../editions/editions.js'
 import type { RailheadsProjectedState } from '../model/gameState.js'
 
 export class RailheadsGameExploration implements GameExploration<RailheadsProjectedState> {
@@ -20,7 +21,9 @@ export class RailheadsGameExploration implements GameExploration<RailheadsProjec
             const player = result.players.find((candidate) => candidate.playerId === bid.playerId)
             assertExists(player, 'A sealed bid must belong to a player')
             const mayBidZero = bid.playerId !== auction.investorId
-            const amounts = Math.max(0, player.cash - auction.minimum + 1)
+            const { map } = edition(result.editionId)
+            const stars = (player.tolls ?? []).reduce((sum, id) => sum + map.toll(id).stars, 0)
+            const amounts = Math.max(0, player.cash + stars - auction.minimum + 1)
             const choice = Math.floor(random() * (amounts + (mayBidZero ? 1 : 0)))
             bid.amount =
                 mayBidZero && choice === 0 ? 0 : auction.minimum + choice - (mayBidZero ? 1 : 0)

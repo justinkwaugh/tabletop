@@ -1,4 +1,4 @@
-import { assert, assertExists } from '@tabletop/common'
+import { assert, assertExists, committedBidAmount } from '@tabletop/common'
 import {
     BuyAuctionLot,
     PassAuction,
@@ -72,6 +72,14 @@ export class WaterfallAuctionModule {
         if (!contest || !this.model) return undefined
         return this.selection?.amount ?? this.model.minimumBid(contest.lotId)
     })
+
+    /** The cash a player's bids on the lots still to come hold back. */
+    reserved(playerId: string): number {
+        const model = this.model
+        return model && !model.auction.completed
+            ? committedBidAmount(model.commitments(), playerId)
+            : 0
+    }
 
     playerBids(playerId: string) {
         return this.remainingLots.flatMap(({ lot, bids }) =>

@@ -27,10 +27,29 @@ test('a turn plays a larva cube, places its polyps and ends by taking an open-se
     // The harness banner names whose turn it is in hotseat play
     const banner = page.getByText(/It.s your turn/)
     const turnBanner = await banner.innerText()
-    await page
-        .getByRole('button', { name: /^Take the \w+ larva cube/ })
-        .first()
-        .click()
+    const spaces = page.getByRole('button', { name: /^Take the \w+ larva cube/ })
+    const confirm = actions.getByRole('button', { name: 'Confirm' })
+    const spaceCount = await spaces.count()
+
+    // Choosing a space waits for Confirm; Undo, or choosing it again, drops the choice
+    await spaces.first().click()
+    await expect(actions).toContainText('End your turn')
+    await expect(targets).toHaveCount(0)
+    await expect(spaces).toHaveCount(spaceCount - 1)
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(actions).toContainText(/Place \w+ polyps on the reefs/)
+    await expect.poll(remaining).toBe(before)
+
+    await spaces.first().click()
+    await page.getByRole('button', { name: /^Leave the \w+ larva cube$/ }).click()
+    await expect(confirm).toHaveCount(0)
+    await expect(spaces).toHaveCount(spaceCount)
+
+    await spaces.first().click()
+    await spaces.last().click()
+    await expect(page.getByRole('button', { name: /^Leave the \w+ larva cube$/ })).toHaveCount(1)
+    await expect(banner).toHaveText(turnBanner)
+    await confirm.click()
     await expect(banner).not.toHaveText(turnBanner)
     await expect(actions).toContainText('Choose your actions')
 })

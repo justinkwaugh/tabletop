@@ -2,6 +2,7 @@ import type * as Type from 'typebox'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, type Owner } from '../finance/finance.js'
 import type { OperatingState } from '../operating/operatingSet.js'
+import type { Debt } from './cashCrisis.js'
 
 export type EliminationState = OperatingState
 
@@ -12,7 +13,15 @@ export type EliminationState = OperatingState
  */
 export interface EliminationRules<Changes extends Type.TObject = Type.TObject> {
     schema: Changes
-    eliminate(state: EliminationState, playerId: string): Type.Static<Changes>
+    /**
+     * `settling` is the crisis debt the bankruptcy ends and where play would have resumed, as
+     * 1856's unredeemed loans stay on their company; absent for a failed train purchase.
+     */
+    eliminate(
+        state: EliminationState,
+        playerId: string,
+        settling?: { debt: Debt; continuation: string }
+    ): Type.Static<Changes>
 }
 
 export type Elimination = { changes: Type.Static<Type.TObject>; surrendered?: CashPayment }
@@ -21,9 +30,10 @@ export function eliminatePlayer(
     state: EliminationState,
     playerId: string,
     rules: EliminationRules,
-    creditor: Owner
+    creditor: Owner,
+    settling?: { debt: Debt; continuation: string }
 ): Elimination {
-    const changes = rules.eliminate(state, playerId)
+    const changes = rules.eliminate(state, playerId, settling)
     const player = { kind: 'player' as const, playerId }
     const cash = finiteCashOwnedBy(state, player)
     const surrendered = cash ? { from: player, to: creditor, amount: cash } : undefined

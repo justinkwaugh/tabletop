@@ -39,7 +39,18 @@ export class HydratedScheduleGameEnd
     }
     apply(state: HydratedGameState & EndingState): void {
         assert(this.isValid(state), 'No new game ending has triggered')
-        state.gameEnding = pendingEnding(state, this.#rules)
+        const ending = pendingEnding(state, this.#rules)
+        state.gameEnding = ending
+        // An ending that lengthens the set under way, as 1861's first 8-train in a set's first
+        // round adds two more rounds to it (§13), extends the set at once.
+        const set = state.operatingSet
+        if (
+            ending?.finalOperatingRounds !== undefined &&
+            set &&
+            !set.completed &&
+            set.number === ending.finalOperatingSet
+        )
+            set.roundCount = ending.finalOperatingRounds
         this.metadata = structuredClone(state.gameEnding)
     }
 }

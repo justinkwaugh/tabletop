@@ -11,7 +11,10 @@ export const ShareSale = Type.Object({
     buyerId: Type.String(),
     price: Type.Number(),
     industry: Type.Optional(Type.Enum(Industry)),
-    startPlayer: Type.Boolean()
+    startPlayer: Type.Boolean(),
+    bond: Type.Optional(Type.Boolean()),
+    // Toll chits cashed in to pay.
+    cashedIn: Type.Optional(Type.Array(Type.String()))
 })
 
 function auctionId(state: HydratedRailheadsGameState, companyId: CompanyId): string {
@@ -27,6 +30,7 @@ export function openInitialAuction(state: HydratedRailheadsGameState, openerId: 
         minimum: state.minimumBid(offer.companyId),
         ...(offer.industry ? { industry: offer.industry } : {}),
         startPlayer: offer.startPlayer,
+        ...(offer.bond ? { bond: true } : {}),
         bidding: PassableBidding.openWithoutBid(
             auctionId(state, offer.companyId),
             turnOrderFrom(state.turnManager.turnOrder, openerId)
@@ -78,7 +82,7 @@ function withdrawUnableBidders(state: HydratedRailheadsGameState): string[] {
     const before = state.bidding().remainingPlayerIds
     auction.bidding = state
         .bidding()
-        .withdrawBelow(state.smallestBid(), (playerId) => state.getPlayerState(playerId).cash)
+        .withdrawBelow(state.smallestBid(), (playerId) => state.spendingPower(playerId))
     const after = state.bidding().remainingPlayerIds
     return before.filter((playerId) => !after.includes(playerId))
 }
@@ -100,15 +104,22 @@ export function settleShareAuction(state: HydratedRailheadsGameState): ShareSale
         buyerId: winner.playerId,
         price: winner.amount,
         ...(auction.industry ? { industry: auction.industry } : {}),
-        startPlayer: auction.startPlayer
+        startPlayer: auction.startPlayer,
+        ...(auction.bond ? { bond: true } : {})
     }
     const buyer = state.getPlayerState(sale.buyerId)
     const company = state.company(sale.companyId)
-    buyer.cash -= sale.price
+    const cashedIn = state.charge(sale.buyerId, sale.price)
+    if (cashedIn.length > 0) {
+        sale.cashedIn = cashedIn
+    }
     company.treasury += sale.price
     company.owners.push(sale.buyerId)
     if (sale.industry) {
         buyer.industryTokens.push(sale.industry)
+    }
+    if (sale.bond) {
+        buyer.bonds = (buyer.bonds ?? 0) + 1
     }
     if (sale.startPlayer) {
         state.turnManager.newFirstPlayer(sale.buyerId)

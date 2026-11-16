@@ -1,4 +1,5 @@
 import {
+    NationalCompanyKind,
     companyShareCount,
     isStartCompany,
     type CompanyCharters,
@@ -19,11 +20,8 @@ export function spreadsheetCompanies(
         (company) =>
             (company.started || isIncluded(company.id)) &&
             !company.closed &&
-            (companyShareCount(state, charters, company.id) !== undefined ||
-                state.certificates.some(
-                    (certificate) =>
-                        certificate.kind === 'share' && certificate.companyId === company.id
-                ))
+            // A national company, such as 1861's RSR, has no shares but runs like the rest.
+            (company.kind === NationalCompanyKind || isShareCompany(state, charters, company.id))
     )
     const starts = actions
         .slice(0, actionCount)
@@ -48,4 +46,31 @@ export function spreadsheetCompanies(
         ...includedCompanyIds
     ]
     return eligibleCompanies.toSorted((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
+}
+
+/** Whether the company has shares: a charter that counts them, or certificates of them. */
+function isShareCompany(state: StockState, charters: CompanyCharters, companyId: string): boolean {
+    return (
+        companyShareCount(state, charters, companyId) !== undefined ||
+        state.certificates.some(
+            (certificate) => certificate.kind === 'share' && certificate.companyId === companyId
+        )
+    )
+}
+
+/** The share companies no one has started that the title has on offer now, in charter order. */
+export function companiesOnOffer(
+    state: StockState,
+    charters: CompanyCharters,
+    onOffer: (companyId: string) => boolean
+) {
+    return state.companies.filter(
+        (company) =>
+            !company.started &&
+            !company.closed &&
+            company.kind !== 'private' &&
+            company.kind !== NationalCompanyKind &&
+            isShareCompany(state, charters, company.id) &&
+            onOffer(company.id)
+    )
 }

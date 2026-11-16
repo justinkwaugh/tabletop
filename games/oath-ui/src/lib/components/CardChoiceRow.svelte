@@ -4,6 +4,7 @@
     import Magnifier from '$lib/components/Magnifier.svelte'
     import { widthAtHeight } from '$lib/images/cardShape.js'
     import type { CardChoice } from '$lib/model/cardChoice.js'
+    import type { PreviewGroup } from '$lib/model/cardPreview.svelte.js'
 
     let {
         choices,
@@ -13,6 +14,7 @@
         height = 90,
         discard = false,
         magnifyBacks = true,
+        paged = false,
         under
     }: {
         choices: readonly CardChoice[]
@@ -24,8 +26,17 @@
         discard?: boolean
         /** A back carries a magnifier too; off where a back shows nothing more enlarged (a facedown adviser). */
         magnifyBacks?: boolean
+        /** Rule 4 — an enlarged card pages through the row's faceup cards, in their order (a dealt hand). */
+        paged?: boolean
         under?: Snippet<[CardChoice]>
     } = $props()
+
+    const group: PreviewGroup = () =>
+        choices.flatMap((choice) =>
+            choice.cardId !== undefined && choice.back === undefined
+                ? [{ cardId: choice.cardId, label: choice.label }]
+                : []
+        )
 </script>
 
 <div class="flex flex-wrap gap-2">
@@ -52,6 +63,7 @@
                 <Magnifier
                     preview={{ cardId: choice.cardId, back: choice.back, label: choice.label }}
                     label={choice.label}
+                    group={paged ? group : undefined}
                 />
             {/if}
             {#if choice.caption}

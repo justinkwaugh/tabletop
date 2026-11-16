@@ -1,4 +1,4 @@
-import { shuffle } from '@tabletop/common'
+import { assertExists, shuffle } from '@tabletop/common'
 import {
     COMMANDERS,
     STARTING_ARMIES,
@@ -9,6 +9,22 @@ import {
 } from '../components/pieces.js'
 import { SIDE_COLORS } from '../definition/colors.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
+import { winningBid } from './moraleAuction.js'
+
+export interface SideChoice {
+    chooserId: string
+    handicap: number
+}
+
+/** Rule 17: the auction's winner chooses at the cost of the winning bid; without an auction the first player chooses for nothing. */
+export function sideChoice(state: HydratedNapoleonsTriumphGameState): SideChoice {
+    const auction = state.auction
+    if (!auction) {
+        return { chooserId: state.turnManager.turnOrder[0], handicap: 0 }
+    }
+    assertExists(auction.winnerId, 'The auction has no winner')
+    return { chooserId: auction.winnerId, handicap: winningBid(auction) }
+}
 
 function raiseArmies(state: HydratedNapoleonsTriumphGameState) {
     // Faces are dealt from the protected stream so a unit's id says nothing about what it is.

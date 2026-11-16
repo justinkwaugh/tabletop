@@ -16,7 +16,9 @@ export type TurnManager = Type.Static<typeof TurnManager>
 export const TurnManager = Type.Object({
     series: Type.Array(Turn),
     turnOrder: Type.Array(Type.String()),
-    turnCounts: Type.Record(Type.String(), Type.Number())
+    turnCounts: Type.Record(Type.String(), Type.Number()),
+    // Chosen when the game starts and never changed: recorded undo patches address the series by position.
+    seriesKeeps: Type.Optional(Type.Literal('latest'))
 })
 
 export const TurnManagerValidator = Compile(TurnManager)
@@ -25,6 +27,7 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
     declare series: Turn[]
     declare turnOrder: string[]
     declare turnCounts: Record<string, number>
+    declare seriesKeeps?: TurnManager['seriesKeeps']
 
     constructor(data: TurnManager) {
         super(data, TurnManagerValidator)
@@ -100,7 +103,16 @@ export class HydratedTurnManager extends Hydratable<typeof TurnManager> implemen
         }
         turnToEnd.end = actionIndex + 1 // non inclusive
         this.turnCounts[turnToEnd.playerId] += 1
+        if (this.seriesKeeps === 'latest') this.forgetSupersededTurns()
         return turnToEnd
+    }
+
+    private forgetSupersededTurns(): void {
+        const latestFinished = new Map<string, Turn>()
+        for (const turn of this.series) if (turn.end) latestFinished.set(turn.playerId, turn)
+        this.series = this.series.filter(
+            (turn) => !turn.end || latestFinished.get(turn.playerId) === turn
+        )
     }
 
     lastPlayer(): string | undefined {

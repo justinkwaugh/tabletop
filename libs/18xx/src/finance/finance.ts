@@ -56,7 +56,14 @@ export const Company = Type.Object(
 )
 export type Company = Type.Static<typeof Company>
 export const Bank = Type.Object(
-    { broken: Type.Optional(Type.Boolean()) },
+    {
+        broken: Type.Optional(Type.Boolean()),
+        /**
+         * Broken only by a payout it cannot make in full, a bank left at exactly nothing still
+         * whole, as Dixon rules for 1856; otherwise reaching nothing breaks it.
+         */
+        breaksOnShortfall: Type.Optional(Type.Literal(true))
+    },
     { additionalProperties: false }
 )
 export type Bank = Type.Static<typeof Bank>
@@ -132,6 +139,16 @@ export const Certificate = Type.Union([
 ])
 export type Certificate = Type.Static<typeof Certificate>
 export type Portfolio = Certificate[]
+
+/** The shares an ordinary or president's certificate holds; none for a private's or a short. */
+export function certificateShares(certificate: Certificate): number {
+    return certificate.kind === 'share' ? certificate.shares : 0
+}
+
+/** The shares a set of certificates holds together. */
+export function totalCertificateShares(certificates: readonly Certificate[]): number {
+    return certificates.reduce((total, certificate) => total + certificateShares(certificate), 0)
+}
 export type OpenShare = Extract<Certificate, { kind: 'share' }>
 export type OpenShort = Extract<Certificate, { kind: 'short' }>
 export type Treasury = { cash: Cash['amount'] | undefined; portfolio: Portfolio }

@@ -30,6 +30,10 @@ The condition in which Conversation History contains 2,000 Messages and accepts 
 **Message Redaction**:
 An auditable administrative replacement of visible Message content that preserves Message identity, author, timestamp, and position. Authors cannot edit or delete sent Messages.
 
+**Content Report**:
+A signed-in Account's report of a Conversation Message, a Username or a Game name it has seen in a Game, with a reason and optional details. It is emailed to the site's moderation address and not stored; the reported Account is never told who reported it. An Administrator acts on it by Message Redaction or by renaming the Game or Account.
+_Avoid_: Flag, complaint
+
 ## Reading
 
 **Read Position**:

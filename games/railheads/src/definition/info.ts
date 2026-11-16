@@ -1,4 +1,4 @@
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { RailheadsConfigurator } from './configurator.js'
 import { GAME_VERSION } from './version.js'
 
@@ -15,8 +15,7 @@ export const RailheadsInfo: GameInfo = {
         maxPlayers: 5,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Alpha
+        beta: false
     },
     configurator: new RailheadsConfigurator()
 }

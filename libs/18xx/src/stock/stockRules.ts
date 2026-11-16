@@ -16,6 +16,7 @@ import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from 
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { StockMarketChart } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
+import type { PresidencyExchangeTerms } from './presidency.js'
 import type { ShareSaleDetails, ShareSaleSettlement } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
@@ -26,6 +27,13 @@ export const CertificateLimitChange = Type.Object(
     { additionalProperties: false }
 )
 export type CertificateLimitChange = Type.Static<typeof CertificateLimitChange>
+
+/** How the title's new presidents make up the president's certificate's shares. */
+export function presidencyExchangeTerms(
+    rules: Pick<StockRules, 'presidencyExchange'>
+): PresidencyExchangeTerms {
+    return rules.presidencyExchange ?? {}
+}
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -41,6 +49,8 @@ export type ShareSaleTerms = {
  * block at its price, or a separate sale at the current price. Without it, each company sells once.
  */
 export type RepeatSales = 'extend-block' | 'separate'
+
+export type StockTurnOrder = 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
 
 export interface StockRules {
     market: StockMarketChart
@@ -65,10 +75,18 @@ export interface StockRules {
     ownershipLimit(state: StockState, companyId: string, buyer: Owner): number
     presidencyCandidates(state: StockState, companyId: string): President[]
     /**
-     * Whether a new president exchanges their largest ordinary certificates first, as 1832's
-     * vice-president's certificates must be included.
+     * How a new president's certificates make up the president's certificate's shares: their
+     * largest ordinary certificates first, as 1832's vice-president's certificates must be
+     * included; or the outgoing president's choice where they hold the shares more than one way,
+     * 1849's last certificate or two single ones (§9.5), the largest exchanged until they choose.
      */
-    presidencyExchangeLargestFirst?: boolean
+    presidencyExchange?: PresidencyExchangeTerms
+    /**
+     * A president may sell below the president's certificate with no one to succeed them: the
+     * certificate goes to the pool and the company has no president until someone claims it
+     * (1862 §6.3, §8).
+     */
+    presidencyLapses?: true
     /**
      * What follows any sale into the market, such as the market closing its own shorts. Sale
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
@@ -83,12 +101,31 @@ export interface StockRules {
     holdsMarketMove?(state: StockState, sale: ShareSaleSettlement, seller: Owner): boolean
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
     afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
-    /** When a turn's sales may come relative to its purchase. */
-    turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
+    /**
+     * The certificate taken out of play just before a stock turn's purchase of this one, as a
+     * non-president's purchase from 18Chesapeake's two-player bank pool removes a pool share
+     * (§14.3). Naming the bought certificate itself leaves the buyer nothing, for nothing, but
+     * the turn's purchase is made.
+     */
+    purchaseRemoval?(
+        state: StockState,
+        certificate: ShareCertificate,
+        buyer: Owner
+    ): string | undefined
+    /**
+     * When a turn's sales may come relative to its purchase; by game where an option changes it,
+     * as 18Chesapeake's Off the Rails allows sales after the purchase.
+     */
+    turnOrder: StockTurnOrder | ((state: StockState) => StockTurnOrder)
     /** A second sale of a company in the same turn. */
     repeatSales?: RepeatSales
     /** Further share purchases in a turn after the first. */
     multipleBuys?: MultipleBuyRules
+    /**
+     * Keeps the turn's purchases where a rule reads them though a turn has one purchase, as
+     * 1856's shares bought in a turn limit its sales.
+     */
+    recordsTurnPurchases?: true
     /** Private sales between players, offered and answered like a company's purchase offer. */
     privateSales?: PrivateSaleRules
     /** Companies are started by auction during a stock turn rather than at a chosen par. */

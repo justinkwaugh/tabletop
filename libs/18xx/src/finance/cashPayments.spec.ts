@@ -53,6 +53,21 @@ it.each([50, 51])('breaks an eligible bank at exhaustion and pays the full %s', 
     settleCashPayments(state, [{ from: player, to: bank, amount }])
     expect(state.cash[0].amount).toBe('unlimited')
 })
+it('leaves a bank that breaks on a shortfall whole at exactly nothing', () => {
+    const state: Pick<FinancialState, 'bank' | 'cash'> = {
+        bank: { breaksOnShortfall: true },
+        cash: [
+            { owner: bank, amount: 50 },
+            { owner: player, amount: 0 }
+        ]
+    }
+    settleCashPayments(state, [{ from: bank, to: player, amount: 50 }])
+    expect(state.bank.broken).toBeUndefined()
+    expect(state.cash.map((cash) => cash.amount)).toEqual([0, 50])
+    settleCashPayments(state, [{ from: bank, to: player, amount: 10 }])
+    expect(state.bank.broken).toBe(true)
+    expect(state.cash.map((cash) => cash.amount)).toEqual(['unlimited', 60])
+})
 it('does not break the bank if another payment in the settlement is invalid', () => {
     const state: Pick<FinancialState, 'bank' | 'cash'> = {
         bank: {},

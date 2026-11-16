@@ -66,6 +66,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 status,
                 email: `person-${id}@example.test`,
                 emailVerified: true,
+                ageConfirmedAt: new Date(),
                 roles,
                 externalIds: []
             }

@@ -11,6 +11,7 @@ import {
     type StationReservation,
     type StationState
 } from '../map/station.js'
+import { reservationFulfilled } from '../stations/stationPlacement.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
 import {
@@ -18,13 +19,16 @@ import {
     type TileDefinition,
     type TileFace,
     type TileEdge,
-    type TileNode
+    type TileNode,
+    type TilePath
 } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
+import { carriedTrackStops, withTrackStops, type TrackStop } from '../tiles/trackStops.js'
 import { ConstructionReachability } from './constructionReachability.js'
-import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
+import { addedTrack, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
 import {
     keepsExits,
+    keptFace,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -35,6 +39,8 @@ import { assert, assertExists } from '@tabletop/common'
 import type { OperatingSet } from '../operating/operatingSet.js'
 import type { GameEnding } from '../ending/gameEnding.js'
 import type { AccessRightState } from '../rights/accessRights.js'
+import { LoanRecord } from '../loans/loans.js'
+import type { AutomaticBorrowing } from '../loans/automaticBorrowing.js'
 
 export const TrackStep = Type.Object(
     {
@@ -128,7 +134,9 @@ export const TrackLayDetails = Type.Object(
         displacedStationIds: Type.Optional(Type.Array(Type.String())),
         /** The upgrade rebuilt the hex's cities, keeping only its exits. */
         reconfigured: Type.Optional(Type.Literal(true)),
-        effects: Type.Optional(TrackLayEffects)
+        effects: Type.Optional(TrackLayEffects),
+        /** The loans taken to pay for the lay. */
+        loans: Type.Optional(Type.Array(LoanRecord))
     },
     { additionalProperties: false }
 )
@@ -139,6 +147,8 @@ export interface TrackRules {
     map: RailwayMap
     tileSet: TileSet
     colorOrder: readonly string[]
+    /** Loans the company takes for construction its cash cannot pay for (1861 §10.2). */
+    borrowing?: AutomaticBorrowing
     availableColors(state: ConstructionState): readonly string[]
     /** Whether the company may lay a tile of the colour, replacing a tile when ``upgrade``. */
     allowance(
@@ -164,6 +174,18 @@ export interface TrackRules {
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
+    /**
+     * Stops of the replaced tile that this replacement removes, by their node ids: the rest of
+     * the tile is then what must be kept, track through a removed stop running on between its
+     * other ends. Swansea's printed small station goes under 1822's first yellow tile (§5.8.4),
+     * and its private P2 removes a small station (§3.1.14).
+     */
+    removedStops?(locationId: string, before: TileFace, after: TileFace): readonly string[]
+    /**
+     * A town standing alone on a line of track carries onto the replacing tile's same line as a
+     * track stop where that line is plain track there, as 1862's small stations do.
+     */
+    carriesTrackStops?: true
     /** Whether a tile on this hex must be one of the tiles of its colour with the most exits. */
     mostExits?(before: TileFace): boolean
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
@@ -184,6 +206,11 @@ export interface TrackRules {
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
+    /**
+     * Others whose agreement serves as well as that of ``consentPlayerId``, where the layer may
+     * ask any one of several players, as beside 1822's London (§5.10.7).
+     */
+    otherConsentPlayerIds?(state: ConstructionState, request: TrackRequest): readonly string[]
     borderCost?(
         state: ConstructionState,
         request: TrackRequest,
@@ -257,13 +284,14 @@ export class TrackConstruction {
             )
                 continue
             for (const rotation of Rotations) {
-                const before = this.mapState.tile(locationId)
-                const after = rotateTileFace(definition.face, rotation)
-                for (const nodeMapping of this.layMappings(
-                    locationId,
-                    rotateTileFace(before.face, before.rotation),
-                    after
-                )) {
+                const tile = this.mapState.tile(locationId)
+                const before = rotateTileFace(tile.face, tile.rotation)
+                const after = replacingFace(
+                    this.rules,
+                    before,
+                    rotateTileFace(definition.face, rotation)
+                ).face
+                for (const nodeMapping of this.layMappings(locationId, before, after)) {
                     const result = this.evaluate({
                         companyId,
                         locationId,
@@ -282,6 +310,15 @@ export class TrackConstruction {
             }
         }
         return choices
+    }
+    /**
+     * The players whose agreement lets the lay go ahead, the one asked unless another is named
+     * first; one of them lays without asking.
+     */
+    consenters(request: TrackRequest): string[] {
+        const first = this.rules.consentPlayerId?.(this.state, request)
+        if (!first) return []
+        return [first, ...(this.rules.otherConsentPlayerIds?.(this.state, request) ?? [])]
     }
     evaluate(request: TrackRequest): TrackEvaluation {
         const result = this.evaluatePlacement(request)
@@ -302,7 +339,7 @@ export class TrackConstruction {
                     this.layMappings(
                         request.locationId,
                         before,
-                        rotateTileFace(other.face, rotation)
+                        replacingFace(this.rules, before, rotateTileFace(other.face, rotation)).face
                     ).some(
                         (nodeMapping) =>
                             !!this.evaluatePlacement({
@@ -343,7 +380,11 @@ export class TrackConstruction {
         if (restriction) return { reason: restriction }
         const previous = this.mapState.tile(locationId)
         const before = rotateTileFace(previous.face, previous.rotation)
-        const after = rotateTileFace(definition.face, rotation)
+        const { face: after, trackStops } = replacingFace(
+            this.rules,
+            before,
+            rotateTileFace(definition.face, rotation)
+        )
         const reconfiguring = this.reconfiguring(locationId, before, after)
         if (
             !this.layMappings(locationId, before, after).some(
@@ -395,7 +436,10 @@ export class TrackConstruction {
         const consentPlayerId = this.rules.consentPlayerId?.(this.state, request)
         const cost = terrainCost + allowance.cost
         const cash = cashOwnedBy(this.state, this.payer ?? { kind: 'company', companyId })
-        if (cash === undefined || (cash !== 'unlimited' && cash < cost))
+        const borrowable = this.payer
+            ? 0
+            : (this.rules.borrowing?.capacity(this.state, companyId) ?? 0)
+        if (cash === undefined || (cash !== 'unlimited' && cash + borrowable < cost))
             return { reason: 'The company cannot afford construction' }
         const piece =
             this.availablePieces(definitionId)[0] ??
@@ -412,11 +456,8 @@ export class TrackConstruction {
         )
         if (!migrated) return { reason: 'The upgrade cannot preserve all station spaces' }
         const network = this.network(companyId).connections(locationId, after, migrated)
-        const reverse = Object.fromEntries(
-            Object.entries(nodeMapping).map(([id, target]) => [target, id])
-        )
-        const newTrack = after.paths.some(
-            (path) => network.paths.has(path.id) && !preservesPath(path, before, reverse)
+        const newTrack = addedTrack(before, after, nodeMapping).some((path) =>
+            network.paths.has(path.id)
         )
         const increasedCityRevenue = before.nodes.some(
             (node) =>
@@ -457,7 +498,12 @@ export class TrackConstruction {
                 definitionId,
                 rotation,
                 nodeMapping,
-                placement: { pieceId: piece.id, definitionId, rotation },
+                placement: {
+                    pieceId: piece.id,
+                    definitionId,
+                    rotation,
+                    ...(trackStops.length ? { trackStops } : {})
+                },
                 ...(previous.placement ? { previous: previous.placement } : {}),
                 cost,
                 terrainCost,
@@ -508,14 +554,18 @@ export class TrackConstruction {
                         this.layMappings(
                             locationId,
                             before,
-                            rotateTileFace(definition.face, rotation)
+                            replacingFace(
+                                this.rules,
+                                before,
+                                rotateTileFace(definition.face, rotation)
+                            ).face
                         ).length > 0
                 )
         )
     }
     /** The node mappings that keep the hex's track, or a reconfiguration's empty mapping. */
     private layMappings(locationId: string, before: TileFace, after: TileFace): TileNodeMapping[] {
-        const mappings = replacementMappings(before, after)
+        const mappings = replacementMappings(keptFace(this.rules, locationId, before, after), after)
         if (mappings.length || !this.reconfiguring(locationId, before, after)) return mappings
         return [{}]
     }
@@ -567,35 +617,82 @@ export class TrackConstruction {
                 reconfigured
             }
         }
+        const before = this.mapState.tile(locationId).face
         const occupied = new Map<string, Set<number>>()
-        const stations: Station[] = []
-        const moved: PlacedStation[] = []
-        for (const station of this.state.stations) {
-            if (station.status !== 'placed' || station.position.locationId !== locationId) {
-                stations.push(station)
-                continue
-            }
+        const seated = new Map<string, PlacedStation>()
+        const here = this.state.stations.flatMap((station) =>
+            station.status === 'placed' && station.position.locationId === locationId
+                ? [station]
+                : []
+        )
+        const cityAfter = (station: PlacedStation) => {
             const nodeId = mapping[station.position.nodeId]
-            const node = after.nodes.find((node) => node.id === nodeId)
-            if (node?.kind !== 'city') return undefined
-            const slots = occupied.get(nodeId) ?? new Set<number>()
-            const slot =
-                station.position.slot < node.stationSlots && !slots.has(station.position.slot)
-                    ? station.position.slot
-                    : Array.from({ length: node.stationSlots }, (_, index) => index).find(
-                          (index) => !slots.has(index)
-                      )
+            const node = after.nodes.find((entry) => entry.id === nodeId)
+            return node?.kind === 'city' ? node : undefined
+        }
+        const spacesBefore = (station: PlacedStation) => {
+            const node = before.nodes.find((entry) => entry.id === station.position.nodeId)
+            return node?.kind === 'city' ? node.stationSlots : 0
+        }
+        const take = (station: PlacedStation, nodeId: string, slot: number) => {
+            occupied.set(nodeId, (occupied.get(nodeId) ?? new Set<number>()).add(slot))
+            seated.set(station.id, {
+                ...station,
+                position: { locationId, nodeId, slot }
+            })
+        }
+        const free = (nodeId: string, from: number, to: number) =>
+            Array.from({ length: Math.max(0, to - from) }, (_, index) => from + index).filter(
+                (slot) => !occupied.get(nodeId)?.has(slot)
+            )
+        // Stations in a city's own spaces keep them, or take another where theirs is gone.
+        for (const station of here.filter((entry) => entry.position.slot < spacesBefore(entry))) {
+            const node = cityAfter(station)
+            if (!node) return undefined
+            const kept = free(node.id, 0, node.stationSlots)
+            const slot = kept.includes(station.position.slot) ? station.position.slot : kept[0]
             if (slot === undefined) return undefined
-            slots.add(slot)
-            occupied.set(nodeId, slots)
-            if (nodeId === station.position.nodeId && slot === station.position.slot) {
-                stations.push(station)
+            take(station, node.id, slot)
+        }
+        // A station beside a full city moves into a space the upgrade adds, unless that space
+        // is still awaited by another company's home; otherwise it stays beside the city.
+        for (const station of here.filter((entry) => entry.position.slot >= spacesBefore(entry))) {
+            const node = cityAfter(station)
+            if (!node) return undefined
+            const awaited = new Set(
+                this.state.stationReservations
+                    .filter(
+                        (reservation) =>
+                            reservation.locationId === locationId &&
+                            reservation.nodeId === station.position.nodeId &&
+                            reservation.companyId !== station.companyId &&
+                            !reservationFulfilled(this.state, reservation, {})
+                    )
+                    .map((reservation) => reservation.companyId)
+            ).size
+            const spaces = free(node.id, 0, node.stationSlots)
+            const [space] = spaces
+            const moves =
+                node.stationSlots > spacesBefore(station) &&
+                space !== undefined &&
+                spaces.length > awaited
+            if (moves) {
+                take(station, node.id, space)
                 continue
             }
-            const migrated = { ...station, position: { locationId, nodeId, slot } }
-            stations.push(migrated)
-            moved.push(migrated)
+            const [beside] = free(node.id, node.stationSlots, node.stationSlots + here.length)
+            assertExists(beside, 'There is always room beside a city')
+            take(station, node.id, beside)
         }
+        const stations = this.state.stations.map((station) => seated.get(station.id) ?? station)
+        const moved = here.flatMap((station) => {
+            const now = seated.get(station.id)
+            return now &&
+                (now.position.nodeId !== station.position.nodeId ||
+                    now.position.slot !== station.position.slot)
+                ? [now]
+                : []
+        })
         return {
             stations,
             moved,
@@ -605,6 +702,41 @@ export class TrackConstruction {
             hexReservations: this.state.hexReservations
         }
     }
+}
+
+/** A turned replacing face with the stops it carries from the turned face it replaces. */
+function replacingFace(
+    rules: Pick<TrackRules, 'carriesTrackStops'>,
+    before: TileFace,
+    after: TileFace
+): { face: TileFace; trackStops: TrackStop[] } {
+    if (!rules.carriesTrackStops) return { face: after, trackStops: [] }
+    const trackStops = carriedTrackStops(before, after)
+    return { face: withTrackStops(after, trackStops), trackStops }
+}
+
+/**
+ * The track a requested lay adds to its hex, each path with its gauge, as a title's terrain cost
+ * may depend on: paths of the laid tile not running where the replaced tile's track of a gauge
+ * they keep did. A path changing to dual track is added track.
+ */
+export function layAddedTrack(
+    state: Pick<MapStateData, 'tileInventory'>,
+    rules: Pick<TrackRules, 'map' | 'tileSet' | 'carriesTrackStops'>,
+    request: Pick<TrackRequest, 'locationId' | 'definitionId' | 'rotation' | 'nodeMapping'>
+): readonly TilePath[] {
+    const previous = new RailwayMapState(rules.map, rules.tileSet, state.tileInventory).tile(
+        request.locationId
+    )
+    const definition = rules.tileSet.definitions.find((tile) => tile.id === request.definitionId)
+    assertExists(definition, 'A lay names a tile of its set')
+    const before = rotateTileFace(previous.face, previous.rotation)
+    const after = replacingFace(
+        rules,
+        before,
+        rotateTileFace(definition.face, request.rotation)
+    ).face
+    return addedTrack(before, after, request.nodeMapping)
 }
 
 /**
@@ -638,8 +770,14 @@ function stationsAfterReconfiguration(
         ),
         ...(state.hexReservations || claims.length
             ? { hexReservations: [...(state.hexReservations ?? []), ...claims] }
-            : {})
+            : {}),
+        ...neutralStationsOf(state)
     }
+}
+
+/** The state's neutral stations, which a lay never changes, carried into the stations after it. */
+function neutralStationsOf(state: StationState): Pick<StationState, 'neutralStations'> {
+    return state.neutralStations ? { neutralStations: state.neutralStations } : {}
 }
 
 export function stationsAfterLay(
@@ -658,7 +796,8 @@ export function stationsAfterLay(
             (station) => details.movedStations.find((moved) => moved.id === station.id) ?? station
         ),
         stationReservations: reservationsAfterLay(state, rules, details),
-        ...(state.hexReservations ? { hexReservations: state.hexReservations } : {})
+        ...(state.hexReservations ? { hexReservations: state.hexReservations } : {}),
+        ...neutralStationsOf(state)
     }
 }
 

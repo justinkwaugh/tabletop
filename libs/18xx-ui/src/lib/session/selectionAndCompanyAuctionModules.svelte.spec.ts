@@ -46,12 +46,13 @@ function selection(valid: string[], passingWhileNominating = () => true) {
 }
 
 const home = { locationId: 'A1', nodeId: 'city', slot: 0 }
+const otherHome = { locationId: 'B2', nodeId: 'city', slot: 0 }
 const auctionTerms: CompanyAuctionRules = {
     openingBid: 100,
     increment: 5,
     maximumBid: () => 200,
     formable: () => true,
-    homes: () => [home],
+    homes: () => [home, otherHome],
     startSpace: () => '0:0',
     shareCounts: () => [2, 5],
     contributions: () => [],
@@ -59,12 +60,12 @@ const auctionTerms: CompanyAuctionRules = {
     form: () => {}
 }
 
-function companyAuction(valid: string[]) {
+function companyAuction(valid: string[], terms: CompanyAuctionRules = auctionTerms) {
     const state = minimalPlayState()
     state.companies[0].started = false
     const harness = testSession(
         state,
-        { stockRules: { ...minimalStockRules, companyAuction: auctionTerms } },
+        { stockRules: { ...minimalStockRules, companyAuction: terms } },
         valid
     )
     return { ...harness, module: new CompanyAuctionModule(harness.session) }
@@ -105,7 +106,7 @@ describe('CompanyAuctionModule', () => {
         expect(module.companies.map((company) => company.id)).toEqual([TestCompanyId])
         expect(module.homeLocationIds).toEqual([])
         module.selectCompany(TestCompanyId)
-        expect(module.homeLocationIds).toEqual(['A1'])
+        expect(module.homeLocationIds).toEqual(['A1', 'B2'])
         module.chooseHome({ locationId: 'A1', nodeId: 'city' })
         expect(module.openingAmount).toBe(100)
         expect(module.homeLocationIds).toEqual([])
@@ -138,5 +139,17 @@ describe('CompanyAuctionModule', () => {
         expect(module.undo()).toBe(true)
         expect(module.selectedCompanyId).toBeUndefined()
         expect(module.undo()).toBe(false)
+    })
+
+    it('takes a company’s only home without a choice, Undo dropping the company', () => {
+        const { module } = companyAuction(['AuctionCompany'], {
+            ...auctionTerms,
+            homes: () => [home]
+        })
+        module.selectCompany(TestCompanyId)
+        expect(module.selectedHome).toEqual({ locationId: 'A1', nodeId: 'city' })
+        expect(module.openingAmount).toBe(100)
+        expect(module.undo()).toBe(true)
+        expect(module.selectedCompanyId).toBeUndefined()
     })
 })

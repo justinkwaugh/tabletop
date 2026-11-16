@@ -37,6 +37,18 @@ export default async function (fastify: FastifyInstance) {
     )
 
     fastify.post<{ Params: AccountParams }>(
+        '/:userId/delete',
+        { schema: { params: AccountParams }, onRequest },
+        async function (request) {
+            assertExists(request.user, 'Deleting an account requires an administrator')
+            const { userId } = request.params
+            const user = await fastify.accountModeration.deleteAccount(userId, request.user.id)
+            request.log.info({ adminId: request.user.id, userId }, 'Administrator deleted account')
+            return { status: 'ok', payload: { user } }
+        }
+    )
+
+    fastify.post<{ Params: AccountParams }>(
         '/:userId/unban',
         { schema: { params: AccountParams }, onRequest },
         async function (request) {

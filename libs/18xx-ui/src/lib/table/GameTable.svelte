@@ -13,8 +13,10 @@
         saveTableWorkspace
     } from './tableWorkspace.js'
     import { historyMapFocus } from '../maps/historyMapFocus.js'
-    import { trainRouteOverlays } from '../routes/routePresentation.js'
-    import { LatestRouteSolver, type RouteWorker } from '../routes/latestRouteSolver.js'
+    import { runLocationIds, trainRouteOverlays } from '../routes/routePresentation.js'
+    import { LatestRouteSolver } from '../routes/latestRouteSolver.js'
+    import type { QueuedRouteWorker } from '../routes/routeSolveQueue.js'
+    import { provideTableRouteSolver } from '../routes/tableRouteSolver.js'
     import TableNotices from './TableNotices.svelte'
     import PrivatePowerControls from '../privates/PrivatePowerControls.svelte'
     import PositionPanel from './PositionPanel.svelte'
@@ -57,7 +59,10 @@
         setGameSession,
         toastNewChatMessages
     } from '@tabletop/frontend-components'
-    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type {
+        EighteenXXSessionView,
+        MapLocationFollowUp
+    } from '../session/eighteenXXSession.svelte.js'
     import {
         isMapRouteValid,
         mapSelectionRect,
@@ -77,9 +82,12 @@
     import BoardAutoZoom from './BoardAutoZoom.svelte'
     import TileManifest from '../tiles/TileManifest.svelte'
     import type { NumberedShareNames } from './companyPresentation.js'
-    import { spreadsheetCompanies } from './spreadsheetCompanies.js'
+    import { companiesOnOffer, spreadsheetCompanies } from './spreadsheetCompanies.js'
+    import UnstartedCompanyCard from './UnstartedCompanyCard.svelte'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
+    import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
+    import LocationTileChoice from '../maps/LocationTileChoice.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
@@ -91,11 +99,19 @@
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
     import { LabelStacking } from './labelStacking.svelte.js'
-    import { currentDepotCertificates, type PhaseChartData } from '../phases/phaseChart.js'
+    import {
+        currentDepotCertificates,
+        marketCertificates,
+        type DepotCertificate,
+        type PhaseChartData
+    } from '../phases/phaseChart.js'
     type MapFocus = { key: string; outlinedLocationId?: string }
     const MapHexDiameter = 140
     const HexRadius = MapHexDiameter / 2
     const FocusRadius = 220
+    // A place a link points to is shown with about four hexes of the map around it, enough to
+    // see where on the board it lies.
+    const PlaceRevealRadius = 4 * MapHexDiameter
     const RevealMargin = 24
     let {
         session,
@@ -108,7 +124,8 @@
         historyDescription,
         historySetup,
         privateOperationDescription,
-        createRouteWorker
+        createRouteWorker,
+        boardPanel
     }: {
         session: EighteenXXSessionView
         additionalStockActions?: readonly StockMenuOption[]
@@ -124,7 +141,9 @@
             privateCompanyId: string,
             companyId: string
         ) => string | undefined
-        createRouteWorker: () => RouteWorker
+        createRouteWorker: () => QueuedRouteWorker
+        /** The title's own panel on the board, given a way to reveal a hex on the map. */
+        boardPanel?: { label: string; content: Snippet<[(locationId: string) => void]> }
     } = $props()
     const money = $derived(session.presentation.money)
     const {
@@ -163,6 +182,7 @@
         availableDefinitionIds: session.availableTrainDefinitionIds
     })
     const currentCertificates = $derived(currentDepotCertificates(depotState))
+    const openMarketCertificates = $derived(marketCertificates(depotState))
 
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
@@ -242,21 +262,31 @@
         return undefined
     })
     const outlinedLocationId = $derived(revealedLocationId ?? mapFocus?.outlinedLocationId)
+    /** Returns auto-zooming maps to how they stood before a place link focused them. */
+    let restoreBeforeReveal: ReturnType<typeof captureMaps> | undefined
     async function revealLocation(locationId: string) {
         session.closeHistoricalMap()
         if (mapFocus?.outlinedLocationId) mapFocus = undefined
         if (revealedLocationId === locationId) {
             revealedLocationId = undefined
+            restoreBeforeReveal?.({ animate: true })
+            restoreBeforeReveal = undefined
             return
         }
+        if (!revealedLocationId) restoreBeforeReveal = captureMaps()
         revealedLocationId = locationId
         showMap()
         await tick()
-        for (const { wrapper, extents } of mapViewers())
-            wrapper.revealRect(hexViewRect(locationId, HexRadius, extents), {
-                padding: RevealMargin,
-                animate: true
-            })
+        // An auto-zooming map focuses the place with the map around it; another only brings it
+        // into view.
+        for (const viewer of mapViewers())
+            if (autoZooms(viewer.wrapper))
+                focusViewerLocations(viewer, [locationId], true, PlaceRevealRadius)
+            else
+                viewer.wrapper.revealRect(hexViewRect(locationId, HexRadius, viewer.extents), {
+                    padding: RevealMargin,
+                    animate: true
+                })
     }
     function focusConnection({ from, to }: PlaceConnection) {
         revealedLocationId = undefined
@@ -284,11 +314,11 @@
     }
     function focusRoute(trainId: string) {
         const route = (
-            session.routes.solved?.result ?? session.projectedRun.latest?.solution.result
+            session.routes.shown ?? session.projectedRun.latest?.solution.result
         )?.routes.find((route) => route.trainId === trainId)
         if (!route) return
         void toggleMapFocus({ key: `route:${trainId}` }, () =>
-            focusLocations([...new Set(route.paths.map((path) => path.locationId))])
+            focusLocations(runLocationIds([route]))
         )
     }
     function previewHistoryMap(action: GameAction) {
@@ -309,6 +339,10 @@
     const companyCardsWrap = $derived(session.preferences.values[companyCardsWrapKey])
     function toggleCompanyCardsWrap() {
         session.preferences.set({ [companyCardsWrapKey]: !companyCardsWrap }, 'family')
+    }
+    const companyCardsUnstarted = $derived(session.preferences.values.companyCardsUnstarted)
+    function toggleCompanyCardsUnstarted() {
+        session.preferences.set({ companyCardsUnstarted: !companyCardsUnstarted }, 'family')
     }
     const companyCardsWide = $derived(session.preferences.values[companyCardsWideKey])
     function toggleCompanyCardsWide() {
@@ -346,7 +380,9 @@
         return cash
     })
     const boardExtents = $derived(
-        [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
+        [boardAreas?.market, boardAreas?.depot, boardPanel && boardAreas?.panel].filter(
+            (area) => area !== undefined
+        )
     )
     const boardViewport = $derived(
         mapViewport(displayedScene, MapHexDiameter, boardArtwork, boardExtents)
@@ -519,11 +555,8 @@
             showMap()
             void tick().then(() => {
                 if (current !== request) return
-                const locations = preview.result.routes.flatMap((route) =>
-                    route.paths.map((path) => path.locationId)
-                )
                 restoreRouteView ??= captureMaps()
-                autoFocusLocations([...new Set(locations)])
+                autoFocusLocations(runLocationIds(preview.result.routes))
             })
         }
         frame(initial)
@@ -604,8 +637,9 @@
               : session.projectedRun.overlays
         return settledRoutes
     })
+    const routeSolver = provideTableRouteSolver(() => createRouteWorker())
     function projectRuns(_table: HTMLElement, request: typeof session.projectedRun.request) {
-        const solver = new LatestRouteSolver<NonNullable<typeof request>>(createRouteWorker, {
+        const solver = new LatestRouteSolver<NonNullable<typeof request>>(routeSolver, {
             solved: (solved, solution) => session.projectedRun.setSolved(solved, solution),
             failed: (failed) => session.projectedRun.setFailed(failed)
         })
@@ -701,6 +735,14 @@
             displayedCompanyOrder,
             includedCompanyIds
         )
+    )
+    const unstartedPresentation = $derived(session.presentation.unstartedCompanies)
+    const companiesToStart = $derived(
+        unstartedPresentation
+            ? companiesOnOffer(gameState, session.charters, (companyId) =>
+                  unstartedPresentation.onOffer(gameState, companyId)
+              )
+            : []
     )
     setGameSession(untrack(() => session))
     const layoutPreference = new DebouncedLayout(
@@ -824,9 +866,17 @@
 
 {#snippet companyCard(
     company: Company,
-    layout: 'wide-fill' | 'vertical' = 'vertical',
-    onFocusConnection?: (connection: PlaceConnection) => void
+    {
+        layout = 'vertical',
+        onFocusConnection,
+        readOnly = false
+    }: {
+        layout?: 'wide-fill' | 'vertical'
+        onFocusConnection?: (connection: PlaceConnection) => void
+        readOnly?: boolean
+    } = {}
 )}<CompanyDetails
+        offersTrades={!readOnly}
         pricePresentation={companyPricePresentation}
         {layout}
         {company}
@@ -900,6 +950,15 @@
     />
 {/snippet}
 
+{#snippet followUpPicker(followUp: MapLocationFollowUp, viewport: HTMLDivElement)}
+    {#if followUp.select && followUp.options.every((option) => option.tile)}<LocationTileChoice
+            {followUp}
+            {viewport}
+            orientation={session.mapView.map.definition.orientation}
+            appearance={tileAppearance}
+        />{:else}<LocationFollowUpPicker {followUp} {viewport} />{/if}
+{/snippet}
+
 {#snippet boardInsets()}
     {#if boardAreas?.market}<BoardInset
             label="Stock market"
@@ -957,6 +1016,12 @@
                 />
             </div>
         </BoardInset>{/if}
+    {#if boardAreas?.panel && boardPanel}<BoardInset
+            label={boardPanel.label}
+            area={viewportRect(boardViewport, boardAreas.panel)}
+        >
+            <div class="board-panel">{@render boardPanel.content(revealLocation)}</div>
+        </BoardInset>{/if}
 {/snippet}
 
 {#snippet historyControls(bordered = true)}
@@ -968,6 +1033,17 @@
     />
 {/snippet}
 
+{#snippet depotCertificate({ definitionIds, remaining }: DepotCertificate)}
+    <span class="depot-type"
+        >{#each definitionIds as definitionId, index (definitionId)}{#if index > 0}<span
+                    class="depot-face-separator">/</span
+                >{/if}<TrainBadge
+                name={session.trainDepot.trainDefinition(definitionId).name}
+                color={trainColors[definitionId]}
+            />{/each}
+        <span class="depot-count">{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span></span
+    >
+{/snippet}
 {#snippet gameInformationStrip(stacking: LabelStacking)}
     <button
         class="game-information"
@@ -999,21 +1075,19 @@
         </span>
         <span class="game-information-item depot-information">
             <span class="information-label">Depot</span>
-            {#each currentCertificates as { definitionIds, remaining } (definitionIds[0])}
-                <span class="depot-type"
-                    >{#each definitionIds as definitionId, index (definitionId)}{#if index > 0}<span
-                                class="depot-face-separator">/</span
-                            >{/if}<TrainBadge
-                            name={session.trainDepot.trainDefinition(definitionId).name}
-                            color={trainColors[definitionId]}
-                        />{/each}
-                    <span class="depot-count"
-                        >{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span
-                    ></span
-                >
+            {#each currentCertificates as certificate (certificate.definitionIds[0])}
+                {@render depotCertificate(certificate)}
             {:else}<span>Empty</span>{/each}
         </span>
-        {#if session.loans.rate !== undefined}
+        {#if openMarketCertificates.length}
+            <span class="game-information-item depot-information">
+                <span class="information-label">Market</span>
+                {#each openMarketCertificates as certificate (certificate.definitionIds[0])}
+                    {@render depotCertificate(certificate)}
+                {/each}
+            </span>
+        {/if}
+        {#if session.loans.rate !== undefined && !session.presentation.loanTerms?.fixedTerms}
             <span class="game-information-item">
                 <span class="information-label">Interest</span>
                 <span
@@ -1156,6 +1230,8 @@
                                     {gameState}
                                     trainDepot={session.trainDepot}
                                     {trainColors}
+                                    trainTokens={(train) =>
+                                        session.presentation.trainTokens?.(gameState, train)}
                                     requiresTrain={(companyId) =>
                                         session.companyRequiresTrain(companyId)}
                                     appearances={session.mapView.stations}
@@ -1294,6 +1370,7 @@
                                 </div>{/if}
                             <ScalingWrapper
                                 bind:this={mapWrapper}
+                                renderAtViewScale
                                 maxScale={2}
                                 overpan={mapOverpan}
                                 gestureOverpanReach={MapGestureOverpanReach}
@@ -1318,11 +1395,15 @@
                                             appearance={tileAppearance}
                                         />
                                     {/if}
+                                    {#if active && locationChoice?.followUp}
+                                        {@render followUpPicker(locationChoice.followUp, viewport)}
+                                    {/if}
                                 {/snippet}
                             </ScalingWrapper>
                         </div>{:else if id === 'Board'}<div class="workspace-view map-area">
                             <ScalingWrapper
                                 bind:this={boardWrapper}
+                                renderAtViewScale
                                 insetTop={44}
                                 overpan={mapOverpan}
                                 gestureOverpanReach={MapGestureOverpanReach}
@@ -1355,6 +1436,9 @@
                                             {viewport}
                                             appearance={tileAppearance}
                                         />
+                                    {/if}
+                                    {#if active && locationChoice?.followUp}
+                                        {@render followUpPicker(locationChoice.followUp, viewport)}
                                     {/if}
                                 {/snippet}
                             </ScalingWrapper>
@@ -1405,18 +1489,33 @@
                                 onToggleWrap={toggleCompanyCardsWrap}
                                 wide={companyCardsWide}
                                 onToggleWide={toggleCompanyCardsWide}
+                                unstartedSwitch={companiesToStart.length
+                                    ? {
+                                          enabled: companyCardsUnstarted,
+                                          toggle: toggleCompanyCardsUnstarted
+                                      }
+                                    : undefined}
                             >
                                 {#each startedCompanies as company (company.id)}
-                                    {@render companyCard(
-                                        company,
-                                        companyCardsWide ? 'wide-fill' : 'vertical',
-                                        focusConnection
-                                    )}
-                                {:else}<p class="widget-empty">No companies have started.</p>{/each}
+                                    {@render companyCard(company, {
+                                        layout: companyCardsWide ? 'wide-fill' : 'vertical',
+                                        onFocusConnection: focusConnection
+                                    })}
+                                {:else}{#if !companyCardsUnstarted || !companiesToStart.length}<p
+                                            class="widget-empty"
+                                        >
+                                            No companies have started.
+                                        </p>{/if}{/each}
+                                {#if companyCardsUnstarted && unstartedPresentation}{#each companiesToStart as company (company.id)}<UnstartedCompanyCard
+                                            {session}
+                                            {company}
+                                            home={unstartedPresentation.home(gameState, company.id)}
+                                            wide={companyCardsWide}
+                                        />{/each}{/if}
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
                             <TileManifest
-                                tiles={session.mapView.tileSet.definitions}
+                                tiles={session.map.manifestTiles}
                                 inventory={session.map.tileCounts}
                                 upgrades={session.tileUpgrades}
                                 layouts={session.mapView.layouts}
@@ -1488,7 +1587,9 @@
                 label={session.companyName(shownCompanyCardId)}
                 onclose={() => (shownCompanyCardId = undefined)}
             >
-                {@render companyCard(getCompany(gameState, shownCompanyCardId))}
+                {@render companyCard(getCompany(gameState, shownCompanyCardId), {
+                    readOnly: true
+                })}
             </Lightbox>
         {/if}
 
@@ -1669,6 +1770,7 @@
         color-scheme: dark;
         --rail-text: #e3e9ef;
         --rail-negative: #ff9c91;
+        --rail-warning: #f2b84b;
         --rail-phase-tint: 100%;
         --rail-phase-filter: none;
         --rail-phase-opacity: 1;
@@ -1829,13 +1931,8 @@
         border-radius: 0;
         background: transparent;
     }
-    /* Its bottom padding keeps the panel clear of the instruction bar's rule on short panes. */
     .action-panel :global(.centered-panel) {
         margin-block: auto;
-        padding-bottom: 16px;
-    }
-    .action-panel :global(.centered-panel .centered-panel) {
-        padding-bottom: 0;
     }
     @container action-pane (min-width: 500px) {
         .action-panel:has(:global(.sales-sidebar)) {
@@ -1927,7 +2024,8 @@
         position: relative;
     }
     .market-corner,
-    .board-depot {
+    .board-depot,
+    .board-panel {
         pointer-events: auto;
     }
     .market-corner {

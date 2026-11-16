@@ -1,6 +1,12 @@
 import { expect, it } from 'vitest'
-import { PhaseTable, TrainDepot } from '@tabletop/18xx'
-import { createPhaseChart, currentDepotCertificates, trainRosterRows } from './phaseChart.js'
+import { PhaseTable, TrainDepot, type Train } from '@tabletop/18xx'
+import {
+    certificateRemaining,
+    createPhaseChart,
+    currentDepotCertificates,
+    marketCertificates,
+    trainRosterRows
+} from './phaseChart.js'
 
 const distance = (maximum: number) => ({ measure: 'revenue-centers' as const, maximum })
 
@@ -66,17 +72,64 @@ it('counts a paired certificate once, cheaper face first, and other trains separ
     ])
 })
 
-const rosterTrain = (id: string, supplyId: string, rustPhaseId?: string) => ({
+it('counts discarded trains in the open market by certificate, in supply order', () => {
+    const depot = new TrainDepot({
+        id: 'paired',
+        trains: [
+            { id: '2', name: '2', price: 80, distance: distance(2) },
+            { id: '4', name: '4', price: 180, distance: distance(4) },
+            { id: '3/5', name: '3/5', price: 160, distance: distance(5) },
+            { id: '6', name: '6', price: 300, distance: distance(6) }
+        ],
+        supply: [
+            { definitionId: '2', count: 3 },
+            { definitionId: '4', variantDefinitionIds: ['3/5'], count: 3 },
+            { definitionId: '6', count: 2 }
+        ]
+    })
+    const owner = { kind: 'company' as const, companyId: 'A' }
+    const trains: Train[] = [
+        { id: '2/1', definitionId: '2', status: 'market' },
+        { id: '2/2', definitionId: '2', status: 'market' },
+        { id: '4/4', definitionId: '3/5', status: 'market' },
+        { id: '4/5', definitionId: '4', status: 'owned', owner },
+        { id: '4/6', definitionId: '4', status: 'depot' },
+        { id: '6/7', definitionId: '6', status: 'depot' }
+    ]
+    const inventory = { trains, nextTrainNumber: 8 }
+    expect(marketCertificates({ depot, inventory })).toEqual([
+        { definitionIds: ['2'], remaining: 2 },
+        { definitionIds: ['3/5', '4'], remaining: 1 }
+    ])
+})
+
+it('has no open-market certificates while nothing has been discarded', () => {
+    const depot = new TrainDepot({
+        id: 'plain',
+        trains: [{ id: '2', name: '2', price: 80, distance: distance(2) }],
+        supply: [{ definitionId: '2', count: 2 }]
+    })
+    expect(marketCertificates({ depot, inventory: depot.createInventory() })).toEqual([])
+})
+
+it('finds the count of the certificate a train face belongs to', () => {
+    const certificates = [{ definitionIds: ['3/5', '4'], remaining: 2 }]
+    expect(certificateRemaining(certificates, '4')).toBe(2)
+    expect(certificateRemaining(certificates, '3/5')).toBe(2)
+    expect(certificateRemaining(certificates, '6')).toBe(0)
+})
+
+const rosterTrain = (id: string, supplyId: string, price: number, rustPhaseId?: string) => ({
     id,
     name: id,
-    price: 100,
+    price,
     supplyId,
     rustTrainIds: [],
     rustPhaseId
 })
 const rowSpans = (trains: ReturnType<typeof rosterTrain>[]) =>
-    trainRosterRows(trains).map(({ train, remainingRowSpan, rustRowSpan }) => [
-        train.id,
+    trainRosterRows(trains).map(({ faces, remainingRowSpan, rustRowSpan }) => [
+        faces.map((face) => face.id),
         remainingRowSpan,
         rustRowSpan
     ])
@@ -84,26 +137,50 @@ const rowSpans = (trains: ReturnType<typeof rosterTrain>[]) =>
 it('spans one remaining and one rust cell across faces that rust together', () => {
     expect(
         rowSpans([
-            rosterTrain('2', '2', 'III'),
-            rosterTrain('2+1', '2', 'III'),
-            rosterTrain('7+3', '7+3')
+            rosterTrain('2', '2', 75, 'III'),
+            rosterTrain('2+1', '2', 100, 'III'),
+            rosterTrain('7+3', '7+3', 1000)
         ])
     ).toEqual([
-        ['2', 2, 2],
-        ['2+1', 0, 0],
-        ['7+3', 1, 1]
+        [['2'], 2, 2],
+        [['2+1'], 0, 0],
+        [['7+3'], 1, 1]
+    ])
+})
+
+it('lists the faces of a certificate that cost the same and rust together on one row', () => {
+    expect(
+        rowSpans([
+            rosterTrain('2E', 'A', 100, 'C'),
+            rosterTrain('2L', 'A', 100, 'C'),
+            rosterTrain('1F', 'A', 100, 'C'),
+            rosterTrain('2/3E', 'B', 200, 'E'),
+            rosterTrain('2/3L', 'B', 200, 'E'),
+            rosterTrain('2+2', 'B', 140, 'E'),
+            rosterTrain('100', 'other', 100, 'C')
+        ])
+    ).toEqual([
+        [['2E', '2L', '1F'], 1, 1],
+        [['2/3E', '2/3L'], 2, 2],
+        [['2+2'], 0, 0],
+        [['100'], 1, 1]
     ])
 })
 
 it('keeps a rust cell per face when the faces of a certificate rust differently', () => {
-    expect(rowSpans([rosterTrain('3/5', '4', 'III'), rosterTrain('4', '4', 'IV')])).toEqual([
-        ['3/5', 2, 1],
-        ['4', 0, 1]
+    expect(
+        rowSpans([rosterTrain('3/5', '4', 160, 'III'), rosterTrain('4', '4', 160, 'IV')])
+    ).toEqual([
+        [['3/5'], 2, 1],
+        [['4'], 0, 1]
     ])
 })
 
 it('keeps a rust cell per face when only the notes of a certificate differ', () => {
-    const [cheaper, dearer] = [rosterTrain('3/5', '4', 'III'), rosterTrain('4', '4', 'III')]
+    const [cheaper, dearer] = [
+        rosterTrain('3/5', '4', 160, 'III'),
+        rosterTrain('4', '4', 160, 'III')
+    ]
     expect(
         trainRosterRows([{ ...cheaper, rustNote: 'Runs once more.' }, dearer]).map(
             ({ rustRowSpan }) => rustRowSpan
