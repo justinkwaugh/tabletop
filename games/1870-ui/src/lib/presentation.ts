@@ -9,6 +9,14 @@ import OpenPortToken from './images/tokens/open-port.svg'
 
 export const Presentation1870: TitlePresentation<State1870> = {
     money: moneyFormat(TitleRules1870.currencySymbol),
+    // The SP's home is off-board, with no reserved city, so homes come from the charters.
+    unstartedCompanies: {
+        onOffer: () => true,
+        home: (_state, companyId) => {
+            const company = company1870(companyId)
+            return { locationIds: company ? [company.home] : [] }
+        }
+    },
     phaseChart: PhaseChart1870,
     phaseChartFor: phaseChart1870,
     // With diesels, the first diesel brings in the bottom off-board values (p. 24).

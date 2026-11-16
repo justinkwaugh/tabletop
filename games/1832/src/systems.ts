@@ -250,7 +250,7 @@ export function formSystem(
         systemId,
         playersAfterPresident(state, systemId, state.turnManager.turnOrder),
         undefined,
-        true
+        { largestFirst: true }
     )
     if (presidency.change) applyPresidencyChange(state, presidency.change)
 

@@ -11,6 +11,7 @@ import {
     type TileEdge
 } from '@tabletop/18xx'
 import { mapTrackJoins } from '../lib/maps/trackJoins.js'
+import { tilePathPoint } from '../lib/tiles/tileTrackGeometry.js'
 import {
     borderDash,
     createMapDrawing,
@@ -41,6 +42,12 @@ it.each([HexOrientation.Flat, HexOrientation.Pointy])(
         )
         expect(mapTrackJoins(scene)).toHaveLength(1)
         expect(mapTrackJoins({ ...scene, locations: scene.locations.slice(0, 1) })).toHaveLength(0)
+        const [firstTrack] = scene.locations[0].face.paths
+        const undrawn = createMapDrawing(scene.map, undefined, {
+            layouts: { 'location-0': { printedPaths: { [firstTrack.id]: 'hidden' } } }
+        })
+        // A track the print does not draw joins nothing at its side.
+        expect(mapTrackJoins(undrawn)).toHaveLength(0)
         const [first, second] = scene.locations
         const a = first.borders[0],
             b = second.borders[0]
@@ -568,4 +575,134 @@ it('draws one marker in each location’s own art', () => {
         )
     )
     expect(tokens).toEqual([['shared.svg'], ['west.svg']])
+})
+
+it('stands a listed location’s terrain cost under its symbols', () => {
+    const map = new RailwayMap({
+        id: 'terrain',
+        name: 'Terrain',
+        orientation: HexOrientation.Flat,
+        locations: [0, 1].map((r) => ({
+            id: `location-${r}`,
+            coordinates: { q: 0, r },
+            buildable: true,
+            preprintedTile: createTrackTileFace('yellow', [[0, 3]]),
+            terrain: { cost: 160, kinds: ['mountain'] }
+        }))
+    })
+    const scene = createMapDrawing(map, undefined, {
+        terrainPositions: { 'location-0': { x: -22, y: -5 } },
+        terrainCostsBelow: ['location-0']
+    })
+    const [listed, other] = scene.locations
+    expect(listed.terrainCostBelow).toBe(true)
+    expect(listed.terrainPosition).toEqual({ x: -22, y: -5 })
+    expect(other.terrainCostBelow).toBeUndefined()
+})
+
+it('keeps a hex’s terrain cost on a laid tile only where the view asks, clear of its city', () => {
+    const tileSet = new TileSet(
+        { id: 'kept', entries: [{ id: 'kept/57', faceDefinitionIds: ['18xx:57'], count: 1 }] },
+        [StandardTileCatalog]
+    )
+    const map = new RailwayMap({
+        id: 'kept',
+        name: 'Kept',
+        orientation: HexOrientation.Flat,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createCityTileFace('white', [], 0, 1),
+                terrain: { cost: 160, kinds: ['mountain'] }
+            }
+        ]
+    })
+    const inventory = tileSet.createInventory([
+        { locationId: 'A1', definitionId: '18xx:57', rotation: 0 }
+    ])
+    const laid = (terrainKeptOnTiles: boolean) =>
+        createMapDrawing(map, { tileSet, inventory }, { terrainKeptOnTiles }).locations[0]
+    expect(laid(false).terrainShown).toBe(false)
+    const kept = laid(true)
+    expect(kept.terrainShown).toBe(true)
+    // The row reaches 9 above its line and 5 below, the width of its peaks and cost.
+    const [city] = kept.drawing.nodes
+    const [slot] = city.slots
+    const row = kept.terrainPosition
+    const halfWidth = (19 + 3 * 6.5) / 2
+    const gap = Math.hypot(
+        Math.max(Math.abs(slot.x - row.x) - halfWidth, 0),
+        Math.max(slot.y < row.y ? row.y - 9 - slot.y : slot.y - row.y - 5, 0)
+    )
+    expect(gap).toBeGreaterThanOrEqual(city.slotRadius)
+})
+
+it('stands a kept terrain cost clear of a laid tile’s track', () => {
+    const tileSet = new TileSet(
+        { id: 'track', entries: [{ id: 'track/9', faceDefinitionIds: ['18xx:9'], count: 6 }] },
+        [StandardTileCatalog]
+    )
+    const map = new RailwayMap({
+        id: 'track',
+        name: 'Track',
+        orientation: HexOrientation.Flat,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createTrackTileFace('white', []),
+                terrain: { cost: 160, kinds: ['mountain'] }
+            }
+        ]
+    })
+    for (const rotation of [0, 1, 2] as const) {
+        const inventory = tileSet.createInventory([
+            { locationId: 'A1', definitionId: '18xx:9', rotation }
+        ])
+        const [laid] = createMapDrawing(
+            map,
+            { tileSet, inventory },
+            { terrainKeptOnTiles: true }
+        ).locations
+        const row = laid.terrainPosition
+        const halfWidth = laid.terrainCostBelow ? 19 / 2 : (19 + 3 * 6.5) / 2
+        const foot = laid.terrainCostBelow ? 15 : 5
+        for (const path of laid.drawing.paths)
+            for (let t = 0; t <= 1; t += 0.05) {
+                const point = tilePathPoint(path, t)
+                const outside =
+                    Math.abs(point.x - row.x) > halfWidth ||
+                    point.y < row.y - 9 ||
+                    point.y > row.y + foot
+                expect(outside).toBe(true)
+            }
+    }
+})
+
+it('places a token near its printed point, or at the clear spot nearest it where track runs', () => {
+    const marked = (id: string, q: number, edges: readonly (0 | 1 | 2 | 3 | 4 | 5)[]) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: true,
+        preprintedTile: createCityTileFace('white', edges, 0, 1),
+        markers: [{ id: 'rebellion', label: 'NWR', description: 'Rebellion' }]
+    })
+    const map = new RailwayMap({
+        id: 'near',
+        name: 'Near',
+        orientation: HexOrientation.Flat,
+        locations: [marked('open', 0, []), marked('tracked', 2, [4, 5])]
+    })
+    const preferred = { x: 33, y: 0 }
+    const [open, tracked] = createMapDrawing(map, undefined, {
+        markerArt: { rebellion: { token: { imageUrl: 'nwr.svg', place: { near: preferred } } } }
+    }).locations.map((entry) => entry.revenueAnnotations.find((note) => note.kind === 'token'))
+    assert(open?.kind === 'token' && tracked?.kind === 'token')
+    expect(Math.hypot(open.x - preferred.x, open.y - preferred.y)).toBeLessThanOrEqual(2)
+    // Track to the hex's two right sides pushes the token off the point, still inside the hex.
+    expect(Math.hypot(tracked.x - preferred.x, tracked.y - preferred.y)).toBeGreaterThan(2)
+    expect(Math.hypot(tracked.x, tracked.y)).toBeLessThan(43)
 })

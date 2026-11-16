@@ -11,21 +11,44 @@ export const STANDARD_LAY_TRACK: Readonly<Record<LayTrackSpace, LayTrackRules>> 
         placementsPerCompany: 4,
         requiresShare: true,
         halfPriceWithoutShare: false,
-        allowsCrossingCubes: true
+        allowsCrossingCubes: true,
+        tolls: 0,
+        allowsLoans: false
     },
     [ActionSpaceId.LayTrackII]: {
         maxCompanies: 2,
         placementsPerCompany: 2,
         requiresShare: false,
         halfPriceWithoutShare: true,
-        allowsCrossingCubes: false
+        allowsCrossingCubes: false,
+        tolls: 0,
+        allowsLoans: false
     },
     [ActionSpaceId.LayTrackIII]: {
         maxCompanies: 1,
         placementsPerCompany: 4,
         requiresShare: true,
         halfPriceWithoutShare: false,
-        allowsCrossingCubes: false
+        allowsCrossingCubes: false,
+        tolls: 0,
+        allowsLoans: false
+    }
+}
+
+// Switzerland and Denmark: Lay Track III builds one tunnel or bridge; in Switzerland Lay Track I
+// and III also take out or repay loans.
+export function tollLayTrack(loans: boolean): Readonly<Record<LayTrackSpace, LayTrackRules>> {
+    return {
+        [ActionSpaceId.LayTrackI]: {
+            ...STANDARD_LAY_TRACK[ActionSpaceId.LayTrackI],
+            allowsLoans: loans
+        },
+        [ActionSpaceId.LayTrackII]: STANDARD_LAY_TRACK[ActionSpaceId.LayTrackII],
+        [ActionSpaceId.LayTrackIII]: {
+            ...STANDARD_LAY_TRACK[ActionSpaceId.LayTrackIII],
+            tolls: 1,
+            allowsLoans: loans
+        }
     }
 }
 

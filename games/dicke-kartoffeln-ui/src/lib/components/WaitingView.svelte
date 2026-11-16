@@ -69,8 +69,7 @@
         align-items: center;
         gap: 2px;
         padding: 6px 12px;
-        font-family: 'Kartoffeln Letters', 'Comic Sans MS', cursive;
-        text-transform: uppercase;
+        font-family: 'Kartoffeln Typewriter', 'Courier New', monospace;
         color: #3d2410;
         text-align: center;
     }

@@ -123,12 +123,10 @@ export class CompanyDecisionsHandler<
                 const construction = new TrackConstruction(state, this.track)
                 if (
                     this.track.map.definition.locations.some((location) =>
-                        construction
-                            .choices(location.id)
-                            .some(
-                                (choice) =>
-                                    choice.consentPlayerId && choice.consentPlayerId !== playerId
-                            )
+                        construction.choices(location.id).some((choice) => {
+                            const consenters = construction.consenters(choice)
+                            return consenters.length > 0 && !consenters.includes(playerId)
+                        })
                     )
                 )
                     actions.push('RequestTrackConsent')

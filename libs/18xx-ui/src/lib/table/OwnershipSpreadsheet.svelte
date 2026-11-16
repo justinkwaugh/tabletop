@@ -1,9 +1,11 @@
 <script lang="ts">
     import { holdsReceiverPresidentCertificate } from '../finance/companyOwnership.js'
+    import { multiShareMark, type MultiShareMark } from '../finance/multiShareCertificates.js'
     import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
+    import '../stock/tradePopover.css'
     import {
         companySharePrice,
         DefaultCompanyPricePresentation,
@@ -25,7 +27,8 @@
         type Company,
         type Owner,
         type PurchaseRequest,
-        isObsoleteTrain
+        isObsoleteTrain,
+        stationPlacer
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import type { NumberedShareNames } from './companyPresentation.js'
@@ -187,6 +190,21 @@
     const portfolioColumnLabels = $derived(
         new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
+    /** Where a column's certificates are held: its owner, and for the bank, the pool. */
+    type CertificateHolder = { owner: Owner; poolId?: string }
+    /** The title's mark where the column's owner holds a certificate of several shares. */
+    function markedCertificate(companyId: string, ownerId: string): MultiShareMark | undefined {
+        const holder = owners.find((owner) => owner.id === ownerId)?.holder(companyId)
+        return holder
+            ? multiShareMark(
+                  session.presentation,
+                  session.gameState,
+                  companyId,
+                  holder.owner,
+                  holder.poolId
+              )
+            : undefined
+    }
     // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
         return certificatesInPool(session.gameState, poolId).reduce(
@@ -242,15 +260,13 @@
         )
         assertExists(choice, 'Choose an available share purchase')
         shareConfirmation?.hidePopover()
-        session.stock.selectPurchase(choice.request)
-        void session.stock.confirmPurchase()
+        void session.stock.buyAndReopenMenu(choice.request)
     }
     function confirmSale(shares: number) {
         const choice = pendingSaleChoices.find((option) => option.sale.shares === shares)
         assertExists(choice, 'Choose an available share sale')
         shareConfirmation?.hidePopover()
-        session.stock.selectSale(choice.request)
-        void session.stock.confirmSale()
+        void session.stock.sellAndReopenMenu(choice.request)
     }
     const portfolioOwners = $derived(
         portfolioCompanyIds.map((ownerId) => ({
@@ -261,7 +277,8 @@
                 sharesOwned(session.gameState, companyId, {
                     kind: 'company',
                     companyId: ownerId
-                })
+                }),
+            holder: (): CertificateHolder => ({ owner: { kind: 'company', companyId: ownerId } })
         }))
     )
     const seatOrder = $derived(
@@ -273,13 +290,16 @@
     type OwnerStatistics = {
         turnOrder?: number
         cash: number
+        /** The cash a player's bids hold back, shown under it. */
+        reserved?: number
         shares: number
         netWorth: number
         certs?: { count: number; limit: number }
     }
     function ownerStatisticsFor(owner: Owner, certs?: OwnerStatistics['certs']): OwnerStatistics {
         const { cash, netWorth, shares } = session.portfolio(owner)
-        return { cash, shares, netWorth, certs }
+        const reserved = owner.kind === 'player' ? session.reservedCash(owner.playerId) : 0
+        return { cash, ...(reserved ? { reserved } : {}), shares, netWorth, certs }
     }
     function firstSortDirection(column: SpreadsheetSortColumn<never>): SpreadsheetSortDirection {
         const first = nextSpreadsheetSort(undefined, 'column', column.directions)
@@ -319,13 +339,18 @@
         ...ownerStatisticColumns,
         turnOrder: { value: (values) => values.turnOrder, directions: ['ascending'] }
     }
-    type CompanyStatistic = 'value' | 'cash' | 'lastRun' | `column:${string}`
+    type CompanyStatistic = 'value' | 'cash' | 'loans' | 'lastRun' | `column:${string}`
     const titleColumns = $derived(session.presentation.companyColumns ?? [])
+    /** The heading of the loans a company holds, where the title has them in this game. */
+    const loansLabel = $derived(
+        session.loans.rules ? (session.presentation.loanTerms?.name ?? 'Loans') : undefined
+    )
     const companyStatisticHeadings = $derived([
         pricePresentation.label,
         'Cash',
         'Trains',
         'Tokens',
+        ...(loansLabel ? [loansLabel] : []),
         'Last run',
         ...titleColumns.map((column) => column.label)
     ])
@@ -357,7 +382,8 @@
                 {
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
-                    count: (companyId: string) => session.playerShares(companyId, playerId)
+                    count: (companyId: string) => session.playerShares(companyId, playerId),
+                    holder: (): CertificateHolder => ({ owner: { kind: 'player', playerId } })
                 },
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)
             ]),
@@ -368,7 +394,11 @@
                           id: 'ipo',
                           name: 'IPO',
                           count: (companyId: string) => poolShares(ipoPoolId, companyId),
-                          sells: inPool(ipoPoolId)
+                          sells: inPool(ipoPoolId),
+                          holder: (): CertificateHolder => ({
+                              owner: { kind: 'bank' },
+                              poolId: ipoPoolId
+                          })
                       }
                   ]
                 : []),
@@ -376,7 +406,11 @@
                 id: 'market',
                 name: 'Market',
                 count: (companyId: string) => poolShares(marketPoolId, companyId),
-                sells: inPool(marketPoolId)
+                sells: inPool(marketPoolId),
+                holder: (): CertificateHolder => ({
+                    owner: { kind: 'bank' },
+                    poolId: marketPoolId
+                })
             },
             {
                 id: 'treasury',
@@ -385,14 +419,21 @@
                     sharesOwned(session.gameState, companyId, { kind: 'company', companyId }),
                 sells: (certificate: PurchaseCertificate) =>
                     certificate.owner.kind === 'company' &&
-                    certificate.owner.companyId === certificate.companyId
+                    certificate.owner.companyId === certificate.companyId,
+                holder: (companyId: string): CertificateHolder => ({
+                    owner: { kind: 'company', companyId }
+                })
             },
             ...(exchangePoolId
                 ? [
                       {
                           id: 'exchange',
                           name: 'Exchange',
-                          count: (companyId: string) => poolShares(exchangePoolId, companyId)
+                          count: (companyId: string) => poolShares(exchangePoolId, companyId),
+                          holder: (): CertificateHolder => ({
+                              owner: { kind: 'bank' },
+                              poolId: exchangePoolId
+                          })
                       }
                   ]
                 : [])
@@ -444,9 +485,13 @@
                     ? company.parPrice
                     : undefined,
             stations: session.gameState.stations.filter(
-                (station) => station.companyId === company.id
+                (station) => stationPlacer(session.gameState, station) === company.id
             ),
             cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
+            loans:
+                session.loans.rules && company.started && company.kind !== 'private'
+                    ? session.loans.loans(company.id)
+                    : undefined,
             lastRun: companyLastRun(session.actions, session.gameState.actionCount, company.id),
             presidentId: session.drafterOf(company.id)
                 ? `player:${session.drafterOf(company.id)}`
@@ -479,15 +524,23 @@
                     tieOrder: (a, b) => operatingOrder(a.company.id, b.company.id)
                 },
                 cash: { value: (row) => (typeof row.cash === 'number' ? row.cash : undefined) },
+                loans: { value: (row) => row.loans },
                 lastRun: { value: (row) => row.company.lastRunRevenue },
                 ...Object.fromEntries(
-                    titleColumns.map((column) => [
-                        `column:${column.id}`,
-                        {
-                            value: (row: CompanyRow) =>
-                                column.value(session.gameState, row.company.id)
-                        }
-                    ])
+                    titleColumns.flatMap((column) => {
+                        const { value } = column
+                        return value
+                            ? [
+                                  [
+                                      `column:${column.id}`,
+                                      {
+                                          value: (row: CompanyRow) =>
+                                              value(session.gameState, row.company.id)
+                                      }
+                                  ]
+                              ]
+                            : []
+                    })
                 )
             }
         }
@@ -540,6 +593,10 @@
                 limit={values.certs.limit}
             />{:else}{values ? ownerStatisticColumns[key].text(values) : '—'}{/if}{#if included}<sup
                 >*</sup
+            >{/if}{#if key === 'cash' && values?.reserved}<small
+                class="reserved"
+                title="The cash the player’s bids hold back"
+                >{money(values.reserved)} reserved</small
             >{/if}</span
     >
 {/snippet}
@@ -599,6 +656,14 @@
     >
 {/snippet}
 
+{#snippet titleHeader(scope: 'col' | 'row', column: (typeof titleColumns)[number])}
+    {#if column.value}{@render companySortHeader(
+            scope,
+            column.label,
+            `column:${column.id}`
+        )}{:else}<th {scope} class:company-stat-start={scope === 'col'}>{column.label}</th>{/if}
+{/snippet}
+
 {#snippet playerSortHeader(scope: 'col' | 'row', key: OwnerStatistic, statStart = false)}
     {@const direction = spreadsheetSortDirection(playerSort, key)}
     <th {scope} class:stat-start={statStart} aria-sort={direction}
@@ -632,6 +697,12 @@
     {cashText(money, cash)}
 {/snippet}
 
+{#snippet loansCell(row: CompanyRow)}
+    {#if row.loans === undefined}<span class="empty">—</span>{:else}{session.loans.held(
+            row.company.id
+        )}{/if}
+{/snippet}
+
 {#snippet lastRunCell(row: CompanyRow)}
     {@const company = row.company}
     {#if company.lastRunRevenue === undefined}<span class="empty">—</span>
@@ -647,6 +718,19 @@
     {:else}<span class="last-run-revenue">{money(company.lastRunRevenue)}</span>{/if}
 {/snippet}
 
+{#snippet titleCell(column: (typeof titleColumns)[number], companyId: string)}
+    {#if column.marks}<span
+            class="title-marks"
+            role="group"
+            aria-label={column.text(session.gameState, companyId)}
+            >{#each column.marks(session.gameState, companyId) as mark (mark.label)}{#if mark.imageUrl}<img
+                        src={mark.imageUrl}
+                        alt=""
+                        title={mark.description}
+                    />{:else}<span title={mark.description}>{mark.label}</span>{/if}{/each}</span
+        >{:else}{column.text(session.gameState, companyId)}{/if}
+{/snippet}
+
 {#snippet companyTrains(companyId: string)}
     <span class="company-trains">
         {#each trainsOwnedBy(session.gameState, { kind: 'company', companyId }) as train (train.id)}
@@ -654,6 +738,7 @@
                 name={session.trainDepot.trainDefinition(train.definitionId).name}
                 color={trainColors[train.definitionId]}
                 obsolete={isObsoleteTrain(train)}
+                tokens={session.presentation.trainTokens?.(session.gameState, train)}
             />
         {:else}<span class="empty">—</span>{/each}
     </span>
@@ -672,6 +757,7 @@
     numbers: readonly number[] = []
 )}
     {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
+    {@const marked = shares > 0 ? markedCertificate(companyId, ownerId) : undefined}
     {@const saleChoices = shares > 0 ? saleChoicesForCell(companyId, ownerId) : []}
     <td
         class:operating-column={operating}
@@ -690,7 +776,7 @@
                 aria-label={`Buy ${session.companyName(companyId)} from ${owners.find((owner) => owner.id === ownerId)?.name}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
-                >{@render shareValue(String(shares), president)}</button
+                >{@render shareValue(String(shares), president, marked)}</button
             >
         {:else if saleChoices.length}
             <button
@@ -698,14 +784,14 @@
                 aria-label={`Sell ${session.companyName(companyId)} shares`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
-                >{@render shareHolding(String(shares), president, numbers)}</button
+                >{@render shareHolding(String(shares), president, numbers, marked)}</button
             >
         {:else if shares < 0}
             <span class="share-value" title={`Short ${-shares}`}
                 >{shares}<span class="sr-only"> short</span></span
             >
         {:else}
-            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers)}
+            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers, marked)}
         {/if}
     </td>
 {/snippet}
@@ -716,20 +802,32 @@
     >
 {/snippet}
 
-{#snippet shareValue(text: string, president: boolean)}
+{#snippet shareValue(text: string, president: boolean, mark?: MultiShareMark)}
     <span class="share-value" class:president
-        >{text}{#if president}<span class="badge" aria-label="President">P</span>{/if}</span
+        >{text}{#if president || mark}<span
+                class="badge"
+                aria-label={[president ? 'President' : '', mark?.name ?? '']
+                    .filter(Boolean)
+                    .join(', ')}
+                title={mark?.title}>{president ? 'P' : ''}{mark?.label ?? ''}</span
+            >{/if}</span
     >
 {/snippet}
 
-{#snippet shareHolding(text: string, president: boolean, numbers: readonly number[])}
+{#snippet shareHolding(
+    text: string,
+    president: boolean,
+    numbers: readonly number[],
+    marked?: MultiShareMark
+)}
     {#if numbers.length}
         {@const label = ` (${numbers.join(',')})`}
         <span class="noted-value" class:president data-note={label}
-            >{@render shareValue(text, president)}<span class="value-note">{label}</span></span
+            >{@render shareValue(text, president, marked)}<span class="value-note">{label}</span
+            ></span
         >
     {:else}
-        {@render shareValue(text, president)}
+        {@render shareValue(text, president, marked)}
     {/if}
 {/snippet}
 
@@ -871,11 +969,15 @@
                                     {@render companySortHeader('col', 'Cash', 'cash')}
                                     <th scope="col">Trains</th>
                                     <th scope="col">Tokens</th>
-                                    {@render companySortHeader('col', 'Last run', 'lastRun')}
-                                    {#each titleColumns as column (column.id)}{@render companySortHeader(
+                                    {#if loansLabel}{@render companySortHeader(
                                             'col',
-                                            column.label,
-                                            `column:${column.id}`
+                                            loansLabel,
+                                            'loans'
+                                        )}{/if}
+                                    {@render companySortHeader('col', 'Last run', 'lastRun')}
+                                    {#each titleColumns as column (column.id)}{@render titleHeader(
+                                            'col',
+                                            column
                                         )}{/each}
                                 {:else}
                                     {#each rows as row (row.company.id)}
@@ -938,15 +1040,15 @@
                                                 (station) => station.status === 'available'
                                             ).length}/{row.stations.length}</td
                                         >
+                                        {#if loansLabel}<td class="company-stat-start bright-cell"
+                                                >{@render loansCell(row)}</td
+                                            >{/if}
                                         <td class="company-stat-start"
                                             >{@render lastRunCell(row)}</td
                                         >
                                         {#each titleColumns as column (column.id)}<td
                                                 class="company-stat-start bright-cell"
-                                                >{column.text(
-                                                    session.gameState,
-                                                    row.company.id
-                                                )}</td
+                                                >{@render titleCell(column, row.company.id)}</td
                                             >{/each}
                                     </tr>
                                 {/each}
@@ -1101,6 +1203,20 @@
                                             class="void"
                                         ></td>{/each}
                                 </tr>
+                                {#if loansLabel}
+                                    <tr class="company-stat-start financial-row">
+                                        {@render companySortHeader('row', loansLabel, 'loans')}
+                                        {#each rows as row (row.company.id)}<td
+                                                class:operating-column={row.company.id ===
+                                                    operatingCompanyId}
+                                                class="bright-cell">{@render loansCell(row)}</td
+                                            >{/each}
+                                        {#each ownerStatisticKeys as _, index (index)}<td
+                                                class:stat-start={index === 0}
+                                                class="void"
+                                            ></td>{/each}
+                                    </tr>
+                                {/if}
                                 <tr class="company-stat-start financial-row">
                                     {@render companySortHeader('row', 'Last run', 'lastRun')}
                                     {#each rows as row (row.company.id)}<td
@@ -1114,19 +1230,12 @@
                                 </tr>
                                 {#each titleColumns as column (column.id)}
                                     <tr class="company-stat-start financial-row">
-                                        {@render companySortHeader(
-                                            'row',
-                                            column.label,
-                                            `column:${column.id}`
-                                        )}
+                                        {@render titleHeader('row', column)}
                                         {#each rows as row (row.company.id)}<td
                                                 class:operating-column={row.company.id ===
                                                     operatingCompanyId}
                                                 class="bright-cell"
-                                                >{column.text(
-                                                    session.gameState,
-                                                    row.company.id
-                                                )}</td
+                                                >{@render titleCell(column, row.company.id)}</td
                                             >{/each}
                                         {#each ownerStatisticKeys as _, index (index)}<td
                                                 class:stat-start={index === 0}
@@ -1148,7 +1257,7 @@
         {/if}
     </div>
     <div
-        class="share-confirmation"
+        class="share-confirmation trade-popover"
         popover="auto"
         role="dialog"
         aria-label="Confirm share trade"
@@ -1172,7 +1281,7 @@
             </div>
             <div class="trade-answer">
                 {#if pendingPlayerPurchase}<button
-                        class="confirm-trade"
+                        class="confirm-trade buy"
                         disabled={tradingDisabled}
                         onclick={() => confirmBuy(pendingPlayerPurchase.request.buyer)}>Yes</button
                     >{/if}
@@ -1218,7 +1327,7 @@
                 </div>
                 <div class="trade-answer">
                     <button
-                        class="confirm-trade"
+                        class="confirm-trade sell"
                         disabled={tradingDisabled}
                         onclick={() => confirmSale(1)}>Yes</button
                     >
@@ -1228,6 +1337,7 @@
                 <div class="sale-options">
                     {#each pendingSaleChoices as choice (choice.sale.shares)}
                         <button
+                            class="confirm-trade sell"
                             disabled={tradingDisabled}
                             aria-label={`Sell ${choice.sale.shares} ${choice.sale.shares === 1 ? 'share' : 'shares'} for ${optionalMoney(money, choice.result.details?.proceeds)}`}
                             data-sale-shares={choice.sale.shares}
@@ -1250,18 +1360,15 @@
 </div>
 
 <style>
+    .reserved {
+        display: block;
+        font-size: 0.85em;
+        font-weight: 400;
+        opacity: 0.75;
+        white-space: nowrap;
+    }
     .share-confirmation {
-        position: fixed;
-        inset: auto;
         transform: translateX(-50%);
-        margin: 0;
-        padding: 10px 12px;
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 8px;
-        background: var(--rail-surface, #fffdf8);
-        color: var(--rail-text, #514536);
-        box-shadow: 0 6px 18px #0005;
-        font-size: 13px;
     }
     .trade-question,
     .trade-answer {
@@ -1293,16 +1400,20 @@
         font: inherit;
         cursor: pointer;
     }
-    .trade-answer .confirm-trade,
-    .sale-options button {
-        border-color: #236147;
-        background: #287452;
+    .share-confirmation .confirm-trade {
         color: #fff;
         font-weight: 700;
     }
-    .trade-answer .confirm-trade:hover:not(:disabled),
-    .sale-options button:hover:not(:disabled) {
-        background: #1d6043;
+    .share-confirmation .confirm-trade.buy {
+        border-color: var(--trade-buy-border);
+        background: var(--trade-buy);
+    }
+    .share-confirmation .confirm-trade.sell {
+        border-color: var(--trade-sell-border);
+        background: var(--trade-sell);
+    }
+    .share-confirmation .confirm-trade:hover:not(:disabled) {
+        filter: brightness(1.12);
     }
     .trade-answer .company-buy {
         border-color: var(--rail-solid, #2c4652);
@@ -1311,6 +1422,11 @@
     }
     .trade-answer .company-buy:hover:not(:disabled) {
         filter: brightness(1.15);
+    }
+    .trade-answer button:disabled,
+    .sale-options button:disabled {
+        opacity: 0.4;
+        cursor: default;
     }
     .sale-proceeds {
         margin-top: 6px;
@@ -1575,6 +1691,16 @@
         justify-content: center;
         flex-wrap: wrap;
         gap: 3px;
+    }
+    .title-marks {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+    .title-marks img {
+        width: 16px;
+        height: 16px;
     }
     .share-value {
         position: relative;

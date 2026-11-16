@@ -5,6 +5,7 @@ import {
     type OathProjectedState
 } from '../model/gameState.js'
 import type { OathVault } from '../model/vault.js'
+import { bottomFirst, bottomIndexFromTop, topFirst } from '../model/pileOrder.js'
 import type { KnownPositions, TablePositions } from '../model/playerState.js'
 import { CardKind, Region, SetupVariant, Suit } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
@@ -383,7 +384,7 @@ function dealWorldCards(
                 state.seenDiscardPiles[region],
                 state.players.map((player) => player.knownDiscardPiles?.[region] ?? []),
                 {
-                    fromBottom: state.discardPileCounts[region] - 1,
+                    fromBottom: bottomIndexFromTop(state.discardPileCounts[region], 0),
                     back: state.discardTopBackType[region]
                 }
             )
@@ -491,7 +492,7 @@ function dealWorldCards(
         assert(known.length <= count, `More of the ${region} pile is known than it holds`)
         const pile = Array.from(
             { length: count },
-            (_, fromTop) => known[count - 1 - fromTop] ?? undefined
+            (_, fromTop) => known[bottomIndexFromTop(count, fromTop)] ?? undefined
         )
         piles.set(region, pile)
         for (const [fromTop, cardId] of pile.entries())
@@ -499,7 +500,7 @@ function dealWorldCards(
                 slots.push({
                     fill: (dealt) => (pile[fromTop] = dealt),
                     kind:
-                        backs[count - 1 - fromTop] ??
+                        backs[bottomIndexFromTop(count, fromTop)] ??
                         (fromTop === 0 ? state.discardTopBackType[region] : undefined)
                 })
     }
@@ -591,7 +592,7 @@ function dealWorldCards(
     const worldDeck = [...knownTop, ...deckDenizens]
     for (const [index, position] of visionPositions.entries())
         worldDeck.splice(position, 0, deckVisions[index])
-    worldDeck.push(...bottom.map(dealtCard).reverse())
+    worldDeck.push(...topFirst(bottom.map(dealtCard)))
     return { worldDeck, discardPiles, hands, advisers, drawnForQuestions, dispossessed }
 }
 
@@ -642,12 +643,14 @@ function dealRelics(
         if (question.kind === PowerQuestionKind.TakeOrLeaveRelic && question.relicCardId)
             relicFacedown[question.slotId] = question.relicCardId
 
-    const knownBottom = mergedPositions(
-        [
-            state.seenRelicDeckBottom,
-            ...state.players.map((player) => player.knownRelicDeckBottom ?? [])
-        ].map((known) => [...known].reverse())
-    ).reverse()
+    const knownBottom = topFirst(
+        mergedPositions(
+            [
+                state.seenRelicDeckBottom,
+                ...state.players.map((player) => player.knownRelicDeckBottom ?? [])
+            ].map((known) => bottomFirst(known))
+        )
+    )
     const named = new Set<string>([
         ...state.players.flatMap((player) => player.relicIds),
         ...Object.values(relicFacedown),

@@ -52,12 +52,16 @@
         {/each}
 
         {#each gameSession.takeableSpaces as larvaColor (larvaColor)}
+            {@const chosen = larvaColor === gameSession.chosenOpenSeaSpace}
             <Target
                 box={larvaSpace(larvaColor)}
                 inset={0}
                 radius={2}
-                label="Take the {larvaColor} larva cube and its polyps, ending your turn"
-                onselect={() => gameSession.takeOpenSeaSpace(larvaColor)}
+                tone={chosen ? 'chosen' : 'plain'}
+                label={chosen
+                    ? `Leave the ${larvaColor} larva cube`
+                    : `Take the ${larvaColor} larva cube and its polyps, ending your turn`}
+                onselect={() => gameSession.chooseOpenSeaSpace(larvaColor)}
             />
         {/each}
     </g>

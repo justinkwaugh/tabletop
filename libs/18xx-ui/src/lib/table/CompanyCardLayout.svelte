@@ -8,13 +8,16 @@
         wrap,
         onToggleWrap,
         wide,
-        onToggleWide
+        onToggleWide,
+        unstartedSwitch
     }: {
         children: Snippet
         wrap: boolean
         onToggleWrap: () => void
         wide: boolean
         onToggleWide: () => void
+        /** Whether companies no one has started are shown too, where there are any to show. */
+        unstartedSwitch?: { enabled: boolean; toggle: () => void }
     } = $props()
 
     function scrollRowOnWheel(row: HTMLElement) {
@@ -36,6 +39,15 @@
 
 <div class="company-card-layout">
     <div class="company-card-tools">
+        {#if unstartedSwitch}<ViewSwitch
+                small
+                enabled={unstartedSwitch.enabled}
+                onToggle={unstartedSwitch.toggle}
+                label="Unstarted"
+                title={unstartedSwitch.enabled
+                    ? 'Companies not yet started are shown, greyed. Click to hide them.'
+                    : 'Only started companies are shown. Click to show the rest, greyed.'}
+            />{/if}
         <ViewSwitch
             small
             enabled={wide}
@@ -59,7 +71,7 @@
         class="company-cards"
         class:wrap
         class:wide
-        aria-label="Started companies"
+        aria-label={unstartedSwitch?.enabled ? 'Companies' : 'Started companies'}
         {@attach scrollRowOnWheel}
         {@attach chainSidewaysScroll}
     >

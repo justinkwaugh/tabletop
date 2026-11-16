@@ -58,6 +58,15 @@ export async function playSetup(page: Page, playerCount: number) {
     await expect(actions).toContainText('Choose your actions')
 }
 
+// Ends the turn by taking a larva space on the open sea and confirming it.
+export async function takeOpenSeaSpace(page: Page, color = '\\w+') {
+    await page
+        .getByRole('button', { name: new RegExp(`^Take the ${color} larva cube`) })
+        .first()
+        .click()
+    await actionPanel(page).getByRole('button', { name: 'Confirm' }).click()
+}
+
 // The table ignores choices while a change plays out, and its rings still show the old state, so
 // anything that reads what is on offer waits for it to settle first.
 export async function settled(page: Page) {

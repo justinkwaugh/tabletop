@@ -1,5 +1,6 @@
 import { Column, Row, Section, Text } from '@react-email/components'
 import type { CSSProperties, ReactNode } from 'react'
+import { placementScoringDescription } from '@tabletop/common'
 import { darkPalette, darkStyles, fontStack, formatNames } from './darkCard.js'
 
 export interface StandingsRow {
@@ -7,7 +8,8 @@ export interface StandingsRow {
     name: string
     wins: number
     score: number
-    tiebreak?: number
+    averagePlace?: string
+    tiebreak?: string
     recipient: boolean
     // Set when the champion is not simply first place, such as when a substitute finished first.
     champion?: boolean
@@ -120,11 +122,13 @@ export const StandingsTable = ({
     label,
     rows,
     tiebreakDescription,
+    ranksByAveragePlace = false,
     starWinner = true,
 }: {
     label: string
     rows: StandingsRow[]
     tiebreakDescription: string
+    ranksByAveragePlace?: boolean
     starWinner?: boolean
 }) => {
     const showTiebreak = rows.some((row) => row.tiebreak !== undefined)
@@ -154,7 +158,9 @@ export const StandingsTable = ({
                         <Text style={styles.headerCell}>Wins</Text>
                     </Column>
                     <Column style={numeric('right', '64px')}>
-                        <Text style={styles.headerCell}>Score</Text>
+                        <Text style={styles.headerCell}>
+                            {ranksByAveragePlace ? 'Avg place' : 'Score'}
+                        </Text>
                     </Column>
                     {showTiebreak && (
                         <Column style={numeric('right', '84px')}>
@@ -182,18 +188,23 @@ export const StandingsTable = ({
                             <Text style={styles.cell}>{row.wins}</Text>
                         </Column>
                         <Column style={numeric('right', '64px')}>
-                            <Text style={styles.cell}>{formatScore(row.score)}</Text>
+                            <Text style={styles.cell}>
+                                {ranksByAveragePlace
+                                    ? (row.averagePlace ?? '—')
+                                    : formatScore(row.score)}
+                            </Text>
                         </Column>
                         {showTiebreak && (
                             <Column style={numeric('right', '84px')}>
-                                <Text style={styles.cell}>
-                                    {row.tiebreak === undefined ? '—' : formatScore(row.tiebreak)}
-                                </Text>
+                                <Text style={styles.cell}>{row.tiebreak ?? '—'}</Text>
                             </Column>
                         )}
                     </Row>
                 ))}
             </Section>
+            {ranksByAveragePlace && (
+                <Text style={styles.footnote}>{placementScoringDescription}</Text>
+            )}
             {showTiebreak && <Text style={styles.footnote}>{tiebreakDescription}</Text>}
         </>
     )

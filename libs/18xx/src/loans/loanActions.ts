@@ -6,7 +6,7 @@ import { HydratedRepayLoan, RepayLoan, isRepayLoan } from './repayLoan.js'
 import { HydratedTakeLoan, TakeLoan, isTakeLoan } from './takeLoan.js'
 
 export function loanActions(loans: LoanRules | undefined, stocks: StockRules): ActionDefinition[] {
-    if (!loans) return []
+    if (!loans || loans.automatic) return []
     return [
         defineAction(TakeLoan, isTakeLoan, (action) => new HydratedTakeLoan(action, loans, stocks)),
         defineAction(RepayLoan, isRepayLoan, (action) => new HydratedRepayLoan(action, loans)),

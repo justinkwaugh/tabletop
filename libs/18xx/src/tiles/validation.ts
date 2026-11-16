@@ -41,6 +41,16 @@ export function assertTileTopology(face: TileFace): void {
     }
     for (const path of face.paths) {
         assert(!sameTileEndpoint(...path.endpoints), `Path ${path.id} has identical endpoints`)
+        if (path.terminus) {
+            const stops = path.endpoints.flatMap((endpoint) =>
+                endpoint.kind === 'node'
+                    ? face.nodes.filter(
+                          (node) => node.id === endpoint.nodeId && node.kind !== 'junction'
+                      )
+                    : []
+            )
+            assert(stops.length === 1, `Terminus path ${path.id} must reach exactly one stop`)
+        }
         for (const endpoint of path.endpoints) {
             assert(
                 endpoint.kind === 'edge' || nodeIds.has(endpoint.nodeId),

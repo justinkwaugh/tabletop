@@ -42,7 +42,7 @@ function home(locationId: string, rivalAt?: string): StationState {
                 id: 'home',
                 companyId: 'A',
                 status: 'placed',
-                position: { locationId, nodeId: 'city' }
+                position: { locationId, nodeId: 'city', slot: 0 }
             },
             ...(rivalAt
                 ? [
@@ -50,7 +50,7 @@ function home(locationId: string, rivalAt?: string): StationState {
                           id: 'rival',
                           companyId: 'B',
                           status: 'placed' as const,
-                          position: { locationId: rivalAt, nodeId: 'city' }
+                          position: { locationId: rivalAt, nodeId: 'city', slot: 0 }
                       }
                   ]
                 : [])

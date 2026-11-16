@@ -1,6 +1,11 @@
 import * as Type from 'typebox'
 import { GameConfig } from '../game/model/gameConfig.js'
-import { getMiniTournamentDefaults, Tournament, TournamentScore } from './tournament.js'
+import {
+    getMiniTournamentDefaults,
+    Tournament,
+    TournamentScore,
+    TournamentScoring
+} from './tournament.js'
 
 export const LeagueShape = Type.Union([Type.Literal('ladder'), Type.Literal('pyramid')])
 export type LeagueShape = Type.Static<typeof LeagueShape>
@@ -51,7 +56,7 @@ export const LeagueRules = Type.Object(
         gamesPerEntrant: Type.Integer({ minimum: 1, maximum: 256 }),
         concurrency: Type.Integer({ minimum: 1, maximum: 256 }),
         gameConfig: GameConfig,
-        scoring: Type.Literal('splitWinsV1'),
+        scoring: TournamentScoring,
         sizes: LeagueGroupSizes
     },
     { additionalProperties: false }

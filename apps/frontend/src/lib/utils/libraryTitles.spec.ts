@@ -4,6 +4,7 @@ import {
     availableCatalogEntries,
     libraryShelfItems,
     librarySeriesById,
+    playerCountText,
     titleMaturityLabel,
     titleSeries
 } from './libraryTitles.js'
@@ -54,6 +55,13 @@ describe('titleMaturityLabel', () => {
             'Beta',
             'Alpha'
         ])
+    })
+})
+
+describe('playerCountText', () => {
+    it('gives the player range, or one count when it is fixed', () => {
+        expect(playerCountText(base.metadata)).toBe('2–4 players')
+        expect(playerCountText({ ...base.metadata, maxPlayers: 2 })).toBe('2 players')
     })
 })
 

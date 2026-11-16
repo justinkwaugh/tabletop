@@ -42,7 +42,7 @@
     import { shareSign } from './shareCards.js'
     import PlaceText from '../places/PlaceText.svelte'
     import HistoryCallout from './HistoryCallout.svelte'
-    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
+    import { bankBreakCallout, descriptionCallouts } from './historyCallouts.js'
     import { historyBankBreaks, historyStates } from './historyStates.js'
 
     let {
@@ -141,7 +141,7 @@
             ? session.auctionLotsFor(gameState).find((lot) => lot.id === lotAction.lotId)
             : undefined
     }
-    /** The table-wide events the step caused: limit changes, then the bank breaking. */
+    /** The table-wide events the step caused: limit changes and the title's own, then the bank breaking. */
     function stepCallouts(
         action: GameAction,
         description: HistoryDescription,
@@ -156,9 +156,7 @@
         )
         const bankBreak = [...historyBankBreaks(states)].find(([id]) => states.get(id)?.before)?.[1]
         return [
-            ...[description, ...consequences.map(describe)].flatMap((entry) =>
-                entry.certificateLimit ? [certificateLimitCallout(entry.certificateLimit)] : []
-            ),
+            ...[description, ...consequences.map(describe)].flatMap(descriptionCallouts),
             ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
         ]
     }
@@ -192,6 +190,7 @@
                 historyPhaseChange(action, session.phaseChangePalette)?.label,
                 description.detail
             ),
+            detailLines: description.detailLines ?? [],
             trainDefinitionIds: trainCards.length ? [] : (description.trainDefinitionIds ?? []),
             track:
                 isLayTile(action) || isPrivateTileLay(action)
@@ -291,6 +290,9 @@
                     </p>
                     {#if latest.payments}<p class="detail">{latest.payments}</p>{/if}
                     {#if latest.detail}<p class="detail"><PlaceText text={latest.detail} /></p>{/if}
+                    {#each latest.detailLines as line, index (index)}<p class="detail">
+                            <PlaceText text={line} />
+                        </p>{/each}
                     {#each latest.consequences as consequence (consequence.id)}
                         {@const appearance = consequence.companyId
                             ? session.mapView.stations[consequence.companyId]
@@ -315,7 +317,8 @@
                                         />{/each}</span
                                 >{/if}{#if consequence.description.value}{` ${consequence.description.value}`}{/if}{#if consequence.detail}{' · '}<PlaceText
                                     text={consequence.detail}
-                                />{/if}
+                                />{/if}{#each consequence.description.detailLines ?? [] as line, index (index)}<br
+                                /><PlaceText text={line} />{/each}
                         </p>
                     {/each}
                 </div>

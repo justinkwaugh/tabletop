@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { actionPanel, openScenario } from './helpers'
+import { actionPanel, openScenario, takeOpenSeaSpace } from './helpers'
 
 test('the game ends when the open sea cannot be refilled, and shows the scores', async ({
     page
@@ -7,7 +7,7 @@ test('the game ends when the open sea cannot be refilled, and shows the scores',
     await openScenario(page, 'Last orange larva cube')
     const actions = actionPanel(page)
 
-    await page.getByRole('button', { name: /^Take the orange larva cube/ }).click()
+    await takeOpenSeaSpace(page, 'orange')
 
     await expect(page.getByText('End of game', { exact: true })).toBeVisible()
     await expect(actions).toContainText(/(wins|share the win) with \d+ points/)

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import { getCompany } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from './TrainBadge.svelte'
@@ -18,6 +19,19 @@
     const plan = $derived(session.trainFunding.plan)
     const disabled = $derived(!(session.trainFunding.canFund || session.trainFunding.canResolve))
     type FundingPlan = NonNullable<EighteenXXSessionView['trainFunding']['plan']>
+    // A title whose failing companies offer choices words each of them (TitlePresentation.insolvency).
+    function insolvencyWords(choices: readonly string[]) {
+        const words = session.presentation.insolvency
+        assertExists(words, 'A title offering insolvency choices words them')
+        return {
+            explanation: words.explanation,
+            choices: choices.map((choice) => {
+                const entry = words.choices[choice]
+                assertExists(entry, `The insolvency choice ${choice} has its words`)
+                return { choice, ...entry }
+            })
+        }
+    }
 </script>
 
 {#snippet planNotes(plan: FundingPlan)}
@@ -25,7 +39,12 @@
             Treasury shares will raise {money(plan.treasuryProceeds)}.
         </p>{/if}
     {#each plan.contributions as contribution, index (index)}
-        <p>{session.ownerName(contribution.owner)} contributes {money(contribution.amount)}.</p>
+        <p>
+            {session.ownerName(contribution.owner)} contributes {money(
+                contribution.amount
+            )}{#if contribution.borrowed}, borrowing <strong>{money(contribution.borrowed)}</strong>
+                of it{/if}.
+        </p>
     {/each}
     {#if plan.choice.kind === 'sell'}
         <p>
@@ -50,7 +69,10 @@
     <section aria-label="Compulsory train funding">
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
-            <span>{session.companyName(purchase.companyId)} must buy a train</span>
+            <span
+                >{session.companyName(purchase.companyId)}
+                {session.trainFunding.optional ? 'may buy' : 'must buy'} a train</span
+            >
             {@render undoButton()}
         </header>
         <div class="options">
@@ -79,7 +101,7 @@
     </section>
 {:else if purchase && plan}
     <section
-        aria-label={session.trainFunding.voluntary
+        aria-label={session.trainFunding.optional
             ? 'Voluntary train funding'
             : 'Compulsory train funding'}
     >
@@ -87,7 +109,11 @@
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
             <span
                 >{session.companyName(purchase.companyId)}
-                {session.trainFunding.voluntary ? 'buys' : 'must buy'} a</span
+                {session.trainFunding.voluntary
+                    ? 'buys'
+                    : session.trainFunding.optional
+                      ? 'may buy'
+                      : 'must buy'} a</span
             >
             <TrainBadge
                 name={session.trainDepot.trainDefinition(purchase.definitionId).name}
@@ -131,6 +157,22 @@
                                     sale.proceeds
                                 )}</span
                             >
+                        </button>
+                    {/each}
+                </div>
+            {:else if plan.choice.kind === 'bankrupt' && session.trainFunding.insolvencyChoices.length}
+                {@const insolvency = insolvencyWords(session.trainFunding.insolvencyChoices)}
+                <p>{insolvency.explanation}</p>
+                <div class="choices insolvency-choices">
+                    {#each insolvency.choices as { choice, label, description } (choice)}
+                        <button
+                            class="action-button"
+                            {disabled}
+                            data-insolvency-choice={choice}
+                            onclick={() => session.trainFunding.declareInsolvency(choice)}
+                        >
+                            <strong>{label}</strong>
+                            <small>{description}</small>
                         </button>
                     {/each}
                 </div>
@@ -271,5 +313,12 @@
     th:nth-last-child(-n + 2),
     td:nth-last-child(-n + 2) {
         text-align: right;
+    }
+    .insolvency-choices button {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        text-align: left;
     }
 </style>

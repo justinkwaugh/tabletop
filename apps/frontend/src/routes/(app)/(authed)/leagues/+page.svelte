@@ -5,16 +5,18 @@
     import { onMount } from 'svelte'
     import { goto } from '$app/navigation'
     import { Modal } from 'flowbite-svelte'
-    import { Role, type LeagueListEntry, type LeagueSeasonSummary } from '@tabletop/common'
+    import { Role, type LeagueListEntry } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import LeagueForm from '$lib/components/leagues/LeagueForm.svelte'
     import {
         leagueClosesInText,
+        leagueListStatusText,
         leagueMyPlaceText,
-        leagueSeasonName,
+        leagueRosterText,
         leagueSeasonStatusColor,
-        leagueSeasonStatusText,
-        leagueShapeText
+        leagueShapeText,
+        leagueShowsSignUpDeadline,
+        sortLeaguesByName
     } from '$lib/utils/leaguePresentation'
 
     const { api, authorizationService, libraryService, notificationService } = getAppContext()
@@ -30,21 +32,12 @@
         inGroup: 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
     }
 
-    function progressText(season: LeagueSeasonSummary) {
-        if (season.status !== 'signUp') return `${season.players} players`
-        return season.players >= season.minimumPlayers
-            ? `${season.players} signed up`
-            : `${season.players} of ${season.minimumPlayers} needed`
-    }
-
     const requests = new LatestRequest()
 
     async function load() {
         const current = requests.begin()
         try {
-            const value = (await api.listLeagues()).leagues.sort((a, b) =>
-                a.league.name.localeCompare(b.league.name)
-            )
+            const value = sortLeaguesByName((await api.listLeagues()).leagues)
             if (current()) {
                 leagues = value
                 error = ''
@@ -104,7 +97,8 @@
             </div>
         {/if}
         <div class="columns-1 gap-3 sm:columns-2">
-            {#each leagues as { league, season } (league.id)}
+            {#each leagues as entry (entry.league.id)}
+                {@const { league, season } = entry}
                 {@const thumbnail = libraryService.getThumbnailForTitle(league.rules.titleId)}
                 <a
                     href={`/leagues/${league.id}`}
@@ -116,11 +110,7 @@
                                 ? 'text-gray-500'
                                 : leagueSeasonStatusColor(season, now)}"
                             ><span class="size-1.5 rounded-full bg-current"
-                            ></span>{league.status === 'draft'
-                                ? 'Draft'
-                                : season
-                                  ? `${leagueSeasonName(season)} · ${leagueSeasonStatusText(season, now)}`
-                                  : 'Not open yet'}</span
+                            ></span>{leagueListStatusText(entry, now)}</span
                         >
                         <span
                             class="rounded bg-gray-100 px-1.5 py-0.5 text-[0.6rem] leading-none text-gray-500 dark:bg-gray-700/60 dark:text-gray-400"
@@ -153,8 +143,8 @@
                     </div>
                     {#if season}
                         <p class="mt-3 text-xs text-gray-600 dark:text-gray-300">
-                            <span class="font-medium">{progressText(season)}</span>
-                            {#if season.status === 'signUp' && !season.undersubscribed}
+                            <span class="font-medium">{leagueRosterText(season)}</span>
+                            {#if leagueShowsSignUpDeadline(season)}
                                 <span class="mx-1 text-gray-400 dark:text-gray-600">·</span
                                 >{leagueClosesInText(season.signUpClosesAt, now)}
                             {/if}

@@ -36,6 +36,13 @@ export interface PrivateTrackTerms {
     free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
+    /**
+     * The tile colours the power lays, where they are not the phase's, as 1822's P11 lays the
+     * next colour before the phase allows it.
+     */
+    colors?: readonly string[]
+    /** Stops the power's tile removes, as 1822's P2 turns a small station into plain track. */
+    removedStops?: TrackRules['removedStops']
 }
 export interface PrivatePowerRules {
     trackTerms(
@@ -65,6 +72,16 @@ export interface PrivatePowerRules {
         playerId: string
     ): PrivateMarkerTerms | undefined
     /**
+     * What follows a private's marker, such as 1849's CNM recording the company its port pays and
+     * closing (§7.1).
+     */
+    afterMarker?(
+        state: CompanyDecisionState,
+        privateCompanyId: string,
+        locationId: string,
+        nodeId?: string
+    ): void
+    /**
      * Where a private lets its owning company place its next station free, apart from the
      * turn's station placement; the family records the power used once a token is placed.
      */
@@ -83,6 +100,11 @@ export interface PrivateTokenTerms {
 export interface PrivateMarkerTerms {
     kind: string
     locationIds: readonly string[]
+    /**
+     * Where the marker goes on one revenue center of its location, the centers it may take; the
+     * action then names its node, as 1856's port goes on one of two small cities.
+     */
+    stops?: readonly { locationId: string; nodeId: string }[]
 }
 export function privateTrackConstruction(
     state: CompanyDecisionState,
@@ -94,6 +116,7 @@ export function privateTrackConstruction(
             ? state.trackStep
             : { companyId: terms.companyId, lays: [], completed: false }
     const discount = terms.terrainDiscount ?? 0
+    const { colors } = terms
     return new TrackConstruction(
         stateWith(state, { trackStep }),
         {
@@ -107,6 +130,8 @@ export function privateTrackConstruction(
                     ? terms.restriction?.(request)
                     : 'This private cannot place that tile here.',
             useful: terms.connected ? rules.useful : () => true,
+            ...(colors ? { availableColors: () => colors } : {}),
+            ...(terms.removedStops ? { removedStops: terms.removedStops } : {}),
             relabels: (locationId, definitionId) =>
                 !!terms.relabels &&
                 terms.locationIds.includes(locationId) &&

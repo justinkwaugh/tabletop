@@ -68,12 +68,24 @@ export class HydratedBuyAccessRight
         return 'price' in purchase && purchase.price === this.expectedPrice
     }
     apply(state: HydratedGameState & State): void {
-        assert(this.isValid(state), 'The company cannot buy this right now')
+        const purchase = accessRightPurchase(
+            state,
+            this.#rules,
+            this.playerId,
+            this.companyId,
+            this.rightId
+        )
+        assert(
+            this.source === ActionSource.User &&
+                'price' in purchase &&
+                purchase.price === this.expectedPrice,
+            'The company cannot buy this right now'
+        )
         const payments: CashPayment[] = this.expectedPrice
             ? [
                   {
                       from: { kind: 'company', companyId: this.companyId },
-                      to: { kind: 'bank' },
+                      to: purchase.recipient ?? { kind: 'bank' },
                       amount: this.expectedPrice
                   }
               ]

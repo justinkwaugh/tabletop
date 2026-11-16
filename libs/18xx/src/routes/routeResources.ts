@@ -4,7 +4,15 @@ export function routePathResources(locationId: string, path: TilePath): string[]
     return [
         JSON.stringify([locationId, 'path', path.id]),
         ...path.endpoints.flatMap((end) =>
-            end.kind === 'edge' ? [JSON.stringify([locationId, 'edge', end.edge])] : []
+            end.kind === 'edge'
+                ? [
+                      JSON.stringify(
+                          end.lane
+                              ? [locationId, 'edge', end.edge, end.lane]
+                              : [locationId, 'edge', end.edge]
+                      )
+                  ]
+                : []
         )
     ]
 }

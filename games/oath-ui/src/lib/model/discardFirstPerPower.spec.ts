@@ -176,16 +176,20 @@ describe('the Search\'s "Discard first" row from revision 32: one card per power
 
     it('a full Plains: a River card that opens the play only with a Plains card is offered, and the play waits for that card', async () => {
         const { session, draft, sent } = await search({ c1: [WOLVES, TENTS, SONGS] })
+        const plays = () => draft.placements.map((option) => option.play)
         expect(draft.discardFirstOptions).toEqual([WOLVES, TENTS, SONGS, PUB, HALL])
+        expect(plays()).not.toContain(SearchPlay.Site)
 
         draft.tapDiscardFirst(PUB)
         expect(draft.discardFirstOptions).toEqual([WOLVES, TENTS, SONGS, PUB])
+        expect(plays()).not.toContain(SearchPlay.Site)
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(draft.placement).toBeUndefined()
-        expect(draft.placementReason).toMatch(/c1 is at its capacity of 3/)
+        expect(draft.placementReason).toBeUndefined()
         expect(sent).not.toHaveBeenCalled()
 
         draft.tapDiscardFirst(SONGS)
+        expect(plays()).toContain(SearchPlay.Site)
         expect(draft.placementReason).toBeUndefined()
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(sent).toHaveBeenCalledWith(

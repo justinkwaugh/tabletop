@@ -2,8 +2,10 @@ import { expect, test, type Page } from '@playwright/test'
 import {
     AUSTERLITZ,
     CommandKind,
+    MachineState,
     Side,
     UnitType,
+    standingGroupKey,
     type NapoleonsTriumphGameState
 } from '@tabletop/napoleons-triumph'
 import {
@@ -52,6 +54,28 @@ function cavalryRidesInBesideInfantry(state: NapoleonsTriumphGameState) {
     Object.assign(foot, { commanderId: undefined, position: { locale: 62 } })
     frenchPlayer(state).independentCommandsUsed = 1
     state.roadMarch = { kind: CommandKind.Unit, unitIds: [rider.id], start: 63, path: [62] }
+}
+
+/** A detached French cavalry unit has ridden two locales by local road, 84 to 73, and can ride no farther, so its player must say where its move ends. */
+function cavalryReachesTheEndOfItsRide(state: NapoleonsTriumphGameState) {
+    const rider = unitOf(state, 'vandamme', UnitType.Cavalry)
+    Object.assign(rider, {
+        commanderId: undefined,
+        position: { locale: 73 },
+        movesThisTurn: 1,
+        enteredReserveThisTurn: true,
+        arrivedByRoad: { locale: 73, roads: [0] }
+    })
+    frenchPlayer(state).independentCommandsUsed = 1
+    state.roadMarch = {
+        kind: CommandKind.Unit,
+        unitIds: [rider.id],
+        start: 84,
+        path: [74, 73],
+        stopped: true
+    }
+    state.machineState = MachineState.EndingRide
+    return rider
 }
 
 /** Bernadotte's cavalry has come on at 51, taken locale 38 by road and may ride on, in its turn of entry; an Allied unit holds 52. */
@@ -193,4 +217,54 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
         'aria-pressed',
         'true'
     )
+})
+
+test('cavalry at the end of its ride is ringed beside its approaches, and must stay in reserve or block one', async ({
+    page
+}) => {
+    await frenchTurnWith(page, cavalryReachesTheEndOfItsRide)
+    const atRidesEnd = page.getByRole('group', { name: 'Detached units, at the end of its ride' })
+    const ring = page.locator('svg [aria-label="Stay in reserve"][data-stay]')
+    const blocks = page.locator('svg [aria-label="Block this approach"]')
+    // The cavalry is labelled for its tap only while the session takes choices, so this waits out a settling Undo.
+    const choosing = page.locator('svg [data-group][aria-label="Stay in reserve"]')
+
+    await expect(atRidesEnd).toBeVisible()
+    await expect(choosing).toHaveCount(1)
+    await expect(ring).toHaveCount(1)
+    await expect(blocks).not.toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'End turn' })).toHaveCount(0)
+
+    await tap(page, 'svg [data-stay]')
+    await expect(atRidesEnd).toHaveCount(0)
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(atRidesEnd).toBeVisible()
+    await expect(choosing).toHaveCount(1)
+
+    await tap(page, 'svg [aria-label="Block this approach"]')
+    await expect(atRidesEnd).toHaveCount(0)
+    await expect(ring).toHaveCount(0)
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
+})
+
+test('tapping the cavalry at the end of its ride leaves it in reserve, with a unit standing beside it', async ({
+    page
+}) => {
+    let riderGroup = ''
+    await frenchTurnWith(page, (state) => {
+        Object.assign(unitOf(state, 'vandamme', UnitType.Infantry), {
+            commanderId: undefined,
+            position: { locale: 73 }
+        })
+        riderGroup = standingGroupKey(cavalryReachesTheEndOfItsRide(state))
+    })
+    const atRidesEnd = page.getByRole('group', { name: 'Detached units, at the end of its ride' })
+    await expect(atRidesEnd).toBeVisible()
+    await expect(page.locator('.nt-orders-units button:not([disabled])')).toHaveCount(0)
+
+    await tap(page, `svg [data-group="${riderGroup}"][aria-label="Stay in reserve"]`)
+    await expect(atRidesEnd).toHaveCount(0)
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })

@@ -85,22 +85,22 @@ function table(
 
 const sorted = (ids: readonly string[]) => [...ids].sort()
 
-/** R-6.2, R-7.3.2 — a "Use" badge on each card whose "Action:" power Use a power lists now. */
+/** R-6.2, R-7.4 — a "Use" on each card Use a power lists now, and on each card that changes an action. */
 describe('the Use badge on a card', () => {
     it('each card Use a power lists carries one: a card at the site, an adviser and a relic', async () => {
         const session = await openSessionOn(tableOf(table()))
         const listed = listedActionPowers(session.gameState, RHYS).map((use) => use.cardId)
         expect(sorted(listed)).toEqual(sorted([ORACLE, ALCHEMIST, IVORY_EYE]))
-        expect(sorted(session.powerBadgeCards)).toEqual(sorted([ORACLE, ALCHEMIST, IVORY_EYE]))
-        expect(session.powerBadgeCards).not.toContain(BIRDSONG)
-        expect(session.powerBadgeCards).not.toContain(TUTOR)
+        // R-7.4 — Birdsong changes the Trade, so it carries one too.
+        expect(sorted(session.useCards)).toEqual(sorted([ORACLE, ALCHEMIST, IVORY_EYE, BIRDSONG]))
+        expect(session.useCards).not.toContain(TUTOR)
     })
 
     it('a power the engine allows with nothing it can pick has none: the Ivory Eye with nothing facedown', async () => {
         const session = await openSessionOn(tableOf(table({ facedown: false })))
         const legal = HydratedUseActionPower.legalActionPowers(session.gameState, RHYS)
         expect(legal.map((use) => use.cardId)).toContain(IVORY_EYE)
-        expect(sorted(session.powerBadgeCards)).toEqual(sorted([ORACLE, ALCHEMIST]))
+        expect(sorted(session.useCards)).toEqual(sorted([ORACLE, ALCHEMIST, BIRDSONG]))
     })
 
     it('outside the seat’s Act Phase there is none', async () => {
@@ -108,58 +108,55 @@ describe('the Use badge on a card', () => {
             tableOf(table({ machineState: MachineState.RestPhase }))
         )
         expect(listedActionPowers(session.gameState, RHYS)).not.toEqual([])
-        expect(session.powerBadgeCards).toEqual([])
+        expect(session.useCards).toEqual([])
     })
 
     it('while a free action is due there is none, as Use a power is not offered', async () => {
         const session = await openSessionOn(tableOf(table({ freeTravelAtAction: 0 })))
         expect(session.validActionTypes).not.toContain(ActionType.UseActionPower)
         expect(listedActionPowers(session.gameState, RHYS)).not.toEqual([])
-        expect(session.powerBadgeCards).toEqual([])
+        expect(session.useCards).toEqual([])
     })
 
-    it('with another action staged there is none; with Use a power open they stay', async () => {
+    it('with any action open there is none, Use a power included', async () => {
         const session = await openSessionOn(tableOf(table()))
-        const all = sorted(session.powerBadgeCards)
-        expect(all).toHaveLength(3)
+        expect(session.useCards).toHaveLength(4)
         session.chooseAction(ActionType.Trade)
-        expect(session.powerBadgeCards).toEqual([])
+        expect(session.useCards).toEqual([])
         session.resetAction()
         session.chooseAction(ActionType.UseActionPower)
-        expect(sorted(session.powerBadgeCards)).toEqual(all)
+        expect(session.useCards).toEqual([])
+        session.resetAction()
+        expect(session.useCards).toHaveLength(4)
     })
 
     it('a badge opens Use a power on its card alone; one Undo returns to the grid with the badges as before', async () => {
         const session = await openSessionOn(tableOf(table()))
-        const all = sorted(session.powerBadgeCards)
-        session.openCardPower(ORACLE)
+        const all = sorted(session.useCards)
+        session.useCard(ORACLE)
         expect(session.selection.action).toBe(ActionType.UseActionPower)
         expect(session.actionPowers.card).toBe(ORACLE)
         expect(session.actionPowers.powers.map((power) => power.cardId)).toEqual([ORACLE])
-        expect(sorted(session.powerBadgeCards)).toEqual(all)
-
-        // Another card's badge, with the panel open, opens that card's power instead, with no picks.
-        session.openCardPower(ALCHEMIST)
-        session.actionPowers.setPicks(ALCHEMIST_USE, { ...emptyPicks(), count: [1] })
-        expect(session.hasManualDraft).toBe(true)
-        session.openCardPower(IVORY_EYE)
-        expect(session.actionPowers.powers.map((power) => power.cardId)).toEqual([IVORY_EYE])
-        expect(session.actionPowers.picksOf(ALCHEMIST_USE)).toEqual(emptyPicks())
 
         await session.undo()
         expect(session.selection.action).toBeUndefined()
-        expect(session.hasManualDraft).toBe(false)
-        expect(sorted(session.powerBadgeCards)).toEqual(all)
+        expect(sorted(session.useCards)).toEqual(all)
 
-        // The chip lists every power again.
-        session.chooseAction(ActionType.UseActionPower)
-        expect(session.actionPowers.card).toBeUndefined()
-        expect(sorted(session.actionPowers.powers.map((power) => power.cardId))).toEqual(all)
+        // Picks made on another card's power go with the same one Undo.
+        session.useCard(ALCHEMIST)
+        session.actionPowers.setPicks(ALCHEMIST_USE, { ...emptyPicks(), count: [1] })
+        expect(session.hasManualDraft).toBe(true)
+        expect(session.actionPowers.powers.map((power) => power.cardId)).toEqual([ALCHEMIST])
+        await session.undo()
+        await session.undo()
+        expect(session.selection.action).toBeUndefined()
+        expect(session.hasManualDraft).toBe(false)
+        expect(sorted(session.useCards)).toEqual(all)
     })
 
     it('a card with no badge opens nothing', async () => {
         const session = await openSessionOn(tableOf(table()))
-        session.openCardPower(BIRDSONG)
+        session.useCard(TUTOR)
         expect(session.selection.action).toBeUndefined()
     })
 

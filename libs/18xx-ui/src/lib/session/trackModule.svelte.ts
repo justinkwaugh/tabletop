@@ -205,16 +205,7 @@ export class TrackModule {
     }
     rotatePreview() {
         assert(this.canBuild && this.preview, 'Choose a track tile to rotate')
-        const preview = this.preview
-        const index = this.placements.findIndex(
-            (choice) =>
-                choice.rotation === preview.rotation &&
-                JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
-        )
-        const next = [
-            ...this.placements.slice(index + 1),
-            ...this.placements.slice(0, index + 1)
-        ].find((choice) => choice.rotation !== preview.rotation)
+        const next = this.nextLayout(this.preview)
         if (next) this.selectPlacement(next)
     }
     selectPlacement(request: TrackRequest) {
@@ -232,7 +223,27 @@ export class TrackModule {
     cancel() {
         this.stages.clear()
     }
-    async confirm() {
+    /** What the loans the building company may take for track would add to its cash. */
+    borrowable = $derived.by(() => {
+        const { state, rules } = this.session
+        const companyId = state.trackStep?.companyId
+        return companyId ? (rules.trackRules.borrowing?.capacity(state, companyId) ?? 0) : 0
+    })
+    /**
+     * The players whose agreement the previewed lay needs, any one of whom may be asked; none
+     * where the player on turn is one of them.
+     */
+    consentersToAsk = $derived.by((): readonly string[] => {
+        const preview = this.preview
+        // A lay made with a private company's power is settled by that power.
+        if (!preview || this.titlePower || this.privateActions.trackPowerSelection) return []
+        const { state, rules } = this.session
+        const consenters = new TrackConstruction(state, rules.trackRules).consenters(preview)
+        const me = this.session.playerId
+        return me !== undefined && consenters.includes(me) ? [] : consenters
+    })
+    /** Confirms the previewed lay, asking the named player where it needs an agreement. */
+    async confirm(askedPlayerId?: string) {
         const preview = this.preview
         assert(this.canBuild && preview, 'Choose a legal track placement')
         const committed = {
@@ -242,7 +253,7 @@ export class TrackModule {
         }
         this.committed = committed
         try {
-            await this.commit(preview)
+            await this.commit(preview, askedPlayerId)
             await this.session.settled()
         } finally {
             if (this.committed === committed) this.committed = undefined
@@ -260,7 +271,7 @@ export class TrackModule {
         await this.session.applyAction(this.session.createPlayerAction(FinishTrack, { companyId }))
     }
 
-    private async commit(preview: TrackLayDetails) {
+    private async commit(preview: TrackLayDetails, askedPlayerId?: string) {
         if (this.titlePower) {
             // A title may stage the lay locally for a later combined action.
             await this.titlePower.commit(preview)
@@ -274,14 +285,31 @@ export class TrackModule {
             return
         }
         const { companyId, locationId, definitionId, rotation, nodeMapping, cost } = preview
+        const lay = {
+            companyId,
+            locationId,
+            definitionId,
+            rotation,
+            nodeMapping,
+            expectedCost: cost
+        }
         await this.session.applyAction(
-            this.session.createPlayerAction(
-                preview.consentPlayerId && preview.consentPlayerId !== this.session.playerId
-                    ? RequestTrackConsent
-                    : LayTile,
-                { companyId, locationId, definitionId, rotation, nodeMapping, expectedCost: cost }
-            )
+            this.consentersToAsk.length
+                ? this.session.createPlayerAction(RequestTrackConsent, {
+                      ...lay,
+                      ...(askedPlayerId ? { askedPlayerId } : {})
+                  })
+                : this.session.createPlayerAction(LayTile, lay)
         )
+    }
+    private nextLayout(preview: TrackRequest): TrackRequest | undefined {
+        const index = this.placements.findIndex(
+            (choice) =>
+                choice.rotation === preview.rotation &&
+                JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
+        )
+        const next = this.placements[(index + 1) % this.placements.length]
+        return next === this.placements[index] ? undefined : next
     }
     private chooseTile(
         definitionId: string,

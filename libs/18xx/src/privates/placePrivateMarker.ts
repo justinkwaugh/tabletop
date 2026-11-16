@@ -17,7 +17,9 @@ export const PlacePrivateMarker = Type.Object(
         ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PlacePrivateMarker'),
         privateCompanyId: Type.String(),
-        locationId: Type.String()
+        locationId: Type.String(),
+        /** The revenue center the marker goes on, where the private's terms name centers. */
+        nodeId: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
@@ -40,6 +42,7 @@ export class HydratedPlacePrivateMarker
     declare playerId: string
     declare privateCompanyId: string
     declare locationId: string
+    declare nodeId?: string
     readonly #powers: PrivatePowerRules
     constructor(data: PlacePrivateMarker, powers: PrivatePowerRules) {
         super(data instanceof HydratedPlacePrivateMarker ? data.dehydrate() : data, Validator)
@@ -47,9 +50,15 @@ export class HydratedPlacePrivateMarker
     }
     private terms(state: State): PrivateMarkerTerms | undefined {
         const terms = this.#powers.markerTerms?.(state, this.privateCompanyId, this.playerId)
+        const placed = terms?.stops
+            ? terms.stops.some(
+                  (stop) => stop.locationId === this.locationId && stop.nodeId === this.nodeId
+              )
+            : this.nodeId === undefined
         return this.source === ActionSource.User &&
             state.activePlayerIds.includes(this.playerId) &&
-            terms?.locationIds.includes(this.locationId)
+            terms?.locationIds.includes(this.locationId) &&
+            placed
             ? terms
             : undefined
     }
@@ -62,7 +71,9 @@ export class HydratedPlacePrivateMarker
         placeLocationMarker(state, {
             locationId: this.locationId,
             kind: terms.kind,
-            privateCompanyId: this.privateCompanyId
+            privateCompanyId: this.privateCompanyId,
+            ...(this.nodeId ? { nodeId: this.nodeId } : {})
         })
+        this.#powers.afterMarker?.(state, this.privateCompanyId, this.locationId, this.nodeId)
     }
 }

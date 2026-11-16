@@ -1823,3 +1823,68 @@ describe('R-8.3.4 — every piece leaves the map', () => {
         expect(moved.peekedRelics).toEqual({ [`${H3}.relic.0`]: relic('brass-horse') })
     })
 })
+
+describe('R-8.5 with R-9.3 — the Dispossessed can be dealt empty', () => {
+    // Dana, the Chancellor, keeps the one site that holds a denizen and builds there; the
+    // discard piles hold only a Vision, and Rhys, the one loser, has no advisers. The pool is
+    // empty, so none are dispossessed, and the game the chronicle continues starts with none.
+    const WIZARD_SCHOOL = den('arcane.wizard-school')
+    function emptyPoolEnd(): HydratedOathGameState {
+        return scene({
+            oathType: OathType.Supremacy,
+            players: [
+                seat(DANA, Color.Purple, PlayerStatus.Chancellor, {
+                    advisers: [faceup(den('order.knights-errant'))],
+                    relicIds: [GRAND_SCEPTER_ID]
+                }),
+                seat(RHYS, Color.Red, PlayerStatus.Exile)
+            ],
+            sites: {
+                [C1]: {
+                    site: site('fertile-valley'),
+                    cards: [WIZARD_SCHOOL],
+                    warbands: { [IMPERIAL_WARBANDS]: 2 }
+                }
+            },
+            discards: { [Region.Cradle]: ['vision.faith'] }
+        })
+    }
+
+    it('nothing to dispossess: the count is 0 and the Dispossessed stays empty', () => {
+        const vowed = run(wonTable(emptyPoolEnd(), CHANCELLOR_WINS), vow(DANA, OathType.ThePeople))
+        const { final, actions } = run(
+            vowed.final,
+            build(DANA, { siteId: C1, cardId: WIZARD_SCHOOL })
+        )
+        expect(final.chronicle?.step).toBe(ChronicleStep.Story)
+        expect(actions.map((action) => action.type)).toContain(ActionType.ChronicleDispossess)
+        expect(final.chronicle?.dispossessed).toBe(0)
+        expect(final.dispossessedCount).toBe(0)
+        expect(vaultOf(final).dispossessed).toEqual([])
+        expect(final.denizensBySite[C1]).toContain(GREAT_SPIRE)
+        expect(chronicleCensus(hydrated(final))).toEqual([])
+    })
+
+    it('the next game starts with the Dispossessed empty, and Great Spire on the map', () => {
+        const vowed = run(wonTable(emptyPoolEnd(), CHANCELLOR_WINS), vow(DANA, OathType.ThePeople))
+        const built = run(vowed.final, build(DANA, { siteId: C1, cardId: WIZARD_SCHOOL }))
+        const final = run(built.final, skip(DANA)).final
+        const game = testGame([DANA, RHYS], { status: GameStatus.Finished })
+        const continuation: GameContinuation<OathProjectedState> = {
+            previousState: final,
+            previousPlayers: game.players
+        }
+        const next = testGame(['p1', 'p2'], {
+            id: 'game-next',
+            status: GameStatus.WaitingToStart,
+            continuedFromGameId: game.id
+        })
+        const { initialState } = new GameEngine(Definition.runtime).startGame(next, {
+            continuation
+        })
+        expect(initialState.oathRevision).toBe(OathRevision.EngineFixes29)
+        expect(initialState.dispossessedCount).toBe(0)
+        expect(vaultOf(initialState).dispossessed).toEqual([])
+        expect(Object.values(initialState.denizensBySite).flat()).toContain(GREAT_SPIRE)
+    })
+})

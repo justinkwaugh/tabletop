@@ -49,7 +49,7 @@
         })
     )
     let dimmed = $derived(dimsTheMap(offers))
-    let badged = $derived(gameSession.powerBadgeCards)
+    let badged = $derived(gameSession.useCards)
 
     function pickOnMap(offer: SiteOffer | undefined): (() => void) | undefined {
         if (offer?.intent === 'target' && sitesOnMap) {
