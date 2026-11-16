@@ -38,9 +38,9 @@ Permission granted by Tom Lehmann to Justin Waugh on 2018-02-28 for non-commerci
 
 Permission granted by Tom Lehmann to Justin Waugh on 2026-11-01 for non-commercial use of 1833NE when hosted on https://boardtogether.games
 
-### Preußische Ostbahn and South African Railroads
+### Winsome Games
 
-Permission granted by John Bohrer to Justin Waugh on 2026-11-09 for non-commercial use of Preußische Ostbahn and South African Railroads when hosted on https://boardtogether.games, as long as the site stays free and does not provide the games' rules.
+Permission granted by John Bohrer to Justin Waugh on 2026-11-09 for non-commercial use of his designs when hosted on https://boardtogether.games, as long as the site stays free and does not provide the games' rules.
 
 ### 1894
 
