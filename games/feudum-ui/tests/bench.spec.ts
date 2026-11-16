@@ -223,13 +223,13 @@ test('S74 R-4.6.2 a Merchant trade: a bin per good, each priced; the basket adds
         /^Iron: \d+s → iron$/
     )
     await expect(picker(page).locator('[data-basket-pick]')).toHaveCount(0)
-    await expect(picker(page).locator('[data-basket-total]')).toHaveText(/\D0$/)
+    await expect(picker(page).locator('[data-basket-sum]')).toHaveText('0')
     await pressAll(page, 'good:iron', 'good:wood')
     await expect(picker(page).locator('[data-basket-pick]')).toHaveCount(2)
     const send = picker(page).locator('[data-bench-send] [data-primary]')
     await expect(send).toHaveText(/^Buy 2 goods · \d+s$/)
     const [, total] = /· (\d+)s/.exec(await send.innerText()) ?? []
-    await expect(picker(page).locator('[data-basket-total]')).toContainText(total ?? '-')
+    await expect(picker(page).locator('[data-basket-sum]')).toHaveText(total ?? '-')
     await expect(primary(page)).toHaveCount(1)
     await shot(page, 'merchant-trade')
     await undo(page).click()
