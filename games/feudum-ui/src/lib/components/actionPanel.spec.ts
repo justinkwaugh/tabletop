@@ -515,13 +515,15 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
         expect(tax).toContain('data-slot-badge="1"')
     })
 
-    it('the slots are numbered, the filled one takes its card back, their name says play in any order', () => {
+    it('the slots are numbered, an empty one a solid outline, the filled one takes its card back, their name says play in any order', () => {
         const markup = draft()
         const slots = [...markup.matchAll(/data-slot="(\d)"/g)].map(([, at]) => Number(at))
         expect(slots).toEqual([1, 2, 3, 4])
         expect(markup).toContain('aria-label="Tax, slot 1: take back"')
         expect(markup.match(/data-slot-empty/g)).toHaveLength(3)
         expect(markup).toContain('aria-label="Your hand · play in any order"')
+        // An empty slot is a solid outline: nothing on the panel is dashed.
+        expect(markup).not.toContain('border-dashed')
         // One heading and one caption: the plan has no caption of its own.
         expect(markup).not.toContain('data-plan-caption')
     })

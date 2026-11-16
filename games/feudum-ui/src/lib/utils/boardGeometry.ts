@@ -660,7 +660,7 @@ export function uprightTransform(guild: GuildId): string {
  * guilds' then the East's, each in its area's order. In board units: `gap` above the strip and
  * between two rails, `divide` more between the West's and the East's. A rail's own drawing is
  * `drawing` pixels wide, and as tall as its heading and one line for each seat: the master's line
- * and the rest held, or with no master the heading's line holds "no master yet" and every seat may
+ * and the rest held, or with no master the heading's line holds the empty outline and every seat may
  * stand placeless under it, so every place fits however the places fall.
  */
 export const StandingsStrip = {
