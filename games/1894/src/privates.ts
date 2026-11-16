@@ -1,4 +1,5 @@
-import { PrivateCatalog } from '@tabletop/18xx'
+import { PrivateCatalog, placeReference as place } from '@tabletop/18xx'
+import { LondonLocationId, LondonShippingLocationId, LuxembourgLocationId } from './map.js'
 import { EighteenNinetyFourPhases } from './trains.js'
 
 /** The French major shareholding private of each French company (§11.2.2.8). */
@@ -48,8 +49,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 faceValue: 20,
                 revenue: 5,
                 blocks: { locationIds: ['I14'], until: 'company-owned' },
-                description:
-                    'Once per game the owning company may pay ₣60 to lay an extra yellow tile, which it cannot upgrade that round. Blocks I14 while player-owned. Closes at phase 6.'
+                description: `Once per game the owning company may pay ₣60 to lay an extra yellow tile, which it cannot upgrade that round. Blocks ${place('I14')} while player-owned. Closes at phase 6.`
             },
             {
                 id: 'AR',
@@ -64,8 +64,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 faceValue: 50,
                 revenue: 10,
                 blocks: { locationIds: ['H17'], until: 'company-owned' },
-                description:
-                    'The owning company may lay or upgrade a yellow tile in Liège (H17) as a track action without a connection, then place its cheapest station there free as its station placement. Blocks H17 while player-owned. Closes at phase 6.'
+                description: `The owning company may lay or upgrade a yellow tile in ${place('H17')} as a track action without a connection, then place its cheapest station there free as its station placement. Blocks ${place('H17')} while player-owned. Closes at phase 6.`
             },
             {
                 id: 'SAC',
@@ -73,8 +72,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 faceValue: 50,
                 revenue: 10,
                 blocks: { locationIds: ['D17'], until: 'company-owned' },
-                description:
-                    'The owning company may lay or upgrade a yellow tile in Antwerpen (D17) as a track action without a connection, then place its cheapest station there free as its station placement. Blocks D17 while player-owned. Closes at phase 6.'
+                description: `The owning company may lay or upgrade a yellow tile in ${place('D17')} as a track action without a connection, then place its cheapest station there free as its station placement. Blocks ${place('D17')} while player-owned. Closes at phase 6.`
             },
             {
                 id: 'SQG',
@@ -82,16 +80,14 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 faceValue: 70,
                 revenue: 0,
                 closure: 'never',
-                description:
-                    'Earns ₣70 while Saint-Quentin (G10) is green, ₣100 while it is brown, otherwise nothing. Companies cannot buy it in phases 6 and 7. Closes at phase D.'
+                description: `Earns ₣70 while ${place('G10')} is green, ₣100 while it is brown, otherwise nothing. Companies cannot buy it in phases 6 and 7. Closes at phase D.`
             },
             {
                 id: 'LS',
                 name: 'London shipping',
                 faceValue: 90,
                 revenue: 15,
-                description:
-                    'The owning company pays ₣40 for a ferry marker and may place its cheapest station free in A12. A company with a station in A12 adds the route’s largest other revenue, besides Luxembourg, to London. Closes at phase 6.'
+                description: `The owning company pays ₣40 for a ferry marker and may place its cheapest station free in the ${place(LondonShippingLocationId)} hex. A company with a station there adds the route’s largest other revenue, besides ${place(LuxembourgLocationId)}, to ${place(LondonLocationId)}. Closes at phase 6.`
             },
             {
                 id: 'NMinorS',

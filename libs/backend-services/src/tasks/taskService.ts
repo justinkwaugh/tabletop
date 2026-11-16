@@ -1,4 +1,5 @@
 import { AccountChangeType } from '../email/emailService.js'
+import type { ContentReportEmail } from '../moderation/contentReports.js'
 
 export interface CreatePushTaskOptions<T> {
     queue: string
@@ -26,6 +27,7 @@ export interface TaskService {
     sendPasswordResetEmail({ userId, token }: { userId: string; token: string }): Promise<void>
     sendAuthVerificationEmail({ userId, token }: { userId: string; token: string }): Promise<void>
     sendAccountChangeNotificationEmail(notice: AccountChangeNotice): Promise<void>
+    sendContentReportEmail(report: ContentReportEmail): Promise<void>
 
     sendGameInvitationEmail({
         userId,

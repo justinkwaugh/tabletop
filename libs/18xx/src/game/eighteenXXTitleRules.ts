@@ -1,6 +1,7 @@
 import type { TitleNames } from './titleNames.js'
 import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import type { ActionDefinition } from '../actions/actionDefinition.js'
+import type { BidBoxRules } from '../auctions/bidBoxes.js'
 import type { OfferPileAuctionRules } from '../auctions/offerPileAuction.js'
 import type { SelectionAuctionRules } from '../auctions/selectionAuction.js'
 import type { WaterfallAuctionRules } from '../auctions/waterfallAuction.js'
@@ -72,8 +73,10 @@ export interface EighteenXXTitleRules<
     titleStateHandlers?: Readonly<Record<string, EighteenXXStateHandler<State>>>
     titleActions?: readonly ActionDefinition[]
     offerAuctionRules?: OfferPileAuctionRules
-    auctionRules?: WaterfallAuctionRules
+    auctionRules?: WaterfallAuctionRules<State>
     selectionAuctionRules?: SelectionAuctionRules
+    /** Lots bid on in boxes through each stock round and bought as it ends, as in 1822. */
+    bidBoxRules?: BidBoxRules
     /** The family's emergency train funding; a title funding trains its own way supplies none. */
     trainFundingRules?: TrainFundingRules
     createOpening: (setup: OpeningSetup) => Opening<Schema, State>

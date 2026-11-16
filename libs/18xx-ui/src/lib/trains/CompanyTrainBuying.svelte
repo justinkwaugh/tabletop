@@ -1,7 +1,8 @@
 <script lang="ts">
-    import { currencyAffixes } from '../presentation/money.js'
+    import { purchaseAssetKey } from '../finance/purchaseAssets.js'
+    import { cashText, currencyAffixes } from '../presentation/money.js'
     import { assert, assertExists } from '@tabletop/common'
-    import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
+    import { cashOwnedBy, getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import DecisionResponse from '../finance/DecisionResponse.svelte'
     import TrainBadge from './TrainBadge.svelte'
@@ -11,6 +12,9 @@
         trainColors
     }: { session: EighteenXXSessionView; trainColors: Readonly<Record<string, string>> } = $props()
     const money = $derived(session.presentation.money)
+    /** What a selling company holds, for buying trains to move money between companies. */
+    const treasury = (companyId: string) =>
+        cashText(money, cashOwnedBy(session.gameState, { kind: 'company', companyId }))
     const request = $derived(session.trainBuying.selection.purchase?.value)
     const response = $derived.by(() => {
         const offer = session.gameState.purchaseOffer
@@ -78,6 +82,9 @@
                 />
             {/if}
             <strong>{session.ownerName(request.seller)}</strong>
+            {#if request.seller.kind === 'company'}<span class="treasury"
+                    >has {treasury(request.seller.companyId)}</span
+                >{/if}
             <TrainBadge name={selectedTrain.name} color={trainColors[selectedTrain.id]} />
         </div>
         <div class="controls">
@@ -117,9 +124,10 @@
                     <div class="company-heading">
                         <CompanyToken appearance={session.mapView.stations[companyId]} size={24} />
                         <strong>{session.companyName(companyId)}</strong>
+                        <span class="treasury">{treasury(companyId)}</span>
                     </div>
                     <div class="company-roster">
-                        {#each trains as choice (choice.request.asset.kind === 'train' ? choice.request.asset.trainId : choice.request.asset.kind === 'private' ? choice.request.asset.privateCompanyId : choice.request.asset.companyId)}
+                        {#each trains as choice (purchaseAssetKey(choice.request.asset))}
                             <button
                                 class="train"
                                 disabled={!session.decisions.canResolve}
@@ -206,6 +214,10 @@
     }
     strong {
         font-weight: 600;
+    }
+    .treasury {
+        color: var(--rail-muted, #887664);
+        font-size: 12px;
     }
     input {
         width: 76px;

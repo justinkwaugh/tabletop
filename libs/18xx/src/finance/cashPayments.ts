@@ -26,7 +26,8 @@ export function settleCashPayments(
             assertExists(cash, 'Payment requires an existing cash owner')
             if (cash.amount !== 'unlimited' && cash !== brokenBank) {
                 const amount = (balances.get(cash) ?? cash.amount) + delta
-                if (owner.kind === 'bank' && state.bank && amount <= 0) {
+                const short = state.bank?.breaksOnShortfall ? amount < 0 : amount <= 0
+                if (owner.kind === 'bank' && state.bank && short) {
                     brokenBank = cash
                     balances.delete(cash)
                 } else balances.set(cash, amount)

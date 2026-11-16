@@ -21,6 +21,7 @@ import {
 import {
     stationMapTokens,
     withPlayedMarkerArt,
+    withStateMarkers,
     type LocationMarkerArt,
     type MapViewDefinition
 } from './stationPresentation.js'
@@ -134,7 +135,11 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 {
                     tileSet: view.tileSet,
                     inventory: snapshot.tileInventory,
-                    markers: snapshot.locationMarkers,
+                    markers:
+                        withStateMarkers(
+                            snapshot.locationMarkers,
+                            view.stateMarkers?.(snapshot) ?? []
+                        ) ?? [],
                     liftedPrivateBlocks: this.liftedPrivateBlocks(snapshot),
                     overfullCities: overfullCityKeys(
                         snapshot.stations,
@@ -143,7 +148,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 },
                 withPlayedMarkerArt(view, this.playedMarkerArt(snapshotState))
             ),
-            tokens: stationMapTokens(snapshot, view.stations, view.sharedStations),
+            tokens: stationMapTokens(snapshot, view),
             reservations: this.openReservations(snapshot),
             stationAppearances: view.stations,
             routes,

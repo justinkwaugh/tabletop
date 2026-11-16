@@ -1,4 +1,8 @@
-import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import {
+    moneyFormat,
+    NoParCompanyPricePresentation,
+    type TitlePresentation
+} from '@tabletop/18xx-ui'
 import MerchantsCard from './images/published/privates/merchants-and-co.webp'
 import MerchantsThumb from './images/published/privates/merchants-and-co-600.webp'
 import VernonRiverCard from './images/published/privates/vernon-river-bridge-company.webp'
@@ -124,7 +128,7 @@ export const TheOldPrincePresentation: TitlePresentation = {
     hideMarketLegend: true,
     exchangePoolId: 'reserved',
     companyNames: TheOldPrinceCompanyNames,
-    companyPricePresentation: { showPar: false, label: 'Value' },
+    companyPricePresentation: NoParCompanyPricePresentation,
     numberedShareNames: {
         PEIR: Object.fromEntries(
             TheOldPrinceCompanies.map((company) => [company.number, company.name])

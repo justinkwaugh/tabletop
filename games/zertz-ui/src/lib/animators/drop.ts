@@ -1,0 +1,201 @@
+import type { Attachment } from 'svelte/attachments'
+import type { TransitionConfig } from 'svelte/transition'
+import { gsap } from 'gsap'
+import { fromToPose, killPose, poseOf, tweenPose } from './svgPose.js'
+
+export const DROP = {
+    fall: 0.26,
+    rise: -50,
+    scale: 1.08,
+    wobble: [-4, -1.5],
+    settle: 0.06,
+    shadow: 0.55
+}
+
+export type DropTiming = { fall: number; wobble: readonly number[] }
+
+// Where a marble is in its fall, and how much of the fall is left.
+export type DropPose = {
+    y: number
+    scale: number
+    opacity: number
+    shadowScale: number
+    shadowOpacity: number
+    left: number
+    // Down on its ring and bouncing, rather than still falling.
+    settling: boolean
+}
+
+// Undo and history steps have no action, so everything they move ends by 0.2 s.
+export const QUICK_DROP: DropTiming = { fall: 0.16, wobble: [] }
+
+const LIFT_OFF = { duration: 0.18, rise: -25, scale: 1.04 }
+
+type Timeline = gsap.core.Timeline
+
+export function dropMarble(
+    timeline: Timeline,
+    body: SVGGElement,
+    shadow: SVGGElement,
+    at = 0,
+    { fall, wobble }: DropTiming = DROP,
+    from: DropPose = {
+        y: DROP.rise,
+        scale: DROP.scale,
+        opacity: 0,
+        shadowScale: DROP.shadow,
+        shadowOpacity: 0,
+        left: fall,
+        settling: false
+    }
+): number {
+    if (from.settling) return settle(timeline, body, shadow, at, from)
+    const { left } = from
+    timeline.fromTo(
+        body,
+        { opacity: from.opacity },
+        { opacity: 1, duration: Math.min(fall * 0.25, left), ease: 'none', immediateRender: true },
+        at
+    )
+    // A fall taken over mid-way is already moving, so it keeps on rather than easing in again.
+    const ease = left < fall ? 'none' : 'power2.in'
+    timeline.add(
+        fromToPose(
+            body,
+            { scale: from.scale, y: from.y },
+            { scale: 1, y: 0, duration: left, ease, immediateRender: true }
+        ),
+        at
+    )
+    timeline.fromTo(
+        shadow,
+        { opacity: from.shadowOpacity },
+        { opacity: 1, duration: left, ease: 'power2.in', immediateRender: true },
+        at
+    )
+    timeline.add(
+        fromToPose(
+            shadow,
+            { scale: from.shadowScale },
+            { scale: 1, duration: left, ease: 'power2.in', immediateRender: true }
+        ),
+        at
+    )
+    let time = at + left
+    for (const height of wobble) {
+        timeline.add(
+            tweenPose(body, { y: height, duration: DROP.settle, ease: 'power1.out' }),
+            time
+        )
+        timeline.add(
+            tweenPose(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }),
+            time + DROP.settle
+        )
+        time += DROP.settle * 2
+    }
+    return time
+}
+
+// A marble taken over mid-bounce comes to rest from where it is, as the bounce would have.
+function settle(
+    timeline: Timeline,
+    body: SVGGElement,
+    shadow: SVGGElement,
+    at: number,
+    { y }: DropPose
+): number {
+    const duration = DROP.settle * 2
+    timeline.set(body, { opacity: 1, immediateRender: true }, at)
+    timeline.add(
+        fromToPose(
+            body,
+            { y, scale: 1 },
+            { y: 0, duration, ease: 'sine.inOut', immediateRender: true }
+        ),
+        at
+    )
+    timeline.set(shadow, { opacity: 1 }, at)
+    timeline.add(tweenPose(shadow, { scale: 1, duration: 0 }), at)
+    return at + duration
+}
+
+// A staged choice, not a state change, so this local timeline owns its motion.
+export class StagedDrop {
+    private readonly timeline = gsap.timeline()
+    private body: SVGGElement | undefined
+    private shadowNode: SVGGElement | undefined
+
+    constructor(private readonly drops: boolean) {}
+
+    readonly marble: Attachment<SVGGElement> = (node) => {
+        this.body = node
+        this.start()
+    }
+
+    readonly shadow: Attachment<SVGGElement> = (node) => {
+        this.shadowNode = node
+        this.start()
+    }
+
+    private start() {
+        if (!this.drops || this.body === undefined || this.shadowNode === undefined) return
+        dropMarble(this.timeline, this.body, this.shadowNode)
+    }
+
+    // Undefined once the marble has reached its ring, or when it never dropped.
+    falling(): DropPose | undefined {
+        const { body, shadowNode } = this
+        const time = this.timeline.time()
+        if (!this.drops || body === undefined || shadowNode === undefined) return undefined
+        if (time >= DROP.fall + DROP.wobble.length * DROP.settle * 2) return undefined
+        const opacity = (node: SVGGElement) => Number(gsap.getProperty(node, 'opacity'))
+        const { y, scale } = poseOf(body)
+        return {
+            y,
+            scale,
+            opacity: opacity(body),
+            shadowScale: poseOf(shadowNode).scale,
+            shadowOpacity: opacity(shadowNode),
+            left: DROP.fall - time,
+            settling: time >= DROP.fall
+        }
+    }
+
+    stop() {
+        this.timeline.kill()
+    }
+}
+
+type LiftOff = { lifts: () => boolean }
+
+// The drop runs on nodes inside the one lifted, so the two never write the same transform.
+function stopDrop(wrapper: Element) {
+    const nodes = wrapper.querySelectorAll<SVGGElement>('g')
+    gsap.killTweensOf(nodes)
+    for (const node of nodes) killPose(node)
+}
+
+export function liftOffBody(node: Element, { lifts }: LiftOff): TransitionConfig {
+    stopDrop(node)
+    if (!lifts()) return { duration: 0 }
+    return {
+        duration: LIFT_OFF.duration * 1000,
+        css: (t, u) => {
+            const up = 1 - t * t
+            const scale = 1 + (LIFT_OFF.scale - 1) * up
+            return `opacity: ${1 - u ** 3}; transform: translateY(${LIFT_OFF.rise * up}px) scale(${scale})`
+        }
+    }
+}
+
+export function liftOffShadow(node: Element, { lifts }: LiftOff): TransitionConfig {
+    stopDrop(node)
+    if (!lifts()) return { duration: 0 }
+    return {
+        duration: LIFT_OFF.duration * 1000,
+        css: (t) => {
+            const up = 1 - t * t
+            return `opacity: ${1 - up}; transform: scale(${1 + (DROP.shadow - 1) * up})`
+        }
+    }
+}

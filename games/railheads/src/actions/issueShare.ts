@@ -53,7 +53,7 @@ export class HydratedIssueShare extends HydratableAction<typeof IssueShare> impl
         assert(
             Number.isSafeInteger(this.amount) &&
                 this.amount >= minimum &&
-                this.amount <= state.getPlayerState(this.playerId).cash,
+                this.amount <= state.spendingPower(this.playerId),
             'The opening bid must be at least the minimum and within your cash'
         )
         const withdrawnPlayerIds = openIssueAuction(

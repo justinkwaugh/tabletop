@@ -3,17 +3,24 @@ export { default as TileArtwork } from './tiles/TileArtwork.svelte'
 export { default as TileLibraryViewer } from './tiles/TileLibraryViewer.svelte'
 export { default as TileManifest } from './tiles/TileManifest.svelte'
 export {
+    TileApothem,
     TileRadius,
     createTileDrawing,
     type TileDrawing,
     type TileDrawnPath,
     type TilePrintedToken,
+    type TilePrintedTrack,
+    type TilePrintedText,
     type TileDrawnNode,
     type TileDrawingStyle,
     type TileLayout
 } from './tiles/tileDrawing.js'
 export { TileColors } from './tiles/tilePresentation.js'
-export { StandardTileLayouts, towardTileEdge } from './tiles/standardTileLayouts.js'
+export {
+    StandardTileLayouts,
+    placedTileLayout,
+    towardTileEdge
+} from './tiles/standardTileLayouts.js'
 export * from './maps/mapDrawing.js'
 export * from './maps/printedLinePath.js'
 export * from './maps/companyMark.js'
@@ -35,6 +42,7 @@ export { ownerPortfolio } from './finance/ownerPortfolio.js'
 export { withDraftedCompanies, type DraftedCompany } from './finance/draftedCompanies.js'
 
 export * from './session/eighteenXXSession.svelte.js'
+export { StagedSelection, singleChoice } from './session/stagedSelection.svelte.js'
 export type { PrivateTrackPower, TitlePrivatePower } from './session/privateActionsModule.svelte.js'
 export { default as StockTrading } from './stock/StockTrading.svelte'
 export { default as StockMarket } from './stock/StockMarket.svelte'
@@ -50,6 +58,7 @@ export { default as TrainBuying } from './trains/TrainBuying.svelte'
 
 export { default as PrivateCompanies } from './privates/PrivateCompanies.svelte'
 export { setPlaceLinks, type PlaceLinks } from './places/placeLinks.js'
+export { default as PlaceText } from './places/PlaceText.svelte'
 
 export { default as CompanyDecisions } from './finance/CompanyDecisions.svelte'
 export { default as DecisionResponse } from './finance/DecisionResponse.svelte'
@@ -64,6 +73,7 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 export { default as GameTable } from './table/GameTable.svelte'
 export {
     companyNameVariants,
+    NoParCompanyPricePresentation,
     shortCompanyName,
     type CompanyNameVariants,
     type CompanyNaming,
@@ -75,6 +85,7 @@ export type {
     TitleActionDescription,
     TitleHistoryNames
 } from './table/historyDescription.js'
+export type { TitleCallout } from './table/historyCallouts.js'
 export {
     companyClosedRow,
     companyClosureDetails,
@@ -87,6 +98,7 @@ export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
     CompanyMark,
+    TrainTokens,
     MarketLedge,
     MarketZone,
     MarketZoneBanner,
@@ -94,16 +106,20 @@ export type {
     PlaceConnection,
     PrivateTokenPresentation,
     TitleFact,
+    LoanTerms,
     TitleOperatingStep,
     TitlePresentation,
-    TitleRound
+    TitleRound,
+    UnstartedCompanies,
+    UnstartedCompanyHome
 } from './session/titlePresentation.js'
+export { printedHomeCompanies } from './session/titlePresentation.js'
 export { constructionOperatingSteps } from './table/operatingStep.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { tileSymbolMarkup } from './tiles/tileSymbols.js'
 export { counted } from './presentation/count.js'
 export { InstructedRunSolver } from './session/instructedRunSolver.js'
-export { moneyFormat, type MoneyFormat } from './presentation/money.js'
+export { currencyAffixes, moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { clickedBackdrop } from './presentation/modalDialog.js'
 export { svgDataUrl } from './presentation/svgDataUrl.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
@@ -140,10 +156,13 @@ export { default as CompanyOrder } from './table/CompanyOrder.svelte'
 export { default as CompanyDetails } from './table/CompanyDetails.svelte'
 
 export { default as TrainBadge } from './trains/TrainBadge.svelte'
+export { default as TrainTokenPips } from './trains/TrainTokenPips.svelte'
 
 export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 
 export { default as AuctionBidControl } from './auctions/AuctionBidControl.svelte'
+export { default as BidBoxes, type BidBoxGroup } from './auctions/BidBoxes.svelte'
+export { BidBoxModule, type BidBoxLot, type BidBoxSession } from './session/bidBoxModule.svelte.js'
 export { default as OfferAuctionBidding } from './auctions/OfferAuctionBidding.svelte'
 export { default as WaterfallAuctionLots } from './auctions/WaterfallAuctionLots.svelte'
 export { default as SelectionAuctionLots } from './auctions/SelectionAuctionLots.svelte'
@@ -151,6 +170,8 @@ export { default as SelectionAuctionBidding } from './auctions/SelectionAuctionB
 export { default as CompanyAuctionBidding } from './stock/CompanyAuctionBidding.svelte'
 export { default as CompanyFormation } from './stock/CompanyFormation.svelte'
 export { default as CompanyPar } from './stock/CompanyPar.svelte'
+export { default as PresidencyExchangeChoice } from './stock/PresidencyExchangeChoice.svelte'
+export { exchangeChoiceWords, type ExchangeCertificate } from './stock/presidencyExchangeWords.js'
 export { default as CompanyActionCard, type CardAction } from './stock/CompanyActionCard.svelte'
 export { default as CompanyShareActions } from './stock/CompanyShareActions.svelte'
 export { default as PendingShareDecision } from './stock/PendingShareDecision.svelte'
@@ -168,17 +189,24 @@ export { default as PrivateCard } from './privates/PrivateCard.svelte'
 export {
     createDieselPhaseChart,
     createPhaseChart,
-    type PhaseChartData
+    type PhaseChartData,
+    type TrainMark
 } from './phases/phaseChart.js'
 
 export * from './stock/marketAnimationSource.js'
 
 export { marketColors, marketSpaceColor, marketZone } from './stock/marketColors.js'
-export { MarketTokenSize } from './stock/marketTokenLayout.js'
+export {
+    MarketScenePadding,
+    MarketTokenSize,
+    MarketZoneBannerHeight,
+    marketGeometry
+} from './stock/marketTokenLayout.js'
 
 export { default as BoardInset } from './maps/BoardInset.svelte'
 
 export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
+export { RouteEditor } from './session/routeEditor.svelte.js'
 export { TitleStockPanels, type TitleStockPanel } from './session/titleStockPanels.svelte.js'
 export { StopRightsActions } from './session/stopRightsActions.svelte.js'
 export { default as TitlePrompt } from './table/TitlePrompt.svelte'

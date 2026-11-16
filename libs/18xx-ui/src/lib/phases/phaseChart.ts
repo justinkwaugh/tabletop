@@ -22,17 +22,28 @@ export type PhaseChartData = {
         rustTrainIds: readonly string[]
         rustPhaseId?: string
         rustNote?: string
+        /** What the game ties to buying this train, beside its badge in the roster. */
+        marks?: readonly TrainMark[]
     }[]
     notes: readonly string[]
 }
+
+/**
+ * A mark on a train in the roster for something its purchase brings, such as 1882's rebellion,
+ * drawn as an icon with an optional short label and described in full on hover.
+ */
+export type TrainMark = { imageUrl: string; label?: string; description: string }
 
 export type DepotCertificate = {
     definitionIds: readonly string[]
     remaining: number | 'unlimited'
 }
 
+type ChartTrain = PhaseChartData['trains'][number]
+
 export type TrainRosterRow = {
-    train: PhaseChartData['trains'][number]
+    /** The faces of one certificate that cost the same and rust together. */
+    faces: ChartTrain[]
     remainingRowSpan: number
     rustRowSpan: number
 }
@@ -59,17 +70,52 @@ export function currentDepotCertificates({
     }))
 }
 
+export function marketCertificates({
+    depot,
+    inventory
+}: Pick<PhaseChartDepotState, 'depot' | 'inventory'>): DepotCertificate[] {
+    return depot.definition.supply
+        .map(({ definitionId }) => {
+            const faces = facesByPrice(depot, definitionId).map(({ id }) => id)
+            return {
+                definitionIds: faces,
+                remaining: inventory.trains.filter(
+                    (train) => train.status === 'market' && faces.includes(train.definitionId)
+                ).length
+            }
+        })
+        .filter(({ remaining }) => remaining > 0)
+}
+
+export function certificateRemaining(
+    certificates: readonly DepotCertificate[],
+    definitionId: string
+): DepotCertificate['remaining'] {
+    return (
+        certificates.find(({ definitionIds }) => definitionIds.includes(definitionId))?.remaining ??
+        0
+    )
+}
+
 export function trainRosterRows(trains: PhaseChartData['trains']): TrainRosterRow[] {
-    return trains.map((train) => {
-        const faces = trains.filter((face) => face.supplyId === train.supplyId)
-        const certificateRowSpan = faces[0] === train ? faces.length : 0
-        const sameRust = faces.every(
-            (face) => face.rustPhaseId === train.rustPhaseId && face.rustNote === train.rustNote
-        )
+    const rustsWith = (first: ChartTrain, second: ChartTrain) =>
+        first.rustPhaseId === second.rustPhaseId && first.rustNote === second.rustNote
+    const sharesRow = (first: ChartTrain, second: ChartTrain) =>
+        first.supplyId === second.supplyId &&
+        first.price === second.price &&
+        rustsWith(first, second)
+    const rows = trains
+        .filter((train) => trains.find((face) => sharesRow(face, train)) === train)
+        .map((first) => trains.filter((face) => sharesRow(face, first)))
+    return rows.map((faces) => {
+        const certificate = rows.filter(([face]) => face.supplyId === faces[0].supplyId)
+        const certificateRowSpan = certificate[0] === faces ? certificate.length : 0
         return {
-            train,
+            faces,
             remainingRowSpan: certificateRowSpan,
-            rustRowSpan: sameRust ? certificateRowSpan : 1
+            rustRowSpan: certificate.every(([face]) => rustsWith(face, faces[0]))
+                ? certificateRowSpan
+                : 1
         }
     })
 }

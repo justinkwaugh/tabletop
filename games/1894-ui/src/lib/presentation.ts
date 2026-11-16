@@ -1,16 +1,33 @@
 import { holdsAccessRight } from '@tabletop/18xx'
 import {
+    EighteenNinetyFourCompanyRules,
+    EighteenNinetyFourMap,
     EighteenNinetyFourTitleRules,
+    LateCompanies,
     FerryRightId,
     SaintQuentinPrivateId,
     holdsLondonShippingStation
 } from '@tabletop/1894'
-import { moneyFormat, type LocationMarkerArt, type TitlePresentation } from '@tabletop/18xx-ui'
+import {
+    moneyFormat,
+    printedHomeCompanies,
+    type LocationMarkerArt,
+    type TitlePresentation
+} from '@tabletop/18xx-ui'
 import { EighteenNinetyFourCompanyNames } from './companyPresentation.js'
 import { EighteenNinetyFourPhaseChart } from './phaseChart.js'
 import { EighteenNinetyFourTrainColors } from './trainPresentation.js'
 
+const PrintedHomes1894 = printedHomeCompanies(EighteenNinetyFourMap)
+
 export const EighteenNinetyFourPresentation: TitlePresentation = {
+    // The late companies open in phase 5+1, their presidents choosing their homes (§11.3.3).
+    unstartedCompanies: {
+        onOffer: (state, companyId) =>
+            EighteenNinetyFourCompanyRules.startMarketSpaces(state, companyId).length > 0,
+        home: (state, companyId) =>
+            companyId in LateCompanies ? 'chosen' : PrintedHomes1894.home(state, companyId)
+    },
     money: moneyFormat(EighteenNinetyFourTitleRules.currencySymbol),
     phaseChart: EighteenNinetyFourPhaseChart,
     trainColors: EighteenNinetyFourTrainColors,

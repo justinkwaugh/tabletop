@@ -35,6 +35,32 @@ GAME_CONTEXT_READ = re.compile(
 
 # Production patterns whose hits in a shared family library count against every title shipping it.
 FAMILY_LIBRARY_PATTERNS = ("action_patch_read", "game_context_read")
+TAILWIND_FILTER_CLASS = (
+    r"(?<=[\s\"'`:])(?:drop-shadow|backdrop-blur|blur|brightness|contrast|saturate|grayscale|sepia|"
+    r"hue-rotate|invert)(?:-(?:\[[^\]]*\]|[\w./]+))?(?=[\s\"'`;])"
+)
+RENDER_HAZARDS = {
+    "svg_filter": re.compile(r"<filter\b|(?<![\w:-])filter=|filter\s*:\s*url\("),
+    "css_filter": re.compile(
+        r"filter\s*:\s*(?:drop-shadow|blur|brightness|contrast|saturate|grayscale|sepia|hue-rotate|invert|"
+        r"opacity|var)\(|style:(?:backdrop-)?filter\b|(?:\bclass\b|@apply)[^\n]*" + TAILWIND_FILTER_CLASS
+    ),
+    "turbulence": re.compile(r"feTurbulence"),
+    "mask_or_blend": re.compile(
+        r"<mask\b|(?<![\w:-])mask=|\bmask(?:-image)?\s*:\s*(?:url|linear-gradient|radial-gradient|conic-gradient|image)\(|"
+        r"mix-blend"
+    ),
+    "layer_promotion": re.compile(r"will-change|translateZ\(|translate3d\(|backface-visibility"),
+    "svg_image": re.compile(r"<image\b"),
+    "animated_dash": re.compile(r"stroke-dashoffset|strokeDashoffset"),
+    "listener_churn": re.compile(
+        r"(?:add|remove)EventListener\(\s*['\"`](?:touch\w+|wheel)['\"`]|\bon:?wheel\s*="
+    ),
+    "text_baseline": re.compile(r"dominant-baseline|dominantBaseline|alignment-baseline"),
+    "aspect_slice": re.compile(r"preserveAspectRatio[^\n]*\bslice\b"),
+    "render_at_view_scale": re.compile(r"\brenderAtViewScale\b"),
+}
+NESTED_SVG = re.compile(r"<svg\b(?=[^>]*\s(?:x|y)\s*=)[^>]*>")
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -550,6 +576,19 @@ def find_hits(files: list[Path], patterns: dict[str, re.Pattern[str]]) -> dict[s
             for name, pattern in patterns.items():
                 if pattern.search(line):
                     hits[name].append({"path": path.as_posix(), "line": number, "text": line.strip()})
+    return hits
+
+
+def render_hazards(files: list[Path], repo: Path) -> dict[str, list[dict[str, Any]]]:
+    hits = find_hits(files, RENDER_HAZARDS)
+    hits["nested_svg"] = []
+    for path in files:
+        if path.suffix.lower() != ".svelte":
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in NESTED_SVG.finditer(text):
+            line = text.count("\n", 0, match.start()) + 1
+            hits["nested_svg"].append({"path": path.as_posix(), "line": line, "text": " ".join(match.group(0).split())})
     return hits
 
 
@@ -1158,6 +1197,16 @@ def main() -> int:
         "state_shape": state_shape(state_sources, ui_root, repo),
         "dev_harness": dev_harness(ui_root),
         "css_encapsulation": css_encapsulation(ui_root, production_sources, repo, args.static),
+        "render_hazards": render_hazards(
+            [path for path in production_sources if path.is_relative_to(ui_root)], repo
+        ),
+        "family_library_render_hazards": render_hazards(
+            [
+                path for path in family_sources
+                if not any(path.is_relative_to(root) for root in logic_family_roots)
+            ],
+            repo,
+        ),
         "competition_specs": sorted(
             path.relative_to(repo).as_posix()
             for path in logic_root.rglob("competition.*")

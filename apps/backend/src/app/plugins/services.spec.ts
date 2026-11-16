@@ -18,7 +18,9 @@ vi.mock('@tabletop/backend-services', async () => {
     return {
         ...Object.fromEntries(
             [
+                'AbandonedSignUps',
                 'AccountModeration',
+                'ContentReports',
                 'CatalogService',
                 'CharityTallyRefresher',
                 'CharityTallyService',
@@ -38,7 +40,7 @@ vi.mock('@tabletop/backend-services', async () => {
                 'FirestoreTournamentStore',
                 'FirestoreUserStore',
                 'GameService',
-                'TitleActivityCache',
+                'ActivityCache',
                 'TitleLibrary',
                 'LeagueService',
                 'NullPubSubService',
@@ -63,6 +65,8 @@ vi.mock('@tabletop/backend-services', async () => {
         RedisPubSubService,
         RedisCacheService,
         RedisRateLimitCounter,
+        TitleActivityScope: {},
+        SeriesActivityScope: {},
         LOCAL_WORKSPACE_ROOT: process.cwd(),
         STATIC_ROOT: process.cwd(),
         createLocalManifest: vi.fn(),

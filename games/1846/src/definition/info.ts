@@ -9,6 +9,11 @@ export const EighteenFortySixInfo: GameInfo = {
         bggId: 17405,
         hasScores: true,
         designer: 'Thomas Lehmann',
+        publisher: {
+            name: 'GMT Games',
+            url: 'https://www.gmtgames.com/p-847-1846-the-race-to-the-midwest-1846-1935-2nd-printing.aspx',
+            sellsGame: true
+        },
         year: '2005',
         description:
             'Five eastern railroads crossed the Appalachians in search of midwestern grain, and the land-grant Illinois Central is forming to meet them. Draft private companies, then launch and steer the great lines toward Chicago and St. Louis, linking East and West in this 18xx for 2–5 players. Issue shares to fund your railroads and buy trains from your rivals, but a company with no train must get one, and if its treasury can’t pay, its president must.',

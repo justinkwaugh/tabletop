@@ -15,7 +15,12 @@ import {
     applyStationPlacement,
     type HomePosition
 } from '../stations/stationPlacement.js'
-import { SharePurchaseDetails, evaluateShareAcquisition } from '../stock/sharePurchase.js'
+import {
+    SharePurchaseDetails,
+    applyShareTransfer,
+    evaluateShareAcquisition,
+    evaluateShareTransfer
+} from '../stock/sharePurchase.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { Owner } from '../finance/finance.js'
 import type { FormationState } from './companyState.js'
@@ -28,6 +33,8 @@ export type CompanyStartRequest = {
     companyId: string
     marketSpaceId: string
     home?: HomePosition
+    /** Ordinary certificates the president buys with the start, where the title allows (1849 §9.4). */
+    additionalCertificateIds?: readonly string[]
 }
 export const CompanyStartDetails = Type.Object(
     {
@@ -37,7 +44,9 @@ export const CompanyStartDetails = Type.Object(
         /** The home its president placed or claimed as the company started. */
         home: Type.Optional(StationPlacementDetails),
         /** The home is only claimed, on its city or hex, until the company first operates. */
-        homeClaim: Type.Optional(Type.Union([Type.Literal('city'), Type.Literal('hex')]))
+        homeClaim: Type.Optional(Type.Union([Type.Literal('city'), Type.Literal('hex')])),
+        /** Ordinary certificates bought with the president's, in the order they were bought. */
+        additionalPurchases: Type.Optional(Type.Array(SharePurchaseDetails))
     },
     { additionalProperties: false }
 )
@@ -84,16 +93,62 @@ export function evaluateCompanyStart(
         terms
     )
     if (!result.details) return { reason: result.reason }
+    const additional = additionalStartPurchases(
+        projected,
+        request,
+        result.details,
+        stockRules,
+        rules
+    )
+    if (typeof additional === 'string') return { reason: additional }
     const details = {
         ...result.details,
         marketSpaceId: space.id,
         parPrice: space.price,
         ...(home ? { home } : {}),
-        ...(homeClaim ? { homeClaim } : {})
+        ...(homeClaim ? { homeClaim } : {}),
+        ...(additional.length ? { additionalPurchases: additional } : {})
     }
     if (home && treasuryAfterStart(state, details) < home.cost)
         return { reason: 'The company cannot pay for this home.' }
     return { details }
+}
+
+/** The further certificates a start buys, each on the state the purchases before it leave. */
+function additionalStartPurchases(
+    projected: FormationState,
+    request: CompanyStartRequest,
+    president: SharePurchaseDetails,
+    stockRules: StockRules,
+    rules: CompanyRules
+): SharePurchaseDetails[] | string {
+    const ids = request.additionalCertificateIds ?? []
+    if (!ids.length) return []
+    if (ids.length > (rules.additionalStartCertificates?.(projected, request.companyId) ?? 0))
+        return 'The start cannot include this many further certificates.'
+    if (new Set(ids).size !== ids.length) return 'A certificate can only be bought once.'
+    applyShareTransfer(projected, president)
+    const purchases: SharePurchaseDetails[] = []
+    for (const certificateId of ids) {
+        const certificate = projected.certificates.find((entry) => entry.id === certificateId)
+        if (
+            !certificate ||
+            certificate.kind !== 'share' ||
+            certificate.president ||
+            certificate.companyId !== request.companyId
+        )
+            return 'Only the company’s ordinary certificates can be bought with its start.'
+        const purchase = evaluateShareTransfer(
+            projected,
+            { playerId: request.playerId, buyer: request.buyer, certificateId },
+            stockRules,
+            stockRules.purchaseTerms(projected, certificate, request.buyer)
+        )
+        if (!purchase.details) return purchase.reason
+        applyShareTransfer(projected, purchase.details)
+        purchases.push(purchase.details)
+    }
+    return purchases
 }
 
 type StartHomeResult =
@@ -127,7 +182,10 @@ function startHome(
 
 function treasuryAfterStart(state: FinancialState, details: CompanyStartDetails): number {
     const treasury = { kind: 'company' as const, companyId: details.companyId }
-    const paid = details.payments
+    const paid = [
+        ...details.payments,
+        ...(details.additionalPurchases ?? []).flatMap((purchase) => purchase.payments)
+    ]
         .filter((payment) => sameOwner(payment.to, treasury))
         .reduce((sum, payment) => sum + payment.amount, 0)
     return finiteCashOwnedBy(state, treasury) + paid

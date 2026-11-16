@@ -18,7 +18,7 @@ import {
 } from '@tabletop/common'
 import { cacheFixture } from '../../cache/tests/cacheFixture.js'
 import { FirestoreGameStore } from './gameStore.js'
-import { TitleActivityCache } from '../../games/titleActivityCache.js'
+import { ActivityCache, TitleActivityScope } from '../../games/activityCache.js'
 import { GameCacheKeys } from './gameCacheKeys.js'
 import { UpdateValidationResult } from '../stores/validator.js'
 import { GameService } from '../../games/gameService.js'
@@ -479,7 +479,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         })
 
         it('shows a renamed player in the title activity lists', async () => {
-            const titleActivity = new TitleActivityCache(client)
+            const titleActivity = new ActivityCache(client, TitleActivityScope)
             const listingStore = new FirestoreGameStore(live.cache, db, { titleActivity })
             const finished: Game = {
                 ...game,

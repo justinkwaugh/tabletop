@@ -10,6 +10,9 @@ import {
     postIdFromArgument,
     postStatus,
     reportFromMessage,
+    dataReportId,
+    mergeReport,
+    publicViewing,
     reporterFromField,
     splitMessage,
     summarizeMessage,
@@ -232,4 +235,48 @@ test('forumRecord names the status, with the version for a fix and any finding',
         forumRecord('reproduced', { finding: ' Undo after a ferry move leaves the ferry. ' }),
         '**Reproduced.**\n\nUndo after a ferry move leaves the ferry.'
     )
+})
+
+test('reportFromMessage reads the report ID from the footer of a split report', () => {
+    const report = reportFromMessage({
+        embeds: [{ title: 'Santiago', footer: { text: 'BoardTogether · report r-123' } }]
+    })
+    assert.equal(report.reportId, 'r-123')
+    assert.equal(
+        reportFromMessage({ embeds: [{ footer: { text: 'BoardTogether' } }] }).reportId,
+        undefined
+    )
+})
+
+test('dataReportId reads the report ID from a data message', () => {
+    assert.equal(
+        dataReportId({ content: 'Data for bug report r-123 · https://discord.com/x' }),
+        'r-123'
+    )
+    assert.equal(dataReportId({ content: 'hello' }), undefined)
+})
+
+test('mergeReport joins the public post and its data into the shape notices expect', () => {
+    const report = {
+        game: 'Santiago',
+        description: 'The canal',
+        fields: { Reporter: 'alice', Viewing: 'History' }
+    }
+    const data = {
+        game: 'Friday night',
+        gameUrl: 'https://example.com/game/g-1',
+        fields: { Game: 'Santiago', Viewing: 'History, after 3 of 9 actions' }
+    }
+    assert.deepEqual(mergeReport(report, data), {
+        game: 'Friday night',
+        gameUrl: 'https://example.com/game/g-1',
+        description: 'The canal',
+        fields: { Reporter: 'alice', Viewing: 'History, after 3 of 9 actions', Game: 'Santiago' }
+    })
+    assert.equal(mergeReport(report, undefined).fields.Game, 'Santiago')
+})
+
+test('publicViewing drops the action counts from a history view', () => {
+    assert.equal(publicViewing('History, after 3 of 9 actions'), 'History')
+    assert.equal(publicViewing('Live'), 'Live')
 })

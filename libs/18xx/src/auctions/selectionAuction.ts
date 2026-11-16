@@ -23,6 +23,8 @@ export const SelectionAuction = Type.Object(
         ),
         awards: Type.Array(AuctionAward),
         closedLotIds: Type.Array(Type.String()),
+        /** How far every player's passing has lowered the next lot's opening bid. */
+        discount: Type.Optional(Type.Integer({ minimum: 1 })),
         completed: Type.Boolean()
     },
     { additionalProperties: false }
@@ -56,6 +58,12 @@ export interface SelectionAuctionRules {
     /** Whether the player after the winner, rather than after the nominator, nominates next. */
     nominationFollowsWinner?(state: SelectionAuctionState): boolean
     closeUnsold(state: SelectionAuctionState, lotIds: readonly string[]): void
+    /**
+     * When every player passes in succession while lots remain, the next lot's opening bid falls
+     * by this much instead of the unsold lots closing, and the player who began the passes
+     * nominates again; once it falls to nothing, that player receives the lot free (1861 §9.4).
+     */
+    allPassDiscount?: number
 }
 export const SelectionAuctionResolution = Type.Union([
     Type.Object(
@@ -68,6 +76,15 @@ export const SelectionAuctionResolution = Type.Union([
     ),
     Type.Object(
         { kind: Type.Literal('close-unsold'), lotIds: Type.Array(Type.String()) },
+        { additionalProperties: false }
+    ),
+    Type.Object(
+        {
+            kind: Type.Literal('discount'),
+            lotId: Type.String(),
+            discount: Type.Integer({ minimum: 1 }),
+            nominatorId: Type.String()
+        },
         { additionalProperties: false }
     ),
     Type.Object({ kind: Type.Literal('complete') }, { additionalProperties: false })
@@ -105,7 +122,7 @@ export class SelectionAuctionModel {
         const bidding = this.auction.bidding
         return bidding?.lotId === lotId
             ? new PassableBidding(bidding.auction).highBid + this.rules.increment
-            : this.rules.openingBid(this.state, lotId)
+            : Math.max(0, this.rules.openingBid(this.state, lotId) - (this.auction.discount ?? 0))
     }
     canNominate(playerId: string, lotId: string, amount: number): boolean {
         return (
@@ -177,16 +194,27 @@ export class SelectionAuctionModel {
         }
         if (!this.auction.remainingLotIds.length) return { kind: 'complete' }
         if (this.auction.passedPlayerIds.length === this.state.players.length)
-            return { kind: 'close-unsold', lotIds: [...this.auction.remainingLotIds] }
+            return this.rules.allPassDiscount
+                ? this.discountResolution(this.rules.allPassDiscount)
+                : { kind: 'close-unsold', lotIds: [...this.auction.remainingLotIds] }
         return undefined
+    }
+    private discountResolution(step: number): SelectionAuctionResolution {
+        const [lotId] = this.rules.nominationLotIds(this.state)
+        assertExists(lotId, 'A discounted auction has a lot to nominate')
+        const nominatorId = this.auction.passedPlayerIds[0]
+        const discount = (this.auction.discount ?? 0) + step
+        if (this.rules.openingBid(this.state, lotId) - discount > 0)
+            return { kind: 'discount', lotId, discount, nominatorId }
+        return { kind: 'award', award: { lotId, playerId: nominatorId, price: 0 } }
     }
     resolve(): SelectionAuctionResolution {
         const resolution = this.resolution()
         assertExists(resolution, 'No auction consequence is pending')
         switch (resolution.kind) {
             case 'award': {
-                const bidding = this.requireBidding()
                 const { award } = resolution
+                const nominatorId = this.auction.bidding?.nominatorId ?? award.playerId
                 const removed = resolution.removedLotIds ?? []
                 this.rules.award(this.state, award)
                 this.auction.awards.push(award)
@@ -198,14 +226,19 @@ export class SelectionAuctionModel {
                     (id) => id !== award.lotId && !removed.includes(id)
                 )
                 this.auction.nominatorId = this.nextNominator(
-                    this.rules.nominationFollowsWinner?.(this.state)
-                        ? award.playerId
-                        : bidding.nominatorId
+                    this.rules.nominationFollowsWinner?.(this.state) ? award.playerId : nominatorId
                 )
                 delete this.auction.bidding
+                delete this.auction.discount
+                this.auction.passedPlayerIds = []
                 if (!this.auction.remainingLotIds.length) this.auction.completed = true
                 break
             }
+            case 'discount':
+                this.auction.discount = resolution.discount
+                this.auction.passedPlayerIds = []
+                this.auction.nominatorId = resolution.nominatorId
+                break
             case 'close-unsold':
                 this.rules.closeUnsold(this.state, resolution.lotIds)
                 this.auction.closedLotIds.push(...resolution.lotIds)

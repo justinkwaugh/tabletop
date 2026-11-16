@@ -3,6 +3,7 @@ import type { HydratedOathGameState } from '../model/gameState.js'
 import type { ChronicleRelicsRecord } from '../model/chronicle.js'
 import { siteRevealPrompt } from '../data/cardRegistry.js'
 import { GRAND_SCEPTER_ID } from '../data/relics.js'
+import { putPileOnTop } from '../model/pileOrder.js'
 import { chronicleWinnerOf } from './chronicleChoices.js'
 import { ChronicleShuffle, chronicleShuffles } from './chronicleRandom.js'
 import { relicSlotIdAt, renameRelicSlotsAt } from './chronicleMap.js'
@@ -68,7 +69,7 @@ export function cleanUpRelics(state: HydratedOathGameState): ChronicleRelicsReco
     const stack = [...winner.relicIds, ...fromReliquary]
     winner.relicIds = []
     chronicleShuffles.shuffle(state, ChronicleShuffle.RelicStack, stack)
-    vault.relicDeck.unshift(...stack)
+    putPileOnTop(vault.relicDeck, stack)
     return { returned, placed, stacked }
 }
 

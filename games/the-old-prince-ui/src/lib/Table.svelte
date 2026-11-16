@@ -92,12 +92,7 @@
         {:else if session.splitInProgress}
             <BranchSplitPreview {session} showUndo={false} onFocusLocation={focusLocation} />
         {:else}
-            <OperatingActions
-                {privateOperationDescription}
-                onFocusRoute={focusRoute}
-                {session}
-                {createRouteWorker}
-            />
+            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} />
         {/if}
     {/snippet}
     {#snippet gameInformation()}

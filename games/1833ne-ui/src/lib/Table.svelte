@@ -35,12 +35,7 @@
         {:else if session.takeoverDecision}
             <Takeovers {session} />
         {:else}
-            <OperatingActions
-                {privateOperationDescription}
-                onFocusRoute={focusRoute}
-                {session}
-                {createRouteWorker}
-            >
+            <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session}>
                 {#snippet titleMode()}<Ferries {session} />{/snippet}
             </OperatingActions>
         {/if}

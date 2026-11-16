@@ -1,11 +1,15 @@
 import type {
     AuctionAwardDetails,
     CertificateLimitChange,
+    CompanyCharters,
     CompanyClosure,
+    EarningsChoice,
     RouteBonus
 } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
+import { DefaultRunSubsidyName } from '../routes/routePresentation.js'
 import {
+    companyShareCount,
     isCloseCorporation,
     isLayTile,
     isPrivateTileLay,
@@ -21,6 +25,7 @@ import {
     isDistributeEarnings,
     isBuyTrain,
     isBuyShares,
+    purchaseForfeited,
     isSellShares,
     isStartCompany,
     isFinishTrack,
@@ -32,6 +37,7 @@ import {
     isPrivateExchangeAction,
     isOfferPrivatePurchase,
     isParCompany,
+    isChoosePresidencyExchange,
     isPlacePrivateStation,
     isChooseHomeStation,
     isDeclinePrivateStation,
@@ -39,6 +45,8 @@ import {
     isReserveBid,
     isRaiseAuctionBid,
     isContributeTrainFunds,
+    isPlaceBids,
+    isSettleBidBoxes,
     isFundTrain,
     isSellFundingShares,
     isIssueTreasuryShares,
@@ -78,15 +86,25 @@ import {
     isPlaceHomeStations,
     type DeparturePayment,
     type Owner,
+    type PlacedBid,
     type PresidencyChange,
     type CashPayment,
     type EighteenXXState,
     type StockMarketChart
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
+import type { TitleCallout } from './historyCallouts.js'
 import { trainCount } from './awaitedDecision.js'
+import { purchaseAssetName } from '../finance/purchaseAssets.js'
 import { counted } from '../presentation/count.js'
-import { assertExists, gameCallDescription, gameCallOf, type GameAction } from '@tabletop/common'
+import { exchangeChoiceWords } from '../stock/presidencyExchangeWords.js'
+import {
+    assert,
+    assertExists,
+    gameCallDescription,
+    gameCallOf,
+    type GameAction
+} from '@tabletop/common'
 
 export type HistoryDescription = {
     text: string
@@ -97,6 +115,8 @@ export type HistoryDescription = {
     ledgerText?: string
     value?: string
     detail?: string
+    /** What the action did where it did several things, a line for each. */
+    detailLines?: readonly string[]
     routine?: boolean
     important?: boolean
     /** A company whose token leads the row, such as one that floated or closed. */
@@ -105,6 +125,8 @@ export type HistoryDescription = {
     milestone?: boolean
     /** A change to every player's certificate limit, called out below the row. */
     certificateLimit?: CertificateLimitChange
+    /** A title's own table-wide events, each called out below the row as the bank breaking is. */
+    callouts?: readonly TitleCallout[]
     /**
      * A system action that stays in the operation or turn it happened in, as a company closing
      * while another operates, rather than opening its own.
@@ -234,6 +256,13 @@ export type TitleHistoryNames = {
     place: (locationId: string) => string
 }
 
+const SeparateChoices: Readonly<Record<EarningsChoice, string>> = {
+    pay: 'paid',
+    'half-pay': 'half paid',
+    withhold: 'withheld',
+    'top-up': 'topped up and paid'
+}
+
 /** A title's own history row for an action, given the shared row it may add to. */
 export type TitleActionDescription = (
     action: GameAction,
@@ -283,6 +312,15 @@ function runBonusesDetail(
         : undefined
 }
 
+/**
+ * What names a title's certificates in the history: its charters, for their shares, and its
+ * certificate of several shares, as 1849's last certificate.
+ */
+export type HistoryCertificates = {
+    charters: CompanyCharters | undefined
+    multiShare?: { name: string }
+}
+
 export function historyDescription(
     action: GameAction,
     state: EighteenXXState,
@@ -298,7 +336,9 @@ export function historyDescription(
     place: (locationId: string) => string = (locationId) => locationId,
     poolName: (poolId: string) => string = (poolId) => {
         throw new Error(`Certificate pool ${poolId} needs the title's names`)
-    }
+    },
+    certificates: HistoryCertificates = { charters: undefined },
+    runSubsidyName: string = DefaultRunSubsidyName
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -311,7 +351,9 @@ export function historyDescription(
         lotName,
         routeBonusName,
         place,
-        poolName
+        poolName,
+        certificates,
+        runSubsidyName
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -332,7 +374,9 @@ function describeShared(
     lotName: (id: string) => string,
     routeBonusName: (sourceId: string) => string,
     place: (locationId: string) => string,
-    poolName: (poolId: string) => string
+    poolName: (poolId: string) => string,
+    certificates: HistoryCertificates,
+    runSubsidyName: string
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -461,7 +505,12 @@ function describeShared(
             text: action.routes.length ? 'Ran' : 'Did not run trains',
             trainDefinitionIds: action.metadata.routes.map((route) => route.definitionId),
             value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
-            detail: runBonusesDetail(action.metadata.routes, money, routeBonusName, place)
+            detail: joinDetails(
+                runBonusesDetail(action.metadata.routes, money, routeBonusName, place),
+                action.metadata.subsidy
+                    ? `${money(action.metadata.subsidy)} ${runSubsidyName}`
+                    : undefined
+            )
         }
     }
     if (isDistributeEarnings(action)) {
@@ -475,7 +524,9 @@ function describeShared(
                       ? 'Withheld'
                       : action.choice === 'half-pay'
                         ? 'Half paid'
-                        : 'Paid out',
+                        : action.choice === 'top-up'
+                          ? 'Topped up and paid out'
+                          : 'Paid out',
             value:
                 action.choice === 'withhold'
                     ? details.retained
@@ -487,7 +538,14 @@ function describeShared(
                     details.retained && action.choice !== 'withhold'
                         ? `${money(details.retained)} retained`
                         : '',
+                    action.choice === 'withhold' && details.dividendPerShare
+                        ? `${money(details.dividendPerShare)}/share paid`
+                        : '',
+                    details.separate
+                        ? `${money(details.separate.revenue)} decided apart: ${SeparateChoices[details.separate.choice]}`
+                        : '',
                     details.bonusPerShare ? `${money(details.bonusPerShare)}/share bonus` : '',
+                    details.topUp ? `${money(details.topUp)} from the treasury` : '',
                     ...(details.charges ?? []).map(
                         (charge) => `${nameOf(charge.from)} owes ${money(charge.amount)} on shorts`
                     ),
@@ -604,8 +662,14 @@ function describeShared(
     }
     if (isBuyShares(action)) {
         assertExists(action.metadata, 'Recorded share purchase requires its company')
-        const { poolId } = action.metadata
+        const { poolId, removedCertificateIds = [] } = action.metadata
         const source = poolId ? ` from ${poolName(poolId)}` : ''
+        const removed = removedCertificateIds.length
+        if (purchaseForfeited(action.metadata))
+            return {
+                text: `Took no ${companyName(action.metadata.companyId)} share${source}`,
+                detail: 'The only share there was removed from the game first'
+            }
         return {
             text: `Bought ${action.metadata.shares} ${companyName(action.metadata.companyId)}${source} for ${money(action.expectedPrice)}`,
             detail:
@@ -614,7 +678,10 @@ function describeShared(
                         ? `For ${companyName(action.buyer.companyId)}`
                         : '',
                     action.metadata.presidency ? presidency(action.metadata.presidency) : '',
-                    action.metadata.coveredShortId ? 'Closed a short' : ''
+                    action.metadata.coveredShortId ? 'Closed a short' : '',
+                    removed
+                        ? `${removed === 1 ? 'Another share' : `${removed} shares`} removed from the game`
+                        : ''
                 ]
                     .filter(Boolean)
                     .join(' · ') || undefined
@@ -653,13 +720,29 @@ function describeShared(
     if (isStartCompany(action)) {
         const details = action.metadata
         return {
-            text: `Started ${companyName(action.companyId)} at ${money(marketPrice(action.marketSpaceId))} par`,
+            text: `Started ${companyName(action.companyId)} at ${money(marketPrice(action.marketSpaceId))}`,
             detail: joinDetails(
                 details && `${details.shares} shares`,
                 money(action.expectedPrice),
                 details?.home && `Home at ${place(details.home.position.locationId)}`,
                 details?.presidency && presidency(details.presidency)
             ),
+            important: true
+        }
+    }
+    if (isChoosePresidencyExchange(action)) {
+        const { charters, multiShare } = certificates
+        const shareCount = charters && companyShareCount(state, charters, action.companyId)
+        const taken = action.certificateIds.map((id) => {
+            const certificate = state.certificates.find((entry) => entry.id === id)
+            assert(certificate?.kind === 'share' && shareCount, 'Exchanged certificates are shares')
+            return {
+                shares: certificate.shares,
+                percent: Math.round((certificate.shares * 100) / shareCount)
+            }
+        })
+        return {
+            text: `Took ${exchangeChoiceWords(taken, multiShare)} for ${companyName(action.companyId)}’s president’s certificate`,
             important: true
         }
     }
@@ -681,12 +764,56 @@ function describeShared(
             text: `${isReserveBid(action) ? 'Reserved bid on' : 'Bid on'} ${lotName(action.lotId)}`,
             value: money(action.amount)
         }
-    if (isContributeTrainFunds(action))
+    if (isContributeTrainFunds(action)) {
+        const borrowed = action.metadata?.borrowed
         return {
             text: `Contributed ${money(action.amount)} toward the train`,
             ledgerText: 'Contributed toward the train',
+            ...(borrowed ? { detail: `Borrowed ${money(borrowed)} of it` } : {}),
             important: true
         }
+    }
+    if (isPlaceBids(action)) {
+        const placed: readonly PlacedBid[] = action.metadata?.bids ?? action.bids
+        const [only] = placed
+        const bidDetail = (bid: PlacedBid) =>
+            joinDetails(
+                bid.raisedFrom !== undefined ? `raised from ${money(bid.raisedFrom)}` : undefined,
+                bid.outbid
+                    ? `over ${playerName(bid.outbid.playerId)}’s ${money(bid.outbid.amount)}`
+                    : undefined
+            )
+        if (placed.length === 1 && only)
+            return {
+                text: `Bid on ${lotName(only.lotId)}`,
+                value: money(only.amount),
+                detail: bidDetail(only)
+            }
+        return {
+            text: `Placed ${placed.length} bids`,
+            detail: placed
+                .map((bid) => {
+                    const detail = bidDetail(bid)
+                    return `${lotName(bid.lotId)} ${money(bid.amount)}${detail ? ` (${detail})` : ''}`
+                })
+                .join(' · ')
+        }
+    }
+    if (isSettleBidBoxes(action)) {
+        const awards = action.metadata?.awards ?? []
+        return {
+            text: 'Settled the bidding boxes',
+            ...(awards.length
+                ? {
+                      detailLines: awards.map(
+                          (award) =>
+                              `${playerName(award.playerId)} bought ${lotName(award.lotId)} for ${money(award.amount)}`
+                      )
+                  }
+                : { detail: 'Nothing had a bid' }),
+            important: true
+        }
+    }
     if (isFundTrain(action))
         return {
             text: action.metadata?.voluntary ? 'Helped buy a train' : 'Must buy a train',
@@ -723,8 +850,23 @@ function describeShared(
         if (
             (action.metadata.kind === 'income' || action.metadata.kind === 'discount') &&
             action.metadata.payments?.length
-        )
-            return privateIncome(action.metadata.payments)
+        ) {
+            const exports = action.metadata.kind === 'income' ? action.metadata.exports : undefined
+            const income = privateIncome(action.metadata.payments)
+            return exports
+                ? {
+                      ...income,
+                      detail: [
+                          income.detail,
+                          `a ${exports.trains.map((train) => train.definitionId).join(', ')}-train exported`,
+                          exports.toPhaseId ? `phase ${exports.toPhaseId}` : undefined
+                      ]
+                          .filter(Boolean)
+                          .join(' · '),
+                      ...(exports.toPhaseId ? { important: true } : {})
+                  }
+                : income
+        }
         const awards = action.metadata.kind === 'award' ? [action.metadata.award] : []
         return {
             text: awards.length ? 'Auction awarded' : 'Auction continued',
@@ -759,6 +901,12 @@ function describeShared(
             return {
                 text: 'Unsold privates closed',
                 detail: resolution.lotIds.map((id) => `${companyName(id)} closed`).join(' · '),
+                important: true
+            }
+        if (resolution.kind === 'discount')
+            return {
+                text: `Everyone passed: ${lotName(resolution.lotId)} now opens lower`,
+                detail: `${money(resolution.discount)} off, ${playerName(resolution.nominatorId)} to start`,
                 important: true
             }
         return { text: 'Auction ended', routine: true }
@@ -881,12 +1029,15 @@ function describeShared(
                 important: true
             }
         }
-        const asset =
-            purchaseAsset.kind === 'private'
-                ? companyName(purchaseAsset.privateCompanyId)
-                : purchaseAsset.kind === 'company'
-                  ? companyName(purchaseAsset.companyId)
-                  : `${trainDefinitionId} train`
+        const stationLocationId = action.metadata.stationLocationId
+        const asset = purchaseAssetName(purchaseAsset, {
+            company: companyName,
+            station: () => {
+                assertExists(stationLocationId, 'A recorded station offer names its city')
+                return `${nameOf(offer.seller)}’s station at ${place(stationLocationId)}`
+            },
+            train: () => `${trainDefinitionId} train`
+        })
         return {
             text: accepted
                 ? `Bought ${asset}`

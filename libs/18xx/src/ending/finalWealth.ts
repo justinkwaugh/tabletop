@@ -35,6 +35,11 @@ export const EndingFields = {
 }
 export interface ValuationRules {
     certificateItems(state: StockState, certificate: Portfolio[number]): WealthItem[]
+    /**
+     * A player's wealth beyond their cash and certificates, given those items, such as 1849's
+     * deduction for each bank loan taken in emergency money raising.
+     */
+    playerItems?(state: StockState, playerId: string, items: readonly WealthItem[]): WealthItem[]
 }
 export function certificateValue(
     state: StockState,
@@ -66,12 +71,15 @@ export function portfolioWealth(
             : owner.kind === 'company'
               ? owner.companyId
               : 'bank'
-    return [
+    const items = [
         { assetId: `cash:${owner.kind}:${ownerId}`, label: 'Cash', value: cash },
         ...certificatesOwnedBy(state, owner).flatMap((certificate) =>
             rules.certificateItems(state, certificate)
         )
     ]
+    return owner.kind === 'player' && rules.playerItems
+        ? [...items, ...rules.playerItems(state, owner.playerId, items)]
+        : items
 }
 export function finalWealth(state: StockState, rules: ValuationRules): PlayerWealth[] {
     return state.players.map((player) => {

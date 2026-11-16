@@ -28,6 +28,7 @@ import {
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { singleChoice } from './stagedSelection.svelte.js'
+import { isCompanyAsset } from '../finance/purchaseAssets.js'
 
 export type PrivateTileOption = {
     privateCompanyId: string
@@ -46,6 +47,10 @@ export type PrivateMarkerOption = {
     playerId: string
     kind: string
     locationId: string
+    /** The revenue center it goes on, where the terms name centers. */
+    nodeId?: string
+    /** Which of the location's offered centers it is, where there are several: 2 of 2. */
+    stopOrdinal?: { index: number; count: number }
 }
 export type CompanyDecision =
     | { kind: 'purchase'; request: PurchaseOfferRequest }
@@ -103,16 +108,21 @@ export class CompanyDecisionsModule {
             : []
     )
     purchaseOptions = $derived.by(() => (this.canResolve ? this.availablePurchaseOptions : []))
+    /** Privates and whole companies the operating company may buy. */
     companyPurchases = $derived.by(() =>
-        this.purchaseOptions.filter((option) => option.request.asset.kind !== 'train')
+        this.purchaseOptions.filter((option) => isCompanyAsset(option.request.asset))
     )
     companyPurchasesAvailable = $derived.by(() =>
-        this.availablePurchaseOptions.some((option) => option.request.asset.kind !== 'train')
+        this.availablePurchaseOptions.some((option) => isCompanyAsset(option.request.asset))
+    )
+    /** Other companies' stations the operating company may buy (1849 §14.1). */
+    stationPurchases = $derived.by(() =>
+        this.purchaseOptions.filter((option) => option.request.asset.kind === 'station')
     )
     ownCompanyPurchasesAvailable = $derived.by(() =>
         this.availablePurchaseOptions.some(
             ({ request }) =>
-                request.asset.kind !== 'train' &&
+                isCompanyAsset(request.asset) &&
                 request.seller.kind === 'player' &&
                 request.seller.playerId === this.session.playerId
         )
@@ -167,12 +177,32 @@ export class CompanyDecisionsModule {
                 .flatMap((company) => {
                     const terms = rules.privatePowerRules.markerTerms?.(state, company.id, playerId)
                     if (!terms) return []
-                    return terms.locationIds.map((locationId) => ({
-                        privateCompanyId: company.id,
-                        playerId,
-                        kind: terms.kind,
-                        locationId
-                    }))
+                    const { stops } = terms
+                    if (!stops)
+                        return terms.locationIds.map((locationId) => ({
+                            privateCompanyId: company.id,
+                            playerId,
+                            kind: terms.kind,
+                            locationId
+                        }))
+                    return stops.map((stop) => {
+                        const here = stops.filter((other) => other.locationId === stop.locationId)
+                        return {
+                            privateCompanyId: company.id,
+                            playerId,
+                            kind: terms.kind,
+                            locationId: stop.locationId,
+                            nodeId: stop.nodeId,
+                            ...(here.length > 1
+                                ? {
+                                      stopOrdinal: {
+                                          index: here.indexOf(stop) + 1,
+                                          count: here.length
+                                      }
+                                  }
+                                : {})
+                        }
+                    })
                 })
         )
     })
@@ -238,7 +268,7 @@ export class CompanyDecisionsModule {
             'Purchasing is unavailable'
         )
         let price = request.price
-        if (request.asset.kind !== 'train') {
+        if (isCompanyAsset(request.asset)) {
             const range = this.session.rules.transferRules.priceRange(
                 this.session.state,
                 request.companyId,
@@ -386,13 +416,15 @@ export class CompanyDecisionsModule {
             this.privateMarkerOptions.some(
                 (listed) =>
                     listed.privateCompanyId === option.privateCompanyId &&
-                    listed.locationId === option.locationId
+                    listed.locationId === option.locationId &&
+                    listed.nodeId === option.nodeId
             ),
             'This private cannot mark that location now'
         )
         const action = this.session.createPlayerAction(PlacePrivateMarker, {
             privateCompanyId: option.privateCompanyId,
-            locationId: option.locationId
+            locationId: option.locationId,
+            ...(option.nodeId ? { nodeId: option.nodeId } : {})
         })
         action.playerId = option.playerId
         await this.session.applyAction(action)

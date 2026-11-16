@@ -6,13 +6,20 @@
 </script>
 
 {#if session.instructions.shown || session.runInstructions.shown}
-    <footer class="instruction-bar" aria-label="Standing instructions">
-        <StandingInstruction {session} />
-        <RunInstructions {session} />
-    </footer>
+    <div class="instruction-slot">
+        <footer class="instruction-bar" aria-label="Standing instructions">
+            <StandingInstruction {session} />
+            <RunInstructions {session} />
+        </footer>
+    </div>
 {/if}
 
 <style>
+    /* At the foot of a panel that fills its pane, and always clear of what is above it. */
+    .instruction-slot {
+        margin-top: auto;
+        padding-top: 12px;
+    }
     .instruction-bar {
         container: instruction-bar / inline-size;
         display: flex;
@@ -20,7 +27,6 @@
         justify-content: space-between;
         align-items: center;
         gap: 6px 16px;
-        margin-top: auto;
         padding: 8px 4px 0;
         border-top: 1px solid var(--rail-border, #485666);
         font-size: 12px;

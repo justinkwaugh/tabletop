@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { actionPanel, openScenario } from './helpers'
+import { actionPanel, openScenario, takeOpenSeaSpace } from './helpers'
 
 test('trading a cube with its bonus space empty searches the bag, past which Undo cannot go', async ({
     page
@@ -68,7 +68,7 @@ test('warns before a trade, or while placing, that would search the bag', async 
 test('refills the empty bonus spaces when the turn ends', async ({ page }) => {
     await openScenario(page, 'Bag searches')
 
-    await page.getByRole('button', { name: /^Take the grey larva cube/ }).click()
+    await takeOpenSeaSpace(page, 'grey')
 
     await expect(actionPanel(page)).not.toContainText('searches the bag')
     await page.getByRole('tab', { name: 'History' }).click()

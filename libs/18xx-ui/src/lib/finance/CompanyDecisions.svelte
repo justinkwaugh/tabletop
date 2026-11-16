@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { purchaseAssetId } from './purchaseAssets.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { getCompany, isCompanyPurchaseOffer, placeReference } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -116,11 +117,7 @@
                         >
                             <option value="">Choose asset</option>
                             {#each purchaseOptions as option, index (index)}<option value={index}
-                                    >{option.request.asset.kind === 'train'
-                                        ? option.request.asset.trainId
-                                        : option.request.asset.kind === 'private'
-                                          ? option.request.asset.privateCompanyId
-                                          : option.request.asset.companyId} · {session.ownerName(
+                                    >{purchaseAssetId(option.request.asset)} · {session.ownerName(
                                         option.request.seller
                                     )} · minimum {option.minimum}{option.maximum
                                         ? `, maximum ${option.maximum}`
@@ -200,7 +197,7 @@
                 {/if}
                 {#if session.privateActions.selection === 'powers' && session.decisions.privateMarkerOptions.length}
                     <div class="private-track" aria-label="Private markers">
-                        {#each session.decisions.privateMarkerOptions as option (`${option.privateCompanyId}:${option.locationId}`)}
+                        {#each session.decisions.privateMarkerOptions as option (`${option.privateCompanyId}:${option.locationId}:${option.nodeId ?? ''}`)}
                             <button
                                 disabled={!session.decisions.canResolve}
                                 onclick={() => session.decisions.placePrivateMarker(option)}
@@ -208,7 +205,9 @@
                                     session.mapView,
                                     option.kind,
                                     option.locationId
-                                )} ({session.companyName(option.privateCompanyId)})</button
+                                )}{option.stopOrdinal
+                                    ? `, stop ${option.stopOrdinal.index} of ${option.stopOrdinal.count}`
+                                    : ''} ({session.companyName(option.privateCompanyId)})</button
                             >
                         {/each}
                     </div>

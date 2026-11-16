@@ -127,6 +127,15 @@ describe('laying track for a choice of companies', () => {
         ).toBe(false)
     })
 
+    // The final round's player panels price the game end from the shown state by cloning it.
+    it('keeps the staged preview plain enough to price the game end', async () => {
+        const session = openSessionOn(layTable())
+        session.chooseTrackCompany(CompanyId.KBSB)
+        await session.clickHex(printedHex(9, 31))
+        expect(session.placements).toHaveLength(1)
+        expect(() => session.shownState.finalPayoutsIfEndedNow()).not.toThrow()
+    })
+
     it('stops offering hexes once the company’s treasury cannot pay for another disc', async () => {
         const session = openSessionOn(layTable())
         session.chooseTrackCompany(CompanyId.KBSB)

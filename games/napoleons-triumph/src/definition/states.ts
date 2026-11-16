@@ -5,6 +5,7 @@ export enum MachineState {
     FrenchSetup = 'FrenchSetup',
     Commanding = 'Commanding',
     RideRevealed = 'RideRevealed',
+    EndingRide = 'EndingRide',
     DefenseResponse = 'DefenseResponse',
     FeintDecision = 'FeintDecision',
     DefenseDeclaration = 'DefenseDeclaration',

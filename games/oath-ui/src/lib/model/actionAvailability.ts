@@ -6,6 +6,7 @@ import {
     cannotGainFavorFromTrade,
     HydratedCampaign,
     HydratedMuster,
+    HydratedPlayFacedownAdviser,
     HydratedRecover,
     HydratedSearch,
     HydratedTrade,
@@ -24,6 +25,7 @@ import {
     type ModifierUse
 } from '@tabletop/oath'
 import type { MajorAction, MajorEntry } from './actionCatalogue.js'
+import { cardName, listed } from './names.js'
 
 // The engine's own sentence wherever a representative choice exists, else that the list is empty.
 export function reasonActionUnavailable(
@@ -404,4 +406,19 @@ export function freeActionDueLine(
     const due = freeActionTypesNow(gameState, playerId)
     if (due.length === 0) return undefined
     return `Free ${freeActionNames(due)} next.`
+}
+
+/**
+ * R-6.1, R-7.1.4 — the muted line where the Adviser chip would stand, while tolls alone keep every
+ * facedown adviser from being played or discarded. None while a free action is due: that hides the
+ * chip too, and the line above the grid says so.
+ */
+export function facedownTollLine(
+    gameState: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    if (freeActionTypesNow(gameState, playerId).length > 0) return undefined
+    const tolls = HydratedPlayFacedownAdviser.tollsAloneBarPlay(gameState, playerId)
+    if (tolls.length === 0) return undefined
+    return `Needs ${tolls.length} favor for ${listed(tolls.map((toll) => cardName(toll.cardId)))}`
 }

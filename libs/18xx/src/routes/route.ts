@@ -19,9 +19,12 @@ export const TrainRoute = Type.Object(
     {
         trainId: Id,
         start: RevenueCenter,
-        paths: Type.Array(RoutePath, { minItems: 1 }),
+        /** The track run from the start; none where a train runs at its station alone. */
+        paths: Type.Array(RoutePath),
         /** Track beyond the route's end, counting no stops, that earns an interconnection. */
-        extension: Type.Optional(Type.Array(RoutePath, { minItems: 1 }))
+        extension: Type.Optional(Type.Array(RoutePath, { minItems: 1 })),
+        /** Rolling stock attached to the train for this run, such as a Pullman carriage. */
+        attachmentIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
     },
     { additionalProperties: false }
 )
@@ -57,16 +60,23 @@ export const RouteResult = Type.Object(
 )
 export type RouteResult = Type.Static<typeof RouteResult>
 export const OperatingResult = Type.Object(
-    { companyId: Id, routes: Type.Array(RouteResult), revenue: Type.Integer({ minimum: 0 }) },
+    {
+        companyId: Id,
+        routes: Type.Array(RouteResult),
+        revenue: Type.Integer({ minimum: 0 }),
+        /** What the bank paid the treasury for the run beside its revenue, such as a subsidy. */
+        subsidy: Type.Optional(Type.Integer({ minimum: 1 }))
+    },
     { additionalProperties: false }
 )
 export type OperatingResult = Type.Static<typeof OperatingResult>
 export function trainRoutesOf(result: OperatingResult): TrainRoute[] {
-    return result.routes.map(({ trainId, start, paths, extension }) => ({
+    return result.routes.map(({ trainId, start, paths, extension, attachmentIds }) => ({
         trainId,
         start,
         paths,
-        ...(extension ? { extension } : {})
+        ...(extension ? { extension } : {}),
+        ...(attachmentIds ? { attachmentIds } : {})
     }))
 }
 export const RouteStep = Type.Object(

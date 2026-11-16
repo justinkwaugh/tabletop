@@ -1,8 +1,6 @@
 <script lang="ts">
     import { Card, Hr, Button, Modal, Spinner, type ButtonProps } from 'flowbite-svelte'
-    import { LinkOutline } from 'flowbite-svelte-icons'
     import {
-        assertExists,
         Game,
         GameStatus,
         PlayerStatus,
@@ -13,6 +11,7 @@
         daysUntilStalledGameEnds,
         gameStallLevel,
         GameStallLevel,
+        gamePaceOf,
         lastMoveAt,
         ownerMayDeleteGame,
         stalledGameEndsAt
@@ -22,18 +21,26 @@
     import { recordedFinalScores } from '$lib/utils/gameScores'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
-    import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
+    import {
+        activePlayerText,
+        ownerName,
+        playerHighlight,
+        playersHostFirst,
+        playerStatusDisplay
+    } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
-    import { gameShareLink } from '$lib/utils/gameLinks'
+    import { turnWaitDisplay } from '$lib/utils/gamePace'
     import { startCountdownText } from '$lib/utils/startCountdown'
     import { minuteClock, secondClock, timeSince } from '$lib/utils/clock.svelte'
-    import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import { fade, slide } from 'svelte/transition'
     import DeleteModal from './DeleteModal.svelte'
     import GameProgressBar from './GameProgressBar.svelte'
-    import { copyTextToClipboard, GameEditForm, getAppContext } from '@tabletop/frontend-components'
+    import TurnWait from './TurnWait.svelte'
+    import CopyGameLinkButton from './CopyGameLinkButton.svelte'
+    import { GAME_PACE_LABELS, GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
+    const HIGHLIGHT_CLASS = { active: 'text-orange-400', winner: 'text-blue-400', none: '' }
     const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
     const stallColors: Record<GameStallLevel, { border: string; label: string; value: string }> = {
         [GameStallLevel.None]: { border: '', label: '', value: '' },
@@ -75,16 +82,14 @@
     let isExpanded = $derived(expanded ? true : false)
 
     let sessionUser = $derived(authorizationService.getSessionUser())
-    let shareLink = $derived(gameShareLink(game))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
-    let sortedPlayers = $derived(
-        game.players.toSorted(
-            (a, b) => playerSortValue(a, game.ownerId) - playerSortValue(b, game.ownerId)
-        )
-    )
+    let sortedPlayers = $derived(playersHostFirst(game.players, game.ownerId))
 
     let myPlayer = $derived(sortedPlayers.find((player) => player.userId === sessionUser?.id))
     let isMine = $derived(myPlayer !== undefined)
+    let isOpen = $derived(
+        game.status === GameStatus.WaitingForPlayers || game.status === GameStatus.WaitingToStart
+    )
 
     let canJoin = $derived.by(() => {
         if (game.tournament) return false
@@ -105,21 +110,13 @@
 
     let canLeave = $derived(
         !game.tournament &&
-            (game.status === GameStatus.WaitingForPlayers ||
-                game.status === GameStatus.WaitingToStart) &&
+            isOpen &&
             !isOwnedByMe &&
             isMine &&
             myPlayer?.status === PlayerStatus.Joined
     )
 
-    let canEdit = $derived(
-        !game.tournament &&
-            !loading &&
-            isOwnedByMe &&
-            !game.parentId &&
-            (game.status === GameStatus.WaitingForPlayers ||
-                game.status === GameStatus.WaitingToStart)
-    )
+    let canEdit = $derived(!game.tournament && !loading && isOwnedByMe && !game.parentId && isOpen)
 
     let canStart = $derived(
         !game.tournament && isOwnedByMe && game.status === GameStatus.WaitingToStart
@@ -136,11 +133,7 @@
     let confirmDelete = $state(false)
 
     let waitingToStart = $derived(
-        (game.status === GameStatus.WaitingForPlayers ||
-            game.status === GameStatus.WaitingToStart) &&
-            !isOwnedByMe &&
-            isMine &&
-            myPlayer?.status === PlayerStatus.Joined
+        isOpen && !isOwnedByMe && isMine && myPlayer?.status === PlayerStatus.Joined
     )
 
     let autoStartAt = $derived(
@@ -159,6 +152,13 @@
     let currentTime = $derived(minuteClock.now)
     let stallLevel = $derived(gameStallLevel(game, currentTime))
     let stallColor = $derived(stallColors[stallLevel])
+
+    let paceLabels = $derived(GAME_PACE_LABELS[gamePaceOf(game).pace])
+    let pacedOpen = $derived(isOpen && !game.hotseat)
+    let pacedStarted = $derived(game.status === GameStatus.Started && !game.hotseat)
+    let hostName = $derived(pacedOpen ? ownerName(game) : undefined)
+    let turnWait = $derived(pacedStarted ? turnWaitDisplay(game, currentTime) : undefined)
+    let activePlayer = $derived(activePlayerText(game, sessionUser?.id))
 
     let openSeats = $derived(
         game.players.reduce((acc, player) => acc + (player.status === PlayerStatus.Open ? 1 : 0), 0)
@@ -204,19 +204,6 @@
         event.stopPropagation()
         game = await gameService.joinGame(game.id)
         onjoin?.(game)
-    }
-
-    async function copyShareLink(event: Event) {
-        event.stopPropagation()
-        assertExists(shareLink, 'A shareable game is required to copy its link')
-        const url = new URL(shareLink.path, window.location.origin).href
-        const kind = shareLink.kind
-        try {
-            await copyTextToClipboard(url)
-            toast.success(kind === 'invite' ? 'Invite link copied' : 'Game link copied')
-        } catch {
-            toast.error('Unable to copy the link. Please try again.')
-        }
     }
 
     async function declineGame(event: Event) {
@@ -273,26 +260,6 @@
             await goto(`/game/${game.id}`)
         } finally {
             openingGame = false
-        }
-    }
-
-    function isActive(playerId: string) {
-        return game.activePlayerIds?.includes(playerId)
-    }
-
-    function isWinner(playerId: string) {
-        return game.winningPlayerIds?.includes(playerId)
-    }
-
-    function activePlayerText() {
-        if (isMyTurn) {
-            return 'You'
-        }
-        const activePlayerIds = game.activePlayerIds ?? []
-        if (activePlayerIds.length === 1) {
-            return game.players.find((p) => p.id === activePlayerIds[0])?.name
-        } else {
-            return `Multiple players`
         }
     }
 
@@ -399,13 +366,23 @@
                     <div class="h-[80px] w-[80px]"></div>
                 {/if}
             </div>
-            <div class="pl-4 pr-2 py-0 w-full">
+            <div class="min-w-0 pl-4 pr-2 py-0 w-full">
                 <div class="flex flex-col justify-between h-full">
                     <div class="flex flex-row justify-between items-start pb-2">
-                        <div class="flex flex-col justify-end items-start">
+                        <div class="flex min-w-0 flex-col justify-end items-start">
                             <h1 class="text-lg font-light text-left dark:text-gray-200 leading-5">
                                 {game.name}
                             </h1>
+                            {#if pacedStarted}
+                                <div class="mt-0.5 text-xs text-gray-400">{paceLabels.line}</div>
+                            {:else if hostName}
+                                <div
+                                    class="mt-0.5 max-w-full truncate text-xs text-gray-400"
+                                    title={hostName}
+                                >
+                                    by <span class="text-gray-300">{hostName}</span>
+                                </div>
+                            {/if}
                             {#if game.tournament}<a
                                     class="mt-1 text-xs text-gray-500 underline decoration-gray-400/50 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                     href={`/tournaments/${game.tournament.tournamentId}`}
@@ -413,17 +390,7 @@
                                 >{/if}
                         </div>
                         <div class="ms-2 flex shrink-0 items-center gap-1">
-                            {#if shareLink}
-                                <button
-                                    type="button"
-                                    aria-label={`Copy ${shareLink.kind} link`}
-                                    title={`Copy ${shareLink.kind} link`}
-                                    class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-700 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                    onclick={copyShareLink}
-                                >
-                                    <LinkOutline class="h-4 w-4" aria-hidden="true" />
-                                </button>
-                            {/if}
+                            <CopyGameLinkButton {game} />
                             {#if !isExpanded}
                                 <div class="text-nowrap">
                                     {#if collapsedButton === 'join'}
@@ -487,15 +454,18 @@
                     {/if}
                     <div class="flex flex-row justify-between items-start text-white">
                         {#if game.status === GameStatus.Started}
-                            <div class="flex flex-col justify-start items-start">
+                            <div class="flex min-w-0 flex-col justify-start items-start">
                                 <div
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
                                     Active Player
                                 </div>
-                                <div class="text-xs text-orange-400">
-                                    {activePlayerText()}
+                                <div
+                                    class="max-w-full truncate text-xs text-orange-400"
+                                    title={activePlayer}
+                                >
+                                    {activePlayer}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}
@@ -520,6 +490,19 @@
                                 </div>
                                 <div class="text-xs text-gray-400">
                                     {totalSeats} player
+                                </div>
+                            </div>
+                        {/if}
+                        {#if pacedOpen}
+                            <div class="flex flex-col justify-center items-center">
+                                <div
+                                    class="text-gray-600"
+                                    style="font-size:.7rem; line-height:.8rem"
+                                >
+                                    Pace
+                                </div>
+                                <div class="text-xs text-nowrap text-gray-400">
+                                    {paceLabels.summary}
                                 </div>
                             </div>
                         {/if}
@@ -548,16 +531,20 @@
                                     {timeSince(lastMoveAt(game))}
                                 </div>
                             </div>
-                        {:else if game.status === GameStatus.Started && game.lastActionAt}
-                            <div class="flex flex-col justify-center items-end">
+                        {:else if turnWait}
+                            <div class="ms-3 flex shrink-0 flex-col justify-center items-end">
                                 <div
                                     class="text-gray-600"
                                     style="font-size:.7rem; line-height:.8rem"
                                 >
-                                    Last Action
+                                    Waiting
                                 </div>
-                                <div class="text-xs text-gray-400">
-                                    {timeSince(new Date(game.lastActionAt))}
+                                <div
+                                    class="text-xs text-nowrap {turnWait.pastPace
+                                        ? 'text-amber-400'
+                                        : 'text-gray-400'}"
+                                >
+                                    <TurnWait wait={turnWait} />
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}
@@ -574,7 +561,7 @@
                                     </div>
                                 {/if}
                             </div>
-                        {:else}
+                        {:else if isOpen}
                             <div class="flex flex-col justify-center items-end">
                                 <div
                                     class="text-gray-600"
@@ -625,11 +612,9 @@
                         {#each sortedPlayers as player (player.id)}
                             <div class="flex flex-row justify-between gap-3">
                                 <div
-                                    class={isActive(player.id)
-                                        ? 'text-orange-400'
-                                        : isWinner(player.id)
-                                          ? 'text-blue-400'
-                                          : ''}
+                                    class={HIGHLIGHT_CLASS[
+                                        playerHighlight(game, player.id) ?? 'none'
+                                    ]}
                                 >
                                     {player.name ?? ''}
                                 </div>

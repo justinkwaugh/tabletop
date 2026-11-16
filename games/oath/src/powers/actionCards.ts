@@ -396,13 +396,20 @@ registerEffect(
                         )
                         .map((siteId) => ({ kind: PowerChoiceKind.Site, siteId }))
             }),
+            // From revision 33 never Resettle itself (R-11.10-H2).
             optional(PowerChoiceKind.Card, {
                 what: 'a denizen at the Great Slum to discard first',
-                domain: (state, playerId) =>
+                domain: (state, playerId, power) =>
                     state
                         .allSiteIds()
                         .flatMap((siteId) =>
-                            greatSlumDenizensToDiscardFirst(state, playerId, siteId)
+                            greatSlumDenizensToDiscardFirst(
+                                state,
+                                playerId,
+                                siteId,
+                                [],
+                                power.cardId
+                            )
                         )
                         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
             })
