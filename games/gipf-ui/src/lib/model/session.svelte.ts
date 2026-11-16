@@ -58,8 +58,8 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
             : {}
     )
     undoingPush: PushPiece | undefined
-    // A staged piece lifts off only when the player lets it go, never when history or a new state
-    // clears it.
+    // A staged piece lifts off only when the player lets it go, never when history, a new state or
+    // another viewer's perspective clears it.
     private changedByPlayer = false
     historyPush: PushPiece | undefined
     moveInterrupter: MoveInterrupter | undefined
@@ -226,7 +226,11 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     }
 
     get releasedByPlayer(): boolean {
-        return this.changedByPlayer && !this.isViewingHistory
+        return (
+            this.changedByPlayer &&
+            !this.isViewingHistory &&
+            this.selectionOwner === this.myPlayer?.id
+        )
     }
 
     override beforeNewState({ kind }: PresentedTransition): void {
@@ -234,15 +238,14 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const incoming = this.presentingState
         const push = kind === 'undo' && incoming ? this.restagedPush(incoming) : undefined
-        if (push) {
-            this.selection = restagedGipfSelection(push, this.hadTypeChoice(push))
+        if (incoming && push) {
+            this.selection = restagedGipfSelection(push, this.hadTypeChoice(push, incoming))
             this.selectionOwner = push.playerId
         }
         if (kind !== 'undo') this.undoingPush = undefined
     }
 
-    private hadTypeChoice(push: PushPiece): boolean {
-        const state = this.incomingGameState ?? this.gameState
+    private hadTypeChoice(push: PushPiece, state: HydratedGipfGameState): boolean {
         return state.canPlaySingle(push.playerId) && state.canPlayGipf(push.playerId)
     }
 
