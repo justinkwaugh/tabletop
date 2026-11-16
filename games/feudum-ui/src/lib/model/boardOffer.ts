@@ -191,8 +191,8 @@ export interface BoardStages {
     readonly guildPick?: StagePick
     /** The at-will row's open list, for this seat alone (R-4.4-H1). */
     readonly atWillPick?: StagePick & { readonly action: ActionType; readonly deciderId: string }
-    /** R-4.10 */
-    readonly nourishPick?: StagePick
+    /** R-4.10, R-4.10-H4 For the seat deciding on this screen: several decide at once. */
+    readonly nourishPick?: StagePick & { readonly deciderId: string }
     /** R-4.3.4 */
     readonly landscapesPick?: StagePick
     /** R-X.2 A placement that can't be undone is staged. */
@@ -304,20 +304,11 @@ const MapPicks: Partial<
         atWillMapPick(stages) ?? cardPlayPick(state, stages),
     [MachineState.SelectingHands]: (_state, stages) => atWillMapPick(stages),
     [MachineState.DiscardingWrits]: (_state, stages) => atWillMapPick(stages),
-    [MachineState.Nourishing]: (state, stages) => {
-        const deciderId = state.flow.nourish?.pending[0]
-        return (
-            atWillMapPick(stages) ??
-            (deciderId && stages.nourishPick
-                ? {
-                      action: ActionType.Nourish,
-                      deciderId,
-                      ...stages.nourishPick,
-                      isPublic: false
-                  }
-                : undefined)
-        )
-    },
+    [MachineState.Nourishing]: (_state, stages) =>
+        atWillMapPick(stages) ??
+        (stages.nourishPick
+            ? { action: ActionType.Nourish, ...stages.nourishPick, isPublic: false }
+            : undefined),
     [MachineState.CollectingLandscapes]: (state, stages) => {
         const deciderId = state.flow.landscapes?.pending[0]
         return deciderId && stages.landscapesPick

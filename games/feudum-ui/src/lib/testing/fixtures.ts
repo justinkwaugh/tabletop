@@ -164,8 +164,9 @@ async function influenceThenBack(host: FeudumHost, playerId: string) {
 }
 
 /**
- * R-3.2 Every seat plays out its cards by forfeit; R-4.10-H4 each seat nourishing waits on sends its
- * preselected feeding, until it waits on `stopAt`; R-4.11 the round ends, by the real roll.
+ * R-3.2 Every seat plays out its cards by forfeit; R-4.10-H4 the seats nourishing asks, all at once,
+ * send their preselected feeding, unless `stopAt` is one of them: then every seat asked is left
+ * deciding. R-4.11 the round ends, by the real roll.
  */
 export async function forfeitRound(host: FeudumHost, stopAt?: string) {
     while (host.state.machineState === MachineState.PlayingCards) {
@@ -173,10 +174,10 @@ export async function forfeitRound(host: FeudumHost, stopAt?: string) {
         await host.send(asked, { type: ActionType.ForfeitCard, kind: handOf(host, asked)[0] })
     }
     while (host.state.machineState === MachineState.Nourishing) {
-        const [asked] = host.state.activePlayerIds
-        if (asked === stopAt) {
+        if (stopAt !== undefined && host.state.activePlayerIds.includes(stopAt)) {
             return
         }
+        const [asked] = host.state.activePlayerIds
         const offer = nourishOffer(new HydratedFeudumGameState(host.state), asked)
         assertExists(offer, 'R-4.10-H4 The seat nourishing waits on decides its feeding')
         await host.send(asked, { type: ActionType.Nourish, ...offer.preselected })

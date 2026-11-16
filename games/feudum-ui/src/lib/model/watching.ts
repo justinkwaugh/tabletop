@@ -15,6 +15,30 @@ export interface WatchingInput {
     readonly nameOf: (playerId: string) => string
 }
 
+/** "Ana", "Ana and Ben", "Ana, Ben and Cy". */
+export function namesInWords(names: readonly string[]): string {
+    return names.length > 1
+        ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+        : names.join('')
+}
+
+/**
+ * R-4.10-H4 Every seat still deciding but the viewer, by name: "Ana feeds pawns", "Ana and Ben feed
+ * pawns".
+ */
+function feedingLine(
+    state: HydratedFeudumGameState,
+    viewerId: string | undefined,
+    nameOf: (playerId: string) => string
+): WatchingPanel | undefined {
+    const deciding = state.activePlayerIds.filter((playerId) => playerId !== viewerId)
+    if (deciding.length === 0) {
+        return undefined
+    }
+    const verb = deciding.length === 1 ? 'feeds' : 'feed'
+    return { line: `${namesInWords(deciding.map(nameOf))} ${verb} pawns` }
+}
+
 /** R-X.1 Words for what the one active seat is deciding: public facts, and no more. */
 const Deciding: Partial<Record<MachineState, string>> = {
     [MachineState.PlayingCards]: 'plays a card',
@@ -22,7 +46,6 @@ const Deciding: Partial<Record<MachineState, string>> = {
     [MachineState.PlacingDisc]: 'decides on a disc',
     [MachineState.InspectingHarvest]: 'takes favours',
     [MachineState.DiscardingWrits]: 'discards a writ',
-    [MachineState.Nourishing]: 'feeds pawns',
     [MachineState.CollectingLandscapes]: 'collects landscapes'
 }
 
@@ -63,6 +86,8 @@ export function watchingPanelOf({
                 line: `${nameOf(starve.actorId)} starves ${owner}'s ${starve.role} at ${spaceLabel(starve.spaceId)}. ${owner} answers.`
             }
         }
+        case MachineState.Nourishing:
+            return feedingLine(state, viewerId, nameOf)
         default: {
             const words = Deciding[state.machineState]
             const [deciderId] = state.activePlayerIds

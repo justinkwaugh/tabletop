@@ -124,7 +124,7 @@ scenario('S53 R-4.10.1 Nourish choice', 'nourish-choice', async (table) => {
 })
 
 scenario(
-    'S53 R-4.10.1 Nourish, every pawn fed, and the order row reads out who is next',
+    'S53 R-4.10.1 Nourish, every pawn fed, and the order row reads out who is deciding',
     'nourish-fed',
     async (table) => {
         const pawns = table.panel().locator('[data-nourish-pawn]')
@@ -134,7 +134,7 @@ scenario(
         expect(Object.values(await table.litChips())).toEqual(['1 food', '1 food', '1 food'])
         // The order row's status is read out at every width, the phone's dots too.
         expect(await table.panel().locator('[data-order-seat="Ana"]').ariaSnapshot()).toMatch(
-            /Ana.*next/s
+            /Ana.*deciding/s
         )
         if (table.phone) {
             // Contract, Phone layout: compact rows within the width, the order row as dots, the send as art.

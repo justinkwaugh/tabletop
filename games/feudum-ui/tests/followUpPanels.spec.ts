@@ -173,6 +173,40 @@ test('S53 nourish: the order row, the picker, and a feed brightens its pawn', as
     await shot(page, 'S53-nourish-waiting')
 })
 
+for (const [width, viewport] of [
+    ['desk', { width: 1440, height: 900 }],
+    ['phone', { width: 390, height: 844 }]
+] as const) {
+    test(`S53 R-4.10-H4 nourish at once, ${width}: a hotseat serves each seat deciding, and the waiting line names them`, async ({
+        page
+    }) => {
+        await page.setViewportSize(viewport)
+        await openTable(page, `openNourishTogetherTable('hotseat')`)
+        const row = panel(page).locator('[data-order-row="nourish"]')
+        await expect(row.locator('[data-deciding]')).toHaveCount(2)
+        await expect(row.locator('[data-next]')).toHaveCount(0)
+        await expect(panel(page).locator('[data-nourish-pawn]')).toHaveCount(3)
+        await expect(panel(page).locator('[data-primary]')).toHaveText(/Feed 2/)
+        await shot(page, `S53-nourish-together-first-${width}`)
+
+        await panel(page).locator('[data-primary]').click()
+        await settled(page)
+
+        await expect(row.locator('[data-deciding]')).toHaveCount(1)
+        await expect(row.locator('[data-done]')).toHaveCount(2)
+        await expect(panel(page).locator('[data-nourish-pawn]')).not.toHaveCount(0)
+        await expect(panel(page).locator('[data-primary]')).toHaveText(/^Feed/)
+        await shot(page, `S53-nourish-together-second-${width}`)
+
+        await openTable(page, `openNourishTogetherTable('watcher')`)
+        await expect(panel(page).locator('[data-waiting]')).toHaveText(/^\S.* and \S.* feed pawns$/)
+        await expect(row.locator('[data-deciding]')).toHaveCount(2)
+        // No seat is next while seats feed at once: the header names the step, as for hands.
+        await expect(page.locator('[data-table-header]')).toContainText('Feeding pawns')
+        await shot(page, `S53-nourish-together-waiting-${width}`)
+    })
+}
+
 test('S55 landscapes: the order row, each filled space, and a row brightens it', async ({
     page
 }) => {

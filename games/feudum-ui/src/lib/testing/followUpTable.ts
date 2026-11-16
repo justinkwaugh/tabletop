@@ -116,6 +116,25 @@ export async function atNourishing(arrange: Arrange): Promise<SeatTable> {
     return { ...turn, session: await turn.host.openSeat(turn.seat) }
 }
 
+/**
+ * R-4.10-H4 The seat and the next are both asked, at once; `arrange` sets what each feeds. The third
+ * seat watches: nourishing doesn't ask it.
+ */
+export async function atNourishingTogether(arrange: Arrange): Promise<SeatTable> {
+    const turn = await atPlayingCards(['move', 'tax', 'guild'])
+    turn.host.edit((state) => {
+        arrange(state, turn)
+        const pending = state.turnManager.turnOrder.filter(
+            (playerId) => playerId === turn.seat || playerId === turn.other
+        )
+        state.flow.turn = undefined
+        state.flow.nourish = { pending }
+        state.machineState = MachineState.Nourishing
+        state.activePlayerIds = [...pending]
+    })
+    return { ...turn, session: await turn.host.openSeat(turn.seat) }
+}
+
 /** R-4.1 Three pawns on the board for this seat, whatever it had. */
 export function threePawns(state: HydratedFeudumGameState, playerId: string): void {
     const onBoard = state.getPlayerState(playerId).pawns.filter((pawn) => pawn.spaceId)

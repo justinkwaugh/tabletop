@@ -707,7 +707,7 @@ describe('S53 R-4.10, R-4.10-H4 "nothing to decide", on the real session', () =>
         const row = watcher.orderRow?.entries
         const of = (playerId: string) => row?.find((entry) => entry.playerId === playerId)
         expect(of(other)).toMatchObject({ fedByGame: true, done: true })
-        expect(of(seat)).toMatchObject({ next: true, done: false })
+        expect(of(seat)).toMatchObject({ deciding: true, done: false })
         expect(of(seat)?.fedByGame).toBeUndefined()
         expect(of(third)?.fedByGame).toBeUndefined()
     })
@@ -728,7 +728,7 @@ describe('S53 R-4.10, R-4.10-H4 "nothing to decide", on the real session', () =>
         expect(asked.nourishPanel?.primary.label).toBe('Feed 3 pawns · 3 food')
         expect(asked.atWillPanel?.chips.map(({ list }) => list)).toContain('writs')
         const row = asked.orderRow?.entries
-        expect(row?.find((entry) => entry.playerId === seat)).toMatchObject({ next: true })
+        expect(row?.find((entry) => entry.playerId === seat)).toMatchObject({ deciding: true })
         expect(row?.find((entry) => entry.playerId === other)?.fedByGame).toBe(true)
     })
 })

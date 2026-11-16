@@ -279,7 +279,7 @@ describe('Render ownership: each shared row reads the same for every seat', () =
         expect(row?.step).toBe('nourish')
         expect(row?.entries.map(({ playerId }) => playerId)).toEqual(table.host.order)
         expect(row?.entries.find(({ playerId }) => playerId === table.seat)).toMatchObject({
-            next: true,
+            deciding: true,
             done: false
         })
         expect(row?.entries.find(({ playerId }) => playerId === table.other)?.done).toBe(true)

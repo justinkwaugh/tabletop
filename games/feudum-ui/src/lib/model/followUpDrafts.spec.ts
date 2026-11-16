@@ -6,6 +6,8 @@ import {
     HydratedFeudumGameState,
     keepWritsOffer,
     MachineState,
+    nourishGroup,
+    nourishOffer,
     placeMarker,
     type ActionCardKind,
     type SpaceId,
@@ -15,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     atCollecting,
     atNourishing,
+    atNourishingTogether,
     fillBarrel,
     holdFood,
     holdWrit,
@@ -1312,7 +1315,7 @@ describe('R-4.10 Nourish', () => {
         const row = other.orderRow?.entries
         expect(row?.map(({ playerId }) => playerId)).toEqual(table.host.order)
         expect(row?.find(({ playerId }) => playerId === table.seat)).toMatchObject({
-            next: true,
+            deciding: true,
             done: false
         })
         expect(row?.find(({ playerId }) => playerId === table.other)?.done).toBe(true)
@@ -1322,6 +1325,175 @@ describe('R-4.10 Nourish', () => {
         await table.session.history.goToPreviousAction()
         await settled(table.session)
         expect(table.session.nourishPanel).toBeUndefined()
+    })
+
+    describe('R-4.10-H4 two seats at once', () => {
+        /** Both seats short: three pawns, one food and one barrel sulfur each. */
+        const together = () =>
+            atNourishingTogether((state, { seat, other }) => {
+                for (const playerId of [seat, other]) {
+                    threePawns(state, playerId)
+                    holdFood(state, playerId, 1)
+                    fillBarrel(state, playerId, 1)
+                }
+            })
+
+        /** The seat nourishing doesn't ask. */
+        function watcherOf(table: SeatTable): string {
+            const watcher = table.host.order.find(
+                (playerId) => playerId !== table.seat && playerId !== table.other
+            )
+            assertExists(watcher, 'A third seat watches')
+            return watcher
+        }
+
+        it("each seat deciding has its own panel at once, and one's send keeps the other's draft", async () => {
+            const table = hold(await together())
+            const { session } = table
+            const other = await table.host.openSeat(table.other)
+            await settled(other)
+            expect(session.nourishPanel).toBeDefined()
+            expect(other.nourishPanel).toBeDefined()
+            await press(session, row(session.nourishPanel?.pawns[0].choices, 'Unfed'))
+            expect(feeding(session)).toEqual(['unfed', 'wine', 'food'])
+
+            await sendAndSettle(other)
+            await settled(session)
+
+            expect(lastAction(table)).toMatchObject({
+                type: ActionType.Nourish,
+                playerId: table.other,
+                simultaneousGroupId: nourishGroup(session.gameState)
+            })
+            expect(other.nourishPanel).toBeUndefined()
+            expect(feeding(session)).toEqual(['unfed', 'wine', 'food'])
+            const group = nourishGroup(session.gameState)
+            await sendAndSettle(session)
+            expect(lastAction(table)).toMatchObject({
+                type: ActionType.Nourish,
+                playerId: table.seat,
+                simultaneousGroupId: group
+            })
+        })
+
+        it('the waiting line names every seat still deciding; the row marks them deciding, none next', async () => {
+            const table = hold(await together())
+            const watcher = await table.host.openSeat(watcherOf(table))
+            await settled(watcher)
+            const name = (playerId: string) => watcher.getPlayerName(playerId)
+            const [first, second] = table.host.order.filter(
+                (playerId) => playerId === table.seat || playerId === table.other
+            )
+            expect(watcher.watchingPanel?.line).toBe(
+                `${name(first)} and ${name(second)} feed pawns`
+            )
+            const entries = watcher.orderRow?.entries ?? []
+            for (const playerId of [first, second]) {
+                expect(entries.find((entry) => entry.playerId === playerId)).toMatchObject({
+                    done: false,
+                    deciding: true
+                })
+            }
+            expect(entries.some((entry) => 'next' in entry && entry.next)).toBe(false)
+
+            await sendAndSettle(table.session)
+            await settled(watcher)
+
+            const still = first === table.seat ? second : first
+            expect(watcher.watchingPanel?.line).toBe(`${name(still)} feeds pawns`)
+            expect(
+                watcher.orderRow?.entries.find(({ playerId }) => playerId === table.seat)
+            ).toMatchObject({
+                done: true
+            })
+        })
+
+        it("a hotseat serves each seat's panel in turn, each its own draft, never the last seat's", async () => {
+            const table = hold(await together())
+            const screen = await table.host.openHotseat()
+            const [first, second] = table.host.state.activePlayerIds
+            expect(screen.myPlayerId).toBe(first)
+            await press(screen, row(screen.nourishPanel?.pawns[0].choices, 'Unfed'))
+            expect(feeding(screen)).toEqual(['unfed', 'wine', 'food'])
+
+            await sendAndSettle(screen)
+
+            expect(screen.myPlayerId).toBe(second)
+            expect(screen.nourishPanel).toBeDefined()
+            expect(screen.nourish.hasManual).toBe(false)
+            expect(screen.nourish.value('feeding')).toEqual(
+                nourishOffer(screen.gameState, second)?.preselected
+            )
+        })
+
+        it("R-4.4-H1 this seat's own at-will play starts its draft afresh, as another seat's send does not", async () => {
+            const table = hold(
+                await atNourishingTogether((state, { seat, other }) => {
+                    for (const playerId of [seat, other]) {
+                        threePawns(state, playerId)
+                        holdFood(state, playerId, 1)
+                        fillBarrel(state, playerId, 1)
+                    }
+                    giveTile(state, seat)
+                })
+            )
+            const { session } = table
+            await press(session, row(session.nourishPanel?.pawns[0].choices, 'Unfed'))
+            expect(session.nourish.hasManual).toBe(true)
+            const [tileId] = session.gameState.getPlayerState(table.seat).regionTiles
+
+            await table.host.send(table.seat, {
+                type: ActionType.SpendRegionTile,
+                tileId,
+                good: 'food'
+            })
+            await settled(session)
+
+            expect(session.nourishPanel).toBeDefined()
+            expect(session.nourish.hasManual).toBe(false)
+            expect(feeding(session)).toEqual(['food', 'food', 'wine'])
+        })
+
+        it("R-4.3.3 another seat's tile takes the haversack's last sulfur: this seat's tile offer says so", async () => {
+            const table = hold(
+                await atNourishingTogether((state, { seat, other, host }) => {
+                    const watcher = host.order.find((id) => id !== seat && id !== other) ?? ''
+                    for (const playerId of [seat, other]) {
+                        addPawn(state, playerId, 'farmer', emptySpace(state, 'town'))
+                        holdFood(state, playerId, 0)
+                        giveTile(state, playerId)
+                    }
+                    const watching = state.getPlayerState(watcher)
+                    watching.goods.food += state.supply.haversack.food
+                    state.supply.haversack.food = 0
+                    watching.goods.sulfur += state.supply.haversack.sulfur - 1
+                    state.supply.haversack.sulfur = 1
+                    state.recomputeRanks()
+                })
+            )
+            const { session } = table
+            const other = await table.host.openSeat(table.other)
+            await settled(other)
+            const wine = (seat: FeudumGameSession) =>
+                seat.nourishPanel?.covers?.find(({ label }) => label.endsWith('wine'))
+            const food = (seat: FeudumGameSession) =>
+                seat.nourishPanel?.covers?.find(({ label }) => label.endsWith('food'))
+            expect(food(session)?.refusal).toBe('The haversack has no food left.')
+            expect(wine(session)?.refusal).toBeUndefined()
+            await press(session, wine(session))
+            expect(session.nourishPanel?.primary.enabled).toBe(true)
+
+            await press(other, wine(other))
+            await sendAndSettle(other)
+            await settled(session)
+
+            expect(wine(session)).toMatchObject({ picked: true, shown: 'for wine · none left' })
+            expect(wine(session)?.press).toBeDefined()
+            expect(session.nourishPanel?.primary.enabled).toBe(false)
+            await press(session, wine(session))
+            expect(session.nourishPanel?.covers).toBeUndefined()
+            expect(session.nourishPanel?.primary.enabled).toBe(true)
+        })
     })
 
     describe('the five minimum tests', () => {
