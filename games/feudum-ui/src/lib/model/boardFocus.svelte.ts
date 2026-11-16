@@ -7,6 +7,7 @@ import {
 import {
     BoardHeight,
     BoardWidth,
+    DeskBoardArea,
     DiscFrame,
     GuildAreaHeight,
     GuildAreas,
@@ -23,9 +24,14 @@ import {
 } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
 
-/** The focus chooser's four chips (contract: Phone layout). */
-export type FocusArea = 'map' | 'west' | 'east' | 'tracks'
+/**
+ * The focus chooser's chips: on a phone Map, West guilds, East guilds and Tracks (contract: Phone
+ * layout); on a desk Whole board, Map, West guilds and East guilds (contract: Supply, the zoom row).
+ */
+export type FocusArea = 'board' | 'map' | 'west' | 'east' | 'tracks'
 export type FramedArea = Exclude<FocusArea, 'tracks'>
+/** Where a pick's targets stand: an area of the board, or a track. */
+export type PlacedArea = Exclude<FocusArea, 'board'>
 
 export interface BoardRect {
     readonly x: number
@@ -40,6 +46,8 @@ export interface PickFrame {
     readonly rect: BoardRect
     /** A guild pick's column names its chip; the map's and a track's name none. */
     readonly area?: FramedArea
+    /** Every area its targets stand in, so a desk knows whether its chosen view holds them. */
+    readonly holds?: readonly PlacedArea[]
 }
 
 /** Below this fit the board's targets are too small to tap: a phone rests at a cover fit. */
@@ -61,8 +69,13 @@ export const ScaledHeight = BoardHeight + ZoomRowBand
  * this shape at the column's width, so the zoom row stands right under the strip.
  */
 export function deskScaledHeight(seats: number): number {
-    return BoardHeight + standingsStripHeight(seats) + ZoomRowBand
+    return DeskBoardArea.height + standingsStripHeight(seats) + ZoomRowBand
 }
+/**
+ * Contract, Supply: the zoom row's height in screen pixels over a desk view's foot, with the gap
+ * above it. A desk's focus frames its area above it, so the row never covers what it chose.
+ */
+export const DeskRowClear = 44
 /** Contract, Pick framing: how far past its rest a pick may bring the board. */
 export const PickFrameZoom = 2.5
 /** Room in screen pixels round what is framed. */
@@ -97,9 +110,19 @@ function columnOf(area: 'west' | 'east'): BoardRect {
     return unionOf(corners, 0)
 }
 
-/** What a chip frames: the map's area and each guild column. */
+/** What a chip frames: the whole board, the map's area and each guild column. */
 export function rectOfArea(area: FramedArea): BoardRect {
-    return area === 'map' ? MapArea : columnOf(area)
+    switch (area) {
+        case 'board': {
+            return DeskBoardArea
+        }
+        case 'map': {
+            return MapArea
+        }
+        default: {
+            return columnOf(area)
+        }
+    }
 }
 
 /** The scale the board rests at in a view this size, as the scaling wrapper reckons it. */
@@ -108,6 +131,11 @@ export function restScaleOf(viewWidth: number, viewHeight: number): number {
     const down = Math.max(1, viewHeight - ChooserInset) / ScaledHeight
     const contain = Math.min(across, down, 1)
     return contain >= CoverBelowScale ? contain : Math.min(Math.max(across, down), 1)
+}
+
+/** A desk's rest: the board, the standings' strip and the band contained in the view. */
+export function deskRestScaleOf(viewWidth: number, viewHeight: number, seats: number): number {
+    return Math.min(viewWidth / DeskBoardArea.width, viewHeight / deskScaledHeight(seats), 1)
 }
 
 export function pickFrameScale(restScale: number): number {
@@ -194,24 +222,25 @@ export function pickFrameOf(
     const key = targets.join(' ')
     const anchored = popupAnchor && placeOf(state, popupAnchor).area
     if (anchored === 'west' || anchored === 'east') {
-        return { key, rect: columnOf(anchored), area: anchored }
+        return { key, rect: columnOf(anchored), area: anchored, holds: [anchored] }
     }
     const placed = targets.map((target) => placeOf(state, target))
+    const holds = [...new Set(placed.map(({ area }) => area))]
     const points = (area: 'map' | 'tracks') =>
         placed.flatMap((place) =>
             place.area === area && 'at' in place && place.at ? [place.at] : []
         )
     const onMap = points('map')
     if (onMap.length > 0) {
-        return { key, rect: unionOf(onMap, TargetRoom) }
+        return { key, rect: unionOf(onMap, TargetRoom), holds }
     }
     for (const area of ['west', 'east'] as const) {
         if (placed.some((place) => place.area === area)) {
-            return { key, rect: columnOf(area), area }
+            return { key, rect: columnOf(area), area, holds }
         }
     }
     const onTracks = points('tracks')
-    return onTracks.length > 0 ? { key, rect: unionOf(onTracks, TargetRoom) } : undefined
+    return onTracks.length > 0 ? { key, rect: unionOf(onTracks, TargetRoom), holds } : undefined
 }
 
 /** The scaling wrapper's views, as this needs them. */
@@ -230,12 +259,27 @@ export interface BoardFocusSetting {
     /** Held sideways the board fits the chosen view by height, not the cover fit. */
     readonly sideways: () => boolean
     readonly animate: () => boolean
+    /** On a desk, the board view's size in screen pixels; a phone has none. */
+    readonly desk?: () => { readonly width: number; readonly height: number } | undefined
+}
+
+/** A desk's chosen area holds a pick when each target stands there; a track stands on the map. */
+function viewHolds(chosen: FramedArea | undefined, holds: readonly PlacedArea[] | undefined) {
+    if (chosen === 'board') {
+        return true
+    }
+    return (
+        chosen !== undefined &&
+        holds !== undefined &&
+        holds.every((area) => (area === 'tracks' ? 'map' : area) === chosen)
+    )
 }
 
 /**
  * Board focus (contract: Shared visual state). The chooser or a map pick opening sets it; a pan or
  * zoom by hand clears it. A pick gives back the chip it found when it closes, unless a hand took
- * the view first. It never changes an offer.
+ * the view first. It never changes an offer. A phone rests on the map; a desk on the whole board,
+ * frames a pick only where the area it stands on leaves a target out, and keeps the zoom row clear.
  */
 export class BoardFocus {
     /** The chip the board stands on, until a hand moves it. */
@@ -246,7 +290,11 @@ export class BoardFocus {
     /** The lit set last framed, so a hand's pan stays until the lit set changes. */
     private followedKey: string | undefined
 
-    constructor(private readonly setting: BoardFocusSetting) {}
+    constructor(private readonly setting: BoardFocusSetting) {
+        if (setting.desk?.()) {
+            this.chosen = 'board'
+        }
+    }
 
     /** Which chip reads as chosen: while framed, only a guild column's. */
     get shown(): FramedArea | undefined {
@@ -261,23 +309,57 @@ export class BoardFocus {
         }
     }
 
+    /** The area the board rests on: the whole board on a desk, the map on a phone held upright. */
+    private restsOn(area: FramedArea): boolean {
+        if (area === 'board') {
+            return true
+        }
+        return !this.setting.desk?.() && area === 'map' && !this.setting.sideways()
+    }
+
+    /**
+     * Frames a rect in board units. A desk draws its part of the board, so the rect moves by that
+     * part's corner; and the zoom row stands over the view's foot, so the rect reaches the row's
+     * height further down at the scale it will be shown, and the area stands whole above the row.
+     */
+    private frame(rect: BoardRect) {
+        const options = this.options()
+        const desk = this.setting.desk?.()
+        if (!desk) {
+            this.setting.view()?.focusRect(rect, options)
+            return
+        }
+        const scale = Math.min(
+            (desk.width - 2 * FramePadding.x) / rect.width,
+            (desk.height - 2 * FramePadding.y - DeskRowClear) / rect.height,
+            options.maxScale
+        )
+        const framed = {
+            x: rect.x - DeskBoardArea.x,
+            y: rect.y - DeskBoardArea.y,
+            width: rect.width,
+            height: rect.height + (scale > 0 ? DeskRowClear / scale : 0)
+        }
+        this.setting.view()?.focusRect(framed, options)
+    }
+
     private show(area: FramedArea) {
-        const view = this.setting.view()
-        if (area === 'map' && !this.setting.sideways()) {
-            view?.fitToContent({ animate: this.setting.animate() })
+        if (this.restsOn(area)) {
+            this.setting.view()?.fitToContent({ animate: this.setting.animate() })
         } else {
-            view?.focusRect(rectOfArea(area), this.options())
+            this.frame(rectOfArea(area))
         }
     }
 
     /**
      * Puts the board back on what it stands on, on opening, when the phone turns, or when the view's
-     * size changes with the panel; nothing over a hand's view.
+     * size changes with the panel; nothing over a hand's view. A desk at rest keeps the wrapper's
+     * own fit, which follows the view's size.
      */
     settle() {
         if (this.framed) {
-            this.setting.view()?.focusRect(this.framed.rect, this.options())
-        } else if (this.chosen) {
+            this.frame(this.framed.rect)
+        } else if (this.chosen && !(this.setting.desk?.() && this.chosen === 'board')) {
             this.show(this.chosen)
         }
     }
@@ -293,15 +375,19 @@ export class BoardFocus {
         this.framed = undefined
     }
 
-    /** Reads the open pick: frames a lit set new to it, and gives the view back when it closes. */
+    /**
+     * Reads the open pick: frames a lit set new to it, and gives the view back when it closes. A
+     * desk frames it only where the chosen area leaves a target out; the whole board leaves none.
+     */
     follow(frame: PickFrame | undefined) {
         if (frame?.key === this.followedKey) {
             return
         }
         this.followedKey = frame?.key
-        if (frame) {
+        const inView = frame && this.setting.desk?.() && viewHolds(this.chosen, frame.holds)
+        if (frame && !inView) {
             this.framed = frame
-            this.setting.view()?.focusRect(frame.rect, this.options())
+            this.frame(frame.rect)
         } else if (this.framed) {
             this.framed = undefined
             if (this.chosen) {

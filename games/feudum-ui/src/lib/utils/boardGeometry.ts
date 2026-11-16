@@ -62,6 +62,9 @@ export interface Point {
 export const BoardWidth = 2500
 export const BoardHeight = 953
 
+/** The part of the board a desk draws, in board units. */
+export const DeskBoardArea = { x: 0, y: 0, width: BoardWidth, height: BoardHeight } as const
+
 /** The map in the board's centre, the sky and the strip of stacks and barrels included. */
 export const MapArea = { x: 452, y: 60, width: 1598, height: 833 } as const
 export const MapViewBox = `${MapArea.x} ${MapArea.y} ${MapArea.width} ${MapArea.height}`

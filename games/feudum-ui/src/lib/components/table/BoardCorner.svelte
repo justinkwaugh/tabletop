@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import { seatOrder } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import SupplyCard from './SupplyCard.svelte'
@@ -10,8 +11,10 @@
      *
      * Contract, Symbol key: "Key" opens the table's vocabulary; a second press or Escape closes it.
      * Contract, Supply: "Supply" opens the general supply's counts; Escape, or a press anywhere,
-     * on the card or off it, closes it.
+     * on the card or off it, closes it. On a desk the rest of the zoom row follows them (`row`).
      */
+    let { row }: { row?: Snippet } = $props()
+
     const gameSession = getGameSession()
 
     let open: 'key' | 'supply' | undefined = $state()
@@ -116,6 +119,7 @@
         >
             Supply
         </button>
+        {@render row?.()}
     </div>
 </div>
 
@@ -144,8 +148,11 @@
 
     .toggles {
         display: flex;
+        align-self: stretch;
+        align-items: center;
         gap: 0.25rem;
         margin-left: 7.25rem;
+        margin-right: 0.25rem;
     }
 
     .toggle {

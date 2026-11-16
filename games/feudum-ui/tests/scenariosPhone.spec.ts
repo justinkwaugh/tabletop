@@ -3,8 +3,8 @@ import { scenario, type ScenarioTable } from './scenarioTable.js'
 
 /**
  * The contract's phone scenarios S67 to S70 and S73, on the real table. A phone's scenario also runs at
- * the desktop, where it proves the desk's counterpart: no chooser, the whole board, the bench and the
- * seats in their columns.
+ * the desktop, where it proves the desk's counterpart: no chip over the board, the whole board kept
+ * by the zoom row's chooser, the bench and the seats in their columns.
  */
 
 const Badlands1 = 'space:space.badlands.1'
@@ -14,6 +14,12 @@ const Target = 44
 
 const chip = (table: ScenarioTable, area: string) =>
     table.page.locator(`[data-focus-chip="${area}"]`)
+
+/** A desk has no chip over the board; its zoom row's chooser stays on the whole board. */
+async function expectDeskOnWholeBoard(table: ScenarioTable) {
+    await expect(table.page.locator('[data-focus-chooser="phone"]')).toHaveCount(0)
+    await expect(chip(table, 'board')).toHaveAttribute('aria-pressed', 'true')
+}
 const view = (table: ScenarioTable) => table.page.locator('[data-board-view]')
 const surface = (table: ScenarioTable) => table.page.locator('[data-board-surface]')
 const bench = (table: ScenarioTable) => table.page.locator('[data-bench]')
@@ -97,10 +103,11 @@ scenario(
         const rest = await boardScale(table)
         if (!table.phone) {
             // The desk shows the whole board, with no chooser over it.
-            await expect(table.page.locator('[data-focus-chip]')).toHaveCount(0)
+            await expectDeskOnWholeBoard(table)
             await table.press(table.card('Move'))
             await expectInView(table, table.lit())
             expect(await boardScale(table)).toBeCloseTo(rest, 3)
+            await expectDeskOnWholeBoard(table)
             return
         }
         const chips = await table.page
@@ -139,7 +146,7 @@ scenario(
         await table.press(table.card('Guild'))
         await table.boardAtRest()
         if (!table.phone) {
-            await expect(table.page.locator('[data-focus-chip]')).toHaveCount(0)
+            await expectDeskOnWholeBoard(table)
             await expectInView(table, table.page.locator('[data-board-surface] [data-guild]'))
             return
         }
@@ -307,7 +314,7 @@ scenario(
         await table.boardAtRest()
         await expect(table.pick('voyage:1')).toHaveAttribute('data-pick-role', 'lit')
         if (!table.phone) {
-            await expect(table.page.locator('[data-focus-chip]')).toHaveCount(0)
+            await expectDeskOnWholeBoard(table)
             await expect(tracksLayer(table)).toHaveCount(0)
             await expectInView(
                 table,
