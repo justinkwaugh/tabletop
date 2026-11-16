@@ -278,7 +278,7 @@ function revealLine(action: GameAction, words: Words): string | undefined {
     }
     const held = action.metadata?.pouches ?? []
     if (held.length === 0) {
-        return sentence('All finalised', 'no pouch goods')
+        return 'All finalised'
     }
     const pouches = held.map(
         ({ playerId, good }) => `${words.who(playerId)} ${good} ${PouchTitles[good]}`

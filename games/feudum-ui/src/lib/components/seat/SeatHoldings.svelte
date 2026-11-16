@@ -16,8 +16,8 @@
      * Contract, Seat panel, the holdings line: influence markers in supply, free discs, the wine
      * barrel, the writs, then tiles, vessels and the pouch good when held. Another seat's writs are
      * a back with the count (R-4.4.4); the owner's are faces, and the deck note is their tooltip.
-     * Until every hand is final a seat's pouch is sealed: its own good under a lock, another's a lock
-     * alone (R-3.1-H1). At the reveal every pouch turns over at once.
+     * Until every hand is final a seat's pouch is sealed: its own good beside a lock, another's a lock
+     * alone, with no words (R-3.1-H1). At the reveal every pouch turns over at once.
      */
     let {
         items,
@@ -34,7 +34,7 @@
     function pouchWords(item: Extract<SeatHoldingsItem, { item: 'pouch' }>): string {
         const { pouch } = item
         if (pouch.status === 'sealed') {
-            return 'pouch: hidden until all finalise'
+            return 'pouch: sealed'
         }
         return pouch.status === 'finalised'
             ? `pouch: ${pouch.good}, ${pouch.note}${pouch.spent ? ', spent' : ''}`
@@ -207,8 +207,7 @@
                             data-seat-section="pouch"
                             data-pouch="sealed"
                         >
-                            <LockMark size={piece * 0.8} />
-                            <span class="note">hidden until all finalise</span>
+                            <LockMark size={piece * 0.8} label="sealed" />
                         </span>
                     {:else}
                         <span
@@ -229,9 +228,8 @@
                                 ><GoodToken good={pouch.good} size={piece} /></span
                             >
                             {#if pouch.status === 'committed'}
-                                <span class="sealed flex items-center gap-[0.15em]"
-                                    ><LockMark size={piece * 0.8} /><span class="note">sealed</span
-                                    ></span
+                                <span class="sealed flex items-center"
+                                    ><LockMark size={piece * 0.8} label="sealed" /></span
                                 >
                             {/if}
                         </span>
@@ -256,14 +254,8 @@
         border-radius: 0.2em;
     }
 
-    /* R-3.1-H1 A sealed pouch says so beside its lock. */
+    /* R-3.1-H1 A sealed pouch's lock. */
     .sealed {
         color: var(--feudum-text-muted);
-    }
-
-    .note {
-        font-size: 0.85em;
-        font-style: italic;
-        white-space: nowrap;
     }
 </style>

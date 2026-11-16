@@ -530,7 +530,7 @@ for (const viewport of [
             await expect(page.locator('[data-hand-tray]')).toBeVisible()
             await settled(page)
             const tray = await rect(page.locator('[data-hand-tray]'))
-            expect(Math.abs(tray.height - 272)).toBeLessThanOrEqual(2)
+            expect(Math.abs(tray.height - 206)).toBeLessThanOrEqual(2)
             expect(Math.abs(tray.width - 368)).toBeLessThanOrEqual(2)
         })
     })

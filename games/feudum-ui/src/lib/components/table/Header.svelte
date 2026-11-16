@@ -28,11 +28,11 @@
         {:else if gameSession.isMyTurn}
             Your turn
         {:else if handSet}
-            Your hand is set
+            Hand set
         {:else if choosingHands}
-            Choosing hands
+            Choose hands
         {:else if nourishing}
-            Feeding pawns
+            Feeding
         {:else if activeId}
             <span class="inline-flex gap-x-1">
                 <PlayerName playerId={activeId} possessive={true} />

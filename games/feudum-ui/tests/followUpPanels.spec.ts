@@ -206,7 +206,7 @@ for (const [width, viewport] of [
         await expect(panel(page).locator('[data-waiting] [data-seat-chip]')).toHaveCount(2)
         await expect(row.locator('[data-deciding]')).toHaveCount(2)
         // No seat is next while seats feed at once: the header names the step, as for hands.
-        await expect(page.locator('[data-table-header]')).toContainText('Feeding pawns')
+        await expect(page.locator('[data-table-header]')).toContainText('Feeding')
         await shot(page, `S53-nourish-together-waiting-${width}`)
     })
 }

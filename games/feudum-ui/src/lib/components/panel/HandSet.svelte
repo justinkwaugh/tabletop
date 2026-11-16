@@ -5,10 +5,10 @@
     import type { ActionBlock } from '$lib/model/actionPanel.js'
 
     /**
-     * R-3.1-H1 Tray A once the seat has finalised: "Hand · set" over the cards in the order chosen,
-     * then "Pouch · sealed" over its good, under a lock, hidden from the others until the reveal.
-     * Nothing in it can be pressed: the hand is final. On a phone the labels give way and the cards
-     * and the pouch share one line.
+     * R-3.1-H1 Tray A once the seat has finalised: "Hand" over the cards in the order chosen, then
+     * "Pouch" over its good and a lock: no other seat sees it until the reveal. Nothing in it can be
+     * pressed: the hand is final. On a phone the labels give way and the cards and the pouch share
+     * one line.
      */
     let { block }: { block: Extract<ActionBlock, { kind: 'hand-set' }> } = $props()
 
@@ -23,7 +23,7 @@
     aria-label="Your hand and pouch, set"
     data-hand-set
 >
-    <p class="set-label" data-tray-label="hand">Hand <small>set</small></p>
+    <p class="set-label" data-tray-label="hand">Hand</p>
     <div class="set-cards" role="list" aria-label="Your hand">
         {#each block.cards as card, at (card.kind)}
             <div class="set-card relative" role="listitem" data-set-card={card.label}>
@@ -41,9 +41,7 @@
             </div>
         {/each}
     </div>
-    <p class="set-label" data-tray-label="pouch">
-        Pouch <small>{block.pouch ? 'sealed' : 'none'}</small>
-    </p>
+    <p class="set-label" data-tray-label="pouch">Pouch</p>
     <div
         class="set-pouch flex items-center gap-2 rounded-lg border px-2 py-1
             {block.pouch
@@ -53,15 +51,10 @@
     >
         {#if block.pouch}
             <GoodToken good={block.pouch.good} size={GoodSize} />
-            <span class="flex flex-col leading-tight">
-                <span class="title text-sm text-feudum-text">{block.pouch.title}</span>
-                <span class="caption flex items-center gap-1 text-xs text-feudum-text-muted"
-                    ><LockMark /> hidden from the others until the reveal</span
-                >
-            </span>
-            <span class="phone-lock text-feudum-text-muted"><LockMark /></span>
+            <span class="title text-sm leading-tight text-feudum-text">{block.pouch.title}</span>
+            <span class="text-feudum-text-muted"><LockMark label="sealed" /></span>
         {:else}
-            <span class="text-sm">no pouch good</span>
+            <span class="text-sm">none</span>
         {/if}
     </div>
 </div>
@@ -86,13 +79,6 @@
         color: var(--feudum-heading);
     }
 
-    .set-label small {
-        display: block;
-        font-size: 0.75rem;
-        font-weight: 400;
-        color: var(--feudum-text-muted);
-    }
-
     .set-cards {
         display: flex;
         gap: 0.375rem;
@@ -113,10 +99,6 @@
     .set-pouch {
         width: 0;
         min-width: 100%;
-    }
-
-    .phone-lock {
-        display: none;
     }
 
     /* Contract, Phone layout: the cards and the pouch in one line, without the labels. */
@@ -156,14 +138,6 @@
         .title {
             font-size: 0.75rem;
             white-space: nowrap;
-        }
-
-        .caption {
-            display: none;
-        }
-
-        .phone-lock {
-            display: inline-flex;
         }
     }
 </style>
