@@ -174,5 +174,9 @@
     {
         "gameId": "ride-the-rails",
         "packageId": "ride-the-rails"
+    },
+    {
+        "gameId": "yinsh",
+        "packageId": "yinsh"
     }
 ]
