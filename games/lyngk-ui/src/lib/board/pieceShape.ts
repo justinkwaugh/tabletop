@@ -286,10 +286,14 @@ function lightAt(color: PieceColor, tint: Rgb, u: number, v: number): Rgb {
     const base = mix(flat, floor, depth)
     const lit = away > 0 ? mix(base, farWall, steep * away) : mix(base, nearWall, -steep * away)
     // The speck takes the change in light from the flat top, channel by channel.
-    return tint.map((value, index) => (value * (lit[index] + 8)) / (flat[index] + 8)) as Rgb
+    return mapRgb(tint, (value, index) => (value * (lit[index] + 8)) / (flat[index] + 8))
 }
 
 type Rgb = [number, number, number]
+
+function mapRgb(color: Rgb, channel: (value: number, index: number) => number): Rgb {
+    return [channel(color[0], 0), channel(color[1], 1), channel(color[2], 2)]
+}
 
 function rgb(hex: string): Rgb {
     const value = Number.parseInt(hex.slice(1), 16)
@@ -297,7 +301,7 @@ function rgb(hex: string): Rgb {
 }
 
 function mix(from: Rgb, to: Rgb, amount: number): Rgb {
-    return from.map((value, index) => value + (to[index] - value) * amount) as Rgb
+    return mapRgb(from, (value, index) => value + (to[index] - value) * amount)
 }
 
 function css(color: Rgb, brightness = 1): string {
@@ -308,7 +312,7 @@ function css(color: Rgb, brightness = 1): string {
 // A speck's colour rounded to a few steps, so the specks of a disc share a handful of colours and
 // draw as a path each.
 function steps(color: Rgb): Rgb {
-    return color.map((value) => Math.round(value / 8) * 8) as Rgb
+    return mapRgb(color, (value) => Math.round(value / 8) * 8)
 }
 
 // A speck on the disc's side, across it from -1 at the left to 1 at the right, in the side's
@@ -317,7 +321,7 @@ export function sideSpeckFill(tint: string, across: number): string {
     const at = (across + 1) / 2
     const light =
         at < 0.32 ? 0.75 + (1.06 - 0.75) * (at / 0.32) : 1.06 - (1.06 - 0.62) * ((at - 0.32) / 0.68)
-    return css(steps(rgb(tint).map((value) => Math.min(255, value * light)) as Rgb))
+    return css(steps(mapRgb(rgb(tint), (value) => Math.min(255, value * light))))
 }
 
 // Each color's shades, from its style: the side lit by its face color and shaded by its edge

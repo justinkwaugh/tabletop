@@ -12,21 +12,16 @@ export type MoveEntry = Span & {
     to: AxialCoordinates
     height: number
     scored: boolean
-    // The opponent had no move, so this player moves again next.
-    opponentPassed: boolean
-    opponentId: string
+    // The player this move's end passed over, who had no move, so the mover moves again.
+    passedPlayerId?: string
 }
 
 export type ClaimEntry = Span & { kind: 'claim'; claimed: PieceColor }
 
 export type HistoryEntry = MoveEntry | ClaimEntry
 
-// A claim and the move after it make one entry. A player moving twice in a row means the other
-// player passed in between.
-export function historyEntries(
-    actions: readonly GameAction[],
-    opponentOf: (playerId: string) => string
-): HistoryEntry[] {
+// A claim and the move after it make one entry.
+export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {
         const last = entries.at(-1)
@@ -42,25 +37,21 @@ export function historyEntries(
             return
         }
         if (!isMoveStack(action)) return
-        const moved = action.metadata?.moved ?? []
+        const metadata = action.metadata
+        if (metadata === undefined) throw Error('A move played records its outcome')
         const move: MoveEntry = {
             kind: 'move',
             id: action.id,
             firstIndex: index,
             lastIndex: index,
             playerId: action.playerId,
-            moved,
+            moved: metadata.moved,
             from: action.from,
             via: action.via,
             to: action.to,
-            height: moved.length + (action.metadata?.landedOn.length ?? 0),
-            scored: action.metadata?.scored ?? false,
-            opponentPassed: false,
-            opponentId: opponentOf(action.playerId)
-        }
-        const previousMove = entries.findLast((entry) => entry.kind === 'move')
-        if (previousMove?.kind === 'move' && previousMove.playerId === action.playerId) {
-            previousMove.opponentPassed = true
+            height: metadata.moved.length + metadata.landedOn.length,
+            scored: metadata.scored,
+            passedPlayerId: metadata.passedPlayerId
         }
         if (last?.kind === 'claim' && last.playerId === action.playerId) {
             entries[entries.length - 1] = {

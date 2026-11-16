@@ -5,7 +5,15 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
 import { startingPositionFile } from '@tabletop/common/testing'
-import { Definition, FIRST_JOKER_ID, LyngkInfo, LyngkRuntime, PieceColor } from '@tabletop/lyngk'
+import {
+    ACTIVE_COLORS,
+    Definition,
+    FIRST_JOKER_ID,
+    LyngkInfo,
+    LyngkRuntime,
+    PieceColor,
+    PIECES_PER_COLOR_ON_BOARD
+} from '@tabletop/lyngk'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
 const engine = new GameEngine(LyngkRuntime)
@@ -35,23 +43,22 @@ function position(stacks, { claims = {}, scored = {}, variant = 'Standard' } = {
     const { startedGame, initialState: state } = engine.startGame(game, {
         startingPositions: { playerIds: [FIRST, SECOND] }
     })
-    for (const point of state.board.points) point.stack = []
-    // Each piece gets its own identity, so the specks it is drawn with stay with it; jokers are
-    // numbered from FIRST_JOKER_ID, as in a dealt game, which picks each one's look.
-    let nextId = 0
-    let nextJoker = FIRST_JOKER_ID
-    for (const [q, r, stack] of stacks) {
-        const point = state.board.points.find((p) => p.coords.q === q && p.coords.r === r)
-        if (!point) throw Error(`No point ${q},${r}`)
-        point.stack = stack
-        point.ids = stack.map((color) => (color === PieceColor.Joker ? nextJoker++ : nextId++))
+    // Each piece is one of its colour's own, numbered as in a dealt game, so its colour and the
+    // specks it is drawn with follow from it.
+    const used = new Map()
+    const piece = (color) => {
+        const count = used.get(color) ?? 0
+        used.set(color, count + 1)
+        if (color === PieceColor.Joker) return FIRST_JOKER_ID + count
+        return ACTIVE_COLORS.indexOf(color) * PIECES_PER_COLOR_ON_BOARD + count
     }
-    for (const point of state.board.points) {
-        if (point.stack.length === 0) delete point.ids
-    }
+    state.board.stacks = stacks.map(([q, r, colors]) => ({
+        coords: { q, r },
+        pieces: colors.map(piece)
+    }))
     for (const player of state.players) {
         player.claimed = claims[player.playerId] ?? []
-        player.scored = scored[player.playerId] ?? []
+        player.scored = (scored[player.playerId] ?? []).map((colors) => colors.map(piece))
     }
     return { game: startedGame, state }
 }

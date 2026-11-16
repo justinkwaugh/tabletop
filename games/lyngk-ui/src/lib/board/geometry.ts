@@ -91,10 +91,6 @@ export function viewOf(turned: boolean): BoardView {
     return turned ? TURNED_VIEW : VIEW
 }
 
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
-}
-
 const CORNERS: AxialCoordinates[] = [
     { q: 0, r: -HEX_RADIUS },
     { q: HEX_RADIUS, r: -HEX_RADIUS },

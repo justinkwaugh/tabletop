@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PieceColor } from '@tabletop/lyngk'
+import { pieceColor, PieceColor } from '@tabletop/lyngk'
 import { entrySegments, type Segment } from './entryText.js'
 import type { HistoryEntry } from './historyEntries.js'
 
@@ -10,7 +10,7 @@ function read(segments: Segment[]): string {
                 case 'text':
                     return segment.text
                 case 'stack':
-                    return `[${segment.stack.join('/')}]`
+                    return `[${segment.pieces.map(pieceColor).join('/')}]`
                 case 'point':
                     return `${segment.coords.q},${segment.coords.r}`
                 case 'player':
@@ -32,8 +32,7 @@ const move: HistoryEntry = {
     to: { q: 1, r: 2 },
     height: 5,
     scored: true,
-    opponentPassed: true,
-    opponentId: 'bob'
+    passedPlayerId: 'bob'
 }
 
 describe('entrySegments', () => {
@@ -56,7 +55,7 @@ describe('entrySegments', () => {
             via: [],
             height: 2,
             scored: false,
-            opponentPassed: false
+            passedPlayerId: undefined
         }
         expect(read(entrySegments(plain))).toBe(' moved [blue/red] from 0,-3 to 1,2')
         expect(read(entrySegments(plain, true))).toBe(' moved [blue/red] 0,-3 to 1,2')

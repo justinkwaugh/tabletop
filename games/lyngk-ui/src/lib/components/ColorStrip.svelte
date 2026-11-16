@@ -1,9 +1,8 @@
 <script lang="ts">
-    import { flip } from 'svelte/animate'
     import type { PieceColor } from '@tabletop/lyngk'
-    import { claimFlight } from '$lib/animators/claimFlight.js'
+    import { ClaimAnimator } from '$lib/animators/claimAnimator.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { PIECE_STYLES } from '$lib/board/pieceStyle.js'
+    import { piecesForColors, PIECE_STYLES } from '$lib/board/pieceStyle.js'
     import PieceIcon from './PieceIcon.svelte'
 
     const session = getGameSession()
@@ -11,9 +10,9 @@
     // The five claim pieces beside the board: each player's claims on their side, the
     // neutral colors between them.
     const [first, second] = $derived(session.gameState.players)
-    const neutral = $derived(session.gameState.unclaimedColors())
     // A claimed color flies from the neutral pieces to its player's side, and back when taken back.
-    const { send, receive } = claimFlight()
+    const animator = new ClaimAnimator(session)
+    const claimed = $derived(animator.claims)
 
     function nameOf(playerId: string): string {
         return playerId === session.myPlayer?.id ? 'You' : session.getPlayerName(playerId)
@@ -33,23 +32,18 @@
         >
         <span class="claims">
             {#each colors as color (color)}
-                <span
-                    class="claim"
-                    in:receive={{ key: color }}
-                    out:send={{ key: color }}
-                    animate:flip={{ duration: 250 }}
-                >
-                    <PieceIcon stack={[color]} size={36} />
+                <span class="claim" {@attach animator.token(color)}>
+                    <PieceIcon pieces={piecesForColors([color])} size={36} />
                 </span>
             {/each}
         </span>
     </div>
 {/snippet}
 
-<div class="strip">
-    {@render claims(first.playerId, first.claimed)}
+<div class="strip" {@attach animator.attach}>
+    {@render claims(first.playerId, claimed.first)}
     <div class="neutral" aria-label="Neutral colors">
-        {#each neutral as color (color)}
+        {#each claimed.neutral as color (color)}
             {@const claimable = session.claimable.includes(color)}
             <button
                 type="button"
@@ -59,15 +53,13 @@
                 aria-label={label(color)}
                 title={claimable ? `Claim ${PIECE_STYLES[color].name}` : PIECE_STYLES[color].name}
                 onclick={() => session.claim(color)}
-                in:receive={{ key: color }}
-                out:send={{ key: color }}
-                animate:flip={{ duration: 250 }}
+                {@attach animator.token(color)}
             >
-                <PieceIcon stack={[color]} size={36} ring={claimable} />
+                <PieceIcon pieces={piecesForColors([color])} size={36} ring={claimable} />
             </button>
         {/each}
     </div>
-    {@render claims(second.playerId, second.claimed)}
+    {@render claims(second.playerId, claimed.second)}
 </div>
 
 <style>

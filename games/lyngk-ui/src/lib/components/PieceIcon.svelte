@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { PieceColor } from '@tabletop/lyngk'
     import StackShape from './StackShape.svelte'
     import PieceDefs from './PieceDefs.svelte'
     import { VIEW } from '$lib/board/geometry.js'
@@ -8,10 +7,10 @@
     // A stack drawn small. With `ring` set, room is kept for a ring lying on the ground around
     // its base, flattened as the board is, and the ring shows while `ring` is true.
     let {
-        stack,
+        pieces,
         size = 18,
         ring
-    }: { stack: readonly PieceColor[]; size?: number; ring?: boolean } = $props()
+    }: { pieces: readonly number[]; size?: number; ring?: boolean } = $props()
 
     const uid = $props.id()
     const prefix = `lyngk-icon-${uid}`
@@ -22,7 +21,7 @@
     // The ring's radius, and the room kept beyond it for its strokes.
     const RING = RADIUS * 1.24
     const RING_ROOM = 1.6
-    const bounds = $derived(stackBounds(VIEW, stack.length, RADIUS))
+    const bounds = $derived(stackBounds(VIEW, pieces.length, RADIUS))
     const halfWidth = $derived(ring === undefined ? RADIUS + MARGIN : RING + RING_ROOM)
     const bottom = $derived(
         ring === undefined
@@ -56,7 +55,7 @@
             {/each}
         </g>
     {/if}
-    <StackShape {stack} radius={RADIUS} {prefix} />
+    <StackShape {pieces} radius={RADIUS} {prefix} />
 </svg>
 
 <style>

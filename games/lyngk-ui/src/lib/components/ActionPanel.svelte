@@ -5,9 +5,7 @@
 
     const session = getGameSession()
 
-    const lastEntry = $derived(
-        historyEntries(session.actions, (id) => session.gameState.opponentOf(id)).at(-1)
-    )
+    const lastEntry = $derived(historyEntries(session.actions).at(-1))
 
     const prompt = $derived.by(() => {
         if (session.chosenFrom) return 'Choose where it lands'
@@ -18,7 +16,7 @@
     })
 </script>
 
-<!-- One row, as Bus and Magna Grecia do: the last move while you wait, the prompt on your turn. -->
+<!-- One row: the last move while you wait, the prompt on your turn. -->
 <div class="panel">
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}

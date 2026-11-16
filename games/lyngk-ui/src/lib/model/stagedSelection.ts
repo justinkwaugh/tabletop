@@ -1,14 +1,12 @@
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
-// The stack to move, as a coordinate key.
+// The stack to move, as a point key.
 export type LyngkSelectionValues = {
-    from: string
+    from: number
 }
 
 export type LyngkSelection = StagedSelectionState<LyngkSelectionValues>
@@ -36,13 +34,4 @@ export function setLyngkSelection<TStage extends keyof LyngkSelectionValues>(
               value,
               'manual'
           )
-}
-
-export function hasManualLyngkSelection(selection: LyngkSelection): boolean {
-    return hasManualStagedSelection<LyngkSelectionValues>(selection, LyngkStageOrder)
-}
-
-export function popLyngkSelection(selection: LyngkSelection): LyngkSelection {
-    return popHighestManualStagedSelection<LyngkSelectionValues>(selection, LyngkStageOrder)
-        .nextState
 }

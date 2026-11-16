@@ -1,11 +1,7 @@
-import type { TransitionConfig } from 'svelte/transition'
-
 // A claimed color moves between the neutral pieces and a player's claims in the strip: the piece
 // lifts, arcs over, touches down a little short of its place, skips once and slides in. Taking a
-// claim back plays the same way in reverse. Like Svelte's crossfade, the piece leaving records
-// where it was and the piece arriving flies in from there; each strip makes its own pair.
+// claim back plays the same way in reverse.
 
-const DURATION = 620
 // Fractions of the duration: lift, fly, skip, then the slide to the end.
 const LIFT_END = 0.16
 const FLY_END = 0.68
@@ -19,17 +15,20 @@ const HOP = 4
 const SLIDE = 6
 const SWELL = 0.06
 
-// Where a piece stands on screen: the point on the ground at its centre, and its width.
-type Stance = { x: number; y: number; width: number }
+// Where a piece stands on screen: the point on the ground at its centre, its width, and how far
+// down its icon the ground is.
+export type Stance = { x: number; y: number; width: number; ground: number }
 
-function stanceOf(node: Element): Stance | undefined {
+export function stanceOf(node: Element): Stance {
     const svg = node.querySelector('svg[data-ground]')
-    if (!svg) return undefined
+    if (!svg) throw Error('A claim piece is drawn by its icon')
     const rect = svg.getBoundingClientRect()
+    const ground = Number(svg.getAttribute('data-ground'))
     return {
         x: rect.left + rect.width / 2,
-        y: rect.top + rect.height * Number(svg.getAttribute('data-ground')),
-        width: rect.width * Number(svg.getAttribute('data-piece-fraction'))
+        y: rect.top + rect.height * ground,
+        width: rect.width * Number(svg.getAttribute('data-piece-fraction')),
+        ground
     }
 }
 
@@ -40,7 +39,7 @@ const between = (from: number, to: number, start: number, end: number, u: number
 
 // The offset from its place, the scale and the height above the path at progress `u`, for a
 // piece starting `dx`, `dy` away at `scale` of its size.
-function pose(u: number, dx: number, dy: number, scale: number) {
+export function pose(u: number, dx: number, dy: number, scale: number) {
     const dir = Math.sign(-dx) || 1
     const touchdown = -dir * TOUCHDOWN
     const slideStart = -dir * SLIDE
@@ -64,45 +63,4 @@ function pose(u: number, dx: number, dy: number, scale: number) {
     }
     const t = easeOut((u - SKIP_END) / (1 - SKIP_END))
     return { x: slideStart * (1 - t), y: 0, scale: 1 }
-}
-
-export function claimFlight() {
-    const leaving = new Map<string, Stance>()
-    const arriving = new Map<string, Stance>()
-
-    // The piece leaving vanishes at once; the one arriving takes its place in flight.
-    function send(node: Element, { key }: { key: string }) {
-        const stance = stanceOf(node)
-        if (stance) leaving.set(key, stance)
-        return (): TransitionConfig => {
-            // Kept for the piece arriving, unless none is.
-            if (!arriving.has(key)) leaving.delete(key)
-            return { duration: 0 }
-        }
-    }
-
-    function receive(node: Element, { key }: { key: string }) {
-        const to = stanceOf(node)
-        if (to) arriving.set(key, to)
-        return (): TransitionConfig => {
-            const from = leaving.get(key)
-            leaving.delete(key)
-            arriving.delete(key)
-            if (!from || !to) return { duration: 0 }
-            const dx = from.x - to.x
-            const dy = from.y - to.y
-            const scale = from.width / to.width
-            const svg = node.querySelector('svg[data-ground]')
-            const origin = `50% ${Number(svg?.getAttribute('data-ground') ?? 1) * 100}%`
-            return {
-                duration: DURATION,
-                css: (t) => {
-                    const { x, y, scale: s } = pose(t, dx, dy, scale)
-                    return `position: relative; z-index: 20; transform-origin: ${origin}; transform: translate(${x}px, ${y}px) scale(${s});`
-                }
-            }
-        }
-    }
-
-    return { send, receive }
 }

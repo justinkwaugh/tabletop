@@ -1,6 +1,7 @@
 <script lang="ts">
     import { CLAIMS_PER_PLAYER, LyngkVariant, type HydratedLyngkPlayerState } from '@tabletop/lyngk'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { piecesForColors } from '$lib/board/pieceStyle.js'
     import PieceIcon from './PieceIcon.svelte'
     import HeightIcon from './HeightIcon.svelte'
 
@@ -15,16 +16,15 @@
     )
     // Scored stacks (or stacks of 5 on the board), then stacks of 4, 3, 2 and 1 topped by this
     // player's colors: the order the game is decided in.
-    const ranking = $derived(session.gameState.rankingOf(playerState.playerId))
     const stackOfSix = $derived(session.gameState.variant === LyngkVariant.StackOfSix)
     // Standard scores stacks of 5 off the board, so the strip holds only the tie-breaks; in
     // Stack of 6 the stacks of 5 are still on the board and lead the strip.
     const counts = $derived(
-        (stackOfSix ? [5, 4, 3, 2, 1] : [4, 3, 2, 1]).map((height) => ({
-            height,
-            count: ranking[5 - height]
-        }))
+        session.gameState
+            .rankingCounts(playerState.playerId)
+            .filter(({ height }) => stackOfSix || height < 5)
     )
+    const scored = $derived(session.scoredOf(playerState.playerId))
     const openClaims = $derived(CLAIMS_PER_PLAYER - playerState.claimed.length)
 </script>
 
@@ -40,7 +40,7 @@
             title="Colors claimed ({playerState.claimed.length} of {CLAIMS_PER_PLAYER})"
         >
             {#each playerState.claimed as color (color)}
-                <PieceIcon stack={[color]} size={24} />
+                <PieceIcon pieces={piecesForColors([color])} size={24} />
             {/each}
             {#each { length: openClaims }, index (index)}
                 <span class="open-claim"></span>
@@ -52,8 +52,8 @@
     </div>
     {#if !stackOfSix}
         <div class="scored" title="Stacks scored">
-            {#each playerState.scored as stack, index (index)}
-                <PieceIcon {stack} size={28} />
+            {#each scored as pieces (pieces[0])}
+                <PieceIcon {pieces} size={28} />
             {/each}
         </div>
     {/if}

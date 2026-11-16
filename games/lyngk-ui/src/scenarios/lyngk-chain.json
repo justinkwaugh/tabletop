@@ -26,26 +26,28 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3712133813,
+        "seed": 1326051410,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-25T03:01:54.999Z",
+        "createdAt": "2026-11-16T15:53:29.308Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-10-25T03:01:55.000Z"
+        "startedAt": "2026-11-16T15:53:29.309Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "WGJ0e8w-kF3TRohDuqJ6m",
+        "id": "b1lym87G4UdkijYqTccwg",
         "gameId": "scenario-lyngk-chain",
-        "seed": 3712133813,
+        "seed": 1326051410,
         "prng": {
-            "seed": 3712133813,
+            "seed": 1326051410,
             "invocations": 43
         },
         "protectedPrng": {
-            "seed": 3045949915,
+            "algorithm": "chacha20-v1",
+            "seed": "041c4a7a275e4342ce7560bc268d8481266534c69fe1b8d2a6463a0e5c3f668a",
             "invocations": 0
         },
+        "masterSeed": "66c4aeb49a4382b1f148ff71584b19be",
         "activePlayerIds": ["player-1"],
         "winningPlayerIds": [],
         "actionCount": 0,
@@ -61,7 +63,7 @@
                 "playerId": "player-2",
                 "color": "orange",
                 "claimed": ["red"],
-                "scored": [["ivory", "blue", "green", "black", "red"]]
+                "scored": [[4, 11, 29, 35, 20]]
             }
         ],
         "machineState": "TakingTurn",
@@ -77,325 +79,109 @@
             "turnCounts": {
                 "player-1": 0,
                 "player-2": 0
-            }
+            },
+            "seriesKeeps": "latest"
         },
         "variant": "Standard",
         "board": {
-            "points": [
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 1
-                    },
-                    "stack": ["green"],
-                    "ids": [0]
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -1
-                    },
-                    "stack": ["ivory", "black"],
-                    "ids": [1, 2]
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -1
-                    },
-                    "stack": ["green", "black"],
-                    "ids": [3, 4]
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 1
-                    },
-                    "stack": ["ivory"],
-                    "ids": [5]
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 2
-                    },
-                    "stack": ["green", "red"],
-                    "ids": [6, 7]
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 1
-                    },
-                    "stack": ["red"],
-                    "ids": [8]
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -1
-                    },
-                    "stack": ["blue"],
-                    "ids": [9]
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -2
-                    },
-                    "stack": ["blue"],
-                    "ids": [10]
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -1
-                    },
-                    "stack": ["green"],
-                    "ids": [11]
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 1
-                    },
-                    "stack": ["blue", "ivory", "red", "green"],
-                    "ids": [12, 13, 14, 15]
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 3
-                    },
-                    "stack": ["joker"],
-                    "ids": [40]
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 2
-                    },
-                    "stack": ["ivory"],
-                    "ids": [16]
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -2
-                    },
-                    "stack": []
-                },
+            "stacks": [
                 {
                     "coords": {
                         "q": 0,
                         "r": -3
                     },
-                    "stack": ["black"],
-                    "ids": [17]
+                    "pieces": [32]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "pieces": [0, 33]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    },
+                    "pieces": [24, 34]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    },
+                    "pieces": [8, 1, 16, 25]
                 },
                 {
                     "coords": {
                         "q": 1,
                         "r": -3
                     },
-                    "stack": ["red"],
-                    "ids": [18]
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 2
-                    },
-                    "stack": []
+                    "pieces": [17]
                 },
                 {
                     "coords": {
                         "q": -2,
-                        "r": 4
+                        "r": 1
                     },
-                    "stack": []
+                    "pieces": [18]
                 },
                 {
                     "coords": {
-                        "q": -4,
+                        "q": -1,
+                        "r": 1
+                    },
+                    "pieces": [26]
+                },
+                {
+                    "coords": {
+                        "q": -3,
                         "r": 2
                     },
-                    "stack": []
+                    "pieces": [2]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    },
+                    "pieces": [3]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    },
+                    "pieces": [9]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "pieces": [27, 19]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    },
+                    "pieces": [10]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    },
+                    "pieces": [28]
                 },
                 {
                     "coords": {
                         "q": -2,
-                        "r": -2
+                        "r": 3
                     },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -4
-                    },
-                    "stack": []
+                    "pieces": [40]
                 }
             ]
         },

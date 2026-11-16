@@ -17,14 +17,16 @@
     const reason = $derived.by(() => {
         const { gameState } = session
         if (gameState.endReason === EndReason.StackOfSix) {
-            return `${nameOf(winners[0])} completed a stack of 6`
+            const [winner] = winners
+            if (winner === undefined) throw Error('A stack of 6 has its winner')
+            return `${nameOf(winner)} completed a stack of 6`
         }
-        const [first, second] = gameState.players.map((player) =>
-            gameState.rankingOf(player.playerId)
-        )
-        const decider = first.findIndex((count, index) => count !== second[index])
-        if (decider < 0) return 'Every count is equal'
-        const counts = [first[decider], second[decider]].toSorted((a, b) => b - a).join(' to ')
+        const decider = gameState.deciderIndex()
+        if (decider === undefined) return 'Every count is equal'
+        const counts = gameState.players
+            .map((player) => gameState.rankingOf(player.playerId)[decider])
+            .toSorted((a, b) => b - a)
+            .join(' to ')
         const level = decider === 0 ? '' : `Level on ${HEIGHTS.slice(0, decider).join(', ')}; `
         return `${level}decided on ${HEIGHTS[decider]}, ${counts}`
     })

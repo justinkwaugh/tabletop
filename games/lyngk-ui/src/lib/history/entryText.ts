@@ -1,16 +1,20 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import type { PieceColor } from '@tabletop/lyngk'
+import { piecesForColors } from '$lib/board/pieceStyle.js'
 import type { HistoryEntry, MoveEntry } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
-    | { kind: 'stack'; stack: PieceColor[] }
+    | { kind: 'stack'; pieces: number[] }
     | { kind: 'point'; coords: AxialCoordinates }
     | { kind: 'player'; playerId: string }
 
 const text = (value: string): Segment => ({ kind: 'text', text: value })
 const point = (coords: AxialCoordinates): Segment => ({ kind: 'point', coords })
-const stack = (colors: PieceColor[]): Segment => ({ kind: 'stack', stack: colors })
+const stack = (colors: PieceColor[]): Segment => ({
+    kind: 'stack',
+    pieces: piecesForColors(colors)
+})
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
 // The brief form keeps the action banner to one line; the history panel uses the full one.
@@ -31,10 +35,10 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
         text(brief || entry.via.length > 0 ? ' ' : ' from '),
         ...route,
         ...outcome(entry, brief),
-        ...(entry.opponentPassed && !brief
+        ...(entry.passedPlayerId !== undefined && !brief
             ? [
                   text('; '),
-                  { kind: 'player', playerId: entry.opponentId } satisfies Segment,
+                  { kind: 'player', playerId: entry.passedPlayerId } satisfies Segment,
                   text(' had to pass')
               ]
             : [])

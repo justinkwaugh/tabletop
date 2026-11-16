@@ -50,8 +50,9 @@ const files = await page.evaluate(() => {
     })
 })
 
-// Pixels per board unit: a disc about 640 px across, sharp at the board's full zoom on a phone.
-const SCALE = 12
+// Pixels per board unit: the board's largest fit (2.5 CSS px per unit) at 2.5 device pixels per
+// CSS pixel, a disc about 320 px across.
+const SCALE = 2.5 * 2.5
 // Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
 // seams between the many bands of the groove's walls. Only the drawing grows, not the files.
 const SUPERSAMPLE = 4

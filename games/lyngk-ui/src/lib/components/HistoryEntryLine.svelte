@@ -17,7 +17,7 @@
 <span
     ><span class="font-semibold">{name}</span
     >{#each segments as segment, index (index)}{#if segment.kind === 'text'}{segment.text}{:else if segment.kind === 'stack'}<span
-                class="stack"><PieceIcon stack={segment.stack} size={15} /></span
+                class="stack"><PieceIcon pieces={segment.pieces} size={15} /></span
             >{:else if segment.kind === 'player'}<span class="font-semibold"
                 >{session.getPlayerName(segment.playerId)}</span
             >{:else}<span class="point">{session.notation.name(segment.coords)}</span

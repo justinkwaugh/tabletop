@@ -12,7 +12,7 @@ function action(playerId: string, fields: { type: string } & Record<string, unkn
 const claim = (playerId: string, color: PieceColor) =>
     action(playerId, { type: ActionType.ClaimColor, color })
 
-const move = (playerId: string) =>
+const move = (playerId: string, passedPlayerId?: string) =>
     action(playerId, {
         type: ActionType.MoveStack,
         from: { q: 0, r: 0 },
@@ -22,15 +22,14 @@ const move = (playerId: string) =>
             moved: [PieceColor.Red],
             landedOn: [PieceColor.Blue],
             scored: false,
-            completedSix: false
+            completedSix: false,
+            passedPlayerId
         }
     })
 
-const other = (id: string) => (id === 'a' ? 'b' : 'a')
-
 describe('historyEntries', () => {
     it('folds a claim into the move that follows it', () => {
-        const entries = historyEntries([claim('a', PieceColor.Red), move('a'), move('b')], other)
+        const entries = historyEntries([claim('a', PieceColor.Red), move('a'), move('b')])
         expect(entries.map((entry) => [entry.kind, entry.firstIndex, entry.lastIndex])).toEqual([
             ['move', 0, 1],
             ['move', 2, 2]
@@ -38,17 +37,27 @@ describe('historyEntries', () => {
         expect(entries[0].claimed).toBe(PieceColor.Red)
     })
 
-    it('marks a move followed by another of the same player as a pass for the other', () => {
-        const entries = historyEntries([move('a'), move('a'), move('b')], other)
-        expect(entries.map((entry) => entry.kind === 'move' && entry.opponentPassed)).toEqual([
-            true,
-            false,
-            false
+    it('names the player a move passed over, as the move records it', () => {
+        const entries = historyEntries([move('a', 'b'), move('a'), move('b')])
+        expect(entries.map((entry) => entry.kind === 'move' && entry.passedPlayerId)).toEqual([
+            'b',
+            undefined,
+            undefined
         ])
     })
 
+    it('refuses a move without its recorded outcome', () => {
+        const bare = action('a', {
+            type: ActionType.MoveStack,
+            from: { q: 0, r: 0 },
+            via: [],
+            to: { q: 0, r: 1 }
+        })
+        expect(() => historyEntries([bare])).toThrow()
+    })
+
     it('shows a claim on its own until the move comes', () => {
-        const entries = historyEntries([move('a'), claim('b', PieceColor.Green)], other)
+        const entries = historyEntries([move('a'), claim('b', PieceColor.Green)])
         expect(entries.at(-1)?.kind).toBe('claim')
     })
 })

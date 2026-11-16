@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import { JOKER_COUNT, jokerNumber, PieceColor } from '@tabletop/lyngk'
+    import { jokerNumber, pieceColor, PieceColor } from '@tabletop/lyngk'
     import { VIEW } from '$lib/board/geometry.js'
     import { discBases } from '$lib/board/pieceGeometry.js'
     import { creaseColor, lookBox, topEllipse, type Look } from '$lib/board/pieceShape.js'
@@ -12,26 +12,19 @@
 
     // A stack standing on its point, seen from the near side of the table, bottom disc first. Each
     // disc is an image of its look, pre-rendered by scripts/render-looks.mjs, with its own specks
-    // drawn over it, kept inside it by clips; a joker's are in its look. The shadow's gradients and the clips come
-    // from a PieceDefs with the same prefix and radius in the same SVG.
+    // drawn over it, kept inside it by clips; a joker's are in its look. The shadow's gradients
+    // and the clips come from a PieceDefs with the same prefix and radius in the same SVG.
     let {
-        stack,
+        pieces: ids,
         radius,
         prefix,
-        ids,
-        seedKey = 'icon',
-        baseLevel = 0,
         turned = false,
         parts
     }: {
-        stack: readonly PieceColor[]
+        // Each piece's identity, bottom to top, which gives its colour and seeds its specks.
+        pieces: readonly number[]
         radius: number
         prefix: string
-        // Each piece's identity, bottom to top, which seeds its specks; without them, the point
-        // and level the stack's specks are seeded for.
-        ids?: readonly number[]
-        seedKey?: string
-        baseLevel?: number
         // On a board seen from the far side, the specks on a top turn half round with it, and
         // the side you see is the other half of the side.
         turned?: boolean
@@ -42,26 +35,16 @@
     const box = $derived(lookBox(VIEW, radius))
     const top = $derived(topEllipse(VIEW, radius))
     const pieces = $derived(
-        discBases(VIEW, stack.length, radius).map((base, index) => {
-            const color = stack[index]
-            const seed = pieceSeed(ids?.[index], seedKey, baseLevel + index, color)
-            const isTop = index === stack.length - 1
+        discBases(VIEW, ids.length, radius).map((base, index) => {
+            const id = ids[index]
+            const color = pieceColor(id)
+            const seed = pieceSeed(id)
+            const isTop = index === ids.length - 1
             // A joker's many flecks are drawn into its look, one for each of the three, picked by
-            // its number (by its seed where it has none); other pieces' few specks are drawn over
-            // theirs.
-            const id = ids?.[index]
+            // its number; other pieces' few specks are drawn over theirs.
+            const number = jokerNumber(id)
             const look: Look =
-                color === PieceColor.Joker
-                    ? {
-                          color,
-                          joker: {
-                              number:
-                                  (id === undefined ? undefined : jokerNumber(id)) ??
-                                  (seed >>> 0) % JOKER_COUNT,
-                              turned
-                          }
-                      }
-                    : { color }
+                number === undefined ? { color } : { color, joker: { number, turned } }
             const specked = color !== PieceColor.Joker
             return {
                 base,

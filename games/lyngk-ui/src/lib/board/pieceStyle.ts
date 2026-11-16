@@ -1,4 +1,10 @@
-import { PieceColor } from '@tabletop/lyngk'
+import {
+    ACTIVE_COLORS,
+    FIRST_JOKER_ID,
+    JOKER_COUNT,
+    PieceColor,
+    PIECES_PER_COLOR_ON_BOARD
+} from '@tabletop/lyngk'
 import { THICKNESS } from './pieceGeometry.js'
 import { seededRandom } from './random.js'
 
@@ -203,16 +209,9 @@ function speckShape(random: () => number, size: number) {
     }
 }
 
-// A piece's specks follow the piece, named by the point it was dealt to, so they stay put as it
-// moves. A board without identities (a game from before they were kept) seeds them by point and
-// level instead, and a stack in flight for where it lands, so it looks the same once it is down.
-export function pieceSeed(
-    id: number | undefined,
-    pointKey: string,
-    level: number,
-    color: PieceColor
-) {
-    return hashed(id === undefined ? `${pointKey}|${level}|${color}` : `piece|${id}`)
+// A piece's specks follow the piece, so they stay put as it moves.
+export function pieceSeed(id: number) {
+    return hashed(`piece|${id}`)
 }
 
 function hashed(text: string): number {
@@ -221,4 +220,16 @@ function hashed(text: string): number {
         hash = Math.imul(hash ^ char.charCodeAt(0), 16777619)
     }
     return hash
+}
+
+// Pieces to draw a stack of colours with where no pieces are meant, as in an icon: each colour's
+// own pieces in turn, so each disc's specks differ from the one below.
+export function piecesForColors(colors: readonly PieceColor[]): number[] {
+    return colors.map((color, level) => {
+        if (color === PieceColor.Joker) return FIRST_JOKER_ID + (level % JOKER_COUNT)
+        return (
+            ACTIVE_COLORS.indexOf(color) * PIECES_PER_COLOR_ON_BOARD +
+            (level % PIECES_PER_COLOR_ON_BOARD)
+        )
+    })
 }
