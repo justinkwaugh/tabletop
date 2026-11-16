@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
     FerryFare,
@@ -20,7 +21,6 @@ import {
     type SpaceId
 } from '@tabletop/feudum'
 import {
-    pawnTarget,
     pieceTarget,
     pilferTarget,
     spaceTarget,
@@ -30,7 +30,13 @@ import {
     type StagePick,
     type TrailStep
 } from './boardOffer.js'
-import type { FlowPick, FlowPlay, FlowPopup, PanelChoice } from './cardFlows.js'
+import {
+    spaceLabel,
+    type FlowPick,
+    type FlowPlay,
+    type FlowPopup,
+    type PanelChoice
+} from './cardFlows.js'
 import { primaryLabel } from './confirmingSend.js'
 import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
@@ -44,9 +50,7 @@ export type MoveDraftValues = {
     to: SpaceId
     /** R-3.7.1 The steps ended early, by the seat. */
     stopped: true
-    /** R-3.7.3 */
-    monk: PawnNumber
-    /** The same popup, for the Godspeed step. */
+    /** The same popup, once the steps have ended and only Godspeed is left. */
     godspeedTo: SpaceId
     godspeed: GodspeedStep | 'none'
     /** R-3.7.4 */
@@ -60,7 +64,6 @@ export const MoveStageOrder = [
     'piece',
     'to',
     'stopped',
-    'monk',
     'godspeedTo',
     'godspeed',
     'pilfer',
@@ -121,19 +124,52 @@ function wayNote(way: RouteStep): ChipNote {
     return { kind: 'role', label: way.vessel === 'board' ? `board the ${medium}` : medium }
 }
 
-/** The popup's rows for the ways to one space; only a cost keeps its chip. */
-export function wayChoices(
-    ways: readonly RouteStep[],
-    take: (way: RouteStep) => void
+/** R-3.7.3 What a Godspeed destination says on its space; a ferry's fare keeps its rose chip. */
+function godspeedNote(way: RouteStep): ChipNote {
+    return way.ferry
+        ? { kind: 'cost', label: `Godspeed · ${wayNote(way).label}` }
+        : { kind: 'role', label: 'Godspeed' }
+}
+
+/**
+ * R-3.7.1, R-3.7.3 One press a lit space can stand for: a step of the picked piece, or a monk's
+ * Godspeed step from where it now stands. The logic folds Godspeed after the steps, so taking it
+ * while steps remain is stopping there.
+ */
+export type SpaceMove =
+    | { readonly kind: 'step'; readonly piece: PieceRef; readonly way: RouteStep }
+    | {
+          readonly kind: 'godspeed'
+          readonly pawn: PawnNumber
+          readonly from: SpaceId
+          readonly way: RouteStep
+      }
+
+function sameMover(a: SpaceMove, b: SpaceMove): boolean {
+    return a.kind === 'step' ? b.kind === 'step' : b.kind === 'godspeed' && a.pawn === b.pawn
+}
+
+/**
+ * The popup's rows for the moves to one space; only a cost keeps its chip. A row names what
+ * happens only when the space mixes a step with a Godspeed, or two monks, and its way only when
+ * its mover has several.
+ */
+export function moveChoices(
+    moves: readonly SpaceMove[],
+    take: (move: SpaceMove) => void
 ): readonly PanelChoice[] {
-    return ways.map((way): PanelChoice => {
-        const note = wayNote(way)
+    const monks = new Set(moves.flatMap((move) => (move.kind === 'godspeed' ? [move.pawn] : [])))
+    const mixed = monks.size > 1 || (monks.size > 0 && moves.some(({ kind }) => kind === 'step'))
+    return moves.map((move): PanelChoice => {
+        const note = wayNote(move.way)
+        const what = move.kind === 'step' ? 'Step' : `Godspeed: monk from ${spaceLabel(move.from)}`
+        const ways = moves.filter((other) => sameMover(other, move)).length
         return {
-            label: titled(note.label),
+            label: !mixed ? titled(note.label) : ways > 1 ? `${what} · ${note.label}` : what,
             ...(note.kind === 'cost' ? { note } : {}),
             picked: false,
             press: () => {
-                take(way)
+                take(move)
             }
         }
     })
@@ -149,11 +185,11 @@ function wayOfStep({ to, route, vessel, ferry }: RouteStep): Omit<GodspeedStep, 
     }
 }
 
-/** The ways to each space, spaces and ways in the logic's order. */
-function waysBySpace(ways: readonly RouteStep[]): ReadonlyMap<SpaceId, readonly RouteStep[]> {
-    const spaces = new Map<SpaceId, RouteStep[]>()
-    for (const way of ways) {
-        spaces.set(way.to, [...(spaces.get(way.to) ?? []), way])
+/** The moves to each space, spaces and moves in the order given. */
+function movesBySpace(moves: readonly SpaceMove[]): ReadonlyMap<SpaceId, readonly SpaceMove[]> {
+    const spaces = new Map<SpaceId, SpaceMove[]>()
+    for (const move of moves) {
+        spaces.set(move.way.to, [...(spaces.get(move.way.to) ?? []), move])
     }
     return spaces
 }
@@ -260,23 +296,44 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         this.push('steps', [...this.steps, { piece, ...wayOfStep(way) }])
     }
 
-    private takeGodspeed(pawn: PawnNumber, way: RouteStep): void {
-        this.set('godspeed', { pawn, ...wayOfStep(way) })
+    /** R-3.7.3 Godspeed is the Move's last step: staging it ends the steps. */
+    private takeMove(move: SpaceMove): void {
+        if (move.kind === 'step') {
+            this.takeStep(move.piece, move.way)
+        } else {
+            this.set('godspeed', { pawn: move.pawn, ...wayOfStep(move.way) })
+        }
     }
 
-    /** One way steps at once; several ask (contract: Popups). */
+    /** R-3.7.3 Each monk's Godspeed steps, from where the draft's steps have left it. */
+    private godspeedMoves(context: MoveContext, monks: MoveOffers['godspeed']): SpaceMove[] {
+        return monks.flatMap(({ pawn, ways }) => {
+            const piece: PieceRef = { kind: 'pawn', playerId: context.playerId, n: pawn }
+            const from =
+                this.steps.findLast((step) => samePiece(step.piece, piece))?.to ??
+                placeOf(context.state, piece)
+            assertExists(from, `R-3.7.3 Monk ${pawn} stands on the board`)
+            return ways.map((way): SpaceMove => ({ kind: 'godspeed', pawn, from, way }))
+        })
+    }
+
+    /** One move to a space goes at once; several ask (contract: Popups). */
     private spacePicks(
-        ways: readonly RouteStep[],
-        take: (way: RouteStep) => void,
+        moves: readonly SpaceMove[],
         ask: (spaceId: SpaceId) => void
     ): readonly FlowPick[] {
-        return [...waysBySpace(ways)].map(([spaceId, toSpace]): FlowPick => ({
+        return [...movesBySpace(moves)].map(([spaceId, toSpace]): FlowPick => ({
             target: spaceTarget(spaceId),
-            notes: toSpace.map(wayNote),
+            notes: [
+                ...toSpace.flatMap((move) =>
+                    move.kind === 'godspeed' ? [godspeedNote(move.way)] : []
+                ),
+                ...toSpace.flatMap((move) => (move.kind === 'step' ? [wayNote(move.way)] : []))
+            ],
             press: () => {
                 const [only] = toSpace
                 if (toSpace.length === 1 && only) {
-                    take(only)
+                    this.takeMove(only)
                 } else {
                     ask(spaceId)
                 }
@@ -286,39 +343,54 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
 
     private popupFor(
         spaceId: SpaceId | undefined,
-        ways: readonly RouteStep[],
-        take: (way: RouteStep) => void
+        moves: readonly SpaceMove[]
     ): FlowPopup | undefined {
-        const toSpace = ways.filter(({ to }) => to === spaceId)
+        const toSpace = moves.filter(({ way }) => way.to === spaceId)
         return spaceId && toSpace.length > 1
-            ? { anchor: spaceTarget(spaceId), choices: wayChoices(toSpace, take) }
+            ? {
+                  anchor: spaceTarget(spaceId),
+                  choices: moveChoices(toSpace, (move) => {
+                      this.takeMove(move)
+                  })
+              }
             : undefined
     }
 
-    /** Contract, Hover: what staging a Move would light: its pieces, and a lone piece's ways. */
+    /**
+     * Contract, Hover: what staging a Move would light: its pieces, a lone piece's ways, and the
+     * Godspeed destinations.
+     */
     lightsOpening(context: MoveContext): readonly BoardTarget[] {
-        const movable = moveOffers(context.state, context.playerId, { steps: [] }).pieces.filter(
-            ({ ways }) => ways.length > 0
-        )
+        const offers = moveOffers(context.state, context.playerId, { steps: [] })
+        const movable = offers.pieces.filter(({ ways }) => ways.length > 0)
         const [lone] = movable
+        const ways = [
+            ...(movable.length === 1 ? lone.ways : []),
+            ...offers.godspeed.flatMap((monk) => monk.ways)
+        ]
         return [
             ...movable.map(({ piece }) => pieceTarget(piece)),
-            ...(movable.length === 1
-                ? [...waysBySpace(lone.ways).keys()].map((spaceId) => spaceTarget(spaceId))
-                : [])
+            ...[...new Set(ways.map(({ to }) => to))].map((spaceId) => spaceTarget(spaceId))
         ]
     }
 
-    /** R-3.7.1 Steps until the allowance is spent or the seat stops; S30 takes no press. */
-    private stepsView(offers: MoveOffers, unlit: readonly PickTarget[]): MoveView {
+    /**
+     * R-3.7.1 Steps until the allowance is spent or the seat stops; S30 takes no press. R-3.7.3 The
+     * Godspeed destinations light alongside: taking one stops the steps there.
+     */
+    private stepsView(
+        context: MoveContext,
+        offers: MoveOffers,
+        unlit: readonly PickTarget[]
+    ): MoveView {
         const movable = offers.pieces.filter(({ ways }) => ways.length > 0)
         const picked = this.pickedPiece(movable)
-        const ways = picked?.ways ?? []
-        const take = (way: RouteStep) => {
-            if (picked) {
-                this.takeStep(picked.piece, way)
-            }
-        }
+        const moves: SpaceMove[] = [
+            ...(picked
+                ? picked.ways.map((way): SpaceMove => ({ kind: 'step', piece: picked.piece, way }))
+                : []),
+            ...this.godspeedMoves(context, offers.godspeed)
+        ]
         const pieces = movable.map(({ piece }): FlowPick => {
             const isPicked = picked !== undefined && samePiece(picked.piece, piece)
             return {
@@ -328,12 +400,12 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
                 }
             }
         })
-        const popup = this.popupFor(this.value('to'), ways, take)
+        const popup = this.popupFor(this.value('to'), moves)
         return {
             stage: 'steps',
             picks: [
                 ...pieces,
-                ...this.spacePicks(ways, take, (spaceId) => {
+                ...this.spacePicks(moves, (spaceId) => {
                     this.set('to', spaceId)
                 })
             ],
@@ -353,40 +425,16 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
         }
     }
 
-    /** R-3.7.3 One monk, a step like any other, or none. */
-    private godspeedView(
-        monks: MoveOffers['godspeed'],
-        playerId: string,
-        unlit: readonly PickTarget[]
-    ): MoveView {
-        const monk = monks.find(({ pawn }) => pawn === this.value('monk'))
-        const ways = monk?.ways ?? []
-        const take = (way: RouteStep) => {
-            if (monk) {
-                this.takeGodspeed(monk.pawn, way)
-            }
-        }
-        const pawns = monks.map(({ pawn }): FlowPick => ({
-            target: pawnTarget(playerId, pawn),
-            press: () => {
-                if (monk?.pawn === pawn) {
-                    this.clearFrom('monk')
-                } else {
-                    this.set('monk', pawn)
-                }
-            }
-        }))
-        const popup = this.popupFor(this.value('godspeedTo'), ways, take)
+    /** R-3.7.3 Once the steps have ended: each monk's next spaces light at once, or none. */
+    private godspeedView(moves: readonly SpaceMove[], unlit: readonly PickTarget[]): MoveView {
+        const popup = this.popupFor(this.value('godspeedTo'), moves)
         return {
             stage: 'godspeed',
-            picks: [
-                ...pawns,
-                ...this.spacePicks(ways, take, (spaceId) => {
-                    this.set('godspeedTo', spaceId)
-                })
-            ],
+            picks: this.spacePicks(moves, (spaceId) => {
+                this.set('godspeedTo', spaceId)
+            }),
             unlit,
-            picked: monk ? [pawnTarget(playerId, monk.pawn)] : [],
+            picked: [],
             rows: [
                 {
                     label: 'No Godspeed',
@@ -494,12 +542,17 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
                 notes: [{ kind: 'threat', label: 'pinned' }],
                 unlit: true
             }))
-        if (!this.value('stopped') && offers.pieces.some(({ ways }) => ways.length > 0)) {
-            return this.stepsView(offers, unlit)
+        const godspeed = this.value('godspeed')
+        if (
+            !this.value('stopped') &&
+            !godspeed &&
+            offers.pieces.some(({ ways }) => ways.length > 0)
+        ) {
+            return this.stepsView(context, offers, unlit)
         }
-        const monks = offers.godspeed.filter(({ ways }) => ways.length > 0)
-        if (!this.value('godspeed') && monks.length > 0) {
-            return this.godspeedView(monks, context.playerId, unlit)
+        const monks = this.godspeedMoves(context, offers.godspeed)
+        if (!godspeed && monks.length > 0) {
+            return this.godspeedView(monks, unlit)
         }
         return offers.pilfers.length > 0
             ? this.pilferView(context, offers.pilfers)
