@@ -3,7 +3,7 @@
     "AdvancePhase": "013a149f604147b529e1bc9ee94806b4697070f2d18e1e1a15c0a4d9c2fbc0c6",
     "BidOnAuctionLot": "86631f5281e4acff063e030a6905e00e6e9d00c208881ca4c5bbdb94804dd517",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
-    "BuyShares": "8f60485b6529935b55415672fd55755010a62988b882f0f1e6a637772a2a6a25",
+    "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
     "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
     "ContinueOperatingRound": "d78dd0a2fd39c56435caeace07fa60d5aca2a6ee1ec0f757c5cfb15d65661387",
@@ -29,7 +29,7 @@
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
-    "ResolveAuction": "9c8f176314018029b7c625d56a546a68de6645aa264ff9a89e554ad3eb358b87",
+    "ResolveAuction": "2c4630c0ec9edb2e14a6c59a95b8d31a875b29cbd631b50c73310ef22eb068f8",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
     "RespondToTrackConsent": "ec49608e7714bcf685930bc4e7d3785aff976bed12e92e1ccb3ec6d763f7f9b1",
     "RunTrains": "f77e13e519cdbe71c499b87416f7dd039f58690003a440888b48845bb0ec985a",
@@ -42,7 +42,7 @@
     "SetStockInstruction": "83b7cfb9ce2c22f836925a999f485aa2822b409854cc66ca1648bb25cb0c083e",
     "SetStockInstructionStops": "651b850b0d8e06bd7bc16b152c4889c9fddf724544844a9f55876f43aca7165f",
     "SplitCompany": "ed9c1c451bb9f6ea818e377df7e4b04386c23d35a0cdf8fcc2eca81f1dae33ba",
-    "StartCompany": "d1fa1890cd370cf85cd44f750767006da1abb3faa8e814a3d738b46c0c02d9a3",
+    "StartCompany": "ab68e3629864d25fd5571ba5f006acd1839f7a2c80f33d2e9c2dc6e026be5dfe",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
@@ -1404,6 +1404,26 @@
             "kind": "omit"
           }
         }
+      },
+      "neutralStations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "heldBy": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "stationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "stationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "offerAuction": {
         "additionalProperties": false,

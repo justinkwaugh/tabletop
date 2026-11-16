@@ -10,7 +10,13 @@ export type PrivateDefinition = {
     faceValue: number
     revenue: number
     description?: string
-    closure?: 'never' | { survivesWhilePlayerOwned: { revenue: number } }
+    /**
+     * Whether the private outlives the catalogue's closing phase: never closes, stays open while a
+     * player owns it, or closes at a later phase of its own, as 1882's Saskatchewan Central
+     * (§7.1.2).
+     */
+    closure?:
+        'never' | { survivesWhilePlayerOwned: { revenue: number } } | { closurePhaseId: string }
     blocks?: { locationIds: readonly string[]; until: 'company-owned' | 'closed' }
     sale?: 'never' | { minimum: number; maximum: number }
 }
@@ -58,6 +64,10 @@ export class PrivateCatalog {
         return this.open(state).flatMap(({ company, definition }): PrivateEffect[] => {
             const { closure } = definition
             if (closure === 'never') return []
+            if (closure && 'closurePhaseId' in closure)
+                return this.phases.isAtLeast(state.phaseId, closure.closurePhaseId)
+                    ? [{ kind: 'close', privateCompanyId: company.id }]
+                    : []
             if (closure && privateOwner(state, company.id)?.kind === 'player') {
                 const { revenue } = closure.survivesWhilePlayerOwned
                 return (company.privateRevenue ?? definition.revenue) === revenue

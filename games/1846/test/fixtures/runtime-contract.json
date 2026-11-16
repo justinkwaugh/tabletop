@@ -6,7 +6,7 @@
     "BuildPrivateTrack": "678fa641a1c3f59a737ea2bccfb9a8730f8cf1a11d9ea65aa22779032510e5a5",
     "BuyOpeningCompany": "037beb29789c4752646b76d22a226c413602bab29a5fb17e4b54fd5164eea860",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
-    "BuyShares": "8f60485b6529935b55415672fd55755010a62988b882f0f1e6a637772a2a6a25",
+    "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
     "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
     "ChooseDraftCard": "d562b0b48c9621309b9e9ac1aa8445be3f9c94f915e98ee454e0b5328a164846",
     "ClaimPresidency": "d9a068161d36b3e54c044ceb453b5135861417862b1574945967355e9f454f7b",
@@ -51,7 +51,7 @@
     "SetStockInstruction": "83b7cfb9ce2c22f836925a999f485aa2822b409854cc66ca1648bb25cb0c083e",
     "SetStockInstructionStops": "651b850b0d8e06bd7bc16b152c4889c9fddf724544844a9f55876f43aca7165f",
     "SettleIndependent": "90acb7f0748f5349672ecf4f4134bcc61218b22dd294eb5e07e4dec22a296078",
-    "StartCompany": "d1fa1890cd370cf85cd44f750767006da1abb3faa8e814a3d738b46c0c02d9a3",
+    "StartCompany": "ab68e3629864d25fd5571ba5f006acd1839f7a2c80f33d2e9c2dc6e026be5dfe",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
@@ -1627,6 +1627,26 @@
             "kind": "omit"
           }
         }
+      },
+      "neutralStations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "heldBy": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "stationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "stationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "operatingSet": {
         "additionalProperties": false,

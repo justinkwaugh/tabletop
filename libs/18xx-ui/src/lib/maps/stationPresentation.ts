@@ -71,6 +71,8 @@ export type MapViewDefinition = {
      * source, such as one token two corporations hold jointly.
      */
     sharedStations?: Readonly<Record<string, StationAppearance>>
+    /** How a neutral station prints, such as 1882's white markers that keep a city open. */
+    neutralStation?: StationAppearance
     /**
      * Station spaces the board prints held beyond its homes, by company or by a shared station's
      * source, shown until a token stands there, such as a joint token's city.
@@ -218,10 +220,13 @@ export function withPlayedMarkerArt(
     }
 }
 
+/** How a map view prints stations: by company, shared, and neutral. */
+export type StationViews = Pick<MapViewDefinition, 'stations' | 'sharedStations' | 'neutralStation'>
+
+/** The placed stations as map tokens. */
 export function stationMapTokens(
     state: StationState,
-    appearances: MapViewDefinition['stations'],
-    shared: MapViewDefinition['sharedStations'] = {}
+    { stations: appearances, sharedStations: shared = {}, neutralStation }: StationViews
 ): MapToken[] {
     return state.stations.flatMap((station) => {
         if (station.status !== 'placed') return []
@@ -231,7 +236,12 @@ export function stationMapTokens(
                 entry.nodeId === station.position.nodeId &&
                 shared[entry.sourceId]
         )
-        const appearance = (access && shared[access.sourceId]) ?? appearances[station.companyId]
+        const neutral =
+            neutralStation && state.neutralStations?.some((entry) => entry.stationId === station.id)
+                ? neutralStation
+                : undefined
+        const appearance =
+            neutral ?? (access && shared[access.sourceId]) ?? appearances[station.companyId]
         assertExists(appearance, `Missing station appearance: ${station.companyId}`)
         return [{ id: station.id, ...station.position, ...appearance }]
     })

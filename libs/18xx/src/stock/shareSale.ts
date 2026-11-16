@@ -157,10 +157,12 @@ export function evaluateShareSale(
     if (!rules.sellers(state, playerId).some((owner) => sameOwner(owner, seller)))
         return { reason: 'This player cannot sell for that owner.' }
     const turn = state.stockRound.turn
+    const turnOrder =
+        typeof rules.turnOrder === 'function' ? rules.turnOrder(state) : rules.turnOrder
     if (
         turn.bought &&
-        (rules.turnOrder === 'sell-buy' ||
-            (rules.turnOrder === 'sell-buy-or-buy-sell' && turn.soldBeforeBuying))
+        (turnOrder === 'sell-buy' ||
+            (turnOrder === 'sell-buy-or-buy-sell' && turn.soldBeforeBuying))
     )
         return { reason: 'Selling is not allowed after this purchase.' }
     const previous = turn.saleBlocks?.find(
