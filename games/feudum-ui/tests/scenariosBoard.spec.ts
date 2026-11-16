@@ -143,14 +143,6 @@ scenario(
         // A Migrate, sent as the first of two cards, brings the second pawn the two steps need.
         await table.press(table.card('Migrate'))
         await table.press(table.row('Play two cards this turn'))
-        await table.press(
-            table
-                .panel()
-                .locator('[data-rows="flow"] [data-row^="Pawn"]')
-                .first()
-                .locator('button')
-                .first()
-        )
         await table.pressPick(Forest2)
         await table.press(table.popupRowStarting('Farmer, '))
         await expect(table.turnLine()).toHaveText('2nd card')

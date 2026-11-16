@@ -418,9 +418,10 @@ test('S48 R-4.4-H1 a Migrate short of food, with a tile: the primary covers; the
         .first()
         .click()
     await settled(page)
-    await panel(page).locator('[data-rows] [data-row] button').first().click()
-    await settled(page)
-    await page.locator('[data-board-surface] [data-pick-role="lit"]').first().click()
+    await page
+        .locator('[data-board-surface] [data-pick^="space:"][data-pick-role="lit"]')
+        .first()
+        .click()
     await settled(page)
     await popupRow(page, /Monk/).click()
     await settled(page)
@@ -434,7 +435,7 @@ test('S48 R-4.4-H1 a Migrate short of food, with a tile: the primary covers; the
     await shot(page, 'migrate-cover')
 })
 
-test('S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: the supply pawn is not drawn', async ({
+test("S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: no space lights, the line is the logic's reason", async ({
     page
 }) => {
     await openTable(page, 'migrateNoTile')
@@ -443,7 +444,12 @@ test('S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: the supply pawn
         .first()
         .click()
     await settled(page)
-    await expect(panel(page).locator('[data-row="Pawn from supply"]')).toHaveCount(0)
+    await expect(
+        page.locator('[data-board-surface] [data-pick^="space:"][data-pick-role="lit"]')
+    ).toHaveCount(0)
+    await expect(panel(page).locator('[data-flow-line]')).toHaveText(
+        'Migrating onto the board needs 1 food.'
+    )
     await shot(page, 'migrate-no-tile')
     await page.reload()
     await openTable(page, 'migrateNoPawn')

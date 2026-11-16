@@ -836,23 +836,18 @@ describe('Playing a card', () => {
         expect(cardRows(session.actionPanel).map(({ kind }) => kind)).toEqual(['guild', 'explore'])
     })
 
-    it('S13 R-3.6 the supply pawns as one cube, the spaces, the character popup that sends; Distant Kin', async () => {
+    it('S13 R-3.6 no row for the supply pawns: the spaces light at once, the character popup sends; Distant Kin', async () => {
         const turn = await atCards(['migrate', 'tax'], (state, { seat }) => {
             giveGood(state, seat, 'food')
             state.getPlayerState(seat).pawns[0].character = 'alchemist'
         })
         const { session } = turn
         await pressCard(session.actionPanel, 'migrate')
-        const pawns = rowsOf(session.actionPanel, 'flow')
-        // R-1.1 Pawns in supply stand nowhere and have no character: a number would tell them apart
-        // by nothing, so they are one cube.
-        expect(pawns.map(({ choice }) => choice.label)).toEqual(['Pawn from supply'])
-        expect(pawns[0].art).toEqual({ kind: 'pawn', paint: expect.anything() })
-        await pressRow(pawns[0])
-        expect(rowLabels(session.actionPanel, 'flow')).toContain('Distant Kin')
-        await pressRow(rowNamed(session.actionPanel, 'Distant Kin'))
-        const [pick] = session.turn.flow?.picks ?? []
-        await pressTarget(session, pick.target)
+        // R-1.1 Pawns in supply stand nowhere and have no character: a space press takes one.
+        expect(rowsOf(session.actionPanel, 'flow')).toEqual([])
+        const kin = session.turn.flow?.picks.find(({ notes }) => notes?.[0].label === 'Distant Kin')
+        assertExists(kin, 'R-3.6.2 A starting space opens by Distant Kin')
+        await pressTarget(session, kin.target)
         await pressPopup(session, /^Monk, /)
         await settled(session)
         expect(lastByUser(turn)).toMatchObject({ type: ActionType.Migrate, distantKin: true })

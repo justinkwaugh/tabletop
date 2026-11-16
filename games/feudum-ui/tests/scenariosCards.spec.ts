@@ -69,15 +69,20 @@ scenario('S12 R-3.3 Two cards', 'cards-sulfur-pouch', async (table) => {
 
 scenario('S13 R-3.6 Migrate onto the board', 'cards-migrate', async (table) => {
     await table.press(table.card('Migrate'))
-    const pawns = table.panel().locator('[data-rows="flow"] [data-row^="Pawn"]')
-    await table.press(pawns.first().locator('button').first())
-    expect(await table.litChips()).toEqual({ [Forest2]: '1 food' })
+    // No row stands for the pawns in supply: every space a pawn may enter lights at once, those
+    // open only by Distant Kin with its chip, beside the pawn that may go off.
+    await expect(table.panel().locator('[data-rows="flow"] [data-row]')).toHaveCount(0)
+    expect(await table.litChips()).toEqual({
+        'pawn:p1:1': 'off',
+        [Forest2]: '1 food',
+        ...Object.fromEntries(
+            StartingSpaces.filter((space) => space !== Forest2).map((space) => [
+                space,
+                'Distant Kin'
+            ])
+        )
+    })
     await expect(table.pick(Forest2).locator('[data-chip] [aria-label="food"]')).toHaveCount(1)
-
-    await table.press(table.row('Distant Kin'))
-    expect(await table.litChips()).toEqual(
-        Object.fromEntries(StartingSpaces.map((space) => [space, 'Distant Kin']))
-    )
     await table.pressPick(Desert3)
     await expect(table.popup()).toBeVisible()
     expect(await table.piecesNamed('rank:guild.monk')).toEqual([])
@@ -94,7 +99,7 @@ scenario('S13 R-3.6 Migrate onto the board', 'cards-migrate', async (table) => {
 
 scenario('S14 R-3.6 Migrate off', 'cards-migrate', async (table) => {
     await table.press(table.card('Migrate'))
-    expect(await table.litChips()).toEqual({ 'pawn:p1:1': 'off' })
+    expect(await table.litChips()).toMatchObject({ 'pawn:p1:1': 'off' })
     const flights = await table.flightsOf(() => table.pressPick('pawn:p1:1'))
     expect(flights).toContain("pawns: Ana's alchemist pawn")
     expect(await table.piecesNamed('pawn:p1')).toEqual([])

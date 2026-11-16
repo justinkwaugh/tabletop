@@ -334,15 +334,6 @@ describe('R-X.3 the rows of the panel', () => {
         expect(markup).toContain(`aria-label="Bram's noble pawn"`)
     })
 
-    it('S13 R-3.6 a pawn from supply stands in its row as a cube with a bare top face', () => {
-        const markup = markupOf(
-            rowsBlock('flow', [{ ...aRow('Pawn from supply'), art: { kind: 'pawn', paint } }])
-        )
-        expect(markup).toContain('data-row="Pawn from supply"')
-        expect(markup).toContain(`aria-label="Bram's pawn"`)
-        expect(markup).toContain('Pawn from supply</span>')
-    })
-
     it("R-4.3 a held tile stands in its row as its art, its name kept as the row's name", () => {
         const markup = markupOf(
             rowsBlock('covers', [
