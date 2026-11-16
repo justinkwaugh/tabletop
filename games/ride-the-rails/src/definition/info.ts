@@ -1,4 +1,4 @@
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 
 // R-1.2: three to five players, as printed. R-8: the USA map only, so no creation options.
@@ -14,7 +14,6 @@ export const RideTheRailsInfo: GameInfo = {
         maxPlayers: 5,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     }
 }

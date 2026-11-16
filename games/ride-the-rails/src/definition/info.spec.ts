@@ -1,4 +1,3 @@
-import { GameVisibility } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { RideTheRailsInfo } from './info.js'
 import { GAME_VERSION } from './version.js'
@@ -16,12 +15,9 @@ describe('RideTheRailsInfo', () => {
         expect(RideTheRailsInfo.configurator).toBeUndefined()
     })
 
-    it('is a beta title named Ride the Rails', () => {
-        expect(RideTheRailsInfo.metadata).toMatchObject({
-            name: 'Ride the Rails',
-            beta: true,
-            visibility: GameVisibility.Beta
-        })
+    it('is a public title named Ride the Rails', () => {
+        expect(RideTheRailsInfo.metadata).toMatchObject({ name: 'Ride the Rails', beta: false })
+        expect(RideTheRailsInfo.metadata.visibility).toBeUndefined()
     })
 
     it('reports the generated game version', () => {
