@@ -257,7 +257,7 @@ export class BoardAnimator implements MoveInterrupter {
         this.seeds = seedsDuring
         // A placement that fills an isolated group claims it, so its ring goes with the others.
         const before =
-            placement && forward ? placedOn(from.board.rings, placement) : from.board.rings
+            placement && forward ? this.placedOn(from.board.rings, placement) : from.board.rings
         const removedRings = before.filter((ring) => !to.board.hasRing(ring.coords))
         const { view } = this.session
         const layout = view.frame(to.setup).positions
@@ -266,7 +266,7 @@ export class BoardAnimator implements MoveInterrupter {
             layout,
             removedRings.map((ring) => ring.coords),
             to.board.rings.map((ring) => ring.coords),
-            placement && forward ? cutOffBy(placement) : undefined
+            placement && forward ? this.cutOffBy(placement) : undefined
         )
 
         this.sliding = new Set(removedRings.map((ring) => coordinatesToNumber(ring.coords)))
@@ -297,8 +297,8 @@ export class BoardAnimator implements MoveInterrupter {
                     ? [{ coords: returned.coords, marble: returned.color }]
                     : []
                 this.rings = [
-                    ...withMarbles(from.board.rings, appearing),
-                    ...withMarbles(returning, restaged)
+                    ...this.withMarbles(from.board.rings, appearing),
+                    ...this.withMarbles(returning, restaged)
                 ]
                 await tick()
                 const entries = ringExits(
@@ -306,11 +306,11 @@ export class BoardAnimator implements MoveInterrupter {
                     layout,
                     returning.map((ring) => ring.coords),
                     from.board.rings.map((ring) => ring.coords),
-                    placement && !forward ? cutOffBy(placement) : undefined
+                    placement && !forward ? this.cutOffBy(placement) : undefined
                 )
                 const twoLegs = [...entries.values()].some((entry) => entry.first !== undefined)
                 const leg = twoLegs ? PUSH.slide / 2 : PUSH.slide
-                for (const ring of withMarbles(returning, restaged)) {
+                for (const ring of this.withMarbles(returning, restaged)) {
                     this.pushIn(ring, entries, timeline, leg)
                 }
                 for (const ring of appearing) this.drop(ring.coords, timeline, QUICK_DROP)
@@ -521,7 +521,6 @@ export class BoardAnimator implements MoveInterrupter {
         return dropMarble(timeline, body, shadow, 0, timing, from)
     }
 
-    // The staged marble on the board, if any.
     readonly stagedDrop = (drop: StagedDrop) => {
         this.staged = drop
         return () => {
@@ -529,7 +528,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // The move's targets are spent.
     private fadeOutlines(timeline: Timeline, shortest: number) {
         if (this.outlineLayer === undefined) return
         const duration = Math.max(timeline.duration(), shortest)
@@ -598,7 +596,7 @@ export class BoardAnimator implements MoveInterrupter {
             timeline.to(shadow, { opacity: 1, ...back }, half)
             timeline.add(tweenPose(shadow, { scale: 1, ...back }), half)
         }
-        // A quick catch-up through history just arrives.
+        // A step within the 0.2 s actionless budget has no time left for the rebound.
         if (duration <= FALLBACK_DURATION) return
         let at = duration
         for (const reach of LANDING.rebound) {
@@ -615,22 +613,22 @@ export class BoardAnimator implements MoveInterrupter {
             at += LANDING.step
         }
     }
-}
 
-function cutOffBy({ remove, metadata }: PlaceMarble) {
-    if (remove === undefined) return undefined
-    assertExists(metadata, 'A processed placement has its metadata')
-    return { remove, cutOff: metadata.claimedOnRemoving.map((ring) => ring.coords) }
-}
+    private cutOffBy({ remove, metadata }: PlaceMarble) {
+        if (remove === undefined) return undefined
+        assertExists(metadata, 'A processed placement has its metadata')
+        return { remove, cutOff: metadata.claimedOnRemoving.map((ring) => ring.coords) }
+    }
 
-function withMarbles(rings: Ring[], placed: Ring[]): Ring[] {
-    return rings.map(
-        (ring) => placed.find((other) => sameCoordinates(other.coords, ring.coords)) ?? ring
-    )
-}
+    private withMarbles(rings: Ring[], placed: Ring[]): Ring[] {
+        return rings.map(
+            (ring) => placed.find((other) => sameCoordinates(other.coords, ring.coords)) ?? ring
+        )
+    }
 
-function placedOn(rings: Ring[], { coords, color }: PlaceMarble): Ring[] {
-    return rings.map((ring) =>
-        sameCoordinates(ring.coords, coords) ? { ...ring, marble: color } : ring
-    )
+    private placedOn(rings: Ring[], { coords, color }: PlaceMarble): Ring[] {
+        return rings.map((ring) =>
+            sameCoordinates(ring.coords, coords) ? { ...ring, marble: color } : ring
+        )
+    }
 }

@@ -47,6 +47,7 @@
                 <span
                     class="trio"
                     class:met={count >= win.eachColor}
+                    class:instant={session.isViewingHistory}
                     title="{win.eachColor} of each colour also wins"
                 >
                     {#each slotsBetween(0, win.eachColor) as slot (slot)}
@@ -99,6 +100,10 @@
         transition:
             box-shadow 0.3s,
             background 0.3s;
+    }
+
+    .trio.instant {
+        transition: none;
     }
 
     .trio.met {
