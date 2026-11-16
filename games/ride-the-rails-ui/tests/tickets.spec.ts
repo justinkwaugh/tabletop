@@ -146,8 +146,11 @@ for (const width of [1440, 1024]) {
         expect(line.tickets.right).toBeLessThanOrEqual(line.chip.left)
         expect(line.chip.right).toBeLessThanOrEqual(line.undo.left)
         expect(line.start.right).toBeLessThanOrEqual(line.end.left)
-        // At 1440 px whose turn it is and the round and phase fit beside them too; at 1024 px
-        // they need about 116 px and have 97, as before the tickets carried colour.
-        if (width === 1440) expect(line.startOverflows).toBe(false)
+        // Whose turn it is fits beside them, with no round or phase written next to it.
+        expect(line.startOverflows).toBe(false)
+        const start = await page
+            .locator('button', { hasText: /^Undo$/ })
+            .evaluate((undo) => undo.parentElement?.parentElement?.firstElementChild?.textContent)
+        expect(start ?? '').not.toMatch(/Round|Shares|Build|Ride|phase/i)
     })
 }

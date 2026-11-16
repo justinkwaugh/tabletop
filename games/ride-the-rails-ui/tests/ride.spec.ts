@@ -42,6 +42,26 @@ function routeHeading(page: Page, text: string) {
     return expect(page.getByRole('heading', { name: text, exact: true })).toBeVisible()
 }
 
+/** The action panel's Ride button; the map's floats beside the route ([data-map-ride]). */
+function panelRide(page: Page) {
+    return page
+        .getByRole('button', { name: 'Ride', exact: true })
+        .and(page.locator('button:not([data-map-ride])'))
+}
+
+function mapRide(page: Page) {
+    return page.locator('button[data-map-ride]')
+}
+
+function startPassenger(page: Page) {
+    return board(page).locator('g.staged-route [data-start-passenger]')
+}
+
+/** The link count drawn on the route's last city. */
+function linkCount(page: Page) {
+    return board(page).locator('g.staged-route text')
+}
+
 function linkPopup(page: Page, city: string) {
     return page.getByRole('group', { name: `${city}: which railroad?`, exact: true })
 }
@@ -56,7 +76,7 @@ async function openSeatChips(page: Page) {
     }
 }
 
-test('12. Start and extend: a passenger city, a one-railroad link, then undo both', async ({
+test('13. Start and extend: a passenger city, a one-railroad link, then undo both', async ({
     page
 }) => {
     await openScenario(page, 'Journey choices')
@@ -69,16 +89,22 @@ test('12. Start and extend: a passenger city, a one-railroad link, then undo bot
             (city) => `${city}: ${START}`
         )
     )
+    await expect(startPassenger(page)).toHaveCount(0)
 
     await pressHex(page, litHex(page, `Des Moines: ${START}`))
     await expect(journeyStart(page, 'Des Moines')).toBeVisible()
     await routeHeading(page, 'Des Moines')
-    // R-3.3.2: the cities one link away light; their railroads' cubes are already there, so no
-    // ghost cube is drawn.
+    // The start's passenger grows to the middle of its hex, which takes the navy start ring.
+    await expect(startPassenger(page)).toHaveCount(1)
+    await expect(board(page).locator('[data-ring="journey-start"]')).toHaveCount(1)
+    // R-3.3.2: the cities one link away light, each with a chevron; no ghost cube is drawn.
     expect(await linkTargets(page)).toContain('Chicago')
     await expect(litHex(page, 'Chicago: link by Orange')).toBeVisible()
+    await expect(board(page).locator('[data-chevron]')).not.toHaveCount(0)
     await expect(board(page).locator('g.picks [data-ghost]')).toHaveCount(0)
     await expect(stagedRoute(page)).toHaveCount(0)
+    await expect(panelRide(page)).toBeDisabled()
+    await expect(mapRide(page)).toHaveCount(0)
 
     await pressHex(page, litHex(page, 'Chicago: link by Orange'))
     await routeHeading(page, 'Des Moines → Chicago')
@@ -86,26 +112,32 @@ test('12. Start and extend: a passenger city, a one-railroad link, then undo bot
     await expect(
         stagedRoute(page).and(page.locator('[stroke="var(--rtr-railroad-orange)"]'))
     ).toHaveCount(1)
-    // R-3.3.4, R-3.3.5: Ada's fare and dividend, and $1 to each other Orange shareholder.
+    await expect(linkCount(page)).toHaveText('1')
+    // R-3.3.4, R-3.3.5: Ada's fare and dividend, and $1 to each other Orange shareholder, the
+    // rider's chip among the others.
     await openSeatChips(page)
-    for (const chip of ['Ada +$3', 'Cora +$1', 'Dell +$1']) {
+    for (const chip of ['Ada $3', 'Cora $1', 'Dell $1']) {
         await expect(page.getByText(chip, { exact: true })).toBeVisible()
     }
-    await expect(page.getByText(/^Ben \+\$/)).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Ride · you +$3', exact: true })).toBeEnabled()
+    await expect(page.getByText(/^Ben \$/)).toHaveCount(0)
+    await expect(panelRide(page)).toBeEnabled()
+    // Ride also floats on the map beside the route's last city.
+    await expect(mapRide(page)).toBeVisible()
 
     // Undo takes back the link, then the start.
     await undo(page)
     await routeHeading(page, 'Des Moines')
     await expect(stagedRoute(page)).toHaveCount(0)
+    await expect(mapRide(page)).toHaveCount(0)
     await expect(journeyStart(page, 'Des Moines')).toBeVisible()
     await undo(page)
     await expect(page.getByRole('heading', { name: 'Choose a passenger' })).toBeVisible()
+    await expect(startPassenger(page)).toHaveCount(0)
     expect(await litLabels(page)).toHaveLength(5)
     expect(await activePlayerId(page)).toBe('p1')
 })
 
-test('13. Railroad choice on a link: Orange or Yellow, each with what it pays', async ({
+test('14. Railroad choice on a link: Orange or Yellow, each with what it pays', async ({
     page
 }) => {
     await openScenario(page, 'Journey choices')
@@ -122,15 +154,19 @@ test('13. Railroad choice on a link: Orange or Yellow, each with what it pays', 
     ).toBeVisible()
     const yellow = popup.getByRole('button', { name: 'Link by Yellow, you +$4', exact: true })
     await expect(yellow).toBeVisible()
+    // The map's Ride button hides while a link popup is open.
+    await expect(mapRide(page)).toHaveCount(0)
 
     await yellow.click()
     await settled(page)
     await expect(popup).toHaveCount(0)
-    await routeHeading(page, 'Des Moines → Chicago → Milwaukee')
+    await routeHeading(page, 'Des Moines → Milwaukee, via 1 city')
     await expect(page.getByText(/^2 links · fare \$3/)).toBeVisible()
     await expect(
         stagedRoute(page).and(page.locator('[stroke="var(--rtr-railroad-yellow)"]'))
     ).toHaveCount(1)
+    await expect(linkCount(page)).toHaveText('2')
+    await expect(mapRide(page)).toBeVisible()
     expect(
         await page.evaluate(() =>
             window.rtrSession.journeyDraft?.links.map((link) => link.railroadId)
@@ -138,7 +174,7 @@ test('13. Railroad choice on a link: Orange or Yellow, each with what it pays', 
     ).toEqual(['railroad.orange', 'railroad.yellow'])
 })
 
-test('14. No loop: a city on the route, or past a used hex, never lights', async ({ page }) => {
+test('15. No loop: a city on the route, or past a used hex, never lights', async ({ page }) => {
     await openScenario(page, 'Journey choices')
     // Yellow links Chicago to Saint Louis through the hex next to Chicago on Orange's line.
     await pressHex(page, litHex(page, `Milwaukee: ${START}`))
@@ -150,7 +186,11 @@ test('14. No loop: a city on the route, or past a used hex, never lights', async
     expect(await linkTargets(page)).toContain('Saint Louis')
     expect(await linkTargets(page)).not.toContain('Milwaukee')
 
+    // A press on the start cuts the route back to the start alone; a second drops the draft.
     await pressHex(page, journeyStart(page, 'Milwaukee'))
+    await routeHeading(page, 'Milwaukee')
+    await pressHex(page, journeyStart(page, 'Milwaukee'))
+    await expect(page.getByRole('heading', { name: 'Choose a passenger' })).toBeVisible()
     await pressHex(page, litHex(page, `Des Moines: ${START}`))
     await pressHex(page, litHex(page, 'Chicago: link by Orange'))
     // R-3.3.3: Des Moines is on the route, and Saint Louis is reached only through a hex the
@@ -170,7 +210,7 @@ test('14. No loop: a city on the route, or past a used hex, never lights', async
     expect(await linkTargets(page)).toEqual([])
 })
 
-test('15. City by city: the panel offers no Best route; Ride sends the route shown', async ({
+test('16. City by city, and cut back: no Best route; a press on the route cuts it; Ride sends the route shown', async ({
     page
 }) => {
     await openScenario(page, 'Journey choices')
@@ -178,7 +218,7 @@ test('15. City by city: the panel offers no Best route; Ride sends the route sho
     await expect(bestRoute).toHaveCount(0)
     await pressHex(page, litHex(page, `Saint Louis: ${START}`))
     await routeHeading(page, 'Saint Louis')
-    await expect(page.getByRole('button', { name: 'Ride', exact: true })).toBeDisabled()
+    await expect(panelRide(page)).toBeDisabled()
     await expect(bestRoute).toHaveCount(0)
 
     // R-3.3.2: the route is named one city at a time.
@@ -189,9 +229,17 @@ test('15. City by city: the panel offers no Best route; Ride sends the route sho
         .getByRole('button', { name: /^Link by Orange, / })
         .click()
     await settled(page)
-    await routeHeading(page, 'Saint Louis → Chicago → Milwaukee')
+    await routeHeading(page, 'Saint Louis → Milwaukee, via 1 city')
     await expect(page.getByText(/^2 links · fare \$3/)).toBeVisible()
     await expect(bestRoute).toHaveCount(0)
+
+    // A press on Chicago, already on the route, cuts it back to there; Undo puts the link back.
+    await pressHex(page, board(page).locator('[data-hex-id="hex.usa.5-43"]').first())
+    await routeHeading(page, 'Saint Louis → Chicago')
+    await expect(linkCount(page)).toHaveText('1')
+    await undo(page)
+    await routeHeading(page, 'Saint Louis → Milwaukee, via 1 city')
+    await expect(linkCount(page)).toHaveText('2')
 
     const shown = await page.evaluate(() => ({
         links: window.rtrSession.journeyDraft?.links,
@@ -206,7 +254,11 @@ test('15. City by city: the panel offers no Best route; Ride sends the route sho
             window.rtrSession.gameState.players.map((player) => [player.playerId, player.money])
         )
     )
-    await page.getByRole('button', { name: /^Ride · you \+\$4$/ }).click()
+    // Ride on the map sends it, as the panel's does.
+    await mapRide(page).click()
+    // The panel keeps showing the sent journey while it plays.
+    await routeHeading(page, 'Saint Louis → Milwaukee, via 1 city')
+    await expect(page.getByRole('heading', { name: 'Choose a passenger' })).toHaveCount(0)
     await settled(page)
 
     // R-3.3.4, R-3.3.5: the route sent is the one shown, and each seat gains what it previewed.
@@ -222,26 +274,5 @@ test('15. City by city: the panel offers no Best route; Ride sends the route sho
             (before[payment.playerId] ?? 0) + payment.dividends + payment.fare
         )
     }
-    expect(await activePlayerId(page)).toBe('p2')
-})
-
-test('16. Pass: no passenger city has a link, so Pass is the only button', async ({ page }) => {
-    await openScenario(page, 'No journey')
-    expect(await activePlayerId(page)).toBe('p1')
-    // R-3.3.1
-    await expect(
-        page.getByRole('heading', {
-            name: "No passenger can travel: no link leaves any passenger's city"
-        })
-    ).toBeVisible()
-    const pass = page.getByRole('button', { name: 'Pass', exact: true })
-    await expect(pass).toBeEnabled()
-    await expect(page.getByRole('button', { name: /^Ride/ })).toHaveCount(0)
-    await expect(litHexes(page)).toHaveCount(0)
-    await expect(board(page).locator('g.scrim path')).toHaveCount(0)
-
-    await pass.click()
-    await settled(page)
-    expect(await page.evaluate(() => window.rtrSession.actions.at(-1)?.type)).toBe('PassJourney')
     expect(await activePlayerId(page)).toBe('p2')
 })

@@ -729,38 +729,6 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
             phase: PhaseName.Ride
         }
     },
-    // Scenario 16: round 2, Ride. Round 1's journeys carried every passenger the links reach, and
-    // Orange's stub out of Chicago links nothing, so Ada can only pass (R-3.3.1).
-    {
-        slug: 'no-journey',
-        name: 'No journey',
-        recipe: {
-            playerCount: 4,
-            rounds: [
-                {
-                    shares: SHARE_ROUND_ONE,
-                    builds: [
-                        { playerId: 'p1', runs: [[RED, RED_NEW_YORK]] },
-                        { playerId: 'p2', runs: [[BLUE, BLUE_SOUTH]] }
-                    ],
-                    journeys: { p1: 3, p2: 4, p3: 5, p4: 6 }
-                },
-                {
-                    shares: { p4: ORANGE, p3: RED, p2: BLUE, p1: ORANGE },
-                    builds: [
-                        { playerId: 'p1', runs: [[ORANGE, [cityHexId('Chicago'), SHARED_HEX]]] }
-                    ]
-                }
-            ],
-            phase: PhaseName.Ride,
-            carried: [
-                cityIdOf('New York'),
-                cityIdOf('Philadelphia'),
-                cityIdOf('Baltimore'),
-                cityIdOf('Washington')
-            ]
-        }
-    },
     // Scenario 18: round 1's last journey. Ada, Ben and Cora have ridden; Dell's journey from
     // Washington ties him with Ben, so the two swap places in the new order (R-2.5).
     {

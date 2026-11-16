@@ -76,22 +76,28 @@ test('Full screen at desktop width: the share buttons are in the dialog, by keyb
     ).toBeVisible()
 })
 
-test('Full screen at desktop width: the build panel holds the piles, a press spotlights', async ({
+test('Full screen at desktop width: the build panel holds the cards, a press spotlights', async ({
     page
 }) => {
-    test.skip(onPhone(), 'The phone build panel has its piles at any size.')
+    test.skip(onPhone(), 'The phone build panel has its cards at any size.')
     await page.setViewportSize({ width: 1440, height: 900 })
     await openScenario(page, 'First placement')
     const dialog = await enterFullScreen(page)
 
-    const pile = dialog.getByRole('group', { name: 'Railroads' }).getByRole('button').first()
-    await expect(pile).toHaveAttribute('aria-pressed', 'false')
-    await pile.click()
-    await expect(pile).toHaveAttribute('aria-pressed', 'true')
+    const card = dialog.getByRole('group', { name: 'Railroads' }).getByRole('button').first()
+    await expect(card).toHaveAttribute('aria-pressed', 'false')
+    await card.click()
+    await expect(card).toHaveAttribute('aria-pressed', 'true')
     await expect
         .poll(() => page.evaluate(() => window.rtrSession.spotlightRailroadId))
         .not.toBe(undefined)
-    await expect(dialog.getByRole('button', { name: 'Build nothing' })).toBeEnabled()
+    // The count and Skip on one line; the turn can be finished without leaving full screen.
+    await expect(dialog.getByText('0 / 5', { exact: true })).toBeVisible()
+    const skip = dialog.getByRole('button', { name: 'Skip', exact: true })
+    await expect(skip).toBeEnabled()
+    await skip.click()
+    await expect.poll(() => activePlayerId(page)).toBe('p2')
+    await expect(dialog).toBeVisible()
 })
 
 test('Outside full screen at desktop width: the cards are the share buttons, the panel has none', async ({
@@ -100,11 +106,13 @@ test('Outside full screen at desktop width: the cards are the share buttons, the
     test.skip(onPhone(), 'A phone has no cards.')
     await page.setViewportSize({ width: 1440, height: 900 })
     await openScenario(page, 'First share')
-    // One Red share button: the card's. The action panel has only the prompt and the order line.
+    // One Red share button: the card's. The action panel keeps only its prompt.
     await expect(
         page.getByRole('button', { name: 'Take a Red share, 27 left', exact: true })
     ).toHaveCount(1)
-    await expect(page.getByText(/^phase 1 goes in reverse turn order/)).toBeVisible()
+    const panel = page.locator('div.action')
+    await expect(panel.getByText('Select a share below', { exact: true })).toBeVisible()
+    await expect(panel.getByRole('button')).toHaveCount(0)
 })
 
 test('Full screen on a phone: the share buttons stay in the dialog', async ({ page }) => {
