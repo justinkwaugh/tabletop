@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
+import { assertExists, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
 import {
     AXES,
     BOARD_RADIUS,
@@ -16,7 +16,7 @@ import {
 import { dotsOf, PieceKind, rotationsOf, sameOrientation, spanOf } from './pieces.js'
 
 // A piece in play: where its PÜNCT lies, which way its minor dots turn, and the level it rests
-// on (0 on the board). Ids are given as pieces enter the board.
+// on (0 on the board). Pieces never leave the board, so a piece's id is its place in entry order.
 export type PlacedPiece = Type.Static<typeof PlacedPiece>
 export const PlacedPiece = Type.Object({
     id: Type.Integer({ minimum: 0 }),
@@ -105,14 +105,6 @@ export class HydratedPunctBoard extends Hydratable<typeof PunctBoard> implements
         return this.dotsOf(piece).some((dot) => this.heightAt(dot) > piece.level + 1)
     }
 
-    // The pieces with a dot right under one of the piece's own.
-    piecesUnder(piece: PlacedPiece): PlacedPiece[] {
-        const under = this.dotsOf(piece).flatMap((dot) =>
-            this.layersAt(dot).filter((layer) => layer.piece.level === piece.level - 1)
-        )
-        return [...new Set(under.map((layer) => layer.piece))]
-    }
-
     // Rule 1/1: a new piece goes on the board itself, each dot on an empty space, kept out of
     // the central hexagon when the rule asks.
     canEnter(
@@ -170,55 +162,59 @@ export class HydratedPunctBoard extends Hydratable<typeof PunctBoard> implements
     // Rule 2/2: the PÜNCT moves along a straight line any distance, over anything, or stays
     // put while the piece turns; turning it back to where it was is no move.
     movesOf(piece: PlacedPiece): Placement[] {
+        return [...this.movesFrom(piece)]
+    }
+
+    movablePieces(playerId: string): PlacedPiece[] {
+        return this.pieces.filter((piece) => piece.playerId === playerId && this.hasMove(piece))
+    }
+
+    canMove(playerId: string): boolean {
+        return this.pieces.some((piece) => piece.playerId === playerId && this.hasMove(piece))
+    }
+
+    private hasMove(piece: PlacedPiece): boolean {
+        return !this.movesFrom(piece).next().done
+    }
+
+    private *movesFrom(piece: PlacedPiece): Generator<Placement> {
         if (this.isCovered(piece)) {
-            return []
+            return
         }
-        return this.targetsOf(piece).flatMap((punct) =>
-            rotationsOf(piece.kind).flatMap((rotation) => {
+        for (const punct of this.targetsOf(piece)) {
+            for (const rotation of rotationsOf(piece.kind)) {
                 if (
                     sameCoordinates(punct, piece.punct) &&
                     sameOrientation(piece.kind, rotation, piece.rotation)
                 ) {
-                    return []
+                    continue
                 }
                 const level = this.levelFor(piece.playerId, piece.kind, punct, rotation, piece.id)
-                return level === undefined ? [] : [{ punct, rotation, level }]
-            })
-        )
-    }
-
-    movablePieces(playerId: string): PlacedPiece[] {
-        return this.pieces.filter(
-            (piece) => piece.playerId === playerId && this.movesOf(piece).length > 0
-        )
-    }
-
-    canMove(playerId: string): boolean {
-        return this.pieces.some(
-            (piece) =>
-                piece.playerId === playerId &&
-                !this.isCovered(piece) &&
-                this.targetsOf(piece).some((punct) =>
-                    rotationsOf(piece.kind).some(
-                        (rotation) =>
-                            !(
-                                sameCoordinates(punct, piece.punct) &&
-                                sameOrientation(piece.kind, rotation, piece.rotation)
-                            ) &&
-                            this.levelFor(piece.playerId, piece.kind, punct, rotation, piece.id) !==
-                                undefined
-                    )
-                )
-        )
+                if (level !== undefined) {
+                    yield { punct, rotation, level }
+                }
+            }
+        }
     }
 
     private targetsOf(piece: PlacedPiece): AxialCoordinates[] {
         return [piece.punct, ...DIRECTIONS.flatMap((step) => lineFrom(piece.punct, step))]
     }
 
-    place(piece: PlacedPiece) {
+    nextPieceId(): number {
+        return this.pieces.length
+    }
+
+    place(
+        playerId: string,
+        kind: PieceKind,
+        punct: AxialCoordinates,
+        rotation: number
+    ): PlacedPiece {
+        const piece = { id: this.nextPieceId(), playerId, kind, punct, rotation, level: 0 }
         this.pieces.push(piece)
         occupancies.delete(this)
+        return piece
     }
 
     move(piece: PlacedPiece, placement: Placement) {
@@ -275,7 +271,7 @@ export class HydratedPunctBoard extends Hydratable<typeof PunctBoard> implements
         seen.add(spaceKey(start))
         while (queue.length > 0) {
             const current = queue.pop()
-            if (current === undefined) break
+            assertExists(current, 'The queue is not empty')
             group.push(current)
             for (const next of neighbours(current)) {
                 const key = spaceKey(next)
@@ -297,12 +293,20 @@ export class HydratedPunctBoard extends Hydratable<typeof PunctBoard> implements
     }
 
     entriesOf(kind: PieceKind, outsideCentre: boolean): Placement[] {
-        return SPACES.flatMap((punct) =>
-            rotationsOf(kind).flatMap((rotation) =>
-                this.canEnter(kind, punct, rotation, outsideCentre)
-                    ? [{ punct, rotation, level: 0 }]
-                    : []
-            )
-        )
+        return [...this.entriesFrom(kind, outsideCentre)]
+    }
+
+    hasEntry(kind: PieceKind, outsideCentre: boolean): boolean {
+        return !this.entriesFrom(kind, outsideCentre).next().done
+    }
+
+    private *entriesFrom(kind: PieceKind, outsideCentre: boolean): Generator<Placement> {
+        for (const punct of SPACES) {
+            for (const rotation of rotationsOf(kind)) {
+                if (this.canEnter(kind, punct, rotation, outsideCentre)) {
+                    yield { punct, rotation, level: 0 }
+                }
+            }
+        }
     }
 }

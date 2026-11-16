@@ -14,7 +14,6 @@ import { HydratedPunctPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { variantFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
 import { emptyBoard } from '../model/board.js'
-import { SET_COUNTS } from '../model/pieces.js'
 
 export class PunctGameInitializer
     extends BaseGameInitializer<PunctGameState, HydratedPunctGameState>
@@ -33,14 +32,14 @@ export class PunctGameInitializer
             prng.random,
             assignment ?? this.chosenWhite(game)
         )
+        turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
 
         const players = turnManager.turnOrder.map(
             (playerId, index) =>
                 new HydratedPunctPlayerState({
                     playerId,
-                    color: index === 0 ? Color.White : Color.Black,
-                    reserve: { ...SET_COUNTS }
+                    color: index === 0 ? Color.White : Color.Black
                 })
         )
 
@@ -49,8 +48,7 @@ export class PunctGameInitializer
             machineState: MachineState.TakingTurn,
             turnManager,
             variant: variantFromConfig(game.config),
-            board: emptyBoard(),
-            nextPieceId: 0
+            board: emptyBoard()
         })
 
         return new HydratedPunctGameState(punctGameState)

@@ -1,11 +1,16 @@
 import * as Type from 'typebox'
 import {
+    assertExists,
     BaseConfigurator,
     ConfigOptionType,
     type GameConfig,
     type GameConfigOptions
 } from '@tabletop/common'
-import { Variant } from '../model/gameState.js'
+
+export enum Variant {
+    Standard = 'Standard',
+    Basic = 'Basic'
+}
 
 export enum WhitePlayer {
     Random = 'Random',
@@ -19,17 +24,22 @@ export const PunctGameConfig = Type.Object({
     whitePlayer: Type.Optional(Type.Enum(WhitePlayer))
 })
 
+const standardDescription =
+    'New pieces never enter the central hexagon, and when a player places their last piece the most central spaces wins.'
+const basicDescription =
+    'Only White’s first piece stays out of the centre, and the last piece without a connection ends the game undecided.'
+
 export const PunctGameConfigOptions: GameConfigOptions = [
     {
         id: 'variant',
         type: ConfigOptionType.List,
         name: 'Version',
-        description:
-            'Standard: new pieces never enter the central hexagon, and when a player places their last piece the most central spaces wins. Basic: only White’s first piece stays out of the centre, and the last piece without a connection ends the game undecided.',
+        // Older site forms show only this, so it describes every version.
+        description: `Standard: ${standardDescription} Basic: ${basicDescription}`,
         default: Variant.Standard,
         options: [
-            { name: 'Standard', value: Variant.Standard },
-            { name: 'Basic', value: Variant.Basic }
+            { name: 'Standard', value: Variant.Standard, description: standardDescription },
+            { name: 'Basic', value: Variant.Basic, description: basicDescription }
         ],
         alwaysShow: true
     },
@@ -54,12 +64,15 @@ export class PunctConfigurator extends BaseConfigurator {
 }
 
 export function variantFromConfig(config: GameConfig): Variant {
-    return Object.values(Variant).find((variant) => variant === config.variant) ?? Variant.Standard
+    if (config.variant === undefined) return Variant.Standard
+    const variant = Object.values(Variant).find((known) => known === config.variant)
+    assertExists(variant, `Unknown PÜNCT version ${String(config.variant)}`)
+    return variant
 }
 
 export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
-    return (
-        Object.values(WhitePlayer).find((choice) => choice === config.whitePlayer) ??
-        WhitePlayer.Random
-    )
+    if (config.whitePlayer === undefined) return WhitePlayer.Random
+    const choice = Object.values(WhitePlayer).find((known) => known === config.whitePlayer)
+    assertExists(choice, `Unknown choice of White ${String(config.whitePlayer)}`)
+    return choice
 }

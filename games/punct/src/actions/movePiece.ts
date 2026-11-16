@@ -4,13 +4,12 @@ import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '
 import { HydratedPunctGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PieceKind } from '../model/pieces.js'
-import { outcomeAfter } from '../stateHandlers/turnFlow.js'
 
 export type MovePieceMetadata = Type.Static<typeof MovePieceMetadata>
+// `passedPlayerId` names a player whose turn this move's end skipped, as they could not act.
 export const MovePieceMetadata = Type.Object({
     pieceId: Type.Integer({ minimum: 0 }),
     kind: Type.Enum(PieceKind),
-    fromRotation: Type.Integer({ minimum: 0, maximum: 5 }),
     fromLevel: Type.Integer({ minimum: 0 }),
     level: Type.Integer({ minimum: 0 }),
     passedPlayerId: Type.Optional(Type.String())
@@ -57,23 +56,8 @@ export class HydratedMovePiece extends HydratableAction<typeof MovePiece> implem
         if (piece === undefined || placement === undefined) {
             throw Error('Invalid MovePiece action')
         }
-        const fromRotation = piece.rotation
         const fromLevel = piece.level
         state.movePiece(piece, placement)
-        const outcome = outcomeAfter(state, this.playerId, false)
-        this.metadata = {
-            pieceId: piece.id,
-            kind: piece.kind,
-            fromRotation,
-            fromLevel,
-            level: placement.level,
-            ...(outcome.kind === 'next' && outcome.passedPlayerId !== undefined
-                ? { passedPlayerId: outcome.passedPlayerId }
-                : {})
-        }
-    }
-
-    isValid(state: HydratedPunctGameState): boolean {
-        return state.moveFor(this.playerId, this.from, this.to, this.rotation) !== undefined
+        this.metadata = { pieceId: piece.id, kind: piece.kind, fromLevel, level: placement.level }
     }
 }

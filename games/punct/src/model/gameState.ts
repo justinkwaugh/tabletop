@@ -1,4 +1,5 @@
 import {
+    assertExists,
     AxialCoordinates,
     GameResult,
     GameState,
@@ -12,13 +13,8 @@ import { Compile } from 'typebox/compile'
 import { HydratedPunctPlayerState, PunctPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedPunctBoard, PunctBoard, type PlacedPiece, type Placement } from './board.js'
-import { PieceKind, rotationsOf, sameOrientation, SET_SIZE } from './pieces.js'
-import { SPACES } from './geometry.js'
-
-export enum Variant {
-    Standard = 'Standard',
-    Basic = 'Basic'
-}
+import { PIECE_KINDS, PieceKind, sameOrientation, SET_COUNTS, SET_SIZE } from './pieces.js'
+import { Variant } from '../definition/config.js'
 
 export enum EndReason {
     Connection = 'Connection',
@@ -36,16 +32,12 @@ export const PunctGameState = Type.Evaluate(
             machineState: Type.Enum(MachineState),
             variant: Type.Enum(Variant),
             board: PunctBoard,
-            // The id the next piece to enter the board takes.
-            nextPieceId: Type.Integer({ minimum: 0 }),
             endReason: Type.Optional(Type.Enum(EndReason))
         })
     ])
 )
 
 export const PunctGameStateValidator = Compile(PunctGameState)
-
-export type PieceMove = Placement & { pieceId: number }
 
 export class HydratedPunctGameState
     extends HydratableGameState<typeof PunctGameState, HydratedPunctPlayerState>
@@ -64,7 +56,6 @@ export class HydratedPunctGameState
     declare winningPlayerIds: string[]
     declare variant: Variant
     declare board: HydratedPunctBoard
-    declare nextPieceId: number
     declare endReason?: EndReason
 
     constructor(data: PunctGameState) {
@@ -75,9 +66,7 @@ export class HydratedPunctGameState
 
     opponentOf(playerId: string): string {
         const opponent = this.players.find((player) => player.playerId !== playerId)
-        if (opponent === undefined) {
-            throw Error(`No opponent for ${playerId}`)
-        }
+        assertExists(opponent, `No opponent for ${playerId}`)
         return opponent.playerId
     }
 
@@ -85,18 +74,35 @@ export class HydratedPunctGameState
         return this.turnManager.turnOrder[0]
     }
 
+    // Rule B1: a player's reserve is their set less the pieces they have brought into play, which
+    // never leave the board.
+    reserveCount(playerId: string, kind: PieceKind): number {
+        return (
+            SET_COUNTS[kind] -
+            this.board.pieces.filter((piece) => piece.playerId === playerId && piece.kind === kind)
+                .length
+        )
+    }
+
+    reserveSize(playerId: string): number {
+        return SET_SIZE - this.board.pieces.filter((piece) => piece.playerId === playerId).length
+    }
+
+    kindsInReserve(playerId: string): PieceKind[] {
+        return PIECE_KINDS.filter((kind) => this.reserveCount(playerId, kind) > 0)
+    }
+
     // Basic game rule B1/2: the first player's first piece stays out of the central hexagon.
     // Standard game rule 1: every new piece does.
     entersOutsideCentre(playerId: string): boolean {
         return (
             this.variant === Variant.Standard ||
-            (playerId === this.firstPlayerId() &&
-                this.getPlayerState(playerId).reserveSize() === SET_SIZE)
+            (playerId === this.firstPlayerId() && this.reserveSize(playerId) === SET_SIZE)
         )
     }
 
     entriesOf(playerId: string, kind: PieceKind): Placement[] {
-        if (this.getPlayerState(playerId).reserve[kind] === 0) {
+        if (this.reserveCount(playerId, kind) === 0) {
             return []
         }
         return this.board.entriesOf(kind, this.entersOutsideCentre(playerId))
@@ -109,7 +115,7 @@ export class HydratedPunctGameState
         rotation: number
     ): boolean {
         return (
-            this.getPlayerState(playerId).reserve[kind] > 0 &&
+            this.reserveCount(playerId, kind) > 0 &&
             this.board.canEnter(kind, punct, rotation, this.entersOutsideCentre(playerId))
         )
     }
@@ -120,11 +126,6 @@ export class HydratedPunctGameState
         return top !== undefined && top.dot === 0 && top.piece.playerId === playerId
             ? top.piece
             : undefined
-    }
-
-    movesOf(playerId: string, from: AxialCoordinates): Placement[] {
-        const piece = this.pieceWithPunctAt(playerId, from)
-        return piece === undefined ? [] : this.board.movesOf(piece)
     }
 
     moveFor(
@@ -147,15 +148,9 @@ export class HydratedPunctGameState
 
     canPlace(playerId: string): boolean {
         const outsideCentre = this.entersOutsideCentre(playerId)
-        return this.getPlayerState(playerId)
-            .kindsInReserve()
-            .some((kind) =>
-                SPACES.some((punct) =>
-                    rotationsOf(kind).some((rotation) =>
-                        this.board.canEnter(kind, punct, rotation, outsideCentre)
-                    )
-                )
-            )
+        return this.kindsInReserve(playerId).some((kind) =>
+            this.board.hasEntry(kind, outsideCentre)
+        )
     }
 
     canMove(playerId: string): boolean {
@@ -172,11 +167,7 @@ export class HydratedPunctGameState
         punct: AxialCoordinates,
         rotation: number
     ): PlacedPiece {
-        this.getPlayerState(playerId).reserve[kind] -= 1
-        const piece = { id: this.nextPieceId, playerId, kind, punct, rotation, level: 0 }
-        this.nextPieceId += 1
-        this.board.place(piece)
-        return piece
+        return this.board.place(playerId, kind, punct, rotation)
     }
 
     movePiece(piece: PlacedPiece, placement: Placement) {

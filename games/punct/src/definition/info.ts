@@ -7,6 +7,7 @@ export const PunctInfo: GameInfo = {
     id: 'punct',
     metadata: {
         name: 'PÜNCT',
+        bggId: 19764,
         designer: 'Kris Burm',
         description:
             'PÜNCT is a game of linking: place and move three-dot pieces to connect two opposite sides of the board. Pieces jump onto other pieces and bridge gaps, and the piece on top always counts.',
@@ -15,6 +16,7 @@ export const PunctInfo: GameInfo = {
         maxPlayers: 2,
         defaultPlayerCount: 2,
         version: GAME_VERSION,
+        hasScores: false,
         beta: true,
         visibility: GameVisibility.Alpha
     },

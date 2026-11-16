@@ -4,9 +4,9 @@ import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '
 import { HydratedPunctGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { PieceKind } from '../model/pieces.js'
-import { outcomeAfter } from '../stateHandlers/turnFlow.js'
 
 export type PlacePieceMetadata = Type.Static<typeof PlacePieceMetadata>
+// `passedPlayerId` names a player whose turn this placement's end skipped, as they could not act.
 export const PlacePieceMetadata = Type.Object({
     pieceId: Type.Integer({ minimum: 0 }),
     passedPlayerId: Type.Optional(Type.String())
@@ -51,13 +51,7 @@ export class HydratedPlacePiece extends HydratableAction<typeof PlacePiece> impl
             throw Error('Invalid PlacePiece action')
         }
         const piece = state.placePiece(this.playerId, this.kind, this.punct, this.rotation)
-        const outcome = outcomeAfter(state, this.playerId, true)
-        this.metadata = {
-            pieceId: piece.id,
-            ...(outcome.kind === 'next' && outcome.passedPlayerId !== undefined
-                ? { passedPlayerId: outcome.passedPlayerId }
-                : {})
-        }
+        this.metadata = { pieceId: piece.id }
     }
 
     isValid(state: HydratedPunctGameState): boolean {

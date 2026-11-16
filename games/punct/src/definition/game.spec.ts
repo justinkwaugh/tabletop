@@ -1,67 +1,59 @@
 import { describe, expect, it } from 'vitest'
-import {
-    ActionSource,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    type GameAction
-} from '@tabletop/common'
-import { Definition } from './definition.js'
+import { Color, GameResult } from '@tabletop/common'
 import { PunctRuntime } from './runtime.js'
-import { PunctInfo } from './info.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
-import {
-    EndReason,
-    HydratedPunctGameState,
-    Variant,
-    type PunctGameState
-} from '../model/gameState.js'
+import { Variant, variantFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
+import { EndReason, HydratedPunctGameState, type PunctGameState } from '../model/gameState.js'
 import { HydratedPunctBoard, type PlacedPiece } from '../model/board.js'
 import { CENTRE_SPACES, SPACES, spaceAt, spaceName } from '../model/geometry.js'
-import { dotsOf, PieceKind, SET_SIZE } from '../model/pieces.js'
-import type { Reserve } from '../model/playerState.js'
+import {
+    dotsOf,
+    PIECE_KINDS,
+    PieceKind,
+    rotationsOf,
+    SET_COUNTS,
+    SET_SIZE
+} from '../model/pieces.js'
 import type { PlacePiece } from '../actions/placePiece.js'
 import { isMovePiece, type MovePiece } from '../actions/movePiece.js'
+import {
+    actionBase as base,
+    createGame as createTestGame,
+    engine,
+    execute,
+    MASTER_SEED,
+    playToEnd,
+    type Owner,
+    type PunctConfig,
+    type PunctGame
+} from './tests/playthrough.js'
 
-const engine = new GameEngine(PunctRuntime)
 const W = 'white'
 const B = 'black'
 
-function createGame(variant: Variant = Variant.Standard) {
-    return PunctRuntime.initializer.initializeGame(
-        {
-            id: 'punct-test',
-            typeId: 'punct',
-            ownerId: 'owner',
-            seed: 5,
-            config: { ...defaultGameConfig(PunctInfo.configurator?.options ?? []), variant },
-            players: [W, B].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
+function createGame(variant: Variant = Variant.Standard, owner?: Owner) {
+    return createConfiguredGame({ variant }, owner)
 }
 
-type PunctGame = ReturnType<typeof createGame>
+function createConfiguredGame(config: PunctConfig, owner?: Owner) {
+    return createTestGame(config, [W, B], owner)
+}
+
+// A distinct fixed master seed for each number.
+function masterSeed(number: number): string {
+    return number.toString(16).padStart(32, '0')
+}
 
 function start(game: PunctGame): PunctGameState {
-    return engine.startGame(game, { startingPositions: { playerIds: [W, B] } }).initialState
+    return engine.startGame(game, {
+        masterSeed: MASTER_SEED,
+        startingPositions: { playerIds: [W, B] }
+    }).initialState
 }
 
-let counter = 0
-function base(game: PunctGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: PunctGame, state: PunctGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
+function startUnassigned(game: PunctGame, seed: string = MASTER_SEED): PunctGameState {
+    return engine.startGame(game, { masterSeed: seed }).initialState
 }
 
 function placeAction(
@@ -98,24 +90,9 @@ function moveAction(
 
 type PieceSpec = [player: string, kind: PieceKind, punct: string, rotation: number, level: number]
 
-// Rewrites a started state with these pieces in play, each player's reserve reduced to match
-// unless given. White is to move.
-function position(
-    state: PunctGameState,
-    pieces: PieceSpec[],
-    reserves: Partial<Record<string, Reserve>> = {}
-): PunctGameState {
-    const placed = positionPieces(pieces)
-    const players = state.players.map((player) => {
-        const reserve = { ...(reserves[player.playerId] ?? player.reserve) }
-        if (reserves[player.playerId] === undefined) {
-            for (const piece of placed.filter((p) => p.playerId === player.playerId)) {
-                reserve[piece.kind] = Math.max(0, reserve[piece.kind] - 1)
-            }
-        }
-        return { ...player, reserve }
-    })
-    return { ...state, players, board: { pieces: placed }, nextPieceId: placed.length }
+// Rewrites a started state with these pieces in play, ids in the order given. White is to move.
+function position(state: PunctGameState, pieces: PieceSpec[]): PunctGameState {
+    return { ...state, board: { pieces: positionPieces(pieces) } }
 }
 
 function hydrated(state: PunctGameState) {
@@ -329,6 +306,29 @@ describe('PÜNCT bridges', () => {
         ).toThrow()
     })
 
+    it('refuses a moved piece under a bridge, at any level', () => {
+        const game = createGame()
+        const mover: PieceSpec = [W, PieceKind.Triangle, 'C10', 0, 0]
+        const bridged = position(start(game), [
+            ...piers,
+            [W, PieceKind.StraightEnd, 'C4', 0, 1],
+            mover
+        ])
+        expect(() => execute(game, bridged, moveAction(game, W, 'C10', 'C5', 4))).toThrow()
+        const board = hydrated(bridged).board
+        const piece = board.pieces[3]
+        const underBridge = board
+            .movesOf(piece)
+            .filter((move) =>
+                dotsOf(piece.kind, move.punct, move.rotation).some((dot) => spaceName(dot) === 'C5')
+            )
+        expect(underBridge.every((move) => move.level >= 2)).toBe(true)
+        // Without the bridge the same move lands on the board.
+        const open = position(start(game), [...piers, mover])
+        const moved = execute(game, open, moveAction(game, W, 'C10', 'C5', 4))
+        expect(hydrated(moved).board.pieces[2].level).toBe(0)
+    })
+
     it('never lets a triangle bridge', () => {
         const board = new HydratedPunctBoard({ pieces: [] })
         expect(board.levelFor(W, PieceKind.Triangle, spaceAt('C4'), 0)).toBe(0)
@@ -449,133 +449,259 @@ describe('PÜNCT connections', () => {
     })
 })
 
-describe('PÜNCT last piece', () => {
-    const lastTriangle = { [W]: { ...emptyReserve(), [PieceKind.Triangle]: 1 } }
+// Brings the rest of a player's set into play, all but the kinds kept back, packed into rows 1–4
+// and stacked on their own pieces once those fill. The rows lie outside the centre and touch only
+// one side of the board, so the pieces never connect.
+function restInPlay(playerId: string, keep: PieceKind[], pieces: PieceSpec[]): PieceSpec[] {
+    const rows = new Set(SPACES.map(spaceName).filter((name) => Number(name.slice(1)) <= 4))
+    const placed = [...pieces]
+    for (const kind of PIECE_KINDS) {
+        const held =
+            placed.filter(([owner, heldKind]) => owner === playerId && heldKind === kind).length +
+            keep.filter((kept) => kept === kind).length
+        for (let count = held; count < SET_COUNTS[kind]; count++) {
+            const board = new HydratedPunctBoard({ pieces: positionPieces(placed) })
+            const spot = SPACES.filter((punct) => rows.has(spaceName(punct)))
+                .flatMap((punct) => rotationsOf(kind).map((rotation) => ({ punct, rotation })))
+                .map(({ punct, rotation }) => ({
+                    punct,
+                    rotation,
+                    level: dotsOf(kind, punct, rotation).every((dot) => rows.has(spaceName(dot)))
+                        ? board.levelFor(playerId, kind, punct, rotation)
+                        : undefined
+                }))
+                .find(({ level }) => level !== undefined)
+            if (spot?.level === undefined) throw Error(`No room for ${playerId}'s ${kind}`)
+            placed.push([playerId, kind, spaceName(spot.punct), spot.rotation, spot.level])
+        }
+    }
+    return placed
+}
 
+describe('PÜNCT last piece', () => {
     it('ends the standard game on the most central spaces', () => {
         const game = createGame(Variant.Standard)
-        const state = position(
-            start(game),
+        const pieces = restInPlay(
+            W,
+            [PieceKind.Triangle],
             [
                 [W, PieceKind.Triangle, 'I9', 0, 0],
                 [B, PieceKind.StraightEnd, 'H6', 0, 0]
-            ],
-            lastTriangle
+            ]
         )
+        const state = position(start(game), pieces)
+        expect(hydrated(state).reserveSize(W)).toBe(1)
         const after = execute(game, state, placeAction(game, W, PieceKind.Triangle, 'C5', 0))
         expect(after.machineState).toBe(MachineState.EndOfGame)
         expect(after.result).toBe(GameResult.Win)
         expect(after.winningPlayerIds).toEqual([W])
         expect(after.endReason).toBe(EndReason.CentreCount)
+        expect(PunctRuntime.scoring?.finalScores(after)).toEqual({ [W]: 1, [B]: 0 })
     })
 
     it('draws the standard game on equal central spaces', () => {
         const game = createGame(Variant.Standard)
-        const state = position(start(game), [], lastTriangle)
+        const state = position(start(game), restInPlay(W, [PieceKind.Triangle], []))
         const after = execute(game, state, placeAction(game, W, PieceKind.Triangle, 'C5', 0))
         expect(after.result).toBe(GameResult.Draw)
         expect(after.winningPlayerIds.sort()).toEqual([B, W])
+        expect(PunctRuntime.scoring?.finalScores(after)).toEqual({ [W]: 1, [B]: 1 })
     })
 
     it('ends the basic game undecided', () => {
         const game = createGame(Variant.Basic)
-        const state = position(start(game), [[W, PieceKind.Triangle, 'I9', 0, 0]], lastTriangle)
+        const state = position(
+            start(game),
+            restInPlay(W, [PieceKind.Triangle], [[W, PieceKind.Triangle, 'I9', 0, 0]])
+        )
         const after = execute(game, state, placeAction(game, W, PieceKind.Triangle, 'C5', 0))
         expect(after.result).toBe(GameResult.Draw)
         expect(after.endReason).toBe(EndReason.LastPiece)
     })
 })
 
+describe('PÜNCT reserve', () => {
+    it('counts each kind of the set not yet in play', () => {
+        const game = createGame()
+        let state = start(game)
+        expect(hydrated(state).reserveSize(W)).toBe(SET_SIZE)
+        state = execute(game, state, placeAction(game, W, PieceKind.StraightEnd, 'C4', 0))
+        const after = hydrated(state)
+        expect(after.reserveCount(W, PieceKind.StraightEnd)).toBe(
+            SET_COUNTS[PieceKind.StraightEnd] - 1
+        )
+        expect(after.reserveCount(B, PieceKind.StraightEnd)).toBe(SET_COUNTS[PieceKind.StraightEnd])
+        expect(after.reserveSize(W)).toBe(SET_SIZE - 1)
+    })
+
+    it('gives each new piece the next id in entry order', () => {
+        const game = createGame()
+        let state = start(game)
+        state = execute(game, state, placeAction(game, W, PieceKind.Triangle, 'C5', 0))
+        state = execute(game, state, placeAction(game, B, PieceKind.Triangle, 'L4', 0))
+        state = execute(game, state, moveAction(game, W, 'C5', 'C9', 0))
+        state = execute(game, state, placeAction(game, B, PieceKind.Triangle, 'N10', 0))
+        expect(state.board.pieces.map((piece) => piece.id)).toEqual([0, 1, 2])
+        expect(hydrated(state).board.nextPieceId()).toBe(3)
+    })
+
+    it('leaves a player with no set left with no placement', () => {
+        const game = createGame()
+        const state = hydrated(position(start(game), restInPlay(W, [], [])))
+        expect(state.reserveSize(W)).toBe(0)
+        expect(state.kindsInReserve(W)).toEqual([])
+        expect(state.canPlace(W)).toBe(false)
+        expect(state.entriesOf(W, PieceKind.Triangle)).toEqual([])
+    })
+})
+
+// A player keeps a piece in reserve until the game ends, and two sets of 18 can hardly cover the
+// board enough to leave it no entry. Neutral pieces fill every space not given, so that neither
+// player can enter.
+const WALL = 'wall'
+function walled(pieces: PieceSpec[], holes: PieceSpec[] = []): PieceSpec[] {
+    const open = new Set(
+        positionPieces([...pieces, ...holes]).flatMap((piece) =>
+            dotsOf(piece.kind, piece.punct, piece.rotation).map(spaceName)
+        )
+    )
+    const names = new Set(SPACES.map(spaceName))
+    const covered = new Set<string>()
+    const wall: PieceSpec[] = []
+    for (const name of SPACES.map(spaceName)) {
+        if (open.has(name) || covered.has(name)) continue
+        const footprints = PIECE_KINDS.flatMap((kind) =>
+            rotationsOf(kind).map((rotation) => ({
+                kind,
+                rotation,
+                dots: dotsOf(kind, spaceAt(name), rotation).map(spaceName)
+            }))
+        ).filter(({ dots }) => dots.every((dot) => names.has(dot) && !open.has(dot)))
+        // Wall pieces overlap where nothing else fits.
+        const footprint =
+            footprints.find(({ dots }) => dots.every((dot) => !covered.has(dot))) ?? footprints[0]
+        if (footprint === undefined) throw Error(`No wall piece fits at ${name}`)
+        footprint.dots.forEach((dot) => covered.add(dot))
+        wall.push([WALL, footprint.kind, name, footprint.rotation, 0])
+    }
+    return [...pieces, ...wall]
+}
+
 describe('PÜNCT passing', () => {
     it('passes a player with no legal action, recording it on the move before', () => {
         const game = createGame()
-        // Black has nothing in reserve and its only piece is covered.
+        // White's top triangle can turn on the one below it; Black can neither enter nor move.
         const state = position(
             start(game),
-            [
-                [B, PieceKind.Triangle, 'C4', 0, 0],
-                [W, PieceKind.Triangle, 'C4', 0, 1],
-                [W, PieceKind.Triangle, 'L4', 0, 0]
-            ],
-            { [B]: emptyReserve() }
+            walled([
+                [W, PieceKind.Triangle, 'G6', 0, 0],
+                [W, PieceKind.Triangle, 'G6', 0, 1]
+            ])
         )
         const result = engine.executeCanonicalAction({
             game,
             state,
-            action: moveAction(game, W, 'L4', 'L4', 5)
+            action: moveAction(game, W, 'G6', 'G6', 2)
         })
         const processed = result.processedActions[0]
         expect(isMovePiece(processed) && processed.metadata?.passedPlayerId).toBe(B)
         expect(result.updatedState.activePlayerIds).toEqual([W])
     })
+
+    it('draws the game when neither player can act', () => {
+        const game = createGame()
+        // White's angular piece fills the last open spaces, where it can neither move nor turn.
+        const hole: PieceSpec = [W, PieceKind.AngleCorner, 'B3', 0, 0]
+        const state = position(start(game), walled([], [hole]))
+        const result = engine.executeCanonicalAction({
+            game,
+            state,
+            action: placeAction(game, W, PieceKind.AngleCorner, 'B3', 0)
+        })
+        const after = result.updatedState
+        expect(hydrated(after).reserveSize(W)).toBe(SET_SIZE - 1)
+        expect(after.machineState).toBe(MachineState.EndOfGame)
+        expect(after.result).toBe(GameResult.Draw)
+        expect(after.endReason).toBe(EndReason.NoMoves)
+        expect(after.winningPlayerIds.sort()).toEqual([B, W])
+        expect(PunctRuntime.scoring?.finalScores(after)).toEqual({ [W]: 1, [B]: 1 })
+    })
 })
 
-function emptyReserve(): Reserve {
-    return {
-        [PieceKind.Triangle]: 0,
-        [PieceKind.StraightEnd]: 0,
-        [PieceKind.StraightCentre]: 0,
-        [PieceKind.AngleCorner]: 0,
-        [PieceKind.AngleLeft]: 0,
-        [PieceKind.AngleRight]: 0
-    }
-}
+describe('PÜNCT setup options', () => {
+    const whiteOf = (state: PunctGameState) =>
+        state.players.find((player) => player.color === Color.White)?.playerId
+
+    it('gives White to the game creator or the opponent when chosen', () => {
+        const owner = { ownerId: 'u-black', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        const creatorWhite = startUnassigned(
+            createConfiguredGame({ whitePlayer: WhitePlayer.Creator }, owner)
+        )
+        expect(whiteOf(creatorWhite)).toBe(B)
+        expect(creatorWhite.activePlayerIds).toEqual([B])
+        const opponentWhite = startUnassigned(
+            createConfiguredGame({ whitePlayer: WhitePlayer.Opponent }, owner)
+        )
+        expect(whiteOf(opponentWhite)).toBe(W)
+        expect(opponentWhite.activePlayerIds).toEqual([W])
+    })
+
+    it('draws White by lot when Random, and when the creator does not play', () => {
+        const outsider = { ownerId: 'u-host', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        for (const [config, owner] of [
+            [{ whitePlayer: WhitePlayer.Random }, undefined],
+            [{ whitePlayer: WhitePlayer.Creator }, outsider],
+            [{ whitePlayer: WhitePlayer.Opponent }, outsider]
+        ] as const) {
+            const whites = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const state = startUnassigned(
+                        createConfiguredGame(config, owner),
+                        masterSeed(seed)
+                    )
+                    expect(state.activePlayerIds).toEqual([whiteOf(state)])
+                    return whiteOf(state)
+                })
+            )
+            expect(whites).toEqual(new Set([W, B]))
+        }
+    })
+
+    it('counts the first seat as the creator in a local game', () => {
+        const local = { ownerId: 'u-local', userIds: { [W]: 'u-local', [B]: 'u-local' } }
+        for (const seed of [1, 2, 3, 4]) {
+            const creator = startUnassigned(
+                createConfiguredGame({ whitePlayer: WhitePlayer.Creator }, local),
+                masterSeed(seed)
+            )
+            expect(whiteOf(creator)).toBe(W)
+            const opponent = startUnassigned(
+                createConfiguredGame({ whitePlayer: WhitePlayer.Opponent }, local),
+                masterSeed(seed)
+            )
+            expect(whiteOf(opponent)).toBe(B)
+        }
+    })
+
+    it('reads a missing option as its default and rejects an unknown one', () => {
+        expect(variantFromConfig({})).toBe(Variant.Standard)
+        expect(whitePlayerFromConfig({})).toBe(WhitePlayer.Random)
+        expect(() => variantFromConfig({ variant: 'Bogus' })).toThrow()
+        expect(() => whitePlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
+    })
+})
 
 describe('PÜNCT random playouts', () => {
-    function legalActions(game: PunctGame, state: PunctGameState): GameAction[] {
-        const hydratedState = hydrated(state)
-        const playerId = state.activePlayerIds[0]
-        const player = hydratedState.getPlayerState(playerId)
-        const placements = player.kindsInReserve().flatMap((kind) =>
-            hydratedState.entriesOf(playerId, kind).map((entry) => ({
-                ...base(game, playerId),
-                type: ActionType.PlacePiece,
-                kind,
-                punct: entry.punct,
-                rotation: entry.rotation
-            }))
+    it.each(
+        Object.values(Variant).flatMap((variant) =>
+            Array.from({ length: 6 }, (_, seed) => [variant, seed] as const)
         )
-        const moves = hydratedState.board.movablePieces(playerId).flatMap((piece) =>
-            hydratedState.board.movesOf(piece).map((move) => ({
-                ...base(game, playerId),
-                type: ActionType.MovePiece,
-                from: piece.punct,
-                to: move.punct,
-                rotation: move.rotation
-            }))
-        )
-        return [...placements, ...moves]
-    }
-
-    for (const variant of [Variant.Standard, Variant.Basic]) {
-        it(`ends every ${variant} game with a result`, { timeout: 120_000 }, () => {
-            for (let seed = 1; seed <= 6; seed++) {
-                let random = seed * 7919
-                const next = () => {
-                    random = (random * 16807) % 2147483647
-                    return random / 2147483647
-                }
-                const game = createGame(variant)
-                let state = start(game)
-                let steps = 0
-                while (state.machineState !== MachineState.EndOfGame && steps < 400) {
-                    const actions = legalActions(game, state)
-                    expect(actions.length).toBeGreaterThan(0)
-                    const wantMove = next() < 0.6
-                    const pool = actions.filter(
-                        (action) =>
-                            (action.type === ActionType.MovePiece) === wantMove ||
-                            !actions.some(
-                                (other) => (other.type === ActionType.MovePiece) === wantMove
-                            )
-                    )
-                    state = execute(game, state, pool[Math.floor(next() * pool.length)])
-                    steps += 1
-                }
-                expect(state.machineState).toBe(MachineState.EndOfGame)
-                expect(state.result).toBeDefined()
-                expect(state.winningPlayerIds.length).toBeGreaterThan(0)
-            }
-        })
-    }
+    )('%s seed %i plays to a result', (variant, seed) => {
+        const game = createGame(variant)
+        const state = playToEnd(game, start(game), seed)
+        expect(state.result).toBeDefined()
+        expect(state.winningPlayerIds.length).toBeGreaterThan(0)
+        // Nothing reads past turns, so the series keeps only each player's latest.
+        expect(state.turnManager.series.length).toBeLessThanOrEqual(2)
+    })
 })
