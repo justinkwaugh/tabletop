@@ -24,6 +24,7 @@ import type { GameService } from '$lib/services/gameService.js'
 import type { GameStore } from '$lib/persistence/gameStore.js'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
 import { IndexedDbGameStore } from '$lib/persistence/indexedDbGameStore.js'
+import { localGameRecord } from '$lib/persistence/localGameRecord.js'
 import type { AuthorizationService } from '$lib/services/authorizationService.js'
 import type { LibraryService } from '$lib/services/libraryService.js'
 
@@ -264,11 +265,9 @@ export class HarnessGameService implements GameService {
         state: GameState
         actions: GameAction[]
     }) {
-        const gameData = structuredClone(game)
         const stateData = structuredClone(state)
+        const gameData = localGameRecord(structuredClone(game), stateData)
         const actionsData = actions.map((action) => structuredClone(action))
-
-        gameData.activePlayerIds = stateData.activePlayerIds
 
         if (game.storage !== GameStorage.Local) {
             throw new Error('Can only save local games locally')

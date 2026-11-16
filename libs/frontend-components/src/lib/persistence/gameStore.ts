@@ -3,6 +3,7 @@ import type { Game, GameAction, GameState, User } from '@tabletop/common'
 export interface GameStore {
     createGame(game: Game, state: GameState): Promise<Game>
     loadGameData(gameId: string): Promise<{ game?: Game; actions: GameAction[] }>
+    loadGameState(gameId: string): Promise<GameState | undefined>
     findGamesForUser(user: User): Promise<Game[]>
     findGameById(gameId: string): Promise<Game | undefined>
     deleteGame(gameId: string): Promise<void>
