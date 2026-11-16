@@ -331,6 +331,9 @@ const YELLOW_MILWAUKEE = line(['Chicago', 'Milwaukee'], { start: true })
 const ORANGE_DES_MOINES = line(['Chicago', 'Des Moines'])
 const SHARED_HEX = ORANGE_DES_MOINES[0] ?? cityHexId('Chicago')
 const YELLOW_SAINT_LOUIS = [SHARED_HEX, ...walk(SHARED_HEX, cityHexId('Saint Louis'))]
+// Chicago's other links: Orange on to Detroit, and Yellow from Chicago to Cincinnati.
+const ORANGE_DETROIT = line(['Chicago', 'Detroit'])
+const YELLOW_CINCINNATI = line(['Chicago', 'Cincinnati'], { start: true })
 
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
@@ -740,6 +743,39 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
             phase: PhaseName.Ride,
             currentPlayerId: 'p4',
             carried: [cityIdOf('Albany'), cityIdOf('Baltimore'), cityIdOf('Philadelphia')]
+        }
+    },
+    // The map's Ride button beside a crowded city: round 3, Ride, Ada first. Orange runs from
+    // Chicago to Milwaukee and on its other side to Detroit, and Yellow from Chicago to Cincinnati,
+    // so a journey from Milwaukee into Chicago has Detroit lit east of the city and Cincinnati
+    // below it.
+    {
+        slug: 'crowded-chicago',
+        name: 'Crowded chicago',
+        recipe: {
+            playerCount: 4,
+            rounds: [
+                { ...EAST_COAST_ROUND, journeys: { p1: 2, p2: 3, p3: 4, p4: 5 } },
+                {
+                    shares: { p4: ORANGE, p3: ORANGE, p2: RED, p1: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
+                        { playerId: 'p3', runs: [[ORANGE, ORANGE_DETROIT]] }
+                    ],
+                    journeys: { p1: 3, p2: 5, p3: 5, p4: 5 }
+                },
+                {
+                    shares: { p4: YELLOW, p3: BLUE, p2: YELLOW, p1: BLUE },
+                    builds: [{ playerId: 'p2', runs: [[YELLOW, YELLOW_CINCINNATI]] }]
+                }
+            ],
+            phase: PhaseName.Ride,
+            carried: [
+                cityIdOf('Albany'),
+                cityIdOf('Washington'),
+                cityIdOf('Philadelphia'),
+                cityIdOf('Chicago')
+            ]
         }
     },
     // Scenario 19: round 6's last journey. Cora's ride from Saint Louis brings her level with Ada,

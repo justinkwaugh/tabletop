@@ -132,6 +132,7 @@
                 fill={MARK_FILL[mark.tone]}
                 stroke="var(--rtr-halo)"
                 stroke-width={2.6 * scale}
+                data-keep-clear
             ></rect>
             <text
                 {x}
@@ -152,6 +153,7 @@
                 transform="translate({center.x + across * scale} {center.y}) scale({scale *
                     CHEVRON_SCALE})"
                 data-chevron={railroadId}
+                data-keep-clear
             >
                 <circle r="9.8" fill={style.fill} stroke="var(--rtr-halo)" stroke-width="2"
                 ></circle>

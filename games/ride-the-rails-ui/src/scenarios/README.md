@@ -89,6 +89,13 @@ Round 1, Ride. Ada, Ben and Cora have ridden; Dell rides last (scenario 18).
 
 - Dell's journey from Washington brings him level with Ben at $4; the tied pair swap places, so round 2's order is Dell, Ben, Cora, Ada, and Orange becomes available.
 
+## Crowded chicago
+
+Round 3, Ride. Orange runs from Chicago to Milwaukee and on its other side to Detroit, and Yellow from Chicago to Cincinnati; Ada rides first (the map's Ride button, Pick conventions).
+
+- Milwaukee, then Chicago by Orange: Detroit lights east of Chicago and Cincinnati below it.
+- On the whole map the Ride button's own side covers Detroit on desktop and Cincinnati on a phone, so it stands at the first clear place instead; zoomed in, it is back on its own side.
+
 ## Last journey
 
 Round 6 with three seats, Ride. Ada and Ben have ridden; Cora rides the game's last journey (scenario 19).
