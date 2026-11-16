@@ -5,7 +5,8 @@
         SPACE_NAMES,
         SPACE_SHORT_NAMES,
         spaceText,
-        SPACE_DISPLAY_ORDER
+        SPACE_DISPLAY_ORDER,
+        ITEM_NAMES
     } from '$lib/utils/describeAction.js'
     import AuctionPanel from './AuctionPanel.svelte'
     import BidStepper from './BidStepper.svelte'
@@ -13,15 +14,15 @@
     import CompanyBadge from './CompanyBadge.svelte'
     import IndustryAuctionPanel from './IndustryAuctionPanel.svelte'
     import IndustryToken from './IndustryToken.svelte'
+    import InvestmentClaimPanel from './InvestmentClaimPanel.svelte'
     import WaitingView from './WaitingView.svelte'
 
     const gameSession = getGameSession()
 
     const state = $derived(gameSession.gameState)
     const machineState = $derived(state.machineState)
-    const cash = $derived(
-        gameSession.myPlayerId ? state.getPlayerState(gameSession.myPlayerId).cash : 0
-    )
+    // Toll chits cash in when a bid needs them, so they count towards what a player can bid.
+    const cash = $derived(gameSession.myPlayerId ? state.spendingPower(gameSession.myPlayerId) : 0)
     const cubes = $derived(
         gameSession.placements.filter((placement) => placement.kind === PlacementKind.Cube).length
     )
@@ -36,6 +37,7 @@
     const layRules = $derived(
         gameSession.laySpace ? spaceText(state, gameSession.laySpace).rules : ''
     )
+    const partner = $derived(state.offeredPartner())
     const buildChoices = $derived(
         gameSession.placements.length === 0 && !gameSession.firstCompany
             ? gameSession.firstCompanyOptions
@@ -50,6 +52,8 @@
         <AuctionPanel />
     {:else if machineState === MachineState.SealedBidding || machineState === MachineState.ResolvingIndustryAuction}
         <IndustryAuctionPanel />
+    {:else if machineState === MachineState.ClaimingInvestment}
+        <InvestmentClaimPanel />
     {:else if !gameSession.canAct}
         <WaitingView />
     {:else if machineState === MachineState.ChoosingAction}
@@ -99,6 +103,9 @@
     {:else if machineState === MachineState.ChoosingIndustry}
         <p class="prompt">
             Choose an industry token to auction; its development level rises by one.
+            {#if partner}
+                A {ITEM_NAMES[partner]} is auctioned with it.
+            {/if}
         </p>
         <div class="row" role="group" aria-label="Industries">
             {#each gameSession.investableIndustries as industry (industry)}
@@ -128,6 +135,30 @@
                 Everything allowed is staged.
             {/if}
         </p>
+        {#if gameSession.loanCompany && (gameSession.loanRange.take > 0 || gameSession.loanRange.repay > 0)}
+            {@const loans = state.loans(gameSession.loanCompany)}
+            <div class="row loans" role="group" aria-label="Loans">
+                <span
+                    >Loans {loans}{gameSession.loanChange !== 0
+                        ? ` → ${loans + gameSession.loanChange}`
+                        : ''}</span
+                >
+                <button
+                    type="button"
+                    class="secondary"
+                    disabled={gameSession.loanChange <= -gameSession.loanRange.repay}
+                    onclick={() => gameSession.setLoanChange(gameSession.loanChange - 1)}
+                    >Repay −$10</button
+                >
+                <button
+                    type="button"
+                    class="secondary"
+                    disabled={gameSession.loanChange >= gameSession.loanRange.take}
+                    onclick={() => gameSession.setLoanChange(gameSession.loanChange + 1)}
+                    >Borrow +$5</button
+                >
+            </div>
+        {/if}
         {#if buildChoices.length > 0}
             <div class="row" role="group" aria-label="Companies">
                 {#each buildChoices as companyId (companyId)}
@@ -141,7 +172,9 @@
         {/if}
         <div class="row">
             <button type="button" class="primary" onclick={() => gameSession.layTrack()}>
-                {#if gameSession.placements.length === 0}
+                {#if gameSession.placements.length === 0 && gameSession.loanChange !== 0}
+                    {gameSession.loanChange > 0 ? 'Borrow' : 'Repay'} and lay no track
+                {:else if gameSession.placements.length === 0}
                     Lay no track
                 {:else}
                     Lay {gameSession.placements.length} piece{gameSession.placements.length === 1

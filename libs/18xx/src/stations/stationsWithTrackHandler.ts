@@ -16,16 +16,15 @@ import {
     type StationPlacementState,
     type StationRules
 } from './stationPlacement.js'
+import { placeableStations } from '../map/station.js'
 import { actionMayOperate, automaticStepCredit } from '../finance/receivership.js'
 
 type State = HydratedGameState & OperatingState & StationPlacementState & ConstructionState
 
 /** The stations a corporation may place now, beside its track. */
 export function stationChoicesWithTrack(state: StationPlacementState, rules: StationRules) {
-    const station = state.stations.find(
-        (station) =>
-            station.companyId === state.stationStep?.companyId && station.status === 'available'
-    )
+    const companyId = state.stationStep?.companyId
+    const station = companyId ? placeableStations(state, companyId)[0] : undefined
     return station ? new StationPlacement(state, rules).choices(station.id) : []
 }
 

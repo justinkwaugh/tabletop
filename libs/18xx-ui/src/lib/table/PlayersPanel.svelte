@@ -20,6 +20,8 @@
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentName from '../finance/PresidentName.svelte'
+    import CertificateBadge from '../finance/CertificateBadge.svelte'
+    import { multiShareMark } from '../finance/multiShareCertificates.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
@@ -60,6 +62,7 @@
             playerId,
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
+            reserved: session.reservedCash(playerId),
             certs: session.playerCertificates(playerId),
             ...session.portfolio(
                 { kind: 'player', playerId },
@@ -78,6 +81,7 @@
                 controller: controller ? session.getPlayerName(controller.playerId) : undefined,
                 bankrupt: false,
                 liquidity: undefined,
+                reserved: 0,
                 certs: undefined,
                 ...session.portfolio({ kind: 'company', companyId })
             }
@@ -168,6 +172,10 @@
     }
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
 </script>
+
+{#snippet holdings(text: string | undefined)}
+    {#if text}<small class="private-holdings">{text}</small>{/if}
+{/snippet}
 
 <div class="players" aria-label="Players">
     {#each players as player, index (player.id)}
@@ -274,6 +282,12 @@
                 <dl>
                     <dt>Cash</dt>
                     <dd>{money(player.cash)}</dd>
+                    {#if player.reserved}<dd
+                            class="reserved"
+                            title="The cash the player’s bids hold back"
+                        >
+                            {money(player.reserved)} reserved
+                        </dd>{/if}
                 </dl>
                 {#if player.liquidity !== undefined}<span class="stat-divider" aria-hidden="true"
                     ></span>
@@ -303,7 +317,37 @@
                     <dt>Net worth</dt>
                     <dd>{money(player.netWorth)}</dd>
                 </dl>
+                {#each player.playerId ? (session.presentation.playerFacts?.(session.gameState, player.playerId) ?? []) : [] as fact (fact.label)}
+                    <span class="stat-divider" aria-hidden="true"></span>
+                    <dl>
+                        <dt>{fact.label}</dt>
+                        <dd>{fact.value}</dd>
+                    </dl>
+                {/each}
             </div>
+            {#if player.playerId && session.bidBoxes.available}
+                {@const bids = session.bidBoxes.playerBids(player.playerId)}
+                {#if bids.length}
+                    <section class="auction-lot" aria-label={`${player.name} bids`}>
+                        <h4>
+                            Bids · {session.bidBoxes.tokensFree(player.playerId)} of
+                            {session.bidBoxes.tokens(player.playerId)} tokens free
+                        </h4>
+                        <table>
+                            <tbody>
+                                {#each bids as bid (bid.lotId)}
+                                    <tr class:outbid={!bid.leading}>
+                                        <th scope="row">{session.companyName(bid.lotId)}</th>
+                                        <td class="amount"
+                                            >{money(bid.amount)}{bid.leading ? '' : ' outbid'}</td
+                                        >
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    </section>
+                {/if}
+            {/if}
             {#if player.playerId && playerAuctionLots?.byPlayer.has(player.playerId)}
                 {@const heading = playerAuctionLots.kind === 'bids' ? 'Bids' : 'Auction lot'}
                 <section class="auction-lot" aria-label={`${player.name} ${heading.toLowerCase()}`}>
@@ -345,6 +389,12 @@
                         >
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
                                 {@const numbered = numberedShares(player.owner, entry.company.id)}
+                                {@const mark = multiShareMark(
+                                    session.presentation,
+                                    session.gameState,
+                                    entry.company.id,
+                                    player.owner
+                                )}
                                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                                 <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
                                 <div
@@ -373,8 +423,13 @@
                                                 >{session.companyInitials(entry.company.id)}</button
                                             >
                                             {#if entry.president}<span
-                                                    class="compact-president"
+                                                    class="compact-mark"
                                                     aria-label="President">P</span
+                                                >{/if}
+                                            {#if mark}<span
+                                                    class="compact-mark"
+                                                    title={mark.title}
+                                                    aria-label={mark.name}>{mark.label}</span
                                                 >{/if}
                                         </span>
                                         <span class="holding-amount"
@@ -402,6 +457,12 @@
                     {:else if player.ownership.length}
                         <table class="ownership" aria-label={`${player.name} company ownership`}>
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
+                                {@const mark = multiShareMark(
+                                    session.presentation,
+                                    session.gameState,
+                                    entry.company.id,
+                                    player.owner
+                                )}
                                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
                                 <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
                                 <tbody
@@ -435,7 +496,10 @@
                                                 ><PresidentName
                                                     name={session.companyName(entry.company.id)}
                                                     president={entry.president}
-                                                /></button
+                                                />{#if mark}<CertificateBadge
+                                                        label={mark.label}
+                                                        title={mark.title}
+                                                    />{/if}</button
                                             ></th
                                         >
                                         <td class="amount">{percent.format(entry.percentage)}%</td>
@@ -501,7 +565,12 @@
                                             .filter((power) => power.playerId === player.playerId) as power (power.privateCompanyId)}<span
                                                 class="private-power"
                                                 ><PrivateTrackPowerButton {session} {power} /></span
-                                            >{/each}</th
+                                            >{/each}{@render holdings(
+                                            session.presentation.privateHoldings?.(
+                                                session.gameState,
+                                                entry.company.id
+                                            )
+                                        )}</th
                                     >
                                     <td class="amount"
                                         >{#if entry.income !== 0}{money(
@@ -521,6 +590,19 @@
 </div>
 
 <style>
+    /* A line under the cash, the card's first column, that runs on to the right rather than
+       widening its column. */
+    .stats dd.reserved {
+        display: flex;
+        justify-content: flex-start;
+        width: 0;
+        min-width: 100%;
+        line-height: 12px;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--rail-muted, #887664);
+        white-space: nowrap;
+    }
     .header-controls {
         display: flex;
         align-items: center;
@@ -588,10 +670,10 @@
         gap: 1px;
     }
     .compact-company-label > button,
-    .compact-president {
+    .compact-mark {
         text-box: trim-both cap alphabetic;
     }
-    .compact-president {
+    .compact-mark {
         color: var(--rail-muted, #a79888);
         font-size: 9px;
         font-weight: 700;
@@ -826,6 +908,9 @@
     .president .amount {
         font-weight: 700;
     }
+    .auction-lot tr.outbid {
+        color: var(--rail-muted, #887664);
+    }
     .auction-lot + section,
     .privates {
         border-top: 1px solid var(--rail-border, #e3d9cd);
@@ -856,6 +941,13 @@
     }
     .privates tr {
         cursor: pointer;
+    }
+    .private-holdings {
+        display: block;
+        color: var(--rail-muted, #817565);
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 14px;
     }
     .private-power {
         margin-left: 6px;

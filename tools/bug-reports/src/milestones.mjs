@@ -115,7 +115,7 @@ export function reporterMessage(status, report, note, postUrl) {
         subject: stage.subject,
         eyebrow: stage.eyebrow,
         heading: stage.heading,
-        game: `${report.fields.Game} · ${report.game}`,
+        game: [report.fields.Game, report.game].filter(Boolean).join(' · '),
         lead: stage.lead,
         note,
         closing: stage.closing,

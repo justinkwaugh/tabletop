@@ -49,7 +49,6 @@
                 <OperatingActions
                     {session}
                     {privateOperationDescription}
-                    {createRouteWorker}
                     onFocusRoute={focusRoute}
                 />
             {/if}

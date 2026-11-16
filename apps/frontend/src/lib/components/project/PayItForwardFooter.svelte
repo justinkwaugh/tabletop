@@ -1,9 +1,11 @@
 <script lang="ts">
     import { ArrowRightOutline } from 'flowbite-svelte-icons'
+    import LegalLinks from './LegalLinks.svelte'
 </script>
 
 <footer class="pay-it-forward-footer">
     <span>Free to play, always.</span>
+    <LegalLinks />
     <a href="/pay-it-forward">Pay it forward <ArrowRightOutline class="h-3.5 w-3.5" /></a>
 </footer>
 

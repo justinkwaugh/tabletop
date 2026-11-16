@@ -56,11 +56,16 @@ export const polyp = (color: CoralColor, count = 1, consumed = false): PhraseIco
     label: counted(count, `${consumed ? 'consumed ' : ''}${color} polyp`).replace(/^two /, '2 ')
 })
 
+export function countByColor(colors: readonly CoralColor[]): Map<CoralColor, number> {
+    const counts = new Map<CoralColor, number>()
+    for (const color of colors) counts.set(color, (counts.get(color) ?? 0) + 1)
+    return counts
+}
+
 // Spoken with each colour counted once: "grey and orange polyps", "a white polyp and two yellow
 // polyps".
 export function polypsLabel(colors: readonly CoralColor[]): string {
-    const counts = new Map<CoralColor, number>()
-    for (const color of colors) counts.set(color, (counts.get(color) ?? 0) + 1)
+    const counts = countByColor(colors)
     if (counts.size === colors.length) {
         return colors.length === 1 ? `${withArticle(colors[0])} polyp` : `${listed(colors)} polyps`
     }

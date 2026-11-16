@@ -20,6 +20,8 @@ export const StockTurn = Type.Object(
         soldBeforeBuying: Type.Boolean(),
         companiesSold: Type.Array(Type.String()),
         shorted: Type.Optional(Type.Literal(true)),
+        /** Who won the company the turn auctioned, where the next turn follows them (1861 §9.2). */
+        auctionWinnerId: Type.Optional(Type.String()),
         corporateAction: Type.Optional(
             Type.Object(
                 { companyId: Type.String(), boughtBack: Type.Optional(Type.Literal(true)) },

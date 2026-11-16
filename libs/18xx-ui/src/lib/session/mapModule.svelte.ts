@@ -16,7 +16,12 @@ import {
     overfullCityKeys,
     type MapSelection
 } from '../maps/mapDrawing.js'
-import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
+import { untrack } from 'svelte'
+import {
+    stationMapTokens,
+    withStateMarkers,
+    type MapViewDefinition
+} from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
 import {
     ClassicTileAppearance,
@@ -33,7 +38,13 @@ import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 type MapState = Parameters<typeof stationMapTokens>[0] &
     Pick<
         EighteenXXState,
-        'companies' | 'certificates' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
+        | 'companies'
+        | 'certificates'
+        | 'stations'
+        | 'tileInventory'
+        | 'stationStep'
+        | 'trackStep'
+        | 'phaseId'
     > &
     Pick<CompanyAuctionState, 'companyAuction'> & {
         locationMarkers?: readonly Pick<
@@ -87,10 +98,7 @@ type Stations = Pick<
 /** A module offering home cities on the map: a company auction's opening, a company's start. */
 export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome' | 'chosenHome'>
 type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
-type Routes = Pick<
-    RoutesModule<RoutesSession['state']>,
-    'canRun' | 'editor' | 'appendPath' | 'selectStart'
->
+type Routes = Pick<RoutesModule<RoutesSession['state']>, 'tap'>
 
 export class MapModule {
     showTrackAccess = $state(true)
@@ -133,7 +141,18 @@ export class MapModule {
 
     // Held apart so a display state that only moves tokens doesn't redraw the board.
     private tileInventory = $derived.by(() => this.displayState().tileInventory)
-    private locationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private placedLocationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private stateMarkers = $derived.by(() => this.view().stateMarkers?.(this.displayState()) ?? [])
+    // Keyed, so a display state implying the same markers doesn't redraw the board.
+    private stateMarkerKey = $derived.by(() => JSON.stringify(this.stateMarkers))
+    private locationMarkers = $derived.by(() => {
+        // Read for its key alone, so the same markers again keep the board as it is.
+        void this.stateMarkerKey
+        return withStateMarkers(
+            this.placedLocationMarkers,
+            untrack(() => this.stateMarkers)
+        )
+    })
     private overfullCityKey = $derived.by(() =>
         overfullCityKeys(
             this.displayState().stations,
@@ -147,17 +166,22 @@ export class MapModule {
     private overfullCities = $derived(this.overfullCityKey ? this.overfullCityKey.split('|') : [])
     private companies = $derived.by(() => this.displayState().companies)
     private certificates = $derived.by(() => this.displayState().certificates)
+    private phaseId = $derived.by(() => this.displayState().phaseId)
     private liftedPrivateBlocks = $derived.by(() =>
         liftedPrivateBlocks(this.view().map.markedPrivateIds, this.session.rules.privateRules, {
             companies: this.companies,
-            certificates: this.certificates
+            certificates: this.certificates,
+            phaseId: this.phaseId
         })
     )
     scene = $derived.by(() => this.draw(this.tileInventory))
-    tokens = $derived.by(() =>
-        stationMapTokens(this.displayState(), this.view().stations, this.view().sharedStations)
-    )
+    tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view()))
     tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
+    /** The tiles of the supply, which the manifest lists; the board's own tiles are not among them. */
+    manifestTiles = $derived.by(() => {
+        const { tileSet, boardTiles = {} } = this.view()
+        return tileSet.definitions.filter((tile) => !(tile.id in boardTiles))
+    })
     private landedLay = $derived.by(() =>
         this.track.tileInFlight ? undefined : this.track.displayedPreview
     )
@@ -175,18 +199,9 @@ export class MapModule {
         this.previewTileInventory ? this.draw(this.previewTileInventory) : this.scene
     )
     displayedTokens = $derived.by(() => {
-        if (this.landedLayStations)
-            return stationMapTokens(
-                this.landedLayStations,
-                this.view().stations,
-                this.view().sharedStations
-            )
+        if (this.landedLayStations) return stationMapTokens(this.landedLayStations, this.view())
         return this.stations.preview
-            ? stationMapTokens(
-                  this.stations.displayState,
-                  this.view().stations,
-                  this.view().sharedStations
-              )
+            ? stationMapTokens(this.stations.displayState, this.view())
             : this.tokens
     })
     displayedReservations = $derived.by(() => [
@@ -303,29 +318,8 @@ export class MapModule {
             }
             return
         }
-        const editor = this.routes.editor
-        if (
-            this.routes.canRun &&
-            editor.trainId &&
-            selection.kind === 'path' &&
-            editor.extensions.some(
-                (path) =>
-                    path.locationId === selection.locationId && path.pathId === selection.pathId
-            )
-        )
-            this.routes.appendPath(selection)
-        else if (
-            this.routes.canRun &&
-            editor.trainId &&
-            !editor.start &&
-            (selection.kind === 'node' || selection.kind === 'slot') &&
-            editor.centers.some(
-                (center) =>
-                    center.locationId === selection.locationId && center.nodeId === selection.nodeId
-            )
-        )
-            this.routes.selectStart({ locationId: selection.locationId, nodeId: selection.nodeId })
-        else if (this.cityOffer?.locationIds.includes(selection.locationId))
+        if (this.routes.tap(selection)) return
+        if (this.cityOffer?.locationIds.includes(selection.locationId))
             this.cityOffer.select(selection)
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
             this.placeStation(selection)

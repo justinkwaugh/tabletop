@@ -75,7 +75,10 @@ export class ProjectedRunModule {
     current = $derived.by(() => !!this.request && this.latest?.request === this.request)
     overlays = $derived.by((): MapRoute[] => {
         if (!this.request || !this.latest) return []
-        const overlays = trainRouteOverlays(this.latest.solution.result.routes)
+        const overlays = trainRouteOverlays(
+            this.latest.solution.result.routes,
+            this.latest.request.trains.map((train) => train.id)
+        )
         return overlays.every((route) => isMapRouteValid(this.map.displayedScene, route))
             ? overlays
             : []

@@ -29,8 +29,8 @@ import { Phases1833NE } from './trains.js'
 const Descriptions: Readonly<Record<string, string>> = {
     P1: `Blocks ${place('H23')} until a corporation buys it.`,
     P2: `Blocks ${place('G20')} until a corporation buys it. Its corporation lays a tile in ${place('G20')} for $0 in the operating round it buys it.`,
-    P3: `Blocks ${place('C4')} and ${place('C6')} until a corporation buys it. Its corporation may lay two extra free tiles there at any time while it operates: the ${place('C4')} tile must connect to Montreal and the two to each other, without a connection to a token.`,
-    P4: `Its corporation may lay track and run routes from ${place('A6')} as if it held a token there. Until phase IV, it doubles the bonuses of that corporation's routes from ${place('A6')} to Boston.`,
+    P3: `Blocks ${place('C4')} and ${place('C6')} until a corporation buys it. Its corporation may lay two extra free tiles there at any time while it operates: the ${place('C4')} tile must connect to ${place('B3')} and the two to each other, without a connection to a token.`,
+    P4: `Its corporation may lay track and run routes from ${place('A6')} as if it held a token there. Until phase IV, it doubles the bonuses of that corporation's routes from ${place('A6')} to ${place('G22')}.`,
     P5: 'Doubles the value of one ferry its corporation owns, with any New or Last ferry bonus. Once assigned it stays with that ferry.',
     P6: `Its corporation pays $40 more to the bank when buying it. Its corporation may lay track and run routes from ${place('A12')} as if it held a token there, and only it may run to ${place('A12')}. Never removed.`
 }

@@ -42,7 +42,6 @@
             operatingPrompt={connectionRun}
             onFocusRoute={focusRoute}
             {privateOperationDescription}
-            {createRouteWorker}
         />
     {/snippet}
 </GameTable>

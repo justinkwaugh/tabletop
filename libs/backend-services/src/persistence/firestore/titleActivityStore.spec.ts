@@ -11,10 +11,15 @@ import {
     type Game,
     type GameAction,
     type GameState,
+    type SeriesActivity,
     type TitleActivity
 } from '@tabletop/common'
 import { cacheFixture } from '../../cache/tests/cacheFixture.js'
-import { TitleActivityCache } from '../../games/titleActivityCache.js'
+import {
+    ActivityCache,
+    SeriesActivityScope,
+    TitleActivityScope
+} from '../../games/activityCache.js'
 import { UpdateValidationResult } from '../stores/validator.js'
 import { FirestoreGameStore } from './gameStore.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
@@ -126,7 +131,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             await client.connect()
             live = cacheFixture(client)
             store = new FirestoreGameStore(live.cache, db, {
-                titleActivity: new TitleActivityCache(client)
+                titleActivity: new ActivityCache(client, TitleActivityScope)
             })
         })
 
@@ -161,7 +166,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 batch.set(store.games.doc(seeded.id), seeded)
             await batch.commit()
             const otherInstance = new FirestoreGameStore(live.cache, db, {
-                titleActivity: new TitleActivityCache(client)
+                titleActivity: new ActivityCache(client, TitleActivityScope)
             })
             countReads()
 
@@ -331,7 +336,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
             })
             const unavailable = new FirestoreGameStore(live.cache, db, {
-                titleActivity: new TitleActivityCache(offline)
+                titleActivity: new ActivityCache(offline, TitleActivityScope)
             })
             vi.spyOn(console, 'warn').mockImplementation(() => {})
             vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -349,6 +354,95 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 fields: { name: 'renamed' }
             })
             expect(updated.name).toBe('renamed')
+        })
+
+        describe('a series', () => {
+            let seriesId: string
+            let seriesStore: FirestoreGameStore
+
+            function seriesNames(activity: SeriesActivity) {
+                return {
+                    open: activity.open.map((listed) => listed.name),
+                    ...names(activity)
+                }
+            }
+
+            beforeEach(() => {
+                seriesId = `${titleId}-series`
+                seriesStore = new FirestoreGameStore(live.cache, db, {
+                    seriesActivity: new ActivityCache(client, SeriesActivityScope)
+                })
+            })
+
+            it('lists every title of the series from one query per status', async () => {
+                const batch = db.batch()
+                for (const seeded of [
+                    game('open', { series: seriesId, status: GameStatus.WaitingForPlayers }),
+                    game('playing', { series: seriesId, typeId: `${titleId}-other` }),
+                    game('done', {
+                        series: seriesId,
+                        status: GameStatus.Finished,
+                        result: GameResult.Win,
+                        finishedAt: new Date()
+                    }),
+                    game('unlabelled')
+                ])
+                    batch.set(store.games.doc(seeded.id), seeded)
+                await batch.commit()
+                countReads()
+
+                expect(seriesNames(await seriesStore.findSeriesActivity(seriesId))).toEqual({
+                    open: ['open'],
+                    inProgress: ['playing'],
+                    recentlyFinished: ['done']
+                })
+                expect(reads).toEqual({ queries: 3, documents: 0 })
+                await seriesStore.findSeriesActivity(seriesId)
+                expect(reads).toEqual({ queries: 3, documents: 0 })
+            })
+
+            it('adds an older game once it is labelled with the series', async () => {
+                const older = game('older')
+                await seriesStore.writeFullGameData(older, state(older.id), [])
+                expect((await seriesStore.findSeriesActivity(seriesId)).inProgress).toEqual([])
+
+                expect(await seriesStore.recordGameSeries(older.id, seriesId)).toBe(true)
+                expect(await seriesStore.recordGameSeries(older.id, seriesId)).toBe(false)
+                await vi.waitFor(async () =>
+                    expect(
+                        (await seriesStore.findSeriesActivity(seriesId)).inProgress.map(
+                            (listed) => listed.name
+                        )
+                    ).toEqual(['older'])
+                )
+                expect((await seriesStore.findGameById(older.id, false))?.series).toBe(seriesId)
+            })
+
+            it('lists a game created whole, such as a fork, in a warm series', async () => {
+                expect((await seriesStore.findSeriesActivity(seriesId)).open).toEqual([])
+                const fork = game('fork', {
+                    series: seriesId,
+                    status: GameStatus.WaitingForPlayers
+                })
+                await seriesStore.writeFullGameData(fork, state(fork.id), [])
+                await vi.waitFor(async () =>
+                    expect(
+                        (await seriesStore.findSeriesActivity(seriesId)).open.map(
+                            (listed) => listed.name
+                        )
+                    ).toEqual(['fork'])
+                )
+            })
+
+            it('pages through every game of a title', async () => {
+                const batch = db.batch()
+                for (const id of ['a', 'b', 'c'])
+                    batch.set(store.games.doc(`${titleId}-${id}`), game(id))
+                await batch.commit()
+                const first = await seriesStore.findTitleGames(titleId, undefined, 2)
+                const second = await seriesStore.findTitleGames(titleId, first.at(-1)?.id, 2)
+                expect([...first, ...second].map((listed) => listed.name)).toEqual(['a', 'b', 'c'])
+            })
         })
     }
 )

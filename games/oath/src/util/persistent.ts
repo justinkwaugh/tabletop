@@ -173,19 +173,32 @@ export function reasonPersistentForbidsMuster(
 ) {
     return firstPersistentReason(state, (h, ctx) => h.forbidsMuster?.(ctx, actorId, cardId))
 }
+/** Gossip — `mapChanges`: an earlier play's, judged before it is made (`persistentsInPlay`). */
 export function reasonPersistentForbidsFacedownAdviser(
     state: HydratedOathGameState,
-    actorId: string
+    actorId: string,
+    mapChanges?: InPlayMapChanges
 ) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsFacedownAdviser?.(ctx, actorId))
+    return firstPersistentReason(
+        state,
+        (h, ctx) => h.forbidsFacedownAdviser?.(ctx, actorId),
+        undefined,
+        mapChanges
+    )
 }
-/** Ruined Temple */
+/** Ruined Temple — `mapChanges` as for Gossip. */
 export function reasonPersistentForbidsFaceupPlay(
     state: HydratedOathGameState,
     actorId: string,
-    cardId: string
+    cardId: string,
+    mapChanges?: InPlayMapChanges
 ) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsFaceupPlay?.(ctx, actorId, cardId))
+    return firstPersistentReason(
+        state,
+        (h, ctx) => h.forbidsFaceupPlay?.(ctx, actorId, cardId),
+        undefined,
+        mapChanges
+    )
 }
 
 /**

@@ -1,0 +1,173 @@
+import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    CENTRE,
+    GEOMETRY,
+    HydratedGipfPotentialsBoard,
+    isPotentialKind,
+    PieceKind,
+    type Entry,
+    type Unit
+} from '@tabletop/gipf-potentials'
+import type { DiscKind } from './pieceShape.js'
+
+export type BoardDisc = { playerId: string; kind: DiscKind; id?: number }
+
+export function discsOf(stack: readonly Unit[]): BoardDisc[] {
+    return stack.flatMap((unit) => {
+        const marks: DiscKind[] = isPotentialKind(unit.kind)
+            ? [unit.kind]
+            : unit.kind === PieceKind.Gipf
+              ? [PieceKind.Basic, PieceKind.Basic]
+              : [PieceKind.Basic, ...(unit.load === undefined ? [] : [unit.load])]
+        return marks.map((kind, index) => ({
+            playerId: unit.playerId,
+            kind,
+            id: unit.discIds[index]
+        }))
+    })
+}
+
+export type PushChange = {
+    kind: 'push'
+    entry: Entry
+    shifted: number
+    unit: Unit
+    fromCentre: boolean
+    forward: boolean
+}
+
+export type MoveChange = {
+    kind: 'move'
+    from: AxialCoordinates
+    to: AxialCoordinates
+    disc: BoardDisc
+    forward: boolean
+    cover?: BoardDisc[]
+}
+
+export type DiscChange = { coords: AxialCoordinates; from: number; discs: BoardDisc[] }
+export type DiscsChange = { kind: 'discs'; removed: DiscChange[]; added: DiscChange[] }
+
+export type BoardChange = PushChange | MoveChange | DiscsChange
+
+// Undo and history steps carry no action, so the move is read from the boards. A push that moved
+// nothing on could have come from either dot beside its spot, so the known move is tried first.
+export function boardChange(
+    before: HydratedGipfPotentialsBoard,
+    after: HydratedGipfPotentialsBoard,
+    known?: { dot: AxialCoordinates; to: AxialCoordinates }
+): BoardChange {
+    const entries = GEOMETRY.entries
+    const first = known
+        ? entries.filter(
+              (entry) =>
+                  sameCoordinates(entry.dot, known.dot) && sameCoordinates(entry.line[0], known.to)
+          )
+        : []
+    return (
+        pushBetween(before, after, true, first) ??
+        pushBetween(after, before, false, first) ??
+        pushBetween(before, after, true, entries) ??
+        pushBetween(after, before, false, entries) ??
+        moveBetween(before, after, true) ??
+        moveBetween(after, before, false) ??
+        discsBetween(before, after)
+    )
+}
+
+function pushBetween(
+    start: HydratedGipfPotentialsBoard,
+    end: HydratedGipfPotentialsBoard,
+    forward: boolean,
+    entries: readonly Entry[]
+): PushChange | undefined {
+    const target = layout(end)
+    for (const entry of entries) {
+        const arrived = end.stackAt(entry.line[0])
+        if (arrived.length !== 1 || !start.canPush(entry)) continue
+        const unit = arrived[0]
+        for (const fromCentre of [false, true]) {
+            const board = new HydratedGipfPotentialsBoard(start.dehydrate())
+            if (fromCentre) {
+                if (board.topAt(CENTRE)?.load !== PieceKind.Tamsk || unit.kind !== PieceKind.Tamsk)
+                    continue
+                board.unload(CENTRE)
+            }
+            const shifted = board.shiftedBy(entry)
+            board.push(entry, unit)
+            if (layout(board) === target) {
+                return { kind: 'push', entry, shifted, unit, fromCentre, forward }
+            }
+        }
+    }
+    return undefined
+}
+
+function moveBetween(
+    start: HydratedGipfPotentialsBoard,
+    end: HydratedGipfPotentialsBoard,
+    forward: boolean
+): MoveChange | undefined {
+    const target = layout(end)
+    for (const { coords, unit } of start.tops()) {
+        if (unit.load === undefined) continue
+        for (const to of start.potentialTargets(coords, 2)) {
+            const board = new HydratedGipfPotentialsBoard(start.dehydrate())
+            const potential = board.unload(coords)
+            const cover = start.topAt(to)?.kind === PieceKind.Gipf ? end.topAt(to) : undefined
+            if (cover !== undefined && (!forward || cover.playerId !== unit.playerId)) continue
+            board.place(to, cover ?? potential)
+            if (layout(board) === target) {
+                const disc = discsOf([unit])[1]
+                return forward
+                    ? {
+                          kind: 'move',
+                          from: coords,
+                          to,
+                          disc,
+                          forward,
+                          ...(cover === undefined ? {} : { cover: discsOf([cover]) })
+                      }
+                    : { kind: 'move', from: to, to: coords, disc, forward }
+            }
+        }
+    }
+    return undefined
+}
+
+function discsBetween(
+    before: HydratedGipfPotentialsBoard,
+    after: HydratedGipfPotentialsBoard
+): DiscsChange {
+    const removed: DiscChange[] = []
+    const added: DiscChange[] = []
+    for (const coords of GEOMETRY.spots) {
+        const was = discsOf(before.stackAt(coords))
+        const now = discsOf(after.stackAt(coords))
+        let same = 0
+        while (
+            same < was.length &&
+            same < now.length &&
+            was[same].playerId === now[same].playerId &&
+            was[same].kind === now[same].kind &&
+            was[same].id === now[same].id
+        ) {
+            same += 1
+        }
+        if (same < was.length) removed.push({ coords, from: same, discs: was.slice(same) })
+        if (same < now.length) added.push({ coords, from: same, discs: now.slice(same) })
+    }
+    return { kind: 'discs', removed, added }
+}
+
+function layout(board: HydratedGipfPotentialsBoard): string {
+    return board.stacks
+        .map(
+            (stack) =>
+                `${coordinatesToNumber(stack.coords)}:${stack.units
+                    .map((unit) => `${unit.playerId}/${unit.kind}/${unit.load}`)
+                    .join(',')}`
+        )
+        .toSorted()
+        .join('|')
+}

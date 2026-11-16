@@ -103,3 +103,49 @@ test('plays a farming year through the farm and the yield sheet', async ({ page 
     await expect(page.locator('.sum').first()).toBeVisible()
     await screenshot(page, '04-year-two')
 })
+
+test('the seed picker opens beside its field where getBoundingClientRect leaves out CSS zoom', async ({
+    page
+}) => {
+    // Safari 26.0 and older report a rect inside a CSS-zoomed element divided by its zoom.
+    await page.addInitScript(() => {
+        const measure = Element.prototype.getBoundingClientRect
+        Element.prototype.getBoundingClientRect = function (this: Element) {
+            let zoom = Number.parseFloat(getComputedStyle(this).zoom) || 1
+            for (let node = this.parentElement; node; node = node.parentElement)
+                zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1
+            const rect = measure.call(this)
+            return new DOMRect(rect.x / zoom, rect.y / zoom, rect.width / zoom, rect.height / zoom)
+        }
+    })
+    await createGame(page)
+    await everyone(page, async () => {})
+    await everyone(page, async () => {
+        await page.getByRole('button', { name: 'Field 1' }).click()
+        await page.getByRole('button', { name: 'Field 2' }).click()
+    })
+    await page.evaluate(() => window.dkSession.showMyFarm())
+    const field = page.locator(
+        `#dk-field-1-${await page.evaluate(() => window.dkSession.myPlayerId)}`
+    )
+    const boardZoom = await field.evaluate((element) => {
+        const zoomed = element.closest<HTMLElement>('[style*="zoom"]')
+        return zoomed ? Number.parseFloat(getComputedStyle(zoomed).zoom) : 1
+    })
+    expect(boardZoom).toBeLessThan(0.9)
+    await page.evaluate(() => window.dkSession.clickField(1))
+    await expect(page.locator('.picker')).toBeVisible()
+    // The fake patches only getBoundingClientRect, so getClientRects gives the rect as drawn.
+    await expect
+        .poll(() =>
+            field.evaluate((element) => {
+                const drawn = element.getClientRects()[0]
+                const picker = document.querySelector('.picker')?.getClientRects()[0]
+                if (!drawn || !picker) throw new Error('Missing field or picker')
+                const across = Math.max(drawn.left - picker.right, picker.left - drawn.right)
+                const down = Math.max(drawn.top - picker.bottom, picker.top - drawn.bottom)
+                return Math.max(across, down)
+            })
+        )
+        .toBeLessThan(12)
+})

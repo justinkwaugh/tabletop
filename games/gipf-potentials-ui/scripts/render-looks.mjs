@@ -1,0 +1,120 @@
+// Pre-renders every disc's look to src/lib/images/looks and writes board/lookUrls.ts: drawn live,
+// the looks were slow on phones, and as SVG images iPhone browsers redrew them every frame. Rerun
+// after changing how a disc is drawn, with the harness running: node scripts/render-looks.mjs
+// (PORT defaults to 5173)
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { chromium } from '@playwright/test'
+
+const LIB = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib')
+const OUT = join(LIB, 'images', 'looks')
+const browser = await chromium.launch()
+const page = await browser.newPage()
+await page.goto(`http://localhost:${process.env.PORT ?? 5173}/looks`, { waitUntil: 'networkidle' })
+await page.locator('svg[data-look]').first().waitFor()
+
+// A look saved on its own loses the page's CSS, so computed styles become attributes.
+const files = await page.evaluate(() => {
+    const STYLED = ['fill', 'stroke', 'stroke-width', 'stroke-linejoin', 'fill-opacity']
+    return [...document.querySelectorAll('svg[data-look]')].map((svg) => {
+        const copy = svg.cloneNode(true)
+        const originals = [...svg.querySelectorAll('*')]
+        ;[...copy.querySelectorAll('*')].forEach((node, index) => {
+            const original = originals[index]
+            if (original.hasAttribute('class')) {
+                const style = getComputedStyle(original)
+                for (const property of STYLED) {
+                    if (!node.hasAttribute(property)) {
+                        const value = style.getPropertyValue(property)
+                        if ((value && value !== 'none') || property === 'fill')
+                            node.setAttribute(property, value)
+                    }
+                }
+                node.removeAttribute('class')
+            }
+        })
+        const text = new XMLSerializer().serializeToString(copy)
+        const used = new Set([...text.matchAll(/url\(#([^)"]+)\)/g)].map((match) => match[1]))
+        for (const gradient of copy.querySelectorAll('linearGradient, radialGradient')) {
+            if (!used.has(gradient.id)) gradient.remove()
+        }
+        copy.removeAttribute('data-look')
+        copy.removeAttribute('width')
+        copy.removeAttribute('height')
+        return { name: svg.dataset.look, text: new XMLSerializer().serializeToString(copy) }
+    })
+})
+
+// The board fits at up to 2.5 pixels per unit (GameTable's maxFitScale); 2.5 times that is HiDPI
+// with headroom, and keeps the files small. Zoomed in further, to 4, the pieces are a little soft.
+const SCALE = 2.5 * 2.5
+// Drawn larger and halved down, the seams between a groove's many bands blend away.
+const SUPERSAMPLE = 4
+// One at a time: all at once, the browser ran out of memory.
+const bitmaps = []
+for (const file of files) {
+    bitmaps.push(
+        await page.evaluate(
+            async ({ name, text, scale, supersample }) => {
+                const image = new Image()
+                image.src = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }))
+                await image.decode()
+                const [, , width, height] = text
+                    .match(/viewBox="([^"]+)"/)[1]
+                    .split(' ')
+                    .map(Number)
+                const size = {
+                    width: Math.round(width * scale),
+                    height: Math.round(height * scale)
+                }
+                let canvas = document.createElement('canvas')
+                canvas.width = size.width * supersample
+                canvas.height = size.height * supersample
+                canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height)
+                URL.revokeObjectURL(image.src)
+                // Halving at each step keeps every source pixel in the blend.
+                while (canvas.width > size.width) {
+                    const next = document.createElement('canvas')
+                    next.width = Math.max(size.width, Math.round(canvas.width / 2))
+                    next.height = Math.max(size.height, Math.round(canvas.height / 2))
+                    const context = next.getContext('2d')
+                    context.imageSmoothingQuality = 'high'
+                    context.drawImage(canvas, 0, 0, next.width, next.height)
+                    canvas = next
+                }
+                return { name, data: canvas.toDataURL('image/webp', 0.9) }
+            },
+            { ...file, scale: SCALE, supersample: SUPERSAMPLE }
+        )
+    )
+}
+
+mkdirSync(OUT, { recursive: true })
+for (const old of readdirSync(OUT)) rmSync(join(OUT, old))
+for (const { name, data } of bitmaps) {
+    const bytes = Buffer.from(data.split(',')[1], 'base64')
+    writeFileSync(join(OUT, `${name}.webp`), bytes)
+    console.log(name, bytes.length)
+}
+
+// Each file imported on its own: Vite and the published bundle's rollup both turn such an import
+// into the file's URL, where a glob is Vite's alone and fails in the bundle.
+const names = bitmaps.map(({ name }) => name).toSorted()
+const variable = (name) => name.replace(/-(\w)/g, (_, letter) => letter.toUpperCase())
+writeFileSync(
+    join(LIB, 'board', 'lookUrls.ts'),
+    [
+        '// Written by scripts/render-looks.mjs: the file of every look, by name.',
+        ...names.map((name) => `import ${variable(name)} from '../images/looks/${name}.webp'`),
+        '',
+        'export const LOOK_URLS: Record<string, string> = {',
+        ...names.map(
+            (name, index) =>
+                `    '${name}': ${variable(name)}${index < names.length - 1 ? ',' : ''}`
+        ),
+        '}',
+        ''
+    ].join('\n')
+)
+await browser.close()

@@ -1,10 +1,10 @@
-import { PrivateCatalog, placeReference, type PrivateDefinition } from '@tabletop/18xx'
+import { PrivateCatalog, placeReference as place, type PrivateDefinition } from '@tabletop/18xx'
 import { EighteenSeventeenPhases } from './trains.js'
 
 const cityTile = (locationId: string) =>
-    `The owning company may lay the special yellow tile X00 on ${placeReference(locationId)} without a connection, as one of its lays. The power is lost if another company builds there first.`
+    `The owning company may lay the special yellow tile X00 on ${place(locationId)} without a connection, as one of its lays. The power is lost if another company builds there first.`
 const mineHexes = 'a mountain hex beside a city or offboard, without its $15 terrain cost'
-const bridgeCities = 'Louisville, Cincinnati or Charleston'
+const bridgeCities = `${place('H3')}, ${place('G6')} or ${place('H9')}`
 
 // Privates pay nothing to players and never close by phase; a company acquires them only when
 // its founding president contributes them, or through a merger or acquisition.

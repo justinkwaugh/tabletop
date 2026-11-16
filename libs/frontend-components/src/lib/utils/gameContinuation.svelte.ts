@@ -9,6 +9,7 @@ export type EditableGame = Pick<
     | 'players'
     | 'isPublic'
     | 'unlisted'
+    | 'paceMinutes'
     | 'hotseat'
     | 'ownerId'
     | 'config'
@@ -29,6 +30,7 @@ export function continuationGame(
         ),
         isPublic: source.isPublic,
         ...(source.unlisted ? { unlisted: true } : {}),
+        ...(source.paceMinutes === undefined ? {} : { paceMinutes: source.paceMinutes }),
         hotseat: source.hotseat,
         ownerId: user.id,
         config: $state.snapshot(source.config)

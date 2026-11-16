@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { HexKind } from '@tabletop/railheads'
+    import { ActionSpaceId, HexKind } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { boardLayout } from '$lib/utils/boardLayout.js'
     import { editionStyle } from '$lib/utils/editionStyle.js'
@@ -24,75 +24,158 @@
         round < edition.rounds && edition.siteCapacity(round + 1, undefined) > siteMax
     )
     const perDiscBeneath = $derived(
-        edition.trackCost(HexKind.City, 1) - edition.trackCost(HexKind.City, 0)
+        edition.trackCost(HexKind.City, 1, 1) - edition.trackCost(HexKind.City, 0, 1)
     )
-    const footnotes = $derived([
-        limitRises
-            ? 'Site limit rises by 1 each round'
-            : `* +$${perDiscBeneath} per disc already there`,
-        'Each company: max 1 disc per hex'
+    // The board's terrain: sites, then the one-disc hexes this title has.
+    const tollKind = $derived(edition.map.tolls?.[0]?.kind)
+    const terrain = $derived([
+        { name: 'Industry', kind: HexKind.Industry },
+        { name: 'Town', kind: HexKind.Town },
+        { name: 'City', kind: HexKind.City },
+        { name: 'Country', kind: HexKind.Countryside },
+        ...((edition.map.hillside ?? []).length > 0
+            ? [{ name: 'Hillside', kind: HexKind.Hillside }]
+            : []),
+        ...(tollKind === HexKind.Tunnel ? [{ name: 'Tunnel', kind: HexKind.Tunnel }] : []),
+        ...(tollKind === HexKind.Bridge ? [{ name: 'Bridge', kind: HexKind.Bridge }] : [])
     ])
-    const rows = $derived(
+    const footnotes = $derived(
         [
-            { name: 'Industry', kind: HexKind.Industry },
-            { name: 'Town', kind: HexKind.Town },
-            { name: 'City', kind: HexKind.City },
-            { name: 'Country', kind: HexKind.Countryside }
-        ].map((row) => ({
+            limitRises
+                ? 'Site limit rises by 1 each round'
+                : perDiscBeneath > 0
+                  ? `* +$${perDiscBeneath} per disc already there`
+                  : (edition.map.peaks ?? []).length > 0
+                    ? 'No track on the Alps or lakes'
+                    : '',
+            'Each company: max 1 disc per hex'
+        ].filter((line) => line !== '')
+    )
+    // England & Wales prices track by action space rather than by hex.
+    const spacePrices = $derived.by(() => {
+        const spaces = [
+            { name: 'Lay Track I', space: ActionSpaceId.LayTrackI },
+            { name: 'Lay Track II', space: ActionSpaceId.LayTrackII },
+            { name: 'Lay Track III', space: ActionSpaceId.LayTrackIII }
+        ] as const
+        if (edition.layTrack[ActionSpaceId.LayTrackI].discPrice === undefined) return undefined
+        return spaces.map(({ name, space }) => {
+            const rules = edition.layTrack[space]
+            const extra = rules.regionPlacements ?? 0
+            return {
+                name,
+                disc: rules.discPrice ?? 0,
+                cube: rules.allowsCrossingCubes ? rules.cubePrice : undefined,
+                discs:
+                    extra > 0
+                        ? `${rules.placementsPerCompany}+${extra}`
+                        : `${rules.placementsPerCompany}`
+            }
+        })
+    })
+    const ENGLISH_NOTES = [
+        '×2 on one disc, ×3 on two (London)',
+        '+1 disc if all stay in the region',
+        'Lay Track I: no share needed, ½ price',
+        'Sites hold 2 discs, London 3'
+    ]
+    const isSite = (kind: HexKind) =>
+        kind === HexKind.Industry || kind === HexKind.Town || kind === HexKind.City
+    // A tunnel's price is per hex it spans.
+    const perHex = (kind: HexKind) => (kind === HexKind.Tunnel ? '×' : '')
+    const rows = $derived(
+        terrain.map((row) => ({
             ...row,
-            disc: `$${edition.trackCost(row.kind, 0)}${row.kind !== HexKind.Countryside && perDiscBeneath > 0 ? '*' : ''}`,
-            cube: row.kind === HexKind.Countryside ? edition.crossingCubeCost : undefined
+            disc: `$${edition.trackCost(row.kind, 0, 1)}${perHex(row.kind)}${isSite(row.kind) && perDiscBeneath > 0 ? '*' : ''}`,
+            cube: isSite(row.kind)
+                ? undefined
+                : `$${edition.crossingCubeCost(row.kind, 1)}${perHex(row.kind)}`
         }))
     )
 </script>
 
-<g transform="translate({panel.x} {panel.y})">
-    <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
-    <text x={panel.width / 2} y="19" class="title">Track Cost</text>
-    <text x={discX} y={HEADER_Y} class="head">Disc</text>
-    <text x={cubeX} y={HEADER_Y} class="head">Cube</text>
-    <text x={maxX} y={HEADER_Y} class="head">Max</text>
-    <line x1="10" x2={panel.width - 10} y1={HEADER_Y + 5} y2={HEADER_Y + 5} class="rule"></line>
-    {#each rows as row, index (row.kind)}
-        <g transform="translate(0 {FIRST_ROW_Y + index * ROW})">
-            <polygon
-                points={layout.hexPoints({ x: 24, y: 12 }, 11)}
-                fill={fill[row.kind]}
-                stroke="#1d1d1b"
-                stroke-width="1.5"
-            ></polygon>
-            <text x="42" y="17" class="label">{row.name}</text>
-            <text x={discX} y="17" class="cost">{row.disc}</text>
-            <text x={cubeX} y="17" class="cost"
-                >{row.cube === undefined ? '–' : `$${row.cube}`}</text
+{#if spacePrices}
+    <g transform="translate({panel.x} {panel.y})">
+        <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
+        <text x={panel.width / 2} y="19" class="title">Track Cost</text>
+        <text x="122" y={HEADER_Y} class="head">Disc</text>
+        <text x="164" y={HEADER_Y} class="head">Cube</text>
+        <text x="208" y={HEADER_Y} class="head">Discs</text>
+        <line x1="10" x2={panel.width - 10} y1={HEADER_Y + 5} y2={HEADER_Y + 5} class="rule"></line>
+        {#each spacePrices as row, index (row.name)}
+            <g transform="translate(0 {FIRST_ROW_Y + index * ROW})">
+                <text x="14" y="17" class="label">{row.name}</text>
+                <text x="122" y="17" class="cost">${row.disc}</text>
+                <text x="164" y="17" class="cost"
+                    >{row.cube === undefined ? '–' : `$${row.cube}`}</text
+                >
+                <text x="208" y="17" class="cost">{row.discs}</text>
+            </g>
+        {/each}
+        <line
+            x1="10"
+            x2={panel.width - 10}
+            y1={FIRST_ROW_Y + 3 * ROW + 2}
+            y2={FIRST_ROW_Y + 3 * ROW + 2}
+            class="rule"
+        ></line>
+        {#each ENGLISH_NOTES as note, index (note)}
+            <text x={panel.width / 2} y={FIRST_ROW_Y + 3 * ROW + 20 + index * 13} class="foot"
+                >{note}</text
+            >
+        {/each}
+    </g>
+{:else}
+    <g transform="translate({panel.x} {panel.y})">
+        <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
+        <text x={panel.width / 2} y="19" class="title">Track Cost</text>
+        <text x={discX} y={HEADER_Y} class="head">Disc</text>
+        <text x={cubeX} y={HEADER_Y} class="head">Cube</text>
+        <text x={maxX} y={HEADER_Y} class="head">Max</text>
+        <line x1="10" x2={panel.width - 10} y1={HEADER_Y + 5} y2={HEADER_Y + 5} class="rule"></line>
+        {#each rows as row, index (row.kind)}
+            <g transform="translate(0 {FIRST_ROW_Y + index * ROW})">
+                <polygon
+                    points={layout.hexPoints({ x: 24, y: 12 }, 11)}
+                    fill={fill[row.kind]}
+                    stroke="#1d1d1b"
+                    stroke-width="1.5"
+                ></polygon>
+                <text x="42" y="17" class="label">{row.name}</text>
+                <text x={discX} y="17" class="cost">{row.disc}</text>
+                <text x={cubeX} y="17" class="cost">{row.cube ?? '–'}</text>
+            </g>
+        {/each}
+        <g aria-label="Site hexes hold up to {siteMax} discs{limitRises ? ' this round' : ''}">
+            <rect
+                x={maxX - 13}
+                y={FIRST_ROW_Y + 1}
+                width="26"
+                height={SITE_ROWS * ROW - 4}
+                rx="6"
+                class="site-max"
+            ></rect>
+            <text x={maxX} y={FIRST_ROW_Y + (SITE_ROWS * ROW) / 2 + 5} class="site-max-value"
+                >{siteMax}</text
             >
         </g>
-    {/each}
-    <g aria-label="Site hexes hold up to {siteMax} discs{limitRises ? ' this round' : ''}">
-        <rect
-            x={maxX - 13}
-            y={FIRST_ROW_Y + 1}
-            width="26"
-            height={SITE_ROWS * ROW - 4}
-            rx="6"
-            class="site-max"
-        ></rect>
-        <text x={maxX} y={FIRST_ROW_Y + (SITE_ROWS * ROW) / 2 + 5} class="site-max-value"
-            >{siteMax}</text
-        >
+        {#each rows.slice(SITE_ROWS) as row, index (row.kind)}
+            <text x={maxX} y={FIRST_ROW_Y + (SITE_ROWS + index) * ROW + 17} class="cost">1</text>
+        {/each}
+        <line
+            x1="10"
+            x2={panel.width - 10}
+            y1={FIRST_ROW_Y + rows.length * ROW + 2}
+            y2={FIRST_ROW_Y + rows.length * ROW + 2}
+            class="rule"
+        ></line>
+        {#each footnotes as footnote, index (footnote)}
+            <text x={panel.width / 2} y={panel.height - 20 + index * 13} class="foot"
+                >{footnote}</text
+            >
+        {/each}
     </g>
-    <text x={maxX} y={FIRST_ROW_Y + SITE_ROWS * ROW + 17} class="cost">1</text>
-    <line
-        x1="10"
-        x2={panel.width - 10}
-        y1={FIRST_ROW_Y + rows.length * ROW + 2}
-        y2={FIRST_ROW_Y + rows.length * ROW + 2}
-        class="rule"
-    ></line>
-    {#each footnotes as footnote, index (footnote)}
-        <text x={panel.width / 2} y={panel.height - 20 + index * 13} class="foot">{footnote}</text>
-    {/each}
-</g>
+{/if}
 
 <style>
     .sheet {

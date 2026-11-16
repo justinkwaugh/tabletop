@@ -4,13 +4,21 @@ import { GameAction, HydratableAction, MachineContext, assertExists } from '@tab
 import { ActionType } from '../definition/actions.js'
 import { Industry } from '../editions/types.js'
 import type { HydratedRailheadsGameState } from '../model/gameState.js'
-import { IndustrySale, resolveIndustryAuction } from '../model/industryAuctionRules.js'
+import {
+    IndustrySale,
+    RevealedBid,
+    openInvestmentClaims,
+    resolveIndustryAuction
+} from '../model/industryAuctionRules.js'
 
 export type ResolveIndustryAuctionMetadata = Type.Static<typeof ResolveIndustryAuctionMetadata>
 export const ResolveIndustryAuctionMetadata = Type.Object({
     industry: Type.Enum(Industry),
     level: Type.Number(),
-    sale: IndustrySale
+    // Germany and the Midwest sell the token at once.
+    sale: Type.Optional(IndustrySale),
+    // Switzerland and Denmark reveal the bids, then the bidders claim the items.
+    bids: Type.Optional(Type.Array(RevealedBid))
 })
 
 export type ResolveIndustryAuction = Type.Static<typeof ResolveIndustryAuction>
@@ -44,7 +52,12 @@ export class HydratedResolveIndustryAuction
     apply(state: HydratedRailheadsGameState, _context?: MachineContext) {
         const auction = state.industryAuction
         assertExists(auction, 'No industry auction to resolve')
-        const { industry, minimum: level } = auction
+        const { industry } = auction
+        const level = state.industry(industry).level
+        if (state.edition.definition.investmentPartner) {
+            this.metadata = { industry, level, bids: openInvestmentClaims(state) }
+            return
+        }
         const sale = resolveIndustryAuction(state)
         this.metadata = { industry, level, sale }
     }

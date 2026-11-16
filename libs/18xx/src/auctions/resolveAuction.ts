@@ -15,6 +15,11 @@ import {
 } from './auctionProcedure.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import { OfferAuction } from './offerPileAuction.js'
+import { ReserveBidAuction } from './waterfallAuction.js'
+import { TrainExport, exportDepotTrains } from '../operating/exportTrains.js'
+import type { TrainRules } from '../trains/trainPurchase.js'
+import type { PhaseState } from '../phases/phaseChange.js'
+import type { TrainState } from '../trains/train.js'
 import { startFirstStockRound } from './startFirstStockRound.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import { RoundEnd, roundEnd } from '../ending/roundEnd.js'
@@ -33,7 +38,11 @@ const Resolution = Type.Union([
         { additionalProperties: false }
     ),
     Type.Object(
-        { kind: Type.Literal('income'), payments: Type.Optional(Type.Array(CashPayment)) },
+        {
+            kind: Type.Literal('income'),
+            payments: Type.Optional(Type.Array(CashPayment)),
+            exports: Type.Optional(TrainExport)
+        },
         { additionalProperties: false }
     ),
     Type.Object(
@@ -68,19 +77,26 @@ export class HydratedResolveAuction
 
     readonly #rules: OpeningAuctionRules
     readonly #valuationRules: ValuationRules
-    constructor(data: ResolveAuction, rules: OpeningAuctionRules, valuationRules: ValuationRules) {
+    readonly #trainRules: TrainRules
+    constructor(
+        data: ResolveAuction,
+        rules: OpeningAuctionRules,
+        valuationRules: ValuationRules,
+        trainRules: TrainRules
+    ) {
         super(
             data instanceof HydratedResolveAuction ? data.dehydrate() : data,
             ResolveAuctionValidator
         )
         this.#rules = rules
         this.#valuationRules = valuationRules
+        this.#trainRules = trainRules
     }
     isValid(state: OpeningAuctionState): boolean {
         const model = activeAuction(state, this.#rules)
         return !!model && this.source === ActionSource.System && !!model.resolution()
     }
-    apply(state: HydratedGameState & OpeningAuctionState): void {
+    apply(state: HydratedGameState & OpeningAuctionState & TrainState & PhaseState): void {
         assert(this.isValid(state), 'Invalid ResolveAuction action')
         const model = activeAuction(state, this.#rules)
         assert(model, 'Auction is not active')
@@ -89,7 +105,9 @@ export class HydratedResolveAuction
         this.metadata =
             resolution.kind === 'award'
                 ? { kind: 'award', award: recorder.award(state, resolution.award) }
-                : resolution
+                : resolution.kind === 'income' && model instanceof ReserveBidAuction
+                  ? { ...resolution, ...this.incomeExports(state, model) }
+                  : resolution
         if (resolution.kind === 'complete') {
             if (model instanceof OfferAuction)
                 startFirstStockRound(state, model.rules.firstStockOrder(state))
@@ -101,6 +119,19 @@ export class HydratedResolveAuction
                 kind: 'complete',
                 roundEnd: roundEnd(state, this.#valuationRules, 'opening')
             }
+        }
+    }
+    /** The trains an all-pass income round exports, where the title counts it as a set. */
+    private incomeExports(
+        state: HydratedGameState & OpeningAuctionState & TrainState & PhaseState,
+        model: ReserveBidAuction
+    ): { exports?: TrainExport } {
+        const definitionIds = model.rules.incomeExports?.(state) ?? []
+        if (!definitionIds.length) return {}
+        return {
+            exports: exportDepotTrains(state, this.#trainRules, definitionIds, {
+                machineState: state.machineState
+            })
         }
     }
 }

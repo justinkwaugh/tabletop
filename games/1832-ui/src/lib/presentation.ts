@@ -2,11 +2,13 @@ import {
     CoalAccess,
     isCompleteMergerPhase,
     isStartMergerPhase,
+    EighteenThirtyTwoMap,
     EighteenThirtyTwoSoftLedge,
+    EighteenThirtyTwoSystems,
     type EighteenThirtyTwoState,
     EighteenThirtyTwoTitleRules
 } from '@tabletop/1832'
-import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import { moneyFormat, printedHomeCompanies, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart, eighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
@@ -17,6 +19,12 @@ import UnknownToken from './images/tokens/unknown.svg'
 
 // A System names its letter and the two companies it was formed from (§11.6).
 export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
+    // Systems form only by merging two companies (§11.6).
+    unstartedCompanies: {
+        ...printedHomeCompanies(EighteenThirtyTwoMap),
+        onOffer: (_state, companyId) =>
+            !EighteenThirtyTwoSystems.some((system) => system.id === companyId)
+    },
     money: moneyFormat(EighteenThirtyTwoTitleRules.currencySymbol),
     phaseChart: EighteenThirtyTwoPhaseChart,
     phaseChartFor: eighteenThirtyTwoPhaseChart,

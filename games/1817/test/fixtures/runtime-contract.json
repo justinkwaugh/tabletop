@@ -1,94 +1,94 @@
 {
   "actionSchemaDigests": {
-    "AcquireCompany": "986bc269eb6da810ab85c7bbcae9908547df75ebc3e6495784f3b137d9af86db",
+    "AcquireCompany": "4e449eaf26a26733572ce4cf80feaafd412d0188897bff1b3c459c5e03612157",
     "AdvancePhase": "013a149f604147b529e1bc9ee94806b4697070f2d18e1e1a15c0a4d9c2fbc0c6",
-    "AuctionCompany": "10734b645bee30ed32f614c73bc170b9c330545fcb0f6735b7e65fe4b6228c4f",
-    "BidForCompany": "00e229954b1cd5541f49a62da3ba6574f56a252c9dd3619a2c1fe64d48b46b9c",
-    "BidForLot": "64e9354bc98baeccf892bcc0640b9923de2b08fd7175c6d085dcd07ba28127ab",
-    "BidToAcquire": "1235d662af4f5015690498e019ac374bb56e4fc72d04b844071a839493cb26d3",
-    "BuyBackShares": "22dfb6109326db93b1d88428a5f1e36f39f06a366e04ef35175daa2b0d80c420",
-    "BuyConvertedShare": "9e4688b7914d6e2bf5b88d672c11a2dabe1a9145450a732792b18a8b7c116f88",
+    "AuctionCompany": "7f533781dff1fbd18e6f9cf297d06386fad9f9271af81cc573d823b2c992a18c",
+    "BidForCompany": "a5a3f6b24814e5fa9742f1c1c8c52736db92adc93a76a0dcf2bc7f1c2e3c8466",
+    "BidForLot": "bb638dfd9f36f481fb409bb6a0cee49cb99859ebd982cb767f69ffdc00a961df",
+    "BidToAcquire": "1dbc05824d6842311c62d58e1812676f94118513a55c6cbdcdcb666397128e6a",
+    "BuyBackShares": "61364b2a97c5121345d26d994c1b6cac99771ada4c747b73f85b65adab54cfa9",
+    "BuyConvertedShare": "58481fa9c20d61701fc6144b4f2eb58cf7c956f6aaeb54672bdac0fdb444f87a",
     "BuyOwedStations": "c873d00fd4b8c831d5f51106b095a76a7094f6d376d511c90c57f5718fac085b",
-    "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
-    "BuyShares": "ea32f0c8f1d4ef09bcfceae831c752c10cc989a03646740d5987a8b841342e0e",
-    "BuyTrain": "67db41a89629078c0a016eb92e68f08d9e2cbb905cf469d9824897e55d7b7fed",
-    "CloseCompanySale": "8e7da990405a3d252ace0de46bc69e8f32170aee87858f5696e25c3ef802717f",
+    "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
+    "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
+    "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
+    "CloseCompanySale": "04f6e40525bfcf6defcfe0e873a9c4465bb29d56953f80b469a1948c74bf5a82",
     "CloseMarketShorts": "e7a95564c786becb6cf7a14c147bf205070c60de16fa335c2234273049db60c3",
     "CloseTrainStation": "02e60e6908c37b973f6736ff9954d08454a3041e250d1a0c1c04fbff96769563",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
-    "ContinueOperatingRound": "d7859bd006d0cf1a3bf6b0d3424ab8d61dcbe1741a5ee6943bdc0a5bd90b3fa7",
-    "ContributeTrainFunds": "9aab8e3d874a342cd810be78376e00d627c1e1ee8e0cb71079b7ef9e4068d9bd",
-    "ConvertCompany": "6c9208a054a7a255981eb4063c0857fd081b2247ca186d2dae745e216697b765",
-    "DeclareBankruptcy": "0e276ed765a24ede8bbc6b2856304f1aaf17b6c59473e58ec9274f89ff609717",
-    "DeclineOffer": "a59f2abee369b9ecd20f2358f8f8f9a07db51519de2717914c61757aeb8dd085",
-    "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
-    "DiscardMergedTrain": "9a85475c4dda87b8ec4a6ee919d11f06e3a95385da0755359a70be39d16ba95a",
-    "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
-    "DistributeEarnings": "6749609e82de407753d6d563448dc04d5b91de8bb5b425b868ee4c3572907480",
+    "ContinueOperatingRound": "d78dd0a2fd39c56435caeace07fa60d5aca2a6ee1ec0f757c5cfb15d65661387",
+    "ContributeTrainFunds": "51c7dbd36365f00b3d86b1fc95c424206c0620e047360ddae9e3e3e232b77238",
+    "ConvertCompany": "d7e445cdf682ba6d0428d02081828e98fb0f7489829b13eae5dd00354464888e",
+    "DeclareBankruptcy": "d3819b6be8466b2bc128c65eddd6ade2e065301cbfe54c2ed694e1bfbcf9b9d6",
+    "DeclineOffer": "e6dabed56a173da5a51373973e08d1202d898247d771b7fcc6f04df9f788c2da",
+    "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
+    "DiscardMergedTrain": "c240c8d7d373f45a74d1b8c1454e866458a8309640a2c81a14bc41f392fee8ba",
+    "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
+    "DistributeEarnings": "fdfb41a987a6af95626f17d98719fdd4d2107e910d137c4e4612ff7d53e3eb51",
     "EndAcquisitionRound": "594322eaa667c0c9c5b787dcdfe025833049602bbd4d237db05c945aafde6c06",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndMergerRound": "c116703d63fee9c3ea0a584f38e2c0dcdc72dba103b869b2b3e59d68b80c7752",
-    "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
+    "ExchangePrivate": "a2f10d6984e1e0360b86f977ddc78c38e820d30cc75fdcaed5adeec196fd22ef",
     "ExportTrains": "4d90e5878388ba8dcbcf048793fc8666b439834e602a4db755344ef8f3844647",
-    "FinishAcquisitionLoans": "066953ca1f4e3aa3be9188fc5f36de9d9ac53541a00ca0132f38c5b1376d1d05",
-    "FinishConversionLoans": "ce583d36afaca1dec11b41c93e6b31be1d61ceab42f2723c30aaaf1ca2f2348c",
-    "FinishOperatingTurn": "b653940dd0621cbe3c462eac1732da050c2e6425ff1bdbfbc4dc01b07fe1a4de",
-    "FinishStations": "258ec9a61f997c96475a6d9fd4ee5de918640128aa4949ce721a388fea7a41be",
-    "FinishStockTurn": "739e1c6386055439b031b34dae3f9cb9fd2b8b8901c100395b0f675e201733a5",
-    "FinishTrack": "7ae429d56b33034c6bf55f6167db28e6f2e6ae33a15a0c42e0ef422bd316443e",
-    "FinishTrains": "5e60ea89af68b7f73e1419f3a012b43d3babb5cee3b63ce06fc31ae35e417e1c",
+    "FinishAcquisitionLoans": "af085242b0f562ccacec8fc5cdb14ccac7a90c2247aeedf17efacbedcced6f63",
+    "FinishConversionLoans": "051f04908cc248e383bc886ce976ec1813e8a6dea4d4b9dd4350ea822e8e2bf0",
+    "FinishOperatingTurn": "5a35934087f165b9b2aff49a45a78fc5ce5f3c1b84ff5950cd154349e99ce749",
+    "FinishStations": "5e5293d6e1888ee220cd52cceaf9eec41f2dd5fe0873329e252668f03ff0c9fd",
+    "FinishStockTurn": "53a06c7d65e723d95555124849208f43baf1ad4e46d4b2dfe0996950080e7d1a",
+    "FinishTrack": "1a6e9a2521c6c145584a778d9cceb6e8d4fa8ddf810c4aad80322f2fb0f90373",
+    "FinishTrains": "3d7d82e581605d9eee497cc87d7bbdcea1560f0f89535cdd145b75930d358c1f",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
-    "FormCompany": "69da91ad29cb6b2bf2f2a4f88321ce7a7d3d9d23519435023e6e4689a86cf83e",
-    "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
-    "GoBankrupt": "a5b6df8e51fde8e57119c260f2d791e1c70d612d2f910d15395fca7e1b4aca07",
-    "IssueTreasuryShares": "279bff01f9fccd7d55c16a13b95aad4074974d1b87ae8bfd3052380b36af1786",
-    "LayPrivateTile": "de25ff1e8aeadca222bc399a5e17e4a4759418618361981d7f6d6f86acde6b21",
-    "LayTile": "8de0ad15e8365fd604f94438d94ce76c823ce0d5637f79f9ae77b1d751d5fd5f",
+    "FormCompany": "00c719deda6ba142d039d53e52e6e26029bdaedb22ec1f599971cb7779015727",
+    "FundTrain": "c13d6806abfe285b8dd92ec09c4f940bf0778e185162f4db823d6a00e3cf1b5a",
+    "GoBankrupt": "a6f7e0a4747ade83b0f8a27b503237def859fd4003b5bd6a6b7003a11449f1a7",
+    "IssueTreasuryShares": "58e94c77d2a0bb59b0ee57a789085aa00d3723496da581f538d10cf2096da10f",
+    "LayPrivateTile": "8fe6bfc7d8f5d5c8f4055e418bc59b2b8680d23734b546f9622c80a1085daed5",
+    "LayTile": "a97510122093676f6fe04f834f75a3735a949727476971890c48b3149e2f25a1",
     "LiquidateCompany": "62319e8597d96c810a27cc70db0d00fca760500bde8cdcfcfc09dca32045dfc3",
-    "MergeCompanies": "88e57b6725942a4c3bf36772f00e3e9b6afdadc327ec1bca723a7197437086d4",
-    "NominateLot": "74f86095aacba94aa5304cd2729b21aeef0fc5fefef5a09a3485f089c7d9a765",
-    "OfferCompany": "46e5769e0d319cd5cbd94ecbfe6d0bf7bd2bf9a28fd3f590e2211951d74db987",
-    "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
+    "MergeCompanies": "b069c3fae1ba891ce7fa084923e0e2218accb7fa1d961c749dfd39e9f92428a0",
+    "NominateLot": "3c5d5ad3909871df9997fd484262eeb2ec811bb0aaceb771f77c8efd292927f1",
+    "OfferCompany": "bee19c9d77eba273bcbf3ab74717fde74dfeb220f779cd70e1c5f1b850329a18",
+    "OfferPurchase": "ada2ef3b1e215a94eee8ce5de40283d1dbe277e72a95c29469b2a1a8c19d6fd3",
     "OpenCompanySale": "89cf80783a6228e7d3f7055653772202c386e25ddc3b832a7c4c25713ef83452",
-    "PassCompanyAuction": "de47226bef18fe9fcb8e9f7798456d6af5d2f9d887454221b10739c515aa3eb7",
-    "PassConvertedShares": "c56d97a0df8265ecc62e09bea14d026aabd381f6054360920d1209a6e51ce271",
-    "PassMerger": "c577bd9d8a6737106b074548b9678f54dd4a814c3f0793f49957f29937f3a1a3",
-    "PassOnCompany": "475568bb89ad22e70b6cb8cd9776dba0980c01741813de9de5936b37b84358df",
-    "PassSelectionAuction": "f6152a4c886140b45031e50560827f483af0d475b454752f3bbd30f3535a42ed",
-    "PayInterest": "cbe892bd212145fb64e49971c3d1f7e612f5cec912d4069a17bf416f404527ed",
+    "PassCompanyAuction": "ff4d1f587a549e7907556994a578fab94311e2e7264e184e469742f2090ed9af",
+    "PassConvertedShares": "441bb82c73c9d0b7b35731f14cb7f7c3ca06c1cb158ad89adbb9c459a70040b4",
+    "PassMerger": "e3bf43f0e3b1411739cd3c42f3b83d9f01bc1ef8c7520fac7fdc150e07d79dcc",
+    "PassOnCompany": "e9741a99ab614d1a5f6c4b04f7539f65f0278a90ae6c3623e24dce2db6ba7281",
+    "PassSelectionAuction": "024303daa058905ff699eff3d3e3d64f2495e2e2f3b2be146b6c010fda8a2211",
+    "PayInterest": "493372ba38d1b2c10de8101921afb85273188cd25e2c5d9e2063bd77f095e345",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
-    "PlacePrivateMarker": "7ac3e4bba2ab07834bbfa9b8916627a88e2b4b516cb7f4b6f0934fc1a401168e",
-    "PlaceStation": "642f3ab37cd70c2294fd3704f13f035b5678061c83c47ab5318f791c9d8cfee1",
-    "RemoveStation": "2e04e579825f32d23c875ee5c6efd9ba333bc179c2b17c8f896e7aea0075fe85",
-    "RepayAcquiredLoan": "4ec4d247ce8d61e5a7b3f39b84069f215654f34f8e8e143e9b349402c6f5709c",
-    "RepayLoan": "9ae2efef0344ff4a5a935bf7e915e7d56bb1dc1f534c883867ee618d8a36f3e2",
-    "RequestTrackConsent": "d707e81670fcfd54f376f8cc7d602a7a9b1b3c964f0fc61238601ab1446d0118",
-    "ResolveSelectionAuction": "18ba62abb69cfa2e0f0c4970d237fb62a42e825f52006fb719ed3aa14ea4435c",
-    "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
-    "RespondToTrackConsent": "61bc3d23824f13246e4b924e82e3c9c552ef8efe19a1668becdd1a31dfd41f7b",
-    "RunTrains": "2c2acc1e37f0747f108f4cde5ded277fea110974d0ac82261fa3847e80171daa",
+    "PlacePrivateMarker": "8b9d6d1a2867550d4650d06cfa11cae52946de1859e5393a078c073088425547",
+    "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
+    "RemoveStation": "f4dd44012a0968c9b51e23f12a65bb25362b206c1a0dbdebf86526248011bd91",
+    "RepayAcquiredLoan": "c57e04bb862b57afa33f62f87b422f6faaccc71ef74d5b57613a45348983f455",
+    "RepayLoan": "4113819e842b9babac64014d93ec7a438f667ae0ac6e714c3829cfca8f9b9e02",
+    "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
+    "ResolveSelectionAuction": "b476556e2c06b0eb95fa498760b4cf4f13bb1f945860edc55b2d3a6fee713335",
+    "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
+    "RespondToTrackConsent": "ec49608e7714bcf685930bc4e7d3785aff976bed12e92e1ccb3ec6d763f7f9b1",
+    "RunTrains": "f77e13e519cdbe71c499b87416f7dd039f58690003a440888b48845bb0ec985a",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
-    "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
-    "SellConvertedShares": "e89e34327c4b835a0506e5181a27d9d0c3ee1be2b1fa49743958d7ecf03a38ec",
-    "SellFundingShares": "72facb9a9d838d543e5e1f61184ab4f3ca8fb3a377763d8ea20c893ca4387509",
-    "SellShares": "12ad7d2f39119fad1870bd79cb358bc94720b7d0175f3996ad8116ad42429eb6",
-    "SellSharesToPay": "ef871afbde760de658126125dad6c37a0e2a8f70a5a0264dee8b9e83f0b05bb6",
-    "SetRunInstruction": "946c1b1b93fbd52d503152557b345c324e364bf3d407284b36298dc558757cf1",
-    "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
-    "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
-    "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
-    "ShortShare": "216a256c036318c0c0c9778f11f832c1fa98b87bf6567d401a3d3bd312a93432",
+    "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
+    "SellConvertedShares": "ed66afa09277dbfb14d01db5f3687493c9a44042d16d201884b776d9839fc04a",
+    "SellFundingShares": "33e82acef995c8c92add06b895003343abd3acb8ff5b2aaf596f477cc83037ce",
+    "SellShares": "51101d7f2d888cfcc203ef9a6461a77138f1a34c550f4ee658ac5a8dfb40db52",
+    "SellSharesToPay": "54ef90c905f39c15a3fcf330856e6481a71432c75218c5b727f6ca6bd7d4eaf8",
+    "SetRunInstruction": "6d851b2bc8c8acd485bfabe3815e527a1e189d957efe09f639d7852572e9ed69",
+    "SetRunInstructionStops": "5b3208940e191c8df4445273e0026429e3d4a503cb7bb5d6734d3535f096d72d",
+    "SetStockInstruction": "83b7cfb9ce2c22f836925a999f485aa2822b409854cc66ca1648bb25cb0c083e",
+    "SetStockInstructionStops": "651b850b0d8e06bd7bc16b152c4889c9fddf724544844a9f55876f43aca7165f",
+    "ShortShare": "78a7d0fdf33f01bb8235770e8a601b88620e8afb725ad0bd2bb923f02b0b66ea",
     "SkipCompanySale": "c477b0804b42f31b194672a2a080683065938d4bd037adfbec47a6bba6f81a07",
     "StartAcquisitionRound": "65ae9860c83b368e1609b9f2ae1ef1101f9e15536b87e201918d2534250e8f33",
-    "StartCompany": "97c4b2c6e4509d9dfa29dcd82e59d9149304e28826d158413ae03726955c2b48",
+    "StartCompany": "ab68e3629864d25fd5571ba5f006acd1839f7a2c80f33d2e9c2dc6e026be5dfe",
     "StartMergerRound": "6ac2ea9acde1449a22f4add9d41b850ab2baac0af212bd6d3a275b1ef6e629be",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
     "StopRunInstruction": "7dcf5bbf14792352693bd5f3a98620696252e9bd57da315c4dea3595e33f4fd2",
-    "StopStockInstruction": "78a2288c361e0ab3de8d2919d4ceaab5cc933ba29512128afba3b4ef9512d1a2",
-    "TakeLoan": "5471b82f9e50f7555b4678966ef34b437bc0c40c614e6edc00095098d8a96226"
+    "StopStockInstruction": "7a2a73571b68d944ddf87b95277681317bd8e70b026177e767cf5d45ceff8e8e",
+    "TakeLoan": "c663e67d960d38072caa0e41e257b7768b9ff91af8e329f8df8c5e495f242a98"
   },
   "canonicalState": {
     "additionalProperties": false,
@@ -320,6 +320,10 @@
       "bank": {
         "additionalProperties": false,
         "properties": {
+          "breaksOnShortfall": {
+            "const": true,
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           }
@@ -456,6 +460,10 @@
                   "minimum": 1,
                   "type": "integer"
                 },
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
                 "playerId": {
                   "minLength": 1,
                   "type": "string"
@@ -467,7 +475,6 @@
               ],
               "type": "object"
             },
-            "minItems": 1,
             "type": "array"
           }
         },
@@ -1173,11 +1180,19 @@
               {
                 "const": "half-pay",
                 "type": "string"
+              },
+              {
+                "const": "top-up",
+                "type": "string"
               }
             ]
           },
           "companyId": {
             "type": "string"
+          },
+          "deducted": {
+            "minimum": 1,
+            "type": "integer"
           },
           "dividendPerShare": {
             "minimum": 0,
@@ -1341,6 +1356,44 @@
           },
           "revenue": {
             "minimum": 0,
+            "type": "integer"
+          },
+          "separate": {
+            "additionalProperties": false,
+            "properties": {
+              "choice": {
+                "anyOf": [
+                  {
+                    "const": "pay",
+                    "type": "string"
+                  },
+                  {
+                    "const": "withhold",
+                    "type": "string"
+                  },
+                  {
+                    "const": "half-pay",
+                    "type": "string"
+                  },
+                  {
+                    "const": "top-up",
+                    "type": "string"
+                  }
+                ]
+              },
+              "revenue": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "choice",
+              "revenue"
+            ],
+            "type": "object"
+          },
+          "topUp": {
+            "minimum": 1,
             "type": "integer"
           }
         },
@@ -1716,6 +1769,10 @@
       "gameEnding": {
         "additionalProperties": false,
         "properties": {
+          "finalOperatingRound": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "finalOperatingRounds": {
             "minimum": 1,
             "type": "integer"
@@ -1795,6 +1852,10 @@
               "type": "string"
             },
             "locationId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "nodeId": {
               "minLength": 1,
               "type": "string"
             },
@@ -2036,6 +2097,26 @@
       "modernTrains": {
         "const": true,
         "type": "boolean"
+      },
+      "neutralStations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "heldBy": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "stationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "stationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "operatingSet": {
         "additionalProperties": false,
@@ -2361,6 +2442,24 @@
                       "privateCompanyId"
                     ],
                     "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "station",
+                        "type": "string"
+                      },
+                      "stationId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "stationId"
+                    ],
+                    "type": "object"
                   }
                 ]
               },
@@ -2638,6 +2737,15 @@
                 "items": {
                   "additionalProperties": false,
                   "properties": {
+                    "attachmentIds": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array",
+                      "uniqueItems": true
+                    },
                     "bonuses": {
                       "items": {
                         "additionalProperties": false,
@@ -2726,7 +2834,6 @@
                         ],
                         "type": "object"
                       },
-                      "minItems": 1,
                       "type": "array"
                     },
                     "payments": {
@@ -2816,6 +2923,10 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "subsidy": {
+                "minimum": 1,
+                "type": "integer"
               }
             },
             "required": [
@@ -2872,6 +2983,10 @@
                 {
                   "const": "half-pay",
                   "type": "string"
+                },
+                {
+                  "const": "top-up",
+                  "type": "string"
                 }
               ]
             },
@@ -2893,6 +3008,15 @@
                         "items": {
                           "additionalProperties": false,
                           "properties": {
+                            "attachmentIds": {
+                              "items": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "minItems": 1,
+                              "type": "array",
+                              "uniqueItems": true
+                            },
                             "extension": {
                               "items": {
                                 "additionalProperties": false,
@@ -2934,7 +3058,6 @@
                                 ],
                                 "type": "object"
                               },
-                              "minItems": 1,
                               "type": "array"
                             },
                             "start": {
@@ -3130,6 +3253,10 @@
           },
           "completed": {
             "type": "boolean"
+          },
+          "discount": {
+            "minimum": 1,
+            "type": "integer"
           },
           "nominatorId": {
             "type": "string"
@@ -3883,6 +4010,30 @@
             "type": "array",
             "uniqueItems": true
           },
+          "purchases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "type": "string"
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "shares": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "companyId",
+                "playerId",
+                "shares"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "sales": {
             "items": {
               "additionalProperties": false,
@@ -3961,6 +4112,9 @@
             "properties": {
               "acted": {
                 "type": "boolean"
+              },
+              "auctionWinnerId": {
+                "type": "string"
               },
               "bought": {
                 "type": "boolean"
@@ -4156,6 +4310,87 @@
                         "type": "number"
                       }
                     ]
+                  },
+                  "trackStops": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "edges": {
+                          "additionalItems": false,
+                          "items": [
+                            {
+                              "anyOf": [
+                                {
+                                  "const": 0,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 1,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 2,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 3,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 4,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 5,
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "const": 0,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 1,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 2,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 3,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 4,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 5,
+                                  "type": "number"
+                                }
+                              ]
+                            }
+                          ],
+                          "minItems": 2,
+                          "type": "array"
+                        },
+                        "revenue": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "edges",
+                        "revenue"
+                      ],
+                      "type": "object"
+                    },
+                    "minItems": 1,
+                    "type": "array"
                   }
                 },
                 "required": [
@@ -4177,6 +4412,10 @@
             "uniqueItems": true
           },
           "tileSetId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "variantId": {
             "minLength": 1,
             "type": "string"
           }
@@ -4634,6 +4873,10 @@
             "type": "array",
             "uniqueItems": true
           },
+          "funded": {
+            "const": true,
+            "type": "boolean"
+          },
           "purchasedTrainIds": {
             "items": {
               "minLength": 1,
@@ -4646,6 +4889,40 @@
         "required": [
           "companyId",
           "purchasedTrainIds"
+        ],
+        "type": "object"
+      },
+      "turnInterest": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "fromRevenue": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyId",
+          "fromRevenue"
+        ],
+        "type": "object"
+      },
+      "turnLoans": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "loans": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyId",
+          "loans"
         ],
         "type": "object"
       },
@@ -4675,6 +4952,10 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "seriesKeeps": {
+            "const": "latest",
+            "type": "string"
           },
           "turnCounts": {
             "patternProperties": {

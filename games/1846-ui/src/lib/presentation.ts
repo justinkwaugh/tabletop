@@ -1,4 +1,5 @@
 import {
+    Corporations,
     Phases1846,
     TrainDepot1846,
     MarketZoneColors1846,
@@ -11,6 +12,7 @@ import {
     constructionOperatingSteps,
     createPhaseChart,
     moneyFormat,
+    NoParCompanyPricePresentation,
     type TitlePresentation
 } from '@tabletop/18xx-ui'
 import { CompanyNames1846 } from './companyPresentation.js'
@@ -24,8 +26,21 @@ const StraightTilePair = [
     { definitionId: '18xx:9', rotation: 1 }
 ] as const
 export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState> = {
+    // Independents are drafted, not started; besides a home, some corporations hold a second
+    // reserved city, so homes come from the charters.
+    unstartedCompanies: {
+        onOffer: (_state, companyId) =>
+            Corporations.some((corporation) => corporation.id === companyId),
+        home: (_state, companyId) => ({
+            locationIds: Corporations.filter((corporation) => corporation.id === companyId).map(
+                (corporation) => corporation.home
+            )
+        })
+    },
     money: moneyFormat(TitleRules1846.currencySymbol),
     companyNames: CompanyNames1846,
+    // Shares sell at the current price; there is no par value (GMT rules, p. 19).
+    companyPricePresentation: NoParCompanyPricePresentation,
     marketPoolId: 'open-market',
     historyMapPlacement: mapPlacement1846,
     markerArtFor: revenueTokenArt,

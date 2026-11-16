@@ -57,8 +57,7 @@ function startedColumn(
 export const EighteenSeventeenCompanyColumns: readonly CompanyColumn<EighteenSeventeenState>[] = [
     startedColumn('size', 'Size', corporationShareCount, (state, companyId) =>
         String(corporationShareCount(state, companyId))
-    ),
-    startedColumn('loans', 'Loans', companyLoans, loansAgainstLimit)
+    )
 ]
 
 /** A started company's size, the interest it owes, stations it still owes, and its zone. */

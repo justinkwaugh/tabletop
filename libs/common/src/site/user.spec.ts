@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
     accountStatusAfterCompletionCheck,
     canHoldAuthenticatedSession,
+    isAbandonedSignUp,
     Role,
     UserStatus,
+    isReservedUsername,
+    receivesGameAndCompetitionEmail,
+    wantsGameAndCompetitionEmails,
     withAssignedRoles
 } from './user.js'
 
@@ -65,5 +69,69 @@ describe('accountStatusAfterCompletionCheck', () => {
                 UserStatus.Deleted
             )
         }
+    })
+})
+
+describe('game and competition emails', () => {
+    const preferences = {
+        preventWebNotificationPrompt: false,
+        preferredColorsEnabled: false,
+        preferredColors: []
+    }
+    const optedOut = { ...preferences, gameAndCompetitionEmails: false }
+
+    it('sends them unless they were turned off', () => {
+        expect(wantsGameAndCompetitionEmails(undefined)).toBe(true)
+        expect(wantsGameAndCompetitionEmails(preferences)).toBe(true)
+        expect(
+            wantsGameAndCompetitionEmails({ ...preferences, gameAndCompetitionEmails: true })
+        ).toBe(true)
+        expect(wantsGameAndCompetitionEmails(optedOut)).toBe(false)
+    })
+
+    it('needs an email address as well', () => {
+        expect(receivesGameAndCompetitionEmail({ email: 'a@example.test' })).toBe(true)
+        expect(receivesGameAndCompetitionEmail({})).toBe(false)
+        expect(
+            receivesGameAndCompetitionEmail({ email: 'a@example.test', preferences: optedOut })
+        ).toBe(false)
+    })
+})
+
+describe('isReservedUsername', () => {
+    it('reserves any username containing the word deleted, however it is spaced', () => {
+        expect(isReservedUsername('Deleted player 3')).toBe(true)
+        expect(isReservedUsername('Deleted\u00a0 player 1')).toBe(true)
+        expect(isReservedUsername('the.dele ted_one')).toBe(true)
+        expect(isReservedUsername('Delete')).toBe(false)
+        expect(isReservedUsername('Alice')).toBe(false)
+    })
+})
+
+describe('isAbandonedSignUp', () => {
+    const now = new Date('2026-11-12T12:00:00Z')
+    const createdAt = new Date('2026-11-09T12:00:00Z')
+
+    it('is an Incomplete Account never activated, three days after it was created', () => {
+        expect(isAbandonedSignUp({ status: UserStatus.Incomplete, createdAt }, now)).toBe(true)
+        expect(
+            isAbandonedSignUp(
+                { status: UserStatus.Incomplete, createdAt: new Date(createdAt.getTime() + 1) },
+                now
+            )
+        ).toBe(false)
+    })
+
+    it('never covers an Account that was Active, or is not Incomplete', () => {
+        expect(
+            isAbandonedSignUp(
+                { status: UserStatus.Incomplete, createdAt, activatedAt: createdAt },
+                now
+            )
+        ).toBe(false)
+        for (const status of [UserStatus.Active, UserStatus.Inactive, UserStatus.Deleted]) {
+            expect(isAbandonedSignUp({ status, createdAt }, now)).toBe(false)
+        }
+        expect(isAbandonedSignUp({ status: UserStatus.Incomplete }, now)).toBe(false)
     })
 })

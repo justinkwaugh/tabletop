@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { GameConfigurator, League } from '@tabletop/common'
     import { leagueShapeText } from '$lib/utils/leaguePresentation'
+    import { tournamentScoringText } from '$lib/utils/tournamentPresentation'
     import TournamentGameOptions from '../tournaments/TournamentGameOptions.svelte'
 
     let {
@@ -24,6 +25,7 @@
             `${rules.sizes.groupSize} players; ${rules.sizes.bottomMinimum} to ${rules.sizes.bottomMaximum} in the bottom level`
         ],
         ['Games', `${rules.gamesPerEntrant} each, ${rules.tableSize} players per game`],
+        ['Ranking', tournamentScoringText(rules)],
         ['At once', `Up to ${rules.concurrency} games`],
         [
             'Between seasons',

@@ -31,9 +31,19 @@ export interface ReceivershipRules {
     ): PresidencyClaimTerms | undefined
 }
 
-/** A started, open share company with no president, whose president certificate lies in a pool. */
+/**
+ * The kind of a company with neither shares nor president, run by its title's receivers, as
+ * 1861's Russian State Railway is run by the Banker (§7.4).
+ */
+export const NationalCompanyKind = 'national'
+
+/**
+ * A started, open company with no president: a share company whose president certificate lies in
+ * a pool, or a national company.
+ */
 export function inReceivership(state: FinancialState, companyId: string): boolean {
     const company = getCompany(state, companyId)
+    if (company.kind === NationalCompanyKind) return !!company.started && !company.closed
     return (
         company.kind !== 'private' &&
         !!company.started &&

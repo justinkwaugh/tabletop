@@ -18,6 +18,7 @@ export interface GameConfigurator<C extends GameConfig = GameConfig> extends Par
         config: GameConfig,
         update: { id: string; value: string | boolean | number | null }
     ): void
+    isOptionDisabled?(config: GameConfig, optionId: string): boolean
 }
 
 export abstract class BaseConfigurator<

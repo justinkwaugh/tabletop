@@ -9,6 +9,15 @@ export * from './definition/states.js'
 export * from './editions/editions.js'
 export * from './editions/types.js'
 export { STATE_SUBSIDIES } from './editions/midwest/rules.js'
+export {
+    cisalpineFactor,
+    creditSuisseDividend,
+    loanLimit,
+    transalpineFactor
+} from './editions/switzerland/rules.js'
+export { Country, isCountry } from './editions/switzerland/map.js'
+export { wealthTax } from './editions/denmark/rules.js'
+export { Region } from './editions/england/map.js'
 export * from './model/components.js'
 export * from './model/economy.js'
 export * from './model/gameState.js'
@@ -18,7 +27,9 @@ export * from './model/playerState.js'
 export * from './model/shareAuctionRules.js'
 export * from './model/track.js'
 export * from './actions/chooseAction.js'
+export * from './actions/claimInvestment.js'
 export * from './actions/consolidate.js'
+export * from './actions/declineInvestment.js'
 export * from './actions/endRound.js'
 export * from './actions/investInIndustry.js'
 export * from './actions/issueShare.js'

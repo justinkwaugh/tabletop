@@ -55,12 +55,13 @@ export const MIDWEST: EditionDefinition = {
     layTrack: STANDARD_LAY_TRACK,
     trackCost: midwestTrackCost,
     siteRevenue: { [SiteKind.City]: 5, [SiteKind.Town]: 3 },
-    crossingCubeCost: 1,
+    crossingCubeCost: () => 1,
     siteCapacity: () => 3,
     industryInDemand: demandEstablished,
-    endBonusPerShare: stateSubsidyPerShare,
+    endBonusPerShare: ({ companyId, track, map }) => stateSubsidyPerShare(companyId, track, map),
     obsolescence: STANDARD_OBSOLESCENCE,
     industryTokensPerType: 4,
     developmentTrackLength: 20,
-    industryBonusPerSite: 8
+    industryBonusPerSite: 8,
+    tollValuePerStar: 0
 }

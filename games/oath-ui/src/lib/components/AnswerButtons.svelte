@@ -13,7 +13,7 @@
     } = $props()
 </script>
 
-<!-- The row a phone's scrolling panel pins to its bottom (`FitBox`); the buttons share one width. -->
+<!-- The row a scrolling panel pins to its bottom (`FitBox`); the buttons share one width. -->
 <div data-answer-row>
     <div class="answers gap-2">
         {#if acceptShown}

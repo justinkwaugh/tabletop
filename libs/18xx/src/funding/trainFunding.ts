@@ -11,8 +11,12 @@ import {
     sameOwner,
     sharesOwned
 } from '../finance/finance.js'
-import { TrainPurchase, TrainPurchaseDetails, type TrainRules } from '../trains/trainPurchase.js'
-import { trainsOwnedBy } from '../trains/train.js'
+import {
+    TrainPurchase,
+    TrainPurchaseDetails,
+    ownsRequiredTrain,
+    type TrainRules
+} from '../trains/trainPurchase.js'
 import {
     evaluateShareDisposal,
     applyShareSale,
@@ -25,6 +29,7 @@ import { SaleBlockTerms } from '../stock/stockTurn.js'
 import type { RepeatSales, StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 import type { EliminationRules } from './elimination.js'
+import type { OperatingState } from '../operating/operatingSet.js'
 
 export const TrainFunding = Type.Object(
     {
@@ -87,6 +92,11 @@ export interface TrainFundingRules {
     permitsSale?(state: FundingState, details: ShareSaleDetails): boolean
     /** How a player whose funding is exhausted leaves the game; without it, bankruptcy ends it. */
     elimination?: EliminationRules
+    /**
+     * How a company whose funding is exhausted fails while its president plays on, as 1849's
+     * corporation closes (§10.7); it takes the place of bankruptcy and elimination.
+     */
+    insolvency?: InsolvencyRules
     saleTerms(
         state: FundingState,
         companyId: string,
@@ -101,10 +111,52 @@ export interface TrainFundingRules {
      * only when that cash covers the price.
      */
     voluntaryFunding?(state: FundingState, companyId: string): boolean
+    /**
+     * A contributor whose cash and share sales are spent borrows what is still short rather than
+     * fail, the title recording the debt, as an 1822 director takes a loan (§5.17.2). The money
+     * is not the bank's (§4.2.4).
+     */
+    recordLoan?(state: FundingState, owner: Owner, amount: number): void
 }
+/**
+ * A failing company's end, recorded in the bankruptcy Action under the title's own schema. The
+ * company's turn then ends. Where the title offers its president choices, such as 1849's bank
+ * loan or leaving the game, the president makes one in declaring the failure.
+ */
+export interface InsolvencyRules<Changes extends Type.TObject = Type.TObject> {
+    schema: Changes
+    choices(state: FundingState, bankruptcy: Bankruptcy): readonly string[]
+    fail(
+        state: FundingState & OperatingState,
+        bankruptcy: Bankruptcy,
+        choice: string | undefined
+    ): Type.Static<Changes>
+}
+
+/** The bankruptcy an exhausted funding would declare. */
+export function fundingBankruptcy(state: FundingState, shortfall: number): Bankruptcy {
+    assertExists(state.trainFunding, 'Bankruptcy requires active train funding')
+    return {
+        companyId: state.trainFunding.purchase.companyId,
+        playerId: state.trainFunding.playerId,
+        shortfall
+    }
+}
+
+/** The choices the president of an insolvent company has, if the funding is exhausted. */
+export function insolvencyChoices(
+    state: FundingState,
+    rules: TrainFundingRules,
+    choice: FundingChoice
+): readonly string[] {
+    return choice.kind === 'bankrupt' && rules.insolvency
+        ? rules.insolvency.choices(state, fundingBankruptcy(state, choice.shortfall))
+        : []
+}
+
 export type FundingChoice =
     | { kind: 'issue'; details: ShareSaleDetails }
-    | { kind: 'contribute'; owner: Owner; amount: number }
+    | { kind: 'contribute'; owner: Owner; amount: number; borrowed?: number }
     | { kind: 'sell'; owner: Owner; sales: ShareSaleDetails[] }
     | { kind: 'buy'; purchase: TrainPurchaseDetails }
     | { kind: 'bankrupt'; shortfall: number }
@@ -154,7 +206,8 @@ export class EmergencyTrainFunding {
         if (
             voluntary
                 ? !this.rules.voluntaryFunding?.(this.state, companyId)
-                : !this.trains.requiresTrain(this.state, companyId)
+                : !this.trains.requiresTrain(this.state, companyId) &&
+                  !this.trains.mayRequireTrain?.(this.state, companyId)
         )
             return []
         const projected = stateWith(this.state, {
@@ -199,7 +252,7 @@ export class EmergencyTrainFunding {
                 : this.begin(purchase)
         })
         const funding = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains)
-        const contributions: { owner: Owner; amount: number }[] = []
+        const contributions: { owner: Owner; amount: number; borrowed?: number }[] = []
         let treasuryProceeds = 0
         while (true) {
             const next = funding.next()
@@ -207,7 +260,12 @@ export class EmergencyTrainFunding {
                 treasuryProceeds += next.details.proceeds
                 funding.applySale(next.details)
             } else if (next.kind === 'contribute') {
-                contributions.push({ owner: next.owner, amount: next.amount })
+                contributions.push({
+                    owner: next.owner,
+                    amount: next.amount,
+                    ...(next.borrowed ? { borrowed: next.borrowed } : {})
+                })
+                if (next.borrowed) lendCash(state, next.owner, next.borrowed)
                 settleCashPayments(state, [
                     {
                         from: next.owner,
@@ -285,6 +343,8 @@ export class EmergencyTrainFunding {
                 const sales = this.sales(owner, false)
                 if (sales.length) return { kind: 'sell', owner, sales }
             }
+            if (cash < shortfall && this.rules.recordLoan && !voluntary)
+                return { kind: 'contribute', owner, amount: shortfall, borrowed: shortfall - cash }
             const amount = Math.min(shortfall, cash)
             if (amount) return { kind: 'contribute', owner, amount }
         }
@@ -294,7 +354,14 @@ export class EmergencyTrainFunding {
     }
     /** Whether the company being funded already owns a train, so needs none. */
     voluntary(companyId: string): boolean {
-        return trainsOwnedBy(this.state, { kind: 'company', companyId }).length > 0
+        return ownsRequiredTrain(this.state, this.trains, companyId)
+    }
+    /**
+     * Whether the company may end its turn without the funded train: it owns one already, or it
+     * only may count as obliged to (``TrainRules.mayRequireTrain``).
+     */
+    optional(companyId: string): boolean {
+        return this.voluntary(companyId) || !this.trains.requiresTrain(this.state, companyId)
     }
     private cash(owner: Owner): number {
         const amount = cashOwnedBy(this.state, owner)
@@ -377,6 +444,13 @@ export class EmergencyTrainFunding {
             return results
         })
     }
+}
+
+/** Puts borrowed money in a contributor's hand; it comes from no one's cash. */
+export function lendCash(state: Pick<FundingState, 'cash'>, owner: Owner, amount: number): void {
+    const cash = state.cash.find((entry) => sameOwner(entry.owner, owner))
+    assert(typeof cash?.amount === 'number', 'A borrower holds a finite amount of cash')
+    cash.amount += amount
 }
 
 /** Whether the company is buying the train its funding has raised the price of. */

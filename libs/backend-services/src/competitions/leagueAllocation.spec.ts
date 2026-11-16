@@ -5,6 +5,7 @@ import {
     leagueGroupName,
     leagueGroupSizesFor,
     leagueMinimumEntrants,
+    tournamentFinishingPlacesFromGroups,
     type LeagueShape,
     type LeagueGroupSizes
 } from '@tabletop/common'
@@ -162,7 +163,7 @@ describe('leagueSeasonPlacements', () => {
             b.standings[2].score = 6
             b.standings[1].tiebreak = tiebreaks[0]
             b.standings[2].tiebreak = tiebreaks[1]
-            b.tables = [{ entrantIds: ['B-2', 'B-3', 'B-4', 'B-5'], winnerIds: winners }]
+            b.tables = [{ id: '1', entrantIds: ['B-2', 'B-3', 'B-4', 'B-5'], winnerIds: winners }]
             return groups
         }
         const promotedFromB = (groups: LeagueGroupResult[], seed: number) =>
@@ -180,6 +181,52 @@ describe('leagueSeasonPlacements', () => {
         expect(promotedFromB(tied([undefined, undefined], []), 7)).toEqual(
             promotedFromB(tied([undefined, undefined], []), 7)
         )
+    })
+})
+
+describe('placement scoring', () => {
+    // B-2 and B-3 share an average place of 2; B-3 finished ahead of B-2 in both meetings.
+    function placementSeason(tiebreaks: [number, number]) {
+        const groups = season('ladder', [1, 1])
+        for (const placed of groups.flatMap((value) => value.standings))
+            Object.assign(placed, { completed: 2, placeTotal: 2 * Number(placed.userId.at(-1)) })
+        const b = groups[1]
+        Object.assign(b.standings[1], { placeTotal: 4, tiebreak: tiebreaks[0] })
+        Object.assign(b.standings[2], { placeTotal: 4, tiebreak: tiebreaks[1] })
+        b.tables = [
+            {
+                id: '2',
+                entrantIds: ['B-2', 'B-3', 'B-6', 'B-7'],
+                winnerIds: ['B-3'],
+                finishingPlaces: tournamentFinishingPlacesFromGroups([
+                    ['B-3'],
+                    ['B-2'],
+                    ['B-6'],
+                    ['B-7']
+                ])
+            },
+            {
+                id: '3',
+                entrantIds: ['B-2', 'B-3', 'B-6', 'B-7'],
+                winnerIds: ['B-6'],
+                finishingPlaces: tournamentFinishingPlacesFromGroups([
+                    ['B-6'],
+                    ['B-3'],
+                    ['B-2'],
+                    ['B-7']
+                ])
+            }
+        ]
+        return groups
+    }
+
+    it('promotes by average place, then finishing ahead more often, before the tiebreak', () => {
+        const promoted = (groups: LeagueGroupResult[]) =>
+            moved(leagueSeasonPlacements('ladder', groups, 1), 'promoted')
+        expect(promoted(placementSeason([20, 10]))).toEqual(['B-1', 'B-3'])
+        const groups = placementSeason([20, 10])
+        groups[1].tables = []
+        expect(promoted(groups)).toEqual(['B-1', 'B-2'])
     })
 })
 

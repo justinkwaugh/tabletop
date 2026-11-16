@@ -23,7 +23,15 @@ post but could not reach the reporter says so; `notify` sends the message again.
 
 ## 1. Read
 
-Run `check`, then `list`, or take the post the user named. When `list` shows more than one post
+A new worktree cannot email yet: reporters without a linked Discord account are told by an email
+rendered from `libs/email`, which needs installing and building first. Before anything else run
+
+```bash
+pnpm install --frozen-lockfile --filter @tabletop/bug-reports... && pnpm --filter @tabletop/email... build
+```
+
+Then run `check`, and fix every `WARN` before sending a milestone; `template ok` says email
+works. Then `list`, or take the post the user named. When `list` shows more than one post
 to work, keep one and give each of the rest its own thread, so they run in parallel:
 
 1. Find the posts that already have a thread: `t3_thread_search` for the post id. Those stay
@@ -36,7 +44,9 @@ to work, keep one and give each of the rest its own thread, so they run in paral
 
 Read the post with `show`, and save
 its files with `download`: the scenario `bug-report-<gameId>.json` and any screenshots. Look at
-every screenshot.
+every screenshot. The game's name and link, the IDs and the scenario come from the staff-only
+`#bug-report-data` channel, which `show` and `download` join to the post; never paste them into
+the public forum.
 
 Then sort it: a **suggestion** asks for something new or different (a feature, a convenience, a
 change to how the game looks or plays) rather than saying the game went wrong. A player who

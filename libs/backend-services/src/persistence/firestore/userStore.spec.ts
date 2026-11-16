@@ -112,6 +112,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
                 username,
                 email,
                 emailVerified: false,
+                ageConfirmedAt: new Date(),
                 roles: [Role.User],
                 externalIds: []
             })
