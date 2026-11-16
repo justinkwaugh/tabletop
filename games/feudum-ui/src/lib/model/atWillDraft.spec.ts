@@ -384,7 +384,7 @@ describe('R-4.4-H5 a writ discarded at any time', () => {
         await settled(session)
         expect(session.gameState.machineState).toBe(MachineState.SelectingHands)
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
-            `Waiting for ${session.getPlayerName(second)} and ${session.getPlayerName(third)} to finalise`
+            `Waiting on ${session.getPlayerName(second)} and ${session.getPlayerName(third)}.`
         ])
         expect(rowLabels(session.actionPanel, 'at-will')).toEqual(['Writs 1'])
         expect(chipLabels(session)).toEqual(['Writs 1'])

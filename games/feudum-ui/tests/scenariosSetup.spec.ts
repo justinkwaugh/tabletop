@@ -81,7 +81,7 @@ scenario('S1 R-1.4.8 ChooseStartingGoods', 'setup-goods', async (table) => {
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-barrel]')).toHaveAttribute('data-barrel', '1')
     await table.closeSeatPanel()
-    await expect(table.waitingLine()).toHaveText('Bram chooses starting goods')
+    await expect(table.waitingLine()).toHaveText('Waiting on Bram.')
 })
 
 scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (table) => {
@@ -109,7 +109,7 @@ scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (tabl
     await table.press(knight)
     const flights = await table.flightsOf(() => table.pressPick('space:space.desert.3'))
     expect(flights).toEqual(["markers: Ana's influence marker", "pawns: Ana's knight pawn"])
-    await expect(table.waitingLine()).toHaveText('Bram places a starting pawn')
+    await expect(table.waitingLine()).toHaveText('Waiting on Bram.')
     expect(await table.piecesNamed('rank:')).toEqual(['rank:guild.knight.track.master'])
 
     await table.showSeat('p2')
@@ -124,7 +124,7 @@ scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (tabl
     await expect(table.popup()).toHaveCount(0)
     await table.pressPick('space:space.forest.2')
     await table.press(table.popupRow('Knight, journeyman'))
-    await expect(table.waitingLine()).toHaveText('Cleo places a starting pawn')
+    await expect(table.waitingLine()).toHaveText('Waiting on Cleo.')
 })
 
 scenario('S3 R-4.5 Rank badges follow the tracks', 'setup-third-knight', async (table) => {

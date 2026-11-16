@@ -66,7 +66,7 @@ import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
 import { gameEndOf, type GameEndSummaryView } from './gameEnd.js'
 import { roundEndOf, type RoundEndView } from './roundEnd.js'
 import { combatTallyOf, orderRowOf, type CombatTallyRow, type OrderRow } from './sharedRows.js'
-import { deckNoteOf, namesInWords, watchingPanelOf, type WatchingPanel } from './watching.js'
+import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
 import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
 import {
     OffTurnDiscardDraft,
@@ -83,9 +83,8 @@ export interface PrimaryButton {
 
 export interface StartingGoodsPanel {
     readonly deciderId: string
-    /** This seat chooses; otherwise only the counts and `waitingLine` apply. */
+    /** This seat chooses; otherwise only the counts apply, and others wait on `deciderId`. */
     readonly deciding: boolean
-    readonly waitingLine?: string
     readonly goods: readonly {
         readonly good: Good
         readonly count: number
@@ -163,8 +162,8 @@ export interface HandPanel {
     readonly drafting?: HandDrafting
     /** This seat's hand once it has finalised, until the reveal. */
     readonly set?: HandSet
-    /** R-3.1-H1 "Waiting for Ada and Bo to finalise", once this seat has nothing left to send. */
-    readonly waiting?: string
+    /** R-3.1-H1 The seats still choosing, once this seat has nothing left to send. */
+    readonly waitingOn?: readonly string[]
 }
 
 const PouchRows: readonly {
@@ -530,9 +529,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return {
             deciderId,
             deciding,
-            ...(deciding
-                ? {}
-                : { waitingLine: `${this.getPlayerName(deciderId)} chooses starting goods` }),
             goods: Goods.map((good) => {
                 const refusal = deciding && this.startingGoodRefusal(good)
                 return {
@@ -686,14 +682,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         const set = me && selection.finalised.includes(me) ? this.handSet(me) : undefined
         const yet = finaliseRow
             .filter(({ playerId, finalised }) => !finalised && playerId !== me)
-            .map(({ playerId }) => this.getPlayerName(playerId))
+            .map(({ playerId }) => playerId)
         return {
             finaliseRow,
             ...(drafting ? { drafting } : {}),
             ...(set ? { set } : {}),
-            ...(!drafting && yet.length > 0
-                ? { waiting: `Waiting for ${namesInWords(yet)} to finalise` }
-                : {})
+            ...(!drafting && yet.length > 0 ? { waitingOn: yet } : {})
         }
     })
 
@@ -1000,8 +994,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             ? undefined
             : watchingPanelOf({
                   state: this.gameState,
-                  viewerId: this.myPlayerId,
-                  nameOf: (id) => this.getPlayerName(id)
+                  viewerId: this.myPlayerId
               })
     )
 

@@ -15,6 +15,7 @@
     import PouchChoice from './PouchChoice.svelte'
     import PrimaryButton from './PrimaryButton.svelte'
     import RowChoice from './RowChoice.svelte'
+    import SeatChip from './SeatChip.svelte'
     import StagedMoves from './StagedMoves.svelte'
     import TradePickerLayer from '$lib/components/bench/TradePickerLayer.svelte'
     import WritBacks from './WritBacks.svelte'
@@ -139,6 +140,19 @@
     }
 </script>
 
+<!-- R-X.1 "Waiting on <chip>.": each seat waited on as its chip, which reads out its name. -->
+{#snippet lineText(block: Extract<ActionBlock, { kind: 'line' }>)}
+    {#if block.on}
+        <span class="inline-flex flex-wrap items-center gap-1" data-waiting-seats
+            >Waiting on {#each block.on as seat, index (seat.playerId)}{#if index > 0}<span
+                        class="sr-only">{index === block.on.length - 1 ? ' and ' : ', '}</span
+                    >{/if}<SeatChip name={seat.name} paint={seat.paint} ring />{/each}.</span
+        >
+    {:else}
+        {block.text}
+    {/if}
+{/snippet}
+
 {#snippet blockView(block: ActionBlock, index: number, list: readonly ActionBlock[])}
     {#if block.kind === 'finalise'}
         <FinaliseRow entries={block.entries} caption={block.caption} lead={block.lead} />
@@ -147,7 +161,11 @@
     {:else if block.kind === 'slots'}
         <HandSlots {block} />
     {:else if block.kind === 'line' && waitsBesideSet(block, list[index - 1])}
-        <p class={SetWaitingClasses} {...dataOf(block.role)}>{block.text}</p>
+        <p class={SetWaitingClasses} {...dataOf(block.role)}>{@render lineText(block)}</p>
+    {:else if block.kind === 'line' && block.on}
+        <p class="w-full {LineClasses[block.role]}" {...dataOf(block.role)}>
+            {@render lineText(block)}
+        </p>
     {:else if block.kind === 'line'}
         <p
             class="w-full {LineClasses[block.role]} {block.role === 'count'

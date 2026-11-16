@@ -1,10 +1,12 @@
 import { MachineState, type HydratedFeudumGameState } from '@tabletop/feudum'
-import { combatTargetName } from './answerAttack.js'
-import { spaceLabel } from './cardFlows.js'
 
-/** What a seat that isn't deciding reads about the seat that is (R-X.1). */
+/**
+ * R-X.1 What a seat that isn't deciding reads about the seats that are: "Waiting on" and their
+ * chips. What they are deciding is the History's to say once they send.
+ */
 export interface WatchingPanel {
-    readonly line?: string
+    /** The seats being waited on, in the order they decide. */
+    readonly waitingOn?: readonly string[]
     /** R-4.4.1 How many face-down writs the drawer is holding. */
     readonly backs?: number
 }
@@ -12,7 +14,6 @@ export interface WatchingPanel {
 export interface WatchingInput {
     readonly state: HydratedFeudumGameState
     readonly viewerId: string | undefined
-    readonly nameOf: (playerId: string) => string
 }
 
 /** "Ana", "Ana and Ben", "Ana, Ben and Cy". */
@@ -22,77 +23,46 @@ export function namesInWords(names: readonly string[]): string {
         : names.join('')
 }
 
-/**
- * R-4.10-H4 Every seat still deciding but the viewer, by name: "Ana feeds pawns", "Ana and Ben feed
- * pawns".
- */
-function feedingLine(
-    state: HydratedFeudumGameState,
-    viewerId: string | undefined,
-    nameOf: (playerId: string) => string
-): WatchingPanel | undefined {
-    const deciding = state.activePlayerIds.filter((playerId) => playerId !== viewerId)
-    if (deciding.length === 0) {
-        return undefined
-    }
-    const verb = deciding.length === 1 ? 'feeds' : 'feed'
-    return { line: `${namesInWords(deciding.map(nameOf))} ${verb} pawns` }
+/** "Waiting on Ana.", "Waiting on Ana and Ben.": the waiting line's words, which its chips draw. */
+export function waitingWords(names: readonly string[]): string {
+    return `Waiting on ${namesInWords(names)}.`
 }
 
-/** R-X.1 Words for what the one active seat is deciding: public facts, and no more. */
-const Deciding: Partial<Record<MachineState, string>> = {
-    [MachineState.PlayingCards]: 'plays a card',
-    [MachineState.CommittingAttack]: 'adds to the attack',
-    [MachineState.PlacingDisc]: 'decides on a disc',
-    [MachineState.InspectingHarvest]: 'takes favours',
-    [MachineState.DiscardingWrits]: 'discards a writ',
-    [MachineState.CollectingLandscapes]: 'collects landscapes'
-}
+/** R-X.1 The states in which one seat decides and every other waits on it. */
+const OneDecides: ReadonlySet<MachineState> = new Set([
+    MachineState.PlayingCards,
+    MachineState.CommittingAttack,
+    MachineState.PlacingDisc,
+    MachineState.InspectingHarvest,
+    MachineState.DiscardingWrits,
+    MachineState.CollectingLandscapes
+])
 
 /**
- * R-X.1 The line others read while another seat decides. It's built from public facts alone, so it
- * can't differ with what the asked seat holds (S34). The live rows of a step are `sharedRows`' own.
+ * R-X.1 Whom the viewer waits on while another seat decides. It's built from public facts alone,
+ * so it can't differ with what the asked seat holds (S34). The live rows of a step are
+ * `sharedRows`' own.
  */
-export function watchingPanelOf({
-    state,
-    viewerId,
-    nameOf
-}: WatchingInput): WatchingPanel | undefined {
+export function watchingPanelOf({ state, viewerId }: WatchingInput): WatchingPanel | undefined {
     const { combat, starve, writDraw } = state.flow
+    const on = (playerIds: readonly string[], extra: Omit<WatchingPanel, 'waitingOn'> = {}) => {
+        const others = playerIds.filter((playerId) => playerId !== viewerId)
+        return others.length > 0 ? { waitingOn: others, ...extra } : undefined
+    }
     switch (state.machineState) {
         case MachineState.KeepingWrits:
-            return writDraw && writDraw.playerId !== viewerId
-                ? {
-                      line: `${nameOf(writDraw.playerId)} keeps ${writDraw.keep}`,
-                      backs: writDraw.drawnCount
-                  }
-                : undefined
-        case MachineState.AwaitingDefence: {
-            if (!combat || combat.defenderId === undefined || combat.defenderId === viewerId) {
-                return undefined
-            }
-            const defender = nameOf(combat.defenderId)
-            const target = combatTargetName(state, combat.target)
-            return {
-                line: `${nameOf(combat.attackerId)} conquers ${defender}'s ${target} at ${spaceLabel(combat.spaceId)}. ${defender} answers.`
-            }
-        }
-        case MachineState.AwaitingImmunity: {
-            if (!starve || starve.targetPlayerId === viewerId) {
-                return undefined
-            }
-            const owner = nameOf(starve.targetPlayerId)
-            return {
-                line: `${nameOf(starve.actorId)} starves ${owner}'s ${starve.role} at ${spaceLabel(starve.spaceId)}. ${owner} answers.`
-            }
-        }
+            return writDraw ? on([writDraw.playerId], { backs: writDraw.drawnCount }) : undefined
+        case MachineState.AwaitingDefence:
+            return combat?.defenderId !== undefined ? on([combat.defenderId]) : undefined
+        case MachineState.AwaitingImmunity:
+            return starve ? on([starve.targetPlayerId]) : undefined
+        // R-4.10-H4 Every seat still deciding but the viewer.
         case MachineState.Nourishing:
-            return feedingLine(state, viewerId, nameOf)
+            return on(state.activePlayerIds)
         default: {
-            const words = Deciding[state.machineState]
             const [deciderId] = state.activePlayerIds
-            return words && deciderId !== undefined && deciderId !== viewerId
-                ? { line: `${nameOf(deciderId)} ${words}` }
+            return OneDecides.has(state.machineState) && deciderId !== undefined
+                ? on([deciderId])
                 : undefined
         }
     }

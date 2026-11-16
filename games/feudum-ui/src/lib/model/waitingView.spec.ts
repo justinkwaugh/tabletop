@@ -234,10 +234,10 @@ describe('Render ownership: each shared row reads the same for every seat', () =
         expect(plain(blockOf(asked.actionPanel, 'tally'))).toEqual(plain(block))
     })
 
-    it('R-3.14.1 "answers" reads once for every seat but the defender, who reads it nowhere', async () => {
+    it('R-3.14.1 "Waiting on" the defender reads once for every seat but the defender, who reads it nowhere', async () => {
         const table = hold(await askedToDefend(Held))
         const { session, asked, third } = table
-        const answers = `${asked.getPlayerName(table.other)} answers`
+        const answers = `Waiting on ${asked.getPlayerName(table.other)}.`
         const timesRead = (seat: FeudumGameSession) =>
             JSON.stringify(plain(seat.actionPanel)).split(answers).length - 1
         expect(timesRead(session)).toBe(1)
@@ -351,15 +351,17 @@ describe('R-X.1 the waiting view names who decides and what', () => {
         await settled(table.session)
         await settled(other)
         expect(blockOf(other.actionPanel, 'backs')?.count).toBe(3)
-        expect(linesOf(other.actionPanel, 'waiting')[0]).toContain('keeps 1')
+        expect(linesOf(other.actionPanel, 'waiting')[0]).toBe(
+            `Waiting on ${other.getPlayerName(table.seat)}.`
+        )
     })
 
     it.each([
-        [MachineState.PlayingCards, 'plays a card'],
-        [MachineState.PlacingDisc, 'decides on a disc'],
-        [MachineState.InspectingHarvest, 'takes favours'],
-        [MachineState.DiscardingWrits, 'discards a writ']
-    ])('%s reads "%s", naming the seat', async (machine, words) => {
+        MachineState.PlayingCards,
+        MachineState.PlacingDisc,
+        MachineState.InspectingHarvest,
+        MachineState.DiscardingWrits
+    ])('%s reads "Waiting on" and the seat, nothing of what it decides', async (machine) => {
         const table = hold(await atPlayingCards(['tax', 'move']))
         table.host.edit((state) => {
             state.machineState = machine
@@ -368,7 +370,7 @@ describe('R-X.1 the waiting view names who decides and what', () => {
         const other = await table.host.openSeat(table.other)
         await settled(other)
         const name = other.getPlayerName(table.seat)
-        expect(linesOf(other.actionPanel, 'waiting')).toEqual([`${name} ${words}`])
+        expect(linesOf(other.actionPanel, 'waiting')).toEqual([`Waiting on ${name}.`])
     })
 })
 

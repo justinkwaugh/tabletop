@@ -84,7 +84,7 @@ scenario(
         await expect(table.primary()).toHaveAccessibleName(Finalise)
         await table.press(table.primary())
         await expect(table.undo()).toHaveCount(0)
-        await expect(table.waitingLine()).toHaveText('Waiting for Bram and Cleo to finalise')
+        await expect(table.waitingLine()).toHaveText('Waiting on Bram and Cleo.')
         // Contract, Hand selection: tray A holds the hand as set and the pouch sealed; the seats
         // still choosing are the ones waited on. No seat is next: the header names the step.
         const set = table.panel().locator('[data-hand-set]')
