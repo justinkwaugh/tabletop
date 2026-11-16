@@ -17,7 +17,7 @@ export const GipfInfo: GameInfo = {
         version: GAME_VERSION,
         hasScores: false,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     },
     configurator: new GipfConfigurator(),
     preferences: GipfPreferenceDefinition
