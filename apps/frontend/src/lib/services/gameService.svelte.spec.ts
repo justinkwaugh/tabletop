@@ -211,8 +211,13 @@ function finalState(gameId: string): GameState {
         activePlayerIds: [],
         winningPlayerIds: ['p2'],
         actionCount: 22,
+        players: [],
+        actionChecksum: 0,
+        prng: { seed: 1, invocations: 0 },
+        machineState: 'ended',
+        turnManager: { series: [], turnOrder: ['p1', 'p2'], turnCounts: {} },
         result: GameResult.Win
-    } as Partial<GameState> as GameState
+    }
 }
 
 it('lists a hotseat game saved as started after it ended as finished', async () => {

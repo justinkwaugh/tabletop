@@ -29,8 +29,13 @@ function state(overrides: Partial<GameState> = {}): GameState {
         activePlayerIds: [],
         winningPlayerIds: [],
         actionCount: 22,
+        players: [],
+        actionChecksum: 0,
+        prng: { seed: 1, invocations: 0 },
+        machineState: 'ended',
+        turnManager: { series: [], turnOrder: ['p1', 'p2'], turnCounts: {} },
         ...overrides
-    } as GameState
+    }
 }
 
 const ended = new Date('2026-11-16T01:39:00Z')

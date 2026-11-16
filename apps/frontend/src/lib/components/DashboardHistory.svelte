@@ -20,7 +20,7 @@
         historyGames(
             games.filter((game) => game.category !== GameCategory.Exploration),
             gameService.finishedLocalGames,
-            exhausted
+            { allPagesLoaded: exhausted }
         )
     )
     const visible = $derived(finished.slice(0, visibleLimit))

@@ -1,10 +1,5 @@
 import { GameStatus, type Game, type GameState } from '@tabletop/common'
 
-/**
- * The record of a game kept in the browser, brought up to date with its state: who is to move,
- * and whether it has finished. A hosted game's record is kept this way by the server; a local
- * game has only this.
- */
 export function localGameRecord(game: Game, state: GameState, now = new Date()): Game {
     const record: Game = {
         ...game,
