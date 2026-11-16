@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import type { SpaceId } from '../data/board.js'
-import type { GuildId } from '../data/components.js'
+import { Goods, type Good, type GuildId } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
 import { atWillWindow } from '../model/atWill.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -55,6 +55,14 @@ export function isNourish(action?: GameAction): action is Nourish {
     return action?.type === ActionType.Nourish
 }
 
+/**
+ * R-4.10-H4 Every asked seat feeds at once, so a round's Nourish Actions share one simultaneous
+ * group: a seat sending from a state another seat's Nourish has since moved on is still taken.
+ */
+export function nourishGroup(state: HydratedFeudumGameState): string {
+    return `nourish-${state.roundManager.currentRound?.number ?? 0}`
+}
+
 export interface NourishInput {
     readonly wineFed: readonly PawnNumber[]
     readonly unfed: readonly PawnNumber[]
@@ -82,8 +90,22 @@ function feedAfterTiles(
 }
 
 /**
- * R-4.10.1, R-4.10.2, R-4.10-H3 The seat asked names only pawns needing food, and feeds every pawn
- * its food and barrel can after any tiles.
+ * R-4.3.3, R-4.10-H4 A good the named tiles ask more of than the haversack holds now. The seats feed
+ * at once and their Actions apply as they arrive, so an earlier one may have taken the last.
+ */
+function goodRunOut(
+    state: HydratedFeudumGameState,
+    wildTiles: readonly WildTileSpend[]
+): Good | undefined {
+    return Goods.find(
+        (good) =>
+            wildTiles.filter((spend) => spend.good === good).length > state.supply.haversack[good]
+    )
+}
+
+/**
+ * R-4.10.1, R-4.10.2, R-4.10-H3 A seat still deciding names only pawns needing food, and feeds every
+ * pawn its food and barrel can after any tiles.
  */
 export function reasonNourishRefused(
     state: HydratedFeudumGameState,
@@ -91,7 +113,7 @@ export function reasonNourishRefused(
     { wineFed, unfed, wildTiles = [] }: NourishInput
 ): string | undefined {
     if (atWillWindow(state, playerId) !== 'nourishing') {
-        return "It isn't your turn to nourish."
+        return "You aren't feeding pawns now."
     }
     const named = [...wineFed, ...unfed]
     if (new Set(named).size !== named.length) {
@@ -100,6 +122,10 @@ export function reasonNourishRefused(
     const needing = pawnsToFeed(state, playerId).map((pawn) => pawn.n)
     if (named.some((n) => !needing.includes(n))) {
         return 'That pawn needs no feeding.'
+    }
+    const runOut = goodRunOut(state, wildTiles)
+    if (runOut) {
+        return `The haversack has no ${runOut} left.`
     }
     if (!canSpendWildTiles(state, playerId, wildTiles)) {
         return "You can't spend those region tiles."
@@ -175,6 +201,21 @@ export interface NourishOffer {
     readonly wildTileNeeded: boolean
     /** R-4.10.2, R-4.10-H1 A tile's sulfur could go straight into the barrel. */
     readonly sulfurToBarrel: boolean
+    /**
+     * R-4.3.3, R-4.10-H4 What the haversack holds now for more tiles, once the named ones take
+     * theirs: 0, none for another; below 0, a named tile finds none. The seats feed at once and
+     * their Actions apply as they arrive, so another seat's feeding can change it.
+     */
+    readonly haversackFor: { readonly food: number; readonly sulfur: number }
+}
+
+/** R-4.3.3 What the haversack holds of this good beyond what the named tiles take. */
+function haversackBeyond(
+    state: HydratedFeudumGameState,
+    wildTiles: readonly WildTileSpend[],
+    good: 'food' | 'sulfur'
+): number {
+    return state.supply.haversack[good] - wildTiles.filter((spend) => spend.good === good).length
 }
 
 /** R-4.10.1, R-4.3.3 The auto stage, once any tiles are spent: food first, then wine, then unfed. */
@@ -190,7 +231,7 @@ export function preselectedFeeding(
     return { wineFed: afterFood.slice(0, barrel), unfed: afterFood.slice(barrel) }
 }
 
-/** R-4.10, R-4.10-H4, R-4.3.3 What the asked seat decides, with these tiles already named. Read-only. */
+/** R-4.10, R-4.10-H4, R-4.3.3 What a seat still deciding decides, with these tiles already named. Read-only. */
 export function nourishOffer(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -212,7 +253,11 @@ export function nourishOffer(
         barrel,
         preselected,
         wildTileNeeded: preselected.unfed.length > 0 && tileCouldFeed(state, playerId, wildTiles),
-        sulfurToBarrel: tileCouldFillBarrel(state, playerId, wildTiles)
+        sulfurToBarrel: tileCouldFillBarrel(state, playerId, wildTiles),
+        haversackFor: {
+            food: haversackBeyond(state, wildTiles, 'food'),
+            sulfur: haversackBeyond(state, wildTiles, 'sulfur')
+        }
     }
 }
 
@@ -277,7 +322,10 @@ export class HydratedNourish extends HydratableAction<typeof Nourish> implements
         super(data, NourishValidator)
     }
 
-    /** R-4.10, R-4.10-H4 Everything is public: never a barrier. Then the next seat is asked. */
+    /**
+     * R-4.10, R-4.10-H4 Everything is public: never a barrier. The seat is done; the others still
+     * deciding are untouched, and the last to answer ends nourishing.
+     */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonNourishRefused(state, this.playerId, this)
         if (reason) {
@@ -287,7 +335,7 @@ export class HydratedNourish extends HydratableAction<typeof Nourish> implements
 
         const { nourish } = state.flow
         assertExists(nourish, 'R-4.10 The seats are being asked')
-        nourish.pending.shift()
+        nourish.pending = nourish.pending.filter((playerId) => playerId !== this.playerId)
         if (nourish.pending.length === 0) {
             state.flow.nourish = undefined
             this.metadata = { ...fed, rankChanges: state.recomputeRanks() }

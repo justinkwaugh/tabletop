@@ -122,7 +122,7 @@ export const FlowState = Type.Object({
             role: StarveRole
         })
     ),
-    /** R-4.10 In turn order. */
+    /** R-4.10, R-4.10-H4 The seats still deciding, in turn order; each leaves as it feeds. */
     nourish: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
     /** R-4.3.4, R-4.12.3 In turn order. */
     landscapes: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),

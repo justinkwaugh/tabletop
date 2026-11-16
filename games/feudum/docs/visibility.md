@@ -32,7 +32,7 @@ Everything else is public (R-5.3): the map, locations, markers, pawns and their 
 
 A defender or starved marker's owner is asked whether to answer an attack whenever public state cannot rule out an unplayed Defend: they have an unplayed card and have not played Defend this round (and, for Royal Immunity, hold a food or a wild tile that can bring one, with a seal in the pile: R-3.14-H3, R-3.14-H4). A player without Defend answers "no" with the same control, so being asked reveals nothing about the hand (R-3.14-H1).
 
-Nourishing asks a seat with pawns to feed whenever it has a feeding choice or public state cannot rule out an at-will play: it holds an unsealed writ (`writCount` above `sealedCharterCount`), a region tile with a good left in the haversack, or a Royal Immunity seal to reclaim. A seat whose writs are all unplayable is asked as one holding a playable mandate, so being asked reveals nothing about its writs (R-4.10-H4).
+Nourishing asks a seat with pawns to feed whenever it has a feeding choice or public state cannot rule out an at-will play: it holds an unsealed writ (`writCount` above `sealedCharterCount`), a region tile with a good left in the haversack, or a Royal Immunity seal to reclaim. A seat whose writs are all unplayable is asked as one holding a playable mandate, so being asked reveals nothing about its writs (R-4.10-H4). The seats asked are asked at once and each feeds when it likes; every feeding is public, and the table sees who is still deciding.
 
 ## Action records
 

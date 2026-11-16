@@ -12,8 +12,9 @@ export type NourishingAction = AtWillAction | HydratedNourish | HydratedNourishP
 
 /**
  * R-4.10, R-4.10-H4 `NourishPawns` feeds every seat without a choice and names the rest in
- * `flow.nourish.pending`. One is asked at a time and may act at will (R-4.4-H1); `Nourish` passes the
- * question on. With nobody left, the progress die (R-4.11.1).
+ * `flow.nourish.pending`. All of them are asked at once, as hands are chosen (R-3.1-H1); each may act
+ * at will until it feeds (R-4.4-H1), and its `Nourish` takes it off the list. With nobody left, the
+ * progress die (R-4.11.1).
  */
 export class NourishingStateHandler implements MachineStateHandler<
     NourishingAction,
@@ -36,9 +37,9 @@ export class NourishingStateHandler implements MachineStateHandler<
             : []
     }
 
+    /** R-4.10-H4 Every seat still deciding, in turn order. */
     enter(context: MachineContext<HydratedFeudumGameState>) {
-        const next = context.gameState.flow.nourish?.pending[0]
-        context.gameState.activePlayerIds = next ? [next] : []
+        context.gameState.activePlayerIds = [...(context.gameState.flow.nourish?.pending ?? [])]
     }
 
     onAction(

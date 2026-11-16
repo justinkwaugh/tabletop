@@ -453,7 +453,7 @@ describe('R-4.10, R-4.10-H4 NourishPawns', () => {
         })
     }
 
-    it('R-4.10-H4 feeds every seat without a choice, and asks the others in turn order', () => {
+    it('R-4.10-H4 feeds every seat without a choice, and asks the others at once', () => {
         const table = fourLarders()
         const [fed, wineOrFood, starved, oneShort] = table.order
 
@@ -462,7 +462,7 @@ describe('R-4.10, R-4.10-H4 NourishPawns', () => {
         expect(typesOf(processed)).toEqual(RoundCascade.slice(0, 3))
         expect(table.state.machineState).toBe(MachineState.Nourishing)
         expect(table.state.flow.nourish).toEqual({ pending: [wineOrFood, oneShort] })
-        expect(table.asked).toBe(wineOrFood)
+        expect(table.state.activePlayerIds).toEqual([wineOrFood, oneShort])
         expect(processed[2]).toMatchObject({
             metadata: {
                 fed: [
@@ -474,7 +474,7 @@ describe('R-4.10, R-4.10-H4 NourishPawns', () => {
         expect(table.seat(fed).goods.food).toBe(0)
         expect(table.seat(starved).pawns[0].spaceId).toBeUndefined()
         expect(table.offered(fed)).toEqual([])
-        expect(table.offered(oneShort)).toEqual([])
+        expect(table.offered(oneShort)).toContain(ActionType.Nourish)
         expect(table.offered(wineOrFood)).toContain(ActionType.Nourish)
     })
 
@@ -484,7 +484,7 @@ describe('R-4.10, R-4.10-H4 NourishPawns', () => {
         playOutCards(table)
 
         table.send(wineOrFood, { type: ActionType.Nourish, wineFed: [], unfed: [] })
-        expect(table.asked).toBe(oneShort)
+        expect(table.state.activePlayerIds).toEqual([oneShort])
         const processed = table.send(oneShort, {
             type: ActionType.Nourish,
             wineFed: [],

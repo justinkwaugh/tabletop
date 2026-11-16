@@ -39,11 +39,12 @@ import {
 } from '../testing/guilds.js'
 import { giveGood, giveSeal, setUp, spaceOfKind, tableImproving } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
-import { tableAtPlayingCards } from '../testing/table.js'
+import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { reasonPlaceVesselRefused, placeVesselOffers } from './placeVessel.js'
 import { reasonDiscardWritRefused } from './discardWrit.js'
 import { reasonSpendRegionTileRefused, spendRegionTileOffers } from './spendRegionTile.js'
 import { keepWritsOffer } from './keepWrits.js'
+import { nourishOffer } from './nourish.js'
 
 const Windows: readonly WindowName[] = [
     'before a card',
@@ -53,6 +54,11 @@ const Windows: readonly WindowName[] = [
 ]
 
 const NOT_YOUR_TURN = "It isn't your turn."
+
+/** R-4.10.1 The seat's own preselected feeding, which is always legal. */
+function feedingOf(table: Table, playerId: string) {
+    return nourishOffer(table.hydrated(), playerId)?.preselected ?? { wineFed: [], unfed: [] }
+}
 
 /** A seat with something to do with every at-will action. */
 function equip(state: HydratedFeudumGameState, playerId: string): void {
@@ -100,6 +106,11 @@ describe('R-4.4-H1 the at-will windows', () => {
                 revealsInfo: true,
                 cards: ['move', 'tax', 'guild', 'explore']
             })
+        }
+        if (name === 'nourishing') {
+            // R-4.10-H4 Every seat yet to feed is in the window; one that has is not.
+            expect(atWillWindow(table.hydrated(), other ?? '')).toBe('nourishing')
+            table.send(other ?? '', { type: ActionType.Nourish, ...feedingOf(table, other ?? '') })
         }
         expect(atWillWindow(table.hydrated(), other ?? '')).toBeUndefined()
         for (const type of EveryWindowAction) {
@@ -170,18 +181,18 @@ describe('R-4.4-H1 the at-will windows', () => {
         expect(table.hydrated().flow.selection?.finalised).not.toContain(playerId)
     })
 
-    it('R-4.10 in nourishing, only the first seat pending is asked', () => {
+    it('R-4.10-H4 in nourishing, every seat pending is asked at once, and leaves the window as it feeds', () => {
         const { table, playerId } = tableInWindow('nourishing', equip)
-        expect(table.asked).toBe(playerId)
         const next = table.order[1]
-        expect(atWillWindow(table.hydrated(), next)).toBeUndefined()
-        table.moveTo((state) => {
-            state.flow.nourish = { pending: [next] }
-            return MachineState.Nourishing
-        })
-        expect(table.asked).toBe(next)
+        expect(table.state.activePlayerIds).toEqual(table.order)
         expect(atWillWindow(table.hydrated(), next)).toBe('nourishing')
-        expect(atWillWindow(table.hydrated(), playerId)).toBeUndefined()
+        expect(atWillWindow(table.hydrated(), playerId)).toBe('nourishing')
+
+        table.send(next, { type: ActionType.Nourish, ...feedingOf(table, next) })
+
+        expect(table.state.activePlayerIds).not.toContain(next)
+        expect(atWillWindow(table.hydrated(), next)).toBeUndefined()
+        expect(atWillWindow(table.hydrated(), playerId)).toBe('nourishing')
     })
 
     it('R-4.4-H1 no window while the turn player waits on a defender or keeps a draw; R-4.4-H5 a discard is taken', () => {
