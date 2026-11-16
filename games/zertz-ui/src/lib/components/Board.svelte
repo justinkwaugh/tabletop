@@ -136,178 +136,159 @@
 </script>
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<svg
-    class="zertz-board"
-    viewBox={frame.viewBox}
-    width={frame.width}
-    height={frame.height}
-    role="group"
-    aria-label="ZÈRTZ board"
-    onclick={onBoardClick}
-    {@attach animator.attach}
->
-    <defs>
-        <!-- Soft shadows as gradients rather than a blur filter, which is slow to paint on phones. -->
-        <radialGradient id="zertz-marble-shadow">
-            {#each MARBLE_SHADOW_STOPS as stop, index (index)}
-                <stop
-                    offset={stop.offset}
-                    stop-color={SHADOW_COLOR}
-                    stop-opacity={stop.opacity * MARBLE_SHADOW_OPACITY}
-                ></stop>
-            {/each}
-        </radialGradient>
-        <radialGradient id="zertz-ring-shadow">
-            {#each RING_SHADOW_STOPS as stop, index (index)}
-                <stop
-                    offset={stop.offset}
-                    stop-color={SHADOW_COLOR}
-                    stop-opacity={stop.opacity * RING_SHADOW_OPACITY}
-                ></stop>
-            {/each}
-        </radialGradient>
-    </defs>
+<div class="tap-off" role="presentation" onclick={onBoardClick}>
+    <svg
+        class="zertz-board"
+        viewBox={frame.viewBox}
+        width={frame.width}
+        height={frame.height}
+        role="group"
+        aria-label="ZÈRTZ board"
+        {@attach animator.attach}
+    >
+        <defs>
+            <!-- Soft shadows as gradients rather than a blur filter, which is slow to paint on phones. -->
+            <radialGradient id="zertz-marble-shadow">
+                {#each MARBLE_SHADOW_STOPS as stop, index (index)}
+                    <stop
+                        offset={stop.offset}
+                        stop-color={SHADOW_COLOR}
+                        stop-opacity={stop.opacity * MARBLE_SHADOW_OPACITY}
+                    ></stop>
+                {/each}
+            </radialGradient>
+            <radialGradient id="zertz-ring-shadow">
+                {#each RING_SHADOW_STOPS as stop, index (index)}
+                    <stop
+                        offset={stop.offset}
+                        stop-color={SHADOW_COLOR}
+                        stop-opacity={stop.opacity * RING_SHADOW_OPACITY}
+                    ></stop>
+                {/each}
+            </radialGradient>
+        </defs>
 
-    {#snippet ringShadow(coords: AxialCoordinates)}
-        {@const center = view.center(coords)}
-        <g transform="translate({center.x} {center.y + 3 + view.band}) scale(1 {view.tilt})">
-            <circle r={RING_SHADOW_RADIUS} fill="url(#zertz-ring-shadow)"></circle>
-        </g>
-    {/snippet}
-
-    {#snippet marble(
-        color: MarbleColor,
-        seed: number,
-        body?: Attachment<SVGGElement>,
-        shadow?: Attachment<SVGGElement>
-    )}
-        <g transform="translate(0 {view.lift + 3 * view.tilt})">
-            <g {@attach shadow}>
-                <ellipse
-                    rx={MARBLE_SHADOW_RADIUS}
-                    ry={MARBLE_SHADOW_RADIUS * view.tilt}
-                    fill="url(#zertz-marble-shadow)"
-                ></ellipse>
+        {#snippet ringShadow(coords: AxialCoordinates)}
+            {@const center = view.center(coords)}
+            <g transform="translate({center.x} {center.y + 3 + view.band}) scale(1 {view.tilt})">
+                <circle r={RING_SHADOW_RADIUS} fill="url(#zertz-ring-shadow)"></circle>
             </g>
-        </g>
-        <g {@attach body}>
-            <MarbleLook {color} {seed} {view} />
-        </g>
-    {/snippet}
+        {/snippet}
 
-    {#if session.showCoordinates}
-        <g class="coordinate-labels">
-            {#each session.notation.labels as label (label.key)}
-                <text x={label.at.x} y={label.at.y} dy={LABEL_DY}>{label.text}</text>
+        {#snippet marble(
+            color: MarbleColor,
+            seed: number,
+            body?: Attachment<SVGGElement>,
+            shadow?: Attachment<SVGGElement>
+        )}
+            <g transform="translate(0 {view.lift + 3 * view.tilt})">
+                <g {@attach shadow}>
+                    <ellipse
+                        rx={MARBLE_SHADOW_RADIUS}
+                        ry={MARBLE_SHADOW_RADIUS * view.tilt}
+                        fill="url(#zertz-marble-shadow)"
+                    ></ellipse>
+                </g>
+            </g>
+            <g {@attach body}>
+                <MarbleLook {color} {seed} {view} />
+            </g>
+        {/snippet}
+
+        {#if session.showCoordinates}
+            <g class="coordinate-labels">
+                {#each session.notation.labels as label (label.key)}
+                    <text x={label.at.x} y={label.at.y} dy={LABEL_DY}>{label.text}</text>
+                {/each}
+            </g>
+        {/if}
+
+        <g>
+            {#each rings as ring (coordinatesToNumber(ring.coords))}
+                <g {@attach animator.ringShadow(coordinatesToNumber(ring.coords))}>
+                    {@render ringShadow(ring.coords)}
+                </g>
             {/each}
         </g>
-    {/if}
 
-    <g>
-        {#each rings as ring (coordinatesToNumber(ring.coords))}
-            <g {@attach animator.ringShadow(coordinatesToNumber(ring.coords))}>
-                {@render ringShadow(ring.coords)}
+        {#each removedPositions as coords (coordinatesToNumber(coords))}
+            {@const center = view.center(coords)}
+            <ellipse
+                cx={center.x}
+                cy={center.y + view.band}
+                rx={RING_MID_RADIUS}
+                ry={RING_MID_RADIUS * view.tilt}
+                class="ghost"
+            ></ellipse>
+        {/each}
+
+        {#each drawOrder as ring (coordinatesToNumber(ring.coords))}
+            {@const center = view.center(ring.coords)}
+            {@const role = roleOf(ring)}
+            {@const interactive = role !== undefined}
+            <g transform="translate({center.x} {center.y})">
+                <g
+                    class="ring role-{role ?? 'none'}"
+                    class:interactive
+                    class:hovered={interactive && isHovered(ring.coords)}
+                    {@attach animator.ring(coordinatesToNumber(ring.coords))}
+                    role="button"
+                    tabindex={interactive ? 0 : -1}
+                    aria-disabled={!interactive}
+                    aria-label="{role ?? 'ring'} {session.notation.name(ring.coords)}"
+                    onclick={() => activate(ring, role)}
+                    onkeydown={(event) => onKey(event, ring, role)}
+                    onpointerenter={(event) => hover(event, ring.coords)}
+                    onpointerleave={() => (hoveredKey = undefined)}
+                    onfocus={(event) => {
+                        if (event.currentTarget.matches(':focus-visible'))
+                            focusedKey = coordinatesToNumber(ring.coords)
+                    }}
+                    onblur={() => (focusedKey = undefined)}
+                >
+                    <g transform="translate(0 {view.band}) scale(1 {view.tilt})">
+                        <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
+                    </g>
+                    <RingLook {view} />
+                </g>
             </g>
         {/each}
-    </g>
 
-    {#each removedPositions as coords (coordinatesToNumber(coords))}
-        {@const center = view.center(coords)}
-        <ellipse
-            cx={center.x}
-            cy={center.y + view.band}
-            rx={RING_MID_RADIUS}
-            ry={RING_MID_RADIUS * view.tilt}
-            class="ghost"
-        ></ellipse>
-    {/each}
-
-    {#each drawOrder as ring (coordinatesToNumber(ring.coords))}
-        {@const center = view.center(ring.coords)}
-        {@const role = roleOf(ring)}
-        {@const interactive = role !== undefined}
-        <g transform="translate({center.x} {center.y})">
-            <g
-                class="ring role-{role ?? 'none'}"
-                class:interactive
-                class:hovered={interactive && isHovered(ring.coords)}
-                {@attach animator.ring(coordinatesToNumber(ring.coords))}
-                role="button"
-                tabindex={interactive ? 0 : -1}
-                aria-disabled={!interactive}
-                aria-label="{role ?? 'ring'} {session.notation.name(ring.coords)}"
-                onclick={() => activate(ring, role)}
-                onkeydown={(event) => onKey(event, ring, role)}
-                onpointerenter={(event) => hover(event, ring.coords)}
-                onpointerleave={() => (hoveredKey = undefined)}
-                onfocus={(event) => {
-                    if (event.currentTarget.matches(':focus-visible'))
-                        focusedKey = coordinatesToNumber(ring.coords)
-                }}
-                onblur={() => (focusedKey = undefined)}
-            >
-                <g transform="translate(0 {view.band}) scale(1 {view.tilt})">
-                    <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
-                </g>
-                <RingLook {view} />
+        <!-- Above the rings, so a ring is pulled out without its outline; each position gets a fresh layer. -->
+        {#key session.gameState}
+            <g {@attach animator.outlines()}>
+                {#each rings as ring (coordinatesToNumber(ring.coords))}
+                    {@const role = roleOf(ring)}
+                    {#if marked(role)}
+                        {@const center = view.center(ring.coords)}
+                        {@const emphasized =
+                            isHovered(ring.coords) ||
+                            focusedKey === coordinatesToNumber(ring.coords)}
+                        <g
+                            class="mark role-{role}"
+                            class:emphasized
+                            class:faded={role === 'jumper' && session.chosenJumper !== undefined}
+                            in:fade|global={{ duration: MARK_FADE_IN }}
+                            out:fade={{ duration: MARK_FADE_OUT }}
+                        >
+                            <ellipse
+                                cx={center.x}
+                                cy={center.y + view.band}
+                                rx={MARK_RADIUS}
+                                ry={MARK_RADIUS * view.tilt}
+                                pathLength={MARK_PATH}
+                            ></ellipse>
+                        </g>
+                    {/if}
+                {/each}
             </g>
-        </g>
-    {/each}
+        {/key}
 
-    <!-- Above the rings, so a ring is pulled out without its outline; each position gets a fresh layer. -->
-    {#key session.gameState}
-        <g {@attach animator.outlines()}>
-            {#each rings as ring (coordinatesToNumber(ring.coords))}
-                {@const role = roleOf(ring)}
-                {#if marked(role)}
-                    {@const center = view.center(ring.coords)}
-                    {@const emphasized =
-                        isHovered(ring.coords) || focusedKey === coordinatesToNumber(ring.coords)}
-                    <g
-                        class="mark role-{role}"
-                        class:emphasized
-                        class:faded={role === 'jumper' && session.chosenJumper !== undefined}
-                        in:fade|global={{ duration: MARK_FADE_IN }}
-                        out:fade={{ duration: MARK_FADE_OUT }}
-                    >
-                        <ellipse
-                            cx={center.x}
-                            cy={center.y + view.band}
-                            rx={MARK_RADIUS}
-                            ry={MARK_RADIUS * view.tilt}
-                            pathLength={MARK_PATH}
-                        ></ellipse>
-                    </g>
-                {/if}
-            {/each}
-        </g>
-    {/key}
-
-    <!-- A marble reaches beyond its own ring, so it passes pointing on to its ring. -->
-    {#each drawOrder as ring (coordinatesToNumber(ring.coords))}
-        {@const center = view.center(ring.coords)}
-        {@const role = roleOf(ring)}
-        {#if ring.marble}
-            <g
-                transform="translate({center.x} {center.y - view.lift})"
-                class="marble"
-                class:interactive={role !== undefined}
-                role="presentation"
-                onclick={() => activate(ring, role)}
-                onpointerenter={(event) => hover(event, ring.coords)}
-                onpointerleave={() => (hoveredKey = undefined)}
-            >
-                {@render marble(
-                    ring.marble,
-                    seedAt(animator.seeds, ring.coords),
-                    animator.marble(coordinatesToNumber(ring.coords)),
-                    animator.marbleShadow(coordinatesToNumber(ring.coords))
-                )}
-            </g>
-        {:else if staged && sameCoordinates(staged.coords, ring.coords)}
-            <!-- Keyed by colour, so a colour change lifts the marble out and drops the next in. -->
-            {#key staged.color}
+        <!-- A marble reaches beyond its own ring, so it passes pointing on to its ring. -->
+        {#each drawOrder as ring (coordinatesToNumber(ring.coords))}
+            {@const center = view.center(ring.coords)}
+            {@const role = roleOf(ring)}
+            {#if ring.marble}
                 <g
                     transform="translate({center.x} {center.y - view.lift})"
                     class="marble"
@@ -317,43 +298,67 @@
                     onpointerenter={(event) => hover(event, ring.coords)}
                     onpointerleave={() => (hoveredKey = undefined)}
                 >
-                    <StagedMarble
-                        color={staged.color}
-                        seed={staged.seed}
+                    {@render marble(
+                        ring.marble,
+                        seedAt(animator.seeds, ring.coords),
+                        animator.marble(coordinatesToNumber(ring.coords)),
+                        animator.marbleShadow(coordinatesToNumber(ring.coords))
+                    )}
+                </g>
+            {:else if staged && sameCoordinates(staged.coords, ring.coords)}
+                <!-- Keyed by colour, so a colour change lifts the marble out and drops the next in. -->
+                {#key staged.color}
+                    <g
+                        transform="translate({center.x} {center.y - view.lift})"
+                        class="marble"
+                        class:interactive={role !== undefined}
+                        role="presentation"
+                        onclick={() => activate(ring, role)}
+                        onpointerenter={(event) => hover(event, ring.coords)}
+                        onpointerleave={() => (hoveredKey = undefined)}
+                    >
+                        <StagedMarble
+                            color={staged.color}
+                            seed={staged.seed}
+                            {view}
+                            drops={staged.drops}
+                            lifts={() => session.releasedByPlayer && !animator.placedIn}
+                            register={animator.stagedDrop}
+                        />
+                    </g>
+                {/key}
+            {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
+                <g class="preview" transform="translate({center.x} {center.y - view.lift})">
+                    <MarbleLook
+                        color={session.chosenColor}
+                        seed={placementSeed(ring.coords, session.gameState.actionCount)}
                         {view}
-                        drops={staged.drops}
-                        lifts={() => session.releasedByPlayer && !animator.placedIn}
-                        register={animator.stagedDrop}
                     />
                 </g>
-            {/key}
-        {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
-            <g class="preview" transform="translate({center.x} {center.y - view.lift})">
-                <MarbleLook
-                    color={session.chosenColor}
-                    seed={placementSeed(ring.coords, session.gameState.actionCount)}
-                    {view}
-                />
+            {/if}
+        {/each}
+
+        {#if animator.flight}
+            {@const center = view.center(animator.flight.from)}
+            <g transform="translate({center.x} {center.y - view.lift})" class="flight">
+                <g {@attach animator.flier()}>
+                    {@render marble(
+                        animator.flight.color,
+                        animator.flight.seed,
+                        animator.flierBody(),
+                        animator.flierShadow()
+                    )}
+                </g>
             </g>
         {/if}
-    {/each}
-
-    {#if animator.flight}
-        {@const center = view.center(animator.flight.from)}
-        <g transform="translate({center.x} {center.y - view.lift})" class="flight">
-            <g {@attach animator.flier()}>
-                {@render marble(
-                    animator.flight.color,
-                    animator.flight.seed,
-                    animator.flierBody(),
-                    animator.flierShadow()
-                )}
-            </g>
-        </g>
-    {/if}
-</svg>
+    </svg>
+</div>
 
 <style>
+    .tap-off {
+        display: contents;
+    }
+
     .zertz-board {
         overflow: visible;
         user-select: none;
