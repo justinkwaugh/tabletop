@@ -24,9 +24,10 @@ export interface DiscPanel {
     readonly line: string
     /** R-4.9.2 The space a service disc takes, and the penalty it covers. */
     readonly covers?: string
-    /** R-1.1 "Free discs: 2 of 3" */
+    /** R-1.1 "2/3 discs free" */
     readonly freeDiscs: string
-    readonly place: DraftChoice
+    /** Not drawn while the engine refuses the placement: Keep is then the answer. */
+    readonly place?: DraftChoice
     readonly keep: DraftChoice
     /** R-X.2 Only once a placement that can't be undone is staged. */
     readonly primary?: TurnPrimary
@@ -39,21 +40,18 @@ function writWord(count: number): string {
 function questionOf(offer: PlaceDiscOffer): string {
     switch (offer.disc) {
         case 'reeve': {
-            return `Place a reeve in the ${GuildById[offer.guildId].name} Guild?`
+            return `Reeve in ${GuildById[offer.guildId].name}?`
         }
         case 'military': {
-            return 'Place a military service disc?'
+            return 'Service disc?'
         }
         case 'voyage': {
             if (!offer.advances) {
-                return `Place your voyage disc on space ${offer.space}?`
+                return `Voyage space ${offer.space}?`
             }
             return offer.draw > 0
-                ? primaryLabel(
-                      `Advance to ${offer.space}? draws ${offer.draw} ${writWord(offer.draw)}`,
-                      offer
-                  )
-                : `Advance to ${offer.space}?`
+                ? primaryLabel(`To ${offer.space}? +${offer.draw} ${writWord(offer.draw)}`, offer)
+                : `To ${offer.space}?`
         }
     }
 }
@@ -129,14 +127,25 @@ export class DiscDraft extends DeciderDraft<DiscValues> {
             ...(offer.disc === 'military'
                 ? { covers: `Space ${offer.space} · covers −${Math.abs(offer.penalty)}` }
                 : {}),
-            freeDiscs: `Free discs: ${free} of ${PlayerDiscRoles.shared}`,
-            place: {
-                ...draftChoice(placementOf(offer), placing, this.pressPlace, this.refusal),
-                lights: () => [discTarget(offer)]
+            freeDiscs: `${free}/${PlayerDiscRoles.shared} discs free`,
+            ...(this.refusal
+                ? {}
+                : {
+                      place: {
+                          ...draftChoice(placementOf(offer), placing, this.pressPlace),
+                          // The heading names the space: the button is the verb, its label the full words.
+                          ...(offer.disc === 'voyage' && offer.advances
+                              ? { shown: 'Advance' }
+                              : {}),
+                          lights: () => [discTarget(offer)]
+                      }
+                  }),
+            keep: {
+                ...draftChoice('Keep the disc', false, () => {
+                    this.set('place', false)
+                }),
+                shown: 'Keep'
             },
-            keep: draftChoice('Keep the disc', false, () => {
-                this.set('place', false)
-            }),
             ...(placing && this.play
                 ? {
                       primary: {

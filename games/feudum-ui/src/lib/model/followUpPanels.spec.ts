@@ -7,6 +7,7 @@ import {
     linesOf,
     primariesOf,
     primaryLabels,
+    primaryNames,
     primaryNamed,
     pressRow,
     pressCard,
@@ -66,7 +67,7 @@ describe('R-3.14.1 S32 to S34 the ask to defend, as drawn', () => {
         const table = hold(await stagedConquer(['defend', 'tax']))
         const { session, asked, third } = table
         const name = session.getPlayerName(table.other)
-        expect(primaryLabels(session.actionPanel)[0]).toMatch(
+        expect(primaryNames(session.actionPanel)[0]).toMatch(
             new RegExp(`${name} may answer · can't be undone$`)
         )
         expect(JSON.stringify([...session.boardOffer.targets.values()])).toMatch(/"\d+ vs \d+"/)

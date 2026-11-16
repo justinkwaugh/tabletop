@@ -306,9 +306,7 @@ scenario(
             sent
         )
         expect(by).toBe(await table.page.evaluate(() => window.feudumFixture.seat))
-        await expect(dialog.locator('[data-action-panel]')).toContainText(
-            'Place a reeve in the Merchant Guild?'
-        )
+        await expect(dialog.locator('[data-action-panel]')).toContainText('Reeve in Merchant?')
         await expect(dialog).toHaveCount(1)
     }
 )

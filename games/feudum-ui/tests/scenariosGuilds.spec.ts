@@ -45,15 +45,10 @@ scenario('S40 R-3.16.1 Guild pick and functions', 'guild-pick', async (table) =>
     await table.press(table.card('Guild'))
     expect(Object.keys(await table.litChips()).sort()).toEqual(Guilds)
     await table.pressPick('guild:merchant')
+    // The pull the seat holds no rank for is not drawn.
     const rows = table.popup().locator('[data-row]')
-    await expect(rows).toHaveText([/Trade\s+from 1s/, /Pull · up to 3 vp/, /Push · up to 5 vp/])
-    const pull = table.popupRowStarting('Pull')
-    await expect(pull).toHaveAttribute('aria-disabled', 'true')
+    await expect(rows).toHaveText([/Trade\s+from 1s/, /Push · up to 5 vp/])
     await expect(table.popupRowStarting('Trade')).not.toHaveAttribute('aria-disabled', 'true')
-    await table.pressDimmed(pull)
-    await expect(table.popup().locator('[data-row^="Pull"] [data-refusal]')).toHaveText(
-        'Only the Merchant journeyman pulls.'
-    )
     await table.press(table.undo())
     await expect(table.popup()).toHaveCount(0)
     expect(Object.keys(await table.litChips()).sort()).toEqual(Guilds)
@@ -102,7 +97,7 @@ scenario('S42 R-4.6.4, R-4.7-H1 Below threshold', 'guild-below-threshold', async
     await expect(benchPrimary(table)).toHaveText('Move 1 good')
     await table.press(benchPrimary(table))
     await expect(bench(table)).toHaveCount(0)
-    await expect(table.panel()).toContainText('Place a reeve in the Merchant Guild?')
+    await expect(table.panel()).toContainText('Reeve in Merchant?')
 })
 
 scenario(
@@ -202,26 +197,20 @@ scenario('S48 R-4.4-H1 Short payment covered with a tile', 'short-with-tile', as
 
 scenario('S48 R-3.6, R-4.4-H1 Short payment with no tile', 'short-no-tile', async (table) => {
     await table.press(table.card('Migrate'))
-    await expect(table.row('Pawn from supply')).toHaveAttribute('aria-disabled', 'true')
-    await table.pressDimmed(table.row('Pawn from supply'))
-    await expect(table.panel().locator('[data-row="Pawn from supply"] [data-refusal]')).toHaveText(
-        'Migrating onto the board needs 1 food.'
-    )
+    // The pawn in supply can't come on, so it is not drawn; the one on the map may still go off.
+    await expect(table.panel().locator('[data-row="Pawn from supply"]')).toHaveCount(0)
+    await expect(table.panel().locator('[data-refusal]')).toHaveCount(0)
+    expect(Object.values(await table.litChips())).toEqual(['off'])
 })
 
 scenario(
-    'S48 R-4.6.2 a guild price short of shillings offers no cover',
+    'S48 R-4.6.2 a guild price short of shillings is not drawn, and offers no cover',
     'short-with-tile',
     async (table) => {
         await table.press(table.card('Guild'))
         await expect(table.popup()).toBeVisible()
-        const trade = table.popupRowStarting('Trade')
-        await expect(trade).toHaveAttribute('aria-disabled', 'true')
+        await expect(table.popup().locator('[data-row^="Trade"]')).toHaveCount(0)
         await expect(table.popup()).not.toContainText(/cover/i)
-        await table.pressDimmed(trade)
-        await expect(table.popup().locator('[data-row^="Trade"] [data-refusal]')).not.toContainText(
-            /tile/i
-        )
     }
 )
 
@@ -240,7 +229,7 @@ async function scoringPush(table: ScenarioTable) {
     await pressBench(table, 'good:food', 'good:food', 'good:sulfur', 'good:sulfur')
     await expect(result(table)).toContainText('5 vp')
     await table.press(benchPrimary(table))
-    await expect(table.panel()).toContainText('Place a reeve in the Merchant Guild?')
+    await expect(table.panel()).toContainText('Reeve in Merchant?')
 }
 
 /** The guild standings hold every seat's places, reeves too: in the strip at a desk, a phone's chip opens them. */

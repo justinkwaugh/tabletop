@@ -319,9 +319,9 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         }
     }
 
-    /** R-3.16.1 Trade, Pull, Push: each dimmed with why, each with its cost and best outcome. */
+    /** R-3.16.1 Trade, Pull, Push: each open one with its cost and best outcome. */
     private functionRow(context: GuildContext, offer: GuildActionOffer): PanelChoice {
-        const { guildId, fn, reason, bestVp } = offer
+        const { guildId, fn, bestVp } = offer
         const seat = this.seatOf(context)
         const name = `${fn.charAt(0).toUpperCase()}${fn.slice(1)}`
         const note =
@@ -332,13 +332,9 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
             label: bestVp > 0 ? `${name} · ${upToVp(bestVp)}` : name,
             picked: false,
             ...(note ? { note } : {}),
-            ...(reason
-                ? { refusal: reason }
-                : {
-                      press: () => {
-                          this.set('fn', fn)
-                      }
-                  })
+            press: () => {
+                this.set('fn', fn)
+            }
         }
     }
 
@@ -352,8 +348,9 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
             picked: [guildTarget(guildId)],
             popup: {
                 anchor: guildTarget(guildId),
+                // Rule: a function the seat can't perform now is not drawn.
                 choices: offers
-                    .filter((offer) => offer.guildId === guildId)
+                    .filter((offer) => offer.guildId === guildId && !offer.reason)
                     .map((offer) => this.functionRow(context, offer))
             }
         }
@@ -367,7 +364,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
             { kind: 'cost', label: cost ? `feast · ${cost}` : 'feast' }
         ]
         return {
-            line: 'Pick a space to feast on',
+            line: 'Pick a space.',
             stage: 'feast-space',
             picks: this.feastSpaces(offers).map((spaceId): FlowPick => ({
                 target: spaceTarget(spaceId),
@@ -381,7 +378,7 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
         }
     }
 
-    /** R-3.16.3 Each opponent's own function there, dimmed where nothing could move. */
+    /** R-3.16.3 Each opponent's own function there; one where nothing could move is not drawn. */
     private opponentPopup(context: GuildContext, spaceId: SpaceId): GuildView {
         const offers = feastOffers(context.state, context.playerId, context.input)
         return {
@@ -393,18 +390,14 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
             popup: {
                 anchor: spaceTarget(spaceId),
                 choices: offers
-                    .filter((offer) => offer.spaceId === spaceId)
-                    .map(({ opponentId, guildId, fn, reason, bestVp }): PanelChoice => ({
+                    .filter((offer) => offer.spaceId === spaceId && !offer.reason)
+                    .map(({ opponentId, guildId, fn, bestVp }): PanelChoice => ({
                         label: `${context.nameOf(opponentId)} · ${GuildById[guildId].name} ${fn}`,
                         note: { kind: 'gain', label: upToVp(bestVp) },
                         picked: false,
-                        ...(reason
-                            ? { refusal: reason }
-                            : {
-                                  press: () => {
-                                      this.set('feastOf', { opponentId, guildId })
-                                  }
-                              })
+                        press: () => {
+                            this.set('feastOf', { opponentId, guildId })
+                        }
                     }))
             }
         }

@@ -29,7 +29,8 @@ scenario('S10 R-3.8.3 Card modes', 'cards-merchant-under-marker', async (table) 
     await expect(space.locator('[data-chip="rose"]')).toHaveText('Money is Influence · 1s')
     await expect(table.primary()).toHaveText('Influence')
     await table.pressPick(Forest2)
-    await expect(table.primary()).toHaveText('Influence · Money is Influence at Forest 2')
+    await expect(table.primary()).toHaveText('Influence at Forest 2')
+    await expect(table.primary()).toHaveAccessibleName('Influence · Money is Influence at Forest 2')
     await table.press(table.undo())
     await expect(table.primary()).toHaveText('Influence')
     await table.press(table.undo())
@@ -106,7 +107,7 @@ scenario('S15 R-3.9 Improve to a feudum', 'cards-improve-town', async (table) =>
     await table.pressPick(Forest3)
     await expect(table.popup().locator('[data-row]')).toHaveCount(6)
     await table.press(table.popupRow('Noble'))
-    await expect(table.primary()).toHaveText("Improve Forest 3 to a feudum · can't be undone")
+    await expect(table.primary()).toHaveText("Improve Forest 3 to feudum · can't be undone")
     const disc = await table.scoreShown('p1')
     const scoreMotion = await table.scoreMotion('p1')
     const before = await table.page.locator(`[data-world="disc:space.forest.3"]`).innerHTML()
@@ -133,9 +134,7 @@ scenario('S15a R-3.9-H1 Improve a farm: which town disc', 'cards-improve-farm', 
     const [farm] = Object.keys(chips)
     expect(chips).toEqual({ [farm]: 'farm to town · 1 iron' })
     await table.pressPick(farm)
-    await expect(table.popup().locator('[data-popup-heading]')).toHaveText(
-        'Which town disc? Its back leaves the supply with it, and no other improvement can take that face while it stands.'
-    )
+    await expect(table.popup().locator('[data-popup-heading]')).toHaveText('Which disc?')
     for (const back of ['farm', 'outpost']) {
         const choice = table.popupRow(`Town disc, back: ${back}`)
         await expect(choice).toHaveAccessibleName(`Town disc, back: ${back}`)
@@ -149,9 +148,8 @@ scenario(
     'cards-tile-gone-epoch-1',
     async (table) => {
         await table.press(table.card('Improve'))
-        await expect(table.flowLine()).toContainText(
-            'The Forest tile is not yet legal: no earlier tile to take'
-        )
+        await expect(table.flowLine()).toHaveText('Pick a place.')
+        expect(await table.litChips()).toEqual({ [Forest3]: 'town to feudum · 1 seal' })
         await expect(table.stacksLit()).toHaveCount(0)
         await table.pressPick(Forest3)
         const flights = await table.flightsOf(() => table.press(table.popupRow('Monk')))
@@ -169,11 +167,10 @@ scenario(
     'cards-tile-gone-epoch-3',
     async (table) => {
         await table.press(table.card('Improve'))
-        await expect(table.flowLine()).toContainText(
-            'The Forest tile is not yet legal: take an earlier tile'
-        )
+        await expect(table.flowLine()).toHaveText('Pick a place.')
         await table.pressPick(Forest3)
         await table.press(table.popupRow('Monk'))
+        await expect(table.flowLine()).toHaveText('Pick an earlier tile.')
         expect(await table.litChips()).toEqual({
             'stack:desert': 'no vp',
             'stack:badlands': 'no vp',
@@ -181,7 +178,7 @@ scenario(
         })
         await expect(table.primary()).toHaveCount(0)
         await table.pressPick('stack:desert')
-        await expect(table.primary()).toHaveText("Improve Forest 3 to a feudum · can't be undone")
+        await expect(table.primary()).toHaveText("Improve Forest 3 to feudum · can't be undone")
         const flights = await table.flightsOf(() => table.press(table.primary()))
         expect(flights.filter((flight) => flight.startsWith('tiles:'))).toHaveLength(1)
     }
@@ -218,8 +215,11 @@ scenario('S17 R-3.9.3 TendLandscape', 'cards-tend-landscape', async (table) => {
 
 scenario('S18 R-4.4.1 Explore and keep', 'cards-explore', async (table) => {
     await table.press(table.card('Explore'))
-    // The draw is counted against what the deck holds.
-    await expect(table.primary()).toHaveText(/^Explore: draw 3 of \d+ writs · can't be undone$/)
+    // The deck's count is the Supply card's; the press says it in full to a screen reader.
+    await expect(table.primary()).toHaveText("Draw 3 · can't be undone")
+    await expect(table.primary()).toHaveAccessibleName(
+        /^Explore: draw 3 of \d+ writs · can't be undone$/
+    )
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights.filter((flight) => flight.startsWith('writs:'))).toHaveLength(3)
     expect(flights).not.toContain('writs: Writ back')
@@ -283,7 +283,8 @@ scenario('S20 R-3.11 Harvest with favours', 'cards-harvest-beads', async (table)
     expect(await table.litChips()).toEqual({ [Desert3]: '9 goods' })
     await table.pressPick(Desert3)
     const favours = table.popup().locator('[data-row="Favours: 6 here, 3 to you"]')
-    await expect(favours.locator('[data-note="cost"]')).toHaveText('your 2 beads turn to seals')
+    await expect(favours.locator('button').first()).toContainText('6 here · 3 to you')
+    await expect(favours.locator('[data-note="cost"]')).toHaveText('2 beads turn to seals')
     await table.press(table.popupRow('Favours: 6 here, 3 to you'))
     await expect(table.primary()).toHaveText("Favours at Desert 3 · can't be undone")
     const before = await table.seatPanel('p1')
@@ -343,6 +344,7 @@ scenario(
         await table.press(table.card('Tax'))
         // R-X.2 No send until Reinforcements is answered.
         await expect(table.primary()).toHaveCount(0)
+        await expect(table.row('Decline Reinforcements')).toHaveText('Skip')
         await table.press(table.rowIn('flow', 'Collect Reinforcements · +1 marker'))
         await expect(table.primary()).toHaveText('Tax · +4s · Reinforcements +1 marker')
         await table.press(table.primary())
@@ -362,7 +364,7 @@ scenario('S23 R-3.15 Repeat and Deja Vu', 'cards-repeat', async (table) => {
     await expect(replays.locator('[data-row="Conquer"]')).toHaveCount(0)
     await expect(replays.locator('[data-row="Defend"]')).toHaveCount(0)
     await table.press(table.rowIn('replays', 'Move'))
-    await expect(table.flowLine().first()).toHaveText('Moves left: 1 of 1')
+    await expect(table.flowLine().first()).toHaveText('1 of 1 steps left')
     expect(await table.litChips()).toEqual({ [Forest3]: 'road', [Desert3]: 'road' })
     await table.pressPick(Desert3)
     await table.press(table.row('No Godspeed'))

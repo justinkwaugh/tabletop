@@ -106,14 +106,13 @@ test('S40 R-3.16 guilds light, a used one doesn’t; the popup’s rows; Undo cl
     await shot(page, 'guild-pick')
     await boardGuild(page, 'merchant').click()
     await expect(popup(page)).toBeVisible()
+    // A function the seat can't perform is not drawn.
     const rows = popup(page).locator('[data-row]')
-    await expect(rows).toHaveCount(3)
+    await expect(rows).toHaveCount(2)
     await expect(rows.nth(0)).toContainText('Trade')
     await expect(rows.nth(1)).toContainText('Pull')
-    await expect(rows.nth(2)).toContainText('Push')
-    await expect(rows.nth(2).locator('button')).toHaveAttribute('aria-disabled', 'true')
-    await rows.nth(2).locator('button').click({ force: true })
-    await expect(rows.nth(2).locator('[data-refusal]')).not.toBeEmpty()
+    await expect(popup(page).locator('[data-row^="Push"]')).toHaveCount(0)
+    await expect(popup(page).locator('[data-refusal]')).toHaveCount(0)
     await shot(page, 'guild-functions')
     await undo(page).click()
     await expect(popup(page)).toHaveCount(0)
@@ -437,7 +436,7 @@ test('S48 R-4.4-H1 a Migrate short of food, with a tile: the primary covers; the
     await shot(page, 'migrate-cover')
 })
 
-test('S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: dimmed, with its reason', async ({
+test('S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: the supply pawn is not drawn', async ({
     page
 }) => {
     await openTable(page, 'migrateNoTile')
@@ -446,10 +445,7 @@ test('S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: dimmed, with it
         .first()
         .click()
     await settled(page)
-    const pawn = panel(page).locator('[data-row="Pawn from supply"]')
-    await expect(pawn.locator('button')).toHaveAttribute('aria-disabled', 'true')
-    await pawn.locator('button').click({ force: true })
-    await expect(pawn.locator('[data-refusal]')).toContainText('needs 1 food')
+    await expect(panel(page).locator('[data-row="Pawn from supply"]')).toHaveCount(0)
     await shot(page, 'migrate-no-tile')
     await page.reload()
     await openTable(page, 'migrateNoPawn')
@@ -462,20 +458,14 @@ test('S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: dimmed, with it
     await expect(panel(page)).toContainText('needs 1 food')
 })
 
-test('S48 R-4.6.2 a price short of shillings is dimmed with its reason, and no cover', async ({
-    page
-}) => {
+test('S48 R-4.6.2 a price short of shillings is not drawn, and no cover', async ({ page }) => {
     await openTable(page, 'shortOfShillings')
     await pressGuildCard(page)
     if ((await popup(page).count()) === 0) {
         await boardGuild(page, 'merchant').click()
     }
-    const trade = popup(page).locator('[data-row]').first()
-    await expect(trade).toContainText('Trade')
-    await expect(trade.locator('button')).toHaveAttribute('aria-disabled', 'true')
-    await expect(popup(page)).not.toContainText(/cover/i)
-    await trade.locator('button').click({ force: true })
-    await expect(trade.locator('[data-refusal]')).not.toContainText(/tile/i)
+    await expect(page.locator('[data-row^="Trade"]')).toHaveCount(0)
+    await expect(page.locator('[data-action-panel]')).not.toContainText(/cover/i)
     await shot(page, 'short-of-shillings')
 })
 

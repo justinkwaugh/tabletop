@@ -196,12 +196,12 @@ async function afterWonConquer() {
 }
 
 describe('S31 R-3.7.5 The voyage disc', () => {
-    it('S31 a Repeat of Move asks "Place your voyage disc on space 1?"; Place sends and the disc lands', async () => {
+    it('S31 a Repeat of Move asks "Voyage space 1?"; Place sends and the disc lands', async () => {
         const table = await afterRepeatedMove()
         const { session, seat } = table
         expect(session.discPanel).toMatchObject({
-            line: 'Place your voyage disc on space 1?',
-            freeDiscs: 'Free discs: 3 of 3'
+            line: 'Voyage space 1?',
+            freeDiscs: '3/3 discs free'
         })
         expect(session.discPanel?.primary).toBeUndefined()
         expect(roleOf(session.boardOffer, voyageTarget(1))).toBe('lit')
@@ -216,17 +216,17 @@ describe('S31 R-3.7.5 The voyage disc', () => {
         expect(session.discPanel).toBeUndefined()
     })
 
-    it('S31 with a disc on 1, "Advance to 2? draws 2 writs · can\'t be undone" stages for the primary', async () => {
+    it('S31 with a disc on 1, "To 2? +2 writs · can\'t be undone" stages for the primary', async () => {
         const table = hold(await voyage(1))
         const { session, seat } = table
         const count = table.host.actions.length
-        expect(session.discPanel?.line).toBe("Advance to 2? draws 2 writs · can't be undone")
-        expect(session.discPanel?.place.label).toBe('Advance to 2')
+        expect(session.discPanel?.line).toBe("To 2? +2 writs · can't be undone")
+        expect(session.discPanel?.place).toMatchObject({ label: 'Advance to 2', shown: 'Advance' })
         expect(session.discPanel?.primary).toBeUndefined()
 
         await press(session, session.discPanel?.place)
         expect(table.host.actions).toHaveLength(count)
-        expect(session.discPanel?.place.picked).toBe(true)
+        expect(session.discPanel?.place?.picked).toBe(true)
         expect(session.discPanel?.primary).toEqual({
             label: "Advance to 2 · can't be undone",
             enabled: true
@@ -256,7 +256,7 @@ describe('S31 R-3.7.5 The voyage disc', () => {
         drawing.host.close()
 
         const plain = hold(await voyage(2))
-        expect(plain.session.discPanel?.line).toBe('Advance to 3?')
+        expect(plain.session.discPanel?.line).toBe('To 3?')
         await plain.session.pressTurnTarget(voyageTarget(3))
         await settled(plain.session)
         expect(lastAction(plain)).toMatchObject({
@@ -272,9 +272,9 @@ describe('S31 R-3.7.5 The voyage disc', () => {
                 state.militaryService[seat] = 2
             })
         )
-        expect(table.session.discPanel?.freeDiscs).toBe('Free discs: 0 of 3')
-        expect(table.session.discPanel?.place.press).toBeDefined()
-        expect(table.session.discPanel?.place.refusal).toBeUndefined()
+        expect(table.session.discPanel?.freeDiscs).toBe('0/3 discs free')
+        expect(table.session.discPanel?.place?.press).toBeDefined()
+        expect(table.session.discPanel?.place?.refusal).toBeUndefined()
     })
 
     it('R-4.4-H2 a deck of one draws one, still a barrier; an empty deck draws none and sends on the press', async () => {
@@ -283,7 +283,7 @@ describe('S31 R-3.7.5 The voyage disc', () => {
                 shortenWritDeck(state, 1)
             })
         )
-        expect(one.session.discPanel?.line).toBe("Advance to 2? draws 1 writ · can't be undone")
+        expect(one.session.discPanel?.line).toBe("To 2? +1 writ · can't be undone")
         const count = one.host.actions.length
         await press(one.session, one.session.discPanel?.place)
         expect(one.host.actions).toHaveLength(count)
@@ -294,7 +294,7 @@ describe('S31 R-3.7.5 The voyage disc', () => {
                 shortenWritDeck(state, 0)
             })
         )
-        expect(empty.session.discPanel?.line).toBe('Advance to 2?')
+        expect(empty.session.discPanel?.line).toBe('To 2?')
         await press(empty.session, empty.session.discPanel?.place)
         expect(lastAction(empty)).toMatchObject({
             type: ActionType.PlaceDisc,
@@ -316,15 +316,15 @@ describe('S31 R-3.7.5 The voyage disc', () => {
 })
 
 describe('S49 R-4.7 The reeve offer', () => {
-    it('S49 a scoring push asks "Place a reeve in the Merchant Guild?"; Place sends, +1 vp', async () => {
+    it('S49 a scoring push asks "Reeve in Merchant?"; Place sends, +1 vp', async () => {
         const table = await afterMerchantPush()
         const { session, seat } = table
         expect(session.discPanel).toMatchObject({
-            line: 'Place a reeve in the Merchant Guild?',
-            freeDiscs: 'Free discs: 3 of 3'
+            line: 'Reeve in Merchant?',
+            freeDiscs: '3/3 discs free'
         })
-        expect(session.discPanel?.place.label).toBe('Place')
-        expect(session.discPanel?.keep.label).toBe('Keep the disc')
+        expect(session.discPanel?.place?.label).toBe('Place')
+        expect(session.discPanel?.keep).toMatchObject({ label: 'Keep the disc', shown: 'Keep' })
         expect(roleOf(session.boardOffer, guildTarget('merchant'))).toBe('lit')
         const score = session.gameState.getPlayerState(seat).score
         await press(session, session.discPanel?.place)
@@ -352,7 +352,7 @@ describe('S49 R-4.7 The reeve offer', () => {
         expect(session.gameState.freeDiscs(seat)).toBe(3)
     })
 
-    it('R-4.7 a Place the logic refuses is dimmed with its line, and only the keep is left to press', async () => {
+    it('R-4.7 a Place the logic refuses is not drawn, and only the keep is left to press', async () => {
         const table = hold(
             await atDisc(
                 (playerId) => ({ kind: 'reeve', playerId, guildId: 'merchant' }),
@@ -364,8 +364,7 @@ describe('S49 R-4.7 The reeve offer', () => {
             )
         )
         const { session } = table
-        expect(session.discPanel?.place.refusal).toBe('You have no free disc.')
-        expect(session.discPanel?.place.press).toBeUndefined()
+        expect(session.discPanel?.place).toBeUndefined()
         expect(roleOf(session.boardOffer, guildTarget('merchant'))).toBe('dimmed')
         const count = table.host.actions.length
         await session.pressTurnTarget(guildTarget('merchant'))
@@ -381,9 +380,9 @@ describe('R-4.9-H1 The military service question', () => {
         const table = await afterWonConquer()
         const { session, seat } = table
         expect(session.discPanel).toMatchObject({
-            line: 'Place a military service disc?',
+            line: 'Service disc?',
             covers: 'Space 1 · covers −3',
-            freeDiscs: 'Free discs: 3 of 3'
+            freeDiscs: '3/3 discs free'
         })
         expect(roleOf(session.boardOffer, militaryTarget(1))).toBe('lit')
         await press(session, session.discPanel?.place)
@@ -403,7 +402,7 @@ describe('R-4.9-H1 The military service question', () => {
         )
         expect(session.discPanel).toMatchObject({
             covers: 'Space 2 · covers −4',
-            freeDiscs: 'Free discs: 2 of 3'
+            freeDiscs: '2/3 discs free'
         })
         expect(roleOf(session.boardOffer, militaryTarget(2))).toBe('lit')
     })
@@ -465,7 +464,7 @@ describe('R-X.1 Who the question is for', () => {
         )
         const { session } = table
         const count = table.host.actions.length
-        expect(session.discPanel?.place.refusal).toBe('You have no free disc.')
+        expect(session.discPanel?.place).toBeUndefined()
         expect(session.disc.selection).toEqual({})
         await session.sendFollowUp()
         expect(table.host.actions).toHaveLength(count)
@@ -513,7 +512,7 @@ describe('DiscDraft minimum tests', () => {
         await session.undo()
         await settled(session)
         expect(session.gameState.voyageTrack[seat]).toBeUndefined()
-        expect(session.discPanel?.line).toBe('Place your voyage disc on space 1?')
+        expect(session.discPanel?.line).toBe('Voyage space 1?')
         expect(session.disc.selection).toEqual({})
     })
 
@@ -531,7 +530,7 @@ describe('DiscDraft minimum tests', () => {
         await press(session, session.discPanel?.place)
         await press(session, session.discPanel?.place)
         expect(session.disc.value('place')).toBeUndefined()
-        expect(session.discPanel?.place.picked).toBe(false)
+        expect(session.discPanel?.place?.picked).toBe(false)
         expect(session.discPanel?.primary).toBeUndefined()
         expect(table.host.actions).toHaveLength(count)
     })
@@ -565,8 +564,8 @@ describe('DiscDraft minimum tests', () => {
         expect(session.discPanel?.primary).toBeDefined()
         await table.host.send(seat, { type: ActionType.PlaceDisc, place: false })
         await settled(session)
-        expect(session.discPanel?.line).toBe('Place a reeve in the Merchant Guild?')
-        expect(session.discPanel?.place.picked).toBe(false)
+        expect(session.discPanel?.line).toBe('Reeve in Merchant?')
+        expect(session.discPanel?.place?.picked).toBe(false)
         expect(session.disc.selection).toEqual({})
         expect(session.disc.play).toBeUndefined()
         expect(roleOf(session.boardOffer, guildTarget('merchant'))).toBe('lit')
@@ -653,8 +652,8 @@ describe('S61 History View', () => {
 
         session.history.goToEnd()
         await settled(session)
-        expect(session.discPanel?.line).toBe("Advance to 2? draws 2 writs · can't be undone")
-        expect(session.discPanel?.place.picked).toBe(false)
+        expect(session.discPanel?.line).toBe("To 2? +2 writs · can't be undone")
+        expect(session.discPanel?.place?.picked).toBe(false)
         expect(session.discPanel?.primary).toBeUndefined()
     })
 

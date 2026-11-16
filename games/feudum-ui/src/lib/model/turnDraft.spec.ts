@@ -314,9 +314,10 @@ describe('R-3.8 Influence', () => {
 
         await pressTarget(session, target)
         expect(roleOf(session.boardOffer, target)).toBe('picked')
-        expect(session.turnPanel?.primary?.label).toBe(
-            `Influence · Money is Influence at ${spaceLabel(spaceId)}`
-        )
+        expect(session.turnPanel?.primary).toMatchObject({
+            label: `Influence at ${spaceLabel(spaceId)}`,
+            named: `Influence · Money is Influence at ${spaceLabel(spaceId)}`
+        })
 
         await session.undo()
         expect(session.turn.value('money')).toBeUndefined()
@@ -400,9 +401,7 @@ describe('R-3.6 Migrate', () => {
         expect(notes).toEqual([
             { kind: 'cost', label: '1 food', art: [{ kind: 'good', good: 'food', count: 1 }] }
         ])
-        expect(session.turn.flow?.line).toBe(
-            'Pick a space to enter. Each lit space shows what the pawn costs.'
-        )
+        expect(session.turn.flow?.line).toBe('Pick a space.')
 
         const spaceId = session.turn.flow?.picks[0].target.replace('space:', '')
         await pressTarget(session, target)
@@ -504,9 +503,10 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         await pressRow(session, new RegExp(`^${tileName(held[0])} tile`))
         expect(session.turnPanel?.primary?.enabled).toBe(true)
         expect(host?.sent.size).toBe(0)
-        expect(
-            row(session.turn.flow?.rows, new RegExp(`^${tileName(held[1])} tile`)).refusal
-        ).toBeDefined()
+        // Spent: every short good has its tile, so the other waits, dimmed, with no line.
+        const other = row(session.turn.flow?.rows, new RegExp(`^${tileName(held[1])} tile`))
+        expect(other).toMatchObject({ spent: true })
+        expect(other.refusal).toBeUndefined()
 
         await session.undo()
         expect(session.turn.value('cover')).toBeUndefined()
@@ -529,15 +529,10 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         expect(host?.sent.size).toBe(0)
     })
 
-    it('without a tile, a pawn in supply is dimmed with its reason; its pawn on the map may still go off', async () => {
+    it('without a tile, a pawn in supply is not drawn; its pawn on the map may still go off', async () => {
         const turn = await shortOfFood(0)
         const { session, seat } = turn
-        const rows = session.turn.flow?.rows ?? []
-        expect(rows.length).toBeGreaterThan(0)
-        for (const held of rows) {
-            expect(held.refusal).toBe('Migrating onto the board needs 1 food.')
-            expect(held.press).toBeUndefined()
-        }
+        expect(session.turn.flow?.rows).toEqual([])
         expect(session.turn.flow?.picks.map(({ target }) => target)).toEqual([pawnTarget(seat, 1)])
     })
 
@@ -595,7 +590,7 @@ describe('R-3.9 Improve', () => {
         await pressPopup(session, 'Monk')
         expect(host?.sent.size).toBe(0)
         expect(session.turnPanel?.primary).toEqual({
-            label: `Improve ${spaceLabel(spaceId)} to a feudum · can't be undone`,
+            label: `Improve ${spaceLabel(spaceId)} to feudum · can't be undone`,
             enabled: true
         })
 
@@ -609,14 +604,12 @@ describe('R-3.9 Improve', () => {
         expect(session.undoableAction).toBeUndefined()
     })
 
-    it('R-3.9.1 the tray says once what the lit places show: each its step and what it costs', async () => {
+    it('R-3.9.1 the tray says one short step; the chips show each step and what it costs', async () => {
         const { session } = await ruling('town', (state, { seat }) => {
             giveSeal(state, seat)
         })
         pickCard(session, 'improve')
-        expect(session.turn.flow?.line).toBe(
-            'Pick a place you rule. Each lit place shows its step and what it costs.'
-        )
+        expect(session.turn.flow?.line).toBe('Pick a place.')
     })
 
     it('R-3.9-H1 farm to town: the chip draws farm → town and an iron; the popup shows each town disc with its back', async () => {
@@ -636,9 +629,7 @@ describe('R-3.9 Improve', () => {
 
         await pressTarget(session, target)
         const popup = session.turn.flow?.popup
-        expect(popup?.heading).toBe(
-            'Which town disc? Its back leaves the supply with it, and no other improvement can take that face while it stands.'
-        )
+        expect(popup?.heading).toBe('Which disc?')
         expect(popup?.choices.map(({ label, shown, art }) => ({ label, shown, art }))).toEqual([
             {
                 label: 'Town disc, back: farm',
@@ -658,7 +649,7 @@ describe('R-3.9 Improve', () => {
         expect(sentBy(turn)).toMatchObject({ type: ActionType.Improve, spaceId })
     })
 
-    it('S16 epoch I, the top tile later: the panel says so first, no stack, the press sends', async () => {
+    it('S16 epoch I, the top tile later: the chip says so first, no stack, the press sends', async () => {
         const turn = await ruling('town', (state, { seat }) => {
             giveSeal(state, seat)
             for (const stack of Object.values(state.regionStacks)) {
@@ -667,12 +658,11 @@ describe('R-3.9 Improve', () => {
         })
         const { session, spaceId } = turn
         pickCard(session, 'improve')
-        const line = /The .* tile is not yet legal: no earlier tile to take$/
-        expect(session.turn.flow?.line).toMatch(line)
+        expect(session.turn.flow?.line).toBe('Pick a place.')
         expect(chipLabels(session, spaceTarget(spaceId))).toContain('no tile')
 
         await pressTarget(session, spaceTarget(spaceId))
-        expect(session.turn.flow?.line).toMatch(line)
+        expect(session.turn.flow?.line).toBeUndefined()
         expect(session.turn.flow?.picks.some(({ target }) => target.startsWith('stack:'))).toBe(
             false
         )
@@ -691,9 +681,7 @@ describe('R-3.9 Improve', () => {
         pickCard(session, 'improve')
         await pressTarget(session, spaceTarget(spaceId))
         await pressPopup(session, 'Monk')
-        expect(session.turn.flow?.line).toMatch(
-            /^The .* tile is not yet legal: take an earlier tile$/
-        )
+        expect(session.turn.flow?.line).toBe('Pick an earlier tile.')
         const [stackPick] = session.turn.flow?.picks ?? []
         expect(stackPick.target.startsWith('stack:')).toBe(true)
         expect(stackPick.notes?.[0].label).toBe('no vp')
@@ -781,7 +769,10 @@ describe('R-3.9.3 TendLandscape', () => {
         await pressTarget(session, spaceTarget(spaceId))
         await pressPopup(session, 'Leave it')
         expect(host?.sent.size).toBe(0)
-        expect(session.turnPanel?.primary?.label).toBe(`Tend Landscape at ${spaceLabel(spaceId)}`)
+        expect(session.turnPanel?.primary).toMatchObject({
+            label: `Tend at ${spaceLabel(spaceId)}`,
+            named: `Tend Landscape at ${spaceLabel(spaceId)}`
+        })
     })
 
     it('R-4.3-H3 short of the wood, with a tile, the special is not drawn', async () => {
@@ -812,7 +803,8 @@ describe('R-3.10 Explore, R-3.12 Tax, R-3.14.1 Defend: one press', () => {
         expect(drawCount).toBe(3)
         pickCard(session, 'explore')
         expect(session.turnPanel?.primary).toEqual({
-            label: `Explore: draw 3 of ${writDeckCount(session.gameState)} writs · can't be undone`,
+            label: "Draw 3 · can't be undone",
+            named: `Explore: draw 3 of ${writDeckCount(session.gameState)} writs · can't be undone`,
             enabled: true
         })
         await session.sendTurnCard()
@@ -899,13 +891,11 @@ describe('R-3.11 Harvest', () => {
         const { session, spaceId } = turn
         pickCard(session, 'harvest')
         expect(chipLabels(session, spaceTarget(spaceId))[0]).toMatch(/^\d+ goods$/)
-        // The tray says once what the chips show.
-        expect(session.turn.flow?.line).toBe(
-            'Pick a farm to harvest. Each lit farm shows the goods it holds.'
-        )
+        expect(session.turn.flow?.line).toBe('Pick a farm.')
         await pressTarget(session, spaceTarget(spaceId))
         const favours = row(session.turn.flow?.popup?.choices, /^Favours: \d+ here, \d+ to you$/)
-        expect(favours.note).toEqual({ kind: 'cost', label: 'your 2 beads turn to seals' })
+        expect(favours.shown).toMatch(/^\d+ here · \d+ to you$/)
+        expect(favours.note).toEqual({ kind: 'cost', label: '2 beads turn to seals' })
         await pressPopup(session, /^Favours/)
         expect(host?.sent.size).toBe(0)
         expect(session.turnPanel?.primary).toEqual({
@@ -987,15 +977,14 @@ describe('R-3.13 Conquer and Starve', () => {
         pickCard(session, 'conquer')
         expect(chipLabels(session, target)[0]).toMatch(/^\d+ vs \d+$/)
         expect(chipOf(session.boardOffer, target)?.tone).toBe('rose')
-        expect(session.turn.flow?.line).toBe(
-            'Pick a place to conquer. Each lit place shows your attack against its defence.'
-        )
+        expect(session.turn.flow?.line).toBe('Pick a place.')
         await pressTarget(session, target)
         expect(host?.sent.size).toBe(0)
         expect(session.turn.flow?.tally?.find(({ source }) => source === 'total')).toBeDefined()
-        expect(session.turn.flow?.tallyNote).toBe('Defence may rise by 1 if they answer')
+        expect(session.turn.flow?.tallyNote).toBeUndefined()
         expect(session.turnPanel?.primary).toEqual({
-            label: `Conquer ${name}'s knight · ${name} may answer · can't be undone`,
+            label: `Conquer ${name}'s knight · can't be undone`,
+            named: `Conquer ${name}'s knight · ${name} may answer · can't be undone`,
             enabled: true
         })
         await session.sendTurnCard()
@@ -1049,9 +1038,10 @@ describe('R-3.13 Conquer and Starve', () => {
         expect(chipLabels(session, target)).toEqual(['starve'])
         await pressTarget(session, target)
         expect(host?.sent.size).toBe(0)
-        expect(session.turnPanel?.primary?.label).toBe(
-            `Starve ${name}'s serf · ${name} may answer · can't be undone`
-        )
+        expect(session.turnPanel?.primary).toMatchObject({
+            label: `Starve ${name}'s serf · can't be undone`,
+            named: `Starve ${name}'s serf · ${name} may answer · can't be undone`
+        })
         await session.sendTurnCard()
         await session.waitForVisibleTransitionSettled()
         expect(sentBy(turn)).toMatchObject({

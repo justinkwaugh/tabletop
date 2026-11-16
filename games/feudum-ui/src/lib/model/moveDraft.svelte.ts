@@ -82,7 +82,7 @@ export interface MoveContext {
 }
 
 export interface MovePanel {
-    /** R-3.7.1 "Moves left: 3 of 4" */
+    /** R-3.7.1 "3 of 4 steps left" */
     readonly line: string
     readonly stage: MoveStageName
     /** Empty while a popup waits for its answer. */
@@ -342,6 +342,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             rows: [
                 {
                     label: 'Stop moving',
+                    shown: 'Done',
                     picked: false,
                     press: () => {
                         this.set('stopped', true)
@@ -569,7 +570,7 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             return undefined
         }
         return {
-            line: `Moves left: ${offers.stepsLeft} of ${offers.allowance}`,
+            line: `${offers.stepsLeft} of ${offers.allowance} steps left`,
             stage: view.stage,
             rows: view.popup ? [] : view.rows,
             ...(view.popup ? { popup: view.popup } : {}),

@@ -174,8 +174,6 @@ type PanelBlock =
           /** R-X.1 A waiting line's seats, each drawn as its chip: "Waiting on <chip>." */
           readonly on?: readonly WaitingSeat[]
           readonly lead?: string
-          /** A phone's wording, after the card's name, where the tray has room for one line. */
-          readonly short?: string
       }
     | {
           readonly kind: 'goods-counts'
@@ -251,6 +249,8 @@ type PanelBlock =
 interface PrimaryBlock {
     readonly kind: 'primary'
     readonly label: string
+    /** Its accessible name, where the label says it shorter. */
+    readonly named?: string
     /** A second line under the label. */
     readonly note?: string
     readonly send: () => void | Promise<void>
@@ -339,6 +339,7 @@ function sends(
               {
                   kind: 'primary',
                   label: primary.label,
+                  ...(primary.named ? { named: primary.named } : {}),
                   ...(primary.note ? { note: primary.note } : {}),
                   send
               }
@@ -361,8 +362,8 @@ function waitingLine(session: PanelSession, playerIds: readonly string[]): Actio
 }
 
 /** The tray's stage line, with its phone wording when the card's flow has one. */
-function trayLine(text: string, short: string | undefined): ActionBlock {
-    return { kind: 'line', role: 'flow', text, ...(short ? { short } : {}) }
+function trayLine(text: string): ActionBlock {
+    return { kind: 'line', role: 'flow', text }
 }
 
 function rows(name: string, entries: readonly ActionRow[], heading?: string): ActionBlock[] {
@@ -679,7 +680,10 @@ function discBlocks(
         line('flow', panel.line),
         ...(panel.covers ? [line('note', panel.covers)] : []),
         line('note', panel.freeDiscs),
-        ...rows('disc', [draftRow(session, panel.place), draftRow(session, panel.keep)]),
+        ...rows('disc', [
+            ...(panel.place ? [draftRow(session, panel.place)] : []),
+            draftRow(session, panel.keep)
+        ]),
         ...sends(panel.primary, () => session.sendFollowUp())
     ]
 }
@@ -871,7 +875,6 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     const move = session.movePanel
     const guild = session.guildPanel
     const flowLine = guild?.line ?? move?.line ?? turn.flow?.line
-    const flowShort = flowLine === turn.flow?.line ? turn.flow?.short : undefined
     const primary = guild?.primary ?? move?.primary ?? turn.primary
     const me = session.myPlayerId ?? ''
     // R-3.3 "2 cards" and the pouch's sulfur it spends; the full words stay its accessible name.
@@ -921,7 +924,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
               { kind: 'trade-picker', bench: picker, ...(send ? { send } : {}) }
           ]
         : [
-              ...(flowLine ? [trayLine(flowLine, flowShort)] : []),
+              ...(flowLine ? [trayLine(flowLine)] : []),
               ...(guild?.bench ? stagedBlocks(session, guild.bench) : []),
               ...rows('replays', asTurnRows(turn.replays)),
               ...rows('modes', modeRows),

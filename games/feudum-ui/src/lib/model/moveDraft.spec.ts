@@ -176,7 +176,7 @@ describe('S25 R-3.7.1 steps and their trail', () => {
         const { session, seat, pawn, other, host: tableHost } = await twoPawnsAndAMonster()
         const piece = { kind: 'pawn', playerId: seat, n: 1 }
 
-        expect(session.movePanel?.line).toBe('Moves left: 3 of 3')
+        expect(session.movePanel?.line).toBe('3 of 3 steps left')
         expect(session.movePanel?.stage).toBe('steps')
         expect(role(session, pawn)).toBe('lit')
         expect(role(session, other)).toBe('lit')
@@ -191,7 +191,7 @@ describe('S25 R-3.7.1 steps and their trail', () => {
 
         await press(session, spaceTarget(RoadEnd))
         expect(session.move.value('steps')).toEqual([{ piece, to: RoadEnd, medium: 'road' }])
-        expect(session.movePanel?.line).toBe('Moves left: 2 of 3')
+        expect(session.movePanel?.line).toBe('2 of 3 steps left')
         expect(role(session, pawn)).toBe('picked')
         expect(session.boardOffer.trail).toEqual([
             { n: 1, piece, from: Inland, to: RoadEnd, medium: 'road' }
@@ -212,16 +212,16 @@ describe('S25 R-3.7.1 steps and their trail', () => {
             to: ShipOnly,
             medium: 'ship'
         })
-        expect(session.movePanel?.line).toBe('Moves left: 1 of 3')
+        expect(session.movePanel?.line).toBe('1 of 3 steps left')
 
         await undo(session)
         expect(session.move.value('steps')).toEqual([{ piece, to: RoadEnd, medium: 'road' }])
-        expect(session.movePanel?.line).toBe('Moves left: 2 of 3')
+        expect(session.movePanel?.line).toBe('2 of 3 steps left')
         expect(role(session, pawn)).toBe('picked')
 
         await undo(session)
         expect(stepCount(session)).toBe(0)
-        expect(session.movePanel?.line).toBe('Moves left: 3 of 3')
+        expect(session.movePanel?.line).toBe('3 of 3 steps left')
         expect(session.turn.card).toBe('move')
         expect(tableHost.sent.size).toBe(0)
     })
@@ -607,7 +607,7 @@ describe('S29 R-3.7.3, R-3.7.4 Godspeed and pilfer', () => {
             medium: 'road',
             godspeed: true
         })
-        expect(session.movePanel?.line).toBe('Moves left: 1 of 3')
+        expect(session.movePanel?.line).toBe('1 of 3 steps left')
 
         // The pilfer chips: the farm the seat rules shows none; the landscape shows its target.
         expect(session.movePanel?.stage).toBe('pilfer')
@@ -881,7 +881,7 @@ describe('S30 R-3.7.1 the allowance spent', () => {
         expect(row(session.movePanel?.rows, 'Stop moving').picked).toBe(false)
         await press(session, spaceTarget(RoadEnd))
         expect(session.move.value('stopped')).toBeUndefined()
-        expect(session.movePanel?.line).toBe('Moves left: 0 of 1')
+        expect(session.movePanel?.line).toBe('0 of 1 steps left')
         expect(session.movePanel?.stage).toBe('godspeed')
         expect(role(session, pawnTarget(seat, 1))).toBe('lit')
         expect(role(session, spaceTarget(ShipOnly))).toBe('dimmed')
@@ -1090,7 +1090,7 @@ describe('MoveDraft minimum tests', () => {
         expect(session.hasLocalSelection).toBe(true)
         pickCard(session, 'move')
         expect(stepCount(session)).toBe(0)
-        expect(session.movePanel?.line).toBe('Moves left: 3 of 3')
+        expect(session.movePanel?.line).toBe('3 of 3 steps left')
 
         await press(session, pawnTarget(seat, 1))
         await press(session, spaceTarget(RoadEnd))
@@ -1226,7 +1226,7 @@ describe('MoveDraft: Repeat (R-3.15, R-3.7.5)', () => {
         pickCard(session, 'repeat')
         expect(session.turn.entry('replay')).toEqual({ value: 'move', source: 'auto' })
         expect(session.turn.mode).toBe(ActionType.Move)
-        expect(session.movePanel?.line).toBe('Moves left: 1 of 1')
+        expect(session.movePanel?.line).toBe('1 of 1 steps left')
         await press(session, spaceTarget(RoadEnd))
         await session.sendTurnCard()
         await settled(session)

@@ -26,6 +26,7 @@ import {
     pressRow,
     primaryLabels,
     primaryNamed,
+    primaryNames,
     rowLabels,
     rowNamed,
     rowsOf
@@ -715,7 +716,7 @@ describe('Playing a card', () => {
         expect(rowLabels(view(), 'card')).toEqual(['Forfeit'])
         // Move's own lines stand under the hand, and the hand stays.
         expect(linesOf(view(), 'turn')[0]).toBe('Card 1 of 3')
-        expect(linesOf(view(), 'flow')[0]).toMatch(/^Moves left: \d+ of \d+$/)
+        expect(linesOf(view(), 'flow')[0]).toMatch(/^\d+ of \d+ steps left$/)
         expect(cardRows(view())).toHaveLength(3)
     })
 
@@ -792,7 +793,8 @@ describe('Playing a card', () => {
         await pressCard(session.actionPanel, 'influence')
         expect(primaryLabels(session.actionPanel)).toEqual(['Influence'])
         await pressTarget(session, spaceTarget(spaceId))
-        expect(primaryLabels(session.actionPanel)[0]).toMatch(/^Influence · Money is Influence at /)
+        expect(primaryLabels(session.actionPanel)[0]).toMatch(/^Influence at /)
+        expect(primaryNames(session.actionPanel)[0]).toMatch(/^Influence · Money is Influence at /)
         await session.undo()
         flushSync()
         expect(primaryLabels(session.actionPanel)).toEqual(['Influence'])
@@ -889,13 +891,13 @@ describe('Playing a card', () => {
         await pressTarget(session, spaceTarget(spaceId))
         await pressPopup(session, 'Monk')
         expect(primaryLabels(session.actionPanel)[0]).toMatch(
-            /^Improve .+ to a feudum · can't be undone$/
+            /^Improve .+ to feudum · can't be undone$/
         )
-        await sendNamed(session, /to a feudum/)
+        await sendNamed(session, /to feudum/)
         expect(lastByUser(turn)).toMatchObject({ type: ActionType.Improve, revealsInfo: true })
     })
 
-    it('S16 R-4.3.2 the panel says the tile is not legal before the press', async () => {
+    it('S16 R-4.3.2 the tray says one step; the chip says the tile is not legal before the press', async () => {
         const turn = await ruling((state) => {
             for (const stack of Object.values(state.regionStacks)) {
                 stack.reverse()
@@ -903,11 +905,9 @@ describe('Playing a card', () => {
         })
         const { session } = turn
         await pressCard(session.actionPanel, 'improve')
-        expect(linesOf(session.actionPanel, 'flow')).toEqual([
-            expect.stringMatching(
-                /^Pick a place you rule\. .* The .* tile is not yet legal: no earlier tile to take$/
-            )
-        ])
+        expect(linesOf(session.actionPanel, 'flow')).toEqual(['Pick a place.'])
+        const chips = session.turn.flow?.picks.flatMap(({ notes }) => notes ?? []) ?? []
+        expect(chips.map(({ label }) => label)).toContain('no tile')
     })
 
     it('S17 R-3.9.3 the tiles as rows, a space, and the popup that sends', async () => {
@@ -946,10 +946,11 @@ async function explored(arrange?: (state: HydratedFeudumGameState, seat: string)
         })
     )
     await pressCard(table.session.actionPanel, 'explore')
-    expect(primaryLabels(table.session.actionPanel)).toEqual([
+    expect(primaryLabels(table.session.actionPanel)).toEqual(["Draw 3 · can't be undone"])
+    expect(primaryNames(table.session.actionPanel)).toEqual([
         `Explore: draw 3 of ${writDeckCount(table.session.gameState)} writs · can't be undone`
     ])
-    await sendNamed(table.session, /^Explore/)
+    await sendNamed(table.session, /^Draw/)
     return table
 }
 
@@ -1104,7 +1105,7 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
             giveBead(state, seat)
         })
         const favours = session.boardPopup?.choices.find(({ label }) => label.startsWith('Favours'))
-        expect(favours?.note).toEqual({ kind: 'cost', label: 'your 2 beads turn to seals' })
+        expect(favours?.note).toEqual({ kind: 'cost', label: '2 beads turn to seals' })
         await pressPopup(session, /^Favours/)
         expect(primaryLabels(session.actionPanel)[0]).toMatch(/^Favours at .+ · can't be undone$/)
     })
@@ -1173,7 +1174,7 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
         expect(move.choice.lights?.()).toContain(pawnTarget(seat, 1))
         await pressRow(move)
         expect(session.turn.mode).toBe(ActionType.Move)
-        expect(linesOf(session.actionPanel, 'flow')[0]).toMatch(/^Moves left/)
+        expect(linesOf(session.actionPanel, 'flow')[0]).toMatch(/steps left$/)
     })
 
     it('S24 R-3.14.1 one press sends: "Play Defend · +1 vp"', async () => {
@@ -1187,7 +1188,7 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
 })
 
 describe('Conquer', () => {
-    it('R-4.8 the tally by source, its note, and the ask that names itself', async () => {
+    it('R-4.8 the tally by source, with no reminder under it', async () => {
         let spaceId: SpaceId = RoadEnd
         const turn = await atCards(
             ['conquer', 'tax', 'move'],
@@ -1207,7 +1208,7 @@ describe('Conquer', () => {
         await pressTarget(session, pawnTarget(other, pawn.n))
         const tally = blockOf(session.actionPanel, 'tally')
         expect(tally?.lines.find(({ source }) => source === 'total')).toBeDefined()
-        expect(tally?.note).toBe('Defence may rise by 1 if they answer')
+        expect(tally?.note).toBeUndefined()
     })
 })
 
@@ -1235,14 +1236,14 @@ describe('Move', () => {
         })
         const { session, seat } = turn
         await pressCard(session.actionPanel, 'move')
-        expect(linesOf(session.actionPanel, 'flow')).toEqual(['Moves left: 2 of 2'])
+        expect(linesOf(session.actionPanel, 'flow')).toEqual(['2 of 2 steps left'])
         expect(rowLabels(session.actionPanel, 'move')).toEqual(['Stop moving'])
         await pressTarget(session, pawnTarget(seat, 1))
         await pressTarget(session, spaceTarget(RoadEnd))
-        expect(linesOf(session.actionPanel, 'flow')).toEqual(['Moves left: 1 of 2'])
+        expect(linesOf(session.actionPanel, 'flow')).toEqual(['1 of 2 steps left'])
         await session.undo()
         flushSync()
-        expect(linesOf(session.actionPanel, 'flow')).toEqual(['Moves left: 2 of 2'])
+        expect(linesOf(session.actionPanel, 'flow')).toEqual(['2 of 2 steps left'])
     })
 
     it('S26 R-4.2 a way popup holds the panel: its rows wait for the answer', async () => {
@@ -1265,7 +1266,7 @@ describe('Move', () => {
         const { session } = turn
         await pressCard(session.actionPanel, 'move')
         await pressTarget(session, spaceTarget(RoadEnd))
-        expect(linesOf(session.actionPanel, 'flow')).toEqual(['Moves left: 0 of 1'])
+        expect(linesOf(session.actionPanel, 'flow')).toEqual(['0 of 1 steps left'])
         expect(rowLabels(session.actionPanel, 'move')).toEqual(['No pilfer'])
         const pilfer = [...session.boardOffer.targets.keys()].find((target) =>
             target.startsWith('pilfer:')
@@ -1281,10 +1282,7 @@ describe('Move', () => {
     it('S31 R-3.7.5 the voyage question, its Place button and what the disc costs in discs', async () => {
         const table = hold(await atDisc((playerId) => ({ kind: 'voyage', playerId })))
         const { session } = table
-        expect(linesOf(session.actionPanel)).toEqual([
-            'Place your voyage disc on space 1?',
-            'Free discs: 3 of 3'
-        ])
+        expect(linesOf(session.actionPanel)).toEqual(['Voyage space 1?', '3/3 discs free'])
         expect(rowLabels(session.actionPanel, 'disc')[0]).toBe('Place')
         expect(primaryLabels(session.actionPanel)).toEqual([])
     })
@@ -1299,9 +1297,7 @@ describe('Move', () => {
             )
         )
         const { session } = table
-        expect(linesOf(session.actionPanel)[0]).toBe(
-            "Advance to 2? draws 2 writs · can't be undone"
-        )
+        expect(linesOf(session.actionPanel)[0]).toBe("To 2? +2 writs · can't be undone")
         await pressRow(rowNamed(session.actionPanel, 'Advance to 2'))
         expect(primaryLabels(session.actionPanel)).toEqual(["Advance to 2 · can't be undone"])
     })
@@ -1387,7 +1383,7 @@ const Reveals: readonly Reveal[] = [
                 })
             )
             await pressCard(table.session.actionPanel, 'explore')
-            return { table, ...primaryPress(table.session, /^Explore/) }
+            return { table, ...primaryPress(table.session, /^Draw/) }
         }
     },
     ...(

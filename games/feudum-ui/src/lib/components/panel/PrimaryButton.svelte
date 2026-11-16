@@ -5,7 +5,7 @@
     /**
      * The send, wherever it stands: the panel, or a phone's bench footer. It is drawn only once it
      * can be pressed (R-X.2). `children` draws it in place of its label, which stays its accessible
-     * name.
+     * name; `named`, where given, is its accessible name in full words.
      */
     let {
         block,
@@ -19,7 +19,11 @@
 <button
     type="button"
     class="rounded-lg border border-feudum-primary-border bg-feudum-primary px-4 py-1 text-sm font-semibold text-feudum-primary-text max-sm:w-full max-sm:px-2 max-sm:text-xs hover:bg-feudum-primary-hover"
-    aria-label={children ? block.label : block.note ? `${block.label} · ${block.note}` : undefined}
+    aria-label={children
+        ? (block.named ?? block.label)
+        : block.note
+          ? `${block.named ?? block.label} · ${block.note}`
+          : block.named}
     data-primary
     onclick={() => void block.send()}
     >{#if children}{@render children()}{:else if block.note}<span class="block" data-primary-label
