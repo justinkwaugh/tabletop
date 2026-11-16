@@ -1,6 +1,11 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
-    import { Goods, VesselTypes, type HydratedFeudumGameState } from '@tabletop/feudum'
+    import {
+        Goods,
+        VesselTypes,
+        writDeckCount,
+        type HydratedFeudumGameState
+    } from '@tabletop/feudum'
     import ArcheryTarget from '$lib/components/pieces/ArcheryTarget.svelte'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
@@ -8,39 +13,36 @@
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
     import WritFace from '$lib/components/pieces/WritFace.svelte'
-    import { deckView, influencePools } from '$lib/model/boardView.js'
+    import { influencePools } from '$lib/model/boardView.js'
     import { sealFaceShown } from '$lib/model/perspective.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
-    import { writName } from '$lib/model/writLabels.js'
     import { CrownPath } from '$lib/utils/pieceShapes.js'
     import { SackPath } from '$lib/utils/trackShape.js'
 
     /**
      * Contract, Supply: the general supply in one grouped card, each piece drawn with its count and
-     * its name. Counts only: the deck's order and what a seat knows under it stay hidden (R-4.4.1).
-     * R-5.1 the writ deck, R-4.4.2 the writs the table saw go under, R-5.4-H1 the haversack,
-     * R-1.4.2 the seals, vessels, targets, discs and influence by colour, R-3.2 the start player.
+     * its name. Counts only, the same for every viewer: nothing of the deck's order or of what lies
+     * in it shows (R-4.4.1, R-4.4.2). R-5.1 the writ deck, R-5.4-H1 the haversack, R-1.4.2 the
+     * seals, vessels, targets, discs and influence by colour, R-3.2 the start player.
      */
     let {
         state,
-        viewerId,
         paintOf,
         colourPaintOf,
         nameOf,
-        openDeck
+        openWrits
     }: {
         state: HydratedFeudumGameState
-        viewerId?: string
         paintOf: (playerId: string) => SeatPaint
         colourPaintOf: (colour: Color) => SeatPaint
         nameOf: (playerId: string) => string
-        /** R-5.1 Opens the deck's stack view, where the table offers it. */
-        openDeck?: () => void
+        /** Opens the writ reference, where the table offers it. */
+        openWrits?: () => void
     } = $props()
 
     const Piece = 28
 
-    let deck = $derived(deckView(state, viewerId))
+    let deck = $derived(writDeckCount(state))
     let influence = $derived(
         influencePools(state).map(({ colour, count, playerId }) => ({
             colour,
@@ -64,30 +66,22 @@
 
     <section class="wide" role="group" aria-label="Writ deck">
         <h4>Writ deck</h4>
-        <ul>
-            {#snippet back()}<WritFace faceShown={false} width={20} />{/snippet}
-            {@render counted('deck', deck.count, 'writs', back)}
-        </ul>
-        {#if deck.seen.length > 0}
-            <p class="note" data-general="deck-seen">seen: {deck.seen.map(writName).join(', ')}</p>
-        {/if}
-        {#if deck.knownToViewer > 0}
-            <p class="note" data-general="deck-known">
-                you know {deck.knownToViewer} under the deck
-            </p>
-        {/if}
-        {#if openDeck}
-            <button
-                type="button"
-                class="open"
-                aria-label="Open the writ deck"
-                data-open-stack="deck"
-                onclick={(event) => {
-                    event.stopPropagation()
-                    openDeck?.()
-                }}>Open the deck</button
-            >
-        {/if}
+        <p class="line" data-general-line="deck">
+            <span class="art" aria-hidden="true"><WritFace faceShown={false} width={20} /></span>
+            <span class="count" data-general-count="deck">{deck}</span>
+            <span class="caption">writs</span>
+            {#if openWrits}
+                <button
+                    type="button"
+                    class="open"
+                    data-open-writ-reference
+                    onclick={(event) => {
+                        event.stopPropagation()
+                        openWrits?.()
+                    }}>Writ reference</button
+                >
+            {/if}
+        </p>
     </section>
 
     <section class="wide" role="group" aria-label="Haversack">
@@ -279,14 +273,20 @@
         color: var(--feudum-text-muted);
     }
 
-    .note {
-        margin: 0.25rem 0 0;
-        font-size: 0.75rem;
-        color: var(--feudum-text-muted);
+    /* Contract, Spacing: the deck's count and its button read as one group, the button after it. */
+    .line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+        margin: 0;
+    }
+
+    .line .open {
+        margin-left: 0.25rem;
     }
 
     .open {
-        margin-top: 0.25rem;
         min-height: 2.75rem;
         padding: 0 0.75rem;
         border: 1px solid var(--feudum-frame);

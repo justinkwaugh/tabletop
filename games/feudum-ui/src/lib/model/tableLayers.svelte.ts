@@ -45,9 +45,11 @@ export type EnlargedFace =
           readonly colourPaintOf: (colour: Color) => SeatPaint
       }
 
-/** A region stack's tiles by epoch, or the deck's seen writs. */
-export type StackViewOf =
-    { readonly kind: 'region'; readonly region: RegionId } | { readonly kind: 'deck' }
+/** A region stack's tiles by epoch. */
+export interface StackViewOf {
+    readonly kind: 'region'
+    readonly region: RegionId
+}
 
 interface Enlarged {
     readonly owner: object
@@ -67,6 +69,8 @@ export class TableLayers {
     tracksOpen: boolean = $state(false)
     /** A phone's Guilds sheet: the guild standings, for looking. */
     guildsOpen: boolean = $state(false)
+    /** Contract, Supply: the writ reference, every writ in the game, for looking. */
+    writsOpen: boolean = $state(false)
 
     /** A site's card: the one pressed open, else the one under a desk pointer. */
     private sitePressed: SpaceId | undefined = $state(undefined)
@@ -112,6 +116,7 @@ export class TableLayers {
         this.stackView = undefined
         this.tracksOpen = false
         this.guildsOpen = false
+        this.writsOpen = false
         this.openSeatId = playerId
     }
 
@@ -120,6 +125,7 @@ export class TableLayers {
         this.openSeatId = undefined
         this.tracksOpen = false
         this.guildsOpen = false
+        this.writsOpen = false
         this.stackView = view
     }
 
@@ -128,6 +134,7 @@ export class TableLayers {
         this.openSeatId = undefined
         this.stackView = undefined
         this.guildsOpen = false
+        this.writsOpen = false
         this.tracksOpen = true
     }
 
@@ -136,7 +143,17 @@ export class TableLayers {
         this.openSeatId = undefined
         this.stackView = undefined
         this.tracksOpen = false
+        this.writsOpen = false
         this.guildsOpen = true
+    }
+
+    openWrits(): void {
+        this.closeSite()
+        this.openSeatId = undefined
+        this.stackView = undefined
+        this.tracksOpen = false
+        this.guildsOpen = false
+        this.writsOpen = true
     }
 
     closeSeatOrStack(): void {
@@ -144,6 +161,7 @@ export class TableLayers {
         this.stackView = undefined
         this.tracksOpen = false
         this.guildsOpen = false
+        this.writsOpen = false
     }
 
     /**
@@ -155,7 +173,13 @@ export class TableLayers {
             this.closeEnlarged()
             return true
         }
-        if (this.openSeatId !== undefined || this.stackView || this.tracksOpen || this.guildsOpen) {
+        if (
+            this.openSeatId !== undefined ||
+            this.stackView ||
+            this.tracksOpen ||
+            this.guildsOpen ||
+            this.writsOpen
+        ) {
             this.closeSeatOrStack()
             return true
         }

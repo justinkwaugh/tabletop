@@ -64,10 +64,28 @@ describe('S59 Enlarge and the layers over the table (contract: Coexistence and p
     it('R-5.1 A seat and a stack view replace each other; only one is open', () => {
         const layers = new TableLayers()
         layers.openSeat('p1')
-        layers.openStack({ kind: 'deck' })
+        layers.openStack({ kind: 'region', region: RegionIds[0] })
         expect(layers.openSeatId).toBeUndefined()
         layers.openSeat('p2')
         expect(layers.stackView).toBeUndefined()
+    })
+
+    it('Contract, Supply: the writ reference replaces a seat or stack view; Escape closes it', () => {
+        const layers = new TableLayers()
+        layers.openSeat('p1')
+        layers.openWrits()
+        expect(layers.writsOpen).toBe(true)
+        expect(layers.openSeatId).toBeUndefined()
+        layers.openStack({ kind: 'region', region: RegionIds[0] })
+        expect(layers.writsOpen).toBe(false)
+        layers.openWrits()
+        expect(layers.stackView).toBeUndefined()
+        layers.enlarge({}, () => Bead)
+        expect(layers.escape()).toBe(true)
+        expect(layers.writsOpen).toBe(true)
+        expect(layers.escape()).toBe(true)
+        expect(layers.writsOpen).toBe(false)
+        expect(layers.escape()).toBe(false)
     })
 
     it('R-4.3.1 A stack view names epochs and counts: nothing of a landscape reaches it', async () => {

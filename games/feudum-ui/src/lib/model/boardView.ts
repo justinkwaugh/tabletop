@@ -4,11 +4,9 @@ import {
     MilitaryServiceTrack,
     RegionTiles,
     ScoreTrack,
-    writDeckCount,
     type HydratedFeudumGameState,
     type RegionId,
-    type TileEpoch,
-    type WritId
+    type TileEpoch
 } from '@tabletop/feudum'
 import { PrintedColours } from '$lib/utils/boardGeometry.js'
 
@@ -134,23 +132,6 @@ export function stackTilesByEpoch(
     return [...new Set(epochs)]
         .toSorted((a, b) => a - b)
         .map((epoch) => ({ epoch, count: epochs.filter((other) => other === epoch).length }))
-}
-
-export interface DeckView {
-    readonly count: number
-    /** R-4.4.2, R-4.4.4 Writs the table saw go under, still in the deck. */
-    readonly seen: readonly WritId[]
-    /** R-4.4.1 What only this viewer knows lies under the deck. */
-    readonly knownToViewer: number
-}
-
-export function deckView(state: HydratedFeudumGameState, viewerId: string | undefined): DeckView {
-    const viewer = state.players.find(({ playerId }) => playerId === viewerId)
-    return {
-        count: writDeckCount(state),
-        seen: state.publicDeckWrits.map(({ writId }) => writId),
-        knownToViewer: viewer?.deckKnowledge?.length ?? 0
-    }
 }
 
 export interface InfluencePool {

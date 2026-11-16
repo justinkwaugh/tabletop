@@ -38,15 +38,14 @@ async function table() {
     return new HydratedFeudumGameState(structuredClone(host.state))
 }
 
-const card = (state: HydratedFeudumGameState, viewerId?: string, openDeck?: () => void) =>
+const card = (state: HydratedFeudumGameState, openWrits?: () => void) =>
     render(SupplyCard, {
         props: {
             state,
-            viewerId,
             paintOf,
             colourPaintOf,
             nameOf: (playerId: string) => `name-${playerId}`,
-            ...(openDeck ? { openDeck } : {})
+            ...(openWrits ? { openWrits } : {})
         }
     }).body
 
@@ -86,32 +85,31 @@ describe('Contract, Supply: the general supply in one grouped card (R-5.1, R-4.4
         expect(counted(group(card(state), 'Writ deck'), 'deck')).toBe(`${writDeckCount(state)}`)
     })
 
-    it('R-4.4.2 notes the writs the table saw go under, and none when there are none', async () => {
+    it('R-5.1, R-4.4.1, R-4.4.2 the deck is its count on one line: nothing of what lies in it', async () => {
         const state = await table()
-        state.publicDeckWrits = []
-        expect(card(state)).not.toContain('data-general="deck-seen"')
-        const [{ id }] = RoyalWrits
-        state.publicDeckWrits = [{ slot: 0, writId: id }]
+        const [a] = state.players
+        const [seenWrit, knownWrit] = RoyalWrits
+        state.publicDeckWrits = [{ slot: 0, writId: seenWrit.id }]
+        a.deckKnowledge = [{ slot: 1, writId: knownWrit.id }]
         const html = group(card(state), 'Writ deck')
-        expect(html).toMatch(new RegExp(`data-general="deck-seen"[^>]*>seen: ${writName(id)}<`))
+        expect(html.match(/data-general-line="deck"/g)).toHaveLength(1)
+        expect(counted(html, 'deck')).toBe(`${writDeckCount(state)}`)
+        expect(html).not.toContain('data-general="deck-seen"')
+        expect(html).not.toContain('data-general="deck-known"')
+        expect(html).not.toContain('data-open-stack')
+        for (const { id } of RoyalWrits) {
+            expect(html).not.toContain(writName(id))
+        }
     })
 
-    it('R-4.4.1 tells only the seat that knows what lies under the deck, and never which', async () => {
+    it('R-5.1 opens the writ reference from the writ group, where the table offers it', async () => {
         const state = await table()
-        const [a, b] = state.players
-        a.deckKnowledge = [{ slot: 1, writId: RoyalWrits[0].id }]
-        expect(card(state, a.playerId)).toContain('data-general="deck-known"')
-        expect(card(state, b.playerId)).not.toContain('data-general="deck-known"')
-        expect(card(state)).not.toContain('data-general="deck-known"')
-        expect(card(state, a.playerId)).not.toContain(writName(RoyalWrits[0].id))
-    })
-
-    it('R-5.1 opens the deck stack view from the writ group only when the table offers it', async () => {
-        const state = await table()
-        expect(card(state)).not.toContain('data-open-stack="deck"')
-        const html = card(state, undefined, () => {})
-        expect(group(html, 'Writ deck')).toContain('data-open-stack="deck"')
-        expect(html).toContain('aria-label="Open the writ deck"')
+        expect(card(state)).not.toContain('data-open-writ-reference')
+        const html = group(
+            card(state, () => {}),
+            'Writ deck'
+        )
+        expect(html).toMatch(/data-open-writ-reference[^>]*>Writ reference</)
     })
 
     it('R-5.4-H1 counts the haversack by good, each drawn and named', async () => {
