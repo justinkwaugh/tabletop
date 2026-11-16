@@ -1,0 +1,272 @@
+{
+    "game": {
+        "id": "scenario-tall-stack-on-e1",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "tzaar",
+        "deleted": false,
+        "name": "Tall stack on E1",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "version": "Fixed",
+            "whitePlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3367980177,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-16T17:34:07.594Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-16T17:34:07.594Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "UChQ0L8dm2k9aHPLTtD6G",
+        "gameId": "scenario-tall-stack-on-e1",
+        "seed": 3367980177,
+        "prng": {
+            "seed": 3367980177,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+            "invocations": 0
+        },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white"
+            },
+            {
+                "playerId": "player-2",
+                "color": "black"
+            }
+        ],
+        "machineState": "Capturing",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            },
+            "seriesKeeps": "latest"
+        },
+        "board": {
+            "stacks": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 4
+                    },
+                    "pieces": [
+                        {
+                            "id": 0,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "pieces": [
+                        {
+                            "id": 1,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 2,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 3,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 4,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 5,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 6,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 7,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 8,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 9,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 10,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 11,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 12,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 4
+                    },
+                    "pieces": [
+                        {
+                            "id": 13,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 14,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 15,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 16,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 17,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 18,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    },
+                    "pieces": [
+                        {
+                            "id": 19,
+                            "playerId": "player-1",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "pieces": [
+                        {
+                            "id": 20,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "pieces": [
+                        {
+                            "id": 21,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    },
+                    "pieces": [
+                        {
+                            "id": 22,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "pieces": [
+                        {
+                            "id": 23,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "actions": []
+}
