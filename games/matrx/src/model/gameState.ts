@@ -159,10 +159,8 @@ export class HydratedMatrxGameState
         this.board.takeTopOfPair(CENTRE)
     }
 
-    movePotential(from: AxialCoordinates, to: AxialCoordinates): Unit | undefined {
-        const covered = this.board.topAt(to)
+    movePotential(from: AxialCoordinates, to: AxialCoordinates) {
         this.board.movePotential(from, to)
-        return covered
     }
 
     private push(entry: Entry, unit: Unit): string | undefined {

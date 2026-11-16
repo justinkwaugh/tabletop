@@ -9,12 +9,11 @@ import {
 } from '@tabletop/common'
 import { HydratedMatrxGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
-import { PieceKind, Unit } from '../model/board.js'
+import { PieceKind } from '../model/board.js'
 
 export type MovePotentialMetadata = Type.Static<typeof MovePotentialMetadata>
 export const MovePotentialMetadata = Type.Object({
-    kind: Type.Enum(PieceKind),
-    covered: Type.Optional(Unit)
+    kind: Type.Enum(PieceKind)
 })
 
 export type MovePotential = Type.Static<typeof MovePotential>
@@ -58,8 +57,8 @@ export class HydratedMovePotential
             throw Error('Invalid MovePotential action')
         }
         const kind = unit.kind
-        const covered = state.movePotential(this.from, this.to)
-        this.metadata = { kind, ...(covered === undefined ? {} : { covered: { ...covered } }) }
+        state.movePotential(this.from, this.to)
+        this.metadata = { kind }
     }
 
     isValid(state: HydratedMatrxGameState): boolean {
