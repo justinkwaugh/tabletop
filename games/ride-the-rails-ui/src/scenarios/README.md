@@ -96,6 +96,13 @@ Round 3, Ride. Orange runs from Chicago to Milwaukee and on its other side to De
 - Milwaukee, then Chicago by Orange: Detroit lights east of Chicago and Cincinnati below it.
 - On the whole map the Ride button's own side covers Detroit on desktop and Cincinnati on a phone, so it stands at the first clear place instead; zoomed in, it is back on its own side.
 
+## Ringed chicago
+
+Crowded chicago with Yellow on from Chicago to Saint Louis as well; Ada rides first (the map's Ride button, Pick conventions).
+
+- Milwaukee, then Chicago by Orange: Detroit lights east of Chicago, Cincinnati below it and Saint Louis south-west of it.
+- On a phone's whole map no place beside Chicago is clear, so the map's Ride button stays hidden; Cincinnati and Saint Louis, under its own side, still take a press.
+
 ## Last journey
 
 Round 6 with three seats, Ride. Ada and Ben have ridden; Cora rides the game's last journey (scenario 19).

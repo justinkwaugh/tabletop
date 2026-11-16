@@ -44,11 +44,11 @@ async function boxOf(locator: Locator): Promise<Box> {
 }
 
 /** Ada's journey from Milwaukee into Chicago by Orange, at 1440 × 900 or 390 × 844. */
-async function rideIntoChicago(page: Page) {
+async function rideIntoChicago(page: Page, scenario = 'Crowded chicago') {
     await page.setViewportSize(
         onPhone() ? { width: 390, height: 844 } : { width: 1440, height: 900 }
     )
-    await openScenario(page, 'Crowded chicago')
+    await openScenario(page, scenario)
     await pressHex(page, litHex(page, 'Milwaukee: start a journey with its passenger'))
     await pressHex(page, litHex(page, 'Chicago: link by Orange'))
     await expect(litHex(page, 'Detroit: link by Orange')).toBeVisible()
@@ -142,4 +142,33 @@ test('Zooming in brings the map’s Ride button back to its own side of the city
     for (const pick of await keepClearBoxes(page)) {
         expect(apart(box, pick)).toBe(true)
     }
+})
+
+/** Whether a press at the middle of a lit hex lands on the hex itself. */
+function takesPressAtMiddle(hex: Locator): Promise<boolean> {
+    return hex.evaluate((element) => {
+        const { x, y, width, height } = element.getBoundingClientRect()
+        return document.elementFromPoint(x + width / 2, y + height / 2) === element
+    })
+}
+
+test('Where the map’s Ride button has no clear place, a lit city under its own side still takes a press', async ({
+    page
+}) => {
+    test.skip(!onPhone(), 'The whole desktop map leaves the button a clear place beside Chicago.')
+    await rideIntoChicago(page, 'Ringed chicago')
+    await expect(litHex(page, 'Saint Louis: link by Yellow')).toBeVisible()
+    await wholeMap(page)
+
+    // Every place beside Chicago covers a lit city, so the button is hidden. Its own side, below
+    // the city, covers Cincinnati, and the hidden button's box must not take the press.
+    await expect(mapRide(page)).toBeHidden()
+    const cincinnati = litHex(page, 'Cincinnati: link by Yellow')
+    expect(await takesPressAtMiddle(cincinnati)).toBe(true)
+    const links = () => page.evaluate(() => window.rtrSession.journeyDraft?.draftLinks.length)
+    expect(await links()).toBe(1)
+    await cincinnati.tap()
+    await settled(page)
+    await expect.poll(links).toBe(2)
+    expect(await activePlayerId(page)).toBe('p1')
 })

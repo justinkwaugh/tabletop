@@ -334,6 +334,8 @@ const YELLOW_SAINT_LOUIS = [SHARED_HEX, ...walk(SHARED_HEX, cityHexId('Saint Lou
 // Chicago's other links: Orange on to Detroit, and Yellow from Chicago to Cincinnati.
 const ORANGE_DETROIT = line(['Chicago', 'Detroit'])
 const YELLOW_CINCINNATI = line(['Chicago', 'Cincinnati'], { start: true })
+// And Yellow on from Chicago to Saint Louis, south-west of the city.
+const YELLOW_CHICAGO_SAINT_LOUIS = line(['Chicago', 'Saint Louis'])
 
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
@@ -767,6 +769,41 @@ export const TABLE_FIXTURES: readonly TableFixture[] = [
                 {
                     shares: { p4: YELLOW, p3: BLUE, p2: YELLOW, p1: BLUE },
                     builds: [{ playerId: 'p2', runs: [[YELLOW, YELLOW_CINCINNATI]] }]
+                }
+            ],
+            phase: PhaseName.Ride,
+            carried: [
+                cityIdOf('Albany'),
+                cityIdOf('Washington'),
+                cityIdOf('Philadelphia'),
+                cityIdOf('Chicago')
+            ]
+        }
+    },
+    // Crowded chicago with Yellow on to Saint Louis as well, so a journey from Milwaukee into
+    // Chicago also has Saint Louis lit south-west of the city: on a phone's whole map no place
+    // beside Chicago is clear for the map's Ride button.
+    {
+        slug: 'ringed-chicago',
+        name: 'Ringed chicago',
+        recipe: {
+            playerCount: 4,
+            rounds: [
+                { ...EAST_COAST_ROUND, journeys: { p1: 2, p2: 3, p3: 4, p4: 5 } },
+                {
+                    shares: { p4: ORANGE, p3: ORANGE, p2: RED, p1: ORANGE },
+                    builds: [
+                        { playerId: 'p1', runs: [[ORANGE, ORANGE_MILWAUKEE]] },
+                        { playerId: 'p3', runs: [[ORANGE, ORANGE_DETROIT]] }
+                    ],
+                    journeys: { p1: 3, p2: 5, p3: 5, p4: 5 }
+                },
+                {
+                    shares: { p4: YELLOW, p3: BLUE, p2: YELLOW, p1: BLUE },
+                    builds: [
+                        { playerId: 'p2', runs: [[YELLOW, YELLOW_CINCINNATI]] },
+                        { playerId: 'p4', runs: [[YELLOW, YELLOW_CHICAGO_SAINT_LOUIS]] }
+                    ]
                 }
             ],
             phase: PhaseName.Ride,

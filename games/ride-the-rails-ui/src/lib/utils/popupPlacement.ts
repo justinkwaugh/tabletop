@@ -201,8 +201,9 @@ export function clearOfChoice(choiceSelector: string, onPhone: boolean): Middlew
  * element of the table marked with `KEEP_CLEAR_ATTRIBUTE` as drawn on screen, the board being
  * inside its view's CSS zoom (`docs/phone-rendering.md`, Measuring under zoom), and keeps the
  * control inside the part of the page that shows its anchor. `onPlaced` hears on each placement
- * whether a clear place was found; when none is, the control stays where it was, for the caller to
- * hide. The Floater places again whenever the anchor moves on screen, as a pan or a zoom does.
+ * whether a clear place was found; when none is, the control waits just past the window's left
+ * edge, for the caller to hide, so that its box takes no press meant for a pick. The Floater places
+ * again whenever the anchor moves on screen, as a pan or a zoom does.
  */
 export function clearOfPicks(
     places: readonly Place[],
@@ -211,7 +212,7 @@ export function clearOfPicks(
 ): Middleware {
     return {
         name: 'clearOfPicks',
-        async fn({ x, y, rects, elements, platform, strategy }) {
+        async fn({ rects, elements, platform, strategy }) {
             const anchor = elements.reference.getBoundingClientRect()
             const table = tableOf(elements.floating)
             const keepClear = table
@@ -232,9 +233,9 @@ export function clearOfPicks(
                 strategy
             })
             const view = { left: shown.x, top: shown.y, width: shown.width, height: shown.height }
-            const spot = clearPlace(anchor, rects.floating, places, keepClear, view, gap)
-            onPlaced(spot !== undefined)
-            if (!spot) return { x, y }
+            const clear = clearPlace(anchor, rects.floating, places, keepClear, view, gap)
+            onPlaced(clear !== undefined)
+            const spot = clear ?? { left: -rects.floating.width - VIEW_MARGIN, top: 0 }
             // From the view's coordinates to the Floater's, as in clearOfChoice.
             return {
                 x: spot.left + rects.reference.x - anchor.left,

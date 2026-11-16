@@ -75,7 +75,8 @@
             middlewares={[clearOfPicks(ridePlaces, RIDE_GAP, placedBeside(rideCity))]}
             trigger="manual"
         >
-            <!-- Hidden, not removed, so the Floater still measures it for the next placement. -->
+            <!-- Hidden, not removed, so the Floater still measures it for the next placement; while
+                 no place is clear, clearOfPicks keeps it out of the window, over no press target. -->
             <button
                 type="button"
                 class="rounded-full border-2 border-rtr-pill bg-rtr-pill px-3.5 py-1 text-sm font-semibold text-rtr-pill-ink shadow-sm hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent"
