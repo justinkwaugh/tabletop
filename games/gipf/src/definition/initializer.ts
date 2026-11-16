@@ -48,6 +48,7 @@ export class GipfGameInitializer
             prng.random,
             assignment
         )
+        turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
 
         const colorOf = (playerId: string) =>

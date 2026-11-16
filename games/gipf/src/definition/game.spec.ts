@@ -334,5 +334,7 @@ describe('random playouts', () => {
         const state = playToEnd(game, start(game), seed)
         expect(state.winningPlayerIds).toHaveLength(1)
         expect(state.endReason).toBeDefined()
+        expect(state.turnManager.seriesKeeps).toBe('latest')
+        expect(state.turnManager.series.length).toBeLessThanOrEqual(2)
     })
 })
