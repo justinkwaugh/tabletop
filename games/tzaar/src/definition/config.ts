@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import {
+    assertExists,
     BaseConfigurator,
     ConfigOptionType,
     type GameConfig,
@@ -24,18 +25,26 @@ export const TzaarGameConfig = Type.Object({
     whitePlayer: Type.Optional(Type.Enum(WhitePlayer))
 })
 
+const randomDescription = 'The pieces start spread at random.'
+const fixedDescription = "The rulebook's start position."
+const tournamentDescription = 'Players take turns placing their pieces on an empty board.'
+
 export const TzaarGameConfigOptions: GameConfigOptions = [
     {
         id: 'version',
         type: ConfigOptionType.List,
         name: 'Version',
-        description:
-            "Random: the pieces start spread at random. Fixed: the rulebook's start position. Tournament: players take turns placing their pieces on an empty board.",
+        // Older site forms show only this, so it describes every version.
+        description: `Random: ${randomDescription} Fixed: ${fixedDescription} Tournament: ${tournamentDescription}`,
         default: TzaarVersion.Random,
         options: [
-            { name: 'Random start', value: TzaarVersion.Random },
-            { name: 'Fixed start', value: TzaarVersion.Fixed },
-            { name: 'Tournament', value: TzaarVersion.Tournament }
+            { name: 'Random start', value: TzaarVersion.Random, description: randomDescription },
+            { name: 'Fixed start', value: TzaarVersion.Fixed, description: fixedDescription },
+            {
+                name: 'Tournament',
+                value: TzaarVersion.Tournament,
+                description: tournamentDescription
+            }
         ],
         alwaysShow: true
     },
@@ -60,15 +69,15 @@ export class TzaarConfigurator extends BaseConfigurator {
 }
 
 export function versionFromConfig(config: GameConfig): TzaarVersion {
-    return (
-        Object.values(TzaarVersion).find((version) => version === config.version) ??
-        TzaarVersion.Random
-    )
+    if (config.version === undefined) return TzaarVersion.Random
+    const version = Object.values(TzaarVersion).find((known) => known === config.version)
+    assertExists(version, `Unknown TZAAR version ${String(config.version)}`)
+    return version
 }
 
 export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
-    return (
-        Object.values(WhitePlayer).find((choice) => choice === config.whitePlayer) ??
-        WhitePlayer.Random
-    )
+    if (config.whitePlayer === undefined) return WhitePlayer.Random
+    const choice = Object.values(WhitePlayer).find((known) => known === config.whitePlayer)
+    assertExists(choice, `Unknown choice of White ${String(config.whitePlayer)}`)
+    return choice
 }

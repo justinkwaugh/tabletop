@@ -4,12 +4,12 @@ import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '
 import { HydratedTzaarGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isSpace } from '../model/geometry.js'
-import { Piece, PieceKind } from '../model/board.js'
-import { stuckPlayerAfterTurnOf } from '../stateHandlers/turnFlow.js'
+import { PieceKind } from '../model/board.js'
+import { stuckPlayerAtOpening } from '../stateHandlers/turnFlow.js'
 
+// `stuckPlayerId` names White when the last placement leaves them no opening capture.
 export type PlacePieceMetadata = Type.Static<typeof PlacePieceMetadata>
 export const PlacePieceMetadata = Type.Object({
-    piece: Piece,
     stuckPlayerId: Type.Optional(Type.String())
 })
 
@@ -48,14 +48,10 @@ export class HydratedPlacePiece extends HydratableAction<typeof PlacePiece> impl
         if (!this.isValid(state)) {
             throw Error('Invalid PlacePiece action')
         }
-        const piece = state.pieceToPlace(this.playerId, this.kind)
-        state.board.place(this.coords, piece)
-        const metadata: PlacePieceMetadata = { piece: structuredClone(piece) }
+        state.board.place(this.coords, state.pieceToPlace(this.playerId, this.kind))
+        const metadata: PlacePieceMetadata = {}
         if (state.board.isFull()) {
-            const stuckPlayerId = stuckPlayerAfterTurnOf(
-                state,
-                state.opponentOf(state.whitePlayerId())
-            )
+            const stuckPlayerId = stuckPlayerAtOpening(state)
             if (stuckPlayerId !== undefined) {
                 metadata.stuckPlayerId = stuckPlayerId
             }

@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
-import { DIRECTIONS, firstOccupiedFrom, spaceKey, SPACES } from './geometry.js'
+import { assertExists, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
+import { DIRECTIONS, firstOccupiedFrom, isSpace, SPACES } from './geometry.js'
 
 export enum PieceKind {
     Tzaar = 'tzaar',
@@ -26,107 +26,108 @@ export const Piece = Type.Object({
     kind: Type.Enum(PieceKind)
 })
 
-// A stack lists its pieces from the bottom up.
-export type Space = Type.Static<typeof Space>
-export const Space = Type.Object({
+// An occupied space and its stack, listed from the bottom up. Empty spaces are not stored: the
+// board's spaces are SPACES.
+export type PieceStack = Type.Static<typeof PieceStack>
+export const PieceStack = Type.Object({
     coords: AxialCoordinates,
-    stack: Type.Array(Piece)
+    pieces: Type.Array(Piece, { minItems: 1 })
 })
 
 export type TzaarBoard = Type.Static<typeof TzaarBoard>
 export const TzaarBoard = Type.Object({
-    spaces: Type.Array(Space)
+    stacks: Type.Array(PieceStack)
 })
 
-export function stackOwner(stack: readonly Piece[]): string | undefined {
-    return stack.at(-1)?.playerId
-}
-
 export function emptyBoard(): TzaarBoard {
-    return { spaces: SPACES.map((coords) => ({ coords: { ...coords }, stack: [] })) }
+    return { stacks: [] }
 }
 
 const TzaarBoardValidator = Compile(TzaarBoard)
 
 export class HydratedTzaarBoard extends Hydratable<typeof TzaarBoard> implements TzaarBoard {
-    declare spaces: Space[]
+    declare stacks: PieceStack[]
 
     constructor(data: TzaarBoard) {
         super(data, TzaarBoardValidator)
     }
 
-    private spaceAt(coords: AxialCoordinates): Space {
-        const key = spaceKey(coords)
-        const space = this.spaces.find((candidate) => spaceKey(candidate.coords) === key)
-        if (space === undefined) {
-            throw Error(`No space at ${coords.q},${coords.r}`)
-        }
-        return space
+    private stackOn(coords: AxialCoordinates): PieceStack | undefined {
+        return this.stacks.find((stack) => sameCoordinates(stack.coords, coords))
+    }
+
+    private occupiedStack(coords: AxialCoordinates): PieceStack {
+        const stack = this.stackOn(coords)
+        assertExists(stack, `No stack at ${coords.q},${coords.r}`)
+        return stack
+    }
+
+    private ownerOf(pieces: readonly Piece[]): string | undefined {
+        return pieces.at(-1)?.playerId
     }
 
     stackAt(coords: AxialCoordinates): readonly Piece[] {
-        return this.spaceAt(coords).stack
+        return this.stackOn(coords)?.pieces ?? []
     }
 
     isOccupied(coords: AxialCoordinates): boolean {
-        return this.spaceAt(coords).stack.length > 0
+        return this.stackOn(coords) !== undefined
     }
 
     ownerAt(coords: AxialCoordinates): string | undefined {
-        return stackOwner(this.stackAt(coords))
+        return this.ownerOf(this.stackAt(coords))
     }
 
     heightAt(coords: AxialCoordinates): number {
         return this.stackAt(coords).length
     }
 
+    topKindAt(coords: AxialCoordinates): PieceKind | undefined {
+        return this.stackAt(coords).at(-1)?.kind
+    }
+
     vacantSpaces(): AxialCoordinates[] {
-        return this.spaces.filter((space) => space.stack.length === 0).map((space) => space.coords)
+        return SPACES.filter((coords) => !this.isOccupied(coords))
     }
 
     isFull(): boolean {
-        return this.spaces.every((space) => space.stack.length > 0)
+        return this.stacks.length === SPACES.length
     }
 
     pieceCount(): number {
-        return this.spaces.reduce((count, space) => count + space.stack.length, 0)
+        return this.stacks.reduce((count, stack) => count + stack.pieces.length, 0)
     }
 
     piecesOf(playerId: string): Piece[] {
-        return this.spaces.flatMap((space) =>
-            space.stack.filter((piece) => piece.playerId === playerId)
+        return this.stacks.flatMap((stack) =>
+            stack.pieces.filter((piece) => piece.playerId === playerId)
         )
     }
 
     stacksOf(playerId: string): AxialCoordinates[] {
-        return this.spaces
-            .filter((space) => stackOwner(space.stack) === playerId)
-            .map((space) => space.coords)
+        return this.stacks
+            .filter((stack) => this.ownerOf(stack.pieces) === playerId)
+            .map((stack) => stack.coords)
     }
 
     // Rule F4 and the reminder in G: only the top piece of each stack counts as a type.
     topsOf(playerId: string, kind: PieceKind): number {
-        return this.spaces.filter(
-            (space) => stackOwner(space.stack) === playerId && space.stack.at(-1)?.kind === kind
+        return this.stacks.filter(
+            (stack) => this.ownerOf(stack.pieces) === playerId && stack.pieces.at(-1)?.kind === kind
         ).length
     }
 
     place(coords: AxialCoordinates, piece: Piece) {
-        const space = this.spaceAt(coords)
-        if (space.stack.length > 0) {
+        if (!isSpace(coords) || this.isOccupied(coords)) {
             throw Error('The space is taken')
         }
-        space.stack.push(piece)
+        this.stacks.push({ coords: { ...coords }, pieces: [piece] })
     }
 
     reachableFrom(from: AxialCoordinates): AxialCoordinates[] {
         return DIRECTIONS.map((direction) =>
             firstOccupiedFrom(from, direction, (coords) => this.isOccupied(coords))
         ).filter((coords) => coords !== undefined)
-    }
-
-    canReach(from: AxialCoordinates, to: AxialCoordinates): boolean {
-        return this.reachableFrom(from).some((reached) => sameCoordinates(reached, to))
     }
 
     // Rules D and E1–E3: a stack captures an opponent's stack that is at most as high.
@@ -144,17 +145,20 @@ export class HydratedTzaarBoard extends Hydratable<typeof TzaarBoard> implements
         return this.reachableFrom(from).filter((to) => this.ownerAt(to) === owner)
     }
 
-    // The moving stack goes on top of the one it reaches; a capture first takes that stack away.
+    // The moving stack goes on top of the one it reaches and its own space empties.
     moveStack(from: AxialCoordinates, to: AxialCoordinates) {
-        const origin = this.spaceAt(from)
-        this.spaceAt(to).stack.push(...origin.stack)
-        origin.stack = []
+        const origin = this.occupiedStack(from)
+        const target = this.occupiedStack(to)
+        target.pieces.push(...origin.pieces)
+        this.stacks = this.stacks.filter((stack) => stack !== origin)
     }
 
-    removeStack(coords: AxialCoordinates): Piece[] {
-        const space = this.spaceAt(coords)
-        const removed = space.stack
-        space.stack = []
-        return removed
+    // Rule E1: the captured stack leaves the board and the capturing stack takes its space.
+    captureStack(from: AxialCoordinates, to: AxialCoordinates): Piece[] {
+        const capturing = this.occupiedStack(from)
+        const captured = this.occupiedStack(to)
+        this.stacks = this.stacks.filter((stack) => stack !== captured)
+        capturing.coords = { ...to }
+        return captured.pieces
     }
 }

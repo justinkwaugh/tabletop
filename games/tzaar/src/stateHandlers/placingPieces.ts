@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlacePiece, isPlacePiece } from '../actions/placePiece.js'
@@ -28,13 +33,14 @@ export class PlacingPiecesStateHandler implements MachineStateHandler<
     }
 
     onAction(
-        _action: HydratedPlacePiece,
+        action: HydratedPlacePiece,
         context: MachineContext<HydratedTzaarGameState>
     ): MachineState {
         const { gameState } = context
         gameState.turnManager.endTurn(gameState.actionCount)
         if (gameState.board.isFull()) {
-            return beginPlay(gameState)
+            assertExists(action.metadata, 'A processed placement records its metadata')
+            return beginPlay(gameState, action.metadata.stuckPlayerId)
         }
         gameState.turnManager.startNextTurn(gameState.actionCount)
         return MachineState.PlacingPieces

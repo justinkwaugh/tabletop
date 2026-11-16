@@ -1,14 +1,13 @@
 import type { GameScoring } from '@tabletop/common'
-import { HydratedTzaarGameState, type TzaarGameState } from '../model/gameState.js'
+import type { TzaarGameState } from '../model/gameState.js'
 
-// TZAAR has no score; each player's tally is the opponent's pieces they captured.
+// TZAAR is won or lost and cannot be drawn (rule G): the winner scores 1 and the loser 0.
 export class TzaarScoring implements GameScoring<TzaarGameState> {
     finalScores(state: TzaarGameState): Record<string, number> {
-        const hydrated = new HydratedTzaarGameState(state)
         return Object.fromEntries(
-            hydrated.players.map((player) => [
+            state.players.map((player) => [
                 player.playerId,
-                hydrated.capturedBy(player.playerId)
+                state.winningPlayerIds.includes(player.playerId) ? 1 : 0
             ])
         )
     }

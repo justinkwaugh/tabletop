@@ -1,17 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import {
-    ActionSource,
-    Color,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    type GameAction
-} from '@tabletop/common'
-import { Definition } from './definition.js'
+import { assert, Color, GameResult, type GameAction } from '@tabletop/common'
 import { TzaarRuntime } from './runtime.js'
-import { TzaarInfo } from './info.js'
-import { TzaarVersion, WhitePlayer } from './config.js'
+import { TzaarVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import { HydratedTzaarGameState, type TzaarGameState } from '../model/gameState.js'
@@ -20,58 +10,43 @@ import { spaceFromName, spaceName } from '../model/notation.js'
 import { PIECE_KINDS, PIECES_OF_KIND, PieceKind, type Piece } from '../model/board.js'
 import { FIXED_START } from '../model/startPositions.js'
 import { isCapture, type Capture } from '../actions/capture.js'
-import type { Stack } from '../actions/stack.js'
+import { isStack, type Stack } from '../actions/stack.js'
 import { isPass, type Pass } from '../actions/pass.js'
-import type { PlacePiece } from '../actions/placePiece.js'
+import { isPlacePiece, type PlacePiece } from '../actions/placePiece.js'
+import {
+    actionBase as base,
+    createGame as createTestGame,
+    engine,
+    execute,
+    MASTER_SEED,
+    playToEnd,
+    type TzaarConfig,
+    type TzaarGame
+} from './tests/playthrough.js'
 
-const engine = new GameEngine(TzaarRuntime)
 const W = 'white'
 const B = 'black'
 
-function createGame(
-    config: { version?: TzaarVersion; whitePlayer?: WhitePlayer } = {},
-    owner: { ownerId: string; userIds: Record<string, string> } = {
-        ownerId: 'owner',
-        userIds: {}
-    }
-) {
-    return TzaarRuntime.initializer.initializeGame(
-        {
-            id: 'tzaar-test',
-            typeId: 'tzaar',
-            ownerId: owner.ownerId,
-            seed: 5,
-            config: { ...defaultGameConfig(TzaarInfo.configurator?.options ?? []), ...config },
-            players: [W, B].map((id) => ({
-                id,
-                name: id,
-                userId: owner.userIds[id],
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
+type Owner = { ownerId: string; userIds: Record<string, string> }
+
+function createGame(config: TzaarConfig = {}, owner?: Owner) {
+    return createTestGame(config, [W, B], owner)
 }
 
-type TzaarGame = ReturnType<typeof createGame>
-
-function start(game: TzaarGame): TzaarGameState {
-    return engine.startGame(game, { startingPositions: { playerIds: [W, B] } }).initialState
+// A distinct fixed master seed for each number.
+function masterSeed(number: number): string {
+    return number.toString(16).padStart(32, '0')
 }
 
-function startUnassigned(game: TzaarGame): TzaarGameState {
-    return engine.startGame(game).initialState
+function start(game: TzaarGame, seed: string = MASTER_SEED): TzaarGameState {
+    return engine.startGame(game, {
+        masterSeed: seed,
+        startingPositions: { playerIds: [W, B] }
+    }).initialState
 }
 
-let counter = 0
-function base(game: TzaarGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: TzaarGame, state: TzaarGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
+function startUnassigned(game: TzaarGame, seed: string = MASTER_SEED): TzaarGameState {
+    return engine.startGame(game, { masterSeed: seed }).initialState
 }
 
 function processed(game: TzaarGame, state: TzaarGameState, action: GameAction) {
@@ -80,14 +55,14 @@ function processed(game: TzaarGame, state: TzaarGameState, action: GameAction) {
 
 function captureMetadata(game: TzaarGame, state: TzaarGameState, from: string, to: string) {
     const action = processed(game, state, captureAction(game, W, from, to))
-    expect(isCapture(action)).toBe(true)
-    return isCapture(action) ? action.metadata : undefined
+    assert(isCapture(action), 'The capture is processed')
+    return action.metadata
 }
 
 function passMetadata(game: TzaarGame, state: TzaarGameState) {
     const action = processed(game, state, passAction(game, W))
-    expect(isPass(action)).toBe(true)
-    return isPass(action) ? action.metadata : undefined
+    assert(isPass(action), 'The pass is processed')
+    return action.metadata
 }
 
 const s = spaceFromName
@@ -114,24 +89,30 @@ const KIND_LETTERS: Record<string, PieceKind> = {
     t: PieceKind.Tott
 }
 
+function pieces(letters: string, firstId: number): Piece[] {
+    return letters.split('').map((letter, index) => ({
+        id: firstId + index,
+        playerId: letter === letter.toUpperCase() ? W : B,
+        kind: KIND_LETTERS[letter.toLowerCase()]
+    }))
+}
+
 // Stacks read bottom to top: R Tzaar, A Tzarra, T Tott; capitals are White's, lower case
 // Black's. Every other space is empty and White makes the first capture of a turn.
 function position(game: TzaarGame, stacks: Record<string, string>): TzaarGameState {
     const state = start(createGame({ version: TzaarVersion.Fixed }))
     let id = 0
-    for (const space of state.board.spaces) {
-        space.stack = (stacks[spaceName(space.coords)] ?? '').split('').map((letter): Piece => ({
-            id: id++,
-            playerId: letter === letter.toUpperCase() ? W : B,
-            kind: KIND_LETTERS[letter.toLowerCase()]
-        }))
-    }
+    state.board.stacks = Object.entries(stacks).map(([name, letters]) => {
+        const stack = { coords: s(name), pieces: pieces(letters, id) }
+        id += letters.length
+        return stack
+    })
     return { ...state, gameId: game.id }
 }
 
 function stackAt(state: TzaarGameState, name: string): string {
-    const stack = state.board.spaces.find((space) => spaceName(space.coords) === name)?.stack ?? []
-    return stack
+    return new HydratedTzaarGameState(state).board
+        .stackAt(s(name))
         .map((piece) => {
             const letter = { tzaar: 'r', tzarra: 'a', tott: 't' }[piece.kind]
             return piece.playerId === W ? letter.toUpperCase() : letter
@@ -189,7 +170,8 @@ describe('setups', () => {
                     6, 9, 15
                 ])
             }
-            const ids = state.board.spaces.map((space) => space.stack[0].id)
+            expect(state.board.stacks.every((stack) => stack.pieces.length === 1)).toBe(true)
+            const ids = state.board.stacks.map((stack) => stack.pieces[0].id)
             expect(new Set(ids).size).toBe(60)
         }
     )
@@ -215,7 +197,7 @@ describe('tournament placement', () => {
         const game = createGame({ version: TzaarVersion.Tournament })
         let state = start(game)
         expect(state.machineState).toBe(MachineState.PlacingPieces)
-        expect(state.board.spaces.every((space) => space.stack.length === 0)).toBe(true)
+        expect(state.board.stacks).toEqual([])
         expect(state.activePlayerIds).toEqual([W])
         state = execute(game, state, placeAction(game, W, 'E4', PieceKind.Tzaar))
         expect(state.activePlayerIds).toEqual([B])
@@ -288,6 +270,10 @@ describe('capturing', () => {
         })
         expect(() => execute(game, state, captureAction(game, W, 'A1', 'A2'))).toThrow()
         expect(stackAt(execute(game, state, captureAction(game, W, 'B2', 'A2')), 'A2')).toBe('RT')
+        expect(captureMetadata(game, state, 'B2', 'A2')).toEqual({
+            moved: { height: 2, kind: PieceKind.Tott },
+            captured: { height: 2, kind: PieceKind.Tott }
+        })
         expect(stackAt(execute(game, state, captureAction(game, W, 'D1', 'C1')), 'C1')).toBe('R')
         expect(() => execute(game, state, captureAction(game, W, 'D1', 'E1'))).toThrow()
     })
@@ -324,7 +310,14 @@ describe('the second move', () => {
     it('can stack onto one of the player’s own stacks, the top piece giving its type', () => {
         const next = execute(game, afterCapture, stackAction(game, W, 'A1', 'A2'))
         expect(stackAt(next, 'A2')).toBe('TR')
+        expect(stackAt(next, 'A1')).toBe('')
         expect(next.activePlayerIds).toEqual([B])
+        const stacked = processed(game, afterCapture, stackAction(game, W, 'A1', 'A2'))
+        assert(isStack(stacked), 'The stacking is processed')
+        expect(stacked.metadata).toEqual({
+            moved: { height: 1, kind: PieceKind.Tzaar },
+            landedOnHeight: 1
+        })
     })
 
     it('never covers the player’s last top piece of a type', () => {
@@ -404,34 +397,110 @@ describe('the end', () => {
         expect(next.machineState).toBe(MachineState.EndOfGame)
         expect(next.winningPlayerIds).toEqual([W])
     })
+
+    it('records the type taken and wins, even when the opponent is also left unable to capture', () => {
+        const game = createGame()
+        const state = position(game, {
+            A1: 'R',
+            A2: 'r',
+            I5: 'a',
+            I4: 't',
+            H6: 'AA',
+            H5: 'TT',
+            H4: 'TT',
+            I3: 'AA'
+        })
+        expect(captureMetadata(game, state, 'A1', 'A2')).toEqual({
+            moved: { height: 1, kind: PieceKind.Tzaar },
+            captured: { height: 1, kind: PieceKind.Tzaar },
+            eliminatedKind: PieceKind.Tzaar
+        })
+        const next = execute(game, state, captureAction(game, W, 'A1', 'A2'))
+        expect(new HydratedTzaarGameState(next).canCapture(B)).toBe(false)
+        expect(next.machineState).toBe(MachineState.EndOfGame)
+        expect(next.winningPlayerIds).toEqual([W])
+        expect(TzaarRuntime.scoring?.finalScores(next)).toEqual({ [W]: 1, [B]: 0 })
+    })
+
+    // With every stack one piece high no placement order leaves White without a capture, so the
+    // board is set by hand around White's single Tzaar.
+    it('is won by Black when the last tournament placement leaves White unable to capture', () => {
+        const game = createGame({ version: TzaarVersion.Tournament })
+        const placed = execute(game, start(game), placeAction(game, W, 'A1', PieceKind.Tzaar))
+        const last = s('I5')
+        let id = placed.board.stacks.length
+        const blackStacks = SPACES.filter(
+            (coords) => spaceName(coords) !== 'A1' && spaceName(coords) !== 'I5'
+        ).map((coords) => {
+            const stack = { coords, pieces: pieces('tt', id) }
+            id += 2
+            return stack
+        })
+        const state = { ...placed, board: { stacks: [...placed.board.stacks, ...blackStacks] } }
+        expect(state.activePlayerIds).toEqual([B])
+
+        const placement = placeAction(game, B, spaceName(last), PieceKind.Tzaar)
+        const action = processed(game, state, placement)
+        assert(isPlacePiece(action), 'The placement is processed')
+        expect(action.metadata).toEqual({ stuckPlayerId: W })
+        const next = execute(game, state, placement)
+        expect(next.machineState).toBe(MachineState.EndOfGame)
+        expect(next.winningPlayerIds).toEqual([B])
+    })
 })
 
-function legalActions(game: TzaarGame, state: TzaarGameState): GameAction[] {
-    const hydrated = new HydratedTzaarGameState(state)
-    const [playerId] = state.activePlayerIds
-    const named = (move: { from: { q: number; r: number }; to: { q: number; r: number } }) =>
-        [spaceName(move.from), spaceName(move.to)] as const
-    if (state.machineState === MachineState.PlacingPieces) {
-        return hydrated.board
-            .vacantSpaces()
-            .flatMap((coords) =>
-                hydrated
-                    .kindsInHand(playerId)
-                    .map((kind) => placeAction(game, playerId, spaceName(coords), kind))
+describe('setup options', () => {
+    const whiteOf = (state: TzaarGameState) =>
+        state.players.find((player) => player.color === Color.White)?.playerId
+
+    // The rulebook leaves the choice to the players; Random leaves it to the seeded draw.
+    it('draws White by lot when Random, and when the creator does not play', () => {
+        const outsider = { ownerId: 'u-host', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        for (const [config, owner] of [
+            [{ whitePlayer: WhitePlayer.Random }, undefined],
+            [{ whitePlayer: WhitePlayer.Creator }, outsider],
+            [{ whitePlayer: WhitePlayer.Opponent }, outsider]
+        ] as const) {
+            const whites = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const state = startUnassigned(createGame(config, owner), masterSeed(seed))
+                    expect(state.activePlayerIds).toEqual([whiteOf(state)])
+                    return whiteOf(state)
+                })
             )
-    }
-    const captures = hydrated
-        .captures(playerId)
-        .map((move) => captureAction(game, playerId, ...named(move)))
-    if (state.machineState === MachineState.Capturing) {
-        return captures
-    }
-    return [
-        ...captures,
-        ...hydrated.stackings(playerId).map((move) => stackAction(game, playerId, ...named(move))),
-        passAction(game, playerId)
-    ]
-}
+            expect(whites).toEqual(new Set([W, B]))
+        }
+    })
+
+    it('counts the first seat as the creator in a local game', () => {
+        const local = { ownerId: 'u-local', userIds: { [W]: 'u-local', [B]: 'u-local' } }
+        for (const seed of [1, 2, 3, 4]) {
+            const creator = startUnassigned(
+                createGame({ whitePlayer: WhitePlayer.Creator }, local),
+                masterSeed(seed)
+            )
+            expect(whiteOf(creator)).toBe(W)
+            const opponent = startUnassigned(
+                createGame({ whitePlayer: WhitePlayer.Opponent }, local),
+                masterSeed(seed)
+            )
+            expect(whiteOf(opponent)).toBe(B)
+        }
+    })
+
+    it('reads a missing option as its default and rejects an unknown one', () => {
+        expect(versionFromConfig({})).toBe(TzaarVersion.Random)
+        expect(whitePlayerFromConfig({})).toBe(WhitePlayer.Random)
+        expect(() => versionFromConfig({ version: 'Bogus' })).toThrow()
+        expect(() => whitePlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
+    })
+
+    it('spreads the same random start from the same master seed', () => {
+        const game = createGame({ version: TzaarVersion.Random })
+        expect(start(game).board).toEqual(start(game).board)
+        expect(start(game, masterSeed(1)).board).not.toEqual(start(game).board)
+    })
+})
 
 describe('random playouts', () => {
     it.each(
@@ -439,21 +508,8 @@ describe('random playouts', () => {
             Array.from({ length: 12 }, (_, seed) => [version, seed] as const)
         )
     )('%s seed %i plays to a result', (version, seed) => {
-        const game = { ...createGame({ version }), seed: seed + 1 }
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions))
-            steps += 1
-            expect(steps).toBeLessThan(400)
-        }
+        const game = createGame({ version })
+        const state = playToEnd(game, start(game, masterSeed(seed + 1)), seed)
         expect(state.result).toBe(GameResult.Win)
         expect(state.winningPlayerIds).toHaveLength(1)
         const hydrated = new HydratedTzaarGameState(state)
@@ -461,5 +517,8 @@ describe('random playouts', () => {
         expect(hydrated.missingKind(loserId) !== undefined || !hydrated.canCapture(loserId)).toBe(
             true
         )
+        expect(state.board.stacks.every((stack) => stack.pieces.length > 0)).toBe(true)
+        // Nothing reads past turns, so the series keeps only each player's latest.
+        expect(state.turnManager.series.length).toBeLessThanOrEqual(2)
     })
 })

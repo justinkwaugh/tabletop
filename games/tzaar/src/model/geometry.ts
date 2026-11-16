@@ -2,26 +2,25 @@ import {
     addAxial,
     ClockwiseFlatHexDirections,
     coordinatesToNumber,
+    distanceAxial,
     FlatNeighborOffsets,
     HexOrientation,
     hexSpiralPattern,
     type AxialCoordinates
 } from '@tabletop/common'
 
-// The 61-point hexagon of the GIPF board without its centre: 60 spaces in columns of 5, 6, 7, 8,
-// 8, 8, 7, 6 and 5 points.
+// A 61-point hexagon without its centre: 60 spaces in columns of 5, 6, 7, 8, 8, 8, 7, 6 and 5
+// points.
 export const BOARD_RADIUS = 4
 
 export const DIRECTIONS: readonly AxialCoordinates[] = ClockwiseFlatHexDirections.map(
     (direction) => FlatNeighborOffsets[direction]
 )
 
-function ringDistance(coords: AxialCoordinates): number {
-    return Math.max(Math.abs(coords.q), Math.abs(coords.r), Math.abs(coords.q + coords.r))
-}
+const CENTRE: AxialCoordinates = { q: 0, r: 0 }
 
 export function isSpace(coords: AxialCoordinates): boolean {
-    const distance = ringDistance(coords)
+    const distance = distanceAxial(coords, CENTRE)
     return distance > 0 && distance <= BOARD_RADIUS
 }
 
@@ -31,10 +30,6 @@ export const SPACES: readonly AxialCoordinates[] = Array.from(
 
 export function spaceKey(coords: AxialCoordinates): number {
     return coordinatesToNumber(coords)
-}
-
-export function neighborsOf(coords: AxialCoordinates): AxialCoordinates[] {
-    return DIRECTIONS.map((direction) => addAxial(coords, direction)).filter(isSpace)
 }
 
 // Rules E1 and F3: a stack moves in a straight line over vacant spaces to the first occupied one;

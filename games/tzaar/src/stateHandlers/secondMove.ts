@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedCapture, isCapture } from '../actions/capture.js'
@@ -37,9 +42,10 @@ export class SecondMoveStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedTzaarGameState>
     ): MachineState {
         const { gameState } = context
-        const endTurn = () => endTurnOf(gameState, action.playerId)
-        return action instanceof HydratedCapture
-            ? afterCapture(gameState, action, endTurn)
-            : endTurn()
+        if (action instanceof HydratedCapture) {
+            return afterCapture(gameState, action)
+        }
+        assertExists(action.metadata, 'A processed second move records its metadata')
+        return endTurnOf(gameState, action.playerId, action.metadata.stuckPlayerId)
     }
 }

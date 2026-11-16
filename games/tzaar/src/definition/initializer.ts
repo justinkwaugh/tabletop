@@ -8,7 +8,6 @@ import {
     Game,
     HydratedTurnManager,
     Prng,
-    sameCoordinates,
     shuffle
 } from '@tabletop/common'
 import { HydratedTzaarGameState, TzaarGameState } from '../model/gameState.js'
@@ -18,7 +17,7 @@ import { TzaarVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } f
 import { emptyBoard, PIECE_KINDS, PIECES_OF_KIND, type TzaarBoard } from '../model/board.js'
 import { SPACES } from '../model/geometry.js'
 import { FIXED_START, type StartingPiece } from '../model/startPositions.js'
-import { beginPlay } from '../stateHandlers/turnFlow.js'
+import { beginPlay, stuckPlayerAtOpening } from '../stateHandlers/turnFlow.js'
 
 export class TzaarGameInitializer
     extends BaseGameInitializer<TzaarGameState, HydratedTzaarGameState>
@@ -37,6 +36,7 @@ export class TzaarGameInitializer
             prng.random,
             assignment ?? this.chosenWhite(game)
         )
+        turnManager.seriesKeeps = 'latest'
 
         const players = turnManager.turnOrder.map(
             (playerId, index) =>
@@ -52,7 +52,6 @@ export class TzaarGameInitializer
                 players,
                 machineState: MachineState.PlacingPieces,
                 turnManager,
-                version,
                 board: this.startingBoard(version, turnManager.turnOrder, prng)
             })
         )
@@ -60,7 +59,10 @@ export class TzaarGameInitializer
         if (version === TzaarVersion.Tournament) {
             tzaarGameState.turnManager.startTurn(tzaarGameState.turnManager.turnOrder[0], 0)
         } else {
-            tzaarGameState.machineState = beginPlay(tzaarGameState)
+            tzaarGameState.machineState = beginPlay(
+                tzaarGameState,
+                stuckPlayerAtOpening(tzaarGameState)
+            )
         }
         return tzaarGameState
     }
@@ -83,19 +85,16 @@ export class TzaarGameInitializer
 
     private startingBoard(version: TzaarVersion, playerIds: string[], prng: Prng): TzaarBoard {
         const [whiteId, blackId] = playerIds
-        const board = emptyBoard()
         if (version === TzaarVersion.Tournament) {
-            return board
+            return emptyBoard()
         }
         const pieces = version === TzaarVersion.Fixed ? FIXED_START : this.randomStart(prng)
-        pieces.forEach(({ coords, white, kind }, id) => {
-            const space = board.spaces.find((candidate) =>
-                sameCoordinates(candidate.coords, coords)
-            )
-            assertExists(space, `No space at ${coords.q},${coords.r}`)
-            space.stack = [{ id, playerId: white ? whiteId : blackId, kind }]
-        })
-        return board
+        return {
+            stacks: pieces.map(({ coords, white, kind }, id) => ({
+                coords: { ...coords },
+                pieces: [{ id, playerId: white ? whiteId : blackId, kind }]
+            }))
+        }
     }
 
     // Rule C2: all 60 pieces are spread over the board at random.

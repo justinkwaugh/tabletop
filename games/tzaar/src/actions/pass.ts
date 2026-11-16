@@ -5,6 +5,7 @@ import { HydratedTzaarGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { stuckPlayerAfterTurnOf } from '../stateHandlers/turnFlow.js'
 
+// `stuckPlayerId` names an opponent left unable to capture when their turn begins.
 export type PassMetadata = Type.Static<typeof PassMetadata>
 export const PassMetadata = Type.Object({
     stuckPlayerId: Type.Optional(Type.String())

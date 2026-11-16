@@ -1,4 +1,5 @@
 import {
+    assertExists,
     type AxialCoordinates,
     Color,
     GameResult,
@@ -12,13 +13,12 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { TzaarPlayerState, HydratedTzaarPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
-import { TzaarVersion } from '../definition/config.js'
 import {
     HydratedTzaarBoard,
     PIECE_KINDS,
     PIECES_OF_KIND,
     type Piece,
-    type PieceKind,
+    PieceKind,
     TzaarBoard
 } from './board.js'
 import { SPACES } from './geometry.js'
@@ -32,7 +32,6 @@ export const TzaarGameState = Type.Evaluate(
         Type.Object({
             players: Type.Array(TzaarPlayerState),
             machineState: Type.Enum(MachineState),
-            version: Type.Enum(TzaarVersion),
             board: TzaarBoard
         })
     ])
@@ -45,14 +44,21 @@ export type StackMove = {
     to: AxialCoordinates
 }
 
+// What history tells of a stack: how tall it was and the type on top.
+export type StackSummary = Type.Static<typeof StackSummary>
+export const StackSummary = Type.Object({
+    height: Type.Integer({ minimum: 1 }),
+    kind: Type.Enum(PieceKind)
+})
+
 export type CaptureResult = {
-    moved: Piece[]
-    captured: Piece[]
+    moved: StackSummary
+    captured: StackSummary
 }
 
 export type StackResult = {
-    moved: Piece[]
-    landedOn: Piece[]
+    moved: StackSummary
+    landedOnHeight: number
 }
 
 export class HydratedTzaarGameState
@@ -70,7 +76,6 @@ export class HydratedTzaarGameState
     declare machineState: MachineState
     declare result?: GameResult
     declare winningPlayerIds: string[]
-    declare version: TzaarVersion
     declare board: HydratedTzaarBoard
 
     constructor(data: TzaarGameState) {
@@ -81,17 +86,13 @@ export class HydratedTzaarGameState
 
     opponentOf(playerId: string): string {
         const opponent = this.players.find((player) => player.playerId !== playerId)
-        if (opponent === undefined) {
-            throw Error(`No opponent for ${playerId}`)
-        }
+        assertExists(opponent, `No opponent for ${playerId}`)
         return opponent.playerId
     }
 
     whitePlayerId(): string {
         const white = this.players.find((player) => player.color === Color.White)
-        if (white === undefined) {
-            throw Error('No player has White')
-        }
+        assertExists(white, 'No player has White')
         return white.playerId
     }
 
@@ -149,8 +150,8 @@ export class HydratedTzaarGameState
     }
 
     private coversLastOfKind(playerId: string, { from, to }: StackMove): boolean {
-        const covered = this.board.stackAt(to).at(-1)?.kind
-        const moving = this.board.stackAt(from).at(-1)?.kind
+        const covered = this.board.topKindAt(to)
+        const moving = this.board.topKindAt(from)
         return (
             covered !== moving &&
             covered !== undefined &&
@@ -163,26 +164,28 @@ export class HydratedTzaarGameState
     }
 
     capture(from: AxialCoordinates, to: AxialCoordinates): CaptureResult {
-        const captured = this.board.removeStack(to)
-        const moved = structuredClone([...this.board.stackAt(from)])
-        this.board.moveStack(from, to)
+        const moved = this.summaryAt(from)
+        const captured = this.summaryAt(to)
+        this.board.captureStack(from, to)
         return { moved, captured }
     }
 
     stack(from: AxialCoordinates, to: AxialCoordinates): StackResult {
-        const moved = structuredClone([...this.board.stackAt(from)])
-        const landedOn = structuredClone([...this.board.stackAt(to)])
+        const moved = this.summaryAt(from)
+        const landedOnHeight = this.board.heightAt(to)
         this.board.moveStack(from, to)
-        return { moved, landedOn }
+        return { moved, landedOnHeight }
+    }
+
+    private summaryAt(coords: AxialCoordinates): StackSummary {
+        const kind = this.board.topKindAt(coords)
+        assertExists(kind, `No stack at ${coords.q},${coords.r}`)
+        return { height: this.board.heightAt(coords), kind }
     }
 
     // Rule B1: a player without a Tzaar, Tzarra or Tott on top of a stack has lost.
     missingKind(playerId: string): PieceKind | undefined {
         return PIECE_KINDS.find((kind) => this.board.topsOf(playerId, kind) === 0)
-    }
-
-    capturedBy(playerId: string): number {
-        return TOTAL_PIECES / 2 - this.board.piecesOf(this.opponentOf(playerId)).length
     }
 
     declareWinner(playerId: string) {

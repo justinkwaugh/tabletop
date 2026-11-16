@@ -1,16 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
-import { HydratedTzaarGameState } from '../model/gameState.js'
+import { HydratedTzaarGameState, StackSummary } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { isSpace } from '../model/geometry.js'
-import { Piece } from '../model/board.js'
 import { stuckPlayerAfterTurnOf } from '../stateHandlers/turnFlow.js'
 
+// `moved` describes the moving stack and `landedOnHeight` the stack it covered, both before the
+// move. `stuckPlayerId` names an opponent left unable to capture when their turn begins.
 export type StackMetadata = Type.Static<typeof StackMetadata>
 export const StackMetadata = Type.Object({
-    moved: Type.Array(Piece),
-    landedOn: Type.Array(Piece),
+    moved: StackSummary,
+    landedOnHeight: Type.Integer({ minimum: 1 }),
     stuckPlayerId: Type.Optional(Type.String())
 })
 

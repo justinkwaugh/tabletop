@@ -1,17 +1,21 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
-import { HydratedTzaarGameState } from '../model/gameState.js'
+import { HydratedTzaarGameState, StackSummary } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { isSpace } from '../model/geometry.js'
-import { Piece, PieceKind } from '../model/board.js'
-import { stuckPlayerAfterTurnOf } from '../stateHandlers/turnFlow.js'
+import { PieceKind } from '../model/board.js'
+import { captureEndsTurn, stuckPlayerAfterTurnOf } from '../stateHandlers/turnFlow.js'
 
+// `moved` and `captured` describe the two stacks before the capture. `opening` marks White's
+// single-capture first turn and `noSecondMove` a turn that ended for want of a second move.
+// `eliminatedKind` is the type the capture took the opponent's last of, which wins; otherwise
+// `stuckPlayerId` names an opponent left unable to capture when their turn begins.
 export type CaptureMetadata = Type.Static<typeof CaptureMetadata>
 export const CaptureMetadata = Type.Object({
-    moved: Type.Array(Piece),
-    captured: Type.Array(Piece),
+    moved: StackSummary,
+    captured: StackSummary,
     opening: Type.Optional(Type.Boolean()),
     noSecondMove: Type.Optional(Type.Boolean()),
     eliminatedKind: Type.Optional(Type.Enum(PieceKind)),
@@ -63,13 +67,15 @@ export class HydratedCapture extends HydratableAction<typeof Capture> implements
             return
         }
 
-        const isFirstMove = state.machineState === MachineState.Capturing
         if (opening) {
             metadata.opening = true
-        } else if (isFirstMove && !state.hasSecondMove(this.playerId)) {
+        } else if (
+            state.machineState === MachineState.Capturing &&
+            !state.hasSecondMove(this.playerId)
+        ) {
             metadata.noSecondMove = true
         }
-        if (!isFirstMove || opening || metadata.noSecondMove) {
+        if (captureEndsTurn(state, metadata)) {
             const stuckPlayerId = stuckPlayerAfterTurnOf(state, this.playerId)
             if (stuckPlayerId !== undefined) {
                 metadata.stuckPlayerId = stuckPlayerId
