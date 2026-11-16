@@ -94,7 +94,7 @@ describe('R-3.14.1 S32 to S34 the ask to defend, as drawn', () => {
         const view = asked.actionPanel
         expect(view.blocks[0]).toMatchObject({ kind: 'line', role: 'flow' })
         expect(linesOf(view, 'flow')[0]).toMatch(
-            new RegExp(`^${ana} conquers your knight at .+: attack \\d+, defence \\d+\\.$`)
+            new RegExp(`^${ana} conquers your knight at .+: \\d+ vs \\d+$`)
         )
         expect(primaryLabels(view)).toEqual([
             "Flip Defend · +1 defence · +1 vp · can't be undone",
@@ -144,11 +144,11 @@ describe('R-3.14.1 S32 to S34 the ask to defend, as drawn', () => {
         expect(rowLabels(session.actionPanel, 'saltpeter')).toContain('Add saltpeter')
     })
 
-    it('S34 without Defend: the same line, "You hold no Defend.", one button; only its press answers', async () => {
+    it('S34 without Defend: the same line, no note, one button; only its press answers', async () => {
         const table = hold(await askedToDefend(['tax', 'guild']))
         const { asked } = table
         expect(asked.isMyTurn).toBe(true)
-        expect(noteLines(asked)).toEqual(['You hold no Defend.'])
+        expect(noteLines(asked)).toEqual([])
         expect(primaryLabels(asked.actionPanel)).toEqual(["Let it stand · can't be undone"])
         expect(lastByUser(table)?.type).toBe(ActionType.Conquer)
         await settled(asked)
@@ -187,11 +187,11 @@ describe('R-3.14.2 S38 the ask to starve, as drawn', () => {
         expect(JSON.stringify(space)).toMatch(/"(subject)?[iI]mmune":true/)
     })
 
-    it('S38 without Defend: "You can\'t answer." and "Let it go"; nothing goes for the seat', async () => {
+    it('S38 without Defend: no note and "Let it go" alone; nothing goes for the seat', async () => {
         const table = hold(await askedToStarve(['tax', 'guild']))
         const { asked } = table
         expect(asked.isMyTurn).toBe(true)
-        expect(noteLines(asked)).toEqual(["You can't answer."])
+        expect(noteLines(asked)).toEqual([])
         expect(primaryLabels(asked.actionPanel)).toEqual(["Let it go · can't be undone"])
         expect(lastByUser(table)?.type).toBe(ActionType.StarveThePeople)
         await send(asked, /^Let it go/)
@@ -210,7 +210,7 @@ describe('R-4.8 the commit, as drawn', () => {
             })
         )
 
-    it('S36 the attacker reads the tally, the saltpeter stepper and "Attack n vs m"; others the flow\'s tally', async () => {
+    it('S36 the attacker reads the tally, the saltpeter stepper as cubes and "Attack n vs m"; others the flow\'s tally', async () => {
         const table = await committing()
         const { asked, session, third } = table
         await send(asked, /^Let it stand/)
@@ -219,11 +219,21 @@ describe('R-4.8 the commit, as drawn', () => {
         expect(session.gameState.machineState).toBe(MachineState.CommittingAttack)
         const view = session.actionPanel
         expect(blockOf(view, 'tally')).toBeDefined()
-        expect(rowLabels(view, 'saltpeter')).toEqual(['Add saltpeter', 'Take saltpeter off'])
+        // R-4.8.2 With none on, "−" is not drawn; "+" is the cube, its words its name.
+        expect(rowLabels(view, 'saltpeter')).toEqual(['Add saltpeter'])
+        expect(rowsOf(view, 'saltpeter')[0]).toMatchObject({
+            art: { kind: 'good', good: 'saltpeter' },
+            choice: { shown: '+' }
+        })
         expect(primaryLabels(view)[0]).toMatch(/^Attack \d+ vs \d+: (fails|wins · \+\d+ vp)$/)
         const attackBefore = blockOf(view, 'tally')?.lines.at(-1)?.attack ?? 0
         await pressRow(rowNamed(view, 'Add saltpeter'))
         expect(blockOf(session.actionPanel, 'tally')?.lines.at(-1)?.attack).toBe(attackBefore + 1)
+        // One on: "−" is drawn beside "+", to take it off.
+        expect(rowsOf(session.actionPanel, 'saltpeter').map(({ choice }) => choice)).toMatchObject([
+            { label: 'Add saltpeter', shown: '+' },
+            { label: 'Take saltpeter off', shown: '−' }
+        ])
         // Others read the flow, not the attacker's draft.
         expect(blockOf(third.actionPanel, 'tally')?.lines.at(-1)?.attack).toBe(attackBefore)
         const ana = third.getPlayerName(table.seat)

@@ -64,8 +64,8 @@ scenario('S32 R-3.14.1 Conquer that asks', 'conquer-asks', async (table) => {
 })
 
 scenario('S33 R-3.14.1 Defender with Defend', 'conquer-asked-defend', async (table) => {
-    await expect(table.panel()).toContainText(
-        'Bram conquers your knight at Forest 2: attack 3, defence 2.'
+    await expect(table.flowLine().first()).toHaveText(
+        'Bram conquers your knight at Forest 2: 3 vs 2'
     )
     await expect(answer(table, Flip)).toBeVisible()
     await expect(answer(table, LetStand)).toBeVisible()
@@ -124,7 +124,7 @@ async function outwardView(table: ScenarioTable, playerId: string) {
 }
 
 scenario('S34 R-3.14.1 Defender without Defend', 'conquer-asked-no-defend', async (table) => {
-    await expect(table.panel()).toContainText('You hold no Defend.')
+    await expect(table.panel().locator('[data-note-line]')).toHaveCount(0)
     await expect(answer(table, Flip)).toHaveCount(0)
     await expect(answer(table, LetStand)).toBeVisible()
     await table.settled()

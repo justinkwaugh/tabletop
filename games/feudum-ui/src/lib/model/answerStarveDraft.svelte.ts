@@ -31,8 +31,6 @@ export const AnswerStarveStageOrder: readonly (keyof AnswerStarveValues)[] = ['c
 
 export interface AnswerStarvePanel {
     readonly line: string
-    /** No Defend, no food, or no seal: the seat can only let it go. */
-    readonly cantAnswer?: string
     readonly covers?: readonly DraftChoice[]
     readonly immunity?: TurnPrimary
     readonly letGo: { readonly label: string }
@@ -103,8 +101,9 @@ export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
             coverSpends(anyTile, needs)
         )
         const letGo = { label: primaryLabel('Let it go', offer) }
+        // No Defend, no food, or no seal: Royal Immunity is not drawn, and the seat can only let it go.
         if (blocked) {
-            return { line, cantAnswer: "You can't answer.", letGo }
+            return { line, letGo }
         }
         return {
             line,

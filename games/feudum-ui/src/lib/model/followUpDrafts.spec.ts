@@ -11,7 +11,8 @@ import {
     placeMarker,
     type ActionCardKind,
     type SpaceId,
-    type TileId
+    type TileId,
+    type WritId
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -582,14 +583,41 @@ describe('R-4.8 The commit', () => {
         expect(session.commitPanel).toBeUndefined()
     })
 
-    it('R-4.8.2 one saltpeter without a knight; a second is refused with its line', async () => {
+    it('R-4.8.2 one saltpeter without a knight; a second stands dimmed, with no line', async () => {
         const { session } = await committing((state, seat) => {
             giveGood(state, seat, 'saltpeter')
             giveGood(state, seat, 'saltpeter')
         })
+        expect(session.commitPanel?.saltpeter.remove).toBeUndefined()
         await press(session, session.commitPanel?.saltpeter.add)
-        expect(session.commitPanel?.saltpeter.add.refusal).toBeDefined()
-        expect(session.commitPanel?.saltpeter.add.press).toBeUndefined()
+        expect(session.commitPanel?.saltpeter.add).toMatchObject({ spent: true })
+        expect(session.commitPanel?.saltpeter.add?.refusal).toBeUndefined()
+        expect(session.commitPanel?.saltpeter.add?.press).toBeUndefined()
+        expect(session.commitPanel?.saltpeter.remove?.press).toBeDefined()
+    })
+
+    it('R-4.8.2 with no saltpeter and no tile to bring one, the stepper is not drawn', async () => {
+        const { session } = await committing((state, seat) => {
+            holdWrit(state, seat, 'writ.mandate.1')
+        })
+        expect(session.commitPanel?.weapons).toHaveLength(1)
+        expect(session.commitPanel?.saltpeter).toEqual({ count: 0 })
+    })
+
+    it('R-4.8.2 one tile for two turn-ins: once it is held, the other stands dimmed, with no line', async () => {
+        const { session } = await committing((state, seat) => {
+            holdWrit(state, seat, 'writ.mandate.1')
+            holdWrit(state, seat, 'writ.mandate.3')
+            giveTile(state, seat)
+        })
+        const turnIn = (writId: WritId) =>
+            session.commitPanel?.weapons.find((weapon) => weapon.writId === writId)?.alternatives[1]
+        expect(turnIn('writ.mandate.3')?.press).toBeDefined()
+        await press(session, turnIn('writ.mandate.1'))
+        expect(turnIn('writ.mandate.3')).toMatchObject({ spent: true })
+        expect(turnIn('writ.mandate.3')?.refusal).toBeUndefined()
+        expect(turnIn('writ.mandate.3')?.press).toBeUndefined()
+        expect(session.commitPanel?.saltpeter.add).toMatchObject({ spent: true })
     })
 
     it('R-4.4-H1 a turn-in short of a good offers the tile cover, and the send spends it', async () => {
@@ -736,12 +764,9 @@ describe('R-3.14.1 AnswerAttack', () => {
         const { defender, session } = table
         const panel = defender.answerAttackPanel
         const ana = defender.getPlayerName(table.seat)
-        expect(panel?.line).toMatch(
-            new RegExp(`^${ana} conquers your knight at .+: attack \\d+, defence \\d+\\.$`)
-        )
+        expect(panel?.line).toMatch(new RegExp(`^${ana} conquers your knight at .+: \\d+ vs \\d+$`))
         expect(panel?.flip?.label).toBe("Flip Defend · +1 defence · +1 vp · can't be undone")
         expect(panel?.letStand.label).toBe("Let it stand · can't be undone")
-        expect(panel?.noDefend).toBeUndefined()
         expect(lastAction(table)?.type).toBe(ActionType.Conquer)
         await defender.answerAttack(true)
         await settled(defender)
@@ -754,11 +779,10 @@ describe('R-3.14.1 AnswerAttack', () => {
         expect(defender.answerAttackPanel).toBeUndefined()
     })
 
-    it('S34 without Defend: the line, "You hold no Defend.", one button, and no answer sent', async () => {
+    it('S34 without Defend: the line, no flip, one button, and no answer sent', async () => {
         const table = await askedToDefend(['tax', 'guild'])
         const { defender } = table
         const panel = defender.answerAttackPanel
-        expect(panel?.noDefend).toBe('You hold no Defend.')
         expect(panel?.flip).toBeUndefined()
         expect(panel?.letStand.label).toBe("Let it stand · can't be undone")
         expect(defender.gameState.machineState).toBe(MachineState.AwaitingDefence)
@@ -878,7 +902,6 @@ describe('R-3.14.2 AnswerStarve', () => {
             label: "Royal Immunity · 1 food · can't be undone",
             enabled: true
         })
-        expect(panel?.cantAnswer).toBeUndefined()
         expect(panel?.letGo.label).toBe("Let it go · can't be undone")
         expect(lastAction(table)?.type).toBe(ActionType.StarveThePeople)
         await answerer.answerStarveWith(true)
@@ -891,11 +914,11 @@ describe('R-3.14.2 AnswerStarve', () => {
         expect(answerer.answerStarvePanel).toBeUndefined()
     })
 
-    it('S38 without Defend: "You can\'t answer." and "Let it go"; no answer is sent for the seat', async () => {
+    it('S38 without Defend: "Let it go" alone; no answer is sent for the seat', async () => {
         const table = await askedToAnswerStarve(['tax', 'guild'])
         const { answerer, spaceId, other } = table
         const panel = answerer.answerStarvePanel
-        expect(panel?.cantAnswer).toBe("You can't answer.")
+        expect(Object.keys(panel ?? {})).toEqual(['line', 'letGo'])
         expect(panel?.immunity).toBeUndefined()
         expect(lastAction(table)?.type).toBe(ActionType.StarveThePeople)
         expect(answerer.gameState.machineState).toBe(MachineState.AwaitingImmunity)
@@ -939,8 +962,8 @@ describe('R-3.14.2 AnswerStarve', () => {
 
     it('R-3.14.2 asked with no Defend: the seat cannot answer, and can only let it go', async () => {
         const { answerer } = await askedToAnswerStarve(['tax', 'guild'])
-        expect(answerer.answerStarvePanel?.cantAnswer).toBe("You can't answer.")
         expect(answerer.answerStarvePanel?.immunity).toBeUndefined()
+        expect(answerer.answerStarvePanel?.letGo.label).toBe("Let it go · can't be undone")
     })
 
     it('R-X.1 History View has no panel', async () => {
