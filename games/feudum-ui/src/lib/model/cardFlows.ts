@@ -83,8 +83,6 @@ export type TurnDraftValues = {
     replay: ActionCardKind
     mode: CardAction
     pawn: PawnNumber
-    /** R-3.6.2 */
-    distantKin: true
     tile: TileId
     /** R-1.1 Markers short: the spaces picked, stacked. */
     spaces: readonly SpaceId[]
@@ -110,7 +108,6 @@ export const TurnStageOrder = [
     'replay',
     'mode',
     'pawn',
-    'distantKin',
     'tile',
     'spaces',
     'space',
@@ -154,15 +151,10 @@ export type PieceArt =
     | { readonly kind: 'vessel'; readonly vessel: VesselType }
 
 /**
- * The piece a row shows before its label; the panel paints a pawn in the seat's colour. A guild's
- * die is the whole choice, with the label as its accessible name.
+ * The piece a row shows before its label. A guild's die is the whole choice, with the label as its
+ * accessible name.
  */
-export type ChoiceArt =
-    | { readonly kind: 'pawn'; readonly character?: Character }
-    | TileArt
-    | DieArt
-    | DiscArt
-    | PieceArt
+export type ChoiceArt = TileArt | DieArt | DiscArt | PieceArt
 
 export interface PanelChoice {
     readonly label: string
@@ -316,33 +308,56 @@ const MigrateLine = 'Pick a space.'
 const HarvestLine = 'Pick a farm.'
 const ConquerLine = 'Pick a place.'
 
+/** R-3.6.1 Why no pawn in supply may come onto the board, in the logic's words. */
+function reasonNoneEnter(
+    { state, playerId, input }: FlowInput,
+    pawnsOff: readonly PawnNumber[]
+): string | undefined {
+    const [first] = pawnsOff
+    return first === undefined
+        ? undefined
+        : reasonMigrateRefused(state, playerId, {
+              ...input,
+              pawn: first,
+              onto: { character: 'farmer', spaceId: StartingSpaceIds[0] }
+          })
+}
+
 /** R-3.6 */
 function migrateFlow(flow: FlowInput): FlowView {
     const { state, playerId, input, read } = flow
     const offers = migrateOffers(state, playerId)
     const pawn = read('pawn')
-    const canEnter = offers.spaces.length + offers.distantKinSpaces.length > 0
-    // R-1.1 Pawns in supply stand nowhere and have no character, so nothing tells them apart: one
-    // cube stands for them all, its words its accessible name, and its press takes the first. It is
-    // not drawn while no space can take it.
-    const rows: PanelChoice[] = (canEnter ? offers.pawnsOff.slice(0, 1) : []).map((n) => ({
-        label: 'Pawn from supply',
-        shown: '',
-        art: { kind: 'pawn' },
-        picked: pawn !== undefined && offers.pawnsOff.includes(pawn),
-        press: Pick('pawn', n)
-    }))
-    if (pawn === undefined || offers.pawnsOn.includes(pawn)) {
+    const spaceId = read('space')
+    // R-1.1 Pawns in supply stand nowhere and have no character, so nothing tells them apart: a
+    // space press takes the first. R-3.6.2 A starting space open only by Distant Kin declares it.
+    const [entering] = offers.pawnsOff
+    const picks: FlowPick[] = [
+        ...offers.spaces.map((id) => ({
+            target: spaceTarget(id),
+            notes: [priceNote()],
+            press: Pick('space', id)
+        })),
+        ...offers.distantKinSpaces.map((id) => ({
+            target: spaceTarget(id),
+            notes: [{ kind: 'role', label: 'Distant Kin' } as const],
+            press: Pick('space', id)
+        })),
+        ...offers.pawnsOn.map((n) => ({
+            target: pawnTarget(playerId, n),
+            notes: [{ kind: 'role', label: 'off' } as const],
+            press: Pick('pawn', n)
+        }))
+    ]
+    if (spaceId === undefined || entering === undefined) {
         const data = pawn === undefined ? undefined : { ...input, pawn, onto: 'off' as const }
+        const canEnter = offers.spaces.length + offers.distantKinSpaces.length > 0
+        const line = canEnter ? MigrateLine : reasonNoneEnter(flow, offers.pawnsOff)
         return {
             ...Empty,
-            rows,
-            picks: offers.pawnsOn.map((n) => ({
-                target: pawnTarget(playerId, n),
-                notes: [{ kind: 'role', label: 'off' }],
-                press: Pick('pawn', n)
-            })),
+            picks,
             picked: pawn === undefined ? [] : [pawnTarget(playerId, pawn)],
+            ...(line ? { line } : {}),
             ...(data
                 ? {
                       primaryName: `Migrate the ${placeOfPawn(state, playerId, data.pawn)} off`,
@@ -353,35 +368,12 @@ function migrateFlow(flow: FlowInput): FlowView {
                 : {})
         }
     }
-    const distantKin = read('distantKin')
-    if (offers.distantKinSpaces.length > 0) {
-        rows.push({
-            label: 'Distant Kin',
-            picked: distantKin === true,
-            press: Pick('distantKin', true)
-        })
-    }
-    const spaceId = read('space')
-    const picks: FlowPick[] = (distantKin ? StartingSpaceIds : offers.spaces).map((id) => ({
-        target: spaceTarget(id),
-        notes: [distantKin ? { kind: 'role', label: 'Distant Kin' } : priceNote()],
-        press: Pick('space', id)
-    }))
-    const picked = spaceId ? [spaceTarget(spaceId)] : []
-    if (!spaceId) {
-        return {
-            ...Empty,
-            rows,
-            picks,
-            picked,
-            ...(distantKin ? {} : { line: MigrateLine })
-        }
-    }
+    const distantKin = offers.distantKinSpaces.includes(spaceId)
+    const picked = [spaceTarget(spaceId)]
     const character = read('character')
     if (!character) {
         return {
             ...Empty,
-            rows,
             picks,
             picked,
             popup: {
@@ -398,9 +390,9 @@ function migrateFlow(flow: FlowInput): FlowView {
     const cover = read('cover') ?? []
     const data = {
         ...input,
-        pawn,
+        pawn: entering,
         onto: { character, spaceId },
-        ...(distantKin ? { distantKin } : {}),
+        ...(distantKin ? { distantKin: true as const } : {}),
         ...(needs.length > 0 ? { wildTiles: coverSpends(cover, needs) } : {})
     }
     const reason = reasonMigrateRefused(state, playerId, data)
@@ -410,7 +402,6 @@ function migrateFlow(flow: FlowInput): FlowView {
     if (needs.length === 0) {
         return {
             ...Empty,
-            rows,
             picks,
             picked,
             primaryName: `Migrate to ${spaceLabel(spaceId)}`,

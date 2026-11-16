@@ -192,7 +192,6 @@ scenario('S47 R-3.16.3 Feast', 'guild-feast', async (table) => {
 
 scenario('S48 R-4.4-H1 Short payment covered with a tile', 'short-with-tile', async (table) => {
     await table.press(table.card('Migrate'))
-    await table.press(table.row('Pawn from supply'))
     await table.pressPick(Desert3)
     await table.press(table.popupRowStarting('Monk'))
     await expect(table.primary()).toHaveText('Cover with a tile')
@@ -201,8 +200,8 @@ scenario('S48 R-4.4-H1 Short payment covered with a tile', 'short-with-tile', as
 
 scenario('S48 R-3.6, R-4.4-H1 Short payment with no tile', 'short-no-tile', async (table) => {
     await table.press(table.card('Migrate'))
-    // The pawn in supply can't come on, so it is not drawn; the one on the map may still go off.
-    await expect(table.panel().locator('[data-row="Pawn from supply"]')).toHaveCount(0)
+    // No space can take the pawn in supply, so the line says why; the one on the map may still go off.
+    await expect(table.flowLine()).toHaveText('Migrating onto the board needs 1 food.')
     await expect(table.panel().locator('[data-refusal]')).toHaveCount(0)
     expect(Object.values(await table.litChips())).toEqual(['off'])
 })

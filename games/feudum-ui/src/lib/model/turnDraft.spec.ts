@@ -5,6 +5,7 @@ import {
     exploreOffer,
     HydratedFeudumGameState,
     MachineState,
+    migrateOffers,
     placeMarker,
     Spaces,
     taxPreview,
@@ -391,19 +392,20 @@ describe('R-3.6 Migrate', () => {
         return turn
     }
 
-    it('S13 onto the board: pawn, space with its food, character; Undo takes it back', async () => {
+    it('S13 onto the board: a space with its food lights at once, then the character; Undo takes it back', async () => {
         const turn = await atMigrate()
         const { session, seat } = turn
-        const [pawnRow] = session.turn.flow?.rows ?? []
-        await session.pressTurnChoice(pawnRow)
-        flushSync()
-        const [{ target, notes }] = session.turn.flow?.picks ?? []
-        expect(notes).toEqual([
+        const { pawnsOff, spaces } = migrateOffers(session.gameState, seat)
+        // R-1.1 No row stands for the pawns in supply: the spaces light beside the pawns that may go off.
+        expect(session.turn.flow?.rows).toEqual([])
+        expect(chipLabels(session, pawnTarget(seat, 1))).toEqual(['off'])
+        const [spaceId] = spaces
+        const target = spaceTarget(spaceId)
+        expect(session.turn.flow?.picks.find((pick) => pick.target === target)?.notes).toEqual([
             { kind: 'cost', label: '1 food', art: [{ kind: 'good', good: 'food', count: 1 }] }
         ])
         expect(session.turn.flow?.line).toBe('Pick a space.')
 
-        const spaceId = session.turn.flow?.picks[0].target.replace('space:', '')
         await pressTarget(session, target)
         const choices = session.turn.flow?.popup?.choices ?? []
         expect(choices.map(({ art }) => art?.kind === 'die' && art.guild)).toEqual([
@@ -426,8 +428,10 @@ describe('R-3.6 Migrate', () => {
         await pressPopup(session, /^Monk, /)
         expect(sentBy(turn)).toMatchObject({
             type: ActionType.Migrate,
+            pawn: pawnsOff[0],
             onto: { character: 'monk', spaceId }
         })
+        expect(sentBy(turn)).not.toHaveProperty('distantKin')
         expect(session.turn.hasManual).toBe(false)
         const before = turn.host.actions.length
         expect(session.undoableAction).toBeDefined()
@@ -437,21 +441,30 @@ describe('R-3.6 Migrate', () => {
         expect(session.gameState.getPlayerState(seat).played).toEqual([])
     })
 
-    it('S13 R-3.6.2 Distant Kin lights every starting space, with its chip', async () => {
+    it('S13 R-3.6.2 Distant Kin: a starting space lights at once with its chip, and its press declares it', async () => {
         const turn = await atMigrate((state, seat) => {
             state.getPlayerState(seat).pawns[0].character = 'alchemist'
         })
-        const { session } = turn
-        await session.pressTurnChoice(firstRow(session))
-        flushSync()
-        await pressRow(session, 'Distant Kin')
-        const picks = session.turn.flow?.picks ?? []
-        expect(picks.length).toBe(6)
-        expect(picks.every(({ notes }) => notes?.[0].label === 'Distant Kin')).toBe(true)
+        const { session, seat } = turn
+        const { spaces, distantKinSpaces } = migrateOffers(session.gameState, seat)
+        expect(distantKinSpaces.length).toBeGreaterThan(0)
+        expect(session.turn.flow?.rows).toEqual([])
+        for (const spaceId of distantKinSpaces) {
+            expect(chipLabels(session, spaceTarget(spaceId))).toEqual(['Distant Kin'])
+        }
+        // A starting space the seat may enter anyway keeps its one food chip.
+        for (const spaceId of spaces) {
+            expect(chipLabels(session, spaceTarget(spaceId))).toEqual(['1 food'])
+        }
 
-        await pressTarget(session, picks[0].target)
+        const [kin] = distantKinSpaces
+        await pressTarget(session, spaceTarget(kin))
         await pressPopup(session, /^Farmer, /)
-        expect(sentBy(turn)).toMatchObject({ type: ActionType.Migrate, distantKin: true })
+        expect(sentBy(turn)).toMatchObject({
+            type: ActionType.Migrate,
+            distantKin: true,
+            onto: { character: 'farmer', spaceId: kin }
+        })
     })
 
     it('S14 off the board: a press on a map pawn with "off" sends', async () => {
@@ -474,8 +487,6 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         const { session } = turn
         pickCard(session, 'migrate')
         if (tiles > 0) {
-            await session.pressTurnChoice(firstRow(session))
-            flushSync()
             await pressTarget(session, firstPick(session))
             await pressPopup(session, /^Monk, /)
         }
@@ -529,11 +540,14 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         expect(host?.sent.size).toBe(0)
     })
 
-    it('without a tile, a pawn in supply is not drawn; its pawn on the map may still go off', async () => {
+    it("without a tile, no space lights and the line is the logic's reason; its pawn on the map may still go off", async () => {
         const turn = await shortOfFood(0)
         const { session, seat } = turn
         expect(session.turn.flow?.rows).toEqual([])
+        expect(session.turn.flow?.line).toBe('Migrating onto the board needs 1 food.')
         expect(session.turn.flow?.picks.map(({ target }) => target)).toEqual([pawnTarget(seat, 1)])
+        await pressTarget(session, pawnTarget(seat, 1))
+        expect(sentBy(turn)).toMatchObject({ type: ActionType.Migrate, pawn: 1, onto: 'off' })
     })
 
     it('without a tile or a pawn on the map, the mode closes with its reason and leaves the Forfeit', async () => {
@@ -1151,14 +1165,17 @@ const FlowCases: readonly FlowCase[] = [
     {
         name: 'Migrate (R-3.6)',
         card: 'migrate',
+        // R-4.4-H1 Short of its food with two tiles held, the character waits for a tile.
         arrange: (state, { seat }) => {
-            giveGood(state, seat, 'food')
+            returnGoods(state, seat)
+            giveTile(state, seat)
+            giveTile(state, seat)
         },
         reach: async (session) => {
-            await session.pressTurnChoice(firstRow(session))
             await session.pressTurnTarget(firstPick(session))
+            await session.pressTurnChoice(firstPopup(session))
         },
-        stages: ['pawn', 'space']
+        stages: ['space', 'character']
     },
     {
         name: 'Improve (R-3.9)',

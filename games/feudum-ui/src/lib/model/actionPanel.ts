@@ -382,12 +382,9 @@ function draftRow(
     }
 }
 
-/** A turn row's piece: a tile as it is, a pawn the seat's own, in its paint. */
+/** A turn row with its piece. */
 function turnRow(session: PanelSession, choice: PanelChoice): ActionRow {
-    const art: RowArt | undefined =
-        choice.art?.kind === 'pawn'
-            ? { ...choice.art, paint: session.paintOf(session.myPlayerId ?? '') }
-            : choice.art
+    const { art } = choice
     return { choice, press: () => session.pressTurnChoice(choice), ...(art ? { art } : {}) }
 }
 
