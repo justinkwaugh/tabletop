@@ -8,7 +8,6 @@ export interface AnswerAttackPanel {
     /** R-3.14.1 Only for a seat holding its Defend. */
     readonly flip?: { readonly label: string }
     readonly letStand: { readonly label: string }
-    readonly noDefend?: string
 }
 
 /** R-3.13.1 What is attacked: a pawn's character, a monster, or the feudum itself. */
@@ -44,7 +43,8 @@ export function answerAttackPanelOf({
     const place = spaceLabel(combat.spaceId)
     const gain = offer.defenceIfFlipped - offer.defence
     return {
-        line: `${nameOf(combat.attackerId)} conquers your ${name} at ${place}: attack ${offer.attack}, defence ${offer.defence}.`,
+        line: `${nameOf(combat.attackerId)} conquers your ${name} at ${place}: ${offer.attack} vs ${offer.defence}`,
+        // Without Defend the flip is not drawn, and Let it stand is the one press.
         ...(offer.holdsDefend
             ? {
                   flip: {
@@ -54,7 +54,7 @@ export function answerAttackPanelOf({
                       )
                   }
               }
-            : { noDefend: 'You hold no Defend.' }),
+            : {}),
         letStand: { label: primaryLabel('Let it stand', offer) }
     }
 }

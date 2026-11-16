@@ -696,7 +696,6 @@ function answerAttackBlocks(
     const { flip } = panel
     return [
         line('flow', panel.line),
-        ...(panel.noDefend ? [line('note', panel.noDefend)] : []),
         ...(flip ? sends({ ...flip, enabled: true }, () => session.answerAttack(true)) : []),
         ...sends({ ...panel.letStand, enabled: true }, () => session.answerAttack(false))
     ]
@@ -709,7 +708,6 @@ function answerStarveBlocks(
 ): ActionBlock[] {
     return [
         line('flow', panel.line),
-        ...(panel.cantAnswer ? [line('note', panel.cantAnswer)] : []),
         ...rows(
             'covers',
             (panel.covers ?? []).map((choice) => draftRow(session, choice))
@@ -728,9 +726,12 @@ function commitBlocks(
     return [
         line('flow', 'Add to the attack'),
         { kind: 'tally', lines: panel.tally },
+        // R-4.8.2 The stepper's presses are the saltpeter cube and "+" or "−", named in words.
         ...rows(
             'saltpeter',
-            [draftRow(session, saltpeter.add), draftRow(session, saltpeter.remove)],
+            [saltpeter.add, saltpeter.remove].flatMap((choice) =>
+                choice ? [draftRow(session, choice, { kind: 'good', good: 'saltpeter' })] : []
+            ),
             `Saltpeter ${saltpeter.count}`
         ),
         ...(panel.weapons.length > 0

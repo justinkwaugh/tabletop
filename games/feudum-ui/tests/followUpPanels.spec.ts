@@ -81,9 +81,10 @@ test('S33 with Defend: the line first, both buttons, the tally under it', async 
     await shot(page, 'S33-asked-held')
 })
 
-test('S34 without Defend: the same line, the note, one button', async ({ page }) => {
+test('S34 without Defend: the same line, no note, one button', async ({ page }) => {
     await openTable(page, `openDefendTable(false, 'asked')`)
-    await expect(panel(page).locator('[data-note-line]')).toHaveText('You hold no Defend.')
+    await expect(panel(page).locator('[data-flow-line]')).toContainText('conquers your knight')
+    await expect(panel(page).locator('[data-note-line]')).toHaveCount(0)
     await expect(primary(page)).toHaveText(["Let it stand · can't be undone"])
     await shot(page, 'S34-asked-not-held')
 })
@@ -96,7 +97,8 @@ test('S38 the asked seat with and without an answer', async ({ page }) => {
     ])
     await shot(page, 'S38-asked-held')
     await openTable(page, `openStarveTable(false, 'asked')`)
-    await expect(panel(page).locator('[data-note-line]')).toHaveText("You can't answer.")
+    await expect(panel(page).locator('[data-flow-line]')).toContainText('starves your')
+    await expect(panel(page).locator('[data-note-line]')).toHaveCount(0)
     await expect(primary(page)).toHaveText(["Let it go · can't be undone"])
     await shot(page, 'S38-asked-not-held')
 })
@@ -106,6 +108,11 @@ test('R-4.8 the commit: the stepper raises the tally the third seat reads afterw
 }) => {
     await openTable(page, `openCommitTable('attacker')`)
     await expect(panel(page).locator('[data-rows="saltpeter"]')).toContainText('Saltpeter 0')
+    // R-4.8.2 The stepper's press is the saltpeter cube and "+", named in words.
+    await expect(
+        panel(page).getByRole('button', { name: 'Add saltpeter' }).locator('.beside-art')
+    ).toHaveText('+')
+    await expect(panel(page).getByRole('button', { name: 'Take saltpeter off' })).toHaveCount(0)
     await expect(primary(page)).toContainText('Attack')
     const before = await primary(page).innerText()
     await panel(page).getByRole('button', { name: 'Add saltpeter' }).click()

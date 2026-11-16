@@ -17,6 +17,7 @@ import {
     coverChoices,
     DeciderDraft,
     draftChoice,
+    heldChoice,
     playUnless,
     type DraftChoice
 } from './deciderDraft.svelte.js'
@@ -42,10 +43,11 @@ export const CommitAttackStageOrder: readonly (keyof CommitAttackValues)[] = ['a
 
 export interface CommitPanel {
     readonly tally: readonly TallyLine[]
+    /** R-4.8.2 The stepper: "+" not drawn when no saltpeter can go on, "−" when none is on. */
     readonly saltpeter: {
         readonly count: number
-        readonly add: DraftChoice
-        readonly remove: DraftChoice
+        readonly add?: DraftChoice
+        readonly remove?: DraftChoice
     }
     readonly weapons: readonly {
         readonly writId: WritId
@@ -144,35 +146,33 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
         return canCoverWithWildTiles(state, playerId, priceOf(adds, offer))
     }
 
+    /**
+     * R-4.8.2 The stepper, each press the cube and its sign. With no saltpeter to pay, "+" is not
+     * drawn; at the most allowed, or held by the adds already on, it stands dimmed until one goes.
+     */
     private saltpeterRows(adds: readonly CommitAdd[], offer: CommitAttackOffer, c: TurnContext) {
         const count = adds.filter(({ kind }) => kind === 'saltpeter').length
         const more = [...adds, { kind: 'saltpeter' } as const]
+        const add =
+            count >= offer.saltpeterMost || !this.canAdd(more, offer, c)
+                ? heldChoice('Add saltpeter', false)
+                : draftChoice('Add saltpeter', false, () => {
+                      this.push('adds', more)
+                  })
+        const payable = count > 0 || this.canAdd([{ kind: 'saltpeter' }], offer, c)
+        const remove = draftChoice('Take saltpeter off', false, () => {
+            this.push(
+                'adds',
+                adds.toSpliced(
+                    adds.findLastIndex(({ kind }) => kind === 'saltpeter'),
+                    1
+                )
+            )
+        })
         return {
             count,
-            add: draftChoice(
-                'Add saltpeter',
-                false,
-                () => {
-                    this.push('adds', more)
-                },
-                count >= offer.saltpeterMost || !this.canAdd(more, offer, c)
-                    ? `You may add ${Math.min(count, offer.saltpeterMost)} saltpeter.`
-                    : undefined
-            ),
-            remove: draftChoice(
-                'Take saltpeter off',
-                false,
-                () => {
-                    this.push(
-                        'adds',
-                        adds.toSpliced(
-                            adds.findLastIndex(({ kind }) => kind === 'saltpeter'),
-                            1
-                        )
-                    )
-                },
-                count === 0 ? 'No saltpeter is added.' : undefined
-            )
+            ...(payable && offer.saltpeterMost > 0 ? { add: { ...add, shown: '+' } } : {}),
+            ...(count > 0 ? { remove: { ...remove, shown: '−' } } : {})
         }
     }
 
@@ -191,14 +191,12 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
         const after: readonly CommitAdd[] = picked
             ? others
             : [...others, { kind: 'weapon', writId, alternative }]
-        return draftChoice(
-            weaponLabel(writId, alternative),
-            picked,
-            () => {
-                this.push('adds', after)
-            },
-            this.canAdd(after, offer, context) ? undefined : "You can't turn that in as well."
-        )
+        // R-4.8.2 Each weapon is affordable alone; one the other adds hold stands dimmed.
+        return this.canAdd(after, offer, context)
+            ? draftChoice(weaponLabel(writId, alternative), picked, () => {
+                  this.push('adds', after)
+              })
+            : heldChoice(weaponLabel(writId, alternative), picked)
     }
 
     panel: CommitPanel | undefined = $derived.by(() => {
