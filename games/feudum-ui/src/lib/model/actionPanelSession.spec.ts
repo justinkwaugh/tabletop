@@ -704,7 +704,7 @@ describe('Playing a card', () => {
             pouchGood: 'sulfur'
         })
         const view = () => session.actionPanel
-        expect(linesOf(view(), 'turn')[0]).toMatch(/^Epoch I · Round \d+ · your 1st card of 3$/)
+        expect(linesOf(view(), 'turn')[0]).toBe('Card 1 of 3')
         expect(blockOf(view(), 'cards')?.tone).toBe('hand')
         expect(cardRows(view()).map(({ kind }) => kind)).toEqual(['tax', 'move', 'guild'])
         expect(cardRows(view()).every(({ picked }) => !picked)).toBe(true)
@@ -714,7 +714,7 @@ describe('Playing a card', () => {
         expect(rowLabels(view(), 'second')).toEqual(['Play two cards this turn'])
         expect(rowLabels(view(), 'card')).toEqual(['Forfeit'])
         // Move's own lines stand under the hand, and the hand stays.
-        expect(linesOf(view(), 'turn')[0]).toMatch(/^Epoch I/)
+        expect(linesOf(view(), 'turn')[0]).toBe('Card 1 of 3')
         expect(linesOf(view(), 'flow')[0]).toMatch(/^Moves left: \d+ of \d+$/)
         expect(cardRows(view())).toHaveLength(3)
     })
@@ -749,7 +749,7 @@ describe('Playing a card', () => {
         expect(tray[0]).toMatchObject({ label: 'Play Defend · +1 vp' })
     })
 
-    it('R-3.4 a special shows its printed cost as goods art, its name beside it, and its reason when refused', async () => {
+    it('R-3.4 a special shows its printed cost as goods art, its name beside it', async () => {
         const { session } = await atCards(['improve', 'tax'], (state, { seat, other }) => {
             placeMarker(state, seat, emptySpace(state, 'town'))
             giveSeal(state, seat)
@@ -801,20 +801,18 @@ describe('Playing a card', () => {
         expect(primaryLabels(session.actionPanel)).toEqual([])
     })
 
-    it('S11 R-3.13-H1 a last Conquer: only Forfeit, the reason, and its press sends', async () => {
+    it('S11 R-3.13-H1 a last Conquer: only Forfeit, one short line, and its press sends', async () => {
         const turn = await atCards(['conquer'])
         const { session, host: game, seat } = turn
         expect(rowLabels(session.actionPanel)).toEqual(['Forfeit'])
         expect(primaryLabels(session.actionPanel)).toEqual([])
-        expect(linesOf(session.actionPanel, 'refusal')).toEqual([
-            "Conquer can't be your last card: forfeit it."
-        ])
+        expect(linesOf(session.actionPanel, 'refusal')).toEqual(["Can't be played last."])
         await pressRow(rowNamed(session.actionPanel, 'Forfeit'))
         await settled(session)
         expect(game.sent.get(seat)?.[0]).toMatchObject({ type: ActionType.ForfeitCard })
     })
 
-    it('S12 R-3.3 the toggle, the send, then "Your second card" and the hand', async () => {
+    it('S12 R-3.3 the toggle, the send, then "2nd card" and the hand', async () => {
         const { session } = await atCards(
             ['tax', 'guild', 'explore'],
             (state, { seat }) => {
@@ -825,11 +823,15 @@ describe('Playing a card', () => {
         await pressCard(session.actionPanel, 'tax')
         const toggle = rowNamed(session.actionPanel, 'Play two cards this turn')
         expect(toggle.choice.picked).toBe(false)
+        expect(toggle.choice).toMatchObject({
+            shown: '2 cards',
+            cost: { kind: 'good', good: 'sulfur', count: 1 }
+        })
         await pressRow(toggle)
         expect(rowNamed(session.actionPanel, 'Play two cards this turn').choice.picked).toBe(true)
         await primaryNamed(session.actionPanel, /^Tax/).send()
         await settled(session)
-        expect(linesOf(session.actionPanel, 'turn')).toEqual(['Your second card'])
+        expect(linesOf(session.actionPanel, 'turn')).toEqual(['2nd card'])
         expect(cardRows(session.actionPanel).map(({ kind }) => kind)).toEqual(['guild', 'explore'])
     })
 

@@ -104,7 +104,7 @@ async function areaOnScreen(
 test.describe('a 1440 px desk', () => {
     test.use({ viewport: { width: 1440, height: 900 } })
 
-    test('S10a R-3.2 a picked card’s modes and Forfeit share one row in its tray', async ({
+    test('S10a R-3.2 a picked card’s presses and Forfeit share one row in its tray', async ({
         page
     }) => {
         await openFixture(page, 'cards-improve-town')
@@ -112,7 +112,8 @@ test.describe('a 1440 px desk', () => {
             .locator('[data-action-panel] [data-cards="hand"] button.face[aria-label="Improve"]')
             .click()
         const tray = page.locator('[data-card-tray="Improve"]')
-        await expect(tray.locator('[data-reason]')).toBeVisible()
+        await expect(tray.locator('[data-row="Forfeit"]')).toBeVisible()
+        await expect(tray.locator('[data-row^="Tend Landscape"]')).toHaveCount(0)
         const boxes = await Promise.all((await tray.getByRole('button').all()).map(rect))
         const band = boxes.reduce((tall, box) => (box.height > tall.height ? box : tall))
         for (const box of boxes) {

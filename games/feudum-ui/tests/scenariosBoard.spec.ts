@@ -153,7 +153,7 @@ scenario(
         )
         await table.pressPick(Forest2)
         await table.press(table.popupRowStarting('Farmer, '))
-        await expect(table.turnLine()).toHaveText('Your second card')
+        await expect(table.turnLine()).toHaveText('2nd card')
         expect(await table.piecesNamed('pawn:p1')).toHaveLength(2)
 
         await table.press(table.card('Move'))
@@ -181,12 +181,12 @@ scenario(
         await table.press(table.undo())
         await expect(table.lit()).toHaveCount(0)
         await expect(handRows(table)).toHaveCount(3)
-        await expect(table.turnLine()).toHaveText('Your second card')
+        await expect(table.turnLine()).toHaveText('2nd card')
         // The Migrate, the Action before it.
         await table.press(table.undo())
         expect(await table.piecesNamed('pawn:p1')).toEqual(['pawn:p1:1'])
         await expect(handRows(table)).toHaveCount(4)
-        await expect(table.turnLine()).toHaveText(/your 1st card of 4/)
+        await expect(table.turnLine()).toHaveText('Card 1 of 4')
         // Before it, the round's barrier: the hands were finalised, so Undo is gone.
         await expect(table.undo()).toHaveCount(0)
     }

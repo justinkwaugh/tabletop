@@ -9,7 +9,6 @@ import {
     discardWritOffers,
     cardOf,
     cardPlayOffers,
-    dejaVuShortKinds,
     ForfeitCard,
     goodsShort,
     improveOffers,
@@ -55,7 +54,6 @@ function stageValue<K extends TurnStage>(
 }
 
 export const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
-const Ordinals = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th']
 
 export interface TurnPrimary {
     readonly label: string
@@ -72,23 +70,41 @@ export interface TurnCardRow {
 }
 
 export interface TurnPanel {
-    /** "Epoch II · Round 4 · your 2nd card of 4", or "Your second card" (R-3.3). */
+    /** "Card 2 of 4", or "2nd card" (R-3.3). */
     readonly line: string
     readonly cards: readonly TurnCardRow[]
-    /** Repeat's played cards (R-3.15). */
+    /** Repeat's played cards the seat can replay now (R-3.15); one it can't is not drawn. */
     readonly replays: readonly PanelChoice[]
-    /** Empty when only Forfeit is left. */
+    /** The modes open now; a refused one is not drawn. Empty when only Forfeit is left. */
     readonly modes: readonly PanelChoice[]
     /** R-3.13-H1, R-3.15 The engine refuses every other mode. */
     readonly forfeitOnly: boolean
-    /** Why, in one line each: what the refused modes would have said. */
-    readonly refusals: readonly string[]
+    /** With only Forfeit left, one short line why ("Can't be played last."). */
+    readonly fact?: string
     /** Present once a card is picked: R-3.2. */
     readonly forfeit?: string
-    /** R-3.3 Present while the pouch holds an unused sulfur. */
-    readonly secondCard?: { readonly label: string; readonly on: boolean }
+    /**
+     * R-3.3 Present while the pouch holds an unused sulfur: "2 cards" and the sulfur it spends, its
+     * label the accessible name.
+     */
+    readonly secondCard?: { readonly label: string; readonly shown: string; readonly on: boolean }
     readonly flow?: FlowView
     readonly primary?: TurnPrimary
+}
+
+/**
+ * R-3.13-H1, R-3.15 Why only Forfeit is left, in one short line: a card that can't be last, a Repeat
+ * with nothing to replay, or what the first of the card's modes is refused for.
+ */
+function forfeitFact(
+    card: ActionCardKind,
+    notLast: boolean,
+    modes: readonly CardMode[]
+): string | undefined {
+    if (card === 'repeat') {
+        return 'Nothing to replay.'
+    }
+    return notLast ? "Can't be played last." : modes.find(({ refusal }) => refusal)?.refusal
 }
 
 /**
@@ -383,36 +399,24 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         input: CardPlayInput
     ): readonly PanelChoice[] {
         const replay = this.value('replay')
-        const rows = offers.repeats.map(({ kind, mode }): PanelChoice => {
-            const modes = cardModes(context, kind, { ...input, asRepeat: mode })
-            const refusal = modes.every(({ refusal: line }) => line)
-                ? modes.find(({ refusal: line }) => line)?.refusal
-                : undefined
-            return {
+        // Rule 5: a played card none of whose modes is open now is not drawn.
+        return offers.repeats
+            .filter(({ kind, mode }) =>
+                cardModes(context, kind, { ...input, asRepeat: mode }).some(
+                    ({ refusal }) => !refusal
+                )
+            )
+            .map(({ kind, mode }): PanelChoice => ({
                 label: cardOf(kind).printedName,
                 ...(mode === 'deja-vu'
                     ? { note: { kind: 'cost', label: 'Déjà Vu · 1 saltpeter' } as const }
                     : {}),
                 picked: replay === kind,
-                ...(refusal
-                    ? { refusal }
-                    : {
-                          press: (draft: TurnPresser) => {
-                              draft.pick('replay', kind)
-                          },
-                          lights: () => this.lightsOfReplay(kind, mode)
-                      })
-            }
-        })
-        const short = dejaVuShortKinds(context.state, context.playerId).map(
-            (kind): PanelChoice => ({
-                label: cardOf(kind).printedName,
-                note: { kind: 'cost', label: 'Déjà Vu · 1 saltpeter' },
-                picked: false,
-                refusal: 'Déjà Vu needs a saltpeter. Undo, then spend a region tile.'
-            })
-        )
-        return [...rows, ...short]
+                press: (draft: TurnPresser) => {
+                    draft.pick('replay', kind)
+                },
+                lights: () => this.lightsOfReplay(kind, mode)
+            }))
     }
 
     panel: TurnPanel | undefined = $derived.by(() => {
@@ -425,9 +429,10 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         const player = state.getPlayerState(playerId)
         const { card, mode, modes, flow, cardInput } = this
         const hand = offers.cards
+        // The epoch and round stand on the board and the phone's status strip.
         const line = state.flow.turn?.secondCard
-            ? 'Your second card'
-            : `Epoch ${EpochNumerals[state.epoch]} · Round ${state.roundManager.currentRound?.number ?? 1} · your ${Ordinals[player.played.length + 1]} card of ${player.played.length + hand.length}`
+            ? '2nd card'
+            : `Card ${player.played.length + 1} of ${player.played.length + hand.length}`
         const cards = hand.map(({ kind }): TurnCardRow => ({
             kind,
             label: cardOf(kind).printedName,
@@ -438,18 +443,14 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             lights: () => this.lightsOfCard(kind)
         }))
         if (!card) {
-            return { line, cards, replays: [], modes: [], forfeitOnly: false, refusals: [] }
+            return { line, cards, replays: [], modes: [], forfeitOnly: false }
         }
         const logic = hand.find(({ kind }) => kind === card)
         const replays = card === 'repeat' ? this.replays(context, offers, cardInput) : []
         const noneOpen = modes.length > 0 && modes.every(({ refusal }) => refusal)
         const forfeitOnly =
-            logic?.forfeitOnly === true ||
-            noneOpen ||
-            (card === 'repeat' && replays.every(({ press }) => !press))
-        const refusals = forfeitOnly
-            ? [...modes, ...replays].flatMap(({ refusal }) => refusal ?? [])
-            : []
+            logic?.forfeitOnly === true || noneOpen || (card === 'repeat' && replays.length === 0)
+        const fact = forfeitOnly ? forfeitFact(card, logic?.forfeitOnly === true, modes) : undefined
         const { primary } = this
         return {
             line,
@@ -457,27 +458,26 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             replays: forfeitOnly ? [] : replays,
             modes: forfeitOnly
                 ? []
-                : modes.map(({ action, label, shown, cost, refusal }): PanelChoice => ({
-                      label,
-                      ...(shown ? { shown } : {}),
-                      ...(cost ? { cost } : {}),
-                      picked: mode === action,
-                      ...(refusal
-                          ? { refusal }
-                          : {
-                                press: (draft: TurnPresser) => {
-                                    draft.pick('mode', action)
-                                },
-                                lights: () => this.lightsOfMode(action, label)
-                            })
-                  })),
+                : modes
+                      .filter(({ refusal }) => !refusal)
+                      .map(({ action, label, shown, cost }): PanelChoice => ({
+                          label,
+                          ...(shown ? { shown } : {}),
+                          ...(cost ? { cost } : {}),
+                          picked: mode === action,
+                          press: (draft: TurnPresser) => {
+                              draft.pick('mode', action)
+                          },
+                          lights: () => this.lightsOfMode(action, label)
+                      })),
             forfeitOnly,
-            refusals,
+            ...(fact ? { fact } : {}),
             forfeit: 'Forfeit',
             ...(offers.secondCard
                 ? {
                       secondCard: {
                           label: 'Play two cards this turn',
+                          shown: '2 cards',
                           on: this.value('secondCard') === true
                       }
                   }

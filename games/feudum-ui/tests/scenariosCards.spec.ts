@@ -40,9 +40,7 @@ scenario('S10 R-3.8.3 Card modes', 'cards-merchant-under-marker', async (table) 
 scenario('S11 R-3.13-H1 Forfeit only', 'cards-last-conquer', async (table) => {
     await expect(table.panel().locator('[data-rows="card"] [data-row]')).toHaveCount(1)
     await expect(table.primary()).toHaveCount(0)
-    await expect(table.panel().locator('[data-refusal-line]')).toHaveText(
-        "Conquer can't be your last card: forfeit it."
-    )
+    await expect(table.panel().locator('[data-refusal-line]')).toHaveText("Can't be played last.")
     await table.press(table.row('Forfeit'))
     const panel = await table.seatPanel('p1')
     await expect(playedMark(panel, 'conquer')).toHaveAttribute('data-card-mark', 'forfeited')
@@ -52,12 +50,16 @@ scenario('S11 R-3.13-H1 Forfeit only', 'cards-last-conquer', async (table) => {
 scenario('S12 R-3.3 Two cards', 'cards-sulfur-pouch', async (table) => {
     await table.press(table.card('Tax'))
     await expect(table.primary()).toHaveText('Tax · +2s')
+    await expect(table.row('Play two cards this turn')).toContainText('2 cards')
+    await expect(table.row('Play two cards this turn')).toHaveAccessibleName(
+        'Play two cards this turn'
+    )
     await table.press(table.row('Play two cards this turn'))
     await expect(
         table.panel().locator('[data-row="Play two cards this turn"][data-picked]')
     ).toHaveCount(1)
     await table.press(table.primary())
-    await expect(table.turnLine()).toHaveText('Your second card')
+    await expect(table.turnLine()).toHaveText('2nd card')
     await expect(table.panel().locator('[data-cards="hand"] [data-row]')).toHaveCount(2)
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-pouch][data-pouch-spent]')).toHaveCount(1)
@@ -187,7 +189,8 @@ scenario(
 
 scenario('S17 R-3.9.3 TendLandscape', 'cards-tend-landscape', async (table) => {
     await table.press(table.card('Improve'))
-    await table.press(table.row('Tend Landscape · 1 wood'))
+    // Improve has nothing to improve here, so it is not drawn and Tend Landscape opens alone.
+    await expect(table.panel().locator('[data-rows="modes"]')).toHaveCount(0)
     await table.press(table.rowIn('flow', 'Orchard tile'))
     expect(Object.keys(await table.litChips())).toEqual([Forest2])
     const seatFood = await table.goodsHeld('p2', 'food')

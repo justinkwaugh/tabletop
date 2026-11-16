@@ -1083,7 +1083,7 @@ describe('S48 R-4.6.2, R-4.3-H3 a price short of what a tile can bring', () => {
         )
     })
 
-    it('R-4.3-H3 a Feast short of barrel sulfur, with a tile, shows dimmed and says where to spend it', async () => {
+    it('R-4.3-H3 a Feast short of barrel sulfur, with a tile, is not drawn', async () => {
         const turn = await table((state, { seat, other }) => {
             setPawns(state, seat, ['knight'])
             setMaster(state, other, 'merchant')
@@ -1093,11 +1093,7 @@ describe('S48 R-4.6.2, R-4.3-H3 a price short of what a tile can bring', () => {
         })
         const { session } = turn
         pickCard(session)
-        const row = session.turnPanel?.modes.find(({ label }) => label.startsWith('Feast'))
-        assertExists(row, 'The card shows its Feast')
-        expect(row.label).toBe('Feast · 1 barrel sulfur')
-        expect(row.refusal).toMatch(/Undo, then spend a region tile\.$/)
-        expect(row.press).toBeUndefined()
+        expect(session.turnPanel?.modes.some(({ label }) => label.startsWith('Feast'))).toBe(false)
     })
 
     it('R-3.4 a Feast short of barrel sulfur, with no tile, doesn’t show', async () => {
