@@ -50,7 +50,10 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
             return []
         return [
             ...(canRepayLoan(state, this.rules, playerId, companyId) ? ['RepayLoan'] : []),
-            ...(canTakeLoan(state, this.rules, playerId, companyId) ? ['TakeLoan'] : []),
+            ...(!this.rules.interestBeforeEarnings &&
+            canTakeLoan(state, this.rules, playerId, companyId)
+                ? ['TakeLoan']
+                : []),
             ...(!finishOperatingTurnReason(state, this.trainRules, companyId)
                 ? ['FinishOperatingTurn']
                 : [])
@@ -90,7 +93,10 @@ export class RepayingLoansHandler implements MachineStateHandler<HydratedAction,
         const state = context.gameState
         const companyId = this.companyId(state)
         if (!state.loanStep) {
-            if (interestOwed(state, this.rules, companyId) > 0) {
+            if (
+                !this.rules.interestBeforeEarnings &&
+                interestOwed(state, this.rules, companyId) > 0
+            ) {
                 context.addSystemAction(PayInterest, { companyId })
                 return
             }

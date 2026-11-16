@@ -155,7 +155,8 @@ export class OperatingModeModule {
                 machineState === 'PlacingStation' ||
                 machineState === 'RunningTrains' ||
                 (machineState === 'BuyingTrains' &&
-                    this.session.rules.corporateFinanceRules?.timing === 'after-trains')) &&
+                    (this.session.rules.corporateFinanceRules?.timing === 'after-trains' ||
+                        this.titleModes().length > 0))) &&
             (this.options.length > 1 || this.mode === 'finance' || !!this.titleModeShown) &&
             !purchaseOffer &&
             !this.decisions.selection &&

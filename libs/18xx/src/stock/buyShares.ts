@@ -21,7 +21,7 @@ export const BuyShares = Type.Object(
         type: Type.Literal('BuyShares'),
         buyer: Owner,
         certificateId: Type.String(),
-        expectedPrice: Type.Integer({ minimum: 1 }),
+        expectedPrice: Type.Integer({ minimum: 0 }),
         metadata: Type.Optional(SharePurchaseDetails)
     },
     { additionalProperties: false }

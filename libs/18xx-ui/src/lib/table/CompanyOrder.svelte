@@ -14,7 +14,8 @@
         type StationState,
         type Train,
         type TrainDepot,
-        isObsoleteTrain
+        isObsoleteTrain,
+        placeableStations
     } from '@tabletop/18xx'
     import type { TrainTokens } from '../session/titlePresentation.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
@@ -148,9 +149,7 @@
                     obsolete: isObsoleteTrain(train),
                     tokens: trainTokens?.(train)
                 })),
-                remainingTokens: gameState.stations.filter(
-                    (station) => station.companyId === company.id && station.status === 'available'
-                )
+                remainingTokens: placeableStations(gameState, company.id)
             }
         })
     )

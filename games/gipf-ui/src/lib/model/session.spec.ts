@@ -1,0 +1,395 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { flushSync } from 'svelte'
+import {
+    ActionSource,
+    defaultGameConfig,
+    GameEngine,
+    GameStorage,
+    PlayerStatus,
+    type AxialCoordinates,
+    type GameAction,
+    type GameState,
+    type HydratedGameState
+} from '@tabletop/common'
+import {
+    BridgedContext,
+    GameSession,
+    createHarnessAppContext,
+    type GameUiDefinition
+} from '@tabletop/frontend-components'
+import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gameUiDefinition'
+import {
+    ActionType,
+    Definition,
+    emptyBoard,
+    GipfInfo,
+    GipfRuntime,
+    GipfVersion,
+    HydratedGipfBoard,
+    MachineState,
+    type GipfGameState,
+    type HydratedGipfGameState,
+    type PushPiece
+} from '@tabletop/gipf'
+import { GipfGameColorizer } from '$lib/definitions/colorizer.js'
+import { UiDefinition } from '$lib/definitions/definition.js'
+import { GipfGameSession } from './session.svelte.js'
+
+const engine = new GameEngine(GipfRuntime)
+const WHITE = 'white'
+const BLACK = 'black'
+const HARNESS_USER = 'harness-user'
+
+const E1: AxialCoordinates = { q: 0, r: 4 }
+const E2: AxialCoordinates = { q: 0, r: 3 }
+const E8: AxialCoordinates = { q: 0, r: -3 }
+const E9: AxialCoordinates = { q: 0, r: -4 }
+
+const gameUI = {
+    load: async () => {
+        throw Error('The session spec does not render a table')
+    },
+    mount: () => {
+        throw Error('The session spec does not render a table')
+    }
+}
+
+const runtime: GameUIRuntime<GipfGameState, HydratedGipfGameState> = {
+    ...GipfRuntime,
+    sessionClass: GipfGameSession,
+    colorizer: new GipfGameColorizer(),
+    gameUI
+}
+
+const definition: GameUiDefinition<GameState, HydratedGameState> = {
+    info: UiDefinition.info,
+    async runtime() {
+        return { ...GipfRuntime, sessionClass: GameSession, colorizer: runtime.colorizer, gameUI }
+    }
+}
+
+let actionCount = 0
+function push(playerId: string, dot: AxialCoordinates, to: AxialCoordinates, gipf: boolean) {
+    actionCount += 1
+    return {
+        id: `push-${actionCount}`,
+        gameId: 'gipf-session',
+        source: ActionSource.User,
+        playerId,
+        type: ActionType.PushPiece,
+        dot,
+        to,
+        gipf
+    } satisfies PushPiece
+}
+
+// A Tournament game of white, the harness user, against black. After the opening each has brought
+// in a GIPF-piece, so white may choose either piece type; before it, white must bring one in.
+function tournament(opening: boolean) {
+    const game = GipfRuntime.initializer.initializeGame(
+        {
+            id: 'gipf-session',
+            typeId: 'gipf',
+            ownerId: HARNESS_USER,
+            storage: GameStorage.Local,
+            seed: 5,
+            config: {
+                ...defaultGameConfig(GipfInfo.configurator?.options ?? []),
+                version: GipfVersion.Tournament
+            },
+            players: [WHITE, BLACK].map((id) => ({
+                id,
+                name: id,
+                userId: id === WHITE ? HARNESS_USER : 'someone-else',
+                isHuman: true,
+                status: PlayerStatus.Joined
+            }))
+        },
+        Definition
+    )
+    let state: GipfGameState = engine.startGame(game, {
+        startingPositions: { playerIds: [WHITE, BLACK] }
+    }).initialState
+    const actions: GameAction[] = []
+    const openingPushes = opening ? [push(WHITE, E9, E8, true), push(BLACK, E1, E2, true)] : []
+    for (const action of openingPushes) {
+        const result = engine.executeAction({ action, state, game })
+        state = result.updatedState
+        actions.push(...result.processedActions)
+    }
+    return { game, state, actions }
+}
+
+// The client build's window is Node's global, which has no events; the session's preferences
+// listen for focus.
+vi.stubGlobal('addEventListener', () => {})
+vi.stubGlobal('removeEventListener', () => {})
+
+const disposals: (() => void)[] = []
+afterEach(() => {
+    for (const dispose of disposals.splice(0)) dispose()
+})
+
+async function whiteSession(opening = true) {
+    return sessionFor(tournament(opening))
+}
+
+async function sessionFor({ game, state, actions }: ReturnType<typeof tournament>) {
+    const app = createHarnessAppContext(definition)
+    vi.spyOn(app.gameService, 'saveGameLocally').mockResolvedValue(undefined)
+    const bridgedContext = new BridgedContext({
+        authorizationService: app.authorizationService,
+        gameService: app.gameService,
+        chatService: app.chatService,
+        gameId: game.id
+    })
+    const session = new GipfGameSession({
+        gameService: app.gameService,
+        bridgedContext,
+        notificationService: app.notificationService,
+        chatService: app.chatService,
+        api: app.api,
+        runtime,
+        game,
+        state,
+        actions
+    })
+    disposals.push(() => {
+        session.dispose()
+        bridgedContext.dispose()
+    })
+    flushSync()
+    current = session
+    // The session presents its first state before it takes any action.
+    await session.waitForVisibleTransitionSettled()
+    return session
+}
+
+// White brings a single piece in from E9 to E8, under its GIPF-piece.
+const DOT = E9
+const TARGET = E8
+
+async function pushOwn(session: GipfGameSession, gipf = false) {
+    session.chooseDot(DOT)
+    if (gipf) session.toggleGipf()
+    await settled(session.push(TARGET))
+}
+
+// A move, Undo or history step has landed once the session has shown the state it leads to and
+// history has let go of the step, on a timer.
+let current: GipfGameSession
+async function settled(change: Promise<unknown>) {
+    await change
+    await current.waitForVisibleTransitionSettled()
+    await new Promise((resolve) => setTimeout(resolve))
+}
+
+// The harness's Non-active view shows the player not to move, so an Undo hands the view over.
+describe('Undo seen from the player not to move', () => {
+    it('leaves the player who takes over the view no hidden choice to undo first', async () => {
+        const prepared = tournament(true)
+        const session = await sessionFor({ ...prepared, game: { ...prepared.game, hotseat: true } })
+        await pushOwn(session)
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.myPlayer?.id).toBe(WHITE)
+
+        await settled(session.undo())
+        expect(session.myPlayer?.id).toBe(BLACK)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenDot).toBeUndefined()
+
+        const before = session.gameState.actionCount
+        await settled(session.undo())
+        expect(session.gameState.actionCount).toBe(before - 1)
+    })
+
+    it("keeps a player's choice from anyone else viewing, and back for them", async () => {
+        const prepared = tournament(true)
+        const session = await sessionFor({ ...prepared, game: { ...prepared.game, hotseat: true } })
+        session.chooseDot(DOT)
+        expect(session.hasLocalSelection).toBe(true)
+
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.myPlayer?.id).toBe(BLACK)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenDot).toBeUndefined()
+
+        session.setViewingAsNonActivePlayer(false)
+        expect(session.chosenDot).toEqual(DOT)
+        expect(session.hasLocalSelection).toBe(true)
+    })
+})
+
+describe('Undo of your push', () => {
+    it('restages only the push the Undo took back, not one undone earlier', async () => {
+        const session = await whiteSession()
+        await pushOwn(session)
+        const pushed = session.gameState
+        await settled(session.undo())
+        expect(session.restagedPush(session.gameState)).toBeDefined()
+        // Another Undo reaching this session, of a move made before, lands on a different count.
+        expect(session.gameState.actionCount).toBeLessThan(pushed.actionCount)
+        const earlier = { actionCount: session.gameState.actionCount - 1 }
+        expect(session.restagedPush(earlier)).toBeUndefined()
+    })
+
+    it('takes the piece back out onto its dot, staged as you chose it', async () => {
+        const session = await whiteSession()
+        await pushOwn(session)
+        expect(session.selection).toEqual({})
+
+        await settled(session.undo())
+
+        expect(session.gameState.actionCount).toBe(2)
+        expect(session.chosenGipf).toBe(false)
+        expect(session.chosenDot).toEqual(DOT)
+    })
+
+    it('then takes back one choice at a time, without undoing any action', async () => {
+        const session = await whiteSession()
+        await pushOwn(session, true)
+        await settled(session.undo())
+        expect(session.chosenGipf).toBe(true)
+
+        await settled(session.undo())
+        expect(session.chosenDot).toEqual(DOT)
+        expect(session.chosenGipf).toBe(false)
+
+        await settled(session.undo())
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.gameState.actionCount).toBe(2)
+    })
+
+    it('stages only the dot when there was no piece type to choose', async () => {
+        const session = await whiteSession(false)
+        expect(session.pieceTypes).toEqual([true])
+        session.chooseDot(DOT)
+        await settled(session.push(TARGET))
+
+        await settled(session.undo())
+        expect(session.selection).toEqual({ dot: { value: DOT, source: 'manual' } })
+        expect(session.chosenGipf).toBe(true)
+
+        await settled(session.undo())
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.gameState.actionCount).toBe(0)
+    })
+})
+
+describe('Choosing the piece type', () => {
+    it('drops a single piece, which choosing again makes a GIPF-piece, then single again', async () => {
+        const session = await whiteSession()
+        expect(session.choosesType).toBe(true)
+        expect(session.chosenGipf).toBe(false)
+
+        session.chooseDot(DOT)
+        expect(session.chosenGipf).toBe(false)
+        session.chooseDot(DOT)
+        expect(session.chosenGipf).toBe(true)
+        expect(session.chosenDot).toEqual(DOT)
+        session.toggleGipf()
+        expect(session.chosenGipf).toBe(false)
+        expect(session.chosenDot).toEqual(DOT)
+    })
+
+    it('takes the piece off its dot when there is no type to choose', async () => {
+        const session = await whiteSession(false)
+        session.chooseDot(DOT)
+        session.chooseDot(DOT)
+        expect(session.chosenDot).toBeUndefined()
+    })
+})
+
+describe('Letting go', () => {
+    it('takes the piece off its dot, GIPF-piece or single, without undoing any action', async () => {
+        const session = await whiteSession()
+        session.chooseDot(DOT)
+        session.toggleGipf()
+
+        session.letGo()
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.gameState.actionCount).toBe(2)
+    })
+    it('lifts the piece off when you let it go or take the choice back', async () => {
+        const session = await whiteSession()
+        session.chooseDot(DOT)
+        session.letGo()
+        expect(session.releasedByPlayer).toBe(true)
+
+        session.chooseDot(DOT)
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        await session.undo()
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(true)
+    })
+
+    it('sets the piece down without a lift when a new state clears it', async () => {
+        const session = await whiteSession()
+        session.chooseDot(DOT)
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        expect(session.releasedByPlayer).toBe(false)
+
+        session.chooseDot(DOT)
+        expect(session.chosenDot).toEqual(DOT)
+        await settled(session.history.goToPreviousAction())
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(false)
+    })
+})
+
+describe('Stepping through history', () => {
+    it('records the push stepped to, which names the dot its piece came in from', async () => {
+        const session = await whiteSession()
+        await settled(session.history.goToPreviousAction())
+        expect(session.historyPush).toMatchObject({ playerId: WHITE, dot: E9, to: E8 })
+
+        await settled(session.history.goToNextAction())
+        expect(session.historyPush).toMatchObject({ playerId: BLACK, dot: E1, to: E2 })
+    })
+})
+
+describe('Taking a row', () => {
+    // Column e from e2 to e5 is white's row, and black's GIPF-piece on e6 is in its reach.
+    const e = (number: number): AxialCoordinates => ({ q: 0, r: 4 - (number - 1) })
+
+    async function whiteTakingRow() {
+        const prepared = tournament(true)
+        const board = new HydratedGipfBoard(emptyBoard())
+        for (const n of [2, 3, 4, 5]) board.place(e(n), { playerId: WHITE, gipf: false })
+        board.place(e(6), { playerId: BLACK, gipf: true })
+        board.place({ q: -3, r: 0 }, { playerId: WHITE, gipf: true })
+        board.place({ q: 3, r: -3 }, { playerId: BLACK, gipf: true })
+        prepared.state = {
+            ...prepared.state,
+            board: board.dehydrate(),
+            machineState: MachineState.ResolvingRows,
+            resolvingPlayerIds: [WHITE, BLACK],
+            activePlayerIds: [WHITE]
+        }
+        return sessionFor(prepared)
+    }
+
+    it("takes the opponent's GIPF-pieces unless you choose to leave them", async () => {
+        const session = await whiteTakingRow()
+        session.chooseRowAt(e(3))
+        expect(session.rowGipfPieces).toEqual([e(6)])
+        expect(session.keep).toEqual([])
+        expect(session.removing).toContainEqual(e(6))
+
+        session.toggleKeep(e(6))
+        expect(session.keep).toEqual([e(6)])
+        expect(session.removing).not.toContainEqual(e(6))
+
+        session.toggleKeep(e(6))
+        expect(session.keep).toEqual([])
+        await session.undo()
+        expect(session.keep).toEqual([e(6)])
+        expect(session.chosenRow).toBeDefined()
+
+        await settled(session.removeChosenRow())
+        expect(session.selection).toEqual({})
+        expect(session.gameState.board.pieceAt(e(6))).toEqual({ playerId: BLACK, gipf: true })
+        expect(session.gameState.board.pieceAt(e(5))).toBeUndefined()
+    })
+})

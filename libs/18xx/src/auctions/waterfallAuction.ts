@@ -50,7 +50,12 @@ export const AuctionFields = {
 export type AuctionState = FinancialState &
     Pick<GameState, 'players' | 'activePlayerIds' | 'turnManager'> &
     Type.Static<Type.TObject<typeof AuctionFields & typeof PendingParFields>>
-export interface WaterfallAuctionRules {
+/**
+ * A title's waterfall auction. Its award and income hooks receive the title's whole state, such
+ * as a share drawn at setup to go with a lot (1882 §3); the family's auction code reads only the
+ * auction's own fields.
+ */
+export interface WaterfallAuctionRules<State extends AuctionState = AuctionState> {
     lots(state: FinancialState): readonly AuctionLot[]
     increment: number
     bidOrder: 'clockwise-from-highest' | 'lowest-bid-first'
@@ -62,9 +67,11 @@ export interface WaterfallAuctionRules {
      * When every player passes: the first lot's price falls until a lot is sold and income is
      * paid after (the default); pending bids resolve in lot order and then income is paid; or,
      * with ``discount-and-income``, the first lot's price falls while it is unsold and income is
-     * paid whenever any lot has been sold.
+     * paid whenever any lot has been sold; or, with ``discount-next``, the cheapest unsold lot's
+     * price falls, its discount ending once it is bought, and no income is paid (1882 §9).
      */
-    allPass?: 'discount-or-income' | 'resolve-bids-then-income' | 'discount-and-income'
+    allPass?:
+        'discount-or-income' | 'resolve-bids-then-income' | 'discount-and-income' | 'discount-next'
     /** How many times income is paid when every player passes; once unless given. */
     incomeRounds?: number
     /**
@@ -72,8 +79,13 @@ export interface WaterfallAuctionRules {
      * after the last player who bought a lot on their turn.
      */
     firstStockPlayer?: 'after-last-actor' | 'after-last-purchase'
-    award(state: AuctionState, award: AuctionAward): void
-    incomePayments(state: AuctionState): CashPayment[]
+    award(state: State, award: AuctionAward): void
+    incomePayments(state: State): CashPayment[]
+    /**
+     * The kinds of the depot trains exported after an all-pass income round, where the rules
+     * count that round as a set of operating rounds, as 18Chesapeake does (§9, §11.9).
+     */
+    incomeExports?(state: State): string[]
 }
 export type AuctionResolution =
     | { kind: 'award'; award: AuctionAward }
@@ -126,7 +138,18 @@ export class ReserveBidAuction {
     price(lotId: string): number {
         const lot = this.lots.find((lot) => lot.id === lotId)
         assertExists(lot, 'Unknown auction lot')
-        return lot.price - (lotId === this.lots[0].id ? this.auction.discount : 0)
+        return lot.price - (lotId === this.discountedLot()?.id ? this.auction.discount : 0)
+    }
+    /**
+     * The lot an all-pass discount lowers: the first lot, or under ``discount-next`` the first
+     * still unsold, the cheapest where lots are listed by price (1882 §9); none once all are sold.
+     */
+    private discountedLot(): AuctionLot | undefined {
+        const lotId =
+            this.rules.allPass === 'discount-next'
+                ? this.auction.remainingLotIds[0]
+                : this.lots[0].id
+        return this.lots.find((lot) => lot.id === lotId)
     }
     minimumBid(lotId: string): number {
         const bids = this.commitments()
@@ -200,11 +223,15 @@ export class ReserveBidAuction {
     purchase(playerId: string, lotId: string): AuctionAward {
         assert(this.canPurchase(playerId, lotId), 'Invalid auction purchase')
         const award = { playerId, lotId, price: this.price(lotId) }
+        this.buyOnTurn(award)
+        return award
+    }
+    /** A lot the player on turn takes at its price, after which play passes to their left. */
+    private buyOnTurn(award: AuctionAward): void {
         this.award(award)
         if (this.rules.firstStockPlayer === 'after-last-purchase')
-            this.auction.lastPurchaserId = playerId
+            this.auction.lastPurchaserId = award.playerId
         this.advanceOuterTurn()
-        return award
     }
     resolution(): AuctionResolution | undefined {
         if (this.auction.completed) return undefined
@@ -232,6 +259,7 @@ export class ReserveBidAuction {
         if (bids.length > 1) return { kind: 'open-bidding', lotId }
         if (this.auction.passedPlayerIds.length !== this.state.players.length) return undefined
         if (this.rules.allPass === 'resolve-bids-then-income') return this.pendingBidResolution()
+        if (this.rules.allPass === 'discount-next') return { kind: 'discount' }
         if (this.rules.allPass === 'discount-and-income')
             return {
                 kind: this.auction.remainingLotIds.includes(this.lots[0].id) ? 'discount' : 'income'
@@ -289,8 +317,10 @@ export class ReserveBidAuction {
                 break
             }
             case 'discount': {
+                const lot = this.discountedLot()
+                assertExists(lot, 'Every player passing leaves a lot to discount')
                 this.auction.discount = Math.min(
-                    this.lots[0].price,
+                    lot.price,
                     this.auction.discount + this.rules.increment
                 )
                 this.auction.passedPlayerIds = []
@@ -298,14 +328,8 @@ export class ReserveBidAuction {
                     this.rules.allPass === 'discount-and-income' && this.auction.awards.length
                         ? this.payIncome()
                         : []
-                if (this.price(this.lots[0].id) === 0) {
-                    this.award({
-                        lotId: this.lots[0].id,
-                        playerId: this.auction.nextPlayerId,
-                        price: 0
-                    })
-                    this.advanceOuterTurn()
-                }
+                if (this.price(lot.id) === 0)
+                    this.buyOnTurn({ lotId: lot.id, playerId: this.auction.nextPlayerId, price: 0 })
                 return { kind: 'discount', ...(payments.length ? { payments } : {}) }
             }
             case 'income': {
@@ -329,6 +353,8 @@ export class ReserveBidAuction {
         return payments
     }
     private award(award: AuctionAward): void {
+        if (this.rules.allPass === 'discount-next' && award.lotId === this.discountedLot()?.id)
+            this.auction.discount = 0
         this.rules.award(this.state, award)
         this.auction.awards.push(award)
         this.auction.remainingLotIds = this.auction.remainingLotIds.filter(

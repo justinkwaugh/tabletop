@@ -192,7 +192,13 @@ export type MapMarkerArt =
     | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab; outline?: string } }
     | { stationOutline: { stationId: string; color: string } }
 
-export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName } | { at: Point }
+/**
+ * Where a token goes: a clear corner, the centre, over a symbol, at a point, or at the clear spot
+ * nearest a point, such as the side of the hex the board prints it on, which a laid tile's track
+ * may push it from.
+ */
+export type TokenPlacement =
+    'corner' | 'centre' | { covers: TileSymbolName } | { at: Point } | { near: Point }
 /** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
 export type TokenTab = { label: string; caption: string; fill?: string; left?: true }
 
@@ -1396,14 +1402,25 @@ function placedTokens(
             typeof place === 'object' && 'covers' in place
                 ? shownSymbols.find(({ symbol }) => symbol === place.covers)
                 : undefined
+        const preferred = typeof place === 'object' && 'near' in place ? place.near : undefined
+        const near = preferred
+            ? searchSpot(
+                  space,
+                  row(1),
+                  TokenRadius,
+                  (at) => distanceBetween(at, preferred),
+                  TokenEdgeGap
+              )?.points[0]
+            : undefined
         const right = cornerSpot(space, row(1), TokenRadius, revenues, TokenEdgeGap)
         const left =
             tab && !(right && isClearSpot(right))
                 ? cornerSpot(space, row(-1), TokenRadius, revenues, TokenEdgeGap)
                 : undefined
-        const side: 1 | -1 = left && isClearSpot(left) ? -1 : 1
+        const side: 1 | -1 = !near && left && isClearSpot(left) ? -1 : 1
         const point =
             pinned ??
+            near ??
             (place === 'centre'
                 ? { x: 0, y: 0 }
                 : covered

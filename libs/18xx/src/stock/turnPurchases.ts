@@ -52,7 +52,14 @@ export function recordTurnPurchase(
     rules: StockRules,
     purchase: StockTurnPurchase
 ): void {
-    if (rules.multipleBuys) (state.stockTurnPurchases ??= []).push(purchase)
+    if (recordsTurnPurchases(rules)) (state.stockTurnPurchases ??= []).push(purchase)
+}
+
+/** Whether the title keeps a turn's purchases. */
+export function recordsTurnPurchases(
+    rules: Pick<StockRules, 'multipleBuys' | 'recordsTurnPurchases'>
+): boolean {
+    return !!rules.multipleBuys || !!rules.recordsTurnPurchases
 }
 
 export function clearTurnPurchases(state: StockState & StockTurnPurchaseState): void {

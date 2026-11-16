@@ -90,6 +90,7 @@ export * from './stock/stockRoundRules.js'
 export * from './map/mapState.js'
 
 export * from './construction/constructionReachability.js'
+export * from './construction/routeReach.js'
 export * from './construction/stopRights.js'
 export * from './construction/finishTrack.js'
 export * from './construction/layingTrackHandler.js'

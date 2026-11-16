@@ -97,7 +97,9 @@ export const TrainPurchaseStep = Type.Object(
         companyId: Id,
         purchasedTrainIds: Type.Array(Id, { uniqueItems: true }),
         /** Trains the company gave in exchange this turn, for titles that limit exchanges. */
-        exchangedTrainIds: Type.Optional(Type.Array(Id, { uniqueItems: true }))
+        exchangedTrainIds: Type.Optional(Type.Array(Id, { uniqueItems: true })),
+        /** The turn's purchase its president helped pay for, which titles may make its last. */
+        funded: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )

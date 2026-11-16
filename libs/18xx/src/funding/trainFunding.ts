@@ -206,7 +206,8 @@ export class EmergencyTrainFunding {
         if (
             voluntary
                 ? !this.rules.voluntaryFunding?.(this.state, companyId)
-                : !this.trains.requiresTrain(this.state, companyId)
+                : !this.trains.requiresTrain(this.state, companyId) &&
+                  !this.trains.mayRequireTrain?.(this.state, companyId)
         )
             return []
         const projected = stateWith(this.state, {
@@ -354,6 +355,13 @@ export class EmergencyTrainFunding {
     /** Whether the company being funded already owns a train, so needs none. */
     voluntary(companyId: string): boolean {
         return ownsRequiredTrain(this.state, this.trains, companyId)
+    }
+    /**
+     * Whether the company may end its turn without the funded train: it owns one already, or it
+     * only may count as obliged to (``TrainRules.mayRequireTrain``).
+     */
+    optional(companyId: string): boolean {
+        return this.voluntary(companyId) || !this.trains.requiresTrain(this.state, companyId)
     }
     private cash(owner: Owner): number {
         const amount = cashOwnedBy(this.state, owner)

@@ -50,6 +50,8 @@ export type ShareSaleTerms = {
  */
 export type RepeatSales = 'extend-block' | 'separate'
 
+export type StockTurnOrder = 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
+
 export interface StockRules {
     market: StockMarketChart
     charters: CompanyCharters
@@ -99,12 +101,31 @@ export interface StockRules {
     holdsMarketMove?(state: StockState, sale: ShareSaleSettlement, seller: Owner): boolean
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
     afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
-    /** When a turn's sales may come relative to its purchase. */
-    turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
+    /**
+     * The certificate taken out of play just before a stock turn's purchase of this one, as a
+     * non-president's purchase from 18Chesapeake's two-player bank pool removes a pool share
+     * (§14.3). Naming the bought certificate itself leaves the buyer nothing, for nothing, but
+     * the turn's purchase is made.
+     */
+    purchaseRemoval?(
+        state: StockState,
+        certificate: ShareCertificate,
+        buyer: Owner
+    ): string | undefined
+    /**
+     * When a turn's sales may come relative to its purchase; by game where an option changes it,
+     * as 18Chesapeake's Off the Rails allows sales after the purchase.
+     */
+    turnOrder: StockTurnOrder | ((state: StockState) => StockTurnOrder)
     /** A second sale of a company in the same turn. */
     repeatSales?: RepeatSales
     /** Further share purchases in a turn after the first. */
     multipleBuys?: MultipleBuyRules
+    /**
+     * Keeps the turn's purchases where a rule reads them though a turn has one purchase, as
+     * 1856's shares bought in a turn limit its sales.
+     */
+    recordsTurnPurchases?: true
     /** Private sales between players, offered and answered like a company's purchase offer. */
     privateSales?: PrivateSaleRules
     /** Companies are started by auction during a stock turn rather than at a chosen par. */

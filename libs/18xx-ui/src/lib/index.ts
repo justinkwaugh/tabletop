@@ -189,7 +189,8 @@ export { default as PrivateCard } from './privates/PrivateCard.svelte'
 export {
     createDieselPhaseChart,
     createPhaseChart,
-    type PhaseChartData
+    type PhaseChartData,
+    type TrainMark
 } from './phases/phaseChart.js'
 
 export * from './stock/marketAnimationSource.js'
