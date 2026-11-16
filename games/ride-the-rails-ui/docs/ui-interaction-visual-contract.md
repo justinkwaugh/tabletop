@@ -1,6 +1,6 @@
 # Ride the Rails: the table, the map and the panel
 
-This contract fixes what players see and press. It follows `docs/ui-interaction-visual-contract.md`, `docs/game-ui-layout.md`, `docs/user-interactions.md`, `docs/phone-rendering.md` and the game UI animation skill. Rules are cited as `R-x.y` (`games/ride-the-rails/docs/rules-digest.md`) and the engine's conventions as `R-X.n` (`games/ride-the-rails/docs/rulings.md`). Colours, shapes and fonts are in `games/ride-the-rails-ui/docs/art-plan.md`.
+This contract fixes what players see and press. It follows `docs/ui-interaction-visual-contract.md`, `docs/game-ui-layout.md`, `docs/user-interactions.md`, `docs/phone-rendering.md` and the game UI animation skill. Rules are cited as `R-x.y` and the engine's conventions as `R-X.n`, labels listed in `games/ride-the-rails/docs/rules-interpretations.md`; the rules themselves live in the logic package's code. Colours, shapes and fonts are in `games/ride-the-rails-ui/docs/art-plan.md`.
 
 The code and its tests are the source of truth: where this file and they differ, they win and this file is corrected.
 

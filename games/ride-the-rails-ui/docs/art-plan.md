@@ -1,8 +1,8 @@
 # Ride the Rails art plan
 
-Every visual, its source, and the budget it must meet. What players see and press is fixed by the UI contract (`games/ride-the-rails-ui/docs/ui-interaction-visual-contract.md`); ids and counts are those of `components.md`.
+Every visual, its source, and the budget it must meet. What players see and press is fixed by the UI contract (`games/ride-the-rails-ui/docs/ui-interaction-visual-contract.md`); ids are those of the logic package's data (`games/ride-the-rails/docs/rules-interpretations.md`, Ids and coordinates).
 
-**One source: drawn in code from data.** The title ships no publisher art and no supplied images. The map is drawn from the hex and city tables the logic package transcribes from `components.md`, never from an image of the printed board. Cubes, passengers, money, markers, the round tickets, the start legend, the seat cards and the cover are SVG and CSS built from a small shape vocabulary. A railroad's piece, which the rules call a locomotive, is drawn as a flat rounded square, still called a cube. MarraCash (`games/marracash-ui`) is the model for a title drawn wholly in code, and Magna Grecia's board layers (`games/magna-grecia-ui/src/lib/components/board/`) for a hex map.
+**One source: drawn in code from data.** The title ships no publisher art and no supplied images. The map is drawn from the hex and city tables the logic package transcribes from the printed board (`src/data/usaMap.ts`), never from an image of the printed board. Cubes, passengers, money, markers, the round tickets, the start legend, the seat cards and the cover are SVG and CSS built from a small shape vocabulary. A railroad's piece, which the rules call a locomotive, is drawn as a flat rounded square, still called a cube. MarraCash (`games/marracash-ui`) is the model for a title drawn wholly in code, and Magna Grecia's board layers (`games/magna-grecia-ui/src/lib/components/board/`) for a hex map.
 
 ## Palette
 
@@ -130,7 +130,7 @@ rm serif-700.ttf serif-700-renamed.ttf
 
 ## Board
 
-**Geometry from data.** One `utils/boardGeometry.ts` with a spec turns the logic package's map data into board units. Hexes are pointy-topped with size `s` (centre to corner): a hex's centre is `x = dcol × (√3 s / 2)`, `y = row × 1.5 s` (`components.md`, Coordinates), plus the margin. Nothing is measured from a picture. The board draws no city names: the start bands, cubes, passengers and pills say what a city is for, and every lit city's accessible name, the log and the panels name it in text (both Portlands as "Portland (Oregon)" and "Portland (Maine)").
+**Geometry from data.** One `utils/boardGeometry.ts` with a spec turns the logic package's map data into board units. Hexes are pointy-topped with size `s` (centre to corner): a hex's centre is `x = dcol × (√3 s / 2)`, `y = row × 1.5 s` (`games/ride-the-rails/docs/rules-interpretations.md`, Ids and coordinates), plus the margin. Nothing is measured from a picture. The board draws no city names: the start bands, cubes, passengers and pills say what a city is for, and every lit city's accessible name, the log and the panels name it in text (both Portlands as "Portland (Oregon)" and "Portland (Maine)").
 
 **Extents from data.** The board's extents are the bounding box of the hex set in the logic package's map data, plus a band of sea on every side (`BOARD_MARGIN` in `utils/boardGeometry.ts`, 40 board units). Nothing else widens the board. The extents are the same at every width.
 

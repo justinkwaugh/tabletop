@@ -15,7 +15,7 @@ import {
 } from './boardGeometry.js'
 import { boxCorners, discBox, insideConvexPolygon } from '$lib/testing/shapeChecks.js'
 
-describe('hex positions (components.md, Coordinates)', () => {
+describe('hex positions (rules-interpretations.md, Ids and coordinates)', () => {
     it('gives every hex of the map data a centre and six corners', () => {
         for (const hex of USA_HEXES) {
             const geometry = hexGeometry(hex.id)

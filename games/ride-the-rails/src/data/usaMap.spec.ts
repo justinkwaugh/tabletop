@@ -11,7 +11,7 @@ import {
     type CityId
 } from './usaMap.js'
 
-// components.md, Map: USA, Cities: id, printed name, hex, start colours, capacity, bonus
+// usaMap.ts, Cities: id, printed name, hex, start colours, capacity, bonus
 const PRINTED_CITIES: readonly (readonly [string, string, string, string, string, string])[] = [
     ['city.usa.seattle', 'Seattle', '0-4', 'Purple, Black', '2', '—'],
     ['city.usa.spokane', 'Spokane', '0-10', '—', '2', '—'],
@@ -73,7 +73,7 @@ const PRINTED_CITIES: readonly (readonly [string, string, string, string, string
     ['city.usa.miami', 'Miami', '18-50', '—', '2', '—']
 ]
 
-// components.md, Map: USA, Terrain: row, plain dcols, mountain dcols
+// usaMap.ts, Terrain: row, plain dcols, mountain dcols
 const PRINTED_TERRAIN: readonly (readonly [number, string, string])[] = [
     [0, '8 12 16 18 20 24 26 28 30 34 36 38 64', '6 14'],
     [1, '3 7 9 11 19 21 23 25 29 31 33 35 37 39 41 63', '5 13 15'],
@@ -155,7 +155,7 @@ function citiesWithGroup(group: 'east-coast' | 'west-coast'): string[] {
 }
 
 describe('USA map (R-8.1)', () => {
-    describe('counts (components.md, Totals and Terrain)', () => {
+    describe('counts (the printed board’s totals)', () => {
         it('has 386 hexes in 19 rows: 286 plain, 49 mountain, 51 cities', () => {
             expect(USA_HEXES).toHaveLength(386)
             expect(USA_HEXES.filter((hex) => hex.terrain === 'plain')).toHaveLength(286)
@@ -173,7 +173,7 @@ describe('USA map (R-8.1)', () => {
         })
     })
 
-    describe('the printed tables (components.md, Map: USA)', () => {
+    describe('the printed tables (the printed board)', () => {
         it('matches every row of the city table', () => {
             expect(USA_CITIES.map(printedCity)).toEqual(PRINTED_CITIES)
         })
@@ -254,7 +254,7 @@ describe('USA map (R-8.1)', () => {
         })
     })
 
-    describe('adjacency (R-4.1.2, components.md Coordinates)', () => {
+    describe('adjacency (R-4.1.2, rules-interpretations.md, Ids and coordinates)', () => {
         it('returns only hexes that exist', () => {
             for (const hex of USA_HEXES) {
                 expect(adjacentHexIds(hex.id).every(isUsaHex)).toBe(true)

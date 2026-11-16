@@ -42,7 +42,7 @@ type TerrainRow = {
     mountain: readonly number[]
 }
 
-// components.md, Map: USA, Cities (R-4.1.4, R-4.2, R-4.3.1, R-4.3.2, R-8.1)
+// usaMap.ts, Cities (R-4.1.4, R-4.2, R-4.3.1, R-4.3.2, R-8.1)
 export const USA_CITIES: readonly City[] = [
     {
         id: 'city.usa.seattle',
@@ -505,7 +505,7 @@ export const USA_CITIES: readonly City[] = [
     }
 ]
 
-// components.md, Map: USA, Terrain: the non-city hexes of each row, from row 0, as dcol values
+// usaMap.ts, Terrain: the non-city hexes of each row, from row 0, as dcol values
 const USA_TERRAIN_BY_ROW: readonly TerrainRow[] = [
     { plain: [8, 12, 16, 18, 20, 24, 26, 28, 30, 34, 36, 38, 64], mountain: [6, 14] },
     { plain: [3, 7, 9, 11, 19, 21, 23, 25, 29, 31, 33, 35, 37, 39, 41, 63], mountain: [5, 13, 15] },

@@ -35,7 +35,7 @@ export function axialToDoubled({ q, r }: AxialCoordinates): DoubledCoordinates {
     return { row: r, dcol: 2 * q + r }
 }
 
-// The neighbours of (r, d) are (r, d±2) and (r±1, d±1) (R-4.1.2, components.md Coordinates).
+// The neighbours of (r, d) are (r, d±2) and (r±1, d±1) (R-4.1.2, rules-interpretations.md, Ids and coordinates).
 export function doubledNeighbours(coordinates: DoubledCoordinates): DoubledCoordinates[] {
     const axial = doubledToAxial(coordinates)
     return Object.values(PointyNeighborOffsets).map((offset) =>
