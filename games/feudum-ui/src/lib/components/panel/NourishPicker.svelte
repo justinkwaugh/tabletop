@@ -122,23 +122,26 @@
             </div>
         {/if}
         <!-- Contract, Spacing: the send right after the line before it, the group gap from it. -->
-        <span class="max-sm:self-end">
-            <PrimaryButton block={block.send}>
-                {#if allFed}
-                    <span class="inline-flex items-center gap-1" data-send-art>
-                        Feed {block.send.tally.fed}
-                        {#if block.send.tally.food > 0}
-                            · <GoodToken good="food" size={SendGood} />{block.send.tally.food}
-                        {/if}
-                        {#if block.send.tally.wine > 0}
-                            · <GoodToken good="sulfur" size={SendGood} />{block.send.tally.wine}
-                        {/if}
-                    </span>
-                {:else}
-                    {block.send.label}
-                {/if}
-            </PrimaryButton>
-        </span>
+        {#if block.send}
+            {@const send = block.send}
+            <span class="max-sm:self-end">
+                <PrimaryButton block={send}>
+                    {#if allFed}
+                        <span class="inline-flex items-center gap-1" data-send-art>
+                            Feed {send.tally.fed}
+                            {#if send.tally.food > 0}
+                                · <GoodToken good="food" size={SendGood} />{send.tally.food}
+                            {/if}
+                            {#if send.tally.wine > 0}
+                                · <GoodToken good="sulfur" size={SendGood} />{send.tally.wine}
+                            {/if}
+                        </span>
+                    {:else}
+                        {send.label}
+                    {/if}
+                </PrimaryButton>
+            </span>
+        {/if}
     </div>
 </div>
 

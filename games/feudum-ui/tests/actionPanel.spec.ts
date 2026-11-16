@@ -188,7 +188,8 @@ test('R-3.1 the plan: a press fills the next slot and numbers the card; the slot
     expect(chips.y + chips.height).toBeLessThanOrEqual(cards.y)
     const plan = await box(panel(page).locator('[data-plan] [role="list"]'))
     const pouch = await box(panel(page).locator('[data-rows="pouch"]'))
-    const send = await box(primary(page))
+    // R-X.2 The send's row: the send appears there once the hand is picked.
+    const send = await box(panel(page).locator('[data-tray-row="send"]'))
     expect(tray.x).toBeGreaterThanOrEqual(cards.x + cards.width)
     for (const part of [plan, pouch, send]) {
         expect(part.x).toBeGreaterThanOrEqual(tray.x)

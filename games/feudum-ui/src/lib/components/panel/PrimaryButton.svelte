@@ -3,8 +3,9 @@
     import type { ActionBlock } from '$lib/model/actionPanel.js'
 
     /**
-     * The send, wherever it stands: the panel, or a phone's bench footer. `children` draws it in
-     * place of its label, which stays its accessible name.
+     * The send, wherever it stands: the panel, or a phone's bench footer. It is drawn only once it
+     * can be pressed (R-X.2). `children` draws it in place of its label, which stays its accessible
+     * name.
      */
     let {
         block,
@@ -17,9 +18,7 @@
 
 <button
     type="button"
-    class="rounded-lg border border-feudum-primary-border bg-feudum-primary px-4 py-1 text-sm font-semibold text-feudum-primary-text max-sm:w-full max-sm:px-2 max-sm:text-xs
-        {block.enabled ? 'hover:bg-feudum-primary-hover' : 'opacity-50'}"
-    disabled={!block.enabled}
+    class="rounded-lg border border-feudum-primary-border bg-feudum-primary px-4 py-1 text-sm font-semibold text-feudum-primary-text max-sm:w-full max-sm:px-2 max-sm:text-xs hover:bg-feudum-primary-hover"
     aria-label={children ? block.label : block.note ? `${block.label} · ${block.note}` : undefined}
     data-primary
     onclick={() => void block.send()}

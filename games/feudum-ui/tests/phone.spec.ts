@@ -431,11 +431,21 @@ test.describe('held upright', () => {
 
         const footer = bench.locator('[data-bench-footer]')
         await expect(footer.locator('[data-bench-result]')).toBeVisible()
+        // R-X.2 The send appears once the pull's goods are picked.
+        await expect(page.locator('[data-primary]')).toHaveCount(0)
+        for (const id of ['good:iron', 'good:iron', 'good:wood']) {
+            await page
+                .locator(`[data-bench-place="${id}"] button, [data-bench-button="${id}"] button`)
+                .first()
+                .tap()
+            await settled(page)
+        }
         await expect(footer.locator('[data-primary]')).toBeVisible()
         await expect(panel(page).locator('[data-primary]')).toHaveCount(0)
         await expect(page.locator('[data-primary]')).toHaveCount(1)
         const foot = await rect(footer)
-        expect(foot.y + foot.height).toBeLessThanOrEqual(sheet.y + sheet.height + 1)
+        const picked = await rect(bench)
+        expect(foot.y + foot.height).toBeLessThanOrEqual(picked.y + picked.height + 1)
         await expectTarget(footer.locator('[data-primary]'))
 
         const { across, down } = await bench.evaluate((element) => ({
@@ -448,8 +458,7 @@ test.describe('held upright', () => {
         await shot(page, 'phone-bench')
 
         // The presses stand over the art at the sheet's width, and the footer answers them.
-        await bench.locator('[data-bench-place="good:iron"] button').first().click()
-        await expect(footer.locator('[data-primary]')).toContainText(/Move 1\b/)
+        await expect(footer.locator('[data-primary]')).toContainText(/Move 3\b/)
     })
 
     test('S74 R-4.6.2 the trade picker’s sheet fits, its choices in view with no scroll', async ({
@@ -522,7 +531,8 @@ test.describe('held upright', () => {
         await expect(slots).toHaveCount(4)
         const plan = await rect(panel(page).locator('[data-plan] [role="list"]'))
         const pouch = await rect(panel(page).locator('[data-rows="pouch"]'))
-        const send = await rect(panel(page).locator('[data-primary]'))
+        // R-X.2 The send's row: the send appears there once the hand is picked.
+        const send = await rect(panel(page).locator('[data-tray-row="send"]'))
         expect(pouch.y).toBeGreaterThanOrEqual(plan.y + plan.height)
         expect(send.y).toBeGreaterThanOrEqual(pouch.y + pouch.height)
         // The labels share one column, the rows another, so the rows line up on the left.
@@ -550,13 +560,16 @@ test.describe('held upright', () => {
         expect(send.y).toBeGreaterThanOrEqual((await rect(reason)).y)
 
         expect(send.y + send.height).toBeLessThanOrEqual(sheet.y + sheet.height + 1)
-        expect(await panel(page).locator('[data-primary-note]').innerText()).toBe("can't be undone")
-        await shot(page, 'phone-hand')
 
         // The send takes from the sheet; at a shared screen the next seat drafts in it.
         for (const index of [0, 1, 2, 3]) {
             await cells.nth(index).locator('button').first().tap()
         }
+        const button = await rect(panel(page).locator('[data-primary]'))
+        expect(Math.abs(button.y - send.y)).toBeLessThanOrEqual(2)
+        expect(button.y + button.height).toBeLessThanOrEqual(sheet.y + sheet.height + 1)
+        expect(await panel(page).locator('[data-primary-note]').innerText()).toBe("can't be undone")
+        await shot(page, 'phone-hand')
         await panel(page).locator('[data-primary]').tap()
         await settled(page)
         await expect(panel(page).locator('[data-finalise-seat][data-finalised]')).toHaveCount(1)

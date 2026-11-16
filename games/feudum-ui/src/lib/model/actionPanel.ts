@@ -250,15 +250,15 @@ type PanelBlock =
           readonly kind: 'nourish-picker'
           readonly pawns: readonly NourishPickerPawn[]
           readonly covers?: { readonly line: string; readonly rows: readonly ActionRow[] }
-          readonly send: PrimaryBlock & { readonly tally: NourishSend }
+          readonly send?: PrimaryBlock & { readonly tally: NourishSend }
       }
 
+/** R-X.2 A send the seat can press now: one it cannot is not drawn (contract: The primary). */
 interface PrimaryBlock {
     readonly kind: 'primary'
     readonly label: string
     /** A second line under the label. */
     readonly note?: string
-    readonly enabled: boolean
     readonly send: () => void | Promise<void>
 }
 
@@ -332,17 +332,24 @@ function plainChoice(label: string, picked: boolean, refusal?: string): PanelCho
     return { label, picked, ...(refusal ? { refusal } : {}) }
 }
 
-function primaryBlock(
-    primary: TurnPrimary & { readonly note?: string },
+/**
+ * R-X.2 The send, once the picks are complete: until it can be pressed it is not drawn, so the
+ * step's choices stand alone and the send appears with the last of them.
+ */
+function sends(
+    primary: (TurnPrimary & { readonly note?: string }) | undefined,
     send: () => void | Promise<void>
-): PrimaryBlock {
-    return {
-        kind: 'primary',
-        label: primary.label,
-        ...(primary.note ? { note: primary.note } : {}),
-        enabled: primary.enabled,
-        send
-    }
+): PrimaryBlock[] {
+    return primary?.enabled
+        ? [
+              {
+                  kind: 'primary',
+                  label: primary.label,
+                  ...(primary.note ? { note: primary.note } : {}),
+                  send
+              }
+          ]
+        : []
 }
 
 function line(role: LineRole, text: string, lead?: string): ActionBlock {
@@ -441,7 +448,7 @@ function goodsBlocks(
             }))
         ),
         ...sulfurLine(session, panel.sulfurTo),
-        ...(panel.primary ? [primaryBlock(panel.primary, () => session.sendStartingGoods())] : [])
+        ...sends(panel.primary, () => session.sendStartingGoods())
     ]
 }
 
@@ -542,7 +549,7 @@ function handBlocks(
             }))
         },
         ...(drafting.conquerWarning ? [line('warning', drafting.conquerWarning)] : []),
-        primaryBlock(drafting.primary, () => session.finaliseHand()),
+        ...sends(drafting.primary, () => session.finaliseHand()),
         ...atWillBlocks(session)
     ]
     return [
@@ -586,7 +593,7 @@ function atWillBlocks(session: PanelSession): ActionBlock[] {
         ),
         ...rows('vessels', asRows(panel.vessels)),
         ...rows('covers', asRows(panel.covers)),
-        ...(panel.primary ? [primaryBlock(panel.primary, () => session.sendFollowUp())] : [])
+        ...sends(panel.primary, () => session.sendFollowUp())
     ]
 }
 
@@ -633,8 +640,8 @@ function keepBlocks(
             'covers',
             (panel.covers ?? []).map((choice) => draftRow(session, choice))
         ),
-        primaryBlock(panel.primary, () => session.sendFollowUp()),
-        ...(panel.shovels ? [primaryBlock(panel.shovels, () => session.keepThenShovels())] : [])
+        ...sends(panel.primary, () => session.sendFollowUp()),
+        ...sends(panel.shovels, () => session.keepThenShovels())
     ]
 }
 
@@ -661,7 +668,7 @@ function favoursBlocks(
                 press: () => session.chooseNoFavours()
             }
         ]),
-        primaryBlock(panel.primary, () => session.sendFollowUp())
+        ...sends(panel.primary, () => session.sendFollowUp())
     ]
 }
 
@@ -674,7 +681,7 @@ function discBlocks(
         ...(panel.covers ? [line('note', panel.covers)] : []),
         line('note', panel.freeDiscs),
         ...rows('disc', [draftRow(session, panel.place), draftRow(session, panel.keep)]),
-        ...(panel.primary ? [primaryBlock(panel.primary, () => session.sendFollowUp())] : [])
+        ...sends(panel.primary, () => session.sendFollowUp())
     ]
 }
 
@@ -687,10 +694,8 @@ function answerAttackBlocks(
     return [
         line('flow', panel.line),
         ...(panel.noDefend ? [line('note', panel.noDefend)] : []),
-        ...(flip
-            ? [primaryBlock({ ...flip, enabled: true }, () => session.answerAttack(true))]
-            : []),
-        primaryBlock({ ...panel.letStand, enabled: true }, () => session.answerAttack(false))
+        ...(flip ? sends({ ...flip, enabled: true }, () => session.answerAttack(true)) : []),
+        ...sends({ ...panel.letStand, enabled: true }, () => session.answerAttack(false))
     ]
 }
 
@@ -706,10 +711,8 @@ function answerStarveBlocks(
             'covers',
             (panel.covers ?? []).map((choice) => draftRow(session, choice))
         ),
-        ...(panel.immunity
-            ? [primaryBlock(panel.immunity, () => session.answerStarveWith(true))]
-            : []),
-        primaryBlock({ ...panel.letGo, enabled: true }, () => session.answerStarveWith(false))
+        ...sends(panel.immunity, () => session.answerStarveWith(true)),
+        ...sends({ ...panel.letGo, enabled: true }, () => session.answerStarveWith(false))
     ]
 }
 
@@ -743,7 +746,7 @@ function commitBlocks(
             'covers',
             (panel.covers ?? []).map((choice) => draftRow(session, choice))
         ),
-        primaryBlock(panel.primary, () => session.sendFollowUp())
+        ...sends(panel.primary, () => session.sendFollowUp())
     ]
 }
 
@@ -762,7 +765,7 @@ function writLimitBlocks(
                 press: () => session.pressDraftChoice(writ)
             }))
         },
-        primaryBlock(panel.primary, () => session.sendFollowUp()),
+        ...sends(panel.primary, () => session.sendFollowUp()),
         ...atWillBlocks(session)
     ]
 }
@@ -773,6 +776,7 @@ function nourishBlocks(
     panel: NonNullable<PanelSession['nourishPanel']>
 ): ActionBlock[] {
     const paint = session.paintOf(session.myPlayerId ?? '')
+    const [send] = sends(panel.primary, () => session.sendFollowUp())
     return [
         line('flow', 'Feed'),
         {
@@ -799,10 +803,7 @@ function nourishBlocks(
                       }
                   }
                 : {}),
-            send: {
-                ...primaryBlock(panel.primary, () => session.sendFollowUp()),
-                tally: panel.send
-            }
+            ...(send ? { send: { ...send, tally: panel.send } } : {})
         },
         ...atWillBlocks(session)
     ]
@@ -822,7 +823,7 @@ function landscapesBlocks(
             'barrel',
             (panel.barrel ?? []).map((choice) => draftRow(session, choice))
         ),
-        primaryBlock(panel.primary, () => session.sendFollowUp())
+        ...sends(panel.primary, () => session.sendFollowUp())
     ]
 }
 
@@ -901,7 +902,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     const tallyBlocks: ActionBlock[] = tally
         ? [{ kind: 'tally', lines: tally, ...(tallyNote ? { note: tallyNote } : {}) }]
         : []
-    const send = primary ? primaryBlock(primary, () => session.sendTurnCard()) : undefined
+    const [send] = sends(primary, () => session.sendTurnCard())
     const picker = guild?.bench && takesTradePicker(guild.bench) ? guild.bench : undefined
     // Contract, The trade picker: one control row heads the tray (the replay, the card's modes with
     // R-3.16.3 Feast, the second card, then Forfeit), and the picker with its send stands under it.

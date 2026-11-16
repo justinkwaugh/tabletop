@@ -211,7 +211,6 @@ describe('Setup', () => {
         ])
         const primary = primaryNamed(session.actionPanel, /^Take/)
         expect(primary.label).toBe('Take saltpeter, sulfur (barrel), food')
-        expect(primary.enabled).toBe(true)
 
         await session.undo()
         flushSync()
@@ -348,7 +347,6 @@ describe('Hand selection', () => {
         }
         await pressRow(rowNamed(session.actionPanel, /^Sulfur/))
         expect(primaryLabels(session.actionPanel)).toEqual(['Long live the king'])
-        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
         await sendNamed(session, 'Long live the king')
 
         // R-3.1-H1 Its own good stands sealed in its tray, not on its chip.
@@ -366,7 +364,8 @@ describe('Hand selection', () => {
         expect(freshRow()?.[1].finalised).toBe(true)
         expect(freshRow()?.[1]).not.toHaveProperty('pouchGood')
         expect(blockOf(fresh.actionPanel, 'hand-set')).toBeUndefined()
-        expect(primaryLabels(fresh.actionPanel)).toEqual(['Long live the king'])
+        // R-X.2 No send until its hand is picked.
+        expect(primaryLabels(fresh.actionPanel)).toEqual([])
 
         for (const kind of [...FourCards, 'harvest'] as const) {
             await pressCard(fresh.actionPanel, kind)
@@ -413,19 +412,22 @@ describe('Hand selection', () => {
         expect(blockOf(session.actionPanel, 'finalise')?.lead).toMatch(
             /^Round \d+ · choose your hand$/
         )
-        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
+        const sends = () => primaryLabels(session.actionPanel)
+        expect(sends()).toEqual(['Long live the king'])
         await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
         expect(count()).toEqual(['4 of 5'])
-        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(false)
+        // R-X.2 The send is not drawn until the hand is complete.
+        expect(sends()).toEqual([])
         await pressCard(session.actionPanel, 'harvest')
         expect(count()).toEqual(['5 of 5'])
-        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
+        expect(sends()).toEqual(['Long live the king'])
         await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
         expect(count()).toEqual(['5 of 4'])
-        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(false)
+        expect(sends()).toEqual([])
         await session.undo()
         flushSync()
         expect(count()).toEqual(['5 of 5'])
+        expect(sends()).toEqual(['Long live the king'])
     })
 
     it('R-3.1, R-3.1-H1 the finalise row: everyone at once, and the pouch goods shown when all have finalised', async () => {
@@ -511,6 +513,9 @@ describe('Hand selection', () => {
     it("R-X.2 the send's second line: it finalises and can't be undone", async () => {
         const table = await atHands()
         const session = await table.openSeat(table.order[0])
+        for (const kind of FourCards) {
+            await pressCard(session.actionPanel, kind)
+        }
         expect(primaryNamed(session.actionPanel, 'Long live the king').note).toBe(
             "finalise · can't be undone"
         )
@@ -519,6 +524,9 @@ describe('Hand selection', () => {
     it('R-3.1 the draft stands as one: the cards, and beside them the hand, the pouch and the send', async () => {
         const table = await atHands()
         const session = await table.openSeat(table.order[0])
+        for (const kind of FourCards) {
+            await pressCard(session.actionPanel, kind)
+        }
         const places = session.actionPanel.blocks.map(({ kind, stands }) => [kind, stands])
         expect(places).toContainEqual(['cards', undefined])
         for (const kind of ['finalise', 'slots', 'rows', 'primary'] as const) {
@@ -554,7 +562,7 @@ describe('Hand selection', () => {
         expect(linesOf(session.actionPanel, 'warning')).toEqual([
             'Conquer may end up your last card; it would be forfeited.'
         ])
-        expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
+        expect(primaryLabels(session.actionPanel)).toEqual(['Long live the king'])
     })
 
     it("R-3.1 one seat's draft is not the next seat's, at a shared screen", async () => {
@@ -977,7 +985,9 @@ describe('R-4.6 the staged moves of a guild function, in the tray', () => {
             'Take back 2 sulfur from the Merchant to the Alchemist',
             'Take back 1 iron from the Merchant to the Alchemist'
         ])
-        expect(primaryNamed(session.actionPanel, /^Move/).label).toBe('Move 3 goods')
+        // R-X.2 Short of the push's count, the send is not drawn; the draft still names it.
+        expect(primaryLabels(session.actionPanel)).toEqual([])
+        expect(session.guildPanel?.primary).toEqual({ label: 'Move 3 goods', enabled: false })
     })
 
     it('a line’s take-back removes only that move; Undo takes the take-back back', async () => {
@@ -993,7 +1003,8 @@ describe('R-4.6 the staged moves of a guild function, in the tray', () => {
         const block = staged(session)
         expect(block?.lines.map(({ text }) => text)).toEqual(['1 iron · Merchant → Alchemist'])
         expect(block?.tally).toBe('1 of 4 moved')
-        expect(primaryNamed(session.actionPanel, /^Move/).label).toBe('Move 1 good')
+        expect(primaryLabels(session.actionPanel)).toEqual([])
+        expect(session.guildPanel?.primary?.label).toBe('Move 1 good')
 
         await session.undo()
         flushSync()
@@ -1014,7 +1025,8 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
         expect(linesOf(view())).toEqual(['Keep 1 of 3'])
         const writs = blockOf(view(), 'writs')?.rows
         expect(writs).toHaveLength(3)
-        expect(primaryNamed(view(), 'Keep 1 · 2 under the deck').enabled).toBe(false)
+        // R-X.2 No send until a writ is picked.
+        expect(primaryLabels(view())).toEqual([])
         await writs?.[0].press()
         flushSync()
         expect(blockOf(view(), 'writs')?.rows[0].choice.picked).toBe(true)
