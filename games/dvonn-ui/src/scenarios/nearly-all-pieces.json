@@ -1,0 +1,466 @@
+{
+ "game": {
+  "id": "scenario-nearly-all-pieces",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "dvonn",
+  "deleted": false,
+  "name": "Nearly all pieces",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "Alice",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Bob",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "version": "Standard",
+   "whitePlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 1275706778,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-11-16T13:11:24.461Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-16T13:11:24.461Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "SR9C50iflYD2xAAGbgOD8",
+  "gameId": "scenario-nearly-all-pieces",
+  "seed": 1275706778,
+  "prng": {
+   "seed": 1275706778,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "d5c4d8967b8c404f67d0e5dbd96ff1fe762ad7a8d29545410a6dc4b47c7a3a64",
+   "invocations": 0
+  },
+  "masterSeed": "5a4d04816c1562d3dc868480e9015766",
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "white"
+   },
+   {
+    "playerId": "player-2",
+    "color": "black"
+   }
+  ],
+  "machineState": "MovingStacks",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   },
+   "seriesKeeps": "latest"
+  },
+  "board": {
+   "stacks": [
+    {
+     "coords": {
+      "q": -3,
+      "r": 0
+     },
+     "pieces": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -3,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -2,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -1,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 0,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 1,
+        "r": -2
+       }
+      },
+      {
+       "dvonn": true,
+       "placedAt": {
+        "q": 2,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 3,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 4,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 5,
+        "r": -2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -4,
+        "r": -1
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -2,
+      "r": 0
+     },
+     "pieces": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -3,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -2,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -1,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 0,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 1,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 2,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 3,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 4,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": 5,
+        "r": -1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -5,
+        "r": 0
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 0
+     },
+     "pieces": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -4,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -3,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -2,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -1,
+        "r": 0
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 0
+     },
+     "pieces": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 0,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 1,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 2,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 3,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 4,
+        "r": 0
+       }
+      },
+      {
+       "dvonn": true,
+       "placedAt": {
+        "q": 5,
+        "r": 0
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -5,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -4,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -3,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -2,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -1,
+        "r": 1
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 0
+     },
+     "pieces": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 0,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 1,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 2,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": 3,
+        "r": 1
+       }
+      },
+      {
+       "dvonn": true,
+       "placedAt": {
+        "q": 4,
+        "r": 1
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -5,
+        "r": 2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -4,
+        "r": 2
+       }
+      },
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -3,
+        "r": 2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 0
+     },
+     "pieces": [
+      {
+       "playerId": "player-1",
+       "placedAt": {
+        "q": -2,
+        "r": 2
+       }
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": 0
+     },
+     "pieces": [
+      {
+       "playerId": "player-2",
+       "placedAt": {
+        "q": -1,
+        "r": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "actions": []
+}

@@ -1,0 +1,248 @@
+<script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
+    import {
+        DefaultTableLayout,
+        DefaultTabs,
+        GameChat,
+        GameSession,
+        HistoryControls,
+        ScalingWrapper
+    } from '@tabletop/frontend-components'
+    import { assert } from '@tabletop/common'
+    import type { HydratedDvonnGameState, DvonnGameState } from '@tabletop/dvonn'
+    import History from '$lib/components/History.svelte'
+    import PlayersPanel from '$lib/components/PlayersPanel.svelte'
+    import Board from '$lib/components/Board.svelte'
+    import Header from '$lib/components/Header.svelte'
+    import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import GameEndPanel from '$lib/components/GameEndPanel.svelte'
+    import BoardStyleToggle from '$lib/components/BoardStyleToggle.svelte'
+    import OverlayToggle from '$lib/components/OverlayToggle.svelte'
+    import { DvonnGameSession } from '$lib/model/session.svelte.js'
+    import { setGameSession } from '$lib/model/sessionContext.svelte.js'
+
+    let { gameSession }: { gameSession: GameSession<DvonnGameState, HydratedDvonnGameState> } =
+        $props()
+    assert(gameSession instanceof DvonnGameSession, 'DVONN needs its own game session')
+    setGameSession(gameSession)
+
+    // The shared wrapper exposes full screen only as its dialog becoming modal.
+    let expanded = $state(false)
+    const watchExpansion: Attachment<HTMLElement> = (node) => {
+        const dialog = node.closest('dialog')
+        if (!dialog) return
+        const read = () => {
+            expanded = dialog.matches(':modal')
+        }
+        const observer = new MutationObserver(read)
+        observer.observe(dialog, { attributes: true, attributeFilter: ['role'] })
+        read()
+        return () => observer.disconnect()
+    }
+</script>
+
+{#snippet turnControls()}
+    <Header />
+    <div class="action-card">
+        {#if gameSession.gameState.result && !gameSession.isViewingHistory}
+            <GameEndPanel />
+        {:else}
+            <ActionPanel />
+        {/if}
+    </div>
+{/snippet}
+
+<div class="dvonn-table">
+    <DefaultTableLayout>
+        {#snippet mobileControlsContent()}
+            <!-- Faded controls in a colour that still shows on the panels. -->
+            <HistoryControls
+                enabledColor="text-(--dvonn-ink)"
+                disabledColor="text-(--dvonn-control-off)"
+                borderClass="border-b border-(--dvonn-panel-edge)"
+                bgClass="bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow)"
+            />
+        {/snippet}
+        {#snippet sideContent()}
+            <div class="max-sm:hidden">
+                <HistoryControls
+                    enabledColor="text-(--dvonn-ink)"
+                    disabledColor="text-(--dvonn-control-off)"
+                    borderClass="rounded-lg border border-(--dvonn-panel-edge)"
+                    bgClass="rounded-lg bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow)"
+                />
+            </div>
+            <DefaultTabs
+                activeTabClass="py-1 px-3 max-sm:[&_svg]:hidden bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow) border-2 border-transparent rounded-lg text-(--dvonn-ink)"
+                inactiveTabClass="text-(--dvonn-table-ink) py-1 px-3 max-sm:[&_svg]:hidden rounded-lg border-2 border-transparent hover:border-[rgb(255_255_255/0.5)]"
+            >
+                {#snippet playersPanel()}
+                    <PlayersPanel />
+                {/snippet}
+                {#snippet history()}
+                    <History />
+                {/snippet}
+                {#snippet chat()}
+                    <GameChat
+                        timeColor="text-(--dvonn-ink-quiet)"
+                        messageTextColor="text-(--dvonn-ink)"
+                        composerTextColor="text-(--dvonn-ink)"
+                        messageHoverColor="hover:bg-(--dvonn-panel-hover)"
+                        bgColor="bg-(--dvonn-panel) shadow-(--dvonn-panel-shadow)"
+                        inputBgColor="bg-(--dvonn-panel-inset)"
+                        inputBorderColor="border-(--dvonn-panel-rule)"
+                        borderColor="border-(--dvonn-panel-edge)"
+                    />
+                {/snippet}
+            </DefaultTabs>
+        {/snippet}
+        {#snippet gameContent()}
+            <div class="shrink-0">
+                {@render turnControls()}
+            </div>
+            <div class="grow-0 overflow-hidden pt-2" style="flex:1; min-height: 40dvh;">
+                <ScalingWrapper
+                    justify="center"
+                    controls="bottom-left"
+                    maxScale={4}
+                    maxFitScale={2.5}
+                    renderAtViewScale
+                    expandable
+                >
+                    <Board />
+                    {#snippet overlay()}
+                        <div
+                            class="pointer-events-auto absolute right-3 bottom-2 z-10 flex items-center gap-1.5"
+                        >
+                            <OverlayToggle
+                                glyph="A1"
+                                label="Coordinates"
+                                pressed={gameSession.showCoordinates}
+                                onToggle={() => gameSession.toggleCoordinates()}
+                            />
+                            <BoardStyleToggle />
+                            <OverlayToggle
+                                label="Height badges"
+                                pressed={gameSession.heightBadges}
+                                onToggle={() => gameSession.toggleHeightBadges()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <circle r="6.5" class="line"></circle>
+                                    <text
+                                        y="3.6"
+                                        text-anchor="middle"
+                                        font-size="10"
+                                        font-weight="700">2</text
+                                    >
+                                </svg>
+                            </OverlayToggle>
+                            <!-- Tall stacks shrink to the full height unless a player would
+                                 rather see them whole and turn the board to see past them. -->
+                            <OverlayToggle
+                                label="Stack limit"
+                                pressed={gameSession.shrinkStacks}
+                                onToggle={() => gameSession.toggleShrinkStacks()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5 5 H 5 M -5 2 H 5 M -5 -1 H 5" class="line"></path>
+                                    <path d="M -6.5 -5 H 6.5" class="line"></path>
+                                    <path d="M -2 -7.5 L 0 -5.5 L 2 -7.5" class="line"></path>
+                                </svg>
+                            </OverlayToggle>
+                            <OverlayToggle
+                                label="Far side"
+                                pressed={gameSession.turned}
+                                onToggle={() => gameSession.toggleTurned()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5.5 -1 A 5.5 5.5 0 0 1 4.5 -3.2" class="line"
+                                    ></path>
+                                    <path d="M 2 -5 L 4.8 -3 L 2.2 -0.8" class="line"></path>
+                                    <path d="M 5.5 1 A 5.5 5.5 0 0 1 -4.5 3.2" class="line"></path>
+                                    <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="line"></path>
+                                </svg>
+                            </OverlayToggle>
+                        </div>
+                    {/snippet}
+                    {#snippet toolbar()}
+                        <!-- Full screen is a modal dialog, so the turn controls must come inside it. -->
+                        <div {@attach watchExpansion}>
+                            {#if expanded}
+                                <!-- The dialog paints its own dim backdrop, so full screen redraws the table behind the board. -->
+                                <div class="fullscreen-backdrop" aria-hidden="true"></div>
+                                <div class="fullscreen-controls">
+                                    {@render turnControls()}
+                                </div>
+                            {/if}
+                        </div>
+                    {/snippet}
+                </ScalingWrapper>
+            </div>
+        {/snippet}
+    </DefaultTableLayout>
+</div>
+
+<style>
+    .dvonn-table {
+        position: relative;
+        isolation: isolate;
+        background: radial-gradient(
+            ellipse at 55% 40%,
+            var(--dvonn-table-glow) 0%,
+            var(--dvonn-table) 45%,
+            var(--dvonn-table-deep) 100%
+        );
+        background-attachment: fixed;
+        color: var(--dvonn-table-ink);
+    }
+
+    /* DefaultTableLayout leaves a tenth of a phone screen showing the sidebar's edge.
+       The history controls sit above the table there, so the board takes all but a
+       sliver of the narrower player cards; the tabs drop their icons to fit. */
+    @media (width < 40rem) {
+        .dvonn-table :global(.game-column.game-column) {
+            min-width: calc(100vw - 20px);
+        }
+
+        .dvonn-table :global(div:has(+ .game-column)) {
+            width: 260px;
+            min-width: 260px;
+        }
+    }
+
+    .action-card {
+        margin: 0 8px;
+        border-radius: 12px;
+        background: var(--dvonn-panel);
+        box-shadow:
+            inset 0 0 0 1px var(--dvonn-panel-edge),
+            var(--dvonn-panel-shadow);
+    }
+
+    .fullscreen-backdrop {
+        background: var(--dvonn-table-deep);
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        pointer-events: none;
+    }
+
+    .fullscreen-controls {
+        padding-bottom: 8px;
+    }
+</style>

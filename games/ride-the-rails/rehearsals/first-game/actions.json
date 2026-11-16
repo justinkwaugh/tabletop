@@ -1,0 +1,8254 @@
+[
+  {
+    "id": "scripted-0",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "createdAt": "2026-11-15T18:14:47.939Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 26
+    },
+    "index": 0,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 0
+      },
+      {
+        "op": "remove",
+        "path": "/players/3/shares/railroad.red"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/0/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/1"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-1",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "createdAt": "2026-11-15T18:14:47.940Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 26
+    },
+    "index": 1,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 125156907
+      },
+      {
+        "op": "remove",
+        "path": "/players/2/shares/railroad.blue"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/1/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/2"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-2",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "createdAt": "2026-11-15T18:14:47.941Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 25
+    },
+    "index": 2,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 2
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 199383205
+      },
+      {
+        "op": "remove",
+        "path": "/players/1/shares/railroad.blue"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/2/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/3"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-3",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p1",
+    "railroadId": "railroad.blue",
+    "createdAt": "2026-11-15T18:14:47.942Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 24
+    },
+    "index": 3,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 3
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -175632143
+      },
+      {
+        "op": "remove",
+        "path": "/players/0/shares/railroad.blue"
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "TakingShares"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/3/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/4"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 0
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/0/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/1"
+      },
+      {
+        "op": "remove",
+        "path": "/building"
+      }
+    ]
+  },
+  {
+    "id": "scripted-4",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.11-55",
+    "createdAt": "2026-11-15T18:14:47.946Z",
+    "metadata": {
+      "isStart": true,
+      "bonuses": []
+    },
+    "index": 4,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 4
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -164950936
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-55"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-5",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:47.949Z",
+    "metadata": {
+      "placed": 1
+    },
+    "index": 5,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 5
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -368974678
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/4/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/5"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-6",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.11-53",
+    "createdAt": "2026-11-15T18:14:47.951Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 6,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 6
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -905386689
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-53"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-7",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.10-52",
+    "createdAt": "2026-11-15T18:14:47.953Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 7,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 7
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -606798172
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-52"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-8",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.12-52",
+    "createdAt": "2026-11-15T18:14:47.954Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 8,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 8
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -859706236
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-52"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-9",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.11-51",
+    "createdAt": "2026-11-15T18:14:47.956Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 9,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 9
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -480428971
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-51"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-10",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.13-51",
+    "createdAt": "2026-11-15T18:14:47.957Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 10,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 7
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 10
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -672932303
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.13-51"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "Hx50pkjE17SIG2guRa0EP",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:47.958Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 11,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 11
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1433285056
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/5/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/6"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 5
+      }
+    ]
+  },
+  {
+    "id": "scripted-12",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.9-51",
+    "createdAt": "2026-11-15T18:14:47.962Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 12,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 12
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 614620061
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.9-51"
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 0,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-13",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.9-53",
+    "createdAt": "2026-11-15T18:14:47.967Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 13,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 13
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 181866052
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.9-53"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-14",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.11-49",
+    "createdAt": "2026-11-15T18:14:47.968Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 14,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 14
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 2132702542
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-49"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-15",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.8-52",
+    "createdAt": "2026-11-15T18:14:47.971Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 15,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 42
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 15
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 2120140822
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-52"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "iT1m2VbJPc2x2gfbg6tFX",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p3",
+    "createdAt": "2026-11-15T18:14:47.971Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 4
+    },
+    "index": 16,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 16
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1609443769
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/6/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/7"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 4,
+          "usedMountain": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-17",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.6-60",
+    "createdAt": "2026-11-15T18:14:47.973Z",
+    "metadata": {
+      "isStart": true,
+      "bonuses": []
+    },
+    "index": 17,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 17
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1973771830
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-60"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-18",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.6-58",
+    "createdAt": "2026-11-15T18:14:47.974Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 18,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 18
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1192273616
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-58"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-19",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.7-57",
+    "createdAt": "2026-11-15T18:14:47.976Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 19,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 19
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 78697808
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.7-57"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-20",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.5-61",
+    "createdAt": "2026-11-15T18:14:47.977Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 20,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 20
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -662740874
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.5-61"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-21",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.4-62",
+    "createdAt": "2026-11-15T18:14:47.978Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 21,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 77
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 21
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 145743694
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.4-62"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "HX5peDmM4FRtLpip6sbiY",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:47.978Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 22,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 22
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1194720755
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Building"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/7/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/8"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 1
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/1/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/2"
+      },
+      {
+        "op": "add",
+        "path": "/building",
+        "value": {
+          "placed": 5,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-23",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p1",
+    "links": [
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.4-62",
+          "hex.usa.5-61",
+          "hex.usa.6-60"
+        ]
+      },
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.6-60",
+          "hex.usa.6-58",
+          "hex.usa.7-57"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:47.981Z",
+    "metadata": {
+      "startCityId": "city.usa.boston",
+      "endCityId": "city.usa.philadelphia",
+      "cityIds": [
+        "city.usa.boston",
+        "city.usa.new-york",
+        "city.usa.philadelphia"
+      ],
+      "linksPerRailroad": {
+        "railroad.red": 2
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 0,
+          "fare": 3
+        },
+        {
+          "playerId": "p2",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 2,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 23,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 23
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -86859088
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 0
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/8/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/9"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 2
+      },
+      {
+        "op": "add",
+        "path": "/passengers/6",
+        "value": "city.usa.boston"
+      }
+    ]
+  },
+  {
+    "id": "scripted-24",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p2",
+    "links": [
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.12-52",
+          "hex.usa.11-53",
+          "hex.usa.11-55"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:47.983Z",
+    "metadata": {
+      "startCityId": "city.usa.charleston",
+      "endCityId": "city.usa.washington",
+      "cityIds": [
+        "city.usa.charleston",
+        "city.usa.washington"
+      ],
+      "linksPerRailroad": {
+        "railroad.blue": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 1,
+          "fare": 2
+        },
+        {
+          "playerId": "p3",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 0,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 24,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 24
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 310950505
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 3
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 0
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 0
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/9/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/10"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 2
+      },
+      {
+        "op": "add",
+        "path": "/passengers/8",
+        "value": "city.usa.charleston"
+      }
+    ]
+  },
+  {
+    "id": "scripted-25",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p3",
+    "links": [
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.7-57",
+          "hex.usa.6-58",
+          "hex.usa.6-60"
+        ]
+      },
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.6-60",
+          "hex.usa.5-61",
+          "hex.usa.4-62"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:47.984Z",
+    "metadata": {
+      "startCityId": "city.usa.philadelphia",
+      "endCityId": "city.usa.boston",
+      "cityIds": [
+        "city.usa.philadelphia",
+        "city.usa.new-york",
+        "city.usa.boston"
+      ],
+      "linksPerRailroad": {
+        "railroad.red": 2
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 0,
+          "fare": 3
+        },
+        {
+          "playerId": "p4",
+          "dividends": 2,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 25,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 25
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -911219505
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 2
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/10/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/11"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 2
+      },
+      {
+        "op": "add",
+        "path": "/passengers/33",
+        "value": "city.usa.philadelphia"
+      }
+    ]
+  },
+  {
+    "id": "scripted-26",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p4",
+    "links": [
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.6-60",
+          "hex.usa.5-61",
+          "hex.usa.4-62"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:47.986Z",
+    "metadata": {
+      "startCityId": "city.usa.new-york",
+      "endCityId": "city.usa.boston",
+      "cityIds": [
+        "city.usa.new-york",
+        "city.usa.boston"
+      ],
+      "linksPerRailroad": {
+        "railroad.red": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 1,
+          "fare": 2
+        }
+      ]
+    },
+    "index": 26,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 112
+      },
+      {
+        "op": "add",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 26
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1924571696
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 4
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Riding"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/11/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 2
+      },
+      {
+        "op": "add",
+        "path": "/passengers/30",
+        "value": "city.usa.new-york"
+      }
+    ]
+  },
+  {
+    "id": "mxOt9TsRGUBa4bw3Vb8Gx",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "EndRound",
+    "createdAt": "2026-11-15T18:14:47.986Z",
+    "metadata": {
+      "round": 1,
+      "turnOrder": [
+        "p2",
+        "p3",
+        "p1",
+        "p4"
+      ],
+      "money": [
+        {
+          "playerId": "p2",
+          "money": 3
+        },
+        {
+          "playerId": "p3",
+          "money": 4
+        },
+        {
+          "playerId": "p1",
+          "money": 4
+        },
+        {
+          "playerId": "p4",
+          "money": 7
+        }
+      ],
+      "railroadId": "railroad.orange"
+    },
+    "index": 27,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 27
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 764871517
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "EndingRound"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/12"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "p1",
+          "p2",
+          "p3",
+          "p4"
+        ]
+      },
+      {
+        "op": "replace",
+        "path": "/roundManager/series",
+        "value": [
+          {
+            "type": "round",
+            "start": 0,
+            "number": 1
+          }
+        ]
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/2/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/3"
+      }
+    ]
+  },
+  {
+    "id": "scripted-28",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "createdAt": "2026-11-15T18:14:47.987Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 26
+    },
+    "index": 28,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 28
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -871828089
+      },
+      {
+        "op": "remove",
+        "path": "/players/3/shares/railroad.orange"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/12/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/13"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-29",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p1",
+    "railroadId": "railroad.orange",
+    "createdAt": "2026-11-15T18:14:47.988Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 25
+    },
+    "index": 29,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 29
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1526114910
+      },
+      {
+        "op": "remove",
+        "path": "/players/0/shares/railroad.orange"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/13/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/14"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-30",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p3",
+    "railroadId": "railroad.orange",
+    "createdAt": "2026-11-15T18:14:47.989Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 24
+    },
+    "index": 30,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 30
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 744678798
+      },
+      {
+        "op": "remove",
+        "path": "/players/2/shares/railroad.orange"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/14/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/15"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-31",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "createdAt": "2026-11-15T18:14:47.990Z",
+    "metadata": {
+      "shares": 2,
+      "supplyLeft": 13
+    },
+    "index": 31,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 31
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -344224082
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/shares/railroad.blue",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "TakingShares"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/15/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/16"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 3
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/3/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/4"
+      },
+      {
+        "op": "remove",
+        "path": "/building"
+      }
+    ]
+  },
+  {
+    "id": "scripted-32",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.7-51",
+    "createdAt": "2026-11-15T18:14:47.992Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 32,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 32
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -445972389
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.7-51"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-33",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.7-49",
+    "createdAt": "2026-11-15T18:14:47.993Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 33,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 33
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1783625405
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.7-49"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-34",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.6-52",
+    "createdAt": "2026-11-15T18:14:47.995Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 34,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 34
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -975515455
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-52"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-35",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.12-50",
+    "createdAt": "2026-11-15T18:14:47.997Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 35,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 35
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 360814881
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-50"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-36",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.6-50",
+    "createdAt": "2026-11-15T18:14:47.999Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 36,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 147
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 36
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 677856909
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-50"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "Zaxb3ClpKU79QavUGdh6N",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:47.999Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 37,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 37
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1312870625
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/16/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/17"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 4
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 5
+      }
+    ]
+  },
+  {
+    "id": "scripted-38",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.5-43",
+    "createdAt": "2026-11-15T18:14:48.001Z",
+    "metadata": {
+      "isStart": true,
+      "bonuses": [
+        {
+          "bonusId": "bonus.usa.chicago",
+          "amount": 2,
+          "cityId": "city.usa.chicago"
+        }
+      ]
+    },
+    "index": 38,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 38
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1502505688
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 4
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.5-43"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-39",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.10-54",
+    "createdAt": "2026-11-15T18:14:48.003Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 39,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 39
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1489517268
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-54"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-40",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.6-54",
+    "createdAt": "2026-11-15T18:14:48.005Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 40,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 40
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 273831636
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-54"
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 2,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-41",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.12-48",
+    "createdAt": "2026-11-15T18:14:48.007Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 41,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 182
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 41
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -957552742
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-48"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "wNlFUcoJpPiEJLGcPw5Aa",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p3",
+    "createdAt": "2026-11-15T18:14:48.007Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 4
+    },
+    "index": 42,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 42
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1225300744
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/17/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/18"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 4
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 4,
+          "usedMountain": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-43",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.10-50",
+    "createdAt": "2026-11-15T18:14:48.011Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 43,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 43
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -357221789
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-50"
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 0,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-44",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.12-46",
+    "createdAt": "2026-11-15T18:14:48.012Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 44,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 44
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1119265594
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-46"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-45",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.10-48",
+    "createdAt": "2026-11-15T18:14:48.014Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 45,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 45
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1142560991
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-48"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-46",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.6-42",
+    "createdAt": "2026-11-15T18:14:48.016Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 46,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 217
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 46
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 585781195
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-42"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "Q3s4tpjS1eVQqy2gXl6hs",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:48.016Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 4
+    },
+    "index": 47,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 47
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1604869797
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/18/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/19"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 4
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 4,
+          "usedMountain": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-48",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.5-45",
+    "createdAt": "2026-11-15T18:14:48.018Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 48,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 48
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1517830878
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.5-45"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-49",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.7-43",
+    "createdAt": "2026-11-15T18:14:48.021Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 49,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 49
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1261492351
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.7-43"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-50",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.6-40",
+    "createdAt": "2026-11-15T18:14:48.023Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 50,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 50
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -2128443968
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-40"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-51",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.5-63",
+    "createdAt": "2026-11-15T18:14:48.025Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 51,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 51
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 808107458
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.5-63"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-52",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.8-56",
+    "createdAt": "2026-11-15T18:14:48.028Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 52,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 252
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 52
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1989063308
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-56"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "PcOSTS8Y1gEFdsRvQNJF3",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:48.028Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 53,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 53
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 712952375
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Building"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/19/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/20"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 4
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/4/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/5"
+      },
+      {
+        "op": "add",
+        "path": "/building",
+        "value": {
+          "placed": 5,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-54",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p2",
+    "links": [
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.12-46",
+          "hex.usa.12-48",
+          "hex.usa.11-49",
+          "hex.usa.11-51",
+          "hex.usa.12-52"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.061Z",
+    "metadata": {
+      "startCityId": "city.usa.atlanta",
+      "endCityId": "city.usa.charleston",
+      "cityIds": [
+        "city.usa.atlanta",
+        "city.usa.charleston"
+      ],
+      "linksPerRailroad": {
+        "railroad.blue": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 2,
+          "fare": 2
+        },
+        {
+          "playerId": "p3",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 0,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 54,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 54
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 898552015
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 4
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 3
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 6
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/20/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/21"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 5
+      },
+      {
+        "op": "add",
+        "path": "/passengers/1",
+        "value": "city.usa.atlanta"
+      }
+    ]
+  },
+  {
+    "id": "scripted-55",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p3",
+    "links": [
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.7-51",
+          "hex.usa.8-52",
+          "hex.usa.9-51",
+          "hex.usa.9-53",
+          "hex.usa.10-54",
+          "hex.usa.11-55"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.078Z",
+    "metadata": {
+      "startCityId": "city.usa.pittsburgh",
+      "endCityId": "city.usa.washington",
+      "cityIds": [
+        "city.usa.pittsburgh",
+        "city.usa.washington"
+      ],
+      "linksPerRailroad": {
+        "railroad.blue": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 2,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 1,
+          "fare": 2
+        },
+        {
+          "playerId": "p4",
+          "dividends": 0,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 55,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 55
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1840042964
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 5
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 7
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 7
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/21/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/22"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 5
+      },
+      {
+        "op": "add",
+        "path": "/passengers/32",
+        "value": "city.usa.pittsburgh"
+      }
+    ]
+  },
+  {
+    "id": "scripted-56",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p1",
+    "links": [
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.11-55",
+          "hex.usa.10-54",
+          "hex.usa.9-53",
+          "hex.usa.8-52",
+          "hex.usa.7-51"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.091Z",
+    "metadata": {
+      "startCityId": "city.usa.washington",
+      "endCityId": "city.usa.pittsburgh",
+      "cityIds": [
+        "city.usa.washington",
+        "city.usa.pittsburgh"
+      ],
+      "linksPerRailroad": {
+        "railroad.blue": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 2
+        },
+        {
+          "playerId": "p2",
+          "dividends": 2,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 0,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 56,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 56
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1369064229
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 6
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 9
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 10
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/22/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/23"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 5
+      },
+      {
+        "op": "add",
+        "path": "/passengers/44",
+        "value": "city.usa.washington"
+      }
+    ]
+  },
+  {
+    "id": "scripted-57",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:48.095Z",
+    "index": 57,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 287
+      },
+      {
+        "op": "add",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 57
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -63566826
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Riding"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/23/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 5
+      }
+    ]
+  },
+  {
+    "id": "nEaXkVgyo6rMivPB6VGbZ",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "EndRound",
+    "createdAt": "2026-11-15T18:14:48.095Z",
+    "metadata": {
+      "round": 2,
+      "turnOrder": [
+        "p4",
+        "p1",
+        "p3",
+        "p2"
+      ],
+      "money": [
+        {
+          "playerId": "p4",
+          "money": 7
+        },
+        {
+          "playerId": "p1",
+          "money": 9
+        },
+        {
+          "playerId": "p3",
+          "money": 11
+        },
+        {
+          "playerId": "p2",
+          "money": 11
+        }
+      ],
+      "railroadId": "railroad.yellow"
+    },
+    "index": 58,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 58
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1720960750
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "EndingRound"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/24"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "p2",
+          "p3",
+          "p1",
+          "p4"
+        ]
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/1/end"
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/2"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/5/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/6"
+      }
+    ]
+  },
+  {
+    "id": "scripted-59",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "createdAt": "2026-11-15T18:14:48.102Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 26
+    },
+    "index": 59,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 59
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 151393209
+      },
+      {
+        "op": "remove",
+        "path": "/players/1/shares/railroad.yellow"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/24/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/25"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 6
+      }
+    ]
+  },
+  {
+    "id": "scripted-60",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p3",
+    "railroadId": "railroad.yellow",
+    "createdAt": "2026-11-15T18:14:48.109Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 25
+    },
+    "index": 60,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 60
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 45803674
+      },
+      {
+        "op": "remove",
+        "path": "/players/2/shares/railroad.yellow"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/25/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/26"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 6
+      }
+    ]
+  },
+  {
+    "id": "scripted-61",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p1",
+    "railroadId": "railroad.red",
+    "createdAt": "2026-11-15T18:14:48.119Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 18
+    },
+    "index": 61,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 61
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 46973288
+      },
+      {
+        "op": "remove",
+        "path": "/players/0/shares/railroad.red"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/26/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/27"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 6
+      }
+    ]
+  },
+  {
+    "id": "scripted-62",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "createdAt": "2026-11-15T18:14:48.123Z",
+    "metadata": {
+      "shares": 2,
+      "supplyLeft": 17
+    },
+    "index": 62,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 62
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1765398310
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/shares/railroad.red",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "TakingShares"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/27/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/28"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 6
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/6/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/7"
+      },
+      {
+        "op": "remove",
+        "path": "/building"
+      }
+    ]
+  },
+  {
+    "id": "scripted-63",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.8-42",
+    "createdAt": "2026-11-15T18:14:48.126Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 63,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 63
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 2033053505
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-42"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-64",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.5-39",
+    "createdAt": "2026-11-15T18:14:48.128Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 64,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 64
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1858467737
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.5-39"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-65",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.6-56",
+    "createdAt": "2026-11-15T18:14:48.130Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 65,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 65
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -277983727
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-56"
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 2,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-66",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.7-55",
+    "createdAt": "2026-11-15T18:14:48.132Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 66,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 322
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 66
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1909011695
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.7-55"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "2cykjnAmTS34BQ8q4D66O",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:48.132Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 4
+    },
+    "index": 67,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 67
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -625713575
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/28/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/29"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 7
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 4,
+          "usedMountain": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-68",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.5-55",
+    "createdAt": "2026-11-15T18:14:48.134Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 68,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 68
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 704026877
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.5-55"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-69",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.8-48",
+    "createdAt": "2026-11-15T18:14:48.136Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 69,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 69
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -333640149
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-48"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-70",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.5-37",
+    "createdAt": "2026-11-15T18:14:48.140Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 70,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 70
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1239136757
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.5-37"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-71",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.7-39",
+    "createdAt": "2026-11-15T18:14:48.142Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 71,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 71
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1125241567
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.7-39"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-72",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:48.145Z",
+    "metadata": {
+      "placed": 4
+    },
+    "index": 72,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 72
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1379378767
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/29/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/30"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 7
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "scripted-73",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.12-46",
+    "createdAt": "2026-11-15T18:14:48.147Z",
+    "metadata": {
+      "isStart": true,
+      "bonuses": []
+    },
+    "index": 73,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 73
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 411298794
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-46/1"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-74",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p3",
+    "createdAt": "2026-11-15T18:14:48.149Z",
+    "metadata": {
+      "placed": 1
+    },
+    "index": 74,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 74
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1941480427
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/30/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/31"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 7
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-75",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.11-47",
+    "createdAt": "2026-11-15T18:14:48.151Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 75,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 75
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1615600994
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-47"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-76",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.blue",
+    "hexId": "hex.usa.8-46",
+    "createdAt": "2026-11-15T18:14:48.154Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 76,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 76
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1393274391
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-46"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-77",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.10-46",
+    "createdAt": "2026-11-15T18:14:48.166Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 77,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 77
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -320606770
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-46"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-78",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.9-47",
+    "createdAt": "2026-11-15T18:14:48.176Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 78,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 78
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1936528259
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.9-47"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-79",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.8-46",
+    "createdAt": "2026-11-15T18:14:48.186Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 79,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 357
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 79
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 932525670
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-46/1"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "wm7V6Zq06aKc6AajcNt3A",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:48.186Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 80,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 80
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 524166043
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Building"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/31/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/32"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 7
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/7/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/8"
+      },
+      {
+        "op": "add",
+        "path": "/building",
+        "value": {
+          "placed": 5,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-81",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p4",
+    "links": [
+      {
+        "railroadId": "railroad.orange",
+        "hexIds": [
+          "hex.usa.5-43",
+          "hex.usa.6-42",
+          "hex.usa.6-40",
+          "hex.usa.5-39",
+          "hex.usa.5-37"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.213Z",
+    "metadata": {
+      "startCityId": "city.usa.chicago",
+      "endCityId": "city.usa.des-moines",
+      "cityIds": [
+        "city.usa.chicago",
+        "city.usa.des-moines"
+      ],
+      "linksPerRailroad": {
+        "railroad.orange": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 1,
+          "fare": 2
+        }
+      ]
+    },
+    "index": 81,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 81
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1695268366
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 9
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 11
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 7
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/32/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/33"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 8
+      },
+      {
+        "op": "add",
+        "path": "/passengers/8",
+        "value": "city.usa.chicago"
+      }
+    ]
+  },
+  {
+    "id": "scripted-82",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p1",
+    "links": [
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.8-46",
+          "hex.usa.8-48",
+          "hex.usa.7-49",
+          "hex.usa.6-50",
+          "hex.usa.6-52",
+          "hex.usa.7-51"
+        ]
+      },
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.7-51",
+          "hex.usa.8-52",
+          "hex.usa.9-51",
+          "hex.usa.9-53",
+          "hex.usa.10-54",
+          "hex.usa.11-55"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.240Z",
+    "metadata": {
+      "startCityId": "city.usa.cincinnati",
+      "endCityId": "city.usa.washington",
+      "cityIds": [
+        "city.usa.cincinnati",
+        "city.usa.pittsburgh",
+        "city.usa.washington"
+      ],
+      "linksPerRailroad": {
+        "railroad.blue": 2
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 2,
+          "fare": 3
+        },
+        {
+          "playerId": "p2",
+          "dividends": 4,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 2,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 0,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 82,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 82
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 619457295
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 10
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 11
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 12
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/33/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/34"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 8
+      },
+      {
+        "op": "add",
+        "path": "/passengers/8",
+        "value": "city.usa.cincinnati"
+      }
+    ]
+  },
+  {
+    "id": "scripted-83",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p3",
+    "links": [
+      {
+        "railroadId": "railroad.orange",
+        "hexIds": [
+          "hex.usa.5-37",
+          "hex.usa.5-39",
+          "hex.usa.6-40",
+          "hex.usa.6-42",
+          "hex.usa.5-43"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.244Z",
+    "metadata": {
+      "startCityId": "city.usa.des-moines",
+      "endCityId": "city.usa.chicago",
+      "cityIds": [
+        "city.usa.des-moines",
+        "city.usa.chicago"
+      ],
+      "linksPerRailroad": {
+        "railroad.orange": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 1,
+          "fare": 2
+        },
+        {
+          "playerId": "p4",
+          "dividends": 1,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 83,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 83
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 389156850
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 15
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 14
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 10
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/34/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/35"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 8
+      },
+      {
+        "op": "add",
+        "path": "/passengers/11",
+        "value": "city.usa.des-moines"
+      }
+    ]
+  },
+  {
+    "id": "scripted-84",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:48.248Z",
+    "index": 84,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 392
+      },
+      {
+        "op": "add",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 84
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 76583925
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Riding"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/35/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 8
+      }
+    ]
+  },
+  {
+    "id": "hiXBeIzSjqsGj22f13eBr",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "EndRound",
+    "createdAt": "2026-11-15T18:14:48.249Z",
+    "metadata": {
+      "round": 3,
+      "turnOrder": [
+        "p4",
+        "p2",
+        "p1",
+        "p3"
+      ],
+      "money": [
+        {
+          "playerId": "p4",
+          "money": 11
+        },
+        {
+          "playerId": "p2",
+          "money": 15
+        },
+        {
+          "playerId": "p1",
+          "money": 16
+        },
+        {
+          "playerId": "p3",
+          "money": 17
+        }
+      ],
+      "railroadId": "railroad.purple"
+    },
+    "index": 85,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 85
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -10058131
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "EndingRound"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/36"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "p4",
+          "p1",
+          "p3",
+          "p2"
+        ]
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/2/end"
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/3"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/8/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/9"
+      }
+    ]
+  },
+  {
+    "id": "scripted-86",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p3",
+    "railroadId": "railroad.purple",
+    "createdAt": "2026-11-15T18:14:48.252Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 26
+    },
+    "index": 86,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 86
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -679310835
+      },
+      {
+        "op": "remove",
+        "path": "/players/2/shares/railroad.purple"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/36/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/37"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 9
+      }
+    ]
+  },
+  {
+    "id": "scripted-87",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p1",
+    "railroadId": "railroad.purple",
+    "createdAt": "2026-11-15T18:14:48.256Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 25
+    },
+    "index": 87,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 87
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -19157888
+      },
+      {
+        "op": "remove",
+        "path": "/players/0/shares/railroad.purple"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/37/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/38"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 9
+      }
+    ]
+  },
+  {
+    "id": "scripted-88",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p2",
+    "railroadId": "railroad.red",
+    "createdAt": "2026-11-15T18:14:48.258Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 13
+    },
+    "index": 88,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 88
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -164274285
+      },
+      {
+        "op": "remove",
+        "path": "/players/1/shares/railroad.red"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/38/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/39"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 9
+      }
+    ]
+  },
+  {
+    "id": "scripted-89",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p4",
+    "railroadId": "railroad.purple",
+    "createdAt": "2026-11-15T18:14:48.260Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 24
+    },
+    "index": 89,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 89
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 125296127
+      },
+      {
+        "op": "remove",
+        "path": "/players/3/shares/railroad.purple"
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "TakingShares"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/39/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/40"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 9
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/9/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/10"
+      },
+      {
+        "op": "remove",
+        "path": "/building"
+      }
+    ]
+  },
+  {
+    "id": "scripted-90",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.0-4",
+    "createdAt": "2026-11-15T18:14:48.268Z",
+    "metadata": {
+      "isStart": true,
+      "bonuses": []
+    },
+    "index": 90,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 90
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -2067010861
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.0-4"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-91",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.9-41",
+    "createdAt": "2026-11-15T18:14:48.274Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 91,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 91
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1538128366
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.9-41"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-92",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:48.276Z",
+    "metadata": {
+      "placed": 2
+    },
+    "index": 92,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 92
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -447213355
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/40/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/41"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 10
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-93",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.8-48",
+    "createdAt": "2026-11-15T18:14:48.278Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 93,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 93
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1109792393
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-48/1"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-94",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.4-56",
+    "createdAt": "2026-11-15T18:14:48.280Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 94,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 94
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 578704044
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.4-56"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-95",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.13-45",
+    "createdAt": "2026-11-15T18:14:48.282Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 95,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 95
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 154340017
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.13-45"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-96",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.4-58",
+    "createdAt": "2026-11-15T18:14:48.284Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 96,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 96
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1119626281
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.4-58"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-97",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.11-45",
+    "createdAt": "2026-11-15T18:14:48.287Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 97,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 427
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 97
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 595076610
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-45"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "lt6wlE0UD9xBo0XmR146n",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:48.287Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 98,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 98
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -331890875
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/41/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/42"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 10
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 5
+      }
+    ]
+  },
+  {
+    "id": "scripted-99",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.1-3",
+    "createdAt": "2026-11-15T18:14:48.290Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 99,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 99
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1074498844
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.1-3"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-100",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:48.292Z",
+    "metadata": {
+      "placed": 1
+    },
+    "index": 100,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 100
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1198367465
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/42/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/43"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 10
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-101",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.1-5",
+    "createdAt": "2026-11-15T18:14:48.295Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 101,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 101
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 936438534
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.1-5"
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 0,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-102",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.10-44",
+    "createdAt": "2026-11-15T18:14:48.297Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 102,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 102
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 34055559
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-44"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-103",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.8-40",
+    "createdAt": "2026-11-15T18:14:48.300Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 103,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 103
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 8809697
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-40"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-104",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.1-7",
+    "createdAt": "2026-11-15T18:14:48.304Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 104,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 462
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 104
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 564649791
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.1-7"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "uIRP5RvMV3ZbCPgdgJdvd",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p3",
+    "createdAt": "2026-11-15T18:14:48.304Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 4
+    },
+    "index": 105,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 105
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1666655762
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Building"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/43/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/44"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 10
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/10/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/11"
+      },
+      {
+        "op": "add",
+        "path": "/building",
+        "value": {
+          "placed": 4,
+          "usedMountain": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-106",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p4",
+    "links": [
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.4-58",
+          "hex.usa.4-56",
+          "hex.usa.5-55",
+          "hex.usa.6-56",
+          "hex.usa.7-57"
+        ]
+      },
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.7-57",
+          "hex.usa.6-58",
+          "hex.usa.6-60"
+        ]
+      },
+      {
+        "railroadId": "railroad.red",
+        "hexIds": [
+          "hex.usa.6-60",
+          "hex.usa.5-61",
+          "hex.usa.4-62"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.307Z",
+    "metadata": {
+      "startCityId": "city.usa.albany",
+      "endCityId": "city.usa.boston",
+      "cityIds": [
+        "city.usa.albany",
+        "city.usa.philadelphia",
+        "city.usa.new-york",
+        "city.usa.boston"
+      ],
+      "linksPerRailroad": {
+        "railroad.red": 3
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 3,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 3,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 6,
+          "fare": 4
+        }
+      ]
+    },
+    "index": 106,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 106
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1804610602
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 16
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 15
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 11
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/44/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/45"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 11
+      },
+      {
+        "op": "add",
+        "path": "/passengers/0",
+        "value": "city.usa.albany"
+      }
+    ]
+  },
+  {
+    "id": "scripted-107",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:48.309Z",
+    "index": 107,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 107
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 688622265
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/45/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/46"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 11
+      }
+    ]
+  },
+  {
+    "id": "scripted-108",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:48.310Z",
+    "index": 108,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 108
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -183528761
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/46/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/47"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 11
+      }
+    ]
+  },
+  {
+    "id": "scripted-109",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p3",
+    "createdAt": "2026-11-15T18:14:48.312Z",
+    "index": 109,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 497
+      },
+      {
+        "op": "add",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 109
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 997358020
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Riding"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/47/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 11
+      }
+    ]
+  },
+  {
+    "id": "ja0RKug8QNHvexXsHkGcq",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "EndRound",
+    "createdAt": "2026-11-15T18:14:48.312Z",
+    "metadata": {
+      "round": 4,
+      "turnOrder": [
+        "p3",
+        "p2",
+        "p1",
+        "p4"
+      ],
+      "money": [
+        {
+          "playerId": "p3",
+          "money": 17
+        },
+        {
+          "playerId": "p2",
+          "money": 18
+        },
+        {
+          "playerId": "p1",
+          "money": 19
+        },
+        {
+          "playerId": "p4",
+          "money": 21
+        }
+      ],
+      "railroadId": "railroad.black"
+    },
+    "index": 110,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 110
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -474369454
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "EndingRound"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/48"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "p4",
+          "p2",
+          "p1",
+          "p3"
+        ]
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/3/end"
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/4"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/11/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/12"
+      }
+    ]
+  },
+  {
+    "id": "scripted-111",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p4",
+    "railroadId": "railroad.black",
+    "createdAt": "2026-11-15T18:14:48.314Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 26
+    },
+    "index": 111,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 111
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -904577355
+      },
+      {
+        "op": "remove",
+        "path": "/players/3/shares/railroad.black"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/48/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/49"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 12
+      }
+    ]
+  },
+  {
+    "id": "scripted-112",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p1",
+    "railroadId": "railroad.red",
+    "createdAt": "2026-11-15T18:14:48.317Z",
+    "metadata": {
+      "shares": 2,
+      "supplyLeft": 10
+    },
+    "index": 112,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 112
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -306971494
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/shares/railroad.red",
+        "value": 1
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/49/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/50"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 12
+      }
+    ]
+  },
+  {
+    "id": "scripted-113",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "createdAt": "2026-11-15T18:14:48.319Z",
+    "metadata": {
+      "shares": 1,
+      "supplyLeft": 25
+    },
+    "index": 113,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 113
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1714341250
+      },
+      {
+        "op": "remove",
+        "path": "/players/1/shares/railroad.black"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/50/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/51"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 12
+      }
+    ]
+  },
+  {
+    "id": "scripted-114",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p3",
+    "railroadId": "railroad.orange",
+    "createdAt": "2026-11-15T18:14:48.320Z",
+    "metadata": {
+      "shares": 2,
+      "supplyLeft": 12
+    },
+    "index": 114,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 114
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -670893718
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/shares/railroad.orange",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "TakingShares"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/51/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/52"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 12
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/12/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/13"
+      },
+      {
+        "op": "remove",
+        "path": "/building"
+      }
+    ]
+  },
+  {
+    "id": "scripted-115",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.12-44",
+    "createdAt": "2026-11-15T18:14:48.323Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 115,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 115
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1390289795
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-44"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-116",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p3",
+    "createdAt": "2026-11-15T18:14:48.325Z",
+    "metadata": {
+      "placed": 1
+    },
+    "index": 116,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 116
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -72781874
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/52/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/53"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 13
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-117",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.12-10",
+    "createdAt": "2026-11-15T18:14:48.329Z",
+    "metadata": {
+      "isStart": true,
+      "bonuses": []
+    },
+    "index": 117,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 117
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -34818016
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-10"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-118",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.12-12",
+    "createdAt": "2026-11-15T18:14:48.332Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 118,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 118
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 16708643
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-12"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-119",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.13-11",
+    "createdAt": "2026-11-15T18:14:48.335Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 119,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 119
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -2054966753
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.13-11"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-120",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.11-9",
+    "createdAt": "2026-11-15T18:14:48.337Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 120,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 120
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -480150138
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-9"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-121",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:48.339Z",
+    "metadata": {
+      "placed": 4
+    },
+    "index": 121,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 121
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1656256318
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/53/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/54"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 13
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "scripted-122",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.8-54",
+    "createdAt": "2026-11-15T18:14:48.343Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 122,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 122
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1036239358
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-54"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-123",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.8-38",
+    "createdAt": "2026-11-15T18:14:48.346Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 123,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 123
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1606359622
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.8-38"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-124",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:48.348Z",
+    "metadata": {
+      "placed": 2
+    },
+    "index": 124,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 124
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -126111140
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/54/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/55"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 13
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-125",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.12-14",
+    "createdAt": "2026-11-15T18:14:48.351Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 125,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 125
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1220626960
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-14"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-126",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "EndBuilding",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:48.354Z",
+    "metadata": {
+      "placed": 1
+    },
+    "index": 126,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 126
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 2078158379
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Building"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/55/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/56"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 13
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/13/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/14"
+      },
+      {
+        "op": "add",
+        "path": "/building",
+        "value": {
+          "placed": 1,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-127",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p3",
+    "links": [
+      {
+        "railroadId": "railroad.orange",
+        "hexIds": [
+          "hex.usa.8-38",
+          "hex.usa.7-39",
+          "hex.usa.6-40",
+          "hex.usa.5-39",
+          "hex.usa.5-37"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.356Z",
+    "metadata": {
+      "startCityId": "city.usa.saint-louis",
+      "endCityId": "city.usa.des-moines",
+      "cityIds": [
+        "city.usa.saint-louis",
+        "city.usa.des-moines"
+      ],
+      "linksPerRailroad": {
+        "railroad.orange": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 2,
+          "fare": 2
+        },
+        {
+          "playerId": "p4",
+          "dividends": 1,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 127,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 127
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1212483069
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 19
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 17
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 21
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/56/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/57"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 14
+      },
+      {
+        "op": "add",
+        "path": "/passengers/33",
+        "value": "city.usa.saint-louis"
+      }
+    ]
+  },
+  {
+    "id": "scripted-128",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:48.358Z",
+    "index": 128,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 128
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1649712129
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/57/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/58"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 14
+      }
+    ]
+  },
+  {
+    "id": "scripted-129",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:48.360Z",
+    "index": 129,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 129
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 550076863
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/58/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/59"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 14
+      }
+    ]
+  },
+  {
+    "id": "scripted-130",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PassJourney",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:48.361Z",
+    "index": 130,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 532
+      },
+      {
+        "op": "add",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 130
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1559160679
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Riding"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/59/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 14
+      }
+    ]
+  },
+  {
+    "id": "nSOaAOtvC793jT6A5z1pa",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "EndRound",
+    "createdAt": "2026-11-15T18:14:48.361Z",
+    "metadata": {
+      "round": 5,
+      "turnOrder": [
+        "p2",
+        "p1",
+        "p3",
+        "p4"
+      ],
+      "money": [
+        {
+          "playerId": "p2",
+          "money": 18
+        },
+        {
+          "playerId": "p1",
+          "money": 20
+        },
+        {
+          "playerId": "p3",
+          "money": 21
+        },
+        {
+          "playerId": "p4",
+          "money": 22
+        }
+      ]
+    },
+    "index": 131,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/activePlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 131
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 391839851
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "EndingRound"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/60"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnOrder",
+        "value": [
+          "p3",
+          "p2",
+          "p1",
+          "p4"
+        ]
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/4/end"
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/5"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/14/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/15"
+      }
+    ]
+  },
+  {
+    "id": "scripted-132",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "createdAt": "2026-11-15T18:14:48.364Z",
+    "metadata": {
+      "shares": 2,
+      "supplyLeft": 10
+    },
+    "index": 132,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 132
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1201009689
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/shares/railroad.orange",
+        "value": 1
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/60/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/61"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 15
+      }
+    ]
+  },
+  {
+    "id": "scripted-133",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p3",
+    "railroadId": "railroad.yellow",
+    "createdAt": "2026-11-15T18:14:48.366Z",
+    "metadata": {
+      "shares": 2,
+      "supplyLeft": 14
+    },
+    "index": 133,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 133
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -664399997
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/shares/railroad.yellow",
+        "value": 1
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/61/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/62"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 15
+      }
+    ]
+  },
+  {
+    "id": "scripted-134",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p1",
+    "railroadId": "railroad.red",
+    "createdAt": "2026-11-15T18:14:48.368Z",
+    "metadata": {
+      "shares": 3,
+      "supplyLeft": 8
+    },
+    "index": 134,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 134
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1728048441
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/shares/railroad.red",
+        "value": 2
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/62/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/63"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 15
+      }
+    ]
+  },
+  {
+    "id": "scripted-135",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "TakeShare",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "createdAt": "2026-11-15T18:14:48.370Z",
+    "metadata": {
+      "shares": 2,
+      "supplyLeft": 19
+    },
+    "index": 135,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 135
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -590105223
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/shares/railroad.black",
+        "value": 1
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "TakingShares"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/63/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/64"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 15
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/15/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/16"
+      },
+      {
+        "op": "remove",
+        "path": "/building"
+      }
+    ]
+  },
+  {
+    "id": "scripted-136",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.11-15",
+    "createdAt": "2026-11-15T18:14:48.373Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 136,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 136
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -854736111
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-15"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-137",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.10-14",
+    "createdAt": "2026-11-15T18:14:48.376Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 137,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 137
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -64496023
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-14"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-138",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.9-53",
+    "createdAt": "2026-11-15T18:14:48.378Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 138,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 138
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 193059323
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.9-53/1"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-139",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.10-42",
+    "createdAt": "2026-11-15T18:14:48.381Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 139,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 139
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -2123310843
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-42"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-140",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p2",
+    "railroadId": "railroad.black",
+    "hexId": "hex.usa.13-13",
+    "createdAt": "2026-11-15T18:14:48.384Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 140,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 567
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 140
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1843708
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.13-13"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "Wp9XZ2SO4rmhJ4lO5Ppt2",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p2",
+    "createdAt": "2026-11-15T18:14:48.385Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 141,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 141
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1141954334
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/64/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/65"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 16
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 5
+      }
+    ]
+  },
+  {
+    "id": "scripted-142",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.10-42",
+    "createdAt": "2026-11-15T18:14:48.388Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 142,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 142
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1143853504
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.10-42/1"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-143",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.2-4",
+    "createdAt": "2026-11-15T18:14:48.391Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 143,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 143
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -50817220
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.2-4"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-144",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.11-41",
+    "createdAt": "2026-11-15T18:14:48.395Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 144,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 144
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -985382665
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-41"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-145",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p1",
+    "railroadId": "railroad.red",
+    "hexId": "hex.usa.3-59",
+    "createdAt": "2026-11-15T18:14:48.398Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 145,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 602
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 145
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1275482556
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.3-59"
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 3,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "J0uioHsJ56y0jinXirzhD",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p1",
+    "createdAt": "2026-11-15T18:14:48.398Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 4
+    },
+    "index": 146,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 146
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1400808212
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/65/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/66"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 16
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 4,
+          "usedMountain": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-147",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.yellow",
+    "hexId": "hex.usa.9-43",
+    "createdAt": "2026-11-15T18:14:48.401Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 147,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 147
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -2002303835
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.9-43"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-148",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.12-40",
+    "createdAt": "2026-11-15T18:14:48.404Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 148,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 148
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 551235955
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.12-40"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-149",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.2-6",
+    "createdAt": "2026-11-15T18:14:48.409Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 149,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 149
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 14098223
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.2-6"
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 2,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-150",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p3",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.11-43",
+    "createdAt": "2026-11-15T18:14:48.412Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 150,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 637
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 150
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 697022370
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-43"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "2icyy9Fq8NsJ80vxL69IU",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p3",
+    "createdAt": "2026-11-15T18:14:48.412Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 4
+    },
+    "index": 151,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 151
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1632779262
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/66/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/67"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 16
+      },
+      {
+        "op": "replace",
+        "path": "/building",
+        "value": {
+          "placed": 4,
+          "usedMountain": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-152",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.11-39",
+    "createdAt": "2026-11-15T18:14:48.415Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 152,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 152
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1467685928
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-39"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "scripted-153",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.11-37",
+    "createdAt": "2026-11-15T18:14:48.422Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 153,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 153
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1317448321
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.11-37"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "scripted-154",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.orange",
+    "hexId": "hex.usa.6-44",
+    "createdAt": "2026-11-15T18:14:48.425Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 154,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 154
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 7240559
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.6-44"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "scripted-155",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.3-3",
+    "createdAt": "2026-11-15T18:14:48.428Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 155,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 155
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 605754103
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.3-3"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "scripted-156",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "PlaceLocomotive",
+    "playerId": "p4",
+    "railroadId": "railroad.purple",
+    "hexId": "hex.usa.3-7",
+    "createdAt": "2026-11-15T18:14:48.431Z",
+    "metadata": {
+      "isStart": false,
+      "bonuses": []
+    },
+    "index": 156,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 672
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 156
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 566351954
+      },
+      {
+        "op": "remove",
+        "path": "/track/hex.usa.3-7"
+      },
+      {
+        "op": "replace",
+        "path": "/building/placed",
+        "value": 4
+      }
+    ]
+  },
+  {
+    "id": "3uztRbYIyIgqIzPPq4Dn6",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "FinishBuilding",
+    "playerId": "p4",
+    "createdAt": "2026-11-15T18:14:48.431Z",
+    "metadata": {
+      "reason": "limit",
+      "placed": 5
+    },
+    "index": 157,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 157
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1752260386
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Building"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/67/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/68"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 16
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/16/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/17"
+      },
+      {
+        "op": "add",
+        "path": "/building",
+        "value": {
+          "placed": 5,
+          "usedMountain": false
+        }
+      }
+    ]
+  },
+  {
+    "id": "scripted-158",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p2",
+    "links": [
+      {
+        "railroadId": "railroad.orange",
+        "hexIds": [
+          "hex.usa.11-37",
+          "hex.usa.11-39",
+          "hex.usa.11-41",
+          "hex.usa.10-42"
+        ]
+      },
+      {
+        "railroadId": "railroad.yellow",
+        "hexIds": [
+          "hex.usa.10-42",
+          "hex.usa.9-43",
+          "hex.usa.10-44",
+          "hex.usa.10-46",
+          "hex.usa.9-47",
+          "hex.usa.8-46"
+        ]
+      },
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.8-46",
+          "hex.usa.8-48",
+          "hex.usa.7-49",
+          "hex.usa.6-50",
+          "hex.usa.6-52",
+          "hex.usa.7-51"
+        ]
+      },
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.7-51",
+          "hex.usa.8-52",
+          "hex.usa.9-51",
+          "hex.usa.9-53",
+          "hex.usa.10-54",
+          "hex.usa.11-55"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.454Z",
+    "metadata": {
+      "startCityId": "city.usa.little-rock",
+      "endCityId": "city.usa.washington",
+      "cityIds": [
+        "city.usa.little-rock",
+        "city.usa.nashville",
+        "city.usa.cincinnati",
+        "city.usa.pittsburgh",
+        "city.usa.washington"
+      ],
+      "linksPerRailroad": {
+        "railroad.orange": 1,
+        "railroad.yellow": 1,
+        "railroad.blue": 2
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 3,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 5,
+          "fare": 5
+        },
+        {
+          "playerId": "p3",
+          "dividends": 6,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 2,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 158,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p2"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 158
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -2043374673
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 20
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 18
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 21
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 22
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/68/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/69"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p2",
+        "value": 17
+      },
+      {
+        "op": "add",
+        "path": "/passengers/18",
+        "value": "city.usa.little-rock"
+      }
+    ]
+  },
+  {
+    "id": "scripted-159",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p1",
+    "links": [
+      {
+        "railroadId": "railroad.yellow",
+        "hexIds": [
+          "hex.usa.10-42",
+          "hex.usa.9-43",
+          "hex.usa.10-44",
+          "hex.usa.10-46",
+          "hex.usa.9-47",
+          "hex.usa.8-46"
+        ]
+      },
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.8-46",
+          "hex.usa.8-48",
+          "hex.usa.7-49",
+          "hex.usa.6-50",
+          "hex.usa.6-52",
+          "hex.usa.7-51"
+        ]
+      },
+      {
+        "railroadId": "railroad.blue",
+        "hexIds": [
+          "hex.usa.7-51",
+          "hex.usa.8-52",
+          "hex.usa.9-51",
+          "hex.usa.9-53",
+          "hex.usa.10-54",
+          "hex.usa.11-55"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.464Z",
+    "metadata": {
+      "startCityId": "city.usa.nashville",
+      "endCityId": "city.usa.washington",
+      "cityIds": [
+        "city.usa.nashville",
+        "city.usa.cincinnati",
+        "city.usa.pittsburgh",
+        "city.usa.washington"
+      ],
+      "linksPerRailroad": {
+        "railroad.yellow": 1,
+        "railroad.blue": 2
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 2,
+          "fare": 4
+        },
+        {
+          "playerId": "p2",
+          "dividends": 5,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 4,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 0,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 159,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p1"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 159
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1457209114
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 23
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 28
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 27
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/69/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/70"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p1",
+        "value": 17
+      },
+      {
+        "op": "add",
+        "path": "/passengers/22",
+        "value": "city.usa.nashville"
+      }
+    ]
+  },
+  {
+    "id": "scripted-160",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p3",
+    "links": [
+      {
+        "railroadId": "railroad.purple",
+        "hexIds": [
+          "hex.usa.2-4",
+          "hex.usa.1-3",
+          "hex.usa.0-4"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.467Z",
+    "metadata": {
+      "startCityId": "city.usa.portland-or",
+      "endCityId": "city.usa.seattle",
+      "cityIds": [
+        "city.usa.portland-or",
+        "city.usa.seattle"
+      ],
+      "linksPerRailroad": {
+        "railroad.purple": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 1,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 1,
+          "fare": 2
+        },
+        {
+          "playerId": "p4",
+          "dividends": 1,
+          "fare": 0
+        }
+      ]
+    },
+    "index": 160,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/activePlayerIds/0",
+        "value": "p3"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 160
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 1555868319
+      },
+      {
+        "op": "replace",
+        "path": "/players/0/money",
+        "value": 29
+      },
+      {
+        "op": "replace",
+        "path": "/players/2/money",
+        "value": 31
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 24
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/70/end"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/71"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p3",
+        "value": 17
+      },
+      {
+        "op": "add",
+        "path": "/passengers/28",
+        "value": "city.usa.portland-or"
+      }
+    ]
+  },
+  {
+    "id": "scripted-161",
+    "gameId": "ride-the-rails-test",
+    "source": "user",
+    "type": "RideJourney",
+    "playerId": "p4",
+    "links": [
+      {
+        "railroadId": "railroad.black",
+        "hexIds": [
+          "hex.usa.10-14",
+          "hex.usa.11-15",
+          "hex.usa.12-14",
+          "hex.usa.12-12",
+          "hex.usa.12-10"
+        ]
+      }
+    ],
+    "createdAt": "2026-11-15T18:14:48.469Z",
+    "metadata": {
+      "startCityId": "city.usa.las-vegas",
+      "endCityId": "city.usa.los-angeles",
+      "cityIds": [
+        "city.usa.las-vegas",
+        "city.usa.los-angeles"
+      ],
+      "linksPerRailroad": {
+        "railroad.black": 1
+      },
+      "payments": [
+        {
+          "playerId": "p1",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p2",
+          "dividends": 2,
+          "fare": 0
+        },
+        {
+          "playerId": "p3",
+          "dividends": 0,
+          "fare": 0
+        },
+        {
+          "playerId": "p4",
+          "dividends": 1,
+          "fare": 2
+        }
+      ]
+    },
+    "index": 161,
+    "undoPatch": [
+      {
+        "op": "replace",
+        "path": "/prng/invocations",
+        "value": 707
+      },
+      {
+        "op": "add",
+        "path": "/activePlayerIds/0",
+        "value": "p4"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 161
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": 952793685
+      },
+      {
+        "op": "replace",
+        "path": "/players/1/money",
+        "value": 33
+      },
+      {
+        "op": "replace",
+        "path": "/players/3/money",
+        "value": 25
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "Riding"
+      },
+      {
+        "op": "remove",
+        "path": "/turnManager/series/71/end"
+      },
+      {
+        "op": "replace",
+        "path": "/turnManager/turnCounts/p4",
+        "value": 17
+      },
+      {
+        "op": "add",
+        "path": "/passengers/17",
+        "value": "city.usa.las-vegas"
+      }
+    ]
+  },
+  {
+    "id": "iewRbPwaAQEeNDG68wG2s",
+    "gameId": "ride-the-rails-test",
+    "source": "system",
+    "type": "EndGame",
+    "createdAt": "2026-11-15T18:14:48.469Z",
+    "metadata": {
+      "money": [
+        {
+          "playerId": "p2",
+          "money": 35
+        },
+        {
+          "playerId": "p1",
+          "money": 30
+        },
+        {
+          "playerId": "p3",
+          "money": 34
+        },
+        {
+          "playerId": "p4",
+          "money": 28
+        }
+      ],
+      "winningPlayerIds": [
+        "p2"
+      ]
+    },
+    "index": 162,
+    "undoPatch": [
+      {
+        "op": "remove",
+        "path": "/winningPlayerIds/0"
+      },
+      {
+        "op": "replace",
+        "path": "/actionCount",
+        "value": 162
+      },
+      {
+        "op": "replace",
+        "path": "/actionChecksum",
+        "value": -1142371846
+      },
+      {
+        "op": "remove",
+        "path": "/result"
+      },
+      {
+        "op": "replace",
+        "path": "/machineState",
+        "value": "EndingRound"
+      },
+      {
+        "op": "remove",
+        "path": "/roundManager/series/5/end"
+      },
+      {
+        "op": "remove",
+        "path": "/phaseManager/series/17/end"
+      }
+    ]
+  }
+]

@@ -5,6 +5,7 @@ import type {
     TournamentListQuery,
     TournamentSchedule,
     TournamentGameLink,
+    TournamentTable,
     TiebreakRule,
     User
 } from '@tabletop/common'
@@ -30,6 +31,17 @@ export interface TournamentStore {
         schedule: TournamentSchedule,
         revision: number,
         user: User | undefined,
+        now: number
+    ): Promise<Tournament>
+    /**
+     * Appends a Knockout's due Tables to its Schedule and reserves them, if the Schedule still
+     * holds the given number of Tables; otherwise leaves both unchanged.
+     */
+    extendSchedule(
+        tournamentId: string,
+        scheduleId: string,
+        knownTables: number,
+        tables: TournamentTable[],
         now: number
     ): Promise<Tournament>
     correctResult(

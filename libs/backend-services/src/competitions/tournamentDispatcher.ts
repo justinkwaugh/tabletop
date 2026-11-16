@@ -1,7 +1,9 @@
 import {
     assertExists,
     generateSeed,
+    knockoutBracket,
     tournamentInPlay,
+    type KnockoutResults,
     type Tournament,
     type TournamentSchedule
 } from '@tabletop/common'
@@ -9,9 +11,10 @@ import type { TournamentStore } from '../persistence/stores/tournamentStore.js'
 import type { TaskService } from '../tasks/taskService.js'
 import { enqueueTournamentTask, type TournamentTask } from './tournamentTasks.js'
 import { updateTournamentRegistration } from './tournamentRegistration.js'
-import { generateTournamentSchedule } from './tournamentScheduler.js'
+import { generateTournamentSchedule, knockoutTables } from './tournamentScheduler.js'
 import { reserveTournamentTables } from './tournamentDispatch.js'
 import { TournamentEntrantUnavailableError } from '../games/tournamentGames.js'
+import { TournamentResultsPendingError } from './tournamentError.js'
 
 export class TournamentDispatcher {
     constructor(
@@ -24,6 +27,10 @@ export class TournamentDispatcher {
         ) => Promise<void>,
         private readonly notify: (tournament: Tournament) => Promise<void>,
         private readonly finished: (tournament: Tournament) => Promise<Tournament>,
+        private readonly knockoutResults: (
+            tournament: Tournament,
+            schedule: TournamentSchedule
+        ) => Promise<KnockoutResults>,
         private readonly now: () => number
     ) {}
 
@@ -81,6 +88,15 @@ export class TournamentDispatcher {
                 stage = tournament.stages[0]
             } else {
                 schedule = await this.store.readSchedule(tournament.id, stage.id)
+                if (schedule.bracket) {
+                    const advanced = await this.advanceBracket(tournament, schedule)
+                    if (advanced.tournament.status === 'finished') {
+                        await this.notify(await this.finished(advanced.tournament))
+                        return
+                    }
+                    ;({ tournament, schedule } = advanced)
+                    stage = tournament.stages[0]
+                }
                 const dispatch = stage.dispatch ?? { reserved: [], active: [], finished: [] }
                 if (
                     !dispatch.reserved.length ||
@@ -131,6 +147,8 @@ export class TournamentDispatcher {
             await this.notify(latest)
             if (unavailableEntrant) throw unavailableEntrant
         } catch (error) {
+            // Not a failure to show: the retried task reads the result once it is visible.
+            if (error instanceof TournamentResultsPendingError) throw error
             const message = error instanceof Error ? error.message : 'Tournament dispatch failed'
             tournament = await this.store.update(tournament.id, undefined, false, (current) => {
                 if (
@@ -146,5 +164,54 @@ export class TournamentDispatcher {
             await this.notify(tournament)
             throw error
         }
+    }
+
+    /**
+     * Adds the Tables a Knockout's results have made due, or finishes it once the final is
+     * decided. Tables are appended only to the Schedule the results were read against.
+     */
+    private async advanceBracket(
+        tournament: Tournament,
+        schedule: TournamentSchedule
+    ): Promise<{ tournament: Tournament; schedule: TournamentSchedule }> {
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const bracket = knockoutBracket(
+                schedule,
+                await this.knockoutResults(tournament, schedule)
+            )
+            if (bracket.finished) {
+                const finished = await this.store.update(
+                    tournament.id,
+                    undefined,
+                    false,
+                    (current) => {
+                        if (!tournamentInPlay(current.status)) return
+                        current.status = 'finished'
+                        current.finishedAt = this.now()
+                        delete current.nextTaskAt
+                        delete current.paused
+                        delete current.schedulingError
+                        current.revision++
+                        current.updatedAt = this.now()
+                    }
+                )
+                return { tournament: finished, schedule }
+            }
+            if (!bracket.due.length) return { tournament, schedule }
+            const known = schedule.tables.length
+            tournament = await this.store.extendSchedule(
+                tournament.id,
+                schedule.id,
+                known,
+                knockoutTables(schedule, bracket.due),
+                this.now()
+            )
+            // Paused or ended meanwhile: nothing more to add, and nothing failed.
+            if (tournament.paused || !tournamentInPlay(tournament.status))
+                return { tournament, schedule }
+            schedule = await this.store.readSchedule(tournament.id, schedule.stageId)
+            if (schedule.tables.length > known) return { tournament, schedule }
+        }
+        throw new Error('The knockout schedule kept changing; dispatch will retry')
     }
 }
