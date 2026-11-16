@@ -29,6 +29,8 @@ import { deckNoteOf } from './watching.js'
 export interface SeatRibbon {
     readonly name: string
     readonly score: number
+    /** R-6 The seat holds the top score, alone or tied, and some seat scores less. */
+    readonly leading: boolean
     readonly turnNumeral: number
     readonly startPlayer: boolean
     readonly deciding: boolean
@@ -131,6 +133,44 @@ export interface SeatPanelInput {
 /** R-2.2.5 The seat order stays as the marker passes, so the panels keep their places. */
 export function seatOrder(state: HydratedFeudumGameState): readonly string[] {
     return state.players.map(({ playerId }) => playerId)
+}
+
+/** R-6 The seats holding the top score while some seat scores less: none while every score is level. */
+export function leadersOf(state: HydratedFeudumGameState): ReadonlySet<string> {
+    const scores = state.players.map(({ score }) => score)
+    const top = Math.max(...scores)
+    if (scores.every((score) => score === top)) {
+        return new Set()
+    }
+    return new Set(
+        state.players.filter(({ score }) => score === top).map(({ playerId }) => playerId)
+    )
+}
+
+export interface ScoreLineSeat {
+    readonly playerId: string
+    readonly name: string
+    readonly score: number
+    readonly leading: boolean
+}
+
+/** Contract, Supply: the desk zoom row's score line: every seat in turn order, its score, the leader marked. */
+export function scoreLineOf(
+    state: HydratedFeudumGameState,
+    nameOf: (playerId: string) => string
+): readonly ScoreLineSeat[] {
+    const leaders = leadersOf(state)
+    return seatOrder(state).map((playerId) => ({
+        playerId,
+        name: nameOf(playerId),
+        score: state.getPlayerState(playerId).score,
+        leading: leaders.has(playerId)
+    }))
+}
+
+/** R-6 A score in words, as its accessible name and tooltip read it. */
+export function scoreWords(score: number, leading: boolean): string {
+    return `${score} vp${leading ? ', leading' : ''}`
 }
 
 function printedNameOf(kind: ActionCardKind): string {
@@ -269,6 +309,7 @@ export function seatPanelOf({
         ribbon: {
             name: nameOf(playerId),
             score: player.score,
+            leading: leadersOf(state).has(playerId),
             turnNumeral: state.turnManager.turnOrder.indexOf(playerId) + 1,
             startPlayer: state.startingPlayerId === playerId,
             deciding: state.activePlayerIds.includes(playerId)

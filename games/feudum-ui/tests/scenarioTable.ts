@@ -91,6 +91,33 @@ export class ScenarioTable {
         return this.page.locator(`[data-world="${piece}"]`).getAttribute('transform')
     }
 
+    /**
+     * Where a seat's score shows now: its disc's place on a phone's score ring; on a desk, whose board
+     * draws no ring, its score in the zoom row's line.
+     */
+    scoreShown(seat: string): Promise<string | null> {
+        return this.phone
+            ? this.placeOf(`score:${seat}`)
+            : this.page
+                  .locator(`[data-score-line] [data-score-of="${seat}"]`)
+                  .getAttribute('data-score')
+    }
+
+    /**
+     * What the motion sampler sees as a seat's score changes: its disc sliding round a phone's ring,
+     * or on a desk its copy flying to the seat panel's score, named by the seat and the change.
+     */
+    async scoreMotion(seat: string): Promise<unknown> {
+        if (this.phone) {
+            return `board: score:${seat}`
+        }
+        const words = await this.page
+            .locator(`[data-score-line] [data-score-of="${seat}"]`)
+            .getAttribute('aria-label')
+        const name = (words ?? '').split(':')[0] ?? ''
+        return expect.stringMatching(new RegExp(`^score: ${name}'s score [+-]\\d+ vp$`))
+    }
+
     /** A row of the panel, or of what it asks beside itself, by its whole label. */
     row(label: string): Locator {
         return this.panel().locator(`[data-row="${label}"]`).locator('button').first()

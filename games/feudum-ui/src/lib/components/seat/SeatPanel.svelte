@@ -1,7 +1,7 @@
 <script lang="ts">
     import { CrownPath } from '$lib/utils/pieceShapes.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
-    import type { SeatPanelView } from '$lib/model/seatPanel.js'
+    import { scoreWords, type SeatPanelView } from '$lib/model/seatPanel.js'
     import { pawnsNoteOf, seatLinesOf, serviceShieldOf } from '$lib/model/seatLines.js'
     import SeatCards from './SeatCards.svelte'
     import SeatHoldings from './SeatHoldings.svelte'
@@ -91,9 +91,24 @@
                     ></path>
                 </svg>
             {/if}
-            <span class="ml-auto shrink-0 font-bold" data-seat-score={view.ribbon.score}
-                >{view.ribbon.score} vp</span
+            <span
+                class="ml-auto inline-flex shrink-0 items-center gap-[0.2em] font-bold"
+                title={scoreWords(view.ribbon.score, view.ribbon.leading)}
+                data-seat-score={view.ribbon.score}
             >
+                {#if view.ribbon.leading}
+                    <svg
+                        width={12 * scale}
+                        height={12 * scale}
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        data-score-leader
+                    >
+                        <path d={CrownPath} fill="currentColor"></path>
+                    </svg>
+                {/if}
+                {view.ribbon.score} vp
+            </span>
         </button>
         <div class="body flex flex-col gap-[0.3em]" title={pawnsNoteOf(view)}>
             <SeatCards items={lines.cards} {paint} {scale} />

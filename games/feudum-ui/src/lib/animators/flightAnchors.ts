@@ -17,6 +17,8 @@ export interface StagePlace extends Point {
 /** The little of the page a flight reads: the unit specs give their own rectangles. */
 export interface FlightStage {
     locate(end: FlightEnd): StagePlace
+    /** Contract, Animation plan: where the board draws no score ring, a score flies to its seat. */
+    readonly scoresFly?: () => boolean
 }
 
 const CopySmallest = 14
@@ -49,6 +51,8 @@ function selectorOf(part: SeatPart): string {
             return '[data-seals]'
         case 'pawns':
             return '[data-open-seat-of]'
+        case 'score':
+            return '[data-seat-score]'
     }
 }
 
@@ -103,6 +107,9 @@ export class DomFlightStage implements FlightStage {
 
     constructor(private readonly layer: HTMLElement) {}
 
+    readonly scoresFly = () =>
+        this.layer.ownerDocument.querySelector('[data-board-surface] [data-score-ring]') === null
+
     locate(end: FlightEnd): StagePlace {
         const origin = this.layer.getBoundingClientRect()
         const relative = ({ x, y }: Point) => ({ x: x - origin.left, y: y - origin.top })
@@ -113,7 +120,7 @@ export class DomFlightStage implements FlightStage {
                 return {
                     x: origin.width / 2,
                     y: origin.height / 2,
-                    size: Math.min(origin.width * TableShare, TableLargest)
+                    size: end.size ?? Math.min(origin.width * TableShare, TableLargest)
                 }
             case 'seat':
             case 'offer': {
@@ -157,13 +164,21 @@ export class DomFlightStage implements FlightStage {
         const surface = this.layer.ownerDocument.querySelector('[data-board-surface]')
         const piece = end.piece ? surface?.querySelector(`[data-motion="${end.piece}"]`) : undefined
         const rect = surface?.getBoundingClientRect()
-        const scale = rect ? rect.width / BoardWidth : 1
+        // The part of the board the surface draws: the whole board, or a desk's crop of it.
+        const drawn =
+            surface instanceof SVGSVGElement && surface.viewBox.baseVal.width > 0
+                ? surface.viewBox.baseVal
+                : { x: 0, y: 0, width: BoardWidth }
+        const scale = rect ? rect.width / drawn.width : 1
         const pieceRect = piece?.getBoundingClientRect()
         const seen = pieceRect && pieceRect.width + pieceRect.height > 0 ? pieceRect : undefined
         const onScreen = seen
             ? centreOf(seen)
             : rect
-              ? { x: rect.left + end.point.x * scale, y: rect.top + end.point.y * scale }
+              ? {
+                    x: rect.left + (end.point.x - drawn.x) * scale,
+                    y: rect.top + (end.point.y - drawn.y) * scale
+                }
               : end.point
         const view = surface?.closest('dialog:modal') ?? surface?.closest('[data-board-view]')
         const framed = view?.getBoundingClientRect()
@@ -230,6 +245,8 @@ function sectionOf(part: SeatPart): string {
         case 'writ':
         case 'writs':
             return '[data-seat-section="writs"]'
+        case 'score':
+            return '[data-open-seat-of]'
         default:
             return '[data-seat-section="supply"]'
     }

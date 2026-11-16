@@ -62,8 +62,17 @@ export interface Point {
 export const BoardWidth = 2500
 export const BoardHeight = 953
 
-/** The part of the board a desk draws, in board units. */
-export const DeskBoardArea = { x: 0, y: 0, width: BoardWidth, height: BoardHeight } as const
+/**
+ * Contract, Desk layout: the part of the board a desk draws, in board units: the map and the guild
+ * areas inside the score ring's band, which a desk does not draw (its scores are the seat panels'
+ * and the zoom row's).
+ */
+export const DeskBoardArea = {
+    x: 60,
+    y: 60,
+    width: BoardWidth - 120,
+    height: BoardHeight - 120
+} as const
 
 /** The map in the board's centre, the sky and the strip of stacks and barrels included. */
 export const MapArea = { x: 452, y: 60, width: 1598, height: 833 } as const
@@ -659,9 +668,9 @@ export const StandingsStrip = {
     divide: 40,
     drawing: { width: 170, head: 36, line: 19 }
 } as const
-/** One rail's width in the strip, in board units. */
+/** One rail's width in the strip, in board units: the strip runs the desk's board's width. */
 export const StripRailWidth =
-    (BoardWidth - 5 * StandingsStrip.gap - StandingsStrip.divide) / GuildIds.length
+    (DeskBoardArea.width - 5 * StandingsStrip.gap - StandingsStrip.divide) / GuildIds.length
 /** Board units to a pixel of a strip rail's own drawing. */
 export const StripRailScale = StripRailWidth / StandingsStrip.drawing.width
 

@@ -2,7 +2,7 @@
     import type { GuildStandingsView } from '$lib/model/guildStandings.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
-        BoardWidth,
+        DeskBoardArea,
         GuildAreas,
         StandingsStrip,
         StripRailScale,
@@ -42,7 +42,7 @@
 
 <div
     class="strip"
-    style="width:{BoardWidth}px;height:{height}px;padding-top:{StandingsStrip.gap}px;gap:{StandingsStrip.gap}px"
+    style="width:{DeskBoardArea.width}px;height:{height}px;padding-top:{StandingsStrip.gap}px;gap:{StandingsStrip.gap}px"
     data-guild-strip
 >
     {#each rows as row, index (row.guild)}

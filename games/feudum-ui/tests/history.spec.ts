@@ -201,7 +201,30 @@ test('S64 R-3.7.1, R-3.7.4 Replaying a Move: the steps along the route, then the
     expect(await page.evaluate(() => window.motionTable.tableText())).toBe(before)
 })
 
-test('S64 R-4.12 Replaying a dawn: the epoch marker and a score disc move, then back', async ({
+/** Every score copy that crossed the table while `run` played, by the seat it flew to. */
+async function scoreFlightsDuring(page: Page, run: () => Promise<unknown>): Promise<string[]> {
+    await page.evaluate(() => {
+        const seen = new Set<string>()
+        Object.assign(window, { scoreFlightsSeen: seen })
+        const sample = () => {
+            for (const copy of document.querySelectorAll('[data-flight-row="score"]')) {
+                seen.add(copy.querySelector('[aria-label]')?.getAttribute('aria-label') ?? '')
+            }
+            if (Reflect.get(window, 'scoreFlightsSeen') === seen) {
+                requestAnimationFrame(sample)
+            }
+        }
+        requestAnimationFrame(sample)
+    })
+    await run()
+    return page.evaluate(() => {
+        const seen = Reflect.get(window, 'scoreFlightsSeen') as Set<string>
+        Reflect.deleteProperty(window, 'scoreFlightsSeen')
+        return [...seen]
+    })
+}
+
+test('S64 R-4.12 Replaying a dawn: the epoch marker moves and the scores fly to the seats, then back', async ({
     page
 }) => {
     await openTable(page, 'openDawnTable()')
@@ -218,10 +241,26 @@ test('S64 R-4.12 Replaying a dawn: the epoch marker and a score disc move, then 
     expect(await page.evaluate(() => window.motionTable.tableText())).toBe(before)
     await page.screenshot({ path: test.info().outputPath('dawn-replayed.png') })
 
+    // A desk's board draws no score ring: each score crosses the table to its seat panel.
+    const flown = await scoreFlightsDuring(page, () =>
+        page.evaluate(() => window.motionTable.replay('epoch-marker'))
+    )
+    expect(flown.length).toBeGreaterThan(0)
+    await settled(page)
+    expect(await page.locator('[data-flight]').count()).toBe(0)
+    expect(await page.evaluate(() => window.motionTable.tableText())).toBe(before)
+})
+
+test('S64 R-4.12 Replaying a dawn on a phone: a score disc walks the ring, then back', async ({
+    page
+}) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await openTable(page, 'openDawnTable()')
     const seat = await page.evaluate(() => window.motionTable.seat())
     const disc = await page.evaluate((piece) => window.motionTable.replay(piece), `score:${seat}`)
-
     expect(standings(disc).length).toBeGreaterThan(5)
+    await settled(page)
+    expect(await viewing(page)).toBe(false)
 })
 
 test.describe('on a phone', () => {

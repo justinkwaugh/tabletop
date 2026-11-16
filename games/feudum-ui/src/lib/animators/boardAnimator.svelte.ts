@@ -132,9 +132,11 @@ export class BoardAnimator {
         if (reduced && !action) {
             return 0
         }
+        // A desk's board draws no score ring: its scores fly to the seats instead.
+        const scoreRing = this.surface.querySelector('[data-score-ring]') !== null
         const built = action
-            ? planBoardMotion({ from, to, action, flightRoom })
-            : planDirect({ from, to })
+            ? planBoardMotion({ from, to, action, flightRoom, scoreRing })
+            : planDirect({ from, to }, scoreRing)
         const plan = this.withOwnTokens(built)
         const flightsAt = built.flightsAt ?? 0
         const generation = this.generation

@@ -57,6 +57,17 @@
         {/if}
     {:else if face.kind === 'seal'}
         <SealFace faceShown={sealFaceShown(false)} size={DesignSize} />
+    {:else if face.kind === 'score'}
+        {@const gained = `${face.change > 0 ? '+' : ''}${face.change}`}
+        <span class="score-copy">
+            <SeatToken
+                kind="disc"
+                paint={paintOf(face.playerId)}
+                size={DesignSize}
+                label="{paintOf(face.playerId).owner} score {gained} vp"
+            />
+            <span class="score-chip" class:lost={face.change < 0}>{gained}</span>
+        </span>
     {:else}
         <SealFace faceShown={sealFaceShown(true)} beadValue={face.value} size={DesignSize} />
     {/if}
@@ -113,5 +124,28 @@
 
     .flight-side[hidden] {
         display: none;
+    }
+
+    /* R-6 A score's disc carries what it gained, or in rose what it lost. */
+    .score-copy {
+        position: relative;
+        display: inline-block;
+    }
+
+    .score-chip {
+        position: absolute;
+        top: -10px;
+        right: -18px;
+        padding: 2px 5px;
+        border: 1px solid var(--feudum-frame);
+        border-radius: 999px;
+        background: var(--feudum-halo);
+        color: var(--feudum-text);
+        font: 600 16px/1 var(--feudum-font-text);
+    }
+
+    .score-chip.lost {
+        border-color: var(--feudum-danger);
+        color: var(--feudum-danger);
     }
 </style>

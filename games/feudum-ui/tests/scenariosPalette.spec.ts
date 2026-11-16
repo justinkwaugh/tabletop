@@ -86,7 +86,10 @@ scenario(
             'data-score-space'
         )
         expect(score.map(Number).sort((a, b) => a - b)).toEqual(
-            Array.from({ length: ScoreTrack.spaces }, (_, space) => ScoreTrack.lowest + space)
+            // A desk's board draws no score ring: its scores are the seat panels' and the zoom row's.
+            table.phone
+                ? Array.from({ length: ScoreTrack.spaces }, (_, space) => ScoreTrack.lowest + space)
+                : []
         )
     }
 )

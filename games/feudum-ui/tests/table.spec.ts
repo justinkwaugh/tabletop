@@ -52,8 +52,9 @@ test('the board fits the table beside the panel, and scales down with it', async
     expect(row?.width).toBeLessThan(1000)
     const box = await board(page).boundingBox()
     // R-1.2 Whole: the aspect stands.
-    // Contract, Supply: nothing under the board, so the surface is the board's own proportions.
-    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2500 / 953, 1)
+    // Contract, Supply: nothing under the board, so the surface is the desk board's own proportions,
+    // the map and the guild areas inside the score ring (Desk layout).
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2380 / 833, 1)
     const noPageScroll = await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth
     )
@@ -131,13 +132,15 @@ for (const viewport of [
     { width: 1440, height: 900 },
     { width: 1440, height: 640 }
 ]) {
-    test(`R-1.2.5 the zoom row, Key and Supply in it, covers no score-track space at ${viewport.width} x ${viewport.height}, at rest or zoomed to the corner`, async ({
+    test(`R-1.2.5 a desk's board draws no score track, so the zoom row covers none, at ${viewport.width} x ${viewport.height}, at rest or zoomed to the corner`, async ({
         page
     }) => {
         await page.setViewportSize(viewport)
         await createGame(page)
         await playToCards(page)
         await settled(page)
+        await expect(page.locator('[data-board-surface] [data-score-space]')).toHaveCount(0)
+        await expect(page.getByRole('list', { name: 'Scores' })).toBeVisible()
         expect(await scoreSpacesCovered(page)).toEqual([])
         // Each step zooms in further: one press, three in all, then six.
         for (const [more, total] of [
