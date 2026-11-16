@@ -88,8 +88,10 @@ export interface StartingGoodsPanel {
         readonly good: Good
         readonly count: number
         readonly picked: boolean
-        /** Dimmed, with the line a press gives. */
+        /** None to pick: the panel does not draw it. */
         readonly refusal?: string
+        /** Its room held by the three picked: dimmed, and a press does nothing. */
+        readonly spent?: true
     }[]
     /** R-1.4.8 Where the picked sulfur goes; only while sulfur is picked. */
     readonly sulfurTo?: SulfurDestination
@@ -530,11 +532,13 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             deciding,
             goods: Goods.map((good) => {
                 const refusal = deciding && this.startingGoodRefusal(good)
+                const spent = deciding && !refusal && this.startingGoodSpent(good)
                 return {
                     good,
                     count: state.supply.haversack[good],
                     picked: picked.includes(good),
-                    ...(refusal ? { refusal } : {})
+                    ...(refusal ? { refusal } : {}),
+                    ...(spent ? { spent: true as const } : {})
                 }
             }),
             ...(deciding && draft.asksSulfur ? { sulfurTo: draft.sulfurTo } : {}),
@@ -544,17 +548,20 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
     })
 
-    /** R-1.4.8 Why a press on this good does nothing: none in the haversack, or three already. */
+    /** R-1.4.8 Why this good can't be picked: none in the haversack. */
     private startingGoodRefusal(good: Good): string | undefined {
+        return this.startingGoods.goods.includes(good)
+            ? undefined
+            : reasonStartingGoodRefused(this.gameState, good)
+    }
+
+    /** R-1.4.8 Three are picked already: a press on this one does nothing until one is unpicked. */
+    private startingGoodSpent(good: Good): boolean {
         const { goods } = this.startingGoods
-        if (goods.includes(good)) {
-            return undefined
-        }
         return (
-            reasonStartingGoodRefused(this.gameState, good) ??
-            (goods.length === StartingGoodsChosen
-                ? reasonStartingGoodsRefused(this.gameState, [...goods, good])
-                : undefined)
+            !goods.includes(good) &&
+            goods.length === StartingGoodsChosen &&
+            reasonStartingGoodsRefused(this.gameState, [...goods, good]) !== undefined
         )
     }
 

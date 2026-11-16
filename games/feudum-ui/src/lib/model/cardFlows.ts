@@ -176,6 +176,8 @@ export interface PanelChoice {
     readonly picked: boolean
     /** Dimmed, with the line a press gives; it has no `press`. */
     readonly refusal?: string
+    /** Dimmed with no line: other picks hold its room, and a press does nothing until one goes. */
+    readonly spent?: boolean
     readonly press?: TurnPress
     /** Contract, Hover: what this row's press would light, read only while the row is pointed at. */
     readonly lights?: () => readonly BoardTarget[]

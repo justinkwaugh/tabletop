@@ -115,7 +115,7 @@ scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (tabl
     await table.showSeat('p2')
     await table.pressPick('space:space.forest.2')
     await expect(table.popup()).toBeVisible()
-    await expect(table.panel().getByText('Choose who stands here')).toBeVisible()
+    await expect(table.panel().getByText('Who stands here?')).toBeVisible()
     await expect(table.popup().locator('[data-popup-dice] [data-die]')).toHaveCount(6)
     await expect(table.popup().locator('[data-row="Knight, journeyman"] [data-badge]')).toHaveText(
         'J'

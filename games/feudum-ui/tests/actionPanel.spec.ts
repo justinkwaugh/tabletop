@@ -34,7 +34,10 @@ const primary = (page: Page) => panel(page).locator('[data-primary]')
 const row = (page: Page, label: string) => panel(page).locator(`[data-row="${label}"]`)
 
 async function rowBy(page: Page, block: string, label: RegExp): Promise<Locator> {
-    return panel(page).locator(`[data-rows="${block}"] button`).filter({ hasText: label }).first()
+    return panel(page)
+        .locator(`[data-rows="${block}"]`)
+        .getByRole('button', { name: label })
+        .first()
 }
 
 test('S1 R-1.4.8 the goods are rows with their tokens, and the sulfur asks on its own line', async ({

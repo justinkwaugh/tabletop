@@ -360,7 +360,7 @@ describe('the real session: S1, goods with the sulfur destination (R-1.4.8)', ()
         expect(panel?.goods.every(({ picked }) => !picked)).toBe(true)
     })
 
-    it('a good the haversack has run out of is dimmed with its line, and a press does nothing', async () => {
+    it('a good the haversack has run out of is not drawn, and a press does nothing', async () => {
         const table = openTable()
         const seat = table.setupSeat
         const row = table.state.players.find(({ playerId }) => playerId === seat)
@@ -376,17 +376,25 @@ describe('the real session: S1, goods with the sulfur destination (R-1.4.8)', ()
         expect(session.startingGoodsPanel?.goods.find(({ good }) => good === 'food')?.refusal).toBe(
             'The haversack holds no food.'
         )
+        const drawn = session.actionPanel.blocks.flatMap((block) =>
+            block.kind === 'rows' && block.name === 'goods'
+                ? block.rows.map(({ choice }) => choice.label)
+                : []
+        )
+        expect(drawn).toHaveLength(4)
+        expect(drawn.some((label) => label.startsWith('Food'))).toBe(false)
     })
 
-    it('with three picked, a fourth is dimmed by the same rule', async () => {
+    it('with three picked, a fourth is spent: dimmed, with no line', async () => {
         const table = openTable()
         const session = await table.openSeat(table.setupSeat)
         for (const good of ['saltpeter', 'iron', 'food'] as const) session.pressStartingGood(good)
         flushSync()
 
         const goods = session.startingGoodsPanel?.goods
-        expect(goods?.find(({ good }) => good === 'wood')?.refusal).toBe('Choose 3 goods.')
-        expect(goods?.find(({ good }) => good === 'iron')?.refusal).toBeUndefined()
+        expect(goods?.find(({ good }) => good === 'wood')).toMatchObject({ spent: true })
+        expect(goods?.find(({ good }) => good === 'wood')?.refusal).toBeUndefined()
+        expect(goods?.find(({ good }) => good === 'iron')?.spent).toBeUndefined()
     })
 
     it('a lone legal pick is auto-selected and waits for the primary press', async () => {
