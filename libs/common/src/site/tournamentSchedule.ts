@@ -1,9 +1,21 @@
 import * as Type from 'typebox'
 
+// A Knockout Table's place in its Bracket. Games above the Match's first two are Deciders.
+export const TournamentMatchGame = Type.Object(
+    {
+        round: Type.Integer({ minimum: 1, maximum: 8 }),
+        index: Type.Integer({ minimum: 0, maximum: 127 }),
+        game: Type.Integer({ minimum: 1, maximum: 64 })
+    },
+    { additionalProperties: false }
+)
+export type TournamentMatchGame = Type.Static<typeof TournamentMatchGame>
+
 export const TournamentTable = Type.Object(
     {
         id: Type.String(),
-        entrantIds: Type.Array(Type.String(), { minItems: 2, maxItems: 16, uniqueItems: true })
+        entrantIds: Type.Array(Type.String(), { minItems: 2, maxItems: 16, uniqueItems: true }),
+        match: Type.Optional(TournamentMatchGame)
     },
     { additionalProperties: false }
 )
@@ -29,7 +41,19 @@ export const TournamentSchedule = Type.Object({
     gamesPerEntrant: Type.Integer(),
     concurrency: Type.Integer(),
     quality: TournamentScheduleQuality,
-    tables: Type.Array(TournamentTable)
+    tables: Type.Array(TournamentTable),
+    // A Knockout's draw: the Entrant in each first-round place, null for a Bye.
+    bracket: Type.Optional(
+        Type.Object(
+            {
+                slots: Type.Array(Type.Union([Type.String(), Type.Null()]), {
+                    minItems: 2,
+                    maxItems: 256
+                })
+            },
+            { additionalProperties: false }
+        )
+    )
 })
 export type TournamentSchedule = Type.Static<typeof TournamentSchedule>
 

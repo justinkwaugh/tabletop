@@ -30,6 +30,7 @@
                 "DISCORD_PUBLIC_KEY",
                 "ABLY_API_KEY",
                 "REALTIME_SIGNING_KEY",
+                "ENABLE_SSE_REALTIME",
                 "SESSION_SECRET",
                 "SESSION_SALT",
                 "SESSION_KEY",

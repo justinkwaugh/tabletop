@@ -53,3 +53,36 @@ it('loads routes without importing colocated source or compiled tests', async ()
         await rm(directory, { recursive: true, force: true })
     }
 })
+
+it("applies a folder's autohooks to that folder's routes only", async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'backend-route-hooks-'))
+    const server = Fastify()
+    try {
+        for (const folder of ['guarded', 'open']) {
+            await mkdir(join(directory, folder))
+            await writeFile(
+                join(directory, folder, 'health.mjs'),
+                `
+                export default async function (server) {
+                    server.get('/health', async () => ({ ok: true }))
+                }
+            `
+            )
+        }
+        await writeFile(
+            join(directory, 'guarded', 'autohooks.mjs'),
+            `
+            export default async function (server) {
+                server.addHook('onRequest', async (_request, reply) => reply.code(404).send())
+            }
+        `
+        )
+        await server.register(AutoLoad, { ...routeAutoloadOptions, dir: directory })
+        await server.ready()
+        expect((await server.inject('/guarded/health')).statusCode).toBe(404)
+        expect((await server.inject('/open/health')).statusCode).toBe(200)
+    } finally {
+        await server.close()
+        await rm(directory, { recursive: true, force: true })
+    }
+})

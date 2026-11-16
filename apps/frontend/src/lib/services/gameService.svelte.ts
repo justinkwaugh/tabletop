@@ -11,7 +11,9 @@ import {
     isDataEvent,
     isDiscontinuityEvent,
     NotificationChannel,
-    IndexedDbGameStore
+    IndexedDbGameStore,
+    localGameRecord,
+    storeLocalGame
 } from '@tabletop/frontend-components'
 import {
     type GameCreationOptions,
@@ -25,7 +27,6 @@ import {
     GameState,
     type HydratedGameState,
     GameEngine,
-    reportGameProgress,
     createGameFork,
     linkGameContinuation,
     GameForkError,
@@ -126,6 +127,13 @@ export class GameService implements GameServiceInterface {
                     (a.finishedAt ?? a.lastActionAt ?? a.createdAt).getTime()
             )
             .slice(0, 20)
+    )
+
+    finishedLocalGames: Game[] = $derived(
+        Array.from(this.localGamesById.values()).filter(
+            (game) =>
+                game.status === GameStatus.Finished && game.category !== GameCategory.Exploration
+        )
     )
 
     openGamesByTitleId: Map<string, Game[]> = new SvelteMap()
@@ -244,12 +252,28 @@ export class GameService implements GameServiceInterface {
     ): Promise<{ games: Game[]; localGames: Game[] } | undefined> {
         const [games, localGames] = await Promise.all([
             this.api.getMyGames('current'),
-            sessionUser ? this.localGameStore.findGamesForUser(sessionUser) : []
+            sessionUser ? this.findLocalGames(sessionUser) : []
         ])
         if (this.authorizationService.getSessionUser()?.id !== sessionUser?.id) {
             return undefined
         }
         return { games, localGames }
+    }
+
+    private async findLocalGames(user: User): Promise<Game[]> {
+        const games = await this.localGameStore.findGamesForUser(user)
+        return Promise.all(games.map((game) => this.withFinishedOutcome(game)))
+    }
+
+    /**
+     * Saves before the fix for finished hotseat games left them started, with nobody to move.
+     * Their state still holds the result.
+     */
+    private async withFinishedOutcome(game: Game): Promise<Game> {
+        if (game.status !== GameStatus.Started || game.activePlayerIds?.length) return game
+        const state = await this.localGameStore.loadGameState(game.id)
+        if (!state?.result) return game
+        return localGameRecord(game, state, game.updatedAt ?? game.createdAt)
     }
 
     private applyStoredCurrentGames() {
@@ -404,34 +428,9 @@ export class GameService implements GameServiceInterface {
         return updatedGame
     }
 
-    async saveGameLocally({
-        game,
-        state,
-        actions
-    }: {
-        game: Game
-        state: GameState
-        actions: GameAction[]
-    }) {
-        const gameData = structuredClone(game)
-        const stateData = structuredClone(state)
-        const actionsData = actions.map((action) => structuredClone(action))
-
-        gameData.activePlayerIds = stateData.activePlayerIds
-        gameData.canContinue = stateData.canContinue
-
-        if (game.storage !== GameStorage.Local) {
-            throw new Error('Can only save local games locally')
-        }
-
-        const runtime = await validateLocalGameState(this.libraryService, gameData, stateData)
-        gameData.progress = reportGameProgress(runtime, stateData)
-        await this.localGameStore.storeGameData({
-            game: gameData,
-            actions: actionsData,
-            state: stateData
-        })
-        this.localGamesById.set(gameData.id, gameData)
+    async saveGameLocally(save: { game: Game; state: GameState; actions: GameAction[] }) {
+        const saved = await storeLocalGame(this.localGameStore, this.libraryService, save)
+        this.localGamesById.set(saved.id, saved)
     }
 
     async deleteGame(gameId: string): Promise<void> {

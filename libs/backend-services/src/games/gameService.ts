@@ -86,6 +86,10 @@ import {
     tournamentSeatAccounts,
     tournamentTableReference,
     tournamentTableSettled,
+    tournamentTableConfig,
+    knockoutDecider,
+    knockoutRoundCount,
+    knockoutTableName,
     type TournamentTableHandover,
     type TournamentSchedule,
     receivesGameAndCompetitionEmail,
@@ -223,7 +227,7 @@ export class GameService {
         owner: User
         options?: GameCreationOptions
     }): Promise<Game> {
-        if (Object.hasOwn(game, 'tournament'))
+        if (Object.hasOwn(game, 'tournament') || Object.hasOwn(game, 'concedable'))
             throw new TournamentGameError('Tournament membership cannot be supplied by clients')
         assertExists(game.id, 'Game id is required')
         if (options?.masterSeed !== undefined && !owner.roles.includes(Role.Admin)) {
@@ -396,16 +400,22 @@ export class GameService {
             )
         const masterSeed =
             definition.runtime.randomnessVersion === 1 ? generateMasterSeed() : undefined
+        const tableName =
+            table.match && schedule.bracket
+                ? knockoutTableName(table.match, knockoutRoundCount(schedule.bracket.slots))
+                : `Table ${Number(tableId)}`
+        // A Decider is set up the title's own way, so its seats are not assigned.
+        const assignsSeats = !table.match || !knockoutDecider(table.match)
         const game = definition.runtime.initializer.initializeGame(
             {
                 id: gameId,
                 typeId: definition.info.id,
                 ownerId: tournament.organizerId,
-                name: `${tournament.name} · Table ${Number(tableId)}`,
+                name: `${tournament.name} · ${tableName}`,
                 isPublic: true,
                 storage: GameStorage.Remote,
                 hotseat: false,
-                config: structuredClone(tournament.rules.gameConfig),
+                config: structuredClone(tournamentTableConfig(tournament, table)),
                 ...(masterSeed ? { seed: deriveGameSeeds(masterSeed).publicSeed } : {}),
                 players: tournamentSeatAccounts(tournament, table.entrantIds).map(
                     (userId, index) => ({
@@ -420,12 +430,15 @@ export class GameService {
             definition
         )
         game.tournament = reference
+        if (tournament.format.kind === 'knockout') game.concedable = true
         this.assignSeries(game, definition)
         this.validatePlayerCount(game.id, game.players, definition)
         this.checkForDuplicatePlayers(game.players)
         await this.validateAndPopulatePlayers(game.players)
         const { startedGame, initialState } = new GameEngine(definition.runtime).startGame(game, {
-            startingPositions: { playerIds: game.players.map((player) => player.id) },
+            ...(assignsSeats
+                ? { startingPositions: { playerIds: game.players.map((player) => player.id) } }
+                : {}),
             ...(masterSeed ? { masterSeed } : {})
         })
         startedGame.state = initialState
@@ -1018,7 +1031,7 @@ export class GameService {
         fields: Partial<Game>
         user: User
     }): Promise<Game> {
-        if (Object.hasOwn(fields, 'tournament'))
+        if (Object.hasOwn(fields, 'tournament') || Object.hasOwn(fields, 'concedable'))
             throw new TournamentGameError('Tournament membership cannot be changed')
         assert(!Object.hasOwn(fields, 'protectedInformation'), 'Game protection cannot be changed')
         const game = await this.getGame({ gameId })
@@ -1589,15 +1602,7 @@ export class GameService {
                 }
             })
 
-        if (!priorState.result && updatedGame.result && updatedGame.tournament) {
-            try {
-                await enqueueTournamentTask(this.taskService, {
-                    tournamentId: updatedGame.tournament.tournamentId
-                })
-            } catch (error) {
-                console.error('Failed to enqueue tournament completion task', error)
-            }
-        }
+        await this.wakeTournament(priorState, updatedGame)
         await this.startStallCheck(updatedGame)
 
         const representation = await this.announceActionResults({
@@ -1934,7 +1939,11 @@ export class GameService {
         }
         const game = await this.requireGame(gameId)
         this.assertGameTitle(game, definition)
-        const player = this.findVotingPlayer({ user, game })
+        const player = this.findVotingPlayer({
+            user,
+            game,
+            ineligibility: callRequestIneligibility
+        })
         const ineligibility = callRequestIneligibility(game)
         if (ineligibility) {
             throw new DisallowedPlayerVoteError({ gameId, reason: ineligibility })
@@ -2307,7 +2316,21 @@ export class GameService {
                 return UpdateValidationResult.Proceed
             }
         })
+        // A conceded Knockout Game settles its Table like any other ending.
+        if (stored.storedActions.length) await this.wakeTournament(state, stored.updatedGame)
         return { actionResult, ...stored }
+    }
+
+    /** Wakes a Tournament's dispatch once one of its Games has just ended. */
+    private async wakeTournament(priorState: Pick<GameState, 'result'>, game: Game) {
+        if (priorState.result || !game.result || !game.tournament) return
+        try {
+            await enqueueTournamentTask(this.taskService, {
+                tournamentId: game.tournament.tournamentId
+            })
+        } catch (error) {
+            console.error('Failed to enqueue tournament completion task', error)
+        }
     }
 
     private async closeVote(game: Game, voteId: string): Promise<Game> {
@@ -2333,8 +2356,17 @@ export class GameService {
         return game
     }
 
-    private findVotingPlayer({ user, game }: { user: User; game: Game }): Player {
-        const reason = playerVoteIneligibility(game)
+    private findVotingPlayer({
+        user,
+        game,
+        ineligibility = playerVoteIneligibility
+    }: {
+        user: User
+        game: Game
+        // A Call Request has its own rules: a Knockout Game may be conceded.
+        ineligibility?: (game: Game) => string | undefined
+    }): Player {
+        const reason = ineligibility(game)
         if (reason) {
             throw new DisallowedPlayerVoteError({ gameId: game.id, reason })
         }
