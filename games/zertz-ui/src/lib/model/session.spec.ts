@@ -301,6 +301,34 @@ describe('Choosing a placement', () => {
         expect(session.gameState.actionCount).toBe(OPENING.length)
     })
 
+    it('lifts the staged marble off when you let it go or take the choice back', async () => {
+        const session = await sessionFor(prepared())
+        session.chooseColor(MarbleColor.White)
+        await settled(session.chooseRing(PLACE))
+        session.letGo()
+        expect(session.releasedByPlayer).toBe(true)
+
+        await settled(session.chooseRing(PLACE))
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        await session.undo()
+        expect(session.chosenPlace).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(true)
+    })
+
+    it('sets the staged marble down without a lift when a new state or history clears it', async () => {
+        const session = await sessionFor(prepared())
+        session.chooseColor(MarbleColor.White)
+        await settled(session.chooseRing(PLACE))
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        expect(session.releasedByPlayer).toBe(false)
+
+        session.chooseColor(MarbleColor.White)
+        expect(session.releasedByPlayer).toBe(true)
+        await settled(session.history.goToPreviousAction())
+        expect(session.chosenColor).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(false)
+    })
+
     it('clears your choices when another state is shown', async () => {
         const session = await sessionFor(prepared())
         await placeOwn(session)

@@ -30,7 +30,6 @@ import {
 import { includesCoords, viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 
-// Lets the session stop the move the board animator is playing.
 export type MoveInterrupter = {
     // Lands the move at once; the rest of its replay still plays.
     interrupt(): void
@@ -55,7 +54,10 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
             : {}
     )
     undoingMove: PlaceMarble | undefined
-    historyAction: GameAction | undefined
+    private steppedAction: GameAction | undefined
+    // A staged marble lifts off only when the player lets it go, never when history, a new state
+    // or another viewer's perspective clears it.
+    private changedByPlayer = false
     moveInterrupter: MoveInterrupter | undefined
 
     constructor(options: SessionOptions) {
@@ -64,7 +66,10 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
             undoableStagedSelection(
                 ZertzStageOrder,
                 () => this.ownSelection,
-                (selection) => (this.selection = selection)
+                (selection) => {
+                    this.selection = selection
+                    this.changedByPlayer = true
+                }
             )
         )
     }
@@ -168,7 +173,19 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     }
 
     override onHistoryAction(action?: GameAction): void {
-        this.historyAction = action
+        this.steppedAction = action
+    }
+
+    get historyAction(): GameAction | undefined {
+        return this.isViewingHistory ? this.steppedAction : undefined
+    }
+
+    get releasedByPlayer(): boolean {
+        return (
+            this.changedByPlayer &&
+            !this.isViewingHistory &&
+            this.selectionOwner === this.myPlayer?.id
+        )
     }
 
     get presentingState(): HydratedZertzGameState | undefined {
@@ -188,19 +205,19 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     }
 
     override beforeNewState({ kind }: PresentedTransition): void {
+        this.changedByPlayer = false
         this.moveInterrupter?.replacingShown()
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const incoming = this.presentingState
         const move = kind === 'undo' && incoming ? this.restagedMove(incoming) : undefined
-        if (move) {
-            this.selection = restagedZertzSelection(move, this.hadColorChoice(move))
+        if (incoming && move) {
+            this.selection = restagedZertzSelection(move, this.hadColorChoice(move, incoming))
             this.selectionOwner = move.playerId
         }
         if (kind !== 'undo') this.undoingMove = undefined
     }
 
-    private hadColorChoice(move: PlaceMarble): boolean {
-        const state = this.incomingGameState ?? this.gameState
+    private hadColorChoice(move: PlaceMarble, state: HydratedZertzGameState): boolean {
         return state.placeableColors(move.playerId).length > 1
     }
 
@@ -266,6 +283,7 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     private select(selection: ZertzSelection) {
         this.selection = selection
         this.selectionOwner = this.myPlayer?.id
+        this.changedByPlayer = true
     }
 
     private async stagePlacement(selection: ZertzSelection, place: AxialCoordinates) {
@@ -285,9 +303,8 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     private async placeMarble(remove?: AxialCoordinates) {
         const color = this.chosenColor
         const coords = this.chosenPlace
-        if (color === undefined || coords === undefined) {
-            return
-        }
+        assertExists(color, 'A staged placement has its colour')
+        assertExists(coords, 'A staged placement has its ring')
         await this.applyAction(
             this.createPlayerAction(PlaceMarble, {
                 color,
@@ -299,9 +316,7 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     private async capture(to: AxialCoordinates) {
         const from = this.chosenJumper
-        if (from === undefined) {
-            return
-        }
+        assertExists(from, 'A capture has its jumping marble chosen')
         await this.applyAction(this.createPlayerAction(Capture, { from, to }))
     }
 }

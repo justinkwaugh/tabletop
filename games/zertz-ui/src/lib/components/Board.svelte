@@ -322,7 +322,7 @@
                         seed={staged.seed}
                         {view}
                         drops={staged.drops}
-                        lifts={() => !animator.placedIn}
+                        lifts={() => session.releasedByPlayer && !animator.placedIn}
                         register={animator.stagedDrop}
                     />
                 </g>
