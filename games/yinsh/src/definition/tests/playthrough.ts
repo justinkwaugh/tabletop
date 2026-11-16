@@ -8,7 +8,7 @@ import {
 import { Definition } from '../definition.js'
 import { YinshRuntime } from '../runtime.js'
 import { YinshInfo } from '../info.js'
-import { YinshVersion } from '../config.js'
+import { YinshVersion, type WhitePlayer } from '../config.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedYinshGameState, type YinshGameState } from '../../model/gameState.js'
@@ -18,18 +18,28 @@ export const engine = new GameEngine(YinshRuntime)
 
 export function createGame(
     version: YinshVersion = YinshVersion.Standard,
-    playerIds: string[] = ['white', 'black']
+    playerIds: string[] = ['white', 'black'],
+    options: {
+        whitePlayer?: WhitePlayer
+        ownerId?: string
+        userIds?: Record<string, string>
+    } = {}
 ) {
     return YinshRuntime.initializer.initializeGame(
         {
             id: 'yinsh-test',
             typeId: 'yinsh',
-            ownerId: 'owner',
+            ownerId: options.ownerId ?? 'owner',
             seed: 5,
-            config: { ...defaultGameConfig(YinshInfo.configurator?.options ?? []), version },
+            config: {
+                ...defaultGameConfig(YinshInfo.configurator?.options ?? []),
+                version,
+                ...(options.whitePlayer === undefined ? {} : { whitePlayer: options.whitePlayer })
+            },
             players: playerIds.map((id) => ({
                 id,
                 name: id,
+                userId: options.userIds?.[id],
                 isHuman: true,
                 status: PlayerStatus.Joined
             }))

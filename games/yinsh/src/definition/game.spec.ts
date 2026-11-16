@@ -7,7 +7,7 @@ import {
     type GameAction
 } from '@tabletop/common'
 import { YinshRuntime } from './runtime.js'
-import { YinshVersion, versionFromConfig } from './config.js'
+import { YinshVersion, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import {
@@ -162,6 +162,56 @@ describe('board', () => {
         for (const point of POINTS) {
             expect(pointFromName(pointName(point))).toEqual(point)
         }
+    })
+})
+
+describe('choice of White', () => {
+    const whiteOf = (state: YinshGameState) =>
+        state.players.find((player) => player.color === 'white')?.playerId
+    const startUnassigned = (game: YinshGame) => engine.startGame(game).initialState
+
+    it('gives White and the first placement to the game creator or the opponent when chosen', () => {
+        const owner = { ownerId: 'u-black', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        const creatorWhite = startUnassigned(
+            createGame(YinshVersion.Standard, [W, B], {
+                ...owner,
+                whitePlayer: WhitePlayer.Creator
+            })
+        )
+        expect(whiteOf(creatorWhite)).toBe(B)
+        expect(creatorWhite.activePlayerIds).toEqual([B])
+        const opponentWhite = startUnassigned(
+            createGame(YinshVersion.Standard, [W, B], {
+                ...owner,
+                whitePlayer: WhitePlayer.Opponent
+            })
+        )
+        expect(whiteOf(opponentWhite)).toBe(W)
+        expect(opponentWhite.activePlayerIds).toEqual([W])
+    })
+
+    it('draws White by lot when Random, and when the creator does not play', () => {
+        const outsider = { ownerId: 'u-host', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        for (const options of [
+            { whitePlayer: WhitePlayer.Random },
+            { ...outsider, whitePlayer: WhitePlayer.Creator },
+            { ...outsider, whitePlayer: WhitePlayer.Opponent }
+        ]) {
+            const whites = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const game = { ...createGame(YinshVersion.Standard, [W, B], options), seed }
+                    const state = startUnassigned(game)
+                    expect(state.activePlayerIds).toEqual([whiteOf(state)])
+                    return whiteOf(state)
+                })
+            )
+            expect(whites).toEqual(new Set([W, B]))
+        }
+    })
+
+    it('reads a missing choice as Random and rejects an unknown one', () => {
+        expect(whitePlayerFromConfig({})).toBe(WhitePlayer.Random)
+        expect(() => whitePlayerFromConfig({ whitePlayer: 'Bogus' })).toThrow()
     })
 })
 

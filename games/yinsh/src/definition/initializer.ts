@@ -2,6 +2,7 @@ import {
     type GameInitializer,
     type StartingPositionAssignment,
     type UninitializedGameState,
+    assertExists,
     BaseGameInitializer,
     Color,
     Game,
@@ -11,7 +12,7 @@ import {
 import { HydratedYinshGameState, YinshGameState } from '../model/gameState.js'
 import { HydratedYinshPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
-import { versionFromConfig } from './config.js'
+import { versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
 import { emptyBoard } from '../model/board.js'
 
 export class YinshGameInitializer
@@ -29,7 +30,7 @@ export class YinshGameInitializer
         const turnManager = HydratedTurnManager.generate(
             game.players.map((player) => ({ playerId: player.id, color: Color.White })),
             prng.random,
-            assignment
+            assignment ?? this.chosenWhite(game)
         )
         turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
@@ -54,5 +55,20 @@ export class YinshGameInitializer
         })
 
         return new HydratedYinshGameState(yinshGameState)
+    }
+
+    // In a local game every seat is the creator's user's, so the first seat counts as theirs. A
+    // creator who does not play leaves White to the draw.
+    private chosenWhite(game: Game): StartingPositionAssignment | undefined {
+        const choice = whitePlayerFromConfig(game.config)
+        const creator = game.players.find((player) => player.userId === game.ownerId)
+        if (choice === WhitePlayer.Random || creator === undefined) {
+            return undefined
+        }
+        const opponent = game.players.find((player) => player.id !== creator.id)
+        assertExists(opponent, 'YINSH needs two players')
+        const white = choice === WhitePlayer.Creator ? creator : opponent
+        const black = white === creator ? opponent : creator
+        return { playerIds: [white.id, black.id] }
     }
 }
