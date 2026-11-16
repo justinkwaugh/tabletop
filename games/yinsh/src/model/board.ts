@@ -1,22 +1,28 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { addAxial, AxialCoordinates, Hydratable, sameCoordinates } from '@tabletop/common'
-import { AXES, DIRECTIONS, isPoint, lineFrom, pointKey, pointsBetween, POINTS } from './geometry.js'
+import { DIRECTIONS, isPoint, LINES, lineFrom, pointsBetween } from './geometry.js'
 
-// A marker records the player whose color faces up; flipping hands it to the other player. A
-// ring's id is its place in the placing order and moves with it, so a UI can tell each ring
-// apart; games saved before ids were kept have none.
-export type Point = Type.Static<typeof Point>
-export const Point = Type.Object({
+// A ring's id is its place in the placing order and moves with it, so a UI can tell each ring
+// apart.
+export type Ring = Type.Static<typeof Ring>
+export const Ring = Type.Object({
     coords: AxialCoordinates,
-    ringPlayerId: Type.Optional(Type.String()),
-    ringId: Type.Optional(Type.Integer({ minimum: 0 })),
-    markerPlayerId: Type.Optional(Type.String())
+    playerId: Type.String(),
+    id: Type.Integer({ minimum: 0 })
+})
+
+// A marker records the player whose color faces up; flipping hands it to the other player.
+export type Marker = Type.Static<typeof Marker>
+export const Marker = Type.Object({
+    coords: AxialCoordinates,
+    playerId: Type.String()
 })
 
 export type YinshBoard = Type.Static<typeof YinshBoard>
 export const YinshBoard = Type.Object({
-    points: Type.Array(Point)
+    rings: Type.Array(Ring),
+    markers: Type.Array(Marker)
 })
 
 export type RingMove = {
@@ -29,63 +35,58 @@ export const ROW_LENGTH = 5
 const YinshBoardValidator = Compile(YinshBoard)
 
 export function emptyBoard(): YinshBoard {
-    return { points: POINTS.map((coords) => ({ coords: { ...coords } })) }
+    return { rings: [], markers: [] }
 }
 
 export class HydratedYinshBoard extends Hydratable<typeof YinshBoard> implements YinshBoard {
-    declare points: Point[]
+    declare rings: Ring[]
+    declare markers: Marker[]
 
     constructor(data: YinshBoard) {
         super(data, YinshBoardValidator)
     }
 
-    private pointAt(coords: AxialCoordinates): Point {
-        const key = pointKey(coords)
-        const point = this.points.find((candidate) => pointKey(candidate.coords) === key)
-        if (point === undefined) {
-            throw Error(`No point at ${coords.q},${coords.r}`)
-        }
-        return point
+    private ringOn(coords: AxialCoordinates): Ring | undefined {
+        return this.rings.find((ring) => sameCoordinates(ring.coords, coords))
+    }
+
+    private markerOn(coords: AxialCoordinates): Marker | undefined {
+        return this.markers.find((marker) => sameCoordinates(marker.coords, coords))
     }
 
     ringAt(coords: AxialCoordinates): string | undefined {
-        return this.pointAt(coords).ringPlayerId
+        return this.ringOn(coords)?.playerId
     }
 
     ringIdAt(coords: AxialCoordinates): number | undefined {
-        return this.pointAt(coords).ringId
+        return this.ringOn(coords)?.id
     }
 
     markerAt(coords: AxialCoordinates): string | undefined {
-        return this.pointAt(coords).markerPlayerId
+        return this.markerOn(coords)?.playerId
     }
 
     isVacant(coords: AxialCoordinates): boolean {
-        const point = this.pointAt(coords)
-        return point.ringPlayerId === undefined && point.markerPlayerId === undefined
+        return (
+            isPoint(coords) &&
+            this.ringOn(coords) === undefined &&
+            this.markerOn(coords) === undefined
+        )
     }
 
     ringsOf(playerId: string): AxialCoordinates[] {
-        return this.points
-            .filter((point) => point.ringPlayerId === playerId)
-            .map((point) => point.coords)
+        return this.rings.filter((ring) => ring.playerId === playerId).map((ring) => ring.coords)
     }
 
     markerCount(): number {
-        return this.points.filter((point) => point.markerPlayerId !== undefined).length
+        return this.markers.length
     }
 
-    placeRing(coords: AxialCoordinates, playerId: string) {
+    placeRing(coords: AxialCoordinates, playerId: string, id: number) {
         if (!this.isVacant(coords)) {
             throw Error('The point is taken')
         }
-        const point = this.pointAt(coords)
-        point.ringPlayerId = playerId
-        // Ids only while every ring has one, so a game saved before them never repeats one.
-        const rings = this.points.filter((other) => other.ringPlayerId !== undefined)
-        if (rings.every((ring) => ring === point || ring.ringId !== undefined)) {
-            point.ringId = Math.max(-1, ...rings.map((ring) => ring.ringId ?? -1)) + 1
-        }
+        this.rings.push({ coords: { ...coords }, playerId, id })
     }
 
     // Rule E3: over vacant points, then over one unbroken run of markers to the first vacant point
@@ -117,30 +118,28 @@ export class HydratedYinshBoard extends Hydratable<typeof YinshBoard> implements
 
     // Rules E2 and F: a marker of the mover's color stays where the ring stood; jumped markers flip.
     moveRing(from: AxialCoordinates, move: RingMove, playerId: string, opponentId: string) {
-        const origin = this.pointAt(from)
-        const target = this.pointAt(move.to)
-        target.ringPlayerId = playerId
-        if (origin.ringId !== undefined) target.ringId = origin.ringId
-        delete origin.ringPlayerId
-        delete origin.ringId
-        origin.markerPlayerId = playerId
+        const ring = this.ringOn(from)
+        if (ring === undefined) {
+            throw Error(`No ring at ${from.q},${from.r}`)
+        }
+        ring.coords = { ...move.to }
+        this.markers.push({ coords: { ...from }, playerId })
         for (const coords of move.jumped) {
-            const point = this.pointAt(coords)
-            point.markerPlayerId = point.markerPlayerId === playerId ? opponentId : playerId
+            const marker = this.markerOn(coords)
+            if (marker === undefined) {
+                throw Error(`No marker at ${coords.q},${coords.r}`)
+            }
+            marker.playerId = marker.playerId === playerId ? opponentId : playerId
         }
     }
 
     // Every five adjacent markers in a line showing the player's color; longer runs give several.
     rowsOf(playerId: string): AxialCoordinates[][] {
-        return AXES.flatMap((axis) =>
-            POINTS.filter((coords) => !isPoint(addAxial(coords, { q: -axis.q, r: -axis.r })))
-                .map((start) => lineFrom(start, axis))
-                .flatMap((line) =>
-                    line
-                        .slice(0, line.length - ROW_LENGTH + 1)
-                        .map((_, index) => line.slice(index, index + ROW_LENGTH))
-                        .filter((row) => row.every((coords) => this.markerAt(coords) === playerId))
-                )
+        return LINES.flatMap(({ points }) =>
+            points
+                .slice(0, points.length - ROW_LENGTH + 1)
+                .map((_, index) => points.slice(index, index + ROW_LENGTH))
+                .filter((row) => row.every((coords) => this.markerAt(coords) === playerId))
         )
     }
 
@@ -162,17 +161,18 @@ export class HydratedYinshBoard extends Hydratable<typeof YinshBoard> implements
     }
 
     removeMarkers(row: readonly AxialCoordinates[]) {
-        for (const coords of row) {
-            delete this.pointAt(coords).markerPlayerId
-        }
+        this.markers = this.markers.filter(
+            (marker) => !row.some((coords) => sameCoordinates(coords, marker.coords))
+        )
     }
 
-    // Returns the ring's id, if it has one.
-    removeRing(coords: AxialCoordinates): number | undefined {
-        const point = this.pointAt(coords)
-        const id = point.ringId
-        delete point.ringPlayerId
-        delete point.ringId
-        return id
+    // Returns the removed ring's id.
+    removeRing(coords: AxialCoordinates): number {
+        const ring = this.ringOn(coords)
+        if (ring === undefined) {
+            throw Error(`No ring at ${coords.q},${coords.r}`)
+        }
+        this.rings = this.rings.filter((other) => other !== ring)
+        return ring.id
     }
 }

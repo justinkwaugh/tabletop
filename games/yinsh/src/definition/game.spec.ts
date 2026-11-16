@@ -1,18 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-    ActionSource,
-    defaultGameConfig,
-    GameEngine,
+    assert,
     GameResult,
-    PlayerStatus,
     sameCoordinates,
     type AxialCoordinates,
     type GameAction
 } from '@tabletop/common'
-import { Definition } from './definition.js'
 import { YinshRuntime } from './runtime.js'
-import { YinshInfo } from './info.js'
-import { YinshVersion } from './config.js'
+import { YinshVersion, versionFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import {
@@ -24,47 +19,23 @@ import {
 import { POINTS } from '../model/geometry.js'
 import { pointFromName, pointName } from '../model/notation.js'
 import type { PlaceRing } from '../actions/placeRing.js'
-import type { MoveRing } from '../actions/moveRing.js'
+import { isMoveRing, type MoveRing } from '../actions/moveRing.js'
 import type { RemoveRow } from '../actions/removeRow.js'
 import type { RemoveRing } from '../actions/removeRing.js'
+import {
+    actionBase as base,
+    createGame,
+    engine,
+    execute,
+    playToEnd,
+    type YinshGame
+} from './tests/playthrough.js'
 
-const engine = new GameEngine(YinshRuntime)
 const W = 'white'
 const B = 'black'
 
-function createGame(version: YinshVersion = YinshVersion.Standard) {
-    return YinshRuntime.initializer.initializeGame(
-        {
-            id: 'yinsh-test',
-            typeId: 'yinsh',
-            ownerId: 'owner',
-            seed: 5,
-            config: { ...defaultGameConfig(YinshInfo.configurator?.options ?? []), version },
-            players: [W, B].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
-type YinshGame = ReturnType<typeof createGame>
-
 function start(game: YinshGame): YinshGameState {
     return engine.startGame(game, { startingPositions: { playerIds: [W, B] } }).initialState
-}
-
-let counter = 0
-function base(game: YinshGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: YinshGame, state: YinshGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
 }
 
 function rejects(game: YinshGame, state: YinshGameState, action: GameAction) {
@@ -129,32 +100,31 @@ function position(
     const next = withMarkers(state, markers)
     for (const player of next.players) {
         const removed = ringsRemoved[player.playerId] ?? 0
-        player.ringsRemoved = removed
         const placed = toPlace(player.playerId)
         for (const name of placed.slice(placed.length - removed)) {
-            const point = pointIn(next, name)
-            delete point.ringPlayerId
-            delete point.ringId
+            const ring = next.board.rings.find((candidate) =>
+                sameCoordinates(candidate.coords, p(name))
+            )
+            if (ring === undefined) throw Error(`no ring on ${name}`)
+            next.board.rings = next.board.rings.filter((candidate) => candidate !== ring)
+            player.removedRingIds.push(ring.id)
         }
     }
     return next
-}
-
-function pointIn(state: YinshGameState, name: string) {
-    const point = state.board.points.find((candidate) => sameCoordinates(candidate.coords, p(name)))
-    if (point === undefined) throw Error(`not a point: ${name}`)
-    return point
 }
 
 function withMarkers(state: YinshGameState, markers: Record<string, string[]>): YinshGameState {
     const next = structuredClone(state)
     for (const [playerId, names] of Object.entries(markers)) {
         for (const name of names) {
-            pointIn(next, name).markerPlayerId = playerId
+            next.board.markers.push({ coords: p(name), playerId })
         }
     }
     return next
 }
+
+const ringsRemovedBy = (state: YinshGameState, playerId: string) =>
+    hydrate(state).getPlayerState(playerId).ringsRemoved
 
 const hydrate = (state: YinshGameState) => new HydratedYinshGameState(state)
 const markerAt = (state: YinshGameState, name: string) => hydrate(state).board.markerAt(p(name))
@@ -216,6 +186,20 @@ describe('placing rings', () => {
         const state = start(createGame())
         expect(state.players.find((player) => player.playerId === W)?.color).toBe('white')
     })
+
+    // Rule C2, whoever the seating puts first.
+    it('gives White the first player without a seating', () => {
+        for (const seed of [1, 2, 3, 4, 5, 6]) {
+            const game = { ...createGame(), seed }
+            const state = engine.startGame(game).initialState
+            const first = state.turnManager.turnOrder[0]
+            expect(state.activePlayerIds).toEqual([first])
+            const colorOf = (playerId: string) =>
+                state.players.find((player) => player.playerId === playerId)?.color
+            expect(colorOf(first)).toBe('white')
+            expect(colorOf(state.turnManager.turnOrder[1])).toBe('black')
+        }
+    })
 })
 
 describe('moving a ring', () => {
@@ -274,7 +258,7 @@ describe('ring ids', () => {
         expect(ringIdAt(state, 'G9')).toBe(1)
         state = move(game, state, W, 'F3', 'F8')
         expect(ringIdAt(state, 'F8')).toBe(0)
-        expect(pointIn(state, 'F3').ringId).toBeUndefined()
+        expect(ringIdAt(state, 'F3')).toBeUndefined()
     })
 
     it('keeps the ids of removed rings in order', () => {
@@ -285,15 +269,6 @@ describe('ring ids', () => {
         state = takeRing(game, state, W, 'F9')
         const white = state.players.find((player) => player.playerId === W)
         expect(white?.removedRingIds).toEqual([0])
-    })
-
-    it('gives no ids to a game saved without them', () => {
-        const game = createGame()
-        let state = start(game)
-        state = execute(game, state, placeAction(game, W, p('F5')))
-        delete pointIn(state, 'F5').ringId
-        state = execute(game, state, placeAction(game, B, p('F6')))
-        expect(ringIdAt(state, 'F6')).toBeUndefined()
     })
 })
 
@@ -311,7 +286,7 @@ describe('rows', () => {
         rejects(game, state, ringAction(game, W, 'K10'))
         state = takeRing(game, state, W, 'F9')
         expect(ringAt(state, 'F9')).toBeUndefined()
-        expect(state.players.find((player) => player.playerId === W)?.ringsRemoved).toBe(1)
+        expect(ringsRemovedBy(state, W)).toBe(1)
         expect(state.machineState).toBe(MachineState.MovingRing)
         expect(state.activePlayerIds).toEqual([B])
     })
@@ -347,7 +322,7 @@ describe('rows', () => {
         expect(state.activePlayerIds).toEqual([W])
         state = takeRow(game, state, W, 'F5', 'B5')
         state = takeRing(game, state, W, 'A2')
-        expect(state.players.find((player) => player.playerId === W)?.ringsRemoved).toBe(2)
+        expect(ringsRemovedBy(state, W)).toBe(2)
         expect(state.machineState).toBe(MachineState.MovingRing)
         expect(state.activePlayerIds).toEqual([B])
     })
@@ -426,6 +401,8 @@ describe('winning', () => {
         expect(state.result).toBe(GameResult.Win)
         expect(state.winningPlayerIds).toEqual([W])
         expect(state.endReason).toBe(EndReason.Rows)
+        expect(state.resolvingPlayerIds).toEqual([])
+        expect(YinshRuntime.scoring?.finalScores(state)).toEqual({ [W]: 1, [B]: 0 })
     })
 
     it('gives the mover the win when both third rows form in one move', () => {
@@ -473,15 +450,17 @@ describe('winning', () => {
 // line, in any direction.
 function filler(state: YinshGameState, count: number, keepVacant: string[]): YinshGameState {
     const next = structuredClone(state)
+    const board = hydrate(next).board
     const vacant = keepVacant.map(p)
     let placed = 0
-    for (const point of next.board.points) {
+    for (const coords of POINTS) {
         if (placed === count) break
-        const reserved = vacant.some((coords) => sameCoordinates(coords, point.coords))
-        if (reserved || point.ringPlayerId !== undefined || point.markerPlayerId !== undefined) {
-            continue
-        }
-        point.markerPlayerId = (((point.coords.q - point.coords.r) % 3) + 3) % 3 === 0 ? W : B
+        const reserved = vacant.some((other) => sameCoordinates(other, coords))
+        if (reserved || !board.isVacant(coords)) continue
+        next.board.markers.push({
+            coords,
+            playerId: (((coords.q - coords.r) % 3) + 3) % 3 === 0 ? W : B
+        })
         placed += 1
     }
     expect(placed).toBe(count)
@@ -507,6 +486,7 @@ describe('end of the pool', () => {
         state = move(game, state, W, 'F3', 'F4')
         expect(state.result).toBe(GameResult.Draw)
         expect(state.winningPlayerIds).toEqual([W, B])
+        expect(YinshRuntime.scoring?.finalScores(state)).toEqual({ [W]: 1, [B]: 1 })
     })
 
     it('plays on when the last marker completes a row', () => {
@@ -532,50 +512,111 @@ describe('blocked rings', () => {
             { [B]: 2 }
         )
 
-    it('passes a player who cannot move', () => {
+    it('passes a player who cannot move, and records the pass', () => {
         const game = createGame()
-        let state = pocket(game)
+        const state = pocket(game)
         expect(hydrate(state).canMove(B)).toBe(false)
-        state = move(game, state, W, 'F3', 'F4')
-        expect(state.machineState).toBe(MachineState.MovingRing)
-        expect(state.activePlayerIds).toEqual([W])
+        const { updatedState, processedActions } = engine.executeCanonicalAction({
+            game,
+            state,
+            action: moveAction(game, W, 'F3', 'F4')
+        })
+        expect(updatedState.machineState).toBe(MachineState.MovingRing)
+        expect(updatedState.activePlayerIds).toEqual([W])
+        const [moved] = processedActions
+        assert(isMoveRing(moved), 'The move is processed')
+        expect(moved.metadata).toEqual({ flipped: [], passedPlayerId: B })
+    })
+
+    it('records no pass when the opponent can move', () => {
+        const game = createGame()
+        const state = position(game, { [W]: ['F3'], [B]: [] })
+        const { processedActions } = engine.executeCanonicalAction({
+            game,
+            state,
+            action: moveAction(game, W, 'F3', 'F4')
+        })
+        const [moved] = processedActions
+        assert(isMoveRing(moved), 'The move is processed')
+        expect(moved.metadata).toEqual({ flipped: [] })
+    })
+
+    // Agreed reading: when neither player can move, the game ends as on an empty pool. White's
+    // I4 to J5 shuts the last gap in a cluster of rings walled in by markers.
+    it('ends the game when neither player can move, most rings removed winning', () => {
+        const game = createGame()
+        let state = position(
+            game,
+            { [W]: ['I4', 'J6', 'K7'], [B]: ['I5', 'J7', 'I6'] },
+            {
+                [W]: [
+                    'A5',
+                    'B6',
+                    'B7',
+                    'D6',
+                    'E5',
+                    'E6',
+                    'E7',
+                    'F2',
+                    'F3',
+                    'F5',
+                    'F6',
+                    'G2',
+                    'G3',
+                    'G4',
+                    'H6',
+                    'H7',
+                    'I10',
+                    'I11',
+                    'I7',
+                    'J10',
+                    'J9',
+                    'K10',
+                    'K9'
+                ],
+                [B]: [
+                    'B5',
+                    'C5',
+                    'C6',
+                    'C7',
+                    'D1',
+                    'D5',
+                    'D7',
+                    'E1',
+                    'E2',
+                    'F7',
+                    'G5',
+                    'G6',
+                    'G7',
+                    'H3',
+                    'H4',
+                    'H5',
+                    'I8',
+                    'I9',
+                    'J11',
+                    'J8',
+                    'K8'
+                ]
+            },
+            { [W]: 2, [B]: 2 }
+        )
+        expect(hydrate(state).canMove(B)).toBe(true)
+        state = move(game, state, W, 'I4', 'J5')
+        expect(hydrate(state).markersInPool()).toBeGreaterThan(0)
+        expect(state.machineState).toBe(MachineState.EndOfGame)
+        expect(state.endReason).toBe(EndReason.NoMoves)
+        expect(state.result).toBe(GameResult.Draw)
+        expect(state.winningPlayerIds).toEqual([W, B])
     })
 })
 
-function legalActions(game: YinshGame, state: YinshGameState): GameAction[] {
-    const hydrated = hydrate(state)
-    const playerId = state.activePlayerIds[0]
-    switch (state.machineState) {
-        case MachineState.PlacingRings:
-            return POINTS.filter((coords) => hydrated.board.isVacant(coords)).map((coords) =>
-                placeAction(game, playerId, coords)
-            )
-        case MachineState.MovingRing:
-            return hydrated.movesFor(playerId).flatMap((ring) =>
-                ring.moves.map((m) => ({
-                    ...base(game, playerId),
-                    type: ActionType.MoveRing,
-                    from: ring.from,
-                    to: m.to
-                }))
-            )
-        case MachineState.RemovingRow:
-            return hydrated.board.rowsOf(playerId).map((row) => ({
-                ...base(game, playerId),
-                type: ActionType.RemoveRow,
-                from: row[0],
-                to: row[row.length - 1]
-            }))
-        case MachineState.RemovingRing:
-            return hydrated.board.ringsOf(playerId).map((coords) => ({
-                ...base(game, playerId),
-                type: ActionType.RemoveRing,
-                coords
-            }))
-        default:
-            return []
-    }
-}
+describe('configuration', () => {
+    it('reads a missing version as Standard and rejects an unknown one', () => {
+        expect(versionFromConfig({})).toBe(YinshVersion.Standard)
+        expect(versionFromConfig({ version: 'Blitz' })).toBe(YinshVersion.Blitz)
+        expect(() => versionFromConfig({ version: 'Lightning' })).toThrow()
+    })
+})
 
 describe('random playouts', () => {
     it.each(
@@ -584,21 +625,10 @@ describe('random playouts', () => {
         )
     )('%s seed %i plays to a result', (version, seed) => {
         const game = { ...createGame(version), seed: seed + 1 }
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions))
-            steps += 1
-            expect(steps).toBeLessThan(1000)
-        }
-        expect(state.winningPlayerIds.length).toBeGreaterThan(0)
-        expect(state.endReason).toBeDefined()
+        const finished = playToEnd(game, start(game), seed)
+        expect(finished.winningPlayerIds.length).toBeGreaterThan(0)
+        expect(finished.endReason).toBeDefined()
+        // Nothing reads past turns, so the series keeps only each player's latest.
+        expect(finished.turnManager.series.length).toBeLessThanOrEqual(2)
     })
 })

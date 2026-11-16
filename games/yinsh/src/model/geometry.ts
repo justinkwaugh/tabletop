@@ -2,6 +2,7 @@ import {
     addAxial,
     ClockwiseFlatHexDirections,
     coordinatesToNumber,
+    distanceAxial,
     FlatNeighborOffsets,
     HexOrientation,
     hexSpiralPattern,
@@ -24,17 +25,16 @@ export const AXES: readonly AxialCoordinates[] = [
     { q: 1, r: -1 }
 ]
 
-const CORNERS: readonly AxialCoordinates[] = DIRECTIONS.map((direction) =>
+const CENTER: AxialCoordinates = { q: 0, r: 0 }
+
+// The hexagon's corners, which the board leaves out, in the order of DIRECTIONS.
+export const CORNERS: readonly AxialCoordinates[] = DIRECTIONS.map((direction) =>
     scaleAxial(direction, HEX_RADIUS)
 )
 
-export function ringDistance(coords: AxialCoordinates): number {
-    return Math.max(Math.abs(coords.q), Math.abs(coords.r), Math.abs(coords.q + coords.r))
-}
-
 export function isPoint(coords: AxialCoordinates): boolean {
     return (
-        ringDistance(coords) <= HEX_RADIUS &&
+        distanceAxial(coords, CENTER) <= HEX_RADIUS &&
         !CORNERS.some((corner) => sameCoordinates(corner, coords))
     )
 }
@@ -55,6 +55,15 @@ export function lineFrom(start: AxialCoordinates, direction: AxialCoordinates): 
     }
     return line
 }
+
+// Every line of the board, end to end, each with the direction it runs in from its first point.
+export type BoardLine = { direction: AxialCoordinates; points: AxialCoordinates[] }
+
+export const LINES: readonly BoardLine[] = AXES.flatMap((direction) =>
+    POINTS.filter((coords) => !isPoint(addAxial(coords, scaleAxial(direction, -1)))).map(
+        (start) => ({ direction, points: lineFrom(start, direction) })
+    )
+)
 
 // The points from one end to the other when both lie on one board line, otherwise undefined.
 export function pointsBetween(

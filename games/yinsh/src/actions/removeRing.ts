@@ -6,9 +6,10 @@ import { ActionType } from '../definition/actions.js'
 import { isPoint } from '../model/geometry.js'
 
 export type RemoveRingMetadata = Type.Static<typeof RemoveRingMetadata>
+// `passedPlayerId` names a player whose turn this removal's end skipped, as they could not move.
 export const RemoveRingMetadata = Type.Object({
     ringsRemoved: Type.Integer({ minimum: 1 }),
-    won: Type.Boolean()
+    passedPlayerId: Type.Optional(Type.String())
 })
 
 export type RemoveRing = Type.Static<typeof RemoveRing>
@@ -45,8 +46,7 @@ export class HydratedRemoveRing extends HydratableAction<typeof RemoveRing> impl
         if (!this.isValid(state)) {
             throw Error('Invalid RemoveRing action')
         }
-        const ringsRemoved = state.removeRing(this.playerId, this.coords)
-        this.metadata = { ringsRemoved, won: state.hasWon(this.playerId) }
+        this.metadata = { ringsRemoved: state.removeRing(this.playerId, this.coords) }
     }
 
     isValid(state: HydratedYinshGameState): boolean {

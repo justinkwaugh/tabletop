@@ -1,5 +1,6 @@
 import * as Type from 'typebox'
 import {
+    assertExists,
     BaseConfigurator,
     ConfigOptionType,
     type GameConfig,
@@ -21,16 +22,20 @@ export const YinshGameConfig = Type.Object({
     version: Type.Optional(Type.Enum(YinshVersion))
 })
 
+const standardDescription = 'Form three rows to win.'
+const blitzDescription = 'The first row wins.'
+
 export const YinshGameConfigOptions: GameConfigOptions = [
     {
         id: 'version',
         type: ConfigOptionType.List,
         name: 'Version',
-        description: 'Standard: form three rows to win. Blitz: the first row wins.',
+        // Older site forms show only this, so it describes every version.
+        description: `Standard: ${standardDescription} Blitz: ${blitzDescription}`,
         default: YinshVersion.Standard,
         options: [
-            { name: 'Standard', value: YinshVersion.Standard },
-            { name: 'Blitz', value: YinshVersion.Blitz }
+            { name: 'Standard', value: YinshVersion.Standard, description: standardDescription },
+            { name: 'Blitz', value: YinshVersion.Blitz, description: blitzDescription }
         ],
         alwaysShow: true
     }
@@ -42,8 +47,8 @@ export class YinshConfigurator extends BaseConfigurator {
 }
 
 export function versionFromConfig(config: GameConfig): YinshVersion {
-    return (
-        Object.values(YinshVersion).find((version) => version === config.version) ??
-        YinshVersion.Standard
-    )
+    if (config.version === undefined) return YinshVersion.Standard
+    const version = Object.values(YinshVersion).find((known) => known === config.version)
+    assertExists(version, `Unknown YINSH version ${String(config.version)}`)
+    return version
 }

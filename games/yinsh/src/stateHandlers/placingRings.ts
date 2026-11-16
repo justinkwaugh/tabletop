@@ -3,6 +3,7 @@ import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceRing, isPlaceRing } from '../actions/placeRing.js'
 import { HydratedYinshGameState } from '../model/gameState.js'
+import { turnHolder } from './turnFlow.js'
 
 export class PlacingRingsStateHandler implements MachineStateHandler<
     HydratedPlaceRing,
@@ -23,9 +24,7 @@ export class PlacingRingsStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedYinshGameState>) {
-        const { gameState } = context
-        const playerId = gameState.turnManager.currentTurn()?.playerId
-        gameState.activePlayerIds = playerId === undefined ? [] : [playerId]
+        context.gameState.activePlayerIds = [turnHolder(context.gameState)]
     }
 
     onAction(

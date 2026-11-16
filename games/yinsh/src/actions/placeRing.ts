@@ -36,7 +36,7 @@ export class HydratedPlaceRing extends HydratableAction<typeof PlaceRing> implem
         if (!this.isValid(state)) {
             throw Error('Invalid PlaceRing action')
         }
-        state.board.placeRing(this.coords, this.playerId)
+        state.placeRing(this.playerId, this.coords)
     }
 
     isValid(state: HydratedYinshGameState): boolean {

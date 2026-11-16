@@ -31,6 +31,7 @@ export class YinshGameInitializer
             prng.random,
             assignment
         )
+        turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
 
         // Rule C2: the starting player plays White.
@@ -39,7 +40,7 @@ export class YinshGameInitializer
                 new HydratedYinshPlayerState({
                     playerId,
                     color: index === 0 ? Color.White : Color.Black,
-                    ringsRemoved: 0
+                    removedRingIds: []
                 })
         )
 

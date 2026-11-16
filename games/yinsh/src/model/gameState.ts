@@ -1,4 +1,5 @@
 import {
+    assertExists,
     type AxialCoordinates,
     GameResult,
     GameState,
@@ -82,6 +83,11 @@ export class HydratedYinshGameState
         return RINGS_PER_PLAYER - player.ringsRemoved - this.board.ringsOf(playerId).length
     }
 
+    // Rings are numbered in placing order, and all are placed before any is removed.
+    placeRing(playerId: string, coords: AxialCoordinates) {
+        this.board.placeRing(coords, playerId, this.board.rings.length)
+    }
+
     allRingsPlaced(): boolean {
         return this.players.every((player) => this.ringsToPlace(player.playerId) === 0)
     }
@@ -101,25 +107,17 @@ export class HydratedYinshGameState
         return this.movesFor(playerId).length > 0
     }
 
+    // The action has already checked the move; this applies it.
     moveRing(playerId: string, from: AxialCoordinates, to: AxialCoordinates): RingMove {
         const move = this.board.findMove(from, to)
-        if (move === undefined || this.board.ringAt(from) !== playerId) {
-            throw Error('The ring cannot move there')
-        }
+        assertExists(move, 'The ring cannot move there')
         this.board.moveRing(from, move, playerId, this.opponentOf(playerId))
         return move
     }
 
     removeRing(playerId: string, coords: AxialCoordinates): number {
-        const id = this.board.removeRing(coords)
         const player = this.getPlayerState(playerId)
-        const ids = player.removedRingIds ?? []
-        if (id !== undefined && ids.length === player.ringsRemoved) {
-            player.removedRingIds = [...ids, id]
-        } else {
-            delete player.removedRingIds
-        }
-        player.ringsRemoved += 1
+        player.removedRingIds.push(this.board.removeRing(coords))
         return player.ringsRemoved
     }
 
@@ -130,6 +128,7 @@ export class HydratedYinshGameState
     declareWinner(playerId: string) {
         this.winningPlayerIds = [playerId]
         this.endReason = EndReason.Rows
+        this.resolvingPlayerIds = []
     }
 
     // Rule H3: most rings removed wins; equal counts draw, which the platform records with both

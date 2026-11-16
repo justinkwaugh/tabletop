@@ -6,8 +6,10 @@ import { ActionType } from '../definition/actions.js'
 import { isPoint } from '../model/geometry.js'
 
 export type MoveRingMetadata = Type.Static<typeof MoveRingMetadata>
+// `passedPlayerId` names a player whose turn this move's end skipped, as they could not move.
 export const MoveRingMetadata = Type.Object({
-    flipped: Type.Array(AxialCoordinates)
+    flipped: Type.Array(AxialCoordinates),
+    passedPlayerId: Type.Optional(Type.String())
 })
 
 export type MoveRing = Type.Static<typeof MoveRing>
@@ -53,7 +55,6 @@ export class HydratedMoveRing extends HydratableAction<typeof MoveRing> implemen
         return (
             isPoint(this.from) &&
             isPoint(this.to) &&
-            state.markersInPool() > 0 &&
             state.board.ringAt(this.from) === this.playerId &&
             state.board.findMove(this.from, this.to) !== undefined
         )

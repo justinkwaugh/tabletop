@@ -7,6 +7,7 @@ export const YinshInfo: GameInfo = {
     id: 'yinsh',
     metadata: {
         name: 'YINSH',
+        bggId: 7854,
         designer: 'Kris Burm',
         description:
             'YINSH is a 2-player abstract game of the GIPF project. Move your rings, leave markers behind and flip the ones you jump; line up five of your color to take off a ring, and be the first to take off three.',
@@ -15,6 +16,7 @@ export const YinshInfo: GameInfo = {
         maxPlayers: 2,
         defaultPlayerCount: 2,
         version: GAME_VERSION,
+        hasScores: false,
         beta: true,
         visibility: GameVisibility.Alpha
     },

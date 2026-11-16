@@ -1,4 +1,9 @@
-import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    assertExists,
+    type HydratedAction,
+    type MachineStateHandler,
+    MachineContext
+} from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedRemoveRing, isRemoveRing } from '../actions/removeRing.js'
@@ -39,6 +44,9 @@ export class RemovingRingStateHandler implements MachineStateHandler<
             gameState.declareWinner(action.playerId)
             return MachineState.EndOfGame
         }
-        return continueResolving(gameState)
+        const { next, passedPlayerId } = continueResolving(gameState)
+        assertExists(action.metadata, 'A removed ring records how many its player has removed')
+        if (passedPlayerId !== undefined) action.metadata.passedPlayerId = passedPlayerId
+        return next
     }
 }
