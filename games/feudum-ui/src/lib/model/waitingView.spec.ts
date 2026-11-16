@@ -283,12 +283,11 @@ describe('Render ownership: each shared row reads the same for every seat', () =
             done: false
         })
         expect(row?.entries.find(({ playerId }) => playerId === table.other)?.done).toBe(true)
-        // Only the viewer differs: a phone's row says "you" on its own seat.
+        // The row is the same for every viewer: no seat's chip reads "you".
         const own = blockOf(table.session.actionPanel, 'order-row')
-        expect([own?.me, row?.me]).toEqual([table.seat, table.other])
-        expect(plain({ ...own, me: undefined })).toEqual(plain({ ...row, me: undefined }))
+        expect(plain(own)).toEqual(plain(row))
         const name = other.getPlayerName(table.seat)
-        expect(linesOf(other.actionPanel, 'waiting')[0]).toContain(name)
+        expect(linesOf(other.actionPanel, 'waiting')[0]).toBe(`Waiting on ${name}.`)
         expect(other.actionPanel.blocks[0]).toMatchObject({ kind: 'line', role: 'waiting' })
     })
 
@@ -298,10 +297,9 @@ describe('Render ownership: each shared row reads the same for every seat', () =
         await settled(other)
         const row = blockOf(other.actionPanel, 'order-row')
         expect(row?.step).toBe('landscapes')
-        // Only the viewer differs: a phone's row says "you" on its own seat.
+        // The row is the same for every viewer: no seat's chip reads "you".
         const own = blockOf(table.session.actionPanel, 'order-row')
-        expect([own?.me, row?.me]).toEqual([table.seat, table.other])
-        expect(plain({ ...own, me: undefined })).toEqual(plain({ ...row, me: undefined }))
+        expect(plain(own)).toEqual(plain(row))
     })
 
     it('R-3.1 the finalise row: the same for the finaliser and those waiting', async () => {

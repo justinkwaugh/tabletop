@@ -209,29 +209,20 @@ for (const size of Object.keys(Sizes) as Size[]) {
             expectGroupedAfter(await placementOf(send), size)
         })
 
-        test('R-4.10.1 the nourish summary: the send stands the group gap after its line', async ({
+        test('R-4.10.1 the nourish picker: the send stands the group gap under the rows', async ({
             page
         }) => {
             await openTablePage(page, 'followUpTablePage.ts', "openNourishTable('seat')")
-            const summary = page.locator('[data-nourish-summary]')
-            const send = summary.locator('[data-primary]')
+            const send = page.locator('[data-nourish-send] [data-primary]')
             await expect(send).toBeVisible()
-            const [line, button] = await Promise.all([
-                summary.locator('[data-nourish-rule]').boundingBox(),
+            await expect(page.locator('[data-nourish-summary]')).toHaveCount(0)
+            const [rows, button] = await Promise.all([
+                page.locator('[data-nourish-rows]').boundingBox(),
                 send.boundingBox()
             ])
-            if (isPhone(size)) {
-                // On a phone the short rule and the send share a line, the send right after it.
-                expect(Math.round((button?.x ?? 0) - ((line?.x ?? 0) + (line?.width ?? 0)))).toBe(
-                    GroupGap.phone
-                )
-            } else {
-                expect(Math.round((button?.y ?? 0) - ((line?.y ?? 0) + (line?.height ?? 0)))).toBe(
-                    GroupGap.desk
-                )
-                // The summary is as wide as a column of its words, not the rest of the line.
-                expect((await summary.boundingBox())?.width ?? 0).toBeLessThanOrEqual(384)
-            }
+            expect(Math.round((button?.y ?? 0) - ((rows?.y ?? 0) + (rows?.height ?? 0)))).toBe(
+                gapAt(size)
+            )
         })
 
         test('R-4.12 the dawn sheet stands as wide as its columns', async ({ page }) => {

@@ -13,8 +13,6 @@ export interface OrderRowEntry {
     readonly next?: boolean
     /** R-4.10-H4 Asked and yet to answer: every such seat decides at once. */
     readonly deciding?: boolean
-    /** R-4.10, R-4.10-H4 It had no choice, so the game fed it. */
-    readonly fedByGame?: boolean
 }
 
 export interface OrderRow {
@@ -30,37 +28,29 @@ export interface CombatTallyRow {
 function entriesOf(
     state: HydratedFeudumGameState,
     pending: readonly string[],
-    asked: 'together' | 'in-turn',
-    fedByGame: readonly string[]
+    asked: 'together' | 'in-turn'
 ): readonly OrderRowEntry[] {
     return state.turnManager.turnOrder.map((playerId) => {
         const done = !pending.includes(playerId)
         return {
             playerId,
             done,
-            ...(asked === 'together' ? { deciding: !done } : { next: pending[0] === playerId }),
-            ...(fedByGame.includes(playerId) ? { fedByGame: true } : {})
+            ...(asked === 'together' ? { deciding: !done } : { next: pending[0] === playerId })
         }
     })
 }
 
-/**
- * R-4.10, R-4.12.3 Who has answered, and who is deciding (nourishing) or next (landscapes).
- * R-4.10-H4 `fedByGame` names the seats it fed itself.
- */
-export function orderRowOf(
-    state: HydratedFeudumGameState,
-    fedByGame: readonly string[]
-): OrderRow | undefined {
+/** R-4.10, R-4.12.3 Who has answered, and who is deciding (nourishing) or next (landscapes). */
+export function orderRowOf(state: HydratedFeudumGameState): OrderRow | undefined {
     const { nourish, landscapes } = state.flow
     if (nourish) {
         return {
             step: 'nourish',
-            entries: entriesOf(state, nourish.pending, 'together', fedByGame)
+            entries: entriesOf(state, nourish.pending, 'together')
         }
     }
     return landscapes
-        ? { step: 'landscapes', entries: entriesOf(state, landscapes.pending, 'in-turn', []) }
+        ? { step: 'landscapes', entries: entriesOf(state, landscapes.pending, 'in-turn') }
         : undefined
 }
 

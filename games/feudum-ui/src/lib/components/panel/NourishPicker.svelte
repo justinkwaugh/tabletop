@@ -9,11 +9,11 @@
 
     /**
      * Contract, Round end: the nourish picker. Each pawn is its cube, its name and the space it
-     * stands on, and its feeds as art: food, or wine (R-4.10.2). An unfed pawn's row is rose with
-     * what it loses (R-4.10.1). Beside the rows, the summary: what the feeding pays and what is
-     * kept, the unfed rule once, R-4.3.3 a tile's rows when one could feed, and the send. A phone's
-     * rows are compact, with no preview path (a press is undoable, and the map rings each fed pawn
-     * with its payment), its summary stays in sight under them, and its send draws the counts as art.
+     * stands on, and its feeds: food and wine (R-4.10.2) as their pieces, wine with its cost, and
+     * "unfed". An unfed pawn's row is rose (R-4.10.1). Under the rows, R-4.3.3 a tile's rows when
+     * one could feed, and the send, which draws what is paid as art. A phone's rows are compact,
+     * with no preview path (a press is undoable, and the map rings each fed pawn with its payment),
+     * and its send stays in sight under them.
      */
     let {
         block,
@@ -25,17 +25,13 @@
     const DeskCube = 38
     const PhoneCube = 32
     const OptionGood = 24
-    const SummaryGood = 20
     const SendGood = 16
 
-    /** The phone's short words for the unfed rule, beside its send. */
-    const PhoneRule = 'Unfed: back to supply'
-
-    /** A phone draws the send's counts as art while every pawn eats; else its words. */
+    /** The send draws its counts as art while every pawn eats; else its words. */
     let allFed = $derived(block.pawns.every(({ unfed }) => !unfed))
 
     function optionClasses(option: NourishOptionRow): string {
-        const { picked, refusal } = option.choice
+        const { picked } = option.choice
         if (option.feed === 'unfed') {
             return picked
                 ? 'border-feudum-danger bg-feudum-danger-soft text-feudum-text'
@@ -45,12 +41,15 @@
             return 'border-feudum-accent bg-feudum-primary text-feudum-text'
         }
         return `border-feudum-frame bg-feudum-control text-feudum-text ${
-            refusal || option.spent ? 'opacity-60' : 'hover:bg-feudum-control-hover'
+            option.spent ? 'opacity-60' : 'hover:bg-feudum-control-hover'
         }`
     }
 </script>
 
-<div class="flex w-full items-stretch gap-2 max-sm:flex-col max-sm:gap-1" data-nourish-picker>
+<div
+    class="flex w-full flex-col items-start gap-2 max-sm:items-stretch max-sm:gap-1"
+    data-nourish-picker
+>
     <div class="flex flex-none flex-col gap-2 max-sm:gap-1" data-nourish-rows>
         {#each block.pawns as pawn (pawn.n)}
             <div
@@ -70,9 +69,7 @@
                     <span class="text-sm font-semibold text-feudum-text" data-pawn-name
                         >{pawn.name}</span
                     >
-                    <span class="text-xs text-feudum-text-muted" data-pawn-place
-                        >at {pawn.place}</span
-                    >
+                    <span class="text-xs text-feudum-text-muted" data-pawn-place>{pawn.place}</span>
                 </span>
                 <span class="flex flex-wrap gap-1" role="group" aria-label="Feed the {pawn.name}">
                     {#each pawn.options as option (option.feed)}
@@ -87,20 +84,21 @@
                                 {#if option.art?.kind === 'good'}
                                     <GoodToken good={option.art.good} size={OptionGood} />
                                 {/if}
-                                <span class="flex flex-col leading-tight">
-                                    <span
-                                        class="text-sm {option.feed === 'food'
-                                            ? 'max-sm:sr-only'
-                                            : 'max-sm:text-xs'}">{option.choice.shown}</span
-                                    >
-                                    <small
-                                        class="text-[0.6875rem] max-sm:hidden {option.feed ===
-                                        'unfed'
-                                            ? 'text-feudum-danger'
-                                            : 'text-feudum-text-muted'}"
-                                        data-caption>{option.caption}</small
-                                    >
-                                </span>
+                                {#if option.choice.shown || option.caption}
+                                    <span class="flex flex-col leading-tight">
+                                        {#if option.choice.shown}
+                                            <span class="text-sm max-sm:text-xs"
+                                                >{option.choice.shown}</span
+                                            >
+                                        {/if}
+                                        {#if option.caption}
+                                            <small
+                                                class="text-[0.6875rem] text-feudum-text-muted max-sm:hidden"
+                                                data-caption>{option.caption}</small
+                                            >
+                                        {/if}
+                                    </span>
+                                {/if}
                             </span>
                         {/snippet}
                         <PanelRow
@@ -114,40 +112,7 @@
             </div>
         {/each}
     </div>
-    <div
-        class="flex min-w-0 max-w-sm flex-1 flex-col gap-2 rounded-lg border border-feudum-frame bg-feudum-surface-raised p-3
-            max-sm:max-w-none max-sm:gap-1 max-sm:border-0 max-sm:p-0"
-        data-nourish-summary
-    >
-        {#if !layout.phone}
-            <p class="flex flex-wrap items-center gap-1.5 text-feudum-text" data-nourish-pays>
-                <span class="font-semibold">Pays</span>
-                {#if block.summary.pays.food > 0}
-                    <span class="inline-flex items-center gap-0.5"
-                        ><GoodToken good="food" size={SummaryGood} />{block.summary.pays.food}</span
-                    >
-                {/if}
-                {#if block.summary.pays.wine > 0}
-                    <span class="inline-flex items-center gap-0.5"
-                        ><GoodToken good="sulfur" size={SummaryGood} />{block.summary.pays.wine}
-                        <span class="text-xs text-feudum-text-muted">wine</span></span
-                    >
-                {/if}
-                {#if block.summary.pays.food + block.summary.pays.wine === 0}
-                    <span>nothing</span>
-                {/if}
-                <span class="text-xs text-feudum-text-muted">· you keep</span>
-                <span class="inline-flex items-center gap-0.5"
-                    ><GoodToken good="food" size={SummaryGood} />{block.summary.keeps.food}</span
-                >
-                <span class="text-xs text-feudum-text-muted">· barrel</span>
-                <span class="inline-flex items-center gap-0.5"
-                    ><GoodToken good="sulfur" size={SummaryGood} />{block.summary.keeps
-                        .barrel}</span
-                >
-            </p>
-            <p class="text-xs text-feudum-text-muted" data-nourish-rule>{block.rule}</p>
-        {/if}
+    <div class="flex flex-col gap-2 max-sm:gap-1" data-nourish-send>
         {#if block.covers}
             <div class="flex flex-wrap items-center gap-1" data-nourish-covers>
                 <span class="text-xs text-feudum-accent">{block.covers.line}</span>
@@ -157,28 +122,23 @@
             </div>
         {/if}
         <!-- Contract, Spacing: the send right after the line before it, the group gap from it. -->
-        <div class="flex items-center gap-2 max-sm:gap-1">
-            {#if layout.phone}
-                <span class="text-xs text-feudum-text-muted" data-nourish-rule>{PhoneRule}</span>
-            {/if}
-            <span class="max-sm:flex-none">
-                <PrimaryButton block={block.send}>
-                    {#if layout.phone && allFed}
-                        <span class="inline-flex items-center gap-1" data-send-phone>
-                            Feed {block.send.tally.fed}
-                            {#if block.send.tally.food > 0}
-                                · <GoodToken good="food" size={SendGood} />{block.send.tally.food}
-                            {/if}
-                            {#if block.send.tally.wine > 0}
-                                · <GoodToken good="sulfur" size={SendGood} />{block.send.tally.wine}
-                            {/if}
-                        </span>
-                    {:else}
-                        {block.send.label}
-                    {/if}
-                </PrimaryButton>
-            </span>
-        </div>
+        <span class="max-sm:self-end">
+            <PrimaryButton block={block.send}>
+                {#if allFed}
+                    <span class="inline-flex items-center gap-1" data-send-art>
+                        Feed {block.send.tally.fed}
+                        {#if block.send.tally.food > 0}
+                            · <GoodToken good="food" size={SendGood} />{block.send.tally.food}
+                        {/if}
+                        {#if block.send.tally.wine > 0}
+                            · <GoodToken good="sulfur" size={SendGood} />{block.send.tally.wine}
+                        {/if}
+                    </span>
+                {:else}
+                    {block.send.label}
+                {/if}
+            </PrimaryButton>
+        </span>
     </div>
 </div>
 
@@ -189,7 +149,7 @@
             display: none;
         }
 
-        [data-nourish-summary] {
+        [data-nourish-send] {
             position: sticky;
             bottom: 0;
             background-color: var(--feudum-surface-raised);
