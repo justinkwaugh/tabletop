@@ -17,16 +17,23 @@ This branch has had only two readiness commits: the move to upstream's Rolldown,
 
 **Motion**: each hop arcs 24 units over 0.32 s (0.24 s per chained hop) and hovers 8 units over each LYNGK-point. The landing bounce is mostly vertical (2.5, then 0.8) with a small carry along the hop (1, −0.4). The occluder `<use>` copies hide a stack that lands behind a taller one; this fixed a bug the author reported. A scored stack waits for the bounce, swaps to one flier drawing and lifts 34 units as it fades, so it fades as one. Undo drops a scored stack back in and then hops it home. Undo and history play quickly and retrace the LYNGK route. The claim flight lifts, arcs, touches down short, skips and slides in, and plays in reverse on Undo. The second player's claims are mirrored so a new one lands outermost. A claim lands at once, with no mark fade before it.
 
-**Interaction**: a move is one tap. Every reachable landing is marked, and the session commits the shortest route. Undoing a move picks its stack up again when it had more than one landing (`holdUndoneStack`, f8c15afcc), so another Undo lets it go; with a single landing nothing is held. Tapping off the choices lets go. A stack you cannot tap passes taps through to the stack behind (`pointer-events: none`), and marks sit in each stack's own wrapper, with the bolts on top. Other movable rings hide once a stack is chosen. This differs from the author's general "fade others to 40%" preference, but leave it unless the author asks.
+**Interaction**: a move is one tap. Every reachable landing is marked, and the session commits the shortest route. Undoing a move picks its stack up again when it had more than one landing (`holdUndoneStack`, f8c15afcc), so another Undo lets it go; with a single landing nothing is held. Tapping off the choices lets go. A stack you cannot tap passes taps through to the stack behind (`pointer-events: none`), and marks sit in each stack's own wrapper, with the bolts on top. Other movable rings hide once a stack is chosen, so they are not mistaken for valid destinations; the author keeps this.
 
 **Preferences and phone**: the Far side toggle (`turned`, off by default) and the A1 toggle (`showCoordinates`, on by default) sit at the top right. Labels stay beyond their columns' ends, and the side tips' labels stay below when the board is turned. Preferences are at version 2, with a migration from version 1. LYNGK has no stack-height cap; do not add one (stack caps are off by default in every title). On phones the claim strip is one row, and the viewport tag (`maximum-scale=1, viewport-fit=cover`, `app.html:8`) and `touch-action: manipulation` (`GameTable.svelte:177`) are iOS workarounds. `CONTROLS_ROOM` keeps the bottom-left zoom bar clear of C1, and the board stays centred and is not shrunk.
 
 **Where a fix meets an author choice:**
 
-- D7 against the undo and history pace and the claim flight. Keep the retraced route, the drop-back of a scored stack and the reversed claim flight, but fit each Undo or actionless step into 0.2 s.
+- D7 against the undo and history pace and the claim flight. Keep the retraced route, the drop-back of a scored stack and the reversed claim flight; overlap and shorten them so each Undo or actionless step fits 0.2 s (the author's decision).
 - F7 against the joker flecks. Halving the look scale softens flecks the author chose on full-size images. The author accepts slightly soft pieces at full zoom, so follow the rule and note the measured difference.
 - B1 against the `scored` stacks. The cards draw each scored stack (an author choice) and `inferMove` reads them, so keep `scored` as stacks.
 - B6 against `PieceIcon`. Icons and scored stacks have no ids, so `StackShape` keeps its optional `ids` and fallback seed for them; only the board's ids become required.
+
+## Author's decisions
+
+- **Undo and actionless steps:** overlap and shorten the title's own motions until each step ends within 0.2 s (D7). Keep every motion; do not drop one or swap it for a fade.
+- **Pieces an Undo or step back puts back:** keep the title's own return motion. gipf `c7d160278` fades such pieces in only because GIPF's taken rows had no motion and popped in; it is not a rule for titles that already move them back.
+- **Other movable stacks hide once one is chosen**, so they are not mistaken for valid destinations. Keep it.
+- **BoardGameGeek id:** 217083.
 
 ## Fixes
 
@@ -37,7 +44,7 @@ This branch has had only two readiness commits: the move to upstream's Rolldown,
 - **A3 Turn series keeps the latest turn: applies.** `initializer.ts:56`: set `turnManager.seriesKeeps = 'latest'` before `startTurn`. LYNGK reads only `currentTurn`, `endTurn` and `startNextTurn`. Add a playout assertion that the series stays short. Example: gipf `36405defd`.
 - **A4 Config validated: applies.** `config.ts:50-55` `variantFromConfig` reads an unknown variant as Standard. Return Standard only when `variant` is undefined, assert otherwise, and add `normalizeConfig` with `Value.Check`. Example: GP `4497039ac` (`versionFromConfig`).
 - **A5 Per-choice descriptions: applies.** `config.ts:33-40` has only the combined text. Give each of Standard and Stack of 6 its own `description` and keep the combined text on the option. Example: gipf `d0c84518d`.
-- **A7 BoardGameGeek link: applies.** Add `bggId` to `info.ts` metadata after looking up LYNGK's BGG id. Example: zertz `e35ef711b`.
+- **A7 BoardGameGeek link: applies.** Add `bggId: 217083` to `info.ts` metadata. Example: zertz `e35ef711b`.
 - **B1 State keeps only the pieces: applies.** `board.ts:16-19` and `emptyBoard` (`:30-32`) store all 43 points, empty ones included, and the initializer fills every point (`initializer.ts:58-63`). Store only the occupied points, say `stacks: { coords, stack, ids }[]`, and derive emptiness from absence. `pointAt`, `stackAt`, `occupied`, `lift` and `drop` change with it, and so do the spec helper `withStacks` (`game.spec.ts:~100`), `scripts/build-scenarios.mjs` and the five scenario files. Regenerating the scenarios rewrites the other files with new seeds, so restore any you did not mean to change. `claimedThisTurn` is real play state; keep it. Keep `scored` as stacks (see Preserve). Example: gipf `f05f55d97`, matrx `c0b02ff0c`.
 - **B2 One rule, one helper: applies.** The LYNGK-link test (a stack of the mover's own claimed top colour) is written twice: in `board.ts:127-128` (`pathsFrom`'s `isLink`) and in the UI's `board/route.ts:46-72` (`lyngkConnections`). Move `lyngkConnections` or an `isLyngkLink` helper onto `HydratedLyngkBoard` and use it from both. In the session, the landings of one stack are computed in both `pathsFromChosen`/`landings` and `holdUndoneStack` (`session.svelte.ts:90-102, 167-172`); give them one private helper. Example: gipf `ada7f17c7`, zertz `ffc841dbb`.
 - **B3 Shared helpers, asserts, no casts: applies.**
