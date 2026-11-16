@@ -72,6 +72,9 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
     // to turn.
     preferredKind: PieceKind | undefined = $state()
     preferredRotation: number | undefined = $state()
+    // Who last changed the selection: a staged piece lifts off only when its player lets it go,
+    // never when history, a new state or a change of view clears it.
+    private changedBy: string | undefined
     // The move being undone, and the move history last stepped to.
     undoingMove: StepBack | undefined
     historyMove: StepBack | undefined
@@ -218,13 +221,26 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
     }
 
+    get releasedByPlayer(): boolean {
+        return (
+            this.changedBy !== undefined &&
+            this.changedBy === this.myPlayer?.id &&
+            !this.isViewingHistory
+        )
+    }
+
+    private choose(selection: PunctSelection) {
+        this.selection = selection
+        this.changedBy = this.myPlayer?.id
+    }
+
     hasManualSelection(): boolean {
         return hasManualPunctSelection(this.selection)
     }
 
     override async undo() {
         if (this.hasManualSelection()) {
-            this.selection = popPunctSelection(this.selection)
+            this.choose(popPunctSelection(this.selection))
             return
         }
         await super.undo()
@@ -245,6 +261,7 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
     override beforeNewState({ kind }: PresentedTransition): void {
         const move = kind === 'undo' ? this.undoingMove : undefined
         this.selection = move ? this.restaged(move) : {}
+        this.changedBy = undefined
         if (kind !== 'undo') this.undoingMove = undefined
     }
 
@@ -265,28 +282,31 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
         if (!this.placeKinds.includes(kind)) return
         this.preferredKind = kind
         if (this.chosenPiece) {
-            this.selection = {}
+            this.choose({})
             return
         }
-        this.selection = setPunctSelection(this.selection, 'rotation', undefined)
+        this.choose(setPunctSelection(this.selection, 'rotation', undefined))
     }
 
     // Choosing your piece picks it up to move; choosing it again lets it go.
     choosePiece(piece: PlacedPiece) {
         if (!this.movablePieces.some((movable) => movable.id === piece.id)) return
         const same = this.chosenPiece?.id === piece.id
-        this.selection = same ? {} : setPunctSelection({}, 'from', piece.punct)
+        this.choose(same ? {} : setPunctSelection({}, 'from', piece.punct))
     }
 
     // A space for the chosen piece's PÜNCT, or for a new piece's.
     chooseSpace(coords: AxialCoordinates) {
         if (this.chosenPiece) {
             if (!includesCoords(this.destinations, coords)) return
-            this.selection = setPunctSelection(this.selection, 'at', coords)
+            this.choose(setPunctSelection(this.selection, 'at', coords))
             return
         }
         if (!includesCoords(this.entryCells, coords)) return
-        this.selection = setPunctSelection({}, 'at', coords)
+        // A new piece keeps how you turned it; Undo turns it back to how it came.
+        const at = setPunctSelection({}, 'at', coords)
+        const rotation = this.selection.rotation?.value
+        this.choose(rotation === undefined ? at : setPunctSelection(at, 'rotation', rotation))
     }
 
     // The board asks of every space whenever the choices change.
@@ -313,14 +333,13 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
                 .filter((step) => step > 0)
         )
         const next = (current.rotation + steps) % 6
-        if (!this.chosenPiece) this.preferredRotation = next
-        this.selection = setPunctSelection(this.selection, 'rotation', next)
+        this.choose(setPunctSelection(this.selection, 'rotation', next))
     }
 
     // Tapping where there is nothing to choose lets go of a chosen piece or space.
     letGo() {
         if (this.selection.from === undefined && this.selection.at === undefined) return
-        this.selection = {}
+        this.choose({})
     }
 
     async confirm() {

@@ -94,7 +94,7 @@
     $effect(() => {
         const next = session.staged
         const board = session.gameState.board
-        untrack(() => animator.staged.follow(next, board))
+        untrack(() => animator.staged.follow(next, board, session.releasedByPlayer))
     })
 
     // What of the hover and the flier the order rests on, which stays put while they move: the
@@ -325,10 +325,11 @@
             class="shadow"
             class:crease={hover.ground > 0}
             class:dark={toneOf(piece.playerId) === 'dark'}
-            style:opacity={hoverShadow(hover)}
+            style:opacity={hoverShadow(hover) * hover.opacity}
         ></path>
         <g
             transform="translate({at.x} {at.y})"
+            opacity={hover.opacity < 1 ? hover.opacity : undefined}
             class="piece-place"
             class:role-none={!turnable}
             role="button"

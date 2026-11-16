@@ -26,6 +26,7 @@ export type Hover = {
     // The spaces it stands over, or sweeps over as it turns: it is drawn after whatever stands
     // on them below it.
     cells: AxialCoordinates[]
+    opacity: number
 }
 
 const FLOAT = PIECE_THICKNESS * 1.15
@@ -45,6 +46,8 @@ const RAISE = { duration: 0.18, clearance: PIECE_THICKNESS * 0.25 }
 const FLIGHT = { lift: 0.16, travel: 0.42, clearance: PIECE_THICKNESS * 0.5 }
 // The drop from the hover onto the board.
 const LANDING = { duration: 0.16, bounce: 6, settle: 0.14 }
+// Let go, a new piece rises off and fades as it goes, as GIPF's staged piece does.
+const LIFT_OFF = { duration: 0.18, rise: 30 }
 const QUICK = 0.18
 
 function restingBase(level: number): number {
@@ -107,13 +110,27 @@ function between(from: number, to: number, count: number): number[] {
 export class StagedMotion {
     hover: Hover | undefined = $state()
     private timeline: gsap.core.Timeline | undefined
+    // Lifting off or flying back after being let go.
+    private leaving = false
 
     // Follows the piece the session stages: a new piece drops into its hover, a moved one lifts
-    // off and flies there, and a turn swings it round its PÜNCT.
-    follow(staged: StagedPiece | undefined, board: HydratedPunctBoard) {
+    // off and flies there, and a turn swings it round its PÜNCT. Let go by the player, a new
+    // piece lifts off and a moved one flies back to where it stood; cleared any other way, it
+    // goes at once.
+    follow(staged: StagedPiece | undefined, board: HydratedPunctBoard, released: boolean) {
         if (staged === undefined) {
-            this.stop()
-            this.hover = undefined
+            const current = this.hover
+            if (!released || current === undefined) {
+                this.clear()
+                return
+            }
+            const origin = board.pieceById(current.piece.id)
+            if (origin) {
+                this.fly(current, origin, board, this.restingOn(origin), () => this.clear())
+            } else {
+                this.liftOff(current)
+            }
+            this.leaving = true
             return
         }
         const piece: PlacedPiece = {
@@ -126,10 +143,11 @@ export class StagedMotion {
         }
         const current = this.hover
         const moved = staged.from !== undefined
-        if (current === undefined || current.piece.id !== piece.id) {
+        if (current === undefined || current.piece.id !== piece.id || this.leaving) {
             const origin = moved ? board.pieceById(piece.id) : undefined
             if (origin) {
-                this.fly(this.restingOn(origin), piece, board)
+                const from = this.leaving && current ? current : this.restingOn(origin)
+                this.fly(from, piece, board, this.hoverOf(piece))
             } else {
                 this.drop(piece)
             }
@@ -138,7 +156,7 @@ export class StagedMotion {
         const samePlace =
             current.piece.punct.q === piece.punct.q && current.piece.punct.r === piece.punct.r
         if (!samePlace) {
-            if (moved) this.fly(current, piece, board)
+            if (moved) this.fly(current, piece, board, this.hoverOf(piece))
             else this.drop(piece)
             return
         }
@@ -206,7 +224,8 @@ export class StagedMotion {
             ground: restingBase(piece.level),
             angle: piece.rotation,
             aloft: false,
-            cells: dotsOf(piece.kind, piece.punct, piece.rotation)
+            cells: dotsOf(piece.kind, piece.punct, piece.rotation),
+            opacity: 1
         }
     }
 
@@ -221,6 +240,7 @@ export class StagedMotion {
     private stop() {
         this.timeline?.kill()
         this.timeline = undefined
+        this.leaving = false
     }
 
     private start(): gsap.core.Timeline {
@@ -256,10 +276,37 @@ export class StagedMotion {
         })
     }
 
+    private liftOff(from: Hover) {
+        const proxy = { base: from.base, opacity: 1 }
+        const timeline = this.start()
+        timeline.to(proxy, {
+            base: from.base + LIFT_OFF.rise,
+            duration: LIFT_OFF.duration,
+            ease: 'power1.out',
+            onUpdate: () => this.set({ base: proxy.base })
+        })
+        timeline.to(
+            proxy,
+            {
+                opacity: 0,
+                duration: LIFT_OFF.duration,
+                ease: 'power2.in',
+                onUpdate: () => this.set({ opacity: proxy.opacity })
+            },
+            0
+        )
+        timeline.call(() => this.clear())
+    }
+
     // Up off where it is, clear of everything on its way, across while turning, and down into
-    // its hover.
-    private fly(from: Hover, piece: PlacedPiece, board: HydratedPunctBoard) {
-        const target = this.hoverOf(piece)
+    // the target: its hover, or where it stood when it is let go.
+    private fly(
+        from: Hover,
+        piece: PlacedPiece,
+        board: HydratedPunctBoard,
+        target: Hover,
+        done?: () => void
+    ) {
         const turnSteps = wrapped(target.angle - from.angle, 6)
         const steps = turnSteps > 3 ? turnSteps - 6 : turnSteps
         const poses = between(0, 1, 12).map((t) => ({
@@ -303,7 +350,10 @@ export class StagedMotion {
                     angle: from.angle + steps * t
                 })
             },
-            onComplete: () => this.set({ ...target })
+            onComplete: () => {
+                this.set({ ...target })
+                done?.()
+            }
         })
     }
 
