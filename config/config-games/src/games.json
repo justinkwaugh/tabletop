@@ -178,5 +178,9 @@
     {
         "gameId": "yinsh",
         "packageId": "yinsh"
+    },
+    {
+        "gameId": "dvonn",
+        "packageId": "dvonn"
     }
 ]
