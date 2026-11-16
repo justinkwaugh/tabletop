@@ -30,7 +30,9 @@ import {
     CapacityStageOrder,
     ShipStageOrder,
     addCapacityStep,
+    keepsWerksOpen,
     mergeCapacitySteps,
+    plannedUnits,
     toggleHeld,
     type CapacitySelection,
     type CapacityStep,
@@ -241,16 +243,9 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
     plannedCash: number = $derived(this.myCash - this.plannedSpend)
 
     // Each werk's units once the planned steps are made.
-    plannedUnits: Map<LocomotiveId, number> = $derived.by(() => {
-        const units = new Map(this.myPlants.map((plant) => [plant.locomotiveId, plant.units]))
-        for (const step of this.capacitySteps) {
-            units.set(step.locomotiveId, (units.get(step.locomotiveId) ?? 0) + 1)
-            if (step.from) {
-                units.set(step.from, (units.get(step.from) ?? 0) - 1)
-            }
-        }
-        return units
-    })
+    plannedUnits: Map<LocomotiveId, number> = $derived(
+        plannedUnits(this.myPlants, this.capacitySteps)
+    )
 
     upgradeTargets(from: LocomotiveId): UpgradeTarget[] {
         return this.myPlants
@@ -261,10 +256,12 @@ export class LwGameSession extends GameSession<LwProjectedState, HydratedLwGameS
             }))
     }
 
-    // A werk whose units have all been planned away closes, so nothing more is added to it.
     canPlan(step: CapacityStep): boolean {
-        const source = this.plannedUnits.get(step.from ?? step.locomotiveId) ?? 0
-        return this.expanding && source > 0 && this.stepCost(step) <= this.plannedCash
+        return (
+            this.expanding &&
+            keepsWerksOpen(this.plannedUnits, step) &&
+            this.stepCost(step) <= this.plannedCash
+        )
     }
 
     planStep(step: CapacityStep) {

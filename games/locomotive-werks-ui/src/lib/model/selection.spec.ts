@@ -5,7 +5,9 @@ import {
     CapacityStageOrder,
     ShipStageOrder,
     addCapacityStep,
+    keepsWerksOpen,
     mergeCapacitySteps,
+    plannedUnits,
     toggleHeld
 } from './selection.js'
 
@@ -48,5 +50,34 @@ describe('planning capacity', () => {
             { locomotiveId: LocomotiveId.Fast1, from: LocomotiveId.Passenger1, units: 1 },
             { locomotiveId: LocomotiveId.Passenger1, units: 1 }
         ])
+    })
+
+    it('keeps a werk that an earlier upgrade closed from taking or giving units', () => {
+        const plants = [
+            { locomotiveId: LocomotiveId.Passenger1, units: 1 },
+            { locomotiveId: LocomotiveId.Fast1, units: 1 },
+            { locomotiveId: LocomotiveId.Freight1, units: 1 }
+        ]
+        const units = plannedUnits(plants, [
+            { locomotiveId: LocomotiveId.Freight1, from: LocomotiveId.Fast1 }
+        ])
+        expect(units.get(LocomotiveId.Fast1)).toBe(0)
+        expect(
+            keepsWerksOpen(units, {
+                locomotiveId: LocomotiveId.Fast1,
+                from: LocomotiveId.Passenger1
+            })
+        ).toBe(false)
+        expect(keepsWerksOpen(units, { locomotiveId: LocomotiveId.Fast1 })).toBe(false)
+        expect(
+            keepsWerksOpen(units, { locomotiveId: LocomotiveId.Freight1, from: LocomotiveId.Fast1 })
+        ).toBe(false)
+        expect(
+            keepsWerksOpen(units, {
+                locomotiveId: LocomotiveId.Freight1,
+                from: LocomotiveId.Passenger1
+            })
+        ).toBe(true)
+        expect(keepsWerksOpen(units, { locomotiveId: LocomotiveId.Passenger1 })).toBe(true)
     })
 })

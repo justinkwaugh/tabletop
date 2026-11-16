@@ -44,6 +44,14 @@ async function createGame(page: Page, options: string[] = []) {
     await expect.poll(() => page.evaluate(() => !!window.lwSession), { timeout: 20_000 }).toBe(true)
 }
 
+// Waits until the last press has been applied and drawn, however slow the machine.
+async function settle(page: Page) {
+    await page.waitForTimeout(150)
+    await expect
+        .poll(() => page.evaluate(() => window.lwSession.busy), { timeout: 20_000 })
+        .toBe(false)
+}
+
 function machineState(page: Page) {
     return page.evaluate(() => window.lwSession.gameState.machineState)
 }
@@ -83,7 +91,7 @@ async function playRound(page: Page) {
                 await page.getByRole('button', { name: /^Ship ·/ }).click()
                 break
         }
-        await page.waitForTimeout(150)
+        await settle(page)
     }
     expect(await round(page)).toBe(start + 1)
 }
@@ -105,7 +113,7 @@ test('Lucas Order ships straight after buying capacity', async ({ page }) => {
     await createGame(page, ['Lucas Order'])
     while ((await machineState(page)) === 'Developing') {
         await page.getByRole('button', { name: 'Develop nothing' }).click()
-        await page.waitForTimeout(150)
+        await settle(page)
     }
     await expect(page.locator('li[aria-current="step"]')).toHaveText('Capacity & First Shipment')
     const first = await page.evaluate(() => window.lwSession.myPlayerId)
@@ -121,7 +129,7 @@ test('a player who ticks automatic shipping ships without being asked', async ({
     await createGame(page, ['Lucas Order'])
     while ((await machineState(page)) === 'Developing') {
         await page.getByRole('button', { name: 'Develop nothing' }).click()
-        await page.waitForTimeout(150)
+        await settle(page)
     }
     const first = await page.evaluate(() => window.lwSession.myPlayerId)
     const autoShip = page.getByRole('checkbox', { name: 'Ship everything automatically' })
@@ -143,7 +151,7 @@ test('the capacity table plans units until Done buying, and Undo takes back a pr
     await page.locator('button.choice', { hasText: 'Fast' }).click()
     while ((await machineState(page)) === 'Developing') {
         await page.getByRole('button', { name: 'Develop nothing' }).click()
-        await page.waitForTimeout(150)
+        await settle(page)
     }
     const me = await page.evaluate(() => window.lwSession.myPlayerId)
     const cash = await page.evaluate(() => window.lwSession.myCash)
@@ -211,7 +219,7 @@ test('the phase track marks the phase in progress', async ({ page }) => {
     await expect(page.locator('li[aria-current="step"]')).toHaveText('Development')
     while ((await machineState(page)) === 'Developing') {
         await page.getByRole('button', { name: 'Develop nothing' }).click()
-        await page.waitForTimeout(150)
+        await settle(page)
     }
     await expect(page.locator('li[aria-current="step"]')).toHaveText('Production Capacity')
 })

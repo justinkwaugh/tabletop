@@ -1,5 +1,5 @@
 import { pushStagedSelectionValue, type StagedSelectionState } from '@tabletop/frontend-components'
-import type { CapacityPurchase, LocomotiveId } from '@tabletop/locomotive-werks'
+import type { CapacityPurchase, LocomotiveId, Plant } from '@tabletop/locomotive-werks'
 
 // Production Capacity: the units the player means to add or upgrade, one press at a time. Done
 // buying submits them. A step without `from` adds a unit; one with `from` moves a unit up.
@@ -22,6 +22,27 @@ export function addCapacityStep(selection: CapacitySelection, step: CapacityStep
         'steps',
         [...(selection.steps?.value ?? []), step]
     )
+}
+
+// Each werk's units once the planned steps are made.
+export function plannedUnits(
+    plants: readonly Pick<Plant, 'locomotiveId' | 'units'>[],
+    steps: readonly CapacityStep[]
+): Map<LocomotiveId, number> {
+    const units = new Map(plants.map((plant) => [plant.locomotiveId, plant.units]))
+    for (const step of steps) {
+        units.set(step.locomotiveId, (units.get(step.locomotiveId) ?? 0) + 1)
+        if (step.from) {
+            units.set(step.from, (units.get(step.from) ?? 0) - 1)
+        }
+    }
+    return units
+}
+
+// A werk whose units have all been planned away closes, so it neither gives nor takes more units.
+export function keepsWerksOpen(units: ReadonlyMap<LocomotiveId, number>, step: CapacityStep) {
+    const open = (locomotiveId: LocomotiveId) => (units.get(locomotiveId) ?? 0) > 0
+    return open(step.locomotiveId) && (step.from === undefined || open(step.from))
 }
 
 // Runs of the same step become one purchase, in the order they were planned.
