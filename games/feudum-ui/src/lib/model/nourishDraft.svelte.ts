@@ -2,6 +2,7 @@ import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
     GuildById,
     Nourish,
+    nourishGroup,
     nourishOffer,
     nourishPreview,
     type GuildId,
@@ -181,16 +182,33 @@ export function feedingAfterPress(
     })
 }
 
-/** R-4.10 The seat the game asks. Its choice always ends on the primary button. */
+/**
+ * R-4.10, R-4.10-H4 A seat nourishing asks. Every asked seat decides at once, so the draft outlives
+ * another seat's Action; it is read back only under its own key (`keyOf`: the seat, the round, and
+ * the seat's own last Action), so a shared screen never shows it to the next seat, and the seat's
+ * own at-will play starts it afresh. Its choice always ends on the primary button.
+ */
 export class NourishDraft extends DeciderDraft<NourishValues> {
-    constructor(contextOf: () => TurnContext | undefined) {
+    private key: string | undefined = $state.raw()
+
+    constructor(
+        contextOf: () => TurnContext | undefined,
+        private readonly keyOf: () => string | undefined
+    ) {
         super(NourishStageOrder, contextOf)
     }
 
+    protected override write(stages: StagedSelectionState<NourishValues>): void {
+        this.key = this.keyOf()
+        super.write(stages)
+    }
+
     protected override withAutos(
-        stored: StagedSelectionState<NourishValues>,
+        kept: StagedSelectionState<NourishValues>,
         { state, playerId }: TurnContext
     ): StagedSelectionState<NourishValues> {
+        const current = this.keyOf()
+        const stored = current !== undefined && this.key === current ? kept : {}
         const offer = nourishOffer(state, playerId, stored.cover?.value ?? [])
         return offer
             ? withLoneChoice<NourishValues, 'feeding'>(stored, NourishStageOrder, 'feeding', [
@@ -221,11 +239,19 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             : undefined
     })
 
+    /** R-4.10-H4 The send goes in the round's simultaneous group, as a finalised hand does. */
     play: FlowPlay | undefined = $derived.by(() => {
+        const context = this.contextOf()
         const { preview, input } = this
         return (
+            context &&
             preview &&
-            playUnless(preview.refused, (maker) => maker.createPlayerAction(Nourish, input))
+            playUnless(preview.refused, (maker) =>
+                maker.createPlayerAction(Nourish, {
+                    ...input,
+                    simultaneousGroupId: nourishGroup(context.state)
+                })
+            )
         )
     })
 
@@ -252,18 +278,30 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         this.push('cover', same ? others : [...others, spend])
     }
 
+    /**
+     * R-4.3.3, R-4.10-H4 What the haversack holds for each tile is the offer's: another seat's
+     * feeding, applied first, can take the last of a good, and the rows then say so.
+     */
     private coverRows(
         { state, playerId }: TurnContext,
         offer: NourishOffer
     ): readonly DraftChoice[] {
         const cover = this.value('cover') ?? []
-        const { haversack } = state.supply
         return state.getPlayerState(playerId).regionTiles.flatMap((tileId) => {
             const food: WildTileSpend = { tileId, good: 'food' }
             const wine: WildTileSpend = { tileId, good: 'sulfur', sulfurToBarrel: true }
             const spent = cover.find((spend) => spend.tileId === tileId)
-            const row = (spend: WildTileSpend, name: string, none: boolean) => {
+            const row = (spend: WildTileSpend, name: string, good: 'food' | 'sulfur') => {
                 const picked = spent?.good === spend.good
+                const left = offer.haversackFor[good]
+                const refusal = () => {
+                    if (left <= 0) {
+                        return `The haversack has no ${good} left.`
+                    }
+                    return !spent && !offer.wildTileNeeded
+                        ? `The haversack can't bring ${name} for this.`
+                        : undefined
+                }
                 return {
                     ...draftChoice(
                         `${tileName(tileId)} tile → ${name}`,
@@ -271,18 +309,16 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
                         () => {
                             this.pressCover(spend)
                         },
-                        !picked && (none || (!spent && !offer.wildTileNeeded))
-                            ? `The haversack can't bring ${name} for this.`
-                            : undefined
+                        picked ? undefined : refusal()
                     ),
                     art: tileArt(state, tileId),
-                    shown: `for ${name}`
+                    shown: picked && left < 0 ? `for ${name} · none left` : `for ${name}`
                 }
             }
             return [
-                row(food, 'food', haversack.food === 0),
+                row(food, 'food', 'food'),
                 ...(offer.sulfurToBarrel || spent?.good === 'sulfur'
-                    ? [row(wine, 'wine', haversack.sulfur === 0)]
+                    ? [row(wine, 'wine', 'sulfur')]
                     : [])
             ]
         })
@@ -389,9 +425,12 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
         })
     })
 
-    get pick(): StagePick | undefined {
-        return this.picks.length > 0
+    /** R-4.10-H4 The map pick names its decider: several seats decide at once. */
+    get pick(): (StagePick & { readonly deciderId: string }) | undefined {
+        const context = this.contextOf()
+        return context && this.picks.length > 0
             ? {
+                  deciderId: context.playerId,
                   targets: this.picks.map(({ target, notes }) => ({
                       target,
                       ...(notes ? { notes } : {})

@@ -6,12 +6,14 @@
     /**
      * Whose turn it is, or History, or the game's end; and the one Undo. While hands are chosen no
      * seat is next (R-3.1-H1): a seat whose hand is set reads so, and a seat watching reads the step.
+     * Nourishing asks its seats at once too (R-4.10-H4), so a seat watching it reads the step.
      */
     const gameSession = getGameSession()
 
     let activeId = $derived(gameSession.gameState.activePlayerIds[0])
     let choosingHands = $derived(gameSession.gameState.machineState === MachineState.SelectingHands)
     let handSet = $derived(gameSession.handPanel?.set !== undefined)
+    let nourishing = $derived(gameSession.gameState.machineState === MachineState.Nourishing)
 </script>
 
 <div
@@ -29,6 +31,8 @@
             Your hand is set
         {:else if choosingHands}
             Choosing hands
+        {:else if nourishing}
+            Feeding pawns
         {:else if activeId}
             <span class="inline-flex gap-x-1">
                 <PlayerName playerId={activeId} possessive={true} />

@@ -6,6 +6,7 @@ import { askedToDefend, askedToStarve, type AskTable } from './askTable.js'
 import {
     atCollecting,
     atNourishing,
+    atNourishingTogether,
     fillBarrel,
     holdFood,
     holdWrit,
@@ -103,6 +104,24 @@ export async function openNourishTable(role: 'seat' | 'other') {
         fillBarrel(state, seat, 1)
     })
     await show(role === 'seat' ? table.session : await table.host.openSeat(table.other))
+}
+
+/**
+ * R-4.10-H4 Two seats asked at once, each with three pawns, a food and a wine: one hotseat screen
+ * playing every seat, or the third seat, which nourishing doesn't ask, watching.
+ */
+export async function openNourishTogetherTable(role: 'hotseat' | 'watcher') {
+    const table = await atNourishingTogether((state, { seat, other }) => {
+        for (const playerId of [seat, other]) {
+            threePawns(state, playerId)
+            holdFood(state, playerId, 1)
+            fillBarrel(state, playerId, 1)
+        }
+    })
+    const watcher = table.host.order.find((id) => id !== table.seat && id !== table.other) ?? ''
+    await show(
+        role === 'hotseat' ? await table.host.openHotseat() : await table.host.openSeat(watcher)
+    )
 }
 
 /** R-4.3.4 Two filled landscapes for the seat to collect. */

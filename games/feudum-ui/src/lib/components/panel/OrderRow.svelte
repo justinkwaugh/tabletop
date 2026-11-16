@@ -3,10 +3,11 @@
     import type { OrderRow } from '$lib/model/sharedRows.js'
 
     /**
-     * R-4.10, R-4.12.3 The seats in turn order: a tick on each done, a mark on the next, and the
-     * seats with nothing to decide, whom the game fed (R-4.10-H4). A phone's row is dots: a tick,
-     * "you" on the viewer deciding, "next" on another. The one drawing of the nourish and
-     * landscapes rows (contract: Render ownership).
+     * R-4.10, R-4.12.3 The seats in turn order: a tick on each done, a mark on the next (landscapes)
+     * or on every seat deciding (nourishing, R-4.10-H4), and the seats with nothing to decide, whom
+     * the game fed. A phone's row is dots: a tick, "you" on the viewer deciding, "next" on another
+     * next; another seat deciding is its dot alone. The one drawing of the nourish and landscapes
+     * rows (contract: Render ownership).
      */
     let {
         step,
@@ -32,7 +33,7 @@
         if (entry.next) {
             return entry.playerId === me ? 'you' : 'next'
         }
-        return ''
+        return entry.deciding && entry.playerId === me ? 'you' : ''
     }
 </script>
 
@@ -43,10 +44,13 @@
     {#each entries as entry (entry.playerId)}
         <span
             class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-feudum-text
-                {entry.next ? 'border-dashed border-feudum-accent' : 'border-feudum-frame'}"
+                {entry.next || entry.deciding
+                ? 'border-dashed border-feudum-accent'
+                : 'border-feudum-frame'}"
             data-order-seat={seats.nameOf(entry.playerId)}
             data-done={entry.done ? '' : undefined}
             data-next={entry.next ? '' : undefined}
+            data-deciding={entry.deciding ? '' : undefined}
         >
             <span
                 class="inline-block h-2.5 w-2.5 rounded-full"
@@ -67,6 +71,9 @@
             {/if}
             {#if entry.next}
                 <span class="text-feudum-accent max-sm:sr-only">· next</span>
+            {/if}
+            {#if entry.deciding}
+                <span class="text-feudum-accent max-sm:sr-only">· deciding</span>
             {/if}
         </span>
     {/each}

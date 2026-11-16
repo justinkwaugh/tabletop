@@ -785,18 +785,21 @@ describe('R-4.10, R-4.12.3 the order row', () => {
         step: 'nourish',
         seats,
         entries: [
-            { playerId: 'p1', done: true, next: false, fedByGame: true },
-            { playerId: 'p2', done: false, next: true }
+            { playerId: 'p1', done: true, deciding: false, fedByGame: true },
+            { playerId: 'p2', done: false, deciding: true }
         ]
     })
 
-    it('S53 names the seats in order, ticks those done, marks the next', () => {
+    it('S53 R-4.10-H4 names the seats in order, ticks those done, marks each still deciding and none next', () => {
         expect(row).toContain('Nourish')
         const [ana, ben] = partsOf(row, 'data-order-seat')
         expect(ana).toContain('✓')
-        expect(ana).not.toContain('data-next')
-        expect(ben).toContain('data-next')
+        expect(ana).not.toContain('data-deciding')
+        expect(ben).toContain('data-deciding')
+        expect(ben).toContain('· deciding')
         expect(ben).not.toContain('✓')
+        expect(row).not.toContain('data-next')
+        expect(row).not.toContain('· next')
     })
 
     it('S53 R-4.10-H4 the seat the game fed has nothing to decide, and only that seat', () => {
@@ -806,32 +809,41 @@ describe('R-4.10, R-4.12.3 the order row', () => {
         expect(ben).not.toContain('nothing to decide')
     })
 
-    it('S53 on a phone the row is dots: a tick, "you" on the viewer deciding, "next" on another', () => {
+    it('S53 on a phone the row is dots: a tick, "you" on the viewer deciding, another deciding its dot alone', () => {
         const mine = markupOf({
             kind: 'order-row',
             step: 'nourish',
             seats,
             me: 'p2',
             entries: [
-                { playerId: 'p1', done: true, next: false },
-                { playerId: 'p2', done: false, next: true }
+                { playerId: 'p1', done: true, deciding: false },
+                { playerId: 'p2', done: false, deciding: true }
             ]
         })
         const words = (markup: string) =>
             partsOf(markup, 'data-order-seat').map((part) => textOf(part, 'data-phone-word'))
         expect(words(mine)).toEqual(['✓', 'you'])
-        expect(words(row)).toEqual(['✓', 'next'])
+        expect(words(row)).toEqual(['✓', ''])
     })
 
-    it('S55 the landscapes step heads the same row', () => {
+    it('S55 the landscapes step heads the same row, with the next seat marked', () => {
         const landscapes = markupOf({
             kind: 'order-row',
             step: 'landscapes',
             seats,
-            entries: [{ playerId: 'p1', done: false, next: true }]
+            entries: [
+                { playerId: 'p1', done: false, next: true },
+                { playerId: 'p2', done: false, next: false }
+            ]
         })
         expect(landscapes).toContain('Landscapes')
         expect(landscapes).toContain('data-order-row="landscapes"')
+        const [ana, ben] = partsOf(landscapes, 'data-order-seat')
+        expect(ana).toContain('data-next')
+        expect(ana).toContain('· next')
+        expect(textOf(ana, 'data-phone-word')).toBe('next')
+        expect(ben).not.toContain('data-next')
+        expect(landscapes).not.toContain('data-deciding')
     })
 })
 

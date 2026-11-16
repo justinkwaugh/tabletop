@@ -9,7 +9,10 @@ export interface OrderRowEntry {
     readonly playerId: string
     /** Not asked, or already answered. */
     readonly done: boolean
-    readonly next: boolean
+    /** R-4.12.3 The one seat asked, the others answering after it. */
+    readonly next?: boolean
+    /** R-4.10-H4 Asked and yet to answer: every such seat decides at once. */
+    readonly deciding?: boolean
     /** R-4.10, R-4.10-H4 It had no choice, so the game fed it. */
     readonly fedByGame?: boolean
 }
@@ -23,30 +26,41 @@ export interface CombatTallyRow {
     readonly lines: readonly TallyLine[]
 }
 
+/** R-4.10-H4 Nourishing asks every pending seat at once; R-4.12.3 landscapes ask one at a time. */
 function entriesOf(
     state: HydratedFeudumGameState,
     pending: readonly string[],
+    asked: 'together' | 'in-turn',
     fedByGame: readonly string[]
 ): readonly OrderRowEntry[] {
-    return state.turnManager.turnOrder.map((playerId) => ({
-        playerId,
-        done: !pending.includes(playerId),
-        next: pending[0] === playerId,
-        ...(fedByGame.includes(playerId) ? { fedByGame: true } : {})
-    }))
+    return state.turnManager.turnOrder.map((playerId) => {
+        const done = !pending.includes(playerId)
+        return {
+            playerId,
+            done,
+            ...(asked === 'together' ? { deciding: !done } : { next: pending[0] === playerId }),
+            ...(fedByGame.includes(playerId) ? { fedByGame: true } : {})
+        }
+    })
 }
 
-/** R-4.10, R-4.12.3 Who has answered, who is next. R-4.10-H4 `fedByGame` names the seats it fed itself. */
+/**
+ * R-4.10, R-4.12.3 Who has answered, and who is deciding (nourishing) or next (landscapes).
+ * R-4.10-H4 `fedByGame` names the seats it fed itself.
+ */
 export function orderRowOf(
     state: HydratedFeudumGameState,
     fedByGame: readonly string[]
 ): OrderRow | undefined {
     const { nourish, landscapes } = state.flow
     if (nourish) {
-        return { step: 'nourish', entries: entriesOf(state, nourish.pending, fedByGame) }
+        return {
+            step: 'nourish',
+            entries: entriesOf(state, nourish.pending, 'together', fedByGame)
+        }
     }
     return landscapes
-        ? { step: 'landscapes', entries: entriesOf(state, landscapes.pending, []) }
+        ? { step: 'landscapes', entries: entriesOf(state, landscapes.pending, 'in-turn', []) }
         : undefined
 }
 

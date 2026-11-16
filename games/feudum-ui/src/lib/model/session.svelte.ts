@@ -66,7 +66,7 @@ import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
 import { gameEndOf, type GameEndSummaryView } from './gameEnd.js'
 import { roundEndOf, type RoundEndView } from './roundEnd.js'
 import { combatTallyOf, orderRowOf, type CombatTallyRow, type OrderRow } from './sharedRows.js'
-import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
+import { deckNoteOf, namesInWords, watchingPanelOf, type WatchingPanel } from './watching.js'
 import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
 import {
     OffTurnDiscardDraft,
@@ -188,12 +188,6 @@ const PouchRows: readonly {
 ]
 
 /** "Ada", "Ada and Bo", "Ada, Bo and Cy". */
-function namesInWords(names: readonly string[]): string {
-    return names.length > 1
-        ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
-        : names.join('')
-}
-
 type SessionOptions = ConstructorParameters<
     typeof GameSession<FeudumProjectedState, HydratedFeudumGameState>
 >[0]
@@ -248,7 +242,10 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly commitAttack = new CommitAttackDraft(() => this.deciding(ActionType.CommitAttack))
     readonly answerStarve = new AnswerStarveDraft(() => this.deciding(ActionType.AnswerStarve))
     readonly writLimit = new WritLimitDraft(() => this.writLimitContext)
-    readonly nourish = new NourishDraft(() => this.deciding(ActionType.Nourish))
+    readonly nourish = new NourishDraft(
+        () => this.deciding(ActionType.Nourish),
+        () => this.nourishKey
+    )
     readonly landscapes = new LandscapesDraft(() => this.deciding(ActionType.CollectLandscapes))
     readonly disc = new DiscDraft(() => this.deciding(ActionType.PlaceDisc))
     readonly atWill = new AtWillDraft(() => this.atWillContext)
@@ -266,7 +263,6 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.commitAttack,
         this.answerStarve,
         this.writLimit,
-        this.nourish,
         this.landscapes,
         this.disc,
         this.offTurnDiscard,
@@ -288,6 +284,25 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     private handKey: string | undefined = $derived(
         this.isViewingHistory ? undefined : handDraftKey(this.gameState, this.myPlayerId)
     )
+
+    /**
+     * R-4.10-H4 The decision a nourish draft belongs to: this seat, this round, since its own last
+     * Action. Another seat's `Nourish` leaves it; this seat's own at-will play ends it, as before.
+     */
+    private nourishKey: string | undefined = $derived.by(() => {
+        const me = this.myPlayerId
+        const round = this.gameState.roundManager.currentRound?.number
+        if (
+            this.isViewingHistory ||
+            !me ||
+            round === undefined ||
+            this.gameState.machineState !== MachineState.Nourishing
+        ) {
+            return undefined
+        }
+        const own = this.actions.findLastIndex((action) => action.playerId === me)
+        return `round-${round}:${me}:${own}`
+    })
 
     constructor(options: SessionOptions) {
         super(options)
