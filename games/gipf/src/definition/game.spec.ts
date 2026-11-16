@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GameResult, type AxialCoordinates } from '@tabletop/common'
-import { GipfVersion } from './config.js'
+import { GipfVersion, WhitePlayer, whitePlayerFromConfig } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import {
@@ -121,6 +121,52 @@ describe('setup', () => {
             expect(state.getPlayerState(W).color).toBe('white')
         }
     )
+})
+
+describe('choice of White', () => {
+    const whiteOf = (state: GipfGameState) =>
+        state.players.find((player) => player.color === 'white')?.playerId
+    const startUnassigned = (game: GipfGame) => engine.startGame(game).initialState
+
+    it('gives White and the first push to the game creator or the opponent when chosen', () => {
+        const owner = { ownerId: 'u-black', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        const creatorWhite = startUnassigned(
+            createGame(GipfVersion.Standard, [W, B], { ...owner, whitePlayer: WhitePlayer.Creator })
+        )
+        expect(whiteOf(creatorWhite)).toBe(B)
+        expect(creatorWhite.activePlayerIds).toEqual([B])
+        const opponentWhite = startUnassigned(
+            createGame(GipfVersion.Standard, [W, B], {
+                ...owner,
+                whitePlayer: WhitePlayer.Opponent
+            })
+        )
+        expect(whiteOf(opponentWhite)).toBe(W)
+        expect(opponentWhite.activePlayerIds).toEqual([W])
+    })
+
+    it('draws White by lot when Random, and when the creator does not play', () => {
+        const outsider = { ownerId: 'u-host', userIds: { [W]: 'u-white', [B]: 'u-black' } }
+        for (const options of [
+            { whitePlayer: WhitePlayer.Random },
+            { ...outsider, whitePlayer: WhitePlayer.Creator },
+            { ...outsider, whitePlayer: WhitePlayer.Opponent }
+        ]) {
+            const whites = new Set(
+                [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => {
+                    const game = { ...createGame(GipfVersion.Standard, [W, B], options), seed }
+                    const state = startUnassigned(game)
+                    expect(state.activePlayerIds).toEqual([whiteOf(state)])
+                    return whiteOf(state)
+                })
+            )
+            expect(whites).toEqual(new Set([W, B]))
+        }
+    })
+
+    it('reads a missing choice as Random', () => {
+        expect(whitePlayerFromConfig({})).toBe(WhitePlayer.Random)
+    })
 })
 
 describe('pushing', () => {

@@ -8,7 +8,7 @@ import {
 import { Definition } from '../definition.js'
 import { GipfRuntime } from '../runtime.js'
 import { GipfInfo } from '../info.js'
-import { GipfVersion } from '../config.js'
+import { GipfVersion, type WhitePlayer } from '../config.js'
 import { MachineState } from '../states.js'
 import { ActionType } from '../actions.js'
 import { HydratedGipfGameState, type GipfGameState } from '../../model/gameState.js'
@@ -17,18 +17,28 @@ export const engine = new GameEngine(GipfRuntime)
 
 export function createGame(
     version: GipfVersion = GipfVersion.Standard,
-    playerIds: string[] = ['white', 'black']
+    playerIds: string[] = ['white', 'black'],
+    options: {
+        whitePlayer?: WhitePlayer
+        ownerId?: string
+        userIds?: Record<string, string>
+    } = {}
 ) {
     return GipfRuntime.initializer.initializeGame(
         {
             id: 'gipf-test',
             typeId: 'gipf',
-            ownerId: 'owner',
+            ownerId: options.ownerId ?? 'owner',
             seed: 5,
-            config: { ...defaultGameConfig(GipfInfo.configurator?.options ?? []), version },
+            config: {
+                ...defaultGameConfig(GipfInfo.configurator?.options ?? []),
+                version,
+                ...(options.whitePlayer === undefined ? {} : { whitePlayer: options.whitePlayer })
+            },
             players: playerIds.map((id) => ({
                 id,
                 name: id,
+                userId: options.userIds?.[id],
                 isHuman: true,
                 status: PlayerStatus.Joined
             }))

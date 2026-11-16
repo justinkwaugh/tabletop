@@ -3,6 +3,7 @@ import {
     type StartingPositionAssignment,
     type UninitializedGameState,
     type AxialCoordinates,
+    assertExists,
     BaseGameInitializer,
     Color,
     Game,
@@ -12,7 +13,7 @@ import {
 import { HydratedGipfGameState, GipfGameState } from '../model/gameState.js'
 import { HydratedGipfPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
-import { VERSION_RULES, versionFromConfig } from './config.js'
+import { VERSION_RULES, versionFromConfig, WhitePlayer, whitePlayerFromConfig } from './config.js'
 import { emptyBoard, HydratedGipfBoard, piecesIn } from '../model/board.js'
 
 // Alternate corners of the play area, each one push in from an angular dot; dot e1 faces White.
@@ -46,7 +47,7 @@ export class GipfGameInitializer
         const turnManager = HydratedTurnManager.generate(
             game.players.map((player) => ({ playerId: player.id, color: Color.White })),
             prng.random,
-            assignment
+            assignment ?? this.chosenWhite(game)
         )
         turnManager.seriesKeeps = 'latest'
         turnManager.startTurn(turnManager.turnOrder[0], 0)
@@ -84,5 +85,20 @@ export class GipfGameInitializer
         })
 
         return new HydratedGipfGameState(gipfGameState)
+    }
+
+    // In a local game every seat is the creator's user's, so the first seat counts as theirs. A
+    // creator who does not play leaves White to the draw.
+    private chosenWhite(game: Game): StartingPositionAssignment | undefined {
+        const choice = whitePlayerFromConfig(game.config)
+        const creator = game.players.find((player) => player.userId === game.ownerId)
+        if (choice === WhitePlayer.Random || creator === undefined) {
+            return undefined
+        }
+        const opponent = game.players.find((player) => player.id !== creator.id)
+        assertExists(opponent, 'GIPF needs two players')
+        const white = choice === WhitePlayer.Creator ? creator : opponent
+        const black = white === creator ? opponent : creator
+        return { playerIds: [white.id, black.id] }
     }
 }

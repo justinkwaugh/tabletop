@@ -12,6 +12,12 @@ export enum GipfVersion {
     Tournament = 'Tournament'
 }
 
+export enum WhitePlayer {
+    Random = 'Random',
+    Creator = 'Creator',
+    Opponent = 'Opponent'
+}
+
 export type VersionRules = {
     pieces: number
     startsWithGipfPieces: boolean
@@ -42,7 +48,8 @@ export const VERSION_RULES: Record<GipfVersion, VersionRules> = {
 
 export type GipfGameConfig = Type.Static<typeof GipfGameConfig>
 export const GipfGameConfig = Type.Object({
-    version: Type.Optional(Type.Enum(GipfVersion))
+    version: Type.Optional(Type.Enum(GipfVersion)),
+    whitePlayer: Type.Optional(Type.Enum(WhitePlayer))
 })
 
 const basicDescription = '15 pieces each, three of them on the board, and no GIPF-pieces.'
@@ -68,6 +75,27 @@ export const GipfGameConfigOptions: GameConfigOptions = [
             }
         ],
         alwaysShow: true
+    },
+    {
+        id: 'whitePlayer',
+        type: ConfigOptionType.List,
+        name: 'White',
+        description: 'Who plays White and goes first.',
+        default: WhitePlayer.Random,
+        options: [
+            { name: 'Random', value: WhitePlayer.Random, description: 'White is drawn by lot.' },
+            {
+                name: 'Game creator',
+                value: WhitePlayer.Creator,
+                description: 'The player who created the game plays White.'
+            },
+            {
+                name: 'Opponent',
+                value: WhitePlayer.Opponent,
+                description: "The creator's opponent plays White."
+            }
+        ],
+        alwaysShow: true
     }
 ]
 
@@ -80,5 +108,12 @@ export function versionFromConfig(config: GameConfig): GipfVersion {
     return (
         Object.values(GipfVersion).find((version) => version === config.version) ??
         GipfVersion.Standard
+    )
+}
+
+export function whitePlayerFromConfig(config: GameConfig): WhitePlayer {
+    return (
+        Object.values(WhitePlayer).find((choice) => choice === config.whitePlayer) ??
+        WhitePlayer.Random
     )
 }
