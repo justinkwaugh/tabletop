@@ -315,7 +315,7 @@ scenario('S21 R-3.11.3 Inspect the harvest, and take', 'cards-harvest-farmer', a
     await table.press(table.popupRow('Inspect the harvest'))
     await expect(table.primary()).toHaveText("Inspect the harvest at Desert 3 · can't be undone")
     await table.press(table.primary())
-    await expect(table.panel().getByText('Take 2 as favours')).toBeVisible()
+    await expect(table.flowLine().first()).toHaveText('Take 2')
     await expect(table.undo()).toHaveCount(0)
     const goods = table.panel().locator('[data-rows="goods"] [data-row] button')
     await table.press(goods.nth(0))

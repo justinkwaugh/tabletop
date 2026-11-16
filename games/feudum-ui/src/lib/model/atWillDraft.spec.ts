@@ -127,8 +127,8 @@ describe('R-4.4-H1 The at-will row', () => {
         const choices = writChoices(session, Mandate5)
         expect(choices.map(({ label }) => label)).toContain('A: 1 food → 3s')
         const short = choices.find(({ label }) => label.startsWith('B:'))
-        expect(short?.refusal).toBeDefined()
-        expect(short?.press).toBeUndefined()
+        // R-4.4.2 An alternative the logic refuses is not drawn.
+        expect(short).toBeUndefined()
         await press(session, choices[0])
         await settled(session)
         expect(lastAction(table)).toMatchObject({
@@ -258,15 +258,13 @@ describe('R-4.4.2 PlayMandate', () => {
         await open(session, 'writs')
         const choices = writChoices(session, 'writ.mandate.6')
         // Contract, Supply: a vessel reward says how many the general supply has left.
+        // R-4.4.2 A reward the logic refuses is not drawn: no stars there, or no vessel left.
         expect(choices.map(({ label, refusal }) => [label, refusal])).toEqual([
-            ['Farmer → 3 goods', 'You need 3 status stars in that guild.'],
-            ['Merchant → 3s', 'You need 3 status stars in that guild.'],
             ['Alchemist → ship · 1 left', undefined],
             [`Alchemist → submersible · ${submersibles} left`, undefined],
-            ['Alchemist → flying machine · none left', 'The general supply has no flying machine.'],
             ['Discard', undefined]
         ])
-        await press(session, choices[3])
+        await press(session, choices[1])
         await settled(session)
         expect(lastAction(table)).toMatchObject({
             type: ActionType.PlayMandate,
@@ -593,9 +591,7 @@ describe('R-3.14.2 ReclaimImmunitySeal', () => {
         expect(chipLabels(session).join()).toContain('Immunity 1')
         expect(chip(session, 'immunity')).toMatchObject({ art: { kind: 'seal' }, shown: '1' })
         await open(session, 'immunity')
-        expect(session.atWillPanel?.line).toBe(
-            'Take back the seal: the marker can be starved again'
-        )
+        expect(session.atWillPanel?.line).toBe('Pick a marker.')
         const target = session.atWill.pick?.targets[0]?.target
         assertExists(target, 'The marker lights')
         expect(target).toContain(seat)

@@ -129,9 +129,9 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
         super(AtWillStageOrder, contextOf)
     }
 
-    /** Refused rows stay, dimmed with their line: `offered` names only what can be done. */
+    /** R-4.4.2 What a held mandate can do now; an alternative the logic refuses is not drawn. */
     private mandateOffers({ state, playerId }: AtWillContext) {
-        return playMandateOffers(state, playerId)
+        return playMandateOffers(state, playerId).filter(({ refused }) => !refused)
     }
 
     /** R-4.4.4 While the limit asks this seat for a discard, its own panel is where it is pressed. */
@@ -313,9 +313,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     private chips(context: AtWillContext): AtWillPanel['chips'] {
         const open = this.value('list')
         const writs = new Set<WritId>([
-            ...this.mandateOffers(context)
-                .filter(({ refused }) => !refused)
-                .map(({ writId }) => writId),
+            ...this.mandateOffers(context).map(({ writId }) => writId),
             ...this.discardOffers(context)
         ])
         const { vessels } = context.state.getPlayerState(context.playerId)
@@ -371,8 +369,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                                         : {}),
                                     ...(offer.vessel ? { vessel: offer.vessel } : {})
                                 })
-                            },
-                            offer.refused
+                            }
                         )
                     ),
                 ...discards
@@ -517,7 +514,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
             case 'vessels':
                 return this.vesselsPanel(context)
             case 'immunity':
-                return { line: 'Take back the seal: the marker can be starved again' }
+                return { line: 'Pick a marker.' }
             default:
                 return {}
         }
@@ -533,10 +530,20 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
         const names: Record<AtWillList, string> = {
             writs: 'Play',
             tiles: 'Spend',
-            vessels: 'Place vessel',
+            vessels: 'Place',
             immunity: 'Take back the seal'
         }
-        return list ? { primary: { label: primaryLabel(names[list], play), enabled: true } } : {}
+        if (!list) {
+            return {}
+        }
+        const label = primaryLabel(names[list], play)
+        return {
+            primary: {
+                label,
+                ...(list === 'vessels' ? { named: primaryLabel('Place vessel', play) } : {}),
+                enabled: true
+            }
+        }
     }
 
     /** R-4.2.2, R-3.14.2 What the open list lights on the map. */
