@@ -1,6 +1,6 @@
 <script lang="ts">
     import { ScoreTrack, type HydratedFeudumGameState } from '@tabletop/feudum'
-    import { RingAsset, assetUrl } from '$lib/art/assetMap.js'
+    import { ringPrint } from '$lib/art/assetMap.js'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import CountChip from '$lib/components/map/CountChip.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
@@ -28,7 +28,7 @@
 
     const labelled = (space: number) => space % ScoreTrack.labelEvery === 0
     /** With the printed ring under the board, its cells and numbers are the print's; ours stay bare. */
-    const printed = assetUrl(RingAsset) !== undefined
+    const printed = ringPrint() !== undefined
 
     let discs = $derived(scoreDiscs(seatScores(state)))
     const on = (disc: ScoreDisc) => `${paintOf(disc.playerId).owner} on ${disc.score}`

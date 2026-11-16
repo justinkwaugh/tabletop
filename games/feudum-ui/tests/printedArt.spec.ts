@@ -153,7 +153,22 @@ test('R-1.3 on a phone the printed ring fills the whole board', async ({ page })
     await openTable(page, 'guildPick')
     test.skip(!(await printed(page)), 'no printed board in the folder')
     const ring = page.locator('[data-board-surface] svg[aria-label="The board\'s edge"]')
-    expectSameBox(await boxOf(ring.locator('> image')), await boxOf(ring))
+    const pieces = await ring.locator('[data-ring-piece]').evaluateAll((all) =>
+        all.map((piece) => {
+            const { left, top, right, bottom } = piece.getBoundingClientRect()
+            return { left, top, right, bottom }
+        })
+    )
+    expect(pieces.length).toBeGreaterThan(0)
+    const x = Math.min(...pieces.map((piece) => piece.left))
+    const y = Math.min(...pieces.map((piece) => piece.top))
+    const union = {
+        x,
+        y,
+        width: Math.max(...pieces.map((piece) => piece.right)) - x,
+        height: Math.max(...pieces.map((piece) => piece.bottom)) - y
+    }
+    expectSameBox(union, await boxOf(ring))
 })
 
 test('R-4.6.2 on the printed market in the trade picker, each good stands in the bin its ring marks', async ({
