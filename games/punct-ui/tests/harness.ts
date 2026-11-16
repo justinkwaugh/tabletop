@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { assertExists } from '@tabletop/common'
 import type { PunctGameSession } from '../src/lib/model/session.svelte.js'
 
 declare global {
@@ -67,6 +68,18 @@ export function undoButton(page: Page) {
 
 export function button(page: Page, name: string) {
     return page.getByRole('button', { name, exact: true })
+}
+
+export async function centreOf(page: Page, name: string) {
+    const box = await button(page, name).boundingBox()
+    assertExists(box, `${name} is on screen`)
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+// Clicks the centre of a board button, which reaches whatever is drawn there.
+export async function clickCentre(page: Page, name: string) {
+    const { x, y } = await centreOf(page, name)
+    await page.mouse.click(x, y)
 }
 
 // Taps a board button by keyboard, which reaches it wherever a piece stands over it.

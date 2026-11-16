@@ -3,6 +3,8 @@ import { assertExists } from '@tabletop/common'
 import {
     actionCount,
     button,
+    centreOf,
+    clickCentre,
     expectNoErrors,
     openScenario,
     placeAndMove,
@@ -61,9 +63,14 @@ test('a tap on a space reaches it past the empty corners of a piece drawn near i
     page
 }) => {
     await openScenario(page, 'Opening')
-    const space = await button(page, 'space I3').boundingBox()
-    assertExists(space, 'I3 is a space to choose in the Opening')
-    await page.mouse.click(space.x + space.width / 2, space.y + space.height / 2)
+    const space = await centreOf(page, 'space I3')
+    const piece = await button(page, 'piece at K3').boundingBox()
+    assertExists(piece, 'K3 holds a piece in the Opening')
+    expect(space.x).toBeGreaterThan(piece.x)
+    expect(space.x).toBeLessThan(piece.x + piece.width)
+    expect(space.y).toBeGreaterThan(piece.y)
+    expect(space.y).toBeLessThan(piece.y + piece.height)
+    await clickCentre(page, 'space I3')
     expect(await staged(page)).toMatchObject({ punct: { q: 0, r: 5 } })
 })
 
@@ -72,8 +79,6 @@ test('a tap beside the staged piece moves it there rather than turning it', asyn
     await press(page, 'space K10')
     await page.clock.runFor(1000)
     const unturned = (await staged(page))?.rotation
-    const space = await button(page, 'space L11').boundingBox()
-    assertExists(space, 'L11 is a space to choose in the Opening')
-    await page.mouse.click(space.x + space.width / 2, space.y + space.height / 2)
+    await clickCentre(page, 'space L11')
     expect(await staged(page)).toMatchObject({ punct: { q: 3, r: -5 }, rotation: unturned })
 })

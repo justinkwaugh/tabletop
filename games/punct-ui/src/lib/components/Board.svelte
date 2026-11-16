@@ -20,7 +20,7 @@
     } from '$lib/board/drawing.js'
     import { destinationMarks, winningDots } from '$lib/board/marks.js'
     import { holeBox, holeUrl } from '$lib/board/looks.js'
-    import { drawPiece, pathOf, silhouettePath, type Tone } from '$lib/board/pieceShape.js'
+    import { drawPiece, pathOf, silhouetteOf, type Tone } from '$lib/board/pieceShape.js'
     import PieceDefs from './PieceDefs.svelte'
     import PieceSlab from './PieceSlab.svelte'
     import MovingPiece from './MovingPiece.svelte'
@@ -245,6 +245,7 @@
                 {@const role = roleOf(piece)}
                 {@const at = anchorOf(view, piece.punct, piece.level)}
                 {@const angle = piece.rotation + view.turnSteps}
+                {@const drawing = drawPiece(piece.kind, angle, view)}
                 <g
                     transform="translate({at.x} {at.y})"
                     class="piece-place role-{role ?? 'none'}"
@@ -273,10 +274,10 @@
                                 {view}
                             />
                         </g>
-                        <path d={silhouettePath(piece.kind, angle, view)} class="piece-hit"></path>
+                        <path d={silhouetteOf(drawing)} class="piece-hit"></path>
                     </g>
                     {#if role}
-                        {@const ring = pathOf(drawPiece(piece.kind, angle, view).topOutline)}
+                        {@const ring = pathOf(drawing.topOutline)}
                         <g {@attach animator.mark()}>
                             {#each ['under', 'over'] as layer (layer)}
                                 <path

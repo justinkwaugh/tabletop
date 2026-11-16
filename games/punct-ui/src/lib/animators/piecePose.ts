@@ -5,7 +5,8 @@ import {
     dotsOnScreen,
     drawPiece,
     pathOf,
-    silhouettePath,
+    silhouetteOf,
+    type PieceDrawing,
     type Tone
 } from '$lib/board/pieceShape.js'
 import { bodyImage, dishBox } from '$lib/board/looks.js'
@@ -232,10 +233,11 @@ class LiveBody {
         } else {
             this.image.style.display = 'none'
         }
-        this.hit.setAttribute('d', silhouettePath(this.kind, angle, view))
+        const drawing = drawPiece(this.kind, angle, view)
+        this.hit.setAttribute('d', silhouetteOf(drawing))
         const live = image === undefined || image.href !== this.loadedHref
         this.live.style.display = live ? '' : 'none'
-        if (live) this.drawLive(angle, view)
+        if (live) this.drawLive(drawing)
         const specks = speckPaths(this.kind, this.seed, angle, view)
         for (const name of ['side', 'sideGrey', 'top', 'topGrey'] as const) {
             this.specks[name].setAttribute('d', specks[name])
@@ -246,8 +248,7 @@ class LiveBody {
         })
     }
 
-    private drawLive(angle: number, view: BoardView) {
-        const drawing = drawPiece(this.kind, angle, view)
+    private drawLive(drawing: PieceDrawing) {
         drawing.slices.forEach((slice, index) => {
             this.slices[index].setAttribute('d', pathOf(slice.points))
             this.slices[index].setAttribute(
