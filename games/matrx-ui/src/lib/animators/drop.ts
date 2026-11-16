@@ -102,6 +102,7 @@ export function dropCrease(
 export class StagedDrop {
     private readonly timeline = gsap.timeline()
 
+    // False for a piece an Undo returned to its dot (the animator's `returned`), which stands.
     constructor(private readonly drops: boolean) {}
 
     readonly parts: PieceParts = {

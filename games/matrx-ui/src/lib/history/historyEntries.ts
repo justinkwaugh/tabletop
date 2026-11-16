@@ -67,13 +67,16 @@ function inReadingOrder(
     return before ? [a, b] : [b, a]
 }
 
+function spanOf(action: GameAction, index: number) {
+    assertExists(action.playerId, 'A move is made by a player')
+    return { id: action.id, firstIndex: index, lastIndex: index, playerId: action.playerId }
+}
+
 function moveEntry(action: GameAction, index: number): HistoryEntry | undefined {
-    if (action.playerId === undefined) return undefined
-    const span = { id: action.id, firstIndex: index, lastIndex: index, playerId: action.playerId }
     if (isPushPiece(action) || isExtraMove(action)) {
         assertExists(action.metadata, 'A push records what it moved on')
         return {
-            ...span,
+            ...spanOf(action, index),
             kind: 'push',
             piece: isPushPiece(action) ? action.kind : PieceKind.Tamsk,
             extra: isExtraMove(action),
@@ -87,7 +90,7 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
     if (isMovePotential(action)) {
         assertExists(action.metadata, "A potential's move records its kind")
         return {
-            ...span,
+            ...spanOf(action, index),
             kind: 'move',
             piece: action.metadata.kind,
             from: action.from,
@@ -96,7 +99,7 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
         }
     }
     if (isSkipExtraMove(action)) {
-        return { ...span, kind: 'skip', takings: [] }
+        return { ...spanOf(action, index), kind: 'skip', takings: [] }
     }
     return undefined
 }
@@ -111,7 +114,8 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             return
         }
         const taking = takingOf(action)
-        if (taking === undefined || action.playerId === undefined) return
+        if (taking === undefined) return
+        assertExists(action.playerId, 'A row is taken by a player')
         const last = entries.at(-1)
         if (
             last !== undefined &&
