@@ -794,7 +794,7 @@ describe('R-4.10, R-4.12.3 the order row', () => {
         expect(ben).not.toContain('✓')
         expect(row).not.toContain('data-next')
         // The ring's state is read out, not shown.
-        expect(ben).toContain('<span class="sr-only">deciding</span>')
+        expect(ben).toContain('<span class="sr-only"> deciding</span>')
         for (const word of ['next', 'deciding', 'nothing to decide', 'you']) {
             expect(row).not.toContain(`· ${word}`)
         }
