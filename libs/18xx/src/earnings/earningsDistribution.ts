@@ -40,7 +40,9 @@ export const EarningsDetails = Type.Object(
         /** What the treasury added to the revenue paid out. */
         topUp: Type.Optional(Type.Integer({ minimum: 1 })),
         /** The part of the revenue decided apart from the rest, and what was chosen for it. */
-        separate: Type.Optional(SeparateEarnings)
+        separate: Type.Optional(SeparateEarnings),
+        /** What the run's revenue gave up before it was distributed, such as 1856's unpaid interest. */
+        deducted: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -85,6 +87,11 @@ export interface EarningsRules {
         distribution: DistributionSummary
     ): { move?: StockMarketMove; bonusPerShare: number }
     afterDistribution?(state: DistributionState, companyId: string): void
+    /**
+     * What the run's revenue gives up before it is distributed, as 1856 takes interest its
+     * treasury could not pay (Pay Interest); none unless given.
+     */
+    revenueDeduction?(state: DistributionState, companyId: string): number
     /**
      * What the company's treasury may add to its revenue to pay it all out, offered as the
      * ``top-up`` choice; undefined or zero offers none (1862 §7.8.6).
@@ -170,7 +177,11 @@ export class EarningsDistribution {
             return { reason: 'The treasury cannot top up this revenue.' }
         const separate = this.separate(companyId, choice, separateChoice)
         if (separate && 'reason' in separate) return separate
-        const revenue = result.revenue + topUp,
+        const deducted = Math.min(
+            result.revenue,
+            this.rules.revenueDeduction?.(this.state, companyId) ?? 0
+        )
+        const revenue = result.revenue - deducted + topUp,
             retained = this.rules.retainedRevenue(this.state, companyId, choice, revenue, separate)
         const count = this.rules.shareCount(this.state, companyId)
         assert(count > 0 && Number.isInteger(count), 'Dividends require a positive share count')
@@ -222,7 +233,8 @@ export class EarningsDistribution {
                 ...(charges.length ? { charges } : {}),
                 ...(effect.move ? { marketMove: effect.move } : {}),
                 ...(topUp ? { topUp } : {}),
-                ...(separate ? { separate } : {})
+                ...(separate ? { separate } : {}),
+                ...(deducted ? { deducted } : {})
             }
         }
     }

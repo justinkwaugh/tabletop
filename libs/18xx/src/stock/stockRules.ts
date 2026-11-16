@@ -121,6 +121,11 @@ export interface StockRules {
     repeatSales?: RepeatSales
     /** Further share purchases in a turn after the first. */
     multipleBuys?: MultipleBuyRules
+    /**
+     * Keeps the turn's purchases where a rule reads them though a turn has one purchase, as
+     * 1856's shares bought in a turn limit its sales.
+     */
+    recordsTurnPurchases?: true
     /** Private sales between players, offered and answered like a company's purchase offer. */
     privateSales?: PrivateSaleRules
     /** Companies are started by auction during a stock turn rather than at a chosen par. */

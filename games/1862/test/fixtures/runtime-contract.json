@@ -16,7 +16,7 @@
     "DeclineCharter": "bd897578ec1087dd69591c82a2492752efa93a6237cac0b9b0354c0b10448b82",
     "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "fe967d0006b5bfbd54116f89896c3f287c7c99b14e619fbc33b699e1197f5ed5",
+    "DistributeEarnings": "fdfb41a987a6af95626f17d98719fdd4d2107e910d137c4e4612ff7d53e3eb51",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndParliamentRound": "b22c5cef2123af3acb9045b3e469830b0f9b5bddcc654a81315955248a37267a",
     "EnforceObligations": "6c101bea22a209799cb80a87c413a90e10a660fc079f47488b1e2e439d48c66a",
@@ -106,6 +106,10 @@
       "bank": {
         "additionalProperties": false,
         "properties": {
+          "breaksOnShortfall": {
+            "const": true,
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           }
@@ -737,6 +741,10 @@
           },
           "companyId": {
             "type": "string"
+          },
+          "deducted": {
+            "minimum": 1,
+            "type": "integer"
           },
           "dividendPerShare": {
             "minimum": 0,
@@ -4413,6 +4421,10 @@
             },
             "type": "array",
             "uniqueItems": true
+          },
+          "funded": {
+            "const": true,
+            "type": "boolean"
           },
           "purchasedTrainIds": {
             "items": {

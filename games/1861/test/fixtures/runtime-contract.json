@@ -18,7 +18,7 @@
     "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
     "DiscardMergerTrain": "5df22a9b88d6612e5b7bbc1082405c00673cf512fd37b1acb99525158a928b0d",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "fe967d0006b5bfbd54116f89896c3f287c7c99b14e619fbc33b699e1197f5ed5",
+    "DistributeEarnings": "fdfb41a987a6af95626f17d98719fdd4d2107e910d137c4e4612ff7d53e3eb51",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndMergerRound": "92c8dd59d835b7f8eb74306efd7aa0c239ac7e6633923fa1b9ac203fb479ebfb",
     "ExchangePrivate": "a2f10d6984e1e0360b86f977ddc78c38e820d30cc75fdcaed5adeec196fd22ef",
@@ -81,6 +81,10 @@
       "bank": {
         "additionalProperties": false,
         "properties": {
+          "breaksOnShortfall": {
+            "const": true,
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           }
@@ -787,6 +791,10 @@
           },
           "companyId": {
             "type": "string"
+          },
+          "deducted": {
+            "minimum": 1,
+            "type": "integer"
           },
           "dividendPerShare": {
             "minimum": 0,
@@ -4243,6 +4251,10 @@
             "type": "array",
             "uniqueItems": true
           },
+          "funded": {
+            "const": true,
+            "type": "boolean"
+          },
           "purchasedTrainIds": {
             "items": {
               "minLength": 1,
@@ -4255,6 +4267,23 @@
         "required": [
           "companyId",
           "purchasedTrainIds"
+        ],
+        "type": "object"
+      },
+      "turnInterest": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "fromRevenue": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyId",
+          "fromRevenue"
         ],
         "type": "object"
       },

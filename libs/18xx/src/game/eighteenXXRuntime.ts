@@ -33,6 +33,9 @@ import { RaisingCashHandler } from '../funding/raisingCashHandler.js'
 import { holdSettledCrisis, resumeCashCrisis } from '../funding/cashCrisis.js'
 import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
+import { PayInterest, interestDueBeforeEarnings } from '../loans/payInterest.js'
+import { nextOperatingCompany } from '../operating/operatingSet.js'
+import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 import { AccessRightsHandler } from '../rights/accessRightsHandler.js'
 import { accessRightActions } from '../rights/rightsActions.js'
 import { DisplacedStationsHandler } from '../stations/displacedStationsHandler.js'
@@ -67,6 +70,7 @@ import { stationActions } from '../stations/stationActions.js'
 import { AutomaticStockTurnHandler } from '../stock/automaticStockTurnHandler.js'
 import { stockActions } from '../stock/stockActions.js'
 import { StockInstructionHandler } from '../stock/stockInstructionHandler.js'
+import { recordsTurnPurchases } from '../stock/turnPurchases.js'
 import { StockRoundHandler } from '../stock/stockRoundHandler.js'
 import {
     HydratedClaimPresidency,
@@ -136,7 +140,7 @@ function validateStateComposition(
         ['pendingPar', !!options.companyRules.parAfterAward],
         ['presidencyExchanges', !!options.stockRules.presidencyExchange?.choice],
         ['companyAuction', !!options.stockRules.companyAuction],
-        ['stockTurnPurchases', !!options.stockRules.multipleBuys],
+        ['stockTurnPurchases', recordsTurnPurchases(options.stockRules)],
         ['loanStep', !!options.loanRules],
         ['interestRate', !!options.loanRules],
         ['cashCrisis', !!options.cashCrisisRules],
@@ -293,6 +297,16 @@ export function createEighteenXXRuntime<
     const allowsLoans = (handler: Handler): Handler =>
         loanRules && loanStep && !loanRules.borrowsInLoanStepOnly
             ? new LoanTakingHandler(handler, loanRules)
+            : handler
+    // Where interest falls due after the run, it is paid before anything else on earnings.
+    const paysInterestFirst = (handler: Handler): Handler =>
+        loanRules?.interestBeforeEarnings
+            ? new SystemActionFirstHandler(handler, PayInterest, (state) => {
+                  const companyId = nextOperatingCompany(state)
+                  return interestDueBeforeEarnings(state, loanRules, companyId)
+                      ? { companyId }
+                      : undefined
+              })
             : handler
     const { accessRightRules } = options
     const allowsRights = (handler: Handler): Handler =>
@@ -523,11 +537,13 @@ export function createEighteenXXRuntime<
                     'DistributingEarnings',
                     decides(
                         'DistributingEarnings',
-                        closesOwnTurnAtZero(
-                            new DistributingEarningsHandler(
-                                options.earningsRules,
-                                after('DistributingEarnings'),
-                                receivershipRules
+                        paysInterestFirst(
+                            closesOwnTurnAtZero(
+                                new DistributingEarningsHandler(
+                                    options.earningsRules,
+                                    after('DistributingEarnings'),
+                                    receivershipRules
+                                )
                             )
                         )
                     )

@@ -42,7 +42,7 @@ export type OperatingTurnState = OperatingState &
     DistributionState &
     ConstructionState &
     StationPlacementState &
-    Pick<LoanState, 'loanStep' | 'turnLoans'> &
+    Pick<LoanState, 'loanStep' | 'turnLoans' | 'turnInterest'> &
     TurnMarkState
 export function finishOperatingTurnReason(
     state: OperatingTurnState,
@@ -132,5 +132,6 @@ export function endOperatingTurn(
     delete state.earningsDistribution
     delete state.loanStep
     delete state.turnLoans
+    delete state.turnInterest
     delete state.turnMarks
 }

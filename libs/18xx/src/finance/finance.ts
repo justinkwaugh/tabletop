@@ -56,7 +56,14 @@ export const Company = Type.Object(
 )
 export type Company = Type.Static<typeof Company>
 export const Bank = Type.Object(
-    { broken: Type.Optional(Type.Boolean()) },
+    {
+        broken: Type.Optional(Type.Boolean()),
+        /**
+         * Broken only by a payout it cannot make in full, a bank left at exactly nothing still
+         * whole, as Dixon rules for 1856; otherwise reaching nothing breaks it.
+         */
+        breaksOnShortfall: Type.Optional(Type.Literal(true))
+    },
     { additionalProperties: false }
 )
 export type Bank = Type.Static<typeof Bank>
