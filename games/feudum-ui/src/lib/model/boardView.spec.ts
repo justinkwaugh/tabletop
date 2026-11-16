@@ -6,20 +6,11 @@ import {
     MilitaryServiceTrack,
     RegionIds,
     RegionTiles,
-    RoyalWrits,
-    ScoreTrack,
-    writDeckCount
+    ScoreTrack
 } from '@tabletop/feudum'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
 import { PrintedColours } from '$lib/utils/boardGeometry.js'
-import {
-    deckView,
-    influencePools,
-    scoreOnTrack,
-    serviceDiscs,
-    stackView,
-    voyageDiscs
-} from './boardView.js'
+import { influencePools, scoreOnTrack, serviceDiscs, stackView, voyageDiscs } from './boardView.js'
 
 async function table() {
     const { host } = await atPlayingCards(['explore'])
@@ -97,26 +88,6 @@ describe('stackView (R-4.3.1)', () => {
         const state = await table()
         state.regionStacks[RegionIds[1]] = []
         expect(stackView(state, RegionIds[1])).toEqual({ region: RegionIds[1], count: 0 })
-    })
-})
-
-describe('deckView (R-5.1, R-4.4.1, R-4.4.2)', () => {
-    it('R-5.1 counts the deck and R-4.4.2 notes the writs the table saw go under', async () => {
-        const state = await table()
-        const writId = RoyalWrits[0].id
-        state.publicDeckWrits = [{ slot: 0, writId }]
-        const view = deckView(state, undefined)
-        expect(view.count).toBe(writDeckCount(state))
-        expect(view.seen).toEqual([writId])
-    })
-
-    it('R-4.4.1 tells only the viewer what it alone knows lies under the deck', async () => {
-        const state = await table()
-        const [a, b] = state.players
-        a.deckKnowledge = [{ slot: 1, writId: RoyalWrits[0].id }]
-        expect(deckView(state, a.playerId).knownToViewer).toBe(1)
-        expect(deckView(state, b.playerId).knownToViewer).toBe(0)
-        expect(deckView(state, undefined).knownToViewer).toBe(0)
     })
 })
 

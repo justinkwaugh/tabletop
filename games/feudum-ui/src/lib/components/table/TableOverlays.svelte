@@ -12,12 +12,14 @@
     import SiteCardLayer from './SiteCardLayer.svelte'
     import StackViewLayer from './StackViewLayer.svelte'
     import TracksSheet from './TracksSheet.svelte'
+    import WritReferenceLayer from './WritReferenceLayer.svelte'
 
     /**
      * What stands over the table, drawn in one place only: after the layout, or inside the dialog in
-     * full screen. What is open wins: an enlarged card over an open seat, stack view or the bench,
-     * those over the table. A popup's draft waits under them, and a popover would stand over everything, so it
-     * is held back while one is open. A site card gives way to a popup and to every layer.
+     * full screen. What is open wins: an enlarged card over an open seat, stack view, writ reference
+     * or the bench, those over the table. A popup's draft waits under them, and a popover would stand
+     * over everything, so it is held back while one is open. A site card gives way to a popup and to
+     * every layer.
      */
     const gameSession = getGameSession()
     const layers = gameSession.layers
@@ -56,7 +58,8 @@
             layers.openSeatId !== undefined ||
             layers.stackView !== undefined ||
             layers.tracksOpen ||
-            layers.guildsOpen
+            layers.guildsOpen ||
+            layers.writsOpen
     )
 </script>
 
@@ -86,6 +89,12 @@
 {/if}
 {#if layers.guildsOpen}
     <GuildsSheet onClose={() => layers.closeSeatOrStack()} />
+{/if}
+{#if layers.writsOpen}
+    <WritReferenceLayer
+        onClose={() => layers.closeSeatOrStack()}
+        sheet={phone.phone ? SeatSheetShare : undefined}
+    />
 {/if}
 {#if layers.enlarged}
     <div

@@ -235,6 +235,27 @@ export class ScenarioTable {
         return Number(held?.replace(/\D/g, ''))
     }
 
+    /**
+     * Contract, Supply: the writ reference as this seat's table draws it, opened from the Supply card
+     * and closed again: its markup and the writs its faces show, in order.
+     */
+    async writReference(): Promise<{ readonly html: string; readonly writs: readonly string[] }> {
+        await this.press(this.page.getByRole('button', { name: 'Supply', exact: true }))
+        await this.press(this.page.getByRole('button', { name: 'Writ reference', exact: true }))
+        const layer = this.page.locator('[data-table-layer="writs"]')
+        await expect(layer).toBeVisible()
+        const reference = layer.locator('[data-writ-reference]')
+        const html = await reference.innerHTML()
+        const writs = await reference
+            .locator('[data-reference-writ]')
+            .evaluateAll((faces) =>
+                faces.map((face) => face.getAttribute('data-reference-writ') ?? '')
+            )
+        await this.page.keyboard.press('Escape')
+        await expect(layer).toHaveCount(0)
+        return { html, writs }
+    }
+
     /** This seat's browser shows from here on. */
     async showSeat(playerId: string): Promise<void> {
         await this.page.evaluate((id) => window.feudumFixture.show(id), playerId)

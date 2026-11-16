@@ -57,9 +57,9 @@
         }
     }
 
-    function openDeck() {
+    function openWrits() {
         open = undefined
-        gameSession.boardChrome.openStack?.({ kind: 'deck' })
+        gameSession.layers.openWrits()
     }
 </script>
 
@@ -86,11 +86,10 @@
         >
             <SupplyCard
                 state={gameSession.gameState}
-                viewerId={gameSession.myPlayerId}
                 {paintOf}
                 colourPaintOf={gameSession.colourPaintOf}
                 nameOf={(playerId) => gameSession.getPlayerName(playerId)}
-                {...gameSession.boardChrome.openStack ? { openDeck } : {}}
+                {openWrits}
             />
         </div>
     {/if}

@@ -14,7 +14,6 @@ async function supply(table: ScenarioTable) {
     return card
 }
 const closeSupply = (table: ScenarioTable) => table.page.keyboard.press('Escape')
-const seen = (table: ScenarioTable) => table.page.locator('[data-general="deck-seen"]')
 const MandateA = 'A: 1 food → 3s'
 
 /** R-4.4.2 The at-will row's Writs chip, by its count. */
@@ -33,19 +32,25 @@ scenario('S50 R-4.4.2 At-will row', 'writs-at-will', async (table) => {
         MandateA
     )
     const deck = (await supply(table)).locator('[data-general-count="deck"]')
-    await expect(seen(table)).toHaveCount(0)
     const before = Number(await deck.textContent())
     await closeSupply(table)
+    const reference = await table.writReference()
     const flights = await table.flightsOf(() => table.press(table.row(MandateA)))
     expect(flights).toEqual(expect.arrayContaining(['goods: food', 'writs: Mandate 5']))
-    await supply(table)
-    await expect(seen(table)).toHaveText('seen: Mandate 5')
+    // Contract, Supply: the deck is its count; nothing tells the played writ lies in it.
+    const writDeck = (await supply(table)).getByRole('group', { name: 'Writ deck' })
     await expect(deck).toHaveText(`${before + 1}`)
+    await expect(writDeck).not.toContainText('Mandate 5')
+    const line = await writDeck.innerHTML()
     await closeSupply(table)
+    expect(await table.writReference()).toEqual(reference)
     await table.showSeat('p2')
-    await supply(table)
-    await expect(seen(table)).toHaveText('seen: Mandate 5')
+    await expect((await supply(table)).getByRole('group', { name: 'Writ deck' })).toHaveJSProperty(
+        'innerHTML',
+        line
+    )
     await closeSupply(table)
+    expect(await table.writReference()).toEqual(reference)
 })
 
 scenario('S51 R-4.4.3 No charter is sealed during play', 'writs-charter-held', async (table) => {
@@ -74,7 +79,6 @@ scenario('S52 R-4.4.4 Writ limit: a discard', 'writs-limit', async (table) => {
     const flights = await table.flightsOf(() => table.press(table.primary()))
     // R-4.4-H8 A discard goes under face down: a back flies, and the table sees no face.
     expect(flights.filter((flight) => flight.startsWith('writs:'))).toEqual(['writs: Writ back'])
-    await expect(seen(table)).toHaveCount(0)
     expect(await table.activeSeats()).not.toContain('p1')
 })
 
@@ -82,8 +86,9 @@ scenario('S52 R-4.4.4 Writ limit: a mandate from the row', 'writs-limit', async 
     await overTheLimit(table)
     await openWrits(table)
     await table.press(table.row(MandateA))
-    await supply(table)
-    await expect(seen(table)).toHaveText('seen: Mandate 5')
+    // Contract, Supply: the played writ goes under the deck, which shows its count alone.
+    const writDeck = (await supply(table)).getByRole('group', { name: 'Writ deck' })
+    await expect(writDeck).not.toContainText('Mandate')
     await closeSupply(table)
     expect(await table.activeSeats()).not.toContain('p1')
 })

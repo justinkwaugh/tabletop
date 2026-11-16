@@ -16,7 +16,7 @@ export interface BoardChrome {
     readonly bright: ReadonlySet<BoardTarget>
     /** A lit element's press. */
     readonly press?: (target: BoardTarget) => void
-    /** An unlit stack or deck enlarges to its stack view. */
+    /** An unlit stack enlarges to its stack view. */
     readonly openStack?: (view: StackViewOf) => void
     /** An unlit disc opens its site card; a desk pointer over it shows the card while it stays. */
     readonly openSite?: (spaceId: SpaceId) => void

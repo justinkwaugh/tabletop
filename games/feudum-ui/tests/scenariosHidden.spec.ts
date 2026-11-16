@@ -81,6 +81,38 @@ scenario(
     }
 )
 
+scenario(
+    'S78 R-4.4.1, R-4.4.4 The writ reference is the same for every seat',
+    'writs-charter-held',
+    async (table) => {
+        // p1 holds the charter and knows two writs under the deck; p2 knows neither.
+        const own = await table.writReference()
+        expect(own.writs).toHaveLength(16)
+        expect(new Set(own.writs).size).toBe(16)
+        expect(own.writs).toContain(Charter)
+        const supply = table.page.getByRole('group', { name: 'Writ deck' })
+        await table.press(table.page.getByRole('button', { name: 'Supply', exact: true }))
+        await expect(supply).not.toContainText('know')
+        await table.page.keyboard.press('Escape')
+
+        await table.showSeat('p2')
+        expect(await table.writReference()).toEqual(own)
+
+        // A writ in it enlarges with its rules note, and closes back to the reference.
+        await table.press(table.page.getByRole('button', { name: 'Supply', exact: true }))
+        await table.press(table.page.getByRole('button', { name: 'Writ reference', exact: true }))
+        const layer = table.page.locator('[data-table-layer="writs"]')
+        await table.press(layer.locator(`[data-reference-writ="${Charter}"] [data-enlarge]`))
+        await expect(enlarged(table)).toHaveAttribute('data-enlarged', 'writ')
+        await expect(table.page.locator('[data-rules-note]')).not.toBeEmpty()
+        await table.page.keyboard.press('Escape')
+        await expect(enlarged(table)).toHaveCount(0)
+        await expect(layer).toBeVisible()
+        await table.page.keyboard.press('Escape')
+        await expect(layer).toHaveCount(0)
+    }
+)
+
 /**
  * S57 Host View: the platform grants it to a game's host, and this page hosts no game, so the view a
  * host's browser takes is stood in for here: the session is told it views as host and is handed the

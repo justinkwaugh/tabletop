@@ -117,7 +117,7 @@ The files are `src/lib/fonts/MedievalSharp.ttf` and `src/lib/fonts/IMFellEnglish
 5. **Pieces:** pawns with their vessels, monsters, the Move trail and ghosts.
 6. **Guild areas:** each guild's grid, track, markers and reeves.
 7. **Tracks:** stacks and chart, the die, voyage, service, barrels, the score ring and its discs.
-8. **Supply card** (over the board, from the Supply button): the writ deck, haversack, supply counts, the start player.
+8. **Supply card** (over the board, from the Supply button): the writ deck's count and the Writ reference button (every writ's face, drawn by `WritFace`), haversack, supply counts, the start player.
 
 **Hit targets** are transparent shapes carrying the model's ids: a circle per space and per marker slot, a rounded rectangle per guild grid space, track space, stack, barrel and area, a pill per chip. A target's diameter is at least 54 board units, which is 44 CSS px at the phone's pick-framing scale (about 0.8, the cover fit raised by the contract's 2.5×). Where a printed shape is smaller, the hit shape is larger than it and is clipped against its neighbours, so two targets never overlap. A piece target sits above the space beneath it; an unlit element does nothing on a press except enlarge, as the contract says.
 
