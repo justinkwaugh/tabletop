@@ -108,13 +108,13 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     canRemove = $derived(this.canAct(ActionType.RemoveRow))
     canFinish = $derived(this.canAct(ActionType.FinishRemoving))
 
-    // false is a single piece, true a GIPF-piece.
+    // false is a single piece, true a GIPF-piece. The first is the one a chosen dot starts with.
     pieceTypes: boolean[] = $derived.by(() => {
         const playerId = this.myPlayer?.id
         if (!this.canPush || playerId === undefined) return []
         return [
-            ...(this.gameState.canPlaySingle(playerId) ? [false] : []),
-            ...(this.gameState.canPlayGipf(playerId) ? [true] : [])
+            ...(this.gameState.canPlayGipf(playerId) ? [true] : []),
+            ...(this.gameState.canPlaySingle(playerId) ? [false] : [])
         ]
     })
 
@@ -270,7 +270,9 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
 
     toggleGipf() {
         if (!this.choosesType || this.chosenDot === undefined) return
-        this.select(setGipfSelection(this.ownSelection, 'gipf', this.chosenGipf ? undefined : true))
+        this.select(
+            setGipfSelection(this.ownSelection, 'gipf', this.chosenGipf ? false : undefined)
+        )
     }
 
     chooseDot(dot: AxialCoordinates) {

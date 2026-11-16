@@ -57,7 +57,8 @@
         if (incoming) {
             drawn.push({
                 kind: animator.entering ? 'entering' : 'preview',
-                // Keyed by dot, so making it a GIPF-piece keeps the piece and drops a disc onto it.
+                // Keyed by dot, so a change of type keeps the piece and drops its top disc onto it
+                // or lifts it off.
                 key: `incoming-${coordinatesToNumber(incoming.dot)}`,
                 coords: incoming.dot,
                 gipf: incoming.gipf,
