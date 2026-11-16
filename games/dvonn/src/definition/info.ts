@@ -18,7 +18,7 @@ export const DvonnInfo: GameInfo = {
         version: GAME_VERSION,
         hasScores: false,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     },
     configurator: new DvonnConfigurator(),
     preferences: DvonnPreferenceDefinition
