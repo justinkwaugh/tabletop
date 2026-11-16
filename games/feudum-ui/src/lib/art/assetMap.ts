@@ -19,6 +19,7 @@ import {
     type VesselType,
     type WritId
 } from '@tabletop/feudum'
+import { RingParts, type RingPart } from './ringPieces.js'
 import { suppliedFiles } from './suppliedFiles.js'
 
 const EpochNumerals = { 1: 'i', 2: 'ii', 3: 'iii', 4: 'iv' } as const
@@ -74,8 +75,11 @@ export const WritBackAsset = 'writ.back'
 export const CoverAsset = 'cover'
 /** The board's printed map, sky and bottom strip included, with the terrain and every route on it. */
 export const MapAsset = 'board.map'
-/** The board round the map and the guild panels: the printed score ring, its corners and the frame. */
-export const RingAsset = 'board.ring'
+/**
+ * The board round the map and the guild panels: the printed score ring, its corners and the frame,
+ * one file for each part of it (`ringPieces.ts`).
+ */
+export const ringPartAsset = (part: RingPart) => `board.ring.${part}` as const
 
 /**
  * Every publisher image the components can show, id to file. A file lives in `./supplied` as
@@ -87,7 +91,7 @@ export const RingAsset = 'board.ring'
 export const AssetIds = [
     CoverAsset,
     MapAsset,
-    RingAsset,
+    ...RingParts.map(({ part }) => ringPartAsset(part)),
     ...GuildIds.map(guildPanelAsset),
     SealAsset,
     TargetAsset,
@@ -124,6 +128,14 @@ export function assetUrlIn(files: Record<string, string>, id: string): string | 
 /** The file for an id, or undefined when the folder doesn't hold it. */
 export function assetUrl(id: AssetId): string | undefined {
     return assetUrlIn(suppliedFiles, id)
+}
+
+type RingPrintPart = (typeof RingParts)[number] & { readonly url: string }
+
+/** The ring's parts, each with its file, or undefined unless the folder holds every one. */
+export function ringPrint(): readonly RingPrintPart[] | undefined {
+    const parts = RingParts.map((ring) => ({ ...ring, url: assetUrl(ringPartAsset(ring.part)) }))
+    return parts.every((ring): ring is RingPrintPart => ring.url !== undefined) ? parts : undefined
 }
 
 /** Files in the folder that no id asks for: a crop the map doesn't know, or a misnamed one. */

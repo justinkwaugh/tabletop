@@ -18,7 +18,7 @@ import {
     CoverAsset,
     MapAsset,
     PrintedColours,
-    RingAsset,
+    ringPartAsset,
     SealAsset,
     SeatPieceKinds,
     ShillingValues,
@@ -54,6 +54,7 @@ import TileFace from './pieces/TileFace.svelte'
 import VesselToken from './pieces/VesselToken.svelte'
 import WritFace from './pieces/WritFace.svelte'
 import BoardFrame from './tracks/BoardFrame.svelte'
+import { RingParts } from '$lib/art/ringPieces.js'
 
 const folder = vi.hoisted(() => {
     const files: Record<string, string> = {}
@@ -75,7 +76,10 @@ const paint = {
 /** Every id's component, built from the logic's data, so a new component id must appear here. */
 const shownBy = new Map<string, () => string>([
     [MapAsset, () => render(MapGround, { props: {} }).body],
-    [RingAsset, () => render(BoardFrame, { props: {} }).body],
+    ...RingParts.map(({ part }): [string, () => string] => [
+        ringPartAsset(part),
+        () => render(BoardFrame, { props: {} }).body
+    ]),
     ...GuildIds.map((guild): [string, () => string] => [
         guildPanelAsset(guild),
         () => render(GuildPanel, { props: { guild } }).body
@@ -305,6 +309,14 @@ describe.skipIf(!suppliedHere)('the supplied pictures', () => {
         (id, width, height) => {
             const file = readFileSync(new URL(`${id}.webp`, suppliedFolder))
             expect(webpSize(file)).toMatchObject({ width, height })
+        }
+    )
+
+    it.each(RingParts)(
+        'R-1.1 the ring part $part: its file holds only that part',
+        ({ part, file }) => {
+            const bytes = readFileSync(new URL(`${ringPartAsset(part)}.webp`, suppliedFolder))
+            expect(webpSize(bytes)).toMatchObject({ width: file[2], height: file[3] })
         }
     )
 })
