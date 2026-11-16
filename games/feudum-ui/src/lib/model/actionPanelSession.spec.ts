@@ -243,7 +243,7 @@ describe('Setup', () => {
         const waiting = table.order.find((id) => id !== table.setupSeat) ?? ''
         const session = await table.openSeat(waiting)
         const name = session.getPlayerName(table.setupSeat)
-        expect(linesOf(session.actionPanel, 'waiting')).toEqual([`${name} chooses starting goods`])
+        expect(linesOf(session.actionPanel, 'waiting')).toEqual([`Waiting on ${name}.`])
         expect(blockOf(session.actionPanel, 'goods-counts')?.counts).toEqual(
             ['saltpeter', 'sulfur', 'iron', 'wood', 'food'].map((good) => ({
                 good,
@@ -302,7 +302,7 @@ describe('Setup', () => {
         const waiting = table.order.find((id) => id !== table.setupSeat) ?? ''
         const session = await table.openSeat(waiting)
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
-            `${session.getPlayerName(table.setupSeat)} places a starting pawn`
+            `Waiting on ${session.getPlayerName(table.setupSeat)}.`
         ])
     })
 
@@ -359,7 +359,7 @@ describe('Hand selection', () => {
             pouch: { good: 'sulfur', title: '2 in a row' }
         })
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
-            `Waiting for ${session.getPlayerName(first)} to finalise`
+            `Waiting on ${session.getPlayerName(first)}.`
         ])
         const fresh = await table.openSeat(first)
         const freshRow = () => blockOf(fresh.actionPanel, 'finalise')?.entries
@@ -389,11 +389,11 @@ describe('Hand selection', () => {
         await sendNamed(session, 'Long live the king')
         const name = (id: string) => session.getPlayerName(id)
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
-            `Waiting for ${name(first)} and ${name(third)} to finalise`
+            `Waiting on ${name(first)} and ${name(third)}.`
         ])
         const watching = await table.openSpectator()
         expect(linesOf(watching.actionPanel, 'waiting')).toEqual([
-            `Waiting for ${name(first)} and ${name(third)} to finalise`
+            `Waiting on ${name(first)} and ${name(third)}.`
         ])
     })
 
@@ -584,7 +584,7 @@ describe('Hand selection', () => {
         expect(blockOf(session.actionPanel, 'finalise')?.entries[0].finalised).toBe(true)
         const [, , third] = table.order
         expect(linesOf(session.actionPanel, 'waiting')).toEqual([
-            `Waiting for ${session.getPlayerName(second)} and ${session.getPlayerName(third)} to finalise`
+            `Waiting on ${session.getPlayerName(second)} and ${session.getPlayerName(third)}.`
         ])
     })
 
@@ -1025,7 +1025,9 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
         expect(session.undoableAction).toBeUndefined()
         const watcher = await table.host.openSeat(other)
         expect(blockOf(watcher.actionPanel, 'writs')).toBeUndefined()
-        expect(linesOf(watcher.actionPanel, 'waiting')[0]).toContain('keeps 1')
+        expect(linesOf(watcher.actionPanel, 'waiting')[0]).toBe(
+            `Waiting on ${watcher.getPlayerName(session.myPlayerId ?? '')}.`
+        )
         await sendNamed(session, 'Keep 1 · 2 under the deck')
         expect(lastByUser(table)).toMatchObject({ type: ActionType.KeepWrits })
         expect(lastByUser(table)?.revealsInfo).toBeFalsy()

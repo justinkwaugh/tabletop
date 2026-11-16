@@ -112,7 +112,7 @@ test('R-4.8 the commit: the stepper raises the tally the third seat reads afterw
     await expect(primary(page)).not.toHaveText(before)
     await shot(page, 'commit-attacker')
     await openTable(page, `openCommitTable('third')`)
-    await expect(panel(page).locator('[data-waiting]')).toContainText('adds to the attack')
+    await expect(panel(page).locator('[data-waiting]')).toHaveText(/^Waiting on Player \d\.$/)
     await expect(panel(page).locator('[data-combat-tally]')).toBeVisible()
     await shot(page, 'commit-third')
 })
@@ -169,7 +169,7 @@ test('S53 nourish: the order row, the picker, and a feed brightens its pawn', as
     await shot(page, 'S53-nourish')
     await openTable(page, `openNourishTable('other')`)
     await expect(panel(page).locator('[data-order-row="nourish"]')).toBeVisible()
-    await expect(panel(page).locator('[data-waiting]')).toContainText('feeds pawns')
+    await expect(panel(page).locator('[data-waiting]')).toHaveText(/^Waiting on Player \d\.$/)
     await shot(page, 'S53-nourish-waiting')
 })
 
@@ -199,7 +199,10 @@ for (const [width, viewport] of [
         await shot(page, `S53-nourish-together-second-${width}`)
 
         await openTable(page, `openNourishTogetherTable('watcher')`)
-        await expect(panel(page).locator('[data-waiting]')).toHaveText(/^\S.* and \S.* feed pawns$/)
+        await expect(panel(page).locator('[data-waiting]')).toHaveText(
+            /^Waiting on Player \d and Player \d\.$/
+        )
+        await expect(panel(page).locator('[data-waiting] [data-seat-chip]')).toHaveCount(2)
         await expect(row.locator('[data-deciding]')).toHaveCount(2)
         // No seat is next while seats feed at once: the header names the step, as for hands.
         await expect(page.locator('[data-table-header]')).toContainText('Feeding pawns')
@@ -220,7 +223,7 @@ test('S55 landscapes: the order row, each filled space, and a row brightens it',
     await expect(lit(page).first()).toBeAttached()
     await shot(page, 'S55-landscapes')
     await openTable(page, `openLandscapesTable('other')`)
-    await expect(panel(page).locator('[data-waiting]')).toContainText('collects landscapes')
+    await expect(panel(page).locator('[data-waiting]')).toHaveText(/^Waiting on Player \d\.$/)
     await shot(page, 'S55-landscapes-waiting')
 })
 

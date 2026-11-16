@@ -126,7 +126,7 @@ describe('R-4.4.1 The keep', () => {
         expect(panel?.writs).toHaveLength(3)
         expect(panel?.primary).toEqual({ label: 'Keep 1 · 2 under the deck', enabled: false })
         expect(watcher.keepWritsPanel).toBeUndefined()
-        expect(watcher.watchingPanel?.line).toContain('keeps 1')
+        expect(watcher.watchingPanel?.waitingOn).toEqual([seat])
         expect(watcher.watchingPanel?.backs).toBe(3)
         expect(watcher.gameState.flow.writDraw?.drawn).toBeUndefined()
         expect(session.undoableAction).toBeUndefined()
@@ -773,12 +773,8 @@ describe('R-3.14.1 AnswerAttack', () => {
         const held = await askedToDefend(['defend', 'tax'])
         const withDefend = [held.session.watchingPanel, held.watcher.watchingPanel]
         const boardWith = roleOf(held.watcher.boardOffer, pawnTarget(held.other, held.pawnN))
-        const name = held.session.getPlayerName(held.other)
-        const ana = held.session.getPlayerName(held.seat)
         expect(withDefend[0]).toEqual(withDefend[1])
-        expect(withDefend[0]?.line).toMatch(
-            new RegExp(`^${ana} conquers ${name}'s knight at .+\\. ${name} answers\\.$`)
-        )
+        expect(withDefend[0]?.waitingOn).toEqual([held.other])
         expect(boardWith).toBe('being-decided')
         expect(held.defender.watchingPanel).toBeUndefined()
         expect(roleOf(held.defender.boardOffer, pawnTarget(held.other, held.pawnN))).toBe('plain')
@@ -912,9 +908,8 @@ describe('R-3.14.2 AnswerStarve', () => {
 
     it('S38 others see the line, "answers", and the marker outlined, whatever Ben holds', async () => {
         const held = await askedToAnswerStarve(['defend', 'tax'])
-        const name = held.session.getPlayerName(held.other)
         expect(held.watcher.watchingPanel).toEqual(held.session.watchingPanel)
-        expect(held.watcher.watchingPanel?.line).toContain(`${name} answers.`)
+        expect(held.watcher.watchingPanel?.waitingOn).toEqual([held.other])
         expect(
             roleOf(held.watcher.boardOffer, markerTarget(held.spaceId, held.other, 'serf'))
         ).toBe('being-decided')
@@ -1380,13 +1375,10 @@ describe('R-4.10 Nourish', () => {
             const table = hold(await together())
             const watcher = await table.host.openSeat(watcherOf(table))
             await settled(watcher)
-            const name = (playerId: string) => watcher.getPlayerName(playerId)
             const [first, second] = table.host.order.filter(
                 (playerId) => playerId === table.seat || playerId === table.other
             )
-            expect(watcher.watchingPanel?.line).toBe(
-                `${name(first)} and ${name(second)} feed pawns`
-            )
+            expect(watcher.watchingPanel?.waitingOn).toEqual([first, second])
             const entries = watcher.orderRow?.entries ?? []
             for (const playerId of [first, second]) {
                 expect(entries.find((entry) => entry.playerId === playerId)).toMatchObject({
@@ -1400,7 +1392,7 @@ describe('R-4.10 Nourish', () => {
             await settled(watcher)
 
             const still = first === table.seat ? second : first
-            expect(watcher.watchingPanel?.line).toBe(`${name(still)} feeds pawns`)
+            expect(watcher.watchingPanel?.waitingOn).toEqual([still])
             expect(
                 watcher.orderRow?.entries.find(({ playerId }) => playerId === table.seat)
             ).toMatchObject({

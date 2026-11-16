@@ -25,6 +25,7 @@ import type { SulfurDestination } from './startingGoodsDraft.svelte.js'
 import type { OrderRow } from './sharedRows.js'
 import type { TileArt } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
+import { waitingWords } from './watching.js'
 import { writName } from './writLabels.js'
 
 export type RowArt =
@@ -118,6 +119,13 @@ export interface WritOffer {
     readonly rows: readonly ActionRow[]
 }
 
+/** A seat as its chip: its colour and its name. */
+export interface WaitingSeat {
+    readonly playerId: string
+    readonly name: string
+    readonly paint: SeatPaint
+}
+
 export interface SeatNames {
     readonly nameOf: (playerId: string) => string
     readonly paintOf: (playerId: string) => SeatPaint
@@ -166,6 +174,8 @@ type PanelBlock =
           readonly kind: 'line'
           readonly role: LineRole
           readonly text: string
+          /** R-X.1 A waiting line's seats, each drawn as its chip: "Waiting on <chip>." */
+          readonly on?: readonly WaitingSeat[]
           readonly lead?: string
           /** A phone's wording, after the card's name, where the tray has room for one line. */
           readonly short?: string
@@ -342,6 +352,16 @@ function line(role: LineRole, text: string, lead?: string): ActionBlock {
     return { kind: 'line', role, text, ...(lead ? { lead } : {}) }
 }
 
+/** R-X.1 The one waiting line, for every state: "Waiting on <chip>." */
+function waitingLine(session: PanelSession, playerIds: readonly string[]): ActionBlock {
+    const on = playerIds.map((playerId) => ({
+        playerId,
+        name: session.getPlayerName(playerId),
+        paint: session.paintOf(playerId)
+    }))
+    return { kind: 'line', role: 'waiting', text: waitingWords(on.map(({ name }) => name)), on }
+}
+
 /** The tray's stage line, with its phone wording when the card's flow has one. */
 function trayLine(text: string, short: string | undefined): ActionBlock {
     return { kind: 'line', role: 'flow', text, ...(short ? { short } : {}) }
@@ -407,7 +427,7 @@ function goodsBlocks(
 ): ActionBlock[] {
     if (!panel.deciding) {
         return [
-            line('waiting', panel.waitingLine ?? ''),
+            waitingLine(session, [panel.deciderId]),
             {
                 kind: 'goods-counts',
                 counts: panel.goods.map(({ good, count }) => ({ good, count }))
@@ -433,7 +453,7 @@ function pawnBlocks(
     panel: NonNullable<PanelSession['startingPawnPanel']>
 ): ActionBlock[] {
     if (!panel.deciding) {
-        return [line('waiting', `${session.getPlayerName(panel.deciderId)} places a starting pawn`)]
+        return [waitingLine(session, [panel.deciderId])]
     }
     if (panel.asksCharacter) {
         return [line('flow', 'Choose who stands here')]
@@ -489,7 +509,7 @@ function handBlocks(
                       }
                   ]
                 : []),
-            ...(panel.waiting ? [line('waiting', panel.waiting)] : []),
+            ...(panel.waitingOn ? [waitingLine(session, panel.waitingOn)] : []),
             ...atWillBlocks(session)
         ]
     }
@@ -992,7 +1012,7 @@ function decisionBlocks(session: PanelSession): readonly ActionBlock[] {
         return turnBlocks(session, turn)
     }
     return [
-        ...(watching?.line ? [line('waiting', watching.line)] : []),
+        ...(watching?.waitingOn ? [waitingLine(session, watching.waitingOn)] : []),
         ...(watching?.backs
             ? [{ kind: 'backs', count: watching.backs } satisfies ActionBlock]
             : []),
@@ -1002,7 +1022,7 @@ function decisionBlocks(session: PanelSession): readonly ActionBlock[] {
 
 /** R-X.1 The waiting view ends with what the previous seat just did, as this seat's log reads it. */
 function previousSeatBlocks({ watchingPanel, previousSeatLine }: PanelSession): ActionBlock[] {
-    return watchingPanel?.line && previousSeatLine ? [line('previous', previousSeatLine)] : []
+    return watchingPanel?.waitingOn && previousSeatLine ? [line('previous', previousSeatLine)] : []
 }
 
 function seatNames(session: PanelSession): SeatNames {

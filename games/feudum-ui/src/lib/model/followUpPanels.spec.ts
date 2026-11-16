@@ -79,9 +79,7 @@ describe('R-3.14.1 S32 to S34 the ask to defend, as drawn', () => {
         expect(asked.isMyTurn).toBe(true)
         expect(session.isMyTurn).toBe(false)
         expect(third.isMyTurn).toBe(false)
-        expect(linesOf(session.actionPanel, 'waiting')[0]).toMatch(
-            new RegExp(`${name} answers\\.$`)
-        )
+        expect(linesOf(session.actionPanel, 'waiting')[0]).toBe(`Waiting on ${name}.`)
     })
 
     it('S33 with Defend: the line first, both buttons, and the flip raises the shared tally', async () => {

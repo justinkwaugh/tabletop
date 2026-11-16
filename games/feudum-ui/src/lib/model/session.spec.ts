@@ -354,9 +354,8 @@ describe('the real session: S1, goods with the sulfur destination (R-1.4.8)', ()
 
         const panel = session.startingGoodsPanel
         expect(panel?.deciding).toBe(false)
-        expect(panel?.waitingLine).toBe(
-            `${session.getPlayerName(table.setupSeat)} chooses starting goods`
-        )
+        expect(panel?.deciderId).toBe(table.setupSeat)
+        expect(panel).not.toHaveProperty('waitingLine')
         expect(session.startingGoods.goods).toEqual([])
         expect(panel?.goods.every(({ picked }) => !picked)).toBe(true)
     })
