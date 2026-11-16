@@ -148,7 +148,7 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                 },
                 withPlayedMarkerArt(view, this.playedMarkerArt(snapshotState))
             ),
-            tokens: stationMapTokens(snapshot, view.stations, view.sharedStations),
+            tokens: stationMapTokens(snapshot, view),
             reservations: this.openReservations(snapshot),
             stationAppearances: view.stations,
             routes,

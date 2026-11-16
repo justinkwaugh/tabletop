@@ -32,7 +32,11 @@
 {#if step}
     <section aria-label="Station placement">
         <header>
-            <span>Choose a city to place a station or</span>
+            <span
+                >Choose a city to place {session.stations.neutralSelected
+                    ? 'the neutral station'
+                    : 'a station'} or</span
+            >
             <button
                 class="action-button inline-action"
                 onclick={onSkip}
@@ -60,6 +64,15 @@
                             Station {index + 1}
                         </button>
                     {/each}
+                </div>
+            {/if}
+            {#if session.stations.neutralChoice && !session.stations.neutralSelected && !selection.placement}
+                {@const neutral = session.stations.neutralChoice}
+                <div class="choices">
+                    <button
+                        data-station-id={neutral.id}
+                        onclick={() => session.stations.select(neutral.id)}>Neutral station</button
+                    >
                 </div>
             {/if}
             <!-- Offered whether or not a station token is chosen, as the station is placed on the map. -->

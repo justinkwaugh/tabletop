@@ -1,0 +1,49 @@
+import type { AxialCoordinates } from '@tabletop/common'
+import type { MarbleColor } from '@tabletop/zertz'
+import type { HistoryEntry } from './historyEntries.js'
+
+export type Segment =
+    | { kind: 'text'; text: string }
+    | { kind: 'marble'; color: MarbleColor; seed: number }
+    | { kind: 'ring'; coords: AxialCoordinates }
+    | { kind: 'step' }
+
+// Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks. The
+// brief form keeps the action panel's message to one line on a phone, as the other titles do.
+export function entrySegments(entry: HistoryEntry, isMe: boolean, brief = false): Segment[] {
+    const text = (value: string): Segment => ({ kind: 'text', text: value })
+    const marble = (color: MarbleColor, seed: number): Segment => ({ kind: 'marble', color, seed })
+    const ring = (coords: AxialCoordinates): Segment => ({ kind: 'ring', coords })
+
+    if (entry.kind === 'capture') {
+        return [
+            text(' jumped '),
+            marble(entry.jumper, entry.jumperSeed),
+            text(' '),
+            ...(brief ? [entry.path[0], entry.path[entry.path.length - 1]] : entry.path).flatMap(
+                (coords, index) =>
+                    index === 0 ? [ring(coords)] : [{ kind: 'step' } as const, ring(coords)]
+            ),
+            text(', capturing '),
+            ...entry.captured.map(({ color, seed }) => marble(color, seed))
+        ]
+    }
+
+    return [
+        text(' placed '),
+        marble(entry.color, entry.seed),
+        text(' on '),
+        ring(entry.placedAt),
+        ...(entry.fromCaptures && !brief
+            ? [text(` from ${isMe ? 'your' : 'their'} captures`)]
+            : []),
+        ...(entry.removedAt ? [text(', removed '), ring(entry.removedAt)] : []),
+        ...(entry.claimed.length > 0 ? [text(brief ? ' and claimed ' : ' and claimed')] : []),
+        ...entry.claimed.flatMap((claimed) => {
+            if (claimed.marble === undefined) return []
+            const shown = marble(claimed.marble, claimed.seed)
+            if (brief) return [shown]
+            return [text(' '), shown, text(' '), ring(claimed.coords)]
+        })
+    ]
+}

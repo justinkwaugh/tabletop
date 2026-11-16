@@ -83,13 +83,69 @@ export const StationAccess = Type.Object(
     { additionalProperties: false }
 )
 export type StationAccess = Type.Static<typeof StationAccess>
+/**
+ * A neutral station fills a city space but blocks no company's route through the city: 1882's
+ * neutral stations, which keep a city open to run through (§4, §11.1). Its company is the one
+ * that runs from it, 1882's Canadian National. `heldBy` names the company whose charter holds it
+ * and that places it; one without a holder waits in the supply for a title's power to place it.
+ */
+export const NeutralStation = Type.Object(
+    { stationId: Id, heldBy: Type.Optional(Id) },
+    { additionalProperties: false }
+)
+export type NeutralStation = Type.Static<typeof NeutralStation>
 export const StationFields = {
     stations: Type.Array(Station),
     stationReservations: Type.Array(StationReservation),
     hexReservations: Type.Optional(Type.Array(HexReservation)),
-    stationAccess: Type.Optional(Type.Array(StationAccess))
+    stationAccess: Type.Optional(Type.Array(StationAccess)),
+    neutralStations: Type.Optional(Type.Array(NeutralStation))
 }
 export type StationState = Type.Static<Type.TObject<typeof StationFields>>
+
+export function neutralStation(
+    state: Pick<StationState, 'neutralStations'>,
+    stationId: string
+): NeutralStation | undefined {
+    return state.neutralStations?.find((neutral) => neutral.stationId === stationId)
+}
+
+/**
+ * The company that places a station in its station step: its own company, or for a neutral
+ * station the company holding it, if any.
+ */
+export function stationPlacer(
+    state: Pick<StationState, 'neutralStations'>,
+    station: Pick<Station, 'id' | 'companyId'>
+): string | undefined {
+    const neutral = neutralStation(state, station.id)
+    return neutral ? neutral.heldBy : station.companyId
+}
+
+/** The stations a company may place: its own still available, and the neutral ones it holds. */
+export function placeableStations(
+    state: Pick<StationState, 'stations' | 'neutralStations'>,
+    companyId: string
+): Station[] {
+    return state.stations.filter(
+        (station) => station.status === 'available' && stationPlacer(state, station) === companyId
+    )
+}
+
+/** Whether a city holds a neutral station, which keeps it open to every route (1882 §11.1). */
+export function cityHasNeutralStation(
+    state: Pick<StationState, 'stations' | 'neutralStations'>,
+    locationId: string,
+    nodeId: string
+): boolean {
+    return state.stations.some(
+        (station) =>
+            station.status === 'placed' &&
+            station.position.locationId === locationId &&
+            station.position.nodeId === nodeId &&
+            !!neutralStation(state, station.id)
+    )
+}
 
 /** Where a company builds and runs from: its placed stations and the places it has access to. */
 export function companyStationCenters(
@@ -159,6 +215,16 @@ export function validateStations(state: StationState, companyIds: readonly strin
         assert(companyIds.includes(reservation.companyId), 'Unknown reservation company')
     for (const access of state.stationAccess ?? [])
         assert(companyIds.includes(access.companyId), 'Unknown station access company')
+    for (const neutral of state.neutralStations ?? []) {
+        assert(
+            state.stations.some((station) => station.id === neutral.stationId),
+            'Unknown neutral station'
+        )
+        assert(
+            neutral.heldBy === undefined || companyIds.includes(neutral.heldBy),
+            'Unknown neutral station holder'
+        )
+    }
 }
 
 /**
@@ -188,7 +254,8 @@ export function cityIsBlocked(
     if (node.kind !== 'city' || node.stationSlots === 0) return false
     return (
         filledStationSpaces(state, locationId, node) >= node.stationSlots &&
-        !usesStationAt(state, companyId, locationId, node.id)
+        !usesStationAt(state, companyId, locationId, node.id) &&
+        !cityHasNeutralStation(state, locationId, node.id)
     )
 }
 

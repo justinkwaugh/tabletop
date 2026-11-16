@@ -1,0 +1,1141 @@
+{
+    "game": {
+        "id": "scenario-1856-private-auction",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "1856",
+        "deleted": false,
+        "name": "private auction",
+        "ownerId": "p1",
+        "players": [
+            { "id": "p1", "userId": "p1", "name": "Player 1", "isHuman": true, "status": "joined" },
+            { "id": "p2", "userId": "p2", "name": "Player 2", "isHuman": true, "status": "joined" },
+            { "id": "p3", "userId": "p3", "name": "Player 3", "isHuman": true, "status": "joined" },
+            { "id": "p4", "userId": "p4", "name": "Player 4", "isHuman": true, "status": "joined" }
+        ],
+        "config": {},
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3758006212,
+        "activePlayerIds": [],
+        "createdAt": "2026-11-15T23:29:05.002Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-15T23:29:05.002Z",
+        "progress": { "fraction": 0, "label": "Phase 2 · Bank $10,500" }
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "KZ_rD0T2GA_MJjHnJf6z2",
+        "gameId": "scenario-1856-private-auction",
+        "seed": 3758006212,
+        "prng": { "seed": 3758006212, "invocations": 1 },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "cf17c8e67e84c50e2c8b94e2c4a8f79e8287f32f4afb8767af180b666499b0a1",
+            "invocations": 0
+        },
+        "masterSeed": "00000000000000000000000000000001",
+        "activePlayerIds": ["p2"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            { "playerId": "p1", "color": "blue" },
+            { "playerId": "p2", "color": "red" },
+            { "playerId": "p3", "color": "green" },
+            { "playerId": "p4", "color": "yellow" }
+        ],
+        "phaseEvents": [],
+        "usedPrivatePowerIds": [],
+        "accessRights": [],
+        "machineState": "WaterfallAuction",
+        "stockRound": {
+            "number": 1,
+            "completed": false,
+            "passedPlayerIds": [],
+            "turn": {
+                "acted": false,
+                "bought": false,
+                "soldBeforeBuying": false,
+                "companiesSold": []
+            },
+            "sales": [],
+            "companyPurchases": []
+        },
+        "turnManager": {
+            "series": [{ "type": "turn", "playerId": "p2", "start": 0 }],
+            "turnOrder": ["p2", "p3", "p4", "p1"],
+            "turnCounts": { "p1": 0, "p2": 0, "p3": 0, "p4": 0 },
+            "seriesKeeps": "latest"
+        },
+        "stockMarket": { "stacks": [] },
+        "bank": { "breaksOnShortfall": true },
+        "companies": [
+            {
+                "id": "BBG",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "CA",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "CPR",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "CV",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "GT",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "GW",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "LPS",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "TGB",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "THB",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "WR",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "WGB",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            {
+                "id": "CGR",
+                "kind": "major",
+                "started": false,
+                "floated": false,
+                "funded": false,
+                "operated": false
+            },
+            { "id": "FT", "kind": "private" },
+            { "id": "WSRC", "kind": "private" },
+            { "id": "TCC", "kind": "private" },
+            { "id": "GLSC", "kind": "private" },
+            { "id": "NFSBC", "kind": "private" },
+            { "id": "SCFTC", "kind": "private" }
+        ],
+        "cash": [
+            { "owner": { "kind": "bank" }, "amount": 10500 },
+            { "owner": { "kind": "player", "playerId": "p1" }, "amount": 375 },
+            { "owner": { "kind": "player", "playerId": "p2" }, "amount": 375 },
+            { "owner": { "kind": "player", "playerId": "p3" }, "amount": 375 },
+            { "owner": { "kind": "player", "playerId": "p4" }, "amount": 375 },
+            { "owner": { "kind": "company", "companyId": "BBG" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "CA" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "CPR" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "CV" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "GT" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "GW" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "LPS" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "TGB" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "THB" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "WR" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "WGB" }, "amount": 0 },
+            { "owner": { "kind": "company", "companyId": "CGR" }, "amount": 0 }
+        ],
+        "certificatePools": [
+            { "id": "initial-offering", "owner": { "kind": "bank" } },
+            { "id": "open-market", "owner": { "kind": "bank" } }
+        ],
+        "certificates": [
+            {
+                "id": "BBG:president",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:1",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:2",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:3",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:4",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:5",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:6",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:7",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "BBG:share:8",
+                "companyId": "BBG",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:president",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:1",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:2",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:3",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:4",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:5",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:6",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:7",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CA:share:8",
+                "companyId": "CA",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:president",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:1",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:2",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:3",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:4",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:5",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:6",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:7",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CPR:share:8",
+                "companyId": "CPR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:president",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:1",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:2",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:3",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:4",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:5",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:6",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:7",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "CV:share:8",
+                "companyId": "CV",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:president",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:1",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:2",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:3",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:4",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:5",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:6",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:7",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GT:share:8",
+                "companyId": "GT",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:president",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:1",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:2",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:3",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:4",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:5",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:6",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:7",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "GW:share:8",
+                "companyId": "GW",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:president",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:1",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:2",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:3",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:4",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:5",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:6",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:7",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "LPS:share:8",
+                "companyId": "LPS",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:president",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:1",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:2",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:3",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:4",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:5",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:6",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:7",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "TGB:share:8",
+                "companyId": "TGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:president",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:1",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:2",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:3",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:4",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:5",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:6",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:7",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "THB:share:8",
+                "companyId": "THB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:president",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:1",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:2",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:3",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:4",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:5",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:6",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:7",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WR:share:8",
+                "companyId": "WR",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:president",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 2,
+                "president": true,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:1",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:2",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:3",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:4",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:5",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:6",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:7",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "WGB:share:8",
+                "companyId": "WGB",
+                "kind": "share",
+                "shares": 1,
+                "owner": { "kind": "bank" },
+                "poolId": "initial-offering"
+            },
+            {
+                "id": "FT:charter",
+                "companyId": "FT",
+                "kind": "private",
+                "owner": { "kind": "bank" }
+            },
+            {
+                "id": "WSRC:charter",
+                "companyId": "WSRC",
+                "kind": "private",
+                "owner": { "kind": "bank" }
+            },
+            {
+                "id": "TCC:charter",
+                "companyId": "TCC",
+                "kind": "private",
+                "owner": { "kind": "bank" }
+            },
+            {
+                "id": "GLSC:charter",
+                "companyId": "GLSC",
+                "kind": "private",
+                "owner": { "kind": "bank" }
+            },
+            {
+                "id": "NFSBC:charter",
+                "companyId": "NFSBC",
+                "kind": "private",
+                "owner": { "kind": "bank" }
+            },
+            {
+                "id": "SCFTC:charter",
+                "companyId": "SCFTC",
+                "kind": "private",
+                "owner": { "kind": "bank" }
+            }
+        ],
+        "stations": [
+            { "id": "BBG:home", "companyId": "BBG", "status": "available" },
+            { "id": "BBG:station:1", "companyId": "BBG", "status": "available" },
+            { "id": "BBG:station:2", "companyId": "BBG", "status": "available" },
+            { "id": "CA:home", "companyId": "CA", "status": "available" },
+            { "id": "CA:station:1", "companyId": "CA", "status": "available" },
+            { "id": "CA:station:2", "companyId": "CA", "status": "available" },
+            { "id": "CPR:home", "companyId": "CPR", "status": "available" },
+            { "id": "CPR:station:1", "companyId": "CPR", "status": "available" },
+            { "id": "CPR:station:2", "companyId": "CPR", "status": "available" },
+            { "id": "CPR:station:3", "companyId": "CPR", "status": "available" },
+            { "id": "CV:home", "companyId": "CV", "status": "available" },
+            { "id": "CV:station:1", "companyId": "CV", "status": "available" },
+            { "id": "CV:station:2", "companyId": "CV", "status": "available" },
+            { "id": "GT:home", "companyId": "GT", "status": "available" },
+            { "id": "GT:station:1", "companyId": "GT", "status": "available" },
+            { "id": "GT:station:2", "companyId": "GT", "status": "available" },
+            { "id": "GT:station:3", "companyId": "GT", "status": "available" },
+            { "id": "GW:home", "companyId": "GW", "status": "available" },
+            { "id": "GW:station:1", "companyId": "GW", "status": "available" },
+            { "id": "GW:station:2", "companyId": "GW", "status": "available" },
+            { "id": "GW:station:3", "companyId": "GW", "status": "available" },
+            { "id": "LPS:home", "companyId": "LPS", "status": "available" },
+            { "id": "LPS:station:1", "companyId": "LPS", "status": "available" },
+            { "id": "TGB:home", "companyId": "TGB", "status": "available" },
+            { "id": "TGB:station:1", "companyId": "TGB", "status": "available" },
+            { "id": "THB:home", "companyId": "THB", "status": "available" },
+            { "id": "THB:station:1", "companyId": "THB", "status": "available" },
+            { "id": "WR:home", "companyId": "WR", "status": "available" },
+            { "id": "WR:station:1", "companyId": "WR", "status": "available" },
+            { "id": "WR:station:2", "companyId": "WR", "status": "available" },
+            { "id": "WGB:home", "companyId": "WGB", "status": "available" },
+            { "id": "WGB:station:1", "companyId": "WGB", "status": "available" },
+            { "id": "CGR:home", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:1", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:2", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:3", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:4", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:5", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:6", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:7", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:8", "companyId": "CGR", "status": "available" },
+            { "id": "CGR:station:9", "companyId": "CGR", "status": "available" }
+        ],
+        "stationReservations": [
+            { "companyId": "CPR", "nodeId": "city", "locationId": "M4" },
+            { "companyId": "GW", "nodeId": "city", "locationId": "F15" },
+            { "companyId": "CV", "nodeId": "city-0", "locationId": "N11" },
+            { "companyId": "CA", "nodeId": "city", "locationId": "D17" },
+            { "companyId": "WGB", "nodeId": "city", "locationId": "J11" },
+            { "companyId": "BBG", "nodeId": "city", "locationId": "J15" },
+            { "companyId": "TGB", "nodeId": "city", "locationId": "K8" },
+            { "companyId": "WR", "nodeId": "city", "locationId": "O16" },
+            { "companyId": "LPS", "nodeId": "city", "locationId": "C14" },
+            { "companyId": "GT", "nodeId": "city", "locationId": "P9" }
+        ],
+        "hexReservations": [{ "companyId": "THB", "locationId": "L15" }],
+        "tileInventory": { "placements": {}, "retiredPieceIds": [] },
+        "trainInventory": {
+            "depotId": "1856:diesels",
+            "trains": [
+                { "id": "1856:diesels/2/1", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/2", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/3", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/4", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/5", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/2/6", "definitionId": "2", "status": "depot" },
+                { "id": "1856:diesels/3/7", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/8", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/9", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/10", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/3/11", "definitionId": "3", "status": "depot" },
+                { "id": "1856:diesels/4/12", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/4/13", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/4/14", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/4/15", "definitionId": "4", "status": "depot" },
+                { "id": "1856:diesels/5/16", "definitionId": "5", "status": "depot" },
+                { "id": "1856:diesels/5/17", "definitionId": "5", "status": "depot" },
+                { "id": "1856:diesels/5/18", "definitionId": "5", "status": "depot" },
+                { "id": "1856:diesels/6/19", "definitionId": "6", "status": "depot" },
+                { "id": "1856:diesels/6/20", "definitionId": "6", "status": "depot" }
+            ],
+            "nextTrainNumber": 21
+        },
+        "phaseId": "2",
+        "variants": {},
+        "funding": [],
+        "destinationsReached": [],
+        "openingAuction": {
+            "remainingLotIds": ["FT", "WSRC", "TCC", "GLSC", "NFSBC", "SCFTC"],
+            "reservations": [],
+            "nextPlayerId": "p2",
+            "passedPlayerIds": [],
+            "discount": 0,
+            "awards": [],
+            "completed": false
+        }
+    },
+    "actions": []
+}

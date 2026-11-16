@@ -157,7 +157,16 @@
                                     >{#each faces as face (face.id)}<TrainBadge
                                             name={face.name}
                                             color={trainColors[face.id]}
-                                        />{/each}</span
+                                        />{#each face.marks ?? [] as mark (mark.description)}<span
+                                                class="train-mark"
+                                                title={mark.description}
+                                                aria-label={mark.description}
+                                                ><img
+                                                    src={mark.imageUrl}
+                                                    alt=""
+                                                />{#if mark.label}<span>{mark.label}</span
+                                                    >{/if}</span
+                                            >{/each}{/each}</span
                                 ></th
                             >
                             <td class="money">{money(train.price)}</td>
@@ -315,6 +324,17 @@
     }
     .number .badges {
         justify-content: center;
+    }
+    .train-mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .train-mark img {
+        height: 15px;
+        width: auto;
     }
     /* An asterisk sits at cap height; drop it to the middle of the badges beside it. */
     .rust-mark {

@@ -163,9 +163,13 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             controllingOwner(state, operatingAtBankruptcy)?.playerId === this.playerId
                 ? operatingAtBankruptcy
                 : undefined
-        const { changes, surrendered } = eliminatePlayer(state, this.playerId, elimination, {
-            kind: 'bank'
-        })
+        const { changes, surrendered } = eliminatePlayer(
+            state,
+            this.playerId,
+            elimination,
+            { kind: 'bank' },
+            { debt, continuation: crisis.continuation }
+        )
         // A company left without a president cannot finish its own turn.
         const companyId = operatingCompany()
         const abandoned = !!companyId && !controllingOwner(state, companyId)

@@ -55,14 +55,23 @@ export const StandardTileLayouts: Readonly<Record<string, TileLayout>> = {
             labelPosition: { x: 32.1, y: -2.4 }
         }
     ),
-    '18xx:64': cities(towardTileEdge(1, 15), towardTileEdge(3.5, 24)),
-    '18xx:65': cities(towardTileEdge(5, 15), towardTileEdge(2.5, 24)),
-    '18xx:66': cities(towardTileEdge(4.5, 6), towardTileEdge(1.5, 26)),
+    // Each OO label stands in the open space its cities and track leave, clear of the stations.
+    '18xx:64': cities(towardTileEdge(1, 15), towardTileEdge(3.5, 24), {
+        labelPosition: { x: 21, y: 9 }
+    }),
+    '18xx:65': cities(towardTileEdge(5, 15), towardTileEdge(2.5, 24), {
+        labelPosition: { x: -21, y: 9 }
+    }),
+    '18xx:66': cities(towardTileEdge(4.5, 6), towardTileEdge(1.5, 26), {
+        labelPosition: { x: 33, y: 0 }
+    }),
     '18xx:67': cities(towardTileEdge(0, 18), towardTileEdge(2, 22), {
         revenuePositions: { 'city-0': { x: -27.6, y: 18.2 }, 'city-1': { x: 15.7, y: -28.7 } },
         labelPosition: { x: 30.8, y: 5.3 }
     }),
-    '18xx:68': cities(towardTileEdge(0, 26), towardTileEdge(4, 26))
+    '18xx:68': cities(towardTileEdge(0, 26), towardTileEdge(4, 26), {
+        labelPosition: { x: -24, y: -11 }
+    })
 }
 
 export function placedTileLayout(

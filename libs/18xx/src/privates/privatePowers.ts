@@ -75,7 +75,12 @@ export interface PrivatePowerRules {
      * What follows a private's marker, such as 1849's CNM recording the company its port pays and
      * closing (§7.1).
      */
-    afterMarker?(state: CompanyDecisionState, privateCompanyId: string, locationId: string): void
+    afterMarker?(
+        state: CompanyDecisionState,
+        privateCompanyId: string,
+        locationId: string,
+        nodeId?: string
+    ): void
     /**
      * Where a private lets its owning company place its next station free, apart from the
      * turn's station placement; the family records the power used once a token is placed.
@@ -95,6 +100,11 @@ export interface PrivateTokenTerms {
 export interface PrivateMarkerTerms {
     kind: string
     locationIds: readonly string[]
+    /**
+     * Where the marker goes on one revenue center of its location, the centers it may take; the
+     * action then names its node, as 1856's port goes on one of two small cities.
+     */
+    stops?: readonly { locationId: string; nodeId: string }[]
 }
 export function privateTrackConstruction(
     state: CompanyDecisionState,

@@ -681,3 +681,28 @@ it('stands a kept terrain cost clear of a laid tile’s track', () => {
             }
     }
 })
+
+it('places a token near its printed point, or at the clear spot nearest it where track runs', () => {
+    const marked = (id: string, q: number, edges: readonly (0 | 1 | 2 | 3 | 4 | 5)[]) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: true,
+        preprintedTile: createCityTileFace('white', edges, 0, 1),
+        markers: [{ id: 'rebellion', label: 'NWR', description: 'Rebellion' }]
+    })
+    const map = new RailwayMap({
+        id: 'near',
+        name: 'Near',
+        orientation: HexOrientation.Flat,
+        locations: [marked('open', 0, []), marked('tracked', 2, [4, 5])]
+    })
+    const preferred = { x: 33, y: 0 }
+    const [open, tracked] = createMapDrawing(map, undefined, {
+        markerArt: { rebellion: { token: { imageUrl: 'nwr.svg', place: { near: preferred } } } }
+    }).locations.map((entry) => entry.revenueAnnotations.find((note) => note.kind === 'token'))
+    assert(open?.kind === 'token' && tracked?.kind === 'token')
+    expect(Math.hypot(open.x - preferred.x, open.y - preferred.y)).toBeLessThanOrEqual(2)
+    // Track to the hex's two right sides pushes the token off the point, still inside the hex.
+    expect(Math.hypot(tracked.x - preferred.x, tracked.y - preferred.y)).toBeGreaterThan(2)
+    expect(Math.hypot(tracked.x, tracked.y)).toBeLessThan(43)
+})

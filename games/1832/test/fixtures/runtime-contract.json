@@ -6,7 +6,7 @@
     "BuyAuctionLot": "1440b6718a7bc89aa8447af3f5706bdfc69a8a7a7cfd0a5644e7c69a0322b370",
     "BuyCoalRights": "02b50e3564ab127734f0bccfc65fe651c7adf84e8b304c3a656fab9de405f906",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
-    "BuyShares": "8f60485b6529935b55415672fd55755010a62988b882f0f1e6a637772a2a6a25",
+    "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
     "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
     "CapitalizeCompany": "4cfdd493c127d35dff8a8c0693c078f4fa0e38080a5ed59a2a87a01f240723d3",
     "CloseCompany": "3af61e5735319bc5790a0a2119178f59ce4c551cf20c1767814733c99cca8e9b",
@@ -21,7 +21,7 @@
     "DeclineProtection": "3fa317aca361e4fba760752b6fef4140b0cf553cdafbaa1359aa291038b785dd",
     "DiscardMergedTrain": "c240c8d7d373f45a74d1b8c1454e866458a8309640a2c81a14bc41f392fee8ba",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "fe967d0006b5bfbd54116f89896c3f287c7c99b14e619fbc33b699e1197f5ed5",
+    "DistributeEarnings": "fdfb41a987a6af95626f17d98719fdd4d2107e910d137c4e4612ff7d53e3eb51",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "a2f10d6984e1e0360b86f977ddc78c38e820d30cc75fdcaed5adeec196fd22ef",
     "FinishOperatingTurn": "5a35934087f165b9b2aff49a45a78fc5ce5f3c1b84ff5950cd154349e99ce749",
@@ -49,7 +49,7 @@
     "ReissueShares": "a5efd90874a8070a46a4afb88e70fbd288e8cb1e5341ec4a2dd00c85e553302a",
     "RequestTrackConsent": "0a9aaaa6b0083fd3a924bfc51cd85aeb68148877f936108132e35e2f21e34aee",
     "ReserveBid": "06260fa2484e9ffb2bb5880cb8d5dc8978ee8fc00cfa25aec4cf79fb84b63b57",
-    "ResolveAuction": "9c8f176314018029b7c625d56a546a68de6645aa264ff9a89e554ad3eb358b87",
+    "ResolveAuction": "2c4630c0ec9edb2e14a6c59a95b8d31a875b29cbd631b50c73310ef22eb068f8",
     "RespondToPurchaseOffer": "5f9d4ac8e5391f5a717975c58108b70d97d845db16185e8477e83fcf9a258060",
     "RespondToTrackConsent": "ec49608e7714bcf685930bc4e7d3785aff976bed12e92e1ccb3ec6d763f7f9b1",
     "RunTrains": "f77e13e519cdbe71c499b87416f7dd039f58690003a440888b48845bb0ec985a",
@@ -62,7 +62,7 @@
     "SetRunInstructionStops": "5b3208940e191c8df4445273e0026429e3d4a503cb7bb5d6734d3535f096d72d",
     "SetStockInstruction": "83b7cfb9ce2c22f836925a999f485aa2822b409854cc66ca1648bb25cb0c083e",
     "SetStockInstructionStops": "651b850b0d8e06bd7bc16b152c4889c9fddf724544844a9f55876f43aca7165f",
-    "StartCompany": "d1fa1890cd370cf85cd44f750767006da1abb3faa8e814a3d738b46c0c02d9a3",
+    "StartCompany": "ab68e3629864d25fd5571ba5f006acd1839f7a2c80f33d2e9c2dc6e026be5dfe",
     "StartMergerPhase": "2613ad99ae9dd71f73a3aed54a1bd6bad8807d02b659888a18c456ea5dbacabc",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
@@ -91,6 +91,10 @@
       "bank": {
         "additionalProperties": false,
         "properties": {
+          "breaksOnShortfall": {
+            "const": true,
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           }
@@ -744,6 +748,10 @@
           },
           "companyId": {
             "type": "string"
+          },
+          "deducted": {
+            "minimum": 1,
+            "type": "integer"
           },
           "dividendPerShare": {
             "minimum": 0,
@@ -1603,6 +1611,26 @@
       "miamiRun": {
         "const": true,
         "type": "boolean"
+      },
+      "neutralStations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "heldBy": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "stationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "stationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "openingAuction": {
         "additionalProperties": false,
@@ -4650,6 +4678,10 @@
             },
             "type": "array",
             "uniqueItems": true
+          },
+          "funded": {
+            "const": true,
+            "type": "boolean"
           },
           "purchasedTrainIds": {
             "items": {

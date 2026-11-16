@@ -22,9 +22,17 @@ export type PhaseChartData = {
         rustTrainIds: readonly string[]
         rustPhaseId?: string
         rustNote?: string
+        /** What the game ties to buying this train, beside its badge in the roster. */
+        marks?: readonly TrainMark[]
     }[]
     notes: readonly string[]
 }
+
+/**
+ * A mark on a train in the roster for something its purchase brings, such as 1882's rebellion,
+ * drawn as an icon with an optional short label and described in full on hover.
+ */
+export type TrainMark = { imageUrl: string; label?: string; description: string }
 
 export type DepotCertificate = {
     definitionIds: readonly string[]
