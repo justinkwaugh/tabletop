@@ -500,9 +500,13 @@
         width: 100%;
     }
 
-    /* The hand's 72 px faces, which give way on a narrow line; the picked one lifts. */
+    /*
+     * Contract, Desk layout: on a desk the hand's 48 px faces keep card play's row about 120 px tall,
+     * so the board has the height; a phone's are 72 px. They give way on a narrow line; the picked
+     * one lifts.
+     */
     .hand-card {
-        flex: 0 1 72px;
+        flex: 0 1 48px;
         min-width: 0;
         transition: transform 120ms ease-out;
     }
@@ -578,6 +582,10 @@
 
         .tray + .hand-card {
             margin-left: 0;
+        }
+
+        .hand-card {
+            flex-basis: 72px;
         }
 
         /*
