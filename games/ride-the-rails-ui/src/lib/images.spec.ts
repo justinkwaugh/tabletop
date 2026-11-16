@@ -66,21 +66,20 @@ describe('image coverage', () => {
         ])
     })
 
-    it('draws the cover as an opaque 544 × 680 lossy WebP of at most 120 KB', () => {
+    it('draws the cover as an opaque 482 × 680 lossy WebP of at most 120 KB, as Bohrer’s other titles', () => {
         const cover = readFileSync(join(packageRoot, 'src/lib/images/cover.webp'))
         expect(cover.byteLength).toBeLessThanOrEqual(120 * 1024)
-        expect(webpImage(cover)).toEqual({ width: 544, height: 680, lossy: true, alpha: false })
+        expect(webpImage(cover)).toEqual({ width: 482, height: 680, lossy: true, alpha: false })
     })
 
     it('states beside the cover how it was made', () => {
         expect(packageFile('src/lib/images/README.md')).toContain('scripts/render-cover.mjs')
     })
 
-    it('draws the cover’s passenger as the board’s meeple, read from the board’s source', () => {
+    it('photographs the cover’s board from the table itself, in the board’s serif', () => {
         const script = packageFile('scripts/render-cover.mjs')
-        expect(script).toContain("source('src/lib/utils/cityMarks.ts')")
-        expect(script).toMatch(/d="\$\{passenger\.path\}"/)
-        expect(script).not.toMatch(/pawn/i)
+        expect(script).toMatch(/photographMap\(/)
+        expect(script).toContain("tableFont('SerifFontFamily')")
     })
 
     it.each([
