@@ -94,6 +94,7 @@ export * from './site/authenticationChallenge.js'
 export * from './site/titleVisibility.js'
 export * from './site/tournament.js'
 export * from './site/tournamentSchedule.js'
+export * from './site/tournamentKnockout.js'
 export * from './site/notifications/tournamentNotification.js'
 export * from './site/notifications/leagueNotification.js'
 

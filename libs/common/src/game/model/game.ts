@@ -69,6 +69,8 @@ export const Game = Type.Object({
     deletedAt: Type.Optional(DateType()),
     ownerId: Type.String(),
     tournament: Type.Optional(TournamentGameReference),
+    // A Tournament Game whose players may Concede, as in a Knockout Match.
+    concedable: Type.Optional(Type.Literal(true)),
     name: Type.String(),
     players: Type.Array(Player),
     config: GameConfig,
