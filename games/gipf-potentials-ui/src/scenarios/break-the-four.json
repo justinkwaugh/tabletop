@@ -1,0 +1,235 @@
+{
+    "game": {
+        "id": "scenario-break-the-four",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "gipf-potentials",
+        "deleted": false,
+        "name": "Break the four",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "White",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Black",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "version": "Standard",
+            "tamsk": "0",
+            "zertz": "0",
+            "dvonn": "0",
+            "yinsh": "6",
+            "punct": "0",
+            "whitePlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3379517973,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-13T19:49:43.839Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-13T19:49:43.840Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "-FkKemyRmsBUXbeKoxod6",
+        "gameId": "scenario-break-the-four",
+        "seed": 3379517973,
+        "prng": {
+            "seed": 3379517973,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "6297017d506b86766f409eca2cdf652bc993f196cb9f06263b9de18d8fac91c5",
+            "invocations": 0
+        },
+        "masterSeed": "e58f5691bf432f77ab82bcdb7867b4b7",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white",
+                "reserve": 7,
+                "potentials": {
+                    "tamsk": 0,
+                    "zertz": 0,
+                    "dvonn": 0,
+                    "yinsh": 5,
+                    "punct": 0
+                },
+                "captured": 0,
+                "playedOther": true
+            },
+            {
+                "playerId": "player-2",
+                "color": "black",
+                "reserve": 12,
+                "potentials": {
+                    "tamsk": 0,
+                    "zertz": 0,
+                    "dvonn": 0,
+                    "yinsh": 6,
+                    "punct": 0
+                },
+                "captured": 0,
+                "playedOther": true
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "version": "Standard",
+        "board": {
+            "stacks": [
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [0, 1]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [2, 3]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [4, 5]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-2",
+                            "kind": "gipf",
+                            "discIds": [6, 7]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-2",
+                            "kind": "gipf",
+                            "discIds": [8, 9]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 0
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-2",
+                            "kind": "gipf",
+                            "discIds": [10, 11]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [12, 13]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "basic",
+                            "load": "yinsh",
+                            "discIds": [14, 15]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "units": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [16, 17]
+                        }
+                    ]
+                }
+            ]
+        },
+        "movedThisTurn": false,
+        "resolvingPlayerIds": [],
+        "extraMoveOwedIds": [],
+        "nextDiscId": 18
+    },
+    "actions": []
+}

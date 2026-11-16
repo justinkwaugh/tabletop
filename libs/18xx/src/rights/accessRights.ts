@@ -1,5 +1,5 @@
 import * as Type from 'typebox'
-import { cashOwnedBy, type FinancialState } from '../finance/finance.js'
+import { cashOwnedBy, type FinancialState, type Owner } from '../finance/finance.js'
 import { actsFor } from '../finance/receivership.js'
 import type { MapStateData } from '../map/mapState.js'
 import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
@@ -22,6 +22,12 @@ export type AccessRightPurchaseState = OperatingState &
 /** A kind of right, with how many the supply holds. Each company holds at most one of a kind. */
 export type AccessRightDefinition = { id: string; name: string; supply: number }
 
+/**
+ * What a right costs now and who is paid for it: the bank unless given, or the company whose
+ * private grants it, as 1856's bridge and tunnel rights pay their private's owner.
+ */
+export type AccessRightTerms = { price: number; recipient?: Owner }
+
 export interface AccessRightRules {
     rights: readonly AccessRightDefinition[]
     /**
@@ -32,7 +38,7 @@ export interface AccessRightRules {
         state: AccessRightPurchaseState,
         companyId: string,
         rightId: string
-    ): { price: number } | { reason: string }
+    ): AccessRightTerms | { reason: string }
 }
 
 export function holdsAccessRight(
@@ -65,7 +71,7 @@ export function accessRightPurchase(
     playerId: string,
     companyId: string,
     rightId: string
-): { price: number } | { reason: string } {
+): AccessRightTerms | { reason: string } {
     if (
         !isOperatingStep(state.machineState) ||
         nextOperatingCompany(state) !== companyId ||

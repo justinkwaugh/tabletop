@@ -19,12 +19,24 @@ export const TurnLoans = Type.Object(
     { additionalProperties: false }
 )
 export type TurnLoans = Type.Static<typeof TurnLoans>
+/**
+ * The interest the operating company settled after its run, where the title charges it before
+ * earnings, and the part of the run's revenue it took (1856).
+ */
+export const TurnInterest = Type.Object(
+    { companyId: Type.String(), fromRevenue: Type.Integer({ minimum: 0 }) },
+    { additionalProperties: false }
+)
+export type TurnInterest = Type.Static<typeof TurnInterest>
 export const LoanFields = {
     interestRate: Type.Optional(Type.Integer({ minimum: 0 })),
     loanStep: Type.Optional(LoanStep),
-    turnLoans: Type.Optional(TurnLoans)
+    turnLoans: Type.Optional(TurnLoans),
+    turnInterest: Type.Optional(TurnInterest)
 }
-export type LoanState = StockState & Type.Static<Type.TObject<typeof LoanFields>>
+/** The company's run, where a title's interest falls due after it. */
+type RunState = { routeStep?: { result?: { companyId: string } } }
+export type LoanState = StockState & RunState & Type.Static<Type.TObject<typeof LoanFields>>
 
 export type LoanMarketMove = { direction: string; steps: number }
 export const LoanRecord = Type.Object(
@@ -42,6 +54,8 @@ export const InterestDefault = Type.Object(
         payments: Type.Array(CashPayment),
         marketMoves: Type.Array(StockMarketMove),
         unpaid: Type.Integer({ minimum: 0 }),
+        /** What the run's revenue gives up for the interest, before earnings are distributed (1856). */
+        fromRevenue: Type.Optional(Type.Integer({ minimum: 1 })),
         /**
          * The interest stays the company's debt, paid in full: what is unpaid its president
          * raises for it, as 1849's emergency money raising does (§14.2), rather than owing it as
@@ -88,6 +102,16 @@ export interface LoanRules {
      * turn only on the loans it began the turn with (1861 §10.2).
      */
     interestWhenTaken?: true
+    /**
+     * Interest falls due after the company's run, before its earnings are distributed, rather
+     * than as the loan step begins. Nothing is borrowed for it: the treasury pays what it can and
+     * ``interestDefault`` settles the rest, which may take part of the run's revenue. A loan
+     * taken after the run pays its interest at once, and the loan step lends nothing, loans
+     * being taken before any are redeemed (1856, Pay Interest, Receiving a Government Loan).
+     */
+    interestBeforeEarnings?: true
+    /** The most loans a company takes in one operating turn, as 1856's one. */
+    loansPerTurn?: number
 }
 
 export function companyLoans(state: LoanState, companyId: string): number {
@@ -122,7 +146,21 @@ export function takeLoanReason(
     if (companyLoans(state, companyId) >= rules.capacity(state, companyId))
         return 'The company holds as many loans as it may.'
     if (loansRemaining(state, rules) <= 0) return 'The bank has no loans left.'
+    if (
+        rules.loansPerTurn !== undefined &&
+        state.turnLoans?.companyId === companyId &&
+        state.turnLoans.loans >= rules.loansPerTurn
+    )
+        return 'The company has taken as many loans as it may this turn.'
     return undefined
+}
+
+/** Whether a loan taken now pays its round's interest as it is taken. */
+function interestOnTaking(state: LoanState, rules: LoanRules, companyId: string): boolean {
+    return (
+        !!rules.interestWhenTaken ||
+        (!!rules.interestBeforeEarnings && state.routeStep?.result?.companyId === companyId)
+    )
 }
 
 export function repayLoanReason(
@@ -154,17 +192,19 @@ export function takeLoan(state: LoanState, rules: LoanRules, companyId: string):
         payment,
         rules.takeMove
     )
-    if (!rules.interestWhenTaken) return record
+    const charged = interestOnTaking(state, rules, companyId)
+    if (charged || rules.loansPerTurn !== undefined)
+        state.turnLoans =
+            state.turnLoans?.companyId === companyId
+                ? { companyId, loans: state.turnLoans.loans + 1 }
+                : { companyId, loans: 1 }
+    if (!charged) return record
     const interest: CashPayment = {
         from: { kind: 'company', companyId },
         to: { kind: 'bank' },
         amount: loanInterest(state, rules)
     }
     if (interest.amount) settleCashPayments(state, [interest])
-    state.turnLoans =
-        state.turnLoans?.companyId === companyId
-            ? { companyId, loans: state.turnLoans.loans + 1 }
-            : { companyId, loans: 1 }
     return interest.amount ? { ...record, interest } : record
 }
 

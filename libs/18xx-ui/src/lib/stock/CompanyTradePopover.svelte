@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { sameOwner, type Owner } from '@tabletop/18xx'
+    import {
+        purchaseForfeited,
+        sameOwner,
+        type Owner,
+        type SharePurchaseDetails
+    } from '@tabletop/18xx'
     import type { BoundingBox } from '@tabletop/common'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import { popoverBeside } from '../presentation/popoverPlacement.js'
@@ -26,6 +31,11 @@
     } = $props()
 
     const money = $derived(session.presentation.money)
+    /** A two-player purchase that first takes a pool share out of the game (18Chesapeake §14.3). */
+    function removalNote(details: SharePurchaseDetails): string | undefined {
+        if (!details.removedCertificateIds?.length) return undefined
+        return purchaseForfeited(details) ? 'removed, nothing bought' : 'another removed'
+    }
     let chosenBuyer = $state<Owner>()
     const buyer = $derived(
         trades.buyers.find((candidate) => chosenBuyer && sameOwner(candidate, chosenBuyer)) ??
@@ -114,6 +124,7 @@
                     {#each offers as offer (offer.certificate.id)}
                         {@const purchase = purchaseFor(offer)}
                         {@const note = certificateNote(offer)}
+                        {@const removal = purchase && removalNote(purchase.details)}
                         {@const contribution =
                             purchase && purchase.request.buyer.kind === 'company'
                                 ? playerPurchaseContribution(purchase.details, session.myPlayer?.id)
@@ -129,6 +140,7 @@
                         >
                             <span>{sourceName(offer)}</span>
                             {#if note}<small>{note}</small>{/if}
+                            {#if removal}<small>{removal}</small>{/if}
                             {#if purchase}<strong>{money(purchase.details.price)}</strong>{/if}
                             {#if contribution > 0}<small>you + {money(contribution)}</small>{/if}
                         </button>
@@ -215,8 +227,8 @@
         background: var(--trade-buy);
     }
     .chip.sell {
-        border-color: #7c3a2a;
-        background: #8e4431;
+        border-color: var(--trade-sell-border);
+        background: var(--trade-sell);
     }
     .chip:disabled {
         opacity: 0.4;

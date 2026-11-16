@@ -11,7 +11,12 @@ import {
 } from '@tabletop/common'
 import type { TrainState } from '../trains/train.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
-import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
+import {
+    preparePhaseChange,
+    type OperatingContinuation,
+    type PhaseState
+} from '../phases/phaseChange.js'
+import type { FinancialState } from '../finance/finance.js'
 import { nextOperatingCompany, type OperatingRules, type OperatingState } from './operatingSet.js'
 import { BetweenCompaniesState } from './operatingSteps.js'
 import {
@@ -36,23 +41,26 @@ export function trainsAwaitingExport(state: State, rules: OperatingRules): strin
     return rules.trainsToExport(state)
 }
 
+/** A train taken out of the depot by an export. */
+export const ExportedTrain = Type.Object(
+    { trainId: Type.String(), definitionId: Type.String() },
+    { additionalProperties: false }
+)
+export type ExportedTrain = Type.Static<typeof ExportedTrain>
+/** What an export did: its trains, the phase the first of a kind started, and their payments. */
+export const TrainExport = Type.Object(
+    {
+        trains: Type.Array(ExportedTrain),
+        toPhaseId: Type.Optional(Type.String()),
+        departurePayments: DeparturePayments
+    },
+    { additionalProperties: false }
+)
+export type TrainExport = Type.Static<typeof TrainExport>
+
 const ExportFields = Type.Object({
     type: Type.Literal('ExportTrains'),
-    metadata: Type.Optional(
-        Type.Object(
-            {
-                trains: Type.Array(
-                    Type.Object(
-                        { trainId: Type.String(), definitionId: Type.String() },
-                        { additionalProperties: false }
-                    )
-                ),
-                toPhaseId: Type.Optional(Type.String()),
-                departurePayments: DeparturePayments
-            },
-            { additionalProperties: false }
-        )
-    )
+    metadata: Type.Optional(TrainExport)
 })
 export const ExportTrains: Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & typeof ExportFields.properties
@@ -88,34 +96,50 @@ export class HydratedExportTrains
         assert(definitionIds.length > 0, 'No trains are awaiting export')
         const set = state.operatingSet
         assertExists(set, 'Exports follow an operating round')
-        let phaseId = state.phaseId
-        let phaseStarter: { trainId: string; definitionId: string } | undefined
-        const trains = definitionIds.map((definitionId) => {
-            const next = this.#trainRules.phaseAfterPurchase(
-                stateWith(state, { phaseId }),
-                definitionId
-            )
-            const train = this.#trainRules.depot.export(state.trainInventory, definitionId)
-            if (next !== phaseId) {
-                phaseId = next
-                phaseStarter = { trainId: train.id, definitionId }
-            }
-            return { trainId: train.id, definitionId }
-        })
-        const payments = settleTrainDepartures(
-            state,
-            this.#trainRules,
-            trains.map((train) => ({ ...train, cause: 'export' }))
-        )
         set.exportedRound = set.roundNumber
-        if (phaseStarter)
-            preparePhaseChange(state, phaseStarter.trainId, phaseStarter.definitionId, phaseId, {
-                machineState: BetweenCompaniesState
-            })
-        this.metadata = {
-            trains,
-            ...(phaseStarter ? { toPhaseId: phaseId } : {}),
-            ...departurePaymentsField(payments)
+        this.metadata = exportDepotTrains(state, this.#trainRules, definitionIds, {
+            machineState: BetweenCompaniesState
+        })
+    }
+}
+
+/**
+ * Takes the trains out of the depot in order, each as a purchase would for the phase: the first
+ * of a kind starts its phase, which resumes play in the given state once it has begun.
+ */
+export function exportDepotTrains(
+    state: TrainState & PhaseState & FinancialState,
+    trainRules: TrainRules,
+    definitionIds: readonly string[],
+    continuation: OperatingContinuation
+): TrainExport {
+    let phaseId = state.phaseId
+    let phaseStarter: { trainId: string; definitionId: string } | undefined
+    const trains = definitionIds.map((definitionId) => {
+        const next = trainRules.phaseAfterPurchase(stateWith(state, { phaseId }), definitionId)
+        const train = trainRules.depot.export(state.trainInventory, definitionId)
+        if (next !== phaseId) {
+            phaseId = next
+            phaseStarter = { trainId: train.id, definitionId }
         }
+        return { trainId: train.id, definitionId }
+    })
+    const payments = settleTrainDepartures(
+        state,
+        trainRules,
+        trains.map((train) => ({ ...train, cause: 'export' }))
+    )
+    if (phaseStarter)
+        preparePhaseChange(
+            state,
+            phaseStarter.trainId,
+            phaseStarter.definitionId,
+            phaseId,
+            continuation
+        )
+    return {
+        trains,
+        ...(phaseStarter ? { toPhaseId: phaseId } : {}),
+        ...departurePaymentsField(payments)
     }
 }

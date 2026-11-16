@@ -15,6 +15,7 @@ import { StockMarketMove } from '../stock/stockMarket.js'
 import {
     InterestDefault,
     interestOwed,
+    type TurnInterest,
     takeLoan,
     takeLoanReason,
     type LoanRules,
@@ -62,8 +63,11 @@ export class HydratedPayInterest
         this.#rules = rules
     }
     apply(state: HydratedGameState & LoanState & CashCrisisState): void {
+        const beforeEarnings = !!this.#rules.interestBeforeEarnings
         assert(
-            this.source === ActionSource.System && !state.loanStep,
+            this.source === ActionSource.System &&
+                !state.loanStep &&
+                (!beforeEarnings || !state.turnInterest),
             'Interest is paid once, by the system'
         )
         const company = { kind: 'company' as const, companyId: this.companyId }
@@ -72,6 +76,7 @@ export class HydratedPayInterest
         let loansTaken = 0
         let interest = interestOwed(state, this.#rules, this.companyId)
         while (
+            !beforeEarnings &&
             interest > finiteCashOwnedBy(state, company) &&
             !takeLoanReason(state, this.#rules, this.companyId)
         ) {
@@ -101,10 +106,15 @@ export class HydratedPayInterest
                             ...(interestDefault.companyDebt ? { companyId: this.companyId } : {})
                         }
                     ],
-                    continuation: 'RepayingLoans'
+                    continuation: beforeEarnings ? 'DistributingEarnings' : 'RepayingLoans'
                 }
         }
-        state.loanStep = { companyId: this.companyId }
+        if (beforeEarnings)
+            state.turnInterest = {
+                companyId: this.companyId,
+                fromRevenue: interestDefault?.fromRevenue ?? 0
+            }
+        else state.loanStep = { companyId: this.companyId }
         this.metadata = {
             interest,
             loansTaken,
@@ -113,4 +123,31 @@ export class HydratedPayInterest
             ...(interestDefault ? { default: interestDefault } : {})
         }
     }
+}
+
+/**
+ * Whether the operating company's interest falls due now, its run made and its earnings not yet
+ * distributed, where the title charges interest before earnings.
+ */
+export function interestDueBeforeEarnings(
+    state: LoanState & { earningsDistribution?: unknown },
+    rules: LoanRules,
+    companyId: string | undefined
+): companyId is string {
+    return (
+        !!rules.interestBeforeEarnings &&
+        !!companyId &&
+        state.routeStep?.result?.companyId === companyId &&
+        !state.earningsDistribution &&
+        !state.turnInterest &&
+        interestOwed(state, rules, companyId) > 0
+    )
+}
+
+/** What the company's run gives up for its interest this turn, where the title takes it there. */
+export function interestFromRevenue(
+    state: { turnInterest?: TurnInterest },
+    companyId: string
+): number {
+    return state.turnInterest?.companyId === companyId ? state.turnInterest.fromRevenue : 0
 }

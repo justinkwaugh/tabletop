@@ -26,6 +26,15 @@ export interface TrainRules {
         state: TrainPurchaseState & MapStateData & AccessRightState,
         companyId: string
     ): boolean
+    /**
+     * Whether a trainless company that need not own a train may still count as obliged to, its
+     * president then raising money for one as for a company that must, though it may also end
+     * its turn without one: 1882's fishing exit, which the president may count or not (§11.5).
+     */
+    mayRequireTrain?(
+        state: TrainPurchaseState & MapStateData & AccessRightState,
+        companyId: string
+    ): boolean
     availableDefinitions(state: TrainPurchaseState): string[]
     phaseAfterPurchase(state: TrainPurchaseState, definitionId: string): string
     trainLimit(state: TrainPurchaseState, companyId: string): number

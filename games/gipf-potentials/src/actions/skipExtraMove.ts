@@ -1,0 +1,45 @@
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
+import { ActionType } from '../definition/actions.js'
+
+export type SkipExtraMove = Type.Static<typeof SkipExtraMove>
+export const SkipExtraMove = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(GameAction, ['playerId']),
+        Type.Object({
+            type: Type.Literal(ActionType.SkipExtraMove),
+            playerId: Type.String()
+        })
+    ])
+)
+
+export const SkipExtraMoveValidator = Compile(SkipExtraMove)
+
+export function isSkipExtraMove(action?: GameAction): action is SkipExtraMove {
+    return action?.type === ActionType.SkipExtraMove
+}
+
+export class HydratedSkipExtraMove
+    extends HydratableAction<typeof SkipExtraMove>
+    implements SkipExtraMove
+{
+    declare type: ActionType.SkipExtraMove
+    declare playerId: string
+
+    constructor(data: SkipExtraMove) {
+        super(data, SkipExtraMoveValidator)
+    }
+
+    apply(state: HydratedGipfPotentialsGameState, _context?: MachineContext) {
+        if (!this.isValid(state)) {
+            throw Error('Invalid SkipExtraMove action')
+        }
+        state.forfeitTamsk()
+    }
+
+    isValid(state: HydratedGipfPotentialsGameState): boolean {
+        return state.ownTamskOnCentre(this.playerId)
+    }
+}

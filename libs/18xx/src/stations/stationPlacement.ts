@@ -9,6 +9,7 @@ import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import {
     StationPosition,
     filledStationSpaces,
+    stationPlacer,
     type StationReservation,
     type StationState
 } from '../map/station.js'
@@ -115,11 +116,13 @@ export class StationPlacement {
     choices(stationId: string): StationPlacementDetails[] {
         const station = this.state.stations.find((station) => station.id === stationId)
         if (!station || station.status !== 'available') return []
+        const placer = stationPlacer(this.state, station)
+        if (!placer) return []
         return this.rules.map.definition.locations.flatMap((location) =>
             this.mapState.tile(location.id).face.nodes.flatMap((node) =>
                 this.openSlots(station.companyId, location.id, node.id).flatMap((slot) => {
                     const result = this.evaluate({
-                        companyId: station.companyId,
+                        companyId: placer,
                         stationId,
                         position: { locationId: location.id, nodeId: node.id, slot }
                     })
@@ -138,10 +141,12 @@ export class StationPlacement {
         if (step.placedStationIds.length >= this.rules.placementLimit(this.state, companyId))
             return { reason: 'No station placement remains this turn.' }
         const station = this.state.stations.find((entry) => entry.id === stationId)
-        if (station?.status !== 'available' || station.companyId !== companyId)
+        if (station?.status !== 'available' || stationPlacer(this.state, station) !== companyId)
             return { reason: 'Choose an available station belonging to this company.' }
         if (
-            !this.openSlots(companyId, position.locationId, position.nodeId).includes(position.slot)
+            !this.openSlots(station.companyId, position.locationId, position.nodeId).includes(
+                position.slot
+            )
         )
             return { reason: 'This city slot is occupied, reserved, or unavailable.' }
         const network = new TrackNetwork(
@@ -354,9 +359,10 @@ export function releaseHomeReservations(
 export function applyStationPlacement(state: StationState, details: StationPlacementDetails): void {
     const station = state.stations.find((station) => station.id === details.stationId)
     assert(
-        station?.status === 'available' && station.companyId === details.companyId,
+        station?.status === 'available' && stationPlacer(state, station) === details.companyId,
         'Station placement requires an available company station'
     )
+    const ownerId = station.companyId
     state.stations = state.stations.map((station) =>
         station.id === details.stationId
             ? {
@@ -370,7 +376,7 @@ export function applyStationPlacement(state: StationState, details: StationPlace
     state.stationReservations = state.stationReservations.filter(
         (reservation) =>
             !(
-                reservation.companyId === details.companyId &&
+                reservation.companyId === ownerId &&
                 reservation.locationId === details.position.locationId &&
                 reservation.nodeId === details.position.nodeId
             )
@@ -379,7 +385,7 @@ export function applyStationPlacement(state: StationState, details: StationPlace
         state.hexReservations = state.hexReservations.filter(
             (reservation) =>
                 !(
-                    reservation.companyId === details.companyId &&
+                    reservation.companyId === ownerId &&
                     reservation.locationId === details.position.locationId
                 )
         )

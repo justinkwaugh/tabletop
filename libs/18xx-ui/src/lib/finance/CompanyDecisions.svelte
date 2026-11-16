@@ -197,7 +197,7 @@
                 {/if}
                 {#if session.privateActions.selection === 'powers' && session.decisions.privateMarkerOptions.length}
                     <div class="private-track" aria-label="Private markers">
-                        {#each session.decisions.privateMarkerOptions as option (`${option.privateCompanyId}:${option.locationId}`)}
+                        {#each session.decisions.privateMarkerOptions as option (`${option.privateCompanyId}:${option.locationId}:${option.nodeId ?? ''}`)}
                             <button
                                 disabled={!session.decisions.canResolve}
                                 onclick={() => session.decisions.placePrivateMarker(option)}
@@ -205,7 +205,9 @@
                                     session.mapView,
                                     option.kind,
                                     option.locationId
-                                )} ({session.companyName(option.privateCompanyId)})</button
+                                )}{option.stopOrdinal
+                                    ? `, stop ${option.stopOrdinal.index} of ${option.stopOrdinal.count}`
+                                    : ''} ({session.companyName(option.privateCompanyId)})</button
                             >
                         {/each}
                     </div>

@@ -1,0 +1,39 @@
+import { Color, Hydratable, PlayerState } from '@tabletop/common'
+import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
+import { PotentialCounts } from './pieces.js'
+
+export type GipfPotentialsPlayerState = Type.Static<typeof GipfPotentialsPlayerState>
+export const GipfPotentialsPlayerState = Type.Evaluate(
+    Type.Intersect([
+        PlayerState,
+        Type.Object({
+            reserve: Type.Integer({ minimum: 0 }),
+            potentials: PotentialCounts,
+            captured: Type.Integer({ minimum: 0 }),
+            playedOther: Type.Boolean()
+        })
+    ])
+)
+
+export const GipfPotentialsPlayerStateValidator = Compile(GipfPotentialsPlayerState)
+
+export class HydratedGipfPotentialsPlayerState
+    extends Hydratable<typeof GipfPotentialsPlayerState>
+    implements GipfPotentialsPlayerState
+{
+    declare playerId: string
+    declare color: Color
+    declare reserve: number
+    declare potentials: PotentialCounts
+    declare captured: number
+    declare playedOther: boolean
+
+    constructor(data: GipfPotentialsPlayerState) {
+        super(data, GipfPotentialsPlayerStateValidator)
+    }
+
+    potentialsInHand(): number {
+        return Object.values(this.potentials).reduce((sum, count) => sum + count, 0)
+    }
+}

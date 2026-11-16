@@ -7,7 +7,7 @@
     "AnswerPrivateOffer": "66b2171f8dda3187f3473a6b6671fc189f8338af5ef069f67c7a76345ec8b88d",
     "BuyLocalTrain": "8578526715c862d9c6e7aa6b2f04cdb16048d085a8242860654924880f39b2b3",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
-    "BuyShares": "8f60485b6529935b55415672fd55755010a62988b882f0f1e6a637772a2a6a25",
+    "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
     "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
     "CompleteStockRound": "612936ae4c03965571f07d451d3d418d0b6bae3ddd2e0ea2ae898239e3245712",
     "ContinueOperatingRound": "d78dd0a2fd39c56435caeace07fa60d5aca2a6ee1ec0f757c5cfb15d65661387",
@@ -17,7 +17,7 @@
     "DeclareCash": "487406dda97a4ab8ee1771e57312cfd3ae920e7739f1296fc648abb6509c621e",
     "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "fe967d0006b5bfbd54116f89896c3f287c7c99b14e619fbc33b699e1197f5ed5",
+    "DistributeEarnings": "fdfb41a987a6af95626f17d98719fdd4d2107e910d137c4e4612ff7d53e3eb51",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "a2f10d6984e1e0360b86f977ddc78c38e820d30cc75fdcaed5adeec196fd22ef",
     "FinishOperatingTurn": "5a35934087f165b9b2aff49a45a78fc5ce5f3c1b84ff5950cd154349e99ce749",
@@ -48,7 +48,7 @@
     "SetStockInstruction": "83b7cfb9ce2c22f836925a999f485aa2822b409854cc66ca1648bb25cb0c083e",
     "SetStockInstructionStops": "651b850b0d8e06bd7bc16b152c4889c9fddf724544844a9f55876f43aca7165f",
     "SettleBidBoxes": "0462bcce48e56b1128bc9a1cb5a5bdee7957792966c34464e06b3f7eb166828a",
-    "StartCompany": "d1fa1890cd370cf85cd44f750767006da1abb3faa8e814a3d738b46c0c02d9a3",
+    "StartCompany": "ab68e3629864d25fd5571ba5f006acd1839f7a2c80f33d2e9c2dc6e026be5dfe",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
@@ -128,6 +128,10 @@
       "bank": {
         "additionalProperties": false,
         "properties": {
+          "breaksOnShortfall": {
+            "const": true,
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           }
@@ -910,6 +914,10 @@
           "companyId": {
             "type": "string"
           },
+          "deducted": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "dividendPerShare": {
             "minimum": 0,
             "type": "integer"
@@ -1647,6 +1655,26 @@
             "kind": "omit"
           }
         }
+      },
+      "neutralStations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "heldBy": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "stationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "stationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "nothingSold": {
         "const": true,
@@ -5264,6 +5292,10 @@
             },
             "type": "array",
             "uniqueItems": true
+          },
+          "funded": {
+            "const": true,
+            "type": "boolean"
           },
           "purchasedTrainIds": {
             "items": {

@@ -12,10 +12,14 @@ export default async function (fastify: FastifyInstance) {
             })
         },
         async function (request, reply) {
+            const ablyService = fastify.ablyService
+            if (!ablyService) {
+                return reply.code(404).send()
+            }
             if (!request.user) {
                 throw Error('No user found for token request')
             }
-            const token = await fastify.ablyService.createTokenRequest({
+            const token = await ablyService.createTokenRequest({
                 userId: request.user.id,
                 topics: realtimeTopicsFor({ user: request.user, gameIds: request.query.game })
             })

@@ -7,10 +7,10 @@
     "BidForLot": "bb638dfd9f36f481fb409bb6a0cee49cb99859ebd982cb767f69ffdc00a961df",
     "BidToAcquire": "1dbc05824d6842311c62d58e1812676f94118513a55c6cbdcdcb666397128e6a",
     "BuyBackShares": "61364b2a97c5121345d26d994c1b6cac99771ada4c747b73f85b65adab54cfa9",
-    "BuyConvertedShare": "241ee06af24005f3ea0387c112d896c7a88711f9dfdecb689671808708bc3167",
+    "BuyConvertedShare": "58481fa9c20d61701fc6144b4f2eb58cf7c956f6aaeb54672bdac0fdb444f87a",
     "BuyOwedStations": "c873d00fd4b8c831d5f51106b095a76a7094f6d376d511c90c57f5718fac085b",
     "BuyPrivateTrain": "5503f5798779014361787ca5030024baba656e809ac733b7a8e60e4fb6b13784",
-    "BuyShares": "8f60485b6529935b55415672fd55755010a62988b882f0f1e6a637772a2a6a25",
+    "BuyShares": "63e04d2a9881660b40a328e8fc8754e2345a811ec3573bdfe0d0aaf3f8fb30fb",
     "BuyTrain": "f807dc352dd8f2fb8d0b9f26822ef60cbc0f0cadddad2c6788e8216ed853b256",
     "CloseCompanySale": "04f6e40525bfcf6defcfe0e873a9c4465bb29d56953f80b469a1948c74bf5a82",
     "CloseMarketShorts": "e7a95564c786becb6cf7a14c147bf205070c60de16fa335c2234273049db60c3",
@@ -24,7 +24,7 @@
     "DeclinePrivateTile": "2cef2760461c0464e3a0f2444ff442679ac4d31e7393f1ce945e8ad930610bfc",
     "DiscardMergedTrain": "c240c8d7d373f45a74d1b8c1454e866458a8309640a2c81a14bc41f392fee8ba",
     "DiscardTrain": "1688951d57f56a1aa6d073d8f7ba9cfb83bdcc0051164603485ae7924c042daf",
-    "DistributeEarnings": "fe967d0006b5bfbd54116f89896c3f287c7c99b14e619fbc33b699e1197f5ed5",
+    "DistributeEarnings": "fdfb41a987a6af95626f17d98719fdd4d2107e910d137c4e4612ff7d53e3eb51",
     "EndAcquisitionRound": "594322eaa667c0c9c5b787dcdfe025833049602bbd4d237db05c945aafde6c06",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndMergerRound": "c116703d63fee9c3ea0a584f38e2c0dcdc72dba103b869b2b3e59d68b80c7752",
@@ -55,9 +55,9 @@
     "PassMerger": "e3bf43f0e3b1411739cd3c42f3b83d9f01bc1ef8c7520fac7fdc150e07d79dcc",
     "PassOnCompany": "e9741a99ab614d1a5f6c4b04f7539f65f0278a90ae6c3623e24dce2db6ba7281",
     "PassSelectionAuction": "024303daa058905ff699eff3d3e3d64f2495e2e2f3b2be146b6c010fda8a2211",
-    "PayInterest": "7f5c1012a733ffc48259ece437ecbda56f228eebb2646a8293c19a7cac73b98c",
+    "PayInterest": "493372ba38d1b2c10de8101921afb85273188cd25e2c5d9e2063bd77f095e345",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
-    "PlacePrivateMarker": "663e52b77d7d64d712b88353f4f32cb1b75bec37168cc519d753dc7d7005af0b",
+    "PlacePrivateMarker": "8b9d6d1a2867550d4650d06cfa11cae52946de1859e5393a078c073088425547",
     "PlaceStation": "f38560fc6ce5509a3b5541bd3557eae71649d015b5bda4329d6ff719afaf1523",
     "RemoveStation": "f4dd44012a0968c9b51e23f12a65bb25362b206c1a0dbdebf86526248011bd91",
     "RepayAcquiredLoan": "c57e04bb862b57afa33f62f87b422f6faaccc71ef74d5b57613a45348983f455",
@@ -80,7 +80,7 @@
     "ShortShare": "78a7d0fdf33f01bb8235770e8a601b88620e8afb725ad0bd2bb923f02b0b66ea",
     "SkipCompanySale": "c477b0804b42f31b194672a2a080683065938d4bd037adfbec47a6bba6f81a07",
     "StartAcquisitionRound": "65ae9860c83b368e1609b9f2ae1ef1101f9e15536b87e201918d2534250e8f33",
-    "StartCompany": "d1fa1890cd370cf85cd44f750767006da1abb3faa8e814a3d738b46c0c02d9a3",
+    "StartCompany": "ab68e3629864d25fd5571ba5f006acd1839f7a2c80f33d2e9c2dc6e026be5dfe",
     "StartMergerRound": "6ac2ea9acde1449a22f4add9d41b850ab2baac0af212bd6d3a275b1ef6e629be",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
@@ -320,6 +320,10 @@
       "bank": {
         "additionalProperties": false,
         "properties": {
+          "breaksOnShortfall": {
+            "const": true,
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           }
@@ -1186,6 +1190,10 @@
           "companyId": {
             "type": "string"
           },
+          "deducted": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "dividendPerShare": {
             "minimum": 0,
             "type": "integer"
@@ -1847,6 +1855,10 @@
               "minLength": 1,
               "type": "string"
             },
+            "nodeId": {
+              "minLength": 1,
+              "type": "string"
+            },
             "privateCompanyId": {
               "minLength": 1,
               "type": "string"
@@ -2085,6 +2097,26 @@
       "modernTrains": {
         "const": true,
         "type": "boolean"
+      },
+      "neutralStations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "heldBy": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "stationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "stationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "operatingSet": {
         "additionalProperties": false,
@@ -4841,6 +4873,10 @@
             "type": "array",
             "uniqueItems": true
           },
+          "funded": {
+            "const": true,
+            "type": "boolean"
+          },
           "purchasedTrainIds": {
             "items": {
               "minLength": 1,
@@ -4853,6 +4889,23 @@
         "required": [
           "companyId",
           "purchasedTrainIds"
+        ],
+        "type": "object"
+      },
+      "turnInterest": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "fromRevenue": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyId",
+          "fromRevenue"
         ],
         "type": "object"
       },

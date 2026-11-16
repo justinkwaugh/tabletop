@@ -112,6 +112,7 @@ export class FundingTrainHandler<
             return action.metadata?.continuation ?? 'Bankrupt'
         if (action instanceof HydratedBuyTrain) {
             delete state.trainFunding
+            if (state.trainPurchaseStep) state.trainPurchaseStep.funded = true
             if (state.phaseChange) state.phaseChange.continuation.machineState = 'BuyingTrains'
             return state.phaseChange ? 'AdvancingPhase' : 'BuyingTrains'
         }
