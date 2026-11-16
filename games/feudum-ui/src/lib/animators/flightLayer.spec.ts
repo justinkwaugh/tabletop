@@ -684,6 +684,47 @@ describe('each row of the animation plan that crosses the wrapper', () => {
         expect(scoreAt(roomed) - scoreAt(alone)).toBeCloseTo(1.5)
         expect(roomed.flightsAt).toBe(alone.flightsAt)
     })
+
+    it('R-6 a desk draws no score ring: each score change flies to its seat panel’s score, the board slides no disc', async () => {
+        const table = await emptyTable()
+        const { seat, other } = table
+        const change = changeFrom(
+            table,
+            (to) => {
+                to.getPlayerState(seat).score += 3
+                to.getPlayerState(other).score -= 2
+            },
+            anAction(seat)
+        )
+        const desk = planFlights({ ...change, scoreFlights: true })
+        const scores = rowOf(desk, 'score')
+        expect(scores.map(({ face }) => face)).toEqual([
+            { kind: 'score', playerId: seat, change: 3 },
+            { kind: 'score', playerId: other, change: -2 }
+        ])
+        for (const flight of scores) {
+            expect(flight.from).toMatchObject({ kind: 'table' })
+            expect(endAt(flight)).toEqual({
+                kind: 'seat',
+                playerId: flight.face.kind === 'score' ? flight.face.playerId : '',
+                part: { part: 'score' }
+            })
+        }
+        // A phone keeps its ring: no copy flies for a score there.
+        expect(rowOf(planFlights(change), 'score')).toEqual([])
+        expect(rowOf(planDirectFlights({ ...change, scoreFlights: true }), 'score')).toHaveLength(2)
+
+        const action = anAction(seat)
+        const ringless = planBoardMotion({
+            from: change.from,
+            to: change.to,
+            action,
+            scoreRing: false
+        })
+        expect(ringless.motions.filter(({ row }) => row === 'score')).toEqual([])
+        const ringed = planBoardMotion({ from: change.from, to: change.to, action })
+        expect(ringed.motions.filter(({ row }) => row === 'score')).toHaveLength(2)
+    })
 })
 
 /** R-3.10.1 A real Explore, as each seat's client hears it: state and Action projected for that seat. */

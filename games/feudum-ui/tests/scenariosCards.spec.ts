@@ -105,13 +105,14 @@ scenario('S15 R-3.9 Improve to a feudum', 'cards-improve-town', async (table) =>
     await expect(table.popup().locator('[data-row]')).toHaveCount(6)
     await table.press(table.popupRow('Noble'))
     await expect(table.primary()).toHaveText("Improve Forest 3 to a feudum · can't be undone")
-    const disc = await table.placeOf('score:p1')
+    const disc = await table.scoreShown('p1')
+    const scoreMotion = await table.scoreMotion('p1')
     const before = await table.page.locator(`[data-world="disc:space.forest.3"]`).innerHTML()
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights).toEqual(
         expect.arrayContaining([
             'board: disc:space.forest.3',
-            'board: score:p1',
+            scoreMotion,
             'tiles: forest tile, epoch I'
         ])
     )
@@ -121,7 +122,7 @@ scenario('S15 R-3.9 Improve to a feudum', 'cards-improve-town', async (table) =>
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-supply-tile]')).toHaveCount(1)
     await table.closeSeatPanel()
-    expect(await table.placeOf('score:p1')).not.toBe(disc)
+    expect(await table.scoreShown('p1')).not.toBe(disc)
 })
 
 scenario('S15a R-3.9-H1 Improve a farm: which town disc', 'cards-improve-farm', async (table) => {
@@ -371,7 +372,7 @@ scenario('S23 R-3.15 Repeat and Deja Vu', 'cards-repeat', async (table) => {
 scenario('S24 R-3.14.1 PlayDefend in turn', 'cards-defend', async (table) => {
     await table.press(table.card('Defend'))
     await expect(table.primary()).toHaveText('Play Defend · +1 vp')
-    const before = await table.placeOf('score:p1')
+    const before = await table.scoreShown('p1')
     await table.press(table.primary())
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-seat-score]')).toHaveAttribute('data-seat-score', '1')
@@ -379,5 +380,5 @@ scenario('S24 R-3.14.1 PlayDefend in turn', 'cards-defend', async (table) => {
         'Defend'
     )
     await table.closeSeatPanel()
-    expect(await table.placeOf('score:p1')).not.toBe(before)
+    expect(await table.scoreShown('p1')).not.toBe(before)
 })

@@ -9,13 +9,19 @@
     import { guildStandingsOf } from '$lib/model/guildStandings.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { takesTradePicker } from '$lib/model/tradePicker.js'
-    import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
+    import { BoardHeight, BoardWidth, DeskBoardArea } from '$lib/utils/boardGeometry.js'
 
     /**
      * Contract, Guild standings: where the guild rails stand. In one strip under the board on a
      * desk; on a phone only in a guild column's view, over the map's inner edge; none otherwise.
+     * Contract, Desk layout: a desk draws only the map and the guild areas (`desk`), with no score
+     * ring and none of its print; a phone draws the whole board.
      */
-    let { rails }: { rails?: 'strip' | 'west' | 'east' } = $props()
+    let { rails, desk = false }: { rails?: 'strip' | 'west' | 'east'; desk?: boolean } = $props()
+
+    let drawn = $derived(
+        desk ? DeskBoardArea : { x: 0, y: 0, width: BoardWidth, height: BoardHeight }
+    )
 
     let gameSession = getGameSession()
     let chrome = $derived(gameSession.boardChrome)
@@ -44,11 +50,11 @@
         data-board-surface
         use:gameSession.boardAnimator.attach
         pointer-events="none"
-        width={BoardWidth}
-        height={BoardHeight}
-        viewBox="0 0 {BoardWidth} {BoardHeight}"
+        width={drawn.width}
+        height={drawn.height}
+        viewBox="{drawn.x} {drawn.y} {drawn.width} {drawn.height}"
     >
-        <BoardFrame />
+        <BoardFrame printed={!desk} />
         <MapLayers state={gameSession.gameState} {paintOf} {chrome}>
             {#snippet underContents()}
                 <BoardMotionLayer
@@ -62,7 +68,9 @@
         <g data-layer="guilds" visibility={guildsCovered ? 'hidden' : undefined}>
             <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
         </g>
-        <g data-layer="tracks"><TrackLayers state={gameSession.gameState} {paintOf} {chrome} /></g>
+        <g data-layer="tracks"
+            ><TrackLayers state={gameSession.gameState} {paintOf} {chrome} ring={!desk} /></g
+        >
 
         <g data-layer="motion">
             <BoardMotionLayer

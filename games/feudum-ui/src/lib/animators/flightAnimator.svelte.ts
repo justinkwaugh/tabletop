@@ -119,7 +119,10 @@ export class FlightAnimator {
         if (!this.layer || (this.reduced() && !action)) {
             return { flights: [], seconds: 0 }
         }
-        return action ? planFlights(change) : planDirectFlights({ from, to, viewerId })
+        const scoreFlights = this.layer.scoresFly?.() ?? false
+        return action
+            ? planFlights({ ...change, scoreFlights })
+            : planDirectFlights({ from, to, viewerId, scoreFlights })
     }
 
     async play(plan: FlightPlan, animationContext: AnimationContext, startsAt: number) {

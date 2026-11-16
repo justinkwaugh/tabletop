@@ -1,6 +1,7 @@
 <script lang="ts">
     import SeatPanel from '$lib/components/seat/SeatPanel.svelte'
     import { getTableLayers } from '$lib/components/table/tableLayersContext.js'
+    import { scoreWords } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     /**
@@ -29,7 +30,10 @@
     {view}
     {paint}
     {reading}
-    ribbonLabel="{reading ? 'Close' : 'Open'} {name}'s seat"
+    ribbonLabel="{reading ? 'Close' : 'Open'} {name}'s seat · {scoreWords(
+        view.ribbon.score,
+        view.ribbon.leading
+    )}"
     {onRibbon}
 />
 {#if gameSession.showDebug}

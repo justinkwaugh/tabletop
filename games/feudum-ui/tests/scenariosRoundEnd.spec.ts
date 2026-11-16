@@ -195,6 +195,7 @@ async function dieFacesOf(table: ScenarioTable, press: () => Promise<void>): Pro
 scenario('S54 R-4.11.2, R-4.12 Progress roll and dawn', 'dawn-roll', async (table) => {
     const forfeit = { type: ActionType.ForfeitCard, kind: 'migrate' }
     let flights: string[] = []
+    const scoreMotions = [await table.scoreMotion('p1'), await table.scoreMotion('p2')]
     const faces = await dieFacesOf(table, async () => {
         flights = await table.flightsOf(() => table.another('p3', forfeit))
     })
@@ -207,8 +208,7 @@ scenario('S54 R-4.11.2, R-4.12 Progress roll and dawn', 'dawn-roll', async (tabl
             'board: stack:desert',
             'board: epoch-marker',
             'token: glow',
-            'board: score:p1',
-            'board: score:p2'
+            ...scoreMotions
         ])
     )
     // R-4.11 The roll is told in the history; the panel keeps the sheet.

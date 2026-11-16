@@ -134,7 +134,7 @@ test('S71 each printed seat piece stands centred where the drawn piece stood', a
     expect(seen.disc).toBeGreaterThan(0)
 })
 
-test('R-1.3 each printed panel fills its guild area, and the printed ring the whole board', async ({
+test('R-1.3 each printed panel fills its guild area; a desk draws no ring print', async ({
     page
 }) => {
     await openTable(page, 'guildPick')
@@ -145,6 +145,14 @@ test('R-1.3 each printed panel fills its guild area, and the printed ring the wh
         expectSameBox(await boxOf(frame.locator('> image')), await boxOf(frame))
     }
     const ring = surface.locator('svg[aria-label="The board\'s edge"]')
+    await expect(ring.locator('image')).toHaveCount(0)
+})
+
+test('R-1.3 on a phone the printed ring fills the whole board', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await openTable(page, 'guildPick')
+    test.skip(!(await printed(page)), 'no printed board in the folder')
+    const ring = page.locator('[data-board-surface] svg[aria-label="The board\'s edge"]')
     expectSameBox(await boxOf(ring.locator('> image')), await boxOf(ring))
 })
 

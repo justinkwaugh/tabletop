@@ -1129,13 +1129,21 @@ function pilferedHolder(action: Move): { good: Good; holder: GoodHolder } | unde
         : undefined
 }
 
-/** The cinematic: what an Action shows, each row in turn at an explicit time. */
+/**
+ * The cinematic: what an Action shows, each row in turn at an explicit time. Where the board draws no
+ * score ring (`scoreRing` off, a desk), no disc slides: the flight layer carries each score to its seat.
+ */
 export function planBoardMotion({
     from,
     to,
     action,
-    flightRoom = 0
-}: BoardChange & { readonly action: GameAction; readonly flightRoom?: number }): BoardPlan {
+    flightRoom = 0,
+    scoreRing = true
+}: BoardChange & {
+    readonly action: GameAction
+    readonly flightRoom?: number
+    readonly scoreRing?: boolean
+}): BoardPlan {
     const plan = new PlanBuilder()
     const change = { from, to }
     let cursor = 0
@@ -1160,6 +1168,9 @@ export function planBoardMotion({
     plan.flightsAt = cursor
     cursor += flightRoom
     cursor = slideEpoch(plan, change, cursor)
+    if (!scoreRing) {
+        return plan
+    }
     if (isBeginDawn(action) && action.metadata) {
         playDawn(plan, action.metadata.sheet, from, cursor)
     } else {
@@ -1169,12 +1180,14 @@ export function planBoardMotion({
 }
 
 /** Fast fallback: every piece straight to its new place at once, flips and fades cut to the bound. */
-export function planDirect(change: BoardChange): BoardPlan {
+export function planDirect(change: BoardChange, scoreRing = true): BoardPlan {
     const plan = new PlanBuilder()
     slidePieces(plan, change, 0)
     playStateRows(plan, change, 0)
     slideEpoch(plan, change, 0)
-    slideScores(plan, change, 0)
+    if (scoreRing) {
+        slideScores(plan, change, 0)
+    }
     return {
         tokens: plan.tokens,
         motions: plan.motions.flatMap((motion) => {

@@ -8,6 +8,7 @@ import { atPlayingCards } from '$lib/testing/turnTable.js'
 import {
     BoardHeight,
     BoardWidth,
+    DeskBoardArea,
     railOverRect,
     standingsStripHeight
 } from '$lib/utils/boardGeometry.js'
@@ -21,7 +22,7 @@ vi.mock('$lib/model/sessionContext.svelte.js', () => ({
     getGameSession: () => session.current
 }))
 
-async function boardOf(props: { rails?: 'strip' | 'west' | 'east' } = {}) {
+async function boardOf(props: { rails?: 'strip' | 'west' | 'east'; desk?: boolean } = {}) {
     const { host } = await atPlayingCards(['explore'])
     const gameState = new HydratedFeudumGameState(structuredClone(host.state))
     const colors = {
@@ -49,10 +50,10 @@ function railTag(html: string, guild: GuildId): string {
 
 describe('Contract, Guild standings: a rail for each guild (R-4.5)', () => {
     it('on a desk the six rails stand in one strip under the board, the West guilds then the East, each in its area’s order', async () => {
-        const { html, gameState } = await boardOf({ rails: 'strip' })
+        const { html, gameState } = await boardOf({ rails: 'strip', desk: true })
         const surface = html.indexOf('data-board-surface')
         const strip = html.match(/<div[^>]*data-guild-strip[^>]*>/)?.[0] ?? ''
-        expect(strip).toContain(`width:${BoardWidth}px`)
+        expect(strip).toContain(`width:${DeskBoardArea.width}px`)
         expect(strip).toContain(`height:${standingsStripHeight(gameState.players.length)}px`)
         expect(html.indexOf('data-guild-strip')).toBeGreaterThan(surface)
         expect(html).not.toContain('data-guild-rails')
@@ -110,5 +111,19 @@ describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
         const surface = html.match(/<svg[^>]*data-board-surface[^>]*>/)?.[0] ?? ''
         expect(surface).toContain(`height="${BoardHeight}"`)
         expect(surface).toContain(`viewBox="0 0 ${BoardWidth} ${BoardHeight}"`)
+    })
+
+    it('Contract, Desk layout: a desk draws the map and the guild areas alone, with no score ring and no ring print', async () => {
+        const { html } = await boardOf({ rails: 'strip', desk: true })
+        const surface = html.match(/<svg[^>]*data-board-surface[^>]*>/)?.[0] ?? ''
+        const { x, y, width, height } = DeskBoardArea
+        expect(surface).toContain(`width="${width}"`)
+        expect(surface).toContain(`height="${height}"`)
+        expect(surface).toContain(`viewBox="${x} ${y} ${width} ${height}"`)
+        expect(html).not.toContain('data-score-ring')
+        expect(html).not.toContain('data-score-space')
+        expect(html).not.toContain('board.ring')
+        // A phone keeps the whole board and its ring.
+        expect((await boardOf()).html).toContain('data-score-ring')
     })
 })

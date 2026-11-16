@@ -150,12 +150,14 @@ test.describe('a 1440 px desk', () => {
         await openFixture(page, 'cards-tile-gone-epoch-1')
         await expect(page.locator('[data-margin-layer], [data-layer="margin"]')).toHaveCount(0)
 
-        // The board is its own height: the frame reaches the surface's foot, and the board fills the view one way.
+        // The board is its own height: the frame reaches past the surface's foot, the desk drawing the
+        // board inside its ring, and the board fills the view one way.
         const surface = await rect(page.locator('[data-board-surface]'))
         const frame = await rect(page.locator('[data-board-surface] > svg').first())
         const row = await rect(page.locator('[data-board-row]'))
         const view = await rect(page.locator('[data-board-view]'))
-        expect(Math.abs(frame.y + frame.height - (surface.y + surface.height))).toBeLessThan(1)
+        expect(frame.y + frame.height).toBeGreaterThanOrEqual(surface.y + surface.height - 1)
+        expect(Math.abs(row.height - surface.height)).toBeLessThan(1)
         expect(Math.max(row.width / view.width, row.height / view.height)).toBeGreaterThan(0.97)
 
         const key = await rect(page.locator('[data-symbol-key-toggle]'))
@@ -311,6 +313,96 @@ test.describe('a 1440 px desk', () => {
         await expect(chooser.locator('[aria-pressed="true"]')).toHaveCount(0)
     })
 
+    test('Contract, Desk layout: the desk board is the map and the guild areas, with no score track and no ring raster', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await settled(page)
+        const surface = page.locator('[data-board-surface]')
+        expect(await surface.getAttribute('viewBox')).toBe('60 60 2380 833')
+        const box = await rect(surface)
+        expect(box.width / box.height).toBeCloseTo(2380 / 833, 1)
+        expect(
+            Math.abs(box.width - (await rect(page.locator('[data-board-view]'))).width)
+        ).toBeLessThan(2)
+        await expect(page.locator('[data-score-space], [data-score-ring]')).toHaveCount(0)
+        const ringImages = await page.evaluate(
+            () =>
+                [...document.querySelectorAll('image')].filter((image) =>
+                    (image.getAttribute('href') ?? '').includes('board.ring')
+                ).length
+        )
+        expect(ringImages).toBe(0)
+        // The standings' strip runs the board's width.
+        const strip = await rect(page.locator('[data-guild-strip]'))
+        expect(Math.abs(strip.width - box.width)).toBeLessThan(2)
+    })
+
+    test('Contract, Supply and Seat panel: the scores in the zoom row and the seat panels, the leader marked, a score flying to its panel', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-defend')
+        await settled(page)
+        const line = page.getByRole('list', { name: 'Scores' })
+        const seats = await page
+            .locator('[data-seat-panel]')
+            .evaluateAll((all) => all.map((one) => one.getAttribute('data-seat-panel')))
+        const entries = line.getByRole('listitem')
+        await expect(entries).toHaveCount(seats.length)
+        expect(
+            await entries.evaluateAll((all) => all.map((one) => one.getAttribute('data-score-of')))
+        ).toEqual(seats)
+        // In the zoom row, after the focus buttons, inside the view.
+        const lineBox = await rect(line)
+        const east = await rect(page.locator('[data-focus-chip="east"]'))
+        const view = await rect(page.locator('[data-board-view]'))
+        expect(lineBox.x).toBeGreaterThan(east.x + east.width)
+        expect(lineBox.x + lineBox.width).toBeLessThanOrEqual(view.x + view.width)
+        expect(Math.abs(lineBox.y + lineBox.height / 2 - (east.y + east.height / 2))).toBeLessThan(
+            4
+        )
+        await expect(page.locator('[data-score-leader]')).toHaveCount(0)
+
+        const seat = seats[0] ?? ''
+        await panel(page).locator('[data-cards] [data-row="Defend"] button').first().click()
+        const score = page.locator(`[data-seat-panel="${seat}"] [data-seat-score]`)
+        await page.evaluate(() => {
+            const seen: { x: number; y: number }[] = []
+            Object.assign(window, { scoreFlight: seen })
+            const sample = () => {
+                const copy = document.querySelector('[data-flight-row="score"] [data-flight-side]')
+                if (copy) {
+                    const { x, y, width, height } = copy.getBoundingClientRect()
+                    seen.push({ x: x + width / 2, y: y + height / 2 })
+                }
+                requestAnimationFrame(sample)
+            }
+            requestAnimationFrame(sample)
+        })
+        await panel(page).locator('[data-primary]').click()
+        await settled(page)
+        await expect(score).toHaveAttribute('data-seat-score', '1')
+        const path = await page.evaluate(
+            () => Reflect.get(window, 'scoreFlight') as { x: number; y: number }[]
+        )
+        expect(path.length).toBeGreaterThan(2)
+        const landing = path[path.length - 1]
+        const target = await rect(score)
+        expect(Math.abs((landing?.x ?? 0) - (target.x + target.width / 2))).toBeLessThan(24)
+        expect(Math.abs((landing?.y ?? 0) - (target.y + target.height / 2))).toBeLessThan(24)
+
+        const mine = line.locator(`[data-score-of="${seat}"]`)
+        await expect(mine).toHaveAttribute('data-score', '1')
+        await expect(mine).toHaveAttribute('data-leading', '')
+        await expect(page.locator('[data-score-leader]')).toHaveCount(2)
+        await expect(page.locator(`[data-seat-panel="${seat}"] [data-score-leader]`)).toHaveCount(1)
+        const name = await page.locator(`[data-seat-panel="${seat}"] .name`).textContent()
+        await expect(mine).toHaveAccessibleName(`${name}: 1 vp, leading`)
+        await expect(
+            page.locator(`[data-seat-panel="${seat}"] [data-open-seat-of]`)
+        ).toHaveAccessibleName(`Open ${name}'s seat · 1 vp, leading`)
+    })
+
     test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
         page
     }) => {
@@ -399,7 +491,7 @@ for (const viewport of [
             expect(key.y + key.height).toBeLessThanOrEqual(column.foot + 0.5)
             // R-1.2 Whole: smaller, the board keeps its shape.
             const surface = await rect(page.locator('[data-board-surface]'))
-            expect(surface.width / surface.height).toBeCloseTo(2500 / 953, 1)
+            expect(surface.width / surface.height).toBeCloseTo(2380 / 833, 1)
         })
 
         test('R-3.2 in card play the board is back at the column’s full width, and the column holds it all', async ({

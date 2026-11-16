@@ -17,6 +17,7 @@
     import FocusChooser from '$lib/components/table/FocusChooser.svelte'
     import BoardCorner from '$lib/components/table/BoardCorner.svelte'
     import Header from '$lib/components/table/Header.svelte'
+    import ScoreLine from '$lib/components/table/ScoreLine.svelte'
     import SeatStrip from '$lib/components/table/SeatStrip.svelte'
     import StatusStrip from '$lib/components/table/StatusStrip.svelte'
     import { setTableLayers } from '$lib/components/table/tableLayersContext.js'
@@ -36,7 +37,7 @@
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { FeudumGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
-    import { BoardWidth } from '$lib/utils/boardGeometry.js'
+    import { DeskBoardArea } from '$lib/utils/boardGeometry.js'
 
     let {
         gameSession
@@ -96,7 +97,7 @@
      * height left. A phone's view takes the column's height.
      */
     let deskView = $derived(
-        `aspect-ratio:${BoardWidth} / ${deskScaledHeight(feudumSession.gameState.players.length)}`
+        `aspect-ratio:${DeskBoardArea.width} / ${deskScaledHeight(feudumSession.gameState.players.length)}`
     )
 
     let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
@@ -160,7 +161,7 @@
 <svelte:window onkeydowncapture={onEscape} />
 
 {#snippet deskRow()}
-    <!-- Contract, Supply: the desk's zoom row goes on with the focus buttons. -->
+    <!-- Contract, Supply: the desk's zoom row goes on with the focus buttons and ends with the scores. -->
     <FocusChooser
         {focus}
         lit={litAreas}
@@ -169,6 +170,7 @@
         desk
         onTracks={() => feudumSession.layers.openTracks()}
     />
+    <ScoreLine />
 {/snippet}
 
 {#snippet turnControls()}
@@ -228,6 +230,7 @@
                         onManualViewChange={() => focus.handMoved()}
                     >
                         <Board
+                            desk={!phone.phone}
                             rails={phone.phone
                                 ? focus.shown === 'west' || focus.shown === 'east'
                                     ? focus.shown

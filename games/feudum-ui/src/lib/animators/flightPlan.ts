@@ -63,7 +63,8 @@ import {
 } from './boardPlan.js'
 
 /** Contract, Animation plan: what a moving copy is, one row for each. */
-export type FlightRow = 'pawns' | 'markers' | 'goods' | 'shillings' | 'tiles' | 'writs' | 'seals'
+export type FlightRow =
+    'pawns' | 'markers' | 'goods' | 'shillings' | 'tiles' | 'writs' | 'seals' | 'score'
 
 /**
  * What a moving copy draws. A writ's back carries no id, by type: nothing in the layer's markup can name
@@ -85,11 +86,16 @@ export type FlightFace =
     | { readonly kind: 'writ'; readonly faceShown: false }
     | { readonly kind: 'seal' }
     | { readonly kind: 'bead'; readonly value: BeadValue }
+    /** R-6 A score change: the seat's disc carrying what it gained or lost. */
+    | { readonly kind: 'score'; readonly playerId: string; readonly change: number }
 
 /** Which part of a seat a copy leaves or reaches. */
 export type SeatPart =
     | { readonly part: 'good'; readonly good: Good }
-    | { readonly part: 'barrel' | 'pouch' | 'shillings' | 'markers' | 'pawns' | 'writs' | 'seals' }
+    | {
+          readonly part:
+              'barrel' | 'pouch' | 'shillings' | 'markers' | 'pawns' | 'writs' | 'seals' | 'score'
+      }
     | { readonly part: 'tile'; readonly tileId: TileId }
     | { readonly part: 'writ'; readonly writId: WritId }
     | { readonly part: 'bead'; readonly value: BeadValue }
@@ -118,7 +124,7 @@ export type FlightEnd =
           readonly writId?: WritId
           readonly hide?: boolean
       }
-    | { readonly kind: 'table' }
+    | { readonly kind: 'table'; readonly size?: number }
 
 export interface FlightLeg {
     readonly to: FlightEnd
@@ -152,6 +158,8 @@ export interface FlightChange {
     /** Absent, the plan is the fast fallback, and draws nothing an Action would have told it. */
     readonly action?: GameAction
     readonly viewerId?: string
+    /** Contract, Animation plan: the board draws no score ring (a desk), so each score flies to its seat. */
+    readonly scoreFlights?: boolean
 }
 
 const CopySeconds = 0.45
@@ -1071,7 +1079,8 @@ export function planFlights(change: FlightChange): FlightPlan {
         flyShillings,
         pawnsGoingHome,
         flyWrits,
-        flySeals
+        flySeals,
+        flyScores
     ]
     let cursor = 0
     for (const row of rows) {
@@ -1081,12 +1090,45 @@ export function planFlights(change: FlightChange): FlightPlan {
     return { flights: plan.flights, seconds: secondsOf(plan.flights) }
 }
 
+/** The disc that carries a score change over the table: about a seat panel's score's size. */
+const ScoreCopySize = 40
+
+/**
+ * R-6 Where the board draws no score ring (a desk), each seat whose score changed sends its disc,
+ * carrying the change, from over the table to its seat panel's score, in turn order, last of all.
+ */
+function flyScores(plan: FlightBuilder, { from, to, scoreFlights }: FlightChange, at: number) {
+    if (!scoreFlights) {
+        return at
+    }
+    let launch = at
+    let ends = at
+    for (const player of to.players) {
+        const change = player.score - from.getPlayerState(player.playerId).score
+        if (change !== 0) {
+            ends = plan.fly(
+                'score',
+                { kind: 'score', playerId: player.playerId, change },
+                { kind: 'table', size: ScoreCopySize },
+                seatOf(player.playerId, { part: 'score' }),
+                launch
+            )
+            launch += GoodGap
+        }
+    }
+    return ends
+}
+
 /**
  * Fast fallback: every copy straight to its end at once, within the bound, flips, holds, lifts, flashes
  * and fades cut. With no Action in hand no writ's face can be named: every writ is a back.
  */
 export function planDirectFlights(change: Omit<FlightChange, 'action'>): FlightPlan {
-    const { flights } = planFlights({ from: change.from, to: change.to })
+    const { flights } = planFlights({
+        from: change.from,
+        to: change.to,
+        ...(change.scoreFlights ? { scoreFlights: true } : {})
+    })
     const direct = flights.map((flight): Flight => {
         const last = flight.legs[flight.legs.length - 1]
         const turned = flight.legs.flatMap(({ turnTo }) => (turnTo ? [turnTo] : [])).at(-1)

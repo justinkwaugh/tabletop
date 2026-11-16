@@ -6,13 +6,15 @@
     /**
      * The board under everything: the printed score ring, its corners and the frame round the map and
      * the guild panels when the folder holds it, else a plain frame for the drawn ring to sit on. The
-     * map and the panels lie over it in their own rects.
+     * map and the panels lie over it in their own rects. A desk draws no ring (`printed` off): it
+     * loads no print, and the plain frame stands between the map and the panels.
      */
+    let { printed = true }: { printed?: boolean } = $props()
 </script>
 
 <PieceFrame
     label="The board's edge"
-    url={assetUrl(RingAsset)}
+    url={printed ? assetUrl(RingAsset) : undefined}
     width={BoardWidth}
     height={BoardHeight}
     viewBox="0 0 {BoardWidth} {BoardHeight}"

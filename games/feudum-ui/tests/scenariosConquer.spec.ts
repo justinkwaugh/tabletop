@@ -187,9 +187,10 @@ scenario('S36 R-4.8.2 CommitAttack', 'conquer-commit', async (table) => {
     await table.press(addSaltpeter(table))
     await table.press(table.row(Sword))
     const scoreBefore = Number(await scoreOf(table, 'p2'))
+    const scoreMotion = await table.scoreMotion('p2')
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights).toEqual(
-        expect.arrayContaining(["pawns: Ana's knight pawn", 'board: score:p2', 'goods: saltpeter'])
+        expect.arrayContaining(["pawns: Ana's knight pawn", scoreMotion, 'goods: saltpeter'])
     )
     await table.settled()
     await expect(table.page.locator('[data-world="pawn:p1:1"]')).toHaveCount(0)
