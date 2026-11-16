@@ -158,12 +158,6 @@ export class ScenarioTable {
         await this.press(this.pick(target).locator('[role="button"]').first())
     }
 
-    /** A row that only looks disabled takes the press, to say why. */
-    async pressDimmed(target: Locator): Promise<void> {
-        await (this.phone ? target.tap({ force: true }) : target.click({ force: true }))
-        await this.settled()
-    }
-
     /** Waits out a view's animation: the board stands still across two reads. */
     async boardAtRest(): Promise<void> {
         const surface = this.page.locator('[data-board-surface]')
