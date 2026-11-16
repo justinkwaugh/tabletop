@@ -226,19 +226,12 @@ scenario(
 )
 
 scenario(
-    'S48 R-3.4, R-4.3-H3 a Feast short of sulfur, with a tile',
+    'S48 R-3.4, R-4.3-H3 a Feast short of sulfur, with a tile, is not drawn',
     'short-with-tile',
     async (table) => {
         await table.press(table.card('Guild'))
-        const feast = table
-            .panel()
-            .getByRole('button', { name: /^Feast/ })
-            .first()
-        await expect(feast).toHaveAttribute('aria-disabled', 'true')
-        await table.pressDimmed(feast)
-        await expect(table.panel().locator('[data-refusal], [data-reason]').first()).toHaveText(
-            'Feast needs a sulfur in your barrel. Undo, then spend a region tile.'
-        )
+        await expect(table.panel().getByRole('button', { name: /^Feast/ })).toHaveCount(0)
+        await expect(table.panel().locator('[data-refusal], [data-reason]')).toHaveCount(0)
     }
 )
 

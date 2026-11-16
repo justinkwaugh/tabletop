@@ -213,10 +213,11 @@ describe('TurnDraft: the hand and the modes (R-3.2, R-3.4, R-3.3)', () => {
             { pouchGood: 'sulfur' }
         )
         const { session } = turn
-        expect(session.turnPanel?.line).toMatch(/^Epoch I · Round \d+ · your 1st card of 3$/)
+        expect(session.turnPanel?.line).toBe('Card 1 of 3')
         pickCard(session, 'tax')
         expect(session.turnPanel?.secondCard).toEqual({
             label: 'Play two cards this turn',
+            shown: '2 cards',
             on: false
         })
         session.toggleTurnSecondCard()
@@ -228,7 +229,7 @@ describe('TurnDraft: the hand and the modes (R-3.2, R-3.4, R-3.3)', () => {
         await session.waitForVisibleTransitionSettled()
 
         expect(sentBy(turn)).toMatchObject({ type: ActionType.Tax, secondCard: true })
-        expect(session.turnPanel?.line).toBe('Your second card')
+        expect(session.turnPanel?.line).toBe('2nd card')
         expect(session.turnPanel?.cards.map(({ kind }) => kind)).toEqual(['guild', 'explore'])
         expect(session.gameState.getPlayerState(turn.seat).sequentialUsed).toBe(true)
         expect(session.turnPanel?.secondCard).toBeUndefined()
@@ -266,13 +267,13 @@ describe('TurnDraft: the hand and the modes (R-3.2, R-3.4, R-3.3)', () => {
         )
     })
 
-    it('a dimmed mode has no press and carries the engine line', async () => {
+    it('a card with no mode open draws none: Forfeit and one short line why', async () => {
         const { session } = await table(['harvest', 'tax'])
         pickCard(session, 'harvest')
         expect(session.turnPanel).toMatchObject({
             forfeitOnly: true,
             modes: [],
-            refusals: ['No farm under 10 goods.']
+            fact: 'No farm under 10 goods.'
         })
         expect(session.turn.mode).toBeUndefined()
     })
@@ -551,7 +552,7 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         const { session } = turn
         pickCard(session, 'migrate')
         expect(session.turnPanel?.forfeitOnly).toBe(true)
-        expect(session.turnPanel?.refusals).toEqual(['Migrating onto the board needs 1 food.'])
+        expect(session.turnPanel?.fact).toBe('Migrating onto the board needs 1 food.')
     })
 })
 
@@ -724,13 +725,13 @@ describe('R-3.9 Improve', () => {
         expect(session.turn.value('space')).toBe(spaceId)
     })
 
-    it('R-4.3-H3 short of a good a tile could bring: dimmed, saying to spend it first', async () => {
+    it('R-4.3-H3 short of a good a tile could bring: Forfeit and the reason, with no how-to', async () => {
         const turn = await ruling('outpost', (state, { seat }) => {
             returnGoods(state, seat)
             giveTile(state, seat)
         })
         pickCard(turn.session, 'improve')
-        expect(turn.session.turnPanel?.refusals[0]).toMatch(/Undo, then spend a region tile\.$/)
+        expect(turn.session.turnPanel?.fact).toBe('Improving an outpost to a farm needs a wood.')
         expect(turn.session.turnPanel?.modes).toEqual([])
     })
 })
@@ -783,7 +784,7 @@ describe('R-3.9.3 TendLandscape', () => {
         expect(session.turnPanel?.primary?.label).toBe(`Tend Landscape at ${spaceLabel(spaceId)}`)
     })
 
-    it('R-4.3-H3 short of the wood, the special shows dimmed, saying to spend a tile', async () => {
+    it('R-4.3-H3 short of the wood, with a tile, the special is not drawn', async () => {
         const turn = await table(['improve', 'tax'], (state, { seat }) => {
             const spaceId = emptySpace(state, 'town')
             placeMarker(state, seat, spaceId)
@@ -793,9 +794,9 @@ describe('R-3.9.3 TendLandscape', () => {
             giveTile(state, seat)
         })
         pickCard(turn.session, 'improve')
-        const tend = row(turn.session.turnPanel?.modes, /· 1 wood$/)
-        expect(tend.refusal).toMatch(/Undo, then spend a region tile\.$/)
-        expect(tend.press).toBeUndefined()
+        expect(turn.session.turnPanel?.modes.some(({ label }) => label.endsWith('· 1 wood'))).toBe(
+            false
+        )
     })
 })
 
@@ -1117,15 +1118,13 @@ describe('R-3.15 Repeat and Déjà Vu', () => {
         expect(sentBy(turn)).toMatchObject({ type: ActionType.Explore, asRepeat: 'deja-vu' })
     })
 
-    it('R-4.3-H3 no saltpeter and a tile: Déjà Vu says to spend it first', async () => {
+    it('R-4.3-H3 no saltpeter and a tile: the Déjà Vu replay is not drawn', async () => {
         const { session } = await afterMoveAndExplore((state, { seat }) => {
             returnGoods(state, seat)
             giveTile(state, seat)
         })
         pickCard(session, 'repeat')
-        expect(row(session.turnPanel?.replays, 'Explore').refusal).toMatch(
-            /Undo, then spend a region tile\.$/
-        )
+        expect(session.turnPanel?.replays.some(({ label }) => label === 'Explore')).toBe(false)
     })
 
     it('R-3.15 nothing to replay: Forfeit only, sent as the Repeat itself', async () => {

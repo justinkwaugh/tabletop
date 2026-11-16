@@ -479,35 +479,21 @@ test('S48 R-4.6.2 a price short of shillings is dimmed with its reason, and no c
     await shot(page, 'short-of-shillings')
 })
 
-test('S48 R-3.4, R-4.3-H3 a Feast short of sulfur, with a tile: dimmed, and where to spend it', async ({
-    page
-}) => {
+test('S48 R-3.4, R-4.3-H3 a Feast short of sulfur, with a tile, is not drawn', async ({ page }) => {
     await openTable(page, 'feastShort')
     await pressGuildCard(page)
-    const feast = panel(page)
-        .getByRole('button', { name: /^Feast/ })
-        .first()
-    await expect(feast).toHaveAttribute('aria-disabled', 'true')
-    await feast.click({ force: true })
-    await expect(panel(page).locator('[data-refusal], [data-reason]').first()).toContainText(
-        'Undo, then spend a region tile.'
-    )
+    await expect(panel(page).getByRole('button', { name: /^Feast/ })).toHaveCount(0)
+    await expect(panel(page).locator('[data-refusal], [data-reason]')).toHaveCount(0)
     await shot(page, 'feast-short')
 })
 
-test('S74 R-3.16.3 a trade open, Feast stands in the control row above it, dimmed with its reason', async ({
+test('S74 R-3.16.3 a trade open, the control row stands above it; a Feast short of sulfur is not drawn', async ({
     page
 }) => {
     await openFunction(page, 'feastShortTrade', 'knight', /^\s*Trade/)
     const controls = page.locator('[data-card-tray] [data-tray-controls]')
-    const feast = controls.locator('[data-rows="modes"] [data-row^="Feast"] button')
-    await expect(feast).toContainText('Feast')
-    await expect(feast).toHaveAttribute('aria-disabled', 'true')
-    await expect(
-        controls.locator('[data-rows="modes"] [data-row^="Feast"] [data-reason]')
-    ).toContainText('Undo, then spend a region tile.')
+    await expect(controls.locator('[data-row^="Feast"]')).toHaveCount(0)
     await expect(controls.locator('[data-rows="card"]')).toContainText('Forfeit')
-    await feast.click({ force: true })
     await expect(picker(page)).toBeVisible()
     const above = await controls.boundingBox()
     const board = await picker(page).boundingBox()

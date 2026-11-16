@@ -1004,18 +1004,14 @@ test.describe('a 390 px phone', () => {
         })
         expect(height).toBeLessThan(1.5)
 
-        // The modes then Forfeit share one row; the unpayable special is dimmed, its reason its name.
+        // The tray's presses share one row; the special it can't play now is not drawn.
         const modes = tray.getByRole('button')
         const rows = new Set<number>()
         for (const mode of await modes.all()) {
             rows.add(Math.round((await rect(mode)).y + (await rect(mode)).height / 2))
         }
         expect(rows.size).toBe(1)
-        const special = tray.locator('[data-row^="Tend Landscape"] button')
-        await expect(special).toHaveAttribute('aria-disabled', 'true')
-        await expect(special).toHaveAttribute('title', /no collected tile/)
-        await expect(special).toHaveAccessibleName(/Tend Landscape.*no collected tile/)
-        await expect(tray.locator('[data-reason]:visible')).toHaveCount(0)
+        await expect(tray.locator('[data-row^="Tend Landscape"]')).toHaveCount(0)
 
         // Forfeit stands in sight without scrolling, inside the action area.
         const forfeit = modes.last()

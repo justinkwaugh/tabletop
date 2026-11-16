@@ -874,10 +874,15 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     const flowShort = flowLine === turn.flow?.line ? turn.flow?.short : undefined
     const primary = guild?.primary ?? move?.primary ?? turn.primary
     const me = session.myPlayerId ?? ''
+    // R-3.3 "2 cards" and the pouch's sulfur it spends; the full words stay its accessible name.
     const secondRows: ActionRow[] = turn.secondCard
         ? [
               {
-                  choice: plainChoice(turn.secondCard.label, turn.secondCard.on),
+                  choice: {
+                      ...plainChoice(turn.secondCard.label, turn.secondCard.on),
+                      shown: turn.secondCard.shown,
+                      cost: { kind: 'good', good: 'sulfur', count: 1 }
+                  },
                   press: () => session.toggleTurnSecondCard()
               }
           ]
@@ -912,7 +917,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
               ...rows('modes', modeRows),
               ...rows('second', secondRows),
               ...rows('card', forfeitRows),
-              ...turn.refusals.map((text) => line('refusal', text)),
+              ...(turn.fact ? [line('refusal', turn.fact)] : []),
               { kind: 'trade-picker', bench: picker, ...(send ? { send } : {}) }
           ]
         : [
@@ -920,7 +925,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
               ...(guild?.bench ? stagedBlocks(session, guild.bench) : []),
               ...rows('replays', asTurnRows(turn.replays)),
               ...rows('modes', modeRows),
-              ...turn.refusals.map((text) => line('refusal', text)),
+              ...(turn.fact ? [line('refusal', turn.fact)] : []),
               ...rows('move', asTurnRows(move?.rows)),
               ...rows('flow', asTurnRows(turn.flow?.rows)),
               ...tallyBlocks,

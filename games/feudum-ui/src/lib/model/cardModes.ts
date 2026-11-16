@@ -21,7 +21,6 @@ import {
     reasonTaxRefused,
     reinforcementsOffered,
     specialOffered,
-    specialShortOfGood,
     StartingSpaceIds,
     starveOffers,
     taxPreview,
@@ -71,12 +70,12 @@ export interface CardMode {
     /** A special's name alone, where its cost stands beside it as art. */
     readonly shown?: string
     readonly cost?: PrintedCost
-    /** Dimmed, with the line a press gives; the engine refuses this mode now. */
+    /**
+     * The engine refuses this mode now: the tray does not draw it, and when every mode is refused
+     * the first one's reason is the card's one line.
+     */
     readonly refusal?: string
 }
-
-/** R-4.3-H3 The at-will row hides once a card is picked, so the line says where to go. */
-const SpendFirst = 'Undo, then spend a region tile.'
 
 /** R-3.4 What the card prints for its special, as a chip: "1 wood", "1s". */
 export function printedCost(kind: ActionCardKind): string | undefined {
@@ -161,8 +160,10 @@ function reasonImproveModeRefused(
     if (!spaceId) {
         return 'You rule no location to improve.'
     }
-    const reason = reasonImproveRefused(state, playerId, { ...input, spaceId })
-    return short ? `${reason} ${SpendFirst}` : (reason ?? 'No location can be improved.')
+    return (
+        reasonImproveRefused(state, playerId, { ...input, spaceId }) ??
+        'No location can be improved.'
+    )
 }
 
 function reasonTendModeRefused(
@@ -174,7 +175,7 @@ function reasonTendModeRefused(
         return refused
     }
     if (!specialOffered(state, playerId, 'improve')) {
-        return `${reasonSpecialRefused(state, playerId, 'improve')} ${SpendFirst}`
+        return reasonSpecialRefused(state, playerId, 'improve')
     }
     const { tiles, spaceIds } = tendLandscapeOffers(state, playerId)
     if (tiles.length === 0) {
@@ -222,7 +223,7 @@ function reasonFeastModeRefused(
     }
     return specialOffered(state, playerId, 'guild')
         ? firstOfferReason(feastOffers(state, playerId, input), 'No one to feast with.')
-        : `${reasonSpecialRefused(state, playerId, 'guild')} ${SpendFirst}`
+        : reasonSpecialRefused(state, playerId, 'guild')
 }
 
 /** R-3.12.1, R-3.12-H1 The shillings; Reinforcements is asked once the card is picked. */
@@ -273,16 +274,7 @@ const CardModes: Readonly<Record<ActionCardKind, readonly ModeRow[]>> = {
     influence: [Regular(ActionType.Influence, 'influence', reasonInfluenceModeRefused)],
     improve: [
         Regular(ActionType.Improve, 'improve', reasonImproveModeRefused),
-        // R-4.3-H3 A wood a tile could bring shows it, dimmed with where to spend that tile.
-        (context, input) =>
-            specialOffered(context.state, context.playerId, 'improve') ||
-            specialShortOfGood(context.state, context.playerId, 'improve')
-                ? special(
-                      ActionType.TendLandscape,
-                      'improve',
-                      reasonTendModeRefused(context, input)
-                  )
-                : undefined
+        Special(ActionType.TendLandscape, 'improve', reasonTendModeRefused)
     ],
     explore: [
         Regular(ActionType.Explore, 'explore', ({ state, playerId }, input) =>
@@ -340,12 +332,7 @@ const CardModes: Readonly<Record<ActionCardKind, readonly ModeRow[]>> = {
                 firstOfferReason(guildActionOffers(state, playerId), 'No guild function is open.')
             )
         }),
-        // R-4.3-H3 A barrel sulfur a tile could bring shows it, dimmed with where to spend that tile.
-        (context, input) =>
-            specialOffered(context.state, context.playerId, 'guild') ||
-            specialShortOfGood(context.state, context.playerId, 'guild')
-                ? special(ActionType.Feast, 'guild', reasonFeastModeRefused(context, input))
-                : undefined
+        Special(ActionType.Feast, 'guild', reasonFeastModeRefused)
     ]
 }
 
