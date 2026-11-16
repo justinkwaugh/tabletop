@@ -303,6 +303,33 @@ describe('Choosing what to bring in', () => {
         expect(session.gameState.actionCount).toBe(OPENING.length)
     })
 
+    it('lifts the staged stack off when you let it go or take the choice back', async () => {
+        const session = await sessionFor(prepared())
+        session.chooseDot(DOT)
+        session.letGo()
+        expect(session.releasedByPlayer).toBe(true)
+
+        session.chooseDot(DOT)
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        await session.undo()
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(true)
+    })
+
+    it('sets the staged stack down without a lift when a new state or history clears it', async () => {
+        const session = await sessionFor(prepared())
+        session.chooseDot(DOT)
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        expect(session.releasedByPlayer).toBe(false)
+
+        session.letGo()
+        session.chooseDot(DOT)
+        expect(session.chosenDot).toEqual(DOT)
+        await settled(session.history.goToPreviousAction())
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(false)
+    })
+
     it('clears your choices when another state is shown', async () => {
         const session = await sessionFor(prepared())
         await pushOwn(session)

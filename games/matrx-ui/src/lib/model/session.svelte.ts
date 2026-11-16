@@ -68,7 +68,10 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     )
     preferredKind: PieceKind | undefined = $state()
     undoingMove: StepBack | undefined
-    historyMove: StepBack | undefined
+    private steppedMove: StepBack | undefined
+    // A staged piece lifts off only when the player lets it go, never when history, a new state or
+    // another viewer's perspective clears it.
+    private changedByPlayer = false
     moveInterrupter: MoveInterrupter | undefined
 
     constructor(options: SessionOptions) {
@@ -77,7 +80,10 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
             undoableStagedSelection(
                 MatrxStageOrder,
                 () => this.ownSelection,
-                (selection) => (this.selection = selection)
+                (selection) => {
+                    this.selection = selection
+                    this.changedByPlayer = true
+                }
             )
         )
     }
@@ -265,7 +271,19 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     }
 
     override onHistoryAction(action?: GameAction): void {
-        this.historyMove = action !== undefined && this.isStepBack(action) ? action : undefined
+        this.steppedMove = action !== undefined && this.isStepBack(action) ? action : undefined
+    }
+
+    get historyMove(): StepBack | undefined {
+        return this.isViewingHistory ? this.steppedMove : undefined
+    }
+
+    get releasedByPlayer(): boolean {
+        return (
+            this.changedByPlayer &&
+            !this.isViewingHistory &&
+            this.selectionOwner === this.myPlayer?.id
+        )
     }
 
     get presentingState(): HydratedMatrxGameState | undefined {
@@ -285,14 +303,20 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     }
 
     override beforeNewState({ kind }: PresentedTransition): void {
+        this.changedByPlayer = false
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
-        const incoming = this.presentingState
-        const move = kind === 'undo' && incoming ? this.restagedMove(incoming) : undefined
+        const move = kind === 'undo' ? this.restagedMove(this.undoTarget()) : undefined
         if (move) {
             this.selection = this.restaged(move)
             this.selectionOwner = move.playerId
         }
         if (kind !== 'undo') this.undoingMove = undefined
+    }
+
+    private undoTarget(): HydratedMatrxGameState {
+        const incoming = this.presentingState
+        assertExists(incoming, 'An Undo presents the state it goes back to')
+        return incoming
     }
 
     private restaged(move: StepBack): MatrxSelection {
@@ -365,6 +389,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     }
 
     private select(selection: MatrxSelection) {
+        this.changedByPlayer = true
         this.selection = selection
         this.selectionOwner = this.myPlayer?.id
     }
@@ -378,7 +403,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
             return
         }
         const kind = this.chosenKind
-        if (kind === undefined) return
+        assertExists(kind, 'A push has its piece kind chosen')
         await this.applyAction(this.createPlayerAction(PushPiece, { ...placement, kind }))
     }
 
