@@ -68,14 +68,14 @@ async function showsWholeMap(page: Page): Promise<boolean> {
     )
 }
 
-/** A railroad's card above the board on desktop, or its pile in a phone's build panel. */
+/** A railroad's card above the board on desktop, or its card in a phone's build panel. */
 function railroadEntry(page: Page, name: string) {
     return page
         .getByRole('group', { name: 'Railroads' })
         .getByRole('button', { name: new RegExp(`^${name}: `) })
 }
 
-/** Presses a railroad's spotlight as a player would: its card, or its build pile on a phone. */
+/** Presses a railroad's spotlight as a player would: its card, or its build panel card on a phone. */
 async function pressSpotlight(page: Page, name: string) {
     if (onPhone()) {
         await railroadEntry(page, name).tap()
@@ -235,25 +235,22 @@ test('A hand pan holds the view across the next placement', async ({ page }) => 
     expect(await boardBox(page)).toEqual(panned)
 })
 
-test('Done building at the end of the round returns the desktop view to the whole map', async ({
-    page
-}) => {
+test('Done at the end of the round returns the desktop view to the whole map', async ({ page }) => {
     test.skip(onPhone(), 'A phone returns to its resting middle third, not the whole map.')
     await openScenario(page, 'First placement')
-    // Ada, Ben and Cora build nothing; each seat's view zooms in turn on the one screen.
+    // Ada, Ben and Cora press Skip; each seat's view zooms in turn on the one screen.
     for (const next of ['p2', 'p3', 'p4']) {
-        await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
+        await page.getByRole('button', { name: 'Skip', exact: true }).click()
         await expect.poll(() => activePlayerId(page)).toBe(next)
         await settled(page)
         expect(await showsWholeMap(page)).toBe(false)
     }
-    // Dell, last in turn order, places and is done: the round goes on to Ride.
+    // Dell, last in turn order, places and is done. One locomotive links no cities, so every
+    // seat passes its journey by itself (R-3.3.1) and the round ends: round 2 takes shares.
     const [first] = await litInView(page)
     await pressHex(page, litHexAt(page, first))
-    await page.getByRole('button', { name: 'Done building', exact: true }).click()
-    await expect
-        .poll(() => page.evaluate(() => window.rtrSession.gameState.machineState))
-        .toBe('Riding')
+    await page.getByRole('button', { name: 'Done', exact: true }).click()
+    await expectNextRound(page)
     await settled(page)
     expect(await showsWholeMap(page)).toBe(true)
 })
@@ -272,10 +269,26 @@ async function dragBoard(page: Page, dx: number, dy: number) {
 }
 
 /**
- * From "First placement": Ada first drags her zoomed view by hand if asked, then all four seats
- * build nothing, and the round goes on to Ride. Returns where the board rests once Ride opens.
+ * Waits for round 2's Take a share. With no track to ride, every seat passes its journey by itself
+ * (R-3.3.1), so the round ends straight after building.
  */
-async function buildNothingToRide(page: Page, dragFirst: boolean): Promise<BoardBox> {
+async function expectNextRound(page: Page) {
+    await expect
+        .poll(() =>
+            page.evaluate(() => [
+                window.rtrSession.gameState.machineState,
+                window.rtrSession.gameState.roundManager.currentRound?.number
+            ])
+        )
+        .toEqual(['TakingShares', 2])
+}
+
+/**
+ * From "First placement": Ada first drags her zoomed view by hand if asked, then all four seats
+ * press Skip, no seat has a journey, and round 2 opens on Take a share. Returns where the board
+ * rests once it does.
+ */
+async function skipToNextRound(page: Page, dragFirst: boolean): Promise<BoardBox> {
     await openScenario(page, 'First placement')
     const zoomed = await settled(page)
     if (dragFirst) {
@@ -283,33 +296,31 @@ async function buildNothingToRide(page: Page, dragFirst: boolean): Promise<Board
         expect(await settled(page)).not.toEqual(zoomed)
     }
     for (const next of ['p2', 'p3', 'p4']) {
-        await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
+        await page.getByRole('button', { name: 'Skip', exact: true }).click()
         await expect.poll(() => activePlayerId(page)).toBe(next)
         await settled(page)
     }
-    await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
-    await expect
-        .poll(() => page.evaluate(() => window.rtrSession.gameState.machineState))
-        .toBe('Riding')
+    await page.getByRole('button', { name: 'Skip', exact: true }).click()
+    await expectNextRound(page)
     await settled(page)
     await page.waitForTimeout(VIEW_SETTLE_MS)
     return settled(page)
 }
 
-test('Ride opens on the whole desktop map after a hand move in an earlier building turn', async ({
+test('The next round opens on the whole desktop map after a hand move in a building turn', async ({
     page
 }) => {
     test.skip(onPhone(), 'A phone returns to its resting middle third, not the whole map.')
-    await buildNothingToRide(page, true)
+    await skipToNextRound(page, true)
     expect(await showsWholeMap(page)).toBe(true)
 })
 
-test('Ride opens on the phone’s resting view after a hand move in an earlier building turn', async ({
+test('The next round opens on the phone’s resting view after a hand move in a building turn', async ({
     page
 }) => {
     test.skip(!onPhone(), 'The desktop returns to the whole map.')
-    const untouched = await buildNothingToRide(page, false)
-    const moved = await buildNothingToRide(page, true)
+    const untouched = await skipToNextRound(page, false)
+    const moved = await skipToNextRound(page, true)
     // The resting view: the middle third at its scale, where the same turns end with no hand move.
     expect(Math.abs((await hexWidth(page)) - RESTING_HEX_PX)).toBeLessThan(0.5)
     expect(moved).toEqual(untouched)
@@ -358,7 +369,7 @@ test('At 1440 × 900 the desktop view rests on the whole map when a zoom would b
     await settled(page)
     expect(await showsWholeMap(page)).toBe(true)
     const deciding = await activePlayerId(page)
-    await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
+    await page.getByRole('button', { name: 'Skip', exact: true }).click()
     await expect.poll(() => activePlayerId(page)).not.toBe(deciding)
     await settled(page)
     expect(await showsWholeMap(page)).toBe(true)
@@ -377,10 +388,10 @@ test('A watching seat’s view does not zoom, not even for a held spotlight', as
     if (!onPhone()) expect(await showsWholeMap(page)).toBe(true)
 
     if (onPhone()) {
-        // A watching phone shows no piles: the seat cards' share rows, in the Players drawer off
+        // A watching phone shows no railroad cards: the seat cards' share rows, in the Players drawer off
         // screen, hold the spotlight. Pressed in place, so the drawer does not scroll the board.
         await page
-            .getByRole('region', { name: /^Ada, / })
+            .getByRole('region', { name: 'Ada', exact: true })
             .getByRole('button', { name: /^Red: / })
             .dispatchEvent('click')
     } else {

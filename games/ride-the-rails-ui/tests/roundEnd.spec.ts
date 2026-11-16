@@ -28,35 +28,42 @@ function roundNumber(page: Page): Promise<number | undefined> {
     return page.evaluate(() => window.rtrSession.gameState.roundManager.currentRound?.number)
 }
 
-/** The round the table shows: the turn line's current ticket, or its label on a phone. */
+/**
+ * The round the table shows: the turn line's current ticket, or below `lg`, where the six do not
+ * fit, the current round's ticket alone.
+ */
 async function shownRound(page: Page, round: number) {
+    const name = new RegExp(`^Round ${round}(,|$)`)
     if (isPhone()) {
-        await expect(page.getByText(new RegExp(`^R${round} · `))).toBeVisible()
+        await expect(page.getByLabel(name).filter({ visible: true })).toHaveCount(1)
         return
     }
-    await expect(
-        page.getByRole('listitem', { name: new RegExp(`^Round ${round}(,|$)`) })
-    ).toHaveAttribute('aria-current', 'step')
+    await expect(page.getByRole('listitem', { name })).toHaveAttribute('aria-current', 'step')
 }
 
-/** The seat cards, in turn order, as their names and places. */
+/** The seat cards' names, in the order the phase under way is played (no places are written). */
 async function shownOrder(page: Page, seats: readonly string[]) {
     const cards = page.locator('[data-flight-target^="seat:"]')
     await expect
         .poll(() => cards.evaluateAll((all) => all.map((card) => card.getAttribute('aria-label'))))
-        .toEqual(
-            seats.map((seat, index) => `${seat}, ${['1st', '2nd', '3rd', '4th', '5th'][index]}`)
-        )
+        .toEqual(seats)
 }
 
-/** A railroad's card on desktop, or its share button on a phone (a share step's only piles). */
+/** The action panel's Ride button; the map's floats beside the route ([data-map-ride]). */
+function panelRide(page: Page) {
+    return page
+        .getByRole('button', { name: 'Ride', exact: true })
+        .and(page.locator('button:not([data-map-ride])'))
+}
+
+/** A railroad's card on desktop, or its share button on a phone (the share step's only cards). */
 function railroadEntry(page: Page, name: string) {
     return page
         .getByRole('group', { name: 'Railroads' })
         .getByRole('button', { name: new RegExp(`^(Take an? )?${name}\\b`) })
 }
 
-test('18. End of round: money order with the tie swapped, round II, Orange; undo reverses it', async ({
+test('19. End of round: money order with the tie swapped, round II, Orange; undo reverses it', async ({
     page
 }) => {
     await openScenario(page, 'Round one ends')
@@ -66,21 +73,23 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     // R-1.4: Orange is not shown until its round.
     const orange = railroadEntry(page, 'Orange')
     await expect(orange).toHaveCount(0)
-    // A phone shows no piles while riding.
+    // A phone shows no railroad cards while riding.
     await expect(railroadEntry(page, 'Blue')).toHaveCount(isPhone() ? 0 : 1)
 
     // Dell rides the round's last journey, Washington to Baltimore by Blue.
     await pressHex(page, litHex(page, `Washington: ${START}`))
     await pressHex(page, litHex(page, 'Baltimore: link by Blue'))
-    await page.getByRole('button', { name: 'Ride · you +$3', exact: true }).click()
+    await expect(page.getByText('Dell $3', { exact: true })).toBeAttached()
+    await panelRide(page).click()
     await settled(page)
 
     // R-2.5.1: lowest money first; Ben and Dell tie at $4, so they swap places.
     expect(await moneyOf(page, 'p4')).toBe(4)
     expect(await moneyOf(page, 'p2')).toBe(4)
     expect(await turnOrder(page)).toEqual(['p4', 'p2', 'p3', 'p1'])
-    await shownOrder(page, ['Dell', 'Ben', 'Cora', 'Ada'])
-    // R-2.5.2, R-2.5.3: round 2 starts with Orange available, and phase 1 runs in reverse.
+    // R-2.5.2, R-2.5.3: round 2 starts with Orange available, and phase 1 runs in reverse, as
+    // the seat cards are ordered.
+    await shownOrder(page, ['Ada', 'Cora', 'Ben', 'Dell'])
     expect(await roundNumber(page)).toBe(2)
     await shownRound(page, 2)
     expect(await activePlayerId(page)).toBe('p1')
@@ -97,11 +106,11 @@ test('18. End of round: money order with the tie swapped, round II, Orange; undo
     await shownOrder(page, ['Ada', 'Ben', 'Cora', 'Dell'])
     await shownRound(page, 1)
     await expect(orange).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Ride/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Ride', exact: true })).toHaveCount(0)
     await expect(page.getByRole('heading', { name: 'Choose a passenger' })).toBeVisible()
 })
 
-test('19. Game end: final money in order, and both seats tied for most win', async ({ page }) => {
+test('20. Game end: final money in order, and both seats tied for most win', async ({ page }) => {
     await openScenario(page, 'Last journey')
     expect(await activePlayerId(page)).toBe('p3')
     expect(await roundNumber(page)).toBe(6)
@@ -115,7 +124,8 @@ test('19. Game end: final money in order, and both seats tied for most win', asy
         .getByRole('button', { name: /^Link by Yellow, / })
         .click()
     await settled(page)
-    await page.getByRole('button', { name: 'Ride · you +$5', exact: true }).click()
+    await expect(page.getByText('Cora $5', { exact: true })).toBeAttached()
+    await panelRide(page).click()
     await settled(page)
 
     // R-6.1, R-6.2: the game ends after round 6; Ada and Cora share the win.
@@ -126,11 +136,14 @@ test('19. Game end: final money in order, and both seats tied for most win', asy
     })
     await expect(headline).toBeVisible()
     await expect(page.getByText('tied for most money: both win', { exact: true })).toBeVisible()
-    // The standings follow the headline, most money first.
-    const standings = headline.locator('xpath=../following-sibling::div[1]')
-    await expect(standings.locator('span.rtr-display')).toHaveText(['$44', '$44', '$42'])
-    await expect(page.getByText('Ada · winner', { exact: true })).toBeVisible()
-    await expect(page.getByText('Cora · winner', { exact: true })).toBeVisible()
-    await expect(page.getByText('Ben', { exact: true }).first()).toBeAttached()
-    await expect(page.getByText('Ben · winner', { exact: true })).toHaveCount(0)
+    // The standings: a small table, most money first, the winners' rows marked; no shares.
+    const standings = page.getByRole('table', { name: 'Final money' })
+    await expect(standings.getByRole('row')).toHaveText([
+        /^1\s*Ada\s*\$44$/,
+        /^2\s*Cora\s*\$44$/,
+        /^3\s*Ben\s*\$42$/
+    ])
+    await expect(standings.locator('tr.winner')).toHaveCount(2)
+    await expect(standings.locator('tr.winner')).toContainText(['Ada', 'Cora'])
+    await expect(standings.locator('[data-cube], svg')).toHaveCount(0)
 })

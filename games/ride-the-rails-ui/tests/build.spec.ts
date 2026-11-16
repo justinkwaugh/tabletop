@@ -27,26 +27,44 @@ const EAST_COAST = [
     'Jacksonville'
 ]
 
-/** "2 of 5 placed" on desktop; on a phone the one-line panel's count, "2/5". */
-function placed(page: Page, text: string) {
-    const phone = test.info().project.use.isMobile === true
-    const shown = phone ? text.replace(/^(\d+) of (\d+) placed$/, '$1/$2') : text
-    return expect(page.getByText(shown, { exact: true })).toBeVisible()
+function actionPanel(page: Page) {
+    return page.locator('div.action')
+}
+
+/**
+ * The build panel's count, "2 / 5" in large figures (on desktop and on a phone alike), and its
+ * words for screen readers, "2 of 5 placed".
+ */
+async function placed(page: Page, text: string) {
+    const [, count, limit] = /^(\d+) of (\d+) placed$/.exec(text) ?? []
+    const figures = actionPanel(page).locator('.rtr-display', {
+        hasText: new RegExp(`^${count} / ${limit}(,|$)`)
+    })
+    await expect(figures).toBeVisible()
+    await expect(actionPanel(page).getByText(text)).toHaveCount(1)
 }
 
 function scrim(page: Page) {
     return board(page).locator('g.scrim path')
 }
 
-/** Ring outlines by kind: the bright lit ring (on its dark edge) and the fainter start ring. */
-function rings(page: Page, kind: 'lit' | 'start') {
-    const stroke = kind === 'start' ? 'var(--rtr-accent-start)' : 'var(--rtr-lit-bright)'
-    return board(page).locator(`g.picks polygon[stroke="${stroke}"]`)
+/** The picked hex's ring; a lit hex has none, only its hole in the scrim. */
+function pickedRing(page: Page) {
+    return board(page).locator('g.picks [data-ring="picked"]')
 }
 
-/** The ghost cubes in lit hexes, one for each railroad that may build there. */
-function ghostCubes(page: Page, railroadId: string) {
-    return board(page).locator(`g.picks [data-ghost="${railroadId}"]`)
+/** Every railroad's start band colours on the map, by the city they band. */
+function bandedCities(page: Page, railroadId: string): Promise<string[]> {
+    return board(page)
+        .locator(`[data-city-marks]:has([data-band-colour="${railroadId}"])`)
+        .evaluateAll((cities) =>
+            cities.map((city) => city.getAttribute('data-city-marks') ?? '').toSorted()
+        )
+}
+
+/** A city's own bonus pills on the map: "$2" for Chicago, "$5" for each $5 city not yet taken. */
+function bonusPills(page: Page, kind: 'chicago' | 'five') {
+    return board(page).locator(`g.bonuses [data-bonus="${kind}"]`)
 }
 
 function marks(page: Page, text: string) {
@@ -85,10 +103,17 @@ test('3. First placement: the East Coast lights, New York starts Red, undo', asy
     expect(await activePlayerId(page)).toBe('p1')
     await placed(page, '0 of 5 placed')
 
-    // R-4.2.1: Red starts in any East Coast city; nothing else lights and the rest dims.
+    await expect(
+        actionPanel(page).getByText('Choose spaces on the map to build track')
+    ).toHaveCount(test.info().project.use.isMobile ? 0 : 1)
+    await expect(actionPanel(page).getByRole('button', { name: 'Skip', exact: true })).toBeVisible()
+
+    // R-4.2.1: Red starts in any East Coast city; nothing else lights and the rest dims. A lit
+    // hex is a hole in the scrim, with no ring and no ghost cube.
     expect(await litLabels(page)).toEqual(EAST_COAST.map((city) => `${city}: start Red`))
-    await expect(ghostCubes(page, 'railroad.red')).toHaveCount(6)
     await expect(scrim(page)).toHaveCount(1)
+    await expect(board(page).locator('[data-ghost]')).toHaveCount(0)
+    await expect(board(page).locator('g.picks polygon')).toHaveCount(0)
 
     const flyers = await flyersDuring(page, () =>
         pressHex(page, litHex(page, 'New York: start Red'))
@@ -110,6 +135,7 @@ test('3. First placement: the East Coast lights, New York starts Red, undo', asy
     expect(await trackCount(page)).toBe(0)
     await placed(page, '0 of 5 placed')
     expect(await litLabels(page)).toEqual(EAST_COAST.map((city) => `${city}: start Red`))
+    await expect(actionPanel(page).getByRole('button', { name: 'Skip', exact: true })).toBeVisible()
 })
 
 test('4. Red and Blue never share an East Coast city', async ({ page }) => {
@@ -140,16 +166,18 @@ test('5. Two railroads possible: the popup, its undo, and choosing Blue', async 
     await expect(popup).toBeVisible()
     await expect(popup.getByRole('button', { name: /^Place Red, / })).toBeVisible()
     await expect(popup.getByRole('button', { name: /^Place Blue, / })).toBeVisible()
-    // The picked hex wears the heavier ring.
-    const widths = await rings(page, 'lit').evaluateAll((polygons) =>
-        polygons.map((polygon) => Number(polygon.getAttribute('stroke-width')))
-    )
-    expect(widths.filter((width) => width === Math.max(...widths))).toHaveLength(1)
+    // The picked hex alone wears a ring; its buttons are cubes with no words.
+    await expect(pickedRing(page)).toHaveCount(1)
+    for (const button of await popup.getByRole('button').all()) {
+        expect((await button.innerText()).trim()).toBe('')
+    }
+    await expect(actionPanel(page).getByRole('button', { name: 'Done', exact: true })).toBeVisible()
     expect(await trackCount(page)).toBe(before + 1)
 
     // Undo closes the popup and places nothing; a second Undo takes back the earlier placement.
     await undo(page)
     await expect(popup).toHaveCount(0)
+    await expect(pickedRing(page)).toHaveCount(0)
     expect(await trackCount(page)).toBe(before + 1)
     await placed(page, '1 of 5 placed')
     await undo(page)
@@ -194,7 +222,11 @@ test('6. Mountain limit: no mountain at 4 of 5, and a mountain lowers the limit'
     expect(climb).toBeDefined()
     await pressHex(page, litHex(page, climb ?? ''))
     await placed(page, '2 of 4 placed')
-    await expect(page.getByText(/Mountain used: limit 4$/)).toBeVisible()
+    // R-3.2.4: the rose −1 pill beside the count, said in words only for screen readers.
+    await expect(actionPanel(page).getByText('−1', { exact: true })).toBeVisible()
+    await expect(
+        actionPanel(page).locator('.sr-only', { hasText: 'Mountain used: limit 4' })
+    ).toHaveCount(1)
     for (let count = 3; count <= 4; count++) {
         const plain = (await litLabels(page)).find((label) => PLAIN_RED.test(label))
         expect(plain).toBeDefined()
@@ -215,20 +247,24 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     expect(await activePlayerId(page)).toBe('p1')
     const money = (await moneyOf(page, 'p1')) ?? 0
 
-    // R-4.3.1: Chicago pays $2 to the seat that places there.
+    // R-4.3.1: Chicago pays $2 to the seat that places there. The city's own pill shows it; the
+    // lit hex is not marked again.
     const chicago = litHex(page, 'Chicago: start Black, $2')
     await expect(chicago).toBeVisible()
-    await expect(marks(page, '$2')).toHaveCount(1)
+    await expect(bonusPills(page, 'chicago')).toHaveCount(1)
+    await expect(marks(page, '$2')).toHaveCount(0)
     const flyers = await flyersDuring(page, () => pressHex(page, chicago))
     expect(flyers).toContain('coin $2')
     expect(await moneyOf(page, 'p1')).toBe(money + 2)
+    await expect(bonusPills(page, 'chicago')).toHaveCount(1)
     await undo(page)
     expect(await moneyOf(page, 'p1')).toBe(money)
 
-    // R-4.3.2: an empty $5 city pays $5 to an adjacent railroad; a start there pays nothing.
-    // Its pill is green while the bonus is to be had and grey once a cube has used it up.
-    const denverPill = board(page).locator('[data-city-marks="city.usa.denver"] [data-bonus]')
-    await expect(denverPill).toHaveAttribute('data-bonus', 'five')
+    // R-4.3.2: an empty $5 city pays $5 to an adjacent railroad; a start there pays nothing and
+    // uses the bonus up. Its pill shows while the bonus is to be had and is gone once taken.
+    const fives = await bonusPills(page, 'five').count()
+    expect(fives).toBeGreaterThan(0)
+    await expect(marks(page, '$5')).toHaveCount(0)
     const denver = litHex(page, 'Denver: place Orange or start Black, $5')
     await expect(denver).toBeVisible()
     await pressHex(page, denver)
@@ -236,23 +272,26 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     const orange = popup.getByRole('button', { name: /^Place Orange, .*, pays \$5$/ })
     const black = popup.getByRole('button', { name: /^Start Black, / })
     await expect(orange).toBeVisible()
+    await expect(orange).toHaveText('+$5')
     await expect(black).toHaveAccessibleName(/pays nothing: a start uses up the \$5$/)
     await expect(black).not.toHaveAccessibleName(/pays \$5/)
+    await expect(black).toHaveText('')
     const blackFlyers = await flyersDuring(page, () => black.click())
     expect(blackFlyers.filter((kind) => kind.startsWith('coin'))).toEqual([])
     expect(await moneyOf(page, 'p1')).toBe(money)
     expect(await page.evaluate(() => window.rtrSession.gameState.track['hex.usa.8-22'])).toEqual([
         'railroad.black'
     ])
-    await expect(denverPill).toHaveAttribute('data-bonus', 'used')
+    await expect(bonusPills(page, 'five')).toHaveCount(fives - 1)
+    await expect(board(page).locator('[data-bonus="used"]')).toHaveCount(0)
 
     await undo(page)
-    await expect(denverPill).toHaveAttribute('data-bonus', 'five')
+    await expect(bonusPills(page, 'five')).toHaveCount(fives)
     await pressHex(page, litHex(page, 'Denver: place Orange or start Black, $5'))
     const orangeFlyers = await flyersDuring(page, () => orange.click())
     expect(orangeFlyers).toContain('coin $5')
     expect(await moneyOf(page, 'p1')).toBe(money + 5)
-    await expect(denverPill).toHaveAttribute('data-bonus', 'used')
+    await expect(bonusPills(page, 'five')).toHaveCount(fives - 1)
 })
 
 test('8. Transcontinental: $12 in a city, once; $8 elsewhere', async ({ page }) => {
@@ -342,12 +381,16 @@ test("9. Yellow's starts: Chicago or the westernmost set, and only one", async (
             .filter((label) => /start Yellow/.test(label))
             .map((label) => label.split(':')[0])
             .toSorted()
-    const yellowCues = board(page).locator('[data-start-cue="railroad.yellow"]')
 
     // R-4.2.3: Chicago and the westernmost occupied cities holding exactly one locomotive.
     expect(await yellowStarts()).toEqual(['Chicago', 'Des Moines', 'Kansas City', 'Omaha'])
-    expect(await ghostCubes(page, 'railroad.yellow').count()).toBeGreaterThanOrEqual(4)
-    await expect(yellowCues).toHaveCount(4)
+    // Every seat sees Yellow join those cities' start bands; Chicago's is printed.
+    expect(await bandedCities(page, 'railroad.yellow')).toEqual([
+        'city.usa.chicago',
+        'city.usa.des-moines',
+        'city.usa.kansas-city',
+        'city.usa.omaha'
+    ])
 
     const chicago = litHexAt(page, 'hex.usa.5-43')
     await pressHex(page, chicago)
@@ -359,8 +402,8 @@ test("9. Yellow's starts: Chicago or the westernmost set, and only one", async (
     expect(await page.evaluate(() => window.rtrSession.gameState.track['hex.usa.5-43'])).toContain(
         'railroad.yellow'
     )
-    // R-4.2.3: one start only. The western cities no longer light for Yellow, its cues are
-    // gone, and Yellow lights only next to Chicago (R-4.1.2).
+    // R-4.2.3: one start only. The western cities no longer light for Yellow, it leaves their
+    // bands, and Yellow lights only next to Chicago (R-4.1.2).
     const nextToChicago = [
         'hex.usa.4-42',
         'hex.usa.4-44',
@@ -378,7 +421,7 @@ test("9. Yellow's starts: Chicago or the westernmost set, and only one", async (
             )
         ).toSorted()
     expect(await yellowStarts()).toEqual([])
-    await expect(yellowCues).toHaveCount(0)
+    await expect.poll(() => bandedCities(page, 'railroad.yellow')).toEqual(['city.usa.chicago'])
     expect(await yellowLit()).not.toEqual([])
     for (const hexId of await yellowLit()) expect(nextToChicago).toContain(hexId)
 
@@ -388,25 +431,26 @@ test("9. Yellow's starts: Chicago or the westernmost set, and only one", async (
         await pressHex(page, litHexAt(page, hexId))
     }
     expect(await yellowStarts()).toEqual([])
-    await expect(yellowCues).toHaveCount(0)
+    expect(await bandedCities(page, 'railroad.yellow')).toEqual(['city.usa.chicago'])
 })
 
-test('9. Black unstarted in round 5: nearly every city lit, start rings for Black only', async ({
+test('9. Black unstarted in round 5: nearly every city lit, starts and extensions alike', async ({
     page
 }) => {
     await openScenario(page, 'Black unstarted')
     const labels = await litLabels(page)
-    const startOnly = labels.filter((label) => /^[^:]+: start Black(, \$\d+)?$/.test(label))
     // R-4.2.5: Black may start in any city with room, so most cities light.
     expect(labels.filter((label) => label.includes('start Black')).length).toBeGreaterThan(40)
-    await expect(rings(page, 'start')).toHaveCount(startOnly.length)
-    await expect(rings(page, 'lit')).toHaveCount(labels.length - startOnly.length)
+    expect(labels.some((label) => /^[^:]+: start Black(, \$\d+)?$/.test(label))).toBe(true)
+    // A city lit for a start only is lit as any other: a hole in the scrim, with no ring.
+    await expect(board(page).locator('g.picks polygon')).toHaveCount(0)
+    await expect(scrim(page)).toHaveCount(1)
     await expect(litHex(page, 'Buffalo: place Red or start Black')).toBeVisible()
 })
 
-test('10. Build nothing: the next seat builds; undo restores the turn', async ({ page }) => {
+test('10. Skip: the next seat builds; undo restores the turn', async ({ page }) => {
     await openScenario(page, 'First placement')
-    await page.getByRole('button', { name: 'Build nothing', exact: true }).click()
+    await page.getByRole('button', { name: 'Skip', exact: true }).click()
     await settled(page)
     // R-3.2.1: a seat may place no locomotive at all.
     await expect.poll(() => activePlayerId(page)).toBe('p2')
@@ -416,6 +460,6 @@ test('10. Build nothing: the next seat builds; undo restores the turn', async ({
     await undo(page)
     await expect.poll(() => activePlayerId(page)).toBe('p1')
     await placed(page, '0 of 5 placed')
-    await expect(page.getByRole('button', { name: 'Build nothing', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible()
     expect(await litLabels(page)).toEqual(EAST_COAST.map((city) => `${city}: start Red`))
 })

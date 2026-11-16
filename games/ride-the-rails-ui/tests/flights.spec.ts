@@ -2,10 +2,10 @@ import { expect, test, type Page } from '@playwright/test'
 import { collectPageErrors, litHex, openScenario, pressHex, settled } from './helpers.js'
 
 // The contract's Animation plan: the board holds only the map, so the flights lift from and land
-// on what the table shows beside it (the supply piles on the railroad cards, or on a phone in the
-// action panel,
-// the seat cards, the Transcontinental chip in the turn line), the round steps on the turn line's
-// tickets at the end of a round, and the railroad it makes available brightens in.
+// on what the table shows beside it (the supply cube on the railroad cards, or on a phone the share
+// buttons and the build panel's cards; the seat cards' share slots and money; the Transcontinental
+// chip in the turn line), the round steps on the turn line's tickets at the end of a round, and the
+// railroad it makes available brightens in.
 collectPageErrors()
 
 const onPhone = () => test.info().project.use.isMobile === true
@@ -63,21 +63,28 @@ function inView(spot: Spot, view: { width: number; height: number }): boolean {
     return spot.x >= 0 && spot.y >= 0 && spot.x <= view.width && spot.y <= view.height
 }
 
-/** Whether a spot is on a box, or as near it as the view allows when the box is partly beyond. */
+/**
+ * Whether a spot is on a box, or as near it as the view allows when the box is partly or wholly
+ * beyond (a phone's closed Players drawer holds the seat cards off screen).
+ */
 function onOrBeside(spot: Spot, box: Box, view: { width: number; height: number }): boolean {
     const near = 16
-    const left = Math.max(box.left, 0) - near
-    const right = Math.min(box.right, view.width) + near
-    const top = Math.max(box.top, 0) - near
-    const bottom = Math.min(box.bottom, view.height) + near
+    const clamp = (value: number, size: number) => Math.min(Math.max(value, 0), size)
+    const left = clamp(box.left, view.width) - near
+    const right = clamp(box.right, view.width) + near
+    const top = clamp(box.top, view.height) - near
+    const bottom = clamp(box.bottom, view.height) + near
     return spot.x >= left && spot.x <= right && spot.y >= top && spot.y <= bottom
 }
 
-test('A share lifts from its supply pile and lands on the seat card', async ({ page }) => {
+test('A share lifts from its supply cube and lands in its slot on the seat card', async ({
+    page
+}) => {
     await openScenario(page, 'First share')
     await settled(page)
     const [source] = await targetBoxes(page, 'supply:railroad.red')
-    const [shares] = await targetBoxes(page, 'seat:p4')
+    // Dell holds no share yet: the share fills his first slot.
+    const [shares] = await targetBoxes(page, 'share-slot:p4:0')
     expect(source).toBeDefined()
     expect(shares).toBeDefined()
 
@@ -96,7 +103,7 @@ test('A share lifts from its supply pile and lands on the seat card', async ({ p
     expect(path.every((spot) => inView(spot, view))).toBe(true)
 })
 
-test('A placement’s locomotive lifts from its pile: the card, or on a phone the build panel', async ({
+test('A placement’s locomotive lifts from its supply cube: the card, or on a phone the build panel’s card', async ({
     page
 }) => {
     await openScenario(page, 'First placement')
@@ -104,17 +111,15 @@ test('A placement’s locomotive lifts from its pile: the card, or on a phone th
     const piles = await targetBoxes(page, 'supply:railroad.red')
     expect(piles).toHaveLength(1)
     const [pile] = piles
-    // On a phone the one pile is the build panel's, in the action area above the board.
+    // On a phone the one cube is the build panel's card, in the action area above the board.
     const inPanel = await page
         .locator('[data-flight-target="supply:railroad.red"]')
         .evaluate((element) => element.closest('[role="group"][aria-label="Railroads"]') !== null)
     expect(inPanel).toBe(true)
     if (onPhone()) {
-        const panel = page.getByRole('button', { name: 'Build nothing', exact: true })
-        const button = await panel.boundingBox()
-        expect(
-            button && pile && Math.abs(button.y + button.height / 2 - (pile.top + pile.bottom) / 2)
-        ).toBeLessThan(20)
+        // The cards stand below the count and Skip.
+        const skip = await page.getByRole('button', { name: 'Skip', exact: true }).boundingBox()
+        expect(skip && pile && pile.top >= skip.y + skip.height).toBe(true)
     }
 
     await recordFlyers(page)
@@ -192,7 +197,10 @@ test('The end of round steps the round and brightens the railroad it makes avail
         }
         watch()
     })
-    await page.getByRole('button', { name: 'Ride · you +$3', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Ride', exact: true })
+        .and(page.locator('button:not([data-map-ride])'))
+        .click()
     await settled(page)
 
     const seen = await page.evaluate(() => JSON.stringify(Reflect.get(window, 'rtrRoundEnd')))
@@ -208,7 +216,8 @@ test('The end of round steps the round and brightens the railroad it makes avail
         expect(orange).toContain(0)
         expect(orange.some((opacity) => opacity > 0.3 && opacity < 0.95)).toBe(true)
     }
-    // Ada takes a share next: Orange's card (on a phone, its pile) is a share button.
+    // Ada takes a share next: Orange's card (on a phone, among the panel's buttons) is a share
+    // button.
     await expect(
         entries.getByRole('button', { name: 'Take an Orange share, 27 left', exact: true })
     ).toBeVisible()

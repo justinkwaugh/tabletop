@@ -139,7 +139,10 @@ async function rideAndMeasure(page: Page) {
     await pressHex(page, litHex(page, 'Washington: start a journey with its passenger'))
     await pressHex(page, litHex(page, 'Baltimore: link by Blue'))
     await watchLandings(page)
-    await page.getByRole('button', { name: 'Ride · you +$3', exact: true }).click()
+    await page
+        .getByRole('button', { name: 'Ride', exact: true })
+        .and(page.locator('button:not([data-map-ride])'))
+        .click()
     await settled(page)
     const passenger = await landing(page, 'flyer:passenger:')
     expect(Math.abs(passenger.dx)).toBeLessThanOrEqual(1)
