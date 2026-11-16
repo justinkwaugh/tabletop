@@ -16,7 +16,10 @@
     const { api } = getAppContext()
     let schedule = $state<TournamentSchedule>()
     let placeId = $state('')
-    let mode = $state<'substitute' | 'withdraw'>('substitute')
+    // A Knockout place takes no Substitute: a withdrawal forfeits the Match.
+    let knockout = $derived(detail.tournament.format.kind === 'knockout')
+    let chosenMode = $state<'substitute' | 'withdraw'>('substitute')
+    let mode = $derived(knockout ? 'withdraw' : chosenMode)
     let substitute = $state('')
     let handovers = $state<Record<string, TournamentTableHandover>>({})
     let busy = $state(false)
@@ -96,8 +99,13 @@
 >
     <h2 class="font-tournament text-lg font-semibold">Replace a player</h2>
     <p class="mt-1 text-xs text-gray-500">
-        A substitute takes over the player's place and finishes their games. A withdrawn player's
-        unfinished games don't count for anyone.
+        {#if knockout}
+            A withdrawn player forfeits their match and their opponent goes through. Knockout places
+            take no substitutes.
+        {:else}
+            A substitute takes over the player's place and finishes their games. A withdrawn
+            player's unfinished games don't count for anyone.
+        {/if}
     </p>
     {#if error}<p role="alert" class="mt-2 text-xs text-red-600 dark:text-red-300">{error}</p>{/if}
     <form
@@ -137,15 +145,25 @@
                 disabled={busy}>Finish withdrawing {name(playing)}</button
             >
         {:else if place}
-            <fieldset disabled={busy} class="flex gap-4 text-sm">
-                <legend class="sr-only">Replace with</legend>
-                <label class="flex items-center gap-2"
-                    ><input type="radio" value="substitute" bind:group={mode} />Substitute</label
-                >
-                <label class="flex items-center gap-2"
-                    ><input type="radio" value="withdraw" bind:group={mode} />Withdraw</label
-                >
-            </fieldset>
+            {#if !knockout}
+                <fieldset disabled={busy} class="flex gap-4 text-sm">
+                    <legend class="sr-only">Replace with</legend>
+                    <label class="flex items-center gap-2"
+                        ><input
+                            type="radio"
+                            value="substitute"
+                            bind:group={chosenMode}
+                        />Substitute</label
+                    >
+                    <label class="flex items-center gap-2"
+                        ><input
+                            type="radio"
+                            value="withdraw"
+                            bind:group={chosenMode}
+                        />Withdraw</label
+                    >
+                </fieldset>
+            {/if}
             {#if mode === 'substitute'}
                 <label class="block text-xs" for="tournament-substitute">Substitute</label>
                 <input
@@ -196,6 +214,11 @@
                     {detail.tournament.league
                         ? `${name(playing)} is dropped. The substitute's place can't move up or down, and they start next season in the bottom level.`
                         : `${name(playing)} is dropped. The substitute's place can't win the tournament.`}
+                </p>
+            {:else if knockout}
+                <p class="text-xs text-gray-500">
+                    {name(playing)}'s unfinished games end and count for nobody, and their opponent
+                    goes through. Matches they already won stand, and they won't be ranked.
                 </p>
             {:else}
                 <p class="text-xs text-gray-500">

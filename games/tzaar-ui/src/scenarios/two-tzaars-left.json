@@ -1,0 +1,207 @@
+{
+    "game": {
+        "id": "scenario-two-tzaars-left",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "tzaar",
+        "deleted": false,
+        "name": "Two Tzaars left",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "version": "Fixed",
+            "whitePlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3367980177,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-16T17:34:07.583Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-16T17:34:07.584Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "hztTjZUHNmWADt6GtvaZM",
+        "gameId": "scenario-two-tzaars-left",
+        "seed": 3367980177,
+        "prng": {
+            "seed": 3367980177,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+            "invocations": 0
+        },
+        "masterSeed": "0123456789abcdef0123456789abcdef",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white"
+            },
+            {
+                "playerId": "player-2",
+                "color": "black"
+            }
+        ],
+        "machineState": "Capturing",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            },
+            "seriesKeeps": "latest"
+        },
+        "board": {
+            "stacks": [
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 4
+                    },
+                    "pieces": [
+                        {
+                            "id": 0,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        },
+                        {
+                            "id": 1,
+                            "playerId": "player-1",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    },
+                    "pieces": [
+                        {
+                            "id": 2,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 3
+                    },
+                    "pieces": [
+                        {
+                            "id": 3,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        },
+                        {
+                            "id": 4,
+                            "playerId": "player-1",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "pieces": [
+                        {
+                            "id": 5,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "pieces": [
+                        {
+                            "id": 6,
+                            "playerId": "player-2",
+                            "kind": "tzaar"
+                        },
+                        {
+                            "id": 7,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "pieces": [
+                        {
+                            "id": 8,
+                            "playerId": "player-2",
+                            "kind": "tzarra"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "pieces": [
+                        {
+                            "id": 9,
+                            "playerId": "player-2",
+                            "kind": "tott"
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -4
+                    },
+                    "pieces": [
+                        {
+                            "id": 10,
+                            "playerId": "player-1",
+                            "kind": "tzaar"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "actions": []
+}

@@ -14,7 +14,9 @@ export const BaseConfigOption = Type.Object({
     type: Type.Enum(ConfigOptionType),
     name: Type.String(),
     description: Type.String(),
-    alwaysShow: Type.Optional(Type.Boolean())
+    alwaysShow: Type.Optional(Type.Boolean()),
+    // Shown in place of the option at a table whose seats are assigned, where the seat decides it.
+    seatedValue: Type.Optional(Type.String())
 })
 
 export type BooleanConfigOption = Type.Static<typeof BooleanConfigOption>

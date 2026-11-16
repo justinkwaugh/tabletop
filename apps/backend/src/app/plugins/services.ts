@@ -90,9 +90,9 @@ declare module 'fastify' {
         secretsService: SecretsService
         gameService: GameService
         notificationService: NotificationService
-        pubSubService: PubSubService
         discordService: DiscordService
-        ablyService: AblyService
+        ablyService: AblyService | undefined
+        ssePubSub: PubSubService | undefined
         chatService: ChatService
         cacheService: RedisCacheService
         rateLimitCounter: RateLimitCounter
@@ -121,6 +121,7 @@ const SITE_MANIFEST_PATH =
 
 const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
+const useSseRealtime = process.env['ENABLE_SSE_REALTIME'] === 'true'
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
 const BUG_REPORT_DATA_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_DATA_CHANNEL_ID']
 const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
@@ -173,17 +174,17 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         clientSecret: () => secretsService.getSecret('DISCORD_SECRET')
     })
 
-    let pubSubService: PubSubService = new NullPubSubService()
-    if (!useAbly) {
+    let ssePubSub: PubSubService | undefined
+    if (useSseRealtime) {
         const redisPubSubService = await RedisPubSubService.createPubSubService(redisService)
         fastify.addHook('onClose', async () => redisPubSubService.destroy())
-        pubSubService = redisPubSubService
+        ssePubSub = redisPubSubService
     }
 
     const notificationStore = new FirestoreNotificationStore(redisCacheService, fastify.firestore)
     const notificationService = await DefaultNotificationService.createNotificationService(
         notificationStore,
-        pubSubService
+        ssePubSub ?? new NullPubSubService()
     )
 
     const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore, {
@@ -228,13 +229,15 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     const webPushTransport = await WebPushTransport.createWebPushTransport(secretsService)
     notificationService.addTransport(webPushTransport)
 
+    let ablyService: AblyService | undefined
     if (useAbly) {
         const ablyTransport = await AblyTransport.createAblyTransport(secretsService)
         notificationService.addTopicTransport(ablyTransport)
-        const ablyService = await AblyService.createAblyService(secretsService)
-        fastify.decorate('ablyService', ablyService)
+        ablyService = await AblyService.createAblyService(secretsService)
     }
-    if (!useAbly || useRealtimeRelay) {
+    fastify.decorate('ablyService', ablyService)
+    fastify.decorate('ssePubSub', ssePubSub)
+    if (useRealtimeRelay || useSseRealtime) {
         notificationService.addTopicTransport(new PubSubTransport(new RedisPublisher(redisService)))
     }
     fastify.decorate(
@@ -331,7 +334,6 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     fastify.decorate('gameService', gameService)
     fastify.decorate('libraryService', libraryService)
     fastify.decorate('catalogService', catalogService)
-    fastify.decorate('pubSubService', pubSubService)
     fastify.decorate('notificationService', notificationService)
     fastify.decorate('discordService', discordService)
     fastify.decorate('chatService', chatService)

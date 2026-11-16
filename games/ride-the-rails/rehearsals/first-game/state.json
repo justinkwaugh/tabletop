@@ -1,0 +1,956 @@
+{
+  "systemVersion": 3,
+  "id": "2fymQuz1oRSk9iT537mnF",
+  "gameId": "ride-the-rails-test",
+  "seed": 1695749942,
+  "prng": {
+    "seed": 1695749942,
+    "invocations": 742
+  },
+  "protectedPrng": {
+    "algorithm": "chacha20-v1",
+    "seed": "83a62660760639043fd2db1011d12ae63bcc98441e130128c0f8c99a73de1119",
+    "invocations": 0
+  },
+  "masterSeed": "0123456789abcdef0123456789abcd01",
+  "activePlayerIds": [],
+  "winningPlayerIds": [
+    "p2"
+  ],
+  "actionCount": 163,
+  "actionChecksum": 1830150154,
+  "result": "Win",
+  "players": [
+    {
+      "playerId": "p1",
+      "color": "pink",
+      "money": 30,
+      "shares": {
+        "railroad.blue": 1,
+        "railroad.orange": 1,
+        "railroad.red": 3,
+        "railroad.purple": 1
+      }
+    },
+    {
+      "playerId": "p2",
+      "color": "gray",
+      "money": 35,
+      "shares": {
+        "railroad.blue": 2,
+        "railroad.yellow": 1,
+        "railroad.red": 1,
+        "railroad.black": 2
+      }
+    },
+    {
+      "playerId": "p3",
+      "color": "brown",
+      "money": 34,
+      "shares": {
+        "railroad.blue": 1,
+        "railroad.orange": 2,
+        "railroad.yellow": 2,
+        "railroad.purple": 1
+      }
+    },
+    {
+      "playerId": "p4",
+      "color": "green",
+      "money": 28,
+      "shares": {
+        "railroad.red": 2,
+        "railroad.orange": 2,
+        "railroad.purple": 1,
+        "railroad.black": 1
+      }
+    }
+  ],
+  "machineState": "Ended",
+  "turnManager": {
+    "series": [
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 0,
+        "end": 1
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 1,
+        "end": 2
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 2,
+        "end": 3
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 3,
+        "end": 4
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 4,
+        "end": 6
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 6,
+        "end": 12
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 12,
+        "end": 17
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 17,
+        "end": 23
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 23,
+        "end": 24
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 24,
+        "end": 25
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 25,
+        "end": 26
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 26,
+        "end": 27
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 28,
+        "end": 29
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 29,
+        "end": 30
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 30,
+        "end": 31
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 31,
+        "end": 32
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 32,
+        "end": 38
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 38,
+        "end": 43
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 43,
+        "end": 48
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 48,
+        "end": 54
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 54,
+        "end": 55
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 55,
+        "end": 56
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 56,
+        "end": 57
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 57,
+        "end": 58
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 59,
+        "end": 60
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 60,
+        "end": 61
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 61,
+        "end": 62
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 62,
+        "end": 63
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 63,
+        "end": 68
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 68,
+        "end": 73
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 73,
+        "end": 75
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 75,
+        "end": 81
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 81,
+        "end": 82
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 82,
+        "end": 83
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 83,
+        "end": 84
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 84,
+        "end": 85
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 86,
+        "end": 87
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 87,
+        "end": 88
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 88,
+        "end": 89
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 89,
+        "end": 90
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 90,
+        "end": 93
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 93,
+        "end": 99
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 99,
+        "end": 101
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 101,
+        "end": 106
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 106,
+        "end": 107
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 107,
+        "end": 108
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 108,
+        "end": 109
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 109,
+        "end": 110
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 111,
+        "end": 112
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 112,
+        "end": 113
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 113,
+        "end": 114
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 114,
+        "end": 115
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 115,
+        "end": 117
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 117,
+        "end": 122
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 122,
+        "end": 125
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 125,
+        "end": 127
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 127,
+        "end": 128
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 128,
+        "end": 129
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 129,
+        "end": 130
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 130,
+        "end": 131
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 132,
+        "end": 133
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 133,
+        "end": 134
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 134,
+        "end": 135
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 135,
+        "end": 136
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 136,
+        "end": 142
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 142,
+        "end": 147
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 147,
+        "end": 152
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 152,
+        "end": 158
+      },
+      {
+        "type": "turn",
+        "playerId": "p2",
+        "start": 158,
+        "end": 159
+      },
+      {
+        "type": "turn",
+        "playerId": "p1",
+        "start": 159,
+        "end": 160
+      },
+      {
+        "type": "turn",
+        "playerId": "p3",
+        "start": 160,
+        "end": 161
+      },
+      {
+        "type": "turn",
+        "playerId": "p4",
+        "start": 161,
+        "end": 162
+      }
+    ],
+    "turnOrder": [
+      "p2",
+      "p1",
+      "p3",
+      "p4"
+    ],
+    "turnCounts": {
+      "p1": 18,
+      "p2": 18,
+      "p3": 18,
+      "p4": 18
+    }
+  },
+  "rideTheRailsRevision": 1,
+  "mapId": "map.usa",
+  "roundManager": {
+    "series": [
+      {
+        "type": "round",
+        "start": 0,
+        "number": 1,
+        "end": 28
+      },
+      {
+        "type": "round",
+        "start": 28,
+        "number": 2,
+        "end": 59
+      },
+      {
+        "type": "round",
+        "start": 59,
+        "number": 3,
+        "end": 86
+      },
+      {
+        "type": "round",
+        "start": 86,
+        "number": 4,
+        "end": 111
+      },
+      {
+        "type": "round",
+        "start": 111,
+        "number": 5,
+        "end": 132
+      },
+      {
+        "type": "round",
+        "start": 132,
+        "number": 6,
+        "end": 163
+      }
+    ]
+  },
+  "phaseManager": {
+    "series": [
+      {
+        "type": "phase",
+        "start": 0,
+        "name": "take-share",
+        "end": 4
+      },
+      {
+        "type": "phase",
+        "start": 4,
+        "name": "build",
+        "end": 23
+      },
+      {
+        "type": "phase",
+        "start": 23,
+        "name": "ride",
+        "end": 28
+      },
+      {
+        "type": "phase",
+        "start": 28,
+        "name": "take-share",
+        "end": 32
+      },
+      {
+        "type": "phase",
+        "start": 32,
+        "name": "build",
+        "end": 54
+      },
+      {
+        "type": "phase",
+        "start": 54,
+        "name": "ride",
+        "end": 59
+      },
+      {
+        "type": "phase",
+        "start": 59,
+        "name": "take-share",
+        "end": 63
+      },
+      {
+        "type": "phase",
+        "start": 63,
+        "name": "build",
+        "end": 81
+      },
+      {
+        "type": "phase",
+        "start": 81,
+        "name": "ride",
+        "end": 86
+      },
+      {
+        "type": "phase",
+        "start": 86,
+        "name": "take-share",
+        "end": 90
+      },
+      {
+        "type": "phase",
+        "start": 90,
+        "name": "build",
+        "end": 106
+      },
+      {
+        "type": "phase",
+        "start": 106,
+        "name": "ride",
+        "end": 111
+      },
+      {
+        "type": "phase",
+        "start": 111,
+        "name": "take-share",
+        "end": 115
+      },
+      {
+        "type": "phase",
+        "start": 115,
+        "name": "build",
+        "end": 127
+      },
+      {
+        "type": "phase",
+        "start": 127,
+        "name": "ride",
+        "end": 132
+      },
+      {
+        "type": "phase",
+        "start": 132,
+        "name": "take-share",
+        "end": 136
+      },
+      {
+        "type": "phase",
+        "start": 136,
+        "name": "build",
+        "end": 158
+      },
+      {
+        "type": "phase",
+        "start": 158,
+        "name": "ride",
+        "end": 163
+      }
+    ]
+  },
+  "track": {
+    "hex.usa.11-55": [
+      "railroad.blue"
+    ],
+    "hex.usa.11-53": [
+      "railroad.blue"
+    ],
+    "hex.usa.10-52": [
+      "railroad.blue"
+    ],
+    "hex.usa.12-52": [
+      "railroad.blue"
+    ],
+    "hex.usa.11-51": [
+      "railroad.blue"
+    ],
+    "hex.usa.13-51": [
+      "railroad.blue"
+    ],
+    "hex.usa.9-51": [
+      "railroad.blue"
+    ],
+    "hex.usa.9-53": [
+      "railroad.blue",
+      "railroad.red"
+    ],
+    "hex.usa.11-49": [
+      "railroad.blue"
+    ],
+    "hex.usa.8-52": [
+      "railroad.blue"
+    ],
+    "hex.usa.6-60": [
+      "railroad.red"
+    ],
+    "hex.usa.6-58": [
+      "railroad.red"
+    ],
+    "hex.usa.7-57": [
+      "railroad.red"
+    ],
+    "hex.usa.5-61": [
+      "railroad.red"
+    ],
+    "hex.usa.4-62": [
+      "railroad.red"
+    ],
+    "hex.usa.7-51": [
+      "railroad.blue"
+    ],
+    "hex.usa.7-49": [
+      "railroad.blue"
+    ],
+    "hex.usa.6-52": [
+      "railroad.blue"
+    ],
+    "hex.usa.12-50": [
+      "railroad.blue"
+    ],
+    "hex.usa.6-50": [
+      "railroad.blue"
+    ],
+    "hex.usa.5-43": [
+      "railroad.orange"
+    ],
+    "hex.usa.10-54": [
+      "railroad.blue"
+    ],
+    "hex.usa.6-54": [
+      "railroad.blue"
+    ],
+    "hex.usa.12-48": [
+      "railroad.blue"
+    ],
+    "hex.usa.10-50": [
+      "railroad.blue"
+    ],
+    "hex.usa.12-46": [
+      "railroad.blue",
+      "railroad.yellow"
+    ],
+    "hex.usa.10-48": [
+      "railroad.blue"
+    ],
+    "hex.usa.6-42": [
+      "railroad.orange"
+    ],
+    "hex.usa.5-45": [
+      "railroad.orange"
+    ],
+    "hex.usa.7-43": [
+      "railroad.orange"
+    ],
+    "hex.usa.6-40": [
+      "railroad.orange"
+    ],
+    "hex.usa.5-63": [
+      "railroad.red"
+    ],
+    "hex.usa.8-56": [
+      "railroad.red"
+    ],
+    "hex.usa.8-42": [
+      "railroad.orange"
+    ],
+    "hex.usa.5-39": [
+      "railroad.orange"
+    ],
+    "hex.usa.6-56": [
+      "railroad.red"
+    ],
+    "hex.usa.7-55": [
+      "railroad.red"
+    ],
+    "hex.usa.5-55": [
+      "railroad.red"
+    ],
+    "hex.usa.8-48": [
+      "railroad.blue",
+      "railroad.yellow"
+    ],
+    "hex.usa.5-37": [
+      "railroad.orange"
+    ],
+    "hex.usa.7-39": [
+      "railroad.orange"
+    ],
+    "hex.usa.11-47": [
+      "railroad.yellow"
+    ],
+    "hex.usa.8-46": [
+      "railroad.blue",
+      "railroad.yellow"
+    ],
+    "hex.usa.10-46": [
+      "railroad.yellow"
+    ],
+    "hex.usa.9-47": [
+      "railroad.yellow"
+    ],
+    "hex.usa.0-4": [
+      "railroad.purple"
+    ],
+    "hex.usa.9-41": [
+      "railroad.orange"
+    ],
+    "hex.usa.4-56": [
+      "railroad.red"
+    ],
+    "hex.usa.13-45": [
+      "railroad.yellow"
+    ],
+    "hex.usa.4-58": [
+      "railroad.red"
+    ],
+    "hex.usa.11-45": [
+      "railroad.yellow"
+    ],
+    "hex.usa.1-3": [
+      "railroad.purple"
+    ],
+    "hex.usa.1-5": [
+      "railroad.purple"
+    ],
+    "hex.usa.10-44": [
+      "railroad.yellow"
+    ],
+    "hex.usa.8-40": [
+      "railroad.orange"
+    ],
+    "hex.usa.1-7": [
+      "railroad.purple"
+    ],
+    "hex.usa.12-44": [
+      "railroad.yellow"
+    ],
+    "hex.usa.12-10": [
+      "railroad.black"
+    ],
+    "hex.usa.12-12": [
+      "railroad.black"
+    ],
+    "hex.usa.13-11": [
+      "railroad.black"
+    ],
+    "hex.usa.11-9": [
+      "railroad.black"
+    ],
+    "hex.usa.8-54": [
+      "railroad.red"
+    ],
+    "hex.usa.8-38": [
+      "railroad.orange"
+    ],
+    "hex.usa.12-14": [
+      "railroad.black"
+    ],
+    "hex.usa.11-15": [
+      "railroad.black"
+    ],
+    "hex.usa.10-14": [
+      "railroad.black"
+    ],
+    "hex.usa.10-42": [
+      "railroad.yellow",
+      "railroad.orange"
+    ],
+    "hex.usa.13-13": [
+      "railroad.black"
+    ],
+    "hex.usa.2-4": [
+      "railroad.purple"
+    ],
+    "hex.usa.11-41": [
+      "railroad.orange"
+    ],
+    "hex.usa.3-59": [
+      "railroad.red"
+    ],
+    "hex.usa.9-43": [
+      "railroad.yellow"
+    ],
+    "hex.usa.12-40": [
+      "railroad.orange"
+    ],
+    "hex.usa.2-6": [
+      "railroad.purple"
+    ],
+    "hex.usa.11-43": [
+      "railroad.orange"
+    ],
+    "hex.usa.11-39": [
+      "railroad.orange"
+    ],
+    "hex.usa.11-37": [
+      "railroad.orange"
+    ],
+    "hex.usa.6-44": [
+      "railroad.orange"
+    ],
+    "hex.usa.3-3": [
+      "railroad.purple"
+    ],
+    "hex.usa.3-7": [
+      "railroad.purple"
+    ]
+  },
+  "passengers": [
+    "city.usa.baltimore",
+    "city.usa.billings",
+    "city.usa.bismarck",
+    "city.usa.boise",
+    "city.usa.buffalo",
+    "city.usa.butte",
+    "city.usa.cheyenne",
+    "city.usa.corpus-christi",
+    "city.usa.dallas",
+    "city.usa.denver",
+    "city.usa.detroit",
+    "city.usa.el-paso",
+    "city.usa.fargo",
+    "city.usa.green-bay",
+    "city.usa.houston",
+    "city.usa.jacksonville",
+    "city.usa.kansas-city",
+    "city.usa.los-angeles",
+    "city.usa.miami",
+    "city.usa.milwaukee",
+    "city.usa.minneapolis",
+    "city.usa.new-orleans",
+    "city.usa.oklahoma-city",
+    "city.usa.omaha",
+    "city.usa.phoenix",
+    "city.usa.pocatello",
+    "city.usa.portland-me",
+    "city.usa.rapid-city",
+    "city.usa.reno",
+    "city.usa.salt-lake-city",
+    "city.usa.san-francisco",
+    "city.usa.santa-fe",
+    "city.usa.seattle",
+    "city.usa.spokane",
+    "city.usa.tampa"
+  ]
+}

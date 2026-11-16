@@ -1,0 +1,222 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-primary-50: #fff5f2;
+    --color-primary-100: #fff1ee;
+    --color-primary-200: #ffe4de;
+    --color-primary-300: #ffd5cc;
+    --color-primary-400: #ffbcad;
+    --color-primary-500: #fe795d;
+    --color-primary-600: #ef562f;
+    --color-primary-700: #eb4f27;
+    --color-primary-800: #cc4522;
+    --color-primary-900: #a5371b;
+
+    --color-secondary-50: #f0f9ff;
+    --color-secondary-100: #e0f2fe;
+    --color-secondary-200: #bae6fd;
+    --color-secondary-300: #7dd3fc;
+    --color-secondary-400: #38bdf8;
+    --color-secondary-500: #0ea5e9;
+    --color-secondary-600: #0284c7;
+    --color-secondary-700: #0369a1;
+    --color-secondary-800: #075985;
+    --color-secondary-900: #0c4a6e;
+}
+
+/* Ride the Rails' palette: the art plan's "Palette" section. Components name these, never a raw
+   colour. The scope plugin in postcss.config.js rewrites `:root` to the title root,
+   `[data-game-ui="ride-the-rails"]`, and prefixes every other selector with it. The tokens every
+   palette shares sit on the root; each palette's own sit on `[data-rtr-palette='<name>']`, which
+   the table carries from `BOARD_LOOK.palette` (`src/lib/utils/boardLook.ts`). The board is a printed
+   board on the table, so it keeps one look in the site's light and dark themes. */
+:root {
+    --rtr-ink-light: #ffffff;
+    --rtr-white: #ffffff;
+    --rtr-accent: #d18e0f;
+    --rtr-accent-fill: #e8a31733;
+    --rtr-accent-start: #d18e0f80;
+    --rtr-lit-fill: #ffc2332e;
+    --rtr-lit-bright: #ffb000;
+    --rtr-cost: #c8506a;
+    --rtr-halo: #1b1b1b;
+    --rtr-scrim: #2a272240;
+    --rtr-scrim-deep: #2a27228c;
+    --rtr-lit-wash: #ffffff73;
+    --rtr-sea-edge: #8aa2a9;
+    --rtr-coin: #e2b33c;
+    --rtr-coin-ink: #2b2205;
+    --rtr-five: #357f45;
+    --rtr-five-ink: var(--rtr-ink-light);
+    --rtr-coin-used: #d9d3c5;
+    --rtr-coin-used-ink: #5c564b;
+    --rtr-gold: #b9851f;
+    --rtr-passenger: #e2bb78;
+    --rtr-passenger-edge: #3d2a14;
+    --rtr-passenger-gone: #9a9384;
+    --rtr-cube-edge: #0000008c;
+    --rtr-cue-yellow: #c99a00;
+    --rtr-railroad-red: #c8372d;
+    --rtr-railroad-blue: #2f6db5;
+    --rtr-railroad-orange: #e8801e;
+    --rtr-railroad-yellow: #f2d634;
+    --rtr-railroad-purple: #7e4fa3;
+    --rtr-railroad-black: #24262b;
+    --rtr-railroad-red-ink: var(--rtr-ink-light);
+    --rtr-railroad-blue-ink: var(--rtr-ink-light);
+    --rtr-railroad-orange-ink: var(--rtr-halo);
+    --rtr-railroad-yellow-ink: var(--rtr-halo);
+    --rtr-railroad-purple-ink: var(--rtr-ink-light);
+    --rtr-railroad-black-ink: var(--rtr-ink-light);
+    --rtr-ghost-red: #f0c6c4;
+    --rtr-ghost-blue: #c3d3ea;
+    --rtr-ghost-orange: #fadec0;
+    --rtr-ghost-yellow: #f9e9a1;
+    --rtr-ghost-purple: #dacce6;
+    --rtr-ghost-black: #d0d0d1;
+    --rtr-ghost-yellow-line: #b08a00;
+}
+
+/* Chart: cream land on a thin warm grid, a hatched grey-blue sea in a navy frame, mountains and
+   cities as whole-hex patches, serif type, navy pills. */
+[data-rtr-palette='chart'] {
+    --rtr-table: #efe8d8;
+    --rtr-panel: #f8f3e4;
+    --rtr-panel-raised: #fffdf7;
+    --rtr-line: #c9bc98;
+    --rtr-rule: #e0d6c2;
+    --rtr-card-edge: #b9ab86;
+    --rtr-ink: #2b2418;
+    --rtr-ink-muted: #6f6450;
+    --rtr-pill: #1f3a5f;
+    --rtr-pill-ink: #f6f1e2;
+    --rtr-sea: #c4d3d6;
+    --rtr-sea-line: #aec1c5;
+    --rtr-frame: #0f1a2c;
+    --rtr-plain: #f7f3e7;
+    --rtr-hex-edge: #b5ab95;
+    --rtr-patch-edge: #f8f4ea;
+    --rtr-mountain: #e0c9b2;
+    --rtr-mountain-ink: #7b4a2d;
+    --rtr-hex-city: #c4c6c6;
+    --rtr-hex-start-city: #cfd1d1;
+    --rtr-hex-chicago: #a9c0c4;
+}
+
+/* Mist: the chart board on a pale neutral table, lighter than the sea. */
+[data-rtr-palette='mist'] {
+    --rtr-table: #e6e7e3;
+    --rtr-panel: #f4f2ec;
+    --rtr-panel-raised: #fbfaf6;
+    --rtr-line: #a9b4bb;
+    --rtr-rule: #dfe3e5;
+    --rtr-card-edge: #95a1a9;
+    --rtr-ink: #2b2418;
+    --rtr-ink-muted: #5a5f62;
+    --rtr-pill: #1f3a5f;
+    --rtr-pill-ink: #f6f1e2;
+    --rtr-sea: #c4d3d6;
+    --rtr-sea-line: #aec1c5;
+    --rtr-frame: #0f1a2c;
+    --rtr-plain: #f7f3e7;
+    --rtr-hex-edge: #b5ab95;
+    --rtr-patch-edge: #f8f4ea;
+    --rtr-mountain: #e0c9b2;
+    --rtr-mountain-ink: #7b4a2d;
+    --rtr-hex-city: #c4c6c6;
+    --rtr-hex-start-city: #cfd1d1;
+    --rtr-hex-chicago: #a9c0c4;
+}
+
+@theme inline {
+    --color-rtr-ink-light: var(--rtr-ink-light);
+    --color-rtr-white: var(--rtr-white);
+    --color-rtr-accent: var(--rtr-accent);
+    --color-rtr-accent-fill: var(--rtr-accent-fill);
+    --color-rtr-accent-start: var(--rtr-accent-start);
+    --color-rtr-lit-fill: var(--rtr-lit-fill);
+    --color-rtr-lit-bright: var(--rtr-lit-bright);
+    --color-rtr-cost: var(--rtr-cost);
+    --color-rtr-halo: var(--rtr-halo);
+    --color-rtr-scrim: var(--rtr-scrim);
+    --color-rtr-scrim-deep: var(--rtr-scrim-deep);
+    --color-rtr-lit-wash: var(--rtr-lit-wash);
+    --color-rtr-coin: var(--rtr-coin);
+    --color-rtr-coin-ink: var(--rtr-coin-ink);
+    --color-rtr-five: var(--rtr-five);
+    --color-rtr-five-ink: var(--rtr-five-ink);
+    --color-rtr-coin-used: var(--rtr-coin-used);
+    --color-rtr-coin-used-ink: var(--rtr-coin-used-ink);
+    --color-rtr-gold: var(--rtr-gold);
+    --color-rtr-passenger: var(--rtr-passenger);
+    --color-rtr-passenger-edge: var(--rtr-passenger-edge);
+    --color-rtr-passenger-gone: var(--rtr-passenger-gone);
+    --color-rtr-cube-edge: var(--rtr-cube-edge);
+    --color-rtr-cue-yellow: var(--rtr-cue-yellow);
+    --color-rtr-railroad-red: var(--rtr-railroad-red);
+    --color-rtr-railroad-blue: var(--rtr-railroad-blue);
+    --color-rtr-railroad-orange: var(--rtr-railroad-orange);
+    --color-rtr-railroad-yellow: var(--rtr-railroad-yellow);
+    --color-rtr-railroad-purple: var(--rtr-railroad-purple);
+    --color-rtr-railroad-black: var(--rtr-railroad-black);
+    --color-rtr-railroad-red-ink: var(--rtr-railroad-red-ink);
+    --color-rtr-railroad-blue-ink: var(--rtr-railroad-blue-ink);
+    --color-rtr-railroad-orange-ink: var(--rtr-railroad-orange-ink);
+    --color-rtr-railroad-yellow-ink: var(--rtr-railroad-yellow-ink);
+    --color-rtr-railroad-purple-ink: var(--rtr-railroad-purple-ink);
+    --color-rtr-railroad-black-ink: var(--rtr-railroad-black-ink);
+    --color-rtr-ghost-red: var(--rtr-ghost-red);
+    --color-rtr-ghost-blue: var(--rtr-ghost-blue);
+    --color-rtr-ghost-orange: var(--rtr-ghost-orange);
+    --color-rtr-ghost-yellow: var(--rtr-ghost-yellow);
+    --color-rtr-ghost-purple: var(--rtr-ghost-purple);
+    --color-rtr-ghost-black: var(--rtr-ghost-black);
+    --color-rtr-ghost-yellow-line: var(--rtr-ghost-yellow-line);
+    --color-rtr-table: var(--rtr-table);
+    --color-rtr-panel: var(--rtr-panel);
+    --color-rtr-panel-raised: var(--rtr-panel-raised);
+    --color-rtr-line: var(--rtr-line);
+    --color-rtr-rule: var(--rtr-rule);
+    --color-rtr-card-edge: var(--rtr-card-edge);
+    --color-rtr-ink: var(--rtr-ink);
+    --color-rtr-ink-muted: var(--rtr-ink-muted);
+    --color-rtr-pill: var(--rtr-pill);
+    --color-rtr-pill-ink: var(--rtr-pill-ink);
+    --color-rtr-sea: var(--rtr-sea);
+    --color-rtr-sea-line: var(--rtr-sea-line);
+    --color-rtr-sea-edge: var(--rtr-sea-edge);
+    --color-rtr-frame: var(--rtr-frame);
+    --color-rtr-plain: var(--rtr-plain);
+    --color-rtr-hex-edge: var(--rtr-hex-edge);
+    --color-rtr-patch-edge: var(--rtr-patch-edge);
+    --color-rtr-mountain: var(--rtr-mountain);
+    --color-rtr-mountain-ink: var(--rtr-mountain-ink);
+    --color-rtr-hex-city: var(--rtr-hex-city);
+    --color-rtr-hex-start-city: var(--rtr-hex-start-city);
+    --color-rtr-hex-chicago: var(--rtr-hex-chicago);
+}
+
+.rtr-display {
+    font-family: 'Ride the Rails Display', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+}
+
+.rtr-serif {
+    font-family: 'Ride the Rails Serif', Georgia, serif;
+    font-weight: 700;
+}
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite-svelte-icons/dist";
+@source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";
+@source "./**/*.{html,js,svelte,ts}";
+
+@layer base {
+    /* disable chrome cancel button */
+    input[type='search']::-webkit-search-cancel-button {
+        display: none;
+    }
+}

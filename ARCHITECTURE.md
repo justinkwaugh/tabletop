@@ -4,7 +4,7 @@
 
 Despite using SvelteKit which is generally intended to serve as both the backend and frontend of a site, I wanted to keep the API as an independant entity, such that the frontend could be implemented in other ways if desired. Perhaps a mobile client could be made in the future as an example. As such it is using Fastify running in Node.
 
-The API itself is relatively typically designed, using JSON over HTTP. It serves administrative features such as user creation / updating / login and so forth as well as the necessary functions for the games themselves to run, and realtime communications using SSE (Server Sent Events)
+The API itself is relatively typically designed, using JSON over HTTP. It serves administrative features such as user creation / updating / login and so forth as well as the necessary functions for the games themselves to run. Realtime updates reach browsers through the Delivery Transports described under the notification service below.
 
 Very little logic is found in the backend workspace itself, rather a set of services has been broken out into the libs/backend-services workspace. These services rely on nothing in the backend and are as follows:
 
@@ -23,7 +23,7 @@ This service handles everything related to creating and running games. It commun
 **Notifications**
 
 This service manages the sending and listening for realtime notifications on various topics for the application itself as well as pushed notifications to users for various purposes (game invites, turn notifications). It can support various transports
-for both types of notifications. By default it utilizes the PubSub service (described below) for the realtime application notifications, exposed via an SSE endpoint, but also supports [Ably](https://ably.com) for realtime web notifications. A self-hosted realtime relay in Go (`apps/realtime`, see [docs/realtime-relay.md](docs/realtime-relay.md)) is replacing both for realtime web notifications. Currently Web Push and Discord transports are provided for user notifications. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
+for both types of notifications. Realtime web notifications go through one or more Delivery Transports, each off unless configured: a self-hosted realtime relay in Go (`apps/realtime`, see [docs/realtime-relay.md](docs/realtime-relay.md)) fed through Redis, [Ably](https://ably.com), or the backend's own SSE endpoints fed by the PubSub service (described below). Production runs the relay only; Ably and SSE remain for local development. Currently Web Push and Discord transports are provided for user notifications. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
 
 **Persistence**
 

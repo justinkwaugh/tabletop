@@ -1,0 +1,128 @@
+{
+    "game": {
+        "id": "scenario-claim-to-move",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "lyngk",
+        "deleted": false,
+        "name": "Claim to move",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "variant": "Standard"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 1826454059,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-16T15:53:29.313Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-16T15:53:29.313Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "uEGBHQPvip3LQ4INrRWKq",
+        "gameId": "scenario-claim-to-move",
+        "seed": 1826454059,
+        "prng": {
+            "seed": 1826454059,
+            "invocations": 43
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "d79e383351638b27889283520af687a900e3488c5c6bfb1ec28dbd3153959335",
+            "invocations": 0
+        },
+        "masterSeed": "33fefd12d8c4b739c74d57eaacbf6cf8",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "purple",
+                "claimed": [],
+                "scored": []
+            },
+            {
+                "playerId": "player-2",
+                "color": "orange",
+                "claimed": ["black", "blue"],
+                "scored": []
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            },
+            "seriesKeeps": "latest"
+        },
+        "variant": "Standard",
+        "board": {
+            "stacks": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "pieces": [24]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "pieces": [8, 16, 32]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "pieces": [0]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    },
+                    "pieces": [33]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    },
+                    "pieces": [9]
+                }
+            ]
+        },
+        "claimedThisTurn": false
+    },
+    "actions": []
+}

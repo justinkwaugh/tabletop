@@ -15,6 +15,7 @@ import {
     type TournamentScheduleRequest,
     type CommitTournamentScheduleRequest,
     type User,
+    type GameConfig,
     assertExists,
     type TournamentGameReference,
     type TournamentGameLink,
@@ -36,13 +37,17 @@ import {
     type TournamentTable,
     type TournamentTitles,
     type WithdrawTournamentEntrantRequest,
-    receivesGameAndCompetitionEmail
+    receivesGameAndCompetitionEmail,
+    KNOCKOUT_MATCH_GAMES,
+    knockoutBracket,
+    knockoutPlacings,
+    knockoutResultsOf
 } from '@tabletop/common'
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import * as Value from 'typebox/value'
 import type { TournamentStore } from '../persistence/stores/tournamentStore.js'
 import type { UserService } from '../users/userService.js'
-import { TournamentError } from './tournamentError.js'
+import { TournamentError, TournamentResultsPendingError } from './tournamentError.js'
 import { generateTournamentSchedule } from './tournamentScheduler.js'
 import type { NotificationService } from '../notifications/notificationService.js'
 import { sendCompetitionUpdate } from './competitionUpdates.js'
@@ -98,6 +103,20 @@ export class TournamentService {
             },
             (tournament) => this.notify(tournament),
             (tournament) => this.completed(tournament),
+            async (tournament, schedule) => {
+                const results = this.knockoutResults(
+                    tournament,
+                    this.tableResults(
+                        tournament,
+                        schedule.tables,
+                        await this.creditedGameLinks(tournament)
+                    )
+                )
+                // A finished Table must not look unplayed to the Bracket, so wait for its result.
+                if (results.unsettled.length)
+                    throw new TournamentResultsPendingError(results.unsettled)
+                return results
+            },
             now
         )
     }
@@ -346,18 +365,26 @@ export class TournamentService {
         const activeCounts = entrantTableCounts(tables, stage?.dispatch?.active ?? [])
         const voidedCounts = entrantTableCounts(tables, stage?.dispatch?.voided ?? [])
         const gamesPerEntrant = tournament.format.stages[0]?.gamesPerEntrant ?? 0
-        const standings = this.rankStandings(
-            tournament,
-            this.standingsWithUsers(tournament),
-            this.tableResults(tournament, tables, games)
-        ).map((row) => ({
-            ...row,
-            active: activeCounts.get(row.userId) ?? 0,
-            remaining: Math.max(
-                0,
-                gamesPerEntrant - row.completed - (voidedCounts.get(row.userId) ?? 0)
-            )
-        }))
+        const rows = this.standingsWithUsers(tournament)
+        const results = this.tableResults(tournament, tables, games)
+        const knockout = schedule?.bracket !== undefined
+        const ranked = knockout
+            ? this.rankKnockout(tournament, rows, schedule, results)
+            : this.rankStandings(tournament, rows, results)
+        const standings = ranked.map((row) => {
+            const active = activeCounts.get(row.userId) ?? 0
+            return {
+                ...row,
+                active,
+                // A Knockout's later Games depend on its results, so none are waiting.
+                remaining: knockout
+                    ? active
+                    : Math.max(
+                          0,
+                          gamesPerEntrant - row.completed - (voidedCounts.get(row.userId) ?? 0)
+                      )
+            }
+        })
         return { tournament, usernames, games, ...(stage?.standings ? { standings } : {}) }
     }
 
@@ -391,6 +418,46 @@ export class TournamentService {
             }),
             ...withdrawn.map((row) => ({ ...row, rank }))
         ]
+    }
+
+    /** Ranks a Knockout's places by the round they reached; withdrawn places last, unranked. */
+    private rankKnockout(
+        tournament: Tournament,
+        rows: EntrantScore[],
+        schedule: TournamentSchedule,
+        tables: TournamentTableResult[]
+    ) {
+        const bracket = knockoutBracket(schedule, this.knockoutResults(tournament, tables))
+        const byUser = new Map(rows.map((row) => [row.userId, row]))
+        const withdrawn = rows.filter((row) => row.withdrawn)
+        const placings = knockoutPlacings(
+            bracket,
+            rows.filter((row) => !row.withdrawn).map((row) => row.userId)
+        )
+        let rank = 1
+        return [
+            ...placings.flatMap((group) => {
+                const ranked = group.map((userId) => {
+                    const row = byUser.get(userId)
+                    assertExists(row, 'Placed player has no standing')
+                    return {
+                        ...row,
+                        rank,
+                        ...(tournament.status === 'finished' && bracket.championId === userId
+                            ? { champion: true as const }
+                            : {})
+                    }
+                })
+                rank += group.length
+                return ranked
+            }),
+            ...withdrawn.map((row) => ({ ...row, rank }))
+        ]
+    }
+
+    private knockoutResults(tournament: Tournament, tables: TournamentTableResult[]) {
+        const winners = new Map(tables.map((table) => [table.id, table.winnerIds]))
+        return knockoutResultsOf(tournament, (tableId) => winners.get(tableId))
     }
 
     // A void Table counts for nobody, even when its Game recorded a result.
@@ -455,6 +522,11 @@ export class TournamentService {
         return this.replacePlace(id, request, user, {
             withdrawn: 'rejected',
             record: (current, place) => {
+                if (current.format.kind === 'knockout')
+                    throw new TournamentError(
+                        'A knockout place takes no substitute. Withdraw the player instead.',
+                        400
+                    )
                 if (tournamentEntrantAccount(place) === substitute.id) return
                 if (tournamentAccountIds(current).includes(substitute.id))
                     throw new TournamentError('The substitute is already in this tournament', 400)
@@ -582,6 +654,8 @@ export class TournamentService {
         const draft = this.validateRules(input)
         if (draft.rules.registration.kind !== 'assigned')
             throw new TournamentError('A league group has an assigned roster', 400)
+        if (draft.format.kind !== 'mini')
+            throw new TournamentError('A league group is a mini tournament', 400)
         return draft
     }
 
@@ -820,7 +894,7 @@ export class TournamentService {
         if (!Value.Check(TournamentDraft, draft))
             throw new TournamentError('Invalid tournament settings', 400)
         const rules = draft.rules
-        if (draft.format.kind !== 'mini')
+        if (draft.format.kind === 'multiStage')
             throw new TournamentError('Multi-stage tournaments are not available yet', 400)
         const gamesPerEntrant = draft.format.stages[0].gamesPerEntrant
         const title = lookupTitle(this.titles, rules.titleId)
@@ -832,10 +906,26 @@ export class TournamentService {
         delete rules.tiebreakRule
         const tiebreakRule = title.runtime.scoring?.tiebreakRule
         if (tiebreakRule) rules.tiebreakRule = tiebreakRule
-        rules.gameConfig = normalizeGameConfig({
-            ...defaultGameConfig(title.info.configurator?.options ?? []),
-            ...normalizeGameConfig(rules.gameConfig, title.info.configurator)
-        })
+        const titleConfig = (config: GameConfig) =>
+            normalizeGameConfig({
+                ...defaultGameConfig(title.info.configurator?.options ?? []),
+                ...normalizeGameConfig(config, title.info.configurator)
+            })
+        rules.gameConfig = titleConfig(rules.gameConfig)
+        const configs = [rules.gameConfig]
+        if (draft.format.kind === 'knockout') {
+            draft.format.deciderGameConfig = titleConfig(draft.format.deciderGameConfig)
+            configs.push(draft.format.deciderGameConfig)
+            if (rules.tableSize !== 2)
+                throw new TournamentError('A knockout is played two players to a game', 400)
+            if (gamesPerEntrant !== KNOCKOUT_MATCH_GAMES || rules.concurrency !== 2)
+                throw new TournamentError(
+                    'A knockout match plays one game from each seat at the same time',
+                    400
+                )
+            if (rules.scoring !== 'splitWinsV1')
+                throw new TournamentError('A knockout match is won by winning games', 400)
+        }
         const metadata = title.info.metadata
         if (rules.tableSize < metadata.minPlayers || rules.tableSize > metadata.maxPlayers)
             throw new TournamentError('This game does not support that table size', 400)
@@ -847,9 +937,10 @@ export class TournamentService {
         if (rules.concurrency > gamesPerEntrant)
             throw new TournamentError('Concurrent games cannot exceed games per player', 400)
         try {
-            if (title.info.configurator) title.info.configurator.validateConfig(rules.gameConfig)
-            else if (Object.keys(rules.gameConfig).length)
-                throw new Error('No game options supported')
+            for (const config of configs) {
+                if (title.info.configurator) title.info.configurator.validateConfig(config)
+                else if (Object.keys(config).length) throw new Error('No game options supported')
+            }
         } catch {
             throw new TournamentError('Invalid game configuration', 400)
         }

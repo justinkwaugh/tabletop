@@ -1,0 +1,18 @@
+# TZAAR scenarios
+
+The dev harness lists these under **Scenarios**. Alice (White) makes the first capture of her turn in each; loading one again starts it over. Regenerate them with `node scripts/build-scenarios.mjs` after building `@tabletop/tzaar`; the games start from a fixed master seed, so the boards come out the same each time. `src/lib/model/scenarioFiles.spec.ts` plays each claim below through the engine.
+
+- **Midgame.** A board reached by seeded play from a random start, with stacks of several heights. Tap a white-topped stack to see what it can capture, tap a dashed rim to capture it, then capture again, stack onto your own, or Pass.
+- **Two Tzaars left.** Bob has two Tzaars on top, D2 and F2, and a third buried under a Tott on G3, which does not count. Capture D1 onto D2: the game goes on. Then capture F1 onto F2 with the second move: Bob has no Tzaar left on top, and Alice wins at once.
+- **Bob cannot capture.** Bob has only single pieces, and Alice only stacks but for the Tott on C3. Capture C3 onto C4, then stack C4 onto A2: Bob cannot capture anything, and Alice wins. Pass instead, and Bob can take C4 from B4 or G6.
+- **No second move.** Capture A1 onto A2: Alice is left with one of each type and nothing to capture, so the turn passes to Bob without a second move, and the history says so.
+- **Covering a type.** Capture A3 onto A5. Alice now has one Tzaar (A1) and one Tzarra (A5) on top, and no stack may cover either: the only stacks offered are A1 onto A2 or B1, and A5 onto A2.
+- **Tall stacks.** Turn the Stack limit on (it is off by default): stacks past 5 pieces then stand no taller, and the pieces between their bottom and top pieces thin out instead. Capture F1 onto F2, then stack D2 onto the 9-stack on D3: it becomes 11, lands at full height and shrinks back to 5 pieces tall with thinner bands, beside Bob's 11-stack on C4. With the limit off, every stack stands whole.
+- **Placement ends.** The tournament version with two spaces left. Alice places one piece, Bob the last, and Alice then makes the opening capture.
+- **Crowded stacks.** Stacks of two to four on neighbouring spaces in both colours, to judge how stacks and their counts read where they crowd each other.
+- **Stacks by the labels.** Stacks of two to nine on the top space of each column, where they rise over the column's coordinate label.
+- **Behind stacks.** Stacks of two to nine (A1 2, C2 3, E2 4, G2 5, I1 6, A4 7, C5 8, E6 9), each with a single piece of the other colour straight behind it up its column, and single pieces behind it to either side, to judge how much of a piece a stack in front hides.
+- **Behind tall stacks.** Stacks of 11, 9 and 10 on G2, G5 and G7; the rotated board draws stacks up to 9 at full height. Each has single pieces behind it: the two nearest, half a piece to either side (F2 and F3, F5 and F6, F7 and F8), and the one two rows straight back (E3, E5, E7), to judge how much a tall stack hides there.
+- **Tall stack on E8.** For whole stacks (Stack limit off): capture E7 onto E8 with a stack of 12, then stack D8 onto E8, making 18 on the board's top point. Each move stands the stack out of the frame, so the board shrinks to keep it in view; take them back and it grows again.
+- **Tall stack on E1.** The same at the other end of column E, the top point seen from the far side: capture E2 onto E1, then stack D1 onto E1.
+- **Tall stack on A2.** The same on the rotated board's top row: capture B3 onto A2, then stack A3 onto A2.

@@ -172,6 +172,26 @@
         "packageId": "gipf-potentials"
     },
     {
+        "gameId": "ride-the-rails",
+        "packageId": "ride-the-rails"
+    },
+    {
+        "gameId": "yinsh",
+        "packageId": "yinsh"
+    },
+    {
+        "gameId": "dvonn",
+        "packageId": "dvonn"
+    },
+    {
+        "gameId": "lyngk",
+        "packageId": "lyngk"
+    },
+    {
+        "gameId": "tzaar",
+        "packageId": "tzaar"
+    },
+    {
         "gameId": "punct",
         "packageId": "punct"
     }

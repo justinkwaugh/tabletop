@@ -1,0 +1,257 @@
+{
+    "game": {
+        "id": "scenario-choose-the-rows",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "yinsh",
+        "deleted": false,
+        "name": "Choose the rows",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "version": "Standard"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 2295376226,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-16T11:48:00.133Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-16T11:48:00.133Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "THc91-Oet5TysziVjeLwL",
+        "gameId": "scenario-choose-the-rows",
+        "seed": 2295376226,
+        "prng": {
+            "seed": 2295376226,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "0481c601aecaad4597f847681dac6d142db0642cb04bdcdc64310d76c6309ad4",
+            "invocations": 0
+        },
+        "masterSeed": "873cb8cdff82c317c8eb9b6e39e86ee5",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white",
+                "removedRingIds": []
+            },
+            {
+                "playerId": "player-2",
+                "color": "black",
+                "removedRingIds": []
+            }
+        ],
+        "machineState": "MovingRing",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            },
+            "seriesKeeps": "latest"
+        },
+        "version": "Standard",
+        "board": {
+            "rings": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "playerId": "player-1",
+                    "id": 0
+                },
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 4
+                    },
+                    "playerId": "player-1",
+                    "id": 1
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    },
+                    "playerId": "player-1",
+                    "id": 2
+                },
+                {
+                    "coords": {
+                        "q": 5,
+                        "r": -2
+                    },
+                    "playerId": "player-1",
+                    "id": 3
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 1
+                    },
+                    "playerId": "player-1",
+                    "id": 4
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    },
+                    "playerId": "player-2",
+                    "id": 5
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    },
+                    "playerId": "player-2",
+                    "id": 6
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    },
+                    "playerId": "player-2",
+                    "id": 7
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": 0
+                    },
+                    "playerId": "player-2",
+                    "id": 8
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    },
+                    "playerId": "player-2",
+                    "id": 9
+                }
+            ],
+            "markers": [
+                {
+                    "coords": {
+                        "q": -4,
+                        "r": 2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 4,
+                        "r": -2
+                    },
+                    "playerId": "player-1"
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "playerId": "player-2"
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "playerId": "player-2"
+                }
+            ]
+        },
+        "resolvingPlayerIds": []
+    },
+    "actions": []
+}

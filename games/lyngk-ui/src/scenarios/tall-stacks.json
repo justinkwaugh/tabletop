@@ -1,0 +1,219 @@
+{
+    "game": {
+        "id": "scenario-tall-stacks",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "lyngk",
+        "deleted": false,
+        "name": "Tall stacks",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "variant": "Standard"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3249594062,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-16T15:53:29.316Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-16T15:53:29.316Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "tRLNVDkx1GAZ-_PmQr4dM",
+        "gameId": "scenario-tall-stacks",
+        "seed": 3249594062,
+        "prng": {
+            "seed": 3249594062,
+            "invocations": 43
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "86686b13f8a52cf85b59dee4da5a8861fc09ea8ae37cb2e49cfc01c10e61fba9",
+            "invocations": 0
+        },
+        "masterSeed": "fbd3acb5d9fc7a41f82d9fe25db96730",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "purple",
+                "claimed": ["red"],
+                "scored": []
+            },
+            {
+                "playerId": "player-2",
+                "color": "orange",
+                "claimed": ["green"],
+                "scored": []
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            },
+            "seriesKeeps": "latest"
+        },
+        "variant": "Standard",
+        "board": {
+            "stacks": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "pieces": [0, 24, 16, 32, 8]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "pieces": [17]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "pieces": [25]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    },
+                    "pieces": [1]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "pieces": [40, 18, 26, 2, 33]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "pieces": [9]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "pieces": [34, 3, 27, 19]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "pieces": [28, 10, 4]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    },
+                    "pieces": [11, 20, 41, 29]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    },
+                    "pieces": [21, 35, 12, 5]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "pieces": [36, 42, 30]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    },
+                    "pieces": [6, 13]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    },
+                    "pieces": [31, 22]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "pieces": [37]
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    },
+                    "pieces": [14, 38]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    },
+                    "pieces": [15]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    },
+                    "pieces": [23, 7]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    },
+                    "pieces": [39]
+                }
+            ]
+        },
+        "claimedThisTurn": false
+    },
+    "actions": []
+}
