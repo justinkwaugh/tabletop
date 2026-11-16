@@ -1,10 +1,11 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
-import { HydratedPassJourney, isPassJourney } from '../actions/passJourney.js'
+import { HydratedPassJourney, PassJourney, isPassJourney } from '../actions/passJourney.js'
 import { HydratedRideJourney, isRideJourney } from '../actions/rideJourney.js'
 import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
+import { journeyExists } from '../rules/routes.js'
 import { passTurn, turnPlayerId } from './flow.js'
 
 type RidingAction = HydratedRideJourney | HydratedPassJourney
@@ -21,22 +22,24 @@ export class RidingStateHandler implements MachineStateHandler<
         return isRideJourney(action) || isPassJourney(action)
     }
 
-    // R-3.3.1: the pass is offered only when no journey exists.
+    // R-3.3.1: a journey is the only choice; the pass, with no journey, is taken by itself.
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedRideTheRailsGameState>
     ): ActionType[] {
         const state = context.gameState
-        const available: [ActionType, boolean][] = [
-            [ActionType.RideJourney, HydratedRideJourney.canRide(state, playerId)],
-            [ActionType.PassJourney, HydratedPassJourney.canPass(state, playerId)]
-        ]
-        return available.filter(([, allowed]) => allowed).map(([type]) => type)
+        return HydratedRideJourney.canRide(state, playerId) ? [ActionType.RideJourney] : []
     }
 
+    // R-3.3.1: a player with no journey to make passes by itself, as a System Action, so no one
+    // presses Pass with nothing else to choose.
     enter(context: MachineContext<HydratedRideTheRailsGameState>) {
         const state = context.gameState
-        state.activePlayerIds = [turnPlayerId(state)]
+        const playerId = turnPlayerId(state)
+        state.activePlayerIds = [playerId]
+        if (!journeyExists(state)) {
+            context.addSystemAction(PassJourney, { playerId })
+        }
     }
 
     // R-2.1: the end of round follows the last journey; the Ride phase closes with it.

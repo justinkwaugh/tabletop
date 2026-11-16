@@ -118,13 +118,6 @@ describe('undo of each action until the next player acts (R-5)', () => {
         )
     })
 
-    it('takes back a pass', () => {
-        expectUndoableUntilTheNextPlayerActs(
-            fourPlayerWalk,
-            firstStepOf(fourPlayerWalk, ActionType.PassJourney)
-        )
-    })
-
     it(
         'takes back every user action of a whole game, and no other player’s',
         () => {

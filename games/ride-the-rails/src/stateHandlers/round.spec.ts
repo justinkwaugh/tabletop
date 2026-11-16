@@ -108,7 +108,7 @@ describe('one whole round through the engine (R-2.1, R-2.2)', () => {
         expect(table.state.building).toBeUndefined()
     })
 
-    it('walks Ride from first to last, offering the pass only when no journey exists (R-3.3.1)', () => {
+    it('walks Ride from first to last, passing by itself once no journey exists (R-3.3.1)', () => {
         table.expectOffers('p1', [ActionType.RideJourney])
         table.act({
             type: ActionType.RideJourney,
@@ -116,20 +116,20 @@ describe('one whole round through the engine (R-2.1, R-2.2)', () => {
             links: [NEW_YORK_TO_PHILADELPHIA]
         })
         table.expectOffers('p2', [ActionType.RideJourney])
-        table.act({
-            type: ActionType.RideJourney,
-            playerId: 'p2',
-            links: [PHILADELPHIA_TO_NEW_YORK]
-        })
-        table.expectOffers('p3', [ActionType.PassJourney])
+        // No passenger is left with a link out, so p3 passes by itself and the round ends.
+        expect(
+            table.act({
+                type: ActionType.RideJourney,
+                playerId: 'p2',
+                links: [PHILADELPHIA_TO_NEW_YORK]
+            })
+        ).toEqual([ActionType.RideJourney, ActionType.PassJourney, ActionType.EndRound])
+        const pass = table.history.at(-2)
+        expect(pass).toMatchObject({ playerId: 'p3', source: ActionSource.System })
     })
 
     it('runs the end of round in the cascade of the last pass and opens round 2', () => {
-        const turnOrderBefore = [...table.state.turnManager.turnOrder]
-        expect(table.act({ type: ActionType.PassJourney, playerId: 'p3' })).toEqual([
-            ActionType.PassJourney,
-            ActionType.EndRound
-        ])
+        const turnOrderBefore = ['p1', 'p2', 'p3']
         const endRound = table.history.at(-1)
         assertExists(endRound, 'The round ended')
         expect(isEndRound(endRound)).toBe(true)

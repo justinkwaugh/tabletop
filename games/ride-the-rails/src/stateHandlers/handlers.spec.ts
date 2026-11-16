@@ -56,16 +56,23 @@ describe('Building (R-3.2.1, R-3.2.3, R-3.2.4)', () => {
             playerId: 'p3',
             railroadId: 'railroad.red'
         })
-        expect(processedOf(run).slice(3)).toEqual(
+        expect(processedOf(run).slice(3, 6)).toEqual(
             ['p1', 'p2', 'p3'].map((playerId) => ({
                 type: ActionType.FinishBuilding,
                 playerId,
                 source: ActionSource.System
             }))
         )
-        expect(run.after.machineState).toBe(MachineState.Riding)
         expect(run.after.building).toBeUndefined()
-        expect(run.after.activePlayerIds).toEqual(['p1'])
+        // With no track there is no journey either, so the Ride phase passes by itself (R-3.3.1).
+        expect(processedOf(run).slice(6, 9)).toEqual(
+            ['p1', 'p2', 'p3'].map((playerId) => ({
+                type: ActionType.PassJourney,
+                playerId,
+                source: ActionSource.System
+            }))
+        )
+        expect(run.after.machineState).toBe(MachineState.TakingShares)
     })
 
     it('keeps the builder’s turn open after a placement that leaves more legal', () => {
@@ -113,22 +120,24 @@ describe('Riding (R-3.3.1)', () => {
         })
     })
 
-    it('offers the pass only when no journey exists', () => {
+    it('offers no one the pass: with no journey the pass is taken by itself', () => {
         const state = buildState({ phase: PhaseName.Ride, currentPlayerId: 'p2' })
-        expect(offersByPlayer(state.dehydrate())).toEqual({
-            p1: [],
-            p2: [ActionType.PassJourney],
-            p3: []
-        })
+        expect(offersByPlayer(state.dehydrate())).toEqual({ p1: [], p2: [], p3: [] })
     })
 
-    it('hands the next player their journey after a pass', () => {
+    it('passes every later player by itself too, since no journey exists for them either', () => {
         const run = runAction(buildState({ phase: PhaseName.Ride }), {
             type: ActionType.PassJourney,
             playerId: 'p1'
         })
-        expect(run.after.machineState).toBe(MachineState.Riding)
-        expect(run.after.activePlayerIds).toEqual(['p2'])
+        expect(processedOf(run).slice(1, 3)).toEqual(
+            ['p2', 'p3'].map((playerId) => ({
+                type: ActionType.PassJourney,
+                playerId,
+                source: ActionSource.System
+            }))
+        )
+        expect(run.after.machineState).toBe(MachineState.TakingShares)
     })
 })
 
