@@ -258,7 +258,8 @@ scenario('S18 R-4.4.1 Explore: others see three backs', 'cards-explore', async (
         'writs: Writ back'
     ])
     await expect(table.panel().locator('[data-writs]')).toHaveCount(0)
-    await expect(table.waitingLine()).toContainText('keeps 1')
+    await expect(table.waitingLine()).toContainText('Waiting on')
+    await expect(table.waitingLine().locator('[data-seat-chip]')).toHaveCount(1)
 })
 
 scenario('S19 R-3.10.2 Shovels & Swords', 'cards-explore', async (table) => {
