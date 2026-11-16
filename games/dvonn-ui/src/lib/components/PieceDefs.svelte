@@ -2,18 +2,25 @@
 
 <script lang="ts">
     import { PIECE_RADIUS } from '$lib/board/pieceGeometry.js'
-    import { SHADE_LEVELS, sideStops } from '$lib/board/pieceShape.js'
+    import { CONTACT_SHADE, SHADE_LEVELS, sideStops, throughLens } from '$lib/board/pieceShape.js'
     import { PIECE_STYLES, type Tone } from '$lib/board/pieceStyle.js'
     import { speckClips } from '$lib/board/specks.js'
 
     // Shared by every piece drawn in one SVG at one radius: a thinned piece's side, the hole's
-    // wall, the board in the shadow under a stack, and the clips that keep a piece's specks on it.
+    // wall, the board in the shadow under a stack and the clips that keep it out of the holes of
+    // short stacks, and the clips that keep a piece's specks on it.
     // Whole pieces are pre-rendered images (board/looks.ts).
     let { prefix, radius = PIECE_RADIUS }: { prefix: string; radius?: number } = $props()
 
     const TONES: Tone[] = ['white', 'black', 'red']
     const MID_LEVEL = (SHADE_LEVELS - 1) / 2
     const clips = $derived(speckClips(radius))
+    // Each height of stack whose hole shows the board, with what shows.
+    const throughs = $derived(
+        [1, 2, 3, 4, 5]
+            .map((height) => ({ height, lens: throughLens(height, radius) }))
+            .filter((through) => through.lens !== undefined)
+    )
 </script>
 
 {#each TONES as tone (tone)}
@@ -35,10 +42,21 @@
 <!-- Right under a stack, the board in its shadow, seen through the gap below it and down the
      hole. -->
 <radialGradient id="{prefix}-contact">
-    <stop offset="0" stop-color="rgb(0 0 0 / 0.55)"></stop>
-    <stop offset="0.85" stop-color="rgb(0 0 0 / 0.45)"></stop>
+    <stop offset="0" stop-color="rgb(0 0 0 / {CONTACT_SHADE})"></stop>
+    <stop offset="0.85" stop-color="rgb(0 0 0 / {CONTACT_SHADE - 0.1})"></stop>
     <stop offset="1" stop-color="rgb(0 0 0 / 0)"></stop>
 </radialGradient>
+<!-- Everything around where the board shows through a short stack's hole: the shade under the
+     stack is lighter there. -->
+{#each throughs as through (through.height)}
+    <clipPath id="{prefix}-around-hole-{through.height}">
+        <path
+            d="M {-radius * 3} {-radius * 3} H {radius * 3} V {radius * 3} H {-radius *
+                3} Z {through.lens}"
+            clip-rule="evenodd"
+        ></path>
+    </clipPath>
+{/each}
 <!-- Each piece's specks, kept on it: in its own coordinates, from its underside. -->
 <clipPath id="{prefix}-top-clip">
     <path d={clips.top}></path>

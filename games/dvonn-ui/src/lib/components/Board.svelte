@@ -9,6 +9,7 @@
     import { badgeTop, markOn, targetOutline } from '$lib/board/marks.js'
     import { LABEL_SHIFT } from '$lib/board/coordinates.js'
     import { PIECE_MODEL, stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
+    import { CONTACT_SHADE, holeFloor, throughLens } from '$lib/board/pieceShape.js'
     import { SAND_SIZE } from '$lib/board/sandTexture.js'
     import { seedKeyOf } from '$lib/board/pieceStyle.js'
     import sand from '$lib/images/sand.webp'
@@ -122,6 +123,9 @@
     }
 
     const shadowRx = $derived(radius + 3)
+    // The stack's shadow at its darkest.
+    const SHADOW_SHADE = 0.32
+    const HOLE_FLOOR = holeFloor(SHADOW_SHADE, CONTACT_SHADE)
 
     // The sand's grain, rendered at the sand's own size, centred on it.
     const grain = $derived({
@@ -137,10 +141,18 @@
 </script>
 
 <!-- A stack's shadow on the board, and right under it the board in its shade, which shows through
-     the gap under the bottom piece. -->
-{#snippet shadow()}
-    <ellipse cx="1.5" cy="2" rx={shadowRx} ry={shadowRx * TILT} fill="url(#dvonn-shadow)"></ellipse>
-    <ellipse rx={radius} ry={radius * TILT} fill="url(#dvonn-board-contact)"></ellipse>
+     the gap under the bottom piece. Down a short stack's hole, where light falls straight in, the
+     board is in less shade. -->
+{#snippet shadow(height: number)}
+    {@const through = throughLens(height, radius)}
+    <g clip-path={through ? `url(#dvonn-board-around-hole-${height})` : undefined}>
+        <ellipse cx="1.5" cy="2" rx={shadowRx} ry={shadowRx * TILT} fill="url(#dvonn-shadow)"
+        ></ellipse>
+        <ellipse rx={radius} ry={radius * TILT} fill="url(#dvonn-board-contact)"></ellipse>
+    </g>
+    {#if through}
+        <path d={through} fill="#000000" fill-opacity={HOLE_FLOOR}></path>
+    {/if}
 {/snippet}
 
 {#snippet drawn(stack: DrawnStack)}
@@ -149,7 +161,7 @@
     <g id={stackId(stack.key)} transform="translate({center.x} {center.y})" class="piece">
         <g {@attach animator.stack(stack.key, 'whole')}>
             <g {@attach animator.stack(stack.key, 'shadow')}>
-                {@render shadow()}
+                {@render shadow(stack.pieces.length)}
             </g>
             <g {@attach animator.stack(stack.key, 'body')}>
                 <StackShape
@@ -207,7 +219,7 @@
             <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
              removed piece under a filter on screen until something else repaints there. -->
             <radialGradient id="dvonn-shadow">
-                <stop offset="0.72" stop-color="#000" stop-opacity="0.32"></stop>
+                <stop offset="0.72" stop-color="#000" stop-opacity={SHADOW_SHADE}></stop>
                 <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
             </radialGradient>
             <!-- A pressed ring: shaded on its far side, lit on its near side. -->
@@ -281,7 +293,7 @@
             <g transform="translate({center.x} {center.y})" class="flier">
                 <g {@attach animator.flierNode(flier.key, 'whole')}>
                     <g {@attach animator.flierNode(flier.key, 'shadow')}>
-                        {@render shadow()}
+                        {@render shadow(flier.pieces.length)}
                     </g>
                     <g {@attach animator.flierNode(flier.key, 'body')}>
                         <StackShape
