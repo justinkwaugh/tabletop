@@ -52,8 +52,14 @@ This branch has had only two readiness commits: the move to upstream's Rolldown/
 **Conflicts with catalogue fixes.**
 
 - B9 must leave the no-self-cover reading alone.
-- D7 vs. the chosen undo motion. An Undo of a capture brings the captured stack back down after the mover has left, and that runs past 0.2 s. Shorten it first, by starting the drop earlier or making it shorter. Fall back to the D8 rule (fading in where it stands) only if it cannot fit.
+- D7 vs. the chosen undo motion. An Undo of a capture brings the captured stack back down after the mover has left, and that runs past 0.2 s. Overlap and shorten it (start the drop earlier, make it shorter) until it fits; keep the drop (the author's decision).
 - F7 makes the looks softer at full zoom. The author has accepted that trade in the other titles, so follow the rule.
+
+## Author's decisions
+
+- **Undo and actionless steps:** overlap and shorten the title's own motions until each step ends within 0.2 s (D7). Keep every motion; do not drop one or swap it for a fade.
+- **Pieces an Undo or step back puts back:** keep the title's own return motion. gipf `c7d160278` fades such pieces in only because GIPF's taken rows had no motion and popped in; it is not a rule for titles that already move them back.
+- **BoardGameGeek id:** 31999.
 
 ## Fixes
 
@@ -64,7 +70,7 @@ This branch has had only two readiness commits: the move to upstream's Rolldown/
 - **A3 turn series keeps the latest turn: applies.** TZAAR reads only `currentTurn()` (`turnFlow.ts` `activateCurrentPlayer`, `Header.svelte:8`). Set `turnManager.seriesKeeps = 'latest'` right after `HydratedTurnManager.generate` (`initializer.ts:35`), before the Tournament `startTurn` (line 61). Add a playout assertion that the series stays short in the random playouts (`game.spec.ts:436`). Examples: gipf `36405defd`, GP `4497039ac`.
 - **A4 config validated: applies.** `versionFromConfig` and `whitePlayerFromConfig` (`config.ts:62-74`) quietly read unknown values as Random. Reject them with `assertExists`, and add `normalizeConfig` with `Value.Check` on `TzaarConfigurator` (line 57). There are no derived settings. Example: GP `4497039ac`.
 - **A5 per-choice descriptions: applies (Version only).** The Version option (`config.ts:32`) runs all three descriptions together. Give each choice its own `description`, and keep the combined text on the option. White's choices need none (GP has none either). Example: gipf `d0c84518d`.
-- **A7 BoardGameGeek link: applies.** Add `bggId` to `info.ts`, after looking up TZAAR's id on BGG. Example: zertz `e35ef711b`.
+- **A7 BoardGameGeek link: applies.** Add `bggId: 31999` to `info.ts`. Example: zertz `e35ef711b`.
 - **B1 State keeps only what play changes: applies.**
     - The board stores all 60 spaces, empty ones too (`board.ts:31-46` `Space`/`emptyBoard`). Store only occupied stacks with their coords, and take the spaces from `SPACES`. Keep `Piece.id`.
     - `TzaarGameState.version` (`gameState.ts:35`) is written at setup and never read. Drop it.
