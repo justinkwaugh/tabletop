@@ -183,7 +183,9 @@
                         >
                     {/each}
                     <span class="inline-flex items-center gap-0.5 font-semibold" data-basket-total
-                        >= <ShillingToken value={1} size={16} />{picker.basket.total}</span
+                        >= <ShillingToken value={1} size={16} /><span data-basket-sum
+                            >{picker.basket.total}</span
+                        ></span
                     >
                 </p>
             {/if}
