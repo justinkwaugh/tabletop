@@ -18,7 +18,7 @@ export const PunctInfo: GameInfo = {
         version: GAME_VERSION,
         hasScores: false,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     },
     configurator: new PunctConfigurator(),
     preferences: PunctPreferenceDefinition
