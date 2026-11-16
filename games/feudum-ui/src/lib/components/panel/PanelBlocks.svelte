@@ -22,7 +22,8 @@
     import WritOffers from './WritOffers.svelte'
 
     /**
-     * The panel's blocks in the order they stand; left aligned, with the send on the right. The hand
+     * The panel's blocks in the order they stand, left aligned, the send right after the step's last
+     * choice (Contract, Spacing). The hand
      * stands in one line: the picked card's tray right after it, holding all the card asks (R-3.2),
      * and the at-will chips at the line's end.
      */
@@ -234,9 +235,9 @@
     {:else if block.kind === 'tally'}
         <CombatTally lines={block.lines} note={block.note} />
     {:else if block.kind === 'primary' && list[index - 1]?.kind !== 'primary'}
+        <!-- Contract, Spacing: the sends follow the step's last choice, the group gap after it. -->
         <div
-            class="pinned sends flex flex-wrap gap-2 max-sm:min-w-0 max-sm:flex-[1_1_8rem] max-sm:gap-1
-                {block.stands === 'tray' ? '' : 'ml-auto justify-end'}"
+            class="pinned sends flex flex-wrap gap-2 max-sm:min-w-0 max-sm:flex-[1_1_8rem] max-sm:gap-1"
         >
             {#each sendsFrom(list, index) as send, at (at)}
                 <PrimaryButton block={send} />
@@ -329,6 +330,23 @@
     </div>
 {/snippet}
 
+<!--
+    Contract, The trade picker: one control row heads the tray, the card's choices then Forfeit, the
+    group gap between them; any refusal under it; then the picker, left aligned under the row.
+-->
+{#snippet pickerTray(list: readonly ActionBlock[])}
+    {@const controls = list.filter(({ kind }) => kind === 'rows')}
+    {@const rest = list.filter(({ kind }) => kind !== 'rows')}
+    <div class="flex flex-wrap items-center gap-2 max-sm:gap-1" data-tray-controls>
+        {#each controls as inner, index (index)}
+            {@render blockView(inner, index, controls)}
+        {/each}
+    </div>
+    {#each rest as inner, index (index)}
+        {@render blockView(inner, index, rest)}
+    {/each}
+{/snippet}
+
 {#snippet handLine(block: Extract<ActionBlock, { kind: 'cards' }>)}
     <div
         class="flex w-full flex-wrap items-start gap-1.5 max-sm:mb-2 max-sm:gap-1"
@@ -340,9 +358,11 @@
                 <CardChoice {row} paint={block.paint} {pointer} />
             </div>
             {#if tray.length > 0 && at === trayAfter(block.rows)}
+                {@const holdsPicker = tray.some(({ kind }) => kind === 'trade-picker')}
                 <div
-                    class:holds-picker={tray.some(({ kind }) => kind === 'trade-picker')}
-                    class="tray flex flex-wrap items-center gap-2 rounded-lg border border-feudum-frame bg-feudum-surface-raised px-3 py-2 max-sm:gap-1 max-sm:px-2"
+                    class:holds-picker={holdsPicker}
+                    class="tray flex gap-2 rounded-lg border border-feudum-frame bg-feudum-surface-raised px-3 py-2 max-sm:gap-1 max-sm:px-2
+                        {holdsPicker ? 'flex-col' : 'flex-wrap items-center'}"
                     role="group"
                     aria-label="{row.label}: what the card does"
                     style:--at={at}
@@ -353,13 +373,17 @@
                             {row.label}
                         </p>
                     {/if}
-                    {#each tray as inner, index (index)}
-                        {#if inner.kind === 'line' && inner.role === 'flow'}
-                            {@render stageLine(inner, row.label)}
-                        {:else}
-                            {@render blockView(inner, index, tray)}
-                        {/if}
-                    {/each}
+                    {#if holdsPicker}
+                        {@render pickerTray(tray)}
+                    {:else}
+                        {#each tray as inner, index (index)}
+                            {#if inner.kind === 'line' && inner.role === 'flow'}
+                                {@render stageLine(inner, row.label)}
+                            {:else}
+                                {@render blockView(inner, index, tray)}
+                            {/if}
+                        {/each}
+                    {/if}
                 </div>
             {/if}
         {/each}
@@ -502,7 +526,10 @@
         margin-left: auto;
     }
 
-    /* Contract, The trade picker: the board and its cards take the line's room. */
+    /*
+     * Contract, The trade picker: the board and its cards take the line's room, so the cards stand in
+     * one row; what it holds stays left aligned in it.
+     */
     .tray.holds-picker {
         flex: 1 1 44rem;
         max-width: none;

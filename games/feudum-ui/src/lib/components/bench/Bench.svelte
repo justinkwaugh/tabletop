@@ -218,7 +218,7 @@
                 <StagedMoves block={staged} {pointer} />
             {/if}
             {#if primary}
-                <span class="ml-auto min-w-0 grow" data-bench-send>
+                <span class="min-w-0 grow" data-bench-send>
                     <PrimaryButton block={primary} />
                 </span>
             {/if}
