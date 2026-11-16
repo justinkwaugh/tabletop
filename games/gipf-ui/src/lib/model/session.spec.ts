@@ -311,6 +311,31 @@ describe('Letting go', () => {
         expect(session.hasLocalSelection).toBe(false)
         expect(session.gameState.actionCount).toBe(2)
     })
+    it('lifts the piece off when you let it go or take the choice back', async () => {
+        const session = await whiteSession()
+        session.chooseDot(DOT)
+        session.letGo()
+        expect(session.releasedByPlayer).toBe(true)
+
+        session.chooseDot(DOT)
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        await session.undo()
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(true)
+    })
+
+    it('sets the piece down without a lift when a new state clears it', async () => {
+        const session = await whiteSession()
+        session.chooseDot(DOT)
+        session.beforeNewState({ kind: 'view-switch', actions: [], intent: 'silent' })
+        expect(session.releasedByPlayer).toBe(false)
+
+        session.chooseDot(DOT)
+        expect(session.chosenDot).toEqual(DOT)
+        await settled(session.history.goToPreviousAction())
+        expect(session.chosenDot).toBeUndefined()
+        expect(session.releasedByPlayer).toBe(false)
+    })
 })
 
 describe('Stepping through history', () => {

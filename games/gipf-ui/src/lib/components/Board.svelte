@@ -309,7 +309,10 @@
                     color={colorOf(drawn.playerId)}
                     gipf={drawn.gipf}
                     drops={drawn.drops}
-                    lifts={() => animator.entering === undefined && !animator.pushedIn}
+                    lifts={() =>
+                        session.releasedByPlayer &&
+                        animator.entering === undefined &&
+                        !animator.pushedIn}
                 />
             </g>
         {/if}

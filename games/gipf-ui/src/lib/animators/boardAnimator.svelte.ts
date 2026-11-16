@@ -40,7 +40,7 @@ const MARK_FADE = 0.2
 const FALLBACK_DURATION = 0.18
 // Slide and lift overlap so an actionless change stays within its 0.2s.
 const UNPUSH_SLIDE = 0.14
-const UNPUSH_LIFT_AT = 0.08
+const UNPUSH_LIFT_AT = 0.06
 const UNPUSH_LIFT: Lift = { duration: 0.12, rise: LIFT_OFF.rise, fade: LIFT_OFF.fade }
 
 export type Entering = { playerId: string; gipf: boolean; dot: AxialCoordinates }
@@ -243,6 +243,7 @@ export class BoardAnimator implements MoveInterrupter {
                     this.lift(piece.coords, timeline, LIFT_OFF, touched)
                 }
             }
+            await this.fadeInReturning(to, timeline, touched)
             return
         }
         const { entry, shifted, piece } = push
@@ -274,6 +275,32 @@ export class BoardAnimator implements MoveInterrupter {
         this.slideBack(line, shifted, timeline, touched, UNPUSH_SLIDE)
         this.slide([line[0]], toDot, timeline, UNPUSH_SLIDE, touched)
         this.lift(line[0], timeline, UNPUSH_LIFT, touched, UNPUSH_LIFT_AT)
+    }
+
+    // Pieces an Undo or a step back puts back, such as a taken row, fade in where they stand.
+    private async fadeInReturning(
+        to: HydratedGipfGameState,
+        timeline: Timeline,
+        touched: SVGGElement[]
+    ) {
+        const drawn = this.pieces
+        const returning = to.board.pieces.filter(
+            (piece) => !drawn.some((shown) => sameCoordinates(shown.coords, piece.coords))
+        )
+        if (returning.length === 0) return
+        this.pieces = [...drawn, ...returning]
+        await tick()
+        for (const piece of returning) {
+            const node = this.pieceNodes.get(coordinatesToNumber(piece.coords))
+            if (node === undefined) continue
+            touched.push(node)
+            timeline.fromTo(
+                node,
+                { opacity: 0 },
+                { opacity: 1, duration: FALLBACK_DURATION, ease: 'power1.out' },
+                0
+            )
+        }
     }
 
     private slideBack(

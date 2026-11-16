@@ -58,6 +58,9 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
             : {}
     )
     undoingPush: PushPiece | undefined
+    // A staged piece lifts off only when the player lets it go, never when history or a new state
+    // clears it.
+    private changedByPlayer = false
     historyPush: PushPiece | undefined
     moveInterrupter: MoveInterrupter | undefined
 
@@ -67,7 +70,10 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
             undoableStagedSelection(
                 GipfStageOrder,
                 () => this.ownSelection,
-                (selection) => (this.selection = selection)
+                (selection) => {
+                    this.selection = selection
+                    this.changedByPlayer = true
+                }
             )
         )
     }
@@ -219,7 +225,12 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return this.isViewingAsNonActivePlayer ? undefined : push
     }
 
+    get releasedByPlayer(): boolean {
+        return this.changedByPlayer && !this.isViewingHistory
+    }
+
     override beforeNewState({ kind }: PresentedTransition): void {
+        this.changedByPlayer = false
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const incoming = this.presentingState
         const push = kind === 'undo' && incoming ? this.restagedPush(incoming) : undefined
@@ -275,6 +286,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     private select(selection: GipfSelection) {
         this.selection = selection
         this.selectionOwner = this.myPlayer?.id
+        this.changedByPlayer = true
     }
 
     async push(target: AxialCoordinates) {
