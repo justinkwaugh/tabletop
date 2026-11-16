@@ -1,0 +1,283 @@
+{
+ "game": {
+  "id": "scenario-their-tamsk",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "matrx",
+  "deleted": false,
+  "name": "Black's TAMSK",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "White",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Black",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "board": "Matrx",
+   "whitePlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 2860545695,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-11-12T22:28:00.481Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-12T22:28:00.482Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "pT0KGoLYcOJfjE8hOr0Yi",
+  "gameId": "scenario-their-tamsk",
+  "seed": 2860545695,
+  "prng": {
+   "seed": 2860545695,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "b8e297aefc38f8d2b707f3d36695611bacc2285a44f458ba390c01c2078357c4",
+   "invocations": 0
+  },
+  "masterSeed": "16c1030f454f27883d4bc2208e9eb593",
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "white",
+    "gipfPieces": 0,
+    "potentials": {
+     "tamsk": 6,
+     "zertz": 6,
+     "dvonn": 6,
+     "yinsh": 4,
+     "punct": 6
+    },
+    "captured": {
+     "gipf": 0,
+     "tamsk": 0,
+     "zertz": 0,
+     "dvonn": 0,
+     "yinsh": 0,
+     "punct": 0
+    }
+   },
+   {
+    "playerId": "player-2",
+    "color": "black",
+    "gipfPieces": 0,
+    "potentials": {
+     "tamsk": 4,
+     "zertz": 4,
+     "dvonn": 6,
+     "yinsh": 6,
+     "punct": 6
+    },
+    "captured": {
+     "gipf": 0,
+     "tamsk": 0,
+     "zertz": 0,
+     "dvonn": 0,
+     "yinsh": 0,
+     "punct": 0
+    }
+   }
+  ],
+  "machineState": "TakingTurn",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   }
+  },
+  "board": {
+   "shape": "Matrx",
+   "stacks": [
+    {
+     "coords": {
+      "q": -3,
+      "r": 3
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "gipf",
+       "discIds": [
+        0
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 3
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "gipf",
+       "discIds": [
+        1
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 2
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "gipf",
+       "discIds": [
+        2
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -3,
+      "r": 0
+     },
+     "units": [
+      {
+       "playerId": "player-2",
+       "kind": "gipf",
+       "discIds": [
+        3
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": -2
+     },
+     "units": [
+      {
+       "playerId": "player-2",
+       "kind": "gipf",
+       "discIds": [
+        4
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 3,
+      "r": -3
+     },
+     "units": [
+      {
+       "playerId": "player-2",
+       "kind": "gipf",
+       "discIds": [
+        5
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 3
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "yinsh",
+       "discIds": [
+        6
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 2
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "yinsh",
+       "discIds": [
+        7
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 1
+     },
+     "units": [
+      {
+       "playerId": "player-2",
+       "kind": "tamsk",
+       "discIds": [
+        8,
+        9
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 2,
+      "r": 0
+     },
+     "units": [
+      {
+       "playerId": "player-2",
+       "kind": "zertz",
+       "discIds": [
+        10,
+        11
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "movedThisTurn": false,
+  "resolvingPlayerIds": [],
+  "extraMoveOwedIds": [],
+  "nextDiscId": 12
+ },
+ "actions": []
+}

@@ -162,5 +162,9 @@
     {
         "gameId": "zertz",
         "packageId": "zertz"
+    },
+    {
+        "gameId": "matrx",
+        "packageId": "matrx"
     }
 ]
