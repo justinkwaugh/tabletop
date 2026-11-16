@@ -54,6 +54,8 @@
 
     let refusalShown = $state(false)
     let refused = $derived(choice.refusal !== undefined)
+    /** Refused, or spent: other picks hold its room. Either is dimmed; only a refusal has a line. */
+    let dimmed = $derived(refused || choice.spent === true)
     let reasonBeneath = $derived(explained && refused)
     let previewing = $derived(pointer.isRowPointedAt(owner))
     let lights: (() => readonly BoardTarget[]) | undefined = $derived(choice.lights)
@@ -94,10 +96,10 @@
                     {choice.picked
                     ? 'outline-2 outline-feudum-accent'
                     : 'hover:outline-1 hover:outline-feudum-frame'}
-                    {refused ? 'opacity-50' : ''}"
+                    {dimmed ? 'opacity-50' : ''}"
                 aria-label={choice.label}
                 aria-pressed={choice.picked}
-                aria-disabled={refused}
+                aria-disabled={dimmed}
                 onpointerenter={point}
                 onpointerleave={leave}
                 onfocus={point}
@@ -111,13 +113,13 @@
     {:else if piece}
         <button
             type="button"
-            class="piece-press inline-flex justify-center rounded-lg p-1 {refused
+            class="piece-press inline-flex justify-center rounded-lg p-1 {dimmed
                 ? 'opacity-50'
                 : ''}"
             aria-label={choice.label}
             title={choice.label}
             aria-pressed={choice.picked}
-            aria-disabled={refused}
+            aria-disabled={dimmed}
             onpointerenter={point}
             onpointerleave={leave}
             onfocus={point}
@@ -136,7 +138,7 @@
                 : quiet
                   ? 'bg-transparent border-feudum-frame'
                   : 'bg-feudum-control border-feudum-frame'}
-                {refused ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
+                {dimmed ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
             aria-label={reasonBeneath
                 ? `${choice.label}: ${choice.refusal}`
                 : choice.shown === undefined
@@ -144,7 +146,7 @@
                   : choice.label}
             title={reasonBeneath ? choice.refusal : undefined}
             aria-pressed={choice.picked}
-            aria-disabled={refused}
+            aria-disabled={dimmed}
             data-quiet={quiet ? '' : undefined}
             onpointerenter={point}
             onpointerleave={leave}

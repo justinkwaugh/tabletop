@@ -438,14 +438,23 @@ function goodsBlocks(
             }
         ]
     }
+    // R-1.4.8 Each good is its piece and the haversack's count, its name the row's accessible name.
+    // One the haversack lacks is not drawn; with three picked the others stand dimmed, spent.
     return [
         ...rows(
             'goods',
-            panel.goods.map(({ good, count, picked, refusal }) => ({
-                choice: plainChoice(`${titled(good)} ${count}`, picked, refusal),
-                press: () => session.pressStartingGood(good),
-                art: { kind: 'good', good }
-            }))
+            panel.goods
+                .filter(({ refusal }) => !refusal)
+                .map(({ good, count, picked, spent }) => ({
+                    choice: {
+                        label: `${titled(good)} ${count}`,
+                        shown: `${count}`,
+                        picked,
+                        ...(spent ? { spent } : {})
+                    },
+                    press: () => session.pressStartingGood(good),
+                    art: { kind: 'good', good }
+                }))
         ),
         ...sulfurLine(session, panel.sulfurTo),
         ...sends(panel.primary, () => session.sendStartingGoods())
@@ -460,10 +469,10 @@ function pawnBlocks(
         return [waitingLine(session, [panel.deciderId])]
     }
     if (panel.asksCharacter) {
-        return [line('flow', 'Choose who stands here')]
+        return [line('flow', 'Who stands here?')]
     }
     return [
-        line('flow', 'Press a starting space, or a character'),
+        line('flow', 'Place a pawn'),
         ...rows(
             'characters',
             panel.characters.map(({ character, rank, picked }) => {

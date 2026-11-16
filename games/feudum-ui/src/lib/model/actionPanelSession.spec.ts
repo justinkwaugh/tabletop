@@ -176,6 +176,10 @@ describe('Setup', () => {
         expect(rowsOf(session.actionPanel, 'goods').map(({ art }) => art)).toEqual(
             ['saltpeter', 'sulfur', 'iron', 'wood', 'food'].map((good) => ({ kind: 'good', good }))
         )
+        // Beside each piece its count alone; the name is the row's accessible name.
+        expect(rowsOf(session.actionPanel, 'goods').map(({ choice }) => choice.shown)).toEqual(
+            goodsRow.map((label) => label.split(' ')[1])
+        )
         expect(primaryLabels(session.actionPanel)).toEqual([])
         expect(rowsOf(session.actionPanel, 'sulfur')).toEqual([])
 
@@ -205,6 +209,20 @@ describe('Setup', () => {
         await pressRow(rowNamed(session.actionPanel, 'Put the sulfur into the barrel'))
         await pressRow(rowNamed(session.actionPanel, /^Food/))
         expect(blockNames()).toEqual(['goods', 'sulfur'])
+        // Three picked: the two others stand in place, spent (dimmed, with no line).
+        expect(rowLabels(session.actionPanel, 'goods')).toEqual(goodsRow)
+        expect(
+            rowsOf(session.actionPanel, 'goods').map(({ choice }) => [
+                choice.spent === true,
+                choice.refusal
+            ])
+        ).toEqual([
+            [false, undefined],
+            [false, undefined],
+            [true, undefined],
+            [true, undefined],
+            [false, undefined]
+        ])
         expect(sulfurLine()).toEqual([
             ['Keep the sulfur', 'Keep it', false],
             ['Put the sulfur into the barrel', 'Into the barrel', true]
@@ -289,7 +307,7 @@ describe('Setup', () => {
         await session.pressStartingSpace(Inland)
         flushSync()
         expect(rowsOf(session.actionPanel, 'characters')).toEqual([])
-        expect(linesOf(session.actionPanel)).toEqual(['Choose who stands here'])
+        expect(linesOf(session.actionPanel)).toEqual(['Who stands here?'])
         const knight = session.boardPopup?.choices.find(({ label }) => label === 'Knight, master')
         expect(knight?.art).toEqual({ kind: 'die', guild: 'knight', rank: 'master' })
         expect(knight?.note).toBeUndefined()
