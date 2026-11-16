@@ -36,7 +36,7 @@
                     </button>
                 {:else}
                     <span
-                        class="empty block rounded-md border border-dashed border-feudum-frame bg-feudum-surface"
+                        class="empty block rounded-md border border-feudum-frame bg-feudum-surface"
                         data-slot-empty
                     ></span>
                 {/if}

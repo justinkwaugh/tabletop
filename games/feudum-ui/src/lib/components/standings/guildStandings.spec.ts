@@ -73,7 +73,7 @@ describe('Guild standings markup (R-4.5, R-4.7)', () => {
         expect(markup).toContain('Farmer journeyman: vacant')
         expect(markup).toContain('Merchant master: vacant')
         expect(markup).toContain('Merchant, no place: none')
-        expect(markup).toContain('press a place for names')
+        expect(markup).not.toContain('press a place for names')
         expect(markup).not.toContain('hover or press')
     })
 
@@ -86,7 +86,7 @@ describe('Guild standings markup (R-4.5, R-4.7)', () => {
         expect(other).toContain('data-reason="outranked"')
         expect(markup).toContain('data-reason="no marker"')
         expect(markup).toContain('Monk, no place: Dov, 1 star, no marker')
-        expect(markup).toContain('press a place for names')
+        expect(markup).not.toContain('press a place for names')
         expect(markup).not.toContain('hover or press')
     })
 })

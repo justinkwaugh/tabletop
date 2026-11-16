@@ -63,13 +63,16 @@ describe('the site card (R-4.1)', () => {
             addPawn(state, 'p1', 'monk', id)
         })
         expect(card.title.startsWith(`${spaceLabel(spaceId)} · `)).toBe(true)
-        expect(card.markers.map(({ label }) => label)).toEqual([
-            'Ruler: Ana',
-            'Subject: Ana',
-            'Serf: Bram'
+        expect(card.markers.map(({ label, name }) => `${label} ${name}`)).toEqual([
+            'Ruler Ana',
+            'Subject Ana',
+            'Serf Bram'
         ])
         expect(card.markers.map(({ immune }) => immune)).toEqual([false, false, true])
-        expect(card.pawnsLine).toBe('Ana: Knight, Monk · Bram: Farmer')
+        expect(card.pawns.map(({ name, label }) => `${name} ${label}`)).toEqual([
+            'Ana Knight, Monk',
+            'Bram Farmer'
+        ])
         expect(card.goods).toEqual([
             { good: 'iron', count: 3 },
             { good: 'food', count: 1 }
@@ -80,12 +83,11 @@ describe('the site card (R-4.1)', () => {
         const { card } = siteWith(() => {})
         expect(card.markers).toEqual([])
         expect(card.pawns).toEqual([])
-        expect(card.pawnsLine).toBeUndefined()
         expect(card.goods).toEqual([])
         expect(card.vessels).toEqual([])
     })
 
-    it('draws each row with its pieces and names them in words', () => {
+    it('draws each row with its pieces and its words, each seat as its chip', () => {
         const { card } = siteWith((state, id) => {
             state.spaces[id].ruler = { playerId: 'p1', subject: false }
             state.spaces[id].goods.wood = 2
@@ -93,9 +95,9 @@ describe('the site card (R-4.1)', () => {
         })
         const html = render(SiteCard, { props: { card, paintOf } }).body
         expect(html).toContain(card.title)
-        expect(html).toContain('Ruler: Ana')
+        expect(html).toMatch(/>Ruler<\/span>\s*(<!--[^>]*-->)*\s*<span[^>]*data-seat-chip="Ana"/)
         expect(html).toContain('aria-label="Ana\'s influence marker"')
-        expect(html).toContain('Cleo: Noble')
+        expect(html).toMatch(/data-site-pawns[\s\S]*data-seat-chip="Cleo"[\s\S]*>Noble</)
         expect(html).toContain('data-pawn-cube')
         expect(html).toMatch(/data-site-good="wood"[\s\S]*?2/)
     })

@@ -249,8 +249,9 @@
         opacity: 0.4;
     }
 
+    /* Contract, Seat panel: a drafted good stands in a solid ring, never a dashed one. */
     .drafted {
-        outline: 1px dashed var(--feudum-wood-dark);
+        outline: 1px solid var(--feudum-wood-dark);
         border-radius: 0.2em;
     }
 

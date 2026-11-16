@@ -5,13 +5,14 @@
     import SealFace from '$lib/components/pieces/SealFace.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
-    import type { SiteCard } from '$lib/model/siteCard.js'
+    import SeatChip from '$lib/components/panel/SeatChip.svelte'
+    import type { SiteCard, SiteSeat } from '$lib/model/siteCard.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
 
     /**
      * R-4.1 Everything on one site at once, each row its pieces and its words: the markers by role,
      * the pawns by seat, monsters, the landscape, the goods by kind with their counts, and abandoned
-     * vessels. It shows only what the table shows.
+     * vessels. A seat is its chip. It shows only what the table shows.
      */
     let {
         card,
@@ -21,6 +22,10 @@
 
     const Piece = 20
 </script>
+
+{#snippet chip(seat: SiteSeat)}
+    <SeatChip name={seat.name} paint={paintOf(seat.playerId)} />
+{/snippet}
 
 <div
     class="flex max-w-72 flex-col gap-1.5 rounded-lg border border-feudum-accent bg-feudum-surface-raised p-2 text-sm text-feudum-text"
@@ -41,13 +46,14 @@
         <div class="flex items-center gap-1.5">
             <SeatToken kind="marker" paint={paintOf(marker.playerId)} size={Piece} />
             <span>{marker.label}</span>
+            {@render chip(marker)}
             {#if marker.immune}
                 <SealFace faceShown={false} size={16} />
                 <span class="text-feudum-text-muted">immune</span>
             {/if}
         </div>
     {/each}
-    {#if card.pawnsLine}
+    {#if card.pawns.length > 0}
         <div class="flex flex-col gap-0.5">
             <div class="flex flex-wrap items-center gap-0.5">
                 {#each card.pawns as seat (seat.playerId)}
@@ -61,17 +67,26 @@
                     {/each}
                 {/each}
             </div>
-            <span>{card.pawnsLine}</span>
+            <div class="flex flex-wrap items-center gap-1" data-site-pawns>
+                {#each card.pawns as seat, index (seat.playerId)}
+                    {#if index > 0}<span aria-hidden="true">·</span>{/if}
+                    {@render chip(seat)}
+                    <span>{seat.label}</span>
+                {/each}
+            </div>
         </div>
     {/if}
     {#each card.monsters as monster (monster.monster)}
         <div class="flex items-center gap-1.5">
             <MonsterToken
                 monster={monster.monster}
-                {...monster.playerId ? { paint: paintOf(monster.playerId) } : {}}
+                {...monster.seat ? { paint: paintOf(monster.seat.playerId) } : {}}
                 size={24}
             />
             <span>{monster.label}</span>
+            {#if monster.seat}
+                {@render chip(monster.seat)}
+            {/if}
         </div>
     {/each}
     {#if card.landscape}

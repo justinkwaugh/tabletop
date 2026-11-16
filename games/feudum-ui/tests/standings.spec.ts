@@ -137,9 +137,10 @@ scenario(
             await expect(
                 table.page.locator('[data-guild-rail="farmer"] [data-standing-place="journeyman"]')
             ).toHaveCount(0)
-            await expect(
-                table.page.locator('[data-guild-rail="knight"] [data-no-master]')
-            ).toContainText('no master yet')
+            // An open master is its empty outline, with no words.
+            const open = table.page.locator('[data-guild-rail="knight"] [data-no-master]')
+            await expect(open.locator('svg')).toBeVisible()
+            await expect(open).not.toContainText('no master yet')
             const said = merchant.locator('[data-standings-said]')
             await table.press(merchant.locator('[data-standing-other="p5"]'))
             await expect(said).toHaveText('Merchant, no place: Esme, 1 star, outranked')
@@ -164,7 +165,7 @@ scenario(
         const standings = standingsIn(guildsLayer(table))
         await expectStandings(standings)
         const said = standings.locator('[data-standings-said]')
-        await expect(said).toHaveText('press a place for names')
+        await expect(said).toHaveText('')
         // No hover on a phone: a press says the place's words.
         await table.press(standings.locator('[data-standing-other="p5"]'))
         await expect(said).toHaveText('Merchant, no place: Esme, 1 star, outranked')

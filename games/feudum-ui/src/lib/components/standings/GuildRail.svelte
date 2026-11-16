@@ -8,7 +8,7 @@
     /**
      * Contract, Guild standings: one guild's rail, drawn at its own size and scaled to its place.
      * It shows only what exists: the guild, then its master boxed with the larger marker, stars and
-     * a ringed dot for a reeve, or "no master yet" beside an empty marker outline; then the lower
+     * a ringed dot for a reeve, or an empty marker outline, solid, with no words; then the lower
      * places held, and muted, the seats with stars and no place. Markers carry no letters, so each
      * place's words are its accessible name and tooltip, and a press says them at the rail's foot,
      * where a touch screen has no tooltip. Spelled out, in the desk's strip, each holder's name
@@ -78,10 +78,8 @@
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.6"
-                stroke-dasharray="3 2"
             ></polygon>
         </svg>
-        <span aria-hidden="true">no master yet</span>
         <span class="sr-only">{master.label}</span>
     </p>
 {/snippet}

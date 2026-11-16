@@ -10,23 +10,30 @@ import {
 
 export type SiteRole = 'ruler' | 'subject' | 'serf'
 
-export interface SiteMarker {
-    readonly role: SiteRole
+/** A seat as the card draws it: its chip, which reads out its name. */
+export interface SiteSeat {
     readonly playerId: string
+    readonly name: string
+}
+
+export interface SiteMarker extends SiteSeat {
+    readonly role: SiteRole
+    /** The role's word before the seat's chip: "Ruler". */
     readonly label: string
     readonly immune: boolean
 }
 
-export interface SitePawns {
-    readonly playerId: string
+export interface SitePawns extends SiteSeat {
     readonly characters: readonly Character[]
     readonly drunk: readonly boolean[]
+    /** The characters after the seat's chip: "Knight, Monk". */
     readonly label: string
 }
 
 export interface SiteMonster {
     readonly monster: MonsterId
-    readonly playerId?: string
+    /** Whose it is, as a chip after its name. */
+    readonly seat?: SiteSeat
     readonly label: string
 }
 
@@ -35,9 +42,8 @@ export interface SiteCard {
     readonly spaceId: SpaceId
     readonly title: string
     readonly markers: readonly SiteMarker[]
+    /** Each seat's pawns, in one line of chips and characters. */
     readonly pawns: readonly SitePawns[]
-    /** Each seat's pawns in one line: "Ana: Knight, Monk · Bram: Farmer". */
-    readonly pawnsLine?: string
     readonly monsters: readonly SiteMonster[]
     readonly landscape?: string
     readonly goods: readonly GoodKind[]
@@ -63,14 +69,16 @@ export function siteCardOf(
         markers.push({
             role: 'ruler',
             playerId,
-            label: `Ruler: ${nameOf(playerId)}`,
+            name: nameOf(playerId),
+            label: 'Ruler',
             immune: false
         })
         if (space.ruler.subject) {
             markers.push({
                 role: 'subject',
                 playerId,
-                label: `Subject: ${nameOf(playerId)}`,
+                name: nameOf(playerId),
+                label: 'Subject',
                 immune: space.ruler.subjectImmune === true
             })
         }
@@ -80,7 +88,8 @@ export function siteCardOf(
         markers.push({
             role: 'serf',
             playerId,
-            label: `Serf: ${nameOf(playerId)}`,
+            name: nameOf(playerId),
+            label: 'Serf',
             immune: space.serf.immune === true
         })
     }
@@ -96,9 +105,10 @@ export function siteCardOf(
         return [
             {
                 playerId,
+                name: nameOf(playerId),
                 characters,
                 drunk: own.map(({ drunk }) => drunk),
-                label: `${nameOf(playerId)}: ${characters.map(Titled).join(', ')}`
+                label: characters.map(Titled).join(', ')
             }
         ]
     })
@@ -107,10 +117,10 @@ export function siteCardOf(
             ? [
                   {
                       monster: piece.monster,
-                      ...(piece.playerId ? { playerId: piece.playerId } : {}),
-                      label: piece.playerId
-                          ? `${monsterName(piece.monster)}, ${nameOf(piece.playerId)}'s`
-                          : monsterName(piece.monster)
+                      ...(piece.playerId
+                          ? { seat: { playerId: piece.playerId, name: nameOf(piece.playerId) } }
+                          : {}),
+                      label: monsterName(piece.monster)
                   }
               ]
             : []
@@ -121,7 +131,6 @@ export function siteCardOf(
         title: `${spaceLabel(spaceId)} · ${place}`,
         markers,
         pawns,
-        ...(pawns.length > 0 ? { pawnsLine: pawns.map(({ label }) => label).join(' · ') } : {}),
         monsters,
         ...(landscape ? { landscape: `${Titled(landscape)} landscape` } : {}),
         goods: goodKinds(space.goods),

@@ -20,8 +20,6 @@
         paintOf: (playerId: string) => SeatPaint
     } = $props()
 
-    /** It stands only in a phone's Guilds sheet, with no hover, so the hint asks for a press. */
-    const Hint = 'press a place for names'
     const Die = 26
     const Marker = 16
     const LeadMarker = 18
@@ -47,7 +45,7 @@
 <section class="standings" aria-labelledby={headingId} data-guild-standings>
     <div class="head">
         <h3 id={headingId}>Guild standings</h3>
-        <small aria-live="polite" data-standings-said>{said ?? Hint}</small>
+        <small aria-live="polite" data-standings-said>{said ?? ''}</small>
     </div>
     <table>
         <thead>

@@ -24,7 +24,7 @@
 <Scrim {label} layer="stack" {onClose}>
     <div class="rounded-lg bg-feudum-surface-raised text-feudum-text p-6 pt-10 min-w-[280px]">
         {#if groups.length === 0}
-            <p>This stack is empty.</p>
+            <p>Empty.</p>
         {/if}
         <div class="flex flex-wrap gap-4" data-stack-view={region}>
             {#each groups as { epoch, count } (epoch)}

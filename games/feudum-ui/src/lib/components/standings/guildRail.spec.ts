@@ -68,11 +68,12 @@ describe('a guild rail (R-4.5, R-4.7)', () => {
         expect(markup).not.toContain('no master yet')
     })
 
-    it('R-4.5 a guild with no master yet says so beside an empty marker outline, and nothing else', () => {
+    it('R-4.5 a guild with no master yet shows a solid empty marker outline, with no words, and nothing else', () => {
         const markup = railOf('monk')
         expect(markup).toContain('Monk')
-        expect(markup).toContain('no master yet')
+        expect(markup).not.toContain('no master yet')
         expect(markup).toContain('data-no-master')
+        expect(markup).not.toContain('stroke-dasharray')
         expect(markup).toContain('Monk master: vacant')
         expect(markup).not.toContain('<button')
     })
@@ -92,9 +93,10 @@ describe('a guild rail (R-4.5, R-4.7)', () => {
         expect(railOf('farmer')).not.toContain('data-standing-name')
     })
 
-    it('R-4.5 spelled out, a guild with no master yet still says so and nothing else', () => {
+    it('R-4.5 spelled out, a guild with no master yet shows its empty outline and nothing else', () => {
         const markup = railOf('monk', true)
-        expect(markup).toContain('no master yet')
+        expect(markup).toContain('data-no-master')
+        expect(markup).toContain('Monk master: vacant')
         expect(markup).not.toContain('data-standing-name')
     })
 })
