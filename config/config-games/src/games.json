@@ -170,5 +170,9 @@
     {
         "gameId": "gipf-potentials",
         "packageId": "gipf-potentials"
+    },
+    {
+        "gameId": "ride-the-rails",
+        "packageId": "ride-the-rails"
     }
 ]
