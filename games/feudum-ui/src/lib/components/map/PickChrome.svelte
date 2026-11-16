@@ -7,7 +7,8 @@
     /**
      * One target's pick chrome, in the layer that draws the target: the ring over its halo, its chip
      * and its press. What it shows is the board offer's and nothing else (contract: Pick conventions).
-     * It stands whatever the role, so a popup always has its anchor.
+     * It stands whatever the role, so a popup always has its anchor. A layer that draws the chip over
+     * what stands on the target leaves it out here.
      */
     let {
         target,
@@ -16,7 +17,8 @@
         width,
         height = width,
         round = true,
-        label
+        label,
+        drawsChip = true
     }: {
         target: BoardTarget
         chrome: BoardChrome
@@ -25,6 +27,7 @@
         height?: number
         round?: boolean
         label: string
+        drawsChip?: boolean
     } = $props()
 
     const Corner = 14
@@ -104,7 +107,7 @@
             onkeydown={onKey}
         ></rect>
     {/if}
-    {#if chip}
+    {#if chip && drawsChip}
         <PickChip {chip} y={-height / 2 - 24} />
     {/if}
 </g>

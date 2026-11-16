@@ -19,7 +19,8 @@ scenario(
     'move-ferry',
     async (table) => {
         await table.press(table.card('Move'))
-        await expect(table.pick(Desert5).locator('[data-chip="rose"]')).toHaveText('ferry · 2s')
+        await expect(table.chip(Desert5)).toHaveText('ferry · 2s')
+        await expect(table.chip(Desert5)).toHaveAttribute('data-chip', 'rose')
         const chips = await table.page
             .locator('[data-board-surface] [data-chip]')
             .evaluateAll((all) =>

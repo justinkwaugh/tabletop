@@ -25,8 +25,8 @@ function playedMark(panel: Locator, kind: string): Locator {
 
 scenario('S10 R-3.8.3 Card modes', 'cards-merchant-under-marker', async (table) => {
     await table.press(table.card('Influence'))
-    const space = table.pick(Forest2)
-    await expect(space.locator('[data-chip="rose"]')).toHaveText('Money is Influence · 1s')
+    await expect(table.chip(Forest2)).toHaveText('Money is Influence · 1s')
+    await expect(table.chip(Forest2)).toHaveAttribute('data-chip', 'rose')
     await expect(table.primary()).toHaveText('Influence')
     await table.pressPick(Forest2)
     await expect(table.primary()).toHaveText('Influence at Forest 2')
@@ -82,7 +82,7 @@ scenario('S13 R-3.6 Migrate onto the board', 'cards-migrate', async (table) => {
             ])
         )
     })
-    await expect(table.pick(Forest2).locator('[data-chip] [aria-label="food"]')).toHaveCount(1)
+    await expect(table.chip(Forest2).locator('[aria-label="food"]')).toHaveCount(1)
     await table.pressPick(Desert3)
     await expect(table.popup()).toBeVisible()
     expect(await table.piecesNamed('rank:guild.monk')).toEqual([])

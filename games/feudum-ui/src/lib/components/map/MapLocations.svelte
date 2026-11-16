@@ -11,7 +11,7 @@
     import { feudumTarget, roleOf, spaceTarget } from '$lib/model/boardOffer.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { spaceLabel } from '$lib/model/cardFlows.js'
-    import { DiscFrame, spaceGeometry } from '$lib/utils/boardGeometry.js'
+    import { DiscFrame, SpaceRingFrame, spaceGeometry } from '$lib/utils/boardGeometry.js'
     import BoardPiece from './BoardPiece.svelte'
     import PickChrome from './PickChrome.svelte'
 
@@ -20,7 +20,8 @@
      * under it in its ruler's paint on a map-ink keyline. The letters are printed on
      * the map, so they are drawn only on our own terrain. A space's chrome stands on its disc: the
      * space itself, or the feudum there when the pick is of feudums. A disc with nothing lit on it
-     * opens the card of what is there (contract: Site card).
+     * opens the card of what is there (contract: Site card). The space's chip stands in its own
+     * layer over the pieces (`MapChips`).
      */
     let {
         state,
@@ -32,7 +33,6 @@
         chrome?: BoardChrome
     } = $props()
 
-    const RingFrame = DiscFrame + 10
     const RuledRadius = 36
     let drawnLetters = $derived(!assetUrl(MapAsset))
 </script>
@@ -90,7 +90,7 @@
         <circle
             cx={geometry.centre.x}
             cy={geometry.centre.y}
-            r={RingFrame / 2}
+            r={SpaceRingFrame / 2}
             fill="transparent"
             role="button"
             tabindex="0"
@@ -118,8 +118,9 @@
             {target}
             {chrome}
             at={geometry.centre}
-            width={RingFrame}
+            width={SpaceRingFrame}
             label={spaceLabel(space.id)}
+            drawsChip={false}
         />
     {/each}
 {/each}
