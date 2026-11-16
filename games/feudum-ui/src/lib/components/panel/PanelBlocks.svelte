@@ -253,13 +253,13 @@
 
 <!--
     The tray's stage line. A desk heads the tray with the card's name; a phone puts the name at the
-    line's head and, where the flow has one, says it in its shorter words, so the line stays one.
+    line's head, so the line stays one.
 -->
 {#snippet stageLine(block: Extract<ActionBlock, { kind: 'line' }>, card: string)}
     {#if layout.phone}
         <p class="stage-line w-full text-feudum-text" data-tray-line>
             <span class="font-semibold text-feudum-accent">{card}:</span>
-            <span data-flow-line>{block.short ?? block.text}</span>
+            <span data-flow-line>{block.text}</span>
         </p>
     {:else}
         <p class="w-full {LineClasses.flow}" data-flow-line data-tray-line>{block.text}</p>

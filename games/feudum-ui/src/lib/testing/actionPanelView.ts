@@ -57,6 +57,11 @@ export function primaryLabels(view: ActionPanelView): readonly string[] {
     return primariesOf(view).map(({ label }) => label)
 }
 
+/** Each send's accessible name: its full words where the label says them shorter. */
+export function primaryNames(view: ActionPanelView): readonly string[] {
+    return primariesOf(view).map(({ label, named }) => named ?? label)
+}
+
 export function primaryNamed(
     view: ActionPanelView,
     label: string | RegExp

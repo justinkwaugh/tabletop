@@ -102,7 +102,7 @@ scenario('S61 R-2.2, R-3.7.5 History View', 'voyage-repeat', async (table) => {
     await table.press(table.card('Repeat'))
     await table.pressPick(Forest2)
     await table.press(table.primary())
-    await expect(table.panel()).toContainText('Place your voyage disc on space 1?')
+    await expect(table.panel()).toContainText('Voyage space 1?')
     await table.press(table.row('Place'))
 
     // History opens on the latest Action, the disc's; a step back is the Move, and the seat was

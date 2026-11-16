@@ -217,14 +217,14 @@ export interface FlowView {
     readonly picked: readonly BoardTarget[]
     readonly rows: readonly PanelChoice[]
     readonly popup?: FlowPopup
-    /** "Place 2 of 3", "The Desert tile is not yet legal: take an earlier tile". */
+    /** "Pick a space.", "Place 2 of 3", "Pick an earlier tile." */
     readonly line?: string
-    /** The line in a phone's words, short enough to stand on one line after the card's name. */
-    readonly short?: string
     readonly tally?: readonly TallyLine[]
     readonly tallyNote?: string
     /** R-X.2 Names the primary button, when this flow can show one. */
     readonly primaryName?: string
+    /** The primary's full words, its accessible name, where `primaryName` says it shorter. */
+    readonly primaryNamed?: string
     /** The primary is the only press that sends, whatever the preview says. */
     readonly confirms?: boolean
     readonly play?: FlowPlay
@@ -311,13 +311,10 @@ function priceNote(): ChipNote {
     }
 }
 
-/** The tray's lines while a pick lights places with chips: what each chip says, said once. */
-const MigrateLine = 'Pick a space to enter. Each lit space shows what the pawn costs.'
-const HarvestLine = 'Pick a farm to harvest. Each lit farm shows the goods it holds.'
-const ConquerLine = 'Pick a place to conquer. Each lit place shows your attack against its defence.'
-const MigrateShort = 'pick a space to enter. Each shows its cost.'
-const HarvestShort = 'pick a farm to harvest. Each shows its goods.'
-const ConquerShort = 'pick a place. Each shows attack and defence.'
+/** The tray's line while a pick lights places with chips; the chips say the rest. */
+const MigrateLine = 'Pick a space.'
+const HarvestLine = 'Pick a farm.'
+const ConquerLine = 'Pick a place.'
 
 /** R-3.6 */
 function migrateFlow(flow: FlowInput): FlowView {
@@ -326,21 +323,14 @@ function migrateFlow(flow: FlowInput): FlowView {
     const pawn = read('pawn')
     const canEnter = offers.spaces.length + offers.distantKinSpaces.length > 0
     // R-1.1 Pawns in supply stand nowhere and have no character, so nothing tells them apart: one
-    // cube stands for them all, and its press takes the first.
-    const rows: PanelChoice[] = offers.pawnsOff.slice(0, 1).map((n) => ({
+    // cube stands for them all, its words its accessible name, and its press takes the first. It is
+    // not drawn while no space can take it.
+    const rows: PanelChoice[] = (canEnter ? offers.pawnsOff.slice(0, 1) : []).map((n) => ({
         label: 'Pawn from supply',
+        shown: '',
         art: { kind: 'pawn' },
         picked: pawn !== undefined && offers.pawnsOff.includes(pawn),
-        ...(canEnter
-            ? { press: Pick('pawn', n) }
-            : {
-                  refusal:
-                      reasonMigrateRefused(state, playerId, {
-                          ...input,
-                          pawn: n,
-                          onto: { character: 'farmer', spaceId: StartingSpaceIds[0] }
-                      }) ?? 'No space to migrate to.'
-              })
+        press: Pick('pawn', n)
     }))
     if (pawn === undefined || offers.pawnsOn.includes(pawn)) {
         const data = pawn === undefined ? undefined : { ...input, pawn, onto: 'off' as const }
@@ -384,7 +374,7 @@ function migrateFlow(flow: FlowInput): FlowView {
             rows,
             picks,
             picked,
-            ...(distantKin ? {} : { line: MigrateLine, short: MigrateShort })
+            ...(distantKin ? {} : { line: MigrateLine })
         }
     }
     const character = read('character')
@@ -436,13 +426,14 @@ function migrateFlow(flow: FlowInput): FlowView {
                 art: tileArt(state, tileId),
                 shown: `for ${needs.join(', ')}`,
                 picked: cover.includes(tileId),
+                // Spent: every short good has its tile, so this one waits, dimmed, until one goes.
                 ...(next
                     ? {
                           press: (draft: TurnPresser) => {
                               draft.stack('cover', next)
                           }
                       }
-                    : { refusal: 'Every short good has its tile.' })
+                    : { spent: true })
             }
         }),
         picks,
@@ -470,7 +461,10 @@ function influenceFlow({ state, playerId, input, read }: FlowInput): FlowView {
         (maker) => maker.createPlayerAction(Influence, data)
     )
     const primary = {
-        primaryName: money ? `Influence · Money is Influence at ${spaceLabel(money)}` : 'Influence',
+        primaryName: money ? `Influence at ${spaceLabel(money)}` : 'Influence',
+        ...(money
+            ? { primaryNamed: `Influence · Money is Influence at ${spaceLabel(money)}` }
+            : {}),
         confirms: true,
         ...(play ? { play } : {})
     }
@@ -497,6 +491,7 @@ function influenceFlow({ state, playerId, input, read }: FlowInput): FlowView {
                 .filter((spaceId) => offers.moneyIsInfluence.includes(spaceId))
                 .map((spaceId) => ({
                     label: `Money is Influence at ${spaceLabel(spaceId)}`,
+                    shown: spaceLabel(spaceId),
                     note: moneyNote,
                     picked: money === spaceId,
                     press: Pick('money', spaceId)
@@ -532,9 +527,8 @@ function improveStepNote({ from, to, cost }: ImproveOffer): ChipNote {
     }
 }
 
-/** The tray's line while Improve lights its places: what each chip says, said once. */
-const ImproveLine = 'Pick a place you rule. Each lit place shows its step and what it costs.'
-const ImproveShort = 'pick a place you rule. Each shows step and cost.'
+/** The tray's line while Improve lights its places; the chips say each step, cost and tile. */
+const ImproveLine = 'Pick a place.'
 
 /** R-4.3-H1 What the chip says of the tile: said before the press, since a press may send. */
 function improveTileNote({ tile }: ImproveOffer): ChipNote {
@@ -550,12 +544,14 @@ function improveTileNote({ tile }: ImproveOffer): ChipNote {
     }
 }
 
-/** R-4.3-H1, R-4.3.2 */
-function improveTileLine({ spaceId, tile }: ImproveOffer): string {
-    const name = titled(regionOf(spaceId))
+/**
+ * R-4.3-H1, R-4.3.2 The step once a place whose tile is prohibited is picked: an earlier stack,
+ * whose chips say "no vp". With none to take, the chip said "no tile" before the press.
+ */
+function improveTileLine({ tile }: ImproveOffer): string | undefined {
     return tile.kind === 'prohibited' && tile.candidates.length > 0
-        ? `The ${name} tile is not yet legal: take an earlier tile`
-        : `The ${name} tile is not yet legal: no earlier tile to take`
+        ? 'Pick an earlier tile.'
+        : undefined
 }
 
 /** R-3.9.1, R-3.9-H1, R-4.3-H1 */
@@ -568,16 +564,11 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
         notes: [improveStepNote(row), improveTileNote(row)],
         press: Pick('space', row.spaceId)
     }))
-    const prohibited = offers.filter(({ tile }) => tile.kind === 'prohibited')
     if (!spaceId || !offer) {
-        return {
-            ...Empty,
-            picks,
-            line: [ImproveLine, ...new Set(prohibited.map(improveTileLine))].join(' '),
-            ...(prohibited.length === 0 ? { short: ImproveShort } : {})
-        }
+        return { ...Empty, picks, line: ImproveLine }
     }
-    const tileLine = offer.tile.kind === 'prohibited' ? { line: improveTileLine(offer) } : {}
+    const earlier = improveTileLine(offer)
+    const tileLine = earlier ? { line: earlier } : {}
     const picked = [spaceTarget(spaceId)]
     const anchor = spaceTarget(spaceId)
     const guild = read('guild')
@@ -621,7 +612,7 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
     const asksFallback = candidates.length > 0
     const view: FlowView = {
         ...Empty,
-        primaryName: `Improve ${spaceLabel(spaceId)} to a ${offer.to}`,
+        primaryName: `Improve ${spaceLabel(spaceId)} to ${offer.to}`,
         ...tileLine,
         picks: asksFallback
             ? candidates.map(({ stack }) => ({
@@ -646,8 +637,7 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
 /**
  * R-3.9-H1, R-3.9-H2 The discs that differ in their back, each drawn with its back peeking behind
  * it: the back leaves the general supply with the disc, and no other improvement can take that face
- * until the disc is replaced and returns, so the heading says why it matters. A farm or town is never
- * reduced (R-3.13.1).
+ * until the disc is replaced and returns. A farm or town is never reduced (R-3.13.1).
  */
 function discPopup(
     anchor: BoardTarget,
@@ -657,7 +647,7 @@ function discPopup(
     const name = titled(to)
     return {
         anchor,
-        heading: `Which ${to} disc? Its back leaves the supply with it, and no other improvement can take that face while it stands.`,
+        heading: 'Which disc?',
         choices: discs.map(({ discId, other }) => {
             const back = other ?? 'plain'
             return {
@@ -711,7 +701,12 @@ function tendFlow({ state, playerId, input, read }: FlowInput): FlowView {
                         picked: false,
                         press: Pick('collect', true)
                     },
-                    { label: 'Leave it', picked: false, press: Pick('collect', false) }
+                    {
+                        label: 'Leave it',
+                        shown: 'Leave',
+                        picked: false,
+                        press: Pick('collect', false)
+                    }
                 ]
             }
         }
@@ -748,7 +743,8 @@ function tendFlow({ state, playerId, input, read }: FlowInput): FlowView {
         rows,
         picks,
         picked,
-        primaryName: `Tend Landscape at ${spaceLabel(spaceId)}`,
+        primaryName: `Tend at ${spaceLabel(spaceId)}`,
+        primaryNamed: `Tend Landscape at ${spaceLabel(spaceId)}`,
         ...(play ? { play } : {})
     }
 }
@@ -764,10 +760,13 @@ function exploreFlow({ state, playerId, input }: FlowInput): FlowView {
     )
     return {
         ...Empty,
-        // Contract, Supply: the draw is counted against what the deck holds.
-        primaryName: offer
-            ? `Explore: draw ${offer.drawCount} of ${writDeckCount(state)} writs`
-            : 'Explore',
+        // Contract, Supply: the deck's count stands on the Supply card; the full words name the press.
+        ...(offer
+            ? {
+                  primaryName: `Draw ${offer.drawCount}`,
+                  primaryNamed: `Explore: draw ${offer.drawCount} of ${writDeckCount(state)} writs`
+              }
+            : { primaryName: 'Explore' }),
         confirms: true,
         ...(play ? { play } : {})
     }
@@ -790,7 +789,7 @@ function harvestFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }))
     const farm = offers.farms.find((row) => row.spaceId === spaceId)
     if (!spaceId || !farm) {
-        return { ...Empty, picks, line: HarvestLine, short: HarvestShort }
+        return { ...Empty, picks, line: HarvestLine }
     }
     const picked = [spaceTarget(spaceId)]
     const harvest = read('harvest')
@@ -809,11 +808,12 @@ function harvestFlow({ state, playerId, input, read }: FlowInput): FlowView {
                     },
                     {
                         label: `Favours: ${farm.partial} here, ${farm.favours} to you`,
+                        shown: `${farm.partial} here · ${farm.favours} to you`,
                         ...(offers.beads > 0
                             ? {
                                   note: {
                                       kind: 'cost',
-                                      label: `your ${offers.beads} beads turn to seals`
+                                      label: `${offers.beads} beads turn to seals`
                                   }
                               }
                             : {}),
@@ -824,6 +824,7 @@ function harvestFlow({ state, playerId, input, read }: FlowInput): FlowView {
                         ? [
                               {
                                   label: 'Inspect the harvest',
+                                  shown: 'Inspect',
                                   picked: false,
                                   press: Pick('harvest', 'inspect')
                               }
@@ -864,11 +865,13 @@ function taxFlow({ state, playerId, input, read }: FlowInput, name: string): Flo
     const rows: PanelChoice[] = [
         {
             label: 'Collect Reinforcements · +1 marker',
+            shown: 'Reinforcements +1 marker',
             picked: collect === true,
             press: Pick('collect', true)
         },
         {
             label: 'Decline Reinforcements',
+            shown: 'Skip',
             picked: collect === false,
             press: Pick('collect', false)
         }
@@ -958,7 +961,7 @@ function conquerFlow(flow: FlowInput): FlowView {
     }))
     const offer = offers.find((row) => conquerTarget(row) === target)
     if (!target || !offer) {
-        return { ...Empty, picks, line: ConquerLine, short: ConquerShort }
+        return { ...Empty, picks, line: ConquerLine }
     }
     const data = { ...input, spaceId: offer.spaceId, target: offer.target }
     const name = conquerName(flow, offer)
@@ -972,10 +975,11 @@ function conquerFlow(flow: FlowInput): FlowView {
         picks,
         picked: [target],
         tally: tallyLines(offer.strength),
-        ...(offer.revealsInfo ? { tallyNote: 'Defence may rise by 1 if they answer' } : {}),
-        primaryName: offer.revealsInfo
-            ? `Conquer ${name} · ${nameOf(offer.defenderId)} may answer`
-            : `Conquer ${name}`,
+        // Who may answer stays the press's accessible name; the History tells the answer.
+        primaryName: `Conquer ${name}`,
+        ...(offer.revealsInfo
+            ? { primaryNamed: `Conquer ${name} · ${nameOf(offer.defenderId)} may answer` }
+            : {}),
         ...(play ? { play } : {})
     }
 }
@@ -1009,9 +1013,8 @@ function starveFlow({ state, playerId, input, read, nameOf }: FlowInput): FlowVi
         ...Empty,
         picks,
         picked: [target],
-        primaryName: revealsInfo
-            ? `Starve ${owner}'s ${role} · ${owner} may answer`
-            : `Starve ${owner}'s ${role}`,
+        primaryName: `Starve ${owner}'s ${role}`,
+        ...(revealsInfo ? { primaryNamed: `Starve ${owner}'s ${role} · ${owner} may answer` } : {}),
         ...(play ? { play } : {})
     }
 }

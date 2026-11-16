@@ -562,14 +562,12 @@ describe('S40 R-3.16 a guild, then its function', () => {
         expect(session.guild.value('guild')).toBeUndefined()
     })
 
-    it('R-3.16.1 the popup: each function, dimmed with why, with its cost and best outcome', async () => {
+    it('R-3.16.1 the popup: each open function with its cost and best outcome; a closed one is not drawn', async () => {
         const { session } = await opened()
         await pressTarget(session, guildTarget('merchant'))
         const { popup } = session.guildPanel ?? {}
         expect(popup?.anchor).toBe(guildTarget('merchant'))
-        const push = popupRow(session, /^Push/)
-        expect(push.refusal).toBeTruthy()
-        expect(push.press).toBeUndefined()
+        expect(popup?.choices.some(({ label }) => label.startsWith('Push'))).toBe(false)
         const trade = popupRow(session, /^Trade/)
         expect(trade.note?.kind).toBe('cost')
         expect(trade.note?.label).toMatch(/^from \ds$/)
@@ -948,7 +946,7 @@ describe('S47 R-3.16.3 a Feast', () => {
         )
     })
 
-    it('R-3.16.3 lists each opponent’s own function there, dimmed where nothing could move', async () => {
+    it('R-3.16.3 lists each opponent’s own function there; one where nothing could move is not drawn', async () => {
         const turn = await feast()
         const { session, other, third } = turn
         await pressTarget(session, spaceTarget(StandingSpace))
@@ -956,9 +954,11 @@ describe('S47 R-3.16.3 a Feast', () => {
         const live = popupRow(session, new RegExp(`^${name(other)} · Merchant push$`))
         expect(live.press).toBeDefined()
         expect(live.note).toEqual({ kind: 'gain', label: 'up to 3 vp' })
-        const dead = popupRow(session, new RegExp(`^${name(third)} · Noble push$`))
-        expect(dead.refusal).toBeTruthy()
-        expect(dead.press).toBeUndefined()
+        expect(
+            session.guildPanel?.popup?.choices.some(({ label }) =>
+                label.startsWith(`${name(third)} · Noble push`)
+            )
+        ).toBe(false)
     })
 
     it('R-3.16.3, R-3.16-H2 the result names the feast’s points, no reeve; it sends a Feast', async () => {
@@ -1062,7 +1062,7 @@ describe('S47 R-3.16.3 a Feast', () => {
 })
 
 describe('S48 R-4.6.2, R-4.3-H3 a price short of what a tile can bring', () => {
-    it('R-4.6.2 a function short of shillings is dimmed with its reason: a tile brings no shilling', async () => {
+    it('R-4.6.2 a function short of shillings is not drawn: a tile brings no shilling', async () => {
         const turn = await table((state, { seat, other }) => {
             setJourneyman(state, seat, 'merchant', other)
             setBarn(state, { iron: 1 })
@@ -1074,10 +1074,9 @@ describe('S48 R-4.6.2, R-4.3-H3 a price short of what a tile can bring', () => {
         expect(session.gameState.getPlayerState(seat).regionTiles).toHaveLength(1)
         pickCard(session)
         await pressTarget(session, guildTarget('merchant'))
-        const trade = popupRow(session, /^Trade/)
-        expect(trade.refusal).toBeTruthy()
-        expect(trade.refusal).not.toMatch(/tile/i)
-        expect(trade.press).toBeUndefined()
+        expect(
+            session.guildPanel?.popup?.choices.some(({ label }) => label.startsWith('Trade'))
+        ).toBe(false)
         expect(session.guildPanel?.popup?.choices.some(({ label }) => /cover/i.test(label))).toBe(
             false
         )

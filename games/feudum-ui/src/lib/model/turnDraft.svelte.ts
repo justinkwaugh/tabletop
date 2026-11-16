@@ -57,6 +57,8 @@ export const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
 
 export interface TurnPrimary {
     readonly label: string
+    /** The full words, its accessible name, where the label says them shorter. */
+    readonly named?: string
     readonly enabled: boolean
 }
 
@@ -389,6 +391,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         }
         return {
             label: primaryLabel(flow.primaryName, flow.play),
+            ...(flow.primaryNamed ? { named: primaryLabel(flow.primaryNamed, flow.play) } : {}),
             enabled: flow.play !== undefined
         }
     }

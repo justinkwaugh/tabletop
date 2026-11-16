@@ -43,7 +43,8 @@ scenario('S32 R-3.14.1 Conquer that asks', 'conquer-asks', async (table) => {
     await table.press(table.card('Conquer'))
     await expect(table.pick(AnaKnight).locator('[data-chip]')).toHaveText('3 vs 2')
     await table.pressPick(AnaKnight)
-    await expect(table.primary()).toHaveText(
+    await expect(table.primary()).toHaveText("Conquer Ana's knight · can't be undone")
+    await expect(table.primary()).toHaveAccessibleName(
         "Conquer Ana's knight · Ana may answer · can't be undone"
     )
     await table.press(table.primary())
@@ -189,7 +190,7 @@ scenario('S36 R-4.8.2 CommitAttack', 'conquer-commit', async (table) => {
     await table.settled()
     await expect(table.page.locator('[data-world="pawn:p1:1"]')).toHaveCount(0)
     expect(Number(await scoreOf(table, 'p2'))).toBe(scoreBefore + 2)
-    await expect(table.panel()).toContainText('Place a military service disc?')
+    await expect(table.panel()).toContainText('Service disc?')
 })
 
 scenario('S37 R-4.8.3 Feudum conquest', 'conquer-feudum', async (table) => {
@@ -235,7 +236,8 @@ scenario('S38 R-3.14.2 Starve with Royal Immunity', 'starve-asks', async (table)
     await table.press(table.row('Starve the People'))
     await expect(table.pick(BramSerf).locator('[data-chip]')).toHaveText('starve')
     await table.pressPick(BramSerf)
-    await expect(table.primary()).toHaveText(
+    await expect(table.primary()).toHaveText("Starve Bram's serf · can't be undone")
+    await expect(table.primary()).toHaveAccessibleName(
         "Starve Bram's serf · Bram may answer · can't be undone"
     )
     await table.press(table.primary())
