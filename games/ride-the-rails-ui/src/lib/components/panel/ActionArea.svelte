@@ -5,7 +5,6 @@
     import GameEndSummary from './GameEndSummary.svelte'
     import HistoryDescription from './HistoryDescription.svelte'
     import JourneyPanel from './JourneyPanel.svelte'
-    import PassPanel from './PassPanel.svelte'
     import TakeSharePanel from './TakeSharePanel.svelte'
     import WaitingView from './WaitingView.svelte'
 
@@ -28,10 +27,9 @@
         <TakeSharePanel />
     {:else if machineState === MachineState.Building}
         <BuildPanel />
-    {:else if gameSession.journeyPossible}
-        <JourneyPanel />
     {:else if machineState === MachineState.Riding}
-        <PassPanel />
+        <!-- R-3.3.1: a seat with no journey passes by itself, so a Ride turn always rides. -->
+        <JourneyPanel />
     {:else}
         <WaitingView />
     {/if}

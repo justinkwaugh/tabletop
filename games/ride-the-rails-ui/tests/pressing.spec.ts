@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { board, collectPageErrors, openScenario, settled } from './helpers.js'
 
-// The contract's Phone layout and Look: hex detail: a press goes to the hex under it, even on the
+// The contract's Phone layout: a press goes to the hex under it, even on the
 // whole map, where a hex is a few pixels wide and a lit neighbour sits beside it.
 collectPageErrors()
 
@@ -91,19 +91,18 @@ async function press(page: Page, x: number, y: number) {
     await settled(page)
 }
 
-test('On the whole map a press on an unlit hex beside a lit one shows that hex', async ({
+test('On the whole map a press on an unlit hex beside a lit one picks nothing', async ({
     page
 }) => {
     await openScenario(page, 'Two railroads meet')
     await wholeMap(page)
     const hexes = await unlitBesideLit(page)
     expect(hexes.length).toBeGreaterThan(5)
+    const untouched = await trackCount(page)
     for (const hex of hexes.slice(0, 12)) {
         await press(page, hex.x, hex.y)
-        expect(await page.evaluate(() => window.rtrSession.hexDetailHexId)).toBe(hex.hexId)
         expect(await page.evaluate(() => window.rtrSession.buildHexId)).toBeUndefined()
-        await page.keyboard.press('Escape')
-        await settled(page)
+        expect(await trackCount(page)).toBe(untouched)
     }
 
     // A press at a lit hex's centre still picks it.

@@ -99,7 +99,7 @@
                         <div class="interstitial">
                             <CalledGameDescription action={entry.action} />
                         </div>
-                    {:else if isEndRound(entry.action)}
+                    {:else if isEndRound(entry.action) && entry.action.metadata}
                         {@const ended = entry.action.metadata}
                         <!-- R-2.5: the round's close as a small card: the new turn order with each
                              seat's money, and the railroad it makes available. -->
@@ -110,29 +110,27 @@
                             onclick={() => jump(entry)}
                         >
                             <span class="round-end-title"
-                                >Round {ended?.round ?? ''} ends<span class="sr-only"
+                                >Round {ended.round} ends<span class="sr-only"
                                     >: jump to the new turn order</span
                                 ></span
                             >
-                            {#if ended}
-                                <span class="round-end-label">New turn order</span>
-                                <table class="order">
-                                    <tbody>
-                                        {#each ended.money as seat, index (seat.playerId)}
-                                            <tr>
-                                                <td class="rank">{index + 1}</td>
-                                                <td><SeatDot playerId={seat.playerId} /></td>
-                                                <td class="who">{seatName(seat.playerId)}</td>
-                                                <td class="cash">${seat.money}</td>
-                                            </tr>
-                                        {/each}
-                                    </tbody>
-                                </table>
-                                {#if ended.railroadId}
-                                    <span class="arrives">
-                                        <RailroadName railroadId={ended.railroadId} /> now available
-                                    </span>
-                                {/if}
+                            <span class="round-end-label">New turn order</span>
+                            <table class="order">
+                                <tbody>
+                                    {#each ended.money as seat, index (seat.playerId)}
+                                        <tr>
+                                            <td class="rank">{index + 1}</td>
+                                            <td><SeatDot playerId={seat.playerId} /></td>
+                                            <td class="who">{seatName(seat.playerId)}</td>
+                                            <td class="cash">${seat.money}</td>
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
+                            {#if ended.railroadId}
+                                <span class="arrives">
+                                    <RailroadName railroadId={ended.railroadId} /> now available
+                                </span>
                             {/if}
                         </button>
                     {:else}
@@ -168,13 +166,7 @@
                                     {#each payouts as payout (payout.playerId)}
                                         <tr>
                                             <td><SeatDot playerId={payout.playerId} /></td>
-                                            <td class="who"
-                                                >{payout.playerId === gameSession.myPlayerId
-                                                    ? 'You'
-                                                    : gameSession.getPlayerName(
-                                                          payout.playerId
-                                                      )}</td
-                                            >
+                                            <td class="who">{seatName(payout.playerId)}</td>
                                             <td class="amount">${payout.amount}</td>
                                         </tr>
                                     {/each}

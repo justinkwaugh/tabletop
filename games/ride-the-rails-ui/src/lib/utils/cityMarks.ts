@@ -161,9 +161,6 @@ export function fiveRing(bonus: CityBonusMark | undefined): FiveRing | undefined
     }
 }
 
-/** R-4.1.4: an East Coast city's capacity, a "1" at the top centre, left of the passenger. */
-export const CAPACITY_ONE = { x: 0, y: -22.4, fontSize: 16 } as const
-
 // The passenger (BOARD_LOOK.passenger 'meeple').
 
 /**

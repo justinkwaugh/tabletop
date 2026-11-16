@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { flushSync } from 'svelte'
 import { assertExists } from '@tabletop/common'
 import {
+    PassJourney,
     PhaseName,
     isTakeShare,
     railroadsIn,
@@ -14,7 +15,6 @@ import {
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
 import {
-    NO_JOURNEY_PROMPT,
     buildProgress,
     buildableRailroads,
     decidingPlayerId,
@@ -27,7 +27,6 @@ import {
     mountainNote,
     placedCount,
     placedText,
-    roundLabels,
     seatGains,
     seatMoney,
     sharedWinNote,
@@ -204,31 +203,6 @@ describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1)', () => {
         ])
     })
 
-    it("offers only Pass, with the reason, when no link leaves any passenger's city", async () => {
-        const session = await openSessionOn(
-            buildState({ playerCount: 3, round: 2, phase: PhaseName.Ride })
-        )
-        expect(session.journeyPossible).toBe(false)
-        expect(session.canPassJourney).toBe(true)
-        expect(NO_JOURNEY_PROMPT).toBe(
-            "No passenger can travel: no link leaves any passenger's city"
-        )
-    })
-
-    it('chooses a journey when one exists', async () => {
-        const session = await openSessionOn(
-            buildState({
-                playerCount: 3,
-                round: 2,
-                phase: PhaseName.Ride,
-                track: redLine(),
-                shares: { p1: { [RED]: 1 }, p3: { [RED]: 1 } }
-            })
-        )
-        expect(session.journeyPossible).toBe(true)
-        expect(session.canPassJourney).toBe(false)
-    })
-
     it("writes the waiting line for a journey just made, with the viewer's gain", async () => {
         const session = await openSessionOn(
             buildState({
@@ -277,21 +251,6 @@ describe('waiting views', () => {
     })
 })
 
-describe('turn header (R-2.1)', () => {
-    it('names the round and the phase', () => {
-        expect(roundLabels(buildState({ round: 3, phase: PhaseName.Build }))).toEqual({
-            full: 'Round 3 · Build',
-            compact: 'R3 · Build'
-        })
-        expect(roundLabels(buildState({ round: 6, phase: PhaseName.TakeShare }))?.full).toBe(
-            'Round 6 · Shares'
-        )
-        expect(roundLabels(buildState({ round: 1, phase: PhaseName.Ride }))?.compact).toBe(
-            'R1 · Ride'
-        )
-    })
-})
-
 describe('game end (R-6.2)', () => {
     it('ranks the final money and marks every seat tied for most as a winner, with its shares', () => {
         const state = buildState({
@@ -319,15 +278,13 @@ describe('game end (R-6.2)', () => {
         expect(winnersHeadline(['Ana'], 90)).toBe('Ana wins with $90')
     })
 
-    it('reads "End" in the header once the last journey of round 6 ends the game', async () => {
+    it('ends the game once round 6’s last journey phase passes', async () => {
         const session = await openSessionOn(
             buildState({ playerCount: 3, round: 6, phase: PhaseName.Ride })
         )
-        for (let seat = 0; seat < 3; seat++) {
-            await session.passJourney()
-            await settled(session)
-        }
+        // R-3.3.1: the first seat's pass sets off the others', and the game ends in its cascade.
+        await session.applyAction(session.createPlayerAction(PassJourney, {}))
+        await settled(session)
         expect(session.gameState.result).toBeDefined()
-        expect(roundLabels(session.gameState)?.full).toBe('Round 6 · End')
     })
 })

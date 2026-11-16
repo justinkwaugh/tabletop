@@ -32,10 +32,8 @@ import {
     BOARD_HEIGHT,
     BOARD_WIDTH,
     DESKTOP_BOARD_VIEW,
-    FITTED_DESKTOP_SCALE,
     HEX_WIDTH,
     MAP_EXTENTS,
-    drawsCityLabels,
     hexBox,
     hexCenter
 } from './boardGeometry.js'
@@ -257,17 +255,6 @@ describe('the offer the board last lit', () => {
         expect(offer.take()).toBeUndefined()
         offer.light([PHILADELPHIA])
         expect(offer.take()).toEqual([PHILADELPHIA])
-    })
-})
-
-describe('city names on a phone’s whole map', () => {
-    it('are left off rather than drawn about 4 px high', () => {
-        expect(drawsCityLabels(containScale(PHONE_VIEW))).toBe(false)
-    })
-
-    it('are drawn where a phone rests and at the fitted desktop scale', () => {
-        expect(drawsCityLabels(restingRequest(PHONE_VIEW).maxScale)).toBe(true)
-        expect(drawsCityLabels(FITTED_DESKTOP_SCALE)).toBe(true)
     })
 })
 

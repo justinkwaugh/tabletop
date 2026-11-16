@@ -20,15 +20,13 @@ import {
     LARGEST_PICK_SCALE,
     buildChoice,
     chipModifiers,
-    hexDetailPlace,
     linkChoice,
     litHexLabel,
     litHexViews,
     markView,
     pickScale,
     placeName,
-    scrimPath,
-    spotlightMode
+    scrimPath
 } from './pickMarks.js'
 
 const RED: RailroadId = 'railroad.red'
@@ -167,13 +165,13 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
         expect(picked[0].ghosts.map((ghost) => ghost.railroadId)).toEqual([RED, BLUE])
     })
 
-    it('gives a hex that offers only starts the fainter start ring, with its ghost cube (R-4.2)', () => {
+    it('gives a hex that offers only starts the start ring, with its ghost cube in the middle (R-4.2)', () => {
         const views = litHexViews(
             { ...EMPTY_BOARD_OFFER, lit: [offered(hexOf(DALLAS), [], [BLACK])] },
             {}
         )
         expect(views[0].ring).toBe('start')
-        expect(views[0].ghosts).toEqual([{ ...trackSlots(hexOf(DALLAS))[0], railroadId: BLACK }])
+        expect(views[0].ghosts).toEqual([{ ...trackSlots(hexOf(DALLAS), 1)[0], railroadId: BLACK }])
     })
 
     it('stands each railroad that may build as a ghost cube in the slot it would take', () => {
@@ -273,9 +271,7 @@ describe('marks are sized for the view (Contract, Render ownership)', () => {
     })
 })
 
-describe('the scrim, the spotlight and hex detail (Contract, Coexistence and precedence)', () => {
-    const pick: BoardOffer = { ...EMPTY_BOARD_OFFER, scrim: { holes: [NEW_YORK, PHILADELPHIA] } }
-
+describe('the scrim (Contract, Coexistence and precedence)', () => {
     it('covers the land only, never the sea, with a hole per lit hex', () => {
         const land = scrimPath([])
         const { width, height } = BOARD_EXTENTS
@@ -283,22 +279,6 @@ describe('the scrim, the spotlight and hex detail (Contract, Coexistence and pre
         const path = scrimPath([NEW_YORK, PHILADELPHIA])
         expect(path.startsWith(land)).toBe(true)
         expect(path.slice(land.length).match(/Z/g)).toHaveLength(2)
-    })
-
-    it('dims other track with no pick, and only outlines the railroad during one', () => {
-        expect(spotlightMode(EMPTY_BOARD_OFFER, undefined)).toBe('none')
-        expect(spotlightMode(EMPTY_BOARD_OFFER, RED)).toBe('dim')
-        expect(spotlightMode(pick, RED)).toBe('outline')
-    })
-
-    it('shows hex detail beside the hex, or in the side panel during a map pick', () => {
-        expect(hexDetailPlace(EMPTY_BOARD_OFFER, false)).toBe('beside')
-        expect(hexDetailPlace(pick, false)).toBe('side-panel')
-    })
-
-    it('keeps hex detail beside its hex on phones, where the side panel is off screen', () => {
-        expect(hexDetailPlace(EMPTY_BOARD_OFFER, true)).toBe('beside')
-        expect(hexDetailPlace(pick, true)).toBe('beside')
     })
 })
 

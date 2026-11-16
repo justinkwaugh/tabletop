@@ -22,7 +22,7 @@ describe('the desktop railroad cards', () => {
         expect(cards).toMatch(/<SupplyCount\b/)
         expect(cards).not.toMatch(/class="head\b/)
         expect(cards).not.toMatch(/\.name\b|railroadName/)
-        expect(cards).not.toMatch(/track/)
+        expect(cards).not.toMatch(/trackCount|\.track\b/)
         expect(cards).not.toMatch(/shareholders/)
         expect(cards).toMatch(/label=\{button\.label\}/)
     })

@@ -4,6 +4,7 @@ import {
     USA_CITIES,
     adjacentHexIds,
     hasTrackIn,
+    railroadsIn,
     isEastCoastHex,
     isWestCoastCity,
     transcontinentalLine,
@@ -12,8 +13,8 @@ import {
     type RailroadId,
     type Track
 } from '@tabletop/ride-the-rails'
-import { hexCenter, pointText } from './boardGeometry.js'
-import { routeCubeSegments, routeCubes, routeStations } from './routePath.js'
+import { pointText } from './boardGeometry.js'
+import { routeCubeSegments, routeCubes } from './routePath.js'
 import { trackSlot } from './trackLayout.js'
 
 const RED: RailroadId = 'railroad.red'
@@ -98,7 +99,10 @@ describe('route lines through the cubes (R-3.3.2)', () => {
         [PURPLE, COAST_TO_COAST.slice(2, 5)],
         [RED, [third]]
     ])
-    const centre = (hexId: HexId, index: number) => pointText(trackSlot(hexId, index))
+    // A cube's slot among the railroads its hex holds on this track.
+    const slotOf = (hexId: HexId, index: number) =>
+        trackSlot(hexId, index, railroadsIn(track, hexId).length)
+    const centre = (hexId: HexId, index: number) => pointText(slotOf(hexId, index))
 
     it("draws a polyline per link through its railroad's cube in each hex", () => {
         const segments = routeCubeSegments(links, track)
@@ -121,33 +125,19 @@ describe('route lines through the cubes (R-3.3.2)', () => {
                 centre(COAST_TO_COAST[4], 0)
             ].join(' ')
         )
-        expect(trackSlot(COAST_TO_COAST[3], 1)).not.toEqual(trackSlot(COAST_TO_COAST[3], 0))
+        expect(slotOf(COAST_TO_COAST[3], 1)).not.toEqual(slotOf(COAST_TO_COAST[3], 0))
     })
 
     it('redraws each cube the route uses once, in its slot', () => {
         expect(
             routeCubes(links, track).map(({ hexId, railroadId, slot }) => [hexId, railroadId, slot])
         ).toEqual([
-            [COAST_TO_COAST[0], RED, trackSlot(COAST_TO_COAST[0], 0)],
-            [COAST_TO_COAST[1], RED, trackSlot(COAST_TO_COAST[1], 0)],
-            [COAST_TO_COAST[2], RED, trackSlot(COAST_TO_COAST[2], 1)],
-            [COAST_TO_COAST[2], PURPLE, trackSlot(COAST_TO_COAST[2], 0)],
-            [COAST_TO_COAST[3], PURPLE, trackSlot(COAST_TO_COAST[3], 1)],
-            [COAST_TO_COAST[4], PURPLE, trackSlot(COAST_TO_COAST[4], 0)]
+            [COAST_TO_COAST[0], RED, slotOf(COAST_TO_COAST[0], 0)],
+            [COAST_TO_COAST[1], RED, slotOf(COAST_TO_COAST[1], 0)],
+            [COAST_TO_COAST[2], RED, slotOf(COAST_TO_COAST[2], 1)],
+            [COAST_TO_COAST[2], PURPLE, slotOf(COAST_TO_COAST[2], 0)],
+            [COAST_TO_COAST[3], PURPLE, slotOf(COAST_TO_COAST[3], 1)],
+            [COAST_TO_COAST[4], PURPLE, slotOf(COAST_TO_COAST[4], 0)]
         ])
-    })
-
-    it("puts a station on the start's cube and on each link's last cube", () => {
-        const slot = (hexId: HexId, index: number) => {
-            const { x, y } = trackSlot(hexId, index)
-            return { x, y }
-        }
-        expect(routeStations(links, track, SEATTLE)).toEqual([
-            slot(SEATTLE, 0),
-            slot(COAST_TO_COAST[2], 1),
-            slot(COAST_TO_COAST[4], 0)
-        ])
-        // A start with no link yet has no railroad chosen: its station is the hex's centre.
-        expect(routeStations([], track, SEATTLE)).toEqual([hexCenter(SEATTLE)])
     })
 })

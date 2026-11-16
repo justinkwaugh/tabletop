@@ -1,4 +1,4 @@
-import { assert, type Point } from '@tabletop/common'
+import { assert } from '@tabletop/common'
 import {
     railroadsIn,
     type CityId,
@@ -66,33 +66,6 @@ export function routeCubes(links: readonly Link[], track: Track): RouteCube[] {
         }
     }
     return [...cubes.values()]
-}
-
-/**
- * A station at each city the route visits, on the cube the route rides there: the start on the
- * first link's cube, each link's end on that link's. A start with no link yet, before a railroad
- * is chosen, has its station at the hex's centre.
- */
-export function routeStations(
-    links: readonly Link[],
-    track: Track,
-    startHexId: HexId | undefined
-): Point[] {
-    const cubeCentre = (hexId: HexId, railroadId: RailroadId): Point => {
-        const { x, y } = routeSlot(track, hexId, railroadId)
-        return { x, y }
-    }
-    const [first] = links
-    const start = first
-        ? [cubeCentre(first.hexIds[0], first.railroadId)]
-        : startHexId
-          ? [hexCenter(startHexId)]
-          : []
-    const ends = links.flatMap((link) => {
-        const end = link.hexIds.at(-1)
-        return end ? [cubeCentre(end, link.railroadId)] : []
-    })
-    return [...start, ...ends]
 }
 
 /** The journey draft as the staged route layer draws it: the session's draft, or no route. */

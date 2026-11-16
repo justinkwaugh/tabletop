@@ -1,5 +1,6 @@
 import {
     ActionSource,
+    assertExists,
     isCallGameAction,
     type CallGameAction,
     type GameAction,
@@ -230,10 +231,11 @@ export function journeyRoute(turn: HistoryTurn): JourneyRoute | undefined {
     const first = cityIds[0]
     const last = cityIds[cityIds.length - 1]
     const rider = payments.find((payment) => payment.playerId === action.playerId)
+    assertExists(rider, `A journey pays its rider ${action.playerId}`)
     return {
         ends: routeText(first === last ? [first] : [first, last]),
         cities: cityIds.length,
-        fare: rider?.fare ?? 0
+        fare: rider.fare
     }
 }
 

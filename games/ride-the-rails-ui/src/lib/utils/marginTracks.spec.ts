@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { flushSync } from 'svelte'
 import {
+    PassJourney,
     LOCOMOTIVES_PER_RAILROAD,
     PhaseName,
     RAILROAD_IDS,
@@ -186,11 +187,10 @@ describe('the tracks once the game ends', () => {
         const session = await openSessionOn(
             buildState({ playerCount: 3, round: 6, phase: PhaseName.Ride })
         )
-        for (let seat = 0; seat < 3; seat++) {
-            await session.passJourney()
-            await session.waitForVisibleTransitionSettled()
-            flushSync()
-        }
+        // R-3.3.1: the first seat's pass sets off the others', and the game ends in its cascade.
+        await session.applyAction(session.createPlayerAction(PassJourney, {}))
+        await session.waitForVisibleTransitionSettled()
+        flushSync()
         const state = session.gameState
         expect(state.result).toBeDefined()
         expect(state.roundManager.currentRound).toBeUndefined()

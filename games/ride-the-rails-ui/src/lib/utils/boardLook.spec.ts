@@ -28,16 +28,20 @@ function mountainHex(): HexId {
 }
 
 describe('the board look', () => {
-    it('picks one option for each of the eight questions', () => {
+    it('picks one option for each of the twelve questions', () => {
         expect(BOARD_LOOK).toEqual({
-            palette: 'chart',
+            palette: 'mist',
             startMark: 'band',
             hexFill: 'start-cities',
             bonus: 'pill',
             piece: 'flat-square',
             passenger: 'meeple',
-            startCue: 'dashed-band',
-            litRailroads: 'ghost-cube'
+            startCue: 'band',
+            litRailroads: 'none',
+            litHex: 'hole',
+            cityCentre: 'cream-inset',
+            mapFrame: 'sea-line',
+            journeyStart: 'ring-only'
         })
     })
 

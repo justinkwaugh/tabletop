@@ -28,7 +28,7 @@ const CUBE_WIDTH = 26
 const COLUMN_X = 16.8
 const TRACK_Y = 2
 const CHICAGO_WIDTH = 16
-const CHICAGO_ROWS_Y = [-6.5, 10.5] as const
+const CHICAGO_ROWS_Y = [-7.5, 9.5] as const
 const CHICAGO_COLUMN_X = 19.6
 
 // R-4.1.4: two cubes side by side, one in an East Coast city, Chicago two rows of three, the back

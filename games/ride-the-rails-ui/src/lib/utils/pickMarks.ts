@@ -22,7 +22,6 @@ import type {
 } from '$lib/model/boardOffer.js'
 import type { JourneyPopup } from '$lib/model/journeyOffer.js'
 import {
-    BOARD_EXTENTS,
     FITTED_DESKTOP_SCALE,
     closedPath,
     hexCenter,
@@ -305,9 +304,6 @@ function hexPath(hexId: HexId): string {
     return closedPath(hexCorners(hexId))
 }
 
-/** The whole board, water and margin included. */
-export const BOARD_OUTLINE_PATH = `M${BOARD_EXTENTS.x},${BOARD_EXTENTS.y}h${BOARD_EXTENTS.width}v${BOARD_EXTENTS.height}h${-BOARD_EXTENTS.width}Z`
-
 function pointKey(point: Point): string {
     return `${point.x.toFixed(2)},${point.y.toFixed(2)}`
 }
@@ -368,27 +364,6 @@ const LAND_OUTLINE_PATH = landOutline()
 /** The scrim: the land with a hole at each lit hex, filled even-odd; the sea is never dimmed. */
 export function scrimPath(holes: readonly HexId[]): string {
     return `${LAND_OUTLINE_PATH}${holes.map(hexPath).join('')}`
-}
-
-export type SpotlightMode = 'none' | 'dim' | 'outline'
-
-// Contract, Coexistence and precedence: a pick's scrim and lit set win; the spotlight then only
-// outlines its railroad's track. With no pick, the scrim dims every other railroad.
-export function spotlightMode(
-    offer: BoardOffer,
-    spotlightRailroadId: RailroadId | undefined
-): SpotlightMode {
-    if (!spotlightRailroadId) return 'none'
-    return offer.scrim ? 'outline' : 'dim'
-}
-
-export type HexDetailPlace = 'beside' | 'side-panel'
-
-// Contract, Coexistence and precedence: during a map pick on wider screens the hex detail moves to
-// the side panel beside the board, so it never covers the railroad popup. On phones the side panel
-// is off screen, so the detail stays beside its hex and keeps clear of the popup there.
-export function hexDetailPlace(offer: BoardOffer, onPhone: boolean): HexDetailPlace {
-    return offer.scrim && !onPhone ? 'side-panel' : 'beside'
 }
 
 /** A pill on a choice button: what that placement or link pays. */

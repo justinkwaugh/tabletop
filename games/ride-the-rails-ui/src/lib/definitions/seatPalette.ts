@@ -10,7 +10,7 @@ const DarkInk = '#1b1b1b'
 export const RideTheRailsSeatPalette: PlayerColorPalette = {
     [Color.Green]: { fill: '#15736e', text: LightInk, contrast: LightInk },
     [Color.Pink]: { fill: '#f2a0d6', text: DarkInk, contrast: DarkInk },
-    [Color.White]: { fill: '#a4c23a', text: DarkInk, contrast: DarkInk },
+    [Color.White]: { fill: '#94c43a', text: DarkInk, contrast: DarkInk },
     [Color.Brown]: { fill: '#6e4126', text: LightInk, contrast: LightInk },
     [Color.Gray]: { fill: '#8c939b', text: DarkInk, contrast: DarkInk }
 }

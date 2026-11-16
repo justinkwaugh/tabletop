@@ -1,50 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import type { BoundingBox } from '@tabletop/common'
-import {
-    hexIdAt,
-    isUsaHex,
-    USA_CITIES,
-    USA_HEXES,
-    usaCity,
-    type CityId
-} from '@tabletop/ride-the-rails'
+import { hexIdAt, isUsaHex, USA_CITIES, USA_HEXES } from '@tabletop/ride-the-rails'
 import {
     BOARD_EXTENTS,
     BOARD_HEIGHT,
     BOARD_MARGIN,
     BOARD_WIDTH,
-    cityLabel,
-    cityLabelFontSize,
-    FITTED_DESKTOP_SCALE,
     HEX_SIZE,
     HEX_WIDTH,
     hexCenter,
     hexCorners,
     hexGeometry,
-    LARGEST_CITY_LABEL_FONT_SIZE,
     MAP_EXTENTS,
-    mapLabelName,
-    SERIF_ADVANCE_EM,
     stationOf
 } from './boardGeometry.js'
-import { trackSlots } from './trackLayout.js'
-import {
-    BONUS_PILL,
-    CAPACITY_ONE,
-    PASSENGER_SCALE,
-    MEEPLE_EXTENT,
-    passengerOffset
-} from './cityMarks.js'
-import {
-    boxCorners,
-    boxesOverlap,
-    boxInside,
-    centredBox,
-    discBox,
-    insideConvexPolygon
-} from '$lib/testing/shapeChecks.js'
-
-const cityLabels = USA_CITIES.map((city) => ({ city, label: cityLabel(city.id) }))
+import { boxCorners, discBox, insideConvexPolygon } from '$lib/testing/shapeChecks.js'
 
 describe('hex positions (components.md, Coordinates)', () => {
     it('gives every hex of the map data a centre and six corners', () => {
@@ -103,40 +72,6 @@ describe('hex positions (components.md, Coordinates)', () => {
     })
 })
 
-/** A city's bonus pill, capacity and passenger, in board units. */
-function cityMarkBoxes(cityId: CityId): BoundingBox[] {
-    const city = usaCity(cityId)
-    const center = hexCenter(city.hexId)
-    const passenger = passengerOffset(cityId)
-    const boxes: BoundingBox[] = [
-        {
-            x: center.x + passenger.x + MEEPLE_EXTENT.left * PASSENGER_SCALE,
-            y: center.y + passenger.y + MEEPLE_EXTENT.top * PASSENGER_SCALE,
-            width: (MEEPLE_EXTENT.right - MEEPLE_EXTENT.left) * PASSENGER_SCALE,
-            height: (MEEPLE_EXTENT.bottom - MEEPLE_EXTENT.top) * PASSENGER_SCALE
-        }
-    ]
-    if (city.bonus) {
-        boxes.push({
-            x: center.x + BONUS_PILL.center.x - BONUS_PILL.width / 2,
-            y: center.y + BONUS_PILL.center.y - BONUS_PILL.height / 2,
-            width: BONUS_PILL.width,
-            height: BONUS_PILL.height
-        })
-    }
-    if (city.capacity === 1) {
-        // The "1": its cap height above the baseline, and as wide as it is high.
-        const size = CAPACITY_ONE.fontSize
-        boxes.push({
-            x: center.x + CAPACITY_ONE.x - size / 3,
-            y: center.y + CAPACITY_ONE.y - size * 0.4,
-            width: (size * 2) / 3,
-            height: size * 0.75
-        })
-    }
-    return boxes
-}
-
 describe('cities', () => {
     it('gives every city a station inside its hex', () => {
         for (const city of USA_CITIES) {
@@ -145,68 +80,5 @@ describe('cities', () => {
                 expect(insideConvexPolygon(corner, corners)).toBe(true)
             }
         }
-    })
-
-    it('labels both Portlands just "Portland" on the map, and every other city by its name', () => {
-        expect(mapLabelName('city.usa.portland-or')).toBe('Portland')
-        expect(mapLabelName('city.usa.portland-me')).toBe('Portland')
-        expect(usaCity('city.usa.portland-or').name).toBe('Portland (Oregon)')
-        for (const city of USA_CITIES.filter(
-            (other) => !other.id.startsWith('city.usa.portland')
-        )) {
-            expect(mapLabelName(city.id)).toBe(city.name)
-        }
-    })
-
-    it('sizes a map label by the name it draws', () => {
-        const portland = cityLabel('city.usa.portland-me')
-        expect(portland.box.width).toBeCloseTo(
-            [...'Portland'].reduce((sum, letter) => sum + SERIF_ADVANCE_EM[letter], 0) *
-                portland.fontSize,
-            6
-        )
-    })
-
-    it('knows the serif’s width of every letter a city name uses', () => {
-        const letters = new Set(USA_CITIES.flatMap((city) => [...city.name]))
-        expect([...letters].filter((letter) => SERIF_ADVANCE_EM[letter] === undefined)).toEqual([])
-    })
-
-    it('gives every city a label anchor on the board', () => {
-        for (const { label } of cityLabels) {
-            expect(Number.isFinite(label.x) && Number.isFinite(label.y)).toBe(true)
-        }
-        const off = cityLabels.filter(({ label }) => !boxInside(label.box, BOARD_EXTENTS))
-        expect(off.map(({ city }) => city.name)).toEqual([])
-    })
-
-    it('keeps the fitted desktop scale’s label size the largest a label takes on the board', () => {
-        for (const viewScale of [0.1, 0.2, FITTED_DESKTOP_SCALE, 0.6, 1]) {
-            expect(cityLabelFontSize(viewScale)).toBeLessThanOrEqual(LARGEST_CITY_LABEL_FONT_SIZE)
-        }
-        expect(cityLabel(USA_CITIES[0].id).fontSize).toBe(LARGEST_CITY_LABEL_FONT_SIZE)
-    })
-
-    it('overlaps no two city labels at the fitted desktop scale', () => {
-        const overlapping = cityLabels.flatMap(({ city, label }, index) =>
-            cityLabels
-                .slice(index + 1)
-                .filter((other) => boxesOverlap(label.box, other.label.box))
-                .map((other) => `${city.name} / ${other.city.name}`)
-        )
-        expect(overlapping).toEqual([])
-    })
-
-    it('covers no city mark or track slot with a label', () => {
-        const obstacles = [
-            ...USA_CITIES.flatMap((city) => [
-                ...cityMarkBoxes(city.id),
-                ...trackSlots(city.hexId).map(centredBox)
-            ])
-        ]
-        const covering = cityLabels.filter(({ label }) =>
-            obstacles.some((obstacle) => boxesOverlap(label.box, obstacle))
-        )
-        expect(covering.map(({ city }) => city.name)).toEqual([])
     })
 })

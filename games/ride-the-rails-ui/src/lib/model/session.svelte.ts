@@ -4,17 +4,14 @@ import {
     type PresentedTransition
 } from '@tabletop/frontend-components'
 import {
+    cityIn,
     EndBuilding,
-    HydratedPassJourney,
     MachineState,
-    PassJourney,
     PlaceLocomotive,
     RideJourney,
     TakeShare,
     isBuildingTurnOf,
     isRidingPlayer,
-    journeyExists,
-    usaCity,
     shareableRailroads,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -36,11 +33,8 @@ import {
     unpickBuildHex,
     type BuildStage
 } from './buildStage.js'
-import { hexChangedBetween } from './hexDetail.js'
 import { Flights } from '$lib/animators/flights.svelte.js'
 import { lastJourneyLinks } from '$lib/utils/boardPieces.js'
-import { hexDetailPlace } from '$lib/utils/pickMarks.js'
-import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
 import {
     EMPTY_JOURNEY_OFFER,
     heldJourneyStage,
@@ -56,6 +50,7 @@ import {
     JourneyStageOrder,
     closeRailroadChoice,
     cutDraftLinks,
+    linksKeptAt,
     openRailroadChoice,
     pickJourneyStart,
     pushDraftLink,
@@ -77,7 +72,6 @@ export class RideTheRailsGameSession extends GameSession<
 > {
     private buildStage: BuildStage = $state({})
     private journeyStage: JourneyStage = $state({})
-    private shownHexId: HexId | undefined = $state()
     private spotlight: RailroadSpotlight | undefined = $state()
     readonly flights = new Flights()
 
@@ -140,7 +134,6 @@ export class RideTheRailsGameSession extends GameSession<
     )
 
     async takeShare(railroadId: RailroadId) {
-        this.closeHexDetail()
         if (this.shareChoices.includes(railroadId)) {
             await this.applyAction(this.createPlayerAction(TakeShare, { railroadId }))
         }
@@ -195,10 +188,8 @@ export class RideTheRailsGameSession extends GameSession<
         }
         const offered = this.offeredHexes.find((hex) => hex.hexId === hexId)
         if (!offered) {
-            this.shownHexId = this.shownHexId === hexId ? undefined : hexId
             return
         }
-        this.closeHexDetail()
         if (offered.placements.length === 1) {
             await this.placeLocomotive(offered.placements[0].railroadId, hexId)
             return
@@ -218,7 +209,6 @@ export class RideTheRailsGameSession extends GameSession<
 
     // R-3.2, R-4.1, R-4.2: only a placement the offer lights is sent.
     async placeLocomotive(railroadId: RailroadId, hexId: HexId) {
-        this.closeHexDetail()
         const offered = this.offeredHexes.find((hex) => hex.hexId === hexId)
         if (offered?.placements.some((placement) => placement.railroadId === railroadId)) {
             await this.applyAction(this.createPlayerAction(PlaceLocomotive, { railroadId, hexId }))
@@ -227,26 +217,8 @@ export class RideTheRailsGameSession extends GameSession<
 
     // R-3.2.1: the turn may end after any number of placements, none included.
     async endBuilding() {
-        this.closeHexDetail()
         if (this.building) {
             await this.applyAction(this.createPlayerAction(EndBuilding, {}))
-        }
-    }
-
-    // R-3.3.1
-    canPassJourney = $derived.by(() => {
-        const playerId = this.myPlayerId
-        return (
-            this.canAct &&
-            playerId !== undefined &&
-            HydratedPassJourney.canPass(this.gameState, playerId)
-        )
-    })
-
-    async passJourney() {
-        this.closeHexDetail()
-        if (this.canPassJourney) {
-            await this.applyAction(this.createPlayerAction(PassJourney, {}))
         }
     }
 
@@ -273,34 +245,27 @@ export class RideTheRailsGameSession extends GameSession<
 
     private pressJourneyHex(hexId: HexId) {
         const offer = this.offeredJourney
-        if (offer.draft) {
-            // A press on a city the route already reaches cuts it back to there; on the start,
-            // back to the start alone, and a second press on the start drops the draft.
+        // A press on a city the route already reaches cuts it back to there; on the start, back
+        // to the start alone, and a second press on the start drops the draft.
+        const pressed = cityIn(hexId)
+        const kept =
+            offer.draft && pressed
+                ? linksKeptAt(offer.draft.startCityId, offer.draft.draftLinks, pressed.id)
+                : undefined
+        if (offer.draft && kept !== undefined) {
             const links = offer.draft.draftLinks
-            const reached = this.isJourneyStart(offer.draft, hexId)
-                ? 0
-                : links.findIndex((link) => usaCity(link.cityId).hexId === hexId) + 1
-            if (reached > 0 || this.isJourneyStart(offer.draft, hexId)) {
-                this.closeHexDetail()
-                if (reached === 0 && links.length === 0) {
-                    this.journeyStage = {}
-                } else if (reached < links.length) {
-                    this.journeyStage = cutDraftLinks(this.heldJourney, reached)
-                }
-                return
+            if (links.length === 0) {
+                this.journeyStage = {}
+            } else if (kept < links.length) {
+                this.journeyStage = cutDraftLinks(this.heldJourney, kept)
             }
+            return
         }
         const city = offer.lit.find((lit) => lit.hexId === hexId)
         if (!city) {
-            this.shownHexId = this.shownHexId === hexId ? undefined : hexId
             return
         }
-        this.closeHexDetail()
         this.journeyStage = this.journeyStageAfterPress(offer, city)
-    }
-
-    private isJourneyStart(draft: JourneyDraft, hexId: HexId): boolean {
-        return usaCity(draft.startCityId).hexId === hexId
     }
 
     private journeyStageAfterPress(offer: JourneyOffer, city: JourneyCity): JourneyStage {
@@ -319,7 +284,6 @@ export class RideTheRailsGameSession extends GameSession<
     chooseLinkRailroad(railroadId: RailroadId) {
         const popup = this.journeyPopup
         if (popup?.chips.some((chip) => chip.railroadId === railroadId)) {
-            this.closeHexDetail()
             this.journeyStage = pushDraftLink(this.heldJourney, {
                 cityId: popup.cityId,
                 railroadId
@@ -327,33 +291,20 @@ export class RideTheRailsGameSession extends GameSession<
         }
     }
 
-    // R-3.3.1, R-3.3.2, R-X.1: the seat sends the hexes of the route it named.
     /**
      * The journey just sent. Its draft is put away at once so the passenger can travel on the
      * flight layer, but the action panel keeps showing it until the new Game State is shown.
      */
     sentJourney: { draft: JourneyDraft; preview: JourneyPreview } | undefined = $state.raw()
 
+    // R-3.3.1, R-3.3.2, R-X.1: the seat sends the hexes of the route it named.
     async rideJourney() {
-        this.closeHexDetail()
         const draft = this.journeyDraft
         const preview = this.journeyPreview
         if (draft && preview && this.canRideJourney) {
             this.sentJourney = { draft, preview }
             await this.applyAction(this.createPlayerAction(RideJourney, { links: draft.links }))
         }
-    }
-
-    get hexDetailHexId(): HexId | undefined {
-        return this.shownHexId
-    }
-
-    hexDetailInSidePanel = $derived(
-        hexDetailPlace(this.boardOffer, isPhoneWidth()) === 'side-panel'
-    )
-
-    closeHexDetail() {
-        this.shownHexId = undefined
     }
 
     spotlightRailroadId: RailroadId | undefined = $derived(this.spotlight?.railroadId)
@@ -413,23 +364,8 @@ export class RideTheRailsGameSession extends GameSession<
         await super.undoCommittedAction()
     }
 
-    override beforeNewState(transition: PresentedTransition) {
+    override beforeNewState(_transition: PresentedTransition) {
         this.flights.settle()
         this.sentJourney = undefined
-        const hexId = this.shownHexId
-        const incoming = this.incomingGameState
-        if (
-            hexId &&
-            incoming &&
-            transition.kind !== 'history' &&
-            hexChangedBetween(this.gameState, incoming, hexId)
-        ) {
-            this.closeHexDetail()
-        }
     }
-
-    // R-3.3.1: the deciding seat chooses a journey; with none possible it may only pass.
-    journeyPossible = $derived(
-        this.gameState.machineState === MachineState.Riding && journeyExists(this.gameState)
-    )
 }

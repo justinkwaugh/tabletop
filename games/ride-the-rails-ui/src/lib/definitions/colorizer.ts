@@ -7,7 +7,7 @@ const DARK_INK_COLORS = new Set([Color.Pink, Color.White, Color.Gray])
 const BG_CLASSES: Partial<Record<Color, string>> = {
     [Color.Green]: 'bg-[#15736e]',
     [Color.Pink]: 'bg-[#f2a0d6]',
-    [Color.White]: 'bg-[#a4c23a]',
+    [Color.White]: 'bg-[#94c43a]',
     [Color.Brown]: 'bg-[#6e4126]',
     [Color.Gray]: 'bg-[#8c939b]'
 }
@@ -15,7 +15,7 @@ const BG_CLASSES: Partial<Record<Color, string>> = {
 const BORDER_CLASSES: Partial<Record<Color, string>> = {
     [Color.Green]: 'border-[#15736e]',
     [Color.Pink]: 'border-[#f2a0d6]',
-    [Color.White]: 'border-[#a4c23a]',
+    [Color.White]: 'border-[#94c43a]',
     [Color.Brown]: 'border-[#6e4126]',
     [Color.Gray]: 'border-[#8c939b]'
 }

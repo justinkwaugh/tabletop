@@ -91,7 +91,9 @@ async function ride(
     // place in the top right on every other board.
     const spot = centred ? startPassengerSpot(startCityId) : passengerSpot(startCityId, false)
     const grown = startPassengerSpot(startCityId).scale
-    const points = [spot, ...hexes.map(hexCenter)]
+    // Already standing in the start hex's middle, the passenger sets off for the next hex at once.
+    const skipped = centred ? 1 : 0
+    const points = [spot, ...hexes.slice(skipped).map(hexCenter)]
     const moves = points.length - 1
     const step = hexStep(moves)
 
@@ -100,7 +102,7 @@ async function ride(
     const pulses = cityIds.map((cityId, index) => {
         const station = stationOf(cityId)
         // The passenger reaches a city's hex one step after the hex before it.
-        const reaches = (hexes.indexOf(usaCity(cityId).hexId) + 1) * step
+        const reaches = (hexes.indexOf(usaCity(cityId).hexId) + 1 - skipped) * step
         return {
             key: pulseFlyerKey(index, cityId),
             radius: station.radius,

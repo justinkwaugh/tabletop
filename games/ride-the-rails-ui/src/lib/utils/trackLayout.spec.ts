@@ -92,8 +92,8 @@ describe('track slots by capacity (R-4.1.4)', () => {
             const capacity = hexCapacity(hex.id)
             const most = capacity === 'unlimited' ? MOST_LOCOMOTIVES_IN_A_HEX : capacity
             expect(trackSlots(hex.id)).toHaveLength(most)
-            expect(() => trackSlot(hex.id, most - 1)).not.toThrow()
-            expect(() => trackSlot(hex.id, most)).toThrow()
+            expect(() => trackSlot(hex.id, most - 1, most)).not.toThrow()
+            expect(() => trackSlot(hex.id, most, most)).toThrow()
         }
     })
 })
@@ -156,14 +156,14 @@ describe('track slot shapes', () => {
         }
     })
 
-    it('sizes the cubes by capacity: largest two to an open hex, one to an East Coast city, six in Chicago', () => {
+    it('sizes every cube alike but Chicago’s six, which are smaller', () => {
         const widths = (hexId: HexId | undefined) =>
             hexId ? trackSlots(hexId).map((slot) => slot.width) : []
-        expect(widths(PLAIN_HEX?.id)).toEqual([29, 29])
-        expect(widths(MOUNTAIN_HEX?.id)).toEqual([29, 29])
+        expect(widths(PLAIN_HEX?.id)).toEqual([26, 26])
+        expect(widths(MOUNTAIN_HEX?.id)).toEqual([26, 26])
         expect(widths(cityHex('city.usa.denver'))).toEqual([26, 26])
-        expect(widths(cityHex('city.usa.new-york'))).toEqual([32])
-        expect(widths(cityHex('city.usa.chicago'))).toEqual([17, 17, 17, 17, 17, 17])
+        expect(widths(cityHex('city.usa.new-york'))).toEqual([26])
+        expect(widths(cityHex('city.usa.chicago'))).toEqual([16, 16, 16, 16, 16, 16])
     })
 
     it('places each slot from its hex’s centre', () => {
@@ -180,17 +180,17 @@ describe('track slot shapes', () => {
             [16.8, 2]
         ])
         expect(offsets(cityHex('city.usa.denver'))).toEqual([
-            [-15.8, 8],
-            [15.8, 8]
+            [-16.8, 2],
+            [16.8, 2]
         ])
-        expect(offsets(cityHex('city.usa.new-york'))).toEqual([[0, 6.8]])
+        expect(offsets(cityHex('city.usa.new-york'))).toEqual([[0, 2]])
         expect(offsets(cityHex('city.usa.chicago'))).toEqual([
-            [-19.6, -0.4],
-            [0, -0.4],
-            [19.6, -0.4],
-            [-19.6, 18],
-            [0, 18],
-            [19.6, 18]
+            [-19.6, -7.5],
+            [0, -7.5],
+            [19.6, -7.5],
+            [-19.6, 9.5],
+            [0, 9.5],
+            [19.6, 9.5]
         ])
     })
 })
@@ -202,7 +202,10 @@ describe('ghost cubes in a lit hex', () => {
     const BLACK: RailroadId = 'railroad.black'
 
     it('stands one railroad in the next free slot, full size', () => {
-        expect(ghostCubes(plain, {}, [RED])).toEqual([{ ...trackSlots(plain)[0], railroadId: RED }])
+        // A lone railroad in an empty hex stands in the middle, where its cube would.
+        expect(ghostCubes(plain, {}, [RED])).toEqual([
+            { ...trackSlots(plain, 1)[0], railroadId: RED }
+        ])
         expect(ghostCubes(plain, { [plain]: [BLACK] }, [RED])).toEqual([
             { ...trackSlots(plain)[1], railroadId: RED }
         ])
@@ -231,9 +234,9 @@ describe('ghost cubes in a lit hex', () => {
         expect(front.y).toBeCloseTo(slot.y + 1.4 * scale, 6)
         const newYork = cityHex('city.usa.new-york')
         expect(ghostCubes(newYork, {}, [RED, BLUE, BLACK]).map((ghost) => ghost.x)).toEqual([
-            trackSlots(newYork)[0].x - 3.2 * (32 / CUBE_UNIT),
+            trackSlots(newYork)[0].x - 3.2 * (26 / CUBE_UNIT),
             trackSlots(newYork)[0].x,
-            trackSlots(newYork)[0].x + 3.2 * (32 / CUBE_UNIT)
+            trackSlots(newYork)[0].x + 3.2 * (26 / CUBE_UNIT)
         ])
     })
 })

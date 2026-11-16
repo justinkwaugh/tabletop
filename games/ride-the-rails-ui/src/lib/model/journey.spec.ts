@@ -30,6 +30,7 @@ import {
     JourneyStageOrder,
     draftLinks,
     openRailroadChoice,
+    linksKeptAt,
     pickJourneyStart,
     pushDraftLink,
     type JourneyStageValues
@@ -215,7 +216,6 @@ describe('choosing a start (R-3.3.1)', () => {
         const session = await openSessionOn(riding({}))
         expect(session.journeyLit).toEqual([])
         expect(session.boardOffer.scrim).toBeUndefined()
-        expect(session.canPassJourney).toBe(true)
     })
 
     it('offers nothing to a waiting seat', async () => {
@@ -307,12 +307,10 @@ describe('extending the route (R-3.3.2, R-3.3.3)', () => {
         ])
     })
 
-    it('shows an unlit city and changes no stage', async () => {
+    it('changes no stage on an unlit city', async () => {
         const session = await startedIn(KANSAS_CITY)
         await session.pressHex(hexOf(PITTSBURGH))
-        expect(session.hexDetailHexId).toBe(hexOf(PITTSBURGH))
         expect(session.journeyDraft?.draftLinks).toEqual([])
-        expect(session.hexDetailInSidePanel).toBe(true)
     })
 })
 
@@ -455,7 +453,6 @@ describe('Undo and the journey draft (docs/user-interactions.md)', () => {
 
         await session.pressHex(hexOf(SAINT_LOUIS))
         expect(routeOf(session)).toEqual([[SAINT_LOUIS, RED]])
-        expect(session.hexDetailHexId).toBeUndefined()
 
         await session.pressHex(hexOf(SAINT_LOUIS))
         expect(routeOf(session)).toEqual([[SAINT_LOUIS, RED]])
@@ -480,6 +477,17 @@ describe('Undo and the journey draft (docs/user-interactions.md)', () => {
         await session.pressHex(hexOf(SAINT_LOUIS))
         expect(session.journeyPopup).toBeUndefined()
         expect(session.journeyDraft?.startCityId).toBe(KANSAS_CITY)
+    })
+
+    it('keeps no links on the start, the links through a city the route reaches, none off the route', () => {
+        const links = [
+            { cityId: SAINT_LOUIS, railroadId: RED },
+            { cityId: CINCINNATI, railroadId: RED }
+        ]
+        expect(linksKeptAt(KANSAS_CITY, links, KANSAS_CITY)).toBe(0)
+        expect(linksKeptAt(KANSAS_CITY, links, SAINT_LOUIS)).toBe(1)
+        expect(linksKeptAt(KANSAS_CITY, links, CINCINNATI)).toBe(2)
+        expect(linksKeptAt(KANSAS_CITY, links, PITTSBURGH)).toBeUndefined()
     })
 
     it('pushing a link clears the open railroad choice and keeps the earlier links for Undo', () => {

@@ -14,7 +14,6 @@ import type { RideTheRailsGameSession } from './session.svelte.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
-const DENVER: HexId = 'hex.usa.8-22'
 
 afterEach(() => {
     disposeSessions()
@@ -67,8 +66,6 @@ describe('History View (contract scenario 22)', () => {
         // The action area's history description reads the displayed state's last step.
         expect(historyStep(session.actions)).toEqual({ action: undefined, consequences: [] })
 
-        await session.pressHex(DENVER)
-        expect(session.hexDetailHexId).toBe(DENVER)
         session.pressRailroad('railroad.blue')
         expect(session.spotlightRailroadId).toBe('railroad.blue')
 

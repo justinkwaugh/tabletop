@@ -16,7 +16,6 @@ import type { RideTheRailsGameSession } from '$lib/model/session.svelte.js'
 import {
     capacityMark,
     cityPieces,
-    hexDetailFacts,
     lastJourneyLinks,
     locomotivePieces,
     railroadStarts,
@@ -33,7 +32,6 @@ const KANSAS_CITY: CityId = 'city.usa.kansas-city'
 const SAINT_LOUIS: CityId = 'city.usa.saint-louis'
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
-const DENVER: HexId = 'hex.usa.8-22'
 const KANSAS_CITY_TO_SAINT_LOUIS: HexId[] = [
     'hex.usa.8-32',
     'hex.usa.8-34',
@@ -98,24 +96,6 @@ describe('the cities on the map (R-4.1.4, R-4.3)', () => {
             KANSAS_CITY
         ])
     })
-
-    it('tells the hex detail what a city and a terrain hex hold', () => {
-        const state = buildState({ track: { [hexOf(KANSAS_CITY)]: [RED] }, passengers: [] })
-        expect(hexDetailFacts(state, hexOf(KANSAS_CITY))).toMatchObject({
-            title: 'Kansas City',
-            capacity: 2,
-            locomotives: [RED],
-            bonus: { label: '$5, taken', available: false },
-            transcontinentalEnd: undefined,
-            passenger: false
-        })
-        expect(hexDetailFacts(state, DENVER).title).toBe('Denver')
-        expect(hexDetailFacts(state, 'hex.usa.8-34')).toMatchObject({
-            title: 'Plain',
-            bonus: undefined,
-            passenger: undefined
-        })
-    })
 })
 
 describe('the track on the map (R-4.1, U-6)', () => {
@@ -124,9 +104,9 @@ describe('the track on the map (R-4.1, U-6)', () => {
         const pieces = locomotivePieces({ [NEW_YORK]: [RED], [kansasCity]: [BLUE, RED] })
         expect(pieces.map((piece) => [piece.hexId, piece.railroadId, piece.slot])).toEqual(
             expect.arrayContaining([
-                [NEW_YORK, RED, trackSlot(NEW_YORK, 0)],
-                [kansasCity, BLUE, trackSlot(kansasCity, 0)],
-                [kansasCity, RED, trackSlot(kansasCity, 1)]
+                [NEW_YORK, RED, trackSlot(NEW_YORK, 0, 1)],
+                [kansasCity, BLUE, trackSlot(kansasCity, 0, 2)],
+                [kansasCity, RED, trackSlot(kansasCity, 1, 2)]
             ])
         )
         expect(pieces).toHaveLength(3)
@@ -241,15 +221,16 @@ describe('the last journey (U-7)', () => {
         await settled(session)
         expect(session.lastJourney).toEqual([])
 
+        // No passenger is left, so the last seat passes by itself and the game ends (R-3.3.1);
+        // one step back shows the table just after the second journey, which it draws.
         await vi.waitFor(() => expect(session.history.isDisabled()).toBe(false))
         await session.history.goToPreviousAction()
         await settled(session)
         expect(session.isViewingHistory).toBe(true)
+        const back = [...KANSAS_CITY_TO_SAINT_LOUIS].reverse()
         expect(
             lastJourneyLinks(session.actions, { isMyTurn: true, isViewingHistory: true })
-        ).toEqual([{ railroadId: RED, hexIds: KANSAS_CITY_TO_SAINT_LOUIS }])
-        expect(session.lastJourney).toEqual([
-            { railroadId: RED, hexIds: KANSAS_CITY_TO_SAINT_LOUIS }
-        ])
+        ).toEqual([{ railroadId: RED, hexIds: back }])
+        expect(session.lastJourney).toEqual([{ railroadId: RED, hexIds: back }])
     })
 })

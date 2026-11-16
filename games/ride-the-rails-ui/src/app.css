@@ -61,7 +61,7 @@
     --rtr-cue-yellow: #c99a00;
     --rtr-railroad-red: #c8372d;
     --rtr-railroad-blue: #2f6db5;
-    --rtr-railroad-orange: #e0701f;
+    --rtr-railroad-orange: #e8801e;
     --rtr-railroad-yellow: #f2d634;
     --rtr-railroad-purple: #7e4fa3;
     --rtr-railroad-black: #24262b;
@@ -106,66 +106,16 @@
     --rtr-hex-chicago: #a9c0c4;
 }
 
-/* Slate: the chart board on a cool grey-blue table, paler cards edged to match. */
-[data-rtr-palette='slate'] {
-    --rtr-table: #c9d2d8;
+/* Mist: the chart board on a pale neutral table, lighter than the sea. */
+[data-rtr-palette='mist'] {
+    --rtr-table: #e6e7e3;
     --rtr-panel: #f4f2ec;
     --rtr-panel-raised: #fbfaf6;
     --rtr-line: #a9b4bb;
     --rtr-rule: #dfe3e5;
     --rtr-card-edge: #95a1a9;
     --rtr-ink: #2b2418;
-    --rtr-ink-muted: #5a6066;
-    --rtr-pill: #1f3a5f;
-    --rtr-pill-ink: #f6f1e2;
-    --rtr-sea: #c4d3d6;
-    --rtr-sea-line: #aec1c5;
-    --rtr-frame: #0f1a2c;
-    --rtr-plain: #f7f3e7;
-    --rtr-hex-edge: #b5ab95;
-    --rtr-patch-edge: #f8f4ea;
-    --rtr-mountain: #e0c9b2;
-    --rtr-mountain-ink: #7b4a2d;
-    --rtr-hex-city: #c4c6c6;
-    --rtr-hex-start-city: #cfd1d1;
-    --rtr-hex-chicago: #a9c0c4;
-}
-
-/* Sage: the chart board on a muted green table, paler cards edged to match. */
-[data-rtr-palette='sage'] {
-    --rtr-table: #cbd3c3;
-    --rtr-panel: #f5f3ea;
-    --rtr-panel-raised: #fbfaf4;
-    --rtr-line: #aab49d;
-    --rtr-rule: #dfe3d8;
-    --rtr-card-edge: #96a088;
-    --rtr-ink: #2b2418;
-    --rtr-ink-muted: #5d6355;
-    --rtr-pill: #1f3a5f;
-    --rtr-pill-ink: #f6f1e2;
-    --rtr-sea: #c4d3d6;
-    --rtr-sea-line: #aec1c5;
-    --rtr-frame: #0f1a2c;
-    --rtr-plain: #f7f3e7;
-    --rtr-hex-edge: #b5ab95;
-    --rtr-patch-edge: #f8f4ea;
-    --rtr-mountain: #e0c9b2;
-    --rtr-mountain-ink: #7b4a2d;
-    --rtr-hex-city: #c4c6c6;
-    --rtr-hex-start-city: #cfd1d1;
-    --rtr-hex-chicago: #a9c0c4;
-}
-
-/* Stone: the chart board on a neutral mid-grey table, paler cards edged to match. */
-[data-rtr-palette='stone'] {
-    --rtr-table: #cfcbc3;
-    --rtr-panel: #f6f3ec;
-    --rtr-panel-raised: #fcfaf6;
-    --rtr-line: #b0a99c;
-    --rtr-rule: #e2ded6;
-    --rtr-card-edge: #9e968a;
-    --rtr-ink: #2b2418;
-    --rtr-ink-muted: #635c50;
+    --rtr-ink-muted: #5a5f62;
     --rtr-pill: #1f3a5f;
     --rtr-pill-ink: #f6f1e2;
     --rtr-sea: #c4d3d6;
@@ -192,6 +142,8 @@
     --color-rtr-cost: var(--rtr-cost);
     --color-rtr-halo: var(--rtr-halo);
     --color-rtr-scrim: var(--rtr-scrim);
+    --color-rtr-scrim-deep: var(--rtr-scrim-deep);
+    --color-rtr-lit-wash: var(--rtr-lit-wash);
     --color-rtr-coin: var(--rtr-coin);
     --color-rtr-coin-ink: var(--rtr-coin-ink);
     --color-rtr-five: var(--rtr-five);
@@ -235,6 +187,7 @@
     --color-rtr-pill-ink: var(--rtr-pill-ink);
     --color-rtr-sea: var(--rtr-sea);
     --color-rtr-sea-line: var(--rtr-sea-line);
+    --color-rtr-sea-edge: var(--rtr-sea-edge);
     --color-rtr-frame: var(--rtr-frame);
     --color-rtr-plain: var(--rtr-plain);
     --color-rtr-hex-edge: var(--rtr-hex-edge);

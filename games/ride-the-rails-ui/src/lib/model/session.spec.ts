@@ -12,7 +12,6 @@ import {
     MachineState,
     PhaseName,
     isEndBuilding,
-    isPassJourney,
     isPlaceLocomotive,
     isTakeShare,
     legalPlacements,
@@ -159,7 +158,6 @@ describe('the board offer in Building (R-3.2, R-4.1, R-4.2)', () => {
         const apply = spyOnApply()
         await session.pressHex(single.hexId)
         expect(apply).not.toHaveBeenCalled()
-        expect(session.hexDetailHexId).toBe(single.hexId)
         expect(session.buildHexId).toBeUndefined()
     })
 
@@ -383,58 +381,6 @@ describe('the build stage (docs/user-interactions.md)', () => {
     })
 })
 
-describe('hex detail (U-5)', () => {
-    it('opens on an unlit hex and changes no stage; the popup stays and the detail moves to the side panel', async () => {
-        const session = await openSessionOn(redAndBlue())
-        const shared = litWith(session, 2)
-        await session.pressHex(shared.hexId)
-        const apply = spyOnApply()
-        await session.pressHex(DENVER)
-        expect(apply).not.toHaveBeenCalled()
-        expect(session.hexDetailHexId).toBe(DENVER)
-        expect(session.hexDetailInSidePanel).toBe(true)
-        expect(session.buildHexId).toBe(shared.hexId)
-    })
-
-    it('closes on a second press, on close, and on a press on a lit hex', async () => {
-        const session = await openSessionOn(redAndBlue())
-        await session.pressHex(DENVER)
-        await session.pressHex(DENVER)
-        expect(session.hexDetailHexId).toBeUndefined()
-
-        await session.pressHex(DENVER)
-        session.closeHexDetail()
-        expect(session.hexDetailHexId).toBeUndefined()
-
-        await session.pressHex(DENVER)
-        await session.pressHex(litWith(session, 2).hexId)
-        expect(session.hexDetailHexId).toBeUndefined()
-    })
-
-    it('shows beside the hex outside a map pick', async () => {
-        const session = await openSessionOn(buildState({ phase: PhaseName.TakeShare }))
-        await session.pressHex(DENVER)
-        expect(session.hexDetailHexId).toBe(DENVER)
-        expect(session.hexDetailInSidePanel).toBe(false)
-    })
-
-    it('closes when a Game State changes that hex, and stays when it changes another', async () => {
-        const state = redAndBlue()
-        const session = await openSessionOn(state)
-        await session.pressHex(DENVER)
-
-        const elsewhere = state.dehydrate()
-        elsewhere.track = { ...elsewhere.track, 'hex.usa.8-24': ['railroad.red'] }
-        await session.presentState(elsewhere)
-        expect(session.hexDetailHexId).toBe(DENVER)
-
-        const here = state.dehydrate()
-        here.track = { ...here.track, [DENVER]: ['railroad.red'] }
-        await session.presentState(here)
-        expect(session.hexDetailHexId).toBeUndefined()
-    })
-})
-
 describe('railroad spotlight', () => {
     it('follows the pointer until a press holds it; a second press releases it and another moves it', async () => {
         const session = await openSessionOn(redAndBlue())
@@ -488,18 +434,9 @@ describe('the other actions', () => {
         expect(isTakeShare(action) && action.railroadId).toBe('railroad.blue')
     })
 
-    it('passes a journey only when no journey exists (R-3.3.1)', async () => {
-        const session = await openSessionOn(buildState({ phase: PhaseName.Ride }))
-        expect(session.canPassJourney).toBe(true)
-        const apply = spyOnApply()
-        await session.passJourney()
-        expect(isPassJourney(sentAction(apply))).toBe(true)
-    })
-
-    it('sends no pass or share outside its phase', async () => {
+    it('sends no share outside its phase', async () => {
         const session = await openSessionOn(redAndBlue())
         const apply = spyOnApply()
-        await session.passJourney()
         await session.takeShare('railroad.red')
         expect(apply).not.toHaveBeenCalled()
         expect(session.gameState.machineState).toBe(MachineState.Building)

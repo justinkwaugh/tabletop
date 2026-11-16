@@ -5,12 +5,10 @@ import {
     MachineState,
     USA_CITIES,
     USA_HEXES,
-    hexCapacity,
     isPlaceLocomotive,
     isRideJourney,
     railroadsIn,
     usaCity,
-    usaHex,
     type CityCapacity,
     type CityId,
     type HexId,
@@ -162,62 +160,4 @@ export function railroadStarts(actions: readonly GameAction[]): Map<RailroadId, 
         }
     }
     return starts
-}
-
-export type HexBonusFact = { label: string; available: boolean | undefined }
-
-export type HexDetailFacts = {
-    hexId: HexId
-    title: string
-    capacity: CityCapacity
-    locomotives: readonly RailroadId[]
-    startColours: readonly RailroadId[]
-    bonus: HexBonusFact | undefined
-    transcontinentalEnd: string | undefined
-    /** Only a city takes passengers. */
-    passenger: boolean | undefined
-}
-
-const TERRAIN_TITLES = { plain: 'Plain', mountain: 'Mountain' } as const
-
-/** What the hex detail shows: name or terrain, capacity, track, starts, bonus and passenger. */
-export function hexDetailFacts(state: HydratedRideTheRailsGameState, hexId: HexId): HexDetailFacts {
-    const hex = usaHex(hexId)
-    const locomotives = railroadsIn(state.track, hexId)
-    if (hex.terrain !== 'city') {
-        return {
-            hexId,
-            title: TERRAIN_TITLES[hex.terrain],
-            capacity: hexCapacity(hexId),
-            locomotives,
-            startColours: [],
-            bonus: undefined,
-            transcontinentalEnd: undefined,
-            passenger: undefined
-        }
-    }
-    const city = usaCity(hex.cityId)
-    const bonus = cityBonus(state.track, city.id)
-    return {
-        hexId,
-        title: city.name,
-        capacity: city.capacity,
-        locomotives,
-        startColours: city.startColours,
-        bonus:
-            bonus?.kind === 'chicago'
-                ? { label: `$${bonus.amount} for every placement`, available: undefined }
-                : bonus
-                  ? {
-                        label: `$${bonus.amount}, ${bonus.taken ? 'taken' : 'still to be had'}`,
-                        available: !bonus.taken
-                    }
-                  : undefined,
-        transcontinentalEnd: city.groups.includes('west-coast')
-            ? 'West Coast end'
-            : city.groups.includes('east-coast')
-              ? 'East Coast end'
-              : undefined,
-        passenger: state.passengers.includes(city.id)
-    }
 }

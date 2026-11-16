@@ -55,12 +55,12 @@ describe('the $5 pill', () => {
         expect(BONUS_PILL.width * phoneScale).toBeGreaterThanOrEqual(12)
     })
 
-    it('sits up and left of the hex’s centre, inside the hex', () => {
+    it('sits at the bottom centre of the hex, on its lower edge and above its bottom corner', () => {
         const { center, width, height } = BONUS_PILL
-        expect(center.x).toBeLessThan(0)
-        expect(center.y).toBeLessThan(0)
-        expect(center.x - width / 2).toBeGreaterThan(-HEX_WIDTH / 2)
-        expect(center.y - height / 2).toBeGreaterThan(-HEX_SIZE)
+        expect(center.x).toBe(0)
+        expect(center.y).toBeGreaterThan(0)
+        expect(center.x + width / 2).toBeLessThan(HEX_WIDTH / 2)
+        expect(center.y + height / 2).toBeLessThan(HEX_SIZE)
     })
 })
 
@@ -187,13 +187,13 @@ describe('the passenger, a meeple', () => {
 })
 
 describe('the passenger’s place', () => {
-    it('stands up and right of the hex’s centre, clear of the bonus pill', () => {
+    it('stands up and right of the hex’s centre, clear of the bonus pill below', () => {
         for (const city of USA_CITIES) {
             const offset = passengerOffset(city.id)
             expect(offset.x).toBeGreaterThan(0)
             expect(offset.y).toBeLessThan(0)
-            const meepleLeft = offset.x + MEEPLE_EXTENT.left * PASSENGER_SCALE
-            expect(meepleLeft).toBeGreaterThan(BONUS_PILL.center.x + BONUS_PILL.width / 2)
+            const meepleBottom = offset.y + MEEPLE_EXTENT.bottom * PASSENGER_SCALE
+            expect(meepleBottom).toBeLessThan(BONUS_PILL.center.y - BONUS_PILL.height / 2)
         }
     })
 })

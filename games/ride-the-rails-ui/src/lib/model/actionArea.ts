@@ -105,9 +105,6 @@ export function seatGains(
     })
 }
 
-// R-3.3.1
-export const NO_JOURNEY_PROMPT = "No passenger can travel: no link leaves any passenger's city"
-
 // R-2.5.1: money decides the next round's order, so every waiting view shows it.
 export function seatMoney(state: HydratedRideTheRailsGameState): PlayerMoney[] {
     return moneyOf(state, state.turnManager.turnOrder)
@@ -198,24 +195,6 @@ export const PHASE_LABELS: Readonly<Record<PhaseName, string>> = {
     [PhaseName.TakeShare]: 'Shares',
     [PhaseName.Build]: 'Build',
     [PhaseName.Ride]: 'Ride'
-}
-
-export type RoundLabels = { full: string; compact: string }
-
-// R-2.1: "Round 3 · Build" in the turn header, "R3 · Build" on a phone.
-export function roundLabels(state: HydratedRideTheRailsGameState): RoundLabels | undefined {
-    // The game's end closes round 6, so the round shown is the latest one.
-    const round = state.roundManager.series.at(-1)?.number
-    if (round === undefined) {
-        return undefined
-    }
-    const phase = state.result ? 'End' : phaseLabel(state.phaseManager.currentPhase?.name)
-    const suffix = phase ? ` · ${phase}` : ''
-    return { full: `Round ${round}${suffix}`, compact: `R${round}${suffix}` }
-}
-
-function phaseLabel(name: string | undefined): string | undefined {
-    return Object.entries(PHASE_LABELS).find(([phase]) => phase === name)?.[1]
 }
 
 // R-2.2: the seat whose decision the table waits on.

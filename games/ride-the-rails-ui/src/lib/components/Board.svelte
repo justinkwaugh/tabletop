@@ -86,7 +86,7 @@
     <LineLayer lastJourney={gameSession.lastJourney} />
     <ScrimLayer {offer} />
     <!-- Above the scrim: the legend is never dimmed. -->
-    <StartLegend />
+    <StartLegend mapId={gameSession.gameState.mapId} />
     <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />
     <PickLayer {views} {viewScale} {journeyFrom} />
     <FlightLayer />

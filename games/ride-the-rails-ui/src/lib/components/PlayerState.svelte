@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { RailroadId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
     import { moneyKey, seatCardKey, shareSlotKey } from '$lib/animators/flights.svelte.js'
     import type { SeatCard } from '$lib/utils/seatCards.js'
@@ -21,12 +20,10 @@
     }
 </script>
 
-<!-- Contract, Seat card: a card on the table, edged and marked in the seat's colour; paper, or
-     charcoal with light ink (BOARD_LOOK.seatCard). -->
+<!-- Contract, Seat card: a paper card on the table, edged and marked in the seat's colour. -->
 <section
     class="seat"
     class:acting={card.acting}
-    class:charcoal={BOARD_LOOK.seatCard === 'charcoal'}
     aria-label={name}
     data-flight-target={seatCardKey(card.playerId)}
     style:--seat={headerFill}
@@ -81,17 +78,6 @@
         align-items: center;
         gap: 6px 10px;
         padding: 8px 10px;
-    }
-
-    /* BOARD_LOOK.seatCard 'charcoal': the card's own tokens, so everything in it follows. */
-    .seat.charcoal {
-        --rtr-panel: #25282d;
-        --rtr-panel-raised: #30343a;
-        --rtr-ink: #f4f1ea;
-        --rtr-ink-muted: #b8b3a7;
-        --rtr-line: #5b6068;
-        --rtr-card-edge: #15171a;
-        --rtr-halo: #f4f1ea;
     }
 
     /* Drawn inside the card, inside the seat colour's bar, so the side panel, which clips what

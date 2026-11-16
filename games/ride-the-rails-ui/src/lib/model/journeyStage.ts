@@ -49,6 +49,20 @@ export function pushDraftLink(stage: JourneyStage, link: DraftLink): JourneyStag
     )
 }
 
+/**
+ * How many of the route's links a press on `cityId` keeps: none on the start, up to and including
+ * the link that reaches it on a city the route reaches, `undefined` on a city off the route.
+ */
+export function linksKeptAt(
+    startCityId: CityId,
+    links: readonly DraftLink[],
+    cityId: CityId
+): number | undefined {
+    if (cityId === startCityId) return 0
+    const reached = links.findIndex((link) => link.cityId === cityId)
+    return reached < 0 ? undefined : reached + 1
+}
+
 /** The route cut back to its first `count` links, as one press Undo takes back. */
 export function cutDraftLinks(stage: JourneyStage, count: number): JourneyStage {
     return pushStagedSelectionValue<JourneyStageValues, 'links'>(

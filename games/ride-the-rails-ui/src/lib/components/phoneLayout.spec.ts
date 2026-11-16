@@ -36,9 +36,7 @@ describe('the phone layout', () => {
         const cards = table.indexOf('<RailroadCards />')
         expect(cards).toBeGreaterThan(-1)
         expect(cards).toBeLessThan(wrapper)
-        expect(source('./RailroadCards.svelte')).toMatch(
-            /class="railroad-cards flex max-sm:hidden"/
-        )
+        expect(source('./RailroadCards.svelte')).toMatch(/class="frame max-sm:hidden"/)
         // The board takes the phone's whole width: the piles are in the action panel.
         expect(table).not.toMatch(/PhoneSupplyRail/)
         expect(Object.keys(SOURCES)).not.toContain('./PhoneSupplyRail.svelte')
