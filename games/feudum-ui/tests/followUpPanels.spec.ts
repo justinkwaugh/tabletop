@@ -157,12 +157,13 @@ test('S52 the writ limit: faces, the primary and the at-will row', async ({ page
 test('S53 nourish: the order row, the picker, and a feed brightens its pawn', async ({ page }) => {
     await openTable(page, `openNourishTable('seat')`)
     await expect(panel(page).locator('[data-order-row="nourish"]')).toBeVisible()
-    // Contract, Round end: the summary stands beside the rows, and holds the send.
+    // Contract, Round end: no summary; the send stands under the rows.
     const rows = panel(page).locator('[data-nourish-rows]')
-    const summary = panel(page).locator('[data-nourish-summary]')
-    const [rowsBox, summaryBox] = [await rows.boundingBox(), await summary.boundingBox()]
-    expect(summaryBox && rowsBox && summaryBox.x >= rowsBox.x + rowsBox.width).toBe(true)
-    await expect(summary.locator('[data-primary]')).toHaveText(/^Feed 2 · leave the /)
+    const send = panel(page).locator('[data-nourish-send]')
+    await expect(panel(page).locator('[data-nourish-summary]')).toHaveCount(0)
+    const [rowsBox, sendBox] = [await rows.boundingBox(), await send.boundingBox()]
+    expect(sendBox && rowsBox && sendBox.y >= rowsBox.y + rowsBox.height).toBe(true)
+    await expect(send.locator('[data-primary]')).toHaveText('Feed 2 · leave 1')
     await expect(panel(page).locator('[data-nourish-pawn] [data-pawn-cube]')).toHaveCount(3)
     await panel(page).getByRole('button', { name: 'Unfed' }).first().hover()
     await expect(lit(page).first()).toBeAttached()

@@ -194,7 +194,7 @@
     {:else if block.kind === 'backs'}
         <WritBacks count={block.count} />
     {:else if block.kind === 'order-row'}
-        <OrderRow step={block.step} entries={block.entries} seats={block.seats} me={block.me} />
+        <OrderRow step={block.step} entries={block.entries} seats={block.seats} />
     {:else if block.kind === 'dawn-sheet'}
         <DawnSheet sheet={block.sheet} seats={block.seats} />
     {:else if block.kind === 'game-end'}

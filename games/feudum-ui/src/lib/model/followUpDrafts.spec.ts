@@ -1139,15 +1139,14 @@ describe('R-4.10 Nourish', () => {
         expect(third).toMatchObject({ name: 'Farmer', unfed: true })
         expect(third?.place).toBe(third && spaceLabel(third.spaceId))
         expect(third?.choices.map(({ label }) => label)).toEqual(['Food', 'Wine', 'Unfed'])
-        expect(row(third?.choices, 'Unfed')).toMatchObject({
-            shown: 'unfed',
-            caption: 'back to your supply · its vessel stays'
-        })
+        expect(row(third?.choices, 'Unfed')).toMatchObject({ shown: 'unfed' })
+        expect(row(third?.choices, 'Unfed')).not.toHaveProperty('caption')
         // R-4.10.1 The food and the wine are taken: pressing one swaps it from the pawn eating it.
-        expect(row(third?.choices, 'Food')).toMatchObject({ caption: 'none left', spent: true })
+        expect(row(third?.choices, 'Food')).toMatchObject({ spent: true })
+        expect(row(third?.choices, 'Food')).not.toHaveProperty('caption')
         expect(row(third?.choices, 'Food').press).toBeDefined()
         expect(session.nourishPanel?.primary).toEqual({
-            label: 'Feed 2 · leave the farmer',
+            label: 'Feed 2 · leave 1',
             enabled: true
         })
         const pawn = session.gameState.getPlayerState(seat).pawns.find((row) => row.spaceId)
@@ -1156,7 +1155,7 @@ describe('R-4.10 Nourish', () => {
         expect(lastAction(table)?.type).not.toBe(ActionType.Nourish)
     })
 
-    it('R-4.10.2 each pawn pays food or wine, drawn, and the summary says what is paid and kept', async () => {
+    it('R-4.10.2 each pawn pays food or wine, drawn; wine alone keeps its cost; the send says what is paid', async () => {
         const table = hold(
             await atNourishing((state, { seat }) => {
                 threePawns(state, seat)
@@ -1169,31 +1168,23 @@ describe('R-4.10 Nourish', () => {
         expect(first.choices.map(({ label }) => label)).toEqual(['Food', 'Wine'])
         expect(row(first.choices, 'Food')).toMatchObject({
             picked: true,
-            shown: '1 food',
-            caption: 'to the haversack',
+            shown: '',
             good: 'food'
         })
+        expect(row(first.choices, 'Food')).not.toHaveProperty('caption')
         expect(row(first.choices, 'Wine')).toMatchObject({
             picked: false,
-            shown: 'wine',
-            caption: 'feeds 2 rounds · 0 strength next round',
+            shown: '',
+            caption: '2 rounds · 0 strength',
             good: 'sulfur'
         })
-        expect(panel?.summary).toEqual({
-            pays: { food: 3, wine: 0 },
-            keeps: { food: 1, barrel: 1 }
-        })
-        expect(panel?.rule).toBe(
-            'Every pawn must eat if you can feed it. A pawn left unfed goes back to your supply; its vessel stays on the space.'
-        )
-        expect(panel?.primary.label).toBe('Feed 3 pawns · 3 food')
+        expect(panel).not.toHaveProperty('summary')
+        expect(panel).not.toHaveProperty('rule')
+        expect(panel?.primary.label).toBe('Feed 3 · 3 food')
         expect(panel?.send).toEqual({ fed: 3, food: 3, wine: 0 })
         await press(table.session, row(first.choices, 'Wine'))
-        expect(table.session.nourishPanel?.primary.label).toBe('Feed 3 pawns · 2 food · 1 wine')
-        expect(table.session.nourishPanel?.summary).toEqual({
-            pays: { food: 2, wine: 1 },
-            keeps: { food: 2, barrel: 0 }
-        })
+        expect(table.session.nourishPanel?.primary.label).toBe('Feed 3 · 2 food · 1 wine')
+        expect(table.session.nourishPanel?.send).toEqual({ fed: 3, food: 2, wine: 1 })
     })
 
     it('R-4.10.1 each fed pawn shows its payment on the map; the unfed one, what it loses', async () => {
@@ -1203,7 +1194,7 @@ describe('R-4.10 Nourish', () => {
         expect(notes).toEqual([
             [{ kind: 'role', label: '1 food', art: [{ kind: 'good', good: 'food', count: 1 }] }],
             [{ kind: 'role', label: '1 wine', art: [{ kind: 'good', good: 'sulfur', count: 1 }] }],
-            [{ kind: 'threat', label: 'returns to supply' }]
+            [{ kind: 'threat', label: 'home' }]
         ])
         expect(session.nourish.pick?.targets[0].target).toContain(seat)
     })
@@ -1215,7 +1206,7 @@ describe('R-4.10 Nourish', () => {
         expect(feeding(session)).toEqual(['unfed', 'wine', 'food'])
         await press(session, row(session.nourishPanel?.pawns[1].choices, 'Food'))
         expect(feeding(session)).toEqual(['unfed', 'food', 'wine'])
-        expect(session.nourishPanel?.primary.label).toBe('Feed 2 · leave the farmer')
+        expect(session.nourishPanel?.primary.label).toBe('Feed 2 · leave 1')
         const [first, second, third] = session.gameState
             .getPlayerState(table.seat)
             .pawns.filter((pawn) => pawn.spaceId)
@@ -1241,7 +1232,7 @@ describe('R-4.10 Nourish', () => {
         expect(labels).toEqual(['Food', 'Wine'])
     })
 
-    it('R-4.10.2 an empty barrel dims "Wine", and no food left dims "Food"', async () => {
+    it('R-4.10.2 an empty barrel hides "Wine", and no food at all hides "Food"', async () => {
         const table = hold(
             await atNourishing((state, { seat }) => {
                 threePawns(state, seat)
@@ -1249,11 +1240,7 @@ describe('R-4.10 Nourish', () => {
             })
         )
         const choices = table.session.nourishPanel?.pawns[0].choices
-        expect(choices?.map(({ label }) => label)).toEqual(['Food', 'Wine', 'Unfed'])
-        expect(row(choices, 'Wine')).toMatchObject({
-            caption: 'barrel empty',
-            refusal: 'barrel empty'
-        })
+        expect(choices?.map(({ label }) => label)).toEqual(['Food', 'Unfed'])
         const none = hold(
             await atNourishing((state, { seat }) => {
                 threePawns(state, seat)
@@ -1261,8 +1248,8 @@ describe('R-4.10 Nourish', () => {
                 fillBarrel(state, seat, 1)
             })
         )
-        const food = row(none.session.nourishPanel?.pawns[0].choices, 'Food')
-        expect(food).toMatchObject({ caption: 'none left', refusal: 'none left' })
+        const labels = none.session.nourishPanel?.pawns[0].choices.map(({ label }) => label)
+        expect(labels).toEqual(['Wine', 'Unfed'])
     })
 
     it('R-4.10.1 a pawn press on the map moves it to the next feed', async () => {
@@ -1284,7 +1271,7 @@ describe('R-4.10 Nourish', () => {
         )
         const { session } = table
         expect(feeding(session)).toEqual(['food', 'unfed', 'unfed'])
-        expect(session.nourishPanel?.coverLine).toBe('a tile can feed one')
+        expect(session.nourishPanel?.coverLine).toBe('A tile feeds 1')
         const food = session.nourishPanel?.covers?.find(({ label }) => label.endsWith('food'))
         const [tileId] = session.gameState.getPlayerState(table.seat).regionTiles
         expect(food).toMatchObject({
@@ -1294,7 +1281,7 @@ describe('R-4.10 Nourish', () => {
         })
         await press(session, food)
         expect(feeding(session)).toEqual(['food', 'food', 'unfed'])
-        expect(session.nourishPanel?.primary.label).toBe('Feed 2 · leave the farmer')
+        expect(session.nourishPanel?.primary.label).toBe('Feed 2 · leave 1')
         await sendAndSettle(session)
         expect(lastAction(table)).toMatchObject({
             type: ActionType.Nourish,
@@ -1302,7 +1289,7 @@ describe('R-4.10 Nourish', () => {
         })
     })
 
-    it('S53 another seat sees the row, ticks and "nothing to decide"; History View no panel', async () => {
+    it('S53 another seat sees the row and its ticks; History View no panel', async () => {
         const table = hold(await scarce())
         const other = await table.host.openSeat(table.other)
         await settled(other)
@@ -1314,9 +1301,7 @@ describe('R-4.10 Nourish', () => {
             done: false
         })
         expect(row?.find(({ playerId }) => playerId === table.other)?.done).toBe(true)
-        const fed = orderRowOf(other.gameState, [table.other])?.entries
-        expect(fed?.find(({ playerId }) => playerId === table.other)?.fedByGame).toBe(true)
-        expect(fed?.find(({ playerId }) => playerId === table.seat)?.fedByGame).toBeUndefined()
+        expect(orderRowOf(other.gameState)?.entries).toEqual(row)
         await table.session.history.goToPreviousAction()
         await settled(table.session)
         expect(table.session.nourishPanel).toBeUndefined()
@@ -1446,7 +1431,7 @@ describe('R-4.10 Nourish', () => {
             expect(feeding(session)).toEqual(['food', 'food', 'wine'])
         })
 
-        it("R-4.3.3 another seat's tile takes the haversack's last sulfur: this seat's tile offer says so", async () => {
+        it("R-4.3.3 another seat's tile takes the haversack's last sulfur: this seat's tile offer says so; a good it can't bring isn't drawn", async () => {
             const table = hold(
                 await atNourishingTogether((state, { seat, other, host }) => {
                     const watcher = host.order.find((id) => id !== seat && id !== other) ?? ''
@@ -1470,7 +1455,7 @@ describe('R-4.10 Nourish', () => {
                 seat.nourishPanel?.covers?.find(({ label }) => label.endsWith('wine'))
             const food = (seat: FeudumGameSession) =>
                 seat.nourishPanel?.covers?.find(({ label }) => label.endsWith('food'))
-            expect(food(session)?.refusal).toBe('The haversack has no food left.')
+            expect(food(session)).toBeUndefined()
             expect(wine(session)?.refusal).toBeUndefined()
             await press(session, wine(session))
             expect(session.nourishPanel?.primary.enabled).toBe(true)

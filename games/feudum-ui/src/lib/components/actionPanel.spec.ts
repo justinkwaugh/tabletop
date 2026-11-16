@@ -785,45 +785,30 @@ describe('R-4.10, R-4.12.3 the order row', () => {
         step: 'nourish',
         seats,
         entries: [
-            { playerId: 'p1', done: true, deciding: false, fedByGame: true },
+            { playerId: 'p1', done: true, deciding: false },
             { playerId: 'p2', done: false, deciding: true }
         ]
     })
 
-    it('S53 R-4.10-H4 names the seats in order, ticks those done, marks each still deciding and none next', () => {
-        expect(row).toContain('Nourish')
+    it('S53 R-4.10-H4 the seats in order as chips: a tick on those done, a solid ring on each deciding, no words', () => {
+        expect(row).not.toContain('Nourish')
         const [ana, ben] = partsOf(row, 'data-order-seat')
         expect(ana).toContain('✓')
+        expect(ana).toContain('aria-label="done"')
         expect(ana).not.toContain('data-deciding')
+        expect(ana).not.toContain('ring-1')
         expect(ben).toContain('data-deciding')
-        expect(ben).toContain('· deciding')
+        expect(ben).toContain('ring-1')
         expect(ben).not.toContain('✓')
         expect(row).not.toContain('data-next')
-        expect(row).not.toContain('· next')
-    })
-
-    it('S53 R-4.10-H4 the seat the game fed has nothing to decide, and only that seat', () => {
-        const [ana, ben] = partsOf(row, 'data-order-seat')
-        expect(ana).toContain('nothing to decide')
-        expect(ana).not.toContain('fed by the game')
-        expect(ben).not.toContain('nothing to decide')
-    })
-
-    it('S53 on a phone the row is dots: a tick, "you" on the viewer deciding, another deciding its dot alone', () => {
-        const mine = markupOf({
-            kind: 'order-row',
-            step: 'nourish',
-            seats,
-            me: 'p2',
-            entries: [
-                { playerId: 'p1', done: true, deciding: false },
-                { playerId: 'p2', done: false, deciding: true }
-            ]
-        })
-        const words = (markup: string) =>
-            partsOf(markup, 'data-order-seat').map((part) => textOf(part, 'data-phone-word'))
-        expect(words(mine)).toEqual(['✓', 'you'])
-        expect(words(row)).toEqual(['✓', ''])
+        // The ring's state is read out, not shown.
+        expect(ben).toContain('<span class="sr-only">deciding</span>')
+        for (const word of ['next', 'deciding', 'nothing to decide', 'you']) {
+            expect(row).not.toContain(`· ${word}`)
+        }
+        expect(row).not.toContain('data-phone-word')
+        expect(row).not.toContain('>you<')
+        expect(row).not.toContain('border-dashed')
     })
 
     it('S55 the landscapes step heads the same row, with the next seat marked', () => {
@@ -836,13 +821,14 @@ describe('R-4.10, R-4.12.3 the order row', () => {
                 { playerId: 'p2', done: false, next: false }
             ]
         })
-        expect(landscapes).toContain('Landscapes')
+        expect(landscapes).not.toContain('Landscapes')
         expect(landscapes).toContain('data-order-row="landscapes"')
         const [ana, ben] = partsOf(landscapes, 'data-order-seat')
         expect(ana).toContain('data-next')
-        expect(ana).toContain('· next')
-        expect(textOf(ana, 'data-phone-word')).toBe('next')
+        expect(ana).toContain('ring-1')
+        expect(ana).not.toContain('· next')
         expect(ben).not.toContain('data-next')
+        expect(ben).not.toContain('ring-1')
         expect(landscapes).not.toContain('data-deciding')
     })
 })
@@ -1026,15 +1012,18 @@ describe('R-4.10 S53 the nourish picker', () => {
         label: string,
         good: 'food' | 'sulfur' | undefined,
         shown: string,
-        caption: string,
-        more: Partial<PanelChoice> = {}
-    ) => ({
-        ...aRow(label, { shown, ...more }),
-        ...(good ? { art: { kind: 'good' as const, good } } : {}),
-        feed: label.toLowerCase() as 'food' | 'wine' | 'unfed',
-        caption,
-        spent: false
-    })
+        caption: string | undefined,
+        more: Partial<PanelChoice> & { spent?: boolean } = {}
+    ) => {
+        const { spent = false, ...choice } = more
+        return {
+            ...aRow(label, { shown, ...choice }),
+            ...(good ? { art: { kind: 'good' as const, good } } : {}),
+            feed: label.toLowerCase() as 'food' | 'wine' | 'unfed',
+            ...(caption ? { caption } : {}),
+            spent
+        }
+    }
     const block = (unfed: boolean): ActionBlock => ({
         kind: 'nourish-picker',
         pawns: [
@@ -1046,8 +1035,8 @@ describe('R-4.10 S53 the nourish picker', () => {
                 paint,
                 unfed: false,
                 options: [
-                    option('Food', 'food', '1 food', 'to the haversack', { picked: true }),
-                    option('Wine', 'sulfur', 'wine', 'feeds 2 rounds · 0 strength next round')
+                    option('Food', 'food', '', undefined, { picked: true }),
+                    option('Wine', 'sulfur', '', '2 rounds · 0 strength')
                 ]
             },
             {
@@ -1058,73 +1047,64 @@ describe('R-4.10 S53 the nourish picker', () => {
                 paint,
                 unfed,
                 options: [
-                    option('Food', 'food', '1 food', unfed ? 'none left' : 'to the haversack', {
-                        picked: !unfed
-                    }),
-                    option('Wine', 'sulfur', 'wine', 'barrel empty', { refusal: 'barrel empty' }),
+                    option('Food', 'food', '', undefined, { picked: !unfed, spent: unfed }),
                     ...(unfed
-                        ? [
-                              option(
-                                  'Unfed',
-                                  undefined,
-                                  'unfed',
-                                  'back to your supply · its vessel stays',
-                                  {
-                                      picked: true
-                                  }
-                              )
-                          ]
+                        ? [option('Unfed', undefined, 'unfed', undefined, { picked: true })]
                         : [])
                 ]
             }
         ],
-        summary: {
-            pays: { food: unfed ? 1 : 2, wine: 0 },
-            keeps: { food: unfed ? 0 : 2, barrel: 0 }
-        },
-        rule: 'Every pawn must eat if you can feed it. A pawn left unfed goes back to your supply; its vessel stays on the space.',
         send: {
             kind: 'primary',
-            label: unfed ? 'Feed 1 · leave the merchant' : 'Feed 2 pawns · 2 food',
+            label: unfed ? 'Feed 1 · leave 1' : 'Feed 2 · 2 food',
             enabled: true,
             send: nothing,
             tally: { fed: unfed ? 1 : 2, food: unfed ? 1 : 2, wine: 0 }
         }
     })
 
-    it('S53 each pawn is its cube, its name and place, and its feeds as art with captions', () => {
+    it('S53 each pawn is its cube, its name and place, and its feeds as art; wine alone has a line, its cost', () => {
         const markup = markupOf(block(false))
         const [knight, merchant] = partsOf(markup, 'data-nourish-pawn')
         expect(knight).toContain('data-pawn-cube')
         expect(textOf(knight, 'data-pawn-name')).toBe('Knight')
-        expect(textOf(knight, 'data-pawn-place')).toBe('at Badlands 1')
+        expect(textOf(knight, 'data-pawn-place')).toBe('Badlands 1')
         expect(knight).toMatch(/data-feed="food"[^>]*data-picked/)
-        expect(knight).toContain('to the haversack')
-        expect(knight).toContain('feeds 2 rounds · 0 strength next round')
         expect(knight).toMatch(/<title>food<\/title>/)
-        expect(merchant).toContain('barrel empty')
+        expect(knight.split('data-caption')).toHaveLength(2)
+        expect(knight).toContain('2 rounds · 0 strength')
+        for (const gone of ['1 food', 'to the haversack', 'none left', 'barrel empty', '>wine<']) {
+            expect(untitled(markup)).not.toContain(gone)
+        }
+        expect(merchant).not.toContain('data-feed="wine"')
         expect(merchant).not.toContain('data-unfed')
     })
 
-    it('S53 the summary says what is paid and kept, the unfed rule once, and holds the send', () => {
+    it('S53 no summary and no rule: the send follows the rows and draws what is paid as art', () => {
         const markup = markupOf(block(false))
-        const summary = partsOf(markup, 'data-nourish-summary')[0]
-        expect(untitled(summary)).toMatch(/Pays[\s\S]*you keep[\s\S]*barrel/)
-        expect(markup.split('Every pawn must eat if you can feed it.').length).toBe(2)
-        expect(summary).toContain('its vessel stays on the space.')
-        expect(summary).toContain('data-primary')
-        expect(textOf(summary, 'data-primary')).toBe('Feed 2 pawns · 2 food')
-        // Contract, Phone layout: a desk draws the send in words; a phone, its counts as art.
-        expect(summary).not.toContain('data-send-phone')
+        expect(markup).not.toContain('data-nourish-summary')
+        expect(markup).not.toContain('data-nourish-rule')
+        for (const gone of ['Pays', 'you keep', 'Every pawn must eat', 'its vessel stays']) {
+            expect(untitled(markup)).not.toContain(gone)
+        }
+        const send = partsOf(markup, 'data-nourish-send')[0]
+        expect(send).toContain('data-primary')
+        expect(send).toContain('data-send-art')
+        expect(send).toContain('<title>food</title>')
+        const words = untitled(send).replace(/<!--.*?-->|<[^>]+>/gs, '')
+        expect(words).toMatch(/Feed 2\s*·\s*2\b/)
+        expect(words).not.toContain('food')
     })
 
-    it('S53 short of food, the unfed row is rose with what it loses', () => {
+    it('S53 short of food, the unfed row is rose, the spent food dimmed, and the send counts who is left', () => {
         const markup = markupOf(block(true))
         const merchant = partsOf(markup, 'data-nourish-pawn')[1]
         expect(merchant.split('>')[0]).toContain('border-feudum-danger')
         expect(merchant).toContain('data-unfed')
-        expect(merchant).toContain('back to your supply · its vessel stays')
-        expect(merchant).toContain('none left')
-        expect(textOf(markup, 'data-primary')).toBe('Feed 1 · leave the merchant')
+        expect(merchant).toMatch(/data-feed="food"[^>]*data-spent/)
+        expect(merchant).not.toContain('back to your supply')
+        expect(merchant).not.toContain('none left')
+        expect(textOf(markup, 'data-primary')).toBe('Feed 1 · leave 1')
+        expect(markup).not.toContain('data-send-art')
     })
 })

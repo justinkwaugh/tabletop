@@ -423,7 +423,7 @@ describe('R-4.10 S53 nourish, as drawn', () => {
             fillBarrel(state, seat, 1)
         })
 
-    it('S53 the picker: a row per pawn as its cube, place and feeds lighting it; the summary holds the send', async () => {
+    it('S53 the picker: a row per pawn as its cube, place and feeds lighting it, then the send', async () => {
         const table = hold(await scarce())
         const { session, seat } = table
         const view = session.actionPanel
@@ -438,12 +438,9 @@ describe('R-4.10 S53 nourish, as drawn', () => {
         expect(third.options.every((row) => lit(row).includes(pawnTarget(seat, third.n)))).toBe(
             true
         )
-        expect(picker.summary).toEqual({
-            pays: { food: 1, wine: 1 },
-            keeps: { food: 0, barrel: 0 }
-        })
-        expect(picker.rule).toMatch(/^Every pawn must eat if you can feed it\./)
-        expect(primaryLabels(view)).toEqual(['Feed 2 · leave the farmer'])
+        expect(picker).not.toHaveProperty('summary')
+        expect(picker).not.toHaveProperty('rule')
+        expect(primaryLabels(view)).toEqual(['Feed 2 · leave 1'])
         expect(picker.send.tally).toEqual({ fed: 2, food: 1, wine: 1 })
         expect(lastByUser(table)?.type).not.toBe(ActionType.Nourish)
         await send(session, /^Feed/)
@@ -462,7 +459,7 @@ describe('R-4.10 S53 nourish, as drawn', () => {
         expect(rowLabels(table.session.actionPanel, 'at-will').join()).toContain('Tiles')
     })
 
-    it('R-4.3.3 short, with a tile: the picker says a tile can feed one, beside the tile rows', async () => {
+    it('R-4.3.3 short, with a tile: the picker says a tile feeds 1, beside the tile rows', async () => {
         const table = hold(
             await atNourishing((state, { seat }) => {
                 threePawns(state, seat)
@@ -471,7 +468,7 @@ describe('R-4.10 S53 nourish, as drawn', () => {
             })
         )
         const picker = blockOf(table.session.actionPanel, 'nourish-picker')
-        expect(picker?.covers?.line).toBe('a tile can feed one')
+        expect(picker?.covers?.line).toBe('A tile feeds 1')
         // R-4.3.3 The tile brings food, or sulfur to the empty barrel as wine.
         expect(picker?.covers?.rows.map(({ choice }) => choice.shown)).toEqual([
             'for food',
@@ -489,7 +486,7 @@ describe('R-4.10 S53 nourish, as drawn', () => {
         )
         const picker = blockOf(table.session.actionPanel, 'nourish-picker')
         expect(picker?.covers).toBeUndefined()
-        expect(primaryLabels(table.session.actionPanel)).toEqual(['Feed 3 pawns · 3 food'])
+        expect(primaryLabels(table.session.actionPanel)).toEqual(['Feed 3 · 3 food'])
     })
 })
 

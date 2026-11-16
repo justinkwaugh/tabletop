@@ -17,7 +17,7 @@ import type { DraftArt, DraftChoice } from './deciderDraft.svelte.js'
 import type { GameEndSummaryView } from './gameEnd.js'
 import type { DawnSheetView } from './roundEnd.js'
 import { rankedDie, type DieArt } from './guildDie.js'
-import type { Feed, NourishSend, NourishSummary } from './nourishDraft.svelte.js'
+import type { Feed, NourishSend } from './nourishDraft.svelte.js'
 import type { SeatPaint } from './seatPaint.js'
 import { takesTradePicker } from './tradePicker.js'
 import type { FeudumGameSession } from './session.svelte.js'
@@ -51,7 +51,8 @@ export interface ActionRow {
 /** R-4.10.1 One feed of one pawn, as the nourish picker draws it: its words, and beneath them its caption. */
 export type NourishOptionRow = ActionRow & {
     readonly feed: Feed
-    readonly caption: string
+    /** Wine's cost beneath its piece. */
+    readonly caption?: string
     readonly spent: boolean
 }
 
@@ -197,8 +198,6 @@ type PanelBlock =
     | (OrderRow & {
           readonly kind: 'order-row'
           readonly seats: SeatNames
-          /** The viewer: a phone's row says "you" on that seat while it decides. */
-          readonly me?: string
       })
     | {
           readonly kind: 'dawn-sheet'
@@ -244,14 +243,12 @@ type PanelBlock =
           readonly send?: PrimaryBlock
       }
     /**
-     * Contract, Round end: the nourish picker. A row per pawn, and beside the rows a summary of what
-     * is paid and kept, the unfed rule, and the send; R-4.3.3 a tile's rows when one could feed.
+     * Contract, Round end: the nourish picker. A row per pawn, then R-4.3.3 a tile's rows when one
+     * could feed, and the send, which says what is paid and how many are left.
      */
     | {
           readonly kind: 'nourish-picker'
           readonly pawns: readonly NourishPickerPawn[]
-          readonly summary: NourishSummary
-          readonly rule: string
           readonly covers?: { readonly line: string; readonly rows: readonly ActionRow[] }
           readonly send: PrimaryBlock & { readonly tally: NourishSend }
       }
@@ -770,14 +767,14 @@ function writLimitBlocks(
     ]
 }
 
-/** R-4.10.1 The picker: each pawn to feed, its feeds as rows that brighten it, and the summary. */
+/** R-4.10.1 The picker: each pawn to feed, its feeds as rows that brighten it, and the send. */
 function nourishBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['nourishPanel']>
 ): ActionBlock[] {
     const paint = session.paintOf(session.myPlayerId ?? '')
     return [
-        line('flow', 'Feed your pawns'),
+        line('flow', 'Feed'),
         {
             kind: 'nourish-picker',
             pawns: panel.pawns.map(({ n, character, name, place, unfed, choices }) => ({
@@ -790,12 +787,10 @@ function nourishBlocks(
                 options: choices.map(({ feed, caption, spent, good, ...choice }) => ({
                     ...draftRow(session, choice, good && { kind: 'good', good }),
                     feed,
-                    caption,
+                    ...(caption ? { caption } : {}),
                     spent
                 }))
             })),
-            summary: panel.summary,
-            rule: panel.rule,
             ...(panel.covers && panel.coverLine
                 ? {
                       covers: {
@@ -1047,8 +1042,7 @@ function sharedBlocks(session: PanelSession): readonly ActionBlock[] {
                   {
                       ...orderRow,
                       kind: 'order-row',
-                      seats: seatNames(session),
-                      ...(session.myPlayerId ? { me: session.myPlayerId } : {})
+                      seats: seatNames(session)
                   } satisfies ActionBlock
               ]
             : [])

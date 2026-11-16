@@ -12,7 +12,6 @@ import {
     ChooseFavours,
     ChooseStartingGoods,
     discardWritOffers,
-    isNourishPawns,
     FinaliseHand,
     Goods,
     handSelectionGroup,
@@ -1028,14 +1027,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** R-4.10, R-4.12.3 One read for the seat asked and the seats waiting (contract: Render ownership). */
     orderRow: OrderRow | undefined = $derived.by(() =>
-        this.isViewingHistory
-            ? undefined
-            : orderRowOf(
-                  this.gameState,
-                  (
-                      this.actions.findLast((action) => isNourishPawns(action))?.metadata?.fed ?? []
-                  ).map(({ playerId }) => playerId)
-              )
+        this.isViewingHistory ? undefined : orderRowOf(this.gameState)
     )
 
     /** R-4.8.2 As the flow holds it, for every seat; only the attacker's own draft previews more. */
