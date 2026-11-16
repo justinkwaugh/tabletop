@@ -17,7 +17,7 @@ describe('inferJump', () => {
         ).toEqual({
             from: { q: 0, r: 0 },
             to: { q: 2, r: 0 },
-            over: { q: 1, r: 0 },
+            over: [{ q: 1, r: 0 }],
             color: White
         })
     })
@@ -28,7 +28,54 @@ describe('inferJump', () => {
         ).toEqual({
             from: { q: 2, r: 0 },
             to: { q: 0, r: 0 },
-            over: { q: 1, r: 0 },
+            over: [{ q: 1, r: 0 }],
+            color: White
+        })
+    })
+
+    it('reads a chain of jumps along a line as one move, with every captured marble', () => {
+        expect(
+            inferJump(
+                line([White, Black, undefined, Grey, undefined]),
+                line([undefined, undefined, undefined, undefined, White])
+            )
+        ).toEqual({
+            from: { q: 0, r: 0 },
+            to: { q: 4, r: 0 },
+            over: [
+                { q: 1, r: 0 },
+                { q: 3, r: 0 }
+            ],
+            color: White
+        })
+    })
+
+    it('reads a chain that turns, stepped back', () => {
+        const rings = (marbles: [number, number, MarbleColor | undefined][]): Ring[] =>
+            marbles.map(([q, r, marble]) =>
+                marble === undefined ? { coords: { q, r } } : { coords: { q, r }, marble }
+            )
+        const start: [number, number, MarbleColor | undefined][] = [
+            [0, 0, White],
+            [1, 0, Black],
+            [2, 0, undefined],
+            [2, 1, Grey],
+            [2, 2, undefined]
+        ]
+        const end: [number, number, MarbleColor | undefined][] = [
+            [0, 0, undefined],
+            [1, 0, undefined],
+            [2, 0, undefined],
+            [2, 1, undefined],
+            [2, 2, White]
+        ]
+        expect(inferJump(rings(end), rings(start))).toEqual({
+            from: { q: 2, r: 2 },
+            to: { q: 0, r: 0 },
+            over: [
+                { q: 2, r: 1 },
+                { q: 1, r: 0 }
+            ],
             color: White
         })
     })
