@@ -182,5 +182,9 @@
     {
         "gameId": "dvonn",
         "packageId": "dvonn"
+    },
+    {
+        "gameId": "lyngk",
+        "packageId": "lyngk"
     }
 ]
