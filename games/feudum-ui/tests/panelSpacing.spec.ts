@@ -150,9 +150,11 @@ const PanelSteps: readonly [string, (page: Page, phone: boolean) => Promise<void
             await table.pressPick('space:space.desert.3')
             await table.press(table.popupRow('Inspect the harvest'))
             await table.press(table.primary())
-            await table.press(
-                table.panel().locator('[data-rows="goods"] [data-row] button').first()
-            )
+            // R-X.2 Take appears once the chart's count of goods is picked.
+            const goods = table.panel().locator('[data-rows="goods"] [data-row] button')
+            for (let at = 0; (await sends(page).count()) === 0 && at < 5; at += 1) {
+                await table.press(goods.nth(at))
+            }
         }
     ],
     [
@@ -204,6 +206,9 @@ for (const size of Object.keys(Sizes) as Size[]) {
             await openFixture(page, 'cards-tax-knight')
             const table = new ScenarioTable(page, isPhone(size))
             await table.press(table.card('Tax'))
+            // R-X.2 The send appears once Reinforcements is answered.
+            await expect(page.locator('[data-card-tray] .sends')).toHaveCount(0)
+            await table.press(table.rowIn('flow', 'Collect Reinforcements · +1 marker'))
             const send = page.locator('[data-card-tray] .sends')
             await expect(send).toBeVisible()
             expectGroupedAfter(await placementOf(send), size)

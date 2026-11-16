@@ -396,12 +396,16 @@ describe('R-4.4.4 S52 the writ limit, as drawn', () => {
         const view = session.actionPanel
         expect(linesOf(view, 'flow')[0]).toBe('Hold at most 3 writs: 4 now')
         expect(blockOf(view, 'writs')?.rows.length).toBe(4)
-        expect(primaryLabels(view)).toEqual(["Discard to the deck's bottom · face down"])
+        // R-X.2 The send appears with the pick.
+        expect(primaryLabels(view)).toEqual([])
         expect(rowLabels(view, 'at-will').join()).toContain('Writs')
         const first = blockOf(view, 'writs')?.rows[0]
         assertExists(first, 'A writ is offered')
         await first.press()
         flushSync()
+        expect(primaryLabels(session.actionPanel)).toEqual([
+            "Discard to the deck's bottom · face down"
+        ])
         await send(session, /^Discard/)
         expect(lastByUser(table)).toMatchObject({ type: ActionType.DiscardWrit })
     })
@@ -441,7 +445,7 @@ describe('R-4.10 S53 nourish, as drawn', () => {
         expect(picker).not.toHaveProperty('summary')
         expect(picker).not.toHaveProperty('rule')
         expect(primaryLabels(view)).toEqual(['Feed 2 · leave 1'])
-        expect(picker.send.tally).toEqual({ fed: 2, food: 1, wine: 1 })
+        expect(picker.send?.tally).toEqual({ fed: 2, food: 1, wine: 1 })
         expect(lastByUser(table)?.type).not.toBe(ActionType.Nourish)
         await send(session, /^Feed/)
         expect(lastByUser(table)).toMatchObject({ type: ActionType.Nourish })

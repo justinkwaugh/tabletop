@@ -490,7 +490,6 @@ describe('R-3.1 the hand draft: the eleven, the plan, the pouch and the send', (
                 kind: 'primary',
                 label: 'Long live the king',
                 note: "finalise · can't be undone",
-                enabled: false,
                 send: nothing,
                 stands: 'draft'
             }
@@ -635,7 +634,7 @@ describe('R-3.2 the picked card’s tray', () => {
                 }
             ]
         },
-        { kind: 'primary', label: 'Improve', enabled: true, send: nothing, stands: 'tray' },
+        { kind: 'primary', label: 'Improve', send: nothing, stands: 'tray' },
         { kind: 'rows', name: 'card', stands: 'tray', rows: [{ ...aRow('Forfeit'), quiet: true }] }
     )
     const at = (text: string) => tray.indexOf(text)
@@ -748,22 +747,15 @@ describe('R-4.8 the combat tally', () => {
 })
 
 describe('R-X.2 the primary', () => {
-    it("S8 reads what it sends, and can't be pressed until it may", () => {
+    it('S8 reads what it sends, and is drawn only to be pressed: never dimmed or disabled', () => {
         const on = markupOf({
             kind: 'primary',
             label: "Long live the king · can't be undone",
-            enabled: true,
             send: nothing
         })
         expect(textOf(on, 'data-primary')).toBe("Long live the king · can't be undone")
         expect(on).not.toMatch(/<button[^>]*\bdisabled\b/)
-        const off = markupOf({
-            kind: 'primary',
-            label: 'Long live the king',
-            enabled: false,
-            send: nothing
-        })
-        expect(off).toMatch(/<button[^>]*\bdisabled\b/)
+        expect(on).not.toContain('opacity-50')
     })
 })
 
@@ -1057,7 +1049,6 @@ describe('R-4.10 S53 the nourish picker', () => {
         send: {
             kind: 'primary',
             label: unfed ? 'Feed 1 · leave 1' : 'Feed 2 · 2 food',
-            enabled: true,
             send: nothing,
             tally: { fed: unfed ? 1 : 2, food: unfed ? 1 : 2, wine: 0 }
         }

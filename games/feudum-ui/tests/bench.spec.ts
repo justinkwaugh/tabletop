@@ -758,7 +758,8 @@ test('R-4.6 a push lists its staged moves in the tray, each with its take-back',
         '2 sulfur · Merchant → Alchemist'
     )
     await expect(staged.locator('[data-staged-tally]')).toHaveText('3 of 4 moved')
-    await expect(primary(page)).toHaveText('Move 3 goods')
+    // R-X.2 Short of the push's count, no send is drawn.
+    await expect(primary(page)).toHaveCount(0)
     await shot(page, 'push-staged')
     await staged
         .getByRole('button', { name: 'Take back 2 sulfur from the Merchant to the Alchemist' })
@@ -771,14 +772,20 @@ test('R-4.6 a push lists its staged moves in the tray, each with its take-back',
 test.describe('the staged moves on a phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
 
-    test('R-4.6 the push’s staged moves stand in the sheet above the send', async ({ page }) => {
+    test('R-4.6 the push’s staged moves stand in the sheet’s footer, with no send short of the count', async ({
+        page
+    }) => {
         await openFunction(page, 'merchantPush', 'merchant', /^\s*Push/)
         await pressAll(page, 'good:sulfur', 'good:iron')
-        const staged = bench(page).locator('[data-bench-footer] [data-staged]')
+        const footer = bench(page).locator('[data-bench-footer]')
+        const staged = footer.locator('[data-staged]')
         await expect(staged.locator('[data-staged-line]')).toHaveCount(2)
-        const lines = await staged.boundingBox()
-        const send = await bench(page).locator('[data-bench-send]').boundingBox()
-        expect((lines?.y ?? 0) + (lines?.height ?? 0)).toBeLessThanOrEqual((send?.y ?? 0) + 1)
+        const [lines, foot] = await Promise.all([staged.boundingBox(), footer.boundingBox()])
+        expect((lines?.y ?? 0) + (lines?.height ?? 0)).toBeLessThanOrEqual(
+            (foot?.y ?? 0) + (foot?.height ?? 0) + 1
+        )
+        // R-X.2 Two of four moved: the send is not drawn until the push is whole.
+        await expect(bench(page).locator('[data-bench-send]')).toHaveCount(0)
         await shot(page, 'push-staged-phone')
     })
 })

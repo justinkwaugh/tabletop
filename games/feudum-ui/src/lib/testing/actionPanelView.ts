@@ -47,7 +47,7 @@ export function primariesOf(
             return [block]
         }
         if (block.kind === 'nourish-picker') {
-            return [block.send]
+            return block.send ? [block.send] : []
         }
         return block.kind === 'trade-picker' && block.send ? [block.send] : []
     })

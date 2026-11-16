@@ -337,8 +337,8 @@ scenario(
     'cards-tax-knight',
     async (table) => {
         await table.press(table.card('Tax'))
-        await expect(table.primary()).toHaveText('Tax · +4s')
-        await expect(table.primary()).toBeDisabled()
+        // R-X.2 No send until Reinforcements is answered.
+        await expect(table.primary()).toHaveCount(0)
         await table.press(table.rowIn('flow', 'Collect Reinforcements · +1 marker'))
         await expect(table.primary()).toHaveText('Tax · +4s · Reinforcements +1 marker')
         await table.press(table.primary())

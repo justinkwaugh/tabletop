@@ -337,13 +337,12 @@
                     {@render blockView(draftPouch, 0, [draftPouch])}
                 </div>
             {/if}
-            {#if send.length > 0}
-                <div class="tray-row tray-send" data-tray-row="send">
-                    {#each send as inner, index (index)}
-                        {@render blockView(inner, index, send)}
-                    {/each}
-                </div>
-            {/if}
+            <!-- R-X.2 The send's row keeps its room before the send appears, so the tray keeps its size. -->
+            <div class="tray-row tray-send" data-tray-row="send">
+                {#each send as inner, index (index)}
+                    {@render blockView(inner, index, send)}
+                {/each}
+            </div>
         </div>
     </div>
 {/snippet}
@@ -511,6 +510,7 @@
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
+        min-height: 2.875rem;
     }
 
     .tray-send > :global(.sends),
@@ -679,6 +679,10 @@
 
         .tray-send > :global(.sends) {
             flex: none;
+        }
+
+        .tray-send {
+            min-height: 2.625rem;
         }
 
         .tray::before {

@@ -171,6 +171,17 @@ scenario(
         await table.press(table.popupRowStarting('Pull'))
         await expect(bench(table)).toBeVisible()
         const footer = bench(table).locator('[data-bench-footer]')
+        // R-X.2 The send appears once the pull's goods are picked.
+        await expect(table.page.locator('[data-primary]')).toHaveCount(0)
+        for (const id of ['good:iron', 'good:iron', 'good:wood']) {
+            await table.press(
+                table.page
+                    .locator(
+                        `[data-bench-place="${id}"] button, [data-bench-button="${id}"] button`
+                    )
+                    .first()
+            )
+        }
         await expect(table.page.locator('[data-primary]')).toHaveCount(1)
         if (table.phone) {
             const sheet = await rect(bench(table))
@@ -214,7 +225,7 @@ scenario(
         for (const line of table.phone
             ? [
                   table.panel().locator('[data-rows="pouch"]'),
-                  table.panel().locator('[data-primary]')
+                  table.panel().locator('[data-tray-row="send"]')
               ]
             : []) {
             expect((await rect(line)).y).toBeGreaterThanOrEqual(lowest - 1)
