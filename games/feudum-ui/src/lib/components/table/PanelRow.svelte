@@ -24,8 +24,7 @@
      * it and the label stays the row's accessible name. `face` takes the label's place on a card or
      * writ, whose corner holds the magnifier. `piece` is a piece that is itself the press, a guild's
      * die: no button chrome, the label its accessible name and tooltip, its preview beneath it.
-     * A special's printed cost is drawn after its name (R-3.4). An `explained` row, a card's mode,
-     * shows its refusal beneath its name before any press, and in its tooltip and accessible name; a `quiet` row, Forfeit, is drawn
+     * A special's printed cost is drawn after its name (R-3.4). A `quiet` row, Forfeit, is drawn
      * without fill, last in its tray (R-3.2).
      */
     let {
@@ -36,8 +35,7 @@
         face,
         corner,
         piece,
-        quiet = false,
-        explained = false
+        quiet = false
     }: {
         choice: PanelChoice
         onPress: (choice: PanelChoice) => void
@@ -47,7 +45,6 @@
         corner?: Snippet
         piece?: Snippet
         quiet?: boolean
-        explained?: boolean
     } = $props()
 
     const owner = {}
@@ -56,7 +53,6 @@
     let refused = $derived(choice.refusal !== undefined)
     /** Refused, or spent: other picks hold its room. Either is dimmed; only a refusal has a line. */
     let dimmed = $derived(refused || choice.spent === true)
-    let reasonBeneath = $derived(explained && refused)
     let previewing = $derived(pointer.isRowPointedAt(owner))
     let lights: (() => readonly BoardTarget[]) | undefined = $derived(choice.lights)
 
@@ -139,12 +135,7 @@
                   ? 'bg-transparent border-feudum-frame'
                   : 'bg-feudum-control border-feudum-frame'}
                 {dimmed ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
-            aria-label={reasonBeneath
-                ? `${choice.label}: ${choice.refusal}`
-                : choice.shown === undefined
-                  ? undefined
-                  : choice.label}
-            title={reasonBeneath ? choice.refusal : undefined}
+            aria-label={choice.shown === undefined ? undefined : choice.label}
             aria-pressed={choice.picked}
             aria-disabled={dimmed}
             data-quiet={quiet ? '' : undefined}
@@ -174,11 +165,6 @@
                     {/if}
                 </span>
             {/if}
-            {#if reasonBeneath}
-                <span class="w-full text-left text-xs text-feudum-text-muted" data-reason
-                    >{choice.refusal}</span
-                >
-            {/if}
         </button>
     {/if}
     {#if choice.lights}
@@ -198,7 +184,7 @@
             ></button
         >
     {/if}
-    {#if refusalShown && choice.refusal && !reasonBeneath}
+    {#if refusalShown && choice.refusal}
         <span class="self-center text-xs text-feudum-danger" data-refusal>{choice.refusal}</span>
     {/if}
 </span>

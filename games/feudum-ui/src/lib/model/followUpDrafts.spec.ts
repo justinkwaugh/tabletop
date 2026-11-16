@@ -987,7 +987,8 @@ describe('R-3.14.2 AnswerStarve', () => {
             const [first, second] = answerer.answerStarvePanel?.covers ?? []
             await press(answerer, first)
             expect(answerer.answerStarvePanel?.immunity?.enabled).toBe(true)
-            expect(answerer.answerStarvePanel?.covers?.[1].refusal).toBeDefined()
+            expect(answerer.answerStarvePanel?.covers?.[1]).toMatchObject({ spent: true })
+            expect(answerer.answerStarvePanel?.covers?.[1].refusal).toBeUndefined()
             await press(answerer, answerer.answerStarvePanel?.covers?.[0])
             expect(answerer.answerStarvePanel?.immunity?.enabled).toBe(false)
             await press(answerer, second)

@@ -587,12 +587,10 @@
 
         /*
          * Contract, Phone layout: the tray fits the cap without scrolling. Its name stands at the
-         * line's head in place of a heading, the line in its short words; an unpayable mode says why
-         * in its name and tooltip, not beneath it. No hover, so no preview path: a press on a card
-         * or a mode is undoable and itself lights the places.
+         * line's head in place of a heading, the line in its short words. No hover, so no preview
+         * path: a press on a card or a mode is undoable and itself lights the places.
          */
-        .tray :global([data-preview]),
-        .tray :global([data-reason]) {
+        .tray :global([data-preview]) {
             display: none;
         }
 

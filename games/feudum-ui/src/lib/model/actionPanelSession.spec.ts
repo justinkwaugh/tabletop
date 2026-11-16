@@ -770,7 +770,6 @@ describe('Playing a card', () => {
             shown: 'Tend Landscape',
             cost: { kind: 'good', good: 'wood', count: 1 }
         })
-        expect(modes.every(({ explained }) => explained)).toBe(true)
     })
 
     it('R-4.3-H3 with no card picked, the at-will chips stand at the end of the hand line', async () => {
