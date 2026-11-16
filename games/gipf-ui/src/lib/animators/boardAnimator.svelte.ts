@@ -24,7 +24,7 @@ import {
     type Lift,
     type PieceParts
 } from './drop.js'
-import { setPose, tweenPose } from './svgPose.js'
+import { fromToPose, setPose, tweenPose } from './svgPose.js'
 
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
@@ -244,7 +244,7 @@ export class BoardAnimator implements MoveInterrupter {
                     this.lift(piece.coords, timeline, LIFT_OFF, touched)
                 }
             }
-            await this.fadeInReturning(to, timeline, touched)
+            await this.dropReturning(to, timeline, touched)
             return
         }
         const { entry, shifted, piece } = push
@@ -278,8 +278,9 @@ export class BoardAnimator implements MoveInterrupter {
         this.lift(line[0], timeline, UNPUSH_LIFT, touched, UNPUSH_LIFT_AT)
     }
 
-    // Pieces an Undo or a step back puts back, such as a taken row, fade in where they stand.
-    private async fadeInReturning(
+    // Pieces an Undo or a step back puts back, such as a taken row, drop back in where they
+    // stood: their lift-off played backward, within the step's 0.18s.
+    private async dropReturning(
         to: HydratedGipfGameState,
         timeline: Timeline,
         touched: SVGGElement[]
@@ -291,16 +292,30 @@ export class BoardAnimator implements MoveInterrupter {
         if (returning.length === 0) return
         this.pieces = [...drawn, ...returning]
         await tick()
+        const duration = FALLBACK_DURATION
         for (const piece of returning) {
-            const node = this.pieceNodes.get(coordinatesToNumber(piece.coords))
-            if (node === undefined) continue
-            touched.push(node)
-            timeline.fromTo(
-                node,
-                { opacity: 0 },
-                { opacity: 1, duration: FALLBACK_DURATION, ease: 'power1.out' },
+            const key = coordinatesToNumber(piece.coords)
+            const body = this.bodyNodes.get(key)
+            const shadow = this.shadowNodes.get(key)
+            if (body === undefined || shadow === undefined) continue
+            touched.push(body, shadow)
+            const vars = { duration, ease: 'power1.in', immediateRender: true }
+            timeline.add(
+                fromToPose(
+                    body,
+                    { scale: LIFT_OFF.scale, y: LIFT_OFF.rise },
+                    { scale: 1, y: 0, ...vars }
+                ),
                 0
             )
+            timeline.fromTo(
+                body,
+                { opacity: 0 },
+                { opacity: 1, duration, ease: 'power2.out', immediateRender: true },
+                0
+            )
+            timeline.fromTo(shadow, { opacity: 0 }, { opacity: 1, ...vars }, 0)
+            timeline.add(fromToPose(shadow, { scale: LIFT_OFF.shadow }, { scale: 1, ...vars }), 0)
         }
     }
 
