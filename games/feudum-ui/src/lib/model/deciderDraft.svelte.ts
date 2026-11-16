@@ -56,7 +56,10 @@ export function playUnless(
     return refused ? undefined : { ...preview, build }
 }
 
-/** R-4.4-H1 The tile rows: each picked tile, drawn, brings the next good owed. */
+/**
+ * R-4.4-H1 The tile rows: each picked tile, drawn, brings the next good owed. Once every short good
+ * has its tile, the others wait, dimmed, with no line: the send appearing says it.
+ */
 export function coverChoices(
     state: Parameters<typeof tileArt>[0],
     tiles: readonly TileId[],
@@ -66,17 +69,14 @@ export function coverChoices(
 ): readonly DraftChoice[] {
     return tiles.map((tileId) => {
         const after = coverAfterPress(picked, tileId, needs)
+        const label = `${tileName(tileId)} tile: ${needs.join(', ')}`
+        const isPicked = picked.includes(tileId)
         return {
-            ...draftChoice(
-                `${tileName(tileId)} tile: ${needs.join(', ')}`,
-                picked.includes(tileId),
-                () => {
-                    if (after) {
-                        onPress(after)
-                    }
-                },
-                after ? undefined : 'Every short good has its tile.'
-            ),
+            ...(after
+                ? draftChoice(label, isPicked, () => {
+                      onPress(after)
+                  })
+                : heldChoice(label, isPicked)),
             art: tileArt(state, tileId),
             shown: `for ${needs.join(', ')}`
         }

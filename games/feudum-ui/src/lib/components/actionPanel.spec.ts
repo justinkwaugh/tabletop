@@ -613,15 +613,11 @@ describe('R-3.2 the picked card’s tray', () => {
             name: 'modes',
             stands: 'tray',
             rows: [
-                { ...aRow('Improve', { picked: true }), explained: true },
-                {
-                    ...aRow('Tend Landscape · 1 wood', {
-                        shown: 'Tend Landscape',
-                        cost: { kind: 'good', good: 'wood', count: 1 },
-                        refusal: 'You hold no wood.'
-                    }),
-                    explained: true
-                }
+                aRow('Improve', { picked: true }),
+                aRow('Tend Landscape · 1 wood', {
+                    shown: 'Tend Landscape',
+                    cost: { kind: 'good', good: 'wood', count: 1 }
+                })
             ]
         },
         { kind: 'primary', label: 'Improve', send: nothing, stands: 'tray' },
@@ -645,16 +641,14 @@ describe('R-3.2 the picked card’s tray', () => {
         expect(tray).toMatch(/data-row="Forfeit"[^]*?data-quiet/)
     })
 
-    it('R-3.4 a special shows its cost as goods art and, refused, its reason beneath', () => {
+    it('R-3.4 a special shows its cost as goods art, its full words its accessible name', () => {
         const special = tray.slice(at('data-row="Tend Landscape · 1 wood"'))
-        expect(special).toContain('aria-label="Tend Landscape · 1 wood: You hold no wood."')
-        expect(special).toContain('title="You hold no wood."')
+        expect(special).toContain('aria-label="Tend Landscape · 1 wood"')
         expect(special).toContain('aria-label="wood"')
-        const cost = special.slice(special.indexOf('data-cost'), special.indexOf('data-reason'))
+        const cost = special.slice(special.indexOf('data-cost'), special.indexOf('</button>'))
         // The drawn wood (its title), then its count.
         expect(cost.replace(/<!--.*?-->|<[^>]+>/gs, '')).toMatch(/wood\s*1\b/)
-        expect(special).toContain('data-reason')
-        expect(special).toContain('You hold no wood.')
+        expect(special).not.toContain('data-reason')
     })
 
     it('the at-will chips stand at the end of the hand line, after every card', () => {

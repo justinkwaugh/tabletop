@@ -42,8 +42,6 @@ export interface ActionRow {
     readonly art?: RowArt
     /** R-3.2 Forfeit: a choice that stands last, drawn quieter than the modes before it. */
     readonly quiet?: true
-    /** A card's mode: refused, it shows its reason beneath its name before any press. */
-    readonly explained?: true
 }
 
 /** R-4.10.1 One feed of one pawn, as the nourish picker draws it: its words, and beneath them its caption. */
@@ -902,10 +900,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
         : []
     const asTurnRows = (choices: readonly PanelChoice[] | undefined) =>
         (choices ?? []).map((choice) => turnRow(session, choice))
-    const modeRows = asTurnRows(turn.modes.length > 1 ? turn.modes : []).map((row): ActionRow => ({
-        ...row,
-        explained: true
-    }))
+    const modeRows = asTurnRows(turn.modes.length > 1 ? turn.modes : [])
     const { tally, tallyNote } = turn.flow ?? {}
     const tallyBlocks: ActionBlock[] = tally
         ? [{ kind: 'tally', lines: tally, ...(tallyNote ? { note: tallyNote } : {}) }]
