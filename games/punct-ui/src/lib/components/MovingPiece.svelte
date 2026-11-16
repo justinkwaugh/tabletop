@@ -43,7 +43,7 @@
 </script>
 
 {#snippet body()}
-    <g data-part="body">
+    <g data-part="body" class="piece-look">
         <g data-part="live">
             {#each slices as index (index)}
                 <path data-part="slice" stroke="none"></path>
@@ -67,6 +67,7 @@
             <path data-part="top-specks-grey" fill={fill.grey}></path>
         </g>
     </g>
+    <path data-part="hit" class="piece-hit"></path>
 {/snippet}
 
 <g {@attach pose.drawn(view, tone, prefix)}>
@@ -104,6 +105,14 @@
 
     .piece-place.passing {
         pointer-events: none;
+    }
+
+    .piece-look {
+        pointer-events: none;
+    }
+
+    .piece-hit {
+        fill: transparent;
     }
 
     .shadow {

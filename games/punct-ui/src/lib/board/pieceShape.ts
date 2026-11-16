@@ -229,6 +229,13 @@ export function drawPiece(
     return drawing
 }
 
+// The area a piece covers on screen: its side at every height and its top. A piece drawn from an
+// image takes taps here alone, as the image's empty corners would cover the spaces round it.
+export function silhouettePath(kind: PieceKind, angle: number, view: BoardView = VIEW): string {
+    const drawing = drawPiece(kind, angle, view)
+    return [...drawing.slices.map((slice) => slice.points), drawing.top].map(pathOf).join(' ')
+}
+
 // Where a piece's dots lie on its top on screen, PÜNCT first: all a piece drawn from images asks
 // of its drawing.
 export function dotsOnScreen(

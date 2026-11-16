@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { assertExists } from '@tabletop/common'
 import {
     actionCount,
     button,
@@ -54,4 +55,25 @@ test('a piece moved, taken back by Undo, then let go by a tap off the choices', 
     await page.getByRole('group', { name: 'PÜNCT board' }).click({ position: { x: 12, y: 12 } })
     expect(await staged(page)).toBeUndefined()
     expect(await actionCount(page)).toBe(1)
+})
+
+test('a tap on a space reaches it past the empty corners of a piece drawn near it', async ({
+    page
+}) => {
+    await openScenario(page, 'Opening')
+    const space = await button(page, 'space I3').boundingBox()
+    assertExists(space, 'I3 is a space to choose in the Opening')
+    await page.mouse.click(space.x + space.width / 2, space.y + space.height / 2)
+    expect(await staged(page)).toMatchObject({ punct: { q: 0, r: 5 } })
+})
+
+test('a tap beside the staged piece moves it there rather than turning it', async ({ page }) => {
+    await openScenario(page, 'Opening', { clock: true })
+    await press(page, 'space K10')
+    await page.clock.runFor(1000)
+    const unturned = (await staged(page))?.rotation
+    const space = await button(page, 'space L11').boundingBox()
+    assertExists(space, 'L11 is a space to choose in the Opening')
+    await page.mouse.click(space.x + space.width / 2, space.y + space.height / 2)
+    expect(await staged(page)).toMatchObject({ punct: { q: 3, r: -5 }, rotation: unturned })
 })

@@ -20,7 +20,7 @@
     } from '$lib/board/drawing.js'
     import { destinationMarks, winningDots } from '$lib/board/marks.js'
     import { holeBox, holeUrl } from '$lib/board/looks.js'
-    import { drawPiece, pathOf, type Tone } from '$lib/board/pieceShape.js'
+    import { drawPiece, pathOf, silhouettePath, type Tone } from '$lib/board/pieceShape.js'
     import PieceDefs from './PieceDefs.svelte'
     import PieceSlab from './PieceSlab.svelte'
     import MovingPiece from './MovingPiece.svelte'
@@ -263,14 +263,17 @@
                         {@attach animator.pieceShadow(piece.id)}
                     ></path>
                     <g {@attach animator.pieceNode(piece.id)}>
-                        <PieceSlab
-                            kind={piece.kind}
-                            {angle}
-                            tone={toneOf(piece.playerId)}
-                            seed={piece.id}
-                            prefix="punct-board"
-                            {view}
-                        />
+                        <g class="piece-look">
+                            <PieceSlab
+                                kind={piece.kind}
+                                {angle}
+                                tone={toneOf(piece.playerId)}
+                                seed={piece.id}
+                                prefix="punct-board"
+                                {view}
+                            />
+                        </g>
+                        <path d={silhouettePath(piece.kind, angle, view)} class="piece-hit"></path>
                     </g>
                     {#if role}
                         {@const ring = pathOf(drawPiece(piece.kind, angle, view).topOutline)}
@@ -432,6 +435,14 @@
 
     .piece-place:not(.role-none) {
         cursor: pointer;
+    }
+
+    .piece-look {
+        pointer-events: none;
+    }
+
+    .piece-hit {
+        fill: transparent;
     }
 
     .shadow {

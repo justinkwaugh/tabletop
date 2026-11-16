@@ -1,7 +1,13 @@
 import type { Attachment } from 'svelte/attachments'
 import type { PieceKind } from '@tabletop/punct'
 import type { BoardView } from '$lib/board/geometry.js'
-import { dotsOnScreen, drawPiece, pathOf, type Tone } from '$lib/board/pieceShape.js'
+import {
+    dotsOnScreen,
+    drawPiece,
+    pathOf,
+    silhouettePath,
+    type Tone
+} from '$lib/board/pieceShape.js'
 import { bodyImage, dishBox } from '$lib/board/looks.js'
 import { speckPaths } from '$lib/board/specks.js'
 import { shadowOpacity, shadowPath } from '$lib/board/drawing.js'
@@ -111,6 +117,7 @@ export class PiecePose implements PieceAt {
                 piece,
                 body: new LiveBody(
                     partOf(node, 'body', SVGGElement),
+                    partOf(node, 'hit', SVGPathElement),
                     this.kind,
                     tone,
                     this.seed,
@@ -189,6 +196,7 @@ class LiveBody {
 
     constructor(
         root: SVGGElement,
+        private readonly hit: SVGPathElement,
         private readonly kind: PieceKind,
         private readonly tone: Tone,
         private readonly seed: number,
@@ -224,6 +232,7 @@ class LiveBody {
         } else {
             this.image.style.display = 'none'
         }
+        this.hit.setAttribute('d', silhouettePath(this.kind, angle, view))
         const live = image === undefined || image.href !== this.loadedHref
         this.live.style.display = live ? '' : 'none'
         if (live) this.drawLive(angle, view)
