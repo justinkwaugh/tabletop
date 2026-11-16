@@ -69,7 +69,7 @@ async function overTheLimit(table: ScenarioTable) {
     await table.press(table.primary())
     await table.press(table.row('Mandate 6'))
     await table.press(table.primaryNamed('Keep 1 · 1 under the deck'))
-    await expect(table.flowLine().first()).toHaveText('Hold at most 3 writs: 4 now')
+    await expect(table.flowLine().first()).toHaveText('Discard 1')
     await expect(table.panel().locator('[data-writs] > div')).toHaveCount(4)
 }
 

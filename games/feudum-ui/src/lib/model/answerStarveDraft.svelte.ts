@@ -11,6 +11,7 @@ import { spaceLabel, type FlowPlay } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import { primaryLabel } from './confirmingSend.js'
 import {
+    costPrimary,
     coverChoices,
     DeciderDraft,
     oneGoodCost,
@@ -114,13 +115,12 @@ export class AnswerStarveDraft extends DeciderDraft<AnswerStarveValues> {
                       })
                   }
                 : {}),
-            immunity: {
-                label: primaryLabel(
-                    `Royal Immunity · ${oneGoodCost('food', needs.length > 0, cover)}`,
-                    offer
-                ),
-                enabled: this.playOf(true) !== undefined
-            },
+            immunity: costPrimary(
+                (cost) => `Royal Immunity · ${cost}`,
+                oneGoodCost('food', needs.length > 0, cover),
+                this.playOf(true) !== undefined,
+                offer
+            ),
             letGo
         }
     })

@@ -32,11 +32,6 @@ function counted(goods: readonly Good[]): string {
         .join(', ')
 }
 
-/** Contract, Supply: a vessel reward says how many the general supply has left. */
-function leftOf(count: number): string {
-    return count > 0 ? `${count} left` : 'none left'
-}
-
 function rewardText(reward: PlayMandateOffer['reward'], supply?: SupplyCounts): string {
     switch (reward.kind) {
         case 'shillings':
@@ -45,7 +40,9 @@ function rewardText(reward: PlayMandateOffer['reward'], supply?: SupplyCounts): 
             return `+${reward.amount} attack`
         case 'vessel': {
             const name = reward.vessel.replaceAll('-', ' ')
-            return supply ? `${name} · ${leftOf(supply.vessels[reward.vessel])}` : name
+            // Contract, Supply: a vessel reward says how many the general supply has left; with
+            // none left the logic refuses it, and it is not drawn.
+            return supply ? `${name} · ${supply.vessels[reward.vessel]} left` : name
         }
         case 'goods':
         case 'influence':

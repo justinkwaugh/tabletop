@@ -64,7 +64,8 @@ export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
         const { state, playerId } = context
         const picked = this.value('writ')
         return {
-            line: `Hold at most ${WritLimit} writs: ${state.getPlayerState(playerId).writCount} now`,
+            // R-4.4.4 How many writs over the limit.
+            line: `Discard ${state.getPlayerState(playerId).writCount - WritLimit}`,
             writs: discardWritOffers(state, playerId).map((writId) => ({
                 writId,
                 ...draftChoice(writName(writId), writId === picked, () => {
@@ -76,7 +77,8 @@ export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
                 })
             })),
             primary: {
-                label: "Discard to the deck's bottom · face down",
+                label: 'Discard',
+                named: "Discard to the deck's bottom · face down",
                 enabled: this.play !== undefined
             }
         }

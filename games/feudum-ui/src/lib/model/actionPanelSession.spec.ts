@@ -1110,7 +1110,7 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
         expect(primaryLabels(session.actionPanel)[0]).toMatch(/^Favours at .+ · can't be undone$/)
     })
 
-    it('S21 R-3.11.3 the drawn goods, "Take N as favours", the picks; "No favours" sends null', async () => {
+    it('S21 R-3.11.3 the drawn goods, "Take N", the picks; "No favours" sends null', async () => {
         const turn = await ruledFarm((state, seat) => {
             state.getPlayerState(seat).pawns[0].character = 'farmer'
         })
@@ -1119,7 +1119,7 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
         await sendNamed(session, /^Inspect the harvest at .+ · can't be undone$/)
         const offer = chooseFavoursOffer(session.gameState, seat)
         assertExists(offer, 'The harvester is asked')
-        expect(linesOf(session.actionPanel)[0]).toBe(`Take ${offer.favours} as favours`)
+        expect(linesOf(session.actionPanel)[0]).toBe(`Take ${offer.favours}`)
         expect(rowsOf(session.actionPanel, 'goods').every(({ art }) => art?.kind === 'good')).toBe(
             true
         )

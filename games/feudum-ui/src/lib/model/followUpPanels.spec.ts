@@ -347,7 +347,7 @@ describe('R-4.4 the at-will row, as drawn', () => {
         expect(lit(vessel)).toContain(pawnTarget(seat, pawn.n))
     })
 
-    it('S39 the Immunity chip lights the marker; opened, it says what the press does', async () => {
+    it('S39 the Immunity chip lights the marker; opened, it reads one step', async () => {
         const table = hold(
             await seatedAtCards(['tax', 'move'], (state, { seat, other }) => {
                 const space = emptySpaces(state, 'outpost')[0]
@@ -361,9 +361,7 @@ describe('R-4.4 the at-will row, as drawn', () => {
         const chip = rowNamed(session.actionPanel, 'Immunity 1')
         expect(lit(chip).join()).toContain(seat)
         await pressRow(chip)
-        expect(linesOf(session.actionPanel, 'flow')).toContain(
-            'Take back the seal: the marker can be starved again'
-        )
+        expect(linesOf(session.actionPanel, 'flow')).toContain('Pick a marker.')
     })
 })
 
@@ -391,11 +389,11 @@ describe('R-4.4.4 S52 the writ limit, as drawn', () => {
         return table
     }
 
-    it('S52 the line, the faces, the primary "face down", and the at-will row stays open', async () => {
+    it('S52 the line, the faces, the primary "Discard" named "face down", and the at-will row stays open', async () => {
         const table = await overLimit()
         const { session } = table
         const view = session.actionPanel
-        expect(linesOf(view, 'flow')[0]).toBe('Hold at most 3 writs: 4 now')
+        expect(linesOf(view, 'flow')[0]).toBe('Discard 1')
         expect(blockOf(view, 'writs')?.rows.length).toBe(4)
         // R-X.2 The send appears with the pick.
         expect(primaryLabels(view)).toEqual([])
@@ -404,7 +402,8 @@ describe('R-4.4.4 S52 the writ limit, as drawn', () => {
         assertExists(first, 'A writ is offered')
         await first.press()
         flushSync()
-        expect(primaryLabels(session.actionPanel)).toEqual([
+        expect(primaryLabels(session.actionPanel)).toEqual(['Discard'])
+        expect(primaryNames(session.actionPanel)).toEqual([
             "Discard to the deck's bottom · face down"
         ])
         await send(session, /^Discard/)

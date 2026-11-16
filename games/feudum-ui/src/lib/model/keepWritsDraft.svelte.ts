@@ -9,11 +9,12 @@ import {
 } from '@tabletop/feudum'
 import type { FlowPlay } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
-import { primaryLabel } from './confirmingSend.js'
 import {
+    costPrimary,
     coverChoices,
     DeciderDraft,
     draftChoice,
+    heldChoice,
     oneGoodCost,
     playUnless,
     type DraftChoice
@@ -125,21 +126,17 @@ export class KeepWritsDraft extends DeciderDraft<KeepWritsValues> {
             line: `Keep ${offer.keep} of ${offer.drawn.length}`,
             writs: offer.drawn.map((writId) => {
                 const picked = keep.includes(writId)
+                // With the keep full, the others stand dimmed until a pick is pressed off.
                 return {
                     writId,
-                    ...draftChoice(
-                        writName(writId),
-                        picked,
-                        () => {
-                            this.push(
-                                'keep',
-                                picked ? keep.filter((id) => id !== writId) : [...keep, writId]
-                            )
-                        },
-                        !picked && keep.length >= offer.keep
-                            ? `You keep ${offer.keep}: press your pick to change it.`
-                            : undefined
-                    )
+                    ...(!picked && keep.length >= offer.keep
+                        ? heldChoice(writName(writId), false)
+                        : draftChoice(writName(writId), picked, () => {
+                              this.push(
+                                  'keep',
+                                  picked ? keep.filter((id) => id !== writId) : [...keep, writId]
+                              )
+                          }))
                 }
             }),
             ...(needs.length > 0 && regionTiles.length !== needs.length
@@ -155,13 +152,13 @@ export class KeepWritsDraft extends DeciderDraft<KeepWritsValues> {
             },
             ...(shovels
                 ? {
-                      shovels: {
-                          label: primaryLabel(
-                              `Keep, then Shovels & Swords · ${oneGoodCost('iron', needs.length > 0, cover)} · draw ${shovels.draw} more`,
-                              shovels
-                          ),
-                          enabled: this.shovelsPlay !== undefined
-                      }
+                      shovels: costPrimary(
+                          (cost) =>
+                              `Keep, then Shovels & Swords · ${cost} · draw ${shovels.draw} more`,
+                          oneGoodCost('iron', needs.length > 0, cover),
+                          this.shovelsPlay !== undefined,
+                          shovels
+                      )
                   }
                 : {})
         }

@@ -146,9 +146,7 @@ test('S50 the at-will row opens its lists; a card pick hides it; S51 no seal dur
 
 test('S52 the writ limit: faces, the primary and the at-will row', async ({ page }) => {
     await openTable(page, 'openWritLimitTable()')
-    await expect(panel(page).locator('[data-flow-line]').first()).toHaveText(
-        'Hold at most 3 writs: 4 now'
-    )
+    await expect(panel(page).locator('[data-flow-line]').first()).toHaveText('Discard 1')
     await expect(panel(page).locator('[data-writs] > div')).toHaveCount(4)
     await expect(panel(page).locator('[data-rows="at-will"]')).toBeVisible()
     await shot(page, 'S52-writ-limit')

@@ -185,7 +185,8 @@ describe('R-4.4.1 The keep', () => {
         assertExists(tileId)
         await press(session, session.keepWritsPanel?.writs[0])
         expect(session.keepWritsPanel?.shovels).toEqual({
-            label: `Keep, then Shovels & Swords · ${tileName(tileId)} tile for iron · draw 2 more · can't be undone`,
+            label: `Keep, then Shovels & Swords · ${tileName(tileId)} for iron · draw 2 more · can't be undone`,
+            named: `Keep, then Shovels & Swords · ${tileName(tileId)} tile for iron · draw 2 more · can't be undone`,
             enabled: true
         })
         expect(session.keepWrits.entry('cover')?.source).toBe('auto')
@@ -301,7 +302,9 @@ describe('R-4.4.1 The keep', () => {
             const { session } = await explored()
             const first = session.keepWritsPanel?.writs[0]
             await press(session, first)
-            expect(session.keepWritsPanel?.writs[1].refusal).toBeDefined()
+            // The keep full, the other stands dimmed with no line until the pick is pressed off.
+            expect(session.keepWritsPanel?.writs[1]).toMatchObject({ spent: true })
+            expect(session.keepWritsPanel?.writs[1].refusal).toBeUndefined()
             await press(session, session.keepWritsPanel?.writs[0])
             await press(session, session.keepWritsPanel?.writs[1])
             expect(session.keepWritsPanel?.writs[1].picked).toBe(true)
@@ -354,13 +357,13 @@ async function pickAll(session: FeudumGameSession) {
 }
 
 describe('R-3.11.3 The favours', () => {
-    it('S21 the drawn goods, "Take N as favours", the picks; Undo takes back a pick, not the Harvest', async () => {
+    it('S21 the drawn goods, "Take N", the picks; Undo takes back a pick, not the Harvest', async () => {
         const table = await inspecting()
         const { session, seat } = table
         const offer = chooseFavoursOffer(session.gameState, seat)
         assertExists(offer, 'The harvester is asked')
         const panel = session.favoursPanel
-        expect(panel?.line).toBe(`Take ${offer.favours} as favours`)
+        expect(panel?.line).toBe(`Take ${offer.favours}`)
         expect(panel?.noFavours).toBe('No favours')
         expect(panel?.primary.enabled).toBe(session.favours.value('goods') !== undefined)
         await pickAll(session)
@@ -418,9 +421,10 @@ describe('R-3.11.3 The favours', () => {
         await press(session, sulfur())
         await press(session, sulfur())
         expect(session.favoursPanel?.primary.enabled).toBe(true)
-        expect(
-            session.favoursPanel?.goods.find(({ good }) => good === 'food')?.refusal
-        ).toBeDefined()
+        // The favours all picked, the food stands dimmed with no line.
+        expect(session.favoursPanel?.goods.find(({ good }) => good === 'food')).toMatchObject({
+            spent: true
+        })
         const barrel = session.favoursPanel?.barrel
         expect(barrel?.map(({ label }) => label)).toContain('Keep it all')
         expect(barrel?.map(({ label }) => label)).toContain('1 into the barrel')
@@ -927,9 +931,10 @@ describe('R-3.14.2 AnswerStarve', () => {
         })
         assertExists(tileId)
         expect(answerer.answerStarve.entry('cover')?.source).toBe('auto')
-        expect(answerer.answerStarvePanel?.immunity?.label).toBe(
-            `Royal Immunity · ${tileName(tileId)} tile for food · can't be undone`
-        )
+        expect(answerer.answerStarvePanel?.immunity).toMatchObject({
+            label: `Royal Immunity · ${tileName(tileId)} for food · can't be undone`,
+            named: `Royal Immunity · ${tileName(tileId)} tile for food · can't be undone`
+        })
     })
 
     it('R-3.14.2 asked with no Defend: the seat cannot answer, and can only let it go', async () => {
@@ -1020,14 +1025,15 @@ async function overLimit() {
 }
 
 describe('R-4.4.4 The writ limit', () => {
-    it('S52 "Hold at most 3 writs": a press picks, the primary sends, and the turn passes', async () => {
+    it('S52 "Discard 1": a press picks, the primary sends, and the turn passes', async () => {
         const table = await overLimit()
         const { session, seat } = table
         const panel = session.writLimitPanel
-        expect(panel?.line).toBe('Hold at most 3 writs: 4 now')
+        expect(panel?.line).toBe('Discard 1')
         expect(panel?.writs).toHaveLength(4)
         expect(panel?.primary).toEqual({
-            label: "Discard to the deck's bottom · face down",
+            label: 'Discard',
+            named: "Discard to the deck's bottom · face down",
             enabled: false
         })
         await press(session, panel?.writs[1])

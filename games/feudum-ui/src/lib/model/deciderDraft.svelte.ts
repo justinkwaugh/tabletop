@@ -3,10 +3,11 @@ import type { Good, TileId } from '@tabletop/feudum'
 import type { BoardTarget, ChipNote } from './boardOffer.js'
 import type { FlowPlay, PieceArt } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
-import type { SendPreview } from './confirmingSend.js'
+import { primaryLabel, type SendPreview } from './confirmingSend.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
 import { coverAfterPress } from './tileCover.js'
 import { tileArt, tileName, type TileArt } from './tileName.js'
+import type { TurnPrimary } from './turnDraft.svelte.js'
 
 /**
  * The piece a follow-up's row offers: a held tile, a writ's back, a seal or a vessel. Each stands in
@@ -24,6 +25,8 @@ export interface DraftChoice {
     readonly note?: ChipNote
     readonly picked: boolean
     readonly refusal?: string
+    /** Dimmed with no line: other picks hold its room, and a press does nothing until one goes. */
+    readonly spent?: boolean
     readonly press?: () => void
     /** What the row brightens on the board while pointed at (contract: Hover). */
     readonly lights?: () => readonly BoardTarget[]
@@ -37,6 +40,11 @@ export function draftChoice(
     note?: ChipNote
 ): DraftChoice {
     return { label, picked, ...(note ? { note } : {}), ...(refusal ? { refusal } : { press }) }
+}
+
+/** R-X.2 A choice whose room other picks hold: it stays, dimmed, until one of them goes. */
+export function heldChoice(label: string, picked: boolean): DraftChoice {
+    return { label, picked, spent: true }
 }
 
 /** Defined once the logic's refusal has passed. */
@@ -75,12 +83,37 @@ export function coverChoices(
     })
 }
 
-/** R-4.4-H1 What a button names as its one good's cost: the good, or the tile that brings it. */
-export function oneGoodCost(good: Good, short: boolean, cover: readonly TileId[]): string {
+/** A one-good cost as a button shows it, and in full words, its accessible name. */
+export interface GoodCost {
+    readonly shown: string
+    readonly named: string
+}
+
+/**
+ * R-4.4-H1 What a button names as its one good's cost: the good, or the tile that brings it
+ * ("Desert I for iron", named "Desert I tile for iron").
+ */
+export function oneGoodCost(good: Good, short: boolean, cover: readonly TileId[]): GoodCost {
     if (!short) {
-        return `1 ${good}`
+        return { shown: `1 ${good}`, named: `1 ${good}` }
     }
-    return cover.length > 0 ? `${tileName(cover[0])} tile for ${good}` : `a tile for ${good}`
+    if (cover.length === 0) {
+        return { shown: `a tile for ${good}`, named: `a tile for ${good}` }
+    }
+    const tile = tileName(cover[0])
+    return { shown: `${tile} for ${good}`, named: `${tile} tile for ${good}` }
+}
+
+/** A send whose label says a cost shorter keeps the full words as its accessible name. */
+export function costPrimary(
+    words: (cost: string) => string,
+    cost: GoodCost,
+    enabled: boolean,
+    preview?: SendPreview
+): TurnPrimary {
+    const label = primaryLabel(words(cost.shown), preview)
+    const named = primaryLabel(words(cost.named), preview)
+    return { label, ...(named === label ? {} : { named }), enabled }
 }
 
 /**

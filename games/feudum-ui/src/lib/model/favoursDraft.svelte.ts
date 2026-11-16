@@ -10,7 +10,13 @@ import {
 } from '@tabletop/feudum'
 import type { FlowPlay } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
-import { DeciderDraft, draftChoice, playUnless, type DraftChoice } from './deciderDraft.svelte.js'
+import {
+    DeciderDraft,
+    draftChoice,
+    heldChoice,
+    playUnless,
+    type DraftChoice
+} from './deciderDraft.svelte.js'
 import { withLoneChoice } from './stagedDraft.svelte.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 
@@ -47,6 +53,11 @@ function countsOf(goods: readonly Good[]): GoodCounts {
         counts[good] += 1
     }
     return counts
+}
+
+/** R-3.11.2 What taking them costs: the seat's beads turn to seals. */
+function beadsTurn(beads: number): string {
+    return beads === 1 ? '1 bead turns to a seal' : `${beads} beads turn to seals`
 }
 
 /** R-3.11.3 One way alone to take them: all that was drawn, or all of a single good. */
@@ -125,24 +136,22 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
         const mostInBarrel = room ? 0 : Math.min(sulfurTaken, offer.sulfurToBarrel)
         const barrel = this.value('barrel')
         return {
-            line: `Take ${offer.favours} as favours`,
+            line: `Take ${offer.favours}`,
             goods: Goods.filter((good) => offer.drawn[good] > 0).map((good) => {
                 const count = offer.drawn[good]
                 const taken = picks.filter((one) => one === good).length
+                // R-3.11.3 With the favours all picked, the others stand dimmed until one goes.
                 return {
                     good,
                     count,
                     taken,
-                    ...draftChoice(
-                        `${good} ${count}`,
-                        taken > 0,
-                        () => {
-                            this.pressGood(good, picks, taken, room)
-                        },
-                        taken === 0 && !room
-                            ? `You take ${offer.favours}: press a pick to change it.`
-                            : undefined
-                    )
+                    ...(taken === 0 && !room
+                        ? heldChoice(`${good} ${count}`, false)
+                        : draftChoice(`${good} ${count}`, taken > 0, () => {
+                              this.pressGood(good, picks, taken, room)
+                          })),
+                    // The good is its cube beside the count drawn.
+                    shown: String(count)
                 }
             }),
             noFavours: 'No favours',
@@ -159,7 +168,7 @@ export class FavoursDraft extends DeciderDraft<FavoursValues> {
                       )
                   }
                 : {}),
-            ...(offer.beads > 0 ? { note: `Taking them flips ${offer.beads} of your beads` } : {}),
+            ...(offer.beads > 0 ? { note: beadsTurn(offer.beads) } : {}),
             primary: { label: `Take ${offer.favours}`, enabled: this.play !== undefined }
         }
     })
