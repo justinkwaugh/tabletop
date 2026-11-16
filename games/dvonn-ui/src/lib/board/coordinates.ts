@@ -10,6 +10,11 @@ export type CoordinateLabel = {
     at: Point
 }
 
+// The labels' font size, and the shift that centres a label on its point from the alphabetic
+// baseline.
+export const LABEL_SIZE = 15
+export const LABEL_SHIFT = LABEL_SIZE * 0.35
+
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
 // Numbers stay level along each row, so a row starts at its left.
 const BEFORE_LINE: AxialCoordinates = { q: -1, r: 0 }

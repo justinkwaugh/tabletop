@@ -1,14 +1,14 @@
-import { isDvonnPiece, stackOwner, type Piece, type Space } from '@tabletop/dvonn'
+import { isDvonnPiece, stackOwner, type Piece, type Stack } from '@tabletop/dvonn'
 
 export const TALLY_HEIGHT = 10
 
 // The pieces in the stacks a player controls, their own color first, then DVONN pieces, then
 // the other color, laid out as stacks of at most TALLY_HEIGHT.
-export function controlledTally(spaces: readonly Space[], playerId: string): Piece[][] {
+export function controlledTally(stacks: readonly Stack[], playerId: string): Piece[][] {
     const rank = (piece: Piece) => (isDvonnPiece(piece) ? 1 : piece.playerId === playerId ? 0 : 2)
-    const pieces = spaces
-        .filter((space) => stackOwner(space.stack) === playerId)
-        .flatMap((space) => space.stack)
+    const pieces = stacks
+        .filter((stack) => stackOwner(stack.pieces) === playerId)
+        .flatMap((stack) => stack.pieces)
         .toSorted((a, b) => rank(a) - rank(b))
     return inStacks(pieces)
 }

@@ -12,10 +12,6 @@ export const SPACING = SPACING_UNIT
 
 const HEX_DIMENSIONS = { xRadius: SPACING / 2, yRadius: SPACING / Math.sqrt(3) }
 
-export function coordsKey(coords: AxialCoordinates): string {
-    return `${coords.q},${coords.r}`
-}
-
 // The six spaces at the corners of the board: both ends of the top, middle and bottom rows.
 const CORNER_SPACES: readonly AxialCoordinates[] = [
     { q: -3, r: -2 },
@@ -37,11 +33,6 @@ const FRAME_MARGIN = SPACING * 0.15
 // Room below the bottom labels for the zoom controls, which sit in the bottom-left corner.
 const CONTROLS_ROOM = SPACING * 0.4
 
-// A space's centre on the board's own plane, as if seen straight down.
-export function flatCenter(coords: AxialCoordinates): Point {
-    return pointyHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
-}
-
 // Where everything on the board is drawn, in board units. The board is seen from the near side
 // of the table: depth shrinks to `tilt` of its length, and heights show at `rise` of theirs.
 // The board's edge lies `edge` past the outer spaces; the labels and the frame keep clear of it.
@@ -51,6 +42,8 @@ export class BoardView {
     readonly rise: number
     readonly hull: string
     readonly sandOutline: string
+    // The sand's bounding box on screen, which its grain image covers.
+    readonly sandBox: { x: number; y: number; width: number; height: number }
     readonly labels: CoordinateLabel[]
     readonly frame: { x: number; y: number; width: number; height: number }
     private readonly flatCorners: readonly Point[]
@@ -66,12 +59,20 @@ export class BoardView {
         framedHeight = PIECE_MODEL.cap
     ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
-        this.flatCorners = CORNER_SPACES.map(flatCenter)
+        this.flatCorners = CORNER_SPACES.map((coords) => this.flatCenter(coords))
         this.hull = this.flatCorners
             .map((corner) => this.project(corner))
             .map((point) => `${point.x},${point.y}`)
             .join(' ')
-        this.sandOutline = roundedOutline(this.flatCorners, SAND_MARGIN, tilt)
+        this.sandOutline = this.roundedOutline(this.flatCorners, SAND_MARGIN, tilt)
+        const xs = this.flatCorners.map((corner) => corner.x)
+        const ys = this.flatCorners.map((corner) => corner.y)
+        this.sandBox = {
+            x: Math.min(...xs) - SAND_MARGIN,
+            y: (Math.min(...ys) - SAND_MARGIN) * tilt,
+            width: Math.max(...xs) - Math.min(...xs) + 2 * SAND_MARGIN,
+            height: (Math.max(...ys) - Math.min(...ys) + 2 * SAND_MARGIN) * tilt
+        }
         this.labels = boardLabels(
             SPACES,
             (coords, toward) => this.labelBeside(coords, toward),
@@ -113,7 +114,7 @@ export class BoardView {
 
     // A space's centre on the board's plane, as this view lays the board out.
     plan(coords: AxialCoordinates): Point {
-        const point = flatCenter(coords)
+        const point = this.flatCenter(coords)
         return this.turned ? { x: -point.x, y: -point.y } : point
     }
 
@@ -132,13 +133,13 @@ export class BoardView {
     // as the farthest of them, so they stay in line.
     private labelBeside(coords: AxialCoordinates, toward: AxialCoordinates): Point {
         const step = { q: toward.q - coords.q, r: toward.r - coords.r }
-        const from = flatCenter(coords)
-        const to = flatCenter(toward)
+        const from = this.flatCenter(coords)
+        const to = this.flatCenter(toward)
         const length = Math.hypot(to.x - from.x, to.y - from.y)
         const along = { x: (to.x - from.x) / length, y: (to.y - from.y) / length }
         const reach = Math.max(
             ...SPACES.filter((space) => !isSpace(addAxial(space, step))).map((space) =>
-                edgeReach(this.flatCorners, this.edge, flatCenter(space), along)
+                this.edgeReach(this.edge, this.flatCenter(space), along)
             )
         )
         const edge = this.project({ x: from.x + along.x * reach, y: from.y + along.y * reach })
@@ -148,6 +149,65 @@ export class BoardView {
             x: edge.x + ((edge.x - start.x) / screenLength) * LABEL_GAP,
             y: edge.y + ((edge.y - start.y) / screenLength) * LABEL_GAP
         }
+    }
+
+    // A space's centre on the board's own plane, as if seen straight down.
+    private flatCenter(coords: AxialCoordinates): Point {
+        return pointyHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
+    }
+
+    // How far from a point on the board, along a direction on the board's plane, an edge
+    // `margin` out is: where the point's distance from the corner spaces' hull reaches the margin.
+    private edgeReach(margin: number, from: Point, along: Point): number {
+        let low = 0
+        let high = margin * 4
+        for (let step = 0; step < 40; step++) {
+            const middle = (low + high) / 2
+            const point = { x: from.x + along.x * middle, y: from.y + along.y * middle }
+            if (this.distanceOutside(point) < margin) low = middle
+            else high = middle
+        }
+        return low
+    }
+
+    // How far a point lies outside the corner spaces' hull, listed clockwise on screen; 0 inside.
+    private distanceOutside(point: Point): number {
+        const points = this.flatCorners
+        let outside = false
+        let nearest = Infinity
+        points.forEach((start, index) => {
+            const end = points[(index + 1) % points.length]
+            const edge = { x: end.x - start.x, y: end.y - start.y }
+            const offset = { x: point.x - start.x, y: point.y - start.y }
+            if (edge.x * offset.y - edge.y * offset.x < 0) outside = true
+            const length = edge.x ** 2 + edge.y ** 2
+            const t = Math.max(0, Math.min(1, (edge.x * offset.x + edge.y * offset.y) / length))
+            nearest = Math.min(nearest, Math.hypot(offset.x - edge.x * t, offset.y - edge.y * t))
+        })
+        return outside ? nearest : 0
+    }
+
+    // A convex outline on the board's plane, listed clockwise on screen, pushed out by `margin`
+    // with rounded corners, then seen at `tilt`: the corners' arcs become elliptical.
+    private roundedOutline(points: readonly Point[], margin: number, tilt: number): string {
+        const normals = points.map((point, index) => {
+            const next = points[(index + 1) % points.length]
+            const length = Math.hypot(next.x - point.x, next.y - point.y)
+            return { x: (next.y - point.y) / length, y: -(next.x - point.x) / length }
+        })
+        const offset = (point: Point, normal: Point) =>
+            `${point.x + normal.x * margin} ${(point.y + normal.y * margin) * tilt}`
+        return (
+            points
+                .map((point, index) => {
+                    const before = normals[(index + points.length - 1) % points.length]
+                    const after = normals[index]
+                    const next = points[(index + 1) % points.length]
+                    const start = index === 0 ? `M ${offset(point, before)} ` : ''
+                    return `${start}A ${margin} ${margin * tilt} 0 0 1 ${offset(point, after)} L ${offset(next, after)}`
+                })
+                .join(' ') + ' Z'
+        )
     }
 
     get viewBox(): string {
@@ -183,57 +243,4 @@ export function viewFor(graph: boolean, labelled: boolean, turned: boolean): Boa
         VIEWS.set(key, view)
     }
     return view
-}
-
-// How far from a point on the board, along a direction on the board's plane, an edge `margin` out
-// is: where the point's distance from the corner spaces' hull reaches the margin.
-function edgeReach(corners: readonly Point[], margin: number, from: Point, along: Point): number {
-    let low = 0
-    let high = margin * 4
-    for (let step = 0; step < 40; step++) {
-        const middle = (low + high) / 2
-        const point = { x: from.x + along.x * middle, y: from.y + along.y * middle }
-        if (distanceOutside(corners, point) < margin) low = middle
-        else high = middle
-    }
-    return low
-}
-
-// How far a point lies outside a convex outline, listed clockwise on screen; 0 inside it.
-function distanceOutside(points: readonly Point[], point: Point): number {
-    let outside = false
-    let nearest = Infinity
-    points.forEach((start, index) => {
-        const end = points[(index + 1) % points.length]
-        const edge = { x: end.x - start.x, y: end.y - start.y }
-        const offset = { x: point.x - start.x, y: point.y - start.y }
-        if (edge.x * offset.y - edge.y * offset.x < 0) outside = true
-        const length = edge.x ** 2 + edge.y ** 2
-        const t = Math.max(0, Math.min(1, (edge.x * offset.x + edge.y * offset.y) / length))
-        nearest = Math.min(nearest, Math.hypot(offset.x - edge.x * t, offset.y - edge.y * t))
-    })
-    return outside ? nearest : 0
-}
-
-// A convex outline on the board's plane, listed clockwise on screen, pushed out by `margin` with
-// rounded corners, then seen at `tilt`: the corners' arcs become elliptical.
-export function roundedOutline(points: readonly Point[], margin: number, tilt = 1): string {
-    const normals = points.map((point, index) => {
-        const next = points[(index + 1) % points.length]
-        const length = Math.hypot(next.x - point.x, next.y - point.y)
-        return { x: (next.y - point.y) / length, y: -(next.x - point.x) / length }
-    })
-    const offset = (point: Point, normal: Point) =>
-        `${point.x + normal.x * margin} ${(point.y + normal.y * margin) * tilt}`
-    return (
-        points
-            .map((point, index) => {
-                const before = normals[(index + points.length - 1) % points.length]
-                const after = normals[index]
-                const next = points[(index + 1) % points.length]
-                const start = index === 0 ? `M ${offset(point, before)} ` : ''
-                return `${start}A ${margin} ${margin * tilt} 0 0 1 ${offset(point, after)} L ${offset(next, after)}`
-            })
-            .join(' ') + ' Z'
-    )
 }

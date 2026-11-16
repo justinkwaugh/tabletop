@@ -27,28 +27,30 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 3374045707,
+  "seed": 519540917,
   "activePlayerIds": [
    "player-1"
   ],
-  "createdAt": "2026-11-02T08:07:15.453Z",
+  "createdAt": "2026-11-16T13:11:24.463Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-02T08:07:15.453Z"
+  "startedAt": "2026-11-16T13:11:24.463Z"
  },
  "state": {
   "systemVersion": 3,
-  "id": "PH99ODY_kazPky4xhWI_F",
+  "id": "7kS0wUi9PwcKXx6AOvnU_",
   "gameId": "scenario-badges-behind-stacks",
-  "seed": 3374045707,
+  "seed": 519540917,
   "prng": {
-   "seed": 3374045707,
+   "seed": 519540917,
    "invocations": 1
   },
   "protectedPrng": {
-   "seed": 3325739584,
+   "algorithm": "chacha20-v1",
+   "seed": "be2bdb3b3e87dc3dc73a18c2017955ee0601743d3abeaf551a453b7424869962",
    "invocations": 0
   },
+  "masterSeed": "da38d6b72407f2becba63c4686f353a2",
   "activePlayerIds": [
    "player-1"
   ],
@@ -81,157 +83,17 @@
    "turnCounts": {
     "player-1": 0,
     "player-2": 0
-   }
+   },
+   "seriesKeeps": "latest"
   },
-  "version": "Standard",
   "board": {
-   "spaces": [
-    {
-     "coords": {
-      "q": -3,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -2,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -1,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 0,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 1,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 2,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 3,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 4,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 5,
-      "r": -2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -4,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -3,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -2,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -1,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 0,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 1,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 2,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 3,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 4,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 5,
-      "r": -1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -5,
-      "r": 0
-     },
-     "stack": []
-    },
+   "stacks": [
     {
      "coords": {
       "q": -4,
       "r": 0
      },
-     "stack": [
+     "pieces": [
       {
        "playerId": "player-2",
        "placedAt": {
@@ -250,17 +112,10 @@
     },
     {
      "coords": {
-      "q": -3,
-      "r": 0
-     },
-     "stack": []
-    },
-    {
-     "coords": {
       "q": -2,
       "r": 0
      },
-     "stack": [
+     "pieces": [
       {
        "playerId": "player-2",
        "placedAt": {
@@ -279,24 +134,10 @@
     },
     {
      "coords": {
-      "q": -1,
-      "r": 0
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 0,
-      "r": 0
-     },
-     "stack": []
-    },
-    {
-     "coords": {
       "q": 1,
       "r": 0
      },
-     "stack": [
+     "pieces": [
       {
        "playerId": "player-1",
        "placedAt": {
@@ -315,17 +156,10 @@
     },
     {
      "coords": {
-      "q": 2,
-      "r": 0
-     },
-     "stack": []
-    },
-    {
-     "coords": {
       "q": 3,
       "r": 0
      },
-     "stack": [
+     "pieces": [
       {
        "dvonn": true,
        "placedAt": {
@@ -337,45 +171,10 @@
     },
     {
      "coords": {
-      "q": 4,
-      "r": 0
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 5,
-      "r": 0
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -5,
-      "r": 1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -4,
-      "r": 1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -3,
-      "r": 1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
       "q": -2,
       "r": 1
      },
-     "stack": [
+     "pieces": [
       {
        "playerId": "player-1",
        "placedAt": {
@@ -450,17 +249,10 @@
     },
     {
      "coords": {
-      "q": -1,
-      "r": 1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
       "q": 0,
       "r": 1
      },
-     "stack": [
+     "pieces": [
       {
        "playerId": "player-2",
        "placedAt": {
@@ -538,7 +330,7 @@
       "q": 1,
       "r": 1
      },
-     "stack": [
+     "pieces": [
       {
        "playerId": "player-1",
        "placedAt": {
@@ -613,31 +405,10 @@
     },
     {
      "coords": {
-      "q": 2,
-      "r": 1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 3,
-      "r": 1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 4,
-      "r": 1
-     },
-     "stack": []
-    },
-    {
-     "coords": {
       "q": -5,
       "r": 2
      },
-     "stack": [
+     "pieces": [
       {
        "dvonn": true,
        "placedAt": {
@@ -649,17 +420,10 @@
     },
     {
      "coords": {
-      "q": -4,
-      "r": 2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
       "q": -3,
       "r": 2
      },
-     "stack": [
+     "pieces": [
       {
        "playerId": "player-1",
        "placedAt": {
@@ -668,48 +432,6 @@
        }
       }
      ]
-    },
-    {
-     "coords": {
-      "q": -2,
-      "r": 2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": -1,
-      "r": 2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 0,
-      "r": 2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 1,
-      "r": 2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 2,
-      "r": 2
-     },
-     "stack": []
-    },
-    {
-     "coords": {
-      "q": 3,
-      "r": 2
-     },
-     "stack": []
     }
    ]
   }

@@ -5,9 +5,9 @@
         PIECES_PER_PLAYER,
         type HydratedDvonnPlayerState
     } from '@tabletop/dvonn'
+    import { seedKeyOf } from '$lib/board/pieceStyle.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PIECE_RADIUS, stackBounds, TILT } from '$lib/board/pieceGeometry.js'
-    import { coordsKey } from '$lib/board/geometry.js'
     import { controlledTally, inStacks, TALLY_HEIGHT } from '$lib/board/tally.js'
     import PieceDefs from './PieceDefs.svelte'
     import StackShape from './StackShape.svelte'
@@ -28,7 +28,7 @@
     // which is the score (rule G2).
     const count = $derived(
         placing
-            ? PIECES_PER_PLAYER - session.gameState.board.piecesOf(playerState.playerId)
+            ? session.piecesInHand(playerState.playerId)
             : session.gameState.score(playerState.playerId)
     )
     const caption = $derived(placing ? 'left' : 'high')
@@ -44,10 +44,10 @@
                       seedKey: `hand-${playerState.playerId}-${index}`
                   }))
               )
-            : controlledTally(session.gameState.board.spaces, playerState.playerId).map((stack) =>
+            : controlledTally(session.gameState.board.stacks, playerState.playerId).map((stack) =>
                   stack.map((piece) => ({
                       tone: session.toneOfPiece(piece),
-                      seedKey: coordsKey(piece.placedAt)
+                      seedKey: seedKeyOf(piece)
                   }))
               )
     )

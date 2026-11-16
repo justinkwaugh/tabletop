@@ -50,8 +50,9 @@ const files = await page.evaluate(() => {
     })
 })
 
-// Pixels per board unit: a piece about 680 px across, sharp at the board's full zoom on a phone.
-const SCALE = 12
+// Pixels per board unit: 2.5 times the board's largest fit (maxFitScale 2.5 in GameTable), sharp
+// on a high-density screen at that fit. Pieces soften a little at a player's full zoom.
+const SCALE = 2.5 * 2.5
 // Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
 // seams between the many bands of the groove's walls. Only the drawing grows, not the files.
 const SUPERSAMPLE = 4

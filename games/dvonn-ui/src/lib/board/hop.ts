@@ -47,11 +47,20 @@ export type HopSpec = {
     // The resting lift on top of each space the hop passes over, in order (0 for an empty one).
     over: readonly number[]
     quick: boolean
+    // A quick hop's length when it shares Undo's time with other motion.
+    duration?: number
 }
 
-export function hopPlan({ spaces, startLift, endLift, over, quick }: HopSpec): HopPlan {
+export function hopPlan({
+    spaces,
+    startLift,
+    endLift,
+    over,
+    quick,
+    duration: given
+}: HopSpec): HopPlan {
     const duration = quick
-        ? HOP.quick
+        ? (given ?? HOP.quick)
         : Math.min(HOP.single + HOP.perSpace * (spaces - 1), HOP.longest)
     const stacks = over.filter((rest) => rest < 0)
     const clear = Math.min(Infinity, ...stacks.map((rest) => rest - CLEARANCE))

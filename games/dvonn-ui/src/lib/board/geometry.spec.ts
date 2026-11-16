@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { SPACES } from '@tabletop/dvonn'
 import { BoardView, FRAMED_HEIGHT, viewFor } from './geometry.js'
 import { PIECE_MODEL, PIECE_RADIUS, stackBounds, TILT } from './pieceGeometry.js'
+import { SAND_SIZE } from './sandTexture.js'
 
 const VIEW = viewFor(false, true, false)
 const GRAPH_VIEW = viewFor(true, true, false)
@@ -93,5 +94,19 @@ describe('the board turned half round', () => {
         }
         expect(turned.frame.width).toBeCloseTo(VIEW.frame.width)
         expect(turned.frame.height).toBeCloseTo(VIEW.frame.height)
+    })
+})
+
+describe('the sand grain', () => {
+    it('covers the sand box, every way round, with little to spare', () => {
+        for (const turned of [false, true]) {
+            for (const labelled of [false, true]) {
+                const box = viewFor(false, labelled, turned).sandBox
+                expect(SAND_SIZE.width).toBeGreaterThanOrEqual(box.width)
+                expect(SAND_SIZE.height).toBeGreaterThanOrEqual(box.height)
+                expect(SAND_SIZE.width - box.width).toBeLessThan(2)
+                expect(SAND_SIZE.height - box.height).toBeLessThan(2)
+            }
+        }
     })
 })

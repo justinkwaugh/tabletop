@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { Piece, Space } from '@tabletop/dvonn'
+import type { Piece, Stack } from '@tabletop/dvonn'
 import { controlledTally, inStacks } from './tally.js'
 
 const at = { q: 0, r: 0 }
 const w: Piece = { playerId: 'w', placedAt: at }
 const b: Piece = { playerId: 'b', placedAt: at }
 const d: Piece = { dvonn: true, placedAt: at }
-const space = (stack: Piece[]): Space => ({ coords: at, stack })
+const space = (pieces: Piece[]): Stack => ({ coords: at, pieces })
 
 describe('controlledTally', () => {
     it('counts the pieces in stacks the player tops, own color, DVONN, then the other', () => {

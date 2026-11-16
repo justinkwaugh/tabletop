@@ -36,7 +36,7 @@
     </div>
 
     <div class="header-grid grid text-[18px] max-sm:text-[14px]">
-        {#if session.hasManualSelection() || session.undoableAction}
+        {#if session.hasLocalSelection || session.undoableAction}
             <button type="button" onclick={() => session.undo()} class="header-button">UNDO</button>
         {/if}
     </div>

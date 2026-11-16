@@ -1,14 +1,12 @@
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
 
-// The stack to move, as a coordinate key.
+// The stack to move, as a space key.
 export type DvonnSelectionValues = {
-    from: string
+    from: number
 }
 
 export type DvonnSelection = StagedSelectionState<DvonnSelectionValues>
@@ -37,13 +35,4 @@ export function setDvonnSelection<TStage extends keyof DvonnSelectionValues>(
               value,
               'manual'
           )
-}
-
-export function hasManualDvonnSelection(selection: DvonnSelection): boolean {
-    return hasManualStagedSelection<DvonnSelectionValues>(selection, DvonnStageOrder)
-}
-
-export function popDvonnSelection(selection: DvonnSelection): DvonnSelection {
-    return popHighestManualStagedSelection<DvonnSelectionValues>(selection, DvonnStageOrder)
-        .nextState
 }

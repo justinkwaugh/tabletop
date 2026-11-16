@@ -79,8 +79,10 @@ afterEach(() => {
     for (const dispose of disposals.splice(0)) dispose()
 })
 
-async function aliceSession() {
-    const { game, state, actions } = cutOff()
+async function aliceSession({ hotseat = false } = {}) {
+    const prepared = cutOff()
+    const { state, actions } = prepared
+    const game = { ...prepared.game, hotseat }
     const app = createHarnessAppContext(definition)
     vi.spyOn(app.gameService, 'saveGameLocally').mockResolvedValue(undefined)
     const bridgedContext = new BridgedContext({
@@ -133,7 +135,7 @@ describe('Undo of a move', () => {
         expect(session.gameState.board.stackAt(C2).length).toBeGreaterThan(0)
         expect(session.chosenFrom).toEqual(C2)
         expect(session.destinations).toContainEqual(D2)
-        expect(session.hasManualSelection()).toBe(true)
+        expect(session.hasLocalSelection).toBe(true)
     })
 
     it('then puts the stack down without undoing any action', async () => {
@@ -145,7 +147,7 @@ describe('Undo of a move', () => {
         await settled(session.undo())
         expect(session.chosenFrom).toBeUndefined()
         expect(session.gameState.actionCount).toBe(0)
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
     })
 
     it('chooses nothing when history steps back over the move', async () => {
@@ -157,5 +159,52 @@ describe('Undo of a move', () => {
         expect(session.isViewingHistory).toBe(true)
         expect(session.chosenFrom).toBeUndefined()
         expect(session.isClickable(C2)).toBe(false)
+    })
+})
+
+describe('A move playing', () => {
+    it('ignores taps on its choices until the new state lands', async () => {
+        const session = await aliceSession()
+        session.updatingVisibleState = true
+        await session.chooseSpace(C2)
+        expect(session.chosenFrom).toBeUndefined()
+        expect(session.hasLocalSelection).toBe(false)
+
+        session.updatingVisibleState = false
+        await session.chooseSpace(C2)
+        expect(session.chosenFrom).toEqual(C2)
+        session.updatingVisibleState = true
+        session.letGo()
+        expect(session.chosenFrom).toEqual(C2)
+    })
+})
+
+describe('A choice belongs to its maker', () => {
+    it("keeps a player's chosen stack from anyone else viewing, and back for them", async () => {
+        const session = await aliceSession({ hotseat: true })
+        await session.chooseSpace(C2)
+        expect(session.hasLocalSelection).toBe(true)
+
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.myPlayer?.id).not.toBe(ALICE)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenFrom).toBeUndefined()
+
+        session.setViewingAsNonActivePlayer(false)
+        expect(session.chosenFrom).toEqual(C2)
+    })
+
+    it('restages only the move the Undo takes back, and only for its maker', async () => {
+        const session = await aliceSession({ hotseat: true })
+        await session.chooseSpace(C2)
+        await settled(session.chooseSpace(D2))
+        const [move] = session.actions
+        session.willUndo(move)
+        expect(session.restagedMove({ actionCount: 0 })).toBeDefined()
+        // An Undo landing on another count takes back some other action.
+        expect(session.restagedMove({ actionCount: 1 })).toBeUndefined()
+
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.restagedMove({ actionCount: 0 })).toBeUndefined()
     })
 })

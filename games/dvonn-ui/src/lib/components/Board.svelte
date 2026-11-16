@@ -1,18 +1,16 @@
 <script lang="ts">
     import { MediaQuery } from 'svelte/reactivity'
-    import { addAxial, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
-    import { isSpace, SPACES, spaceName } from '@tabletop/dvonn'
+    import { assertExists, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+    import { SPACES, spaceKey, spaceName } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, VIEW, viewFor } from '$lib/board/geometry.js'
-    import {
-        PIECE_MODEL,
-        stackDiscs,
-        TILT,
-        topFaceY,
-        type PieceModel
-    } from '$lib/board/pieceGeometry.js'
-    import { markRing, outlinePath, pieceDrawing } from '$lib/board/pieceShape.js'
+    import { VIEW, viewFor } from '$lib/board/geometry.js'
+    import { boardLines } from '$lib/board/boardLines.js'
+    import { badgeTop, markOn, targetOutline } from '$lib/board/marks.js'
+    import { LABEL_SHIFT } from '$lib/board/coordinates.js'
+    import { PIECE_MODEL, stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
+    import { SAND_SIZE } from '$lib/board/sandTexture.js'
+    import { seedKeyOf } from '$lib/board/pieceStyle.js'
     import sand from '$lib/images/sand.webp'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
@@ -30,29 +28,7 @@
     })
     const radius = VIEW.radius
 
-    // The graph board: lines along the three directions through every space, running a short
-    // whisker on past the outer spaces, as on the printed board.
-    const AXES: AxialCoordinates[] = [
-        { q: 1, r: 0 },
-        { q: 0, r: 1 },
-        { q: -1, r: 1 }
-    ]
-    const WHISKER = 0.225
-    const beyond = (coords: AxialCoordinates, step: AxialCoordinates) => {
-        const from = layout.center(coords)
-        const to = layout.center(addAxial(coords, step))
-        return { x: from.x + (to.x - from.x) * WHISKER, y: from.y + (to.y - from.y) * WHISKER }
-    }
-    const lines = $derived(
-        AXES.flatMap((axis) => {
-            const back = { q: -axis.q, r: -axis.r }
-            return SPACES.filter((space) => !isSpace(addAxial(space, back))).map((start) => {
-                let end = start
-                while (isSpace(addAxial(end, axis))) end = addAxial(end, axis)
-                return { from: beyond(start, back), to: beyond(end, axis) }
-            })
-        })
-    )
+    const lines = $derived(boardLines(layout))
 
     const imprintRadius = $derived(radius * 1.03)
 
@@ -71,12 +47,6 @@
     // full height, whose height cannot be seen.
     function badgeShown(height: number): boolean {
         return height > 1 && (session.heightBadges || height > session.pieceModel.cap)
-    }
-
-    // Where a badge's centre line sits: the top piece's hole opening.
-    function badgeTop(height: number, model: PieceModel = session.pieceModel): number {
-        const top = stackDiscs(height, radius, [], model).at(-1)
-        return (top?.base ?? 0) + pieceDrawing(radius, model).opening.y
     }
 
     // Each badge at the far right of its stack's top, or wherever nearer stacks leave it seen.
@@ -100,7 +70,7 @@
     })
 
     function stackId(key: string): string {
-        return `dvonn-stack-${key.replace(',', '_')}`
+        return `dvonn-stack-${key}`
     }
 
     function heightAt(coords: AxialCoordinates): number {
@@ -124,14 +94,6 @@
             return pa.y - pb.y || pa.x - pb.x
         })
     )
-
-    // The outline of the stack standing there, or of a single piece on an empty space.
-    function target(coords: AxialCoordinates): string {
-        const height = Math.max(heightAt(coords), 1)
-        const model = session.pieceModel
-        const base = stackDiscs(1, radius, [], model)[0].base
-        return outlinePath(base, topFaceY(height, radius, model), radius)
-    }
 
     function describe(coords: AxialCoordinates): string {
         const name = spaceName(coords)
@@ -160,12 +122,17 @@
     }
 
     const shadowRx = $derived(radius + 3)
-    // A mark recolors a ring just inside the rim of the stack's top piece.
-    function markOn(height: number) {
-        const ring = markRing(radius)
-        const base =
-            stackDiscs(Math.max(height, 1), radius, [], session.pieceModel).at(-1)?.base ?? 0
-        return { ...ring, y: ring.y + base }
+
+    // The sand's grain, rendered at the sand's own size, centred on it.
+    const grain = $derived({
+        x: layout.sandBox.x + (layout.sandBox.width - SAND_SIZE.width) / 2,
+        y: layout.sandBox.y + (layout.sandBox.height - SAND_SIZE.height) / 2
+    })
+
+    function spotOf(key: string): BadgeSpot {
+        const spot = badgeSpots.get(key)
+        assertExists(spot, `No badge on ${key}`)
+        return spot
     }
 </script>
 
@@ -187,7 +154,7 @@
             <g {@attach animator.stack(stack.key, 'body')}>
                 <StackShape
                     tones={stack.pieces.map((piece) => session.toneOfPiece(piece))}
-                    seedKeys={stack.pieces.map((piece) => coordsKey(piece.placedAt))}
+                    seedKeys={stack.pieces.map(seedKeyOf)}
                     {radius}
                     prefix="dvonn-board"
                     model={animator.modelAt(stack.key)}
@@ -199,7 +166,7 @@
              nearer stacks cover it as they cover the pieces, but outside the stack's moving
              group: it fades with the move rather than travelling with the stack. -->
         {#if role}
-            {@const ring = markOn(stack.pieces.length)}
+            {@const ring = markOn(stack.pieces.length, radius, session.pieceModel)}
             <g class="rim role-{role}" {@attach animator.mark()}>
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse cy={ring.y} rx={ring.rx} ry={ring.ry} class={layer}></ellipse>
@@ -208,12 +175,11 @@
         {/if}
         <!-- The height badge over the ring, moving with the stack's body. -->
         {#if badgeSpots.has(stack.key)}
-            {@const spot = badgeSpots.get(stack.key) ?? 'right'}
             <g {@attach animator.stack(stack.key, 'badge')}>
                 <HeightBadge
                     height={stack.pieces.length}
-                    {spot}
-                    top={badgeTop(stack.pieces.length, animator.modelAt(stack.key))}
+                    spot={spotOf(stack.key)}
+                    top={badgeTop(stack.pieces.length, radius, animator.modelAt(stack.key))}
                     {radius}
                 />
             </g>
@@ -222,139 +188,156 @@
 {/snippet}
 
 <!-- Tapping off the choices is a shortcut for pointers; Undo lets go from the keyboard. -->
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<svg
-    class="dvonn-board"
-    class:graph={session.graphBoard}
-    viewBox={layout.viewBox}
-    width={layout.frame.width}
-    height={layout.frame.height}
-    role="group"
-    aria-label="DVONN board"
-    onclick={onBoardClick}
-    {@attach animator.attach}
->
-    <defs>
-        <PieceDefs prefix="dvonn-board" {radius} />
-        <clipPath id="dvonn-sand-clip">
-            <path d={layout.sandOutline}></path>
-        </clipPath>
-        <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
+<div class="tap-off" role="presentation" onclick={onBoardClick}>
+    <svg
+        class="dvonn-board"
+        class:graph={session.graphBoard}
+        viewBox={layout.viewBox}
+        width={layout.frame.width}
+        height={layout.frame.height}
+        role="group"
+        aria-label="DVONN board"
+        {@attach animator.attach}
+    >
+        <defs>
+            <PieceDefs prefix="dvonn-board" {radius} />
+            <clipPath id="dvonn-sand-clip">
+                <path d={layout.sandOutline}></path>
+            </clipPath>
+            <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
              removed piece under a filter on screen until something else repaints there. -->
-        <radialGradient id="dvonn-shadow">
-            <stop offset="0.72" stop-color="#000" stop-opacity="0.32"></stop>
-            <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
-        </radialGradient>
-        <!-- A pressed ring: shaded on its far side, lit on its near side. -->
-        <linearGradient id="dvonn-imprint" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#6f675a" stop-opacity="0.55"></stop>
-            <stop offset="0.5" stop-color="#6f675a" stop-opacity="0.08"></stop>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.7"></stop>
-        </linearGradient>
-        <linearGradient id="dvonn-imprint-hole" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"></stop>
-            <stop offset="1" stop-color="#6f675a" stop-opacity="0.45"></stop>
-        </linearGradient>
-    </defs>
+            <radialGradient id="dvonn-shadow">
+                <stop offset="0.72" stop-color="#000" stop-opacity="0.32"></stop>
+                <stop offset="1" stop-color="#000" stop-opacity="0"></stop>
+            </radialGradient>
+            <!-- A pressed ring: shaded on its far side, lit on its near side. -->
+            <linearGradient id="dvonn-imprint" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#6f675a" stop-opacity="0.55"></stop>
+                <stop offset="0.5" stop-color="#6f675a" stop-opacity="0.08"></stop>
+                <stop offset="1" stop-color="#ffffff" stop-opacity="0.7"></stop>
+            </linearGradient>
+            <linearGradient id="dvonn-imprint-hole" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"></stop>
+                <stop offset="1" stop-color="#6f675a" stop-opacity="0.45"></stop>
+            </linearGradient>
+        </defs>
 
-    {#if session.graphBoard}
-        <polygon points={layout.hull} class="play-area"></polygon>
-        <g class="lines">
-            {#each lines as line, index (index)}
-                <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
-            {/each}
-        </g>
-    {:else}
-        <path d={layout.sandOutline} class="sand"></path>
-        <!-- The grain, rendered once by scripts/render-sand.mjs, covering the whole frame. -->
-        <image
-            href={sand}
-            x={layout.frame.x}
-            y={layout.frame.y}
-            width={layout.frame.width}
-            height={layout.frame.height}
-            preserveAspectRatio="xMidYMid slice"
-            clip-path="url(#dvonn-sand-clip)"
-            class="grain"
-        ></image>
-        <g class="imprints">
-            {#each SPACES as coords (coordsKey(coords))}
-                {@const center = layout.center(coords)}
-                <g transform="translate({center.x} {center.y})">
-                    <ellipse
-                        rx={imprintRadius}
-                        ry={imprintRadius * TILT}
-                        stroke="url(#dvonn-imprint)"
-                        class="imprint"
-                    ></ellipse>
-                    <ellipse
-                        rx={imprintRadius * PIECE_MODEL.hole}
-                        ry={imprintRadius * PIECE_MODEL.hole * TILT}
-                        stroke="url(#dvonn-imprint-hole)"
-                        class="imprint"
-                    ></ellipse>
-                </g>
-            {/each}
-        </g>
-    {/if}
+        {#if session.graphBoard}
+            <polygon points={layout.hull} class="play-area"></polygon>
+            <g class="lines">
+                {#each lines as line, index (index)}
+                    <line x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}></line>
+                {/each}
+            </g>
+        {:else}
+            <path d={layout.sandOutline} class="sand"></path>
+            <!-- The grain, rendered once by scripts/render-sand.mjs at the sand's own size, so it
+             covers the sand without a browser's fitting. -->
+            <image
+                href={sand}
+                x={grain.x}
+                y={grain.y}
+                width={SAND_SIZE.width}
+                height={SAND_SIZE.height}
+                clip-path="url(#dvonn-sand-clip)"
+                class="grain"
+            ></image>
+            <g class="imprints">
+                {#each SPACES as coords (spaceKey(coords))}
+                    {@const center = layout.center(coords)}
+                    <g transform="translate({center.x} {center.y})">
+                        <ellipse
+                            rx={imprintRadius}
+                            ry={imprintRadius * TILT}
+                            stroke="url(#dvonn-imprint)"
+                            class="imprint"
+                        ></ellipse>
+                        <ellipse
+                            rx={imprintRadius * PIECE_MODEL.hole}
+                            ry={imprintRadius * PIECE_MODEL.hole * TILT}
+                            stroke="url(#dvonn-imprint-hole)"
+                            class="imprint"
+                        ></ellipse>
+                    </g>
+                {/each}
+            </g>
+        {/if}
 
-    {#if session.showCoordinates}
-        {#each layout.labels as label (label.key)}
-            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+        {#if session.showCoordinates}
+            {#each layout.labels as label (label.key)}
+                <text x={label.at.x} y={label.at.y} dy={LABEL_SHIFT} class="coordinate-label"
+                    >{label.text}</text
+                >
+            {/each}
+        {/if}
+
+        {#each stacks as stack (stack.key)}
+            {@render drawn(stack)}
         {/each}
-    {/if}
 
-    {#each stacks as stack (stack.key)}
-        {@render drawn(stack)}
-    {/each}
-
-    {#if animator.flier}
-        {@const flier = animator.flier}
-        {@const center = layout.center(flier.coords)}
-        <g transform="translate({center.x} {center.y})" class="flier">
-            <g {@attach animator.flierNode('whole')}>
-                <g {@attach animator.flierNode('shadow')}>
-                    {@render shadow()}
-                </g>
-                <g {@attach animator.flierNode('body')}>
-                    <StackShape
-                        tones={flier.pieces.map((piece) => session.toneOfPiece(piece))}
-                        seedKeys={flier.pieces.map((piece) => coordsKey(piece.placedAt))}
-                        {radius}
-                        prefix="dvonn-board"
-                        turned={layout.turned}
-                    />
+        <!-- The stacks in flight, each with its badge, which moves with its body. -->
+        {#each animator.fliers as flier (flier.key)}
+            {@const center = layout.center(flier.coords)}
+            <g transform="translate({center.x} {center.y})" class="flier">
+                <g {@attach animator.flierNode(flier.key, 'whole')}>
+                    <g {@attach animator.flierNode(flier.key, 'shadow')}>
+                        {@render shadow()}
+                    </g>
+                    <g {@attach animator.flierNode(flier.key, 'body')}>
+                        <StackShape
+                            tones={flier.pieces.map((piece) => session.toneOfPiece(piece))}
+                            seedKeys={flier.pieces.map(seedKeyOf)}
+                            {radius}
+                            prefix="dvonn-board"
+                            turned={layout.turned}
+                        />
+                        {#if badgeShown(flier.pieces.length)}
+                            <HeightBadge
+                                height={flier.pieces.length}
+                                spot="right"
+                                top={badgeTop(flier.pieces.length, radius, PIECE_MODEL)}
+                                {radius}
+                            />
+                        {/if}
+                    </g>
                 </g>
             </g>
-        </g>
-        <!-- Each stack again over the flier, shown while it stands in front of it. -->
-        <g class="occluders" aria-hidden="true">
-            {#each stacks as stack (stack.key)}
-                {#if !flier.passes.includes(stack.key)}
-                    <use href="#{stackId(stack.key)}" {@attach animator.occluder(stack)}></use>
-                {/if}
+        {/each}
+        <!-- Each stack again over a lone flier, shown while it stands in front of it. -->
+        {#if animator.fliers.length === 1}
+            {@const flier = animator.fliers[0]}
+            <g class="occluders" aria-hidden="true">
+                {#each stacks as stack (stack.key)}
+                    {#if !flier.passes.includes(stack.key)}
+                        <use href="#{stackId(stack.key)}" {@attach animator.occluder(stack)}></use>
+                    {/if}
+                {/each}
+            </g>
+        {/if}
+
+        <g class="targets">
+            {#each clickable as coords (spaceKey(coords))}
+                {@const center = layout.center(coords)}
+                <path
+                    d={targetOutline(heightAt(coords), radius, session.pieceModel)}
+                    transform="translate({center.x} {center.y})"
+                    class="target"
+                    role="button"
+                    tabindex="0"
+                    aria-label={describe(coords)}
+                    onclick={() => session.chooseSpace(coords)}
+                    onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
+                ></path>
             {/each}
         </g>
-    {/if}
-
-    <g class="targets">
-        {#each clickable as coords (coordsKey(coords))}
-            {@const center = layout.center(coords)}
-            <path
-                d={target(coords)}
-                transform="translate({center.x} {center.y})"
-                class="target"
-                role="button"
-                tabindex="0"
-                aria-label={describe(coords)}
-                onclick={() => session.chooseSpace(coords)}
-                onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
-            ></path>
-        {/each}
-    </g>
-</svg>
+    </svg>
+</div>
 
 <style>
+    .tap-off {
+        display: contents;
+    }
+
     .dvonn-board {
         overflow: visible;
         user-select: none;
@@ -386,13 +369,14 @@
         stroke-width: 1.4;
     }
 
+    /* Centred by `dy` on the alphabetic baseline, and spaced in user units: WebKit misplaces a
+       central baseline and Safari em lengths under the board's zoom. */
     .coordinate-label {
         fill: var(--dvonn-label);
         font-size: 15px;
         font-weight: 600;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.6px;
         text-anchor: middle;
-        dominant-baseline: central;
         pointer-events: none;
     }
 

@@ -216,3 +216,8 @@ export function seedOf(key: string): number {
 export function pieceTone(piece: Piece, toneOfPlayer: (playerId: string) => Tone): Tone {
     return isDvonnPiece(piece) ? 'red' : toneOfPlayer(piece.playerId)
 }
+
+// What a piece's specks are seeded by: the space it was placed on, which goes with it.
+export function seedKeyOf(piece: Piece): string {
+    return `${piece.placedAt.q},${piece.placedAt.r}`
+}

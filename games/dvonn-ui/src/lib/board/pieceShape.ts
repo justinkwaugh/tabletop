@@ -313,7 +313,7 @@ function lightAt(tone: Tone, tint: Rgb, x: number, y: number, model: PieceModel)
     const lit =
         facingYou > 0 ? mix(base, light, steep * facingYou) : mix(base, shade, -steep * facingYou)
     // The speck takes the change in light from the flat top, channel by channel.
-    return tint.map((value, index) => (value * (lit[index] + 8)) / (flat[index] + 8)) as Rgb
+    return mapRgb(tint, (value, index) => (value * (lit[index] + 8)) / (flat[index] + 8))
 }
 
 // The far wall seen inside an upper opening down to a lower one of the same size: the part of
@@ -356,8 +356,13 @@ function rgb(hex: string): Rgb {
     return [(value >> 16) & 255, (value >> 8) & 255, value & 255]
 }
 
+// Each channel of a colour mapped, keeping the colour's three channels.
+function mapRgb(color: Rgb, map: (value: number, index: 0 | 1 | 2) => number): Rgb {
+    return [map(color[0], 0), map(color[1], 1), map(color[2], 2)]
+}
+
 function mix(from: Rgb, to: Rgb, amount: number): Rgb {
-    return from.map((value, index) => value + (to[index] - value) * amount) as Rgb
+    return mapRgb(from, (value, index) => value + (to[index] - value) * amount)
 }
 
 function css(color: Rgb, brightness = 1): string {
@@ -368,7 +373,7 @@ function css(color: Rgb, brightness = 1): string {
 // A speck's colour rounded to a few steps, so the specks of a piece share a handful of colours and
 // draw as a path each.
 function steps(color: Rgb): Rgb {
-    return color.map((value) => Math.round(value / 8) * 8) as Rgb
+    return mapRgb(color, (value) => Math.round(value / 8) * 8)
 }
 
 // A colour's shades on the top, from its style: flat in its face colour, the floor toward its
@@ -420,7 +425,7 @@ export function sideSpeckFill(tint: string, across: number): string {
         at < peakAt
             ? left + (peak - left) * (at / peakAt)
             : peak - (peak - right) * ((at - peakAt) / (1 - peakAt))
-    return css(steps(rgb(tint).map((value) => Math.min(255, value * light)) as Rgb))
+    return css(steps(mapRgb(rgb(tint), (value) => Math.min(255, value * light))))
 }
 
 // The top of a covered piece, in the shadow of the piece resting on it.

@@ -1,4 +1,4 @@
-import type { AxialCoordinates, GameAction } from '@tabletop/common'
+import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import { isDvonnPiece, isMoveStack, isPlacePiece } from '@tabletop/dvonn'
 
 type Span = { id: string; firstIndex: number; lastIndex: number; playerId: string }
@@ -29,22 +29,22 @@ export type HistoryEntry = PlaceEntry | MoveEntry
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     return actions.flatMap((action, index): HistoryEntry[] => {
         const span = { id: action.id, firstIndex: index, lastIndex: index }
-        if (isPlacePiece(action) && action.playerId !== undefined) {
-            const piece = action.metadata?.piece
+        if (isPlacePiece(action)) {
+            assertExists(action.metadata, 'A processed placement records its piece')
             return [
                 {
                     ...span,
                     kind: 'place',
                     playerId: action.playerId,
                     coords: action.coords,
-                    dvonn: piece !== undefined && isDvonnPiece(piece),
-                    passedPlayerId: action.metadata?.passedPlayerId
+                    dvonn: isDvonnPiece(action.metadata.piece),
+                    passedPlayerId: action.metadata.passedPlayerId
                 }
             ]
         }
-        if (isMoveStack(action) && action.playerId !== undefined) {
-            const removed = action.metadata?.removed ?? []
-            const landedOn = action.metadata?.landedOn ?? []
+        if (isMoveStack(action)) {
+            assertExists(action.metadata, 'A processed move records what it moved')
+            const { moved, landedOn, removed, passedPlayerId } = action.metadata
             return [
                 {
                     ...span,
@@ -52,15 +52,16 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                     playerId: action.playerId,
                     from: action.from,
                     to: action.to,
-                    moved: action.metadata?.moved.length ?? 0,
+                    moved: moved.length,
                     landedOn: landedOn.length,
                     landedOnDvonn: landedOn.length === 1 && isDvonnPiece(landedOn[0]),
                     removedPieces: removed.reduce((count, stack) => count + stack.stack.length, 0),
                     removedStacks: removed.length,
-                    passedPlayerId: action.metadata?.passedPlayerId
+                    passedPlayerId
                 }
             ]
         }
+        // The platform's own actions, such as a concession, have no entry here.
         return []
     })
 }

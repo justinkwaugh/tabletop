@@ -3,8 +3,9 @@
 // src/lib/images/sand.webp; rerun after changing it: pnpm run render-sand
 import { seededRandom } from './random.js'
 
-// In board units, a little larger than the board's frame (744 × 328), which the image covers.
-export const SAND_SIZE = { width: 760, height: 340 }
+// In board units, the sand's bounding box (BoardView.sandBox, 674.4 × 211.7) rounded up, which the
+// image covers; the sand's outline clips it.
+export const SAND_SIZE = { width: 676, height: 213 }
 export const SAND_RESOLUTION = 1.5
 // The sand itself, as --dvonn-sand: the grain is drawn on it, so the image is opaque and
 // compresses well.

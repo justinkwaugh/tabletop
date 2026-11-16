@@ -47,9 +47,9 @@ function position(stacks, machineState = MachineState.MovingStacks) {
     // Each piece needs a space of its own to have been placed on, which seeds its specks.
     let placed = 0
     const nextOrigin = () => ({ ...SPACES[placed++ % SPACES.length] })
-    for (const space of state.board.spaces) {
-        const stack = stacks[spaceName(space.coords)] ?? ''
-        space.stack =
+    state.board.stacks = SPACES.flatMap((coords) => {
+        const stack = stacks[spaceName(coords)] ?? ''
+        const pieces =
             typeof stack === 'string'
                 ? stack.split('').map((letter) =>
                       letter === 'd'
@@ -60,7 +60,8 @@ function position(stacks, machineState = MachineState.MovingStacks) {
                             }
                   )
                 : stack
-    }
+        return pieces.length > 0 ? [{ coords: { ...coords }, pieces }] : []
+    })
     state.machineState = machineState
     state.activePlayerIds = [FIRST]
     const hydrated = new HydratedDvonnGameState(state)
@@ -136,9 +137,7 @@ function playedBoard({ seed, moves }) {
         }).updatedState
     }
     return Object.fromEntries(
-        state.board.spaces
-            .filter((space) => space.stack.length > 0)
-            .map((space) => [spaceName(space.coords), space.stack])
+        state.board.stacks.map((stack) => [spaceName(stack.coords), stack.pieces])
     )
 }
 

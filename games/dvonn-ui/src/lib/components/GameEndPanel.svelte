@@ -1,10 +1,17 @@
 <script lang="ts">
+    import { assertExists } from '@tabletop/common'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const session = getGameSession()
 
     const winners = $derived(session.gameState.winningPlayerIds)
     const isDraw = $derived(winners.length > 1)
+    // A finished game names at least one winner.
+    const winner = $derived.by(() => {
+        const [first] = winners
+        assertExists(first, 'A finished game has a winner')
+        return first
+    })
 
     function nameOf(playerId: string): string {
         return playerId === session.myPlayer?.id ? 'You' : session.getPlayerName(playerId)
@@ -23,8 +30,8 @@
     <div class="text-[22px] font-semibold tracking-[0.06em]">
         {#if isDraw}
             A draw
-        {:else if winners[0]}
-            {winners[0] === session.myPlayer?.id ? 'You win' : `${nameOf(winners[0])} wins`}
+        {:else}
+            {winner === session.myPlayer?.id ? 'You win' : `${nameOf(winner)} wins`}
         {/if}
     </div>
     <div class="text-[15px] text-(--dvonn-ink-quiet)">{reason}</div>
