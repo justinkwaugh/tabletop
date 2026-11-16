@@ -1,0 +1,79 @@
+import type { TransitionConfig } from 'svelte/transition'
+import { VIEW } from './geometry.js'
+import { RING_HEIGHT } from './pieceGeometry.js'
+
+// A piece falls onto its point from about a row's height, gathering speed, and settles with a
+// small bounce; its shadow waits on the board, small and faint, darkening as the piece lands.
+// Heights are on screen; `scale` is how much larger the piece starts, nearer the eye.
+export const DROP = { fall: 0.26, rise: -45, scale: 1.06, bounce: -4, settle: 0.07, shadow: 0.55 }
+// The same drop, smaller: a marker into its ring.
+export const MARKER_DROP = {
+    fall: 0.2,
+    rise: -24,
+    scale: 1.04,
+    bounce: -2,
+    settle: 0.06,
+    shadow: 0.6
+}
+
+// The staged marker in a ring is drawn twice, moving together: `under` the ring's near half and
+// its mark while it is down in the hole, and `over` them once its base clears the ring's top.
+export type MarkerLayer = 'under' | 'over'
+const CLEARS = -VIEW.height(RING_HEIGHT)
+
+function onLayer(layer: MarkerLayer, y: number, opacity: number): number {
+    return y < CLEARS === (layer === 'over') ? opacity : 0
+}
+
+// How long the staged marker takes to drop into its ring and settle.
+export const STAGED_DROP = MARKER_DROP.fall + MARKER_DROP.settle * 2
+
+// The staged marker `time` seconds into its drop: how far above its rest it is on screen, its
+// scale, and how far it has faded in.
+export function stagedDropPose(time: number): { y: number; scale: number; opacity: number } {
+    const { fall, rise, scale, bounce, settle } = MARKER_DROP
+    const opacity = Math.min(1, time / (fall * 0.25))
+    if (time >= STAGED_DROP) return { y: 0, scale: 1, opacity }
+    if (time < fall) {
+        const k = (time / fall) ** 2
+        return { y: rise * (1 - k), scale: scale + (1 - scale) * k, opacity }
+    }
+    const k = (time - fall) / (settle * 2)
+    return { y: bounce * Math.sin(Math.PI * k), scale: 1, opacity }
+}
+
+// The staged marker dropping into the chosen ring, as MARKER_DROP; `instant` when it is already
+// there.
+export function dropIn(
+    _node: Element,
+    { instant = false, layer = 'under' }: { instant?: boolean; layer?: MarkerLayer } = {}
+): TransitionConfig {
+    if (instant) return { duration: 0 }
+    return {
+        duration: STAGED_DROP * 1000,
+        css: (t) => {
+            const { y, scale, opacity } = stagedDropPose(t * STAGED_DROP)
+            return `transform: translate(0px, ${y}px) scale(${scale}); opacity: ${onLayer(layer, y, opacity)}`
+        }
+    }
+}
+
+// The staged marker lifting back out of a ring put down: up to where it dropped from, growing a
+// little nearer the eye and fading at the top, in Undo's 0.18 s.
+export const LIFT_OUT = 0.18
+
+export function liftOut(
+    _node: Element,
+    { layer = 'under' }: { layer?: MarkerLayer } = {}
+): TransitionConfig {
+    const { rise, scale } = MARKER_DROP
+    return {
+        duration: LIFT_OUT * 1000,
+        css: (t) => {
+            const k = 1 - (1 - t) ** 2
+            const y = rise * k
+            const opacity = onLayer(layer, y, Math.min(1, (1 - t) / 0.4))
+            return `transform: translate(0px, ${y}px) scale(${1 + (scale - 1) * k}); opacity: ${opacity}`
+        }
+    }
+}

@@ -316,6 +316,24 @@ describe('Call votes', () => {
         expect(host.sentUserNotifications()).toEqual([])
     })
 
+    it('lets a player concede a knockout game, but no other tournament game', async () => {
+        const host = createCallHost(['p1', 'p2'])
+        host.game.tournament = { tournamentId: 't', stageId: 's', tableId: 'x', scheduleId: 'y' }
+        await expect(host.call('p2', 'p1')).rejects.toBeInstanceOf(DisallowedPlayerVoteError)
+        host.game.concedable = true
+        const enqueue = vi.mocked(host.tasks.createPushTask).mockResolvedValue(undefined)
+        await host.call('p2', 'p1')
+        expect(host.game.call?.kind).toBe(GameCallKind.Conceded)
+        expect(host.state()).toMatchObject({ result: GameResult.Win, winningPlayerIds: ['p2'] })
+        // The conceded Game's Table settles, so the Tournament's dispatch wakes.
+        expect(enqueue).toHaveBeenCalledWith(
+            expect.objectContaining({
+                path: '/tournaments/dispatch',
+                payload: { tournamentId: 't' }
+            })
+        )
+    })
+
     it('refuses calls before the published UI supports them', async () => {
         const host = createCallHost()
         await expect(host.call(undefined, 'p1', false)).rejects.toBeInstanceOf(

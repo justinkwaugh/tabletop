@@ -9,6 +9,7 @@ import {
     Role,
     Tournament,
     TournamentSchedule,
+    type TournamentTable,
     selfRegistrationKinds,
     UserStatus,
     type User,
@@ -22,6 +23,8 @@ import {
     tournamentFinishingPlacesConsistent,
     tournamentFinishingWinners,
     tournamentGameFinishingPlaces,
+    tournamentInPlay,
+    tournamentTableId,
     tournamentTableReference,
     type TiebreakRule,
     type TournamentFinishingPlaces
@@ -372,6 +375,79 @@ export class FirestoreTournamentStore implements TournamentStore {
                     tournament.revision++
                     tournament.updatedAt = now
                     transaction.create(ref.collection('schedules').doc(stage.id), stored)
+                    transaction.set(ref, this.serialize(tournament))
+                    return tournament
+                })
+        )
+    }
+
+    async extendSchedule(
+        tournamentId: string,
+        scheduleId: string,
+        knownTables: number,
+        tables: TournamentTable[],
+        now: number
+    ): Promise<Tournament> {
+        const read = await this.read(tournamentId)
+        const stageId = read?.stages[0]?.id
+        if (!stageId) throw new TournamentError('Tournament not found', 404)
+        return this.cache.lockWhileWriting(
+            [
+                this.cacheKeys.key('event', tournamentId),
+                this.cacheKeys.key('schedule', tournamentId, stageId)
+            ],
+            (locks) =>
+                this.firestore.runTransaction(async (transaction) => {
+                    const ref = this.document(tournamentId)
+                    const scheduleRef = ref.collection('schedules').doc(stageId)
+                    const [tournamentSnapshot, scheduleSnapshot] = await transaction.getAll(
+                        ref,
+                        scheduleRef
+                    )
+                    const tournament = this.parse(tournamentSnapshot.data())
+                    if (!tournament) throw new TournamentError('Tournament not found', 404)
+                    const stage = tournament.stages.find((value) => value.id === stageId)
+                    const stored = scheduleSnapshot.data()
+                    Value.Assert(StoredTournamentSchedule, stored)
+                    const schedule = loadTournamentSchedule(stored)
+                    if (
+                        !stage?.dispatch ||
+                        stage.scheduleId !== scheduleId ||
+                        schedule.id !== scheduleId ||
+                        !schedule.bracket ||
+                        tournament.paused ||
+                        !tournamentInPlay(tournament.status) ||
+                        schedule.tables.length !== knownTables
+                    )
+                        return tournament
+                    // The Bracket was read before this transaction: a player withdrawn since
+                    // forfeits, so their Table is never added.
+                    const withdrawn = new Set(
+                        tournament.entrants
+                            .filter((entrant) => entrant.withdrawn)
+                            .map((entrant) => entrant.userId)
+                    )
+                    const added = tables.filter(
+                        (table) => !table.entrantIds.some((id) => withdrawn.has(id))
+                    )
+                    if (!added.length) return tournament
+                    const before = structuredClone(tournament)
+                    schedule.tables.push(
+                        ...added.map((table, index) => ({
+                            ...table,
+                            id: tournamentTableId(knownTables + index)
+                        }))
+                    )
+                    stage.dispatch.reserved = reserveTournamentTables(
+                        tournament,
+                        schedule,
+                        stage.dispatch
+                    )
+                    tournament.nextTaskAt = now
+                    tournament.revision++
+                    tournament.updatedAt = now
+                    await this.protectLists(locks, before, tournament)
+                    transaction.set(scheduleRef, storeTournamentSchedule(schedule))
                     transaction.set(ref, this.serialize(tournament))
                     return tournament
                 })

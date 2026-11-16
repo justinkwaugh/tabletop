@@ -17,9 +17,14 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
         range,
+        defaultGameConfig,
         getMiniTournamentDefaults,
         miniTournamentDefaults,
+        normalizeGameConfig,
         tournamentCapacity,
+        KNOCKOUT_MATCH_GAMES,
+        type ConfigOption,
+        type GameConfig,
         type Tournament,
         type TournamentDraft
     } from '@tabletop/common'
@@ -42,6 +47,13 @@
     const initial = untrack(() => tournament)
     const id = initial?.id ?? nanoid()
     let name = $state(initial?.name ?? '')
+    let formatKind = $state<'mini' | 'knockout'>(
+        initial?.format.kind === 'knockout' ? 'knockout' : 'mini'
+    )
+    let knockout = $derived(formatKind === 'knockout')
+    let deciderRawConfig = $state<GameConfig>(
+        initial?.format.kind === 'knockout' ? { ...initial.format.deciderGameConfig } : {}
+    )
     let description = $state(initial?.description ?? '')
     let tableSize = $state(initial?.rules.tableSize ?? 4)
     let registrationKind = $state<'whenFull' | 'deadline'>(
@@ -83,6 +95,12 @@
     )
     let title = $derived(game.title)
     let config = $derived(game.config)
+    let deciderConfig = $derived(normalizeGameConfig(deciderRawConfig, title?.info.configurator))
+    const headToHead = (metadata: { minPlayers: number; maxPlayers: number }) =>
+        metadata.minPlayers <= 2 && metadata.maxPlayers >= 2
+    let titles = $derived(
+        knockout ? game.titles.filter((item) => headToHead(item.info.metadata)) : game.titles
+    )
 
     onMount(() =>
         game.loadEligibleTitles(api, 'Could not load the games available for tournaments.')
@@ -90,7 +108,25 @@
 
     function selectTitle(selectedTitleId: string) {
         const selected = game.select(selectedTitleId)
-        if (selected) setTableSize(selected.info.metadata.defaultPlayerCount)
+        if (!selected) return
+        deciderRawConfig = defaultGameConfig(selected.info.configurator?.options ?? [])
+        if (!knockout) setTableSize(selected.info.metadata.defaultPlayerCount)
+    }
+
+    function selectFormat(kind: 'mini' | 'knockout') {
+        formatKind = kind
+        if (kind === 'knockout') {
+            if (title && !headToHead(title.info.metadata)) game.titleId = ''
+            tableSize = 2
+            capacity = 8
+            minimumEntrants = 4
+        } else if (title) setTableSize(title.info.metadata.defaultPlayerCount)
+    }
+
+    function updateDeciderOption(option: ConfigOption, value: string | number | boolean | null) {
+        const updated = { ...deciderConfig }
+        title?.info.configurator?.updateConfig(updated, { id: option.id, value })
+        deciderRawConfig = updated
     }
 
     function setTableSize(value: number) {
@@ -122,28 +158,47 @@
                           closesAt: new Date(deadline).getTime(),
                           ...(capped ? { capacity } : {})
                       }
-            const draft: TournamentDraft = {
-                name,
-                description,
-                format: {
-                    kind: 'mini',
-                    stages: [
-                        {
-                            id: tournament?.format.stages[0].id ?? '1',
-                            name: 'Main stage',
-                            gamesPerEntrant
-                        }
-                    ]
-                },
-                rules: {
-                    titleId: game.titleId,
-                    tableSize,
-                    registration,
-                    concurrency,
-                    gameConfig: config,
-                    scoring: game.scoring
-                }
-            }
+            const stageId = tournament?.format.stages[0].id ?? '1'
+            const draft: TournamentDraft = knockout
+                ? {
+                      name,
+                      description,
+                      format: {
+                          kind: 'knockout',
+                          stages: [
+                              {
+                                  id: stageId,
+                                  name: 'Bracket',
+                                  gamesPerEntrant: KNOCKOUT_MATCH_GAMES
+                              }
+                          ],
+                          deciderGameConfig: deciderConfig
+                      },
+                      rules: {
+                          titleId: game.titleId,
+                          tableSize: 2,
+                          registration,
+                          concurrency: KNOCKOUT_MATCH_GAMES,
+                          gameConfig: config,
+                          scoring: 'splitWinsV1'
+                      }
+                  }
+                : {
+                      name,
+                      description,
+                      format: {
+                          kind: 'mini',
+                          stages: [{ id: stageId, name: 'Main stage', gamesPerEntrant }]
+                      },
+                      rules: {
+                          titleId: game.titleId,
+                          tableSize,
+                          registration,
+                          concurrency,
+                          gameConfig: config,
+                          scoring: game.scoring
+                      }
+                  }
             const saved = tournament
                 ? await api.updateTournament(tournament, draft)
                 : await api.createTournament(id, draft)
@@ -162,7 +217,7 @@
     </h1>
     <span
         class="rounded border border-gray-300 px-1.5 py-0.5 text-[10px] text-gray-500 dark:border-gray-600 dark:text-gray-400"
-        >Mini</span
+        >{knockout ? 'Knockout' : 'Mini'}</span
     >
 </div>
 <form
@@ -184,12 +239,31 @@
             />
         </div>
         <div>
+            <Label class="mb-2">Format</Label>
+            <ButtonGroup aria-label="Format">
+                {#each [['mini', 'Mini'], ['knockout', 'Knockout']] as const as [kind, label] (kind)}
+                    <RadioButton
+                        value={kind}
+                        bind:group={formatKind}
+                        onchange={() => selectFormat(kind)}
+                        checkedClass="dark:hover:bg-transparent dark:bg-transparent dark:text-primary-500 dark:hover:text-primary-500 dark:focus-within:text-primary-500"
+                        >{label}</RadioButton
+                    >
+                {/each}
+            </ButtonGroup>
+            <Helper class="mt-1 text-xs"
+                >{knockout
+                    ? 'Head to head: losing a match knocks a player out. Each match is one game from each side, with a decider if it is split.'
+                    : 'Players play a fixed number of games and are ranked on points.'}</Helper
+            >
+        </div>
+        <div>
             <Label for="tournament-game" class="mb-2">Game</Label>
             <TournamentSelect
                 id="tournament-game"
                 value={game.titleId}
                 placeholder="Choose a game"
-                options={game.titles.map((item) => ({
+                options={titles.map((item) => ({
                     value: item.info.id,
                     name: item.info.metadata.name
                 }))}
@@ -198,11 +272,11 @@
             {#if game.titlesError}<Helper color="red" class="mt-1">{game.titlesError}</Helper
                 >{:else if libraryService.loading || !game.eligibleTitleIds}<Helper class="mt-1"
                     >Loading game titles…</Helper
-                >{:else if !game.titles.length}<Helper color="red" class="mt-1"
+                >{:else if !titles.length}<Helper color="red" class="mt-1"
                     >Game titles are unavailable.</Helper
                 >{/if}
         </div>
-        {#if title}
+        {#if title && !knockout}
             <div>
                 <Label class="mb-2">Players per game</Label>
                 <ButtonGroup aria-label="Players per game">
@@ -218,7 +292,7 @@
                 </ButtonGroup>
             </div>
         {/if}
-        {#if game.supportsPlacement}
+        {#if game.supportsPlacement && !knockout}
             <CompetitionScoringField {game} />
         {/if}
         {#if title?.info.configurator?.options.length}
@@ -228,6 +302,23 @@
                 {config}
                 onupdate={(option, value) => game.updateOption(option, value)}
             />
+        {/if}
+        {#if knockout && title?.info.configurator?.options.length}
+            <Hr class="my-4" />
+            <div>
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white">Decider</h3>
+                <Helper class="mt-1 mb-3 text-xs"
+                    >A split match is settled by a third game with these options. Its seats aren't
+                    assigned, so the game's own setup decides who plays which side.</Helper
+                >
+                <GameConfigFields
+                    idPrefix="tournament-decider-option"
+                    seated={false}
+                    options={title.info.configurator.options}
+                    config={deciderConfig}
+                    onupdate={updateDeciderOption}
+                />
+            </div>
         {/if}
         <Hr class="my-4" />
         <div>
@@ -259,7 +350,7 @@
                 >Advanced</summary
             >
             <div class="mt-4 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4" class:hidden={knockout}>
                     <div>
                         <Label for="tournament-games" class="mb-2">Total games per player</Label>
                         <Input

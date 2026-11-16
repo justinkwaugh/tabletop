@@ -11,7 +11,26 @@ A site-organized competition in one Game Title whose Entrants accumulate results
 A Tournament with one Stage in which Entrants accumulate points across several Tables to determine final standings.
 
 **Tournament Format**:
-The structure of one Tournament, such as Mini or Multi-stage. A League contains Tournaments through its Seasons and Groups rather than being a Tournament Format.
+The structure of one Tournament, such as Mini, Knockout or Multi-stage. A League contains Tournaments through its Seasons and Groups rather than being a Tournament Format.
+
+**Knockout**:
+A Tournament with one Stage in which two-player Matches eliminate Entrants through a Bracket until one is champion. Below the champion, Entrants rank by the round they reached.
+_Avoid_: Single elimination, cup
+
+**Bracket**:
+The drawn arrangement of a Knockout's Matches by round, each later Match fed by the winners of two earlier ones. Its size is the next power of two at or above the field.
+
+**Match**:
+A contest between two Entrants in a Knockout: one Game from each Starting Position, then Deciders while they are level.
+
+**Decider**:
+A Game that settles a level Match, played with the event's decider options and without assigned seats, so the title's own setup (for Napoleon's Triumph, the morale auction) decides the sides.
+
+**Bye**:
+An empty first-round place in a Bracket. The Entrant drawn against it advances without playing.
+
+**Walkover**:
+A Match won because the opponent was withdrawn, or because the other place was left empty when both Entrants of a feeding Match were withdrawn.
 
 **Stage Plan**:
 The declared sequence of Stages and participation commitment for a Tournament. A planned Stage exists before its play begins; the number of planned Stages is determined by this plan.

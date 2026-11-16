@@ -5,8 +5,9 @@
     import { changesFinishedGames, listenForGameListChanges } from '$lib/services/gameListUpdates'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import DashboardGameList from './DashboardGameList.svelte'
+    import { historyGames } from '$lib/utils/historyGames'
 
-    const { api, notificationService } = getAppContext()
+    const { api, gameService, notificationService } = getAppContext()
     let games = $state<Game[]>([])
     let cursor: string | undefined
     let exhausted = $state(false)
@@ -15,7 +16,13 @@
     let visibleLimit = $state(20)
     let disposed = false
     let refreshPending = false
-    const finished = $derived(games.filter((game) => game.category !== GameCategory.Exploration))
+    const finished = $derived(
+        historyGames(
+            games.filter((game) => game.category !== GameCategory.Exploration),
+            gameService.finishedLocalGames,
+            { allPagesLoaded: exhausted }
+        )
+    )
     const visible = $derived(finished.slice(0, visibleLimit))
 
     async function loadGames() {

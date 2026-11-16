@@ -1,0 +1,121 @@
+{
+    "game": {
+        "id": "scenario-stack-of-six",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "lyngk",
+        "deleted": false,
+        "name": "Stack of 6",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "Alice",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Bob",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "variant": "StackOfSix"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3860199301,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-16T15:53:29.315Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-16T15:53:29.315Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "jTicJbP5rTapgKChMZYIZ",
+        "gameId": "scenario-stack-of-six",
+        "seed": 3860199301,
+        "prng": {
+            "seed": 3860199301,
+            "invocations": 43
+        },
+        "protectedPrng": {
+            "algorithm": "chacha20-v1",
+            "seed": "ef4f34931b73e92ff9e8a94c1d661d1f90f1228d11e533db53f0e86b8e153ae2",
+            "invocations": 0
+        },
+        "masterSeed": "c659aeaa2386a7b64f2c85c7c9c5c727",
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "purple",
+                "claimed": ["red", "ivory"],
+                "scored": []
+            },
+            {
+                "playerId": "player-2",
+                "color": "orange",
+                "claimed": ["green"],
+                "scored": []
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            },
+            "seriesKeeps": "latest"
+        },
+        "variant": "StackOfSix",
+        "board": {
+            "stacks": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "pieces": [16]
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "pieces": [40, 8, 0, 24, 32]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "pieces": [25, 1]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    },
+                    "pieces": [9]
+                }
+            ]
+        },
+        "claimedThisTurn": false
+    },
+    "actions": []
+}
