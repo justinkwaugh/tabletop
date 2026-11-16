@@ -415,5 +415,31 @@ for (const viewport of [
             const key = await rect(page.locator('[data-symbol-key-toggle]'))
             expect(key.y + key.height).toBeLessThanOrEqual(column.foot + 0.5)
         })
+
+        test('R-3.2 card play’s hand row is about 120 px tall, each card still a 44 px press with its magnifier', async ({
+            page
+        }) => {
+            await openFixture(page, 'cards-migrate')
+            await settled(page)
+            const area = await rect(page.locator('[data-action-cap]'))
+            expect(area.height).toBeLessThanOrEqual(124)
+            const cards = page.locator('[data-cards="hand"] [data-row]')
+            await expect(cards).toHaveCount(4)
+            for (const card of await cards.all()) {
+                const face = await rect(card.locator('button').first())
+                expect(face.width).toBeGreaterThanOrEqual(Target)
+                expect(face.height).toBeGreaterThanOrEqual(Target)
+                await expect(card.locator('[data-enlarge]')).toHaveCount(1)
+            }
+        })
+
+        test('R-3.1 the hand-choosing tray keeps its size', async ({ page }) => {
+            await openFixture(page, 'hands-first-sulfur')
+            await expect(page.locator('[data-hand-tray]')).toBeVisible()
+            await settled(page)
+            const tray = await rect(page.locator('[data-hand-tray]'))
+            expect(Math.abs(tray.height - 272)).toBeLessThanOrEqual(2)
+            expect(Math.abs(tray.width - 368)).toBeLessThanOrEqual(2)
+        })
     })
 }

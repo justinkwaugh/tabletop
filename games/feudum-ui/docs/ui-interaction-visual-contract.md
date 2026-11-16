@@ -420,12 +420,13 @@ Above the phone breakpoints the shared layout holds the sidebar (Players, Histor
 | Region       | Height                                           | Notes                                                                                                                                                  |
 | ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Turn header  | one line                                         | the turn's title                                                                                                                                       |
-| Action area  | as its content needs                             | a card row in card play; the draft's tray A (about 350 px) while hands are chosen                                                                      |
+| Action area  | as its content needs                             | a card row about 120 px tall in card play (48 px faces, each with its magnifier); the draft's tray A (about 350 px) while hands are chosen             |
 | Board's view | the board's shape at the column's width, or less | the scaling wrapper (`justify` left): the board, the guild standings' strip under it, the zoom row's band; the row in the band, with the focus buttons |
 
 - **The board takes the column's width.** Nothing stands beside it: the guild standings are the strip under it (Guild standings), so at 1440 × 900 the board is about 1076 px wide, at 1280 × 800 about 916 and at 1920 × 1080 about 1556.
 - **The view is the shape of what it fits**, the board, the strip and the band at the column's width (`deskScaledHeight`, by the seat count, since each strip rail has a line per seat), and no taller, so the zoom row stands right under the strip. The column's space below it is left empty.
 - **It gives way, it reserves nothing.** Where the action area is taller (the hand tray), the view takes only the height left and the wrapper fits the board, the strip and the band to it, the board's left edge kept at the column's, so the strip and the zoom row stay in the column with no scroll (checked at 1280 × 800, 1440 × 900 and 1920 × 1080 with five seats). No height is held back for the tray, so in card play the board is back at the column's full width (checked at the same sizes with four seats; with five at 1920 × 1080 a tall card row can take a few pixels).
+- **A short hand row.** In card play the hand's faces are 48 px wide on a desk (72 on a phone), so the action area is about 120 px tall with no card picked and the board keeps the height; each face is still a press of at least 44 px with its magnifier, and a picked card's tray grows the row as it needs. The hand-choosing tray is unchanged (checked at 1280 × 800, 1440 × 900 and 1920 × 1080, `tests/desktop.spec.ts`).
 
 ## Phone layout
 
