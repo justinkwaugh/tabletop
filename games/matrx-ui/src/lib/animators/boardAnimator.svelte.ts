@@ -315,9 +315,9 @@ export class BoardAnimator implements MoveInterrupter {
         await tick()
         // The context's timelines run from its creation, so the motion starts after the draw time.
         const timeline = gsap.timeline()
-        // An actionless step has 0.2 s in all, so it waits at most 0.02 s for the draw.
+        // An actionless step has 0.2 s in all, so it waits at most 0.01 s for the draw.
         const drawn = (performance.now() - drawing) / 1000
-        animationContext.actionTimeline.add(timeline, quick ? Math.min(drawn, 0.02) : drawn)
+        animationContext.actionTimeline.add(timeline, quick ? Math.min(drawn, 0.01) : drawn)
 
         if (change.kind === 'push') {
             returned = await this.push(change, kind, to, quick, timeline, touched)
