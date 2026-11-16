@@ -82,6 +82,25 @@ async function rect(target: Locator) {
     return box
 }
 
+/** Where a rect in board units stands on screen, by the board's own viewBox, and at what scale. */
+async function areaOnScreen(
+    page: Page,
+    area: { x: number; y: number; width: number; height: number }
+) {
+    return page.locator('[data-board-surface]').evaluate((svg, wanted) => {
+        const box = svg.getBoundingClientRect()
+        const view = (svg as SVGSVGElement).viewBox.baseVal
+        const scale = box.width / view.width
+        return {
+            x: box.x + (wanted.x - view.x) * scale,
+            y: box.y + (wanted.y - view.y) * scale,
+            width: wanted.width * scale,
+            height: wanted.height * scale,
+            scale
+        }
+    }, area)
+}
+
 test.describe('a 1440 px desk', () => {
     test.use({ viewport: { width: 1440, height: 900 } })
 
@@ -193,6 +212,103 @@ test.describe('a 1440 px desk', () => {
         // The board still takes the column's width.
         const surface = await rect(page.locator('[data-board-surface]'))
         expect(Math.abs(surface.width - view.width)).toBeLessThan(2)
+    })
+
+    test('Contract, Supply: the zoom row’s focus buttons frame each area as large as fits, Whole board the rest', async ({
+        page
+    }) => {
+        await openFixture(page, 'seats-four-mid-game')
+        await settled(page)
+        const chooser = page.getByRole('group', { name: 'Focus the board' })
+        const chip = (name: string) => chooser.getByRole('button', { name, exact: true })
+        const names = ['Whole board', 'Map', 'West guilds', 'East guilds']
+        await expect(chooser.getByRole('button')).toHaveText(names)
+        // One row with the zoom buttons, Key and Supply, after Supply.
+        const supply = await rect(page.locator('[data-supply-toggle]'))
+        const keyReach = await reach(page.locator('[data-symbol-key-toggle]'))
+        for (const name of names) {
+            const box = await rect(chip(name))
+            expect(Math.abs(box.y + box.height / 2 - (supply.y + supply.height / 2))).toBeLessThan(
+                4
+            )
+            expect(box.x).toBeGreaterThan(supply.x + supply.width)
+            expect(box.height).toBeCloseTo(supply.height, 0)
+            expect((await reach(chip(name))).down).toBeGreaterThanOrEqual(keyReach.down)
+        }
+        await expect(chip('Whole board')).toHaveAttribute('aria-pressed', 'true')
+        const view = await rect(page.locator('[data-board-view]'))
+        const restWidth = (await rect(page.locator('[data-board-surface]'))).width
+        expect(Math.abs(restWidth - view.width)).toBeLessThan(2)
+
+        // Each area at the largest scale that fits, whole in the view and clear of the row.
+        const rowTop = supply.y
+        const areas = {
+            Map: { x: 452, y: 60, width: 1598, height: 833 },
+            // Each guild column with its rails over the map's inner edge.
+            'West guilds': { x: 62, y: 62, width: 566, height: 828.7 },
+            'East guilds': { x: 1874, y: 62, width: 565, height: 828.7 }
+        }
+        for (const [name, area] of Object.entries(areas)) {
+            await chip(name).click()
+            await settled(page)
+            await expect(chip(name)).toHaveAttribute('aria-pressed', 'true')
+            await expect(chip('Whole board')).toHaveAttribute('aria-pressed', 'false')
+            const shown = await areaOnScreen(page, area)
+            expect(shown.x).toBeGreaterThanOrEqual(view.x - 1)
+            expect(shown.x + shown.width).toBeLessThanOrEqual(view.x + view.width + 1)
+            expect(shown.y).toBeGreaterThanOrEqual(view.y - 1)
+            expect(shown.y + shown.height).toBeLessThanOrEqual(rowTop + 1)
+            const fits = Math.min(
+                (view.width - 24) / area.width,
+                (view.y + view.height - 44 - 12 - (view.y + 12)) / area.height,
+                1
+            )
+            expect(Math.abs(shown.scale - fits)).toBeLessThan(0.03)
+        }
+        // Zoom still works inside a focus.
+        const before = (await rect(page.locator('[data-board-surface]'))).width
+        await page.getByRole('button', { name: 'Zoom in' }).click()
+        await settled(page)
+        expect((await rect(page.locator('[data-board-surface]'))).width).toBeGreaterThan(before)
+
+        await chip('Whole board').click()
+        await settled(page)
+        await expect(chip('Whole board')).toHaveAttribute('aria-pressed', 'true')
+        const back = await rect(page.locator('[data-board-surface]'))
+        expect(Math.abs(back.width - restWidth)).toBeLessThan(2)
+    })
+
+    test('Contract, Supply: a pick the chosen area leaves out is framed; at Whole board nothing moves', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-migrate')
+        await settled(page)
+        const chooser = page.getByRole('group', { name: 'Focus the board' })
+        const surface = page.locator('[data-board-surface]')
+        const restWidth = (await rect(surface)).width
+        const migrate = panel(page)
+            .locator('[data-cards="hand"] [data-row="Migrate"] button')
+            .first()
+        await migrate.click()
+        await settled(page)
+        const lit = page.locator('[data-board-surface] [data-pick-role="lit"]')
+        await expect(lit.first()).toBeAttached()
+        expect(Math.abs((await rect(surface)).width - restWidth)).toBeLessThan(2)
+        await migrate.click()
+        await settled(page)
+
+        await chooser.getByRole('button', { name: 'West guilds', exact: true }).click()
+        await settled(page)
+        await migrate.click()
+        await settled(page)
+        await expect(lit.first()).toBeAttached()
+        const view = await rect(page.locator('[data-board-view]'))
+        for (const target of await lit.all()) {
+            const box = await rect(target)
+            expect(box.x).toBeGreaterThanOrEqual(view.x)
+            expect(box.x + box.width).toBeLessThanOrEqual(view.x + view.width)
+        }
+        await expect(chooser.locator('[aria-pressed="true"]')).toHaveCount(0)
     })
 
     test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({

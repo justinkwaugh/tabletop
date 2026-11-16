@@ -4,15 +4,18 @@
     import type { BoardFocus, FocusArea, PickFrame } from '$lib/model/boardFocus.svelte.js'
 
     /**
-     * The focus chooser: four chips over the board's top edge. Map and the guild chips frame that
-     * part of the board, the Tracks chip opens the sheet, and a chip's dot says its area holds a lit
-     * target. It also follows the open pick, which is the one place a choice moves the focus.
+     * The focus chooser. On a phone, four chips over the board's top edge: Map and the guild chips
+     * frame that part of the board, the Tracks chip opens the sheet. On a desk, four buttons in the
+     * zoom row: Whole board, the rest, then Map and the guild columns, each at the largest scale that
+     * fits. A chip's dot says its area holds a lit target. It also follows the open pick, which is
+     * the one place a choice moves the focus.
      */
     let {
         focus,
         lit,
         frame,
         turned,
+        desk = false,
         onTracks
     }: {
         focus: BoardFocus
@@ -20,16 +23,25 @@
         frame: PickFrame | undefined
         /** Which way up the phone is: the chosen view fits again when it turns. */
         turned: boolean
+        /** In a desk's zoom row rather than over a phone's board. */
+        desk?: boolean
         onTracks: () => void
     } = $props()
 
-    const Chips: readonly { readonly area: FocusArea; readonly label: string }[] = [
+    const PhoneChips: readonly { readonly area: FocusArea; readonly label: string }[] = [
         { area: 'map', label: 'Map' },
         { area: 'west', label: 'West guilds' },
         { area: 'east', label: 'East guilds' },
         { area: 'tracks', label: 'Tracks' }
     ]
+    const DeskChips: readonly { readonly area: FocusArea; readonly label: string }[] = [
+        { area: 'board', label: 'Whole board' },
+        { area: 'map', label: 'Map' },
+        { area: 'west', label: 'West guilds' },
+        { area: 'east', label: 'East guilds' }
+    ]
 
+    let chips = $derived(desk ? DeskChips : PhoneChips)
     let frameKey = $derived(frame?.key)
 
     const settleOnTheChip: Attachment<HTMLElement> = () => {
@@ -53,13 +65,14 @@
 
 <div
     class="chooser"
+    class:desk
     role="group"
     aria-label="Focus the board"
-    data-focus-chooser
+    data-focus-chooser={desk ? 'desk' : 'phone'}
     {@attach settleOnTheChip}
     {@attach followThePick}
 >
-    {#each Chips as { area, label } (area)}
+    {#each chips as { area, label } (area)}
         <button
             type="button"
             class="chip"
@@ -110,6 +123,29 @@
         content: '';
         position: absolute;
         inset: -2px 0 -12px;
+    }
+
+    /* Contract, Supply: in the zoom row, drawn as the Key and Supply buttons beside it. */
+    .chooser.desk {
+        position: static;
+        gap: 0.25rem;
+        margin-left: 0.5rem;
+        pointer-events: auto;
+    }
+
+    .desk .chip {
+        flex: 0 0 auto;
+        height: 2.25rem;
+        padding: 0 0.75rem;
+        border-width: 2px;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    /* 44 px to press, for a button drawn the zoom controls' height. */
+    .desk .chip::after {
+        inset: -0.25rem 0;
     }
 
     .dot {

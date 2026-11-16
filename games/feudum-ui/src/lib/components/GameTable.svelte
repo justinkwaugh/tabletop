@@ -26,6 +26,7 @@
         BoardFocus,
         ChooserInset,
         CoverBelowScale,
+        deskRestScaleOf,
         deskScaledHeight,
         litAreasOf,
         pickFrameOf,
@@ -59,12 +60,23 @@
     let wrapper = $state<ScalingWrapper>()
     let viewSize = $state({ width: 0, height: 0 })
 
-    /** Contract, Board focus: never read for an offer, and a desktop has no chooser and no framing. */
+    /**
+     * Contract, Board focus: never read for an offer. A phone's chooser stands over the board; a
+     * desk's is in the zoom row, rests on the whole board and frames a pick its view leaves out.
+     */
     const focus = new BoardFocus({
         view: () => wrapper,
-        restScale: () => restScaleOf(viewSize.width, viewSize.height),
+        restScale: () =>
+            phone.phone
+                ? restScaleOf(viewSize.width, viewSize.height)
+                : deskRestScaleOf(
+                      viewSize.width,
+                      viewSize.height,
+                      feudumSession.gameState.players.length
+                  ),
         sideways: () => phone.sideways,
-        animate: () => !phone.reducedMotion
+        animate: () => !phone.reducedMotion,
+        desk: () => (phone.phone ? undefined : viewSize)
     })
 
     /**
@@ -147,6 +159,18 @@
 
 <svelte:window onkeydowncapture={onEscape} />
 
+{#snippet deskRow()}
+    <!-- Contract, Supply: the desk's zoom row goes on with the focus buttons. -->
+    <FocusChooser
+        {focus}
+        lit={litAreas}
+        frame={pickFrame}
+        turned={false}
+        desk
+        onTracks={() => feudumSession.layers.openTracks()}
+    />
+{/snippet}
+
 {#snippet turnControls()}
     <div class="bg-feudum-surface" data-turn-controls>
         <Header />
@@ -213,8 +237,8 @@
                         <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
                         <div class="block" style:height="{ZoomRowBand}px" data-zoom-row-band></div>
                         {#snippet overlay(viewport)}
-                            {#if phone.phone}
-                                <div class="contents" {@attach measureView(viewport)}>
+                            <div class="contents" {@attach measureView(viewport)}>
+                                {#if phone.phone}
                                     <FocusChooser
                                         {focus}
                                         lit={litAreas}
@@ -222,9 +246,9 @@
                                         turned={phone.sideways}
                                         onTracks={() => feudumSession.layers.openTracks()}
                                     />
-                                </div>
-                            {/if}
-                            <BoardCorner />
+                                {/if}
+                            </div>
+                            <BoardCorner row={phone.phone ? undefined : deskRow} />
                         {/snippet}
                         {#snippet toolbar()}
                             <!-- Full screen is a modal dialog: the panel and all that stands over the table come inside it. -->
