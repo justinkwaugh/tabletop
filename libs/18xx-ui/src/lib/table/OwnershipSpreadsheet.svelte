@@ -1281,7 +1281,7 @@
             </div>
             <div class="trade-answer">
                 {#if pendingPlayerPurchase}<button
-                        class="confirm-trade"
+                        class="confirm-trade buy"
                         disabled={tradingDisabled}
                         onclick={() => confirmBuy(pendingPlayerPurchase.request.buyer)}>Yes</button
                     >{/if}
@@ -1327,7 +1327,7 @@
                 </div>
                 <div class="trade-answer">
                     <button
-                        class="confirm-trade"
+                        class="confirm-trade sell"
                         disabled={tradingDisabled}
                         onclick={() => confirmSale(1)}>Yes</button
                     >
@@ -1337,6 +1337,7 @@
                 <div class="sale-options">
                     {#each pendingSaleChoices as choice (choice.sale.shares)}
                         <button
+                            class="confirm-trade sell"
                             disabled={tradingDisabled}
                             aria-label={`Sell ${choice.sale.shares} ${choice.sale.shares === 1 ? 'share' : 'shares'} for ${optionalMoney(money, choice.result.details?.proceeds)}`}
                             data-sale-shares={choice.sale.shares}
@@ -1399,16 +1400,20 @@
         font: inherit;
         cursor: pointer;
     }
-    .trade-answer .confirm-trade,
-    .sale-options button {
-        border-color: var(--trade-buy-border);
-        background: var(--trade-buy);
+    .share-confirmation .confirm-trade {
         color: #fff;
         font-weight: 700;
     }
-    .trade-answer .confirm-trade:hover:not(:disabled),
-    .sale-options button:hover:not(:disabled) {
-        background: #1d6043;
+    .share-confirmation .confirm-trade.buy {
+        border-color: var(--trade-buy-border);
+        background: var(--trade-buy);
+    }
+    .share-confirmation .confirm-trade.sell {
+        border-color: var(--trade-sell-border);
+        background: var(--trade-sell);
+    }
+    .share-confirmation .confirm-trade:hover:not(:disabled) {
+        filter: brightness(1.12);
     }
     .trade-answer .company-buy {
         border-color: var(--rail-solid, #2c4652);
@@ -1417,6 +1422,11 @@
     }
     .trade-answer .company-buy:hover:not(:disabled) {
         filter: brightness(1.15);
+    }
+    .trade-answer button:disabled,
+    .sale-options button:disabled {
+        opacity: 0.4;
+        cursor: default;
     }
     .sale-proceeds {
         margin-top: 6px;
