@@ -82,6 +82,8 @@ export const SkyBottom = 150
 
 /** The frame a location disc is drawn in; the disc itself fills 84 % of it. */
 export const DiscFrame = 72
+/** The ring a space's pick draws round its disc. */
+export const SpaceRingFrame = DiscFrame + 10
 export const PawnSize = 46
 export const MarkerSize = 26
 export const ImmunitySealSize = 18

@@ -3,6 +3,7 @@
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
     import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
+    import MapChips from './MapChips.svelte'
     import MapContents from './MapContents.svelte'
     import MapGround from './MapGround.svelte'
     import MapLocations from './MapLocations.svelte'
@@ -29,3 +30,4 @@
 {@render underContents?.()}
 <g data-layer="contents"><MapContents {state} {paintOf} {chrome} /></g>
 <g data-layer="pieces"><MapPieces {state} {paintOf} {chrome} /></g>
+<g data-layer="chips"><MapChips {chrome} /></g>

@@ -88,6 +88,7 @@ describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
             'locations',
             'contents',
             'pieces',
+            'chips',
             'guilds',
             'tracks',
             'motion'

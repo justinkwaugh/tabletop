@@ -133,6 +133,15 @@ export class ScenarioTable {
         return this.page.locator(`[data-board-surface] [data-pick="${target}"]`)
     }
 
+    /** A target's chip: in its pick, or, for a space, in the chip layer over the pieces. */
+    chip(target: string): Locator {
+        return this.page.locator(
+            [`[data-pick="${target}"]`, `[data-chip-of="${target}"]`]
+                .map((holder) => `[data-board-surface] ${holder} [data-chip]`)
+                .join(', ')
+        )
+    }
+
     popupRow(label: string): Locator {
         return this.popup().locator(`[data-row="${label}"]`).locator('button').first()
     }
@@ -188,13 +197,20 @@ export class ScenarioTable {
     async litChips(): Promise<Record<string, string>> {
         return Object.fromEntries(
             await this.lit().evaluateAll((picks) =>
-                picks.map((pick) => [
-                    pick.getAttribute('data-pick') ?? '',
+                picks.map((pick) => {
+                    const target = pick.getAttribute('data-pick') ?? ''
+                    // A space's chip stands in the chip layer, over the pieces on it.
+                    const chip =
+                        pick.querySelector('[data-chip]') ??
+                        pick
+                            .closest('[data-board-surface]')
+                            ?.querySelector(`[data-chip-of="${target}"] [data-chip]`)
                     // A chip drawn as art is named by its words, not its pieces.
-                    pick.querySelector('[data-chip]')?.getAttribute('aria-label') ??
-                        pick.querySelector('[data-chip]')?.textContent?.trim() ??
-                        ''
-                ])
+                    return [
+                        target,
+                        chip?.getAttribute('aria-label') ?? chip?.textContent?.trim() ?? ''
+                    ]
+                })
             )
         )
     }

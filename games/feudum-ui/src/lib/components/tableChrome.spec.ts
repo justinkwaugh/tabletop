@@ -6,6 +6,7 @@ import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'
 import { guildTarget, markerTarget, spaceTarget, stackTarget } from '$lib/model/boardOffer.js'
 import type { BoardOffer } from '$lib/model/boardOffer.js'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
+import { addPawn } from '$lib/testing/turnTable.js'
 import MapLayers from './map/MapLayers.svelte'
 import PickChrome from './map/PickChrome.svelte'
 import RegionStacks from './tracks/RegionStacks.svelte'
@@ -136,6 +137,25 @@ describe('Board chrome (contract: Pick conventions, Board surface)', () => {
         expect(html).toContain('data-pick-role="lit"')
         expect(html).toContain('data-pick-role="dimmed"')
         expect(html).not.toContain('--feudum-dim')
+    })
+
+    it("R-1.2 A lit space's chip is drawn over the pieces standing on it", () => {
+        const host = new FeudumHost(3)
+        const state = new HydratedFeudumGameState(structuredClone(host.state))
+        const playerId = state.players[0].playerId
+        addPawn(state, playerId, 'farmer', A)
+        const chip = { kind: 'cost', label: '1 food', tone: 'rose' } as const
+        const chrome = chromeWith(new Map([[spaceTarget(A), { role: 'lit', chip }]]))
+        const html = render(MapLayers, { props: { state, paintOf, chrome } }).body
+        const pawn = html.indexOf(`data-world="pawn:${playerId}:`)
+        const chips = [...html.matchAll(/data-chip="rose"/g)].map(({ index }) => index)
+
+        expect(pawn).toBeGreaterThan(-1)
+        expect(chips).toHaveLength(1)
+        expect(chips[0]).toBeGreaterThan(pawn)
+        expect(html.indexOf('data-layer="chips"')).toBeGreaterThan(
+            html.indexOf('data-layer="pieces"')
+        )
     })
 
     it('R-1.2 At rest a layer draws no ring, no dim and no press', async () => {
