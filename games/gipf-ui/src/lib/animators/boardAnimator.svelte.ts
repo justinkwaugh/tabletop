@@ -59,6 +59,10 @@ export class BoardAnimator implements MoveInterrupter {
     private readonly pieceNodes = new Map<number, SVGGElement>()
     private readonly bodyNodes = new Map<number, SVGGElement>()
     private readonly shadowNodes = new Map<number, SVGGElement>()
+    // A piece's kind badge is drawn over its marks, so it is moved beside the piece: its outer node
+    // slides with the piece and its inner one lifts with the body.
+    private readonly badgeNodes = new Map<number, SVGGElement>()
+    private readonly badgeBodyNodes = new Map<number, SVGGElement>()
     private enteringNode: SVGGElement | undefined
     private readonly enteringDiscNodes = new Map<number, SVGGElement>()
     private enteringCreaseNode: SVGGElement | undefined
@@ -108,6 +112,14 @@ export class BoardAnimator implements MoveInterrupter {
 
     shadow(key: number): Attachment<SVGGElement> {
         return this.register(this.shadowNodes, key)
+    }
+
+    badge(key: number): Attachment<SVGGElement> {
+        return this.register(this.badgeNodes, key)
+    }
+
+    badgeBody(key: number): Attachment<SVGGElement> {
+        return this.register(this.badgeBodyNodes, key)
     }
 
     private register<Key>(nodes: Map<Key, SVGGElement>, key: Key): Attachment<SVGGElement> {
@@ -300,20 +312,23 @@ export class BoardAnimator implements MoveInterrupter {
             if (body === undefined || shadow === undefined) continue
             touched.push(body, shadow)
             const vars = { duration, ease: 'power1.in', immediateRender: true }
-            timeline.add(
-                fromToPose(
-                    body,
-                    { scale: LIFT_OFF.scale, y: LIFT_OFF.rise },
-                    { scale: 1, y: 0, ...vars }
-                ),
-                0
-            )
-            timeline.fromTo(
-                body,
-                { opacity: 0 },
-                { opacity: 1, duration, ease: 'power2.out', immediateRender: true },
-                0
-            )
+            for (const node of this.withBadge(body, key)) {
+                touched.push(node)
+                timeline.add(
+                    fromToPose(
+                        node,
+                        { scale: LIFT_OFF.scale, y: LIFT_OFF.rise },
+                        { scale: 1, y: 0, ...vars }
+                    ),
+                    0
+                )
+                timeline.fromTo(
+                    node,
+                    { opacity: 0 },
+                    { opacity: 1, duration, ease: 'power2.out', immediateRender: true },
+                    0
+                )
+            }
             timeline.fromTo(shadow, { opacity: 0 }, { opacity: 1, ...vars }, 0)
             timeline.add(fromToPose(shadow, { scale: LIFT_OFF.shadow }, { scale: 1, ...vars }), 0)
         }
@@ -340,10 +355,14 @@ export class BoardAnimator implements MoveInterrupter {
         at = 0
     ) {
         for (const coords of pieces) {
-            const node = this.pieceNodes.get(coordinatesToNumber(coords))
+            const key = coordinatesToNumber(coords)
+            const node = this.pieceNodes.get(key)
             if (node === undefined) continue
-            timeline.add(tweenPose(node, { ...step, duration, ease: 'power2.inOut' }), at)
-            touched.push(node)
+            const badge = this.badgeNodes.get(key)
+            for (const moved of badge ? [node, badge] : [node]) {
+                timeline.add(tweenPose(moved, { ...step, duration, ease: 'power2.inOut' }), at)
+                touched.push(moved)
+            }
         }
     }
 
@@ -358,12 +377,21 @@ export class BoardAnimator implements MoveInterrupter {
         const body = this.bodyNodes.get(key)
         const shadow = this.shadowNodes.get(key)
         if (body === undefined || shadow === undefined) return
-        touched.push(body, shadow)
+        touched.push(shadow)
         const ease = 'power1.out'
-        timeline.add(tweenPose(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }), at)
-        timeline.to(body, { opacity: 0, duration, ease: fade }, at)
+        for (const node of this.withBadge(body, key)) {
+            touched.push(node)
+            timeline.add(tweenPose(node, { scale: LIFT_OFF.scale, y: rise, duration, ease }), at)
+            timeline.to(node, { opacity: 0, duration, ease: fade }, at)
+        }
         timeline.to(shadow, { opacity: 0, duration, ease }, at)
         timeline.add(tweenPose(shadow, { scale: LIFT_OFF.shadow, duration, ease }), at)
+    }
+
+    // A body and, when it carries one, its badge, which rises and falls with it.
+    private withBadge(body: SVGGElement, key: number): SVGGElement[] {
+        const badge = this.badgeBodyNodes.get(key)
+        return badge ? [body, badge] : [body]
     }
 
     private dropEntering(timeline: Timeline) {

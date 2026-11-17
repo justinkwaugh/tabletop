@@ -1,6 +1,7 @@
 <svelte:options namespace="svg" />
 
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import type { Color } from '@tabletop/common'
     import type { Attachment } from 'svelte/attachments'
     import { PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
@@ -13,13 +14,15 @@
         gipf,
         body,
         shadow,
-        parts
+        parts,
+        onTop
     }: {
         color: Color
         gipf: boolean
         body?: Attachment<SVGGElement>
         shadow?: Attachment<SVGGElement>
         parts?: PieceParts
+        onTop?: Snippet<[number]>
     } = $props()
 </script>
 
@@ -29,5 +32,5 @@
     ></ellipse>
 </g>
 <g {@attach body}>
-    <PieceShape {color} {gipf} radius={PIECE_RADIUS} {parts} />
+    <PieceShape {color} {gipf} radius={PIECE_RADIUS} {parts} {onTop} />
 </g>

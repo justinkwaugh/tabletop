@@ -101,6 +101,12 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.preferences.set({ turned: !this.turned })
     }
 
+    pieceBadges: boolean = $derived(this.preferences.values.pieceBadges)
+
+    togglePieceBadges() {
+        this.preferences.set({ pieceBadges: !this.pieceBadges })
+    }
+
     view: BoardView = $derived(viewOf(this.turned))
     notation: BoardNotation = $derived(boardNotation(ALL_POINTS, this.view))
 

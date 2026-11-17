@@ -1,6 +1,7 @@
 <svelte:options namespace="svg" />
 
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import type { Color } from '@tabletop/common'
     import { onDestroy, untrack } from 'svelte'
     import { PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
@@ -13,8 +14,15 @@
         color,
         gipf,
         drops,
-        lifts
-    }: { color: Color; gipf: boolean; drops: boolean; lifts: () => boolean } = $props()
+        lifts,
+        onTop
+    }: {
+        color: Color
+        gipf: boolean
+        drops: boolean
+        lifts: () => boolean
+        onTop?: Snippet<[number]>
+    } = $props()
 
     // Whether it drops is settled when it is first drawn.
     const drop = new StagedDrop(
@@ -33,5 +41,5 @@
     </g>
 </g>
 <g out:liftOffBody|global={{ lifts }}>
-    <PieceShape {color} {gipf} radius={PIECE_RADIUS} parts={drop.parts} />
+    <PieceShape {color} {gipf} radius={PIECE_RADIUS} parts={drop.parts} {onTop} />
 </g>
