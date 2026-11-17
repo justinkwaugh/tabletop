@@ -8,7 +8,7 @@ import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
-import { legalPlacements, placementTest, startCityIds } from '../rules/placement.js'
+import { legalPlacements, placementsLeft, placementTest, startCityIds } from '../rules/placement.js'
 import { westernmostOccupiedCities } from '../rules/startRailroad.js'
 import {
     buildState,
@@ -18,6 +18,7 @@ import {
     undoRun,
     type StateRecipe
 } from '../testing/fixtures.js'
+import { greaterGermanyOneShort } from '../testing/greaterGermany.js'
 import { intercolonialOneShort } from '../testing/intercolonial.js'
 import { HydratedPlaceLocomotive } from './placeLocomotive.js'
 
@@ -498,5 +499,50 @@ describe('France (R-8.4)', () => {
             }
         })
         expect(hydrated(after).getPlayerState('p1').money).toBe(20)
+    })
+})
+
+describe('Germany (R-8.5)', () => {
+    const STUTTGART: HexId = 'hex.de.8-46'
+    const MOUNTAIN_NORTH_OF_STUTTGART: HexId = 'hex.de.8-44'
+    const BERLIN: HexId = 'hex.de.19-17'
+
+    function germany(track: Track) {
+        return building({ mapId: 'map.de', track, building: { placed: 0, usedMountain: false } })
+    }
+
+    it('leaves the limit and the turn’s mountain charge alone for Orange’s mountain placement', () => {
+        const state = germany({ [STUTTGART]: ['railroad.orange', 'railroad.red'] })
+        const { after } = place(state, 'railroad.orange', MOUNTAIN_NORTH_OF_STUTTGART)
+        expect(after.building).toEqual({ placed: 1, usedMountain: false })
+        expect(placementsLeft(hydrated(after))).toBe(7)
+    })
+
+    it('spends the charge, once, for another railroad’s mountain placement', () => {
+        const state = germany({ [STUTTGART]: ['railroad.orange', 'railroad.red'] })
+        const { after } = place(state, 'railroad.red', MOUNTAIN_NORTH_OF_STUTTGART)
+        expect(after.building).toEqual({ placed: 1, usedMountain: true })
+        expect(placementsLeft(hydrated(after))).toBe(6)
+    })
+
+    it('pays Berlin’s $3 for a start there', () => {
+        const { after, processed } = place(germany({}), 'railroad.purple', BERLIN)
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: true,
+                bonuses: [{ bonusId: 'bonus.de.berlin', amount: 3, cityId: 'city.de.berlin' }]
+            }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(13)
+    })
+
+    it('pays and claims Greater Germany once, to the first placement that joins its five cities', () => {
+        const { track, railroadId, hexId } = greaterGermanyOneShort()
+        const { after, processed } = place(germany(track), railroadId, hexId)
+        expect(processed[0]).toMatchObject({
+            metadata: { bonuses: [{ bonusId: 'bonus.de.greater-germany', amount: 12 }] }
+        })
+        expect(after.connectionClaim).toEqual({ playerId: 'p1', amount: 12 })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(22)
     })
 })

@@ -1,7 +1,9 @@
 import {
+    BERLIN_BONUS,
     BRISBANE_BONUS,
     CHICAGO_BONUS,
     FIVE_DOLLAR_BONUS,
+    GREATER_GERMANY_BONUS,
     INTERCOLONIAL_BONUS,
     PARIS_BONUS,
     PERTH_BONUS,
@@ -150,7 +152,9 @@ export const BONUS_RULES: Readonly<Record<MapId, readonly BonusRule[]>> = {
     // R-8.3: no Transcontinental.
     'map.ca': [startPricedRule(TORONTO_BONUS), connectionRule(INTERCOLONIAL_BONUS)],
     // R-8.4: no Transcontinental.
-    'map.fr': [everyPlacementRule(PARIS_BONUS)]
+    'map.fr': [everyPlacementRule(PARIS_BONUS)],
+    // R-8.5: no Transcontinental.
+    'map.de': [everyPlacementRule(BERLIN_BONUS), connectionRule(GREATER_GERMANY_BONUS)]
 }
 
 // R-4.3, R-3.2.5: every bonus a placement pays, in table order.

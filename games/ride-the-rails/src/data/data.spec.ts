@@ -167,10 +167,17 @@ describe('tables keyed by map id (R-8)', () => {
             'map.usa',
             'map.au',
             'map.ca',
-            'map.fr'
+            'map.fr',
+            'map.de'
         ])
-        expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa', 'map.au', 'map.ca', 'map.fr'])
-        expect(Object.keys(BONUSES)).toEqual(['map.usa', 'map.au', 'map.ca', 'map.fr'])
+        expect(Object.keys(PLACEMENT_LIMITS)).toEqual([
+            'map.usa',
+            'map.au',
+            'map.ca',
+            'map.fr',
+            'map.de'
+        ])
+        expect(Object.keys(BONUSES)).toEqual(['map.usa', 'map.au', 'map.ca', 'map.fr', 'map.de'])
     })
 })
 
@@ -361,6 +368,64 @@ describe('France (R-8.4)', () => {
             name: 'France',
             description:
                 'Paris $10 inside a ring of six one-locomotive entry hexes, and a new passenger there each round it has none; estuaries that track cannot cross.'
+        })
+    })
+})
+
+describe('Germany (R-8.5)', () => {
+    it('brings the railroads in by the USA’s rounds, Purple starting in a city of its colour or Berlin', () => {
+        expect(
+            RAILROAD_INTRODUCTIONS['map.de'].map(({ railroadId, availableFromRound }) => [
+                railroadId,
+                availableFromRound
+            ])
+        ).toEqual(
+            RAILROAD_INTRODUCTIONS['map.usa'].map(({ railroadId, availableFromRound }) => [
+                railroadId,
+                availableFromRound
+            ])
+        )
+        expect(
+            RAILROAD_INTRODUCTIONS['map.de'].map(({ railroadId, startRule }) => [
+                railroadId,
+                startRule
+            ])
+        ).toEqual([
+            ['railroad.red', 'printed-colour'],
+            ['railroad.blue', 'printed-colour'],
+            ['railroad.orange', 'printed-colour'],
+            ['railroad.yellow', 'printed-colour'],
+            ['railroad.purple', 'printed-colour-or-berlin'],
+            ['railroad.black', 'any-city']
+        ])
+    })
+
+    it('prints 8 / 5 / 4 for 3 / 4 / 5 players, mountain −1, Orange exempt', () => {
+        expect(PLACEMENT_LIMITS['map.de']).toEqual({
+            byPlayerCount: [
+                { playerCount: 3, limit: 8 },
+                { playerCount: 4, limit: 5 },
+                { playerCount: 5, limit: 4 }
+            ],
+            mountainReduction: 1,
+            mountainExempt: ['railroad.orange']
+        })
+        expect(placementLimit('map.de', 3, true)).toBe(7)
+        expect(placementLimit('map.de', 4, true)).toBe(4)
+        expect(placementLimit('map.de', 5, true)).toBe(3)
+    })
+
+    it('has no group limit and no Paris Travels', () => {
+        expect(GROUP_LIMITS['map.de']).toEqual([])
+        expect(ROUND_END_PASSENGER_CITY['map.de']).toBe(null)
+    })
+
+    it('is listed for game creation as Germany, with what it changes', () => {
+        expect(MAP_KEY_OF['map.de']).toBe('de')
+        expect(MAP_DETAILS['map.de']).toEqual({
+            name: 'Germany',
+            description:
+                'Berlin spans two hexes with no limit, $3 a placement, and Purple may start there; Orange pays no mountain cost; Greater Germany pays $12.'
         })
     })
 })

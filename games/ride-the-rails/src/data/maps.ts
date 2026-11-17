@@ -1,13 +1,13 @@
 import * as Type from 'typebox'
 
-// R-8: the USA, Australia, Canada and France; 'map.de' is reserved for Germany.
-export const MAP_IDS = ['map.usa', 'map.au', 'map.ca', 'map.fr'] as const
+// R-8: the USA and the four expansion maps.
+export const MAP_IDS = ['map.usa', 'map.au', 'map.ca', 'map.fr', 'map.de'] as const
 
 export const MapId = Type.Enum(MAP_IDS)
 export type MapId = Type.Static<typeof MapId>
 
 // The key a map's hex and city ids carry, `hex.<key>.…` and `city.<key>.…`; one per map id.
-export const MAP_KEYS = ['usa', 'au', 'ca', 'fr'] as const
+export const MAP_KEYS = ['usa', 'au', 'ca', 'fr', 'de'] as const
 
 export type MapKey = (typeof MAP_KEYS)[number]
 
@@ -15,7 +15,8 @@ export const MAP_KEY_OF: Readonly<Record<MapId, MapKey>> = {
     'map.usa': 'usa',
     'map.au': 'au',
     'map.ca': 'ca',
-    'map.fr': 'fr'
+    'map.fr': 'fr',
+    'map.de': 'de'
 }
 
 export type MapDetails = {
@@ -42,5 +43,10 @@ export const MAP_DETAILS: Readonly<Record<MapId, MapDetails>> = {
         name: 'France',
         description:
             'Paris $10 inside a ring of six one-locomotive entry hexes, and a new passenger there each round it has none; estuaries that track cannot cross.'
+    },
+    'map.de': {
+        name: 'Germany',
+        description:
+            'Berlin spans two hexes with no limit, $3 a placement, and Purple may start there; Orange pays no mountain cost; Greater Germany pays $12.'
     }
 }

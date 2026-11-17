@@ -37,7 +37,7 @@ export type OneShort = {
     hexId: HexId
 }
 
-function addTrack(track: Track, railroadId: RailroadId, hexIds: readonly HexId[]) {
+export function addTrack(track: Track, railroadId: RailroadId, hexIds: readonly HexId[]) {
     assert(hexIds.length <= LOCOMOTIVES_PER_RAILROAD, `${railroadId} has too few locomotives`)
     for (const hexId of hexIds) {
         track[hexId] = [...(track[hexId] ?? []), railroadId]

@@ -11,8 +11,8 @@ export const CHICAGO_CITY_ID: CityId = 'city.usa.chicago'
 
 const WESTERNMOST_COUNT = 3
 
-// R-8 (Germany): Berlin's id; it reads as a CityId once Germany's map key is known.
-const BERLIN: ReadonlySet<string> = new Set(['city.de.berlin'])
+// R-8.5: Purple may start in Berlin.
+const BERLIN_CITY_ID: CityId = 'city.de.berlin'
 
 // R-4.2.3: Yellow's westernmost rule is the USA board's; no other map prints it.
 const WESTERNMOST_MAP: MapId = 'map.usa'
@@ -95,8 +95,8 @@ export function cityFitsStartRule(
         // its colour.
         case 'printed-colour':
             return city.startColours.includes(railroadId)
-        // R-8 (Germany): in a city of its colour, or in Berlin.
+        // R-8.5: in a city of its colour, or in Berlin.
         case 'printed-colour-or-berlin':
-            return city.startColours.includes(railroadId) || BERLIN.has(city.id)
+            return city.startColours.includes(railroadId) || city.id === BERLIN_CITY_ID
     }
 }

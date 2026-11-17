@@ -31,7 +31,8 @@ export const ROUND_END_PASSENGER_CITY: Readonly<Record<MapId, CityId | null>> = 
     'map.usa': null,
     'map.au': null,
     'map.ca': null,
-    'map.fr': 'city.fr.paris'
+    'map.fr': 'city.fr.paris',
+    'map.de': null
 }
 
 // R-8: the city a passenger is placed in at the end of the round, if any.

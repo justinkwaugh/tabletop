@@ -20,7 +20,10 @@ export const CityId = Type.TemplateLiteral([
 export type CityId = Type.Static<typeof CityId>
 
 // A bonus a city prints; the line and connection bonuses belong to no one city.
-export type CityBonusId = Exclude<BonusId, 'bonus.usa.transcontinental' | 'bonus.ca.intercolonial'>
+export type CityBonusId = Exclude<
+    BonusId,
+    'bonus.usa.transcontinental' | 'bonus.ca.intercolonial' | 'bonus.de.greater-germany'
+>
 
 // R-4.1.4: how many railroads a city holds.
 export type CityCapacity = 1 | 2 | 'unlimited'

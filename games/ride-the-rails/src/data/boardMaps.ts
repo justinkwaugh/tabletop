@@ -11,6 +11,7 @@ import { mapKeyOfHex, type HexId } from './hexes.js'
 import { AUSTRALIA_MAP } from './australiaMap.js'
 import { CANADA_MAP } from './canadaMap.js'
 import { FRANCE_MAP } from './franceMap.js'
+import { GERMANY_MAP } from './germanyMap.js'
 import { MAP_KEY_OF, type MapId, type MapKey } from './maps.js'
 import { USA_MAP } from './usaMap.js'
 
@@ -19,7 +20,8 @@ export const BOARD_MAPS: Readonly<Record<MapId, BoardMap>> = {
     'map.usa': new BoardMap(USA_MAP),
     'map.au': new BoardMap(AUSTRALIA_MAP),
     'map.ca': new BoardMap(CANADA_MAP),
-    'map.fr': new BoardMap(FRANCE_MAP)
+    'map.fr': new BoardMap(FRANCE_MAP),
+    'map.de': new BoardMap(GERMANY_MAP)
 }
 
 export function boardMap(mapId: MapId): BoardMap {

@@ -3,7 +3,7 @@ import { BONUSES } from '../data/bonuses.js'
 import { hexIdAt, type HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import type { City } from '../data/boardMap.js'
-import { adjacentHexIds, isHexId } from '../data/boardMaps.js'
+import { adjacentHexIds, boardMap, isHexId } from '../data/boardMaps.js'
 import type { MapId } from '../data/maps.js'
 import { USA_CITIES } from '../data/usaMap.js'
 import { PhaseName } from '../definition/phases.js'
@@ -14,6 +14,7 @@ import type {
 } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
 import { buildState } from '../testing/fixtures.js'
+import { greaterGermanyOneShort } from '../testing/greaterGermany.js'
 import { intercolonialOneShort, WINDSOR } from '../testing/intercolonial.js'
 import {
     ALPHA,
@@ -35,6 +36,7 @@ import {
     type BonusContext,
     type BonusPayment
 } from './bonuses.js'
+import { citiesConnected } from './connection.js'
 import { placementTest } from './placement.js'
 
 const CHICAGO: HexId = 'hex.usa.5-43'
@@ -653,5 +655,100 @@ describe('France (R-8.4)', () => {
         expect(
             place({ mapId: 'map.fr', track }, 'railroad.purple', NORTH_OF_PARIS).bonuses
         ).toEqual([])
+    })
+})
+
+describe('Germany (R-8.5)', () => {
+    const BERLIN: HexId = 'hex.de.19-17'
+    const NORTH_OF_BERLIN: HexId = 'hex.de.19-15'
+    const SOUTH_EAST_OF_BERLIN: HexId = 'hex.de.21-19'
+    const BERLIN_PAYMENT = { bonusId: 'bonus.de.berlin', amount: 3, cityId: 'city.de.berlin' }
+    const GREATER_GERMANY = { bonusId: 'bonus.de.greater-germany', amount: 12 }
+
+    it('lists Berlin and Greater Germany, and no Transcontinental', () => {
+        expect(BONUS_RULES['map.de'].map((rule) => rule.bonus)).toEqual(BONUSES['map.de'])
+        expect(BONUSES['map.de']).toEqual([
+            { id: 'bonus.de.berlin', printedName: 'Berlin', amount: 3 },
+            {
+                id: 'bonus.de.greater-germany',
+                printedName: 'Greater Germany',
+                amount: 12,
+                cityIds: [
+                    'city.de.berlin',
+                    'city.de.hamburg',
+                    'city.de.koln',
+                    'city.de.dresden',
+                    'city.de.munchen'
+                ]
+            }
+        ])
+    })
+
+    it('pays $3 for a railroad’s start in Berlin', () => {
+        expect(place({ mapId: 'map.de' }, 'railroad.purple', BERLIN)).toEqual({
+            isStart: true,
+            bonuses: [BERLIN_PAYMENT]
+        })
+        expect(place({ mapId: 'map.de' }, 'railroad.black', BERLIN)).toEqual({
+            isStart: true,
+            bonuses: [BERLIN_PAYMENT]
+        })
+    })
+
+    it('pays $3 for every later placement there, from beside either of its cells', () => {
+        const track = trackOf(
+            ['railroad.red', [NORTH_OF_BERLIN]],
+            ['railroad.blue', [SOUTH_EAST_OF_BERLIN]],
+            ['railroad.purple', [BERLIN]]
+        )
+        expect(place({ mapId: 'map.de', track }, 'railroad.red', BERLIN)).toEqual({
+            isStart: false,
+            bonuses: [BERLIN_PAYMENT]
+        })
+        expect(place({ mapId: 'map.de', track }, 'railroad.blue', BERLIN)).toEqual({
+            isStart: false,
+            bonuses: [BERLIN_PAYMENT]
+        })
+    })
+
+    it('pays Greater Germany to the placement that joins Berlin, Hamburg, Köln, Dresden and München', () => {
+        const { track, railroadId, hexId } = greaterGermanyOneShort()
+        expect(place({ mapId: 'map.de', track }, railroadId, hexId).bonuses).toEqual([
+            GREATER_GERMANY
+        ])
+    })
+
+    it('pays nothing while any one of the five is cut off', () => {
+        const { track, railroadId, hexId } = greaterGermanyOneShort()
+        expect(place({ mapId: 'map.de', track }, 'railroad.black', 'hex.de.17-19').bonuses).toEqual(
+            []
+        )
+        const withoutKoln: Track = Object.fromEntries(
+            Object.entries(track).flatMap(([trackHexId, railroadIds]) => {
+                const left = railroadIds.filter((id) => id !== 'railroad.red')
+                return left.length > 0 ? [[trackHexId, left]] : []
+            })
+        )
+        expect(
+            citiesConnected(boardMap('map.de'), withoutKoln, ['city.de.koln', 'city.de.berlin'])
+        ).toBe(false)
+        expect(place({ mapId: 'map.de', track: withoutKoln }, railroadId, hexId).bonuses).toEqual(
+            []
+        )
+    })
+
+    it('pays it once: nothing once claimed, and nothing once the five are joined', () => {
+        const { track, railroadId, hexId } = greaterGermanyOneShort()
+        const placement = { railroadId, hexId, isStart: false }
+        expect(
+            placementBonuses('map.de', placement, track, undefined, { playerId: 'p2', amount: 12 })
+        ).toEqual([])
+        const joined: Track = { ...track, [hexId]: [railroadId] }
+        const later = {
+            railroadId: 'railroad.black',
+            hexId: 'hex.de.17-19',
+            isStart: true
+        } as const
+        expect(placementBonuses('map.de', later, joined, undefined, undefined)).toEqual([])
     })
 })

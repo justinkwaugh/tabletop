@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { MAP_IDS } from '@tabletop/ride-the-rails'
 import { boardGeometry, hexBox } from './boardGeometry.js'
-import { legendBox, legendRows, MAP_LAYOUTS, titleBox } from './mapLayouts.js'
+import { legendBox, legendRows, MAP_LAYOUTS, START_LEGEND, titleBox } from './mapLayouts.js'
 import { boxesOverlap, boxInside } from '$lib/testing/shapeChecks.js'
 
 describe('each map’s sea layout', () => {
@@ -35,6 +35,15 @@ describe('each map’s sea layout', () => {
             legend: { x: 52, y: 1196 }
         })
         expect(legendBox('map.usa')).toEqual({ x: 52, y: 992, width: 610, height: 204 })
+    })
+
+    it('narrows only Germany’s legend, whose North Sea is too narrow for the usual card', () => {
+        for (const mapId of MAP_IDS) {
+            expect([mapId, legendBox(mapId).width]).toEqual([
+                mapId,
+                mapId === 'map.de' ? 480 : START_LEGEND.width
+            ])
+        }
     })
 
     it('writes one legend row per start rule, Red and Blue sharing theirs', () => {

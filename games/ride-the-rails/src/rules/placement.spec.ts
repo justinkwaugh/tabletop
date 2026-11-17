@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { hexById } from '../data/boardMaps.js'
 import type { HexId } from '../data/hexes.js'
+import { lowersLimit } from '../data/placementLimits.js'
 import { RAILROAD_IDS } from '../data/railroads.js'
 import { USA_HEXES } from '../data/usaMap.js'
 import { PhaseName } from '../definition/phases.js'
@@ -745,5 +746,63 @@ describe('France (R-8.4)', () => {
             refused('not-adjacent-or-start')
         )
         expect(placementTest(state, 'p1', 'railroad.orange', SOUTH_EAST_OF_LE_HAVRE)).toEqual(LEGAL)
+    })
+})
+
+describe('Germany (R-8.5)', () => {
+    const STUTTGART: HexId = 'hex.de.8-46'
+    const MOUNTAIN_NORTH_OF_STUTTGART: HexId = 'hex.de.8-44'
+    const PLAIN_SOUTH_OF_STUTTGART: HexId = 'hex.de.8-48'
+    const BERLIN: HexId = 'hex.de.19-17'
+    const NORTH_OF_BERLIN: HexId = 'hex.de.19-15'
+    const SOUTH_EAST_OF_BERLIN: HexId = 'hex.de.21-19'
+
+    function germany(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
+        return building({
+            mapId: 'map.de',
+            shares: { p1: { 'railroad.red': 1, 'railroad.orange': 1, 'railroad.black': 1 } },
+            track: { [STUTTGART]: ['railroad.orange', 'railroad.red'] },
+            ...recipe
+        })
+    }
+
+    it('allows 8, 5 and 4 placements for 3, 4 and 5 players, one fewer once a mountain is used', () => {
+        expect([3, 4, 5].map((playerCount) => placementsLeft(germany({ playerCount })))).toEqual([
+            8, 5, 4
+        ])
+        expect(placementsLeft(germany({ building: { placed: 0, usedMountain: true } }))).toBe(7)
+    })
+
+    it('lets Orange take a mountain as its eighth placement, which lowers the limit for no one else', () => {
+        const eighth = germany({ building: { placed: 7, usedMountain: false } })
+        expect(placementTest(eighth, 'p1', 'railroad.orange', MOUNTAIN_NORTH_OF_STUTTGART)).toEqual(
+            LEGAL
+        )
+        expect(placementTest(eighth, 'p1', 'railroad.red', MOUNTAIN_NORTH_OF_STUTTGART)).toEqual(
+            refused('over-placement-limit')
+        )
+        expect(placementTest(eighth, 'p1', 'railroad.red', PLAIN_SOUTH_OF_STUTTGART)).toEqual(LEGAL)
+    })
+
+    it('reports no mountain charge for an Orange placement, and one for any other railroad', () => {
+        expect(lowersLimit('map.de', 'railroad.orange', MOUNTAIN_NORTH_OF_STUTTGART)).toBe(false)
+        expect(lowersLimit('map.de', 'railroad.red', MOUNTAIN_NORTH_OF_STUTTGART)).toBe(true)
+        expect(lowersLimit('map.de', 'railroad.black', MOUNTAIN_NORTH_OF_STUTTGART)).toBe(true)
+        expect(lowersLimit('map.de', 'railroad.red', PLAIN_SOUTH_OF_STUTTGART)).toBe(false)
+    })
+
+    it('takes any number of railroads in Berlin, one locomotive of each, from beside either cell', () => {
+        const state = germany({
+            track: {
+                [BERLIN]: ['railroad.purple', 'railroad.blue', 'railroad.orange'],
+                [NORTH_OF_BERLIN]: ['railroad.red'],
+                [SOUTH_EAST_OF_BERLIN]: ['railroad.black']
+            }
+        })
+        expect(placementTest(state, 'p1', 'railroad.red', BERLIN)).toEqual(LEGAL)
+        expect(placementTest(state, 'p1', 'railroad.black', BERLIN)).toEqual(LEGAL)
+        expect(placementTest(state, 'p1', 'railroad.orange', BERLIN)).toEqual(
+            refused('railroad-in-hex')
+        )
     })
 })

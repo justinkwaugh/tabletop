@@ -82,6 +82,7 @@ export function markView(mark: OfferMark): MarkView {
         case 'bonus.au.brisbane':
         case 'bonus.ca.toronto':
         case 'bonus.fr.paris':
+        case 'bonus.de.berlin':
             return { tone: 'coin', text, spoken: text }
         case 'bonus.usa.five-dollar':
             return { tone: 'five', text, spoken: text }
@@ -89,6 +90,8 @@ export function markView(mark: OfferMark): MarkView {
             return { tone: 'gold', text, spoken: `${text} Transcontinental` }
         case 'bonus.ca.intercolonial':
             return { tone: 'gold', text, spoken: `${text} Intercolonial` }
+        case 'bonus.de.greater-germany':
+            return { tone: 'gold', text, spoken: `${text} Greater Germany` }
     }
 }
 

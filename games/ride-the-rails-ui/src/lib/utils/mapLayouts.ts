@@ -17,6 +17,8 @@ export type MapLayout = {
     readonly title: Point
     /** The start legend's bottom-left corner. */
     readonly legend: Point
+    /** The start legend's width, where the map's open sea is narrower than the usual card. */
+    readonly legendWidth?: number
 }
 
 // R-8: an expansion map adds its own row.
@@ -53,6 +55,16 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
         boardLabel: 'Map of France',
         title: { x: 160, y: 1520 },
         legend: { x: 16, y: 120 }
+    },
+    // The board prints no title. The title off the board's land south-east of Dresden, clear of
+    // land by 86; the legend in the North Sea, clear of land by 24. That sea is 520 wide at most,
+    // so the legend is narrowed to 480, still wider than its rows need.
+    'map.de': {
+        name: 'Germany',
+        boardLabel: 'Map of Germany',
+        title: { x: 1360, y: 1360 },
+        legend: { x: 16, y: 160 },
+        legendWidth: 480
     }
 }
 
@@ -121,6 +133,6 @@ export function legendRows(mapId: MapId): LegendRow[] {
 export function legendBox(mapId: MapId): BoundingBox {
     const { pad, titleSize, row } = START_LEGEND
     const height = pad + titleSize + 10 + legendRows(mapId).length * row + pad - 8
-    const { legend } = MAP_LAYOUTS[mapId]
-    return { x: legend.x, y: legend.y - height, width: START_LEGEND.width, height }
+    const { legend, legendWidth = START_LEGEND.width } = MAP_LAYOUTS[mapId]
+    return { x: legend.x, y: legend.y - height, width: legendWidth, height }
 }

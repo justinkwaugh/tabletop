@@ -81,5 +81,18 @@ export const RAILROAD_INTRODUCTIONS: Readonly<Record<MapId, readonly RailroadInt
     'map.ca': PRINTED_COLOUR_INTRODUCTIONS,
     // R-8.4: as on Australia. Red and Blue start in the Red/Blue/Black cities, each holding one, so
     // never in the same one.
-    'map.fr': PRINTED_COLOUR_INTRODUCTIONS
+    'map.fr': PRINTED_COLOUR_INTRODUCTIONS,
+    // R-8.5: as on Australia, but Purple may also start in Berlin.
+    'map.de': [
+        { railroadId: 'railroad.red', availableFromRound: 1, startRule: 'printed-colour' },
+        { railroadId: 'railroad.blue', availableFromRound: 1, startRule: 'printed-colour' },
+        { railroadId: 'railroad.orange', availableFromRound: 2, startRule: 'printed-colour' },
+        { railroadId: 'railroad.yellow', availableFromRound: 3, startRule: 'printed-colour' },
+        {
+            railroadId: 'railroad.purple',
+            availableFromRound: 4,
+            startRule: 'printed-colour-or-berlin'
+        },
+        { railroadId: 'railroad.black', availableFromRound: 5, startRule: 'any-city' }
+    ]
 }

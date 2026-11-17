@@ -15,7 +15,8 @@ const SETUP_PASSENGERS: Readonly<Record<MapId, number>> = {
     'map.usa': 51,
     'map.au': 52,
     'map.ca': 52,
-    'map.fr': 52
+    'map.fr': 52,
+    'map.de': 52
 }
 
 function gameFor(playerCount: number): Game {

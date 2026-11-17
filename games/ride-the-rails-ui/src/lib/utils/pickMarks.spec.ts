@@ -147,7 +147,8 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             'bonus.au.perth',
             'bonus.au.brisbane',
             'bonus.ca.toronto',
-            'bonus.fr.paris'
+            'bonus.fr.paris',
+            'bonus.de.berlin'
         ]
         for (const bonusId of cityBonuses) {
             expect(markView({ kind: 'bonus', bonusId, amount: 10 })).toEqual({
@@ -161,6 +162,9 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
             text: '$8',
             spoken: '$8 Intercolonial'
         })
+        expect(
+            markView({ kind: 'bonus', bonusId: 'bonus.de.greater-germany', amount: 12 })
+        ).toEqual({ tone: 'gold', text: '$12', spoken: '$12 Greater Germany' })
     })
 
     it('lights the offer in map order, the Tab order, and rings the picked hex heavier', async () => {

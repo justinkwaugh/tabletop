@@ -53,6 +53,16 @@ export const PLACEMENT_LIMITS: Readonly<Record<MapId, MapPlacementLimits>> = {
             { playerCount: 5, limit: 4 }
         ],
         mountainReduction: 1
+    },
+    // R-8.5: the board's reminder strip; Orange's mountain placements leave the limit as it is.
+    'map.de': {
+        byPlayerCount: [
+            { playerCount: 3, limit: 8 },
+            { playerCount: 4, limit: 5 },
+            { playerCount: 5, limit: 4 }
+        ],
+        mountainReduction: 1,
+        mountainExempt: ['railroad.orange']
     }
 }
 
@@ -92,5 +102,7 @@ export const GROUP_LIMITS: Readonly<Record<MapId, readonly GroupLimit[]>> = {
     'map.fr': [
         { group: 'red-blue-black', perRailroad: 2 },
         { group: 'paris-entry', perRailroad: 1 }
-    ]
+    ],
+    // R-8.5: the board prints no x1 and no group limit.
+    'map.de': []
 }
