@@ -1,4 +1,4 @@
-import { CHICAGO_BONUS, cityIn, hexById, type HexId } from '@tabletop/ride-the-rails'
+import { cityIn, hexById, type HexId } from '@tabletop/ride-the-rails'
 
 /**
  * The board's look, one pick for each of twelve questions. The look is chosen here: to switch a
@@ -127,8 +127,9 @@ export function hexPaint(hexId: HexId, scheme: HexFillScheme = BOARD_LOOK.hexFil
     const city = cityIn(hexId)
     if (!city || scheme === 'terrain') return PLAIN_PAINT
     if (scheme === 'city-tint') return patch('var(--rtr-hex-city)')
-    // R-4.1.4, R-4.2: Chicago, which has no limit, apart; then the cities with printed starts.
-    if (city.bonus === CHICAGO_BONUS.id) return patch('var(--rtr-hex-chicago)')
+    // R-4.1.4, R-4.2, R-8: a city with no limit (Chicago, Toronto, Paris, Berlin) apart; then the
+    // cities with printed starts.
+    if (city.capacity === 'unlimited') return patch('var(--rtr-hex-chicago)')
     if (city.startColours.length > 0) return patch('var(--rtr-hex-start-city)')
     return patch('var(--rtr-hex-city)')
 }

@@ -1,6 +1,12 @@
 <script lang="ts">
     import type { MapId } from '@tabletop/ride-the-rails'
-    import { legendBox, legendRows, START_LEGEND } from '$lib/utils/mapLayouts.js'
+    import {
+        legendBox,
+        legendCubeX,
+        legendRows,
+        legendTextX,
+        START_LEGEND
+    } from '$lib/utils/mapLayouts.js'
     import RailroadPiece from './RailroadPiece.svelte'
 
     let { mapId }: { mapId: MapId } = $props()
@@ -13,10 +19,10 @@
         row: ROW,
         cube: CUBE
     } = START_LEGEND
-    const TEXT_X = PAD + 2 * CUBE + 16
-
-    // R-4.2.1 to R-4.2.5, R-8: one row per start rule of the map, in its own words.
+    // R-4.2.1 to R-4.2.5, R-8: one row per start rule of the map, in its own words, the text past
+    // the widest row's cubes.
     const ROWS = $derived(legendRows(mapId))
+    const TEXT_X = $derived(legendTextX(mapId))
     const box = $derived(legendBox(mapId))
 </script>
 
@@ -41,7 +47,7 @@
     {#each ROWS as row, index (row.text)}
         {@const y = PAD + TITLE_SIZE + 10 + index * ROW + ROW / 2}
         {#each row.railroadIds as railroadId, cube (railroadId)}
-            <RailroadPiece {railroadId} x={PAD + CUBE / 2 + cube * (CUBE + 4)} {y} width={CUBE} />
+            <RailroadPiece {railroadId} x={legendCubeX(cube)} {y} width={CUBE} />
         {/each}
         <text x={TEXT_X} y={y + TEXT_SIZE * 0.35} font-size={TEXT_SIZE} fill="var(--rtr-ink)"
             >{row.text}</text

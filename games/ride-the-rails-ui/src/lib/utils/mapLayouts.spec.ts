@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { MAP_IDS } from '@tabletop/ride-the-rails'
 import { boardGeometry, hexBox } from './boardGeometry.js'
-import { legendBox, legendRows, MAP_LAYOUTS, START_LEGEND, titleBox } from './mapLayouts.js'
+import {
+    legendBox,
+    legendCubeX,
+    legendRows,
+    legendTextX,
+    MAP_LAYOUTS,
+    START_LEGEND,
+    titleBox
+} from './mapLayouts.js'
 import { boxesOverlap, boxInside } from '$lib/testing/shapeChecks.js'
 
 describe('each map’s sea layout', () => {
@@ -44,6 +52,21 @@ describe('each map’s sea layout', () => {
                 mapId === 'map.de' ? 480 : START_LEGEND.width
             ])
         }
+    })
+
+    it('sets the rows’ text past the widest row’s cubes, where the USA’s two always stood', () => {
+        expect(legendTextX('map.usa')).toBe(68)
+        for (const mapId of MAP_IDS) {
+            for (const row of legendRows(mapId)) {
+                const lastCube = legendCubeX(row.railroadIds.length - 1)
+                expect(lastCube + START_LEGEND.cube / 2, `${mapId} ${row.text}`).toBeLessThan(
+                    legendTextX(mapId) - 8
+                )
+            }
+        }
+        // Australia’s, Canada’s and France’s printed colour row holds five cubes.
+        expect(legendRows('map.au')[0]?.railroadIds).toHaveLength(5)
+        expect(legendTextX('map.au')).toBe(134)
     })
 
     it('writes one legend row per start rule, Red and Blue sharing theirs', () => {

@@ -2,11 +2,9 @@ import { assertExists, distanceAxial } from '@tabletop/common'
 import {
     FIVE_DOLLAR_BONUS,
     MAP_IDS,
-    PLACEMENT_LIMITS,
     boardMap,
     hexIdToAxial,
     hexOrder,
-    mapIdOfHex,
     railroadsIn,
     cityIn,
     type BoardMap,
@@ -340,8 +338,8 @@ export type ChipModifiers = {
     transcontinental: number | undefined
     /** R-4.3.2: a start in an empty $5 city uses the bonus up and pays nothing. */
     startUsesBonus: number | undefined
-    /** R-3.2.4: the hex is the turn's first mountain, so the limit drops by the map's reduction. */
-    mountain: boolean
+    /** R-3.2.4, R-8: how far the placement lowers the turn's limit, by the map's mountain cost. */
+    limitChange: number
 }
 
 const TRANSCONTINENTAL_ID = 'bonus.usa.transcontinental'
@@ -361,7 +359,7 @@ export function chipModifiers(track: Track, popup: BuildPopup, chip: RailroadChi
         ),
         transcontinental: transcontinental?.amount,
         startUsesBonus: usesBonus ? FIVE_DOLLAR_BONUS.amount : undefined,
-        mountain: popup.lowersLimit
+        limitChange: chip.limitChange
     }
 }
 
@@ -371,7 +369,7 @@ export type ChoiceChip = {
     label: string
     /** A pill only for what the placement earns. */
     pills: ChipPill[]
-    /** A mountain mark: the placement lowers the turn's limit. */
+    /** A mountain mark: the placement lowers the turn's limit by some placements. */
     mountain: boolean
 }
 
@@ -385,21 +383,26 @@ export type RailroadChoice = {
 
 const FEWER_WORDS = ['no', 'one', 'two', 'three'] as const
 
-// R-3.2.4, R-8: how many fewer placements the map's mountain leaves the turn.
-function fewerPlacements(hexId: HexId): string {
-    const reduction = PLACEMENT_LIMITS[mapIdOfHex(hexId)].mountainReduction
-    const count = FEWER_WORDS[reduction] ?? String(reduction)
-    return `${count} fewer placement${reduction === 1 ? '' : 's'}`
+/**
+ * R-3.2.4, R-8: how many fewer placements a change to the turn's limit leaves it, by the map's
+ * mountain cost; nothing for a placement that changes it by none (Orange on a German mountain).
+ */
+export function fewerPlacements(limitChange: number): string | undefined {
+    const fewer = -limitChange
+    if (!(fewer > 0)) return undefined
+    const count = FEWER_WORDS[fewer] ?? String(fewer)
+    return `${count} fewer placement${fewer === 1 ? '' : 's'}`
 }
 
-function modifierText(hexId: HexId, modifiers: ChipModifiers): string {
+function modifierText(modifiers: ChipModifiers): string {
     const pays =
         modifiers.bonuses.length > 0
             ? `, pays ${modifiers.bonuses.map((mark) => mark.spoken).join(' and ')}`
             : modifiers.startUsesBonus !== undefined
               ? `, pays nothing: a start uses up the $${modifiers.startUsesBonus}`
               : ''
-    const mountain = modifiers.mountain ? `, mountain: ${fewerPlacements(hexId)} this turn` : ''
+    const fewer = fewerPlacements(modifiers.limitChange)
+    const mountain = fewer ? `, mountain: ${fewer} this turn` : ''
     const line =
         modifiers.transcontinental !== undefined
             ? `, completes the Transcontinental: pays $${modifiers.transcontinental}`
@@ -426,9 +429,9 @@ export function buildChoice(track: Track, popup: BuildPopup): RailroadChoice {
             return {
                 railroadId: chip.railroadId,
                 // The label opens with "Start" already; nothing is written on the button.
-                label: `${chipLabel(chip)}, ${chip.supplyLeft} left${modifierText(popup.hexId, modifiers)}`,
+                label: `${chipLabel(chip)}, ${chip.supplyLeft} left${modifierText(modifiers)}`,
                 pills: chipPills(modifiers),
-                mountain: modifiers.mountain
+                mountain: fewerPlacements(modifiers.limitChange) !== undefined
             }
         })
     }

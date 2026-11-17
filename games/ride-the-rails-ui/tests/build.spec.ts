@@ -62,8 +62,8 @@ function bandedCities(page: Page, railroadId: string): Promise<string[]> {
         )
 }
 
-/** A city's own bonus pills on the map: "$2" for Chicago, "$5" for each $5 city not yet taken. */
-function bonusPills(page: Page, kind: 'chicago' | 'five') {
+/** A city's own bonus pills on the map: a gold "$2" for Chicago, "$5" for each $5 city not yet taken. */
+function bonusPills(page: Page, kind: 'coin' | 'five') {
     return board(page).locator(`g.bonuses [data-bonus="${kind}"]`)
 }
 
@@ -251,12 +251,12 @@ test('7. Bonus marks and pay: Chicago $2, Denver $5, and a start that uses the $
     // lit hex is not marked again.
     const chicago = litHex(page, 'Chicago: start Black, $2')
     await expect(chicago).toBeVisible()
-    await expect(bonusPills(page, 'chicago')).toHaveCount(1)
+    await expect(bonusPills(page, 'coin')).toHaveCount(1)
     await expect(marks(page, '$2')).toHaveCount(0)
     const flyers = await flyersDuring(page, () => pressHex(page, chicago))
     expect(flyers).toContain('coin $2')
     expect(await moneyOf(page, 'p1')).toBe(money + 2)
-    await expect(bonusPills(page, 'chicago')).toHaveCount(1)
+    await expect(bonusPills(page, 'coin')).toHaveCount(1)
     await undo(page)
     expect(await moneyOf(page, 'p1')).toBe(money)
 

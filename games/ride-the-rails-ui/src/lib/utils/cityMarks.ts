@@ -1,8 +1,9 @@
-import type { Point } from '@tabletop/common'
+import { assertExists, type Point } from '@tabletop/common'
 import type { CityId, RailroadId } from '@tabletop/ride-the-rails'
 import { HEX_SIZE, HEX_WIDTH, type BoardGeometry } from './boardGeometry.js'
 import type { CityBonusMark } from './boardPieces.js'
 import type { HexFrame } from './hexFrame.js'
+import { HEX_LIMIT_MARK_AT } from './terrainMarks.js'
 
 // Art plan, City marks: every mark is placed from its hex's centre, in board units, and turned to
 // the way up its map's hexes stand (`hexFrame`).
@@ -146,22 +147,34 @@ export const MOUNTAIN_PEAK = { path: 'M-9 0 L-3 -8 L1 -3 L4 -6 L9 0 Z', scale: 1
 /** A white outline of a cube, its side and gap from its city's hex edge in board units. */
 export const CAPACITY_MARK = { side: 20, gap: 6, chicagoExtra: 9 } as const
 
-export type CapacityMarkView = { cityId: CityId; text: string; x: number; y: number }
+export type CapacityMarkView = {
+    cityId: CityId
+    text: string
+    x: number
+    y: number
+    /** Drawn inside its city's hex (`HEX_LIMIT_MARK`), where no side opens on water. */
+    inHex: boolean
+}
 
 /**
  * R-4.1.3, R-4.1.4: beside each city with a printed limit other than two, in the water, the most
  * locomotives it holds: 1 on the East Coast, and Chicago any number, so at most six, one per
  * railroad. Each mark stands just past the first of the hex's sides, in the frame's order, with no
- * land beyond: its id's cell's sides first, then any other cell's (R-8: Berlin covers two).
+ * land beyond: its id's cell's sides first, then any other cell's (R-8: Berlin covers two). A city
+ * with no side on water (R-8: Paris, Berlin), or one its map's layout names, has the mark inside
+ * its hex instead, at the top left of its id's cell.
  */
-export function capacityMarks(geometry: BoardGeometry): CapacityMarkView[] {
+export function capacityMarks(
+    geometry: BoardGeometry,
+    inHex: readonly CityId[] = []
+): CapacityMarkView[] {
     const landCenters = geometry.hexIds.flatMap((hexId) =>
         geometry.place(hexId).cells.map((cell) => cell.center)
     )
     const isWater = (x: number, y: number) =>
         !landCenters.some((land) => Math.hypot(land.x - x, land.y - y) < HEX_SIZE / 2)
     const sides = geometry.hexFrame.capacitySides.map((degrees) => (degrees * Math.PI) / 180)
-    return geometry.map.cities.flatMap((city) => {
+    return geometry.map.cities.flatMap((city): CapacityMarkView[] => {
         const text = city.capacity === 1 ? '1' : city.capacity === 'unlimited' ? '6' : undefined
         if (text === undefined) return []
         const centers = geometry.place(city.hexId).cells.map((cell) => cell.center)
@@ -173,7 +186,20 @@ export function capacityMarks(geometry: BoardGeometry): CapacityMarkView[] {
                     center.y + Math.sin(angle) * HEX_WIDTH
                 )
             )
-        const { center, angle } = open ?? { center: centers[0], angle: sides[0] ?? 0 }
+        const own = centers[0]
+        assertExists(own, `${city.id} covers no cell`)
+        if (!open || inHex.includes(city.id)) {
+            return [
+                {
+                    cityId: city.id,
+                    text,
+                    x: own.x + HEX_LIMIT_MARK_AT.city.x,
+                    y: own.y + HEX_LIMIT_MARK_AT.city.y,
+                    inHex: true
+                }
+            ]
+        }
+        const { center, angle } = open
         // Chicago's 6 stands further out, clear of the passenger in its hex's top right.
         const distance =
             HEX_WIDTH / 2 +
@@ -185,7 +211,8 @@ export function capacityMarks(geometry: BoardGeometry): CapacityMarkView[] {
                 cityId: city.id,
                 text,
                 x: center.x + Math.cos(angle) * distance,
-                y: center.y + Math.sin(angle) * distance
+                y: center.y + Math.sin(angle) * distance,
+                inHex: false
             }
         ]
     })
@@ -212,17 +239,43 @@ export type BonusPill = {
     ink: string
     /** A $5 a railroad has had: greyed and struck through. */
     used: boolean
+    /** Wider than the usual pill for an amount of more than two characters. */
+    width: number
 }
 
-/** R-4.3.1, R-4.3.2: Chicago's gold $2 pays every placement; a green $5 only the first. */
+/** Each character past the second widens the pill by one figure; Toronto's slash a little more. */
+const PILL_FIGURE = 8.3
+const PILL_SLASH = 3
+
+function pillWidth(text: string): number {
+    const figures = text.replace('/', '').length
+    const widened =
+        BONUS_PILL.width +
+        Math.max(0, figures - 2) * PILL_FIGURE +
+        (text.includes('/') ? PILL_SLASH : 0)
+    return Math.round(widened * 10) / 10
+}
+
+/**
+ * R-4.3.1, R-4.3.2, R-8: a gold pill pays every placement (Chicago's $2, each expansion city's,
+ * Toronto's two prices in one); a green $5 only the first.
+ */
 export function bonusPill(bonus: CityBonusMark): BonusPill {
-    const text = `$${bonus.amount}`
-    if (bonus.kind === 'chicago') {
-        return { text, fill: 'var(--rtr-coin)', ink: 'var(--rtr-coin-ink)', used: false }
+    if (bonus.kind === 'coin') {
+        const { text } = bonus
+        return {
+            text,
+            fill: 'var(--rtr-coin)',
+            ink: 'var(--rtr-coin-ink)',
+            used: false,
+            width: pillWidth(text)
+        }
     }
+    const text = `$${bonus.amount}`
+    const width = pillWidth(text)
     return bonus.taken
-        ? { text, fill: 'var(--rtr-coin-used)', ink: 'var(--rtr-coin-used-ink)', used: true }
-        : { text, fill: 'var(--rtr-five)', ink: 'var(--rtr-five-ink)', used: false }
+        ? { text, fill: 'var(--rtr-coin-used)', ink: 'var(--rtr-coin-used-ink)', used: true, width }
+        : { text, fill: 'var(--rtr-five)', ink: 'var(--rtr-five-ink)', used: false, width }
 }
 
 /**

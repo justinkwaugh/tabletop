@@ -41,7 +41,8 @@ describe('the $5 pill', () => {
             text: '$5',
             fill: 'var(--rtr-five)',
             ink: 'var(--rtr-five-ink)',
-            used: false
+            used: false,
+            width: BONUS_PILL.width
         })
     })
 
@@ -50,17 +51,46 @@ describe('the $5 pill', () => {
             text: '$5',
             fill: 'var(--rtr-coin-used)',
             ink: 'var(--rtr-coin-used-ink)',
-            used: true
+            used: true,
+            width: BONUS_PILL.width
         })
     })
 
     it('shows Chicago’s $2 in gold, never used up (R-4.3.1)', () => {
-        expect(bonusPill({ kind: 'chicago', amount: 2 })).toEqual({
+        expect(bonusPill({ kind: 'coin', text: '$2' })).toEqual({
             text: '$2',
             fill: 'var(--rtr-coin)',
             ink: 'var(--rtr-coin-ink)',
-            used: false
+            used: false,
+            width: BONUS_PILL.width
         })
+    })
+
+    it('widens for a longer amount, one gold pill each, Chicago’s as it was (R-8)', () => {
+        expect(bonusPill({ kind: 'coin', text: '$2' }).width).toBe(BONUS_PILL.width)
+        expect(bonusPill({ kind: 'five', amount: 5, taken: false }).width).toBe(BONUS_PILL.width)
+        expect(bonusPill({ kind: 'coin', text: '$50' })).toMatchObject({
+            text: '$50',
+            fill: 'var(--rtr-coin)',
+            width: 34.3
+        })
+        expect(bonusPill({ kind: 'coin', text: '$3/$2' })).toMatchObject({
+            text: '$3/$2',
+            fill: 'var(--rtr-coin)',
+            width: 45.6
+        })
+    })
+
+    it('keeps the widest pill, Toronto’s, inside its flat hex at the bottom centre', () => {
+        const width = bonusPill({ kind: 'coin', text: '$3/$2' }).width
+        const radius = BONUS_PILL.height / 2 + BONUS_PILL.strokeWidth / 2
+        const reach = width / 2 - BONUS_PILL.height / 2
+        const frame = hexFrame(HexOrientation.Flat)
+        const corners = frameHexagon(frame.cornerAngles, HEX_SIZE)
+        for (const x of [-reach, reach]) {
+            const end = { x: frame.bonusPill.x + x, y: frame.bonusPill.y }
+            expect(reachPastConvex(end, corners, radius)).toBeLessThanOrEqual(0)
+        }
     })
 
     it('reads at the phone zoom: a pill at least 12 px across where a phone rests', () => {
@@ -103,7 +133,7 @@ describe('the $5 ring', () => {
     })
 
     it('never frames Chicago or a city without a bonus', () => {
-        expect(fiveRing({ kind: 'chicago', amount: 2 }, POINTY)).toBeUndefined()
+        expect(fiveRing({ kind: 'coin', text: '$2' }, POINTY)).toBeUndefined()
         expect(fiveRing(undefined, POINTY)).toBeUndefined()
     })
 
@@ -352,7 +382,7 @@ describe('a hex’s marks, either way up', () => {
             const marks = capacityMarks(geometry)
             const limited = geometry.map.cities.filter((city) => city.capacity !== 2)
             expect(marks.map((mark) => mark.cityId)).toEqual(limited.map((city) => city.id))
-            for (const mark of marks) {
+            for (const mark of marks.filter((candidate) => !candidate.inHex)) {
                 const half = CAPACITY_MARK.side / 2
                 const box = {
                     x: mark.x - half,

@@ -6,11 +6,13 @@ import {
     USA_CITIES,
     USA_HEXES,
     adjacentHexIds,
+    boardMap,
     hexIdAt,
     isEastCoastCity,
     legalPlacements,
     hexById,
     type HexId,
+    type MapId,
     type RailroadId,
     type Shares,
     type Track
@@ -74,6 +76,18 @@ const PLAIN_BESIDE_MOUNTAIN = found(
     'plain hex beside the mountain'
 )
 
+/** The map's first mountain with a plain beside it, and that plain. */
+function mountainBesidePlain(mapId: MapId): { mountain: HexId; plain: HexId } {
+    for (const hex of boardMap(mapId).hexes) {
+        if (hex.terrain !== 'mountain') continue
+        const plain = adjacentHexIds(hex.id).find(
+            (adjacent) => hexById(adjacent).terrain === 'plain'
+        )
+        if (plain) return { mountain: hex.id, plain }
+    }
+    throw new Error(`No mountain beside a plain on ${mapId}`)
+}
+
 describe('the placement offer (R-3.2, R-4.1, R-4.2)', () => {
     it('lights exactly the legal placements, each hex once with a pip per railroad', () => {
         const state = building({
@@ -105,7 +119,7 @@ describe('the placement offer (R-3.2, R-4.1, R-4.2)', () => {
         expect(offered.map((hex) => hex.hexId).sort()).toEqual([...eastCoast].sort())
         for (const hex of offered) {
             expect(hex.placements).toEqual([
-                { railroadId: 'railroad.red', isStart: true, bonuses: [] }
+                { railroadId: 'railroad.red', isStart: true, bonuses: [], limitChange: 0 }
             ])
             expect(hex.startOnly).toBe(true)
         }
@@ -172,9 +186,10 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
                 isStart: false,
                 bonuses: [
                     { bonusId: 'bonus.usa.five-dollar', amount: 5, cityId: 'city.usa.kansas-city' }
-                ]
+                ],
+                limitChange: 0
             },
-            { railroadId: 'railroad.black', isStart: true, bonuses: [] }
+            { railroadId: 'railroad.black', isStart: true, bonuses: [], limitChange: 0 }
         ])
 
         const blackOnly = building({ round: 5, shares: { p1: holding('railroad.black') } })
@@ -247,6 +262,44 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         expect(offeredAt(placementOffer(used, 'p1'), MOUNTAIN)?.marks).toEqual([])
     })
 
+    it('marks an Australian mountain −2, the map’s mountain cost (R-8.2)', () => {
+        const { plain, mountain } = mountainBesidePlain('map.au')
+        const state = building({
+            mapId: 'map.au',
+            shares: { p1: holding('railroad.red') },
+            track: trackOf(['railroad.red', [plain]])
+        })
+        const offered = offeredAt(placementOffer(state, 'p1'), mountain)
+        expect(offered?.marks).toEqual([{ kind: 'placement-limit', change: -2 }])
+        expect(offered?.placements.map((placement) => placement.limitChange)).toEqual([-2])
+    })
+
+    it('charges an Orange placement on a German mountain nothing, and marks the hex only for a railroad it charges (R-8.5)', () => {
+        const { plain, mountain } = mountainBesidePlain('map.de')
+        const orangeOnly = building({
+            mapId: 'map.de',
+            shares: { p1: holding('railroad.orange') },
+            track: trackOf(['railroad.orange', [plain]])
+        })
+        const orange = offeredAt(placementOffer(orangeOnly, 'p1'), mountain)
+        expect(orange?.marks).toEqual([])
+        expect(orange?.placements.map((placement) => placement.limitChange)).toEqual([0])
+
+        const both = building({
+            mapId: 'map.de',
+            shares: { p1: holding('railroad.red', 'railroad.orange') },
+            track: trackOf(['railroad.red', [plain]], ['railroad.orange', [plain]])
+        })
+        const shared = offeredAt(placementOffer(both, 'p1'), mountain)
+        expect(shared?.marks).toEqual([{ kind: 'placement-limit', change: -1 }])
+        expect(
+            shared?.placements.map((placement) => [placement.railroadId, placement.limitChange])
+        ).toEqual([
+            ['railroad.red', -1],
+            ['railroad.orange', 0]
+        ])
+    })
+
     it('lights no mountain when only one placement is left before the limit (R-3.2.3, R-3.2.4)', () => {
         const state = building({
             playerCount: 4,
@@ -287,19 +340,40 @@ describe('the board offer', () => {
         expect(offer.popup).toEqual({
             hexId: shared.hexId,
             chips: [
-                { railroadId: 'railroad.red', isStart: false, bonuses: [], supplyLeft: 25 },
-                { railroadId: 'railroad.blue', isStart: false, bonuses: [], supplyLeft: 25 }
-            ],
-            lowersLimit: false
+                {
+                    railroadId: 'railroad.red',
+                    isStart: false,
+                    bonuses: [],
+                    limitChange: 0,
+                    supplyLeft: 25
+                },
+                {
+                    railroadId: 'railroad.blue',
+                    isStart: false,
+                    bonuses: [],
+                    limitChange: 0,
+                    supplyLeft: 25
+                }
+            ]
         })
     })
 
-    it('says when the picked hex lowers the turn’s limit, from its mountain mark (R-3.2.4)', () => {
+    it('gives each button its own placement’s change to the turn’s limit (R-3.2.4, R-8.5)', () => {
+        const [red, blue] = shared.placements
+        assertExists(red)
+        assertExists(blue)
         const mountain = {
             ...shared,
-            marks: [{ kind: 'placement-limit' as const, change: -1 }]
+            placements: [
+                { ...red, limitChange: -1 },
+                { ...blue, limitChange: 0 }
+            ]
         }
-        expect(boardOffer(state, [mountain], mountain.hexId).popup?.lowersLimit).toBe(true)
+        expect(
+            boardOffer(state, [mountain], mountain.hexId).popup?.chips.map(
+                (chip) => chip.limitChange
+            )
+        ).toEqual([-1, 0])
     })
 
     it('opens no popup on a hex only one railroad may enter', () => {

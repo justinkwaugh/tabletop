@@ -1,6 +1,7 @@
 import type { BoundingBox, Point } from '@tabletop/common'
 import {
     RAILROAD_INTRODUCTIONS,
+    type CityId,
     type MapId,
     type RailroadId,
     type StartRule
@@ -19,6 +20,11 @@ export type MapLayout = {
     readonly legend: Point
     /** The start legend's width, where the map's open sea is narrower than the usual card. */
     readonly legendWidth?: number
+    /**
+     * The cities whose limit mark stands inside the hex although a side opens past the land: those
+     * on the board's land border, where a mark in the margin would read as off the map.
+     */
+    readonly limitMarksInHex?: readonly CityId[]
 }
 
 // R-8: an expansion map adds its own row.
@@ -127,6 +133,29 @@ export function legendRows(mapId: MapId): LegendRow[] {
         rows.set(startRule, [...(rows.get(startRule) ?? []), railroadId])
     }
     return [...rows].map(([rule, railroadIds]) => ({ railroadIds, text: START_RULE_TEXT[rule] }))
+}
+
+const LEGEND_CUBE_GAP = 4
+const LEGEND_TEXT_GAP = 12
+/** The text column never starts left of where the USA's rows, two cubes at most, put it. */
+const LEGEND_FEWEST_CUBES = 2
+
+/** The middle of a legend row's cube at this place in the row, from the card's left edge. */
+export function legendCubeX(place: number): number {
+    const { pad, cube } = START_LEGEND
+    return pad + cube / 2 + place * (cube + LEGEND_CUBE_GAP)
+}
+
+/**
+ * Where the rows' text starts, from the card's left edge: past the widest row's cubes (R-8: five
+ * share a row on Australia, Canada and France), so every row's text lines up clear of its cubes.
+ */
+export function legendTextX(mapId: MapId): number {
+    const widest = Math.max(
+        LEGEND_FEWEST_CUBES,
+        ...legendRows(mapId).map((row) => row.railroadIds.length)
+    )
+    return legendCubeX(widest - 1) + START_LEGEND.cube / 2 + LEGEND_TEXT_GAP
 }
 
 /** The legend's card, standing on its layout's corner. */

@@ -204,7 +204,8 @@ export function journeyBoardOffer(offer: JourneyOffer): BoardOffer {
         placements: city.railroadIds.map((railroadId) => ({
             railroadId,
             isStart: false,
-            bonuses: []
+            bonuses: [],
+            limitChange: 0
         })),
         marks: [],
         startOnly: false

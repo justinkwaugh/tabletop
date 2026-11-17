@@ -6,6 +6,7 @@ import {
     PhaseName,
     USA_CITIES,
     USA_HEXES,
+    boardMap,
     cityById,
     type BonusId,
     type CityId,
@@ -21,6 +22,7 @@ import {
     LARGEST_PICK_SCALE,
     buildChoice,
     chipModifiers,
+    fewerPlacements,
     linkChoice,
     litHexLabel,
     litHexViews,
@@ -57,8 +59,18 @@ function offered(hexId: HexId, extension: RailroadId[], starts: RailroadId[] = [
     return {
         hexId,
         placements: [
-            ...extension.map((railroadId) => ({ railroadId, isStart: false, bonuses: [] })),
-            ...starts.map((railroadId) => ({ railroadId, isStart: true, bonuses: [] }))
+            ...extension.map((railroadId) => ({
+                railroadId,
+                isStart: false,
+                bonuses: [],
+                limitChange: 0
+            })),
+            ...starts.map((railroadId) => ({
+                railroadId,
+                isStart: true,
+                bonuses: [],
+                limitChange: 0
+            }))
         ],
         marks: [],
         startOnly: extension.length === 0
@@ -314,18 +326,25 @@ describe('the scrim (Contract, Coexistence and precedence)', () => {
 describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
     const fiveDollarCity = USA_CITIES.find((city) => city.bonus === FIVE_DOLLAR_BONUS.id)
     assertExists(fiveDollarCity)
-    const blackStart = { railroadId: BLACK, isStart: true, bonuses: [], supplyLeft: 6 }
+    const blackStart = {
+        railroadId: BLACK,
+        isStart: true,
+        bonuses: [],
+        limitChange: 0,
+        supplyLeft: 6
+    }
     const redPays = {
         railroadId: RED,
         isStart: false,
         bonuses: [{ bonusId: FIVE_DOLLAR_BONUS.id, amount: 5 }],
+        limitChange: 0,
         supplyLeft: 3
     }
 
     it('names the popup by its place, and each button by the whole choice', () => {
         const choice = buildChoice(
             {},
-            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart], lowersLimit: false }
+            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart] }
         )
         expect(choice.title).toBe(`${fiveDollarCity.name}: which railroad?`)
         expect(choice.chips.map((chip) => chip.label)).toEqual([
@@ -337,7 +356,7 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
     it('gives a button a bonus pill only when its placement earns one', () => {
         const choice = buildChoice(
             {},
-            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart], lowersLimit: false }
+            { hexId: fiveDollarCity.hexId, chips: [redPays, blackStart] }
         )
         expect(choice.chips.map((chip) => chip.pills)).toEqual([
             [{ tone: 'five', text: '+$5' }],
@@ -346,12 +365,12 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
     })
 
     it('shows no pill for a start that uses up the $5 (R-4.3.2)', () => {
-        const popup = { hexId: fiveDollarCity.hexId, chips: [blackStart], lowersLimit: false }
+        const popup = { hexId: fiveDollarCity.hexId, chips: [blackStart] }
         expect(chipModifiers({}, popup, blackStart)).toEqual({
             bonuses: [],
             transcontinental: undefined,
             startUsesBonus: 5,
-            mountain: false
+            limitChange: 0
         })
         expect(buildChoice({}, popup).chips[0].pills).toEqual([])
         // Once a railroad stands there the $5 is gone, and the start says nothing of it.
@@ -364,12 +383,12 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
             railroadId: PURPLE,
             isStart: false,
             bonuses: [{ bonusId: 'bonus.usa.transcontinental' as const, amount: 12 }],
+            limitChange: 0,
             supplyLeft: 22
         }
         const popup = {
             hexId: hexOf(DALLAS),
-            chips: [purpleCompletes, { ...blackStart, isStart: false, supplyLeft: 2 }],
-            lowersLimit: false
+            chips: [purpleCompletes, { ...blackStart, isStart: false, supplyLeft: 2 }]
         }
         const choice = buildChoice({}, popup)
         expect(choice.chips[0].label).toBe(
@@ -379,22 +398,60 @@ describe('the railroad popup (U-2, R-4.3, R-3.2.4, R-3.3.2)', () => {
         expect(choice.chips[1].pills).toEqual([])
     })
 
-    it('marks every button when the hex lowers the turn’s limit (R-3.2.4)', () => {
+    it('marks every button whose placement lowers the turn’s limit (R-3.2.4)', () => {
         const mountain = USA_HEXES.find((hex) => hex.terrain === 'mountain')
         assertExists(mountain)
-        const orange = { railroadId: ORANGE, isStart: false, bonuses: [], supplyLeft: 8 }
-        const yellow = { railroadId: YELLOW, isStart: false, bonuses: [], supplyLeft: 17 }
-        const lowers = buildChoice(
-            {},
-            { hexId: mountain.id, chips: [orange, yellow], lowersLimit: true }
-        )
+        const orange = {
+            railroadId: ORANGE,
+            isStart: false,
+            bonuses: [],
+            limitChange: -1,
+            supplyLeft: 8
+        }
+        const yellow = {
+            railroadId: YELLOW,
+            isStart: false,
+            bonuses: [],
+            limitChange: -1,
+            supplyLeft: 17
+        }
+        const lowers = buildChoice({}, { hexId: mountain.id, chips: [orange, yellow] })
         expect(lowers.chips.map((chip) => chip.mountain)).toEqual([true, true])
         expect(lowers.chips.map((chip) => chip.label)).toEqual([
             'Place Orange, 8 left, mountain: one fewer placement this turn',
             'Place Yellow, 17 left, mountain: one fewer placement this turn'
         ])
-        const already = buildChoice({}, { hexId: mountain.id, chips: [orange], lowersLimit: false })
+        const already = buildChoice(
+            {},
+            { hexId: mountain.id, chips: [{ ...orange, limitChange: 0 }] }
+        )
         expect(already.chips[0]).toMatchObject({ mountain: false, label: 'Place Orange, 8 left' })
+    })
+
+    it('says nothing of the limit for a placement that changes it by none, as Orange on a German mountain (R-8.5)', () => {
+        const mountain = boardMap('map.de').hexes.find((hex) => hex.terrain === 'mountain')
+        assertExists(mountain)
+        const orange = {
+            railroadId: ORANGE,
+            isStart: false,
+            bonuses: [],
+            limitChange: 0,
+            supplyLeft: 8
+        }
+        const red = { railroadId: RED, isStart: false, bonuses: [], limitChange: -1, supplyLeft: 9 }
+        const choice = buildChoice({}, { hexId: mountain.id, chips: [orange, red] })
+        expect(choice.chips.map((chip) => chip.mountain)).toEqual([false, true])
+        expect(choice.chips[0]?.label).toBe('Place Orange, 8 left')
+        expect(choice.chips[1]?.label).toBe(
+            'Place Red, 9 left, mountain: one fewer placement this turn'
+        )
+    })
+
+    it('counts the placements a mountain takes from the turn by the map’s cost, and none for no change (R-3.2.4, R-8.2)', () => {
+        expect(fewerPlacements(-1)).toBe('one fewer placement')
+        expect(fewerPlacements(-2)).toBe('two fewer placements')
+        expect(fewerPlacements(0)).toBeUndefined()
+        expect(fewerPlacements(-0)).toBeUndefined()
     })
 
     it("offers each railroad of a journey's link with what the journey would pay the seat", () => {

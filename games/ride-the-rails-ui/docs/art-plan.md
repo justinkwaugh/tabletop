@@ -35,7 +35,11 @@ Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-a
 | `--rtr-mountain-ink`      | A mountain's peak mark                                                 | `#7B4A2D`   | `#7B4A2D`   |
 | `--rtr-hex-city`          | A city hex with no printed start colour                                | `#C4C6C6`   | `#C4C6C6`   |
 | `--rtr-hex-start-city`    | A city hex with printed start colours                                  | `#CFD1D1`   | `#CFD1D1`   |
-| `--rtr-hex-chicago`       | Chicago's hex, which has no limit                                      | `#A9C0C4`   | `#A9C0C4`   |
+| `--rtr-hex-chicago`       | A city with no limit: Chicago, Toronto, Paris, Berlin                  | `#A9C0C4`   | `#A9C0C4`   |
+| `--rtr-river-edge`        | An impassable side's water channel edge, a shade deeper than the sea's | `#6F8F98`   | `#6F8F98`   |
+| `--rtr-alps-hatch`        | The Alps' 45° hatch over their mountain fill, in the peak's brown      | `#7B4A2D99` | `#7B4A2D99` |
+| `--rtr-long-haul`         | A long-distance hex (Australia)                                        | `#E4CF8E`   | `#E4CF8E`   |
+| `--rtr-entry`             | A Paris entry hex (France), its ring's outside edge in navy            | `#DCE3EB`   | `#DCE3EB`   |
 | `--rtr-ink-light`         | Text on a dark fill                                                    | `#FFFFFF`   | `#FFFFFF`   |
 | `--rtr-white`             | White: the popup's buttons, a start cue's ground, white text on a pill | `#FFFFFF`   | `#FFFFFF`   |
 | `--rtr-accent`            | Yours to act on: the acting seat's outline, focus rings                | `#D18E0F`   | `#D18E0F`   |
@@ -141,6 +145,13 @@ rm serif-700.ttf serif-700-renamed.ttf
 - **Capacity marks** (R-4.1.3, R-4.1.4): beside each city with its own limit, just past the first side of its hex that faces open water (east first and then round by the north on a pointy hex, the north-east first on a flat one), a white outline square (20 units, corners 3, stroke 2) with the most locomotives it holds in the serif, also white: "1" beside each East Coast city, "6" beside Chicago, a little further out, clear of its passenger. Cities hold no capacity mark of their own (`board/CapacityMarks.svelte`).
 - **The title**: "Ride the Rails" in the display face (52 units) over the map's printed name ("USA") in the serif (26 units, tracked), white, in the open water the map's layout gives, on the USA north-east of Michigan (`board/MapTitle.svelte`, `utils/mapLayouts.ts`).
 - **The start legend** (R-4.2): a panel-paper card with a card edge standing on the corner the map's layout gives, on the USA in the sea south-west of California, headed "First locomotive", one row per start rule in the order the map introduces its railroads, each the cubes of the railroads that share it and its words: "Different East Coast cities" (Red, Blue), "An East Coast city or Chicago", "Chicago or the 3 westernmost developed cities", "A West Coast city", "Any city with room". The rows come from the logic package's `RAILROAD_INTRODUCTIONS`, so they follow the map, the expansion maps' start rules included. It is drawn above the scrim (`board/StartLegend.svelte`, `utils/mapLayouts.ts`).
+
+**The expansion boards** (R-8) add looks of their own, drawn in code like the rest, nothing copied from the printed boards (`utils/terrainMarks.ts`):
+
+- **Limit marks inside a hex**: where a city with its own limit has no side on open water (Paris and Berlin, whose "6" has nowhere else to go), its mark stands inside the hex at the top left of its own cell, and every hex other than a city that holds one locomotive carries a "1" at its top centre. The mark is the capacity mark's cube outline inked (`--rtr-ink`, 15 units, corners 2.2, stroke 1.6) on a pale ground (white at 75%), its number in the serif (11.5 units), so it reads on any fill.
+- **Cities with no limit** (Toronto, Paris, Berlin) are drawn as Chicago is: its blue-grey, their cubes in its slots, their "6" in the sea where a side opens on water and in the hex where none does.
+- **City bonuses**: one gold pill per city, as Chicago's, wider for a longer amount (each character past the second one figure, 8.3 units): Perth "$50", Brisbane "$20", Paris "$10", Berlin "$3", and Toronto's two prices in one, "$3/$2" (build-in, start).
+- **The start legend's text** starts past the widest row's cubes, never left of where the USA's two put it, so a row of five printed-colour cubes stays clear of its words.
 
 **Beside the board.** On desktop a row of railroad cards stands between the action area and the board, outside the scaling, centred, after a mark that says what the cubes are for; the round tickets and the Transcontinental chip sit in the turn line. On a phone there are no cards: the board takes the whole width, the supply stands in the action panel where it is used (Take a share's buttons, the building seat's cards), and the turn line shows the current round's ticket and the chip (UI contract, The table and Phone layout). The turn order panel is gone: the seat cards carry each seat's place and money.
 

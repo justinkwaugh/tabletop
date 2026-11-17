@@ -1,18 +1,37 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { CAPACITY_MARK, capacityMarks } from '$lib/utils/cityMarks.js'
+    import { MAP_LAYOUTS } from '$lib/utils/mapLayouts.js'
+    import { HEX_LIMIT_MARK, hexLimitMarks } from '$lib/utils/terrainMarks.js'
 
     const gameSession = getGameSession()
 
-    // Displayed Game State: the shown state's map's cities with a limit of their own.
-    const marks = $derived(capacityMarks(gameSession.boardFrame))
+    // Displayed Game State: the shown state's map's cities with a limit of their own, and its other
+    // hexes that hold one locomotive.
+    const board = $derived(gameSession.boardFrame)
+    const marks = $derived(capacityMarks(board, MAP_LAYOUTS[board.mapId].limitMarksInHex))
+    const seaMarks = $derived(marks.filter((mark) => !mark.inHex))
+    const inHexMarks = $derived([
+        ...marks
+            .filter((mark) => mark.inHex)
+            .map((mark) => ({ key: mark.cityId, text: mark.text, x: mark.x, y: mark.y })),
+        ...hexLimitMarks(board).map((mark) => ({
+            key: mark.hexId,
+            text: mark.text,
+            x: mark.x,
+            y: mark.y
+        }))
+    ])
     const SIDE = CAPACITY_MARK.side
+    const INSIDE = HEX_LIMIT_MARK.side
 </script>
 
 <!-- R-4.1.3, R-4.1.4: beside each city with its own limit, in the water, a white outline of a cube
-     with the most locomotives it holds: 1 on the East Coast, 6 at Chicago. -->
+     with the most locomotives it holds: 1 on the East Coast, 6 at Chicago. R-8: where no side of
+     the city opens on water, and in each other hex that holds one, the same mark inked on a pale
+     ground inside the hex. -->
 <g class="capacity-marks" aria-hidden="true" data-capacity-marks>
-    {#each marks as mark (mark.cityId)}
+    {#each seaMarks as mark (mark.cityId)}
         <g transform="translate({mark.x} {mark.y})">
             <rect
                 x={-SIDE / 2}
@@ -30,6 +49,28 @@
                 text-anchor="middle"
                 font-size="15"
                 fill="var(--rtr-white)">{mark.text}</text
+            >
+        </g>
+    {/each}
+    {#each inHexMarks as mark (mark.key)}
+        <g transform="translate({mark.x} {mark.y})" data-limit-in-hex={mark.key}>
+            <rect
+                x={-INSIDE / 2}
+                y={-INSIDE / 2}
+                width={INSIDE}
+                height={INSIDE}
+                rx={HEX_LIMIT_MARK.radius}
+                fill="var(--rtr-white)"
+                fill-opacity={HEX_LIMIT_MARK.groundOpacity}
+                stroke="var(--rtr-ink)"
+                stroke-width={HEX_LIMIT_MARK.strokeWidth}
+            ></rect>
+            <text
+                class="rtr-serif"
+                y={HEX_LIMIT_MARK.baseline}
+                text-anchor="middle"
+                font-size={HEX_LIMIT_MARK.fontSize}
+                fill="var(--rtr-ink)">{mark.text}</text
             >
         </g>
     {/each}

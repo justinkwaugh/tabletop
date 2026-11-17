@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { USA_CITIES, USA_HEXES, type HexId } from '@tabletop/ride-the-rails'
+import { USA_CITIES, USA_HEXES, boardMap, type HexId } from '@tabletop/ride-the-rails'
 import { appCss, paletteNames } from '$lib/testing/paletteSource.js'
 import { BOARD_LOOK, hexPaint, LOOK_OPTIONS } from './boardLook.js'
 
@@ -98,5 +98,19 @@ describe('hex paint', () => {
         expect(paint('Chicago')).toEqual(patch('var(--rtr-hex-chicago)'))
         expect(paint('Denver')).toEqual(patch('var(--rtr-hex-city)'))
         expect(paint('Omaha')).toEqual(patch('var(--rtr-hex-city)'))
+    })
+
+    it('greys every city with no limit as Chicago: Toronto, Paris and Berlin (R-8)', () => {
+        for (const [mapId, name] of [
+            ['map.ca', 'Toronto'],
+            ['map.fr', 'Paris'],
+            ['map.de', 'Berlin']
+        ] as const) {
+            const city = boardMap(mapId).cities.find((candidate) => candidate.name === name)
+            if (!city) throw new Error(`No city ${name}`)
+            expect(hexPaint(city.hexId, 'start-cities'), name).toEqual(
+                patch('var(--rtr-hex-chicago)')
+            )
+        }
     })
 })

@@ -8,12 +8,14 @@ import {
 import {
     ActionType,
     PhaseName,
-    USA_CITIES,
     adjacentHexIds,
+    boardMap,
     turnOrderByMoney,
     hexById,
+    type City,
     type CityId,
     type HexId,
+    type MapId,
     type HydratedRideTheRailsGameState,
     type RailroadId,
     type RideTheRailsGameState,
@@ -57,6 +59,8 @@ export type PlayedRound = {
 
 export type TableRecipe = {
     playerCount: number
+    /** The map the game is created on; the USA when absent, as a game stored before maps did. */
+    mapId?: MapId
     /** Every round up to the current one, which may be part played. */
     rounds: readonly PlayedRound[]
     phase: PhaseName
@@ -73,16 +77,18 @@ export type TableFixture = {
 
 const FIXED_DATE = new Date('2026-01-05T12:00:00Z')
 
-function cityHexId(name: string): HexId {
-    const city = USA_CITIES.find((candidate) => candidate.name === name)
-    assertExists(city, `No city ${name}`)
-    return city.hexId
+function cityNamed(name: string, mapId: MapId): City {
+    const city = boardMap(mapId).cities.find((candidate) => candidate.name === name)
+    assertExists(city, `No city ${name} on ${mapId}`)
+    return city
 }
 
-function cityIdOf(name: string): CityId {
-    const city = USA_CITIES.find((candidate) => candidate.name === name)
-    assertExists(city, `No city ${name}`)
-    return city.id
+function cityHexId(name: string, mapId: MapId = 'map.usa'): HexId {
+    return cityNamed(name, mapId).hexId
+}
+
+function cityIdOf(name: string, mapId: MapId = 'map.usa'): CityId {
+    return cityNamed(name, mapId).id
 }
 
 /**
@@ -118,8 +124,11 @@ export function walk(from: HexId, to: HexId, mountains = false): HexId[] {
 }
 
 /** A railroad's run through the named cities, the first being where it already is or starts. */
-export function line(names: readonly string[], options: { start?: boolean } = {}): HexId[] {
-    const hexIds = names.map(cityHexId)
+export function line(
+    names: readonly string[],
+    options: { start?: boolean; mapId?: MapId } = {}
+): HexId[] {
+    const hexIds = names.map((name) => cityHexId(name, options.mapId))
     const [first, ...rest] = hexIds
     assertExists(first, 'A line names a city')
     const walked: HexId[] = []
@@ -155,12 +164,14 @@ function withShare(position: Position, playerId: string, railroadId: RailroadId)
 // R-3.2: one seat's building turn, each placement an engine action that pays its own bonuses.
 function playBuildingTurn(
     position: Position,
-    playerCount: number,
+    recipe: TableRecipe,
     round: number,
     turnOrder: readonly string[],
     turn: BuildingTurn
 ): void {
+    const { playerCount, mapId } = recipe
     let state = buildState({
+        ...(mapId ? { mapId } : {}),
         playerCount,
         round,
         phase: PhaseName.Build,
@@ -199,7 +210,7 @@ export type RoundRecord = { turnOrder: string[]; money: Record<string, number> }
 // Every round played through the engine. Round 1 keeps the assigned starting order (R-1.3.7);
 // each end of round sets the next round's order by money (R-2.5.1).
 function playRounds(recipe: TableRecipe): { position: Position; records: RoundRecord[] } {
-    const { playerCount, rounds } = recipe
+    const { playerCount, rounds, mapId } = recipe
     const playerIds = fixturePlayerIds(playerCount)
     const position = emptyPosition(playerIds)
     const records: RoundRecord[] = []
@@ -208,6 +219,7 @@ function playRounds(recipe: TableRecipe): { position: Position; records: RoundRe
         if (index > 0) {
             turnOrder = turnOrderByMoney(
                 buildState({
+                    ...(mapId ? { mapId } : {}),
                     playerCount,
                     round: index,
                     phase: PhaseName.Ride,
@@ -220,7 +232,7 @@ function playRounds(recipe: TableRecipe): { position: Position; records: RoundRe
             withShare(position, playerId, railroadId)
         }
         for (const turn of round.builds) {
-            playBuildingTurn(position, playerCount, index + 1, turnOrder, turn)
+            playBuildingTurn(position, recipe, index + 1, turnOrder, turn)
         }
         for (const [playerId, money] of Object.entries(round.journeys ?? {})) {
             position.money[playerId] = (position.money[playerId] ?? 0) + money
@@ -237,22 +249,26 @@ export function roundRecords(recipe: TableRecipe): RoundRecord[] {
 
 /** The recipe's position: every round played through the engine, then the current turn opened. */
 export function tableState(recipe: TableRecipe): HydratedRideTheRailsGameState {
-    const { playerCount, rounds, phase } = recipe
+    const { playerCount, rounds, phase, mapId } = recipe
     const { position, records } = playRounds(recipe)
     const carried = new Set(recipe.carried ?? [])
     return buildState({
+        ...(mapId ? { mapId } : {}),
         playerCount,
         round: rounds.length,
         phase,
         ...(recipe.currentPlayerId ? { currentPlayerId: recipe.currentPlayerId } : {}),
         turnOrder: records.at(-1)?.turnOrder ?? fixturePlayerIds(playerCount),
         ...position,
-        passengers: USA_CITIES.map((city) => city.id).filter((cityId) => !carried.has(cityId))
+        // R-1.3.2, R-8: every city that takes a passenger at setup, less those carried away.
+        passengers: boardMap(mapId ?? 'map.usa')
+            .setupPassengerCityIds()
+            .filter((cityId) => !carried.has(cityId))
     })
 }
 
-function namedGame(playerCount: number): Game {
-    const game = createGame(playerCount)
+function namedGame(playerCount: number, mapId: MapId | undefined): Game {
+    const game = createGame(playerCount, undefined, mapId)
     const { startedGame } = engine.startGame(
         {
             ...game,
@@ -276,7 +292,7 @@ function positionSetUp(fixture: TableFixture): PositionSetUp<RideTheRailsGameSta
     return {
         slug: fixture.slug,
         name: fixture.name,
-        game: namedGame(fixture.recipe.playerCount),
+        game: namedGame(fixture.recipe.playerCount, fixture.recipe.mapId),
         // A fixed id keeps the written file the same from one run to the next.
         state: { ...tableState(fixture.recipe).dehydrate(), id: `state-${fixture.slug}` }
     }
