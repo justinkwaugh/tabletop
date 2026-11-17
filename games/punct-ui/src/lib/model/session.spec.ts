@@ -33,6 +33,7 @@ import {
 import { PunctGameColorizer } from '$lib/definitions/colorizer.js'
 import { UiDefinition } from '$lib/definitions/definition.js'
 import { PunctGameSession } from './session.svelte.js'
+import { StagedMotion } from '$lib/animators/stagedMotion.svelte.js'
 
 const engine = new GameEngine(PunctRuntime)
 const WHITE = 'white'
@@ -395,5 +396,59 @@ describe('The reserve on the cards', () => {
         expect(session.inReserve(WHITE, PieceKind.Triangle)).toBe(triangles - 1)
         await settled(session.confirm())
         expect(session.inReserve(WHITE, PieceKind.Triangle)).toBe(triangles - 1)
+    })
+})
+
+describe('The piece hovering where you put it', () => {
+    // The hover the board draws as the staged piece changes, once its followers have heard.
+    async function hoverFollowing(session: PunctGameSession) {
+        const motion = new StagedMotion()
+        session.stagedFollowers.add((staged, board, released) =>
+            motion.follow(staged, board, released)
+        )
+        disposals.push(() => motion.clear())
+        await Promise.resolve()
+        return motion
+    }
+
+    function cellFor(session: PunctGameSession, kind: PieceKind, besides: AxialCoordinates) {
+        session.chooseKind(kind)
+        const cell = session.entryCells.find((cell) => !sameCoordinates(cell, besides))
+        if (cell === undefined) throw Error(`A ${kind} can go somewhere else`)
+        return cell
+    }
+
+    it('is drawn as the kind you chose next when you put it somewhere else', async () => {
+        const session = await sessionFor(startedGame())
+        session.chooseKind(PieceKind.Triangle)
+        const first = session.entryCells[0]
+        session.chooseSpace(first)
+        const motion = await hoverFollowing(session)
+        expect(motion.hover?.pose.kind).toBe(PieceKind.Triangle)
+
+        session.chooseKind(PieceKind.StraightEnd)
+        session.chooseSpace(cellFor(session, PieceKind.StraightEnd, first))
+        await Promise.resolve()
+        expect(session.staged?.kind).toBe(PieceKind.StraightEnd)
+        expect(motion.hover?.piece.kind).toBe(PieceKind.StraightEnd)
+        expect(motion.hover?.pose.kind).toBe(PieceKind.StraightEnd)
+    })
+
+    it('is drawn as the kind you chose next where it stands', async () => {
+        const session = await sessionFor(startedGame())
+        session.chooseKind(PieceKind.StraightEnd)
+        const stays = session.entryCells.find((cell) =>
+            session.gameState
+                .entriesOf(WHITE, PieceKind.Triangle)
+                .some((entry) => sameCoordinates(entry.punct, cell))
+        )
+        if (stays === undefined) throw Error('Both kinds fit some space')
+        session.chooseSpace(stays)
+        const motion = await hoverFollowing(session)
+
+        session.chooseKind(PieceKind.Triangle)
+        await Promise.resolve()
+        expect(session.staged?.kind).toBe(PieceKind.Triangle)
+        expect(motion.hover?.pose.kind).toBe(PieceKind.Triangle)
     })
 })
