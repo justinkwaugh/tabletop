@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calculateHexGeometry, HexOrientation, type Point } from '@tabletop/common'
-import { USA_CITIES, cityById } from '@tabletop/ride-the-rails'
+import { USA_CITIES, boardMap, cityById } from '@tabletop/ride-the-rails'
 import { buildState, FLAT_FIXTURE_MAP } from '@tabletop/ride-the-rails/testing'
 import { cityPieces } from './boardPieces.js'
 import { MIN_RESTING_HEX_PX } from './boardFocus.js'
@@ -206,6 +206,36 @@ describe('the start band', () => {
             })
         }
         expect(PLAIN_CITY_BAND_WIDTH).toBeLessThan(START_BAND_WIDTH)
+    })
+
+    it('bands a city printed with Black alone as the USA’s plain city, thin (R-4.2.5, R-8)', () => {
+        expect(startBand(['railroad.black'])).toEqual(startBand([]))
+        expect(startBand(['railroad.black'])).toEqual({
+            railroadIds: ['railroad.black'],
+            width: PLAIN_CITY_BAND_WIDTH
+        })
+        const blackOnly = (['map.ca', 'map.fr', 'map.de'] as const).flatMap((mapId) =>
+            boardMap(mapId).cities.filter(
+                (city) =>
+                    city.startColours.length === 1 && city.startColours[0] === 'railroad.black'
+            )
+        )
+        expect(blackOnly.length).toBeGreaterThan(100)
+        for (const city of blackOnly) {
+            expect(startBand(city.startColours), city.name).toEqual(startBand([]))
+        }
+    })
+
+    it('keeps a city printed in other colours as well as Black banded as printed (R-8)', () => {
+        for (const startColours of [
+            ['railroad.red', 'railroad.blue', 'railroad.black'],
+            ['railroad.purple', 'railroad.black']
+        ] as const) {
+            expect(startBand(startColours)).toEqual({
+                railroadIds: startColours,
+                width: START_BAND_WIDTH
+            })
+        }
     })
 })
 

@@ -100,6 +100,20 @@ describe('hex paint', () => {
         expect(paint('Omaha')).toEqual(patch('var(--rtr-hex-city)'))
     })
 
+    it('greys a city printed with Black alone as the USA’s plain city, and lightens the rest (R-8)', () => {
+        const paint = (mapId: 'map.ca' | 'map.fr' | 'map.de', name: string) => {
+            const city = boardMap(mapId).cities.find((candidate) => candidate.name === name)
+            if (!city) throw new Error(`No ${name}`)
+            return hexPaint(city.hexId, 'start-cities')
+        }
+        expect(paint('map.ca', 'Sudbury')).toEqual(patch('var(--rtr-hex-city)'))
+        expect(paint('map.fr', 'Caen')).toEqual(patch('var(--rtr-hex-city)'))
+        expect(paint('map.de', 'Bremen')).toEqual(patch('var(--rtr-hex-city)'))
+        expect(paint('map.fr', 'Lille')).toEqual(patch('var(--rtr-hex-start-city)'))
+        expect(paint('map.ca', 'Montréal')).toEqual(patch('var(--rtr-hex-start-city)'))
+        expect(paint('map.de', 'Berlin')).toEqual(patch('var(--rtr-hex-chicago)'))
+    })
+
     it('fills the Alps as mountains and a long-distance hex in its ochre, both as patches (R-8.2)', () => {
         const hexOf = (terrain: string) => {
             const hex = boardMap('map.au').hexes.find((candidate) => candidate.terrain === terrain)

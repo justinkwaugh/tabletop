@@ -23,9 +23,18 @@ const BLACK: RailroadId = 'railroad.black'
 
 export type StartBand = { railroadIds: readonly RailroadId[]; width: number }
 
+/**
+ * R-4.2.5: Black may start in any city, so a city prints a start colour only where another
+ * railroad may start there too. The USA's data leaves Black out of a plain city's colours, the
+ * expansion maps' list it alone; either is a plain city.
+ */
+export function printsStartColours(startColours: readonly RailroadId[]): boolean {
+    return startColours.some((railroadId) => railroadId !== BLACK)
+}
+
 /** R-4.2: the start colours printed on a city; a plain city shows Black alone (R-4.2.5). */
 export function startBand(startColours: readonly RailroadId[]): StartBand {
-    return startColours.length > 0
+    return printsStartColours(startColours)
         ? { railroadIds: startColours, width: START_BAND_WIDTH }
         : { railroadIds: [BLACK], width: PLAIN_CITY_BAND_WIDTH }
 }

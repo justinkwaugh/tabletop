@@ -224,6 +224,38 @@ test('Canada: an impassable side is drawn over the banded city beside it (R-8.3)
     expect(pressed).toBe('hex.ca.30-4')
 })
 
+test('Canada: a city printed with Black alone has the USA’s thin Black band (R-4.2.5, R-8)', async ({
+    page
+}) => {
+    await openScenario(page, 'Canada toronto')
+    await settled(page)
+    /**
+     * Whether the city's first band colour covers a point this far in from its hex's top edge, a
+     * little right of the edge's middle, where a two-colour band's first half starts.
+     */
+    const bandCovers = (cityId: string, inset: number) =>
+        board(page)
+            .locator(`[data-city-marks="${cityId}"] [data-band-colour]`)
+            .first()
+            .evaluate((band, depth) => {
+                if (!(band instanceof SVGPathElement)) return false
+                // A flat hex's top edge stands its apothem, 40 × cos 30°, above its centre.
+                const apothem = 40 * Math.cos(Math.PI / 6)
+                return band.isPointInFill(new DOMPoint(6, -apothem + depth))
+            }, inset)
+
+    // Sudbury: Black alone, one ring 2.4 thick, as a plain city on the USA.
+    const sudbury = board(page).locator('[data-city-marks="city.ca.sudbury"]')
+    await expect(sudbury.locator('[data-band-colour]')).toHaveCount(1)
+    await expect(sudbury.locator('[data-band-colour="railroad.black"]')).toHaveCount(1)
+    expect(await bandCovers('city.ca.sudbury', 1)).toBe(true)
+    expect(await bandCovers('city.ca.sudbury', 4)).toBe(false)
+    // Montréal, printed Blue as well as Black, keeps its band as printed, 6.4 thick.
+    const montreal = board(page).locator('[data-city-marks="city.ca.montreal"]')
+    await expect(montreal.locator('[data-band-colour]')).toHaveCount(2)
+    expect(await bandCovers('city.ca.montreal', 4)).toBe(true)
+})
+
 test('France: Paris lights with its $10, and nothing crosses the estuary (R-8.4)', async ({
     page
 }) => {

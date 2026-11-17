@@ -1,4 +1,5 @@
 import { cityIn, groupsOf, hexById, type HexId } from '@tabletop/ride-the-rails'
+import { printsStartColours } from './cityMarks.js'
 
 /**
  * The board's look, one pick for each of twelve questions. The look is chosen here: to switch a
@@ -136,6 +137,6 @@ export function hexPaint(hexId: HexId, scheme: HexFillScheme = BOARD_LOOK.hexFil
     // R-4.1.4, R-4.2, R-8: a city with no limit (Chicago, Toronto, Paris, Berlin) apart; then the
     // cities with printed starts.
     if (city.capacity === 'unlimited') return patch('var(--rtr-hex-chicago)')
-    if (city.startColours.length > 0) return patch('var(--rtr-hex-start-city)')
+    if (printsStartColours(city.startColours)) return patch('var(--rtr-hex-start-city)')
     return patch('var(--rtr-hex-city)')
 }

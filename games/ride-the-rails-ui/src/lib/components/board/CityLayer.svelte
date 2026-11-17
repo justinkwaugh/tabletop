@@ -5,6 +5,7 @@
     import { hexCells, hexCenter, hexOutline } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { cityPieces } from '$lib/utils/boardPieces.js'
+    import { printsStartColours } from '$lib/utils/cityMarks.js'
     import { startCues } from '$lib/utils/startCues.js'
     import StartBand from './StartBand.svelte'
 
@@ -16,15 +17,15 @@
     // (Yellow in a westernmost city), the colour joins the city's band until it no longer may.
     const cues = $derived(BOARD_LOOK.startCue === 'band' ? startCues(gameSession.gameState) : [])
 
-    // R-4.2.5: Black may start in any city. A city printed with no colour keeps an empty list, which
-    // StartBand draws as a thin Black band; one where a cue lets another railroad start too is
-    // banded Black and that colour at full width.
+    // R-4.2.5: Black may start in any city. A plain city, printed with no colour or with Black alone
+    // (the expansion maps list it), keeps an empty list, which StartBand draws as a thin Black band;
+    // one where a cue lets another railroad start too is banded Black and that colour at full width.
     function bandColours(
         startColours: readonly RailroadId[],
         cued: readonly RailroadId[]
     ): readonly RailroadId[] {
         const extra = cued.filter((railroadId) => !startColours.includes(railroadId))
-        if (startColours.length > 0) return [...startColours, ...extra]
+        if (printsStartColours(startColours)) return [...startColours, ...extra]
         return extra.length > 0 ? [BLACK, ...extra] : []
     }
 
