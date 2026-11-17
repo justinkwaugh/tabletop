@@ -103,32 +103,33 @@ export function alpsHatchPath(geometry: BoardGeometry): string {
 }
 
 /**
- * R-8.2: a long-distance hex's hourglass, the turn ending there, at the bottom of the hex below
- * its 1: an inked frame round a pale glass, sand in its lower bulb. In its own units round its
- * middle, `half` its reach each way. A long-distance city (Perth, Brisbane) ends the turn too, but
- * its pill holds the bottom of the hex, so its hourglass stands at the top, above its one cube.
+ * R-8.2: a long-distance hex's buffer stop, the end of the line where the turn ends, at the bottom
+ * of the hex below its 1: two inked rails with two ties across them, running up into a stop bar
+ * in the impassable sides' red, edged in ink. In its own units round its middle; `box` is its
+ * reach, every stroke included. A long-distance city (Perth, Brisbane) ends the turn too, but its
+ * pill holds the bottom of the hex, so its buffer stop stands at the top, above its one cube.
  */
-export const HOURGLASS = {
+export const BUFFER_STOP = {
     at: { x: 0, y: 24 },
     cityAt: { x: 0, y: -22 },
-    half: { x: 5.9, y: 7.9 },
-    frame: 'M-5 -7H5M-5 7H5',
-    frameWidth: 1.8,
-    glass: 'M-3.8 -6.2H3.8L0.9 0L3.8 6.2H-3.8L-0.9 0Z',
-    glassWidth: 1.3,
-    glassOpacity: 0.8,
-    sand: 'M-2.2 5.2H2.2L0 2.6Z'
+    box: { x: -7.05, y: -7.05, width: 14.1, height: 14.8 },
+    rails: 'M-3 7V-3M3 7V-3',
+    railWidth: 1.5,
+    ties: 'M-5 5H5M-5 1.5H5',
+    tieWidth: 1.1,
+    bar: { x: -6.5, y: -6.5, width: 13, height: 3.6, rx: 1 },
+    barEdgeWidth: 1.1
 } as const
 
-export type HourglassSpot = Point & { hexId: HexId }
+export type BufferStopSpot = Point & { hexId: HexId }
 
-/** R-8.2: the hourglass of every long-distance hex and city on the map, in the map's order. */
-export function hourglassSpots(geometry: BoardGeometry): HourglassSpot[] {
+/** R-8.2: the buffer stop of every long-distance hex and city on the map, in the map's order. */
+export function bufferStopSpots(geometry: BoardGeometry): BufferStopSpot[] {
     return geometry.map.hexes
         .filter((hex) => geometry.map.isLongDistance(hex.id))
         .map((hex) => {
             const { center } = geometry.place(hex.id)
-            const at = hex.terrain === 'city' ? HOURGLASS.cityAt : HOURGLASS.at
+            const at = hex.terrain === 'city' ? BUFFER_STOP.cityAt : BUFFER_STOP.at
             return { hexId: hex.id, x: center.x + at.x, y: center.y + at.y }
         })
 }

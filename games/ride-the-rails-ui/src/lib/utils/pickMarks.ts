@@ -237,7 +237,7 @@ export const BUILD_PICK: PickContext = { kind: 'build' }
 
 /**
  * R-8.2: a placement in a long-distance hex, or in Perth or Brisbane, ends the turn. The board says
- * so with the hourglass alone, so the lit hex's and the popup buttons' names say it in words.
+ * so with the buffer stop alone, so the lit hex's and the popup buttons' names say it in words.
  */
 function endsTheTurn(hexId: HexId): string {
     return isLongDistance(hexId) ? ', ends the turn' : ''

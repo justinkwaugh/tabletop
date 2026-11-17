@@ -9,8 +9,8 @@
         alpsHatchPath,
         ENTRY_RING,
         entryRingSides,
-        HOURGLASS,
-        hourglassSpots
+        BUFFER_STOP,
+        bufferStopSpots
     } from '$lib/utils/terrainMarks.js'
 
     const gameSession = getGameSession()
@@ -32,11 +32,11 @@
     const PLAINS = $derived(HEXES.filter((hex) => hex.paint.edge === 'var(--rtr-hex-edge)'))
     const PATCHES = $derived(HEXES.filter((hex) => hex.paint.edge !== 'var(--rtr-hex-edge)'))
     const MOUNTAINS = $derived(HEXES.filter((hex) => hex.mountain))
-    // R-8.2: the Alps' hatch over their fill, their pale edges drawn again over it; an hourglass in
-    // each long-distance hex and city (Perth, Brisbane), where a placement ends the turn.
+    // R-8.2: the Alps' hatch over their fill, their pale edges drawn again over it; a buffer stop
+    // in each long-distance hex and city (Perth, Brisbane), where a placement ends the turn.
     const ALPS = $derived(HEXES.filter((hex) => hex.alps))
     const ALPS_HATCH_PATH = $derived(alpsHatchPath(board))
-    const HOURGLASSES = $derived(hourglassSpots(board))
+    const BUFFER_STOPS = $derived(bufferStopSpots(board))
     // R-8.4: the ring of entry hexes round Paris, its outside edged in navy.
     const ENTRY_RING_PATH = $derived(
         entryRingSides(board)
@@ -149,23 +149,32 @@
             aria-hidden="true"
         ></path>
     {/each}
-    {#each HOURGLASSES as hourglass (hourglass.hexId)}
-        <g transform="translate({hourglass.x} {hourglass.y})" data-hourglass={hourglass.hexId}>
+    {#each BUFFER_STOPS as stop (stop.hexId)}
+        <g transform="translate({stop.x} {stop.y})" data-buffer-stop={stop.hexId}>
             <path
-                d={HOURGLASS.frame}
+                d={BUFFER_STOP.rails}
+                fill="none"
                 stroke="var(--rtr-ink)"
-                stroke-width={HOURGLASS.frameWidth}
+                stroke-width={BUFFER_STOP.railWidth}
                 stroke-linecap="round"
             ></path>
             <path
-                d={HOURGLASS.glass}
-                fill="var(--rtr-white)"
-                fill-opacity={HOURGLASS.glassOpacity}
+                d={BUFFER_STOP.ties}
+                fill="none"
                 stroke="var(--rtr-ink)"
-                stroke-width={HOURGLASS.glassWidth}
-                stroke-linejoin="round"
+                stroke-width={BUFFER_STOP.tieWidth}
+                stroke-linecap="round"
             ></path>
-            <path d={HOURGLASS.sand} fill="var(--rtr-ink)"></path>
+            <rect
+                x={BUFFER_STOP.bar.x}
+                y={BUFFER_STOP.bar.y}
+                width={BUFFER_STOP.bar.width}
+                height={BUFFER_STOP.bar.height}
+                rx={BUFFER_STOP.bar.rx}
+                fill="var(--rtr-impassable)"
+                stroke="var(--rtr-ink)"
+                stroke-width={BUFFER_STOP.barEdgeWidth}
+            ></rect>
         </g>
     {/each}
     {#if ENTRY_RING_PATH}

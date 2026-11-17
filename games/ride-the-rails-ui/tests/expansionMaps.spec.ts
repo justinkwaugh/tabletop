@@ -50,10 +50,18 @@ test('Australia: a long-distance placement ends the turn (R-8.2)', async ({ page
     await openScenario(page, 'Australia perth chain')
     await expect(page.getByRole('group', { name: 'Map of Australia' })).toBeVisible()
     await expect(board(page).locator('[data-alps-hatch]')).toHaveCount(1)
-    // An hourglass in each of the four long-distance hexes, and in Perth and Brisbane.
-    await expect(board(page).locator('[data-hourglass]')).toHaveCount(6)
+    // A buffer stop in each of the four long-distance hexes, and in Perth and Brisbane.
+    await expect(board(page).locator('[data-buffer-stop]')).toHaveCount(6)
     for (const hexId of LONG_DISTANCE) {
-        await expect(board(page).locator(`[data-hourglass="${hexId}"]`), hexId).toHaveCount(1)
+        await expect(board(page).locator(`[data-buffer-stop="${hexId}"]`), hexId).toHaveCount(1)
+    }
+    // Each one's stop bar is the impassable sides' red.
+    const bars = board(page).locator('[data-buffer-stop] rect')
+    await expect(bars).toHaveCount(6)
+    for (const fill of await bars.evaluateAll((rects) =>
+        rects.map((rect) => getComputedStyle(rect).fill)
+    )) {
+        expect(fill).toBe('rgb(235, 0, 0)')
     }
     // Every long-distance hex has a side on the sea, so its 1 stands there, as Perth's does.
     await expect(board(page).locator('[data-limit-in-hex]')).toHaveCount(0)

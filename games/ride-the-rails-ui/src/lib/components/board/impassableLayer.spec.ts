@@ -73,8 +73,11 @@ describe('impassable sides, drawn red over the board (R-8.3, R-8.4)', () => {
         expect(strokes()).toEqual(['rtr-plain', 'rtr-impassable'])
         expect(layer).toContain('stroke-linecap="round"')
         expect(layer).toContain('pointer-events="none"')
-        // The ground no longer draws them, where a band or cube would cover them.
-        expect(source('./GroundLayer.svelte')).not.toMatch(/impassable/i)
+        // The ground no longer draws them, where a band or cube would cover them; it strokes
+        // nothing in their red (its long-distance mark's stop bar is filled with it).
+        const ground = source('./GroundLayer.svelte')
+        expect(ground).not.toMatch(/impassable(Sides|Path)|IMPASSABLE_LINE|data-impassable/)
+        expect(ground).not.toContain('stroke="var(--rtr-impassable)"')
     })
 
     it('draws the line wider than a start band, its casing a thin rim either side', () => {

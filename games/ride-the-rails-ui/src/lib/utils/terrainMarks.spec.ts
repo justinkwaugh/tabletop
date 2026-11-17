@@ -24,12 +24,12 @@ import {
     ALPS_HATCH,
     alpsHatchPath,
     bonusPillSpot,
+    BUFFER_STOP,
+    bufferStopSpots,
     outlineBandPaths,
     HEX_LIMIT_MARK,
     entryRingSides,
-    HOURGLASS,
     hexLimitMarks,
-    hourglassSpots,
     impassableSides
 } from './terrainMarks.js'
 import {
@@ -40,6 +40,50 @@ import {
     insideConvexPolygon,
     reachPastConvex
 } from '$lib/testing/shapeChecks.js'
+import { contrastRatio } from '$lib/testing/colourMetrics.js'
+import { paletteNames, tokenValue } from '$lib/testing/paletteSource.js'
+
+// The ground layer's source, to read how it draws the long-distance mark.
+const GROUND_LAYER =
+    import.meta.glob<string>('../components/board/GroundLayer.svelte', {
+        query: '?raw',
+        import: 'default',
+        eager: true
+    })['../components/board/GroundLayer.svelte'] ?? ''
+
+type Reach = { left: number; top: number; right: number; bottom: number }
+
+/** The reach of a path drawn with absolute M, H and V commands only, before its stroke. */
+function pathReach(path: string): Reach {
+    const xs: number[] = []
+    const ys: number[] = []
+    for (const [, command, args] of path.matchAll(/([MHV])([^MHV]+)/g)) {
+        const numbers = (args ?? '')
+            .trim()
+            .split(/[\s,]+/)
+            .map(Number)
+        if (command === 'M') {
+            xs.push(numbers[0] ?? NaN)
+            ys.push(numbers[1] ?? NaN)
+        } else if (command === 'H') xs.push(...numbers)
+        else ys.push(...numbers)
+    }
+    return {
+        left: Math.min(...xs),
+        top: Math.min(...ys),
+        right: Math.max(...xs),
+        bottom: Math.max(...ys)
+    }
+}
+
+function grow(reach: Reach, by: number): Reach {
+    return {
+        left: reach.left - by,
+        top: reach.top - by,
+        right: reach.right + by,
+        bottom: reach.bottom + by
+    }
+}
 
 function squareCorners(center: Point, side: number): Point[] {
     const half = side / 2
@@ -341,54 +385,102 @@ describe('the Alps (R-8.2)', () => {
 
 describe('the long-distance hexes (R-8.2)', () => {
     const geometry = boardGeometry('map.au')
-    const { half } = HOURGLASS
-    const hourglassBox = (spot: Point) =>
-        centredBox({ ...spot, width: half.x * 2, height: half.y * 2 })
+    const { box } = BUFFER_STOP
+    const bufferStopBox = (spot: Point) => ({ ...box, x: spot.x + box.x, y: spot.y + box.y })
+    const seaOnes = capacityMarks(geometry, MAP_LAYOUTS['map.au'].limitMarksInHex).map((mark) =>
+        centredBox({ ...mark, width: CAPACITY_MARK.side, height: CAPACITY_MARK.side })
+    )
+    /** Every waiting passenger's head on the map, a head reaching into the hex above included. */
+    const heads = boardMap('map.au').cities.map((city) => {
+        const passenger = passengerSpot(city.id, false)
+        const head = centredBox({
+            x: passenger.x,
+            y: passenger.y + MEEPLE.head.cy * PASSENGER_SCALE,
+            width: (MEEPLE.head.r * 2 + MEEPLE.edgeWidth) * PASSENGER_SCALE,
+            height: (MEEPLE.head.r * 2 + MEEPLE.edgeWidth) * PASSENGER_SCALE
+        })
+        return { cityId: city.id, head }
+    })
 
-    it('stands an hourglass, the turn ending there, in each long-distance hex and in Perth and Brisbane, and on no other map', () => {
+    it('stands a buffer stop, the turn ending there, in each long-distance hex and in Perth and Brisbane, and on no other map', () => {
         const longDistance = geometry.map.hexes.filter((hex) => hex.terrain === 'long-distance')
         expect(longDistance).toHaveLength(4)
         const cities = boardMap('map.au').longDistanceCities.map(
             (cityId) => boardMap('map.au').city(cityId).hexId
         )
         expect(cities).toEqual(['hex.au.0-12', 'hex.au.34-6'])
-        expect(hourglassSpots(geometry).map((spot) => spot.hexId)).toEqual(
+        expect(bufferStopSpots(geometry).map((spot) => spot.hexId)).toEqual(
             geometry.map.hexes
                 .filter((hex) => hex.terrain === 'long-distance' || cities.includes(hex.id))
                 .map((hex) => hex.id)
         )
         for (const mapId of MAP_IDS.filter((id) => id !== 'map.au')) {
-            expect(hourglassSpots(boardGeometry(mapId)), mapId).toEqual([])
+            expect(bufferStopSpots(boardGeometry(mapId)), mapId).toEqual([])
         }
     })
 
-    it('stands the hourglass at the bottom of the hex, wholly inside it, below where an in-hex 1 stands', () => {
+    it('draws two rails, two ties across them and a stop bar over their top ends, its box their reach with every stroke', () => {
+        const { rails, railWidth, ties, tieWidth, bar, barEdgeWidth } = BUFFER_STOP
+        expect(rails.match(/M/g)).toHaveLength(2)
+        expect(pathReach(rails)).toEqual({ left: -3, top: -3, right: 3, bottom: 7 })
+        expect(ties.match(/M/g)).toHaveLength(2)
+        expect(pathReach(ties)).toEqual({ left: -5, top: 1.5, right: 5, bottom: 5 })
+        // The rails run up into the bar, which covers their top ends and is wider than the ties.
+        expect(bar.y).toBeLessThan(-3)
+        expect(bar.y + bar.height).toBeGreaterThanOrEqual(-3)
+        expect(bar.x).toBeLessThan(-5)
+        expect(bar.x + bar.width).toBeGreaterThan(5)
+        expect(railWidth).toBeGreaterThan(tieWidth)
+        const parts = [
+            grow(pathReach(rails), railWidth / 2),
+            grow(pathReach(ties), tieWidth / 2),
+            grow(
+                { left: bar.x, top: bar.y, right: bar.x + bar.width, bottom: bar.y + bar.height },
+                barEdgeWidth / 2
+            )
+        ]
+        expect(box.x).toBeCloseTo(Math.min(...parts.map((part) => part.left)), 9)
+        expect(box.y).toBeCloseTo(Math.min(...parts.map((part) => part.top)), 9)
+        expect(box.x + box.width).toBeCloseTo(Math.max(...parts.map((part) => part.right)), 9)
+        expect(box.y + box.height).toBeCloseTo(Math.max(...parts.map((part) => part.bottom)), 9)
+    })
+
+    it('stands the buffer stop at the bottom of the hex, wholly inside it, clear of the 1s in the sea and of every passenger’s head', () => {
         const longDistance = geometry.map.hexes.filter((hex) => hex.terrain === 'long-distance')
         for (const hex of longDistance) {
             const { center, cells } = geometry.place(hex.id)
             const corners = cells[0]?.vertices ?? []
-            const spot = hourglassSpots(geometry).find((found) => found.hexId === hex.id)
+            const spot = bufferStopSpots(geometry).find((found) => found.hexId === hex.id)
             expect(spot, hex.id).toEqual({ hexId: hex.id, x: center.x, y: center.y + 24 })
             if (!spot) continue
-            for (const corner of boxCorners(hourglassBox(spot))) {
+            const stop = bufferStopBox(spot)
+            for (const corner of boxCorners(stop)) {
                 expect(insideConvexPolygon(corner, corners), hex.id).toBe(true)
             }
+            // Below where an in-hex 1 would stand, were its 1 not in the sea.
             const mark = hexLimitMarks(geometry).find((found) => found.hexId === hex.id)
-            expect(mark?.y ?? Infinity).toBeLessThan(spot.y - half.y)
+            expect(mark?.y ?? Infinity).toBeLessThan(stop.y)
+            for (const one of seaOnes) {
+                expect(boxesOverlap(stop, one), `${hex.id} and a 1`).toBe(false)
+            }
+            for (const { cityId, head } of heads) {
+                expect(boxesOverlap(stop, head), `${hex.id} and ${cityId}'s head`).toBe(false)
+            }
         }
     })
 
-    it('stands Perth’s and Brisbane’s hourglass inside the city, clear of its pill, its cube, its 1 in the sea and any passenger’s head', () => {
+    it('stands Perth’s and Brisbane’s buffer stop at the top of the city, wholly inside it, clear of its pill, its cube, the 1s in the sea and any passenger’s head', () => {
         const pieces = cityPieces(buildState({ mapId: 'map.au' }))
-        const marks = capacityMarks(geometry, MAP_LAYOUTS['map.au'].limitMarksInHex)
         for (const cityId of boardMap('map.au').longDistanceCities) {
             const city = pieces.find((piece) => piece.cityId === cityId)
             if (!city?.bonus) throw new Error(`${cityId} has no bonus`)
-            const spot = hourglassSpots(geometry).find((found) => found.hexId === city.hexId)
-            if (!spot) throw new Error(`${cityId} has no hourglass`)
-            const box = hourglassBox(spot)
-            const corners = geometry.place(city.hexId).cells[0]?.vertices ?? []
-            for (const corner of boxCorners(box)) {
+            const spot = bufferStopSpots(geometry).find((found) => found.hexId === city.hexId)
+            if (!spot) throw new Error(`${cityId} has no buffer stop`)
+            const { center, cells } = geometry.place(city.hexId)
+            expect(spot).toEqual({ hexId: city.hexId, x: center.x, y: center.y - 22 })
+            const stop = bufferStopBox(spot)
+            const corners = cells[0]?.vertices ?? []
+            for (const corner of boxCorners(stop)) {
                 expect(insideConvexPolygon(corner, corners), cityId).toBe(true)
             }
             const pill = centredBox({
@@ -396,7 +488,7 @@ describe('the long-distance hexes (R-8.2)', () => {
                 width: bonusPill(city.bonus).width + BONUS_PILL.strokeWidth,
                 height: BONUS_PILL.height + BONUS_PILL.strokeWidth
             })
-            expect(boxesOverlap(box, pill), `${cityId} pill`).toBe(false)
+            expect(boxesOverlap(stop, pill), `${cityId} pill`).toBe(false)
             // The one locomotive it holds, its edge included.
             for (const slot of trackSlots(city.hexId, 1)) {
                 const cube = centredBox({
@@ -404,31 +496,56 @@ describe('the long-distance hexes (R-8.2)', () => {
                     width: slot.width + CUBE_EDGE_WIDTH,
                     height: slot.height + CUBE_EDGE_WIDTH
                 })
-                expect(boxesOverlap(box, cube), `${cityId} cube`).toBe(false)
+                expect(boxesOverlap(stop, cube), `${cityId} cube`).toBe(false)
             }
-            for (const mark of marks) {
-                const square = centredBox({
-                    ...mark,
-                    width: CAPACITY_MARK.side,
-                    height: CAPACITY_MARK.side
-                })
-                expect(boxesOverlap(box, square), `${cityId} and the 1 of ${mark.hexId}`).toBe(
-                    false
-                )
+            for (const one of seaOnes) {
+                expect(boxesOverlap(stop, one), `${cityId} and a 1`).toBe(false)
             }
             // Every waiting passenger's head, the hex below's included, which stands in this hex.
-            for (const other of boardMap('map.au').cities) {
-                const passenger = passengerSpot(other.id, false)
-                const head = centredBox({
-                    x: passenger.x,
-                    y: passenger.y + MEEPLE.head.cy * PASSENGER_SCALE,
-                    width: (MEEPLE.head.r * 2 + MEEPLE.edgeWidth) * PASSENGER_SCALE,
-                    height: (MEEPLE.head.r * 2 + MEEPLE.edgeWidth) * PASSENGER_SCALE
-                })
-                expect(boxesOverlap(box, head), `${cityId} and ${other.id}'s head`).toBe(false)
+            for (const { cityId: other, head } of heads) {
+                expect(boxesOverlap(stop, head), `${cityId} and ${other}'s head`).toBe(false)
             }
         }
     })
+
+    it('draws the rails and ties in ink, round-ended, and the stop bar in --rtr-impassable edged in ink', () => {
+        const ground = GROUND_LAYER
+        const from = ground.indexOf('data-buffer-stop')
+        expect(from).toBeGreaterThan(0)
+        const mark = ground.slice(from, ground.indexOf('</g>', from))
+        const paths = [...mark.matchAll(/<path\b[^>]*>/g)].map(([tag]) => tag)
+        expect(paths).toHaveLength(2)
+        expect(paths[0]).toContain('d={BUFFER_STOP.rails}')
+        expect(paths[0]).toContain('stroke-width={BUFFER_STOP.railWidth}')
+        expect(paths[1]).toContain('d={BUFFER_STOP.ties}')
+        expect(paths[1]).toContain('stroke-width={BUFFER_STOP.tieWidth}')
+        for (const path of paths) {
+            expect(path).toContain('stroke="var(--rtr-ink)"')
+            expect(path).toContain('stroke-linecap="round"')
+        }
+        const bars = [...mark.matchAll(/<rect\b[^>]*>/g)].map(([tag]) => tag)
+        expect(bars).toHaveLength(1)
+        expect(bars[0]).toContain('fill="var(--rtr-impassable)"')
+        expect(bars[0]).toContain('stroke="var(--rtr-ink)"')
+        expect(bars[0]).toContain('stroke-width={BUFFER_STOP.barEdgeWidth}')
+        // The bar is drawn last, over the rails' top ends.
+        expect(mark.indexOf('<rect')).toBeGreaterThan(mark.lastIndexOf('<path'))
+    })
+
+    it.each(paletteNames())(
+        'stands the bar’s red at 3:1 or more on the long-distance ochre and on a city’s cream middle, in the %s palette',
+        (palette) => {
+            const red = tokenValue(palette, 'rtr-impassable')
+            const weak = ['rtr-long-haul', 'rtr-plain']
+                .map((ground) => ({
+                    ground,
+                    ratio: contrastRatio(red, tokenValue(palette, ground))
+                }))
+                .filter(({ ratio }) => ratio < 3)
+                .map(({ ground, ratio }) => `${ground} ${ratio.toFixed(2)}:1`)
+            expect(weak).toEqual([])
+        }
+    )
 })
 
 describe('impassable sides (R-8.3, R-8.4)', () => {
