@@ -23,6 +23,7 @@ import {
 } from '$lib/testing/turnTable.js'
 import { fillBarrel, holdWrit } from '$lib/testing/followUpTable.js'
 import SeatPanelOnTable from '$lib/testing/SeatPanelOnTable.svelte'
+import { CrownPath, StarPath } from '$lib/utils/pieceShapes.js'
 import SeatPanel from './seat/SeatPanel.svelte'
 
 const paint = {
@@ -286,6 +287,25 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
         expect(viewOf(state, Other, SeatA).ribbon).toMatchObject({ score: 12, deciding: true })
         const asleep = state.turnManager.turnOrder.find((id) => id !== SeatA) ?? ''
         expect(viewOf(state, Other, asleep).ribbon.deciding).toBe(false)
+    })
+
+    it('R-2.2.5, R-6.3 The start player who leads wears one crown, by the name; the lead is a star by the score', () => {
+        const host = new FeudumHost(3)
+        const [start] = host.state.turnManager.turnOrder
+        host.edit((state) => {
+            state.getPlayerState(start).score = 12
+        })
+        const state = new HydratedFeudumGameState(structuredClone(host.state))
+        const view = viewOf(state, Other, start)
+        expect(view.ribbon).toMatchObject({ startPlayer: true, leading: true, score: 12 })
+        // The ribbon alone: a drawn card back below it wears its own crown.
+        const ribbon =
+            /<button[^>]*data-open-seat-of[\s\S]*?<\/button>/.exec(markupOf(view))?.[0] ?? ''
+        expect(ribbon.match(new RegExp(CrownPath, 'g'))).toHaveLength(1)
+        expect(ribbon).toContain('data-start-player-crown')
+        const leader = /<svg[^>]*data-score-leader[^>]*>[\s\S]*?<\/svg>/.exec(ribbon)?.[0] ?? ''
+        expect(leader).toContain(`d="${StarPath}"`)
+        expect(ribbon).toContain('title="12 vp, leading"')
     })
 
     it('R-2.2.5 The panels keep their places when the marker passes; the numerals and crown move', () => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CrownPath } from '$lib/utils/pieceShapes.js'
+    import { CrownPath, StarPath } from '$lib/utils/pieceShapes.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { scoreWords, type SeatPanelView } from '$lib/model/seatPanel.js'
     import { pawnsNoteOf, seatLinesOf, serviceShieldOf } from '$lib/model/seatLines.js'
@@ -104,7 +104,7 @@
                         aria-hidden="true"
                         data-score-leader
                     >
-                        <path d={CrownPath} fill="currentColor"></path>
+                        <path d={StarPath} fill="currentColor"></path>
                     </svg>
                 {/if}
                 {view.ribbon.score} vp

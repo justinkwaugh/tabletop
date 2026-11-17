@@ -1,7 +1,7 @@
 <script lang="ts">
     import { scoreLineOf, scoreWords } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { CrownPath } from '$lib/utils/pieceShapes.js'
+    import { StarPath } from '$lib/utils/pieceShapes.js'
 
     /**
      * Contract, Supply: the desk's score line, at the zoom row's end, since a desk's board draws no
@@ -44,7 +44,7 @@
                     aria-hidden="true"
                     data-score-leader
                 >
-                    <path d={CrownPath} fill="currentColor"></path>
+                    <path d={StarPath} fill="currentColor"></path>
                 </svg>
             {/if}
         </li>
@@ -82,7 +82,7 @@
         white-space: nowrap;
     }
 
-    /* The leader: a heading-coloured outline and crown, never the accent, which asks for a press. */
+    /* The leader: a heading-coloured outline and star, never the accent, which asks for a press. */
     .seat.leading {
         border-color: var(--feudum-heading);
         color: var(--feudum-heading);
