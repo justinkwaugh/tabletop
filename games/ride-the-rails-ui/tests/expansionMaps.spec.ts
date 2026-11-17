@@ -5,6 +5,7 @@ import {
     collectPageErrors,
     litHexAt,
     litHexes,
+    moneyOf,
     openScenario,
     pressHex
 } from './helpers.js'
@@ -76,4 +77,28 @@ test('Canada: no pick is offered across an impassable side (R-8.3)', async ({ pa
     await pressHex(page, litHexAt(page, 'hex.ca.9-23'))
     await expect.poll(() => trackIn(page, 'hex.ca.9-23')).toEqual(['railroad.purple'])
     await expect.poll(() => litHexIds(page)).not.toContain('hex.ca.9-23')
+})
+
+test('France: Paris lights with its $10, and nothing crosses the estuary (R-8.4)', async ({
+    page
+}) => {
+    await openScenario(page, 'France paris ring')
+    await expect(page.getByRole('group', { name: 'Map of France' })).toBeVisible()
+    await expect(board(page).locator('[data-entry-ring]')).toHaveCount(1)
+    await expect(board(page).locator('[data-impassable-sides] path')).toHaveCount(2)
+    // Six entry hexes, the four border cities and Paris's 6, each inside its hex.
+    await expect(board(page).locator('[data-limit-in-hex]')).toHaveCount(11)
+    await expect(board(page).locator('g.bonuses [data-bonus-text="$10"]')).toHaveCount(1)
+
+    // Orange in Le Havre lights round it, never across the Seine's estuary to Caen.
+    const lit = await litHexIds(page)
+    expect(lit).toContain('hex.fr.9-7')
+    expect(lit).not.toContain('hex.fr.8-8')
+    // Red, in the entry hex north of Paris, lights Paris.
+    expect(lit).toContain('hex.fr.13-13')
+
+    const before = (await moneyOf(page, 'p1')) ?? 0
+    await pressHex(page, litHexAt(page, 'hex.fr.13-13'))
+    await expect.poll(() => trackIn(page, 'hex.fr.13-13')).toEqual(['railroad.red'])
+    await expect.poll(() => moneyOf(page, 'p1')).toBe(before + 10)
 })

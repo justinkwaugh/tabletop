@@ -3,10 +3,12 @@ import type { Point } from '@tabletop/common'
 import { MAP_IDS, boardMap, hexIdToAxial, type MapId } from '@tabletop/ride-the-rails'
 import { boardGeometry, type BoardGeometry } from './boardGeometry.js'
 import { capacityMarks } from './cityMarks.js'
+import { MAP_LAYOUTS } from './mapLayouts.js'
 import {
     ALPS_HATCH,
     alpsHatchPath,
     HEX_LIMIT_MARK,
+    entryRingSides,
     HOURGLASS,
     hexLimitMarks,
     impassableSides
@@ -236,3 +238,69 @@ describe('impassable sides (R-8.3, R-8.4)', () => {
         }
     })
 })
+
+describe('the ring round Paris (R-8.4)', () => {
+    const geometry = boardGeometry('map.fr')
+    const entries = geometry.map.hexes.filter((hex) =>
+        geometry.map.groupsOf(hex.id).includes('paris-entry')
+    )
+    const near = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) < 0.5
+
+    it('edges the six entry hexes’ outside in navy: each one’s three sides away from Paris and the ring', () => {
+        const sides = entryRingSides(geometry)
+        expect(sides).toHaveLength(18)
+        for (const { hexId, from, to } of sides) {
+            expect(entries.map((hex) => hex.id)).toContain(hexId)
+            const corners = geometry.place(hexId).cells[0]?.vertices ?? []
+            expect(corners.some((corner) => near(corner, from))).toBe(true)
+            expect(corners.some((corner) => near(corner, to))).toBe(true)
+            // The cell across the side is neither Paris nor another entry hex.
+            const center = geometry.place(hexId).center
+            const across = { x: from.x + to.x - center.x, y: from.y + to.y - center.y }
+            for (const inner of [...entries.map((hex) => hex.id), cityHex('map.fr', 'Paris')]) {
+                const innerCenter = geometry.place(inner).center
+                expect(near(across, innerCenter), `${hexId} faces an inner hex`).toBe(false)
+            }
+        }
+        for (const hex of entries) {
+            expect(
+                sides.filter((side) => side.hexId === hex.id),
+                hex.id
+            ).toHaveLength(3)
+        }
+    })
+
+    it('draws no ring on a map without entry hexes', () => {
+        for (const mapId of ['map.usa', 'map.au', 'map.ca', 'map.de'] as const) {
+            expect(entryRingSides(boardGeometry(mapId))).toEqual([])
+        }
+    })
+
+    it('stands the four border cities’ 1 inside the hex, not in the margin past the land', () => {
+        const names = ['Lille', 'Valenciennes', 'Sedan', 'Metz']
+        const marks = capacityMarks(geometry, MAP_LAYOUTS['map.fr'].limitMarksInHex)
+        for (const name of names) {
+            const city = cityNamed('map.fr', name)
+            const mark = marks.find((found) => found.cityId === city.id)
+            expect(mark, name).toMatchObject({ text: '1', inHex: true })
+            if (!mark) continue
+            for (const corner of squareCorners(
+                mark,
+                HEX_LIMIT_MARK.side + HEX_LIMIT_MARK.strokeWidth
+            )) {
+                expect(insideACell(geometry, city.hexId, corner), name).toBe(true)
+            }
+        }
+        expect(MAP_LAYOUTS['map.fr'].limitMarksInHex).toEqual(
+            names.map((name) => cityNamed('map.fr', name).id)
+        )
+        // Every other map keeps its marks where open water is found.
+        for (const mapId of ['map.usa', 'map.au', 'map.ca', 'map.de'] as const) {
+            expect(MAP_LAYOUTS[mapId].limitMarksInHex ?? []).toEqual([])
+        }
+    })
+})
+
+function cityHex(mapId: MapId, name: string) {
+    return cityNamed(mapId, name).hexId
+}

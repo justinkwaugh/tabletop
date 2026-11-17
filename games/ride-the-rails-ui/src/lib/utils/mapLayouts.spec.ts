@@ -51,7 +51,7 @@ describe('each map’s sea layout', () => {
                 'map.usa': START_LEGEND.width,
                 'map.au': START_LEGEND.width,
                 'map.ca': 440,
-                'map.fr': START_LEGEND.width,
+                'map.fr': 400,
                 'map.de': 480
             }
         )
@@ -81,6 +81,7 @@ describe('each map’s sea layout', () => {
         }
         expect(southWest('map.au')).toBe(true)
         expect(southWest('map.ca')).toBe(true)
+        expect(southWest('map.fr')).toBe(true)
     })
 
     it('writes one legend row per start rule, Red and Blue sharing theirs', () => {

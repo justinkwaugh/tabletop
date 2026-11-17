@@ -373,6 +373,13 @@ const CA_BLUE_TORONTO = line(['Windsor', 'Toronto'], { start: true, mapId: CA })
 /** The hex beside Toronto and the one past its impassable south side. */
 export const CA_IMPASSABLE_PAIR = ['hex.ca.10-22', 'hex.ca.10-24'] as const
 
+// R-8.4, France: Red from Lille into the entry hex north of Paris, Blue from Sedan to Reims, and
+// Orange started in Le Havre, which the Seine's estuary parts from Caen.
+const FR: MapId = 'map.fr'
+const FR_PARIS_NORTH: HexId = 'hex.fr.13-11'
+const FR_RED_TO_PARIS = [cityHexId('Lille', FR), ...walk(cityHexId('Lille', FR), FR_PARIS_NORTH)]
+const FR_BLUE_REIMS = line(['Sedan', 'Reims'], { start: true, mapId: FR })
+
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
     shares: SHARE_ROUND_ONE,
@@ -384,6 +391,34 @@ const EAST_COAST_ROUND: PlayedRound = {
 }
 
 export const TABLE_FIXTURES: readonly TableFixture[] = [
+    // R-8.4: France in round 2. Red stands in the entry hex north of Paris, so Paris lights with
+    // its $10; Orange in Le Havre lights round it, never across the estuary to Caen.
+    {
+        slug: 'france-paris-ring',
+        name: 'France paris ring',
+        recipe: {
+            mapId: FR,
+            playerCount: 3,
+            rounds: [
+                {
+                    shares: { p1: RED, p2: BLUE, p3: RED },
+                    builds: [
+                        { playerId: 'p1', runs: [[RED, FR_RED_TO_PARIS.slice(0, 4)]] },
+                        { playerId: 'p2', runs: [[BLUE, FR_BLUE_REIMS]] },
+                        { playerId: 'p3', runs: [[RED, FR_RED_TO_PARIS.slice(4)]] }
+                    ],
+                    journeys: { p1: 2, p2: 1, p3: 4 }
+                },
+                {
+                    shares: { p3: ORANGE, p1: ORANGE, p2: ORANGE },
+                    builds: [{ playerId: 'p2', runs: [[ORANGE, [cityHexId('Le Havre', FR)]]] }]
+                }
+            ],
+            phase: PhaseName.Build,
+            currentPlayerId: 'p1',
+            carried: [cityIdOf('Lille', FR)]
+        }
+    },
     // R-8.3: Canada in round 4. Red, Blue and Purple stand in Toronto; Purple runs on beside it,
     // where an impassable side parts that hex from the one south of it.
     {

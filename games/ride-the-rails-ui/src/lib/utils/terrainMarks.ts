@@ -147,3 +147,39 @@ export function impassableSides(geometry: BoardGeometry): ImpassableSide[] {
         return { pair, from, to }
     })
 }
+
+/** R-8.4: the ring of entry hexes round Paris: its outside edged in navy. */
+export const ENTRY_RING = { width: 2.4 } as const
+
+export type EntryRingSide = { hexId: HexId; from: Point; to: Point }
+
+/**
+ * R-8.4: the sides of the Paris entry hexes that face neither another entry hex nor the city with
+ * no limit they ring, so the six read as one group round Paris.
+ */
+export function entryRingSides(geometry: BoardGeometry): EntryRingSide[] {
+    const { map } = geometry
+    const key = ({ x, y }: Point) => `${Math.round(x)},${Math.round(y)}`
+    const hexAt = new Map(
+        geometry.hexIds.flatMap((hexId) =>
+            geometry.place(hexId).cells.map((cell): [string, HexId] => [key(cell.center), hexId])
+        )
+    )
+    const inner = (hexId: HexId | undefined) =>
+        hexId !== undefined &&
+        (map.groupsOf(hexId).includes('paris-entry') || map.capacity(hexId) === 'unlimited')
+    return map.hexes.flatMap((hex) => {
+        if (!map.groupsOf(hex.id).includes('paris-entry')) return []
+        return geometry.place(hex.id).cells.flatMap((cell) =>
+            cell.vertices.flatMap((from, index): EntryRingSide[] => {
+                const to = cell.vertices[(index + 1) % cell.vertices.length]
+                if (!to) return []
+                const across = {
+                    x: from.x + to.x - cell.center.x,
+                    y: from.y + to.y - cell.center.y
+                }
+                return inner(hexAt.get(key(across))) ? [] : [{ hexId: hex.id, from, to }]
+            })
+        )
+    })
+}

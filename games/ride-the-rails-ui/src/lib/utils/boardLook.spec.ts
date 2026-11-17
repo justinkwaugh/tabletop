@@ -110,6 +110,17 @@ describe('hex paint', () => {
         expect(hexPaint(hexOf('long-distance'))).toEqual(patch('var(--rtr-long-haul)'))
     })
 
+    it('tints the six Paris entry hexes pale navy on the plains’ grid (R-8.4)', () => {
+        const france = boardMap('map.fr')
+        const entries = france.hexes.filter((hex) =>
+            france.groupsOf(hex.id).includes('paris-entry')
+        )
+        expect(entries).toHaveLength(6)
+        for (const hex of entries) {
+            expect(hexPaint(hex.id)).toEqual({ ...PLAIN, fill: 'var(--rtr-entry)' })
+        }
+    })
+
     it('greys every city with no limit as Chicago: Toronto, Paris and Berlin (R-8)', () => {
         for (const [mapId, name] of [
             ['map.ca', 'Toronto'],

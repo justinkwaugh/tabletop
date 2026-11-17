@@ -1,4 +1,4 @@
-import { cityIn, hexById, type HexId } from '@tabletop/ride-the-rails'
+import { cityIn, groupsOf, hexById, type HexId } from '@tabletop/ride-the-rails'
 
 /**
  * The board's look, one pick for each of twelve questions. The look is chosen here: to switch a
@@ -127,6 +127,10 @@ export function hexPaint(hexId: HexId, scheme: HexFillScheme = BOARD_LOOK.hexFil
     if (hex.terrain === 'mountain' || hex.terrain === 'alps') return patch('var(--rtr-mountain)')
     if (hex.terrain === 'long-distance') return patch('var(--rtr-long-haul)')
     const city = cityIn(hexId)
+    // R-8.4: the entry hexes round Paris, tinted pale navy on the plains' grid.
+    if (!city && groupsOf(hexId).includes('paris-entry')) {
+        return { ...PLAIN_PAINT, fill: 'var(--rtr-entry)' }
+    }
     if (!city || scheme === 'terrain') return PLAIN_PAINT
     if (scheme === 'city-tint') return patch('var(--rtr-hex-city)')
     // R-4.1.4, R-4.2, R-8: a city with no limit (Chicago, Toronto, Paris, Berlin) apart; then the

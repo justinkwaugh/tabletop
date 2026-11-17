@@ -7,6 +7,8 @@
     import {
         ALPS_HATCH,
         alpsHatchPath,
+        ENTRY_RING,
+        entryRingSides,
         HOURGLASS,
         IMPASSABLE_CHANNEL,
         impassableSides
@@ -39,6 +41,12 @@
     const LONG_DISTANCE = $derived(HEXES.filter((hex) => hex.longDistance))
     // R-8.3, R-8.4: each impassable side as a water channel, one path for the edges and one for the
     // water, on the ground under the bands and cubes.
+    // R-8.4: the ring of entry hexes round Paris, its outside edged in navy.
+    const ENTRY_RING_PATH = $derived(
+        entryRingSides(board)
+            .map(({ from, to }) => `M${pointText(from)}L${pointText(to)}`)
+            .join('')
+    )
     const CHANNELS = $derived(
         impassableSides(board)
             .map(({ from, to }) => `M${pointText(from)}L${pointText(to)}`)
@@ -172,6 +180,16 @@
             <path d={HOURGLASS.sand} fill="var(--rtr-ink)"></path>
         </g>
     {/each}
+    {#if ENTRY_RING_PATH}
+        <path
+            d={ENTRY_RING_PATH}
+            fill="none"
+            stroke="var(--rtr-pill)"
+            stroke-width={ENTRY_RING.width}
+            stroke-linecap="round"
+            data-entry-ring
+        ></path>
+    {/if}
     {#if CHANNELS}
         <g data-impassable-sides>
             <path

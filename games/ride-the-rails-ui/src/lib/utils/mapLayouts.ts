@@ -58,13 +58,17 @@ export const MAP_LAYOUTS: Readonly<Record<MapId, MapLayout>> = {
         legend: { x: 712, y: 1136 },
         legendWidth: 440
     },
-    // The board prints no title. The title in the Bay of Biscay, clear of land by 74; the legend
-    // in the Channel north of Cherbourg, the one open water wide enough, clear of land by 58.
+    // The board prints no title: the title in the Channel north of Cherbourg, clear of land by 90.
+    // The legend in the south-west, where the board prints its railroad introduction panel: in
+    // the Bay of Biscay, clear of land by 40, narrowed to 400 for its two rows. Lille,
+    // Valenciennes, Sedan and Metz stand on the board's land border, so their 1 goes in the hex.
     'map.fr': {
         name: 'France',
         boardLabel: 'Map of France',
-        title: { x: 160, y: 1520 },
-        legend: { x: 16, y: 120 }
+        title: { x: 160, y: 96 },
+        legend: { x: 32, y: 1572 },
+        legendWidth: 400,
+        limitMarksInHex: ['city.fr.lille', 'city.fr.valenciennes', 'city.fr.sedan', 'city.fr.metz']
     },
     // The board prints no title. The title off the board's land south-east of Dresden, clear of
     // land by 86; the legend in the North Sea, clear of land by 24. That sea is 520 wide at most,
