@@ -11,8 +11,15 @@
         discs,
         view,
         drops,
-        lifts
-    }: { discs: readonly Disc[]; view: BoardView; drops: boolean; lifts: () => boolean } = $props()
+        lifts,
+        badge
+    }: {
+        discs: readonly Disc[]
+        view: BoardView
+        drops: boolean
+        lifts: () => boolean
+        badge?: string
+    } = $props()
 
     // Whether it drops is settled when it is first drawn.
     const drop = new StagedDrop(untrack(() => drops))
@@ -32,5 +39,5 @@
     </g>
 </g>
 <g out:liftOffBody|global={{ lifts }}>
-    <PieceShape {discs} radius={PIECE_RADIUS} {view} parts={drop.parts} />
+    <PieceShape {discs} radius={PIECE_RADIUS} {view} parts={drop.parts} {badge} />
 </g>

@@ -102,6 +102,12 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.preferences.set({ centreMark: !this.centreMark })
     }
 
+    pieceBadges: boolean = $derived(this.preferences.values.pieceBadges)
+
+    togglePieceBadges() {
+        this.preferences.set({ pieceBadges: !this.pieceBadges })
+    }
+
     turned: boolean = $derived(this.preferences.values.turned)
 
     // A move's motion is laid out in the view it started in, so turning the board lands it.
