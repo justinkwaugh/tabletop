@@ -1,13 +1,14 @@
 import { defineGame, type GameDefinition } from '@tabletop/common'
 import {
+    MergerRoundMachineState,
+    TrainlessMajorsState,
     createEighteenXXRuntime,
     type EighteenXXTitleRules,
     type PrivatePowerRules
 } from '@tabletop/18xx'
-import { defineSettleLoans, LoanRules1861, settlesLoans } from '../loans.js'
-import { MergerActions1861, MergerRoundHandler, startsMergerRounds } from '../mergers.js'
-import { MergerRoundState1861 } from '../mergerState.js'
-import { nationalise1861, ReceivershipRules1861 } from '../national.js'
+import { LoanRules1861 } from '../loans.js'
+import { MergerRounds1861 } from '../mergers.js'
+import { ReceivershipRules1861 } from '../national.js'
 import { Names1861 } from '../names.js'
 import { AuctionRules1861, createOpening1861 } from '../opening.js'
 import { startingCash1861 } from '../companies.js'
@@ -22,20 +23,14 @@ import {
     TransferRules1861
 } from '../operating.js'
 import {
-    appliesPhaseEffects,
+    LoanSettlements1861,
     NationalActions1861,
     nationalisesBetweenCompanies,
-    PhaseEffectActions1861,
-    placesMoscowStation,
-    TrainlessMajorsHandler
+    PhaseNationalisation1861,
+    placesMoscowStation
 } from '../phaseEffects.js'
 import { RouteRules1861 } from '../routes.js'
-import {
-    State1861,
-    StateDefinition1861,
-    TrainlessMajorsState,
-    type HydratedState1861
-} from '../state.js'
+import { State1861, StateDefinition1861, type HydratedState1861 } from '../state.js'
 import { StationRules1861 } from '../stations.js'
 import { CompanyRules1861, StockRules1861 } from '../stock.js'
 import { TrackRules1861 } from '../track.js'
@@ -74,20 +69,20 @@ export const TitleRules1861: EighteenXXTitleRules<typeof State1861, HydratedStat
     receivershipRules: ReceivershipRules1861,
     corporateFinanceRules: CorporateFinanceRules1861,
     decisionHandlers: {
-        OperatingSet: (family) => startsMergerRounds(nationalisesBetweenCompanies(family)),
+        OperatingSet: (family) => MergerRounds1861.starts(nationalisesBetweenCompanies(family)),
         LayingTrack: (family) => placesMoscowStation(family),
-        BuyingTrains: (family) => settlesLoans(family),
-        AdvancingPhase: (family) => appliesPhaseEffects(family)
+        BuyingTrains: (family) => LoanSettlements1861.settles(family),
+        AdvancingPhase: (family) => PhaseNationalisation1861.applies(family)
     },
     titleStateHandlers: {
-        [MergerRoundState1861]: new MergerRoundHandler(),
-        [TrainlessMajorsState]: new TrainlessMajorsHandler()
+        [MergerRoundMachineState]: MergerRounds1861.handler('OperatingSet'),
+        [TrainlessMajorsState]: PhaseNationalisation1861.handler()
     },
     titleActions: [
-        defineSettleLoans(nationalise1861),
-        ...PhaseEffectActions1861,
+        ...LoanSettlements1861.actions(),
+        ...PhaseNationalisation1861.actions(),
         ...NationalActions1861,
-        ...MergerActions1861
+        ...MergerRounds1861.actions()
     ]
 }
 

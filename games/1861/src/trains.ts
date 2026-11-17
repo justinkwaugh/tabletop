@@ -68,14 +68,14 @@ export const TrainDepot1861 = new TrainDepot({
 
 /** The train supply of the game's optional rules. */
 export function trainSupply1861(
-    variants: { twoSpecialTrains?: true },
+    unlimitedSpecialTrains: boolean,
     playerCount: number
 ): string | undefined {
     if (playerCount === 2)
-        return variants.twoSpecialTrains
-            ? TrainSupply1861.twoPlayer
-            : TrainSupply1861.twoPlayerUnlimited
-    return variants.twoSpecialTrains ? undefined : TrainSupply1861.unlimited
+        return unlimitedSpecialTrains
+            ? TrainSupply1861.twoPlayerUnlimited
+            : TrainSupply1861.twoPlayer
+    return unlimitedSpecialTrains ? TrainSupply1861.unlimited : undefined
 }
 
 const yellow = ['yellow']

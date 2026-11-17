@@ -251,10 +251,23 @@ export function cityIsBlocked(
     locationId: string,
     node: TileNode
 ): boolean {
+    return cityBlockedForCompanies(state, [companyId], locationId, node)
+}
+
+/**
+ * Whether a city is full of stations none of which belongs to any of these companies, so that
+ * no route of theirs passes it: companies merging trace their connections together (1861 §12.3).
+ */
+export function cityBlockedForCompanies(
+    state: StationState,
+    companyIds: readonly string[],
+    locationId: string,
+    node: TileNode
+): boolean {
     if (node.kind !== 'city' || node.stationSlots === 0) return false
     return (
         filledStationSpaces(state, locationId, node) >= node.stationSlots &&
-        !usesStationAt(state, companyId, locationId, node.id) &&
+        !companyIds.some((companyId) => usesStationAt(state, companyId, locationId, node.id)) &&
         !cityHasNeutralStation(state, locationId, node.id)
     )
 }

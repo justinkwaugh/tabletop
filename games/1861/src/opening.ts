@@ -62,7 +62,7 @@ const companyIds = [...MinorIds1861, ...MajorIds1861]
 
 function createPosition(
     playerCash: readonly { playerId: string; amount: number }[],
-    variants: Variants1861,
+    trainSupply: string | undefined,
     removedPrivateIds: readonly string[]
 ): InitialPosition {
     const unstarted = { started: false, floated: false, funded: false, operated: false }
@@ -129,7 +129,7 @@ function createPosition(
         ],
         stationReservations: Map1861.stationReservations(),
         tileInventory: TileSet1861.createInventory(),
-        trainInventory: TrainDepot1861.createInventory(trainSupply1861(variants, playerCash.length))
+        trainInventory: TrainDepot1861.createInventory(trainSupply)
     }
 }
 
@@ -145,7 +145,7 @@ export function createOpening1861({
     return {
         position: createPosition(
             players.map((player) => ({ playerId: player.playerId, amount: capital })),
-            variants,
+            trainSupply1861(GameConfig1861.unlimitedSpecialTrains(config), players.length),
             players.length === 2 ? removedForTwoPlayers(prng) : []
         ),
         titleState: { variants },

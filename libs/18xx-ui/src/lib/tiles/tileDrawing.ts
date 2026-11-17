@@ -86,6 +86,11 @@ export type TileLayout = {
      * on a map over whatever lies there, as the spikes from 1822's London toward its neighbours.
      */
     overhangs?: readonly (readonly Point[])[]
+    /**
+     * Filled shapes the print sets on the tile under its track, before the tile's rotation, as
+     * 1867's yellow triangles mark a side its yellow tile must connect to (GTG §8.6.2).
+     */
+    printedShapes?: readonly TilePrintedShape[]
     hideRevenue?: true | readonly string[]
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
@@ -128,6 +133,10 @@ export type TileLayout = {
     flippedLaneEdges?: readonly TileEdge[]
 }
 
+/** A filled shape a layout prints; see ``TileLayout.printedShapes``. */
+export type TilePrintedShape = { points: readonly Point[]; color: string }
+/** A printed shape as drawn: its polygon points, each pair "x,y", and its colour. */
+export type TileDrawnShape = { points: string; color: string }
 /** Text a layout prints on the tile; see ``TileLayout.printedText``. */
 export type TilePrintedText = { content: string; at: Point; fontSize: number }
 /** Track a layout prints that no route uses; see ``TileLayout.printedTrack``. */
@@ -204,6 +213,7 @@ export type TileDrawing = {
     printedText: readonly TilePrintedText[]
     /** Polygon points, each pair "x,y", of the shapes reaching past the hex's sides. */
     overhangs: readonly string[]
+    printedShapes: readonly TileDrawnShape[]
 }
 
 export function createTileDrawing(
@@ -605,6 +615,13 @@ export function createTileDrawing(
         printedText: (layout.printedText ?? []).map((text) => ({
             ...text,
             at: orientPoint(text.at, angle)
+        })),
+        printedShapes: (layout.printedShapes ?? []).map(({ points, color }) => ({
+            points: points
+                .map((point) => orientPoint(point, angle))
+                .map((point) => `${point.x},${point.y}`)
+                .join(' '),
+            color
         })),
         overhangs: (layout.overhangs ?? []).map((points) =>
             points

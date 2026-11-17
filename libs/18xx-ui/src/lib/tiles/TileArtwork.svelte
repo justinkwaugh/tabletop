@@ -245,6 +245,9 @@
             ></polygon>
         {/if}
     {/each}
+    {#each drawing.printedShapes as shape, index (index)}
+        <polygon data-tile-printed-shape points={shape.points} fill={shape.color}></polygon>
+    {/each}
     <g fill="none" stroke-linecap="butt" filter={trackInkFilter}>
         {#each drawing.paths.filter((path) => !path.hidden) as path (path.id)}
             {#if path.pier}

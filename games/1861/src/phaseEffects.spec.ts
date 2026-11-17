@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { botMove, playOut, Random } from '../test/bot.js'
 import { edit, kit, setCash, type Table } from '../test/kit.js'
 import { RsrId, isMinor1861 } from './companies.js'
-import { TrainlessMajorsState } from './state.js'
+import { TrainlessMajorsState } from '@tabletop/18xx'
 import { TrainDepot1861 } from './trains.js'
 
 /** Plays the seeded table to the first time a minor buys trains with a public company after it. */

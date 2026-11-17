@@ -175,10 +175,6 @@ export function isMinor1861(companyId: string): boolean {
     return MinorIds1861.includes(companyId)
 }
 
-export function isMajor1861(companyId: string): boolean {
-    return MajorIds1861.includes(companyId)
-}
-
 /**
  * A minor company is one 2-share certificate, so its stock price is half its value (§6, §7.2);
  * a public company has a 2-share director's certificate and eight 1-share certificates (§7.3).

@@ -1,17 +1,21 @@
 <script lang="ts">
     import { createRouteWorker } from './routeWorker.js'
     import type { GameSession } from '@tabletop/frontend-components'
-    import type { HydratedState1861, State1861 } from '@tabletop/1861'
+    import {
+        NationalisationRules1861,
+        type HydratedState1861,
+        type State1861
+    } from '@tabletop/1861'
     import {
         GameTable,
+        MergerRound,
         OperatingActions,
+        TrainlessMajor,
         SelectionAuctionBidding,
         SelectionAuctionLots,
         type TitleActionDescription
     } from '@tabletop/18xx-ui'
     import { describe1861Action } from './history.js'
-    import MergerRound from './MergerRound.svelte'
-    import TrainlessMajor from './TrainlessMajor.svelte'
     import { requireSession1861 } from './session.svelte.js'
     let { gameSession }: { gameSession: GameSession<State1861, HydratedState1861> } = $props()
     const session = $derived(requireSession1861(gameSession))
@@ -37,10 +41,15 @@
             {:else}
                 <SelectionAuctionLots {session} />
             {/if}
-        {:else if session.mergerRound}
-            <MergerRound {session} />
-        {:else if session.trainlessMajor}
-            <TrainlessMajor {session} companyId={session.trainlessMajor} />
+        {:else if session.mergers.round}
+            <MergerRound {session} mergers={session.mergers} />
+        {:else if session.trainless.companyId}
+            <TrainlessMajor
+                {session}
+                trainless={session.trainless}
+                companyId={session.trainless.companyId}
+                spacesPerLoan={NationalisationRules1861.stepsPerLoan}
+            />
         {:else}
             <OperatingActions {privateOperationDescription} onFocusRoute={focusRoute} {session} />
         {/if}

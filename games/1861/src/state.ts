@@ -5,6 +5,11 @@ import {
     composeEighteenXXState,
     defineEighteenXXState,
     LoanFields,
+    MergerRoundFields,
+    MergerRoundMachineStates,
+    PhaseNationalisationFields,
+    TrainlessMajorsState,
+    validateMergerRound,
     RailwayFields,
     RailwayMachineStates,
     SelectionAuctionFields,
@@ -18,15 +23,10 @@ import {
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
 import * as Type from 'typebox'
-import { MergerRound1861, MergerRoundStates1861, validateMergerRound1861 } from './mergerState.js'
-
-const Id = Type.String({ minLength: 1 })
 
 /** The optional rules chosen when the game was set up (§14). */
 export const Variants1861 = Type.Object(
     {
-        /** Two 2+2- and two 5+5E-trains rather than unlimited ones (GTG §14). */
-        twoSpecialTrains: Type.Optional(Type.Literal(true)),
         /** Nationalisation pays R5 a share less for each space below R35 (GTG §14). */
         noPriceFloor: Type.Optional(Type.Literal(true)),
         /** The RSR exports a train at the end of each set instead of operating (GTG §14). */
@@ -39,23 +39,6 @@ export const Variants1861 = Type.Object(
     { additionalProperties: false }
 )
 export type Variants1861 = Type.Static<typeof Variants1861>
-
-/**
- * Public companies left without a train as phase 4, 6 or 8 begins, whose directors decide in
- * operating order whether to nationalise them (§11).
- */
-export const TrainlessMajors1861 = Type.Object(
-    {
-        companyIds: Type.Array(Id, { uniqueItems: true }),
-        continuation: Id,
-        /** Who was to act where play continues. */
-        activePlayerIds: Type.Array(Id)
-    },
-    { additionalProperties: false }
-)
-export type TrainlessMajors1861 = Type.Static<typeof TrainlessMajors1861>
-
-export const TrainlessMajorsState = 'NationalisingTrainless'
 
 // A company without a train borrows for one rather than its director paying (§10.10): there is
 // no family train funding, and nobody goes bankrupt.
@@ -74,20 +57,13 @@ export const State1861 = composeEighteenXXState(
         ...TurnMarkFields,
         ...CorporateFinanceFields,
         variants: Variants1861,
-        mergerRound: Type.Optional(MergerRound1861),
-        /** Where the first 8-train was bought, which decides the last rounds (§13). */
-        phaseEightAt: Type.Optional(
-            Type.Object(
-                { set: Type.Integer({ minimum: 1 }), round: Type.Integer({ minimum: 1 }) },
-                { additionalProperties: false }
-            )
-        ),
-        trainlessMajors: Type.Optional(TrainlessMajors1861)
+        ...MergerRoundFields,
+        ...PhaseNationalisationFields
     },
     [
         ...FamilyStates,
         ...SelectionAuctionMachineStates,
-        ...MergerRoundStates1861,
+        ...MergerRoundMachineStates,
         TrainlessMajorsState
     ]
 )
@@ -103,7 +79,7 @@ export const StateDefinition1861 = defineEighteenXXState(State1861, [
     }),
     validateSelectionAuction,
     validateCompanyAuction,
-    validateMergerRound1861
+    validateMergerRound
 ])
 
 function isState1861(state: object): state is HydratedState1861 {

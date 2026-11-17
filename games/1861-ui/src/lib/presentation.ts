@@ -7,11 +7,9 @@ import {
     MarketZoneColors1861,
     MinorCapColumn,
     TitleRules1861,
-    isEndMergerRound,
-    isStartMergerRound,
     type State1861
 } from '@tabletop/1861'
-import { companyLoans, loanInterest } from '@tabletop/18xx'
+import { companyLoans, isEndMergerRound, isStartMergerRound, loanInterest } from '@tabletop/18xx'
 import {
     moneyFormat,
     type TitleFact,

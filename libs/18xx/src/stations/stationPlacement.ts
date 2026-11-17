@@ -92,6 +92,11 @@ export interface StationRules {
      * (1822 §5.10.4).
      */
     opensBesideCity?(state: StationPlacementState, locationId: string, nodeId: string): boolean
+    /**
+     * Whether a city takes no station yet, as 1867's city spaces printed green take none before
+     * phase 3 (GTG §7.2.1).
+     */
+    cityClosed?(state: StationPlacementState, locationId: string, nodeId: string): boolean
 }
 export type StationEvaluation =
     { details: StationPlacementDetails; reason?: never } | { details?: never; reason: string }
@@ -180,6 +185,7 @@ export class StationPlacement {
             return []
         const node = this.mapState.tile(locationId).face.nodes.find((node) => node.id === nodeId)
         if (node?.kind !== 'city') return []
+        if (this.rules.cityClosed?.(this.state, locationId, nodeId)) return []
         const apart = this.rules.citiesApart?.(locationId) ?? false
         if (
             this.state.stations.some(

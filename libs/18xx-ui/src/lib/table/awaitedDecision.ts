@@ -18,6 +18,12 @@ export type AwaitedDecision = {
     text: string
 }
 
+/** The names a title's waiting message uses. */
+export type DecisionNames = {
+    playerName(playerId: string): string
+    companyName(companyId: string): string
+}
+
 export type AwaitedDecisionNames = {
     companyName(companyId: string): string
     ownerName(owner: Owner): string

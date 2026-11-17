@@ -38,6 +38,25 @@ export function bankExhaustionAtSetEnd(state: OperatingState): GameEnding | unde
             (!state.operatingSet || state.operatingSet.completed ? 1 : 0)
     }
 }
+/**
+ * The bank broken in a stock round ends the game after one more operating round; in an operating
+ * round, after that round (1861 §13, 1867 GTG §12.1).
+ */
+export function bankBrokenRoundEnding(state: OperatingState): GameEnding | undefined {
+    if (!state.bank.broken) return undefined
+    const set = state.operatingSet
+    if (!set || set.completed)
+        return {
+            reason: BankBroken,
+            finalOperatingSet: (set?.number ?? 0) + 1,
+            finalOperatingRound: 1
+        }
+    return {
+        reason: BankBroken,
+        finalOperatingSet: set.number,
+        finalOperatingRound: set.roundNumber
+    }
+}
 export function endingDue(state: EndingState, rules: EndingRules): boolean {
     if (!state.gameEnding) return false
     if (state.gameEnding.finalOperatingSet === undefined) return true

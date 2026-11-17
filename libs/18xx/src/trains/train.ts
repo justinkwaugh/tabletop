@@ -116,6 +116,11 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     )
 }
 
+/** Whether the company owns no train at all. */
+export function ownsNoTrain(state: TrainState, companyId: string): boolean {
+    return !trainsOwnedBy(state, { kind: 'company', companyId }).length
+}
+
 export function trainIdsOwnedBy(state: TrainState, owner: Owner): string[] {
     return trainsOwnedBy(state, owner).map((train) => train.id)
 }

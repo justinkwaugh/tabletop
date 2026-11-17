@@ -10,6 +10,7 @@ export {
     type TileDrawnPath,
     type TilePrintedToken,
     type TilePrintedTrack,
+    type TilePrintedShape,
     type TilePrintedText,
     type TileDrawnNode,
     type TileDrawingStyle,
@@ -94,7 +95,7 @@ export {
     joinDetails,
     ownerName
 } from './table/historyDescription.js'
-export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
+export { trainCount, type AwaitedDecision, type DecisionNames } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
     CompanyMark,
@@ -223,3 +224,19 @@ export { default as RunInstructions } from './routes/RunInstructions.svelte'
 export { RouteSolveQueue, type QueuedRouteWorker } from './routes/routeSolveQueue.js'
 export { default as StationBuilding } from './maps/StationBuilding.svelte'
 export type { HistoricalMapState, HistoryMapPlacement } from './maps/historicalMap.js'
+export {
+    MergerRoundModule,
+    type MergerDraft,
+    type MergerRoundSession
+} from './session/mergerRoundModule.svelte.js'
+export {
+    TrainlessMajorModule,
+    type TrainlessMajorSession
+} from './session/trainlessMajorModule.svelte.js'
+export { NationalRailwaySession } from './session/nationalRailwaySession.svelte.js'
+export { default as MergerRound } from './mergers/MergerRound.svelte'
+export { default as TrainlessMajor } from './mergers/TrainlessMajor.svelte'
+export {
+    describeNationalRailwayAction,
+    type NationalRailwayNames
+} from './mergers/nationalRailwayHistory.js'

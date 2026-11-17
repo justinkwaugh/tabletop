@@ -1,20 +1,24 @@
 <script lang="ts">
-    import { Market1861 } from '@tabletop/1861'
     import { finiteCashOwnedBy, trainsOwnedBy } from '@tabletop/18xx'
-    import { CompanyActionCard, StockPanelHeading, type CardAction } from '@tabletop/18xx-ui'
-    import type { Session1861 } from './session.svelte.js'
-    let { session }: { session: Session1861 } = $props()
+    import CompanyActionCard, { type CardAction } from '../stock/CompanyActionCard.svelte'
+    import StockPanelHeading from '../stock/StockPanelHeading.svelte'
+    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type { MergerRoundModule } from '../session/mergerRoundModule.svelte.js'
+    let { session, mergers }: { session: EighteenXXSessionView; mergers: MergerRoundModule } =
+        $props()
+    const market = $derived(mergers.rounds.rules.market)
     const money = $derived(session.presentation.money)
+    const convertPrices = $derived(mergers.rounds.convertPrices())
     const gameState = $derived(session.gameState)
-    const round = $derived(session.mergerRound)
-    const proposal = $derived(session.proposal)
-    const decision = $derived(session.mergerDecision)
+    const round = $derived(mergers.round)
+    const proposal = $derived(mergers.proposal)
+    const decision = $derived(mergers.decision)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
     const name = (id: string) => session.companyName(id)
     const player = (id: string) => session.getPlayerName(id)
     const price = (companyId: string) =>
         gameState.stockMarket.stacks.some((stack) => stack.companyIds.includes(companyId))
-            ? money(Market1861.companySpace(gameState.stockMarket, companyId).price)
+            ? money(market.companySpace(gameState.stockMarket, companyId).price)
             : undefined
     const shares = (count: number) => `${count} share${count === 1 ? '' : 's'}`
 
@@ -44,7 +48,7 @@
     }
 
     const deciding = $derived(round?.minorIds[0])
-    // Once formed, the public company is the subject; until then the deciding minor.
+    // Once formed, the major company is the subject; until then the deciding minor.
     const subjectId = $derived(
         proposal && (proposal.stage === 'open' || proposal.stage === 'discard')
             ? proposal.majorId
@@ -57,7 +61,7 @@
                       label: 'Pass',
                       ariaLabel: `Pass with ${name(decision.minorId)}`,
                       disabled: busy,
-                      onclick: () => session.passMerger()
+                      onclick: () => mergers.pass()
                   }
               ]
             : []
@@ -85,21 +89,23 @@
     {/if}
 
     {#if decision}
-        {#if session.conversionPreview}
-            <h3>Convert at {money(session.conversionPreview.price)} into</h3>
+        {#if mergers.conversionPreview}
+            <h3>Convert at {money(mergers.conversionPreview.price)} into</h3>
             <div class="choices">
                 {#each decision.majorIds as majorId (majorId)}
                     <button
                         class="action-button"
                         disabled={busy}
                         aria-label="Convert {name(decision.minorId)} into {name(majorId)}"
-                        onclick={() => session.convertMinor(majorId)}>{majorId}</button
+                        onclick={() => mergers.convert(majorId)}>{majorId}</button
                     >
                 {/each}
             </div>
         {:else}
             <p class="note">
-                {name(decision.minorId)} converts only from the yellow column, R100 to R165.
+                {name(decision.minorId)} converts only at {money(convertPrices.minimum)} to {money(
+                    convertPrices.maximum
+                )}.
             </p>
         {/if}
         {#if decision.partnerIds.length}
@@ -108,15 +114,15 @@
                 {#each decision.partnerIds as minorId (minorId)}
                     <button
                         class="toggle"
-                        aria-pressed={session.chosenPartners.includes(minorId)}
+                        aria-pressed={mergers.chosenPartners.includes(minorId)}
                         disabled={busy}
-                        onclick={() => session.togglePartner(minorId)}
+                        onclick={() => mergers.togglePartner(minorId)}
                         >{minorId} <span class="detail">{price(minorId) ?? ''}</span></button
                     >
                 {/each}
             </div>
-            {#if session.mergerDraft}
-                {@const draft = session.mergerDraft}
+            {#if mergers.draft}
+                {@const draft = mergers.draft}
                 <p>
                     {draft.minorIds.join(' + ')} at {money(draft.preview.price)}: {allotmentText(
                         draft.preview.allotments
@@ -131,7 +137,7 @@
                                 class="action-button"
                                 disabled={busy}
                                 aria-label="Merge into {name(majorId)}"
-                                onclick={() => session.mergeMinors(majorId)}>Form {majorId}</button
+                                onclick={() => mergers.merge(majorId)}>Form {majorId}</button
                             >
                         {/each}
                     </div>
@@ -147,29 +153,25 @@
             <p>
                 {proposal.kind === 'convert' ? 'Converting' : 'Merging'}
                 {proposal.minorIds.join(' + ')} into {name(proposal.majorId)} at {money(
-                    session.proposalPrice ?? 0
+                    mergers.proposalPrice ?? 0
                 )}.
             </p>
         {/if}
         {#if proposal.stage !== 'open' && proposal.stage !== 'discard'}
             <p class="note">Shares: {allotmentText(proposal.allotments)}</p>
         {/if}
-        {#if session.canAnswerMerger}
+        {#if mergers.canAnswer}
             <div class="choices">
-                <button
-                    class="action-button"
-                    disabled={busy}
-                    onclick={() => session.answerMerger(true)}>Agree</button
+                <button class="action-button" disabled={busy} onclick={() => mergers.answer(true)}
+                    >Agree</button
                 >
-                <button
-                    class="action-button"
-                    disabled={busy}
-                    onclick={() => session.answerMerger(false)}>Refuse</button
+                <button class="action-button" disabled={busy} onclick={() => mergers.answer(false)}
+                    >Refuse</button
                 >
             </div>
         {/if}
-        {#if session.stationChoice}
-            {@const choice = session.stationChoice}
+        {#if mergers.stationChoice}
+            {@const choice = mergers.stationChoice}
             <h3>Keep two stations</h3>
             <div class="choices">
                 {#each choice.stations as station (station.stationId)}
@@ -177,7 +179,7 @@
                         class="toggle"
                         aria-pressed={choice.chosen.includes(station.stationId)}
                         disabled={busy}
-                        onclick={() => session.toggleStation(station.stationId)}
+                        onclick={() => mergers.toggleStation(station.stationId)}
                         >{session.placeName(station.locationId)}
                         <span class="detail">{station.minorId}</span></button
                     >
@@ -187,35 +189,34 @@
                 <button
                     class="action-button"
                     disabled={busy || !!choice.reason}
-                    onclick={() => session.chooseStations()}>Keep these</button
+                    onclick={() => mergers.chooseStations()}>Keep these</button
                 >
             </div>
         {/if}
-        {#if session.shareOffer}
-            {@const offer = session.shareOffer}
+        {#if mergers.shareOffer}
+            {@const offer = mergers.shareOffer}
             <h3>
-                {offer.open ? 'Buy a share' : 'Buy shares'} at {money(session.proposalPrice ?? 0)}
+                {offer.open ? 'Buy a share' : 'Buy shares'} at {money(mergers.proposalPrice ?? 0)}
             </h3>
             <div class="choices">
                 {#each Array.from({ length: offer.most + 1 }, (_, count) => count) as count (count)}
                     <button
                         class="action-button"
                         disabled={busy}
-                        onclick={() => session.buyMergerShares(count)}
+                        onclick={() => mergers.buyShares(count)}
                         >{count ? shares(count) : 'None'}</button
                     >
                 {/each}
             </div>
         {/if}
-        {#if session.mergerDiscards}
+        {#if mergers.discards}
             <h3>Discard a train to the bank pool</h3>
             <div class="choices">
-                {#each session.mergerDiscards as train (train.id)}
+                {#each mergers.discards as train (train.id)}
                     <button
                         class="action-button"
                         disabled={busy}
-                        onclick={() => session.discardMergerTrain(train.id)}
-                        >{train.definitionId}</button
+                        onclick={() => mergers.discardTrain(train.id)}>{train.definitionId}</button
                     >
                 {/each}
             </div>

@@ -68,8 +68,9 @@ const flag = (config: GameConfig | undefined, id: string) => config?.[id] === tr
 
 export const GameConfig1861 = {
     schema: Schema,
+    unlimitedSpecialTrains: (config: GameConfig | undefined) =>
+        config?.unlimitedSpecialTrains !== false,
     variants: (config: GameConfig | undefined) => ({
-        ...(config?.unlimitedSpecialTrains === false ? { twoSpecialTrains: true as const } : {}),
         ...(flag(config, 'noPriceFloor') ? { noPriceFloor: true as const } : {}),
         ...(flag(config, 'trainExports') ? { trainExports: true as const } : {}),
         ...(flag(config, 'longGame') ? { longGame: true as const } : {}),

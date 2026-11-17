@@ -124,7 +124,7 @@ export type EighteenXXSessionRules<
 > &
     Partial<Pick<EighteenXXTitleRules<Schema, State>, 'trainFundingRules'>>
 
-type SessionOptions<
+export type SessionOptions<
     Schema extends TitleStateSchema,
     State extends HydratedEighteenXXState<Schema> & HydratedEighteenXXState
 > = ConstructorParameters<typeof GameSession<EighteenXXState<Schema>, State>>[0]
@@ -223,7 +223,7 @@ export class EighteenXXSession<
     protected get ordinaryHotseatPlay() {
         return this.localHotseat && !this.isDeveloperHarness
     }
-    private readonly moduleSession: ModuleSession<
+    protected readonly moduleSession: ModuleSession<
         HydratedEighteenXXState,
         Omit<EighteenXXSessionRules, 'state'>
     > = ((session: EighteenXXSession<Schema, State>) => ({

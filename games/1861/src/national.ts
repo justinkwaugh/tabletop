@@ -1,23 +1,16 @@
 import { assertExists } from '@tabletop/common'
 import {
-    RailwayMapState,
+    NationalStations,
     abandonOperatingTurn,
-    applyStationPlacement,
     cheapestAffordableTrain,
     getCompany,
     homeStationId,
     nationaliseCompany,
     nextOperatingCompany,
-    routeRevenue,
-    StationPlacement,
     treasuryPoolId,
     type NationalisationRules,
-    type NationalisedStation,
     type Nationalisation,
-    type PlacedStation,
     type ReceivershipRules,
-    type Station,
-    type StationState,
     type TrainPurchaseState,
     type MapStateData,
     type TrainRules
@@ -31,99 +24,25 @@ import { LeftOrDownMove, Market1861 } from './stockMarket.js'
 import { TileSet1861 } from './tiles.js'
 import { RsrOperatingPhaseIds, TrainDepot1861, revenueStages1861 } from './trains.js'
 
-/** The RSR's stations kept for St. Petersburg and Moscow; six more go anywhere (§7.4, §11). */
-const ReservedRsrCities = [StPetersburgLocationId, MoscowLocationId]
-
-function rsrStations(state: StationState, status: Station['status']): Station[] {
-    return state.stations.filter(
-        (station) => station.companyId === RsrId && station.status === status
-    )
-}
-
-function rsrPlacedIn(state: StationState, locationId: string): boolean {
-    return state.stations.some(
-        (station) =>
-            station.companyId === RsrId &&
-            station.status === 'placed' &&
-            station.position.locationId === locationId
-    )
-}
-
 /** The RSR's second station, kept for Moscow. */
 export const RsrMoscowStationId = `${RsrId}:station:1`
 
-/** The RSR station kept for a city: its home for St. Petersburg, its second for Moscow. */
-function reservedStationId(locationId: string): string {
-    return locationId === StPetersburgLocationId ? homeStationId(RsrId) : RsrMoscowStationId
-}
-
-function generalStationIds(state: StationState): string[] {
-    return rsrStations(state, 'available')
-        .map((station) => station.id)
-        .filter((id) => !ReservedRsrCities.some((city) => reservedStationId(city) === id))
-}
-
-function placedOutsideReservedCities(state: StationState): number {
-    return rsrStations(state, 'placed').filter(
-        (station) =>
-            station.status === 'placed' && !ReservedRsrCities.includes(station.position.locationId)
-    ).length
-}
-
-function cityValue(state: HydratedState1861, station: PlacedStation): number {
-    const mapState = new RailwayMapState(Map1861, TileSet1861, state.tileInventory)
-    const node = mapState
-        .tile(station.position.locationId)
-        .face.nodes.find((entry) => entry.id === station.position.nodeId)
-    return node && node.kind !== 'junction'
-        ? routeRevenue(node.revenue, revenueStages1861(state.phaseId))
-        : 0
-}
-
-/** Orders location ids the same in every locale. */
-const compareCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
-
 /**
- * The RSR takes over the nationalised company's stations, the most valuable cities first (ties
- * by location), one to a hex and no more than six outside St. Petersburg and Moscow (§11).
+ * The RSR's stations: its home kept for St. Petersburg, its second for Moscow, and six more
+ * taken over anywhere, the most valuable cities first (§7.4, §11).
  */
-function nationalStations(state: HydratedState1861, companyId: string): NationalisedStation[] {
-    const placed = state.stations
-        .filter(
-            (station): station is PlacedStation =>
-                station.companyId === companyId && station.status === 'placed'
-        )
-        .toSorted(
-            (a, b) =>
-                cityValue(state, b) - cityValue(state, a) ||
-                compareCodeUnits(a.position.locationId, b.position.locationId)
-        )
-    const taken: NationalisedStation[] = []
-    const hexes = new Set<string>()
-    const general = generalStationIds(state)
-    let outside = placedOutsideReservedCities(state)
-    for (const station of placed) {
-        const { locationId } = station.position
-        if (rsrPlacedIn(state, locationId) || hexes.has(locationId)) continue
-        const reserved = ReservedRsrCities.includes(locationId)
-        const nationalStationId = reserved
-            ? reservedStationId(locationId)
-            : outside < RsrOutsideStationLimit
-              ? general.shift()
-              : undefined
-        if (
-            !nationalStationId ||
-            !state.stations.some(
-                (entry) => entry.id === nationalStationId && entry.status === 'available'
-            )
-        )
-            continue
-        if (!reserved) outside++
-        hexes.add(locationId)
-        taken.push({ stationId: station.id, nationalStationId })
-    }
-    return taken
-}
+export const RsrStations = new NationalStations({
+    nationalId: RsrId,
+    map: Map1861,
+    tileSet: TileSet1861,
+    stationRules: StationRules1861,
+    revenueStages: revenueStages1861,
+    keptStations: [
+        { locationId: StPetersburgLocationId, stationId: homeStationId(RsrId) },
+        { locationId: MoscowLocationId, stationId: RsrMoscowStationId }
+    ],
+    outsideLimit: RsrOutsideStationLimit
+})
 
 export const NationalisationRules1861: NationalisationRules = {
     market: Market1861,
@@ -136,7 +55,8 @@ export const NationalisationRules1861: NationalisationRules = {
         requireState1861(state).variants.noPriceFloor ? Math.max(0, price - 5 * missed) : price,
     nationalId: RsrId,
     trainDestination: 'market',
-    nationalStations: (state, companyId) => nationalStations(requireState1861(state), companyId),
+    nationalStations: (state, companyId) =>
+        RsrStations.takeOver(requireState1861(state), companyId),
     // A nationalised public company can be started again; a minor closes (§7.3, §11).
     restart: (state, companyId) =>
         getCompany(state, companyId).kind === 'major'
@@ -165,7 +85,7 @@ export function nationalise1861(
         state.phaseChange.discardCompanyIds = state.phaseChange.discardCompanyIds.filter(
             (id) => id !== companyId
         )
-    releaseRsrReservation(state)
+    RsrStations.releaseReservations(state)
     const set = state.operatingSet
     if (operating) abandonOperatingTurn(state, companyId)
     else if (set && !set.completed)
@@ -173,14 +93,6 @@ export function nationalise1861(
             (id) => id !== companyId || set.completedCompanyIds.includes(id)
         )
     return details
-}
-
-/** Once the RSR has a station in St. Petersburg, the space kept for it is free (§7.4). */
-function releaseRsrReservation(state: HydratedState1861): void {
-    if (!rsrPlacedIn(state, StPetersburgLocationId)) return
-    state.stationReservations = state.stationReservations.filter(
-        (reservation) => reservation.companyId !== RsrId
-    )
 }
 
 /** Whether the RSR operates in this phase: from the first 4-train until the first 8-train (§7.4). */
@@ -196,50 +108,12 @@ export function rsrOperates(state: { phaseId: string }): boolean {
  * unless it has one there already (§7.4, §14.3).
  */
 export function placeRsrHome(state: HydratedState1861): boolean {
-    return placeRsrStation(state, StPetersburgLocationId, homeStationId(RsrId))
+    return RsrStations.placeKept(state, StPetersburgLocationId)
 }
 
 /** Moscow's grey tile takes an RSR station at once, unless it has one there (§7.4). */
 export function placeRsrMoscowStation(state: HydratedState1861): boolean {
-    return placeRsrStation(state, MoscowLocationId, RsrMoscowStationId)
-}
-
-/**
- * Places an RSR station kept for a city, unless the RSR has one there: in the space reserved for
- * it while one is, otherwise the first open space of the city's tile.
- */
-function placeRsrStation(state: HydratedState1861, locationId: string, stationId: string): boolean {
-    if (rsrPlacedIn(state, locationId)) return false
-    if (
-        !state.stations.some(
-            (station) => station.id === stationId && station.status === 'available'
-        )
-    )
-        return false
-    const placement = new StationPlacement(state, StationRules1861)
-    const reserved = state.stationReservations.find(
-        (reservation) => reservation.companyId === RsrId && reservation.locationId === locationId
-    )?.nodeId
-    const mapState = new RailwayMapState(Map1861, TileSet1861, state.tileInventory)
-    const nodeIds = reserved
-        ? [reserved]
-        : mapState
-              .tile(locationId)
-              .face.nodes.filter((node) => node.kind === 'city')
-              .map((node) => node.id)
-    for (const nodeId of nodeIds) {
-        const [slot] = placement.openSlots(RsrId, locationId, nodeId)
-        if (slot === undefined) continue
-        applyStationPlacement(state, {
-            companyId: RsrId,
-            stationId,
-            position: { locationId, nodeId, slot },
-            cost: 0
-        })
-        releaseRsrReservation(state)
-        return true
-    }
-    return false
+    return RsrStations.placeKept(state, MoscowLocationId)
 }
 
 /**
