@@ -1,9 +1,11 @@
 import { assertExists } from '@tabletop/common'
 import {
+    charterScheduleCost,
     destinationStationId,
     getCompany,
     homeStationId,
     nextOperatingCompany,
+    type StationPlacementContext,
     type StationPlacementState,
     type StationRules
 } from '@tabletop/18xx'
@@ -17,20 +19,25 @@ const DestinationStationCost = 100
  * A company's stations cost what its charter says; a destination station left on the charter costs
  * $100, once the company has made its connection run (pp. 15, 22).
  */
-function placementCost(state: StationPlacementState, stationId: string): number {
+function placementCost(
+    state: StationPlacementState,
+    stationId: string,
+    placement?: StationPlacementContext
+): number {
     const station = state.stations.find((entry) => entry.id === stationId)
     assertExists(station, 'A station placement requires a known station')
     const destination = destinationStationId(station.companyId)
     if (stationId === destination) return DestinationStationCost
-    const used = state.stations.filter(
-        (entry) =>
-            entry.companyId === station.companyId &&
-            entry.id !== destination &&
-            entry.status !== 'available'
-    ).length
-    const cost = company1870(station.companyId)?.stationCosts[used]
-    assertExists(cost, 'The charter prices each of its stations')
-    return cost
+    const schedule = company1870(station.companyId)?.stationCosts
+    assertExists(schedule, 'The charter prices each of its stations')
+    return charterScheduleCost(
+        state.stations.filter(
+            (entry) => entry.companyId === station.companyId && entry.id !== destination
+        ),
+        stationId,
+        schedule,
+        placement
+    )
 }
 
 export const StationRules1870: StationRules = {

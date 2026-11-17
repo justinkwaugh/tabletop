@@ -27,8 +27,8 @@ export const EighteenThirtyStationCounts = charterStationCounts(EighteenThirtySt
 export const EighteenThirtyStationRules: StationRules = {
     map: EighteenThirtyMap,
     tileSet: EighteenThirtyTileSet,
-    placementCost: (state, stationId) =>
-        charterStationCost(state, stationId, EighteenThirtyStationCosts),
+    placementCost: (state, stationId, placement) =>
+        charterStationCost(state, stationId, EighteenThirtyStationCosts, placement),
     placementLimit: () => 1,
     // A floated company places its home station as it begins its first operating turn. With
     // several reserved cities, the first is used while its hex has no track; once track gives

@@ -1,9 +1,11 @@
 import { assertExists } from '@tabletop/common'
 import {
+    charterScheduleCost,
     charterStationCounts,
     getCompany,
     homeStationId,
     nextOperatingCompany,
+    type StationPlacementContext,
     type StationRules,
     type StationState
 } from '@tabletop/18xx'
@@ -36,7 +38,11 @@ const MergedStationCost = 100
  * charter by a merger, and any returned to the charter from a shared city cost $100 (§7.3.3,
  * §11.6.6, §11.7.1).
  */
-function mergedStationCost(state: StationState, stationId: string): number {
+function mergedStationCost(
+    state: StationState,
+    stationId: string,
+    placement?: StationPlacementContext
+): number {
     const station = state.stations.find((entry) => entry.id === stationId)
     assertExists(station, 'A station placement requires a known station')
     const title = requireEighteenThirtyTwoState(state)
@@ -51,9 +57,12 @@ function mergedStationCost(state: StationState, stationId: string): number {
         !charter.some((entry) => entry.id === stationId)
     )
         return MergedStationCost
-    const cost = schedule[charter.filter((entry) => entry.status !== 'available').length]
-    assertExists(cost, 'The charter prices each of its stations')
-    return cost
+    return charterScheduleCost(
+        charter.filter((entry) => !title.returnedStationIds?.includes(entry.id)),
+        stationId,
+        schedule,
+        placement
+    )
 }
 
 export const EighteenThirtyTwoStationRules: StationRules = {

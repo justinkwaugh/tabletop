@@ -110,8 +110,8 @@ export function homeChoice1894(state: OperatingStationState): HomeStationChoice 
 export const EighteenNinetyFourStationRules: StationRules = {
     map: EighteenNinetyFourMap,
     tileSet: EighteenNinetyFourTileSet,
-    placementCost: (state, stationId) =>
-        charterStationCost(state, stationId, EighteenNinetyFourStationCosts),
+    placementCost: (state, stationId, placement) =>
+        charterStationCost(state, stationId, EighteenNinetyFourStationCosts, placement),
     // One station a round, and none in the final set (§7.3.4).
     placementLimit: (state) => (inFinalOperatingSet(state) ? 0 : 1),
     stopAllowed: londonAccess,
