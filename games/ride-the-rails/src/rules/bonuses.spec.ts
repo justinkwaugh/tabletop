@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { BONUSES } from '../data/bonuses.js'
 import { hexIdAt, type HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, isUsaHex, USA_CITIES, type City } from '../data/usaMap.js'
+import type { City } from '../data/boardMap.js'
+import { adjacentHexIds, isHexId } from '../data/boardMaps.js'
+import { USA_CITIES } from '../data/usaMap.js'
 import { PhaseName } from '../definition/phases.js'
 import type {
     HydratedRideTheRailsGameState,
@@ -62,7 +64,7 @@ function row(rowNumber: number, fromDcol: number, toDcol: number): HexId[] {
     const hexIds: HexId[] = []
     for (let dcol = fromDcol; dcol <= toDcol; dcol += 2) {
         const hexId = hexIdAt({ row: rowNumber, dcol })
-        expect(isUsaHex(hexId)).toBe(true)
+        expect(isHexId(hexId)).toBe(true)
         hexIds.push(hexId)
     }
     return hexIds

@@ -1,7 +1,7 @@
 import { assertExists, type GameAction } from '@tabletop/common'
 import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, usaCity } from '../data/usaMap.js'
+import { adjacentHexIds, cityById } from '../data/boardMaps.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
@@ -83,7 +83,7 @@ export function steeredPlacement(
 // R-3.3.1, R-3.3.2: a one-link journey from the first passenger that has one, else a pass.
 function journeyOrPass(state: HydratedRideTheRailsGameState, playerId: string): UserActionFields {
     for (const cityId of state.passengers) {
-        const { hexId } = usaCity(cityId)
+        const { hexId } = cityById(cityId)
         const link = firstLinkFrom(state, hexId, [hexId])
         if (link) {
             return { type: ActionType.RideJourney, playerId, links: [link] }

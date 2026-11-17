@@ -223,6 +223,17 @@ describe('the canonical validator', () => {
         ).toThrow()
     })
 
+    it('refuses a passenger in a city that is not on the map (R-1.3.2, R-8.1)', () => {
+        const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
+        expect(RideTheRailsGameStateValidator.Check(state)).toBe(true)
+        expect(
+            RideTheRailsGameStateValidator.Check({
+                ...state,
+                passengers: [...state.passengers, 'city.usa.atlantis']
+            })
+        ).toBe(false)
+    })
+
     it('R-X.3: refuses to hydrate a revision this code does not know', () => {
         const state = buildState(MID_BUILDING_YELLOW_STARTED).dehydrate()
         const later = { ...state, rideTheRailsRevision: CURRENT_RIDE_THE_RAILS_REVISION + 1 }

@@ -6,7 +6,8 @@ import {
     type BonusId
 } from '../data/bonuses.js'
 import type { MapId } from '../data/maps.js'
-import { cityIn, type CityId } from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
+import { cityIn } from '../data/boardMaps.js'
 import type { Track, TranscontinentalClaim } from '../model/gameState.js'
 import type { LegalPlacement } from './placement.js'
 import { railroadsIn, trackWith } from './track.js'

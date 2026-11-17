@@ -1,13 +1,18 @@
 import { assertExists } from '@tabletop/common'
 import { hexCoordinates, type HexId } from '../data/hexes.js'
 import { RAILROAD_INTRODUCTIONS, type RailroadId, type StartRule } from '../data/railroads.js'
-import { cityIn, USA_CITIES, type City, type CityId } from '../data/usaMap.js'
+import type { City, CityId } from '../data/boardMap.js'
+import { boardMap, cityIn } from '../data/boardMaps.js'
+import type { MapId } from '../data/maps.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import { hasTrack, railroadsIn } from './track.js'
 
 export const CHICAGO_CITY_ID: CityId = 'city.usa.chicago'
 
 const WESTERNMOST_COUNT = 3
+
+// R-4.2.3: Yellow's westernmost rule is the USA board's; no other map prints it.
+const WESTERNMOST_MAP: MapId = 'map.usa'
 
 export function isEastCoastCity(city: City): boolean {
     return city.groups.includes('east-coast')
@@ -20,7 +25,8 @@ export function isWestCoastCity(city: City): boolean {
 // R-4.2.3: the occupied cities lowest in dcol, every city tied with the third included,
 // whether or not it could take Yellow.
 export function westernmostOccupiedCities(track: Track): CityId[] {
-    const occupied = USA_CITIES.filter((city) => railroadsIn(track, city.hexId).length > 0)
+    const occupied = boardMap(WESTERNMOST_MAP)
+        .cities.filter((city) => railroadsIn(track, city.hexId).length > 0)
         .map((city) => ({ cityId: city.id, ...hexCoordinates(city.hexId) }))
         .sort((a, b) => a.dcol - b.dcol || a.row - b.row)
     const third = occupied.at(WESTERNMOST_COUNT - 1)

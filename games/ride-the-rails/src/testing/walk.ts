@@ -1,5 +1,5 @@
 import { ActionSource, assert, assertExists, type Game, type GameAction } from '@tabletop/common'
-import { isCityHex } from '../data/usaMap.js'
+import { isCityHex } from '../data/boardMaps.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState, RideTheRailsGameState } from '../model/gameState.js'
 import { legalPlacements, type LegalPlacement } from '../rules/placement.js'

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { hexIdAt, type HexId } from '../data/hexes.js'
 import { LOCOMOTIVES_PER_RAILROAD, type RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, isUsaHex, USA_CITIES } from '../data/usaMap.js'
+import { adjacentHexIds, isHexId } from '../data/boardMaps.js'
+import { USA_CITIES } from '../data/usaMap.js'
 import type { Track } from '../model/gameState.js'
 import { isEastCoastCity, isWestCoastCity } from './startRailroad.js'
 import { transcontinentalLine } from './transcontinental.js'
@@ -17,7 +18,7 @@ function row(rowNumber: number, fromDcol: number, toDcol: number): HexId[] {
     const hexIds: HexId[] = []
     for (let dcol = fromDcol; dcol <= toDcol; dcol += 2) {
         const hexId = hexIdAt({ row: rowNumber, dcol })
-        expect(isUsaHex(hexId)).toBe(true)
+        expect(isHexId(hexId)).toBe(true)
         hexIds.push(hexId)
     }
     return hexIds

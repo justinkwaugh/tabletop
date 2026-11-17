@@ -14,7 +14,8 @@ import { Compile } from 'typebox/compile'
 import { HexId } from '../data/hexes.js'
 import { MapId } from '../data/maps.js'
 import { RailroadId } from '../data/railroads.js'
-import { CityId, isUsaHex } from '../data/usaMap.js'
+import { CityId } from '../data/boardMap.js'
+import { boardMap } from '../data/boardMaps.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedRideTheRailsPlayerState, RideTheRailsPlayerState } from './playerState.js'
 
@@ -44,38 +45,49 @@ export function inCityIdOrder(cityIds: readonly CityId[]): CityId[] {
     return [...cityIds].sort()
 }
 
-// R-8.1: track lies only in the map's hexes. `Type.Evaluate` drops a record's
+// R-8.1: track lies only in the hexes of the state's map. `Type.Evaluate` drops a record's
 // `additionalProperties`, and the key pattern admits hexes the map does not have, so the whole
 // state carries this refinement instead.
-function tracksOnlyMapHexes(track: Readonly<Record<string, unknown>>): boolean {
-    return Object.keys(track).every((hexId) => isUsaHex(hexId))
+function tracksOnlyMapHexes(mapId: MapId, track: Readonly<Record<string, unknown>>): boolean {
+    const map = boardMap(mapId)
+    return Object.keys(track).every((hexId) => map.hasHex(hexId))
+}
+
+// R-1.3.2, R-8.1: passengers stand only in cities of the state's map.
+function carriesOnlyMapCities(mapId: MapId, passengers: readonly string[]): boolean {
+    const map = boardMap(mapId)
+    return passengers.every((cityId) => map.hasCity(cityId))
 }
 
 export type RideTheRailsGameState = Type.Static<typeof RideTheRailsGameState>
 export const RideTheRailsGameState = Type.Refine(
-    Type.Evaluate(
-        Type.Intersect([
-            Type.Omit(GameState, ['players', 'machineState']),
-            Type.Object({
-                players: Type.Array(RideTheRailsPlayerState),
-                machineState: Type.Enum(MachineState),
-                // R-X.3: a state from a later revision than this code knows is refused.
-                rideTheRailsRevision: Type.Integer({
-                    minimum: 1,
-                    maximum: CURRENT_RIDE_THE_RAILS_REVISION
-                }),
-                mapId: MapId,
-                roundManager: RoundManager,
-                phaseManager: PhaseManager,
-                track: Track,
-                passengers: Type.Array(CityId, { uniqueItems: true }),
-                transcontinental: Type.Optional(TranscontinentalClaim),
-                building: Type.Optional(BuildingTurn)
-            })
-        ])
+    Type.Refine(
+        Type.Evaluate(
+            Type.Intersect([
+                Type.Omit(GameState, ['players', 'machineState']),
+                Type.Object({
+                    players: Type.Array(RideTheRailsPlayerState),
+                    machineState: Type.Enum(MachineState),
+                    // R-X.3: a state from a later revision than this code knows is refused.
+                    rideTheRailsRevision: Type.Integer({
+                        minimum: 1,
+                        maximum: CURRENT_RIDE_THE_RAILS_REVISION
+                    }),
+                    mapId: MapId,
+                    roundManager: RoundManager,
+                    phaseManager: PhaseManager,
+                    track: Track,
+                    passengers: Type.Array(CityId, { uniqueItems: true }),
+                    transcontinental: Type.Optional(TranscontinentalClaim),
+                    building: Type.Optional(BuildingTurn)
+                })
+            ])
+        ),
+        (state) => tracksOnlyMapHexes(state.mapId, state.track),
+        'track lies only in hexes of the map'
     ),
-    (state) => tracksOnlyMapHexes(state.track),
-    'track lies only in hexes of the map'
+    (state) => carriesOnlyMapCities(state.mapId, state.passengers),
+    'passengers stand only in cities of the map'
 )
 
 export const RideTheRailsGameStateValidator = Compile(RideTheRailsGameState)

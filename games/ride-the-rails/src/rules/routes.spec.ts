@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { HexId } from '../data/hexes.js'
 import type { RailroadId } from '../data/railroads.js'
-import type { CityId } from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
 import { PhaseName } from '../definition/phases.js'
 import type { Track } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'

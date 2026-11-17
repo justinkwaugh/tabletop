@@ -4,7 +4,8 @@ import { GameAction, HydratableAction, MachineContext, assertExists } from '@tab
 import { TRANSCONTINENTAL_BONUS } from '../data/bonuses.js'
 import { HexId } from '../data/hexes.js'
 import { RailroadId } from '../data/railroads.js'
-import { CityId, isUsaHex, usaHex } from '../data/usaMap.js'
+import { CityId } from '../data/boardMap.js'
+import { boardMap, hexById } from '../data/boardMaps.js'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedRideTheRailsGameState } from '../model/gameState.js'
 import { placementBonuses, type BonusPayment } from '../rules/bonuses.js'
@@ -75,7 +76,7 @@ export class HydratedPlaceLocomotive
         if (!isBuildingTurnOf(state, this.playerId)) {
             return { legal: false, reason: 'not-building-turn' }
         }
-        if (!isUsaHex(this.hexId)) {
+        if (!boardMap(state.mapId).hasHex(this.hexId)) {
             return { legal: false, reason: 'off-map' }
         }
         return placementTest(state, this.playerId, this.railroadId, this.hexId)
@@ -111,7 +112,7 @@ export class HydratedPlaceLocomotive
     private countPlacement(state: HydratedRideTheRailsGameState) {
         assertExists(state.building, 'A placement needs a building turn')
         state.building.placed += 1
-        if (usaHex(this.hexId).terrain === 'mountain') {
+        if (hexById(this.hexId).terrain === 'mountain') {
             state.building.usedMountain = true
         }
     }

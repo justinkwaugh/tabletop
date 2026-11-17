@@ -2,7 +2,8 @@ import { ActionSource, latestPlayerUndoTarget } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { hexIdAt, type HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
-import { adjacentHexIds, USA_HEXES, usaHex } from '../data/usaMap.js'
+import { adjacentHexIds, hexById } from '../data/boardMaps.js'
+import { USA_HEXES } from '../data/usaMap.js'
 import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
@@ -103,7 +104,7 @@ function trackOf(...runs: [RailroadId, HexId[]][]): Track {
 }
 
 function plainNextTo(hexId: HexId): HexId {
-    const plain = adjacentHexIds(hexId).find((adjacent) => usaHex(adjacent).terrain === 'plain')
+    const plain = adjacentHexIds(hexId).find((adjacent) => hexById(adjacent).terrain === 'plain')
     if (!plain) {
         throw new Error(`No plain hex next to ${hexId}`)
     }

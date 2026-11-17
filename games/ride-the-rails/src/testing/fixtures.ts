@@ -12,7 +12,7 @@ import {
 import { isEndBuilding } from '../actions/endBuilding.js'
 import { isFinishBuilding } from '../actions/finishBuilding.js'
 import { isPlaceLocomotive } from '../actions/placeLocomotive.js'
-import type { CityId } from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
 import { Definition } from '../definition/definition.js'
 import { PhaseName } from '../definition/phases.js'
 import { RideTheRailsRuntime } from '../definition/runtime.js'

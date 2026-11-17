@@ -23,7 +23,8 @@ import {
     HydratedRideTheRailsPlayerState,
     type RideTheRailsPlayerState
 } from '../model/playerState.js'
-import { USA_CITIES } from '../data/usaMap.js'
+import { boardMap } from '../data/boardMaps.js'
+import type { MapId } from '../data/maps.js'
 import { PhaseName } from './phases.js'
 import { RideTheRailsColors } from './colors.js'
 import { RideTheRailsInfo } from './info.js'
@@ -66,17 +67,19 @@ export class RideTheRailsGameInitializer
         const phaseManager = HydratedPhaseManager.generate()
         phaseManager.startPhase(PhaseName.TakeShare, state.actionCount)
 
+        // R-8.1: games are created on the USA map.
+        const mapId: MapId = 'map.usa'
         const rideTheRailsGameState: RideTheRailsGameState = Object.assign(state, {
             players: orderedPlayers,
             machineState: MachineState.TakingShares,
             turnManager,
             rideTheRailsRevision: CURRENT_RIDE_THE_RAILS_REVISION,
-            mapId: 'map.usa' as const,
+            mapId,
             roundManager,
             phaseManager,
             track: {},
             // R-1.3.2: a passenger on every city, kept in id order.
-            passengers: inCityIdOrder(USA_CITIES.map((city) => city.id))
+            passengers: inCityIdOrder(boardMap(mapId).cities.map((city) => city.id))
         })
 
         const hydrated = new HydratedRideTheRailsGameState(rideTheRailsGameState)

@@ -1,15 +1,8 @@
 import * as Type from 'typebox'
 import { HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, RailroadId } from '../data/railroads.js'
-import {
-    adjacentHexIds,
-    cityAt,
-    cityIn,
-    isCityHex,
-    isUsaHex,
-    usaCity,
-    type CityId
-} from '../data/usaMap.js'
+import type { CityId } from '../data/boardMap.js'
+import { adjacentHexIds, cityAt, cityById, cityIn, isCityHex, isHexId } from '../data/boardMaps.js'
 import { hasTrackIn } from './track.js'
 import type { RideTheRailsGameState, Track } from '../model/gameState.js'
 import type { RideTheRailsPlayerState } from '../model/playerState.js'
@@ -44,7 +37,7 @@ export type JourneyPayments = {
 
 // R-3.3.2: a link ends at the first city it reaches, so track through a city is two links.
 export function isLink(track: Track, { railroadId, hexIds }: Link): boolean {
-    if (hexIds.length < 2 || !hexIds.every(isUsaHex) || new Set(hexIds).size !== hexIds.length) {
+    if (hexIds.length < 2 || !hexIds.every(isHexId) || new Set(hexIds).size !== hexIds.length) {
         return false
     }
     const interior = hexIds.slice(1, -1)
@@ -172,7 +165,7 @@ export function hasLinkFrom(track: Track, cityHexId: HexId, railroadId: Railroad
 // R-3.3.1: one link is a journey, so the pass is legal only when no passenger city has a link out.
 export function journeyExists(state: RideTheRailsGameState): boolean {
     return state.passengers.some((cityId) => {
-        const { hexId } = usaCity(cityId)
+        const { hexId } = cityById(cityId)
         return RAILROAD_IDS.some((railroadId) => hasLinkFrom(state.track, hexId, railroadId))
     })
 }

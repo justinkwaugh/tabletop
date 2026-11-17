@@ -9,7 +9,7 @@ import {
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { EndGame, HydratedEndGame } from '../actions/endGame.js'
-import { usaCity } from '../data/usaMap.js'
+import { cityById } from '../data/boardMaps.js'
 import {
     CURRENT_RIDE_THE_RAILS_REVISION,
     RideTheRailsGameStateValidator,
@@ -70,7 +70,7 @@ function nextInput(state: RideTheRailsGameState, step: number): UserInput {
         }
         case MachineState.Riding: {
             for (const cityId of state.passengers) {
-                const { hexId } = usaCity(cityId)
+                const { hexId } = cityById(cityId)
                 const link = firstLinkFrom(state, hexId, [hexId])
                 if (link) {
                     return { type: ActionType.RideJourney, playerId, links: [link] }

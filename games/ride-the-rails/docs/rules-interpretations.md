@@ -48,6 +48,8 @@ Ids are permanent: game state stores ids only, and an id once published is never
 
 Hexes are pointy-topped in horizontal rows, alternate rows offset by half a hex. `row` counts down from 0 (Seattle's row); `dcol` is the doubled column, the horizontal position in half-hex widths, with the same parity as the row. The neighbours of (r, d) are (r, d±2) and (r±1, d±1). The USA map's hexes, cities and terrain are transcribed from the printed board into `src/data/usaMap.ts`.
 
+A flat-topped map (the expansions) runs the other way: `hex.<map>.<col>-<drow>`, columns counted from the west, `drow` the doubled row with the same parity as the column, and the neighbours of (c, d) are (c, d±2) and (c±1, d±1). On either orientation a map's hexes are in reading order, north to south and then west to east. A hex printed over two cells keeps one id, and its neighbours are those of both cells; two hexes an impassable side parts are not adjacent.
+
 ## Known deviations
 
 None.
