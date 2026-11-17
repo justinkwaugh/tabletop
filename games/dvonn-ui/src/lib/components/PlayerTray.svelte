@@ -9,6 +9,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PIECE_RADIUS, stackBounds, TILT } from '$lib/board/pieceGeometry.js'
     import { controlledTally, inStacks, TALLY_HEIGHT } from '$lib/board/tally.js'
+    import { CONTACT_SHADE, holeFloor, throughLens } from '$lib/board/pieceShape.js'
     import PieceDefs from './PieceDefs.svelte'
     import StackShape from './StackShape.svelte'
 
@@ -54,6 +55,8 @@
 
     const prefix = $derived(`dvonn-card-${playerState.playerId}`)
     const RADIUS = PIECE_RADIUS
+    // Down a short stack's hole, the card in the stack's shade, lighter than around it.
+    const HOLE_FLOOR = holeFloor(CONTACT_SHADE)
     const PITCH = RADIUS * 2 + 5
     const bounds = stackBounds(TALLY_HEIGHT, RADIUS)
     const tallyHeight = bounds.bottom - bounds.top + 2
@@ -91,9 +94,19 @@
             >
                 <defs><PieceDefs {prefix} radius={RADIUS} /></defs>
                 {#each tally as stack, index (index)}
+                    {@const through = throughLens(stack.length, RADIUS)}
                     <g transform="translate({index * PITCH} 0)">
-                        <ellipse rx={RADIUS} ry={RADIUS * TILT} fill="url(#{prefix}-contact)"
+                        <ellipse
+                            rx={RADIUS}
+                            ry={RADIUS * TILT}
+                            fill="url(#{prefix}-contact)"
+                            clip-path={through
+                                ? `url(#${prefix}-around-hole-${stack.length})`
+                                : undefined}
                         ></ellipse>
+                        {#if through}
+                            <path d={through} fill="#000000" fill-opacity={HOLE_FLOOR}></path>
+                        {/if}
                         <StackShape
                             {prefix}
                             tones={stack.map((piece) => piece.tone)}

@@ -1,4 +1,4 @@
-import { PIECE_MODEL, RISE, TILT, type PieceModel } from './pieceGeometry.js'
+import { PIECE_MODEL, RISE, stackDiscs, TILT, type PieceModel } from './pieceGeometry.js'
 import { PIECE_STYLES, type Tone } from './pieceStyle.js'
 
 // A DVONN piece is a thin plastic donut with a straight outer side and a dished top: the outer
@@ -336,6 +336,34 @@ export function lens(upper: Ellipse, lower: Ellipse): string | undefined {
     const x = rx * Math.sqrt(1 - (depth / (2 * ry)) ** 2)
     const y = upper.y + depth / 2
     return `M ${-x} ${y} A ${rx} ${ry} 0 0 0 ${x} ${y} A ${rx} ${ry} 0 0 0 ${-x} ${y} Z`
+}
+
+// Where the board shows through a stack standing on its space, relative to the space: down its
+// hole every piece shows its true thickness, so only short stacks show the board.
+export function throughLens(
+    height: number,
+    radius: number,
+    model: PieceModel = PIECE_MODEL
+): string | undefined {
+    const drawing = pieceDrawing(radius, model)
+    const base = stackDiscs(height, radius, [], model).at(-1)?.base ?? 0
+    const pitch = drawing.height + model.gap * radius * RISE
+    const shift = (ellipse: Ellipse, by: number): Ellipse => ({ ...ellipse, y: ellipse.y + by })
+    return lens(
+        shift(drawing.opening, base),
+        shift(drawing.bottomOpening, base + (height - 1) * pitch)
+    )
+}
+
+// The board's shade right under a stack, at its darkest (PieceDefs' contact gradient).
+export const CONTACT_SHADE = 0.55
+// Light falls straight down a stack's hole, so where the board shows through, it lies in only
+// this share of the shade around the stack.
+export const HOLE_SHADE = 0.4
+
+// How dark the board is down a hole, under shades (opacities) laid one over another.
+export function holeFloor(...shades: number[]): number {
+    return 1 - shades.reduce((lit, shade) => lit * (1 - shade * HOLE_SHADE), 1)
 }
 
 export function ellipsePath({ y, rx, ry }: Ellipse): string {

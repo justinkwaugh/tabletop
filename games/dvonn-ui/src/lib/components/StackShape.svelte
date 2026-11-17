@@ -12,10 +12,11 @@
         bandPath,
         creaseColor,
         ellipsePath,
-        lens,
         lookBox,
         pieceDrawing,
+        HOLE_SHADE,
         SHADE_LEVELS,
+        throughLens,
         wallBand,
         type Ellipse
     } from '$lib/board/pieceShape.js'
@@ -55,6 +56,8 @@
     const throughId = `dvonn-through-${uid}`
     const openingId = `dvonn-opening-${uid}`
     const MID_LEVEL = (SHADE_LEVELS - 1) / 2
+    // The shade between the hole's far walls; lighter where the board shows through.
+    const WALL_SHADE = 0.85
 
     const box = $derived(lookBox(radius))
     const drawing = $derived(pieceDrawing(radius, model))
@@ -112,7 +115,7 @@
             // The far walls and the creases between them, all the way down.
             shadow: wallBand(opening, bottom),
             walls,
-            through: lens(opening, bottom)
+            through: throughLens(pieces.length, radius, model)
         }
     })
 
@@ -190,7 +193,11 @@
         <path d={ellipsePath(hole.opening)}></path>
     </clipPath>
     <g clip-path="url(#{openingId})">
-        <path d={hole.shadow} class="hole-shadow"></path>
+        <path
+            d={hole.shadow}
+            class="hole-shadow"
+            fill-opacity={hole.through ? WALL_SHADE * HOLE_SHADE : WALL_SHADE}
+        ></path>
         {#each hole.walls as wall, index (index)}
             <path d={wall.band} fill="url(#{prefix}-{wall.tone}-wall)"></path>
             <g transform="translate(0 {wall.offset})">
@@ -219,6 +226,6 @@
     }
 
     .hole-shadow {
-        fill: rgb(0 0 0 / 0.85);
+        fill: #000000;
     }
 </style>
