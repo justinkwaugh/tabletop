@@ -8,9 +8,8 @@
     import PlaceText from '../places/PlaceText.svelte'
     import './auctionLotTable.css'
     import AuctionBidRow from './AuctionBidRow.svelte'
-    import SelectionAuctionTiers from './SelectionAuctionTiers.svelte'
+    import SelectionAuctionPyramid from './SelectionAuctionPyramid.svelte'
     import AuctionTurnLayout from './AuctionTurnLayout.svelte'
-    import AuctionLotSummary from './AuctionLotSummary.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -48,7 +47,7 @@
     <AuctionTurnLayout turn={playerId ? turn : undefined}>
         {#snippet content()}
             {#if tiered}
-                <SelectionAuctionTiers {session} />
+                <SelectionAuctionPyramid {session} />
             {:else}
                 <table class="auction-lot-table">
                     <thead
@@ -135,13 +134,13 @@
 {#snippet turn()}
     {#if playerId && !bidsInline}<div class="summary">
             <span
-                >{session.getPlayerName(playerId)} has
+                >{#if tiered && selected}Auction <strong>{session.lotName(selected)}</strong
+                    >{' · '}{/if}{session.getPlayerName(playerId)} has
                 <strong>{money(model.cash(playerId))}</strong></span
             >
         </div>{/if}
     {#if tiered && selected && auction.selection}
-        <AuctionLotSummary {session} lot={selected} />
-        {@render stepper(selected.id, auction.selection.amount, false)}
+        {@render stepper(selected.id, auction.selection.amount, true)}
     {:else if auction.ownTurn && auction.passOffered}
         <button
             class="pass action-button"

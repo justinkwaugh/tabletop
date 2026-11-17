@@ -6,7 +6,7 @@
     import { placedTileLayout } from './standardTileLayouts.js'
     import type { TileLayout } from './tileDrawing.js'
     import { compareTileSimplicity } from './tilePresentation.js'
-    import { clickedBackdrop, showModal } from '../presentation/modalDialog.js'
+    import ModalPanel from '../presentation/ModalPanel.svelte'
 
     let {
         tiles,
@@ -25,7 +25,6 @@
     } = $props()
     let color = $state('')
     let selectedId = $state<string>()
-    let chainDialog = $state<HTMLDialogElement>()
     let pointedId = $state<string>()
     const colors = $derived([...new Set(tiles.map((tile) => tile.face.color))])
     const remaining = $derived(
@@ -89,10 +88,6 @@
     function pointAt(event: PointerEvent, definitionId: string | undefined) {
         if (event.pointerType === 'mouse') pointedId = definitionId
     }
-
-    function closeOutside(event: MouseEvent) {
-        if (chainDialog && clickedBackdrop(chainDialog, event)) chainDialog.close()
-    }
 </script>
 
 {#snippet tileButton(tile: TileDefinition, inChain: boolean)}
@@ -136,46 +131,25 @@
         {/each}
     </div>
     {#if selected}
-        <dialog
-            class="chain"
-            aria-label={`Upgrades of tile ${selected.printedNumber}`}
-            bind:this={chainDialog}
-            use:showModal
+        <ModalPanel
+            label={`Upgrades of tile ${selected.printedNumber}`}
+            title={`Tile ${selected.printedNumber} upgrades`}
+            closeLabel="Close upgrades"
+            maxWidth="850px"
             onclose={() => (selectedId = undefined)}
-            onclick={closeOutside}
         >
-            <header>
-                <h2>Tile {selected.printedNumber} upgrades</h2>
-                <button
-                    class="close"
-                    aria-label="Close upgrades"
-                    onclick={() => chainDialog?.close()}
-                >
-                    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
-                        ><path
-                            d="m4 4 8 8m0-8-8 8"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.7"
-                            stroke-linecap="round"
-                        ></path></svg
-                    >
-                </button>
-            </header>
-            <div class="chain-body">
-                {#if chainRows.length === 1}<p>
-                        No tile upgrades to or from tile {selected.printedNumber}.
-                    </p>{/if}
-                {#each chainRows as row, index (row.color)}
-                    {#if index}<p class="step" aria-hidden="true">{stepText(index)}</p>{/if}
-                    <div class="chain-tiles" role="group" aria-label={colorName(row.color)}>
-                        {#each row.tiles as tile (tile.id)}
-                            {@render tileButton(tile, true)}
-                        {/each}
-                    </div>
-                {/each}
-            </div>
-        </dialog>
+            {#if chainRows.length === 1}<p>
+                    No tile upgrades to or from tile {selected.printedNumber}.
+                </p>{/if}
+            {#each chainRows as row, index (row.color)}
+                {#if index}<p class="step" aria-hidden="true">{stepText(index)}</p>{/if}
+                <div class="chain-tiles" role="group" aria-label={colorName(row.color)}>
+                    {#each row.tiles as tile (tile.id)}
+                        {@render tileButton(tile, true)}
+                    {/each}
+                </div>
+            {/each}
+        </ModalPanel>
     {/if}
     <div class="tiles" role="list" aria-label="Tiles">
         {#each visible as tile (tile.id)}
@@ -230,60 +204,6 @@
         outline: 2px solid var(--rail-focus, #695540);
         outline-offset: 2px;
     }
-    .chain[open] {
-        display: flex;
-        flex-direction: column;
-    }
-    .chain {
-        margin: auto;
-        box-sizing: border-box;
-        width: min(850px, calc(100vw - 40px));
-        max-height: calc(100dvh - 48px);
-        padding: 0;
-        border: 1px solid var(--rail-border, #c3b39e);
-        border-radius: 10px;
-        background: var(--rail-surface, #faf7f1);
-        color: var(--rail-text, #463e35);
-        box-shadow: 0 20px 70px var(--rail-shadow, #16120d55);
-        overscroll-behavior: contain;
-    }
-    .chain::backdrop {
-        background: var(--rail-backdrop, #17141099);
-    }
-    .chain header {
-        display: flex;
-        flex: none;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        padding: 10px 16px;
-        border-bottom: 1px solid var(--rail-border, #ded4c7);
-    }
-    h2 {
-        margin: 0;
-        font-size: 17px;
-        font-weight: 650;
-    }
-    .close {
-        display: grid;
-        place-items: center;
-        width: 28px;
-        height: 28px;
-        border: 0;
-        border-radius: 4px;
-        background: transparent;
-        color: var(--rail-text, #766653);
-        cursor: pointer;
-    }
-    .close:hover {
-        background: var(--rail-surface-raised, #e9e1d5);
-    }
-    .chain-body {
-        flex: 0 1 auto;
-        min-height: 0;
-        padding: 12px 12px 20px;
-        overflow-y: auto;
-    }
     .chain-tiles {
         display: flex;
         flex-wrap: wrap;
@@ -309,16 +229,6 @@
         border-top: 1px solid var(--rail-border, #443c3433);
     }
     @media (max-height: 560px) {
-        .chain {
-            width: calc(100vw - 16px);
-            max-height: calc(100dvh - 16px);
-        }
-        .chain header {
-            padding: 4px 8px 4px 16px;
-        }
-        .chain-body {
-            padding: 4px 8px 8px;
-        }
         .step {
             margin: 0;
         }

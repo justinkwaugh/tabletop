@@ -3,10 +3,12 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBiddingCard from './AuctionBiddingCard.svelte'
     import AuctionBidTurn from './AuctionBidTurn.svelte'
-    import AuctionLotSummary from './AuctionLotSummary.svelte'
+    import LotPyramidDetail from './LotPyramidDetail.svelte'
+    import SelectionAuctionPyramid from './SelectionAuctionPyramid.svelte'
+    import ModalPanel from '../presentation/ModalPanel.svelte'
+    import { lotSaleConsequence, pyramidLot } from './lotPyramid.js'
     import AuctionTurnLayout from './AuctionTurnLayout.svelte'
     import { selectionLotDetail } from './auctionLotDetails.js'
-    import SelectionAuctionTiers from './SelectionAuctionTiers.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -37,6 +39,8 @@
         if (!auction.selection) auction.select(bidding.lotId)
         auction.setBid(value)
     }
+    const tieredLot = $derived(model.tiers ? pyramidLot(model, bidding.lotId) : undefined)
+    let showingPyramid = $state(false)
     const bidTurn = $derived({
         summary,
         amount,
@@ -50,17 +54,43 @@
     })
 </script>
 
-{#if model.tiers}
+{#if tieredLot}
     <article class="centered-panel" aria-label="Current auction">
-        <AuctionTurnLayout turnFirstWhenStacked>
+        <AuctionTurnLayout>
             {#snippet content()}
-                <SelectionAuctionTiers {session} />
+                <div class="lot">
+                    <LotPyramidDetail
+                        {session}
+                        lot={tieredLot}
+                        consequence={lotSaleConsequence(model, tieredLot, amount)}
+                    />
+                    <button class="show-pyramid" onclick={() => (showingPyramid = true)}
+                        ><svg width="14" height="12" viewBox="0 0 14 12" aria-hidden="true"
+                            >{#each [[7, 2.5], [4.5, 6], [9.5, 6], [2, 9.5], [7, 9.5], [12, 9.5]] as [cx, cy] (`${cx},${cy}`)}<circle
+                                    {cx}
+                                    {cy}
+                                    r="1.8"
+                                    fill="currentColor"
+                                ></circle>{/each}</svg
+                        >Pyramid</button
+                    >
+                </div>
             {/snippet}
             {#snippet turn()}
-                <AuctionLotSummary {session} {lot} />
                 <AuctionBidTurn {money} {...bidTurn} />
             {/snippet}
         </AuctionTurnLayout>
+        {#if showingPyramid}
+            <ModalPanel
+                label="Lot pyramid"
+                title="Pyramid"
+                closeLabel="Close pyramid"
+                maxWidth="560px"
+                onclose={() => (showingPyramid = false)}
+            >
+                <SelectionAuctionPyramid {session} />
+            </ModalPanel>
+        {/if}
     </article>
 {:else}
     <AuctionBiddingCard
@@ -73,3 +103,28 @@
         {...bidTurn}
     />
 {/if}
+
+<style>
+    .lot {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        max-width: 26rem;
+    }
+    .show-pyramid {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--rail-border, #c7b8a6);
+        border-radius: 6px;
+        background: var(--rail-surface, #fffdf8);
+        color: var(--rail-text, #514536);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+</style>

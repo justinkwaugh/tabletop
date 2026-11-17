@@ -35,6 +35,14 @@ export type SelectionAuctionState = FinancialState &
     Pick<GameState, 'players' | 'activePlayerIds' | 'turnManager'> &
     Type.Static<Type.TObject<typeof SelectionAuctionFields>>
 
+/** The tiers a title deals its lots into, the first tier first. */
+export type LotTiers = {
+    /** A sold or removed lot keeps its slot; `null` is a slot emptied by a game that began before slots were kept. */
+    slots: readonly (readonly (string | null)[])[]
+    /** The tier open for nomination once these lots have gone too; undefined when none is left. */
+    openTier(goneLotIds: readonly string[]): number | undefined
+}
+
 /**
  * An opening in which players in turn choose a remaining lot to auction, or pass; once every
  * player has passed in succession, the unsold lots close.
@@ -43,11 +51,7 @@ export interface SelectionAuctionRules {
     lots(state: FinancialState): readonly AuctionLot[]
     /** The remaining lots a player may nominate now. */
     nominationLotIds(state: SelectionAuctionState): readonly string[]
-    /**
-     * The tiers the title deals its lots into, the first tier first, with `null` where a lot
-     * was sold or removed.
-     */
-    tiers?(state: SelectionAuctionState): readonly (readonly (string | null)[])[] | undefined
+    tiers?(state: SelectionAuctionState): LotTiers | undefined
     /** Whether a player may pass instead of nominating a lot. */
     passingWhileNominating(state: SelectionAuctionState): boolean
     openingBid(state: SelectionAuctionState, lotId: string): number
@@ -103,8 +107,13 @@ export class SelectionAuctionModel {
     get lots(): readonly AuctionLot[] {
         return this.rules.lots(this.state)
     }
-    get tiers(): readonly (readonly (string | null)[])[] | undefined {
-        return this.rules.tiers?.(this.state)
+    get tiers(): LotTiers['slots'] | undefined {
+        return this.rules.tiers?.(this.state)?.slots
+    }
+    openTier(goneLotIds: readonly string[] = []): number | undefined {
+        const tiers = this.rules.tiers?.(this.state)
+        assertExists(tiers, 'Only a tiered auction has an open tier')
+        return tiers.openTier(goneLotIds)
     }
     get nominationLotIds(): readonly string[] {
         return this.rules.nominationLotIds(this.state)
@@ -123,6 +132,10 @@ export class SelectionAuctionModel {
         return bidding?.lotId === lotId
             ? new PassableBidding(bidding.auction).highBid + this.rules.increment
             : Math.max(0, this.rules.openingBid(this.state, lotId) - (this.auction.discount ?? 0))
+    }
+    /** The unsold lots that would leave the game if this award were made now. */
+    lotsRemovedBy(award: AuctionAward): readonly string[] {
+        return this.rules.lotsRemovedBy?.(this.state, award) ?? []
     }
     canNominate(playerId: string, lotId: string, amount: number): boolean {
         return (
@@ -189,7 +202,7 @@ export class SelectionAuctionModel {
             const winner = new PassableBidding(bidding.auction).winner
             if (!winner) return undefined
             const award = { lotId: bidding.lotId, playerId: winner.playerId, price: winner.amount }
-            const removedLotIds = [...(this.rules.lotsRemovedBy?.(this.state, award) ?? [])]
+            const removedLotIds = [...this.lotsRemovedBy(award)]
             return { kind: 'award', award, ...(removedLotIds.length ? { removedLotIds } : {}) }
         }
         if (!this.auction.remainingLotIds.length) return { kind: 'complete' }

@@ -6,6 +6,7 @@ import {
     beginSelectionAuction,
     closePrivate,
     type InitialPosition,
+    type LotTiers,
     type Opening,
     type OpeningSetup,
     startingCashByPlayerCount,
@@ -55,26 +56,38 @@ function requirePyramid(state: OpeningState): Pyramid {
     return pyramid
 }
 
-const liveLots = (row: readonly (string | null)[]) =>
-    row.flatMap((lotId) => (lotId === null ? [] : [lotId]))
-
-function clearSlots(state: OpeningState, lotIds: readonly string[]): void {
-    for (const row of requirePyramid(state))
-        row.forEach((lotId, index) => {
-            if (lotId !== null && lotIds.includes(lotId)) row[index] = null
-        })
+function remainingLotFilter(state: OpeningState) {
+    assertExists(state.selectionAuction, 'The pyramid belongs to the selection auction')
+    const remaining = state.selectionAuction.remainingLotIds
+    return (lotId: string | null | undefined): lotId is string =>
+        !!lotId && remaining.includes(lotId)
 }
 
 /** A sale removes a neighbour in its row that is left without a live neighbour of its own. */
-function isolatedNeighbours(pyramid: Pyramid, soldLotId: string): string[] {
-    const row = pyramid.find((tier) => tier.includes(soldLotId))
+function isolatedNeighbours(state: OpeningState, soldLotId: string): string[] {
+    const row = requirePyramid(state).find((tier) => tier.includes(soldLotId))
     assertExists(row, 'A sold lot is in the pyramid')
+    const remaining = remainingLotFilter(state)
     const sold = row.indexOf(soldLotId)
-    const unsold = (index: number) => index !== sold && !!row[index]
+    const unsold = (index: number) => index !== sold && remaining(row[index])
     return [-1, 1].flatMap((step) => {
         const lotId = row[sold + step]
         return lotId && unsold(sold + step) && !unsold(sold + 2 * step) ? [lotId] : []
     })
+}
+
+/** Sold and removed lots keep their slots; only the lowest tier with lots left is open. */
+function pyramidTiers(state: OpeningState, pyramid: Pyramid): LotTiers {
+    const remaining = remainingLotFilter(state)
+    return {
+        slots: pyramid,
+        openTier(goneLotIds) {
+            const tier = pyramid.findLastIndex((row) =>
+                row.some((lotId) => remaining(lotId) && !goneLotIds.includes(lotId))
+            )
+            return tier < 0 ? undefined : tier
+        }
+    }
 }
 
 export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
@@ -83,10 +96,13 @@ export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
         assertExists(state.selectionAuction, 'Nominations belong to the selection auction')
         const pyramid = pyramidOf(state)
         if (!pyramid) return state.selectionAuction.remainingLotIds
-        // Only the lowest tier with lots left is open.
-        return pyramid.map(liveLots).findLast((lotIds) => lotIds.length) ?? []
+        const tier = pyramidTiers(state, pyramid).openTier([])
+        return tier === undefined ? [] : pyramid[tier].filter(remainingLotFilter(state))
     },
-    tiers: (state: OpeningState) => pyramidOf(state),
+    tiers(state: OpeningState) {
+        const pyramid = pyramidOf(state)
+        return pyramid && pyramidTiers(state, pyramid)
+    },
     passingWhileNominating: (state: OpeningState) => !eighteenSeventeenOptions(state).volatility,
     openingBid: (state: OpeningState, lotId) =>
         eighteenSeventeenOptions(state).volatility
@@ -95,24 +111,18 @@ export const EighteenSeventeenAuctionRules: SelectionAuctionRules = {
     increment: 5,
     award(state: OpeningState, award) {
         awardPrivate(state, award)
-        if (eighteenSeventeenOptions(state).volatility) {
-            clearSlots(state, [award.lotId])
-            return
-        }
+        if (eighteenSeventeenOptions(state).volatility) return
         const subsidy = Math.max(
             0,
             EighteenSeventeenPrivateCatalog.faceValue(award.lotId) - award.price
         )
         state.seedMoney = seedMoney(state) - subsidy
     },
-    lotsRemovedBy: (state: OpeningState, award) => {
-        const pyramid = pyramidOf(state)
-        return pyramid ? isolatedNeighbours(pyramid, award.lotId) : []
-    },
+    lotsRemovedBy: (state: OpeningState, award) =>
+        pyramidOf(state) ? isolatedNeighbours(state, award.lotId) : [],
     nominationFollowsWinner: (state: OpeningState) => eighteenSeventeenOptions(state).volatility,
     closeUnsold(state: OpeningState, lotIds) {
         for (const id of lotIds) closePrivate(state, id)
-        if (pyramidOf(state)) clearSlots(state, lotIds)
     }
 }
 

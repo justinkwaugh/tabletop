@@ -87,31 +87,43 @@ test('1817 Volatility auctions its privates from the bottom tier of a pyramid', 
     await page.getByLabel('Game', { exact: true }).selectOption('1817')
     await page.getByLabel('Position', { exact: true }).selectOption('optional-opening')
     const lots = page.getByRole('region', { name: 'Private auction' })
-    const tier = (label: string) => lots.getByRole('group', { name: label, exact: true })
-    await expect(tier('Tier 1').getByRole('button', { name: /^Auction / })).toBeDisabled()
+    const row = (number: number) =>
+        lots.getByRole('group', { name: `Row ${number}`, exact: true }).getByRole('button')
+    await expect(row(6)).toHaveCount(6)
     await expect(lots.getByRole('button', { name: 'Pass', exact: true })).toHaveCount(0)
-    const bottom = tier('Tier 6').getByRole('button', { name: /^Auction / })
-    await expect(bottom).toHaveCount(6)
-    // Each slot shows its private's power after its name and value.
-    await expect(bottom.first()).toHaveText(/\$\d+\s*\S.{10,}/)
+    // Any lot can be read; one above the open row cannot be auctioned.
+    await row(1).first().click()
+    await expect(lots).toContainText('Row 1 · not open yet')
+    await expect(lots.getByRole('button', { name: 'Bid', exact: true })).toHaveCount(0)
     // Selling the second lot leaves the first without a neighbour, so it is removed.
-    await bottom.nth(1).click()
+    await row(6).nth(1).click()
+    await expect(lots).toContainText(/If sold, .+ leaves the game\./)
     await lots.getByRole('button', { name: 'Bid', exact: true }).click()
     const bidding = page.getByRole('article', { name: 'Current auction' })
-    // The pyramid stays in view while the nominated lot is bid on.
-    const biddingTier = bidding
-        .getByRole('group', { name: 'Lot tiers' })
-        .getByRole('group', { name: 'Tier 6', exact: true })
-    await expect(biddingTier.locator('.slot')).toHaveCount(6)
-    await expect(biddingTier.locator('.slot[aria-current="true"]')).toHaveCount(1)
-    await expect(biddingTier.getByRole('button', { name: /^Auction / })).toHaveCount(0)
+    await expect(bidding).toContainText('Row 6 · being auctioned')
+    // The pyramid opens over the bidding card.
+    await bidding.getByRole('button', { name: 'Pyramid', exact: true }).click()
+    const pyramid = page.getByRole('dialog', { name: 'Lot pyramid' })
+    const pyramidRow6 = pyramid
+        .getByRole('group', { name: 'Row 6', exact: true })
+        .getByRole('button')
+    await expect(pyramidRow6).toHaveCount(6)
+    // Another open lot cannot be sold while this one is bid on, so it shows no sale.
+    await pyramidRow6.nth(4).click()
+    await expect(pyramid).toContainText('Row 6 · open')
+    await expect(pyramid).not.toContainText('If sold')
+    await pyramid.getByRole('button', { name: 'Close pyramid' }).click()
+    await expect(pyramid).toHaveCount(0)
     await expect(bidding).toContainText(/High bid \$\d+/)
     await expect(bidding).not.toContainText('Passed')
     await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
     await expect(bidding).toContainText('Passed')
     await bidding.getByRole('button', { name: 'Pass', exact: true }).click()
     await expect(page.getByRole('article', { name: 'Current auction' })).toHaveCount(0)
-    await expect(bottom).toHaveCount(4)
+    // Sold and removed lots keep their slots.
+    await expect(row(6)).toHaveCount(6)
+    await expect(lots.getByRole('button', { name: /, Removed from the game$/ })).toHaveCount(1)
+    await expect(lots.getByRole('button', { name: /, Sold to / })).toHaveCount(1)
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await expect(page.getByRole('list', { name: 'Action history' })).toContainText('removed')
 })

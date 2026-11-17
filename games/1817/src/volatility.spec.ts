@@ -57,10 +57,51 @@ describe('the Volatility opening', () => {
         expect(privateOwner(play.state, second)).toEqual({ kind: 'player', playerId: winner })
         expect(play.state.companies.find((company) => company.id === first)?.closed).toBe(true)
         expect(play.state.companies.find((company) => company.id === third)?.closed).toBeFalsy()
-        expect(pyramid(play.state).at(-1)?.slice(0, 3)).toEqual([null, null, third])
+        expect(pyramid(play.state).at(-1)?.slice(0, 3)).toEqual([first, second, third])
+        expect(play.state.selectionAuction?.remainingLotIds).not.toContain(first)
+        expect(play.state.selectionAuction?.remainingLotIds).toContain(third)
         expect(winner).not.toBe(nominator)
         expect(play.state.activePlayerIds).toEqual([
             order[(order.indexOf(winner) + 1) % order.length]
         ])
+    })
+
+    it('keeps every lot in its slot and opens the row above once the bottom row is gone', () => {
+        const play = volatilityGame()
+        const tiers = structuredClone(pyramid(play.state))
+        const lotAt = (tier: number, index: number) => {
+            const lotId = tiers[tier][index]
+            assertExists(lotId, 'A new pyramid has a lot in every slot')
+            return lotId
+        }
+        const sell = (lotId: string) => {
+            play.act('NominateLot', { lotId, amount: 0 })
+            for (let pass = 0; pass < 3; pass++) play.act('PassSelectionAuction')
+        }
+        // Each sale isolates a neighbour: 1 takes 0, 3 takes 2, and 4 takes 5.
+        for (const index of [1, 3, 4]) sell(lotAt(5, index))
+        expect(pyramid(play.state)).toEqual(tiers)
+        expect([...(play.state.selectionAuction?.remainingLotIds ?? [])].sort()).toEqual(
+            tiers.slice(0, 5).flat().sort()
+        )
+        play.act('NominateLot', { lotId: lotAt(4, 0), amount: 0 })
+        expect(play.state.selectionAuction?.bidding?.lotId).toBe(lotAt(4, 0))
+    })
+
+    it('still plays a pyramid whose sold and removed slots were emptied by an older game', () => {
+        const play = volatilityGame()
+        const [first, second, third, fourth] = pyramid(play.state)[5]
+        assertExists(second, 'A new pyramid has a lot in every slot')
+        assertExists(fourth, 'A new pyramid has a lot in every slot')
+        play.act('NominateLot', { lotId: second, amount: 0 })
+        for (let pass = 0; pass < 3; pass++) play.act('PassSelectionAuction')
+        const bottom = pyramid(play.state)[5]
+        bottom[0] = null
+        bottom[1] = null
+        expect(play.state.selectionAuction?.remainingLotIds).not.toContain(first)
+        // Selling the fourth leaves the third between an emptied slot and a sold lot.
+        play.act('NominateLot', { lotId: fourth, amount: 0 })
+        for (let pass = 0; pass < 3; pass++) play.act('PassSelectionAuction')
+        expect(play.state.companies.find((company) => company.id === third)?.closed).toBe(true)
     })
 })

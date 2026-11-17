@@ -55,3 +55,7 @@ export function selectionLotDetail(
     assertExists(lot, `Selection auction lot ${lotId} must be known`)
     return privateLotDetail(session, lot)
 }
+
+export function selectionLotName(session: EighteenXXSessionView, lotId: string): string {
+    return session.lotName(selectionLotDetail(session, lotId))
+}
