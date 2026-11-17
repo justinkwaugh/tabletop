@@ -1,7 +1,12 @@
 import type { CityId } from './boardMap.js'
 import type { MapId } from './maps.js'
 
-export type BonusId = 'bonus.usa.chicago' | 'bonus.usa.five-dollar' | 'bonus.usa.transcontinental'
+export type BonusId =
+    | 'bonus.usa.chicago'
+    | 'bonus.usa.five-dollar'
+    | 'bonus.usa.transcontinental'
+    | 'bonus.au.perth'
+    | 'bonus.au.brisbane'
 
 export type FixedBonus = {
     readonly id: BonusId
@@ -57,7 +62,22 @@ export const TRANSCONTINENTAL_BONUS: JunctionPricedBonus = {
     otherHexAmount: 8
 }
 
+// R-8.2: the board prints dollars, paid for each placement in the city; it holds one locomotive.
+export const PERTH_BONUS: FixedBonus = {
+    id: 'bonus.au.perth',
+    printedName: 'Perth',
+    amount: 50
+}
+
+// R-8.2, as Perth.
+export const BRISBANE_BONUS: FixedBonus = {
+    id: 'bonus.au.brisbane',
+    printedName: 'Brisbane',
+    amount: 20
+}
+
 // R-4.3; R-8: an expansion map adds its own row.
 export const BONUSES: Readonly<Record<MapId, readonly BonusDefinition[]>> = {
-    'map.usa': [CHICAGO_BONUS, FIVE_DOLLAR_BONUS, TRANSCONTINENTAL_BONUS]
+    'map.usa': [CHICAGO_BONUS, FIVE_DOLLAR_BONUS, TRANSCONTINENTAL_BONUS],
+    'map.au': [PERTH_BONUS, BRISBANE_BONUS]
 }

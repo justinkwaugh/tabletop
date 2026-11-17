@@ -78,6 +78,8 @@ export function markView(mark: OfferMark): MarkView {
     const text = `$${mark.amount}`
     switch (mark.bonusId) {
         case 'bonus.usa.chicago':
+        case 'bonus.au.perth':
+        case 'bonus.au.brisbane':
             return { tone: 'coin', text, spoken: text }
         case 'bonus.usa.five-dollar':
             return { tone: 'five', text, spoken: text }

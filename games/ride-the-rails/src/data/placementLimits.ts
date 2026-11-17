@@ -26,6 +26,15 @@ export const PLACEMENT_LIMITS: Readonly<Record<MapId, MapPlacementLimits>> = {
             { playerCount: 5, limit: 4 }
         ],
         mountainReduction: 1
+    },
+    // R-8.2: a mountain placement costs two.
+    'map.au': {
+        byPlayerCount: [
+            { playerCount: 3, limit: 8 },
+            { playerCount: 4, limit: 5 },
+            { playerCount: 5, limit: 4 }
+        ],
+        mountainReduction: 2
     }
 }
 
@@ -59,5 +68,6 @@ export type GroupLimit = {
 // R-4.1.4, R-4.2.5: a railroad holds at most two East Coast cities, a start counted; R-8: an
 // expansion map adds its own row.
 export const GROUP_LIMITS: Readonly<Record<MapId, readonly GroupLimit[]>> = {
-    'map.usa': [{ group: 'east-coast', perRailroad: 2 }]
+    'map.usa': [{ group: 'east-coast', perRailroad: 2 }],
+    'map.au': []
 }

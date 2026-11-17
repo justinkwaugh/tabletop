@@ -4,6 +4,7 @@ import { hexIdAt, type HexId } from '../data/hexes.js'
 import { RAILROAD_IDS, type RailroadId } from '../data/railroads.js'
 import type { City } from '../data/boardMap.js'
 import { adjacentHexIds, isHexId } from '../data/boardMaps.js'
+import type { MapId } from '../data/maps.js'
 import { USA_CITIES } from '../data/usaMap.js'
 import { PhaseName } from '../definition/phases.js'
 import type {
@@ -49,12 +50,14 @@ const FIVE_DOLLAR_CITIES = USA_CITIES.filter((city) => city.bonus === 'bonus.usa
 const EVERY_SHARE: Shares = Object.fromEntries(RAILROAD_IDS.map((railroadId) => [railroadId, 1]))
 
 type Setup = {
+    mapId?: MapId
     track?: Track
     transcontinental?: TranscontinentalClaim
 }
 
-function building({ track = {}, transcontinental }: Setup): HydratedRideTheRailsGameState {
+function building({ mapId, track = {}, transcontinental }: Setup): HydratedRideTheRailsGameState {
     return buildState({
+        mapId,
         round: 6,
         phase: PhaseName.Build,
         shares: { p1: EVERY_SHARE },
@@ -454,5 +457,68 @@ describe('bonus rule factories (R-4.3, R-8)', () => {
             const after: Track = { ...before, [GAMMA_HEX]: ['railroad.blue'] }
             expect(rule.evaluate(on(elsewhere, after))).toBe(undefined)
         })
+    })
+})
+
+describe('Australia (R-8.2)', () => {
+    const PERTH: HexId = 'hex.au.0-12'
+    const BRISBANE: HexId = 'hex.au.34-6'
+    const PERTH_CHAIN_END: HexId = 'hex.au.1-13'
+    const BRISBANE_CHAIN_END: HexId = 'hex.au.34-8'
+    const PERTH_PAYMENT = { bonusId: 'bonus.au.perth', amount: 50, cityId: 'city.au.perth' }
+    const BRISBANE_PAYMENT = {
+        bonusId: 'bonus.au.brisbane',
+        amount: 20,
+        cityId: 'city.au.brisbane'
+    }
+
+    it('lists Perth and Brisbane, and no Transcontinental', () => {
+        expect(BONUS_RULES['map.au'].map((rule) => rule.bonus)).toEqual(BONUSES['map.au'])
+        expect(BONUSES['map.au']).toEqual([
+            { id: 'bonus.au.perth', printedName: 'Perth', amount: 50 },
+            { id: 'bonus.au.brisbane', printedName: 'Brisbane', amount: 20 }
+        ])
+    })
+
+    it('pays $50 for building into Perth and $20 into Brisbane', () => {
+        const track = trackOf(
+            ['railroad.orange', [PERTH_CHAIN_END]],
+            ['railroad.red', [BRISBANE_CHAIN_END]]
+        )
+        expect(place({ mapId: 'map.au', track }, 'railroad.orange', PERTH)).toEqual({
+            isStart: false,
+            bonuses: [PERTH_PAYMENT]
+        })
+        expect(place({ mapId: 'map.au', track }, 'railroad.red', BRISBANE)).toEqual({
+            isStart: false,
+            bonuses: [BRISBANE_PAYMENT]
+        })
+    })
+
+    it('pays a start there too, which only Black may make', () => {
+        expect(place({ mapId: 'map.au' }, 'railroad.black', PERTH)).toEqual({
+            isStart: true,
+            bonuses: [PERTH_PAYMENT]
+        })
+    })
+
+    it('pays each once: Perth and Brisbane hold one locomotive', () => {
+        const track = trackOf(
+            ['railroad.orange', [PERTH_CHAIN_END, PERTH]],
+            ['railroad.red', [BRISBANE_CHAIN_END, BRISBANE]]
+        )
+        const state = building({ mapId: 'map.au', track })
+        expect(placementTest(state, 'p1', 'railroad.black', PERTH)).toEqual({
+            legal: false,
+            reason: 'hex-at-capacity'
+        })
+        expect(placementTest(state, 'p1', 'railroad.black', BRISBANE)).toEqual({
+            legal: false,
+            reason: 'hex-at-capacity'
+        })
+    })
+
+    it('pays nothing for a placement in another city', () => {
+        expect(place({ mapId: 'map.au' }, 'railroad.red', 'hex.au.31-15').bonuses).toEqual([])
     })
 })

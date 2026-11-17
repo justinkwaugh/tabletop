@@ -4,6 +4,8 @@ import type { RailroadId } from '../data/railroads.js'
 import { PhaseName } from '../definition/phases.js'
 import { USA_CITIES } from '../data/usaMap.js'
 import type { Track } from '../model/gameState.js'
+import { boardMap } from '../data/boardMaps.js'
+import type { MapId } from '../data/maps.js'
 import { buildState } from '../testing/fixtures.js'
 import { placementTest, startCityIds } from './placement.js'
 import { ALPHA, BETA, FLAT_FIXTURE_MAP, GAMMA } from '../testing/flatFixtureMap.js'
@@ -321,5 +323,43 @@ describe('start rules by printed colour (R-4.2, R-8)', () => {
         expect(chicago?.startColours).toContain('railroad.yellow')
         expect(cityFitsStartRule('west-coast', chicago ?? alpha, 'railroad.yellow', {})).toBe(false)
         expect(cityFitsStartRule('any-city', alpha, 'railroad.black', {})).toBe(true)
+    })
+})
+
+function emptyBoard(mapId: MapId) {
+    return buildState({ mapId, round: 6, phase: PhaseName.Build, shares: { p1: ALL_SHARES } })
+}
+
+describe('Australia (R-8.2)', () => {
+    const state = emptyBoard('map.au')
+
+    it('starts Red, Blue, Orange and Yellow each in the one city printed in its colour, Yellow only in Wagga Wagga', () => {
+        expect(startCityIds(state, 'railroad.red')).toEqual(['city.au.sydney'])
+        expect(startCityIds(state, 'railroad.blue')).toEqual(['city.au.melbourne'])
+        expect(startCityIds(state, 'railroad.orange')).toEqual(['city.au.adelaide'])
+        expect(startCityIds(state, 'railroad.yellow')).toEqual(['city.au.wagga-wagga'])
+    })
+
+    it('starts Purple in every city printed Purple', () => {
+        expect(startCityIds(state, 'railroad.purple')).toEqual(
+            boardMap('map.au')
+                .cities.filter((city) => city.startColours.includes('railroad.purple'))
+                .map((city) => city.id)
+        )
+        expect(startCityIds(state, 'railroad.purple')).toHaveLength(51)
+    })
+
+    it('starts Black in any city with room, Perth and Brisbane included (R-4.2.5)', () => {
+        expect(startCityIds(state, 'railroad.black')).toEqual(
+            boardMap('map.au').cities.map((city) => city.id)
+        )
+    })
+
+    it('refuses Yellow a start anywhere but Wagga Wagga', () => {
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.au.22-18')).toEqual(START)
+        expect(placementTest(state, 'p1', 'railroad.yellow', 'hex.au.31-15')).toEqual({
+            legal: false,
+            reason: 'not-adjacent-or-start'
+        })
     })
 })

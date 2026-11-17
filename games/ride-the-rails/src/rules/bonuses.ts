@@ -1,6 +1,8 @@
 import {
+    BRISBANE_BONUS,
     CHICAGO_BONUS,
     FIVE_DOLLAR_BONUS,
+    PERTH_BONUS,
     TRANSCONTINENTAL_BONUS,
     type BonusDefinition,
     type BonusId,
@@ -49,8 +51,8 @@ function bonusCity({ map, placement }: BonusContext, bonusId: BonusId): City | u
     return city?.bonus === bonusId ? city : undefined
 }
 
-// R-4.3.1, R-8: every placement in the city, a start included (Chicago; on their maps, Paris
-// and Berlin).
+// R-4.3.1, R-8: every placement in the city, a start included (Chicago; on their maps, Perth,
+// Brisbane, Paris and Berlin).
 export function everyPlacementRule(bonus: FixedBonus): BonusRule {
     return {
         bonus,
@@ -139,7 +141,9 @@ export const BONUS_RULES: Readonly<Record<MapId, readonly BonusRule[]>> = {
         everyPlacementRule(CHICAGO_BONUS),
         firstPlacementRule(FIVE_DOLLAR_BONUS),
         TRANSCONTINENTAL_RULE
-    ]
+    ],
+    // R-8.2: no Transcontinental.
+    'map.au': [everyPlacementRule(PERTH_BONUS), everyPlacementRule(BRISBANE_BONUS)]
 }
 
 // R-4.3, R-3.2.5: every bonus a placement pays, in table order.

@@ -28,7 +28,8 @@ export function turnOrderByMoney(state: HydratedRideTheRailsGameState): string[]
 // R-8 (France, Paris Travels): the city that takes a new passenger at the end of each round if it
 // has none; R-8: an expansion map adds its own row.
 export const ROUND_END_PASSENGER_CITY: Readonly<Record<MapId, CityId | null>> = {
-    'map.usa': null
+    'map.usa': null,
+    'map.au': null
 }
 
 // R-8: the city a passenger is placed in at the end of the round, if any.

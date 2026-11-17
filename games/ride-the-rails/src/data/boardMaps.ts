@@ -8,12 +8,14 @@ import {
     type HexGroup
 } from './boardMap.js'
 import { mapKeyOfHex, type HexId } from './hexes.js'
+import { AUSTRALIA_MAP } from './australiaMap.js'
 import { MAP_KEY_OF, type MapId, type MapKey } from './maps.js'
 import { USA_MAP } from './usaMap.js'
 
 // R-8: every map the code knows; an expansion map adds its own row.
 export const BOARD_MAPS: Readonly<Record<MapId, BoardMap>> = {
-    'map.usa': new BoardMap(USA_MAP)
+    'map.usa': new BoardMap(USA_MAP),
+    'map.au': new BoardMap(AUSTRALIA_MAP)
 }
 
 export function boardMap(mapId: MapId): BoardMap {

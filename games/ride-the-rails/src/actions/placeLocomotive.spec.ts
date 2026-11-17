@@ -393,3 +393,60 @@ describe('Undo of a placement (R-5)', () => {
         expect(undoRun(first)).toEqual(first.before)
     })
 })
+
+describe('Australia (R-8.2)', () => {
+    const ADELAIDE: HexId = 'hex.au.4-14'
+    const LONG_DISTANCE_NEXT_TO_ADELAIDE: HexId = 'hex.au.3-13'
+    const PERTH_CHAIN_END: HexId = 'hex.au.1-13'
+    const PERTH: HexId = 'hex.au.0-12'
+
+    function australia(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
+        return building({
+            mapId: 'map.au',
+            track: { [ADELAIDE]: ['railroad.orange'] },
+            ...recipe
+        })
+    }
+
+    it('ends the turn with a long-distance placement, the reason long-distance, though placements are left', () => {
+        const { after, processed } = place(
+            australia(),
+            'railroad.orange',
+            LONG_DISTANCE_NEXT_TO_ADELAIDE
+        )
+        expect(processed.map((action) => action.type)).toEqual([
+            ActionType.PlaceLocomotive,
+            ActionType.FinishBuilding
+        ])
+        expect(processed[1]).toMatchObject({
+            source: ActionSource.System,
+            playerId: 'p1',
+            metadata: { reason: 'long-distance', placed: 1 }
+        })
+        expect(after.track[LONG_DISTANCE_NEXT_TO_ADELAIDE]).toEqual(['railroad.orange'])
+        expect(after.activePlayerIds).toEqual(['p2'])
+        expect(after.building).toEqual({ placed: 0, usedMountain: false })
+    })
+
+    it('pays Perth’s $50 to the placement that builds into it', () => {
+        const state = australia({
+            track: {
+                [ADELAIDE]: ['railroad.orange'],
+                [PERTH_CHAIN_END]: ['railroad.orange']
+            }
+        })
+        const { after, processed } = place(state, 'railroad.orange', PERTH)
+        expect(processed[0]).toMatchObject({
+            metadata: {
+                isStart: false,
+                bonuses: [{ bonusId: 'bonus.au.perth', amount: 50, cityId: 'city.au.perth' }]
+            }
+        })
+        expect(hydrated(after).getPlayerState('p1').money).toBe(60)
+    })
+
+    it('takes back a long-distance placement and the end of the turn it made (R-5)', () => {
+        const run = place(australia(), 'railroad.orange', LONG_DISTANCE_NEXT_TO_ADELAIDE)
+        expect(undoRun(run)).toEqual(run.before)
+    })
+})

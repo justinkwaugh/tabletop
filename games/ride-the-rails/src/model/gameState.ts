@@ -11,7 +11,6 @@ import {
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { HexId } from '../data/hexes.js'
 import { MapId } from '../data/maps.js'
 import { RailroadId } from '../data/railroads.js'
 import { CityId } from '../data/boardMap.js'
@@ -22,9 +21,24 @@ import { HydratedRideTheRailsPlayerState, RideTheRailsPlayerState } from './play
 // R-X.3
 export const CURRENT_RIDE_THE_RAILS_REVISION = 1
 
+// A track key reads as a hex id of any map; the state's refinement keeps it to the state's map.
+// One key pattern for every map, where `HexId` is a union of one per map, lets a track written
+// with `HexId` keys take the record's value type.
+const TrackHexId = Type.TemplateLiteral([
+    Type.Literal('hex.'),
+    Type.String(),
+    Type.Literal('.'),
+    Type.Number(),
+    Type.Literal('-'),
+    Type.Number()
+])
+
 // The railroads with a locomotive in each hex, in placement order (R-3.2, R-4.1).
 export type Track = Type.Static<typeof Track>
-export const Track = Type.Record(HexId, Type.Array(RailroadId, { minItems: 1, uniqueItems: true }))
+export const Track = Type.Record(
+    TrackHexId,
+    Type.Array(RailroadId, { minItems: 1, uniqueItems: true })
+)
 
 // R-4.3.3: paid once.
 export type TranscontinentalClaim = Type.Static<typeof TranscontinentalClaim>

@@ -163,9 +163,9 @@ describe('bonuses (R-4.3)', () => {
 
 describe('tables keyed by map id (R-8)', () => {
     it('keys every table by the same map ids', () => {
-        expect(Object.keys(RAILROAD_INTRODUCTIONS)).toEqual(['map.usa'])
-        expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa'])
-        expect(Object.keys(BONUSES)).toEqual(['map.usa'])
+        expect(Object.keys(RAILROAD_INTRODUCTIONS)).toEqual(['map.usa', 'map.au'])
+        expect(Object.keys(PLACEMENT_LIMITS)).toEqual(['map.usa', 'map.au'])
+        expect(Object.keys(BONUSES)).toEqual(['map.usa', 'map.au'])
     })
 })
 
@@ -233,5 +233,57 @@ describe('every per-map table (R-8)', () => {
 
     it('has no Paris Travels on the USA map', () => {
         expect(ROUND_END_PASSENGER_CITY['map.usa']).toBe(null)
+    })
+})
+
+describe('Australia (R-8.2)', () => {
+    it('brings the railroads in by the USA’s rounds, each starting in a city of its printed colour and Black in any city', () => {
+        const rounds = (mapId: 'map.usa' | 'map.au') =>
+            RAILROAD_INTRODUCTIONS[mapId].map(({ railroadId, availableFromRound }) => [
+                railroadId,
+                availableFromRound
+            ])
+        expect(rounds('map.au')).toEqual(rounds('map.usa'))
+        expect(
+            RAILROAD_INTRODUCTIONS['map.au'].map(({ railroadId, startRule }) => [
+                railroadId,
+                startRule
+            ])
+        ).toEqual([
+            ['railroad.red', 'printed-colour'],
+            ['railroad.blue', 'printed-colour'],
+            ['railroad.orange', 'printed-colour'],
+            ['railroad.yellow', 'printed-colour'],
+            ['railroad.purple', 'printed-colour'],
+            ['railroad.black', 'any-city']
+        ])
+    })
+
+    it('prints 8 / 5 / 4 for 3 / 4 / 5 players, mountain −2, no railroad exempt', () => {
+        expect(PLACEMENT_LIMITS['map.au']).toEqual({
+            byPlayerCount: [
+                { playerCount: 3, limit: 8 },
+                { playerCount: 4, limit: 5 },
+                { playerCount: 5, limit: 4 }
+            ],
+            mountainReduction: 2
+        })
+        expect(placementLimit('map.au', 3, true)).toBe(6)
+        expect(placementLimit('map.au', 4, true)).toBe(3)
+        expect(placementLimit('map.au', 5, true)).toBe(2)
+    })
+
+    it('has no group limit and no Paris Travels', () => {
+        expect(GROUP_LIMITS['map.au']).toEqual([])
+        expect(ROUND_END_PASSENGER_CITY['map.au']).toBe(null)
+    })
+
+    it('is listed for game creation as Australia, with what it changes', () => {
+        expect(MAP_KEY_OF['map.au']).toBe('au')
+        expect(MAP_DETAILS['map.au']).toEqual({
+            name: 'Australia',
+            description:
+                'The Alps take no track; long-distance hexes hold one locomotive and end the turn; Perth $50, Brisbane $20.'
+        })
     })
 })

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { hexById } from '../data/boardMaps.js'
 import type { HexId } from '../data/hexes.js'
 import { RAILROAD_IDS } from '../data/railroads.js'
 import { USA_HEXES } from '../data/usaMap.js'
@@ -491,5 +492,102 @@ describe('group limits (R-4.1.4, R-8)', () => {
         expect(groupHexesHeld(track, 'railroad.red', 'east-coast')).toBe(2)
         expect(groupHexesHeld(track, 'railroad.blue', 'east-coast')).toBe(1)
         expect(groupHexesHeld(track, 'railroad.blue', 'west-coast')).toBe(0)
+    })
+})
+
+describe('Australia (R-8.2)', () => {
+    const SYDNEY: HexId = 'hex.au.31-15'
+    const MOUNTAIN_NEXT_TO_SYDNEY: HexId = 'hex.au.31-13'
+    const WEST_OF_SYDNEY: HexId = 'hex.au.30-14'
+    const ADELAIDE: HexId = 'hex.au.4-14'
+    const LONG_DISTANCE_NEXT_TO_ADELAIDE: HexId = 'hex.au.3-13'
+    const EAST_OF_ADELAIDE: HexId = 'hex.au.5-13'
+    const MELBOURNE: HexId = 'hex.au.17-29'
+    const MOUNTAIN_NEXT_TO_MELBOURNE: HexId = 'hex.au.18-28'
+    const ALPS_NEXT_TO_THAT_MOUNTAIN: HexId = 'hex.au.19-27'
+
+    function australia(recipe: StateRecipe = {}): HydratedRideTheRailsGameState {
+        return building({
+            mapId: 'map.au',
+            shares: { p1: { 'railroad.red': 1, 'railroad.blue': 1, 'railroad.orange': 1 } },
+            track: {
+                [SYDNEY]: ['railroad.red'],
+                [ADELAIDE]: ['railroad.orange'],
+                [MELBOURNE]: ['railroad.blue'],
+                [MOUNTAIN_NEXT_TO_MELBOURNE]: ['railroad.blue']
+            },
+            ...recipe
+        })
+    }
+
+    it('allows 8, 5 and 4 placements for 3, 4 and 5 players', () => {
+        expect([3, 4, 5].map((playerCount) => placementsLeft(australia({ playerCount })))).toEqual([
+            8, 5, 4
+        ])
+    })
+
+    it('lowers the limit by two for a mountain placement: a mountain is refused with 7 placed of 8, and taken with 6', () => {
+        const seventh = australia({ building: { placed: 6, usedMountain: false } })
+        expect(placementTest(seventh, 'p1', 'railroad.red', MOUNTAIN_NEXT_TO_SYDNEY)).toEqual(
+            refused('over-placement-limit')
+        )
+        expect(placementTest(seventh, 'p1', 'railroad.red', WEST_OF_SYDNEY)).toEqual(LEGAL)
+        const sixth = australia({ building: { placed: 5, usedMountain: false } })
+        expect(placementTest(sixth, 'p1', 'railroad.red', MOUNTAIN_NEXT_TO_SYDNEY)).toEqual(LEGAL)
+    })
+
+    it('lowers it once, however many mountain placements the turn holds', () => {
+        const state = australia({ building: { placed: 5, usedMountain: true } })
+        expect(placementsLeft(state)).toBe(1)
+        expect(placementTest(state, 'p1', 'railroad.red', MOUNTAIN_NEXT_TO_SYDNEY)).toEqual(LEGAL)
+    })
+
+    it('takes a long-distance hex as the turn’s first placement only', () => {
+        expect(
+            placementTest(australia(), 'p1', 'railroad.orange', LONG_DISTANCE_NEXT_TO_ADELAIDE)
+        ).toEqual(LEGAL)
+        const later = australia({ building: { placed: 1, usedMountain: false } })
+        expect(
+            placementTest(later, 'p1', 'railroad.orange', LONG_DISTANCE_NEXT_TO_ADELAIDE)
+        ).toEqual(refused('long-distance-not-first'))
+        expect(placementTest(later, 'p1', 'railroad.orange', EAST_OF_ADELAIDE)).toEqual(LEGAL)
+    })
+
+    it('takes nothing more once the turn has made a long-distance placement', () => {
+        const state = australia({
+            track: {
+                [ADELAIDE]: ['railroad.orange'],
+                [LONG_DISTANCE_NEXT_TO_ADELAIDE]: ['railroad.orange']
+            },
+            building: { placed: 1, usedMountain: false, usedLongDistance: true }
+        })
+        expect(placementTest(state, 'p1', 'railroad.orange', EAST_OF_ADELAIDE)).toEqual(
+            refused('long-distance-ended-turn')
+        )
+        expect(hasLegalPlacement(state, 'p1')).toBe(false)
+    })
+
+    it('never takes a locomotive in the Alps', () => {
+        const state = australia()
+        expect(hexById(ALPS_NEXT_TO_THAT_MOUNTAIN).terrain).toBe('alps')
+        expect(placementTest(state, 'p1', 'railroad.blue', ALPS_NEXT_TO_THAT_MOUNTAIN)).toEqual(
+            refused('hex-at-capacity')
+        )
+        expect(
+            legalPlacements(state, 'p1').filter(({ hexId }) => hexById(hexId).terrain === 'alps')
+        ).toEqual([])
+    })
+
+    it('holds one locomotive in a long-distance hex', () => {
+        const state = australia({
+            shares: { p1: { 'railroad.orange': 1, 'railroad.black': 1 } },
+            track: {
+                [ADELAIDE]: ['railroad.orange', 'railroad.black'],
+                [LONG_DISTANCE_NEXT_TO_ADELAIDE]: ['railroad.black']
+            }
+        })
+        expect(
+            placementTest(state, 'p1', 'railroad.orange', LONG_DISTANCE_NEXT_TO_ADELAIDE)
+        ).toEqual(refused('hex-at-capacity'))
     })
 })

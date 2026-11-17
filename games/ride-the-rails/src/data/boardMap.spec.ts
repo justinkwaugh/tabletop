@@ -223,7 +223,10 @@ describe('the map registry (R-8)', () => {
     it('looks a hex or city up by its id alone, the id naming its map', () => {
         expect(isHexId('hex.usa.5-43')).toBe(true)
         expect(isHexId('hex.usa.5-44')).toBe(false)
-        expect(isHexId('hex.au.0-12')).toBe(false)
+        expect(isHexId('hex.au.0-12')).toBe(true)
+        expect(isHexId('hex.au.0-10')).toBe(false)
+        expect(cityById('city.au.perth').hexId).toBe('hex.au.0-12')
+        expect(hexCapacity('hex.au.0-12')).toBe(1)
         expect(hexById('hex.usa.5-43')).toMatchObject({
             terrain: 'city',
             cityId: 'city.usa.chicago'

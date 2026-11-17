@@ -46,6 +46,17 @@ export type RailroadIntroduction = {
     readonly startRule: StartRule
 }
 
+// R-1.4, R-8: on every expansion map the railroads arrive in the USA's rounds. Each starts in a
+// city printed in its colour, Black in any city with room (R-4.2.5).
+const PRINTED_COLOUR_INTRODUCTIONS: readonly RailroadIntroduction[] = [
+    { railroadId: 'railroad.red', availableFromRound: 1, startRule: 'printed-colour' },
+    { railroadId: 'railroad.blue', availableFromRound: 1, startRule: 'printed-colour' },
+    { railroadId: 'railroad.orange', availableFromRound: 2, startRule: 'printed-colour' },
+    { railroadId: 'railroad.yellow', availableFromRound: 3, startRule: 'printed-colour' },
+    { railroadId: 'railroad.purple', availableFromRound: 4, startRule: 'printed-colour' },
+    { railroadId: 'railroad.black', availableFromRound: 5, startRule: 'any-city' }
+]
+
 // R-1.4 availability and R-4.2.1 to R-4.2.5 starts; R-8: an expansion map adds its own row.
 export const RAILROAD_INTRODUCTIONS: Readonly<Record<MapId, readonly RailroadIntroduction[]>> = {
     'map.usa': [
@@ -63,5 +74,7 @@ export const RAILROAD_INTRODUCTIONS: Readonly<Record<MapId, readonly RailroadInt
         },
         { railroadId: 'railroad.purple', availableFromRound: 4, startRule: 'west-coast' },
         { railroadId: 'railroad.black', availableFromRound: 5, startRule: 'any-city' }
-    ]
+    ],
+    // R-8.2: the USA's rounds; each railroad starts in a city printed in its colour.
+    'map.au': PRINTED_COLOUR_INTRODUCTIONS
 }
