@@ -363,7 +363,7 @@ const AU_BLUE_ALPS = [
 ]
 const AU_RED_COWRA = line(['Goulburn', 'Cowra'], { mapId: AU })
 /** The long-distance hexes from Adelaide to Perth, in the order a railroad enters them. */
-export const AU_PERTH_CHAIN = ['hex.au.3-13', 'hex.au.2-12', 'hex.au.1-13'] as const
+const AU_PERTH_CHAIN = ['hex.au.3-13', 'hex.au.2-12', 'hex.au.1-13'] as const
 
 // R-8.3, Canada: Red from Montréal and Blue from Windsor both into Toronto, and Purple from Toronto
 // into the hex beside it whose south side is impassable.
@@ -371,7 +371,7 @@ const CA: MapId = 'map.ca'
 const CA_RED_TORONTO = line(['Montréal', 'Toronto'], { start: true, mapId: CA })
 const CA_BLUE_TORONTO = line(['Windsor', 'Toronto'], { start: true, mapId: CA })
 /** The hex beside Toronto and the one past its impassable south side. */
-export const CA_IMPASSABLE_PAIR = ['hex.ca.10-22', 'hex.ca.10-24'] as const
+const CA_IMPASSABLE_PAIR = ['hex.ca.10-22', 'hex.ca.10-24'] as const
 
 // R-8.4, France: Red from Lille into the entry hex north of Paris, Blue from Sedan to Reims, and
 // Orange started in Le Havre, which the Seine's estuary parts from Caen.
@@ -381,12 +381,10 @@ const FR_RED_TO_PARIS = [cityHexId('Lille', FR), ...walk(cityHexId('Lille', FR),
 const FR_BLUE_REIMS = line(['Sedan', 'Reims'], { start: true, mapId: FR })
 
 // R-8.5, Germany: Red from Leipzig and Blue from Dresden both into Berlin, Purple started there,
-// and Orange started in München beside a mountain.
+// and Orange started in München beside a mountain (hex.de.14-50).
 const DE: MapId = 'map.de'
 const DE_RED_BERLIN = line(['Leipzig', 'Berlin'], { start: true, mapId: DE })
 const DE_BLUE_BERLIN = line(['Dresden', 'Berlin'], { start: true, mapId: DE })
-/** The mountain beside München, where an Orange placement costs the turn nothing. */
-export const DE_MOUNTAIN_BY_MUNCHEN: HexId = 'hex.de.14-50'
 
 /** Round 1 with Red and Blue on the East Coast, the opening of the riding tables. */
 const EAST_COAST_ROUND: PlayedRound = {
