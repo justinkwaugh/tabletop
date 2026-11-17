@@ -170,6 +170,7 @@ scenario('S29 R-3.7.3 R-3.7.4 Godspeed and pilfer', 'move-godspeed', async (tabl
         await expect(table.pick(pawn)).not.toHaveAttribute('data-pick-role', 'lit')
     }
     await expect(table.row('No Godspeed')).toBeVisible()
+    await expect(table.flowLine()).toHaveText('Godspeed.')
     expect(await table.litChips()).toMatchObject({ [Forest3]: 'Godspeed' })
     await table.pressPick(Forest3)
     await expect(trailOf(table, 3)).toHaveText('3')
@@ -215,6 +216,7 @@ scenario(
         await table.pressPick(Forest3)
         await expect(table.popup()).toHaveCount(0)
         await expect(table.row('No Godspeed')).toBeVisible()
+        await expect(table.flowLine()).toHaveText('Godspeed.')
         await expect(table.row('Stop moving')).toHaveCount(0)
         expect(await table.litChips()).toMatchObject({ [Badlands1]: 'Godspeed' })
     }

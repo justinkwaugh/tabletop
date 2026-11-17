@@ -606,6 +606,8 @@ describe('S29 R-3.7.3, R-3.7.4 Godspeed and pilfer', () => {
 
         await pressRow(session, 'Stop moving')
         expect(session.movePanel?.stage).toBe('godspeed')
+        // The stage names itself: no step count once the steps have ended.
+        expect(session.movePanel?.line).toBe('Godspeed.')
         expect(role(session, monk)).toBe('dimmed')
         expect(role(session, pawnTarget(seat, 2))).toBe('dimmed')
         expect(row(session.movePanel?.rows, 'No Godspeed').picked).toBe(false)
@@ -970,7 +972,7 @@ describe('S30 R-3.7.1 the allowance spent', () => {
         expect(row(session.movePanel?.rows, 'Stop moving').picked).toBe(false)
         await press(session, spaceTarget(RoadEnd))
         expect(session.move.value('stopped')).toBeUndefined()
-        expect(session.movePanel?.line).toBe('0 of 1 steps left')
+        expect(session.movePanel?.line).toBe('Godspeed.')
         expect(session.movePanel?.stage).toBe('godspeed')
         expect(role(session, pawnTarget(seat, 1))).toBe('dimmed')
         expect(role(session, spaceTarget(Inland))).toBe('lit')
