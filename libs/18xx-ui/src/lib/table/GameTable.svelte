@@ -1289,7 +1289,7 @@
                                         {session}
                                         playerIds={[auctionTurnPlayerId]}
                                     />{/if}
-                                {#if turnAttention && session.myPlayer}<TurnRecap
+                                {#if !readOnlyPosition && session.myPlayer}<TurnRecap
                                         {session}
                                         playerId={session.myPlayer.id}
                                         describeAction={historyDescription}
