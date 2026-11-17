@@ -1,4 +1,10 @@
-import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    assertExists,
+    isCallGameAction,
+    type AxialCoordinates,
+    type CallGameAction,
+    type GameAction
+} from '@tabletop/common'
 import {
     isCapture,
     isPass,
@@ -43,7 +49,18 @@ export type StackEntry = Span & {
 
 export type PassEntry = Span & { kind: 'pass'; stuckPlayerId?: string }
 
-export type HistoryEntry = PlaceEntry | CaptureEntry | StackEntry | PassEntry
+export type MoveEntry = PlaceEntry | CaptureEntry | StackEntry | PassEntry
+
+// A call, a concession or a stall ends the game with a system action of its own.
+export type CallEntry = {
+    kind: 'call'
+    id: string
+    firstIndex: number
+    lastIndex: number
+    action: CallGameAction
+}
+
+export type HistoryEntry = MoveEntry | CallEntry
 
 // Every action played records what history tells of it.
 function recorded<T>(metadata: T | undefined): T {
@@ -53,6 +70,9 @@ function recorded<T>(metadata: T | undefined): T {
 
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     return actions.flatMap((action, index): HistoryEntry[] => {
+        if (isCallGameAction(action)) {
+            return [{ kind: 'call', id: action.id, firstIndex: index, lastIndex: index, action }]
+        }
         if (action.playerId === undefined) return []
         const span = {
             id: action.id,

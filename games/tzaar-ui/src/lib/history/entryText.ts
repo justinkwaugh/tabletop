@@ -1,6 +1,6 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import { PieceKind, type StackSummary } from '@tabletop/tzaar'
-import type { HistoryEntry } from './historyEntries.js'
+import type { MoveEntry } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
@@ -25,7 +25,7 @@ const player = (playerId: string): Segment => ({ kind: 'player', playerId })
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
 // The brief form keeps the action banner to one line; the history panel uses the full one.
-export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
+export function entrySegments(entry: MoveEntry, brief = false): Segment[] {
     const stuck = entry.stuckPlayerId === undefined ? [] : stuckSegments(entry.stuckPlayerId, brief)
     switch (entry.kind) {
         case 'place':
