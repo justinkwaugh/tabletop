@@ -3,7 +3,7 @@
     import { LINES, POINTS, pointKey, pointName } from '@tabletop/yinsh'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/rowChoice.js'
-    import { flatCenter, VIEW } from '$lib/board/geometry.js'
+    import { VIEW } from '$lib/board/geometry.js'
     import { boardLines } from '$lib/board/boardLines.js'
     import { markerSeed } from '$lib/board/ringSeeds.js'
     import { boardLabels } from '$lib/board/coordinates.js'
@@ -27,27 +27,27 @@
 
     const session = getGameSession()
 
-    const labels = boardLabels(POINTS)
-    const frame = VIEW.frame(labels.map((label) => label.at))
-    const outline = VIEW.playAreaOutline()
+    const view = $derived(session.view)
+    const labels = $derived(boardLabels(POINTS, view))
+    const frame = $derived(view.frame(labels.map((label) => label.at)))
+    const outline = $derived(view.playAreaOutline())
 
-    const lines = boardLines(LINES)
+    const lines = $derived(boardLines(LINES, view))
 
     const animator = new BoardAnimator(session)
 
     // Back to front, so a nearer piece's side covers the one behind it.
     const pieces = $derived(
-        animator.pieces.toSorted((a, b) => flatCenter(a.coords).y - flatCenter(b.coords).y)
+        animator.pieces.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     )
 
     const sides = $derived(
         session.gameState.players.map((player) => ({
             playerId: player.playerId,
             removed: animator.removed[player.playerId] ?? [],
-            slots: VIEW.ringSlots(player.playerId === session.topPlayerId ? 'top' : 'bottom').slice(
-                0,
-                session.gameState.ringsToWin
-            )
+            slots: view
+                .ringSlots(player.playerId === session.topPlayerId ? 'top' : 'bottom')
+                .slice(0, session.gameState.ringsToWin)
         }))
     )
 
@@ -70,13 +70,13 @@
         return undefined
     }
 
-    const destinations = $derived(session.destinations.map((move) => VIEW.center(move.to)))
+    const destinations = $derived(session.destinations.map((move) => view.center(move.to)))
 
     // Far first, so where a nearer ring's click area overlaps the one behind it, the nearer
     // takes the click, as it stands in front.
     const clickable = $derived(
         POINTS.filter((coords) => session.isClickable(coords)).toSorted(
-            (a, b) => flatCenter(a).y - flatCenter(b).y
+            (a, b) => view.center(a).y - view.center(b).y
         )
     )
 
@@ -151,7 +151,7 @@
 {/snippet}
 
 {#snippet drawn(piece: DrawnPiece)}
-    {@const center = VIEW.center(piece.coords)}
+    {@const center = view.center(piece.coords)}
     {@const role = markOn(piece)}
     <g transform="translate({center.x} {center.y})" class="piece" id={pieceId(piece.key)}>
         <g {@attach animator.node(piece.key)}>
@@ -307,7 +307,7 @@
 
         <g class="shadows">
             {#each pieces as piece (piece.key)}
-                {@const center = VIEW.center(piece.coords)}
+                {@const center = view.center(piece.coords)}
                 <g transform="translate({center.x} {center.y})">
                     <g {@attach animator.node(`${piece.key}:shadow`)}>
                         {#if piece.kind === 'ring'}
@@ -358,7 +358,7 @@
                     {#if piece.key !== flier.leaves}
                         <use
                             href="#{pieceId(piece.key)}"
-                            {@attach animator.occluder(VIEW.center(piece.coords).y)}
+                            {@attach animator.occluder(view.center(piece.coords).y)}
                         ></use>
                     {/if}
                 {/each}
@@ -367,7 +367,7 @@
 
         <g class="targets">
             {#each clickable as coords (pointKey(coords))}
-                {@const center = VIEW.center(coords)}
+                {@const center = view.center(coords)}
                 <path
                     d={STANDING}
                     transform="translate({center.x} {center.y})"

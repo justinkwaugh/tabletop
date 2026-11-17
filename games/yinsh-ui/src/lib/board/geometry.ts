@@ -27,13 +27,23 @@ export class BoardView {
     // How much of a height shows on screen.
     readonly rise: number
 
-    constructor(readonly tilt: number) {
+    // A turned view sees the board from the far side, half a turn round.
+    constructor(
+        readonly tilt: number,
+        readonly turned = false
+    ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
+    }
+
+    // A direction or point on the board's plane, turned as the board is seen.
+    turn(point: Point): Point {
+        return this.turned ? { x: -point.x, y: -point.y } : point
     }
 
     // A point on the board's plane, on screen.
     project(point: Point): Point {
-        return { x: point.x, y: point.y * this.tilt }
+        const turned = this.turn(point)
+        return { x: turned.x, y: turned.y * this.tilt }
     }
 
     // The centre of a point on the board's surface, where a piece standing there rests.
@@ -92,8 +102,9 @@ export class BoardView {
     // board: the top player's at the top left, the bottom player's at the bottom right. They lie
     // on the board's plane and run parallel to the hexagon's slanted edge, just beyond its
     // labels: the line numbers at the top left, the column letters at the bottom right.
+    // Seen from the far side they go round with the board.
     ringSlots(side: 'top' | 'bottom'): Point[] {
-        return this.flatRingSlots(side).map((point) => this.project(point))
+        return flatRingSlots(side).map((point) => this.project(point))
     }
 
     // Everything the board draws: the points with a ring standing on each, the labels and the
@@ -148,19 +159,20 @@ export class BoardView {
             return [toward(previous), inside, toward(next)]
         })
     }
+}
 
-    private flatRingSlots(side: 'top' | 'bottom'): Point[] {
-        const sign = side === 'top' ? 1 : -1
-        const anchor = side === 'top' ? LINE_8_LABEL : COLUMN_I_LABEL
-        const pitch = RING_OUTER * 2 + SLOT_GAP
-        return [-1, 0, 1].map((offset) => {
-            const along = SLOT_SHIFT + offset * pitch
-            return {
-                x: anchor.x + sign * (OUTWARD.x * SLOT_OFFSET + ALONG_EDGE.x * along),
-                y: anchor.y + sign * (OUTWARD.y * SLOT_OFFSET + ALONG_EDGE.y * along)
-            }
-        })
-    }
+// A side's ring spaces on the board's own plane.
+export function flatRingSlots(side: 'top' | 'bottom'): Point[] {
+    const sign = side === 'top' ? 1 : -1
+    const anchor = side === 'top' ? LINE_8_LABEL : COLUMN_I_LABEL
+    const pitch = RING_OUTER * 2 + SLOT_GAP
+    return [-1, 0, 1].map((offset) => {
+        const along = SLOT_SHIFT + offset * pitch
+        return {
+            x: anchor.x + sign * (OUTWARD.x * SLOT_OFFSET + ALONG_EDGE.x * along),
+            y: anchor.y + sign * (OUTWARD.y * SLOT_OFFSET + ALONG_EDGE.y * along)
+        }
+    })
 }
 
 const SLOT_GAP = 4
@@ -184,3 +196,8 @@ const COLUMN_I_LABEL = {
 }
 
 export const VIEW = new BoardView(TILT)
+const TURNED_VIEW = new BoardView(TILT, true)
+
+export function viewOf(turned: boolean): BoardView {
+    return turned ? TURNED_VIEW : VIEW
+}

@@ -111,7 +111,7 @@
                     <Board />
                     {#snippet overlay()}
                         <div
-                            class="pointer-events-auto absolute top-1 right-3 z-10 flex flex-col items-end gap-1.5"
+                            class="pointer-events-auto absolute top-1 right-3 z-10 flex items-center gap-1.5"
                         >
                             <OverlayToggle
                                 glyph="A1"
@@ -119,6 +119,25 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
+                            <!-- Half a turn round, so pieces hidden behind rings come in front. -->
+                            <OverlayToggle
+                                label="Far side"
+                                pressed={gameSession.turned}
+                                onToggle={() => gameSession.toggleTurned()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5.5 -1 A 5.5 5.5 0 0 1 4.5 -3.2" class="line"
+                                    ></path>
+                                    <path d="M 2 -5 L 4.8 -3 L 2.2 -0.8" class="line"></path>
+                                    <path d="M 5.5 1 A 5.5 5.5 0 0 1 -4.5 3.2" class="line"></path>
+                                    <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="line"></path>
+                                </svg>
+                            </OverlayToggle>
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

@@ -24,11 +24,14 @@ import { setYinshSelection, YinshStageOrder, type YinshSelection } from './stage
 import { includesCoords, rowChoice, rowsThrough, type Row, type RowChoice } from './rowChoice.js'
 import { toneOf, type Tone } from '$lib/board/pieceStyle.js'
 import { STAGED_DROP } from '$lib/board/dropIn.js'
+import { viewOf, type BoardView } from '$lib/board/geometry.js'
 
 // Lets the session stop the move the board animator is playing.
 export type MoveInterrupter = {
     // Lands the move at once and drops the rest of its replay: another state is being shown.
     abandon(): void
+    // Lands the move at once: its motion was laid out in a view no longer shown.
+    interrupt(): void
 }
 
 type SessionOptions = ConstructorParameters<
@@ -73,6 +76,16 @@ export class YinshGameSession extends GameSession<YinshGameState, HydratedYinshG
     toggleCoordinates() {
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
+
+    // The board seen from the far side, half a turn round, ring spaces and all.
+    turned: boolean = $derived(this.preferences.values.turned)
+
+    toggleTurned() {
+        this.moveInterrupter?.interrupt()
+        this.preferences.set({ turned: !this.turned })
+    }
+
+    view: BoardView = $derived(viewOf(this.turned))
 
     // Like the board, the ring spaces stay put whoever is watching. The starting player, White,
     // has theirs at the top, as their card is above the other in the players panel.

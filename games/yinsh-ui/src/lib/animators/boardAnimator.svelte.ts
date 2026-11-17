@@ -28,7 +28,7 @@ import {
     type SpacedRing
 } from '$lib/board/boardDiff.js'
 import { markerSeed, removedRings, ringSeed, type RemovedRings } from '$lib/board/ringSeeds.js'
-import { flatCenter, SPACING, VIEW } from '$lib/board/geometry.js'
+import { flatCenter, flatRingSlots, SPACING, VIEW } from '$lib/board/geometry.js'
 import { flightPose, progressAt } from '$lib/board/ringFlight.js'
 import { flipPose } from '$lib/board/flipPose.js'
 import { MARKER_HEIGHT, MARKER_RADIUS, RING_HEIGHT } from '$lib/board/pieceGeometry.js'
@@ -142,11 +142,17 @@ export class BoardAnimator implements MoveInterrupter {
     // A switch of view, such as a reload after a rejected move, shows another state at once: the
     // move stops where it is and the rest of its replay is dropped.
     abandon() {
+        if (this.landMove === undefined) return
+        this.interrupt()
+        this.abandoned = this.session.presentingState
+    }
+
+    // Turning the board lands the move playing, as its motion was laid out in the old view.
+    interrupt() {
         const land = this.landMove
         if (land === undefined) return
         gsap.killTweensOf([...this.tweened])
         land()
-        this.abandoned = this.session.presentingState
     }
 
     node(key: string): Attachment<SVGGElement> {
@@ -387,13 +393,13 @@ export class BoardAnimator implements MoveInterrupter {
                 to.board.markerAt(move.from) === undefined
                     ? undefined
                     : pieceKey('marker', move.from)
-            return { ...flier(ring, VIEW.center(move.from)), leaves }
+            return { ...flier(ring, this.session.view.center(move.from)), leaves }
         })
         return [
             ...moved,
-            ...taken.map(({ ring }) => flier(ring, VIEW.center(ring.coords))),
+            ...taken.map(({ ring }) => flier(ring, this.session.view.center(ring.coords))),
             ...returned.map(({ ring, slot }) =>
-                flier(ring, VIEW.project(this.slotOf(ring.playerId, slot)))
+                flier(ring, this.session.view.project(this.slotOf(ring.playerId, slot)))
             )
         ]
     }
@@ -529,9 +535,10 @@ export class BoardAnimator implements MoveInterrupter {
         const occludes = this.fliers.length === 1
         const length = Math.hypot(to.x - from.x, to.y - from.y)
         const direction = { x: (to.x - from.x) / (length || 1), y: (to.y - from.y) / (length || 1) }
-        const anchor = VIEW.project(from)
+        const view = this.session.view
+        const anchor = view.project(from)
         const ground = (along: number) =>
-            VIEW.project({ x: from.x + direction.x * along, y: from.y + direction.y * along })
+            view.project({ x: from.x + direction.x * along, y: from.y + direction.y * along })
         const pose = (u: number) => {
             const { along, lift, scale } = flightPose(u, length, quick)
             const point = ground(along)
@@ -587,6 +594,8 @@ export class BoardAnimator implements MoveInterrupter {
         if (!before || !turning || !side || !face || !upper || !lower || !after) return
         const show = (element: SVGElement, shown: boolean) =>
             element.setAttribute('visibility', shown ? 'visible' : 'hidden')
+        // The flip is drawn at the board's tilt along the path as seen, turned with the board.
+        const turned = this.session.view.turn(travel)
         // Before the turn, during it, and once it is over, as a seek can land anywhere.
         const pose = (turn: number) => {
             show(before, turn <= 0)
@@ -596,7 +605,7 @@ export class BoardAnimator implements MoveInterrupter {
             const drawn = flipPose(VIEW, {
                 radius: MARKER_RADIUS,
                 height: MARKER_HEIGHT,
-                travel,
+                travel: turned,
                 turn,
                 hop: FLIP.hop
             })
@@ -742,7 +751,6 @@ export class BoardAnimator implements MoveInterrupter {
     // A removed ring's slot, on the board's plane.
     private slotOf(playerId: string, index: number): Point {
         const side = playerId === this.session.topPlayerId ? 'top' : 'bottom'
-        const slot = VIEW.ringSlots(side)[index]
-        return { x: slot.x, y: slot.y / VIEW.tilt }
+        return flatRingSlots(side)[index]
     }
 }
