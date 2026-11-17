@@ -27,24 +27,32 @@
         <div class="divider">Game over</div>
     {/if}
     {#each entries as entry (entry.id)}
-        <button
-            type="button"
-            class="entry"
-            class:replaying={replaying?.entryId === entry.id}
-            title="Replay on the board"
-            onclick={() => replay(entry)}
-            in:fade={{ duration: 200 }}
-        >
-            <span class="mt-[2px] shrink-0">
-                <PieceIcon
-                    color={session.gameState.getPlayerState(entry.playerId).color}
-                    size={16}
-                />
-            </span>
-            <span class="text-left text-[15px] leading-snug">
-                <HistoryEntryLine {entry} />
-            </span>
-        </button>
+        {#if entry.kind === 'call'}
+            <div class="entry call" in:fade={{ duration: 200 }}>
+                <span class="text-left text-[15px] leading-snug">
+                    <HistoryEntryLine {entry} />
+                </span>
+            </div>
+        {:else}
+            <button
+                type="button"
+                class="entry"
+                class:replaying={replaying?.entryId === entry.id}
+                title="Replay on the board"
+                onclick={() => replay(entry)}
+                in:fade={{ duration: 200 }}
+            >
+                <span class="mt-[2px] shrink-0">
+                    <PieceIcon
+                        color={session.gameState.getPlayerState(entry.playerId).color}
+                        size={16}
+                    />
+                </span>
+                <span class="text-left text-[15px] leading-snug">
+                    <HistoryEntryLine {entry} />
+                </span>
+            </button>
+        {/if}
     {:else}
         <div class="p-3 text-center italic text-(--matrx-ink-quiet)">No moves yet</div>
     {/each}
@@ -65,7 +73,11 @@
         border-radius: 6px;
     }
 
-    .entry:hover {
+    .entry.call {
+        font-style: italic;
+    }
+
+    button.entry:hover {
         background: rgb(13 22 38 / 0.07);
     }
 
