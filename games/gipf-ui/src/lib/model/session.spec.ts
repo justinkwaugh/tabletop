@@ -171,7 +171,7 @@ const TARGET = E8
 
 async function pushOwn(session: GipfGameSession, gipf = false) {
     session.chooseDot(DOT)
-    if (gipf) session.toggleGipf()
+    if (!gipf && session.choosesType) session.toggleGipf()
     await settled(session.push(TARGET))
 }
 
@@ -245,15 +245,27 @@ describe('Undo of your push', () => {
         expect(session.chosenDot).toEqual(DOT)
     })
 
-    it('then takes back one choice at a time, without undoing any action', async () => {
+    it('stages only the dot for a GIPF-piece, which it starts as', async () => {
         const session = await whiteSession()
         await pushOwn(session, true)
         await settled(session.undo())
+        expect(session.selection).toEqual({ dot: { value: DOT, source: 'manual' } })
         expect(session.chosenGipf).toBe(true)
 
         await settled(session.undo())
-        expect(session.chosenDot).toEqual(DOT)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.gameState.actionCount).toBe(2)
+    })
+
+    it('then takes back one choice at a time, without undoing any action', async () => {
+        const session = await whiteSession()
+        await pushOwn(session)
+        await settled(session.undo())
         expect(session.chosenGipf).toBe(false)
+
+        await settled(session.undo())
+        expect(session.chosenDot).toEqual(DOT)
+        expect(session.chosenGipf).toBe(true)
 
         await settled(session.undo())
         expect(session.hasLocalSelection).toBe(false)
@@ -277,18 +289,18 @@ describe('Undo of your push', () => {
 })
 
 describe('Choosing the piece type', () => {
-    it('drops a single piece, which choosing again makes a GIPF-piece, then single again', async () => {
+    it('drops a GIPF-piece, which choosing again makes single, then a GIPF-piece again', async () => {
         const session = await whiteSession()
         expect(session.choosesType).toBe(true)
-        expect(session.chosenGipf).toBe(false)
+        expect(session.chosenGipf).toBe(true)
 
         session.chooseDot(DOT)
-        expect(session.chosenGipf).toBe(false)
-        session.chooseDot(DOT)
         expect(session.chosenGipf).toBe(true)
+        session.chooseDot(DOT)
+        expect(session.chosenGipf).toBe(false)
         expect(session.chosenDot).toEqual(DOT)
         session.toggleGipf()
-        expect(session.chosenGipf).toBe(false)
+        expect(session.chosenGipf).toBe(true)
         expect(session.chosenDot).toEqual(DOT)
     })
 
@@ -306,6 +318,8 @@ describe('The reserve in the tray', () => {
         const reserve = session.gameState.getPlayerState(WHITE).reserve
         expect(session.reserveLeft(WHITE)).toBe(reserve)
         session.chooseDot(DOT)
+        expect(session.reserveLeft(WHITE)).toBe(reserve - 2)
+        session.toggleGipf()
         expect(session.reserveLeft(WHITE)).toBe(reserve - 1)
 
         session.landingReserves = new Map([[WHITE, reserve - 5]])

@@ -2,13 +2,13 @@
 
 ## 1. Visual Intents
 
-| Intent      | Trigger                                                                                   | What should be emphasized                                                                     | What should be dimmed   | What must remain unaffected       |
-| ----------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------- | --------------------------------- |
-| choose_dot  | The viewer may push                                                                       | Every dot with a legal push (cyan)                                                            | Nothing                 | Pieces                            |
-| choose_type | Tournament, a dot is chosen, and both a single and a GIPF-piece may be brought in         | The staged piece on its dot: tapping it or the dot again drops a second disc, or lifts it off | Nothing                 | Targets                           |
-| choose_line | A dot is chosen                                                                           | The chosen dot (ringed); an arrow and dashed target ring on each first spot it can push into  | Other dots' rings (40%) | Pieces                            |
-| choose_row  | The viewer has rows to take (all while resolving; only rows of GIPF-pieces before a move) | Every piece in a row's reach (dashed red ring)                                                | Nothing                 | Dots, targets                     |
-| shape_row   | A row is chosen                                                                           | Pieces to be taken (solid red ring), GIPF-pieces kept (green ring)                            | Nothing                 | Other rows keep their dashed ring |
+| Intent      | Trigger                                                                                   | What should be emphasized                                                                                       | What should be dimmed   | What must remain unaffected       |
+| ----------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------------------------- |
+| choose_dot  | The viewer may push                                                                       | Every dot with a legal push (cyan)                                                                              | Nothing                 | Pieces                            |
+| choose_type | Tournament, a dot is chosen, and both a single and a GIPF-piece may be brought in         | The staged piece on its dot: a GIPF-piece; tapping it or the dot again lifts its top disc off, or drops it back | Nothing                 | Targets                           |
+| choose_line | A dot is chosen                                                                           | The chosen dot (ringed); an arrow and dashed target ring on each first spot it can push into                    | Other dots' rings (40%) | Pieces                            |
+| choose_row  | The viewer has rows to take (all while resolving; only rows of GIPF-pieces before a move) | Every piece in a row's reach (dashed red ring)                                                                  | Nothing                 | Dots, targets                     |
+| shape_row   | A row is chosen                                                                           | Pieces to be taken (solid red ring), GIPF-pieces kept (green ring)                                              | Nothing                 | Other rows keep their dashed ring |
 
 ## 2. Visual Primitives
 
@@ -59,7 +59,7 @@
 
 - Push: dot shows arrows and the other dots fade; tapping an arrow pushes the chain one spot; tapping off the choices on the board lets go of the dot.
 - Rows: dashed marks on every row; choosing one turns its marks solid; your GIPF-pieces start kept and the opponent's taken, and tapping one toggles it.
-- Tournament type: tapping the staged piece drops a second disc, tapping again lifts it off, even mid-drop, without a snap.
+- Tournament type: while a GIPF-piece may be played, the chosen dot drops a GIPF-piece disc by disc; tapping the staged piece lifts its top disc off, tapping again drops it back, even mid-drop, without a snap.
 - Crossing rows: tapping the shared piece again switches row.
 - History View: no marks or targets.
 - Staged piece: letting go or Undo of the dot lifts it off; opening History or a switch of view removes it without motion.

@@ -15,7 +15,8 @@ export type GipfSelectionValues = {
 
 export type GipfSelection = StagedSelectionState<GipfSelectionValues>
 
-// The piece type follows the dot: it drops single, and choosing it again makes it a GIPF-piece.
+// The piece type follows the dot: it drops as a GIPF-piece while one may be played, and choosing it
+// again makes it single.
 export const GipfStageOrder = [
     'dot',
     'gipf',
@@ -62,5 +63,5 @@ export function restagedGipfSelection(
     typeChosen: boolean
 ): GipfSelection {
     const onDot = setGipfSelection({}, 'dot', push.dot)
-    return typeChosen && push.gipf ? setGipfSelection(onDot, 'gipf', true) : onDot
+    return typeChosen && !push.gipf ? setGipfSelection(onDot, 'gipf', false) : onDot
 }
