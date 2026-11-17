@@ -44,8 +44,8 @@ export function listed(names: readonly string[]): string {
     return LIST.format(names)
 }
 
-function claimed(claim: { playerId: string; amount: number }, playerName: PlayerName): string {
-    return `Claimed by ${playerName(claim.playerId)} for $${claim.amount}.`
+function claimed(playerId: string, amount: number, playerName: PlayerName): string {
+    return `Claimed by ${playerName(playerId)} for $${amount}.`
 }
 
 // R-8.3, R-8.5
@@ -64,7 +64,7 @@ export function connectionDescription(
             'complete links of any railroads, changing railroad only in cities. Paid once.',
         places: [],
         status: claim
-            ? claimed(claim, playerName)
+            ? claimed(claim.playerId, bonus.amount, playerName)
             : 'Open: the gold rings on the board mark its cities.'
     }
 }
@@ -95,7 +95,7 @@ export function transcontinentalDescription(
             `East Coast: ${names(isEastCoastCity)}.`
         ],
         status: claim
-            ? claimed(claim, playerName)
+            ? claimed(claim.playerId, claim.amount, playerName)
             : `Open: while you build, a hex that would complete a line shows ${city} or ${other}.`
     }
 }

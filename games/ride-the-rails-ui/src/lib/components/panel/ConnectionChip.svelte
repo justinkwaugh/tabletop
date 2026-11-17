@@ -45,7 +45,7 @@
         onclick={() => gameSession.toggleBonusDescription(bonus.id)}
     >
         <span class="medallion" data-flight-target={CONNECTION_KEY}>
-            <ClaimMedallion size={22} amount={chip.claim?.amount} />
+            <ClaimMedallion size={22} amount={chip.claim ? chip.amount : undefined} />
         </span>
         <span class="name rtr-serif max-lg:hidden">{chip.name}</span>
         {#if chip.claim}

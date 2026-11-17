@@ -1,6 +1,7 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { cityById, isPlaceLocomotive } from '@tabletop/ride-the-rails'
 import { boardGeometry, hexCenter } from '$lib/utils/boardGeometry.js'
+import { connectionBonus } from '$lib/utils/linkBonus.js'
 import { claimedConnection, outlineStep } from './flightPlan.js'
 import { connectionPoint } from './flightPlaces.js'
 import { moneyKey, type Flights, type Flyer } from './flights.svelte.js'
@@ -35,7 +36,8 @@ export function connectionAnimator(flights: Flights): GameStateChangeListener<St
         if (!from || motionMode(flights, action) !== 'cinematic') return
         const cityIds = claimedConnection(from, to)
         const claim = to.connectionClaim
-        if (!cityIds || !claim) return
+        const bonus = connectionBonus(to.mapId)
+        if (!cityIds || !claim || !bonus) return
         flights.follow(animationContext)
 
         const hexIds = cityIds.map((cityId) => cityById(cityId).hexId)
@@ -48,7 +50,7 @@ export function connectionAnimator(flights: Flights): GameStateChangeListener<St
         const coinFrom = hexCenter(isPlaceLocomotive(action) ? action.hexId : hexIds[0])
         const shown = await showFlyers(flights, [
             ...outlines,
-            coinFlyer(CONNECTION_COIN_KEY, claim.amount, true, coinFrom)
+            coinFlyer(CONNECTION_COIN_KEY, bonus.amount, true, coinFrom)
         ])
         if (!shown) return
 

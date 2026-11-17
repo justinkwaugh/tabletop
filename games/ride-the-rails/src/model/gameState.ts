@@ -47,11 +47,11 @@ export const TranscontinentalClaim = Type.Object({
     amount: Type.Integer({ minimum: 1 })
 })
 
-// R-8 (Intercolonial, Greater Germany): a map's connection bonus is paid once.
+// R-8 (Intercolonial, Greater Germany): a map's connection bonus is paid once. Its amount is
+// the map's bonus definition's, so the claim keeps only who took it.
 export type ConnectionClaim = Type.Static<typeof ConnectionClaim>
 export const ConnectionClaim = Type.Object({
-    playerId: Type.String(),
-    amount: Type.Integer({ minimum: 1 })
+    playerId: Type.String()
 })
 
 // R-3.2.3, R-3.2.4: what the placement limit consults during one building turn; R-8: a

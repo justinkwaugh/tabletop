@@ -531,7 +531,7 @@ describe('Canada (R-8.3)', () => {
         expect(processed[0]).toMatchObject({
             metadata: { bonuses: [{ bonusId: 'bonus.ca.intercolonial', amount: 8 }] }
         })
-        expect(after.connectionClaim).toEqual({ playerId: 'p1', amount: 8 })
+        expect(after.connectionClaim).toEqual({ playerId: 'p1' })
         expect(hydrated(after).getPlayerState('p1').money).toBe(18)
     })
 })
@@ -595,7 +595,7 @@ describe('Germany (R-8.5)', () => {
         expect(processed[0]).toMatchObject({
             metadata: { bonuses: [{ bonusId: 'bonus.de.greater-germany', amount: 12 }] }
         })
-        expect(after.connectionClaim).toEqual({ playerId: 'p1', amount: 12 })
+        expect(after.connectionClaim).toEqual({ playerId: 'p1' })
         expect(hydrated(after).getPlayerState('p1').money).toBe(22)
     })
 })

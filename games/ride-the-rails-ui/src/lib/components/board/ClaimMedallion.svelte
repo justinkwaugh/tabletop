@@ -1,6 +1,6 @@
 <script lang="ts">
     /**
-     * `size`: the medallion's width on screen, in px. `amount`: the claim's, once claimed.
+     * `size`: the medallion's width on screen, in px. `amount`: what the claim paid, once claimed.
      */
     let { size, amount }: { size: number; amount: number | undefined } = $props()
 

@@ -17,7 +17,7 @@ export function connectionBonus(mapId: MapId): ConnectionBonus | undefined {
     return BONUSES[mapId].flatMap((bonus) => ('cityIds' in bonus ? [bonus] : []))[0]
 }
 
-/** The Transcontinental chip's twin: the bonus's name, and its amount, or the claim's. */
+/** The Transcontinental chip's twin: the bonus's name and amount, and its claim. */
 export type ConnectionChipView = {
     name: string
     amount: number
@@ -30,7 +30,7 @@ export function connectionChip(
 ): ConnectionChipView | undefined {
     const bonus = connectionBonus(mapId)
     if (!bonus) return undefined
-    return { name: bonus.printedName, amount: claim?.amount ?? bonus.amount, claim }
+    return { name: bonus.printedName, amount: bonus.amount, claim }
 }
 
 /**

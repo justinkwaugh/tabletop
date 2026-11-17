@@ -292,7 +292,7 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         ])
 
         const claimed = building(recipe)
-        claimed.connectionClaim = { playerId: 'p2', amount: 8 }
+        claimed.connectionClaim = { playerId: 'p2' }
         expect(bonusesOf(claimed)).toEqual([])
     })
 

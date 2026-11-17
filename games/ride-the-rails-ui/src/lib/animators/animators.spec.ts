@@ -372,7 +372,7 @@ describe('the connection bonus animator (R-8)', () => {
     it('outlines the link cities after the placement lands, then flies a gold coin to the chip', async () => {
         const flights = new Flights()
         const { from, to, action } = oneShort()
-        expect(to.connectionClaim).toEqual({ playerId: 'p1', amount: 8 })
+        expect(to.connectionClaim).toEqual({ playerId: 'p1' })
 
         const animationContext = await step(connectionAnimator(flights), from, to, action)
         const outlines = flights.flyers.filter((flyer) => flyer.kind === 'outline')

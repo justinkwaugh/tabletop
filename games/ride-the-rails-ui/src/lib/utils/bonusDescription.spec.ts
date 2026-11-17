@@ -32,7 +32,7 @@ describe('the bonus chip’s description (R-4.3.3, R-8)', () => {
 
     it('names Greater Germany’s claimant and the amount paid once claimed', () => {
         const description = turnLineBonusDescription(
-            { mapId: 'map.de', connectionClaim: { playerId: 'p2', amount: 12 } },
+            { mapId: 'map.de', connectionClaim: { playerId: 'p2' } },
             playerName
         )
         expect(description?.status).toBe('Claimed by Bea for $12.')

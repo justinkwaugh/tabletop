@@ -87,7 +87,7 @@ describe('the flight plan', () => {
             buildState({ mapId, phase: PhaseName.Build })
         const claimed = (mapId: 'map.ca' | 'map.de') => {
             const state = open(mapId)
-            state.connectionClaim = { playerId: 'p1', amount: 8 }
+            state.connectionClaim = { playerId: 'p1' }
             return state
         }
         expect(claimedConnection(open('map.ca'), claimed('map.ca'))).toEqual(

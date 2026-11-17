@@ -451,7 +451,7 @@ describe('bonus rule factories (R-4.3, R-8)', () => {
 
         it('pays nothing once claimed', () => {
             const claimed = on(completing, before, {
-                connectionClaim: { playerId: 'p2', amount: 8 }
+                connectionClaim: { playerId: 'p2' }
             })
             expect(rule.evaluate(claimed)).toBe(undefined)
         })
@@ -599,10 +599,7 @@ describe('Canada (R-8.3)', () => {
 
         it('pays nothing once claimed, or for a placement after the cities are joined', () => {
             expect(
-                placementBonuses('map.ca', placement, track, undefined, {
-                    playerId: 'p2',
-                    amount: 8
-                })
+                placementBonuses('map.ca', placement, track, undefined, { playerId: 'p2' })
             ).toEqual([])
             const joined: Track = { ...track, [hexId]: [railroadId] }
             const later = { railroadId: 'railroad.blue', hexId, isStart: false } as const
@@ -743,9 +740,9 @@ describe('Germany (R-8.5)', () => {
     it('pays it once: nothing once claimed, and nothing once the five are joined', () => {
         const { track, railroadId, hexId } = greaterGermanyOneShort()
         const placement = { railroadId, hexId, isStart: false }
-        expect(
-            placementBonuses('map.de', placement, track, undefined, { playerId: 'p2', amount: 12 })
-        ).toEqual([])
+        expect(placementBonuses('map.de', placement, track, undefined, { playerId: 'p2' })).toEqual(
+            []
+        )
         const joined: Track = { ...track, [hexId]: [railroadId] }
         const later = {
             railroadId: 'railroad.black',

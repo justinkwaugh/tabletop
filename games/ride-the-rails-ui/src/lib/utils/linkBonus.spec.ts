@@ -14,7 +14,7 @@ import { hexCenter, hexOutline } from './boardGeometry.js'
 import { LINK_RING, connectionChip, linkRings } from './linkBonus.js'
 
 const NO_CONNECTION_BONUS: MapId[] = ['map.usa', 'map.au', 'map.fr']
-const CLAIM: ConnectionClaim = { playerId: 'p2', amount: 8 }
+const CLAIM: ConnectionClaim = { playerId: 'p2' }
 
 describe('the connection bonus chip (R-8)', () => {
     it.each(NO_CONNECTION_BONUS)('is not shown on %s, which has no connection bonus', (mapId) => {
@@ -77,7 +77,7 @@ describe('the link city rings (R-8)', () => {
 
     it('go once the bonus is claimed', () => {
         expect(linkRings('map.ca', CLAIM)).toEqual([])
-        expect(linkRings('map.de', { playerId: 'p1', amount: 12 })).toEqual([])
+        expect(linkRings('map.de', { playerId: 'p1' })).toEqual([])
     })
 
     it('stand just outside the hex, 4 wide, their inside on its edge', () => {
@@ -147,7 +147,7 @@ describe('the link scenarios (R-8.3, R-8.5)', () => {
                 hexId: cityById(cityId).hexId
             }).after
         )
-        expect(to.connectionClaim).toEqual({ playerId, amount: bonus.amount })
+        expect(to.connectionClaim).toEqual({ playerId })
         expect(connectionChip(to.mapId, to.connectionClaim)?.claim?.playerId).toBe(playerId)
         expect(linkRings(to.mapId, to.connectionClaim)).toEqual([])
     })

@@ -124,13 +124,12 @@ export class HydratedPlaceLocomotive
         const player = state.getPlayerState(this.playerId)
         for (const bonus of bonuses) {
             player.money += bonus.amount
-            const claim = { playerId: this.playerId, amount: bonus.amount }
             switch (claimOf(state.mapId, bonus)) {
                 case 'transcontinental':
-                    state.transcontinental = claim
+                    state.transcontinental = { playerId: this.playerId, amount: bonus.amount }
                     break
                 case 'connection':
-                    state.connectionClaim = claim
+                    state.connectionClaim = { playerId: this.playerId }
                     break
                 case undefined:
                     break
