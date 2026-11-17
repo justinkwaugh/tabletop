@@ -66,6 +66,21 @@ function cascadeOf(processed: GameAction[]) {
     return processed.map(({ type, playerId, index }) => ({ type, playerId, index }))
 }
 
+// R-8: what only an expansion map's rules write; a USA game never holds them (R-X.3).
+const EXPANSION_STATE_FIELDS = ['connectionClaim', 'usedLongDistance']
+const EXPANSION_METADATA_KEYS = ['passengerPlacedIn']
+const EXPANSION_FINISH_REASONS = ['long-distance']
+
+function keysIn(value: unknown): string[] {
+    if (Array.isArray(value)) {
+        return value.flatMap(keysIn)
+    }
+    if (typeof value === 'object' && value !== null) {
+        return Object.entries(value).flatMap(([key, inner]) => [key, ...keysIn(inner)])
+    }
+    return []
+}
+
 // Each state the engine writes gets a new id; no rule reads it.
 function withoutId({ id: _id, ...state }: RideTheRailsGameState) {
     return state
@@ -115,6 +130,25 @@ describe.each(SCRIPTS)(
                     state = updatedState
                 }
                 expect(withoutId(state)).toEqual(withoutId(game.final))
+            },
+            COMPLETE_GAME_TIMEOUT
+        )
+
+        it(
+            'never writes a state field or metadata key that only an expansion map uses (R-8, R-X.3)',
+            () => {
+                const { initial, steps, history } = played(script)
+                const states = [initial, ...steps.map((step) => step.after)]
+                const stateKeys = new Set(states.flatMap(keysIn))
+                expect(EXPANSION_STATE_FIELDS.filter((field) => stateKeys.has(field))).toEqual([])
+                const actionKeys = new Set(history.flatMap(keysIn))
+                expect(EXPANSION_METADATA_KEYS.filter((key) => actionKeys.has(key))).toEqual([])
+                const reasons: string[] = history.flatMap((action) =>
+                    isFinishBuilding(action) && action.metadata ? [action.metadata.reason] : []
+                )
+                expect(
+                    reasons.filter((reason) => EXPANSION_FINISH_REASONS.includes(reason))
+                ).toEqual([])
             },
             COMPLETE_GAME_TIMEOUT
         )
