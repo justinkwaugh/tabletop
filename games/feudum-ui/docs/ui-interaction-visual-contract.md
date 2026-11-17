@@ -6,7 +6,7 @@ Its code and tests are the source of truth: where this file and they differ, the
 
 ## The principle
 
-Oath's principle, with three stated departures:
+The principle, with three stated departures:
 
 1. **The table is for looking.** A press on a card, a writ, a region tile, a guild area, a seat or a stack shows it at a readable size or opens what the table knows of it. That press changes nothing in the game.
 2. **A press enlarges.** The enlarged view sits over everything until the next press, on the piece or beside it, or Escape. No close button stands over it; the enlarged piece is itself the close press, named Close.
@@ -448,7 +448,7 @@ Target: 375 × 812, held upright. Budget, top to bottom:
 | Seat strip       | 44 px                      | one chip per seat                                                                    |
 
 - **Board.** The board is about 2.6:1, with only the zoom row's band under it (the zoom buttons, Key and Supply). Fitted to 375 px it would be about 145 px tall and its spaces too small to tap. It rests at a cover fit, the board and the zoom row's band under it filling the view's height, and opens on the map.
-- **Focus chooser.** Four chips over the board's top edge: Map, West guilds, East guilds, Tracks. This departs from Oath, which has no chooser on a phone, because Feudum players look at every area every turn. Map and the guild chips frame that part of the board, a guild chip its column with the column's standing rails; a chip carries a lit dot while its area holds a lit target.
+- **Focus chooser.** Four chips over the board's top edge: Map, West guilds, East guilds, Tracks. A phone has one, because Feudum players look at every area every turn. Map and the guild chips frame that part of the board, a guild chip its column with the column's standing rails; a chip carries a lit dot while its area holds a lit target.
 - **Tracks sheet.** The tracks lie scattered round the printed board, and framing them all leaves them too small to read on a phone. The Tracks chip instead opens a bottom sheet, up to 80 % of the dynamic viewport, that redraws them at full size in one column: epoch and round, the region tile stacks and chart, the progress die, the krud barrels, the voyage track, military service and the score track. The sheet is for looking: it offers no target, and a pick that lights a track (a voyage disc, a service disc) frames that track on the board instead.
 - **Pick framing.** When a map pick opens on a phone, the board frames the lit targets (up to 2.5×). A guild pick frames the guild column holding lit areas, the West first when both do. This is the one place a choice moves the focus. A hand pan clears it.
 - **The bench** is a bottom sheet up to 80 % of the dynamic viewport: the two areas upright side by side, from-guild left, to-guild right, the result line and the primary button in the sheet's footer while it is open (one place at a time). The areas shorten from 440 px until both stand whole between the title and the footer and side by side in the sheet's width, so every row of a market or a Knight panel is in sight without scrolling (checked at 390 × 844). A map pick from the bench (a tame, a farm) collapses the sheet to its header.
