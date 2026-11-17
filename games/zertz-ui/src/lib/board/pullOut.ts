@@ -13,8 +13,9 @@ const NEIGHBOR_OFFSETS = ClockwiseFlatHexDirections.map(
     (direction) => FlatNeighborOffsets[direction]
 )
 
-// As on the real board, a ring leaves through an open side, along a line of rings. Out of the
-// middle column they take a diagonal, since straight up the screen read as lifting away.
+// As on the real board, a ring slides out without touching the rings that stay: toward an open
+// side whose sides are open too, or between two adjacent open sides (rulebook section B). Out of
+// the middle column they take a diagonal, since straight up the screen read as lifting away.
 export function pullOuts(
     view: BoardView,
     removed: readonly AxialCoordinates[],
@@ -37,11 +38,22 @@ export function pullOuts(
         const open = steps.filter(({ offset }) =>
             group.some((coords) => !taken.has(coordinatesToNumber(addAxial(coords, offset))))
         )
+        const inGroup = new Set(group.map(coordinatesToNumber))
+        const blocking = steps.filter(({ offset }) =>
+            group.some((coords) => {
+                const key = coordinatesToNumber(addAxial(coords, offset))
+                return taken.has(key) && !inGroup.has(key)
+            })
+        )
+        // A ring sliding one way brushes any neighbour less than a right angle off its path.
+        const clear = slideDirections(steps).filter((way) =>
+            blocking.every((step) => step.x * way.x + step.y * way.y < RING_SPACING ** 2 * 1e-6)
+        )
         const centre = mean(group.map(plane))
         const away = { x: centre.x - middle.x, y: centre.y - middle.y }
         const facing = (step: Point) =>
             (step.x * away.x + step.y * away.y) / Math.hypot(step.x, step.y)
-        let ways = open.length > 0 ? open : steps
+        let ways: Point[] = clear.length > 0 ? clear : open.length > 0 ? open : steps
         const diagonals = ways.filter((step) => Math.abs(step.x) > RING_SPACING * 0.1)
         const inMiddleColumn = Math.abs(centre.x - middle.x) < RING_SPACING * 0.25
         if (!inMiddleColumn && diagonals.length > 0) ways = diagonals
@@ -50,6 +62,19 @@ export function pullOuts(
         for (const coords of group) pulls.set(coordinatesToNumber(coords), pull)
     }
     return pulls
+}
+
+// Toward each neighbour, and between each pair of adjacent neighbours, a ring spacing long.
+function slideDirections(steps: readonly Point[]): Point[] {
+    return steps.flatMap((step, index) => {
+        const next = steps[(index + 1) % steps.length]
+        const between = { x: step.x + next.x, y: step.y + next.y }
+        const scale = RING_SPACING / Math.hypot(between.x, between.y)
+        return [
+            { x: step.x, y: step.y },
+            { x: between.x * scale, y: between.y * scale }
+        ]
+    })
 }
 
 function touchingGroups(rings: readonly AxialCoordinates[]): AxialCoordinates[][] {
