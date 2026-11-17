@@ -304,14 +304,16 @@ export function fiveRing(bonus: CityBonusMark | undefined, frame: HexFrame): Fiv
 
 // The passenger (BOARD_LOOK.passenger 'meeple').
 
-/**
- * Where a city's passenger stands from the hex's centre: up and right, inside the hex's top and
- * above the cubes, which keep their places in every hex, Chicago's too.
- */
-const PASSENGER_OFFSET: Point = { x: 14.4, y: -23.8 }
+/** The passenger's scale on the board, from its own units, large enough to see across the map. */
+export const PASSENGER_SCALE = 2.4
 
-/** The passenger's scale on the board, from its own units. */
-export const PASSENGER_SCALE = 1.5
+/**
+ * The top of a passenger's head from the hex's centre, its edge included: where it stood at 1.5.
+ * The figure grows down from it, so its head and arms stay above the cubes, which keep their
+ * places in every hex and are drawn over it: where a city holds two railroads the right-hand cube
+ * covers its legs.
+ */
+export const PASSENGER_HEAD_TOP = -35.3
 
 export function passengerOffset(_cityId: CityId): Point {
     return PASSENGER_OFFSET
@@ -338,8 +340,9 @@ export const MEEPLE = {
     edgeWidth: 0.7,
     /** The head, the part a cube in front of the meeple could hide. */
     head: { cx: 0, cy: -4.9, r: 2.4 },
-    /** How far each arm reaches from the middle. */
+    /** How far each arm reaches from the middle, and the arms' underside where they meet the body. */
     armReach: 4.9,
+    armBottomY: 0.4,
     /** The top of the gap between the legs, and the ground the feet stand on. */
     crotchY: 3.6,
     footY: 6.6,
@@ -350,3 +353,9 @@ export const MEEPLE = {
 
 /** The meeple's extent in its own units, its edge included. */
 export const MEEPLE_EXTENT = { left: -5.25, right: 5.25, top: -7.65, bottom: 6.95 } as const
+
+/** Where a city's passenger stands from the hex's centre: up and right, its head at the top. */
+const PASSENGER_OFFSET: Point = {
+    x: 14.4,
+    y: PASSENGER_HEAD_TOP - MEEPLE_EXTENT.top * PASSENGER_SCALE
+}

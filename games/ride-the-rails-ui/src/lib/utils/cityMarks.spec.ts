@@ -7,7 +7,9 @@ import { MIN_RESTING_HEX_PX } from './boardFocus.js'
 import { boardGeometry, geometryOf, HEX_SIZE, HEX_WIDTH } from './boardGeometry.js'
 import { hexFrame, type HexFrame } from './hexFrame.js'
 import {
+    boxesOverlap,
     boxInside,
+    centredBox,
     frameHexagon,
     insideConvexPolygon,
     reachPastConvex
@@ -21,6 +23,7 @@ import {
     FIVE_RING,
     fiveRing,
     hexagonPoint,
+    PASSENGER_HEAD_TOP,
     PASSENGER_SCALE,
     passengerOffset,
     MEEPLE,
@@ -229,6 +232,64 @@ describe('the passenger, a meeple', () => {
         // Two feet on the ground, with a gap between them under the crotch.
         expect(MEEPLE.crotchY).toBeLessThan(MEEPLE.footY)
         expect(MEEPLE.footY + MEEPLE.edgeWidth / 2).toBeCloseTo(MEEPLE_EXTENT.bottom, 5)
+    })
+})
+
+describe('the passenger’s size on the board', () => {
+    const FRAMES = [hexFrame(HexOrientation.Pointy), hexFrame(HexOrientation.Flat)]
+    const offset = passengerOffset('city.usa.denver')
+    // The meeple's box on the board from the hex's centre, its edge included or left out.
+    const meepleBox = (edge: number) => ({
+        x: offset.x + (MEEPLE_EXTENT.left + edge) * PASSENGER_SCALE,
+        y: offset.y + (MEEPLE_EXTENT.top + edge) * PASSENGER_SCALE,
+        width: (MEEPLE_EXTENT.right - MEEPLE_EXTENT.left - 2 * edge) * PASSENGER_SCALE,
+        height: (MEEPLE_EXTENT.bottom - MEEPLE_EXTENT.top - 2 * edge) * PASSENGER_SCALE
+    })
+    const withEdge = meepleBox(0)
+    const fillOnly = meepleBox(MEEPLE.edgeWidth / 2)
+
+    it('stands at 2.4 times its shape, a box 25.2 wide and about 35 tall', () => {
+        expect(PASSENGER_SCALE).toBe(2.4)
+        expect(withEdge.width).toBeCloseTo(25.2, 5)
+        expect(withEdge.height).toBeCloseTo(35.04, 5)
+    })
+
+    it('keeps its head’s top where it was, −35.3 from the hex’s centre, and grows down', () => {
+        expect(PASSENGER_HEAD_TOP).toBe(-35.3)
+        expect(withEdge.y).toBeCloseTo(-35.3, 5)
+        expect(offset.x).toBe(14.4)
+        // Its feet reach down to the cubes' middle row, above the hex's centre.
+        expect(withEdge.y + withEdge.height).toBeLessThan(0)
+    })
+
+    it('stands inside its hex’s box either way up', () => {
+        for (const frame of FRAMES) {
+            const hexBox =
+                frame.orientation === HexOrientation.Pointy
+                    ? centredBox({ x: 0, y: 0, width: HEX_WIDTH, height: 2 * HEX_SIZE })
+                    : centredBox({ x: 0, y: 0, width: 2 * HEX_SIZE, height: HEX_WIDTH })
+            expect(boxInside(fillOnly, hexBox), frame.orientation).toBe(true)
+        }
+        // On a pointy hex its edge too; a flat hex's top edge is lower than a pointy hex's point.
+        const pointy = centredBox({ x: 0, y: 0, width: HEX_WIDTH, height: 2 * HEX_SIZE })
+        expect(boxInside(withEdge, pointy)).toBe(true)
+    })
+
+    it('keeps its head and arms clear of a city’s cubes, its legs behind the right one', () => {
+        // The meeple down to the underside of its arms, its edge included.
+        const upper = {
+            ...withEdge,
+            height: (MEEPLE.armBottomY + MEEPLE.edgeWidth / 2 - MEEPLE_EXTENT.top) * PASSENGER_SCALE
+        }
+        for (const frame of FRAMES) {
+            const { byLayout, lone } = frame.trackSlots
+            const slots = [...byLayout.city, ...(lone.city ? [lone.city] : [])]
+            for (const slot of slots) {
+                expect(boxesOverlap(upper, centredBox(slot)), frame.orientation).toBe(false)
+            }
+            const right = byLayout.city.reduce((a, b) => (b.x > a.x ? b : a))
+            expect(boxesOverlap(withEdge, centredBox(right)), frame.orientation).toBe(true)
+        }
     })
 })
 
