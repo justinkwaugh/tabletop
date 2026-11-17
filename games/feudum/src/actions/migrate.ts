@@ -140,7 +140,8 @@ export function reasonMigrateRefused(
     if (refused) {
         return refused
     }
-    const pawn = state.getPlayerState(playerId).pawns.find((held) => held.n === input.pawn)
+    const { pawns } = state.getPlayerState(playerId)
+    const pawn = pawns.find((held) => held.n === input.pawn)
     assertExists(pawn, `R-1.1 ${playerId} has pawn ${input.pawn}`)
     if (input.onto === 'off') {
         if (!pawn.spaceId) {
@@ -150,6 +151,9 @@ export function reasonMigrateRefused(
             return 'Distant Kin brings a pawn onto the board.'
         }
         return input.wildTiles?.length ? 'Migrating off is free.' : undefined
+    }
+    if (pawns.every((held) => held.spaceId)) {
+        return 'No pawn in supply.'
     }
     return pawn.spaceId
         ? 'That pawn is already on the board.'
