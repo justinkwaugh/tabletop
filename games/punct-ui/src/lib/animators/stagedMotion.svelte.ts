@@ -43,12 +43,6 @@ const LANDING = { duration: 0.16, bounce: 6, settle: 0.14 }
 const LIFT_OFF = { duration: 0.18, rise: 30 }
 const QUICK = 0.18
 
-// The hover's pose draws one kind. A new piece is staged with the board's next id whatever kind
-// you choose, so choosing another kind brings in another piece.
-function samePiece(a: PlacedPiece, b: PlacedPiece): boolean {
-    return a.id === b.id && a.kind === b.kind
-}
-
 export class StagedMotion {
     hover: Hover | undefined = $state.raw()
     // A staged choice, not a state change, so this timeline of its own plays the motion.
@@ -74,7 +68,7 @@ export class StagedMotion {
         }
         const current = this.hover
         const moved = staged.from !== undefined
-        if (current === undefined || !samePiece(current.piece, piece) || this.leaving) {
+        if (current === undefined || !this.samePiece(current.piece, piece) || this.leaving) {
             const origin = moved ? board.pieceById(piece.id) : undefined
             if (origin === undefined) {
                 this.drop(piece)
@@ -172,6 +166,12 @@ export class StagedMotion {
         this.leaving = true
     }
 
+    // A new piece is staged with the board's next id whatever kind you choose, so another kind is
+    // another piece, with a pose of its own.
+    private samePiece(a: PlacedPiece, b: PlacedPiece): boolean {
+        return a.id === b.id && a.kind === b.kind
+    }
+
     private restingAt(piece: PlacedPiece): PieceAt {
         const plan = VIEW.plan(piece.punct)
         const base = VIEW.levelBase(piece.level)
@@ -192,7 +192,7 @@ export class StagedMotion {
     ): PiecePose {
         const current = this.hover
         const pose =
-            current !== undefined && samePiece(current.piece, piece)
+            current !== undefined && this.samePiece(current.piece, piece)
                 ? current.pose
                 : new PiecePose(piece.kind, piece.id, at)
         pose.set(at)

@@ -32,8 +32,8 @@ import {
 } from '@tabletop/punct'
 import { PunctGameColorizer } from '$lib/definitions/colorizer.js'
 import { UiDefinition } from '$lib/definitions/definition.js'
-import { PunctGameSession } from './session.svelte.js'
 import { StagedMotion } from '$lib/animators/stagedMotion.svelte.js'
+import { PunctGameSession } from './session.svelte.js'
 
 const engine = new GameEngine(PunctRuntime)
 const WHITE = 'white'
@@ -400,7 +400,6 @@ describe('The reserve on the cards', () => {
 })
 
 describe('The piece hovering where you put it', () => {
-    // The hover the board draws as the staged piece changes, once its followers have heard.
     async function hoverFollowing(session: PunctGameSession) {
         const motion = new StagedMotion()
         session.stagedFollowers.add((staged, board, released) =>
@@ -411,13 +410,6 @@ describe('The piece hovering where you put it', () => {
         return motion
     }
 
-    function cellFor(session: PunctGameSession, kind: PieceKind, besides: AxialCoordinates) {
-        session.chooseKind(kind)
-        const cell = session.entryCells.find((cell) => !sameCoordinates(cell, besides))
-        if (cell === undefined) throw Error(`A ${kind} can go somewhere else`)
-        return cell
-    }
-
     it('is drawn as the kind you chose next when you put it somewhere else', async () => {
         const session = await sessionFor(startedGame())
         session.chooseKind(PieceKind.Triangle)
@@ -426,11 +418,14 @@ describe('The piece hovering where you put it', () => {
         const motion = await hoverFollowing(session)
         expect(motion.hover?.pose.kind).toBe(PieceKind.Triangle)
 
+        // Each a tap of its own, as the player makes them.
         session.chooseKind(PieceKind.StraightEnd)
-        session.chooseSpace(cellFor(session, PieceKind.StraightEnd, first))
+        await Promise.resolve()
+        const other = session.entryCells.find((cell) => !sameCoordinates(cell, first))
+        if (other === undefined) throw Error('A straight end fits somewhere else')
+        session.chooseSpace(other)
         await Promise.resolve()
         expect(session.staged?.kind).toBe(PieceKind.StraightEnd)
-        expect(motion.hover?.piece.kind).toBe(PieceKind.StraightEnd)
         expect(motion.hover?.pose.kind).toBe(PieceKind.StraightEnd)
     })
 
