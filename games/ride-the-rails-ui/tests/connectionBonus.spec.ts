@@ -62,7 +62,7 @@ for (const bonus of CASES) {
         const money = (await moneyOf(page, playerId)) ?? 0
 
         // Open: the chip's dashed ring and terms, and a gold ring round each link city.
-        const chip = page.getByRole('img', { name: new RegExp(`^${bonus.name}: `) })
+        const chip = page.getByRole('button', { name: new RegExp(`^${bonus.name}: `) })
         await expect(chip).toHaveAccessibleName(
             `${bonus.name}: unclaimed, $${bonus.amount} to the first network joining ${bonus.cities}`
         )
@@ -72,7 +72,7 @@ for (const bonus of CASES) {
         const rings = board(page).locator('[data-link-ring]')
         await expect(rings).toHaveCount(bonus.linkCities)
         // The USA's Transcontinental is not on this map.
-        await expect(page.getByRole('img', { name: /^Transcontinental: / })).toHaveCount(0)
+        await expect(page.getByRole('button', { name: /^Transcontinental: / })).toHaveCount(0)
 
         const flyers = await flyersDuring(page, () => pressHex(page, litHex(page, bonus.hex)))
         expect(flyers).toContain(`coin $${bonus.amount}`)

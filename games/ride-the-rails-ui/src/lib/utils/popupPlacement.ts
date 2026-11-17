@@ -197,6 +197,24 @@ export function clearOfChoice(choiceSelector: string, onPhone: boolean): Middlew
 }
 
 /**
+ * A Floater placement that keeps the popup across the window, `margin` in from either side, as
+ * the phone's page gutter is.
+ */
+export function acrossView(margin: number): Middleware {
+    return {
+        name: 'acrossView',
+        fn({ x, y, rects, elements }) {
+            const anchor = elements.reference.getBoundingClientRect()
+            const view = viewOf(elements.floating)
+            // From the Floater's coordinates to the view's and back.
+            const shift = anchor.left - rects.reference.x
+            const left = clamp(x + shift, margin, view.width - rects.floating.width - margin)
+            return { x: left - shift, y }
+        }
+    }
+}
+
+/**
  * A Floater placement that keeps a control clear of the picks (`clearPlace`): it measures every
  * element of the table marked with `KEEP_CLEAR_ATTRIBUTE` as drawn on screen, the board being
  * inside its view's CSS zoom (`docs/phone-rendering.md`, Measuring under zoom), and keeps the

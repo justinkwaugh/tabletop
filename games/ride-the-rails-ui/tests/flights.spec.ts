@@ -142,7 +142,7 @@ test('The Transcontinental coin flies to the chip in the turn line, which shows 
     page
 }) => {
     await openScenario(page, 'Transcontinental in reach')
-    const chip = page.getByRole('img', { name: /^Transcontinental: / })
+    const chip = page.getByRole('button', { name: /^Transcontinental: / })
     await expect(chip).toHaveAccessibleName(/^Transcontinental: unclaimed/)
     const [medallion] = await targetBoxes(page, 'transcontinental')
     expect(medallion).toBeDefined()
@@ -158,10 +158,33 @@ test('The Transcontinental coin flies to the chip in the turn line, which shows 
     expect(inView(last, view)).toBe(true)
     expect(medallion && onOrBeside(last, medallion, view)).toBe(true)
 
-    // Claimed, the chip is the button that shows the line; its description says the claim.
-    const claimed = page.getByRole('button', { name: 'Show the Transcontinental line' })
-    await expect(claimed).toHaveAccessibleDescription('Transcontinental: claimed by Ada for $12')
-    await expect(claimed).toBeInViewport()
+    // Claimed, the chip names the claim.
+    await expect(chip).toHaveAccessibleName('Transcontinental: claimed by Ada for $12')
+    await expect(chip).toBeInViewport()
+})
+
+test('A connection bonus’s coin flies to its chip, the button that explains it', async ({
+    page
+}) => {
+    await openScenario(page, 'Germany link in reach')
+    const chip = page.getByRole('button', { name: /^Greater Germany: unclaimed/ })
+    await expect(chip).toBeInViewport()
+    const [medallion] = await targetBoxes(page, 'connection')
+    expect(medallion).toBeDefined()
+
+    await recordFlyers(page)
+    await pressHex(page, litHex(page, 'Berlin: place Yellow, $3, $12 Greater Germany'))
+    await settled(page)
+
+    const view = viewSize(page)
+    const path = await recordedPath(page, 'coin:connection')
+    expect(path.length).toBeGreaterThan(5)
+    const last = path.at(-1) ?? { x: -1, y: -1 }
+    expect(inView(last, view)).toBe(true)
+    expect(medallion && onOrBeside(last, medallion, view)).toBe(true)
+    await expect(
+        page.getByRole('button', { name: 'Greater Germany: claimed by Ada for $12' })
+    ).toBeInViewport()
 })
 
 test('The end of round steps the round and brightens the railroad it makes available', async ({

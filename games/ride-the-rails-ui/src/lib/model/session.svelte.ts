@@ -13,6 +13,7 @@ import {
     isBuildingTurnOf,
     isRidingPlayer,
     shareableRailroads,
+    type BonusId,
     type HexId,
     type HydratedRideTheRailsGameState,
     type Link,
@@ -190,6 +191,8 @@ export class RideTheRailsGameSession extends GameSession<
 
     // U-1, U-2, U-5: a lit hex places or asks which railroad; any other hex is shown.
     async pressHex(hexId: HexId) {
+        // A bonus's description never stays over the offer a press opens.
+        this.closeBonusDescription()
         if (this.journeyRiderId) {
             this.pressJourneyHex(hexId)
             return
@@ -362,6 +365,24 @@ export class RideTheRailsGameSession extends GameSession<
         }
     }
 
+    // Contract, Turn header: the bonus chip's description, this viewer's own, one open at a time.
+    // It closes when the turn changes or the board is pressed, so it never stays over the deciding
+    // seat's controls.
+    private bonusDescriptionOpen: BonusId | undefined = $state()
+
+    /** The bonus whose description is open, if any. */
+    get openBonusDescription(): BonusId | undefined {
+        return this.bonusDescriptionOpen
+    }
+
+    toggleBonusDescription(bonusId: BonusId) {
+        this.bonusDescriptionOpen = this.bonusDescriptionOpen === bonusId ? undefined : bonusId
+    }
+
+    closeBonusDescription() {
+        this.bonusDescriptionOpen = undefined
+    }
+
     // Contract, Verification scenario 23: Undo during a flight ends the motion, then undoes.
     // A staged selection pops without waiting; only an action undo ends the flights first.
     override async undoCommittedAction() {
@@ -375,5 +396,17 @@ export class RideTheRailsGameSession extends GameSession<
     override beforeNewState(_transition: PresentedTransition) {
         this.flights.settle()
         this.sentJourney = undefined
+        // A state with no transition behind it is a change of view (another seat's perspective),
+        // which closes it as a new turn does.
+        const incoming = this.incomingGameState
+        if (!incoming || turnOf(incoming) !== turnOf(this.gameState)) {
+            this.closeBonusDescription()
+        }
     }
+}
+
+/** The turn under way: its seat and the action it began at, or the game's end. */
+function turnOf(state: HydratedRideTheRailsGameState): string {
+    const turn = state.turnManager.currentTurn()
+    return state.result ? 'end' : `${turn?.playerId} from ${turn?.start}`
 }
