@@ -12,7 +12,6 @@ import {
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import type { BidBoxes } from '../auctions/bidBoxes.js'
-import type { MergerRound } from '../mergerRound/mergerRoundState.js'
 import type { FinalPhaseAt, TrainlessMajors } from '../company/phaseNationalisation.js'
 import { OfferPileFields } from '../auctions/offerPileAuction.js'
 import { SelectionAuctionFields } from '../auctions/selectionAuction.js'
@@ -125,7 +124,6 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof CashCrisisFields &
     typeof TurnMarkFields & {
         bidBoxes: Type.TOptional<typeof BidBoxes>
-        mergerRound: Type.TOptional<typeof MergerRound>
         trainlessMajors: Type.TOptional<typeof TrainlessMajors>
         finalPhaseAt: Type.TOptional<typeof FinalPhaseAt>
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>

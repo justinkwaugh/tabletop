@@ -42,12 +42,13 @@ import {
     MergerRoundMachineState,
     type MergerProposal,
     type MergerRound,
+    type MergerRoundState,
     type ShareAllotment
 } from './mergerRoundState.js'
 
 const Id = Type.String({ minLength: 1 })
 
-type State = HydratedEighteenXXState
+type State = HydratedEighteenXXState & MergerRoundState
 
 /**
  * A title's merger rounds, in which each minor in turn may convert to a major company or merge

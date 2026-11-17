@@ -64,6 +64,8 @@ export const MergerRound = Type.Object(
 export type MergerRound = Type.Static<typeof MergerRound>
 
 export const MergerRoundFields = { mergerRound: Type.Optional(MergerRound) }
+/** The state of a title that holds merger rounds, as 1861 and 1867 do. */
+export type MergerRoundState = Type.Static<Type.TObject<typeof MergerRoundFields>>
 
 export const MergerRoundMachineState = 'MergerRound'
 export const MergerRoundMachineStates = [MergerRoundMachineState] as const

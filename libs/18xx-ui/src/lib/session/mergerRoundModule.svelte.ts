@@ -7,6 +7,7 @@ import {
     ProposeMerger,
     trainsOwnedBy,
     type HydratedEighteenXXState,
+    type MergerRoundState,
     type MergerPreview,
     type MergerRoundActionType,
     type MergerRounds
@@ -17,7 +18,8 @@ import type { AwaitedDecision, DecisionNames } from '../table/awaitedDecision.js
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
 
-export type MergerRoundSession = ModuleSession<HydratedEighteenXXState, unknown>
+type MergerRoundTitleState = HydratedEighteenXXState & MergerRoundState
+export type MergerRoundSession = ModuleSession<MergerRoundTitleState, unknown>
 
 /** A minor's owner choosing partners for a merger, and the two stations a merger keeps. */
 type MergerSelections = { partners: readonly string[] }
@@ -222,7 +224,7 @@ export class MergerRoundModule {
 
     /** What the merger round waits for, in the table's waiting line. */
     awaitedDecision(
-        state: HydratedEighteenXXState,
+        state: MergerRoundTitleState,
         names: DecisionNames
     ): AwaitedDecision | undefined {
         const round = state.mergerRound
