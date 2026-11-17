@@ -2,7 +2,7 @@
 
 <script lang="ts">
     import type { Snippet } from 'svelte'
-    import { PIECE_MODEL, stackDiscs, TILT, type PieceModel } from '$lib/board/pieceGeometry.js'
+    import { PIECE_MODEL, stackDiscs, type PieceModel } from '$lib/board/pieceGeometry.js'
     import {
         bandPath,
         creaseColor,
@@ -13,6 +13,7 @@
     import { lookUrl } from '$lib/board/looks.js'
     import { seedOf, type ShapePiece } from '$lib/board/pieceStyle.js'
     import { sideSpeckPaths, topSpeckPaths } from '$lib/board/specks.js'
+    import { BADGE, badgeOffset, type BadgeSpot } from '$lib/board/badgeSpot.js'
 
     // A stack standing on its space, seen from the near side of the table, bottom piece first.
     // Each whole piece is an image of its look, pre-rendered by scripts/render-looks.mjs, with its
@@ -22,7 +23,7 @@
         pieces,
         radius,
         prefix,
-        showCount = true,
+        countAt,
         onTop,
         model = PIECE_MODEL,
         quarterTurns = 0
@@ -32,7 +33,8 @@
         pieces: readonly ShapePiece[]
         radius: number
         prefix: string
-        showCount?: boolean
+        // Where on the top the count's badge goes, if it shows.
+        countAt?: BadgeSpot
         // Drawn on the top piece, its top as the origin, under the count.
         onTop?: Snippet
         model?: PieceModel
@@ -108,19 +110,17 @@
 {#if top}
     <g transform="translate(0 {top.base})">
         {@render onTop?.()}
-        {#if showCount && pieces.length > 1}
-            <!-- The count on a badge on the near side of the top, inside the stack's own outline,
-                 clear of the type's markings. -->
-            <g transform="translate({radius * 0.6} {face.y + radius * 0.42 * TILT})">
-                <circle r={radius * 0.27} class="badge"></circle>
+        {#if countAt && pieces.length > 1}
+            {@const at = badgeOffset(countAt, radius)}
+            {@const fontSize = radius * BADGE.font * 10}
+            <!-- The count on a badge on the top, clear of the type's markings. -->
+            <g transform="translate({at.x} {face.y + at.y})">
+                <circle r={radius * BADGE.radius} class="badge"></circle>
                 <!-- Set ten times larger and scaled down: text this small is snapped to whole
                      pixels, which pushed the digits off the badge's centre on phones. On the
                      alphabetic baseline, lowered by a share of its size to centre on the badge. -->
-                <text
-                    transform="scale(0.1)"
-                    font-size={radius * 3.7}
-                    dy={radius * 3.7 * 0.36}
-                    class="count">{pieces.length}</text
+                <text transform="scale(0.1)" font-size={fontSize} dy={fontSize * 0.36} class="count"
+                    >{pieces.length}</text
                 >
             </g>
         {/if}
