@@ -32,8 +32,11 @@ export const CORNERS: readonly AxialCoordinates[] = DIRECTIONS.map((direction) =
     scaleAxial(direction, HEX_RADIUS)
 )
 
+// Submitted coordinates can be any number, and fractions pass the distance test.
 export function isPoint(coords: AxialCoordinates): boolean {
     return (
+        Number.isInteger(coords.q) &&
+        Number.isInteger(coords.r) &&
         distanceAxial(coords, CENTER) <= HEX_RADIUS &&
         !CORNERS.some((corner) => sameCoordinates(corner, coords))
     )

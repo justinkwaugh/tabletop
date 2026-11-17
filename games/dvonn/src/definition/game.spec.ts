@@ -412,3 +412,17 @@ describe('piece identity', () => {
         expect(stackAt(next, 'B1').map((piece) => spaceName(piece.placedAt))).toEqual(['B1', 'A1'])
     })
 })
+
+describe('submitted coordinates', () => {
+    it('places no piece between spaces', () => {
+        const game = createGame()
+        const state = start(game)
+        for (const coords of [
+            { q: -0.5, r: 0 },
+            { q: 0.25, r: 0 }
+        ]) {
+            const action = { ...placeAction(game, W, 'E3'), coords }
+            expect(() => execute(game, state, action)).toThrow()
+        }
+    })
+})

@@ -63,6 +63,9 @@ export class HydratedPunctBoard extends Hydratable<typeof PunctBoard> implements
 
     // Every dot over a space, lowest first, leaving out one piece (one being moved).
     layersAt(coords: AxialCoordinates, ignoredId?: number): Layer[] {
+        if (!isSpace(coords)) {
+            return []
+        }
         const layers = this.occupancy().get(spaceKey(coords)) ?? []
         return ignoredId === undefined
             ? layers

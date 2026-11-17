@@ -18,8 +18,11 @@ export const DIRECTIONS: readonly AxialCoordinates[] = ClockwisePointyHexDirecti
     (direction) => PointyNeighborOffsets[direction]
 )
 
+// Submitted coordinates can be any number, and fractions pass the bounds.
 export function isSpace(coords: AxialCoordinates): boolean {
     return (
+        Number.isInteger(coords.q) &&
+        Number.isInteger(coords.r) &&
         Math.abs(coords.r) <= ROW_REACH &&
         Math.abs(coords.q) <= COLUMN_REACH &&
         Math.abs(coords.q + coords.r) <= COLUMN_REACH

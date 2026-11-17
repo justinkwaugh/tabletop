@@ -152,6 +152,10 @@ export class HydratedYinshBoard extends Hydratable<typeof YinshBoard> implements
         from: AxialCoordinates,
         to: AxialCoordinates
     ): AxialCoordinates[] | undefined {
+        // Checked first, as the points between two submitted ends could be any number of them.
+        if (!isPoint(from) || !isPoint(to)) {
+            return undefined
+        }
         const row = pointsBetween(from, to)
         const isRow =
             row !== undefined &&

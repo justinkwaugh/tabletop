@@ -682,3 +682,25 @@ describe('random playouts', () => {
         expect(finished.turnManager.series.length).toBeLessThanOrEqual(2)
     })
 })
+
+describe('submitted coordinates', () => {
+    it('places no ring off the points', () => {
+        const game = createGame()
+        const state = start(game)
+        rejects(game, state, placeAction(game, W, { q: 0.25, r: 0 }))
+        rejects(game, state, placeAction(game, W, { q: -0.5, r: 0 }))
+    })
+
+    it('checks both ends of a row before reading the points between them', () => {
+        const game = createGame()
+        let state = position(game, { [W]: ['F3'], [B]: [] }, { [W]: ['B3', 'C3', 'D3', 'E3'] })
+        state = move(game, state, W, 'F3', 'F9')
+        const row = rowAction(game, W, 'F3', 'B3')
+        const step = { q: (row.to.q - row.from.q) / 4, r: (row.to.r - row.from.r) / 4 }
+        const past = (by: number) => ({ q: row.to.q + step.q * by, r: row.to.r + step.r * by })
+        for (const to of [past(0.25), past(1e9)]) {
+            const forged: RemoveRow = { ...row, to }
+            rejects(game, state, forged)
+        }
+    })
+})

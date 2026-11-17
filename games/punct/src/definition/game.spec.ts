@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Color, GameResult } from '@tabletop/common'
+import { Color, coordinatesToNumber, GameResult } from '@tabletop/common'
 import { PunctRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
@@ -703,5 +703,36 @@ describe('PÜNCT random playouts', () => {
         expect(state.winningPlayerIds.length).toBeGreaterThan(0)
         // Nothing reads past turns, so the series keeps only each player's latest.
         expect(state.turnManager.series.length).toBeLessThanOrEqual(2)
+    })
+})
+
+describe('submitted coordinates', () => {
+    // A fractional coordinate that shares a space's key, so key lookups would read that space.
+    function aliasOf(coords: { q: number; r: number }) {
+        for (let q = -12; q <= 12; q += 0.5) {
+            for (let r = -12; r <= 12; r += 0.5) {
+                if (Number.isInteger(q) && Number.isInteger(r)) continue
+                if (coordinatesToNumber({ q, r }) === coordinatesToNumber(coords)) return { q, r }
+            }
+        }
+        throw Error('No alias')
+    }
+
+    it('enters no piece between spaces', () => {
+        const game = createGame()
+        const state = start(game)
+        const place = placeAction(game, W, PieceKind.Triangle, 'C5', 0)
+        for (const punct of [aliasOf(place.punct), { q: place.punct.q + 0.25, r: place.punct.r }]) {
+            const forged: PlacePiece = { ...place, punct }
+            expect(() => execute(game, state, forged)).toThrow()
+        }
+    })
+
+    it('moves no piece from between spaces', () => {
+        const game = createGame()
+        const state = position(start(game), [[W, PieceKind.StraightEnd, 'C4', 0, 0]])
+        const move = moveAction(game, W, 'C4', 'C9', 3)
+        const forged: MovePiece = { ...move, from: aliasOf(move.from) }
+        expect(() => execute(game, state, forged)).toThrow()
     })
 })
