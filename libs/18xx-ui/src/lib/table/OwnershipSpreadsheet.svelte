@@ -341,6 +341,8 @@
     }
     type CompanyStatistic = 'value' | 'cash' | 'loans' | 'lastRun' | `column:${string}`
     const titleColumns = $derived(session.presentation.companyColumns ?? [])
+    const earlyTitleColumns = $derived(titleColumns.filter((column) => column.beforeLastRun))
+    const lateTitleColumns = $derived(titleColumns.filter((column) => !column.beforeLastRun))
     /** The heading of the loans a company holds, where the title has them in this game. */
     const loansLabel = $derived(
         session.loans.rules ? (session.presentation.loanTerms?.name ?? 'Loans') : undefined
@@ -351,8 +353,9 @@
         'Trains',
         'Tokens',
         ...(loansLabel ? [loansLabel] : []),
+        ...earlyTitleColumns.map((column) => column.label),
         'Last run',
-        ...titleColumns.map((column) => column.label)
+        ...lateTitleColumns.map((column) => column.label)
     ])
     const companyStatisticCount = $derived(companyStatisticHeadings.length)
     let playerSort = $state<SpreadsheetSort<PlayerSortKey>>()
@@ -718,6 +721,20 @@
     {:else}<span class="last-run-revenue">{money(company.lastRunRevenue)}</span>{/if}
 {/snippet}
 
+{#snippet titleRow(column: (typeof titleColumns)[number])}
+    <tr class="company-stat-start financial-row">
+        {@render titleHeader('row', column)}
+        {#each rows as row (row.company.id)}<td
+                class:operating-column={row.company.id === operatingCompanyId}
+                class="bright-cell">{@render titleCell(column, row.company.id)}</td
+            >{/each}
+        {#each ownerStatisticKeys as _, index (index)}<td
+                class:stat-start={index === 0}
+                class="void"
+            ></td>{/each}
+    </tr>
+{/snippet}
+
 {#snippet titleCell(column: (typeof titleColumns)[number], companyId: string)}
     {#if column.marks}<span
             class="title-marks"
@@ -759,6 +776,7 @@
     {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
     {@const marked = shares > 0 ? markedCertificate(companyId, ownerId) : undefined}
     {@const saleChoices = shares > 0 ? saleChoicesForCell(companyId, ownerId) : []}
+    {@const presidentLabel = president ? session.presidentMark(companyId) : undefined}
     <td
         class:operating-column={operating}
         class:sold
@@ -776,7 +794,7 @@
                 aria-label={`Buy ${session.companyName(companyId)} from ${owners.find((owner) => owner.id === ownerId)?.name}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
-                >{@render shareValue(String(shares), president, marked)}</button
+                >{@render shareValue(String(shares), presidentLabel, marked)}</button
             >
         {:else if saleChoices.length}
             <button
@@ -784,14 +802,19 @@
                 aria-label={`Sell ${session.companyName(companyId)} shares`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'sell', companyId, ownerId })}
-                >{@render shareHolding(String(shares), president, numbers, marked)}</button
+                >{@render shareHolding(String(shares), presidentLabel, numbers, marked)}</button
             >
         {:else if shares < 0}
             <span class="share-value" title={`Short ${-shares}`}
                 >{shares}<span class="sr-only"> short</span></span
             >
         {:else}
-            {@render shareHolding(shares === 0 ? '' : String(shares), president, numbers, marked)}
+            {@render shareHolding(
+                shares === 0 ? '' : String(shares),
+                presidentLabel,
+                numbers,
+                marked
+            )}
         {/if}
     </td>
 {/snippet}
@@ -802,27 +825,27 @@
     >
 {/snippet}
 
-{#snippet shareValue(text: string, president: boolean, mark?: MultiShareMark)}
-    <span class="share-value" class:president
+{#snippet shareValue(text: string, president: string | undefined, mark?: MultiShareMark)}
+    <span class="share-value" class:president={!!president}
         >{text}{#if president || mark}<span
                 class="badge"
                 aria-label={[president ? 'President' : '', mark?.name ?? '']
                     .filter(Boolean)
                     .join(', ')}
-                title={mark?.title}>{president ? 'P' : ''}{mark?.label ?? ''}</span
+                title={mark?.title}>{president ?? ''}{mark?.label ?? ''}</span
             >{/if}</span
     >
 {/snippet}
 
 {#snippet shareHolding(
     text: string,
-    president: boolean,
+    president: string | undefined,
     numbers: readonly number[],
     marked?: MultiShareMark
 )}
     {#if numbers.length}
         {@const label = ` (${numbers.join(',')})`}
-        <span class="noted-value" class:president data-note={label}
+        <span class="noted-value" class:president={!!president} data-note={label}
             >{@render shareValue(text, president, marked)}<span class="value-note">{label}</span
             ></span
         >
@@ -974,8 +997,12 @@
                                             loansLabel,
                                             'loans'
                                         )}{/if}
+                                    {#each earlyTitleColumns as column (column.id)}{@render titleHeader(
+                                            'col',
+                                            column
+                                        )}{/each}
                                     {@render companySortHeader('col', 'Last run', 'lastRun')}
-                                    {#each titleColumns as column (column.id)}{@render titleHeader(
+                                    {#each lateTitleColumns as column (column.id)}{@render titleHeader(
                                             'col',
                                             column
                                         )}{/each}
@@ -1043,10 +1070,14 @@
                                         {#if loansLabel}<td class="company-stat-start bright-cell"
                                                 >{@render loansCell(row)}</td
                                             >{/if}
+                                        {#each earlyTitleColumns as column (column.id)}<td
+                                                class="company-stat-start bright-cell"
+                                                >{@render titleCell(column, row.company.id)}</td
+                                            >{/each}
                                         <td class="company-stat-start"
                                             >{@render lastRunCell(row)}</td
                                         >
-                                        {#each titleColumns as column (column.id)}<td
+                                        {#each lateTitleColumns as column (column.id)}<td
                                                 class="company-stat-start bright-cell"
                                                 >{@render titleCell(column, row.company.id)}</td
                                             >{/each}
@@ -1217,6 +1248,9 @@
                                             ></td>{/each}
                                     </tr>
                                 {/if}
+                                {#each earlyTitleColumns as column (column.id)}{@render titleRow(
+                                        column
+                                    )}{/each}
                                 <tr class="company-stat-start financial-row">
                                     {@render companySortHeader('row', 'Last run', 'lastRun')}
                                     {#each rows as row (row.company.id)}<td
@@ -1228,21 +1262,9 @@
                                             class="void"
                                         ></td>{/each}
                                 </tr>
-                                {#each titleColumns as column (column.id)}
-                                    <tr class="company-stat-start financial-row">
-                                        {@render titleHeader('row', column)}
-                                        {#each rows as row (row.company.id)}<td
-                                                class:operating-column={row.company.id ===
-                                                    operatingCompanyId}
-                                                class="bright-cell"
-                                                >{@render titleCell(column, row.company.id)}</td
-                                            >{/each}
-                                        {#each ownerStatisticKeys as _, index (index)}<td
-                                                class:stat-start={index === 0}
-                                                class="void"
-                                            ></td>{/each}
-                                    </tr>
-                                {/each}
+                                {#each lateTitleColumns as column (column.id)}{@render titleRow(
+                                        column
+                                    )}{/each}
                             {/if}
                         </tbody>
                     </table>

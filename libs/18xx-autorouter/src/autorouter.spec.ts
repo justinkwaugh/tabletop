@@ -237,6 +237,18 @@ it('scores express paying stops with route-wide bonuses', () => {
     expect(result.result.routes[0].visits).toHaveLength(3)
 })
 
+it('charges a negative hex bonus, as a ferry fee', () => {
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), track('yellow', [[3, 0]]), city('yellow', [3], 30, 1)],
+        [{ measure: 'revenue-centers', maximum: 2 }],
+        {},
+        { hexBonus: (_state, locationId) => (locationId === '1' ? -10 : 0) }
+    )
+    const result = router.solve(state, rules, 'A')
+    expect(result.result.revenue).toBe(40)
+    expect(result.result.routes[0].bonuses).toEqual([{ locationId: '1', amount: -10 }])
+})
+
 it.each([false, true])(
     'scores a fleet bonus once across compatible trains (same definition %s)',
     (sameDefinition) => {

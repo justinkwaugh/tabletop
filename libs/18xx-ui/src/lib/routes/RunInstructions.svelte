@@ -16,7 +16,7 @@
         <div class="pill">
             <span class="pill-label" class:on={runs.anyOn}>Autorun</span>
             {#each runs.presided as companyId (companyId)}
-                {@const name = session.companyName(companyId)}
+                {@const name = session.actionCompanyName(companyId)}
                 {@const on = runs.isOn(companyId)}
                 <button
                     class="token"
@@ -42,7 +42,7 @@
             {#if stopReason}
                 <span class="notice" role="status"
                     ><StopNotice
-                        subject={session.companyName(companyId)}
+                        subject={session.actionCompanyName(companyId)}
                         reason={runStopText[stopReason]}
                         keepGoing={isIgnorableRunStop(stopReason)
                             ? {

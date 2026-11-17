@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { getCompany, controllingOwner } from '@tabletop/18xx'
+    import {
+        endlessOperatingSet,
+        getCompany,
+        controllingOwner,
+        operatingRoundPart
+    } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSessionView } = $props()
     const gameState = $derived(session.gameState)
@@ -23,8 +28,14 @@
         </p>
     {:else if gameState.operatingSet}
         <p>
-            Operating set {gameState.operatingSet.number} · Round {gameState.operatingSet
-                .roundNumber} of {gameState.operatingSet.roundCount}
+            {#if endlessOperatingSet(gameState.operatingSet)}
+                Operating round {gameState.operatingSet.roundNumber}.{operatingRoundPart(
+                    gameState.operatingSet
+                )}
+            {:else}
+                Operating set {gameState.operatingSet.number} · Round {gameState.operatingSet
+                    .roundNumber} of {gameState.operatingSet.roundCount}
+            {/if}
         </p>
         <ol class="steps" aria-label="Operating steps">
             {#each [['LayingTrack', 'Track'], ['PlacingStation', 'Stations'], ['RunningTrains', 'Run trains'], ['DistributingEarnings', 'Distribute earnings'], ['BuyingTrains', 'Buy trains']] as [step, label] (step)}
@@ -42,7 +53,7 @@
             {#each gameState.operatingSet.companyOrder as companyId (companyId)}
                 {@const owner = controllingOwner(gameState, companyId)}
                 <li>
-                    {session.companyName(companyId)}{#if owner}
+                    {session.actionCompanyName(companyId)}{#if owner}
                         · {session.ownerName(owner)}{/if}
                     {#if gameState.operatingSet.completedCompanyIds.includes(companyId)}
                         · Done{/if}

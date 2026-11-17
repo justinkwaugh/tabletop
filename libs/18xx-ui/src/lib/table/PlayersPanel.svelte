@@ -437,7 +437,8 @@
                                             >
                                             {#if entry.president}<span
                                                     class="compact-mark"
-                                                    aria-label="President">P</span
+                                                    aria-label="President"
+                                                    >{session.presidentMark(entry.company.id)}</span
                                                 >{/if}
                                             {#if mark}<span
                                                     class="compact-mark"
@@ -509,6 +510,7 @@
                                                 ><PresidentName
                                                     name={session.companyName(entry.company.id)}
                                                     president={entry.president}
+                                                    label={session.presidentMark(entry.company.id)}
                                                 />{#if mark}<CertificateBadge
                                                         label={mark.label}
                                                         title={mark.title}
@@ -546,9 +548,15 @@
                 </section>
             {/if}
             {#if player.privates.length}<section class="privates">
-                    {#if !compact}<div class="private-head">
+                    {#if !compact}<div
+                            class={[
+                                'private-head',
+                                session.presentation.privatesWithoutValue && 'no-value'
+                            ]}
+                        >
                             <h4>Privates</h4>
-                            <span title="Income per operating round">Income</span><span>Value</span>
+                            <span title="Income per operating round">Income</span
+                            >{#if !session.presentation.privatesWithoutValue}<span>Value</span>{/if}
                         </div>{/if}
                     <table aria-label={`${player.name} private companies`}>
                         <tbody>
@@ -592,7 +600,9 @@
                                                     >{' / OR'}</small
                                                 >{/if}{/if}</td
                                     >
-                                    <td class="amount">{money(entry.value)}</td>
+                                    {#if !session.presentation.privatesWithoutValue}<td
+                                            class="amount">{money(entry.value)}</td
+                                        >{/if}
                                 </tr>
                             {/each}
                         </tbody>
@@ -951,6 +961,9 @@
         grid-template-columns: minmax(0, 1fr) 46px 52px;
         gap: 0;
         align-items: baseline;
+    }
+    .private-head.no-value {
+        grid-template-columns: minmax(0, 1fr) 46px;
     }
     .private-head span {
         justify-self: end;

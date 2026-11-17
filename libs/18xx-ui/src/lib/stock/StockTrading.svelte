@@ -3,6 +3,7 @@
     import CompanyStarting from './CompanyStarting.svelte'
     import StandingInstruction from './StandingInstruction.svelte'
     import {
+        endlessOperatingSet,
         getCompany,
         isBuyShares,
         isStartCompany,
@@ -63,7 +64,7 @@
         <div aria-label="Confirm share purchase">
             <p>
                 <strong>{session.ownerName(details.buyer)}</strong> buys a certificate in
-                <strong>{session.companyName(details.companyId)}</strong>
+                <strong>{session.actionCompanyName(details.companyId)}</strong>
                 from {session.ownerName(details.seller)} for {details.price}.
             </p>
             <ul>
@@ -76,7 +77,7 @@
             {#if details.presidency}{@render presidency(details.presidency)}{/if}
             {#if session.stock.selectedPurchaseFlotation}
                 <div aria-label="Flotation preview">
-                    <p>{session.companyName(details.companyId)} will float.</p>
+                    <p>{session.actionCompanyName(details.companyId)} will float.</p>
                     {#each session.stock.selectedPurchaseFlotation.payments as payment, i (i)}<p>
                             {session.ownerName(payment.from)} pays {payment.amount} to {session.ownerName(
                                 payment.to
@@ -98,7 +99,7 @@
                 <ol>
                     {#each session.stock.selectedSale.sales as sale (sale.companyId)}
                         <li>
-                            <strong>{session.companyName(sale.companyId)}</strong> · {sale.shares}
+                            <strong>{session.actionCompanyName(sale.companyId)}</strong> · {sale.shares}
                             shares
                             <div class="buttons">
                                 <button
@@ -116,7 +117,7 @@
                     <p>Total proceeds: <strong>{details.proceeds}</strong></p>
                     {#each details.sales as sale (sale.companyId)}
                         <p>
-                            {session.companyName(sale.companyId)}: {sale.shares} × {sale.price}
+                            {session.actionCompanyName(sale.companyId)}: {sale.shares} × {sale.price}
                             = {sale.proceeds}. Market price: {sale.price} → {session.stockMarketChart.space(
                                 sale.toMarketSpaceId
                             ).price}.
@@ -147,7 +148,7 @@
                         disabled={session.busy || !choice.result.details}
                         onclick={() => session.stock.selectSale(choice.request)}
                     >
-                        <strong>{session.companyName(choice.sale.companyId)}</strong>
+                        <strong>{session.actionCompanyName(choice.sale.companyId)}</strong>
                         <span
                             >{session.ownerName(choice.request.seller)} · {choice.sale.shares}
                             {choice.sale.shares === 1 ? 'share' : 'shares'}</span
@@ -175,7 +176,9 @@
                             disabled={session.busy || !choice.result.details}
                             onclick={() => session.stock.selectPurchase(choice.request)}
                         >
-                            <strong>{session.companyName(choice.certificate.companyId)}</strong>
+                            <strong
+                                >{session.actionCompanyName(choice.certificate.companyId)}</strong
+                            >
                             <span
                                 >{session.ownerName(choice.request.buyer)} · {choice.certificate
                                     .poolId
@@ -206,7 +209,7 @@
                         Stock round complete.
                         {#each trade.metadata.marketMoves as move (move.companyId)}
                             <span
-                                >{session.companyName(move.companyId)} sold out: {session.stockMarketChart.space(
+                                >{session.actionCompanyName(move.companyId)} sold out: {session.stockMarketChart.space(
                                     move.fromMarketSpaceId
                                 ).price} → {session.stockMarketChart.space(move.toMarketSpaceId)
                                     .price}.</span
@@ -215,19 +218,24 @@
                     </li>
                 {:else if isStartOperatingSet(trade) && trade.metadata}
                     <li>
-                        Operating set {trade.metadata.number} started: {trade.metadata.roundCount}
-                        {trade.metadata.roundCount === 1 ? 'round' : 'rounds'}.
+                        {#if endlessOperatingSet(trade.metadata)}
+                            Operating rounds began.
+                        {:else}
+                            Operating set {trade.metadata.number} started: {trade.metadata
+                                .roundCount}
+                            {trade.metadata.roundCount === 1 ? 'round' : 'rounds'}.
+                        {/if}
                     </li>
                 {:else if isStartCompany(trade) && trade.metadata}
                     <li>
-                        {session.ownerName(trade.metadata.buyer)} started {session.companyName(
+                        {session.ownerName(trade.metadata.buyer)} started {session.actionCompanyName(
                             trade.companyId
                         )} at {trade.metadata.parPrice}, paying {trade.metadata.price} for the president’s
                         certificate.
                     </li>
                 {:else if isFloatCompany(trade) && trade.metadata}
                     <li>
-                        {session.companyName(trade.companyId)} floated.
+                        {session.actionCompanyName(trade.companyId)} floated.
                         {#each trade.metadata.payments as payment, i (i)}<span
                                 >{session.ownerName(payment.from)} paid {payment.amount} to {session.ownerName(
                                     payment.to
@@ -237,7 +245,7 @@
                 {:else if isBuyShares(trade) && trade.metadata}
                     {@const details = trade.metadata}
                     <li>
-                        {session.ownerName(details.buyer)} bought {session.companyName(
+                        {session.ownerName(details.buyer)} bought {session.actionCompanyName(
                             details.companyId
                         )} for {details.price}.
                         {#each details.payments as payment, i (i)}<span
@@ -252,7 +260,7 @@
                     <li>
                         {session.ownerName(details.seller)} sold shares for {details.proceeds}.
                         {#each details.sales as sale (sale.companyId)}<span
-                                >{session.companyName(sale.companyId)}: {sale.shares} shares at
+                                >{session.actionCompanyName(sale.companyId)}: {sale.shares} shares at
                                 {sale.price}; market price {session.stockMarketChart.space(
                                     sale.toMarketSpaceId
                                 ).price}.</span

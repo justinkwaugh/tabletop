@@ -11,6 +11,8 @@ import { DefaultRunSubsidyName } from '../routes/routePresentation.js'
 import {
     companyShareCount,
     isCloseCorporation,
+    isInterruptOperatingTurn,
+    isResumeOperatingTurn,
     isLayTile,
     isPrivateTileLay,
     isPlacePrivateMarker,
@@ -269,6 +271,15 @@ export type TitleActionDescription = (
     names: TitleHistoryNames,
     shared: () => HistoryDescription
 ) => HistoryDescription | undefined
+
+/** The trains that left the game unbought, by kind: "3 4-trains left the game". */
+export function declinedTrainsWords(trains: readonly { definitionId: string }[]): string[] {
+    const kinds = [...new Set(trains.map((train) => train.definitionId))]
+    return kinds.map(
+        (kind) =>
+            `${counted(trains.filter((train) => train.definitionId === kind).length, `${kind}-train`)} left the game`
+    )
+}
 
 /** Names who the bank paid as trains departed, and the private it paid for. */
 export function departurePaymentsDetail(
@@ -909,6 +920,18 @@ function describeShared(
                 detail: `${money(resolution.discount)} off, ${playerName(resolution.nominatorId)} to start`,
                 important: true
             }
+        if (resolution.kind === 'income')
+            return {
+                text: `Everyone passed on ${lotName(resolution.lotId)}: the privates pay their income`,
+                detail: [
+                    ...resolution.payments.map(
+                        (payment) =>
+                            `${payment.to.kind === 'player' ? playerName(payment.to.playerId) : ''} ${money(payment.amount)}`
+                    ),
+                    `${playerName(resolution.nominatorId)} to start`
+                ].join(' · '),
+                important: true
+            }
         return { text: 'Auction ended', routine: true }
     }
     if (isAuctionCompany(action))
@@ -931,6 +954,22 @@ function describeShared(
                     .filter(Boolean)
                     .join(' · ') || undefined,
             important: true
+        }
+    if (isInterruptOperatingTurn(action))
+        return {
+            text: action.metadata
+                ? `A share round interrupts ${companyName(action.metadata.companyId)}’s turn`
+                : 'A share round interrupts the operating round',
+            omitActor: true,
+            important: true
+        }
+    if (isResumeOperatingTurn(action))
+        return {
+            text: action.metadata
+                ? `${companyName(action.metadata.companyId)}’s turn resumes`
+                : 'The operating round resumes',
+            omitActor: true,
+            routine: true
         }
     if (isFloatCompany(action)) {
         assertExists(action.metadata, 'Recorded flotation requires its capital payments')
@@ -1060,7 +1099,19 @@ function describeShared(
         )
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }
-    if (isFinishOperatingTurn(action)) return { text: 'Finished operating', routine: true }
+    if (isFinishOperatingTurn(action)) {
+        const declined = action.metadata?.declinedTrains
+        if (!declined) return { text: 'Finished operating', routine: true }
+        // Finishing without buying sent the trains on sale out of the game (1880 §X).
+        return {
+            text: 'Bought no train',
+            detail: joinDetails(
+                ...declinedTrainsWords(declined.trains),
+                declined.toPhaseId ? `phase ${declined.toPhaseId}` : undefined
+            ),
+            important: true
+        }
+    }
     if (isFinishStockTurn(action))
         return {
             text: action.metadata?.passed ? 'Passed' : 'Finished turn',

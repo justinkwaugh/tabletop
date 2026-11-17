@@ -34,7 +34,7 @@
         <div class="company">
             <CompanyToken appearance={session.mapView.stations[company.id]} size={48} />
             <div>
-                <strong>{session.companyName(company.id)}</strong>
+                <strong>{session.actionCompanyName(company.id)}</strong>
                 <span>Home <PlaceLink locationId={auction.home.locationId} /></span>
             </div>
         </div>

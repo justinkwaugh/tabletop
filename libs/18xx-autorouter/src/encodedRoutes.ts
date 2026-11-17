@@ -354,7 +354,9 @@ export class EncodedRoutes {
             resource_count: resources.size,
             junction_count: junctions.size,
             group_count: groupIds.size,
-            hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
+            hex_bonuses: locations.map(
+                (location) => rules.hexBonus?.(state, location.id, companyId) ?? 0
+            ),
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
             minimum_cities_and_towns: rules.minimumCitiesAndTowns ?? 0,
             budget_ms: budget.timeLimitMs,

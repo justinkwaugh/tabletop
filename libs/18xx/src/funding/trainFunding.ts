@@ -117,6 +117,11 @@ export interface TrainFundingRules {
      * is not the bank's (§4.2.4).
      */
     recordLoan?(state: FundingState, owner: Owner, amount: number): void
+    /**
+     * A contributor who could still sell shares may borrow instead, as an 1880 director who
+     * will not sell takes the debt (§X Forced Train Purchase); with `recordLoan` only.
+     */
+    salesOptional?: true
 }
 /**
  * A failing company's end, recorded in the bankruptcy Action under the title's own schema. The
@@ -157,7 +162,13 @@ export function insolvencyChoices(
 export type FundingChoice =
     | { kind: 'issue'; details: ShareSaleDetails }
     | { kind: 'contribute'; owner: Owner; amount: number; borrowed?: number }
-    | { kind: 'sell'; owner: Owner; sales: ShareSaleDetails[] }
+    | {
+          kind: 'sell'
+          owner: Owner
+          sales: ShareSaleDetails[]
+          /** The contribution the owner may make instead, borrowing what their cash lacks. */
+          borrowInstead?: { amount: number; borrowed: number }
+      }
     | { kind: 'buy'; purchase: TrainPurchaseDetails }
     | { kind: 'bankrupt'; shortfall: number }
 
@@ -341,7 +352,15 @@ export class EmergencyTrainFunding {
             const cash = this.cash(owner)
             if (cash < shortfall && !voluntary) {
                 const sales = this.sales(owner, false)
-                if (sales.length) return { kind: 'sell', owner, sales }
+                if (sales.length)
+                    return this.rules.salesOptional && this.rules.recordLoan
+                        ? {
+                              kind: 'sell',
+                              owner,
+                              sales,
+                              borrowInstead: { amount: shortfall, borrowed: shortfall - cash }
+                          }
+                        : { kind: 'sell', owner, sales }
             }
             if (cash < shortfall && this.rules.recordLoan && !voluntary)
                 return { kind: 'contribute', owner, amount: shortfall, borrowed: shortfall - cash }

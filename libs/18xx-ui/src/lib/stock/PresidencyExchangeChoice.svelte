@@ -9,7 +9,7 @@
 </script>
 
 {#if pending}
-    {@const company = session.companyName(pending.companyId)}
+    {@const company = session.actionCompanyName(pending.companyId)}
     {@const outgoing = session.ownerName(pending.previous)}
     <section aria-label="Presidency exchange">
         <h3>{company}’s new president</h3>

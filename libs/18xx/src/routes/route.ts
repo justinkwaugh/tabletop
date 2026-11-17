@@ -37,7 +37,8 @@ export type RoutePayment = Type.Static<typeof RoutePayment>
 export const RouteBonus = Type.Object(
     {
         locationId: Id,
-        amount: Type.Integer({ minimum: 1 }),
+        /** What the route earns more, or less where a charge, such as 1880's ferry fee. */
+        amount: Type.Integer(),
         /** What earned the bonus, such as a private company, by the ids the title names. */
         sourceIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true })),
         /** The bonus arrows printed beside the board that paid it. */
@@ -65,7 +66,9 @@ export const OperatingResult = Type.Object(
         routes: Type.Array(RouteResult),
         revenue: Type.Integer({ minimum: 0 }),
         /** What the bank paid the treasury for the run beside its revenue, such as a subsidy. */
-        subsidy: Type.Optional(Type.Integer({ minimum: 1 }))
+        subsidy: Type.Optional(Type.Integer({ minimum: 1 })),
+        /** The part of the revenue the run earned beside its routes, such as 1880's price bonus. */
+        bonus: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )

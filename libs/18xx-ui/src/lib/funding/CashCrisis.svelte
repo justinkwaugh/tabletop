@@ -5,7 +5,7 @@
         $props()
     const money = $derived(session.presentation.money)
     const debt = $derived(session.cashCrisis.debt)
-    const companyName = (id: string) => session.companyName(id)
+    const companyName = (id: string) => session.actionCompanyName(id)
     // A failing company's choices, worded by the title (TitlePresentation.insolvency).
     const insolvency = $derived.by(() => {
         const choices = session.cashCrisis.insolvencyChoices

@@ -90,6 +90,7 @@ export type { TitleCallout } from './table/historyCallouts.js'
 export {
     companyClosedRow,
     companyClosureDetails,
+    declinedTrainsWords,
     stopRightsBoughtRow,
     departurePaymentsDetail,
     joinDetails,
@@ -99,6 +100,9 @@ export { trainCount, type AwaitedDecision, type DecisionNames } from './table/aw
 export type {
     CompanyColumn,
     CompanyMark,
+    StartChoiceSpace,
+    PhaseNotice,
+    TokenBadge,
     TrainTokens,
     MarketLedge,
     MarketZone,
@@ -152,6 +156,7 @@ export { default as StockMarketScene } from './stock/StockMarketScene.svelte'
 
 export { default as CompanyToken } from './tokens/CompanyToken.svelte'
 export { default as SlidingToggle } from './table/SlidingToggle.svelte'
+export { default as SwitchTrack } from './table/SwitchTrack.svelte'
 export { default as CompanyOrder } from './table/CompanyOrder.svelte'
 
 export { default as CompanyDetails } from './table/CompanyDetails.svelte'
@@ -206,6 +211,7 @@ export {
 } from './stock/marketTokenLayout.js'
 
 export { LoanRateTableHeight } from './loans/loanRateTable.js'
+export { default as PlayerLoanRepayment } from './loans/PlayerLoanRepayment.svelte'
 export { operatingRoundInProgress } from './table/roundHeading.js'
 
 export { default as BoardInset } from './maps/BoardInset.svelte'

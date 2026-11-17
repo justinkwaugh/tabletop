@@ -122,6 +122,12 @@ export interface RouteRules {
      * run found for its revenue is not searched for a greater subsidy.
      */
     runSubsidy?(state: TrainRunningState, companyId: string, routes: readonly RouteResult[]): number
+    /**
+     * What the company's run earns beside its routes, part of its revenue, as 1880's bonus from
+     * the share price chart (§X); judged on the company, not the routes, so a run found for its
+     * routes is not searched for it.
+     */
+    runBonus?(state: TrainRunningState, companyId: string): number
     /** Trains whose routes are valued and checked together rather than one by one. */
     fleet?: FleetRules
     /**
@@ -136,10 +142,17 @@ export interface RouteRules {
     oneStopPerHex?: true
     /** Cities and towns a complete route must visit; offboards do not count toward them. */
     minimumCitiesAndTowns?: number
-    /** What a route earns for each hex it passes through or stops in, once per route. */
-    hexBonus?(state: TrainRunningState, locationId: string): number
+    /**
+     * What a route earns for each hex it passes through or stops in, once per route, for the
+     * company running it; a charge where negative, as 1880's ferry fee (§X Calculating Income).
+     */
+    hexBonus?(state: TrainRunningState, locationId: string, companyId: string): number
     /** What earns a hex's bonus, by the ids the title names. */
-    hexBonusSourceIds?(state: TrainRunningState, locationId: string): readonly string[]
+    hexBonusSourceIds?(
+        state: TrainRunningState,
+        locationId: string,
+        companyId: string
+    ): readonly string[]
     /** What the train earns beyond the stop's value for stopping at a revenue center. */
     stopBonus?(
         state: TrainRunningState,
@@ -452,7 +465,7 @@ export class RouteEvaluation {
         }))
         const bonused = bonusRoute(visits, paying, policy, shape)
         const bonuses = [
-            ...this.bonuses(route, paying),
+            ...this.bonuses(companyId, route, paying),
             ...routeStopBonuses(bonused.stops, policy, bonused.shape),
             ...routeBestStopBonuses(
                 paying,
@@ -461,6 +474,8 @@ export class RouteEvaluation {
         ]
         if (extension && !routeInterconnectionBonus(bonused.stops, policy, bonused.shape))
             return { reason: 'The extension earns no interconnection.' }
+        const revenue = [...payments, ...bonuses].reduce((sum, item) => sum + item.amount, 0)
+        if (revenue < 0) return { reason: 'The route’s charges exceed what it earns.' }
         return {
             result: {
                 ...route,
@@ -469,13 +484,26 @@ export class RouteEvaluation {
                 payments,
                 ...(bonuses.length ? { bonuses } : {}),
                 distance,
-                revenue: [...payments, ...bonuses].reduce((sum, item) => sum + item.amount, 0)
+                revenue
             },
             trace,
             train: definition
         }
     }
     evaluate(companyId: string, routes: readonly TrainRoute[]): OperatingEvaluation {
+        const evaluation = this.evaluateRoutes(companyId, routes)
+        const bonus = evaluation.result ? (this.rules.runBonus?.(this.state, companyId) ?? 0) : 0
+        assert(Number.isSafeInteger(bonus) && bonus >= 0, 'A run’s bonus is a whole amount')
+        if (!evaluation.result || !bonus) return evaluation
+        return {
+            result: {
+                ...evaluation.result,
+                revenue: evaluation.result.revenue + bonus,
+                bonus
+            }
+        }
+    }
+    private evaluateRoutes(companyId: string, routes: readonly TrainRoute[]): OperatingEvaluation {
         if (this.state.routeStep?.companyId !== companyId || this.state.routeStep.result)
             return { reason: 'This company is not running trains.' }
         if (getCompany(this.state, companyId).closed)
@@ -632,7 +660,11 @@ export class RouteEvaluation {
             }
         }
     }
-    private bonuses(route: TrainRoute, paying: readonly RouteRevenueStop[]): RouteBonus[] {
+    private bonuses(
+        companyId: string,
+        route: TrainRoute,
+        paying: readonly RouteRevenueStop[]
+    ): RouteBonus[] {
         const hexes = new Set([
             route.start.locationId,
             ...route.paths.map((path) => path.locationId)
@@ -644,14 +676,15 @@ export class RouteEvaluation {
                 ...(stop.bonusSourceIds ? { sourceIds: [...stop.bonusSourceIds] } : {})
             })),
             ...[...hexes].map((locationId) => {
-                const sourceIds = this.rules.hexBonusSourceIds?.(this.state, locationId) ?? []
+                const sourceIds =
+                    this.rules.hexBonusSourceIds?.(this.state, locationId, companyId) ?? []
                 return {
                     locationId,
-                    amount: this.rules.hexBonus?.(this.state, locationId) ?? 0,
+                    amount: this.rules.hexBonus?.(this.state, locationId, companyId) ?? 0,
                     ...(sourceIds.length ? { sourceIds: [...sourceIds] } : {})
                 }
             })
-        ].filter((bonus) => bonus.amount > 0)
+        ].filter((bonus) => bonus.amount !== 0)
     }
     /**
      * A train runs from its station, so a route reaching its only station across terminus track

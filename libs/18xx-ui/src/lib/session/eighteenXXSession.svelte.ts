@@ -12,6 +12,7 @@ import {
     shareSaleValue,
     sharesOwned,
     stockCertificateCount,
+    presidentCertificate,
     titleComponents,
     TileUpgrades,
     trainsOwnedBy,
@@ -963,6 +964,24 @@ export class EighteenXXSession<
     }
     companyName(companyId: string) {
         return this.companyNameVariants(companyId).short
+    }
+    /**
+     * A company as the action panel names it: by its initials where the title asks, as 1880's
+     * JLR, or its name; private companies always go by name.
+     */
+    actionCompanyName(companyId: string): string {
+        const initials =
+            this.presentation.actionCompanyInitials &&
+            this.gameState.companies.some(
+                (company) => company.id === companyId && company.kind !== 'private'
+            )
+        return initials ? this.companyInitials(companyId) : this.companyName(companyId)
+    }
+    /** The mark beside a company's president: P, or P and the certificate's shares, as P3. */
+    presidentMark(companyId: string): string {
+        if (!this.presentation.presidentMarkShowsShares?.(this.gameState, companyId)) return 'P'
+        const shares = presidentCertificate(this.gameState, companyId)?.shares
+        return shares === undefined ? 'P' : `P${shares}`
     }
     companyInitials(companyId: string) {
         return this.companyNameVariants(companyId).initials

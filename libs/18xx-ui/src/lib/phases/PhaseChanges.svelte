@@ -22,19 +22,19 @@
         for (const train of event.rustedTrains)
             rusted.set(train.definitionId, (rusted.get(train.definitionId) ?? 0) + 1)
         const closed = event.privateEffects.flatMap((effect) =>
-            effect.kind === 'close' ? [session.companyName(effect.privateCompanyId)] : []
+            effect.kind === 'close' ? [session.actionCompanyName(effect.privateCompanyId)] : []
         )
         const otherEffects = event.privateEffects.flatMap((effect) =>
             effect.kind === 'income'
                 ? [
                       {
-                          text: `${session.companyName(effect.privateCompanyId)} now pays ${session.presentation.money(effect.revenue)}`
+                          text: `${session.actionCompanyName(effect.privateCompanyId)} now pays ${session.presentation.money(effect.revenue)}`
                       }
                   ]
                 : effect.kind === 'exchange'
                   ? [
                         {
-                            text: `${session.companyName(effect.privateCompanyId)} exchanged for ${effect.shares === 1 ? 'a share' : `${effect.shares} shares`} of ${session.companyName(effect.companyId)}`
+                            text: `${session.actionCompanyName(effect.privateCompanyId)} exchanged for ${effect.shares === 1 ? 'a share' : `${effect.shares} shares`} of ${session.actionCompanyName(effect.companyId)}`
                         }
                     ]
                   : []
@@ -89,7 +89,7 @@
         <div class="discard" aria-label="Compulsory train discard">
             <h2>
                 <CompanyToken appearance={session.mapView.stations[companyId]} size={24} />
-                <strong>{session.companyName(companyId)}</strong>
+                <strong>{session.actionCompanyName(companyId)}</strong>
                 <span>discards {trainCount(session.discard.excess)}</span>
             </h2>
             <p class="note">
@@ -97,7 +97,7 @@
                 {owner
                     ? session.ownerName(owner)
                     : gameState.activePlayerIds.map((id) => session.getPlayerName(id)).join(' / ')} chooses.
-                {#if change.continuation.companyId}Then {session.companyName(
+                {#if change.continuation.companyId}Then {session.actionCompanyName(
                         change.continuation.companyId
                     )} resumes {change.continuation.machineState === 'BuyingTrains'
                         ? 'buying trains'

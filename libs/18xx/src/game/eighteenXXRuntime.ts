@@ -34,6 +34,15 @@ import { holdSettledCrisis, resumeCashCrisis } from '../funding/cashCrisis.js'
 import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
 import { PayInterest, interestDueBeforeEarnings } from '../loans/payInterest.js'
+import {
+    InterruptingOperatingTurnHandler,
+    InterruptingOperatingTurnState,
+    ResumesInterruptedTurnHandler,
+    ResumingOperatingTurnHandler,
+    ResumingOperatingTurnState,
+    StockRoundInterruptionHandler,
+    stockRoundInterruptionActions
+} from '../operating/stockRoundInterruption.js'
 import { nextOperatingCompany } from '../operating/operatingSet.js'
 import { SystemActionFirstHandler } from './systemActionFirstHandler.js'
 import { AccessRightsHandler } from '../rights/accessRightsHandler.js'
@@ -127,6 +136,7 @@ function validateStateComposition(
         | 'corporateFinanceRules'
         | 'runInstructions'
         | 'trackRules'
+        | 'stockRoundInterruptions'
     >,
     handlers: Readonly<Record<string, unknown>>
 ): void {
@@ -150,7 +160,8 @@ function validateStateComposition(
         ['locationMarkers', !!options.privatePowerRules.markerTerms],
         ['accessRights', !!options.accessRightRules],
         ['trackConsent', !!options.trackRules.consentPlayerId],
-        ['financeStep', !!options.corporateFinanceRules]
+        ['financeStep', !!options.corporateFinanceRules],
+        ['stockRoundInterruption', !!options.stockRoundInterruptions]
     ]
     for (const [field, supported] of features)
         assert(
@@ -366,9 +377,11 @@ export function createEighteenXXRuntime<
         ...(options.selectionAuctionRules
             ? {
                   SelectionAuction: endsGame(
-                      decides(
-                          'SelectionAuction',
-                          new SelectionAuctionHandler(options.selectionAuctionRules)
+                      awaitsPar(
+                          decides(
+                              'SelectionAuction',
+                              new SelectionAuctionHandler(options.selectionAuctionRules)
+                          )
                       )
                   )
               }
@@ -625,13 +638,39 @@ export function createEighteenXXRuntime<
     // An outgoing president's choice of certificates holds whatever state the change came in.
     const awaitsExchange = (handler: Handler): Handler =>
         rules.presidencyExchange?.choice ? new PresidencyExchangeHandler(handler) : handler
+    const interruptionHandlers: Record<string, Handler> = options.stockRoundInterruptions
+        ? {
+              [InterruptingOperatingTurnState]: new InterruptingOperatingTurnHandler(),
+              // The homes of companies the stock round floated go down, a choice of home held
+              // before play resumes.
+              [ResumingOperatingTurnState]: options.stationRules.homeChoice
+                  ? new HomeStationChoiceHandler(
+                        new ResumingOperatingTurnHandler(options.stationRules),
+                        options.stationRules,
+                        ResumingOperatingTurnState
+                    )
+                  : new ResumingOperatingTurnHandler(options.stationRules)
+          }
+        : {}
+    // A stock round due in an operating turn interrupts it as play returns to the turn.
+    const interrupts = (machineState: string, handler: Handler): Handler =>
+        !options.stockRoundInterruptions
+            ? handler
+            : machineState === 'StockRound'
+              ? new ResumesInterruptedTurnHandler(handler)
+              : new StockRoundInterruptionHandler(handler)
     const stateHandlers: Record<string, Handler> = Object.fromEntries(
-        Object.entries({ ...familyStateHandlers, ...options.titleStateHandlers }).map(
-            ([machineState, handler]) => [
+        Object.entries({
+            ...familyStateHandlers,
+            ...interruptionHandlers,
+            ...options.titleStateHandlers
+        }).map(([machineState, handler]) => [
+            machineState,
+            interrupts(
                 machineState,
                 awaitsExchange(new InstructedRunsHandler(handler, instructedRunRules))
-            ]
-        )
+            )
+        ])
     )
     const actions = new ActionRegistry([
         ...endingActions(options.endingRules),
@@ -716,6 +755,9 @@ export function createEighteenXXRuntime<
             receivershipRules
         ),
         ...trainActions(options.trainRules, options.phaseRules, !loanStep),
+        ...(options.stockRoundInterruptions
+            ? stockRoundInterruptionActions(operatingRules, receivershipRules)
+            : []),
         ...bidBoxActions(options.bidBoxRules),
         ...(options.titleActions ?? [])
     ])

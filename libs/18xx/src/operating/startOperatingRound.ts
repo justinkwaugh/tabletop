@@ -17,6 +17,7 @@ import type { MapStateData } from '../map/mapState.js'
 import { loanRate, type LoanRules, type LoanState } from '../loans/loans.js'
 import {
     OperatingSet,
+    hasLaterRound,
     nextOperatingCompany,
     type OperatingState,
     type OperatingRules
@@ -51,8 +52,7 @@ export function canStartOperatingRound(state: OperatingState): boolean {
     return (
         !!set &&
         !set.completed &&
-        (!set.privateIncomePaid ||
-            (!nextOperatingCompany(state) && set.roundNumber < set.roundCount))
+        (!set.privateIncomePaid || (!nextOperatingCompany(state) && hasLaterRound(set)))
     )
 }
 export class HydratedStartOperatingRound
@@ -93,6 +93,7 @@ export class HydratedStartOperatingRound
         set.companyOrder = this.#rules.companyOrder(state)
         set.completedCompanyIds = []
         set.privateIncomePaid = true
+        delete set.resumptions
         if (this.#loanRules) state.interestRate = loanRate(state, this.#loanRules)
         this.metadata = {
             operatingSet: structuredClone(set),

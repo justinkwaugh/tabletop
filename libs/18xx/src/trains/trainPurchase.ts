@@ -1,4 +1,5 @@
 import type { MapStateData } from '../map/mapState.js'
+import type { TrainExport } from '../operating/exportTrains.js'
 import type { AccessRightState } from '../rights/accessRights.js'
 import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
@@ -71,6 +72,19 @@ export interface TrainRules {
         loans: AutomaticBorrowing
         allowed(state: TrainPurchaseState, request: TrainPurchaseRequest): boolean
     }
+    /**
+     * Whether the company finishing its train step without buying now declines the trains on
+     * sale and goes on buying, after any stock round that brings, as 1880's train-marker company
+     * does when a whole round has passed without a purchase (§X). Such a finish is open to a
+     * company that must still buy a train (a designer's ruling).
+     */
+    declineResumes?(state: TrainPurchaseState, companyId: string): boolean
+    /**
+     * The title's consequences of the company finishing its train step without buying, such as
+     * 1880's removal of the trains on sale, returning the trains that left the game; with
+     * `declineResumes` true, the turn goes on.
+     */
+    declineTrains?(state: TrainPurchaseState, companyId: string): TrainExport | undefined
     /** Records the title's consequences of trains departing, returning what the bank pays. */
     afterTrainsDepart?(
         state: TrainPurchaseState,

@@ -13,7 +13,7 @@
                 class="action-button"
                 disabled={!claims.canClaim}
                 onclick={() => claims.claim(offer)}
-                >{session.companyName(offer.companyId)} · buy 10% for {money(offer.price)} and become
+                >{session.actionCompanyName(offer.companyId)} · buy 10% for {money(offer.price)} and become
                 president</button
             >
         {/each}

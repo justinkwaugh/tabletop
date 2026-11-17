@@ -28,6 +28,8 @@ export type PhaseChartData = {
         upgrades?: readonly TrainUpgrade[]
     }[]
     notes: readonly string[]
+    /** Leaves out the operating rounds per set, where rounds never come in sets, as 1880's. */
+    operatingRoundsHidden?: true
 }
 
 /**
@@ -147,7 +149,8 @@ export function createPhaseChart({
     omittedPhaseIds = [],
     omittedTrainIds = [],
     permanentTrainIds = [],
-    trainUpgrades
+    trainUpgrades,
+    operatingRoundsHidden
 }: {
     phases: PhaseTable
     depot: TrainDepot
@@ -161,6 +164,8 @@ export function createPhaseChart({
     permanentTrainIds?: readonly string[]
     /** The trains each train may be traded in for, for a title that lists them in the roster. */
     trainUpgrades?: (trainId: string) => readonly TrainUpgrade[]
+    /** Rounds never come in sets, as 1880's endless operating rounds, so the chart leaves them out. */
+    operatingRoundsHidden?: true
 }): PhaseChartData {
     return {
         phases: phases.phases
@@ -191,7 +196,8 @@ export function createPhaseChart({
                       }
                   })
         ),
-        notes
+        notes,
+        ...(operatingRoundsHidden ? { operatingRoundsHidden } : {})
     }
 }
 

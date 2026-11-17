@@ -20,6 +20,7 @@ import type {
 import type { EighteenXXTitleRules } from '../game/eighteenXXTitleRules.js'
 import type { InitialPosition, Opening } from '../game/opening.js'
 import { privateIncomePayments } from '../operating/startOperatingRound.js'
+import { roundCountFields } from '../operating/operatingSet.js'
 import { StationPlacement, applyStationPlacement } from '../stations/stationPlacement.js'
 import type { StockMarket } from '../stock/stockMarket.js'
 import { ScenarioPosition } from './scenarioPosition.js'
@@ -128,7 +129,7 @@ export class ScenarioInitializer<
         state.operatingSet = {
             number: 1,
             roundNumber: 1,
-            roundCount: operatingRules.roundCount(state),
+            ...roundCountFields(operatingRules.roundCount(state)),
             companyOrder,
             completedCompanyIds: [],
             privateIncomePaid: true,

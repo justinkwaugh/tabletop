@@ -1,4 +1,10 @@
-import type { EighteenXXState, EndingRules, GameEnding } from '@tabletop/18xx'
+import {
+    endlessOperatingSet,
+    operatingRoundPart,
+    type EighteenXXState,
+    type EndingRules,
+    type GameEnding
+} from '@tabletop/18xx'
 import { assert, RecordedHistory, type GameAction, type RecordedTransition } from '@tabletop/common'
 
 function selectHistoryState(
@@ -20,8 +26,13 @@ function selectHistoryState(
         stock: state.stockRound.number,
         operating: state.stockRound.completed,
         setUnderWay: !!state.operatingSet && !state.operatingSet.completed,
-        set: state.operatingSet?.number ?? 1,
+        // An endless set's rounds go by their number alone (1880 §IX).
+        set:
+            state.operatingSet && endlessOperatingSet(state.operatingSet)
+                ? undefined
+                : (state.operatingSet?.number ?? 1),
         round: state.operatingSet?.roundNumber ?? 1,
+        part: state.operatingSet ? operatingRoundPart(state.operatingSet) : undefined,
         order: state.operatingSet?.companyOrder ?? [],
         bankBroken: !!state.bank.broken,
         ending: ending ? { lastRound: lastOperatingRound(state, ending) } : undefined,
@@ -38,9 +49,12 @@ function lastOperatingRound(
     ending: GameEnding
 ): string | undefined {
     const set = state.operatingSet
-    return set && !set.completed && set.number === ending.finalOperatingSet
-        ? `${set.number}.${set.roundCount}`
-        : undefined
+    if (!set || set.completed || set.number !== ending.finalOperatingSet) return undefined
+    return endlessOperatingSet(set)
+        ? ending.finalOperatingRound === undefined
+            ? undefined
+            : `${ending.finalOperatingRound}`
+        : `${set.number}.${set.roundCount}`
 }
 export type HistoryStates = ReadonlyMap<
     string,

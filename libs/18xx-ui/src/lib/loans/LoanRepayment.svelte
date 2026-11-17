@@ -11,7 +11,7 @@
 </script>
 
 {#if companyId && rules && session.gameState.machineState === 'RepayingLoans'}
-    {@const name = session.companyName(companyId)}
+    {@const name = session.actionCompanyName(companyId)}
     <section aria-label={terms?.name ?? 'Loans'}>
         <h2>
             {name} · {terms?.name ?? 'Loans'}

@@ -283,6 +283,8 @@ describe('tile viewer filtering', () => {
             '18xx:146',
             '18xx:147',
             '18xx:437',
+            '18xx:887',
+            '18xx:888',
             '18xx:630',
             '18xx:631',
             '18xx:632',

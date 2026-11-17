@@ -120,6 +120,11 @@ export interface EighteenXXTitleRules<
      */
     zeroPriceClosure?: ZeroPriceClosureRules
     runInstructions?: true
+    /**
+     * A stock round may interrupt an operating turn, the turn resuming once it ends, as 1880's
+     * (§XII); the title declares `StockRoundInterruptionMachineStates` and sets the interruption.
+     */
+    stockRoundInterruptions?: true
     /** Whether standing run instructions wait, as during a connection run between turns. */
     runInstructionsHeld?(state: TrainRunningState): boolean
 }

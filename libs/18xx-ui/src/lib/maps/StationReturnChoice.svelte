@@ -20,10 +20,8 @@
 {:else if waiting.length}
     <section aria-label="Set-aside stations">
         <p>
-            {waiting.map((station) => session.companyName(station.companyId)).join(', ')} will place {waiting.length ===
-            1
-                ? 'its station'
-                : 'their stations'}
+            {waiting.map((station) => session.actionCompanyName(station.companyId)).join(', ')} will place
+            {waiting.length === 1 ? 'its station' : 'their stations'}
             again.
         </p>
     </section>

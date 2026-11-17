@@ -171,7 +171,7 @@ export class Autorouter {
         const checked = evaluation.evaluate(companyId, encoded.decode(solution))
         assertExists(checked.result, checked.reason ?? 'Solver returned an invalid operation')
         assert(
-            checked.result.revenue === solution.revenue &&
+            routeRevenue(checked.result) === solution.revenue &&
                 (rules.runSubsidy !== undefined ||
                     (checked.result.subsidy ?? 0) === solution.subsidy),
             'Solver and game disagree on route revenue'
@@ -255,7 +255,7 @@ export class Autorouter {
         }
         for (const fleet of this.attachedFleets(search)) {
             const answer = this.solveFleet(search, fleet, metrics)
-            if (consider(answer).revenue === answer.searched) continue
+            if (routeRevenue(consider(answer)) === answer.searched) continue
             for (const earner of [...fleet.map(({ train }) => train.id), undefined])
                 consider(
                     this.solveFleet(
@@ -612,4 +612,9 @@ export class Autorouter {
         assert(typeof method === 'function', `Solver is missing ${name}`)
         return method(...args)
     }
+}
+
+/** What the routes earned: the run's revenue without the bonus the solver does not search. */
+function routeRevenue(result: OperatingResult): number {
+    return result.revenue - (result.bonus ?? 0)
 }

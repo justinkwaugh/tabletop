@@ -56,6 +56,11 @@ export type DistributionSummary = Pick<EarningsDetails, 'choice' | 'revenue' | '
 }
 export interface EarningsRules {
     choices(state: DistributionState, companyId: string): EarningsChoice[]
+    /**
+     * The choice a company takes with no decision from its owner, one of its ``choices``, such
+     * as 1880's foreign investors' withholding (§VII); undefined where its owner decides.
+     */
+    automaticChoice?(state: DistributionState, companyId: string): EarningsChoice | undefined
     shareCount(state: DistributionState, companyId: string): number
     entitlements(state: DistributionState, companyId: string): DividendEntitlement[]
     /** What the company keeps of the revenue; ``separate`` is the part of it decided apart. */
@@ -129,10 +134,15 @@ export class EarningsDistribution {
         assert(choices.includes(choice), 'A receiver takes one of its earnings choices')
         return [choice]
     }
-    /** The choice that needs no decision: a receiver's, or withholding nothing. */
+    /** The choice that needs no decision: a receiver's, the title's, or withholding nothing. */
     automaticChoice(companyId: string): EarningsChoice | undefined {
         const choices = this.choices(companyId)
         if (this.receivership && inReceivership(this.state, companyId)) return choices[0]
+        const titleChoice = this.rules.automaticChoice?.(this.state, companyId)
+        if (titleChoice) {
+            assert(choices.includes(titleChoice), 'An automatic choice is one of the choices')
+            return titleChoice
+        }
         return this.state.routeStep?.result?.revenue === 0 &&
             this.state.routeStep.result.routes.length === 0 &&
             choices.includes('withhold')

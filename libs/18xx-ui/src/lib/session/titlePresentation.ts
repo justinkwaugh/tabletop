@@ -64,6 +64,28 @@ export type LoanTerms = {
 }
 /** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
 /**
+ * A space of a start choice drawn as the board prints it: an option to pick, or held by a
+ * company; its label is printed in an open space.
+ */
+export type StartChoiceSpace = {
+    label: string
+    description: string
+    optionId?: string
+    companyId?: string
+}
+/**
+ * A rule in force for a while, announced under the phase strip, such as 1880's Communist
+ * Takeover: its banner's label, and the dialog it opens with its rules.
+ */
+export type PhaseNotice = {
+    label: string
+    title: string
+    summary?: string
+    rules: readonly string[]
+}
+/** An image on a company card's token, with words for what it means. */
+export type TokenBadge = { imageUrl: string; description: string }
+/**
  * A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. A
  * `compact` mark is a small symbol: it follows the company's name, or sits under the company's
  * token on the narrow card, in place of standing beside its trains.
@@ -149,6 +171,8 @@ export type CompanyColumn<State extends GameState = EighteenXXState> = {
     text(state: State, companyId: string): string
     /** Marks drawn in place of the text, such as the permits a company holds. */
     marks?(state: State, companyId: string): readonly CompanyMark[]
+    /** Placed before the last run rather than after it, as 1880's permits. */
+    beforeLastRun?: true
 }
 
 /** A step of the operating turn as the step bar shows it, with the states and Actions it covers. */
@@ -224,6 +248,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
     gameFacts?(state: State): readonly TitleFact[]
+    /** A rule in force announced under the game information, such as 1880's communism. */
+    phaseNotice?(state: State): PhaseNotice | undefined
     /**
      * Marker art that changes with play, by location id then marker id, over the map view's:
      * such as a marker hidden once its rule lapses, or one a private has marked.
@@ -247,8 +273,40 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]
+    /**
+     * What a company card's privates section lists in place of the privates the company owns,
+     * under its own heading, such as 1880's powers its director's privates give it (§VI); their
+     * income, the director's, is left off.
+     */
+    companyPowers?: {
+        heading: string
+        privateIds(state: State, companyId: string): readonly string[]
+    }
+    /**
+     * Small images on the lower right of a company card's token, such as the flag of a 1880
+     * foreign investor that will join the company (§VII).
+     */
+    companyTokenBadges?(state: State, companyId: string): readonly TokenBadge[]
     /** The tokens on a company's train. A title that draws them gives every train's, so badges line up at the top. */
     trainTokens?(state: State, train: Train): TrainTokens
+    /**
+     * Whether a company's president's mark gives the size of the president's certificate in
+     * shares, as P3, where the president chooses it, as for 1880's majors (§XII).
+     */
+    presidentMarkShowsShares?(state: State, companyId: string): boolean
+    /**
+     * Draws a start choice as a row of spaces, such as 1880's par slots on its operating order
+     * list (§XII), held ones showing their company; undefined draws the choice as buttons.
+     */
+    startChoiceSpaces?(
+        state: State,
+        choiceId: string,
+        marketSpaceId: string
+    ): readonly StartChoiceSpace[] | undefined
+    /** The action panel names companies, privates aside, by their initials, as 1880's JLR. */
+    actionCompanyInitials?: true
+    /** Player cards leave out their privates' value, where privates are worth nothing, as 1880's (§XV). */
+    privatesWithoutValue?: true
     /** A word for an open private's state in place of its income, such as Flipped. */
     privateStatus?(state: State, privateCompanyId: string): string | undefined
     /**

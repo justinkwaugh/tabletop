@@ -13,7 +13,6 @@ import {
     type MachineStateHandler
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
-import { nextOperatingCompany } from '../operating/operatingSet.js'
 import {
     StationPlacement,
     StationPlacementDetails,
@@ -53,8 +52,8 @@ export function pendingHomeChoice(
     if (!state.operatingSet?.privateIncomePaid) return undefined
     const choice = rules.homeChoice?.(state)
     assert(
-        !choice || choice.companyId === nextOperatingCompany(state),
-        'A home choice belongs to the next operating company'
+        !choice || !!controllingOwner(state, choice.companyId),
+        'A home choice belongs to a company with a president'
     )
     return choice
 }
@@ -123,9 +122,11 @@ export class HydratedChooseHomeStation
 export class HomeStationChoiceHandler<
     State extends HydratedGameState & OperatingStationState
 > implements MachineStateHandler<HydratedAction, State> {
+    /** ``returnState`` is where play goes on after the choice, between companies unless given. */
     constructor(
         private readonly handler: MachineStateHandler<HydratedAction, State>,
-        private readonly rules: StationRules
+        private readonly rules: StationRules,
+        private readonly returnState = 'OperatingSet'
     ) {}
     private president(state: State): string | undefined {
         const choice = pendingHomeChoice(state, this.rules)
@@ -147,7 +148,7 @@ export class HomeStationChoiceHandler<
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
         return action instanceof HydratedChooseHomeStation
-            ? 'OperatingSet'
+            ? this.returnState
             : this.handler.onAction(action, context)
     }
 }

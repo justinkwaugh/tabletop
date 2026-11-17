@@ -50,9 +50,9 @@
                 <table>
                     <thead
                         ><tr
-                            ><th>Phase</th><th>Tiles</th><th>ORs</th><th>Train limit</th><th
-                                >Rusts</th
-                            ><th>Notes</th></tr
+                            ><th>Phase</th><th>Tiles</th>{#if !chart.operatingRoundsHidden}<th
+                                    >ORs</th
+                                >{/if}<th>Train limit</th><th>Rusts</th><th>Notes</th></tr
                         ></thead
                     >
                     <tbody>
@@ -81,7 +81,9 @@
                                             ></span>{/each}
                                     </span></td
                                 >
-                                <td class="number">{phase.operatingRounds}</td>
+                                {#if !chart.operatingRoundsHidden}<td class="number"
+                                        >{phase.operatingRounds}</td
+                                    >{/if}
                                 <td class="number">{phase.trainLimit}</td>
                                 <td
                                     ><span class="badges">

@@ -20,7 +20,7 @@
     const gameState = $derived(session.gameState)
     const instructions = $derived(session.instructions)
     const names = $derived({
-        companyName: (id: string) => session.companyName(id),
+        companyName: (id: string) => session.actionCompanyName(id),
         poolName: (id: string) => session.poolName(id)
     })
     const disabled = $derived(session.busy || session.isViewingHistory || !instructions.canDeclare)
@@ -197,7 +197,7 @@
                     aria-expanded={pickerOpen}
                     aria-controls={pickerId}
                     aria-label={choice
-                        ? `Company: ${session.companyName(choice.company.id)}`
+                        ? `Company: ${session.actionCompanyName(choice.company.id)}`
                         : 'Choose company'}
                     {disabled}
                 >
@@ -228,7 +228,7 @@
                                     appearance={session.mapView.stations[option.company.id]}
                                     size={22}
                                 />
-                                <span>{session.companyName(option.company.id)}</span>
+                                <span>{session.actionCompanyName(option.company.id)}</span>
                             </button>
                         {/each}
                     </div>

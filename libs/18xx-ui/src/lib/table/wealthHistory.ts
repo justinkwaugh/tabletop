@@ -85,7 +85,7 @@ export function wealthHistory(
     function titleRoundHeading(round: WealthTitleRound): RoundHeading {
         return round.followsStockRound && !setUnderWay
             ? titleStockRoundHeading(stockRound, round)
-            : operatingRoundHeading(operatingRound.number, operatingRound.roundNumber, round)
+            : operatingRoundHeading(setOf(operatingRound), operatingRound.roundNumber, round)
     }
     for (const action of actions) {
         if (isStartStockRound(action)) {
@@ -106,7 +106,7 @@ export function wealthHistory(
             unrecordedStockRound = undefined
             operatingRound = snapshot
             setUnderWay = true
-            current = operatingRoundHeading(snapshot.number, snapshot.roundNumber)
+            current = operatingRoundHeading(setOf(snapshot), snapshot.roundNumber)
         }
         const end: RoundEnd | undefined =
             recordedRoundEnd(action) ??
@@ -129,7 +129,7 @@ export function wealthHistory(
             case 'operating':
                 if (firstStockRoundEnded)
                     record(
-                        operatingRoundHeading(operatingRound.number, operatingRound.roundNumber),
+                        operatingRoundHeading(setOf(operatingRound), operatingRound.roundNumber),
                         end.playerNetWorth
                     )
                 break
@@ -147,4 +147,9 @@ export function wealthHistory(
             Object.fromEntries(state.finalWealth.map(({ playerId, total }) => [playerId, total]))
         )
     return points
+}
+
+/** The set a round is numbered within, none for an endless set's. */
+function setOf(round: OperatingRoundIdentity): number | undefined {
+    return round.endless ? undefined : round.number
 }

@@ -85,7 +85,7 @@ export function historyRounds(
     for (const [position, action] of reversed.entries()) {
         const snapshot = states.get(action.id)
         if (!snapshot) continue
-        const { phase, stock, operating, set, round, auction, setUnderWay } = snapshot.after
+        const { phase, stock, operating, set, round, part, auction, setUnderWay } = snapshot.after
         const closing = roundClosingAction(reversed, position)
         openRound = titleRounds.find((round) => round.ends(closing)) ?? openRound
         const heading = auction
@@ -93,9 +93,9 @@ export function historyRounds(
             : openRound
               ? openRound.followsStockRound && !setUnderWay
                   ? titleStockRoundHeading(stock, openRound)
-                  : operatingRoundHeading(set, round, openRound)
+                  : operatingRoundHeading(set, round, openRound, part)
               : operating && !isCompleteStockRound(action)
-                ? operatingRoundHeading(set, round)
+                ? operatingRoundHeading(set, round, undefined, part)
                 : stockRoundHeading(stock)
         const label = roundLabel(heading)
         if (openRound?.starts(action)) openRound = undefined

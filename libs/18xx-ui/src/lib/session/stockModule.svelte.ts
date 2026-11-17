@@ -10,7 +10,10 @@ import {
     presidencyExchangeOptions,
     SellShares,
     StartCompany,
+    defaultStartChoices,
+    firstStartOptions,
     evaluateCompanyStart,
+    printedPresidentShares,
     evaluateSharePurchase,
     evaluateShareSale,
     exceedsStockLimits,
@@ -32,6 +35,8 @@ import {
     type CompanyStartRequest,
     type EighteenXXState,
     type HomePosition,
+    type StartChoice,
+    type StartChoices,
     type StartHome,
     type EighteenXXTitleRules,
     type Owner,
@@ -52,7 +57,12 @@ import {
     type StockActionStages
 } from '../stock/stockActionSelection.js'
 import { distinctOwners, sameCertificateOffer } from '../stock/purchaseSources.js'
-import { CompanyStartStageOrder, type CompanyStartStages } from './companyStartSelection.js'
+import {
+    CompanyStartStageOrder,
+    ParStageOrder,
+    type CompanyStartStages,
+    type ParStages
+} from './companyStartSelection.js'
 import type { LocalSelection } from '@tabletop/frontend-components'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
@@ -98,6 +108,7 @@ export class StockModule implements LocalSelection {
     readonly menu = new StagedSelection<StockActionStages>(StockActionStageOrder, 'pop-stage')
     readonly trade = singleChoice<StockTrade>()
     readonly start = new StagedSelection<CompanyStartStages>(CompanyStartStageOrder, 'pop-stage')
+    readonly par = new StagedSelection<ParStages>(ParStageOrder, 'pop-stage')
     constructor(
         private readonly session: StockSession,
         private readonly onCancel: () => void,
@@ -186,7 +197,17 @@ export class StockModule implements LocalSelection {
                                 marketSpaceId,
                                 result: evaluateCompanyStart(
                                     state,
-                                    { ...request, marketSpaceId, ...(home ? { home } : {}) },
+                                    {
+                                        ...request,
+                                        marketSpaceId,
+                                        ...(home ? { home } : {}),
+                                        ...defaultStartChoices(
+                                            state,
+                                            rules.companyRules,
+                                            company.id,
+                                            marketSpaceId
+                                        )
+                                    },
                                     rules.stockRules,
                                     rules.companyRules
                                 )
@@ -283,17 +304,75 @@ export class StockModule implements LocalSelection {
     private extraStartCertificateIds(companyId: string): string[] {
         return this.startCertificateIds(companyId).slice(0, this.selectedExtraStartCertificates)
     }
+    /** The sizes the chosen company's president's certificate may take, where there is a choice. */
+    presidentShareSizes = $derived.by((): readonly { shares: number; percent: number }[] => {
+        const company = this.selectedStartCompany
+        if (!company) return []
+        const { state, rules } = this.session
+        const sizes = rules.companyRules.presidentShareSizes?.(state, company.companyId) ?? []
+        const shareCount = companyShareCount(state, rules.stockRules.charters, company.companyId)
+        if (sizes.length < 2 || !shareCount) return []
+        return sizes.map((shares) => ({ shares, percent: Math.round((shares * 100) / shareCount) }))
+    })
+    /** The chosen size of the president's certificate, the printed size until one is chosen. */
+    selectedPresidentShares = $derived.by(
+        () => this.start.value('presidentShares') ?? this.presidentShareSizes[0]?.shares
+    )
+    /** The title's choices for the chosen company at its chosen price and certificate size. */
+    startOptionChoices = $derived.by((): readonly StartChoice[] => {
+        const company = this.selectedStartCompany
+        const marketSpaceId = this.start.value('marketSpaceId')
+        if (!company || !marketSpaceId) return []
+        const { state, rules } = this.session
+        return (
+            rules.companyRules.startChoices?.(state, company.companyId, {
+                marketSpaceId,
+                presidentShares:
+                    this.selectedPresidentShares ?? printedPresidentShares(state, company.companyId)
+            }) ?? []
+        )
+    })
+    selectedStartOptions = $derived.by((): StartChoices => this.start.value('choices') ?? {})
+    /** Whether the chosen start still awaits one of the title's choices. */
+    awaitingStartOptions = $derived.by(() =>
+        this.startOptionChoices.some((choice) => !this.selectedStartOptions[choice.id])
+    )
     /** The chosen company's start at a price, with its home and further certificates as chosen. */
     private startRequest(marketSpaceId: string): CompanyStartRequest | undefined {
         const company = this.selectedStartCompany
         if (!company) return undefined
         const home = this.selectedStartHome
         const additionalCertificateIds = this.extraStartCertificateIds(company.companyId)
+        const { state, rules } = this.session
+        const defaults = defaultStartChoices(
+            state,
+            rules.companyRules,
+            company.companyId,
+            marketSpaceId
+        )
+        const presidentShares = this.selectedPresidentShares ?? defaults.presidentShares
+        const chosen = this.start.value('marketSpaceId') === marketSpaceId
         return {
             ...company,
             marketSpaceId,
             ...(home ? { home } : {}),
-            ...(additionalCertificateIds.length ? { additionalCertificateIds } : {})
+            ...(additionalCertificateIds.length ? { additionalCertificateIds } : {}),
+            ...(presidentShares !== undefined && rules.companyRules.presidentShareSizes
+                ? { presidentShares }
+                : {}),
+            ...(rules.companyRules.startChoices
+                ? {
+                      choices: {
+                          ...firstStartOptions(state, rules.companyRules, company.companyId, {
+                              marketSpaceId,
+                              presidentShares:
+                                  presidentShares ??
+                                  printedPresidentShares(state, company.companyId)
+                          }),
+                          ...(chosen ? this.selectedStartOptions : {})
+                      }
+                  }
+                : {})
         }
     }
     private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
@@ -309,7 +388,12 @@ export class StockModule implements LocalSelection {
                     choice.request.companyId === company.companyId &&
                     sameOwner(choice.request.buyer, company.buyer)
             )?.prices ?? []
-        if (!company || !this.extraStartCertificateIds(company.companyId).length) return prices
+        if (
+            !company ||
+            (!this.extraStartCertificateIds(company.companyId).length &&
+                this.start.value('presidentShares') === undefined)
+        )
+            return prices
         return prices.flatMap(({ marketSpaceId }) => {
             const request = this.startRequest(marketSpaceId)
             return request
@@ -389,13 +473,54 @@ export class StockModule implements LocalSelection {
         )
     }
 
-    async parCompany(marketSpaceId: string) {
+    /** The title's choices for the par being set, once its price is chosen. */
+    parOptionChoices = $derived.by((): readonly StartChoice[] => {
         const pending = this.session.state.pendingPar
-        assert(this.canPar && pending, 'No par is awaiting this player')
+        const marketSpaceId = this.par.value('marketSpaceId')
+        if (!pending || !marketSpaceId || !this.session.selectionsVisible) return []
+        const { state, rules } = this.session
+        return (
+            rules.companyRules.startChoices?.(state, pending.companyId, {
+                marketSpaceId,
+                presidentShares: printedPresidentShares(state, pending.companyId)
+            }) ?? []
+        )
+    })
+    selectedParOptions = $derived.by((): StartChoices => this.par.value('choices') ?? {})
+    selectedParPrice = $derived.by(() =>
+        this.session.selectionsVisible ? this.par.value('marketSpaceId') : undefined
+    )
+
+    /** Sets the par at a price, or holds it while the title's choices are made. */
+    async parCompany(marketSpaceId: string) {
+        assert(this.canPar, 'No par is awaiting this player')
+        this.par.choose('marketSpaceId', marketSpaceId)
+        if (!this.parOptionChoices.length) await this.confirmPar()
+    }
+    async chooseParOption(choiceId: string, optionId: string) {
+        assert(
+            this.parOptionChoices.some(
+                (choice) =>
+                    choice.id === choiceId &&
+                    choice.options.some((option) => option.id === optionId)
+            ),
+            'Choose an offered option'
+        )
+        this.par.choose('choices', { ...this.selectedParOptions, [choiceId]: optionId })
+        if (this.parOptionChoices.every((choice) => this.selectedParOptions[choice.id]))
+            await this.confirmPar()
+    }
+    private async confirmPar() {
+        const pending = this.session.state.pendingPar
+        const marketSpaceId = this.par.value('marketSpaceId')
+        assert(this.canPar && pending && marketSpaceId, 'No par is awaiting this player')
+        const choices = this.selectedParOptions
+        this.par.clear()
         await this.session.applyAction(
             this.session.createPlayerAction(ParCompany, {
                 companyId: pending.companyId,
-                marketSpaceId
+                marketSpaceId,
+                ...(Object.keys(choices).length ? { choices } : {})
             })
         )
     }
@@ -558,6 +683,33 @@ export class StockModule implements LocalSelection {
         assert(this.start.value('company'), 'Choose a company before its starting price')
         this.start.choose('marketSpaceId', marketSpaceId)
     }
+    /** Chooses the start's price, starting the company unless the title's choices are still to make. */
+    async chooseStartPrice(marketSpaceId: string) {
+        this.selectStartPrice(marketSpaceId)
+        if (!this.awaitingStartOptions) await this.confirmStart()
+    }
+    chooseStartPresidentShares(shares: number) {
+        this.assertAvailable(this.session.playerId)
+        assert(
+            this.presidentShareSizes.some((size) => size.shares === shares),
+            'The president’s certificate cannot be this size'
+        )
+        this.start.choose('presidentShares', shares)
+    }
+    /** Makes one of the title's start choices, starting the company once none is left. */
+    async chooseStartOption(choiceId: string, optionId: string) {
+        this.assertAvailable(this.session.playerId)
+        assert(
+            this.startOptionChoices.some(
+                (choice) =>
+                    choice.id === choiceId &&
+                    choice.options.some((option) => option.id === optionId)
+            ),
+            'Choose an offered option'
+        )
+        this.start.choose('choices', { ...this.selectedStartOptions, [choiceId]: optionId })
+        if (!this.awaitingStartOptions) await this.confirmStart()
+    }
     backFromStart() {
         assert(this.start.value('company'), 'No company start selected')
         this.start.back()
@@ -615,7 +767,11 @@ export class StockModule implements LocalSelection {
                               (purchase) => purchase.certificateId
                           )
                       }
-                    : {})
+                    : {}),
+                ...(this.selectedStartRequest?.presidentShares !== undefined
+                    ? { presidentShares: this.selectedStartRequest.presidentShares }
+                    : {}),
+                ...(details.choices ? { choices: details.choices } : {})
             })
         )
     }
@@ -812,7 +968,7 @@ export class StockModule implements LocalSelection {
     }
 
     hasManual() {
-        return this.hasSelection || this.menu.hasManual()
+        return this.hasSelection || this.menu.hasManual() || this.par.hasManual()
     }
     undo() {
         if (this.openMenu === 'sell' && this.selectedSaleCompany) {
@@ -825,6 +981,7 @@ export class StockModule implements LocalSelection {
             return true
         }
         if (this.start.undo()) return true
+        if (this.par.undo()) return true
         if (this.menu.entry('action')?.source !== 'manual') return false
         this.menu.back()
         return true
@@ -832,6 +989,7 @@ export class StockModule implements LocalSelection {
     clear() {
         this.cancel()
         this.menu.clear()
+        this.par.clear()
     }
 
     private assertAvailable(playerId: string | undefined) {

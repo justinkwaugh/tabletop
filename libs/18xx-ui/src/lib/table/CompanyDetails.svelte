@@ -111,6 +111,9 @@
     const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const marks = $derived(session.presentation.companyMarks?.(gameState, company.id) ?? [])
+    const tokenBadges = $derived(
+        session.presentation.companyTokenBadges?.(gameState, company.id) ?? []
+    )
     const compactMarks = $derived(marks.filter((mark) => mark.compact))
     const rosterMarks = $derived(marks.filter((mark) => !mark.compact))
     const stationCosts = $derived(!session.presentation.hideStationCosts)
@@ -130,12 +133,17 @@
     const investmentCompanies = $derived([
         ...new Set(investments.map((certificate) => certificate.companyId))
     ])
-    const privates = $derived(
-        session.privates.companies.filter((item) => {
+    const companyPowers = $derived(session.presentation.companyPowers)
+    const privates = $derived.by(() => {
+        if (companyPowers) {
+            const ids = companyPowers.privateIds(gameState, company.id)
+            return session.privates.companies.filter((item) => ids.includes(item.id))
+        }
+        return session.privates.companies.filter((item) => {
             const privateCompanyOwner = privateOwner(gameState, item.id)
             return privateCompanyOwner && sameOwner(privateCompanyOwner, owner)
         })
-    )
+    })
     const personalPrivates = $derived(
         session.privates.companies.flatMap((item) => {
             const privateCompanyOwner = privateOwner(gameState, item.id)
@@ -353,6 +361,7 @@
                                                 session
                                             )}
                                             president={!!presidency}
+                                            label={session.presidentMark(company.id)}
                                         />{@render multiShareBadge(entry)}</th
                                     >
                                     {#if numberedShares}<td
@@ -378,7 +387,7 @@
             <section aria-label="Company assets">
                 <section aria-label="Private companies and powers">
                     {#if !vertical || privates.length}
-                        <h3>Privates & powers</h3>
+                        <h3>{companyPowers?.heading ?? 'Privates & powers'}</h3>
                         {#each privates as item (item.id)}
                             {@render privateCard(item)}
                         {:else}<p class="empty">None</p>{/each}
@@ -398,9 +407,12 @@
                 </section>
                 {#if investmentCompanies.length}
                     <h3 class="section-heading">Investments</h3>
-                    {#each investmentCompanies as id (id)}<p class="investment">
-                            {session.companyName(id)}<strong
-                                >{sharesOwned(gameState, id, owner)} shares</strong
+                    {#each investmentCompanies as id (id)}
+                        {@const shares = sharesOwned(gameState, id, owner)}
+                        <p class="investment" title={session.companyFullName(id)}>
+                            {session.companyInitials(id)}<strong
+                                >{shares}
+                                {shares === 1 ? 'share' : 'shares'}</strong
                             >
                         </p>{/each}
                 {/if}
@@ -423,7 +435,21 @@
 {/if}
 
 {#snippet token()}
-    <CompanyToken appearance={session.mapView.stations[company.id]} size={vertical ? 32 : 36} />
+    {#if tokenBadges.length}<span class="badged-token"
+            ><CompanyToken
+                appearance={session.mapView.stations[company.id]}
+                size={vertical ? 32 : 36}
+            />{#each tokenBadges as badge, index (badge.description)}<img
+                    class="token-badge"
+                    style:right={`${index * 12 - 4}px`}
+                    src={badge.imageUrl}
+                    alt={badge.description}
+                    title={badge.description}
+                />{/each}</span
+        >{:else}<CompanyToken
+            appearance={session.mapView.stations[company.id]}
+            size={vertical ? 32 : 36}
+        />{/if}
 {/snippet}
 
 {#snippet name()}
@@ -525,8 +551,10 @@
                 >{purchasePrice ??
                     (item.closed
                         ? 'Closed'
-                        : (session.presentation.privateStatus?.(gameState, item.id) ??
-                          `${money(item.revenue)} / OR`))}</span
+                        : companyPowers
+                          ? ''
+                          : (session.presentation.privateStatus?.(gameState, item.id) ??
+                            `${money(item.revenue)} / OR`))}</span
             >
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
@@ -582,6 +610,7 @@
         display: contents;
     }
     .trains-under-stations .identity > :global(svg),
+    .trains-under-stations .identity > .badged-token,
     .trains-under-stations .token-column {
         grid-row: 1 / span 3;
     }
@@ -605,6 +634,20 @@
     }
     .identity > :global(svg) {
         flex-shrink: 0;
+    }
+    .badged-token {
+        position: relative;
+        display: inline-flex;
+        flex-shrink: 0;
+    }
+    .badged-token > :global(svg) {
+        display: block;
+    }
+    .token-badge {
+        position: absolute;
+        bottom: -4px;
+        width: 17px;
+        height: 17px;
     }
     .vertical h2 {
         white-space: normal;

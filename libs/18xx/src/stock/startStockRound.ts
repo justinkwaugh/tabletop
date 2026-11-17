@@ -9,7 +9,11 @@ import {
     assert,
     type HydratedGameState
 } from '@tabletop/common'
-import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
+import {
+    nextOperatingCompany,
+    onLastRound,
+    type OperatingState
+} from '../operating/operatingSet.js'
 
 const Fields = Type.Object({ type: Type.Literal('StartStockRound') })
 export const StartStockRound: Type.TObject<
@@ -29,7 +33,7 @@ export function canStartStockRound(state: OperatingState): boolean {
         !!set &&
         !set.completed &&
         set.privateIncomePaid &&
-        set.roundNumber === set.roundCount &&
+        onLastRound(set) &&
         !nextOperatingCompany(state)
     )
 }

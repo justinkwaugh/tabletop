@@ -73,8 +73,10 @@ export class HydratedResolveSelectionAuction
         const resolution = model.resolve()
         this.metadata = { resolution, completed: model.auction.completed }
         if (!model.auction.completed) return
+        const order = this.#rules.firstStockOrder?.(state)
+        if (order) state.turnManager.turnOrder = [...order]
         // The player who would have nominated next has priority in the first stock round.
-        state.turnManager.newFirstPlayer(model.auction.nominatorId)
+        else state.turnManager.newFirstPlayer(model.auction.nominatorId)
         startFirstStockRound(state, state.turnManager.turnOrder)
         this.metadata.roundEnd = roundEnd(state, this.#valuationRules, 'opening')
     }

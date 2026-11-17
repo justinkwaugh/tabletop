@@ -70,7 +70,7 @@
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
             <span
-                >{session.companyName(purchase.companyId)}
+                >{session.actionCompanyName(purchase.companyId)}
                 {session.trainFunding.optional ? 'may buy' : 'must buy'} a train</span
             >
             {@render undoButton()}
@@ -108,7 +108,7 @@
         <header>
             <CompanyToken appearance={session.mapView.stations[purchase.companyId]} size={24} />
             <span
-                >{session.companyName(purchase.companyId)}
+                >{session.actionCompanyName(purchase.companyId)}
                 {session.trainFunding.voluntary
                     ? 'buys'
                     : session.trainFunding.optional
@@ -144,7 +144,7 @@
                             class="sale-choice"
                             {disabled}
                             data-funding-shares={sale.sales[0].shares}
-                            aria-label={`Sell ${sale.sales[0].shares} ${session.companyName(companyId)} shares for ${money(sale.proceeds)}`}
+                            aria-label={`Sell ${sale.sales[0].shares} ${session.actionCompanyName(companyId)} shares for ${money(sale.proceeds)}`}
                             onclick={() => session.trainFunding.resolve(sale)}
                         >
                             <CompanyToken
@@ -219,7 +219,9 @@
                                                 details.sales[0].companyId
                                             ]}
                                             size={20}
-                                        />{session.companyName(details.sales[0].companyId)}</span
+                                        />{session.actionCompanyName(
+                                            details.sales[0].companyId
+                                        )}</span
                                     ></td
                                 >
                                 <td>{details.sales[0].shares}</td><td>{money(details.proceeds)}</td

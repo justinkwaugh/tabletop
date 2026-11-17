@@ -745,8 +745,9 @@ fn validate(problem: &Problem) -> Result<(), String> {
             return Err("Unsupported train revenue profile".into());
         }
     }
-    if problem.longest_route_bonus_per_stop < 0 || problem.hex_bonuses.iter().any(|&b| b < 0) {
-        return Err("Negative hex bonus".into());
+    // A negative hex bonus is a charge, as 1880's ferry fee; it only lowers a route's revenue.
+    if problem.longest_route_bonus_per_stop < 0 {
+        return Err("Negative longest-route bonus".into());
     }
     fleet::validate(problem)
 }

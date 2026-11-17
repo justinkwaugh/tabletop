@@ -96,6 +96,7 @@
     import TableHeader from './TableHeader.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import PhaseChart from '../phases/PhaseChart.svelte'
+    import PhaseNotice from '../phases/PhaseNotice.svelte'
     import PhaseChartContent from '../phases/PhaseChartContent.svelte'
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
@@ -1110,8 +1111,14 @@
         {/each}
     </button>
 {/snippet}
+{#snippet phaseNotice()}
+    {@const notice = session.presentation.phaseNotice?.(session.gameState)}
+    {#if notice}<PhaseNotice {notice} />{/if}
+{/snippet}
 {#snippet sidebarInformation()}
-    {#if paneLayout.current}{@render gameInformationStrip(paneStripStacking)}{/if}
+    {#if paneLayout.current}{@render gameInformationStrip(
+            paneStripStacking
+        )}{@render phaseNotice()}{/if}
     {#if gameInformation}{@render gameInformation()}{/if}
 {/snippet}
 {#snippet chatPanel()}
@@ -1259,6 +1266,7 @@
                     <div class="action-body" class:attention-frame={stackedTurnAttention}>
                         <div class="action-information">
                             {@render gameInformationStrip(actionStripStacking)}
+                            {@render phaseNotice()}
                         </div>
                         <TableNotices notices={session.notices} />
                         <OperatingSteps
@@ -1740,8 +1748,19 @@
     .original-actions .action-information .game-information {
         padding-top: 8px;
     }
+    /* In the Actions pane the panel grows with its content and the body scrolls it, under the
+       instruction bar pinned to the pane's foot; stacked on a phone, the panel grows to fit. */
     .actions-area .action-panel {
+        display: flex;
+        flex-direction: column;
         flex: 1 0 auto;
+        overflow: visible;
+    }
+    .actions-area :global(.instruction-slot) {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        background: var(--rail-surface, #faf7f1);
     }
     .widget-empty {
         padding: 16px;

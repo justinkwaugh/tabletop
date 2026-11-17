@@ -51,6 +51,10 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /** The label's colour in place of ink, drawn without a halo, as on a dark city it stands on. */
+    labelColor?: string
+    /** A label position by the tile's rotation, for a label that stays put as the tile turns. */
+    labelPositionByRotation?: Partial<Record<TileRotation, Point>>
     /** Where the cost of upgrading the tile is printed, in place of the clearest spot found. */
     upgradeCostPosition?: Point
     /**
@@ -205,6 +209,8 @@ export type TileDrawing = {
     crossings: readonly TrackCrossing[]
     nodes: readonly TileDrawnNode[]
     labelPosition: Point
+    /** The label's colour, where its layout gives one. */
+    labelColor?: string
     symbolPosition: Point
     upgradeCostPosition: Point
     printedTokens: readonly TileDrawnToken[]
@@ -473,8 +479,9 @@ export function createTileDrawing(
                 : [center]
         })
     ]
-    if (face.labels.length > 0 && layout.labelPosition) {
-        occupied.push(orientPoint(layout.labelPosition, angle))
+    const labelHint = layout.labelPositionByRotation?.[rotation] ?? layout.labelPosition
+    if (face.labels.length > 0 && labelHint) {
+        occupied.push(orientPoint(labelHint, angle))
     }
     const drawnNodes = face.nodes.map((node): Omit<TileDrawnNode, 'slotRadius'> => {
         const center = centers.get(node.id)
@@ -572,8 +579,8 @@ export function createTileDrawing(
                 drawn.node.kind === 'city' && !drawn.slots.length ? slotRadius : drawn.dotRadius
         }
     })
-    const labelPosition = layout.labelPosition
-        ? orientPoint(layout.labelPosition, angle)
+    const labelPosition = labelHint
+        ? orientPoint(labelHint, angle)
         : labelAnnotationPosition(
               paths,
               occupied,
@@ -606,6 +613,7 @@ export function createTileDrawing(
         crossings: trackCrossings(paths),
         nodes,
         labelPosition,
+        ...(layout.labelColor ? { labelColor: layout.labelColor } : {}),
         symbolPosition,
         upgradeCostPosition,
         inkGround: !!layout.inkGround,

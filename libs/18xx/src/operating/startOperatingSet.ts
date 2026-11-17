@@ -7,7 +7,12 @@ import {
     assert,
     type HydratedGameState
 } from '@tabletop/common'
-import { OperatingSet, type OperatingRules, type OperatingState } from './operatingSet.js'
+import {
+    OperatingSet,
+    roundCountFields,
+    type OperatingRules,
+    type OperatingState
+} from './operatingSet.js'
 import type { EndingState } from '../ending/gameEnding.js'
 
 const StartFields = Type.Object({
@@ -51,7 +56,10 @@ export class HydratedStartOperatingSet
                 ? ending.finalOperatingRounds
                 : this.#rules.roundCount(state)
         const companyOrder = this.#rules.companyOrder(state)
-        assert(Number.isInteger(roundCount) && roundCount > 0, 'Invalid operating round count')
+        assert(
+            roundCount === 'endless' || (Number.isInteger(roundCount) && roundCount > 0),
+            'Invalid operating round count'
+        )
         assert(
             new Set(companyOrder).size === companyOrder.length &&
                 companyOrder.every((id) =>
@@ -62,7 +70,7 @@ export class HydratedStartOperatingSet
         state.operatingSet = {
             number,
             roundNumber: 1,
-            roundCount,
+            ...roundCountFields(roundCount),
             companyOrder: [...companyOrder],
             completedCompanyIds: [],
             privateIncomePaid: false,

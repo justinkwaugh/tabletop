@@ -533,7 +533,7 @@
         bottom: calc(3px * var(--render-scale));
         display: flex;
         flex-direction: column;
-        color: light-dark(#6f6355, var(--rail-muted, #7f8e9e));
+        color: var(--price-ink);
         font-size: calc(9px * var(--render-scale));
         font-style: italic;
         line-height: 1.1;

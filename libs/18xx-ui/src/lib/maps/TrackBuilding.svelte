@@ -53,7 +53,7 @@
             <CompanyTreasuryLine {session} companyId={turn.companyId} {borrowable} />
         {:else}
             <header>
-                <strong>{session.companyName(turn.companyId)} · Track</strong>
+                <strong>{session.actionCompanyName(turn.companyId)} · Track</strong>
                 <span
                     >Treasury: {cashText(
                         money,

@@ -31,7 +31,7 @@
     </thead>
     <tbody>
         {#each runs.presided as companyId (companyId)}
-            {@const name = session.companyName(companyId)}
+            {@const name = session.actionCompanyName(companyId)}
             {@const ignored = runs.ignoredStops(companyId)}
             <tr>
                 <th scope="row"

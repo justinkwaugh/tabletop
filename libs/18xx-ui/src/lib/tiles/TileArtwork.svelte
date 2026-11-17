@@ -619,8 +619,9 @@
                 font-size={textLabelSize}
                 font-weight={labelFont.weight}
                 font-family={labelFont.family}
+                fill={drawing.labelColor}
                 paint-order="stroke"
-                stroke={fill}
+                stroke={drawing.labelColor ? 'none' : fill}
                 stroke-width="2.5">{textLabels.join(' ')}</text
             >
         {/if}
