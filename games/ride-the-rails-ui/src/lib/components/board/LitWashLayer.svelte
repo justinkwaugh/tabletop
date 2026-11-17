@@ -1,7 +1,7 @@
 <script lang="ts">
     import { cityIn } from '@tabletop/ride-the-rails'
     import { BOARD_LOOK, CITY_CENTRE_INSET } from '$lib/utils/boardLook.js'
-    import { insetHexPoints, type LitHexView } from '$lib/utils/pickMarks.js'
+    import { insetCellPoints, type LitHexView } from '$lib/utils/pickMarks.js'
 
     let { views }: { views: readonly LitHexView[] } = $props()
 
@@ -17,10 +17,13 @@
      painted the plains' colour inside a rim of its grey. Under the bands and cubes, so neither covers what stands in it. -->
 <g class="lit-wash" aria-hidden="true">
     {#each plainCities as view (view.hexId)}
-        <polygon points={insetHexPoints(view.hexId, CITY_CENTRE_INSET)} fill="var(--rtr-plain)"
-        ></polygon>
+        {#each insetCellPoints(view.hexId, CITY_CENTRE_INSET) as points, cell (cell)}
+            <polygon {points} fill="var(--rtr-plain)"></polygon>
+        {/each}
     {/each}
     {#each lit as view (view.hexId)}
-        <polygon points={insetHexPoints(view.hexId, 0)} fill="var(--rtr-lit-wash)"></polygon>
+        {#each insetCellPoints(view.hexId, 0) as points, cell (cell)}
+            <polygon {points} fill="var(--rtr-lit-wash)"></polygon>
+        {/each}
     {/each}
 </g>

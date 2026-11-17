@@ -13,7 +13,8 @@
     import { tableOf } from '$lib/utils/tableScope.js'
     import Flyer from './Flyer.svelte'
 
-    const flights = getGameSession().flights
+    const gameSession = getGameSession()
+    const flights = gameSession.flights
 
     const CLIP_ID = 'rtr-table-flight-clip'
 
@@ -69,7 +70,7 @@
         const place = () => {
             const box = boardSvg && boardBoxOf(boardSvg)
             const view = clipper?.getBoundingClientRect()
-            const board = box && frameOf(box)
+            const board = box && frameOf(gameSession.boardFrame, box)
             if (board) {
                 const transform = frameTransform(board)
                 for (const group of boardUnits) {

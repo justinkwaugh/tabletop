@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { usaCity, type HexId } from '@tabletop/ride-the-rails'
+    import { cityById, type HexId } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { BOARD_HEIGHT, BOARD_WIDTH, FITTED_DESKTOP_SCALE } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { BUILD_PICK, litHexViews, type PickContext } from '$lib/utils/pickMarks.js'
     import { EMPTY_STAGED_ROUTE } from '$lib/utils/routePath.js'
@@ -23,9 +22,12 @@
     import StartCueLayer from './board/StartCueLayer.svelte'
     import TrackLayer from './board/TrackLayer.svelte'
 
-    let { viewScale = FITTED_DESKTOP_SCALE }: { viewScale?: number } = $props()
+    let { viewScale }: { viewScale: number } = $props()
 
     const gameSession = getGameSession()
+
+    // Displayed Game State: the board of the map the shown state is played on.
+    const board = $derived(gameSession.boardFrame)
 
     const offer = $derived(gameSession.boardOffer)
     const draft = $derived(gameSession.journeyDraft)
@@ -34,7 +36,7 @@
         draft
             ? {
                   kind: 'journey-extend',
-                  startHexId: usaCity(draft.startCityId).hexId,
+                  startHexId: cityById(draft.startCityId).hexId,
                   choosingHexId: gameSession.journeyPopup?.hexId
               }
             : gameSession.journeyLit.length > 0
@@ -52,7 +54,7 @@
     const stagedRoute = $derived(draft ?? EMPTY_STAGED_ROUTE)
     // The city the next link leaves from, so each next city's chevron points the way it goes.
     const journeyFrom: HexId | undefined = $derived(
-        draft ? usaCity(draft.draftLinks.at(-1)?.cityId ?? draft.startCityId).hexId : undefined
+        draft ? cityById(draft.draftLinks.at(-1)?.cityId ?? draft.startCityId).hexId : undefined
     )
 
     // The route's last city, where a Ride button floats once the journey can be made.
@@ -67,17 +69,17 @@
 <!-- Contract, Render ownership: one SVG, back to front. -->
 <svg
     class="block select-none"
-    width={BOARD_WIDTH}
-    height={BOARD_HEIGHT}
-    viewBox="0 0 {BOARD_WIDTH} {BOARD_HEIGHT}"
+    width={board.width}
+    height={board.height}
+    viewBox="0 0 {board.width} {board.height}"
     role="group"
-    aria-label="Map of the USA"
+    aria-label={gameSession.mapLayout.boardLabel}
     data-map-board
 >
     <GroundLayer />
     <LitWashLayer {views} />
     <CapacityMarks />
-    <MapTitle />
+    <MapTitle layout={gameSession.mapLayout} />
     <CityLayer />
     <StartCueLayer />
     <BonusLayer />

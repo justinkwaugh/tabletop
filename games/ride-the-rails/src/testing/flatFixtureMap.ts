@@ -4,7 +4,8 @@ import type { HexId } from '../data/hexes.js'
 
 // A small flat map for the specs, so flat geometry, impassable sides and a two-cell hex are
 // exercised before any flat map is printed. The id types know only the USA's key, so the fixture
-// borrows it; it is never registered, and only its own `BoardMap` reads it.
+// borrows it; it is never registered, and only its own `BoardMap` reads it (the UI's board
+// geometry specs build their flat board from it).
 //
 //   col:     0     1     2     3
 //   drow 0  0-0         2-0

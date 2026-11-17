@@ -6,7 +6,7 @@ import {
     PhaseName,
     isTakeShare,
     railroadsIn,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type RailroadId,
@@ -215,9 +215,9 @@ describe('journey panel (R-3.3.3, R-3.3.4, R-3.3.1)', () => {
                 passengers: [KANSAS_CITY, CINCINNATI]
             })
         )
-        await session.pressHex(usaCity(KANSAS_CITY).hexId)
-        await session.pressHex(usaCity(SAINT_LOUIS).hexId)
-        await session.pressHex(usaCity(CINCINNATI).hexId)
+        await session.pressHex(cityById(KANSAS_CITY).hexId)
+        await session.pressHex(cityById(SAINT_LOUIS).hexId)
+        await session.pressHex(cityById(CINCINNATI).hexId)
         await session.rideJourney()
         await settled(session)
         const latest = latestJourney(session.actions)

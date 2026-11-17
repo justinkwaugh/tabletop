@@ -1,14 +1,15 @@
-import { assertExists, distanceAxial, type Point } from '@tabletop/common'
+import { assertExists, distanceAxial } from '@tabletop/common'
 import {
     FIVE_DOLLAR_BONUS,
-    USA_CITIES,
-    USA_HEXES,
-    doubledToAxial,
-    hexCoordinates,
+    MAP_IDS,
+    PLACEMENT_LIMITS,
+    boardMap,
+    hexIdToAxial,
     hexOrder,
+    mapIdOfHex,
     railroadsIn,
-    usaCity,
     cityIn,
+    type BoardMap,
     type HexId,
     type RailroadId,
     type Track
@@ -22,11 +23,12 @@ import type {
 } from '$lib/model/boardOffer.js'
 import type { JourneyPopup } from '$lib/model/journeyOffer.js'
 import {
-    FITTED_DESKTOP_SCALE,
     closedPath,
+    hexCells,
     hexCenter,
-    hexCorners,
-    pointText
+    hexOutline,
+    pointText,
+    type BoardGeometry
 } from './boardGeometry.js'
 import { railroadNames, railroadStyle } from './railroadStyle.js'
 import { ghostCubes, type GhostCube } from './trackLayout.js'
@@ -38,8 +40,8 @@ export const LARGEST_PICK_SCALE = 2
  * Rings and marks grow with the board as the view zooms in, and below the fitted desktop scale
  * keep that scale's screen size, up to twice their board size.
  */
-export function pickScale(viewScale: number): number {
-    return Math.min(LARGEST_PICK_SCALE, Math.max(1, FITTED_DESKTOP_SCALE / viewScale))
+export function pickScale(board: BoardGeometry, viewScale: number): number {
+    return Math.min(LARGEST_PICK_SCALE, Math.max(1, board.fittedDesktopScale / viewScale))
 }
 
 /**
@@ -112,17 +114,17 @@ const STEP_WORDS = ['one hex', 'two hexes', 'three hexes', 'four hexes', 'five h
 
 type Bearing = { terrain: string; cityName: string; angle: number; steps: number }
 
-function hexSteps(from: HexId, to: HexId): number {
-    return distanceAxial(doubledToAxial(hexCoordinates(from)), doubledToAxial(hexCoordinates(to)))
+function hexSteps(map: BoardMap, from: HexId, to: HexId): number {
+    return distanceAxial(hexIdToAxial(map.orientation, from), hexIdToAxial(map.orientation, to))
 }
 
 // A plain or mountain from its nearest city; a tie in distance goes to the city first in the
 // map's table.
-function bearingOf(hexId: HexId, terrain: string): Bearing {
+function bearingOf(map: BoardMap, hexId: HexId, terrain: string): Bearing {
     const center = hexCenter(hexId)
-    let nearest = USA_CITIES[0]
+    let nearest = map.cities[0]
     let nearestDistance = Infinity
-    for (const city of USA_CITIES) {
+    for (const city of map.cities) {
         const cityCenter = hexCenter(city.hexId)
         const distance = Math.hypot(center.x - cityCenter.x, center.y - cityCenter.y)
         if (distance < nearestDistance - DISTANCE_TIE) {
@@ -135,7 +137,7 @@ function bearingOf(hexId: HexId, terrain: string): Bearing {
         terrain,
         cityName: nearest.name,
         angle: Math.atan2(cityCenter.y - center.y, center.x - cityCenter.x),
-        steps: hexSteps(hexId, nearest.hexId)
+        steps: hexSteps(map, hexId, nearest.hexId)
     }
 }
 
@@ -151,18 +153,18 @@ function bearingName({ terrain, cityName, angle, steps }: Bearing, fineness: num
 
 const FINEST = 2
 
-// Each hex starts with its coarsest name; hexes that share a name all take the next finer one,
-// until no two share.
-function namePlaces(): ReadonlyMap<HexId, string> {
+// Each hex starts with its coarsest name; hexes of a map that share a name all take the next finer
+// one, until no two share.
+function namePlaces(map: BoardMap): [HexId, string][] {
     const names = new Map<HexId, string>()
     const bearings = new Map<HexId, Bearing>()
     const fineness = new Map<HexId, number>()
-    for (const hex of USA_HEXES) {
+    for (const hex of map.hexes) {
         if (hex.terrain === 'city') {
-            names.set(hex.id, usaCity(hex.cityId).name)
+            names.set(hex.id, map.city(hex.cityId).name)
             continue
         }
-        const bearing = bearingOf(hex.id, hex.terrain === 'mountain' ? 'Mountain' : 'Plain')
+        const bearing = bearingOf(map, hex.id, hex.terrain === 'mountain' ? 'Mountain' : 'Plain')
         bearings.set(hex.id, bearing)
         fineness.set(hex.id, 0)
         names.set(hex.id, bearingName(bearing, 0))
@@ -181,10 +183,13 @@ function namePlaces(): ReadonlyMap<HexId, string> {
             }
         }
     }
-    return names
+    return [...names]
 }
 
-const PLACE_NAMES = namePlaces()
+// Every map's hexes: hex ids name their map, so no two maps' names meet.
+const PLACE_NAMES: ReadonlyMap<HexId, string> = new Map(
+    MAP_IDS.flatMap((mapId) => namePlaces(boardMap(mapId)))
+)
 
 /**
  * A hex's name on the map: a city by its name; a plain or mountain by the nearest city and the
@@ -194,7 +199,7 @@ const PLACE_NAMES = namePlaces()
  */
 export function placeName(hexId: HexId): string {
     const name = PLACE_NAMES.get(hexId)
-    assertExists(name, `Unknown USA hex ${hexId}`)
+    assertExists(name, `Unknown hex ${hexId}`)
     return name
 }
 
@@ -287,83 +292,33 @@ export function litHexViews(
     )
 }
 
-/** The hex's corners pulled in towards its centre, for rings drawn inside the hex edge. */
-export function insetHexPoints(hexId: HexId, inset: number): string {
-    const center = hexCenter(hexId)
-    return hexCorners(hexId)
-        .map((corner) => {
-            const dx = corner.x - center.x
-            const dy = corner.y - center.y
-            const factor = 1 - inset / Math.hypot(dx, dy)
-            return pointText({ x: center.x + dx * factor, y: center.y + dy * factor })
-        })
-        .join(' ')
+/**
+ * Each of the hex's cells, its corners pulled in towards the cell's centre, for rings drawn inside
+ * the hex edge: one polygon a cell.
+ */
+export function insetCellPoints(hexId: HexId, inset: number): string[] {
+    return hexCells(hexId).map(({ center, vertices }) =>
+        vertices
+            .map((corner) => {
+                const dx = corner.x - center.x
+                const dy = corner.y - center.y
+                const factor = 1 - inset / Math.hypot(dx, dy)
+                return pointText({ x: center.x + dx * factor, y: center.y + dy * factor })
+            })
+            .join(' ')
+    )
 }
 
 function hexPath(hexId: HexId): string {
-    return closedPath(hexCorners(hexId))
-}
-
-function pointKey(point: Point): string {
-    return `${point.x.toFixed(2)},${point.y.toFixed(2)}`
+    return closedPath(hexOutline(hexId))
 }
 
 /**
- * The land's outline: every hex side no two land hexes share, chained into closed loops, so the
- * land fills as one shape with no seams between hexes. Three hexes meet at each corner and any two
- * of them are neighbours, so each corner on the outline joins exactly two of its sides.
+ * The scrim: the board's land with a hole at each lit hex, filled even-odd; the sea is never
+ * dimmed.
  */
-function landOutline(): string {
-    const sides = new Map<string, { from: Point; to: Point; count: number }>()
-    for (const hex of USA_HEXES) {
-        const corners = hexCorners(hex.id)
-        corners.forEach((from, index) => {
-            const to = corners[(index + 1) % corners.length]
-            const key = [pointKey(from), pointKey(to)].sort().join(' ')
-            const side = sides.get(key)
-            if (side) side.count += 1
-            else sides.set(key, { from, to, count: 1 })
-        })
-    }
-    const points = new Map<string, Point>()
-    const next = new Map<string, string[]>()
-    for (const { from, to, count } of sides.values()) {
-        if (count !== 1) continue
-        const [a, b] = [pointKey(from), pointKey(to)]
-        points.set(a, from)
-        points.set(b, to)
-        next.set(a, [...(next.get(a) ?? []), b])
-        next.set(b, [...(next.get(b) ?? []), a])
-    }
-    const visited = new Set<string>()
-    const loops: Point[][] = []
-    for (const start of next.keys()) {
-        if (visited.has(start)) continue
-        const loop: Point[] = []
-        let previous: string | undefined
-        let current = start
-        while (!visited.has(current)) {
-            visited.add(current)
-            const point = points.get(current)
-            const ends = next.get(current)
-            assertExists(point)
-            assertExists(ends)
-            const step = ends[0] === previous ? ends[1] : ends[0]
-            assertExists(step)
-            loop.push(point)
-            previous = current
-            current = step
-        }
-        loops.push(loop)
-    }
-    return loops.map(closedPath).join('')
-}
-
-const LAND_OUTLINE_PATH = landOutline()
-
-/** The scrim: the land with a hole at each lit hex, filled even-odd; the sea is never dimmed. */
-export function scrimPath(holes: readonly HexId[]): string {
-    return `${LAND_OUTLINE_PATH}${holes.map(hexPath).join('')}`
+export function scrimPath(board: BoardGeometry, holes: readonly HexId[]): string {
+    return `${board.landPath}${holes.map(hexPath).join('')}`
 }
 
 /** A pill on a choice button: what that placement or link pays. */
@@ -376,7 +331,7 @@ export type ChipModifiers = {
     transcontinental: number | undefined
     /** R-4.3.2: a start in an empty $5 city uses the bonus up and pays nothing. */
     startUsesBonus: number | undefined
-    /** R-3.2.4: the hex is the turn's first mountain, so the limit drops by one. */
+    /** R-3.2.4: the hex is the turn's first mountain, so the limit drops by the map's reduction. */
     mountain: boolean
 }
 
@@ -419,14 +374,23 @@ export type RailroadChoice = {
     chips: ChoiceChip[]
 }
 
-function modifierText(modifiers: ChipModifiers): string {
+const FEWER_WORDS = ['no', 'one', 'two', 'three'] as const
+
+// R-3.2.4, R-8: how many fewer placements the map's mountain leaves the turn.
+function fewerPlacements(hexId: HexId): string {
+    const reduction = PLACEMENT_LIMITS[mapIdOfHex(hexId)].mountainReduction
+    const count = FEWER_WORDS[reduction] ?? String(reduction)
+    return `${count} fewer placement${reduction === 1 ? '' : 's'}`
+}
+
+function modifierText(hexId: HexId, modifiers: ChipModifiers): string {
     const pays =
         modifiers.bonuses.length > 0
             ? `, pays ${modifiers.bonuses.map((mark) => mark.spoken).join(' and ')}`
             : modifiers.startUsesBonus !== undefined
               ? `, pays nothing: a start uses up the $${modifiers.startUsesBonus}`
               : ''
-    const mountain = modifiers.mountain ? ', mountain: one fewer placement this turn' : ''
+    const mountain = modifiers.mountain ? `, mountain: ${fewerPlacements(hexId)} this turn` : ''
     const line =
         modifiers.transcontinental !== undefined
             ? `, completes the Transcontinental: pays $${modifiers.transcontinental}`
@@ -453,7 +417,7 @@ export function buildChoice(track: Track, popup: BuildPopup): RailroadChoice {
             return {
                 railroadId: chip.railroadId,
                 // The label opens with "Start" already; nothing is written on the button.
-                label: `${chipLabel(chip)}, ${chip.supplyLeft} left${modifierText(modifiers)}`,
+                label: `${chipLabel(chip)}, ${chip.supplyLeft} left${modifierText(popup.hexId, modifiers)}`,
                 pills: chipPills(modifiers),
                 mountain: modifiers.mountain
             }

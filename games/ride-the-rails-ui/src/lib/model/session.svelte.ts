@@ -34,7 +34,9 @@ import {
     type BuildStage
 } from './buildStage.js'
 import { Flights } from '$lib/animators/flights.svelte.js'
+import { boardGeometry, type BoardGeometry } from '$lib/utils/boardGeometry.js'
 import { lastJourneyLinks } from '$lib/utils/boardPieces.js'
+import { MAP_LAYOUTS, type MapLayout } from '$lib/utils/mapLayouts.js'
 import {
     EMPTY_JOURNEY_OFFER,
     heldJourneyStage,
@@ -96,6 +98,12 @@ export class RideTheRailsGameSession extends GameSession<
     }
 
     myPlayerId = $derived(this.myPlayer?.id)
+
+    /** The displayed state's board: its map's hexes, extents and fitted scale (R-8). */
+    boardFrame: BoardGeometry = $derived(boardGeometry(this.gameState.mapId))
+
+    /** What the displayed map's sea holds: its title and legend. */
+    mapLayout: MapLayout = $derived(MAP_LAYOUTS[this.gameState.mapId])
 
     canAct = $derived(
         this.isMyTurn &&

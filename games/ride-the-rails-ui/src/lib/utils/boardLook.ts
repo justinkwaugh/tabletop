@@ -1,4 +1,4 @@
-import { CHICAGO_BONUS, cityIn, usaHex, type HexId } from '@tabletop/ride-the-rails'
+import { CHICAGO_BONUS, cityIn, hexById, type HexId } from '@tabletop/ride-the-rails'
 
 /**
  * The board's look, one pick for each of twelve questions. The look is chosen here: to switch a
@@ -122,7 +122,7 @@ function patch(fill: string): HexPaint {
 
 /** A hex's fill and edge in a hex colouring scheme. */
 export function hexPaint(hexId: HexId, scheme: HexFillScheme = BOARD_LOOK.hexFill): HexPaint {
-    const hex = usaHex(hexId)
+    const hex = hexById(hexId)
     if (hex.terrain === 'mountain') return patch('var(--rtr-mountain)')
     const city = cityIn(hexId)
     if (!city || scheme === 'terrain') return PLAIN_PAINT

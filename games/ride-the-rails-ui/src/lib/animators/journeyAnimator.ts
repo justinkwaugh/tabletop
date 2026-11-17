@@ -1,12 +1,12 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import {
+    cityById,
     isRideJourney,
     journeyHexIds,
-    usaCity,
     type CityId,
     type RideJourney
 } from '@tabletop/ride-the-rails'
-import { hexCenter, stationOf } from '$lib/utils/boardGeometry.js'
+import { boardGeometry, hexCenter, stationOf } from '$lib/utils/boardGeometry.js'
 import { passengerSpot, startPassengerSpot } from '$lib/utils/passengerLayout.js'
 import { seatMoneyPoint } from './flightPlaces.js'
 import { moneyKey, passengerKey, type Flights, type Flyer } from './flights.svelte.js'
@@ -86,6 +86,7 @@ async function ride(
     if (!metadata) return
     const { startCityId, endCityId, cityIds, payments } = metadata
     const hexes = journeyHexIds(action.links)
+    const board = boardGeometry(to.mapId)
     // The journey draft is put away while the step plays. The passenger travels grown, as the
     // rider's own draft showed it: from the middle of its hex there, or growing into it from its
     // place in the top right on every other board.
@@ -102,7 +103,7 @@ async function ride(
     const pulses = cityIds.map((cityId, index) => {
         const station = stationOf(cityId)
         // The passenger reaches a city's hex one step after the hex before it.
-        const reaches = (hexes.indexOf(usaCity(cityId).hexId) + 1 - skipped) * step
+        const reaches = (hexes.indexOf(cityById(cityId).hexId) + 1 - skipped) * step
         return {
             key: pulseFlyerKey(index, cityId),
             radius: station.radius,
@@ -146,7 +147,7 @@ async function ride(
                 key: coin.key,
                 start: end,
                 rise: fan[index],
-                marker: seatMoneyPoint(flights.table, coin.playerId),
+                marker: seatMoneyPoint(board, flights.table, coin.playerId),
                 rises
             },
             JOURNEY

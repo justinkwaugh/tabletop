@@ -46,7 +46,10 @@
     {#each cities as city (city.cityId)}
         <g transform="translate({city.center.x} {city.center.y})" data-city-marks={city.cityId}>
             {#if BOARD_LOOK.startMark === 'band'}
-                <StartBand startColours={city.bandColours} />
+                <StartBand
+                    startColours={city.bandColours}
+                    frame={gameSession.boardFrame.hexFrame}
+                />
             {/if}
         </g>
     {/each}

@@ -30,7 +30,7 @@
         BOARD_MAX_SCALE
     } from '$lib/utils/boardFocus.js'
     import { isPhoneWidth } from '$lib/utils/phoneLayout.svelte.js'
-    import { FITTED_DESKTOP_SCALE, hexBox } from '$lib/utils/boardGeometry.js'
+    import { hexBox } from '$lib/utils/boardGeometry.js'
     import { keepFocusedHexInBoard } from '$lib/utils/focusScroll.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
@@ -156,7 +156,10 @@
                         expandable
                         onManualViewChange={() => boardView.moveByHand()}
                     >
-                        <Board viewScale={wrapper?.viewScale() ?? FITTED_DESKTOP_SCALE} />
+                        <Board
+                            viewScale={wrapper?.viewScale() ??
+                                session.boardFrame.fittedDesktopScale}
+                        />
                         {#snippet overlay(viewport)}
                             <BoardViewFollower {wrapper} {viewport} {boardView} />
                         {/snippet}

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { USA_HEXES, usaCity, type HexId } from '@tabletop/ride-the-rails'
+    import { cityById, type HexId } from '@tabletop/ride-the-rails'
     import type { Attachment } from 'svelte/attachments'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { hexPoints } from '$lib/utils/boardGeometry.js'
@@ -10,7 +10,10 @@
 
     const gameSession = getGameSession()
 
-    const HEXES = USA_HEXES.map((hex) => ({ hexId: hex.id, points: hexPoints(hex.id) }))
+    // Displayed Game State: the shown state's map, each hex one target round all its cells.
+    const HEXES = $derived(
+        gameSession.boardFrame.hexIds.map((hexId) => ({ hexId, points: hexPoints(hexId) }))
+    )
     const labels: ReadonlyMap<HexId, string> = $derived(
         new Map(views.map((view) => [view.hexId, view.label]))
     )
@@ -18,7 +21,7 @@
     // they are kept clear as the lit hexes are (Contract, Pick conventions).
     const routeHexIds: ReadonlySet<HexId> = $derived(
         new Set(
-            gameSession.journeyDraft?.draftLinks.map((link) => usaCity(link.cityId).hexId) ?? []
+            gameSession.journeyDraft?.draftLinks.map((link) => cityById(link.cityId).hexId) ?? []
         )
     )
 

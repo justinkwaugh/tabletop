@@ -5,7 +5,7 @@ import {
     PhaseName,
     RAILROAD_IDS,
     USA_CITIES,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type RailroadId
@@ -42,7 +42,7 @@ const KANSAS_CITY_TO_SAINT_LOUIS: HexId[] = [
 afterEach(() => disposeSessions())
 
 function hexOf(cityId: CityId): HexId {
-    return usaCity(cityId).hexId
+    return cityById(cityId).hexId
 }
 
 async function settled(session: RideTheRailsGameSession) {
@@ -63,7 +63,7 @@ describe('the cities on the map (R-4.1.4, R-4.3)', () => {
         const pieces = cityPieces(buildState())
         const single = pieces.filter((piece) => piece.capacityMark === '×1')
         expect(single).toHaveLength(6)
-        expect(single.every((piece) => usaCity(piece.cityId).groups.includes('east-coast'))).toBe(
+        expect(single.every((piece) => cityById(piece.cityId).groups.includes('east-coast'))).toBe(
             true
         )
         expect(

@@ -46,6 +46,11 @@ export function isHexId(value: string): value is HexId {
     return Object.values(BOARD_MAPS).some((map) => map.hasHex(value))
 }
 
+// The map a hex id belongs to.
+export function mapIdOfHex(hexId: HexId): MapId {
+    return mapOfHex(hexId).id
+}
+
 export function hexById(hexId: HexId): Hex {
     return mapOfHex(hexId).hex(hexId)
 }
@@ -87,12 +92,3 @@ export function hexCapacity(hexId: HexId): HexCapacity {
 export function groupsOf(hexId: HexId): readonly HexGroup[] {
     return mapOfHex(hexId).groupsOf(hexId)
 }
-
-/** @deprecated The UI's name for `hexById`, until the UI reads the map from the state. */
-export const usaHex = hexById
-
-/** @deprecated The UI's name for `cityById`, until the UI reads the map from the state. */
-export const usaCity = cityById
-
-/** @deprecated The UI's name for `isHexId`, until the UI reads the map from the state. */
-export const isUsaHex = isHexId

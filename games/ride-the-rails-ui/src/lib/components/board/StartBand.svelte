@@ -7,19 +7,20 @@
         startBandSeparators,
         startBandSpans
     } from '$lib/utils/cityMarks.js'
+    import type { HexFrame } from '$lib/utils/hexFrame.js'
     import { railroadStyle } from '$lib/utils/railroadStyle.js'
 
-    let { startColours }: { startColours: readonly RailroadId[] } = $props()
+    let { startColours, frame }: { startColours: readonly RailroadId[]; frame: HexFrame } = $props()
 
     const band = $derived(startBand(startColours))
     const spans = $derived(startBandSpans(band.railroadIds.length))
-    const paths = $derived(startBandPaths(spans, band.width))
-    const separators = $derived(startBandSeparators(spans, band.width))
+    const paths = $derived(startBandPaths(spans, band.width, frame))
+    const separators = $derived(startBandSeparators(spans, band.width, frame))
 </script>
 
 <!-- Art plan, Start band (BOARD_LOOK.startMark 'band'): the colours that may start here, just
-     inside the hex's edge, in equal parts clockwise from the top corner; a plain city's is Black.
-     Centred on the hex's centre. -->
+     inside the hex's edge, in equal parts clockwise from the top (a pointy hex's top corner, the
+     middle of a flat hex's top edge); a plain city's is Black. Centred on the hex's centre. -->
 <g aria-hidden="true" data-start-band={band.railroadIds.length}>
     {#each paths as path, index (index)}
         {@const railroadId = band.railroadIds[index]}

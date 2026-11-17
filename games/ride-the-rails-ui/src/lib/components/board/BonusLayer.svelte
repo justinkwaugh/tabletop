@@ -4,13 +4,14 @@
     import { hexCenter } from '$lib/utils/boardGeometry.js'
     import { BOARD_LOOK } from '$lib/utils/boardLook.js'
     import { cityPieces } from '$lib/utils/boardPieces.js'
-    import { BONUS_PILL } from '$lib/utils/cityMarks.js'
     import BonusPill from './BonusPill.svelte'
 
     const gameSession = getGameSession()
 
     // R-4.3: bonuses are paid for building, so the journey phase shows none (R-3.3).
     const riding = $derived(gameSession.gameState.machineState === MachineState.Riding)
+    // The bottom centre of the hex, as its map's hexes stand.
+    const offset = $derived(gameSession.boardFrame.hexFrame.bonusPill)
 
     // R-4.3.2: a $5 bonus once taken is gone from the map; Chicago's $2 stays.
     const pills = $derived(
@@ -27,10 +28,7 @@
 <g class="bonuses" aria-hidden="true">
     {#if BOARD_LOOK.bonus === 'pill'}
         {#each pills as pill (pill.cityId)}
-            <g
-                transform="translate({pill.center.x + BONUS_PILL.center.x} {pill.center.y +
-                    BONUS_PILL.center.y})"
-            >
+            <g transform="translate({pill.center.x + offset.x} {pill.center.y + offset.y})">
                 <BonusPill bonus={pill.bonus} />
             </g>
         {/each}

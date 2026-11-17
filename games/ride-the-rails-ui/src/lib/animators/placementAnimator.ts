@@ -1,6 +1,7 @@
 import type { GameStateChangeListener } from '@tabletop/frontend-components'
 import { isPlaceLocomotive, supplyOf } from '@tabletop/ride-the-rails'
 import type { LocomotivePiece } from '$lib/utils/boardPieces.js'
+import { boardGeometry } from '$lib/utils/boardGeometry.js'
 import { TRAVELLING_LOCOMOTIVE_WIDTH, railroadSourcePoint, seatMoneyPoint } from './flightPlaces.js'
 import {
     bonusCoins,
@@ -95,7 +96,9 @@ async function flyPlacement(
     paid: { playerId: string; isStart: boolean; bonuses: Parameters<typeof bonusCoins>[1] }
 ) {
     const key = locomotiveFlyerKey(piece.key)
-    const start = railroadSourcePoint(flights.table, piece.railroadId)
+    // The board the step draws: its map is the state's (Displayed Game State).
+    const board = boardGeometry(to.mapId)
+    const start = railroadSourcePoint(board, flights.table, piece.railroadId)
     const startScale = TRAVELLING_LOCOMOTIVE_WIDTH / piece.slot.width
     const startPose = pose(start.x, start.y, startScale)
     const coins = bonusCoins(piece.hexId, paid.bonuses)
@@ -131,7 +134,7 @@ async function flyPlacement(
             .to({ y: slot.y }, FLIGHT.settle, FLIGHT.lands + FLIGHT.bounce, 'bounce.out')
     }
 
-    const marker = seatMoneyPoint(flights.table, paid.playerId)
+    const marker = seatMoneyPoint(board, flights.table, paid.playerId)
     const money = moneyAfterEach(from.getPlayerState(paid.playerId).money, coins)
     coins.forEach((coin, index) => {
         const lands = flyCoin(

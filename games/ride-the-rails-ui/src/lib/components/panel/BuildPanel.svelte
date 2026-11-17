@@ -4,6 +4,7 @@
         buildProgress,
         buildableRailroads,
         endBuildingLabel,
+        mountainCost,
         mountainNote,
         placedText
     } from '$lib/model/actionArea.js'
@@ -35,7 +36,7 @@
 </script>
 
 {#if progress && oneLine}
-    <!-- Contract, Build: on a phone and in full screen, the count, the mountain's −1 and the
+    <!-- Contract, Build: on a phone and in full screen, the count, the mountain's cost and the
          button on one line, and below them a card for each railroad the seat may place now, its
          supply as a cube and the number left; a press spotlights it. -->
     <div class="flex items-center justify-center gap-2.5">
@@ -43,7 +44,7 @@
             >{progress.placed} / {progress.limit}</span
         >
         <span class="sr-only">{placedText(progress)}{note ? `, ${note}` : ''}</span>
-        {#if note}<MarkPill tone="cost" text="−1" />{/if}
+        {#if note}<MarkPill tone="cost" text={mountainCost(progress)} />{/if}
         <button
             type="button"
             class="h-8 shrink-0 rounded-full border-2 border-rtr-pill bg-rtr-pill px-3.5 text-sm font-semibold whitespace-nowrap text-rtr-pill-ink hover:enabled:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent disabled:opacity-50"
@@ -68,7 +69,7 @@
     {/if}
 {:else if progress}
     <h2 class="text-base font-bold">Choose spaces on the map to build track</h2>
-    <!-- The count and the mountain's −1 on the next line, beside the button. -->
+    <!-- The count and the mountain's cost on the next line, beside the button. -->
     <div class="mt-1.5 flex flex-wrap items-center gap-2.5">
         <span class="rtr-display text-[26px] leading-none"
             >{progress.placed} / {progress.limit}<span class="sr-only"
@@ -76,7 +77,7 @@
             ></span
         >
         {#if note}
-            <MarkPill tone="cost" text="−1" />
+            <MarkPill tone="cost" text={mountainCost(progress)} />
             <span class="sr-only">{note}</span>
         {/if}
         <button

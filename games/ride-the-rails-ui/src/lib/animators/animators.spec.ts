@@ -9,14 +9,15 @@ import {
     type PlaceLocomotive,
     supplyOf,
     transcontinentalLine,
-    usaCity,
+    cityById,
     type HexId,
     type HydratedRideTheRailsGameState,
     type RailroadId,
     type Track
 } from '@tabletop/ride-the-rails'
 import { buildState, hydrated, runAction } from '@tabletop/ride-the-rails/testing'
-import { ABOVE_THE_BOARD, TRAVELLING_LOCOMOTIVE_WIDTH } from './flightPlaces.js'
+import { aboveTheBoard, TRAVELLING_LOCOMOTIVE_WIDTH } from './flightPlaces.js'
+import { boardGeometry } from '$lib/utils/boardGeometry.js'
 import { Flights, moneyKey, sharesKey, supplyKey } from './flights.svelte.js'
 import { OUTLINE_TOTAL, outlineStep } from './flightPlan.js'
 import { FLIGHT, QUICK } from './motion.js'
@@ -29,14 +30,16 @@ import {
     transcontinentalAnimator
 } from './transcontinentalAnimator.js'
 
+const ABOVE_THE_BOARD = aboveTheBoard(boardGeometry('map.usa'))
+
 type State = HydratedRideTheRailsGameState
 
 const RED: RailroadId = 'railroad.red'
 const PURPLE: RailroadId = 'railroad.purple'
 const CHICAGO: HexId = 'hex.usa.5-43'
 const NEXT_TO_CHICAGO: HexId = 'hex.usa.5-41'
-const NEW_YORK = usaCity('city.usa.new-york').hexId
-const SEATTLE = usaCity('city.usa.seattle').hexId
+const NEW_YORK = cityById('city.usa.new-york').hexId
+const SEATTLE = cityById('city.usa.seattle').hexId
 
 const opened: AnimationContext[] = []
 

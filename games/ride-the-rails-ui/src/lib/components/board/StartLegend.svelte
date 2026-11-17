@@ -1,60 +1,31 @@
 <script lang="ts">
-    import {
-        RAILROAD_INTRODUCTIONS,
-        type MapId,
-        type RailroadId,
-        type StartRule
-    } from '@tabletop/ride-the-rails'
+    import type { MapId } from '@tabletop/ride-the-rails'
+    import { legendBox, legendRows, START_LEGEND } from '$lib/utils/mapLayouts.js'
     import RailroadPiece from './RailroadPiece.svelte'
 
     let { mapId }: { mapId: MapId } = $props()
 
-    // In board units: the open sea south-west of California, clear of land below y 975 from the
-    // board's left edge to x 790 (USA map).
-    const LEFT = 52
-    const BOTTOM = 1196
-    const WIDTH = 610
-    const PAD = 16
-    const TITLE_SIZE = 20
-    const TEXT_SIZE = 17
-    const ROW = 30
-    const CUBE = 18
+    // In board units, standing on the corner the map's layout gives, in its open sea.
+    const {
+        pad: PAD,
+        titleSize: TITLE_SIZE,
+        textSize: TEXT_SIZE,
+        row: ROW,
+        cube: CUBE
+    } = START_LEGEND
     const TEXT_X = PAD + 2 * CUBE + 16
 
-    // R-4.2.1 to R-4.2.5: each start rule in the legend's words.
-    const START_RULE_TEXT: Readonly<Record<StartRule, string>> = {
-        'east-coast-apart': 'Different East Coast cities',
-        'east-coast-or-chicago': 'An East Coast city or Chicago',
-        'chicago-or-westernmost': 'Chicago or the 3 westernmost developed cities',
-        'west-coast': 'A West Coast city',
-        'any-city': 'Any city with room',
-        'printed-colour': 'A city of its colour',
-        'printed-colour-or-berlin': 'A city of its colour, or Berlin'
-    }
-
-    // One row per start rule, in the order the map introduces its railroads; the railroads that
-    // share a rule (Red and Blue) share a row.
-    const ROWS = $derived.by(() => {
-        const rows = new Map<StartRule, RailroadId[]>()
-        for (const { railroadId, startRule } of RAILROAD_INTRODUCTIONS[mapId]) {
-            rows.set(startRule, [...(rows.get(startRule) ?? []), railroadId])
-        }
-        return [...rows].map(([rule, railroadIds]) => ({
-            railroadIds,
-            text: START_RULE_TEXT[rule]
-        }))
-    })
-
-    const height = $derived(PAD + TITLE_SIZE + 10 + ROWS.length * ROW + PAD - 8)
-    const top = $derived(BOTTOM - height)
+    // R-4.2.1 to R-4.2.5, R-8: one row per start rule of the map, in its own words.
+    const ROWS = $derived(legendRows(mapId))
+    const box = $derived(legendBox(mapId))
 </script>
 
 <!-- R-4.2: a legend in the sea of where each railroad starts, a cube in its colour per rule; the
      city bands on the board show the same colours. -->
-<g class="start-legend" aria-hidden="true" transform="translate({LEFT} {top})" data-start-legend>
+<g class="start-legend" aria-hidden="true" transform="translate({box.x} {box.y})" data-start-legend>
     <rect
-        width={WIDTH}
-        {height}
+        width={box.width}
+        height={box.height}
         rx="8"
         fill="var(--rtr-panel)"
         stroke="var(--rtr-card-edge)"

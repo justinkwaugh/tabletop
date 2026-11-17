@@ -2,11 +2,11 @@ import { assertExists } from '@tabletop/common'
 import {
     BONUSES,
     PLACEMENT_LIMITS,
-    USA_HEXES,
+    boardMap,
     legalPlacements,
     placementBonuses,
     supplyOf,
-    usaHex,
+    hexById,
     type BonusId,
     type BonusPayment,
     type HexId,
@@ -64,7 +64,7 @@ export function placementOffer(
     for (const placement of legalPlacements(state, playerId)) {
         byHex.set(placement.hexId, [...(byHex.get(placement.hexId) ?? []), placement])
     }
-    return USA_HEXES.flatMap((hex): OfferedHex[] => {
+    return boardMap(state.mapId).hexes.flatMap((hex): OfferedHex[] => {
         const legal = byHex.get(hex.id)
         if (!legal) {
             return []
@@ -151,7 +151,7 @@ function placementLimitMark(
     hexId: HexId
 ): PlacementLimitMark | undefined {
     assertExists(state.building, 'The placement offer belongs to a building turn')
-    if (usaHex(hexId).terrain !== 'mountain' || state.building.usedMountain) {
+    if (hexById(hexId).terrain !== 'mountain' || state.building.usedMountain) {
         return undefined
     }
     return { kind: 'placement-limit', change: -PLACEMENT_LIMITS[state.mapId].mountainReduction }

@@ -6,7 +6,7 @@ import {
     PhaseName,
     USA_CITIES,
     USA_HEXES,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type RailroadId
@@ -14,7 +14,7 @@ import {
 import { buildState } from '@tabletop/ride-the-rails/testing'
 import { disposeSessions, openSessionOn } from '$lib/testing/sessionHarness.js'
 import { EMPTY_BOARD_OFFER, type BoardOffer, type OfferedHex } from '$lib/model/boardOffer.js'
-import { BOARD_EXTENTS, FITTED_DESKTOP_SCALE, hexCenter } from './boardGeometry.js'
+import { boardGeometry, hexCenter } from './boardGeometry.js'
 import { trackSlots } from './trackLayout.js'
 import {
     LARGEST_PICK_SCALE,
@@ -28,6 +28,9 @@ import {
     placeName,
     scrimPath
 } from './pickMarks.js'
+
+const USA = boardGeometry('map.usa')
+const { extents: BOARD_EXTENTS, fittedDesktopScale: FITTED_DESKTOP_SCALE } = USA
 
 const RED: RailroadId = 'railroad.red'
 const BLUE: RailroadId = 'railroad.blue'
@@ -46,7 +49,7 @@ const PHILADELPHIA: HexId = 'hex.usa.7-57'
 afterEach(() => disposeSessions())
 
 function hexOf(cityId: CityId): HexId {
-    return usaCity(cityId).hexId
+    return cityById(cityId).hexId
 }
 
 function offered(hexId: HexId, extension: RailroadId[], starts: RailroadId[] = []): OfferedHex {
@@ -264,19 +267,19 @@ describe('lit hexes are buttons named by place and effect (R-4.3, U-1)', () => {
 
 describe('marks are sized for the view (Contract, Render ownership)', () => {
     it('keeps the fitted size when zoomed out, up to twice the board size', () => {
-        expect(pickScale(FITTED_DESKTOP_SCALE)).toBe(1)
-        expect(pickScale(1)).toBe(1)
-        expect(pickScale(FITTED_DESKTOP_SCALE / 2)).toBeCloseTo(2)
-        expect(pickScale(FITTED_DESKTOP_SCALE / 10)).toBe(LARGEST_PICK_SCALE)
+        expect(pickScale(USA, FITTED_DESKTOP_SCALE)).toBe(1)
+        expect(pickScale(USA, 1)).toBe(1)
+        expect(pickScale(USA, FITTED_DESKTOP_SCALE / 2)).toBeCloseTo(2)
+        expect(pickScale(USA, FITTED_DESKTOP_SCALE / 10)).toBe(LARGEST_PICK_SCALE)
     })
 })
 
 describe('the scrim (Contract, Coexistence and precedence)', () => {
     it('covers the land only, never the sea, with a hole per lit hex', () => {
-        const land = scrimPath([])
+        const land = scrimPath(USA, [])
         const { width, height } = BOARD_EXTENTS
         expect(land).not.toContain(`h${width}v${height}`)
-        const path = scrimPath([NEW_YORK, PHILADELPHIA])
+        const path = scrimPath(USA, [NEW_YORK, PHILADELPHIA])
         expect(path.startsWith(land)).toBe(true)
         expect(path.slice(land.length).match(/Z/g)).toHaveLength(2)
     })

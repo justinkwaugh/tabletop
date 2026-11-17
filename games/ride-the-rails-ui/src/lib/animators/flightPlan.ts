@@ -3,7 +3,7 @@ import {
     RAILROAD_IDS,
     TRANSCONTINENTAL_BONUS,
     transcontinentalLine,
-    usaCity,
+    cityById,
     type HexId,
     type PaidBonus,
     type RailroadId
@@ -66,7 +66,7 @@ export function bonusCoins(placementHexId: HexId, bonuses: readonly PaidBonus[])
         .map((bonus, index) => ({
             key: `coin:${index}:${bonus.bonusId}`,
             amount: bonus.amount,
-            from: hexCenter(bonus.cityId ? usaCity(bonus.cityId).hexId : placementHexId)
+            from: hexCenter(bonus.cityId ? cityById(bonus.cityId).hexId : placementHexId)
         }))
 }
 

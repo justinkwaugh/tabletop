@@ -1,9 +1,11 @@
 import type { Point } from '@tabletop/common'
 import type { CityId, RailroadId } from '@tabletop/ride-the-rails'
-import { HEX_SIZE } from './boardGeometry.js'
+import { HEX_SIZE, HEX_WIDTH, type BoardGeometry } from './boardGeometry.js'
 import type { CityBonusMark } from './boardPieces.js'
+import type { HexFrame } from './hexFrame.js'
 
-// Art plan, City marks: every mark is placed from its hex's centre, in board units.
+// Art plan, City marks: every mark is placed from its hex's centre, in board units, and turned to
+// the way up its map's hexes stand (`hexFrame`).
 
 // The start band (BOARD_LOOK.startMark 'band').
 
@@ -27,12 +29,15 @@ export function startBand(startColours: readonly RailroadId[]): StartBand {
         : { railroadIds: [BLACK], width: PLAIN_CITY_BAND_WIDTH }
 }
 
-/** A band segment's span in degrees, clockwise from the hex's top corner. */
+/**
+ * A band segment's span in degrees, clockwise from the top of the hex: a pointy hex's top corner,
+ * the middle of a flat hex's top edge.
+ */
 export type BandSpan = { from: number; to: number }
 
 /**
- * Equal spans clockwise from the top corner, one per colour: two colours are the right half then
- * the left half. A single colour is the whole band.
+ * Equal spans clockwise from the top, one per colour: two colours are the right half then the
+ * left half. A single colour is the whole band.
  */
 export function startBandSpans(count: number): BandSpan[] {
     const spans = Math.max(count, 1)
@@ -50,25 +55,36 @@ function round(value: number): number {
     return Math.round(value * 100) / 100 + 0
 }
 
-/** The point on a pointy-topped hexagon of this corner radius at an angle clockwise from the top. */
-export function hexagonPoint(radius: number, degrees: number): Point {
-    const side = Math.min(Math.floor(degrees / SIDE_ANGLE), 5)
-    const fromSideMiddle = ((degrees - (side * SIDE_ANGLE + SIDE_ANGLE / 2)) * Math.PI) / 180
+/** How far the frame's first corner stands clockwise from the top: 0 pointy, 30 flat. */
+function firstCorner(frame: HexFrame): number {
+    return frame.cornerAngles[0] ?? 0
+}
+
+/**
+ * The point on the frame's hexagon of this corner radius at an angle clockwise from the top, its
+ * centre at the origin.
+ */
+export function hexagonPoint(radius: number, degrees: number, frame: HexFrame): Point {
+    const offset = firstCorner(frame)
+    const side = Math.min(Math.floor((degrees - offset) / SIDE_ANGLE), 5)
+    const fromSideMiddle =
+        ((degrees - (offset + side * SIDE_ANGLE + SIDE_ANGLE / 2)) * Math.PI) / 180
     const reach = (radius * APOTHEM_RATIO) / Math.cos(fromSideMiddle)
     const radians = (degrees * Math.PI) / 180
     return { x: round(reach * Math.sin(radians)), y: round(-reach * Math.cos(radians)) }
 }
 
-function hexagonRun(radius: number, from: number, to: number): Point[] {
+function hexagonRun(radius: number, from: number, to: number, frame: HexFrame): Point[] {
+    const offset = firstCorner(frame)
     const corners: Point[] = []
     for (
-        let corner = Math.ceil(from / SIDE_ANGLE) * SIDE_ANGLE;
+        let corner = Math.ceil((from - offset) / SIDE_ANGLE) * SIDE_ANGLE + offset;
         corner < to;
         corner += SIDE_ANGLE
     ) {
-        if (corner > from) corners.push(hexagonPoint(radius, corner))
+        if (corner > from) corners.push(hexagonPoint(radius, corner, frame))
     }
-    return [hexagonPoint(radius, from), ...corners, hexagonPoint(radius, to)]
+    return [hexagonPoint(radius, from, frame), ...corners, hexagonPoint(radius, to, frame)]
 }
 
 function pathOf(points: readonly Point[]): string {
@@ -84,32 +100,104 @@ function innerRadius(width: number): number {
  * One closed path per span, round the hex's centre, between its edge and the band's inner edge;
  * a single span is the whole ring, filled even-odd.
  */
-export function startBandPaths(spans: readonly BandSpan[], width: number): string[] {
+export function startBandPaths(
+    spans: readonly BandSpan[],
+    width: number,
+    frame: HexFrame
+): string[] {
     const inner = innerRadius(width)
     if (spans.length === 1) {
-        return [`${pathOf(hexagonRun(HEX_SIZE, 0, 300))}${pathOf(hexagonRun(inner, 0, 300))}`]
+        // From the top round to the last corner; the path closes along the hex's top.
+        const last = firstCorner(frame) + 300
+        return [
+            `${pathOf(hexagonRun(HEX_SIZE, 0, last, frame))}${pathOf(hexagonRun(inner, 0, last, frame))}`
+        ]
     }
     return spans.map(({ from, to }) =>
-        pathOf([...hexagonRun(HEX_SIZE, from, to), ...hexagonRun(inner, from, to).reverse()])
+        pathOf([
+            ...hexagonRun(HEX_SIZE, from, to, frame),
+            ...hexagonRun(inner, from, to, frame).reverse()
+        ])
     )
 }
 
 /** A separator across the band where each span starts, when there are two or more. */
-export function startBandSeparators(spans: readonly BandSpan[], width: number): string[] {
+export function startBandSeparators(
+    spans: readonly BandSpan[],
+    width: number,
+    frame: HexFrame
+): string[] {
     if (spans.length < 2) return []
     const inner = innerRadius(width)
     return spans.map(({ from }) => {
-        const outer = hexagonPoint(HEX_SIZE, from)
-        const end = hexagonPoint(inner, from)
+        const outer = hexagonPoint(HEX_SIZE, from, frame)
+        const end = hexagonPoint(inner, from, frame)
         return `M${outer.x} ${outer.y}L${end.x} ${end.y}`
+    })
+}
+
+// The mountain's mark.
+
+/** A small peak near the top of a mountain hex, its base the frame's `peakRise` above the centre. */
+export const MOUNTAIN_PEAK = { path: 'M-9 0 L-3 -8 L1 -3 L4 -6 L9 0 Z', scale: 1.1 } as const
+
+// The capacity marks.
+
+/** A white outline of a cube, its side and gap from its city's hex edge in board units. */
+export const CAPACITY_MARK = { side: 20, gap: 6, chicagoExtra: 9 } as const
+
+export type CapacityMarkView = { cityId: CityId; text: string; x: number; y: number }
+
+/**
+ * R-4.1.3, R-4.1.4: beside each city with a printed limit other than two, in the water, the most
+ * locomotives it holds: 1 on the East Coast, and Chicago any number, so at most six, one per
+ * railroad. Each mark stands just past the first of the hex's sides, in the frame's order, with no
+ * land beyond: its id's cell's sides first, then any other cell's (R-8: Berlin covers two).
+ */
+export function capacityMarks(geometry: BoardGeometry): CapacityMarkView[] {
+    const landCenters = geometry.hexIds.flatMap((hexId) =>
+        geometry.place(hexId).cells.map((cell) => cell.center)
+    )
+    const isWater = (x: number, y: number) =>
+        !landCenters.some((land) => Math.hypot(land.x - x, land.y - y) < HEX_SIZE / 2)
+    const sides = geometry.hexFrame.capacitySides.map((degrees) => (degrees * Math.PI) / 180)
+    return geometry.map.cities.flatMap((city) => {
+        const text = city.capacity === 1 ? '1' : city.capacity === 'unlimited' ? '6' : undefined
+        if (text === undefined) return []
+        const centers = geometry.place(city.hexId).cells.map((cell) => cell.center)
+        const open = centers
+            .flatMap((center) => sides.map((angle) => ({ center, angle })))
+            .find(({ center, angle }) =>
+                isWater(
+                    center.x + Math.cos(angle) * HEX_WIDTH,
+                    center.y + Math.sin(angle) * HEX_WIDTH
+                )
+            )
+        const { center, angle } = open ?? { center: centers[0], angle: sides[0] ?? 0 }
+        // Chicago's 6 stands further out, clear of the passenger in its hex's top right.
+        const distance =
+            HEX_WIDTH / 2 +
+            CAPACITY_MARK.gap +
+            CAPACITY_MARK.side / 2 +
+            (text === '6' ? CAPACITY_MARK.chicagoExtra : 0)
+        return [
+            {
+                cityId: city.id,
+                text,
+                x: center.x + Math.cos(angle) * distance,
+                y: center.y + Math.sin(angle) * distance
+            }
+        ]
     })
 }
 
 // The bonus pill (BOARD_LOOK.bonus 'pill').
 
-/** The pill at the bottom centre of every city with a bonus, below its cubes, Chicago included. */
+/**
+ * The pill at the bottom centre of every city with a bonus, below its cubes, Chicago included; its
+ * middle is the frame's `bonusPill`.
+ */
 export const BONUS_PILL = {
-    center: { x: 0, y: 26.6 },
     width: 26,
     height: 16.8,
     strokeWidth: 1.6,
@@ -139,7 +227,7 @@ export function bonusPill(bonus: CityBonusMark): BonusPill {
 
 /**
  * A green ring round a $5 city while its bonus is to be had, just outside the hex's edge and its
- * start band: a pointy hexagon whose inside lies on the hex edge, so it reaches 0 to 3.2 units
+ * start band: a hexagon whose inside lies on the hex edge, so it reaches 0 to 3.2 units
  * beyond it, where neither a lit ring nor a start cue (both inside the hex) can meet it.
  */
 export const FIVE_RING = {
@@ -150,11 +238,11 @@ export const FIVE_RING = {
 export type FiveRing = { points: string; width: number }
 
 /** R-4.3.2: the ring a $5 city wears until a railroad has had its bonus. */
-export function fiveRing(bonus: CityBonusMark | undefined): FiveRing | undefined {
+export function fiveRing(bonus: CityBonusMark | undefined, frame: HexFrame): FiveRing | undefined {
     if (bonus?.kind !== 'five' || bonus.taken) return undefined
     return {
-        points: [0, 60, 120, 180, 240, 300]
-            .map((degrees) => hexagonPoint(FIVE_RING.radius, degrees))
+        points: frame.cornerAngles
+            .map((degrees) => hexagonPoint(FIVE_RING.radius, degrees, frame))
             .map(({ x, y }) => `${x},${y}`)
             .join(' '),
         width: FIVE_RING.width

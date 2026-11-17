@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Floater } from '@tabletop/frontend-components'
-    import { usaCity, type CityId, type RailroadId } from '@tabletop/ride-the-rails'
+    import { cityById, type CityId, type RailroadId } from '@tabletop/ride-the-rails'
     import { hexCenter } from '$lib/utils/boardGeometry.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { buildChoice, linkChoice } from '$lib/utils/pickMarks.js'
@@ -19,7 +19,7 @@
         const last = draft?.draftLinks.at(-1)?.cityId
         if (!draft || !last) return 'right' as const
         const before = draft.draftLinks.at(-2)?.cityId ?? draft.startCityId
-        return hexCenter(usaCity(before).hexId).x > hexCenter(usaCity(last).hexId).x
+        return hexCenter(cityById(before).hexId).x > hexCenter(cityById(last).hexId).x
             ? ('left' as const)
             : ('right' as const)
     })

@@ -1,49 +1,12 @@
 <script lang="ts">
-    import { USA_CITIES, USA_HEXES } from '@tabletop/ride-the-rails'
-    import { HEX_SIZE, HEX_WIDTH, hexCenter } from '$lib/utils/boardGeometry.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { CAPACITY_MARK, capacityMarks } from '$lib/utils/cityMarks.js'
 
-    const SIDE = 20
-    const GAP = 6
-    const CHICAGO_EXTRA = 9
+    const gameSession = getGameSession()
 
-    // R-4.1.3, R-4.1.4: the cities with a printed limit other than two: an East Coast city holds a
-    // single locomotive, Chicago any number, and so at most six, one per railroad.
-    const limited = USA_CITIES.flatMap((city) =>
-        city.capacity === 1
-            ? [{ city, text: '1' }]
-            : city.capacity === 'unlimited'
-              ? [{ city, text: '6' }]
-              : []
-    )
-
-    const landCenters = USA_HEXES.map((hex) => hexCenter(hex.id))
-
-    // The sides of a hex, towards each neighbour, east first, then round by the north.
-    const SIDES = [0, -60, -120, 180, 120, 60].map((degrees) => (degrees * Math.PI) / 180)
-
-    function isWater(x: number, y: number): boolean {
-        return !landCenters.some((land) => Math.hypot(land.x - x, land.y - y) < HEX_SIZE / 2)
-    }
-
-    // Each mark stands in the water just past the first side of its city with no land beyond.
-    const marks = limited.map(({ city, text }) => {
-        const center = hexCenter(city.hexId)
-        const side =
-            SIDES.find((angle) =>
-                isWater(
-                    center.x + Math.cos(angle) * HEX_WIDTH,
-                    center.y + Math.sin(angle) * HEX_WIDTH
-                )
-            ) ?? 0
-        // Chicago's 6 stands further out, clear of the passenger in its hex's top right.
-        const distance = HEX_WIDTH / 2 + GAP + SIDE / 2 + (text === '6' ? CHICAGO_EXTRA : 0)
-        return {
-            cityId: city.id,
-            text,
-            x: center.x + Math.cos(side) * distance,
-            y: center.y + Math.sin(side) * distance
-        }
-    })
+    // Displayed Game State: the shown state's map's cities with a limit of their own.
+    const marks = $derived(capacityMarks(gameSession.boardFrame))
+    const SIDE = CAPACITY_MARK.side
 </script>
 
 <!-- R-4.1.3, R-4.1.4: beside each city with its own limit, in the water, a white outline of a cube

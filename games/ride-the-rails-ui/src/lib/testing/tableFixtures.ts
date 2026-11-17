@@ -11,7 +11,7 @@ import {
     USA_CITIES,
     adjacentHexIds,
     turnOrderByMoney,
-    usaHex,
+    hexById,
     type CityId,
     type HexId,
     type HydratedRideTheRailsGameState,
@@ -99,7 +99,7 @@ export function walk(from: HexId, to: HexId, mountains = false): HexId[] {
             break
         }
         for (const next of adjacentHexIds(hexId)) {
-            const terrain = usaHex(next).terrain
+            const terrain = hexById(next).terrain
             const passable =
                 next === to || terrain === 'plain' || (mountains && terrain === 'mountain')
             if (passable && !seen.has(next)) {

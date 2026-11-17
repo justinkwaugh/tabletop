@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { BONUSES, TRANSCONTINENTAL_BONUS } from '@tabletop/ride-the-rails'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { decidingPlayerId } from '$lib/model/actionArea.js'
     import { ROUND_KEY } from '$lib/animators/flights.svelte.js'
@@ -11,6 +12,10 @@
     const gameSession = getGameSession()
 
     const deciderId = $derived(decidingPlayerId(gameSession.gameState))
+    // R-4.3.3: only a map whose bonuses include the Transcontinental shows its chip.
+    const hasTranscontinental = $derived(
+        BONUSES[gameSession.gameState.mapId].some((bonus) => bonus.id === TRANSCONTINENTAL_BONUS.id)
+    )
     // Where the six tickets do not fit, the current round's ticket alone, stepping as the round
     // ends (Animation plan, End of round).
     const currentTicket = $derived(
@@ -57,7 +62,7 @@
         {#if currentTicket}
             <span class="lg:hidden"><RoundTicket ticket={currentTicket} /></span>
         {/if}
-        <TranscontinentalChip />
+        {#if hasTranscontinental}<TranscontinentalChip />{/if}
         <button
             type="button"
             class="rounded-full border-2 border-rtr-pill bg-transparent px-3 py-0.5 text-sm font-semibold text-rtr-pill hover:enabled:bg-rtr-panel-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rtr-accent max-sm:px-2"

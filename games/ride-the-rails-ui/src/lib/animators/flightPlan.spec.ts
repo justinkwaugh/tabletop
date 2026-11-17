@@ -4,7 +4,7 @@ import {
     FIVE_DOLLAR_BONUS,
     PhaseName,
     TRANSCONTINENTAL_BONUS,
-    usaCity,
+    cityById,
     type HexId,
     type RailroadId
 } from '@tabletop/ride-the-rails'
@@ -49,7 +49,7 @@ describe('the flight plan', () => {
     })
 
     it('flies the Chicago and $5 coins from their city and leaves the Transcontinental to its own flight (R-3.2.5, R-4.3)', () => {
-        const chicago = usaCity('city.usa.chicago')
+        const chicago = cityById('city.usa.chicago')
         const coins = bonusCoins(CHICAGO, [
             { bonusId: CHICAGO_BONUS.id, amount: CHICAGO_BONUS.amount, cityId: chicago.id },
             { bonusId: FIVE_DOLLAR_BONUS.id, amount: FIVE_DOLLAR_BONUS.amount },

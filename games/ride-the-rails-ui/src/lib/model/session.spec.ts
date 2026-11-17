@@ -16,7 +16,7 @@ import {
     isTakeShare,
     legalPlacements,
     adjacentHexIds,
-    usaCity,
+    cityById,
     type HexId,
     type RailroadId,
     type Shares
@@ -181,7 +181,7 @@ describe('the board offer in Building (R-3.2, R-4.1, R-4.2)', () => {
             expect(yellowStarts()).toHaveLength(4)
             expect(yellowCues()).toHaveLength(4)
 
-            const start = usaCity(cityId).hexId
+            const start = cityById(cityId).hexId
             await session.placeLocomotive(yellow, start)
             await settled(session)
             expect(session.gameState.track[start]).toContain(yellow)

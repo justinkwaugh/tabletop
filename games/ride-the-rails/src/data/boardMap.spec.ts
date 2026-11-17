@@ -19,7 +19,8 @@ import {
     hexById,
     hexCapacity,
     hexOrder,
-    isHexId
+    isHexId,
+    mapIdOfHex
 } from './boardMaps.js'
 import {
     axialToFlat,
@@ -233,5 +234,13 @@ describe('the map registry (R-8)', () => {
         expect(adjacentHexIds('hex.usa.5-43')).toEqual(
             boardMap('map.usa').adjacentHexIds('hex.usa.5-43')
         )
+    })
+
+    it('names the map a hex id belongs to', () => {
+        for (const mapId of MAP_IDS) {
+            for (const hex of boardMap(mapId).hexes) {
+                expect(mapIdOfHex(hex.id)).toBe(mapId)
+            }
+        }
     })
 })

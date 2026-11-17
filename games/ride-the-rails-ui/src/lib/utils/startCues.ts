@@ -2,12 +2,12 @@ import {
     availableRailroads,
     hasTrack,
     startCityIds,
-    usaCity,
+    cityById,
     type HexId,
     type HydratedRideTheRailsGameState,
     type RailroadId
 } from '@tabletop/ride-the-rails'
-import { insetHexPoints } from './pickMarks.js'
+import { insetCellPoints } from './pickMarks.js'
 
 /**
  * The railroads whose start cities the board marks once they are available, until their first
@@ -26,7 +26,8 @@ export const START_CUE = {
     dash: '6.8 4.4'
 } as const
 
-export type StartCue = { railroadId: RailroadId; hexId: HexId; points: string }
+/** A cue's outline in each cell of its city's hex. */
+export type StartCue = { railroadId: RailroadId; hexId: HexId; cells: string[] }
 
 /**
  * R-4.2.3, R-4.2.4: where each cued railroad could start now, from the engine's own start rules,
@@ -41,11 +42,11 @@ export function startCues(state: HydratedRideTheRailsGameState): StartCue[] {
     const perHex = new Map<HexId, number>()
     return cued.flatMap((railroadId) =>
         startCityIds(state, railroadId).map((cityId) => {
-            const hexId = usaCity(cityId).hexId
+            const hexId = cityById(cityId).hexId
             const before = perHex.get(hexId) ?? 0
             perHex.set(hexId, before + 1)
             const inset = START_CUE.inset + before * START_CUE.nextInset
-            return { railroadId, hexId, points: insetHexPoints(hexId, inset) }
+            return { railroadId, hexId, cells: insetCellPoints(hexId, inset) }
         })
     )
 }

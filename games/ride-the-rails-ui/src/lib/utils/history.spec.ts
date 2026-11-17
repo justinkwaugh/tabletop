@@ -13,7 +13,7 @@ import {
     isEndRound,
     isFinishBuilding,
     isSkipShare,
-    usaCity,
+    cityById,
     type EndBuilding,
     type EndGame,
     type EndRound,
@@ -43,9 +43,9 @@ import {
 
 const NAMES: Readonly<Record<string, string>> = { p1: 'Ana', p2: 'Ben', p3: 'Cy' }
 
-const CHICAGO_HEX = usaCity('city.usa.chicago').hexId
-const DENVER_HEX = usaCity('city.usa.denver').hexId
-const OMAHA_HEX = usaCity('city.usa.omaha').hexId
+const CHICAGO_HEX = cityById('city.usa.chicago').hexId
+const DENVER_HEX = cityById('city.usa.denver').hexId
+const OMAHA_HEX = cityById('city.usa.omaha').hexId
 
 function base(index: number, source = ActionSource.User) {
     return { id: `a${index}`, gameId: 'g1', index, source }

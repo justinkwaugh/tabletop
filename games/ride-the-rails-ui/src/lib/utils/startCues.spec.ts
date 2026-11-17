@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     PhaseName,
     USA_CITIES,
-    usaCity,
+    cityById,
     type CityId,
     type HexId,
     type Track
@@ -11,7 +11,7 @@ import { buildState } from '@tabletop/ride-the-rails/testing'
 import { startCues } from './startCues.js'
 
 function hexOf(cityId: CityId): HexId {
-    return usaCity(cityId).hexId
+    return cityById(cityId).hexId
 }
 
 const CHICAGO = hexOf('city.usa.chicago')

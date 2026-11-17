@@ -11,8 +11,8 @@ import {
     isRideJourney,
     isSkipShare,
     isTakeShare,
-    usaCity,
-    usaHex,
+    cityById,
+    hexById,
     type CityId,
     type FinishBuildingReason,
     type HexId,
@@ -33,7 +33,7 @@ export function railroadName(railroadId: RailroadId): string {
 }
 
 export function cityName(cityId: CityId): string {
-    return usaCity(cityId).name
+    return cityById(cityId).name
 }
 
 export function routeText(cityIds: readonly CityId[]): string {
@@ -50,7 +50,7 @@ export function routeSummary(cityIds: readonly CityId[]): string {
 }
 
 function hexName(hexId: HexId): string {
-    const hex = usaHex(hexId)
+    const hex = hexById(hexId)
     if (hex.terrain === 'city') {
         return `in ${cityName(hex.cityId)}`
     }

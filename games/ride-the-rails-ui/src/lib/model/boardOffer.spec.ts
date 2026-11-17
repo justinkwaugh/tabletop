@@ -9,7 +9,7 @@ import {
     hexIdAt,
     isEastCoastCity,
     legalPlacements,
-    usaHex,
+    hexById,
     type HexId,
     type RailroadId,
     type Shares,
@@ -66,7 +66,7 @@ const MOUNTAIN = found(
     'mountain hex'
 ).id
 const PLAIN_BESIDE_MOUNTAIN = found(
-    adjacentHexIds(MOUNTAIN).find((adjacent) => usaHex(adjacent).terrain === 'plain'),
+    adjacentHexIds(MOUNTAIN).find((adjacent) => hexById(adjacent).terrain === 'plain'),
     'plain hex beside the mountain'
 )
 
@@ -231,7 +231,7 @@ describe('the marks (R-4.3, R-3.2.4)', () => {
         })
         const offered = placementOffer(state, 'p1')
         expect(offeredAt(offered, MOUNTAIN)).toBeUndefined()
-        expect(offered.some((hex) => usaHex(hex.hexId).terrain === 'plain')).toBe(true)
+        expect(offered.some((hex) => hexById(hex.hexId).terrain === 'plain')).toBe(true)
     })
 })
 
