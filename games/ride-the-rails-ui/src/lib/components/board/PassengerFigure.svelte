@@ -1,8 +1,18 @@
 <script lang="ts">
-    import { BOARD_LOOK } from '$lib/utils/boardLook.js'
+    import { BOARD_LOOK, SCRIM_FILL } from '$lib/utils/boardLook.js'
     import { MEEPLE } from '$lib/utils/cityMarks.js'
 
-    let { gone = false }: { gone?: boolean } = $props()
+    let {
+        gone = false,
+        shaded = false
+    }: {
+        gone?: boolean
+        /**
+         * Dimmed as the scrim dims the land: the scrim's own fill laid over the figure's shape. An
+         * unlit city's passenger in a pick, which is drawn above the scrim.
+         */
+        shaded?: boolean
+    } = $props()
 
     // The passenger BOARD_LOOK.passenger picks, in its own units; its place and size on the board
     // come from utils/cityMarks.ts. Another passenger style is drawn here beside it.
@@ -33,6 +43,18 @@
                 stroke-width={MEEPLE.edgeWidth}
                 stroke-linejoin="round"
             ></path>
+            {#if shaded}
+                <!-- The same shape, edge included, in the scrim's translucent fill: a fill's own
+                     alpha on one shape, as the scrim is, never an opacity effect. -->
+                <path
+                    d={MEEPLE.path}
+                    fill={SCRIM_FILL}
+                    stroke={SCRIM_FILL}
+                    stroke-width={MEEPLE.edgeWidth}
+                    stroke-linejoin="round"
+                    data-scrim-shade
+                ></path>
+            {/if}
         {/if}
     {/if}
 </g>

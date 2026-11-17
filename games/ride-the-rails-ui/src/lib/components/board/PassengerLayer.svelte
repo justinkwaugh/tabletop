@@ -9,17 +9,24 @@
     let {
         startCityId,
         scrimHoles,
-        cities
+        cities,
+        shaded = false
     }: {
         startCityId: CityId | undefined
         /** The lit hexes, holes in the pick's scrim. */
         scrimHoles: ReadonlySet<HexId>
         /**
-         * Which cities' passengers this pass draws. The board draws the unlit cities' under the
-         * scrim, so they dim with their hexes, and the lit cities' over it: a passenger's
-         * head stands in the hex above, outside its own hex's hole, and a pick never dims it.
+         * Which cities' passengers this pass draws. Both passes stand over the scrim and the
+         * impassable sides' red lines, so a passenger is drawn over a line its head reaches. A
+         * lit city's passenger is never dimmed: its head stands in the hex above, outside its own
+         * hex's hole.
          */
         cities: 'unlit' | 'lit'
+        /**
+         * Whether a pick's scrim is laid: the unlit pass then dims each of its passengers itself,
+         * with the scrim's fill over the figure, since it is drawn above the scrim.
+         */
+        shaded?: boolean
     } = $props()
 
     const gameSession = getGameSession()
@@ -45,7 +52,7 @@
         {#if city.waiting && city.cityId !== startCityId}
             {@const spot = passengerSpot(city.cityId, false)}
             <g transform="translate({spot.x} {spot.y}) scale({spot.scale})">
-                <PassengerFigure />
+                <PassengerFigure {shaded} />
             </g>
         {/if}
     {/each}

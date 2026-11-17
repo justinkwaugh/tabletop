@@ -9,8 +9,9 @@
     const SIDES = $derived(impassablePath(gameSession.boardFrame))
 </script>
 
-<!-- Contract, Render ownership: over every drawn board piece, under the picks, flights and hit
-     targets; it takes no presses. -->
+<!-- Contract, Render ownership: over the bands, cubes, lines and scrim; under the passengers (a
+     head reaching across a side stands over its line), the staged route, picks, flights and hit
+     targets. It takes no presses. -->
 {#if SIDES}
     <g
         class="impassable"

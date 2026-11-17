@@ -15,6 +15,7 @@ France, round 2 with three seats, Build. Red runs from Lille into the entry hex 
 
 - The six entry hexes round Paris are tinted and edged in navy, each with its "1"; Paris carries its "6" and "$10" in the hex, and the four Red/Blue/Black cities their "1".
 - Paris lights for Red with its $10; round Le Havre the hexes light for Orange, but not Caen across the estuary.
+- Caen's passenger, its head in Le Havre's hex, stands over the Seine's red line; in the pick it is dimmed whole, and the line beside it is not.
 
 ## Canada toronto
 
@@ -22,7 +23,7 @@ Canada, round 4 with three seats, Build. Red from Montréal and Blue from Windso
 
 - Toronto, which has no limit, is drawn as Chicago is, its three cubes small in a row, its "$3/$2" pill below them and its "6" in the lake.
 - Hamilton lights for Purple; the hex past the impassable side, though empty, does not.
-- Every impassable side is a red line over the board's pieces: Québec City's south-west side and Montréal's south side run over their bands.
+- Every impassable side is a red line over the bands, cubes and scrim, under the passengers: Québec City's south-west side and Montréal's south side run over their bands, and Nicolet's and Sorel-Tracy's passengers stand over the river's line.
 
 ## Australia perth chain
 

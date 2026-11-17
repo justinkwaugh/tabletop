@@ -83,7 +83,7 @@ describe('impassable sides, drawn red over the board (R-8.3, R-8.4)', () => {
         expect(IMPASSABLE_LINE.casing).toBeLessThan(IMPASSABLE_LINE.width / 2)
     })
 
-    it('stacks the layer over every drawn board piece and the scrim, under the picks, flights and hit targets', () => {
+    it('stacks the layer over the bands, cubes, lines and scrim, under the passengers, staged route, picks, flights and hit targets', () => {
         const board = source('../Board.svelte')
         const at = (layer: string) => board.indexOf(`<${layer} `)
         const impassable = at('ImpassableLayer')
@@ -93,16 +93,20 @@ describe('impassable sides, drawn red over the board (R-8.3, R-8.4)', () => {
             'CityLayer',
             'StartCueLayer',
             'BonusLayer',
-            'PassengerLayer',
             'TrackLayer',
             'LineLayer',
-            'ScrimLayer',
-            'StagedRouteLayer'
+            'ScrimLayer'
         ]) {
             expect(at(below), below).toBeGreaterThan(0)
             expect(at(below), `${below} under the impassable sides`).toBeLessThan(impassable)
         }
-        for (const above of ['PickLayer', 'FlightLayer', 'HitLayer']) {
+        // Every passenger, a picked journey start's grown one included, stands over the line.
+        const passes = [...board.matchAll(/<PassengerLayer\b/g)].map((found) => found.index)
+        expect(passes).toHaveLength(2)
+        for (const pass of passes) {
+            expect(pass, 'a passenger pass over the impassable sides').toBeGreaterThan(impassable)
+        }
+        for (const above of ['StagedRouteLayer', 'PickLayer', 'FlightLayer', 'HitLayer']) {
             expect(at(above), `${above} over the impassable sides`).toBeGreaterThan(impassable)
         }
     })

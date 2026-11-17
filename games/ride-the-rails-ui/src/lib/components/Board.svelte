@@ -89,17 +89,23 @@
     <StartCueLayer />
     <BonusLayer />
     <TrackLayer {standAside} />
-    <!-- Over the cubes: a passenger stands above its own and its head reaches the hex above. -->
-    <PassengerLayer startCityId={stagedRoute.startCityId} {scrimHoles} cities="unlit" />
     <LineLayer lastJourney={gameSession.lastJourney} />
     <ScrimLayer {offer} />
-    <!-- Above the scrim: a lit city's passenger, whose head stands outside its hex's hole. -->
+    <!-- Over the scrim, so no band, cube or dark hex hides a side, and the line is never dimmed. -->
+    <ImpassableLayer />
+    <!-- Over the cubes and the red lines: a passenger stands above its own cubes and its head
+         reaches the hex above. An unlit city's passenger lays the scrim's fill over itself. -->
+    <PassengerLayer
+        startCityId={stagedRoute.startCityId}
+        {scrimHoles}
+        cities="unlit"
+        shaded={offer.scrim !== undefined}
+    />
+    <!-- A lit city's passenger, whose head stands outside its hex's hole, is never dimmed. -->
     <PassengerLayer startCityId={stagedRoute.startCityId} {scrimHoles} cities="lit" />
     <!-- Above the scrim: the legend is never dimmed. -->
     <StartLegend mapId={gameSession.gameState.mapId} />
     <StagedRouteLayer route={stagedRoute} track={gameSession.gameState.track} />
-    <!-- Over every drawn piece and the scrim, so no band, cube or dark hex hides a side. -->
-    <ImpassableLayer />
     <PickLayer {views} {viewScale} {journeyFrom} />
     <FlightLayer />
     <HitLayer {views} />

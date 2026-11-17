@@ -64,18 +64,22 @@ function drawnAt(page: Page, point: ScreenPoint) {
                 'flights',
                 'scrim',
                 'passengers',
+                'impassable',
                 'track',
                 'lines',
                 'cities',
                 'ground'
             ]
+            // In a pick an unlit city's passenger lays the scrim's own fill over itself (it is
+            // drawn above the scrim, over the red impassable lines): that shade is the scrim too.
             return stack
                 .filter((element) => element !== svg && svg.contains(element))
-                .map(
-                    (element) =>
-                        layers.find((layer) => element.closest(`g.${layer}`)) ??
-                        element.closest('g[class]')?.getAttribute('class') ??
-                        element.tagName
+                .map((element) =>
+                    element.closest('[data-scrim-shade]')
+                        ? 'scrim'
+                        : (layers.find((layer) => element.closest(`g.${layer}`)) ??
+                          element.closest('g[class]')?.getAttribute('class') ??
+                          element.tagName)
                 )
         },
         [point.x, point.y]
@@ -220,3 +224,288 @@ for (const { scenario, city, hexId, unlitCity, unlitHexId } of LIT_CASES) {
         }
     })
 }
+
+/**
+ * A screen point where a city's passenger stands over an impassable side's red line, well inside
+ * both: the figure's fill half a unit round it in its own units, and the red stroke (not only
+ * its pale casing) a board unit round it. `candidates` counts the points that qualified.
+ */
+function crossingPoint(page: Page, hexId: string) {
+    return board(page).evaluate((svg, id) => {
+        if (!(svg instanceof SVGSVGElement)) throw new Error('the board is not an SVG')
+        const hit = svg.querySelector(`g.hits [data-hex-id="${id}"]`)
+        const corners = (hit?.getAttribute('points')?.trim().split(/\s+/) ?? []).map((pair) =>
+            pair.split(',').map(Number)
+        )
+        const centre = corners.reduce(
+            ([sx, sy], [x, y]) => [sx + (x ?? 0) / corners.length, sy + (y ?? 0) / corners.length],
+            [0, 0]
+        )
+        // The waiting passenger nearest the hex's centre is its city's own.
+        const own = [...svg.querySelectorAll('g.passengers > g[transform]')]
+            .map((figure) => {
+                const [, x, y] = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(
+                    figure.getAttribute('transform') ?? ''
+                ) ?? ['', '0', '0']
+                return {
+                    figure,
+                    distance: Math.hypot(Number(x) - (centre[0] ?? 0), Number(y) - (centre[1] ?? 0))
+                }
+            })
+            .sort((a, b) => a.distance - b.distance)[0]?.figure
+        const path = own?.querySelector('[data-passenger="waiting"] path')
+        if (!(path instanceof SVGPathElement)) throw new Error(`no passenger in ${id}`)
+        const red = svg.querySelector('[data-impassable-sides] path:last-of-type')
+        if (!(red instanceof SVGPathElement)) throw new Error('no impassable side')
+        // The figure's own units to board units.
+        const toBoard = (svg.getScreenCTM()?.inverse() ?? new DOMMatrix()).multiply(
+            path.getScreenCTM() ?? new DOMMatrix()
+        )
+        const inFigure = (x: number, y: number) =>
+            [
+                [0, 0],
+                [0.5, 0.5],
+                [0.5, -0.5],
+                [-0.5, 0.5],
+                [-0.5, -0.5]
+            ].every(([dx, dy]) => path.isPointInFill(new DOMPoint(x + (dx ?? 0), y + (dy ?? 0))))
+        const onRed = (point: DOMPoint) =>
+            [
+                [0, 0],
+                [1, 0],
+                [-1, 0],
+                [0, 1],
+                [0, -1]
+            ].every(([dx, dy]) =>
+                red.isPointInStroke(new DOMPoint(point.x + (dx ?? 0), point.y + (dy ?? 0)))
+            )
+        const found: DOMPoint[] = []
+        for (let x = -5; x <= 5; x += 0.2) {
+            for (let y = -7.5; y <= 6.8; y += 0.2) {
+                if (inFigure(x, y) && onRed(new DOMPoint(x, y).matrixTransform(toBoard))) {
+                    found.push(new DOMPoint(x, y))
+                }
+            }
+        }
+        const middle = found[Math.floor(found.length / 2)] ?? new DOMPoint()
+        const screen = middle.matrixTransform(path.getScreenCTM() ?? undefined)
+        return { x: screen.x, y: screen.y, candidates: found.length }
+    }, hexId)
+}
+
+/**
+ * Points on an impassable side's red line by a lit hex, clear of every passenger: `inLit`, the
+ * middle one inside the lit hex (a hole in the scrim), if any is clear, and `beside`, the one
+ * nearest the lit hex's centre over a hex the scrim dims. `reaches` counts the line's points
+ * inside the lit hex, passengers or not.
+ */
+function besideLit(page: Page, litHexId: string, holes: string[]) {
+    return board(page).evaluate(
+        (svg, [lit, holeIds]) => {
+            if (!(svg instanceof SVGSVGElement)) throw new Error('the board is not an SVG')
+            const red = svg.querySelector('[data-impassable-sides] path:last-of-type')
+            if (!(red instanceof SVGPathElement)) throw new Error('no impassable side')
+            const hexes = [...svg.querySelectorAll('g.hits [data-hex-id]')].filter(
+                (hex): hex is SVGPolygonElement => hex instanceof SVGPolygonElement
+            )
+            const hexOf = (point: DOMPoint) =>
+                hexes.find((hex) => hex.isPointInFill(point))?.getAttribute('data-hex-id')
+            // The hex a point stands in, a unit clear of its sides; none on a side.
+            const hexAt = (point: DOMPoint) => {
+                const id = hexOf(point)
+                const firm = [
+                    [1, 0],
+                    [-1, 0],
+                    [0, 1],
+                    [0, -1]
+                ].every(([dx, dy]) => hexOf(new DOMPoint(point.x + dx, point.y + dy)) === id)
+                return firm ? id : undefined
+            }
+            const litHex = hexes.find((hex) => hex.getAttribute('data-hex-id') === lit)
+            if (!litHex) throw new Error(`no hex ${lit}`)
+            const corners = [...litHex.points]
+            const centre = new DOMPoint(
+                corners.reduce((sum, corner) => sum + corner.x, 0) / corners.length,
+                corners.reduce((sum, corner) => sum + corner.y, 0) / corners.length
+            )
+            // Each waiting passenger's shape, with board units to its own.
+            const figures = [
+                ...svg.querySelectorAll('g.passengers [data-passenger="waiting"] path')
+            ]
+                .filter((path): path is SVGPathElement => path instanceof SVGPathElement)
+                .map((path) => ({
+                    path,
+                    toFigure: (path.getScreenCTM() ?? new DOMMatrix())
+                        .inverse()
+                        .multiply(svg.getScreenCTM() ?? new DOMMatrix())
+                }))
+            // Clear of every passenger, its edge included, by 2 board units.
+            const clear = (point: DOMPoint) =>
+                figures.every(({ path, toFigure }) =>
+                    [
+                        [0, 0],
+                        [2, 0],
+                        [-2, 0],
+                        [0, 2],
+                        [0, -2]
+                    ].every(([dx, dy]) => {
+                        const own = new DOMPoint(
+                            point.x + (dx ?? 0),
+                            point.y + (dy ?? 0)
+                        ).matrixTransform(toFigure)
+                        return !path.isPointInFill(own) && !path.isPointInStroke(own)
+                    })
+                )
+            const away = (point: DOMPoint) => Math.hypot(point.x - centre.x, point.y - centre.y)
+            let reaches = 0
+            const inLit: DOMPoint[] = []
+            const dimmed: DOMPoint[] = []
+            for (let at = 0; at < red.getTotalLength(); at += 0.5) {
+                const point = red.getPointAtLength(at)
+                // Only the line within about a hex of the lit one.
+                if (away(point) > 80) continue
+                for (const [dx, dy] of [
+                    [0, 0],
+                    [2, 0],
+                    [-2, 0],
+                    [0, 2],
+                    [0, -2]
+                ]) {
+                    const near = new DOMPoint(point.x + (dx ?? 0), point.y + (dy ?? 0))
+                    if (!red.isPointInStroke(near)) continue
+                    const hexId = hexAt(near)
+                    if (hexId === lit) reaches++
+                    if (!hexId || !clear(near)) continue
+                    if (hexId === lit) inLit.push(near)
+                    else if (!holeIds.includes(hexId)) dimmed.push(near)
+                }
+            }
+            const nearest = dimmed.sort((a, b) => away(a) - away(b))[0]
+            if (!nearest) throw new Error('the red line runs over no dimmed hex')
+            const screen = (point: DOMPoint) => {
+                const at = point.matrixTransform(svg.getScreenCTM() ?? undefined)
+                return { x: at.x, y: at.y }
+            }
+            const middle = inLit[Math.floor(inLit.length / 2)]
+            return {
+                reaches,
+                inLit: middle ? screen(middle) : undefined,
+                beside: screen(nearest),
+                distance: away(nearest)
+            }
+        },
+        [litHexId, holes] as const
+    )
+}
+
+const CAEN = 'hex.fr.8-8'
+// Le Havre's neighbour south-east, lit for Orange, where the Seine's red line ends.
+const LIT_BESIDE_THE_SEINE = 'hex.fr.9-7'
+
+test("Caen's passenger is drawn over the Seine's red line where its head reaches Le Havre, at rest (France paris ring)", async ({
+    page
+}) => {
+    await openScenario(page, 'France paris ring')
+    // A seat not deciding: no pick, so no scrim.
+    await page.evaluate(() => window.rtrSession.setViewingAsNonActivePlayer(true))
+    await settled(page)
+    await expect(board(page).locator('g.scrim path')).toHaveCount(0)
+    await showPassengers(page, [CAEN])
+
+    // Under the hit targets, the passenger is the topmost shape where it crosses the line, and
+    // the line is drawn there, under it.
+    const crossing = await crossingPoint(page, CAEN)
+    expect(crossing.candidates).toBeGreaterThan(0)
+    const drawn = (await drawnAt(page, crossing)).filter(
+        (layer) => !['hits', 'picks', 'flights'].includes(layer)
+    )
+    expect(drawn[0], drawn.join(' > ')).toBe('passengers')
+    expect(drawn, drawn.join(' > ')).toContain('impassable')
+})
+
+test("In a pick, the Seine's red line stays undimmed beside a lit hex, and Caen's unlit passenger stays dimmed, over the line (France paris ring)", async ({
+    page
+}) => {
+    await openScenario(page, 'France paris ring')
+    await settled(page)
+    const holes = await page.evaluate(() => window.rtrSession.boardOffer.scrim?.holes ?? [])
+    expect(holes).toContain(LIT_BESIDE_THE_SEINE)
+    expect(holes).not.toContain(CAEN)
+    await showPassengers(page, [CAEN])
+
+    // Caen's passenger, unlit, is over the red line and dimmed: the scrim's fill is right over
+    // it, then the figure, then the line, and the scrim proper under the line.
+    const crossing = await crossingPoint(page, CAEN)
+    expect(crossing.candidates).toBeGreaterThan(0)
+    const atCaen = (await drawnAt(page, crossing)).filter(
+        (layer) => !['hits', 'picks', 'flights'].includes(layer)
+    )
+    expect(atCaen.slice(0, 3), atCaen.join(' > ')).toEqual(['scrim', 'passengers', 'impassable'])
+    expect(atCaen.lastIndexOf('scrim'), atCaen.join(' > ')).toBeGreaterThan(2)
+    // And dimmed whole, at its head (in Le Havre's hex) and at each foot.
+    for (const [part, point] of Object.entries(await passengerPoints(page, CAEN))) {
+        const drawn = (await drawnAt(page, point)).filter(
+            (layer) => !['hits', 'picks', 'flights'].includes(layer)
+        )
+        expect(drawn.slice(0, 2), `Caen's passenger's ${part}: ${drawn.join(' > ')}`).toEqual([
+            'scrim',
+            'passengers'
+        ])
+    }
+
+    // The line itself is never dimmed. It reaches the lit hex, where Caen's shoulder stands over
+    // its end, and past Caen, over hexes the scrim dims, it is the topmost shape, the scrim under
+    // it.
+    const line = await besideLit(page, LIT_BESIDE_THE_SEINE, holes)
+    expect(line.reaches).toBeGreaterThan(0)
+    expect(await onBoard(page, line.beside)).toBe(true)
+    const beside = (await drawnAt(page, line.beside)).filter(
+        (layer) => !['hits', 'picks', 'flights'].includes(layer)
+    )
+    expect(beside[0], beside.join(' > ')).toBe('impassable')
+    expect(beside.indexOf('scrim'), beside.join(' > ')).toBeGreaterThan(0)
+})
+
+test('In a pick, an impassable side’s red line is undimmed in and beside a lit hex (Canada toronto)', async ({
+    page
+}) => {
+    // Toronto's neighbour to the south-west lights, and its south side, on the lake, is impassable.
+    const lit = 'hex.ca.10-22'
+    await openScenario(page, 'Canada toronto')
+    await settled(page)
+    const holes = await page.evaluate(() => window.rtrSession.boardOffer.scrim?.holes ?? [])
+    expect(holes).toContain(lit)
+
+    // The phone's board rests zoomed in: zoom out until both points are on screen.
+    const zoomOut = page.getByRole('button', { name: 'Zoom out', exact: true })
+    const pointsOnBoard = async () => {
+        const line = await besideLit(page, lit, holes)
+        return (
+            line.inLit !== undefined &&
+            (await onBoard(page, line.inLit)) &&
+            (await onBoard(page, line.beside))
+        )
+    }
+    for (let step = 0; step < 6 && !(await pointsOnBoard()); step++) {
+        if (test.info().project.use.hasTouch) await zoomOut.tap()
+        else await zoomOut.click()
+        await settled(page)
+    }
+    await expect.poll(pointsOnBoard).toBe(true)
+
+    const line = await besideLit(page, lit, holes)
+    expect(line.distance).toBeLessThan(60)
+    if (!line.inLit) throw new Error(`no point of the line clear in ${lit}`)
+    // In the hole the line is topmost, with no scrim anywhere under it.
+    const inLit = (await drawnAt(page, line.inLit)).filter(
+        (layer) => !['hits', 'picks', 'flights'].includes(layer)
+    )
+    expect(inLit[0], inLit.join(' > ')).toBe('impassable')
+    expect(inLit, inLit.join(' > ')).not.toContain('scrim')
+    // Beside it, over a dimmed hex, the line is topmost too, the scrim under it.
+    const beside = (await drawnAt(page, line.beside)).filter(
+        (layer) => !['hits', 'picks', 'flights'].includes(layer)
+    )
+    expect(beside[0], beside.join(' > ')).toBe('impassable')
+    expect(beside.indexOf('scrim'), beside.join(' > ')).toBeGreaterThan(0)
+})

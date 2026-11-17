@@ -100,6 +100,14 @@ export const BOARD_LOOK: BoardLook = {
     journeyStart: 'ring-only'
 }
 
+/**
+ * The scrim's fill: the paper's ink at 25%, or deeper with BOARD_LOOK.litHex 'deep-scrim'. The
+ * scrim layer lays it over the land; an unlit city's passenger, drawn above the scrim and the
+ * impassable sides, lays it over itself.
+ */
+export const SCRIM_FILL =
+    BOARD_LOOK.litHex === 'deep-scrim' ? 'var(--rtr-scrim-deep)' : 'var(--rtr-scrim)'
+
 export type HexPaint = {
     fill: string
     /** The hex's edge: a thin warm grid round plain land, a pale line round a patch. */

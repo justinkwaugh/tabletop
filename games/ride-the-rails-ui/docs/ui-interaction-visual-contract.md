@@ -153,12 +153,12 @@ The board is **one SVG** (`docs/phone-rendering.md`, One board surface). Back to
 5. Start cues as dashed outlines (a look option; nothing with the look picked).
 6. Bonus pills at each city's bottom centre (none while riding).
 7. Track: cubes (other railroads' faded under a spotlight), this turn's bars.
-8. Passengers waiting (wooden meeples), but not a picked journey start's, nor a lit city's during a pick (10): over the cubes, since each stands above its own city's cubes with its head in the hex above, over that hex's cubes where it reaches them.
-9. The claimed Transcontinental line (thin gold, while the viewer shows it with the toggle in the chip's description), then the last journey line through its cubes over its halo (not drawn for the seat now deciding, in Live View).
-10. **Scrim**: one path, the land's outline with holes at the lit hexes (even-odd fill). It is a plain translucent fill, not an opacity or filter effect, and never covers the sea. Right above it, the passengers waiting in the lit cities (the passenger layer's second pass, `cities="lit"`): a passenger's head stands in the hex above, outside its own hex's hole, so a lit city's passenger is drawn over the scrim and never dimmed, while an unlit city's stays under it and dims with its hex.
-11. The start legend, above the scrim so it is never dimmed.
-12. Staged route: its line, the cubes it rides drawn again, the start passenger grown in the middle of its hex, and the link count on the last city.
-13. Impassable sides (Canada, France): a red line on a pale casing along each, over every piece drawn below and the scrim, so no band, cube or dark hex hides one. It takes no presses.
+8. The claimed Transcontinental line (thin gold, while the viewer shows it with the toggle in the chip's description), then the last journey line through its cubes over its halo (not drawn for the seat now deciding, in Live View).
+9. **Scrim**: one path, the land's outline with holes at the lit hexes (even-odd fill). It is a plain translucent fill, not an opacity or filter effect, and never covers the sea.
+10. Impassable sides (Canada, France): a red line on a pale casing along each, over the bands, cubes, lines and the scrim, so no band, cube or dark hex hides one and a pick never dims it. It takes no presses.
+11. Passengers waiting (wooden meeples), but not a picked journey start's: over the cubes, since each stands above its own city's cubes with its head in the hex above, over that hex's cubes where it reaches them, and over an impassable side's red line where a head or an arm reaches one (Caen's across the Seine; Nicolet's and Sorel-Tracy's on Canada's river). Two passes of the passenger layer, the unlit cities' (`cities="unlit"`) then the lit cities' (`cities="lit"`), both above the scrim. A lit city's passenger is never dimmed: its head stands in the hex above, outside its own hex's hole. In a pick, an unlit city's passenger dims itself, its whole figure, with the scrim's own fill laid over its shape (a fill's own alpha on one shape, as the scrim is).
+12. The start legend, above the scrim so it is never dimmed.
+13. Staged route: its line, the cubes it rides drawn again, the start passenger grown in the middle of its hex, and the link count on the last city.
 14. Picks: the picked ring, the journey start's ring, marks and chevrons (the board offer).
 15. Flight layer: travelling locomotives, passengers and coins.
 16. Hit targets: transparent hex shapes carrying hex ids, the only map elements that take presses.
