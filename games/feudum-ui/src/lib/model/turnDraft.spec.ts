@@ -475,6 +475,25 @@ describe('R-3.6 Migrate', () => {
         await pressTarget(session, target)
         expect(sentBy(turn)).toMatchObject({ type: ActionType.Migrate, pawn: 1, onto: 'off' })
     })
+
+    it('S14 R-3.6.1 every pawn on the map: no space lights, the line is "No pawn in supply.", each may go off', async () => {
+        const turn = await atMigrate((state, seat) => {
+            const home = state.getPlayerState(seat).pawns[0].spaceId
+            assertExists(home, 'R-1.4.7 The first pawn stands on the map')
+            addPawn(state, seat, 'merchant', home)
+            addPawn(state, seat, 'monk', home)
+        })
+        const { session, seat } = turn
+        expect(session.turn.flow?.rows).toEqual([])
+        expect(session.turn.flow?.line).toBe('No pawn in supply.')
+        expect(session.turn.flow?.picks.map(({ target }) => target)).toEqual([
+            pawnTarget(seat, 1),
+            pawnTarget(seat, 2),
+            pawnTarget(seat, 3)
+        ])
+        await pressTarget(session, pawnTarget(seat, 3))
+        expect(sentBy(turn)).toMatchObject({ type: ActionType.Migrate, pawn: 3, onto: 'off' })
+    })
 })
 
 describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
