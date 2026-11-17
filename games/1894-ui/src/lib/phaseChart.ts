@@ -1,10 +1,16 @@
 import { createPhaseChart } from '@tabletop/18xx-ui'
-import { EighteenNinetyFourPhases, EighteenNinetyFourTrainDepot } from '@tabletop/1894'
+import {
+    EighteenNinetyFourPhases,
+    EighteenNinetyFourTrainDepot,
+    trainUpgrades
+} from '@tabletop/1894'
 
 export const EighteenNinetyFourPhaseChart = createPhaseChart({
     phases: EighteenNinetyFourPhases,
     depot: EighteenNinetyFourTrainDepot,
     rustNotes: {},
+    // The train table's upgrade costs (§13.2).
+    upgrades: trainUpgrades,
     phaseNotes: {
         3: 'Companies may buy privates through phase 5+1 for ½–2× face value.',
         '5+1': 'Late companies may be started.',

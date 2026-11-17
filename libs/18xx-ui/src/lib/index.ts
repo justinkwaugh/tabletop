@@ -191,7 +191,8 @@ export {
     createDieselPhaseChart,
     createPhaseChart,
     type PhaseChartData,
-    type TrainMark
+    type TrainMark,
+    type TrainUpgrade
 } from './phases/phaseChart.js'
 
 export * from './stock/marketAnimationSource.js'

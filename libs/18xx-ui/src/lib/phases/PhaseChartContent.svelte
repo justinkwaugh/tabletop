@@ -40,6 +40,14 @@
     const currentPhase = $derived(chart.phases.find((phase) => phase.id === currentPhaseId))
     const rosterRows = $derived(trainRosterRows(chart.trains))
     const openMarket = $derived(marketCertificates(depotState))
+    const showsUpgrades = $derived(chart.trains.some((train) => train.upgrades?.length))
+    const upgradeTitle = (upgrades: NonNullable<PhaseChartData['trains'][number]['upgrades']>) =>
+        upgrades
+            .map(
+                ({ definitionId, price }) =>
+                    `To a ${depotState.depot.trainDefinition(definitionId).name} for ${money(price)}`
+            )
+            .join('; ')
 </script>
 
 <div class="phase-chart-content" class:depot={depotOnly} class:on-board={onBoard}>
@@ -128,10 +136,13 @@
             <table>
                 <thead
                     ><tr
-                        ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
-                        >{#if openMarket.length}<th class="number">Market</th>{/if}<th
-                            class="number">Rusted by</th
-                        ></tr
+                        ><th>Train</th><th class="money">Price</th>{#if showsUpgrades}<th
+                                class="money"
+                                title="Trading the train in for a newer one: the new train’s price less half this one’s"
+                                >Upgrade</th
+                            >{/if}<th class="number">Remaining</th>{#if openMarket.length}<th
+                                class="number">Market</th
+                            >{/if}<th class="number">Rusted by</th></tr
                     ></thead
                 >
                 <tbody>
@@ -170,6 +181,15 @@
                                 ></th
                             >
                             <td class="money">{money(train.price)}</td>
+                            {#if showsUpgrades}<td
+                                    class="money"
+                                    title={train.upgrades?.length
+                                        ? upgradeTitle(train.upgrades)
+                                        : undefined}
+                                    >{#if train.upgrades?.length}{train.upgrades
+                                            .map(({ price }) => money(price))
+                                            .join('/')}{:else}<span class="muted">–</span>{/if}</td
+                                >{/if}
                             {#if remainingRowSpan}
                                 <td
                                     class="number"
