@@ -27,7 +27,9 @@
         'east-coast-or-chicago': 'An East Coast city or Chicago',
         'chicago-or-westernmost': 'Chicago or the 3 westernmost developed cities',
         'west-coast': 'A West Coast city',
-        'any-city': 'Any city with room'
+        'any-city': 'Any city with room',
+        'printed-colour': 'A city of its colour',
+        'printed-colour-or-berlin': 'A city of its colour, or Berlin'
     }
 
     // One row per start rule, in the order the map introduces its railroads; the railroads that

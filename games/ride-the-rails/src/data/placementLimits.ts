@@ -1,5 +1,9 @@
 import { assertExists } from '@tabletop/common'
+import type { Hex, HexGroup } from './boardMap.js'
+import { hexById } from './boardMaps.js'
+import type { HexId } from './hexes.js'
 import type { MapId } from './maps.js'
+import type { RailroadId } from './railroads.js'
 
 export type PlacementLimitRow = {
     readonly playerCount: number
@@ -9,6 +13,8 @@ export type PlacementLimitRow = {
 export type MapPlacementLimits = {
     readonly byPlayerCount: readonly PlacementLimitRow[]
     readonly mountainReduction: number
+    // R-8: the railroads whose mountain placements leave the limit as it is; none unless named.
+    readonly mountainExempt?: readonly RailroadId[]
 }
 
 // R-3.2.3 limits and R-3.2.4 mountain reduction; R-8: an expansion map adds its own row.
@@ -29,4 +35,29 @@ export function placementLimit(mapId: MapId, playerCount: number, usedMountain: 
     const row = limits.byPlayerCount.find((candidate) => candidate.playerCount === playerCount)
     assertExists(row, `No placement limit on ${mapId} for ${playerCount} players`)
     return usedMountain ? row.limit - limits.mountainReduction : row.limit
+}
+
+// R-3.2.4, R-8: a mountain placement charges the map's mountain cost, unless the railroad is exempt.
+export function chargesMountain(
+    limits: MapPlacementLimits,
+    railroadId: RailroadId,
+    hex: Hex
+): boolean {
+    return hex.terrain === 'mountain' && !(limits.mountainExempt ?? []).includes(railroadId)
+}
+
+// R-3.2.4, R-8: whether this placement lowers the turn's placement limit.
+export function lowersLimit(mapId: MapId, railroadId: RailroadId, hexId: HexId): boolean {
+    return chargesMountain(PLACEMENT_LIMITS[mapId], railroadId, hexById(hexId))
+}
+
+export type GroupLimit = {
+    readonly group: HexGroup
+    readonly perRailroad: number
+}
+
+// R-4.1.4, R-4.2.5: a railroad holds at most two East Coast cities, a start counted; R-8: an
+// expansion map adds its own row.
+export const GROUP_LIMITS: Readonly<Record<MapId, readonly GroupLimit[]>> = {
+    'map.usa': [{ group: 'east-coast', perRailroad: 2 }]
 }

@@ -13,7 +13,26 @@ import type {
 } from '../model/gameState.js'
 import type { Shares } from '../model/playerState.js'
 import { buildState } from '../testing/fixtures.js'
-import { BONUS_RULES, placementBonuses, type BonusPayment } from './bonuses.js'
+import {
+    ALPHA,
+    ALPHA_HEX,
+    BETA,
+    BETA_HEX,
+    FLAT_FIXTURE_MAP,
+    GAMMA,
+    GAMMA_HEX,
+    MOUNTAIN_HEX
+} from '../testing/flatFixtureMap.js'
+import {
+    BONUS_RULES,
+    connectionRule,
+    everyPlacementRule,
+    firstPlacementRule,
+    placementBonuses,
+    startPricedRule,
+    type BonusContext,
+    type BonusPayment
+} from './bonuses.js'
 import { placementTest } from './placement.js'
 
 const CHICAGO: HexId = 'hex.usa.5-43'
@@ -277,5 +296,163 @@ describe('the Transcontinental (R-4.3.3)', () => {
     it('pays nothing for a placement made after a line exists', () => {
         const track = trackOf(['railroad.purple', row(9, 5, 31)], ['railroad.red', row(9, 31, 55)])
         expect(place({ track }, 'railroad.red', 'hex.usa.8-34').bonuses).toEqual([])
+    })
+})
+
+// The factories each expansion map's bonuses are made from, tried on the flat fixture: Alpha
+// prints the Chicago bonus id and Beta the $5 one, with amounts of the specs' own.
+describe('bonus rule factories (R-4.3, R-8)', () => {
+    function on(
+        placement: { railroadId: RailroadId; hexId: HexId; isStart: boolean },
+        trackBefore: Track = {},
+        claims: Partial<Pick<BonusContext, 'connectionClaim'>> = {}
+    ): BonusContext {
+        return {
+            map: FLAT_FIXTURE_MAP,
+            placement,
+            trackBefore,
+            transcontinental: undefined,
+            connectionClaim: claims.connectionClaim
+        }
+    }
+
+    describe('every placement, a start included (Chicago, R-4.3.1)', () => {
+        const rule = everyPlacementRule({
+            id: 'bonus.usa.chicago',
+            printedName: 'Alpha',
+            amount: 3
+        })
+
+        it('pays each placement in the city, a start and a second railroad included', () => {
+            const start = { railroadId: 'railroad.red', hexId: ALPHA_HEX, isStart: true } as const
+            expect(rule.evaluate(on(start))).toEqual({
+                bonusId: 'bonus.usa.chicago',
+                amount: 3,
+                cityId: ALPHA
+            })
+            const second = {
+                railroadId: 'railroad.blue',
+                hexId: ALPHA_HEX,
+                isStart: false
+            } as const
+            expect(rule.evaluate(on(second, { [ALPHA_HEX]: ['railroad.red'] }))?.amount).toBe(3)
+        })
+
+        it('pays nothing outside the city', () => {
+            const placement = {
+                railroadId: 'railroad.red',
+                hexId: BETA_HEX,
+                isStart: false
+            } as const
+            expect(rule.evaluate(on(placement))).toBe(undefined)
+        })
+    })
+
+    describe('first placement (the $5 cities, R-4.3.2)', () => {
+        const rule = firstPlacementRule({
+            id: 'bonus.usa.five-dollar',
+            printedName: 'Beta',
+            amount: 20
+        })
+
+        it('pays the first locomotive in the city', () => {
+            const placement = {
+                railroadId: 'railroad.red',
+                hexId: BETA_HEX,
+                isStart: false
+            } as const
+            expect(rule.evaluate(on(placement))).toEqual({
+                bonusId: 'bonus.usa.five-dollar',
+                amount: 20,
+                cityId: BETA
+            })
+        })
+
+        it('pays nothing once the city holds a locomotive, and nothing for a start, which uses it up', () => {
+            const later = { railroadId: 'railroad.red', hexId: BETA_HEX, isStart: false } as const
+            expect(rule.evaluate(on(later, { [BETA_HEX]: ['railroad.blue'] }))).toBe(undefined)
+            const start = { railroadId: 'railroad.blue', hexId: BETA_HEX, isStart: true } as const
+            expect(rule.evaluate(on(start))).toBe(undefined)
+        })
+    })
+
+    describe('start-priced (Toronto)', () => {
+        const rule = startPricedRule({
+            id: 'bonus.usa.chicago',
+            printedName: 'Alpha',
+            startAmount: 2,
+            buildInAmount: 3
+        })
+
+        it('pays the start price for a railroad’s first locomotive there, the build-in price for every other', () => {
+            const start = { railroadId: 'railroad.red', hexId: ALPHA_HEX, isStart: true } as const
+            expect(rule.evaluate(on(start))).toEqual({
+                bonusId: 'bonus.usa.chicago',
+                amount: 2,
+                cityId: ALPHA
+            })
+            const buildIn = {
+                railroadId: 'railroad.blue',
+                hexId: ALPHA_HEX,
+                isStart: false
+            } as const
+            expect(rule.evaluate(on(buildIn, { [ALPHA_HEX]: ['railroad.red'] }))?.amount).toBe(3)
+        })
+
+        it('pays nothing outside the city', () => {
+            const placement = {
+                railroadId: 'railroad.red',
+                hexId: GAMMA_HEX,
+                isStart: false
+            } as const
+            expect(rule.evaluate(on(placement))).toBe(undefined)
+        })
+    })
+
+    describe('connection (Intercolonial, Greater Germany)', () => {
+        const rule = connectionRule({
+            id: 'bonus.usa.transcontinental',
+            printedName: 'Alpha to Gamma',
+            amount: 8,
+            cityIds: [ALPHA, BETA, GAMMA]
+        })
+        // Red from Alpha to Beta; Blue from Beta, its last locomotive going into Gamma.
+        const before: Track = {
+            [ALPHA_HEX]: ['railroad.red'],
+            [MOUNTAIN_HEX]: ['railroad.red'],
+            'hex.usa.2-2': ['railroad.red'],
+            [BETA_HEX]: ['railroad.red', 'railroad.blue']
+        }
+        const completing = {
+            railroadId: 'railroad.blue',
+            hexId: GAMMA_HEX,
+            isStart: false
+        } as const
+
+        it('pays the placement after which the named cities are one network, once', () => {
+            expect(rule.claims).toBe('connection')
+            expect(rule.evaluate(on(completing, before))).toEqual({
+                bonusId: 'bonus.usa.transcontinental',
+                amount: 8
+            })
+        })
+
+        it('pays nothing once claimed', () => {
+            const claimed = on(completing, before, {
+                connectionClaim: { playerId: 'p2', amount: 8 }
+            })
+            expect(rule.evaluate(claimed)).toBe(undefined)
+        })
+
+        it('pays nothing while a named city is still apart, or for a placement after the network exists', () => {
+            const elsewhere = {
+                railroadId: 'railroad.red',
+                hexId: 'hex.usa.0-0',
+                isStart: false
+            } as const
+            expect(rule.evaluate(on(elsewhere, before))).toBe(undefined)
+            const after: Track = { ...before, [GAMMA_HEX]: ['railroad.blue'] }
+            expect(rule.evaluate(on(elsewhere, after))).toBe(undefined)
+        })
     })
 })

@@ -1,5 +1,5 @@
 import { HexOrientation } from '@tabletop/common'
-import { BoardMap, type City, type Hex, type MapDefinition } from '../data/boardMap.js'
+import { BoardMap, type City, type CityId, type Hex, type MapDefinition } from '../data/boardMap.js'
 import type { HexId } from '../data/hexes.js'
 
 // A small flat map for the specs, so flat geometry, impassable sides and a two-cell hex are
@@ -16,12 +16,16 @@ import type { HexId } from '../data/hexes.js'
 //   drow 6  0-6        (2-6)
 //   drow 7        1-7         3-7
 //
-// Alpha at 0-2; 1-1 a mountain, 1-3 (A) the Alps, 1-5 (L) long-distance; Gamma's hex 2-4 also
+// Alpha at 0-2 prints the Chicago bonus id and Beta the $5 one, so the bonus factories can be
+// tried here with amounts of their own; 1-1 a mountain, 1-3 (A) the Alps, 1-5 (L) long-distance; Gamma's hex 2-4 also
 // covers the cell 2-6; an impassable side (x) parts 0-4 from 1-5.
 
 export const ALPHA_HEX: HexId = 'hex.usa.0-2'
 export const BETA_HEX: HexId = 'hex.usa.3-3'
 export const GAMMA_HEX: HexId = 'hex.usa.2-4'
+export const ALPHA: CityId = 'city.usa.alpha'
+export const BETA: CityId = 'city.usa.beta'
+export const GAMMA: CityId = 'city.usa.gamma'
 export const MOUNTAIN_HEX: HexId = 'hex.usa.1-1'
 export const ALPS_HEX: HexId = 'hex.usa.1-3'
 export const LONG_DISTANCE_HEX: HexId = 'hex.usa.1-5'
@@ -33,7 +37,7 @@ const FIXTURE_CITIES: readonly City[] = [
         hexId: ALPHA_HEX,
         startColours: ['railroad.red'],
         capacity: 2,
-        bonus: null,
+        bonus: 'bonus.usa.chicago',
         groups: []
     },
     {
@@ -42,7 +46,7 @@ const FIXTURE_CITIES: readonly City[] = [
         hexId: BETA_HEX,
         startColours: ['railroad.blue'],
         capacity: 1,
-        bonus: null,
+        bonus: 'bonus.usa.five-dollar',
         groups: []
     },
     {

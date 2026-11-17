@@ -11,6 +11,9 @@ export const CHICAGO_CITY_ID: CityId = 'city.usa.chicago'
 
 const WESTERNMOST_COUNT = 3
 
+// R-8 (Germany): Berlin's id; it reads as a CityId once Germany's map key is known.
+const BERLIN: ReadonlySet<string> = new Set(['city.de.berlin'])
+
 // R-4.2.3: Yellow's westernmost rule is the USA board's; no other map prints it.
 const WESTERNMOST_MAP: MapId = 'map.usa'
 
@@ -49,7 +52,7 @@ export function mayStartIn(
     }
     return (
         !hasTrack(state.track, railroadId) &&
-        cityFitsStartRule(startRuleOf(state, railroadId), city, state.track)
+        cityFitsStartRule(startRuleOf(state, railroadId), city, railroadId, state.track)
     )
 }
 
@@ -61,7 +64,13 @@ function startRuleOf(state: HydratedRideTheRailsGameState, railroadId: RailroadI
     return introduction.startRule
 }
 
-function cityFitsStartRule(startRule: StartRule, city: City, track: Track) {
+// R-4.2: whether the city meets the railroad's start rule, capacity aside.
+export function cityFitsStartRule(
+    startRule: StartRule,
+    city: City,
+    railroadId: RailroadId,
+    track: Track
+): boolean {
     switch (startRule) {
         // R-4.2.1: Red and Blue never share a city, which the East Coast capacity of 1 ensures.
         case 'east-coast-apart':
@@ -82,5 +91,12 @@ function cityFitsStartRule(startRule: StartRule, city: City, track: Track) {
         // R-4.2.5: any city with room, which the placement test checks.
         case 'any-city':
             return true
+        // R-4.2, R-8: an expansion map's introduction panel starts a railroad in a city printed in
+        // its colour.
+        case 'printed-colour':
+            return city.startColours.includes(railroadId)
+        // R-8 (Germany): in a city of its colour, or in Berlin.
+        case 'printed-colour-or-berlin':
+            return city.startColours.includes(railroadId) || BERLIN.has(city.id)
     }
 }

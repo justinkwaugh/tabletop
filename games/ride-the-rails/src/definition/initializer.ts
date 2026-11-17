@@ -78,8 +78,8 @@ export class RideTheRailsGameInitializer
             roundManager,
             phaseManager,
             track: {},
-            // R-1.3.2: a passenger on every city, kept in id order.
-            passengers: inCityIdOrder(boardMap(mapId).cities.map((city) => city.id))
+            // R-1.3.2: a passenger on every city but those the map leaves empty, in id order.
+            passengers: inCityIdOrder(boardMap(mapId).setupPassengerCityIds())
         })
 
         const hydrated = new HydratedRideTheRailsGameState(rideTheRailsGameState)

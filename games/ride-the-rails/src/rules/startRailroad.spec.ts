@@ -6,7 +6,8 @@ import { USA_CITIES } from '../data/usaMap.js'
 import type { Track } from '../model/gameState.js'
 import { buildState } from '../testing/fixtures.js'
 import { placementTest, startCityIds } from './placement.js'
-import { westernmostOccupiedCities } from './startRailroad.js'
+import { ALPHA, BETA, FLAT_FIXTURE_MAP, GAMMA } from '../testing/flatFixtureMap.js'
+import { cityFitsStartRule, westernmostOccupiedCities } from './startRailroad.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -289,5 +290,36 @@ describe('the cities a railroad may start in now (R-4.2)', () => {
                 )
             }
         }
+    })
+})
+
+// R-4.2, R-8: the expansion maps start a railroad in a city printed in its colour.
+describe('start rules by printed colour (R-4.2, R-8)', () => {
+    const alpha = FLAT_FIXTURE_MAP.city(ALPHA)
+    const beta = FLAT_FIXTURE_MAP.city(BETA)
+    const gamma = FLAT_FIXTURE_MAP.city(GAMMA)
+
+    it('printed-colour: starts a railroad only in a city printing its colour', () => {
+        expect(cityFitsStartRule('printed-colour', alpha, 'railroad.red', {})).toBe(true)
+        expect(cityFitsStartRule('printed-colour', alpha, 'railroad.blue', {})).toBe(false)
+        expect(cityFitsStartRule('printed-colour', beta, 'railroad.blue', {})).toBe(true)
+        expect(cityFitsStartRule('printed-colour', gamma, 'railroad.red', {})).toBe(false)
+    })
+
+    it('printed-colour-or-berlin: starts a railroad in a city printing its colour, as printed-colour', () => {
+        expect(cityFitsStartRule('printed-colour-or-berlin', alpha, 'railroad.red', {})).toBe(true)
+        expect(cityFitsStartRule('printed-colour-or-berlin', alpha, 'railroad.blue', {})).toBe(
+            false
+        )
+        expect(cityFitsStartRule('printed-colour-or-berlin', gamma, 'railroad.purple', {})).toBe(
+            false
+        )
+    })
+
+    it('keeps the USA starts on their own rules, whatever colours the cities print', () => {
+        const chicago = USA_CITIES.find((city) => city.id === 'city.usa.chicago')
+        expect(chicago?.startColours).toContain('railroad.yellow')
+        expect(cityFitsStartRule('west-coast', chicago ?? alpha, 'railroad.yellow', {})).toBe(false)
+        expect(cityFitsStartRule('any-city', alpha, 'railroad.black', {})).toBe(true)
     })
 })

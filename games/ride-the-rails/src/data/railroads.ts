@@ -37,6 +37,8 @@ export type StartRule =
     | 'chicago-or-westernmost'
     | 'west-coast'
     | 'any-city'
+    | 'printed-colour'
+    | 'printed-colour-or-berlin'
 
 export type RailroadIntroduction = {
     readonly railroadId: RailroadId

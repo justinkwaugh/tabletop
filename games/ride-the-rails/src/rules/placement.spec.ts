@@ -5,7 +5,15 @@ import { USA_HEXES } from '../data/usaMap.js'
 import { PhaseName } from '../definition/phases.js'
 import type { HydratedRideTheRailsGameState, Track } from '../model/gameState.js'
 import { buildState, type StateRecipe } from '../testing/fixtures.js'
-import { hasLegalPlacement, legalPlacements, placementsLeft, placementTest } from './placement.js'
+import { FLAT_FIXTURE_MAP, LONG_DISTANCE_HEX } from '../testing/flatFixtureMap.js'
+import {
+    groupHexesHeld,
+    hasLegalPlacement,
+    legalPlacements,
+    longDistanceRefusal,
+    placementsLeft,
+    placementTest
+} from './placement.js'
 
 const NEW_YORK: HexId = 'hex.usa.6-60'
 const PHILADELPHIA: HexId = 'hex.usa.7-57'
@@ -206,7 +214,7 @@ describe('the placement test', () => {
                 }
             })
             expect(placementTest(state, 'p1', 'railroad.red', BALTIMORE)).toEqual(
-                refused('east-coast-cities-held')
+                refused('group-limit-reached')
             )
         })
 
@@ -229,7 +237,7 @@ describe('the placement test', () => {
                 }
             })
             expect(placementTest(state, 'p1', 'railroad.black', BALTIMORE)).toEqual(
-                refused('east-coast-cities-held')
+                refused('group-limit-reached')
             )
         })
 
@@ -436,5 +444,52 @@ describe('legal placements (R-3.2, R-4.1, R-4.2)', () => {
         expect(placements.some((placement) => placement.railroadId === 'railroad.orange')).toBe(
             true
         )
+    })
+})
+
+describe('long-distance hexes (R-8, Australia)', () => {
+    const longDistance = FLAT_FIXTURE_MAP.hex(LONG_DISTANCE_HEX)
+    const plain = FLAT_FIXTURE_MAP.hex('hex.usa.0-0')
+
+    it('takes a long-distance hex only as the turn’s first placement', () => {
+        expect(longDistanceRefusal({ placed: 0, usedMountain: false }, longDistance)).toBe(
+            undefined
+        )
+        expect(longDistanceRefusal({ placed: 1, usedMountain: false }, longDistance)).toBe(
+            'long-distance-not-first'
+        )
+        expect(longDistanceRefusal({ placed: 1, usedMountain: false }, plain)).toBe(undefined)
+    })
+
+    it('refuses every placement once the turn has made a long-distance one', () => {
+        const after = { placed: 1, usedMountain: false, usedLongDistance: true } as const
+        expect(longDistanceRefusal(after, plain)).toBe('long-distance-ended-turn')
+        expect(longDistanceRefusal(after, longDistance)).toBe('long-distance-ended-turn')
+    })
+
+    it('refuses a placement in the placement test once the turn is so ended', () => {
+        const state = building({
+            shares: { p1: { 'railroad.red': 1 } },
+            track: { [NEW_YORK]: ['railroad.red'] },
+            building: { placed: 1, usedMountain: false, usedLongDistance: true }
+        })
+        expect(
+            placementTest(state, 'p1', 'railroad.red', BETWEEN_NEW_YORK_AND_PHILADELPHIA)
+        ).toEqual(refused('long-distance-ended-turn'))
+        expect(hasLegalPlacement(state, 'p1')).toBe(false)
+    })
+})
+
+describe('group limits (R-4.1.4, R-8)', () => {
+    it('counts the hexes of a group that hold the railroad', () => {
+        const track: Track = {
+            [NEW_YORK]: ['railroad.red'],
+            [PHILADELPHIA]: ['railroad.blue'],
+            [BALTIMORE]: ['railroad.red'],
+            [CHICAGO]: ['railroad.red']
+        }
+        expect(groupHexesHeld(track, 'railroad.red', 'east-coast')).toBe(2)
+        expect(groupHexesHeld(track, 'railroad.blue', 'east-coast')).toBe(1)
+        expect(groupHexesHeld(track, 'railroad.blue', 'west-coast')).toBe(0)
     })
 })

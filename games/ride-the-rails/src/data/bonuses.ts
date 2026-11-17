@@ -1,3 +1,4 @@
+import type { CityId } from './boardMap.js'
 import type { MapId } from './maps.js'
 
 export type BonusId = 'bonus.usa.chicago' | 'bonus.usa.five-dollar' | 'bonus.usa.transcontinental'
@@ -15,7 +16,24 @@ export type JunctionPricedBonus = {
     readonly otherHexAmount: number
 }
 
-export type BonusDefinition = FixedBonus | JunctionPricedBonus
+// R-8 (Toronto): one price for a railroad's first locomotive in the city, another for every
+// other placement there.
+export type StartPricedBonus = {
+    readonly id: BonusId
+    readonly printedName: string
+    readonly startAmount: number
+    readonly buildInAmount: number
+}
+
+// R-8 (Intercolonial, Greater Germany): once, when the named cities are first one network.
+export type ConnectionBonus = {
+    readonly id: BonusId
+    readonly printedName: string
+    readonly amount: number
+    readonly cityIds: readonly CityId[]
+}
+
+export type BonusDefinition = FixedBonus | JunctionPricedBonus | StartPricedBonus | ConnectionBonus
 
 // R-4.3.1
 export const CHICAGO_BONUS: FixedBonus = {

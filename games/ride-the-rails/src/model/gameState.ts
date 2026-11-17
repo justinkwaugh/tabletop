@@ -33,11 +33,20 @@ export const TranscontinentalClaim = Type.Object({
     amount: Type.Integer({ minimum: 1 })
 })
 
-// R-3.2.3, R-3.2.4: what the placement limit consults during one building turn.
+// R-8 (Intercolonial, Greater Germany): a map's connection bonus is paid once.
+export type ConnectionClaim = Type.Static<typeof ConnectionClaim>
+export const ConnectionClaim = Type.Object({
+    playerId: Type.String(),
+    amount: Type.Integer({ minimum: 1 })
+})
+
+// R-3.2.3, R-3.2.4: what the placement limit consults during one building turn; R-8: a
+// long-distance placement ends the turn, and only such a turn holds the mark.
 export type BuildingTurn = Type.Static<typeof BuildingTurn>
 export const BuildingTurn = Type.Object({
     placed: Type.Integer({ minimum: 0 }),
-    usedMountain: Type.Boolean()
+    usedMountain: Type.Boolean(),
+    usedLongDistance: Type.Optional(Type.Literal(true))
 })
 
 // R-3.3.6: passengers are identical, so state keeps the cities holding one, in id order.
@@ -79,6 +88,7 @@ export const RideTheRailsGameState = Type.Refine(
                     track: Track,
                     passengers: Type.Array(CityId, { uniqueItems: true }),
                     transcontinental: Type.Optional(TranscontinentalClaim),
+                    connectionClaim: Type.Optional(ConnectionClaim),
                     building: Type.Optional(BuildingTurn)
                 })
             ])
@@ -114,6 +124,7 @@ export class HydratedRideTheRailsGameState
     declare track: Track
     declare passengers: CityId[]
     declare transcontinental?: TranscontinentalClaim
+    declare connectionClaim?: ConnectionClaim
     declare building?: BuildingTurn
 
     constructor(data: RideTheRailsGameState) {

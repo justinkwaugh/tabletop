@@ -7,7 +7,19 @@ import {
     RAILROADS,
     RailroadId
 } from './railroads.js'
-import { PLACEMENT_LIMITS, placementLimit } from './placementLimits.js'
+import {
+    chargesMountain,
+    GROUP_LIMITS,
+    lowersLimit,
+    PLACEMENT_LIMITS,
+    placementLimit,
+    type MapPlacementLimits
+} from './placementLimits.js'
+import { BONUS_RULES } from '../rules/bonuses.js'
+import { ROUND_END_PASSENGER_CITY } from '../rules/endOfRound.js'
+import { ALPHA_HEX, FLAT_FIXTURE_MAP, MOUNTAIN_HEX } from '../testing/flatFixtureMap.js'
+import { BOARD_MAPS } from './boardMaps.js'
+import { MAP_IDS, MAP_KEY_OF } from './maps.js'
 import { BONUSES, CHICAGO_BONUS, FIVE_DOLLAR_BONUS, TRANSCONTINENTAL_BONUS } from './bonuses.js'
 
 function duplicatesOf(ids: readonly string[]): string[] {
@@ -162,5 +174,63 @@ describe('duplicate detection', () => {
         expect(duplicatesOf(['railroad.red', 'railroad.blue', 'railroad.red'])).toEqual([
             'railroad.red'
         ])
+    })
+})
+
+describe('group limits (R-4.1.4, R-8)', () => {
+    it('lets a railroad hold at most two East Coast cities on the USA map', () => {
+        expect(GROUP_LIMITS['map.usa']).toEqual([{ group: 'east-coast', perRailroad: 2 }])
+    })
+})
+
+describe('the mountain cost (R-3.2.4, R-8)', () => {
+    const MOUNTAIN = 'hex.usa.6-56'
+    const PLAIN = 'hex.usa.7-55'
+    const CITY = 'hex.usa.7-57'
+
+    it('lowers the USA limit for any railroad’s mountain placement, and for no other', () => {
+        for (const railroadId of RAILROAD_IDS) {
+            expect(lowersLimit('map.usa', railroadId, MOUNTAIN)).toBe(true)
+            expect(lowersLimit('map.usa', railroadId, PLAIN)).toBe(false)
+            expect(lowersLimit('map.usa', railroadId, CITY)).toBe(false)
+        }
+    })
+
+    it('spares the railroads a map exempts, on the fixture map', () => {
+        const limits: MapPlacementLimits = {
+            byPlayerCount: [{ playerCount: 3, limit: 7 }],
+            mountainReduction: 2,
+            mountainExempt: ['railroad.orange']
+        }
+        const mountain = FLAT_FIXTURE_MAP.hex(MOUNTAIN_HEX)
+        expect(chargesMountain(limits, 'railroad.orange', mountain)).toBe(false)
+        expect(chargesMountain(limits, 'railroad.red', mountain)).toBe(true)
+        expect(chargesMountain(limits, 'railroad.red', FLAT_FIXTURE_MAP.hex(ALPHA_HEX))).toBe(false)
+    })
+
+    it('exempts no railroad on the USA map', () => {
+        expect(PLACEMENT_LIMITS['map.usa'].mountainExempt ?? []).toEqual([])
+    })
+})
+
+describe('every per-map table (R-8)', () => {
+    it('has a row for every map id the code knows, and no other', () => {
+        const tables: Record<string, object> = {
+            BOARD_MAPS,
+            MAP_KEY_OF,
+            RAILROAD_INTRODUCTIONS,
+            PLACEMENT_LIMITS,
+            GROUP_LIMITS,
+            BONUSES,
+            BONUS_RULES,
+            ROUND_END_PASSENGER_CITY
+        }
+        for (const [name, table] of Object.entries(tables)) {
+            expect([name, Object.keys(table)]).toEqual([name, [...MAP_IDS]])
+        }
+    })
+
+    it('has no Paris Travels on the USA map', () => {
+        expect(ROUND_END_PASSENGER_CITY['map.usa']).toBe(null)
     })
 })

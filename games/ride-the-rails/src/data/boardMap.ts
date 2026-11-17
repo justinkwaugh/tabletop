@@ -171,6 +171,13 @@ export class BoardMap {
         }
     }
 
+    // R-1.3.2, R-8: the cities that take a passenger at setup, in the map table's order.
+    setupPassengerCityIds(): CityId[] {
+        return this.cities
+            .map((city) => city.id)
+            .filter((cityId) => !this.citiesWithoutSetupPassenger.includes(cityId))
+    }
+
     groupsOf(hexId: HexId): readonly HexGroup[] {
         const hex = this.hex(hexId)
         return hex.terrain === 'city' ? this.city(hex.cityId).groups : (hex.groups ?? [])

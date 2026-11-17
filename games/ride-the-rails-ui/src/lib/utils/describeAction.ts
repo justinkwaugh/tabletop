@@ -106,7 +106,8 @@ function moneyList(money: readonly PlayerMoney[]): Description {
 
 export const FINISH_BUILDING_REASONS: Record<FinishBuildingReason, string> = {
     limit: 'placement limit reached',
-    'nothing-legal': 'no legal placement left'
+    'nothing-legal': 'no legal placement left',
+    'long-distance': 'long-distance placement made'
 }
 
 // R-3.1
