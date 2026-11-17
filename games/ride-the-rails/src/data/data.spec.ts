@@ -19,7 +19,7 @@ import { BONUS_RULES } from '../rules/bonuses.js'
 import { ROUND_END_PASSENGER_CITY } from '../rules/endOfRound.js'
 import { ALPHA_HEX, FLAT_FIXTURE_MAP, MOUNTAIN_HEX } from '../testing/flatFixtureMap.js'
 import { BOARD_MAPS } from './boardMaps.js'
-import { MAP_IDS, MAP_KEY_OF } from './maps.js'
+import { MAP_DETAILS, MAP_IDS, MAP_KEY_OF } from './maps.js'
 import { BONUSES, CHICAGO_BONUS, FIVE_DOLLAR_BONUS, TRANSCONTINENTAL_BONUS } from './bonuses.js'
 
 function duplicatesOf(ids: readonly string[]): string[] {
@@ -218,6 +218,7 @@ describe('every per-map table (R-8)', () => {
         const tables: Record<string, object> = {
             BOARD_MAPS,
             MAP_KEY_OF,
+            MAP_DETAILS,
             RAILROAD_INTRODUCTIONS,
             PLACEMENT_LIMITS,
             GROUP_LIMITS,

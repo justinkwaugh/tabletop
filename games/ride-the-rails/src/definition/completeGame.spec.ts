@@ -2,6 +2,7 @@ import { assert, GameAction, GameEngine, GameResult, validateGameResult } from '
 import { Compile } from 'typebox/compile'
 import { describe, expect, it } from 'vitest'
 import { isFinishBuilding } from '../actions/finishBuilding.js'
+import { MAP_IDS, type MapId } from '../data/maps.js'
 import { RAILROAD_IDS } from '../data/railroads.js'
 import { RideTheRailsGameStateValidator, type RideTheRailsGameState } from '../model/gameState.js'
 import { ROUND_COUNT } from '../rules/endOfRound.js'
@@ -26,20 +27,24 @@ const ALL_GAMES_TIMEOUT = 60_000
 const PLAYER_COUNTS = [3, 4, 5]
 const SEEDS = [1, 2, 3]
 
-type Script = { playerCount: number; seed: number; railroads: RailroadPreference }
+type Script = { mapId: MapId; playerCount: number; seed: number; railroads: RailroadPreference }
 
-// Three seeds that spread shares and track over every railroad, and one per player count that
-// empties the scarcest supply first.
-const SCRIPTS: Script[] = PLAYER_COUNTS.flatMap((playerCount) => [
-    ...SEEDS.map((seed): Script => ({ playerCount, seed, railroads: 'least-taken' })),
-    { playerCount, seed: 1, railroads: 'scarcest' }
-])
+// On every map (R-8), three seeds that spread shares and track over every railroad, and one per
+// player count that empties the scarcest supply first.
+const SCRIPTS: Script[] = MAP_IDS.flatMap((mapId) =>
+    PLAYER_COUNTS.flatMap((playerCount) => [
+        ...SEEDS.map((seed): Script => ({ mapId, playerCount, seed, railroads: 'least-taken' })),
+        { mapId, playerCount, seed: 1, railroads: 'scarcest' }
+    ])
+)
+
+const USA_SCRIPTS = SCRIPTS.filter((script) => script.mapId === 'map.usa')
 
 const games = new Map<string, CompleteGame>()
 
-function played({ playerCount, seed, railroads }: Script): CompleteGame {
-    const key = `${playerCount}:${seed}:${railroads}`
-    const game = games.get(key) ?? playCompleteGame(playerCount, seed, { railroads })
+function played({ mapId, playerCount, seed, railroads }: Script): CompleteGame {
+    const key = `${mapId}:${playerCount}:${seed}:${railroads}`
+    const game = games.get(key) ?? playCompleteGame(playerCount, seed, { railroads, mapId })
     games.set(key, game)
     return game
 }
@@ -87,8 +92,13 @@ function withoutId({ id: _id, ...state }: RideTheRailsGameState) {
 }
 
 describe.each(SCRIPTS)(
-    'a scripted complete game: $playerCount players, seed $seed, $railroads railroads (R-2, R-6)',
+    'a scripted complete game: $mapId, $playerCount players, seed $seed, $railroads railroads (R-2, R-6)',
     (script) => {
+        it('plays the map it was created on (R-8)', () => {
+            const { initial, final } = played(script)
+            expect([initial.mapId, final.mapId]).toEqual([script.mapId, script.mapId])
+        })
+
         it(
             'plays six rounds to the end, and the scoring gives every seat its money (R-2.1, R-6.1, R-6.2)',
             () => {
@@ -135,25 +145,6 @@ describe.each(SCRIPTS)(
         )
 
         it(
-            'never writes a state field or metadata key that only an expansion map uses (R-8, R-X.3)',
-            () => {
-                const { initial, steps, history } = played(script)
-                const states = [initial, ...steps.map((step) => step.after)]
-                const stateKeys = new Set(states.flatMap(keysIn))
-                expect(EXPANSION_STATE_FIELDS.filter((field) => stateKeys.has(field))).toEqual([])
-                const actionKeys = new Set(history.flatMap(keysIn))
-                expect(EXPANSION_METADATA_KEYS.filter((key) => actionKeys.has(key))).toEqual([])
-                const reasons: string[] = history.flatMap((action) =>
-                    isFinishBuilding(action) && action.metadata ? [action.metadata.reason] : []
-                )
-                expect(
-                    reasons.filter((reason) => EXPANSION_FINISH_REASONS.includes(reason))
-                ).toEqual([])
-            },
-            COMPLETE_GAME_TIMEOUT
-        )
-
-        it(
             'undoes every action in reverse back to setup, matching the state before each user action (R-5)',
             () => {
                 const { initial, steps, final } = played(script)
@@ -169,6 +160,30 @@ describe.each(SCRIPTS)(
                     expect(state).toEqual(step.before)
                 }
                 expect(state).toEqual(initial)
+            },
+            COMPLETE_GAME_TIMEOUT
+        )
+    }
+)
+
+describe.each(USA_SCRIPTS)(
+    'a scripted USA game: $playerCount players, seed $seed, $railroads railroads (R-8.1)',
+    (script) => {
+        it(
+            'never writes a state field or metadata key that only an expansion map uses (R-8, R-X.3)',
+            () => {
+                const { initial, steps, history } = played(script)
+                const states = [initial, ...steps.map((step) => step.after)]
+                const stateKeys = new Set(states.flatMap(keysIn))
+                expect(EXPANSION_STATE_FIELDS.filter((field) => stateKeys.has(field))).toEqual([])
+                const actionKeys = new Set(history.flatMap(keysIn))
+                expect(EXPANSION_METADATA_KEYS.filter((key) => actionKeys.has(key))).toEqual([])
+                const reasons: string[] = history.flatMap((action) =>
+                    isFinishBuilding(action) && action.metadata ? [action.metadata.reason] : []
+                )
+                expect(
+                    reasons.filter((reason) => EXPANSION_FINISH_REASONS.includes(reason))
+                ).toEqual([])
             },
             COMPLETE_GAME_TIMEOUT
         )
@@ -191,7 +206,12 @@ describe('across the scripted complete games', () => {
     it.each(PLAYER_COUNTS)(
         'with %i players, a building turn opens with nothing legal once the seat’s railroads have empty supplies, and finishes by itself (R-1.1, R-3.2.4)',
         (playerCount) => {
-            const { game, steps } = played({ playerCount, seed: 1, railroads: 'scarcest' })
+            const { game, steps } = played({
+                mapId: 'map.usa',
+                playerCount,
+                seed: 1,
+                railroads: 'scarcest'
+            })
             const opensEmpty = (action: GameAction) =>
                 isFinishBuilding(action) && action.metadata?.placed === 0
             const step = steps.find((candidate) => candidate.processed.some(opensEmpty))

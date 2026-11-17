@@ -24,7 +24,7 @@ import {
     type RideTheRailsPlayerState
 } from '../model/playerState.js'
 import { boardMap } from '../data/boardMaps.js'
-import type { MapId } from '../data/maps.js'
+import { mapFromConfig } from './config.js'
 import { PhaseName } from './phases.js'
 import { RideTheRailsColors } from './colors.js'
 import { RideTheRailsInfo } from './info.js'
@@ -67,8 +67,8 @@ export class RideTheRailsGameInitializer
         const phaseManager = HydratedPhaseManager.generate()
         phaseManager.startPhase(PhaseName.TakeShare, state.actionCount)
 
-        // R-8.1: games are created on the USA map.
-        const mapId: MapId = 'map.usa'
+        // R-8: the map chosen at creation, the USA when the game names none.
+        const mapId = mapFromConfig(game.config)
         const rideTheRailsGameState: RideTheRailsGameState = Object.assign(state, {
             players: orderedPlayers,
             machineState: MachineState.TakingShares,
