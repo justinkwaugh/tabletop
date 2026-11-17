@@ -85,7 +85,7 @@ export interface MoveContext {
 }
 
 export interface MovePanel {
-    /** R-3.7.1 "3 of 4 steps left" */
+    /** R-3.7.1 "3 of 4 steps left"; R-3.7.3 "Godspeed." once the steps have ended. */
     readonly line: string
     readonly stage: MoveStageName
     /** Empty while a popup waits for its answer. */
@@ -102,6 +102,9 @@ interface MoveView {
     readonly rows: readonly PanelChoice[]
     readonly popup?: FlowPopup
 }
+
+/** R-3.7.3 The Godspeed stage names itself; its lit spaces and "No Godspeed" say the rest. */
+const GodspeedLine = 'Godspeed.'
 
 /** R-4.2 A step's medium in words. */
 function words(id: string): string {
@@ -640,7 +643,10 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             return undefined
         }
         return {
-            line: `${offers.stepsLeft} of ${offers.allowance} steps left`,
+            line:
+                view.stage === 'godspeed'
+                    ? GodspeedLine
+                    : `${offers.stepsLeft} of ${offers.allowance} steps left`,
             stage: view.stage,
             rows: view.popup ? [] : view.rows,
             ...(view.popup ? { popup: view.popup } : {}),
